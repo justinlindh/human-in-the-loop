@@ -134,3 +134,33 @@ export function mergeStatic(root) {
   }
   return out;
 }
+
+// Merges the given meshes into one mesh per material (and shadow flags), in `root`'s space.
+// The inputs are left untouched so they can be shown again when the batch is dropped.
+export function batchMeshes(meshes, root) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const buckets = new Map();
+  for (const o of meshes) {
+    const key = `${o.material.uuid}|${o.castShadow ? 1 : 0}${o.receiveShadow ? 1 : 0}`;
+    let b = buckets.get(key);
+    if (!b) { b = { material: o.material, cast: o.castShadow, receive: o.receiveShadow, noAO: !!o.userData.noAO, geos: [] }; buckets.set(key, b); }
+    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
+    if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+    b.geos.push(g);
+  }
+  const out = new THREE.Group();
+  out.name = 'batch';
+  for (const b of buckets.values()) {
+    const g = mergeGeometries(b.geos, false);
+    for (const x of b.geos) x.dispose();
+    if (!g) continue;
+    const m = new THREE.Mesh(g, b.material);
+    m.castShadow = b.cast; m.receiveShadow = b.receive;
+    if (b.noAO) m.userData.noAO = true;
+    out.add(m);
+  }
+  return out;
+}
