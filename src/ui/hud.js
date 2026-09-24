@@ -1,8 +1,8 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
-import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
+import { B, trendName, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel, stalledProject } from './panels/common.js';
-import { GOALS, strainOf, STRAIN_WARN } from './v2content.js';
+import { GOALS, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -181,7 +181,7 @@ export function createHud({ root, controls, ui }) {
       const k = h('span.k');
       tray.append(h('div.tray-card.alert', { onclick: () => ui.open('ops') },
         h('div.t', null, h('span', null, icon('tray.outage'), ` ${p?.name ?? 'Product'} is down`), k),
-        h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : (INCIDENT_LABEL[o.kind] ?? 'Outage') })));
+        h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : incidentLabel(s, o.kind, 'Outage') })));
       trayBinds.push((st) => st.outage && setText(k, `SEV${6 - st.outage.severity} · ${st.outage.weeks}w`));
     }
     for (const j of s.projects.slice(0, 4)) {

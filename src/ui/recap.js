@@ -2,8 +2,8 @@
 // happened most recently. Everything is read from the loaded state; nothing is stored for it.
 import { h, fmtMoney, fmtNum, dateOf } from './dom.js';
 import { icon } from './icons.js';
-import { INCIDENT_LABEL, capacityOf } from './content.js';
-import { ERA, ERAS, GOAL } from './v2content.js';
+import { capacityOf } from './content.js';
+import { ERA, ERAS, GOAL, incidentLabel } from './v2content.js';
 import { needsYou, weeklyNet, liveProducts, totalMrr, totalCustomers } from './hud.js';
 
 const RECENT = 4;
@@ -32,7 +32,7 @@ export function recentMoments(s) {
   }
   for (const inc of s.incidentLog ?? []) {
     const prod = s.products?.find((p) => p.id === inc.productId);
-    const what = INCIDENT_LABEL[inc.kind] ?? 'Incident';
+    const what = incidentLabel(s, inc.kind, 'Incident');
     out.push({ week: inc.week, icon: inc.caught ? 'caught' : 'incident', text: inc.caught ? `Caught before it hurt: ${what.toLowerCase()}${prod ? ` on ${prod.name}` : ''}` : `${what}${prod ? ` on ${prod.name}` : ''}` });
   }
   out.sort((a, b) => b.week - a.week);

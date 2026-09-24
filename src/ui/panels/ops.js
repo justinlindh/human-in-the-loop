@@ -1,5 +1,6 @@
 import { h, setText, setWidth, fmtMoney, toggleClass, setClass, dateOf } from '../dom.js';
-import { B, INCIDENT_LABEL } from '../content.js';
+import { B } from '../content.js';
+import { incidentLabel } from '../v2content.js';
 import { postureParts as simPostureParts } from '../../sim/incidents.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
@@ -32,7 +33,7 @@ export function opsPanel(ctx) {
         outageCard = h('div.card.outage', null,
           h('div.row', null, icon('tray.outage', { size: 24 }), h('div', null,
             h('b.otitle', { text: `${p?.name ?? 'A product'} is down` }),
-            h('div.small', { text: INCIDENT_LABEL[o.kind] ?? o.kind })),
+            h('div.small', { text: incidentLabel(s, o.kind) })),
           h('span.spacer'), severityPips(o.severity), wk),
           o.unrecoverable
             ? h('div.nobody', { text: 'Nobody here can debug this. The people who understood it are gone, or were never here.' })
@@ -118,7 +119,7 @@ export function opsPanel(ctx) {
           const p = s.products.find((x) => x.id === e.productId);
           return h(`tr${e.caught ? '.caught' : ''}`, null,
             h('td.num', { text: `${d.year} W${d.week}` }),
-            h('td', { text: INCIDENT_LABEL[e.kind] ?? e.kind }),
+            h('td', { text: incidentLabel(s, e.kind) }),
             h('td', { text: p?.name ?? '-' }),
             h('td', null, severityPips(e.severity)),
             h('td', null, e.caught ? h('span.pill.good', null, icon('caught', { size: 12 }), ' Caught') : h('span.pill.bad', { text: 'Hit' })));
