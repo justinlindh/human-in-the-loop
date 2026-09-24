@@ -523,6 +523,65 @@ function addExpansion(L, statics) {
 
 // Builds one stage shell: slab, floor, walls, windows, and the door. Furniture is placed separately.
 const COLUMN_FADE = 0.25;      // opacity of a column standing in front of someone
+
+// All of a stage's columns in two instanced pairs (shaft and cap): an opaque pair that casts
+// shadows, and a see-through pair with a per-instance opacity for columns fading in or out.
+// A column moves between the pairs as it fades, so any number of columns costs 2 to 4 draws.
+function makeColumns(L, columns) {
+  const H = L.wallH, n = columns.length;
+  const shaft = roundedBox(0.34, H, 0.34, 0.03).translate(0, H / 2, 0);
+  const capGeo = roundedBox(0.38, 0.04, 0.38, 0.01).translate(0, H + 0.02, 0);
+  const faded = (base) => {
+    const m = base.clone();
+    m.transparent = true;
+    m.depthWrite = false;
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aOpacity;\nvarying float vOpacity;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvOpacity = aOpacity;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vOpacity;')
+        .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.a *= vOpacity;');
+    };
+    m.customProgramCacheKey = () => 'hitl-column-fade';
+    return m;
+  };
+  const wall = wallMatFor(L), cap = mat('slab_edge');
+  const fadeWall = faded(wall), fadeCap = faded(cap);
+  const make = (geo, material, cast) => {
+    const m = new THREE.InstancedMesh(geo, material, n);
+    m.castShadow = cast; m.receiveShadow = true; m.count = 0; m.frustumCulled = false;
+    return m;
+  };
+  const solid = [make(shaft, wall, true), make(capGeo, cap, true)];
+  const see = [make(shaft.clone(), fadeWall, false), make(capGeo.clone(), fadeCap, false)];
+  const opacity = new THREE.InstancedBufferAttribute(new Float32Array(n).fill(1), 1);
+  opacity.setUsage(THREE.DynamicDrawUsage);
+  for (const m of see) m.geometry.setAttribute('aOpacity', opacity);
+  const group = new THREE.Group();
+  group.name = 'columns';
+  group.add(...solid, ...see);
+  const mtx = new THREE.Matrix4();
+  let key = '';
+  function refresh() {
+    const k = columns.map((c) => (c.fade > 0.99 ? 's' : 'f')).join('');
+    let si = 0, fi = 0;
+    for (const c of columns) {
+      mtx.makeTranslation(c.x, 0, c.z);
+      if (c.fade > 0.99) { if (k !== key) for (const m of solid) m.setMatrixAt(si, mtx); si++; }
+      else { if (k !== key) for (const m of see) m.setMatrixAt(fi, mtx); opacity.setX(fi, c.fade); fi++; }
+    }
+    if (k !== key) {
+      for (const m of solid) { m.count = si; m.visible = si > 0; m.instanceMatrix.needsUpdate = true; }
+      for (const m of see) { m.count = fi; m.visible = fi > 0; m.instanceMatrix.needsUpdate = true; }
+      key = k;
+    }
+    if (fi) opacity.needsUpdate = true;
+  }
+  refresh();
+  return {
+    group, refresh,
+    dispose() { for (const m of [...solid, ...see]) m.geometry.dispose(); fadeWall.dispose(); fadeCap.dispose(); },
+  };
+}
 const LEAVE_S = 0.5;           // moving office: the old one drops away
 const ENTER_S = 0.9;           // then the new one lowers in
 const DROP_FROM = 3.5;         // metres above its place the new office starts
@@ -568,18 +627,7 @@ function buildStage(stageIdx, screens, expansion = 0) {
     } else {
       // Structural columns run to the wall tops and are cut there with the same dark cap as the
       // walls, so they read as holding up the floor above. Slim, so people behind stay visible.
-      // Each column has its own material and fades while it stands in front of someone.
-      const H = L.wallH;
-      const m = wallMatFor(L).clone();
-      m.transparent = true;
-      const cap = mat('slab_edge').clone();
-      cap.transparent = true;
-      const col = new THREE.Group();
-      col.add(mesh(roundedBox(0.34, H, 0.34, 0.03), m, 0, H / 2, 0));
-      col.add(mesh(roundedBox(0.38, 0.04, 0.38, 0.01), cap, 0, H + 0.02, 0));
-      col.position.set(c.x, 0, c.z);
-      col.userData = { mats: [m, cap], fade: 1, h: H };
-      columns.push(col);
+      columns.push({ x: c.x, z: c.z, h: L.wallH, fade: 1 });
       statics.add(mesh(roundedBox(0.4, 0.1, 0.4, 0.02), mat('baseboard'), c.x, 0.05, c.z));
     }
   }
@@ -588,7 +636,8 @@ function buildStage(stageIdx, screens, expansion = 0) {
   statics.add(mesh(roundedBox(0.9, 0.02, 0.6, 0.01), mat('rug_teal'), dm.x, 0.011, dm.z + 0.1, { cast: false }));
 
   root.add(mergeStatic(statics));
-  for (const c of columns) root.add(c);
+  const columnSet = columns.length ? makeColumns(L, columns) : null;
+  if (columnSet) root.add(columnSet.group);
   for (const key of WALL_KEYS) {
     const merged = mergeStatic(walls[key]);
     merged.position.copy(walls[key].position);
@@ -601,7 +650,7 @@ function buildStage(stageIdx, screens, expansion = 0) {
   root.add(furniture);
 
   return {
-    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture, columns,
+    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture, columns, columnSet,
     desks: [], zones: { door: inward(L) }, dyn: { screens: [], racks: [], wallScreens: [], meetingChairs: [] },
     bounds: new THREE.Box3(new THREE.Vector3(-L.W / 2 - T, 0, -L.D / 2 - T), new THREE.Vector3(L.W / 2 + T, L.wallH, L.D / 2 + T)),
     nav: null,
@@ -758,7 +807,7 @@ export function createOffice({ parent, screens, lighting }) {
 
   function disposeStage(s) {
     holder.remove(s.root);
-    for (const c of s.columns ?? []) for (const m of c.userData.mats) m.dispose();
+    s.columnSet?.dispose();
     s.root.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); });
   }
 
@@ -1092,11 +1141,12 @@ export function createOffice({ parent, screens, lighting }) {
       if (!cur?.columns?.length) return;
       const k = 1 - Math.exp(-dt * 10);
       const a = new THREE.Vector3(), b = new THREE.Vector3(), p = new THREE.Vector3(), q = new THREE.Vector3();
+      const cp = new THREE.Vector3();
       for (const col of cur.columns) {
-        a.set(col.position.x, 0, col.position.z).project(camera);
-        b.set(col.position.x, col.userData.h, col.position.z).project(camera);
-        const half = 0.3 * Math.abs(b.y - a.y) / col.userData.h + 0.02;
-        const camD = camera.position.distanceTo(col.position);
+        a.set(col.x, 0, col.z).project(camera);
+        b.set(col.x, col.h, col.z).project(camera);
+        const half = 0.3 * Math.abs(b.y - a.y) / col.h + 0.02;
+        const camD = camera.position.distanceTo(cp.set(col.x, 0, col.z));
         let hide = false;
         for (const pos of people) {
           p.set(pos.x, 0.5, pos.z).project(camera);
@@ -1104,12 +1154,12 @@ export function createOffice({ parent, screens, lighting }) {
           q.set(pos.x, 0.5, pos.z);
           if (camera.position.distanceTo(q) > camD) { hide = true; break; }
         }
-        const f = col.userData.fade += ((hide ? COLUMN_FADE : 1) - col.userData.fade) * k;
-        for (const m of col.userData.mats) { m.opacity = f; m.depthWrite = f > 0.99; }
-        // A faded column casts no shadow: a dark streak under something barely visible reads as dirt.
-        const cast = f > 0.9;
-        if (col.userData.cast !== cast) { col.userData.cast = cast; col.traverse((o) => { if (o.isMesh) o.castShadow = cast; }); }
+        // A settled column snaps to fully solid; only a solid one casts a shadow (a dark streak
+        // under something barely visible reads as dirt).
+        col.fade += ((hide ? COLUMN_FADE : 1) - col.fade) * k;
+        if (!hide && col.fade > 0.99) col.fade = 1;
       }
+      cur.columnSet?.refresh();
     },
     // Height of the office shell while it moves in (0 when settled), so people move with it.
     get shellY() { return cur?.root.visible === false ? null : cur?.root.position.y ?? 0; },
