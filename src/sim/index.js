@@ -3,6 +3,7 @@ import './staff.js';
 import './work.js';
 import './projects.js';
 import './products.js';
+import './marketing.js';
 import './economy.js';
 
 export { createGame, FUNCTIONS, SAVE_VERSION } from './state.js';
