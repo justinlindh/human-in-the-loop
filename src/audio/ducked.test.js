@@ -6,7 +6,7 @@ function fakeCtx() {
   return {
     currentTime: 0,
     sources,
-    createBufferSource() { const s = { buffer: null, startAt: null, connect: (n) => n, start(t) { this.started = t; } }; sources.push(s); return s; },
+    createBufferSource() { const s = { buffer: null, startAt: null, offset: 0, stopped: false, connect: (n) => n, start(t, off = 0) { this.started = t; this.offset = off; }, stop(t) { this.stopped = true; this.stoppedAt = t; } }; sources.push(s); return s; },
     createGain() { return { gain: { value: 1 }, connect: (n) => n }; },
   };
 }
@@ -43,7 +43,7 @@ const cmd = { op: 'dance', file: 'musicNight/sad_lofi', gain: 0.75, at: 0.4, duc
 describe('ducked playback', () => {
   it('holds the duck while a delivered track decodes, then plays the real one and holds for its length', () => {
     const t = setup({ readyAfterMs: 1000 });
-    t.ducked.play(cmd, { wait: true });
+    t.ducked.play(cmd, { wait: true, pausable: true });
     expect(t.holds()).toEqual([{ key: 'dance', from: 0, to: Infinity }]);
     expect(t.ctx.sources).toHaveLength(0);
     for (let i = 0; i < 4; i++) t.advance(250);
@@ -55,19 +55,24 @@ describe('ducked playback', () => {
 
   it('falls back to the placeholder after about 3 s and times everything to it', () => {
     const t = setup({ readyAfterMs: null });
-    t.ducked.play(cmd, { wait: true });
+    t.ducked.play(cmd, { wait: true, pausable: true });
     for (let i = 0; i < 12; i++) t.advance(250);
     expect(t.ctx.sources).toHaveLength(1);
     const src = t.ctx.sources[0];
     expect(src.buffer.kind).toBe('placeholder');
     expect(t.timers).toHaveLength(0);
     expect(t.holds()[0].to).toBeCloseTo(src.startAt + 16);
+    // The cheer waits in the queue until it is nearly due, then goes out with absolute times.
+    t.ducked.pump();
+    expect(t.ran).toHaveLength(0);
+    t.ctx.currentTime = src.startAt + 15.9;
+    t.ducked.pump();
     expect(t.ran.map((c) => c.at)).toEqual([0.2, 1.9].map((x) => expect.closeTo(src.startAt + 16 + x, 5)));
   });
 
   it('plays at once when no track is delivered', () => {
     const t = setup({ delivered: false });
-    t.ducked.play(cmd, { wait: true });
+    t.ducked.play(cmd, { wait: true, pausable: true });
     expect(t.ctx.sources).toHaveLength(1);
     expect(t.ctx.sources[0].startAt).toBeCloseTo(0.4);
     expect(t.holds()[0].to).toBeCloseTo(16.4);
@@ -80,5 +85,34 @@ describe('ducked playback', () => {
     t.ducked.play({ op: 'play', file: 'stingers/era', gain: 1, at: 1, duck: 'stinger' });
     expect(t.holds()).toEqual([{ key: 'stinger', from: 0, to: 16 }, { key: 'stinger', from: 1, to: 17 }]);
     expect(t.ran).toHaveLength(0);
+  });
+
+  it('pauses the dance track, holds its duck and cheer, and resumes from the same spot', () => {
+    const t = setup({ delivered: false });
+    t.ducked.play(cmd, { wait: true, pausable: true });
+    const first = t.ctx.sources[0];
+    t.ctx.currentTime = 5.4;                 // 5 s into the 16 s placeholder
+    t.ducked.pause();
+    expect(first.stopped).toBe(true);
+    expect(first.stoppedAt).toBe(5.4);
+    expect(t.holds()[0].to).toBe(Infinity);  // the era bed stays down while paused
+    t.ctx.currentTime = 30;                  // long past the original end: no cheer
+    t.ducked.pump();
+    expect(t.ran).toHaveLength(0);
+    t.ducked.resume();
+    const second = t.ctx.sources[1];
+    expect(second.offset).toBeCloseTo(5);
+    expect(t.holds()[0].to).toBeCloseTo(30 + 11);
+    t.ctx.currentTime = 40.9;
+    t.ducked.pump();
+    expect(t.ran[0].at).toBeCloseTo(41.2);
+  });
+
+  it('stingers are not paused', () => {
+    const t = setup({ delivered: false });
+    t.ducked.play({ op: 'play', file: 'stingers/win', gain: 1, at: 0, duck: 'stinger' });
+    t.ducked.pause();
+    expect(t.ctx.sources[0].stopped).toBe(false);
+    expect(t.holds()[0].to).toBe(16);
   });
 });

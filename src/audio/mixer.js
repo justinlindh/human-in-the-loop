@@ -51,7 +51,8 @@ export function createMixer(ctx) {
     let prev = deepest((h) => h.from < now && h.to >= now).target;
     for (const t of times) {
       const { target, attack } = deepest((h) => h.from <= t && t < h.to);
-      if (target === prev) continue;
+      // At `now` always re-aim: the cancel above froze any ramp in flight where it stood.
+      if (target === prev && t !== now) continue;
       const ending = all.filter((h) => h.to === t && DUCK[h.key]).map((h) => DUCK[h.key].release);
       const tc = (target > prev ? (ending.length ? Math.max(...ending) : 0.6) : attack) / 3;
       g.setTargetAtTime(target, t, tc);

@@ -18,6 +18,8 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
   const badges = {};
   const labels = {};
   const newTags = {};
+  const icos = {};
+  const iconOf = {}; // menu id -> icon id when it differs from menu.<id>
   const hidden = new Set();
   const menu = h('div.menu');
   for (const m of MENU) {
@@ -26,7 +28,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     labels[m.id] = h('span.lbl', { text: m.label });
     newTags[m.id] = h('span.newtag', { text: 'New!' });
     buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
-      badge, newTags[m.id], h('span.key', { text: m.key }), h('span.ico', null, icon(`menu.${m.id}`)), labels[m.id]);
+      badge, newTags[m.id], h('span.key', { text: m.key }), icos[m.id] = h('span.ico', null, icon(`menu.${m.id}`)), labels[m.id]);
     menu.append(buttons[m.id]);
   }
   bottom.append(menu);
@@ -55,7 +57,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const inst = def.build(ctx, arg);
     const title = h('h2', { text: def.title ?? meta.label });
     const head = h('div.panel-head', null,
-      h('span.ico', null, icon(def.icon ?? `menu.${id}`, { size: 24 })), title,
+      h('span.ico', null, icon(iconOf[id] ?? def.icon ?? `menu.${id}`, { size: 24 })), title,
       h('button.btn.x', { title: 'Close (Esc)', onclick: () => close() }, icon('close')));
     const body = h('div.panel-body', null, inst.el);
     const dock = h('div.panel-dock');
@@ -110,5 +112,13 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     buttons[id].title = `${text} (${m?.key})`;
   }
 
-  return { open, close, toggle, update, setBadge, setAlarm, setVisible, setNew, setLabel, isVisible: (id) => !hidden.has(id), get current() { return current?.id ?? null; }, get dockEl() { return current?.dock ?? null; }, clearAll: () => { close(); clear(wrap); } };
+  // Swaps a menu button's icon (and its panel header's) while the button stands for something else.
+  function setIcon(id, iconId) {
+    const want = iconId === `menu.${id}` ? undefined : iconId;
+    if (!icos[id] || iconOf[id] === want) return;
+    iconOf[id] = want;
+    icos[id].replaceChildren(icon(iconId));
+  }
+
+  return { open, close, toggle, update, setBadge, setAlarm, setVisible, setNew, setLabel, setIcon, isVisible: (id) => !hidden.has(id), get current() { return current?.id ?? null; }, get dockEl() { return current?.dock ?? null; }, clearAll: () => { close(); clear(wrap); } };
 }

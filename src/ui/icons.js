@@ -13,6 +13,7 @@ export const ICONS = {
   'menu.marketing': I('📣', 'Bottom menu button', 30),
   'menu.models': I('🧠', 'Bottom menu button', 30),
   'menu.automation': I('🤖', 'Bottom menu button', 30),
+  'menu.policies': I('📜', 'Bottom menu button while it opens Policies', 30),
   'menu.ops': I('🛡️', 'Bottom menu button', 30),
   'menu.office': I('🏢', 'Bottom menu button', 30),
   'menu.reports': I('📊', 'Bottom menu button', 30),

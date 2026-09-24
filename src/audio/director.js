@@ -8,14 +8,14 @@
 //   { op: 'musicMix', level, lowpass, fade }         music level and filter
 //   { op: 'duck', key, on }                          hold or release a music duck
 //   { op: 'dance', file, gain, at, duck, expect, after }  a music night track (see musicNight)
-//   { op: 'danceMix', level }                      the dance track's level (hard duck while paused)
+//   { op: 'dancePause', paused }                   stop or resume the dance track and its cheer
 //   { op: 'preload', ids }                         start loading assets that will be needed soon
 //   { op: 'stopAll', bus }
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, DANCE_PAUSE_LEVEL, isMusicNightDecision } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -60,7 +60,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   let hadOutage = null;
   let nextPet = null, nextCoffee = null;
   let typing = 0;
-  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dance: 1, preloaded: false };
+  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
 
@@ -227,9 +227,9 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         music.level = level; music.lowpass = lowpass;
         out.push({ op: 'musicMix', level, lowpass, fade: 0.4 });
       }
-      // A paused game holds the dance track down with everything else.
-      const dl = hold || stopped ? DANCE_PAUSE_LEVEL : 1;
-      if (dl !== music.dance) { music.dance = dl; out.push({ op: 'danceMix', level: dl }); }
+      // A paused game pauses the dance track (and the dancers' cheer waits with it).
+      const dp = !!(hold || stopped);
+      if (dp !== music.dancePaused) { music.dancePaused = dp; out.push({ op: 'dancePause', paused: dp }); }
       // The genre pick for a music night: start loading the tracks so the real one plays.
       if (!music.preloaded && isMusicNightDecision(state?.pendingDecision)) {
         music.preloaded = true;

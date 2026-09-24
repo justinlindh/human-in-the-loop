@@ -109,7 +109,6 @@ export const MUSIC_NIGHT = {
   sad_lofi: { bpm: 72, key: 'Eb', mode: 'major' },
 };
 export const MUSIC_NIGHT_SECONDS = 16;
-export const DANCE_PAUSE_LEVEL = 0.08;  // the dance track's level while the game is paused
 // A pending decision that picks a music night genre: it names the reward or offers the genres.
 export function isMusicNightDecision(d) {
   if (!d) return false;

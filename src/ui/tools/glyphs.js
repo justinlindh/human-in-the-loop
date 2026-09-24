@@ -113,6 +113,7 @@ export const GLYPHS = {
   'menu.marketing': { d: D.megaphone, size: 26 },
   'menu.models': { d: D.brain, size: 26 },
   'menu.automation': { d: D.robot, size: 26 },
+  'menu.policies': { d: D.scroll, size: 26 },
   'menu.ops': { d: D.shield, size: 26 },
   'menu.office': { d: D.building, size: 26 },
   'menu.reports': { d: D.barChart, size: 26 },

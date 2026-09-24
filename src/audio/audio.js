@@ -40,7 +40,6 @@ export function createAudio({ quality = 'high' } = {}) {
       loader = createLoader(ctx);
       loops = createLoops(ctx, loader, (b) => mix.bus[b] ?? mix.bus.ambience);
       danceBus = ctx.createGain();
-      danceBus.gain.value = director.musicState.dance ?? 1;
       danceBus.connect(mix.bus.sfx);
       ducked = createDucked(ctx, loader, { mix, out: (c) => (c.op === 'dance' ? danceBus : mix.bus[c.bus] ?? mix.bus.sfx), run: (cmds) => run(cmds) });
       mix.setUser('master', user.master);
@@ -148,8 +147,8 @@ export function createAudio({ quality = 'high' } = {}) {
           }
         } else if (c.op === 'music') startMusic(c);
         else if (c.op === 'loop') loops.set(c);
-        else if (c.op === 'dance') ducked.play(c, { wait: true, onStart: (src) => { lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt }; } });
-        else if (c.op === 'danceMix') danceBus.gain.setTargetAtTime(c.level, ctx.currentTime, 0.1);
+        else if (c.op === 'dance') ducked.play(c, { wait: true, pausable: true, onStart: (src) => { lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt }; } });
+        else if (c.op === 'dancePause') { if (c.paused) ducked.pause(); else ducked.resume(); }
         else if (c.op === 'preload') loader.preload(c.ids);
         else if (c.op === 'musicMix') mix.musicMix(c);
         else if (c.op === 'duck') {
@@ -186,6 +185,7 @@ export function createAudio({ quality = 'high' } = {}) {
   if (typeof window !== 'undefined' && typeof requestAnimationFrame === 'function') {
     const tick = () => {
       const s = stateNow();
+      if (ready()) ducked?.pump();
       if (ready() && s && performance.now() - lastUpdateAt > 500) run(director.update(s, now(), { ...lastCtx, ...hostCtx() }));
       requestAnimationFrame(tick);
     };

@@ -47,7 +47,7 @@ describe('music ducks', () => {
     duck.events.length = 0;
     mix.hold('stinger', 2, 7.5);
     // One level (not deeper), released once, at the later end.
-    expect(targets()).toEqual([[1, 7.5, +(DUCK.stinger.release / 3).toFixed(3)]]);
+    expect(targets()).toEqual([[DUCK.stinger.music, 2, +(DUCK.stinger.attack / 3).toFixed(3)], [1, 7.5, +(DUCK.stinger.release / 3).toFixed(3)]]);
   });
 
   it('keeps the deepest duck and returns to the shallower one when it ends', () => {
@@ -68,6 +68,16 @@ describe('music ducks', () => {
     ctx.currentTime = 1;
     duck.events.length = 0;
     mix.endHold(id, 19.2);
-    expect(targets()).toEqual([[1, 19.2, +(DUCK.dance.release / 3).toFixed(3)]]);
+    expect(targets()).toEqual([[DUCK.dance.music, 1, +(DUCK.dance.attack / 3).toFixed(3)], [1, 19.2, +(DUCK.dance.release / 3).toFixed(3)]]);
+  });
+
+  it('keeps ramping toward the target when a hold is rescheduled mid-ramp', () => {
+    const { ctx, mix, duck, targets } = setup();
+    const id = mix.hold('dance', 0);
+    ctx.currentTime = 0.1;
+    duck.events.length = 0;
+    mix.endHold(id, 19);
+    expect(targets()[0]).toEqual([DUCK.dance.music, 0.1, +(DUCK.dance.attack / 3).toFixed(3)]);
+    expect(targets().at(-1)).toEqual([1, 19, +(DUCK.dance.release / 3).toFixed(3)]);
   });
 });
