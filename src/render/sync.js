@@ -320,11 +320,12 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const staged = other && !other.hidden && other.mode === 'placed';
     if (!staged && labels.speechCount?.() >= MAX_SPEECH) return;
     if (r.char.emote === 'typing') { r.char.setEmote(null); r.emoteT = 0; }
-    faceToward(other, r);
+    if (staged) faceToward(other, r);
     // Only the opening line may walk over, and only a short way; its bubble then shows on arrival.
     if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text)) return;
     labels.say(e.text, r.char.root, 3.2);
-    if (staged) faceToward(r, other);
+    if (!staged) return;
+    faceToward(r, other);
     if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
   }
 
