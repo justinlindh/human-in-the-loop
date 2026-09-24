@@ -18,7 +18,17 @@ const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await (await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } })).newPage();
+const context = await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } });
+// No CSS animation or transitions: on a slow runner an animating card never counts as stable, so
+// clicks on it time out. The checks here are about behavior, not motion.
+await context.addInitScript(() => {
+  addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
+    document.head.append(style);
+  });
+});
+const page = await context.newPage();
 const shot = (name) => (SHOTS ? page.screenshot({ path: `${OUT}/${name}` }) : null);
 const errors = [];
 const failures = [];
