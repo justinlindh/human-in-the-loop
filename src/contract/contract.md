@@ -8,7 +8,8 @@ The interface between the simulation and everything that reads it. Only the lead
 // src/sim/index.js public surface
 createGame({ seed, companyName }) -> State
 tick(state) -> SimEvent[]              // advances one week, mutates state; returns [] if gameOver or pendingDecision
-dispatch(state, action) -> { ok, reason?, events: SimEvent[] }   // immediate, works while paused
+dispatch(state, action) -> { ok, reason?, events: SimEvent[], ...extra }   // immediate, works while paused
+                                   // extra: startProject returns projectId; buyItem returns id
 dateOf(week) -> { year, yearIndex, week, quarter }
 productAppeal(state, product) -> number
 oversightRequired(state) -> hours; oversightProvided(state) -> hours
