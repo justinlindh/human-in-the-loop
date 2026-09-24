@@ -186,4 +186,36 @@ describe('natural vacations', () => {
     run(s, vacationSystem);
     expect(p.mood).toBe('away');
   });
+
+  it('understaffing alone never postpones a vacation', async () => {
+    const { vacationSystem } = await import('../../src/sim/strain.js');
+    const s = game(5);
+    const p = addStaff(s, 'engineer', 'mid', { hiredWeek: -200, strain: 10 });
+    s.ops.supportShortfall = 0.9;
+    s.ops.maintenanceShortfall = 0.9;
+    run(s, vacationSystem);
+    expect(p.mood).toBe('away');
+    expect(p.strain).toBe(10);
+  });
+
+  it('tells the player why, and stops postponing after a few times', async () => {
+    const { vacationSystem } = await import('../../src/sim/strain.js');
+    const s = game(6);
+    const p = addStaff(s, 'engineer', 'mid', { hiredWeek: -200, strain: 0 });
+    const q = addProduct(s);
+    s.outage = { productId: q.id, kind: 'ransomware', severity: 3, weeks: 1, unrecoverable: false };
+    const ev = run(s, vacationSystem);
+    const note = ev.find((e) => e.type === 'toast' && e.text.includes(p.name.split(' ')[0]));
+    expect(note?.text).toMatch(/postponed/i);
+    expect(note?.text).toMatch(/outage/i);
+    let postponed = 1;
+    for (let i = 0; i < 20 && p.mood !== 'away'; i++) {
+      s.week = s.flags.vacationDue[p.id];
+      run(s, vacationSystem);
+      if (p.mood !== 'away') postponed++;
+    }
+    expect(p.mood).toBe('away');
+    expect(postponed).toBe(B.vacationMaxPostpones);
+    expect(p.strain).toBe(B.vacationMaxPostpones * B.vacationPostponeStrain);
+  });
 });

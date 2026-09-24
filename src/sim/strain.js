@@ -18,7 +18,8 @@ export function strainDelta(state, p, burntOut) {
   if (a === 'support') gain += B.strainUnderstaffed * state.ops.supportShortfall;
   if (p.role === 'engineer' && (a === 'maintenance' || a === 'project')) gain += B.strainUnderstaffed * state.ops.maintenanceShortfall;
   gain += Math.max(0, modifierBonus(state, 'output')) * B.strainPerCrunch;
-  if (state.outage && (p.role === 'engineer' || p.founder)) gain += B.strainOnCall;
+  // On-call pressure lasts the first weeks of an outage; after that people stop pulling all-nighters.
+  if (state.outage && state.outage.weeks < B.strainOnCallWeeks && (p.role === 'engineer' || p.founder)) gain += B.strainOnCall;
   gain += Math.min(B.strainSlackMax, burntOut * B.strainSlack);
   if (state.policies.no_crunch) gain *= B.noCrunchStrainMult;
   const recover = p.stamina >= B.strainRestedAbove ? B.strainRecoverWorking : 0;
@@ -62,8 +63,11 @@ const VACATION_POSTS = [
   'Two weeks off. I have promised my family I will not check Slackk. I am lying to them.',
 ];
 
-// Natural vacations: everyone takes about two weeks a year, staggered so few are away at once. A vacation
-// is postponed in a crunch, an outage, or when the team is understaffed, and postponing it adds strain.
+// Natural vacations: everyone takes about two weeks a year, staggered so few are away at once. A crunch or
+// an outage postpones a vacation (with strain and a toast saying why), at most vacationMaxPostpones times
+// in a row; after that the person goes anyway.
+const firstName = (p) => p.name.split(' ')[0];
+const listNames = (names) => (names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')}, and ${names.at(-1)}`);
 export function vacationSystem(ctx) {
   const { state, rng } = ctx;
   const due = (state.flags.vacationDue ??= {});
@@ -71,15 +75,18 @@ export function vacationSystem(ctx) {
   for (const id of Object.keys(due)) if (!state.staff.some((p) => p.id === id)) delete due[id];
   const away = state.staff.filter((p) => p.mood === 'away').length;
   let leaving = 0;
-  const blocked = modifierBonus(state, 'output') > 0 || !!state.outage
-    || state.ops.supportShortfall > B.vacationUnderstaffed || state.ops.maintenanceShortfall > B.vacationUnderstaffed;
+  const postponedCount = (state.flags.vacationPostponed ??= {});
+  const blockedBy = state.outage ? 'the outage' : modifierBonus(state, 'output') > 0 ? 'the crunch' : null;
+  const postponed = [];
   for (const p of state.staff) {
     // The first vacation falls somewhere in the person's first year, spread by id.
     due[p.id] ??= p.hiredWeek + B.vacationFirstAfter + (n(p.id) * 7) % 52;
     if (p.mood === 'away' || state.week < due[p.id]) continue;
-    if (blocked) {
+    if (blockedBy && (postponedCount[p.id] ?? 0) < B.vacationMaxPostpones) {
+      postponedCount[p.id] = (postponedCount[p.id] ?? 0) + 1;
       due[p.id] = state.week + B.vacationPostponeWeeks;
       p.strain = clamp((p.strain ?? 0) + B.vacationPostponeStrain, 0, 100);
+      postponed.push(firstName(p));
       continue;
     }
     if ((away + leaving + 1) > Math.max(1, Math.floor(state.staff.length * B.vacationMaxShare))) {
@@ -87,6 +94,7 @@ export function vacationSystem(ctx) {
       continue;
     }
     leaving++;
+    delete postponedCount[p.id];
     due[p.id] = state.week + 52 + ((n(p.id) * 13) % 9) - 4;
     if (p.assignment.type === 'project') state.flags[`returnTo_${p.id}`] = p.assignment.targetId;
     p.mood = 'away';
@@ -96,6 +104,11 @@ export function vacationSystem(ctx) {
     state.flags[`awayFor_${p.id}`] = 'Vacation';
     endMentorshipsOf(state, p);
     emitChat(ctx, { person: p, text: pick(rng, VACATION_POSTS) });
+  }
+  for (const id of Object.keys(postponedCount)) if (!(id in due)) delete postponedCount[id];
+  if (postponed.length) {
+    const whose = postponed.length === 1 ? `${postponed[0]}'s vacation is` : `Vacations for ${listNames(postponed)} are`;
+    ctx.emit({ type: 'toast', tone: 'warn', text: `${whose} postponed because of ${blockedBy}. They are not thrilled.` });
   }
 }
 
