@@ -1,5 +1,13 @@
 import { h, setText, setWidth, fmtMoney, toggleClass, setClass } from '../dom.js';
-import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, policyUnlocked, policyLockText } from '../content.js';
+import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, policyUnlocked, policyLockText } from '../content.js';
+
+// Policies that cannot be on together. Data can declare it with excludes: [ids]; the standup pair is known here too.
+const EXCLUSIVE = [['daily_standups', 'async_standups']];
+function exclusiveWith(p) {
+  const ids = new Set(p.excludes ?? []);
+  for (const group of EXCLUSIVE) if (group.includes(p.id)) group.filter((x) => x !== p.id).forEach((x) => ids.add(x));
+  return [...ids];
+}
 import { liveView, tabs } from '../widgets.js';
 import * as SIM from '../../sim/index.js';
 import { icon } from '../icons.js';
@@ -140,6 +148,8 @@ export function automationPanel(ctx) {
     (s) => [Object.keys(s.policies).sort().join(), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
     (s) => h('div.policies', null, ...POLICIES.map((p) => {
       const on = !!s.policies[p.id];
+      const rivals = exclusiveWith(p).filter((id) => POLICY[id]);
+      const rivalOn = rivals.find((id) => s.policies[id]);
       const unlocked = policyUnlocked(s, p);
       const sw = h('button.switch', {
         disabled: !on && !unlocked,
@@ -152,7 +162,9 @@ export function automationPanel(ctx) {
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,
           h('span.pill', null, icon('money'), p.weeklyCost ? ` ${fmtMoney(p.weeklyCost)}/wk` : ' Free'),
-          !unlocked && !on ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${policyLockText(p)}`) : on ? h('span.pill.good', null, icon('check'), ' Active') : null));
+          !unlocked && !on ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${policyLockText(p)}`) : on ? h('span.pill.good', null, icon('check'), ' Active') : null,
+          rivals.length ? h('span', { class: rivalOn && !on ? 'pill warn' : 'pill', title: 'Only one of these can be on at a time' },
+            icon('migrate', { size: 12 }), rivalOn && !on ? ` Turns off ${POLICY[rivalOn].name}` : ` Either this or ${rivals.map((id) => POLICY[id].name).join(', ')}`) : null));
       toggleClass(card, 'on', on);
       toggleClass(card, 'locked', !unlocked && !on);
       return card;

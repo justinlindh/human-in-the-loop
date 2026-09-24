@@ -1,8 +1,9 @@
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitURL } from './widgets.js';
+import { CHAT_CHANNELS } from '../contract/events.js';
 
-const CHANNELS = ['general', 'incidents', 'wins', 'random'];
+const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
 const QUIET_WEEKS = 6;
 const BOT_ICON = {
