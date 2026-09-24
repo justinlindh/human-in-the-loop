@@ -15,6 +15,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision, ransomFor, summitCost } from './events.js';
+import { danceBreak } from './incentives.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
 import { adoptPet } from './ladder.js';
@@ -217,6 +218,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     ctx.emit({ type: 'resign', staffId: person.id, name: person.name, fired: false, reason: typeof fx.resign === 'string' ? fx.resign : 'burnout' });
   }
   if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);
+  if (fx.musicNight) danceBreak(ctx, fx.musicNight);
   if (fx.summit === 'skip') {
     state.flags.summitDeclines = (state.flags.summitDeclines ?? 0) + 1;
     state.flags.summitSkipWeek = state.week;

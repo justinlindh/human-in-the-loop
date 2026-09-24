@@ -90,7 +90,7 @@ export const B = {
   strainWarn: 60, strainBurnout: 85, strainRecoveredBelow: 55, strainOutputPenalty: 0.3, timeOffWeeks: 2,
   vacationWeeks: 2, vacationFirstAfter: 20, vacationMaxShare: 0.15, vacationPostponeWeeks: 4, vacationMaxPostpones: 2,
   vacationPostponeStrain: 6, vacationStamina: 60,
-  incentiveEveryWeeks: 8, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
+  incentiveEveryWeeks: 8, musicNightDancers: [3, 5], waffleLaunches: 20, waffleLevel: 20, waffleCooldownWeeks: 156, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
   awardAiScore: 8.5, awardWorkplaceStaff: 10, awardWorkplaceMeaning: 78, awardWorkplaceStreak: 2, awardTrustedIncidents: 0, awardAiHype: 15, awardWorkplacePride: 1, awardTrustedBrand: 2,
   alumniKept: 40, aiSummitWeek: 20, summitCost: { small: 20000, big: 80000 }, summitEraMult: [1, 1, 1.5, 2, 2.5], summitPauseAfter: 2,
   moveOnPerYear: 0.025, moveOnTenureWeeks: 156, moveOnMinStaff: 5,
