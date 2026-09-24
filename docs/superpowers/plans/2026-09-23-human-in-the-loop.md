@@ -1006,3 +1006,19 @@ Spec: the spec's **Structure v2** section. Contract: the "v2 changes" section of
 
 ### Task L3: Wall-clock pacing simulator (lead)
 - Extract the clock, event pacing, and menu-pause logic from main.js into `src/pacing.js` (pure, shared by main.js and the tool). `scripts/pace.js` runs the real sim through that clock with a simulated player (a bot plus modelled menu time per decision and per action) and prints a timeline with wall-clock timestamps (mm:ss at the chosen speed) of every presented event, plus metrics: popups per real minute, the gap distribution between decisions, toasts per minute after the UI budget, minutes to first launch, to each era, and to each goal. Used to tune pacing without a browser.
+
+## Phase 5: Conversations and bubble pacing
+
+From the user's playtest: speech bubbles need reasonable timing; employees should talk to each other rather than each saying one line; conversations need far more variety, situational, with some randomness. The chat event already carries `replyTo`, which is enough to model an exchange (a root line plus replies).
+
+### L3 addition: bubble timing in the pacer (lead)
+- Replies are not spread evenly across the week: a reply is released after its parent with a conversational delay (about 1.2 s plus 0.04 s per character of the parent at 1x, scaled by speed), and a speaker never has two bubbles overlapping. The pacing simulator reports bubble density (bubbles on screen per second, max concurrent) and flags overlaps.
+
+### Task S18: Conversation content (sim)
+- Grow `src/data/threads.js` into a conversation system: exchanges of 2 to 6 turns between 2 or 3 people, each turn picking from several variants, with slots filled from real state (products, coworkers, models, incumbents, the era, the office, recent events) and conditions on mood, role, relationship (mentor and mentee, same project, new hire and veteran, founder and anyone), era, and recent events.
+- Target: 150+ exchanges with at least 3 variants per turn, weighted by situation so what people talk about reflects what is happening (a launch week, an outage, a burnout, a new AI era, a new office, a standup policy change). Add a small amount of controlled randomness (tangents, running jokes that callback across weeks, an occasional non sequitur).
+- Anti-repetition: a per-exchange cooldown and a recent-template memory across all channels; a test that 200 weeks of a busy company produce no exact repeated line within 30 lines.
+- Every turn is a chat event with `replyTo` pointing at the exchange's root, so the UI threads it and the renderer can stage it.
+
+### Task A12: Conversational staging (art)
+- When a chat event's speaker and its root's speaker are both in the office, stage it as a conversation: the replier turns toward (or walks a few tiles toward) the other speaker, bubbles alternate with the pacer's timing, and a small "..." typing indicator bridges turns. Solo lines stay as single bubbles. Keep the 40-label cap; at 4x, show only the last line of an exchange.
