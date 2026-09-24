@@ -97,7 +97,9 @@ async function boot() {
   const controls = {
     setSpeed: (k) => { speed = k; if (k > 0) awayPaused = false; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
-    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setPauseOnBlur).
+    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setAutoPause).
+    setAutoPause: (on) => { autoPause = on !== false; },
+    getAutoPause: () => autoPause,
     setPauseOnBlur: (on) => { autoPause = on !== false; },
     getPauseOnBlur: () => autoPause,
     // True after an auto-pause until the player picks a speed again (for a "paused while away" hint).
