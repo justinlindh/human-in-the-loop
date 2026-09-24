@@ -1020,3 +1020,19 @@
 .hitl .needrow { display: flex; align-items: center; gap: 0.3em; }
 .hitl .needrow .need { flex: 1; min-width: 0; }
 .hitl .needrow .nquick { flex: none; padding: 0.1em 0.5em; font-size: 0.75em; }
+
+/* ---------- touch ---------- */
+.hitl .taptip { position: absolute; z-index: 60; max-width: 18em; padding: 0.35em 0.6em; border-radius: 0.6em; background: var(--ink); color: var(--cream);
+  font-size: 0.85em; font-weight: 600; line-height: 1.25; box-shadow: var(--soft); pointer-events: none; }
+/* On touch screens every control gets a finger-sized target (about 40 px); the mouse layout is unchanged. */
+@media (pointer: coarse) {
+  .hitl .btn, .hitl .btn.small, .hitl .btn.x, .hitl .segb, .hitl .ctab, .hitl .tab, .hitl select, .hitl input.text, .hitl .need,
+  .hitl .skmore, .hitl .pick, .hitl .tile, .hitl .settings input.range { min-height: 44px; }
+  .hitl .btn.small, .hitl .btn.x, .hitl .segb, .hitl .ctab { min-width: 44px; }
+  .hitl .switch { min-width: 52px; min-height: 32px; }
+  .hitl .switch::after, .hitl .crewmate .x::after, .hitl th::after, .hitl .who.link::after { content: ''; position: absolute; inset: -10px; }
+  .hitl .switch, .hitl .crewmate .x, .hitl th, .hitl .who.link { position: relative; }
+  .hitl .crewmate .x { min-width: 28px; min-height: 28px; }
+  .hitl .tray-card.trend { min-height: 44px; }
+  .hitl table tr { height: 46px; }
+}
