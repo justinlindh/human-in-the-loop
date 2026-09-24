@@ -13,6 +13,7 @@ import * as SIM from '../../sim/index.js';
 import { automationWeeklyCost } from '../../sim/economy.js';
 import { icon } from '../icons.js';
 import { call } from '../simapi.js';
+import { agentsHere } from '../v2content.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
@@ -91,8 +92,9 @@ export function automationPanel(ctx) {
         ovFill.style.background = short ? '#e5484d' : '#34c38f';
         setClass(provEl, short ? 'num bad-t' : 'num good-t');
         const overseers = st.staff.filter((p) => p.assignment.type === 'oversight').length;
-        setText(ovNote, req <= 0 ? 'No agents running, nothing to oversee.'
-          : short ? `Short ${Math.round(req - prov)}h. Unwatched agents go rogue more often, and nobody catches them. ${overseers} on duty.`
+        const what = agentsHere(st) ? 'agents' : 'automation';
+        setText(ovNote, req <= 0 ? `No ${what} running, nothing to oversee.`
+          : short ? `Short ${Math.round(req - prov)}h. ${agentsHere(st) ? 'Unwatched agents go rogue more often, and nobody catches them.' : 'Unchecked automation slips up more often, and nobody catches it.'} ${overseers} on duty.`
             : `Covered. ${overseers} overseer${overseers === 1 ? '' : 's'} on duty, ready to catch mistakes.`);
         setClass(ovNote, short ? 'small bad-t' : 'small muted');
         setText(costEl, `${fmtMoney(FUNCTIONS.reduce((a, f) => a + fnCost(st, f), 0))}/wk`);

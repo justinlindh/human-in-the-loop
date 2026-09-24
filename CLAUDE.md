@@ -42,8 +42,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Game text says "company" or "lab", never "startup", except inside a parody joke.
 - No em dash characters anywhere (files, commits, messages); a hook blocks them. Do not type the escape sequence for U+2014 either: the hook decodes it.
 - Comments describe what non-obvious code does now. No history, dates, or measurements in source.
-- Commit on your lane branch in your worktree. Never commit to `main`.
-- Changes reach `feat/one-shot` only through pull requests (`gh pr create --base feat/one-shot --head lane/<lane>`), one per batch:
+- Commit on a topic branch in your worktree. Never commit to `main`.
+- Changes reach `feat/one-shot` only through pull requests, one per batch, each from a fresh branch named `<lane>/<topic>` cut from `origin/feat/one-shot` (`gh pr create --base feat/one-shot --head <lane>/<topic>`). The pre-push hook (`npm run hooks` installs it) refuses pushes to a branch whose PR has merged or closed.
   - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines.
   - CI runs locally (GitHub Actions minutes are used up): `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. A PASS comment for the PR's current head is required before merging. `npm run ci` runs the same checks in any worktree.
   - The reviewer posts findings as a PR review (`gh pr review`).
