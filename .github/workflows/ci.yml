@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: No node_modules in the repo
+        run: test -z "$(git ls-files node_modules)"
       - uses: actions/setup-node@v7
         with:
           node-version: 25
