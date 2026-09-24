@@ -230,7 +230,8 @@ export const GLYPHS = {
   // marketing channels
   'channel.launch': { d: D.rocket },
   'channel.content': { d: rr(4, 2.5, 16, 19, 2, PAPER) + `<rect x="6.5" y="5" width="11" height="4" rx="1" fill="${C.blue}"/>` + `<path d="M7 12h10M7 15h10M7 18h6" ${line(1.6)}/>` },
-  'channel.producthunt': { d: circ(12, 12, 9.5, C.orange) + `<path d="M9.5 17V7.5h3.5a2.8 2.8 0 0 1 0 5.6H9.5" stroke="${PAPER}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+  // Launch-day upvote parade: a pink rosette ribbon with an upvote chevron (an original mark, no letter).
+  'channel.producthunt': { d: path('M8 15.5 6 22l3-1.6L11 22l.6-5.5M16 15.5l2 6.5-3-1.6L13 22l-.6-5.5', C.purple) + path('M12 2.5l2.2 1.6 2.7-.2.9 2.6 2.3 1.4-.7 2.6 1 2.5-2.2 1.6-.6 2.7-2.7.3L12 19.2l-2.1-1.6-2.7-.3-.6-2.7-2.2-1.6 1-2.5-.7-2.6 2.3-1.4.9-2.6 2.7.2Z', C.pink) + `<path d="M8.6 12.6 12 9.2l3.4 3.4" stroke="${PAPER}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
   'channel.community': { d: path('M2.5 5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3h-1a2 2 0 0 1-2-2Z', C.purple) + path('M11 13v1.5a2 2 0 0 0 2 2h4l3.5 3v-3h.5a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-3.5', C.blue) },
   'channel.ads': { d: D.megaphone },
   'channel.influencer': { d: rr(6.5, 2.5, 11, 19, 2.5, C.metalDark) + rr(8, 4.5, 8, 13, 1, C.pink) + path(star5(12, 11, 3.6, 1.6), C.yellow) + dot(12, 19.5, 0.9, PAPER) },
@@ -249,7 +250,8 @@ export const GLYPHS = {
   'bot.hr': { d: path('M3 21 8 8l8 8Z', C.yellow) + `<path d="M5 15.5l3.5 3.5M6.5 11.5l6 6" stroke="${C.red}" stroke-width="1.6" fill="none"/>` + dot(15, 5, 1.4, C.pink) + dot(19.5, 9.5, 1.4, C.blue) + dot(18, 3.5, 1, C.green) + `<path d="M12 7q1-3 4-4M16.5 12q3-1 4.5 1" ${line(1.6)}/>` },
   'bot.awards': { d: D.trophy },
   'bot.office': { d: D.building },
-  'bot.hn': { d: rr(3, 3, 18, 18, 3, C.orange) + `<path d="M8.5 7.5 12 12.5l3.5-5M12 12.5v5" stroke="${PAPER}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+  // @hackerspewsbot: a teal speech bubble spewing hot takes (original mark: no letterform, no orange).
+  'bot.hn': { d: path('M4.5 4h11a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H10l-4.5 4v-4h-1a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z', C.teal) + `<path d="M6.5 8.5h7M6.5 11.5h4.5" stroke="${PAPER}" stroke-width="1.9" stroke-linecap="round" fill="none"/>` + dot(20.5, 5, 1.3, C.red) + dot(21.5, 9, 1, C.yellow) + dot(20, 12.5, 1.2, C.red) },
   'bot.generic': { d: D.robot },
   'bot.news': { size: 13, d: "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\" fill=\"#fbf5ea\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><rect x=\"6\" y=\"7\" width=\"6\" height=\"5\" rx=\"1\" fill=\"#4f8cff\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M14.5 8h3.5M14.5 11h3.5M6 15h12M6 17.5h8\" stroke=\"#2a2630\" stroke-width=\"1.6\" stroke-linecap=\"round\" fill=\"none\"/>" },
   'bot.build': { size: 13, d: "<path d=\"M14.5 3.5a4.5 4.5 0 0 0-5.3 5.7l-5.4 5.4a2 2 0 0 0 2.8 2.8l5.4-5.4a4.5 4.5 0 0 0 5.7-5.3l-2.6 2.6-2.3-.6-.6-2.3z\" fill=\"#b9bcc4\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><circle cx=\"18\" cy=\"18\" r=\"3.5\" fill=\"#34c38f\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M16.6 18l1 1 1.9-2\" stroke=\"#fbf5ea\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"/>" },
