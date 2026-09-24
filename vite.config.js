@@ -1,12 +1,17 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 // The version the title shows: HITL_VERSION when the release build sets it, else the nearest
-// release tag (v0.4.0, or v0.4.0-3-gabc1234 past it), else 'dev'.
+// release tag (v0.4.0, or v0.4.0-3-gabc1234 past it), else the package version plus '-dev'.
 function buildVersion() {
   if (process.env.HITL_VERSION) return process.env.HITL_VERSION;
   try {
-    return execSync("git describe --tags --match 'v*' --dirty", { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'dev';
+    const tag = execSync("git describe --tags --match 'v*' --dirty", { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (tag) return tag;
+  } catch { /* no git or no tags */ }
+  try {
+    return `${JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version}-dev`;
   } catch {
     return 'dev';
   }
