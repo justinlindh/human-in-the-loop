@@ -32,7 +32,7 @@ const args = parseArgs(process.argv.slice(2));
 const FPS = Number(args.fps ?? 60);
 const [W, H] = String(args.size ?? '1920x1080').split('x').map(Number);
 const QUALITY = args.quality ?? 'high';
-const OUT = resolve(String(args.out ?? join(homedir(), 'src/gamedev-reel')).replace(/^~/, homedir()));
+const OUT = resolve(String(args.out ?? 'shots/capture').replace(/^~/, homedir()));
 const manifestPath = resolve(String(args.manifest ?? 'scripts/capture-manifest.js'));
 const { ITEMS } = await import(pathToFileURL(manifestPath).href);
 
