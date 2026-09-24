@@ -315,7 +315,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           toasts.push(e.caught ? `An overseer caught an incident${p ? ` on ${p.name}` : ''}!` : `Incident${p ? ` on ${p.name}` : ''} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
-        case 'award': toasts.push(e.text, 'good'); break;
+        case 'award': toasts.push(e.text, 'good', { always: true, glyph: 'award' }); break;
         case 'launch': {
           // New products always get the launch popup; updates only when the score moved noticeably.
           const p = state.products.find((x) => x.id === e.productId);
