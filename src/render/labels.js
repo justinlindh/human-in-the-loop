@@ -51,8 +51,9 @@ export function createLabels(parent) {
       inner.className = 'in';
       el.appendChild(inner);
       const obj = new CSS2DObject(el);
-      l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0 };
+      l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0, dx: 0, dy: 0 };
     }
+    l.dx = l.dy = 0;
     return l;
   }
 
@@ -136,9 +137,58 @@ export function createLabels(parent) {
       const p = Math.min(1, l.t / 0.2);
       const s = p < 0.7 ? (p / 0.7) * 1.15 : 1.15 - ((p - 0.7) / 0.3) * 0.15;
       const sy = s * (p < 0.5 ? 1.1 : 1), sx = s * (p < 0.5 ? 0.92 : 1);
-      l.inner.style.transform = `scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      l.inner.style.transform = `translate(${l.dx.toFixed(1)}px, ${l.dy.toFixed(1)}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
       const fade = l.kind === 'stat' ? 0.5 : 0.35;
       l.el.style.opacity = String(Math.min(1, (l.life - l.t) / fade));
+    }
+  }
+
+  // Screen-space pass, run after the CSS2D render: speech bubbles draw over stat labels, bubbles
+  // that overlap stack upward (the older one keeps its place), and stat labels slide sideways off
+  // any bubble. Offsets live on the inner span and ease toward their targets, so nothing jumps.
+  const GAP = 6;
+  const TAIL = 9;               // the bubble's pointer below its box
+  const hits = (a, b) => a.left < b.right + GAP && a.right > b.left - GAP && a.top < b.bottom + GAP && a.bottom > b.top - GAP;
+  function layout(dt) {
+    const says = [];
+    const stats = [];
+    for (const l of live) {
+      if (l.el.style.display === 'none') continue;
+      if (l.kind === 'say') says.push(l);
+      else if (l.kind === 'stat') stats.push(l);
+    }
+    const k = 1 - Math.exp(-dt * 14);
+    if (!says.length) {
+      for (const l of stats) l.dx += (0 - l.dx) * k;
+      return;
+    }
+    says.sort((a, b) => b.t - a.t);
+    const placed = [];
+    for (const l of says) {
+      l.el.style.zIndex = String(Number(l.el.style.zIndex || 0) + 1000);
+      const r = l.el.getBoundingClientRect();
+      const box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom + TAIL };
+      let dy = 0;
+      for (let pass = 0; pass < 6; pass++) {
+        const at = { ...box, top: box.top + dy, bottom: box.bottom + dy };
+        const p = placed.find((q) => hits(at, q));
+        if (!p) break;
+        dy = p.top - GAP - box.bottom;
+      }
+      l.dy += (dy - l.dy) * k;
+      placed.push({ ...box, top: box.top + dy, bottom: box.bottom + dy });
+    }
+    for (const l of stats) {
+      const r = l.el.getBoundingClientRect();
+      let dx = 0;
+      for (let pass = 0; pass < 4; pass++) {
+        const at = { left: r.left + dx, right: r.right + dx, top: r.top, bottom: r.bottom };
+        const p = placed.find((q) => hits(at, q));
+        if (!p) break;
+        const mid = (at.left + at.right) / 2;
+        dx += mid < (p.left + p.right) / 2 ? p.left - GAP * 2 - at.right : p.right + GAP * 2 - at.left;
+      }
+      l.dx += (dx - l.dx) * k;
     }
   }
 
@@ -148,5 +198,5 @@ export function createLabels(parent) {
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, say, update, clearFor, speechCount, speaking, get count() { return live.length; } };
+  return { stat, say, update, layout, clearFor, speechCount, speaking, get count() { return live.length; } };
 }
