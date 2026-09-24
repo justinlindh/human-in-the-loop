@@ -132,7 +132,6 @@ export function createUI({ root, getState, dispatch, controls }) {
       switch (e.type) {
         case 'toast': toasts.push(e.text, e.tone); break;
         case 'chat': chat.add(e.from, e.text, state.week); break;
-        case 'resign': toasts.push(`${e.name} resigned.`, 'bad'); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
