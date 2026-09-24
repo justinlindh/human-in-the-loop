@@ -126,15 +126,19 @@ bmesh.ops.delete(bm, geom=[f for f in bm.faces if not inside(f.calc_center_media
 bm.to_mesh(bl.data); bm.free()
 
 # Hair: eight silhouettes, all centered on the head center (origin at the neck pivot).
+# Short styles run down to the nape: a head tipped forward (slumped, burnout, desk nap) shows the
+# back of the skull to the camera, which must not be bare. The cut removes vertices, so a face
+# survives only if all its corners are above it: the plane sits well below the ring to keep.
+NAPE = -0.34
 def at_head(objs):
     for o in objs:
         o.location.z += HEAD_C
     return objs
 
 
-h = at_head([hair_cap('h0cap', 0.1, -0.06), lump('h0fringe', 0.08, (0.04, -0.16, 0.13), (1.4, 0.6, 0.45))])
+h = at_head([hair_cap('h0cap', 0.1, NAPE, side_z=-0.03, rings=13), lump('h0fringe', 0.08, (0.04, -0.16, 0.13), (1.4, 0.6, 0.45))])
 join(h, 'hair_0')                                                   # short crop
-h = at_head([hair_cap('h1cap', 0.09, -0.16, side_z=-0.14, scale=(1.1, 1.05, 1.0)),
+h = at_head([hair_cap('h1cap', 0.09, NAPE, side_z=-0.14, scale=(1.1, 1.05, 1.0), rings=13),
              lump('h1fringe', 0.1, (0, -0.16, 0.125), (1.6, 0.55, 0.4))])
 join(h, 'hair_1')                                                   # bob
 h = at_head([hair_cap('h2cap', 0.08, -0.12), lump('h2back', 0.19, (0, 0.11, -0.15), (1.15, 0.55, 1.35), subdiv=1),
@@ -180,7 +184,7 @@ def curly(name, pressed=False):
 
 curly('hair_6')                                                     # curly
 curly('hair_6_hp', pressed=True)
-h = at_head([hair_cap('h7cap', 0.1, -0.08), lump('h7swoop', 0.12, (-0.07, -0.13, 0.14), (1.3, 0.7, 0.5))])
+h = at_head([hair_cap('h7cap', 0.1, NAPE, side_z=-0.03, rings=13), lump('h7swoop', 0.12, (-0.07, -0.13, 0.14), (1.3, 0.7, 0.5))])
 join(h, 'hair_7')                                                   # side swoop
 
 # Accessories (head-centered). Glasses are the frame front only: temple arms read as antennae or

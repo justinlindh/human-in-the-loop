@@ -15,7 +15,8 @@ export function furnitureMeshes(obj) {
   return out;
 }
 
-export function sinkDepth(charRoot, targets, { step = 3, max = 0.6 } = {}) {
+// parts: only these body parts (userData.part, e.g. ['head']) count; soft furniture lets the rest sink.
+export function sinkDepth(charRoot, targets, { step = 3, max = 0.6, parts = null } = {}) {
   charRoot.updateMatrixWorld(true);
   for (const t of targets) t.updateMatrixWorld(true);
   const sides = targets.map((m) => m.material.side);
@@ -24,6 +25,7 @@ export function sinkDepth(charRoot, targets, { step = 3, max = 0.6 } = {}) {
   const v = new THREE.Vector3();
   charRoot.traverse((o) => {
     if (!o.isMesh || !o.visible || o.material?.transparent || o.userData.staffId !== undefined) return;
+    if (parts && !parts.includes(o.userData.part)) return;
     const p = o.geometry.attributes.position;
     for (let i = 0; i < p.count; i += step) {
       v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);

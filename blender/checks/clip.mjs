@@ -25,7 +25,7 @@ const out = await page.evaluate(async () => {
   for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
   const a = await C.runClipChecks(R, S);
   const b = await C.runPerkChecks(R, S, [
-    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
+    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', soft: true, label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
     { id: 'k_arc', label: 'arcade:stool' }, { id: 'k_lib', slot: 1, label: 'library:armchair' }]);
   return [...a.results, ...b.results];
 });
