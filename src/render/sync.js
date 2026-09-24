@@ -540,7 +540,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // Standups: attendees gather in a loose ring (meeting room when the stage has one, otherwise
   // the whiteboard), speak their lines in turn, then return. Timings scale with game speed; at 4x
   // there is no gathering, only a quick emote at the desk.
-  const GATHER = 2.2;
+  const GATHER = 1.6;
   let speed = 1;
   let standup = null;
   function setSpeed(k) { speed = k; }
@@ -590,6 +590,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   const MAX_STANDUP_LINES = 3;
+  const STANDUP_BUDGET = 15;       // seconds from the event to the end, gather included
+  const NOD_S = 0.35;
+  const GAP_S = 0.15;
+  const SILENT_S = 1.1;
   function interest(l) {
     const t = l.text ?? '';
     if (!t) return 3;                                           // a burned-out silence says a lot
@@ -612,8 +616,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!lines.length) return;
     lastStagedWeek = week;
     // Only the most interesting few speak (blockers, jokes, silences); the rest just nod.
-    const speaking = new Set(lines.map((l, i) => ({ l, i, s: interest(l) })).sort((a, b) => b.s - a.s || a.i - b.i)
-      .slice(0, MAX_STANDUP_LINES).map((x) => x.l));
+    // Speakers are added in order of interest while the whole standup (gather, lines, nods) fits
+    // STANDUP_BUDGET seconds; the first speaker always talks.
+    const ranked = lines.map((l, i) => ({ l, i, s: interest(l) })).sort((a, b) => b.s - a.s || a.i - b.i);
+    const speaking = new Set();
+    let used = GATHER / (speed >= 2 ? 2 : 1) + lines.length * NOD_S;
+    for (const x of ranked) {
+      if (speaking.size >= MAX_STANDUP_LINES) break;
+      const cost = (x.l.text ? holdSeconds(x.l.text, speed) + GAP_S : SILENT_S) - NOD_S;
+      if (speaking.size && used + cost > STANDUP_BUDGET) continue;
+      speaking.add(x.l);
+      used += cost;
+    }
     const spots = ringSpots(lines.length);
     const people = lines.map((l, i) => {
       const r = recs.get(l.staffId);
@@ -634,7 +648,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // A nodder waves briefly, then goes back to standing in the ring.
-  function setTimeoutFree(r) { r.nodT = 0.6; }
+  function setTimeoutFree(r) { r.nodT = NOD_S; }
 
   function endStandup() {
     office.tuckMeetingChairs(false);
@@ -655,14 +669,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!live.length) { standup = null; office.tuckMeetingChairs(false); return; }
     if (speed >= 4) { endStandup(); return; }
     if (st.phase === 'gather') {
-      const arrived = live.every((p) => !p.r.path.length);
-      if (arrived || st.t > GATHER / (speed >= 2 ? 2 : 1) + 0.6) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
+      // Talking starts once most of the ring is in place; stragglers finish walking in.
+      const arrived = live.filter((p) => !p.r.path.length).length;
+      if (arrived >= Math.ceil(live.length * 0.6) || st.t > GATHER / (speed >= 2 ? 2 : 1)) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
       return;
     }
     if (st.phase === 'talk') {
       // Each speaker holds the floor for the full reading time of their line, then a short pause.
-      const GAP = 0.3;
-      const beat = (p) => (p.nod ? 0.6 : p.text ? holdSeconds(p.text, speed) + GAP : (speed >= 2 ? 0.9 : 1.3));
+      const beat = (p) => (p.nod ? NOD_S : p.text ? holdSeconds(p.text, speed) + GAP_S : SILENT_S * (speed >= 2 ? 0.75 : 1));
       const cur = st.i >= 0 ? st.people[st.i] : null;
       if (st.i < 0 || st.t >= beat(cur)) {
         st.i++;
