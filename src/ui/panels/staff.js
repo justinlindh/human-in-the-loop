@@ -2,6 +2,7 @@ import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
 import { portrait, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
 import { assignmentOptions, assignmentText, mentorOf, isAvailable } from './common.js';
+import { icon } from '../icons.js';
 import { STAT_INFO } from './build.js';
 import { hireView } from './hire.js';
 
@@ -41,7 +42,7 @@ export function staffPanel(ctx, arg) {
   let detailId = arg?.staffId ?? null;
   let sort = { col: 'role', dir: 1 };
 
-  const t = tabs([{ id: 'team', label: '🧑‍💻 Team' }, { id: 'hire', label: '📨 Hire' }], tab, (id) => { tab = id; detailId = null; t.set(id); render(); });
+  const t = tabs([{ id: 'team', icon: 'menu.staff', label: 'Team' }, { id: 'hire', icon: 'hire', label: 'Hire' }], tab, (id) => { tab = id; detailId = null; t.set(id); render(); });
   const host = h('div');
 
   const table = liveView(
@@ -62,7 +63,7 @@ export function staffPanel(ctx, arg) {
   function renderTable(s, bind) {
     const head = h('tr', null, ...COLS.map((c) => {
       const th = h('th', { onclick: () => { sort = sort.col === c.id ? { col: c.id, dir: -sort.dir } : { col: c.id, dir: c.id === 'meaning' ? 1 : 1 }; table.update(ctx.getState(), true); } },
-        c.label, sort.col === c.id ? h('span.sort', { text: sort.dir > 0 ? ' ▲' : ' ▼' }) : null);
+        c.label, sort.col === c.id ? h('span.sort', null, ' ', icon(sort.dir > 0 ? 'sort.up' : 'sort.down')) : null);
       toggleClass(th, 'on', sort.col === c.id);
       return th;
     }));
@@ -81,7 +82,7 @@ export function staffPanel(ctx, arg) {
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
-        h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', { text: MOOD_INFO[p.mood]?.icon ?? '' }), h('div.bar', null, mFill), mVal)),
+        h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`)), h('div.bar', null, mFill), mVal)),
         h('td.kcol', null, h('div.row', null, h('div.bar', null, kFill), kVal)),
         h('td', null, assignSelect(ctx, s, p)),
         h('td.tr', null, ...traitChips(p.traits)));
@@ -104,18 +105,18 @@ export function staffPanel(ctx, arg) {
     const mentored = s.staff.filter((p) => p.seniority === 'junior' && mentorOf(s, p)).length;
     return [
       h('div.row.wrap.summaryline', null,
-        h('span.pill', { text: `👥 ${s.staff.length}/${cap} seats` }),
-        h('span', { class: sad ? 'pill warn' : 'pill good', text: sad ? `😐 ${sad} unhappy` : '😊 Everyone is okay' }),
-        h('span', { class: juniors && mentored < juniors ? 'pill warn' : 'pill', text: `🎓 ${mentored}/${juniors} juniors mentored` }),
+        h('span.pill', null, icon('team'), ` ${s.staff.length}/${cap} seats`),
+        h('span', { class: sad ? 'pill warn' : 'pill good' }, icon(sad ? 'mood.coasting' : 'mood.ok'), sad ? ` ${sad} unhappy` : ' Everyone is okay'),
+        h('span', { class: juniors && mentored < juniors ? 'pill warn' : 'pill' }, icon('mentor'), ` ${mentored}/${juniors} juniors mentored`),
         h('span.spacer'),
-        h('button.btn.small.primary', { onclick: () => { tab = 'hire'; t.set('hire'); render(); } }, '📨 Hire people')),
+        h('button.btn.small.primary', { onclick: () => { tab = 'hire'; t.set('hire'); render(); } }, icon('hire'), ' Hire people')),
       h('table.stafftable', null, h('thead', null, head), body),
     ];
   }
 
   function renderDetail(s, bind) {
     const p = s.staff.find((x) => x.id === detailId);
-    const back = h('button.btn.small', { onclick: () => { detailId = null; render(); } }, '◀ Back to team');
+    const back = h('button.btn.small', { onclick: () => { detailId = null; render(); } }, icon('arrow.back'), ' Back to team');
     if (!p) return [back, h('div.empty', { text: 'They are no longer with the company.' })];
 
     const xpFill = h('i', { style: { background: '#ffb020' } });
@@ -143,28 +144,28 @@ export function staffPanel(ctx, arg) {
       const sel = h('select', { onchange: (e) => { const id = e.target.value; e.target.blur(); if (id) ctx.act({ type: 'assign', staffId: id, assignment: { type: 'mentor', targetId: p.id } }); } },
         h('option', { value: '', text: m ? `Mentor: ${m.name}` : 'Pick a mentor...' }),
         ...mentors.filter((x) => x !== m).map((x) => h('option', { value: x.id, text: `${x.name} (${roleName(x.role)}, ${x.seniority})` })));
-      acts.append(h('div.act', null, h('b', { text: '🎓 Mentor' }), h('span.small.muted', { text: m ? 'Learning fast, and less bothered by automation.' : 'Without a mentor, juniors grow slowly while automation eats their practice work.' }), sel));
+      acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor'), h('span.small.muted', { text: m ? 'Learning fast, and less bothered by automation.' : 'Without a mentor, juniors grow slowly while automation eats their practice work.' }), sel));
     } else {
       const juniors = s.staff.filter((x) => x.seniority === 'junior');
       const sel = h('select', { disabled: away, onchange: (e) => { const id = e.target.value; e.target.blur(); if (id) assign('mentor', id); } },
         h('option', { value: '', text: p.assignment.type === 'mentor' ? `Mentoring ${s.staff.find((x) => x.id === p.assignment.targetId)?.name ?? ''}` : juniors.length ? 'Mentor a junior...' : 'No juniors to mentor' }),
         ...juniors.map((x) => h('option', { value: x.id, text: x.name })));
-      acts.append(h('div.act', null, h('b', { text: '🎓 Mentor a junior' }), h('span.small.muted', { text: 'Grows the next generation. Restores meaning.' }), sel));
+      acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor a junior'), h('span.small.muted', { text: 'Grows the next generation. Restores meaning.' }), sel));
     }
     if (p.seniority === 'senior') {
-      acts.append(h('div.act', null, h('b', { text: '🧩 Hard problem' }), h('span.small.muted', { text: 'Something gnarly only a human can crack. Novelty and meaning.' }),
+      acts.append(h('div.act', null, h('b', null, icon('hardProblem'), ' Hard problem'), h('span.small.muted', { text: 'Something gnarly only a human can crack. Novelty and meaning.' }),
         h('button.btn.small', { disabled: away || p.assignment.type === 'hardProblem', onclick: () => assign('hardProblem') }, p.assignment.type === 'hardProblem' ? 'On it' : 'Assign')));
     }
-    acts.append(h('div.act', null, h('b', { text: '👀 Oversight' }), h('span.small.muted', { text: 'Watches the agents. Catching incidents feels great.' }),
+    acts.append(h('div.act', null, h('b', null, icon('oversight'), ' Oversight'), h('span.small.muted', { text: 'Watches the agents. Catching incidents feels great.' }),
       h('button.btn.small', { disabled: away || p.assignment.type === 'oversight', onclick: () => assign('oversight') }, p.assignment.type === 'oversight' ? 'On duty' : 'Assign')));
-    acts.append(h('div.act', null, h('b', { text: '🏖️ Sabbatical' }), h('span.small.muted', { text: s.policies?.sabbatical ? `${B.sabbaticalWeeks ?? 4} weeks off. Comes back refreshed.` : 'Needs the Sabbatical Program policy.' }),
+    acts.append(h('div.act', null, h('b', null, icon('sabbatical'), ' Sabbatical'), h('span.small.muted', { text: s.policies?.sabbatical ? `${B.sabbaticalWeeks ?? 4} weeks off. Comes back refreshed.` : 'Needs the Sabbatical Program policy.' }),
       h('button.btn.small', { disabled: away, onclick: () => assign('sabbatical') }, away ? 'Away' : 'Send')));
-    acts.append(h('div.act', null, h('b', { text: '📚 Training' }), h('span.small.muted', { text: `Course and conference budget. +XP.` }),
+    acts.append(h('div.act', null, h('b', null, icon('training'), ' Training'), h('span.small.muted', { text: `Course and conference budget. +XP.` }),
       h('button.btn.small.blue', { disabled: away, onclick: () => { if (ctx.act({ type: 'train', staffId: p.id }).ok) ctx.sfx('coin'); } }, `Train ${fmtMoney(B.trainingCost ?? 3000)}`)));
     const fire = p.founder
       ? h('button.btn.small.danger', { disabled: true, title: 'Founders cannot be fired' }, 'Founder')
       : confirmButton('Let go', 'Really? Click again', 'small.danger', () => { if (ctx.act({ type: 'fire', staffId: p.id }).ok) { detailId = null; render(); } });
-    acts.append(h('div.act', null, h('b', { text: '👋 Let go' }), h('span.small.muted', { text: 'Their knowledge walks out the door with them.' }), fire));
+    acts.append(h('div.act', null, h('b', null, icon('letgo'), ' Let go'), h('span.small.muted', { text: 'Their knowledge walks out the door with them.' }), fire));
 
     const mood = MOOD_INFO[p.mood] ?? MOOD_INFO.ok;
     return [
@@ -176,7 +177,7 @@ export function staffPanel(ctx, arg) {
           h('div.row.wrap', null, roleChip(p.role), seniorityChip(p.seniority), p.founder ? h('span.pill.ink', { text: 'Founder' }) : null),
           h('div.row', null, h('b.num', { text: `Lv ${p.level}` }), h('div.bar', { style: { flex: 1 } }, xpFill), xpText),
           h('div.small.muted', { text: `Salary ${fmtMoney(p.salary)}/wk · hired week ${p.hiredWeek}` }),
-          h('div.moodbadge', { style: { background: mood.color } }, `${mood.icon} ${mood.name}`),
+          h('div.moodbadge', { style: { background: mood.color } }, icon(`mood.${p.mood}`), ` ${mood.name}`),
           h('div.small', null, h('b', { text: 'Doing: ' }), assignmentText(s, p)),
           assignSelect(ctx, s, p)),
         h('div.dmid', null,
@@ -201,8 +202,8 @@ export function staffPanel(ctx, arg) {
     el: host,
     tabs: t.el,
     update(s) {
-      t.setLabel('team', `🧑‍💻 Team (${s.staff.length})`);
-      t.setLabel('hire', `📨 Hire (${s.candidates.length})`);
+      t.setLabel('team', `Team (${s.staff.length})`);
+      t.setLabel('hire', `Hire (${s.candidates.length})`);
       (tab === 'hire' ? hire : detailId ? detail : table).update(s);
     },
     show(a) {

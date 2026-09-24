@@ -1,5 +1,6 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
-import { B, trendName, INCIDENT_LABEL, capacityOf, MOOD_INFO } from './content.js';
+import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
+import { icon } from './icons.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
 export const totalMrr = (s) => liveProducts(s).reduce((a, p) => a + (Number.isFinite(p.mrr) ? p.mrr : 0), 0);
@@ -15,11 +16,34 @@ export function weeklyNet(s) {
   return Number.isFinite(net) ? net : null;
 }
 
+// Modifier keys where an increase hurts the player, so their arrows color red when positive.
+const BAD_WHEN_UP = new Set(['debt', 'comprehensionDebt', 'churn', 'cost', 'costs', 'salary', 'incidentRate', 'incidentChance', 'meaningDrain', 'rent', 'burn']);
+
+function keyLabel(k) {
+  return String(k).replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+}
+
+function fmtValue(v) {
+  return Math.abs(v) < 1 ? `${Math.round(v * 100)}%` : String(Math.round(v * 10) / 10);
+}
+
+// Modifiers sharing a label and end week (one decision's effects) show as one row.
+function groupEffects(s) {
+  const out = new Map();
+  for (const m of s.modifiers ?? []) {
+    if (!(m.untilWeek > s.week)) continue;
+    const k = `${m.label}|${m.untilWeek}`;
+    if (!out.has(k)) out.set(k, { label: m.label, untilWeek: m.untilWeek, parts: [] });
+    out.get(k).parts.push(m);
+  }
+  return [...out.values()].slice(0, 4);
+}
+
 const SPEEDS = [
-  { k: 0, ico: '❚❚', title: 'Pause (Space)' },
-  { k: 1, ico: '▶', title: 'Normal speed (1)' },
-  { k: 2, ico: '▶▶', title: 'Fast (2)' },
-  { k: 4, ico: '▶▶▶', title: 'Fastest (3)' },
+  { k: 0, ico: 'speed.pause', title: 'Pause (Space)' },
+  { k: 1, ico: 'speed.play', title: 'Normal speed (1)' },
+  { k: 2, ico: 'speed.fast', title: 'Fast (2)' },
+  { k: 4, ico: 'speed.fastest', title: 'Fastest (3)' },
 ];
 
 export function createHud({ root, controls, ui }) {
@@ -60,7 +84,7 @@ export function createHud({ root, controls, ui }) {
   const speedBtns = SPEEDS.map((sp) => h('button.btn.small', {
     title: sp.title,
     onclick: () => ui.setSpeed(sp.k),
-  }, h('span.ico', { text: sp.ico })));
+  }, icon(sp.ico)));
   const speed = h('div.chip.speed', null, pausedTag, ...speedBtns);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
@@ -79,7 +103,7 @@ export function createHud({ root, controls, ui }) {
       const p = s.products.find((x) => x.id === o.productId);
       const k = h('span.k');
       tray.append(h('div.tray-card.alert', { onclick: () => ui.open('ops') },
-        h('div.t', null, h('span', { text: `🚨 ${p?.name ?? 'Product'} is down` }), k),
+        h('div.t', null, h('span', null, icon('tray.outage'), ` ${p?.name ?? 'Product'} is down`), k),
         h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : (INCIDENT_LABEL[o.kind] ?? 'Outage') })));
       trayBinds.push((st) => st.outage && setText(k, `SEV${st.outage.severity} · ${st.outage.weeks}w`));
     }
@@ -88,7 +112,7 @@ export function createHud({ root, controls, ui }) {
       const k = h('span.k.num');
       const label = j.kind === 'new' ? j.name : `${j.kind === 'update' ? 'Update' : j.kind === 'migration' ? 'Migrate' : j.kind === 'refactor' ? 'Refactor' : 'Craft'}${j.name ? `: ${j.name}` : ''}`;
       tray.append(h('div.tray-card', { onclick: () => ui.open('build'), title: 'Open Build' },
-        h('div.t', null, h('span', { text: `🔨 ${label}` }), k),
+        h('div.t', null, h('span', null, icon('tray.project'), ` ${label}`), k),
         h('div.bar', null, fill)));
       trayBinds.push((st) => {
         const cur = st.projects.find((x) => x.id === j.id);
@@ -98,10 +122,27 @@ export function createHud({ root, controls, ui }) {
         setText(k, `${Math.floor(Math.min(1, f) * 100)}%`);
       });
     }
+    const effects = groupEffects(s);
+    if (effects.length) {
+      const list = h('div.effects');
+      for (const e of effects) {
+        const left = h('span.k.num');
+        list.append(h('div.effect', { title: e.parts.map((m) => `${keyLabel(m.key)} ${m.value > 0 ? '+' : ''}${fmtValue(m.value)}`).join(', ') },
+          h('span.en', { text: e.label }),
+          h('span.arrows', null, ...e.parts.map((m) => {
+            const good = BAD_WHEN_UP.has(m.key) ? m.value < 0 : m.value > 0;
+            return h(`span.arr.${good ? 'good' : 'bad'}`, null, icon(m.value >= 0 ? 'arrow.up' : 'arrow.down', { size: 11 }));
+          })),
+          left));
+        trayBinds.push((st) => setText(left, `${Math.max(0, e.untilWeek - st.week)}w`));
+      }
+      tray.append(h('div.tray-card.effects-card', { title: 'Temporary effects from your decisions' },
+        h('div.t', null, h('span', null, icon('tray.effects'), ' Active effects')), list));
+    }
     if (s.market?.trend && s.market.trend !== 'steady') {
       const k = h('span.k.num');
       tray.append(h('div.tray-card.trend', { title: 'Current market trend' },
-        h('div.t', null, h('span', { text: `📡 ${trendName(s.market.trend)}` }), k)));
+        h('div.t', null, h('span', null, icon('tray.trend'), ` ${trendName(s.market.trend)}`), k)));
       trayBinds.push((st) => setText(k, `${st.market.trendWeeksLeft}w`));
     }
   }
@@ -144,7 +185,7 @@ export function createHud({ root, controls, ui }) {
     if (dir !== last.dir) {
       last.dir = dir;
       setClass(mrrTrend, `trend ${dir}`);
-      setText(mrrTrend, dir === 'up' ? '▲' : dir === 'down' ? '▼' : '•');
+      mrrTrend.replaceChildren(icon(`arrow.${dir}`));
     }
     setText(mrrSub, `${fmtNum(totalCustomers(s))} customers`);
 
@@ -152,8 +193,12 @@ export function createHud({ root, controls, ui }) {
     setText(teamVal, `${s.staff.length}/${cap}`);
     let sad = 0;
     for (const p of s.staff) if (p.mood === 'burnout' || p.mood === 'coasting') sad++;
-    setText(teamSub, sad ? `${MOOD_INFO.coasting.icon} ${sad} unhappy` : `${MOOD_INFO.ok.icon} all good`);
-    toggleClass(teamSub, 'warn-t', sad > 0);
+    const teamKey = sad ? `s${sad}` : 'ok';
+    if (teamKey !== last.team) {
+      last.team = teamKey;
+      teamSub.replaceChildren(icon(sad ? 'mood.coasting' : 'mood.ok', { size: 12 }), sad ? ` ${sad} unhappy` : ' all good');
+      toggleClass(teamSub, 'warn-t', sad > 0);
+    }
 
     setWidth(mBrand.fill, s.brand / 100);
     setText(mBrand.v, Math.round(s.brand));
@@ -171,7 +216,7 @@ export function createHud({ root, controls, ui }) {
       pausedTag.style.display = sp === 0 ? '' : 'none';
     }
 
-    const sig = `${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}`;
+    const sig = `${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
     if (sig !== traySig) { traySig = sig; buildTray(s); }
     for (const b of trayBinds) b(s);
   }

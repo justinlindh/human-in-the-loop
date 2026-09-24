@@ -80,6 +80,7 @@ describe('startProject', () => {
     dispatch(s, newProject());
     expect(s.cash).toBe(B.startCash - B.sizes.small.cost);
     expect(s.projects[0].pointsNeeded).toBe(B.sizes.small.points);
+    expect(s.projects[0].researchId).toBe(null);
     s.week = 52 * 3;
     dispatch(s, newProject());
     expect(s.projects[1].pointsNeeded).toBeCloseTo(B.sizes.small.points * (1 + 3 * B.pointsGrowthPerYear));

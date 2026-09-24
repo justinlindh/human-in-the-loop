@@ -44,6 +44,16 @@ describe('runCampaign', () => {
 });
 
 describe('hype and brand', () => {
+  it('a campaign on a killed product stops with a toast', () => {
+    const s = game();
+    const p = addProduct(s);
+    dispatch(s, { type: 'runCampaign', channel: 'content', productId: p.id });
+    dispatch(s, { type: 'killProduct', productId: p.id });
+    const ev = runMarketing(s, 1);
+    expect(s.campaigns).toHaveLength(0);
+    expect(ev.some((e) => e.type === 'toast' && e.text.includes('stopped'))).toBe(true);
+  });
+
   it('pre-launch project hype is banked on the project', () => {
     const s = game();
     const j = newProject(s);

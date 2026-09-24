@@ -214,6 +214,21 @@ describe('actions', () => {
     expectFail(expect, dispatch, s, { type: 'killProduct', productId: p.id }, 'No such product');
   });
 
+  it('killProduct cancels its update and migration work and clears the owner', () => {
+    const s = game();
+    const p = addProduct(s, { migrationDueWeek: 30, ownerId: s.staff[1].id });
+    const other = addProduct(s, { name: 'Other' });
+    const up = dispatch(s, { type: 'startProject', kind: 'update', productId: p.id }).projectId;
+    dispatch(s, { type: 'startProject', kind: 'migration', productId: p.id });
+    const keep = dispatch(s, { type: 'startProject', kind: 'update', productId: other.id }).projectId;
+    dispatch(s, { type: 'assign', staffId: s.staff[0].id, assignment: { type: 'project', targetId: up } });
+    const res = dispatch(s, { type: 'killProduct', productId: p.id });
+    expect(s.projects.map((j) => j.id)).toEqual([keep]);
+    expect(s.staff[0].assignment.type).toBe('maintenance');
+    expect(p.ownerId).toBe(null);
+    expect(res.events.some((e) => e.type === 'toast' && /cancel/i.test(e.text))).toBe(true);
+  });
+
   it('setOwner validates both ids and can clear ownership', () => {
     const s = game();
     const p = addProduct(s);

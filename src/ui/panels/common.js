@@ -19,13 +19,13 @@ export function assignmentText(state, p) {
   const a = p.assignment ?? { type: 'idle' };
   if (a.type === 'project') {
     const j = state.projects.find((x) => x.id === a.targetId);
-    return j ? `🔨 ${projectLabel(state, j)}` : 'Project';
+    return j ? projectLabel(state, j) : 'Project';
   }
   if (a.type === 'mentor') {
     const t = state.staff.find((x) => x.id === a.targetId);
-    return `🎓 Mentoring ${t ? t.name.split(' ')[0] : ''}`.trim();
+    return `Mentoring ${t ? t.name.split(' ')[0] : ''}`.trim();
   }
-  if (a.type === 'sabbatical') return `🏖️ Sabbatical${p.sabbaticalWeeksLeft ? ` (${p.sabbaticalWeeksLeft}w)` : ''}`;
+  if (a.type === 'sabbatical') return `Sabbatical${p.sabbaticalWeeksLeft ? ` (${p.sabbaticalWeeksLeft}w)` : ''}`;
   return ASSIGNMENT_LABEL[a.type] ?? a.type;
 }
 
