@@ -300,7 +300,7 @@ export const ITEMS = [
     id: '5-4-waffle-party-real', title: '5.4 Waffle Party in a real game', query: 'seed=1&speed=1', seconds: 30,
     setup: WAFFLE_SETUP,
     actions: WAFFLE_ACTIONS(30),
-    screenshots: [11, 14, 18],
+    screenshots: [15, 18, 22],
   },
   {
     id: '5-5-burnout-resign', title: '5.5 Burnout and a resignation', query: 'mock=floor&speed=1', seconds: 16,
@@ -375,9 +375,9 @@ export const ITEMS = [
     actions: DISMISS_EVERY(6), screenshots: [6],
   },
   {
-    // Shot as the winner speaks, before the watchers behind the glass start their envy emotes.
+    // Shot as the winner speaks, before the watching crowd starts its envy emotes.
     id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
-    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(13), screenshots: [12.75],
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(19), screenshots: [18],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
