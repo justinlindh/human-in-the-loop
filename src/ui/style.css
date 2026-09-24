@@ -26,6 +26,8 @@
 
   position: absolute;
   inset: 0;
+  /* Its own stacking context above the 3D label layer, whose labels carry depth z-indexes. */
+  z-index: 10000;
   pointer-events: none;
   font-family: 'Fredoka', system-ui, sans-serif;
   font-weight: 500;
@@ -711,7 +713,7 @@
 .hitl .chat-head .count.show { display: inline-block; }
 .hitl .chat-head .caret { margin-left: auto; font-size: 0.8em; }
 .hitl .chat-head .count.show + .caret { margin-left: 0.3em; }
-.hitl .chat-tabs { display: flex; gap: 0.2em; padding: 0.3em 0.35em; background: #f1e9f1; border-bottom: 0.13em solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.hitl .chat-tabs { display: flex; flex-wrap: wrap; gap: 0.15em 0.2em; padding: 0.3em 0.35em; background: #f1e9f1; border-bottom: 0.13em solid var(--line); }
 .hitl .ctab { pointer-events: auto; border: none; background: none; padding: 0.15em 0.4em; border-radius: 0.45em; font-size: 0.78em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25em; }
 .hitl .ctab.on { background: #4a154b; color: #fff; }
 .hitl .ctab .cbadge { display: none; font-size: 0.85em; background: var(--red); color: #fff; border-radius: 1em; padding: 0 0.4em; }
