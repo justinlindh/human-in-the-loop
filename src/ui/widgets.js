@@ -155,7 +155,12 @@ function drawPortrait(g, p) {
   // Shoulders: the role garment over the shirt, so the team reads at a glance.
   const sw = 24 + (a.build ?? 1) * 2;
   const shoulders = (fill) => { g.fillStyle = fill; g.beginPath(); g.ellipse(32, 66, sw, 17, 0, Math.PI, 0); g.fill(); g.stroke(); };
-  if (garment === 'hood' || garment === 'hood_tucked' || garment === 'blazer' || garment === 'jacket') {
+  if (garment === 'hood' || garment === 'hood_tucked') {
+    // A hoodie: the shirt-coloured body with the role-coloured hood gathered at the neck.
+    shoulders(shirt);
+    g.fillStyle = role;
+    g.beginPath(); roundRect(g, 17, 45, 30, 9, 4.5); g.fill(); g.stroke();
+  } else if (garment === 'blazer' || garment === 'jacket') {
     shoulders(role);
     // The shirt shows in a V at the front; a blazer gets lapels.
     g.fillStyle = shirt;
