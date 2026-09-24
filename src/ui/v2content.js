@@ -2,6 +2,8 @@
 // Reads the sim lane's src/data exports when they exist; the fallbacks carry the spec's wording
 // so the founding flow and cards work before the data lands.
 import { B } from './content.js';
+import { ITEMS as DATA_ITEMS } from '../data/items.js';
+import { OFFICE_STAGES as DATA_STAGES } from '../data/office.js';
 
 const DATA = Object.assign({}, ...Object.values(import.meta.glob('../data/*.js', { eager: true })));
 const list = (v) => (Array.isArray(v) ? v : v ? Object.values(v) : null);
@@ -84,3 +86,49 @@ export function archetypePerson(a, i = 0) {
     appearance: { skin: skins[i % 6], hair: hairs[i % 6], hairColor: colors[i % 6], shirt: null, accessory: acc[i % 6], build: 1 },
   };
 }
+
+// ---------- office grid and build catalog ----------
+
+const FB_GRIDS = [
+  { w: 9, h: 7, door: { x: 0, y: 3 }, blocked: [] },
+  { w: 15, h: 12, door: { x: 0, y: 6 }, blocked: [] },
+  { w: 21, h: 16, door: { x: 0, y: 8 }, blocked: [] },
+];
+
+export function stageGrid(stage) {
+  const g = DATA_STAGES[stage]?.grid ?? FB_GRIDS[stage] ?? FB_GRIDS[0];
+  return { w: g.w, h: g.h, door: DATA_STAGES[stage]?.door ?? g.door ?? { x: g.w - 1, y: g.h - 1 }, blocked: DATA_STAGES[stage]?.blocked ?? g.blocked ?? [] };
+}
+
+// Furniture the build palette offers until src/data/items.js carries it.
+const FB_FURNITURE = [
+  { id: 'desk', name: 'Desk Set', desc: 'A desk, a chair, and a screen. One person each.', costs: [800], footprint: { w: 2, h: 1 }, minStage: 0 },
+  { id: 'meeting_table', name: 'Meeting Table', desc: 'Where standups and arguments happen.', costs: [2500], footprint: { w: 3, h: 2 }, minStage: 0 },
+  { id: 'whiteboard', name: 'Whiteboard', desc: 'Nearby desks think a little weirder.', costs: [900], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'novelty', value: 0.03 } },
+  { id: 'coffee_corner', name: 'Coffee Corner', desc: 'Nearby desks get their energy back faster.', costs: [1500], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 3, key: 'staminaRecovery', value: 0.05 } },
+  { id: 'rack', name: 'Server Rack', desc: 'Racks next to racks keep things up.', costs: [3000], footprint: { w: 1, h: 1 }, minStage: 0, adjacency: { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'rack' } },
+  { id: 'plant', name: 'Potted Plant', desc: 'Nearby desks feel a bit better about their work.', costs: [300], footprint: { w: 1, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'meaningRecovery', value: 0.03 } },
+  { id: 'bookshelf', name: 'Bookshelf', desc: 'Nearby desks pick up the systems faster.', costs: [1200], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'knowledgeGain', value: 0.05 } },
+];
+
+const FB_SHOP_FOOTPRINT = { espresso: { w: 1, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 2, h: 1 }, arcade: { w: 1, h: 1 }, standing_desk: { w: 2, h: 1 }, whiteboard_wall: { w: 2, h: 1 }, library: { w: 2, h: 2 }, monitoring_wall: { w: 3, h: 1 }, server_rack: { w: 1, h: 1 }, trophy_case: { w: 1, h: 1 } };
+
+// One entry per placeable thing: { id, name, desc, kind, costs, effects, footprint, adjacency, minStage, requires }.
+export const CATALOG = (() => {
+  const out = {};
+  const dataHasFurniture = Object.values(DATA_ITEMS).some((it) => it.kind === 'furniture');
+  if (!dataHasFurniture) for (const f of FB_FURNITURE) out[f.id] = { kind: 'furniture', effects: [], requires: null, adjacency: null, ...f };
+  for (const it of Object.values(DATA_ITEMS)) {
+    out[it.id] = {
+      ...it,
+      kind: it.kind ?? 'shop',
+      footprint: it.footprint ?? FB_SHOP_FOOTPRINT[it.id] ?? { w: 1, h: 1 },
+      adjacency: it.adjacency ?? null,
+      costs: it.costs ?? [it.cost ?? it.price ?? 0],
+      effects: it.effects ?? [],
+    };
+  }
+  return out;
+})();
+
+export const isDesk = (itemId) => itemId === 'desk' || itemId === 'desk_set' || CATALOG[itemId]?.desk === true;

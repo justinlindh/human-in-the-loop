@@ -9,7 +9,7 @@
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
 // 'eager' acts every week exactly like the balance harness, so the game matches runBot.
 import { createGame, tick, dispatch } from '../src/sim/index.js';
-import { BOTS, CHOOSERS } from '../src/sim/bots.js';
+import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
 import { createPacer, WEEK_SECONDS, BUBBLE_SECONDS } from '../src/pacing.js';
 
@@ -27,8 +27,11 @@ const HUMAN = {
 const UI = {
   toastBudget: 3,          // info and good toasts per game week; warn and bad always show
   toastDedupSeconds: 0.8,
-  maxSpeech: 4,            // speech bubbles on screen before the renderer drops new ones
-  standupGather: 2.2,      // seconds (scaled by speed, max 2x) to gather before a daily standup talks
+  maxSpeech: 4,
+  bubbleFade: 0.25,        // seconds; a bubble cut shorter than this still reads as whole            // speech bubbles on screen before the renderer drops new ones
+  standupGather: 2.2,
+  standupStageEvery: { 1: 3, 2: 6 }, // game weeks between staged standups at 1x, and at 2x and up
+  deskStandupBubble: 2.4, // seconds for the one spoken update on unstaged standup weeks      // seconds (scaled by speed, max 2x) to gather before a daily standup talks
 };
 
 function parseArgs(argv) {
@@ -125,12 +128,13 @@ const r2 = (x) => (x === null || x === undefined ? null : Math.round(x * 100) / 
 
 export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player = 'batch', minutes = null, weeks = null, frame = 1 / 30 } = {}) {
   if (!['batch', 'eager'].includes(player)) throw new Error(`Unknown player "${player}". Players: batch, eager`);
-  if (!BOTS[bot]) throw new Error(`Unknown bot "${bot}". Bots: ${Object.keys(BOTS).join(', ')}`);
+  if (!bots.BOTS[bot]) throw new Error(`Unknown bot "${bot}". Bots: ${Object.keys(bots.BOTS).join(', ')}`);
   const limitSeconds = minutes !== null ? minutes * 60 : weeks === null ? 30 * 60 : Infinity;
   const limitWeeks = weeks ?? Infinity;
   const state = createGame({ seed, companyName: `Pace ${bot}` });
-  const botFn = BOTS[bot];
-  const chooser = CHOOSERS[bot];
+  const chooser = bots.CHOOSERS[bot];
+  // With the sim's event sink (botTurn, botDecide) the player's own events are presented too.
+  const sinkApi = typeof bots.botTurn === 'function' && typeof bots.botDecide === 'function';
   const rand = mulberry(seed ^ 0x9e3779b9);
   const draw = ([a, b]) => a + rand() * (b - a);
   const pacer = createPacer();
@@ -176,10 +180,13 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   function bubble(who, text, start, seconds, source) {
     const live = onScreen(start);
     const mine = live.find((b) => b.who === who);
-    if (mine) {
+    // A trim shorter than the bubble's fade-out is not visible, so only longer cuts count.
+    if (mine && mine.end - start > UI.bubbleFade) {
       bubbleStats.overlaps.push({ t: start, week: state.week, who, text, cutShort: r2(mine.end - start), source });
       mine.end = start;
-    } else if (source === 'chat' && live.length >= UI.maxSpeech) {
+    } else if (mine) {
+      mine.end = start;
+    } else if ((source === 'say' || source === 'standup-desk') && live.length >= UI.maxSpeech) {
       bubbleStats.dropped++;
       return;
     }
@@ -196,7 +203,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
 
   const firsts = { launch: null, era: {}, goal: {}, unlock: {} };
   const decisions = [];
-  const counts = { chat: 0, chatBot: 0, chatQuiet: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
+  let lastStaged = -Infinity;
+  const counts = { chat: 0, chatBot: 0, sayDropped: 0, says: 0, standupsStaged: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
 
   function route(events) {
     if (!events?.length) return;
@@ -242,15 +250,29 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
         case 'chat': {
           counts.chat++;
           if (!e.fromId) counts.chatBot++;
-          if (e.quiet) counts.chatQuiet++;
-          log('chat', `#${e.channel} ${e.from}: ${e.text}${e.quiet ? ' (feed only)' : ''}`, { reply: !!e.replyTo });
-          if (!e.quiet && e.fromId && e.text && present.has(e.fromId)) bubble(e.fromId, e.text, t, BUBBLE_SECONDS, 'chat');
+          log('chat', `#${e.channel} ${e.from}: ${e.text}`, { reply: !!e.replyTo });
+          break;
+        }
+        case 'say': {
+          if (e.dropped) { counts.sayDropped++; log('say-drop', `${e.staffId}: ${e.text}`); break; }
+          counts.says++;
+          log('say', `${e.staffId}${e.toId ? ` to ${e.toId}` : ''}: ${e.text}`, { reply: !!e.replyTo });
+          if (e.text && present.has(e.staffId)) bubble(e.staffId, e.text, t, BUBBLE_SECONDS, 'say');
           break;
         }
         case 'standup': {
           counts.standups++;
           log('standup', `${e.mode}, ${e.lines.length} lines`);
-          if (e.mode === 'daily' && speed < 4) {
+          // The renderer stages an in-person standup only every few weeks; other weeks get desk
+          // emotes and the shortest line as one bubble.
+          const staged = e.mode === 'daily' && speed < 4 && state.week - lastStaged >= UI.standupStageEvery[speed >= 2 ? 2 : 1];
+          if (e.mode === 'daily' && !staged && speed < 4) {
+            const line = e.lines.filter((l) => l.text && present.has(l.staffId)).sort((a, b) => a.text.length - b.text.length)[0];
+            if (line) bubble(line.staffId, line.text, t, UI.deskStandupBubble, 'standup-desk');
+          }
+          if (staged && e.lines.some((l) => present.has(l.staffId))) {
+            lastStaged = state.week;
+            counts.standupsStaged++;
             const k = speed >= 2 ? 2 : 1;
             let at = t + UI.standupGather / k + 0.2 / k;
             for (const l of e.lines) {
@@ -277,12 +299,19 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       if (!reading) reading = { until: t + draw(HUMAN.decision) };
       else if (t >= reading.until) {
         attention ??= 'decision';
-        const choice = pickDecision(state, chooser);
         const title = state.pendingDecision.title;
-        const res = dispatch(state, { type: 'resolveDecision', choice });
-        log('choice', `${title}: ${state.pendingDecision ? '(still pending)' : `choice ${choice}`}`);
-        route(res.events);
-        if (!res.ok) for (let c = 0; c < 4 && state.pendingDecision; c++) route(dispatch(state, { type: 'resolveDecision', choice: c }).events);
+        if (sinkApi) {
+          const out = [];
+          bots.botDecide(bot, state, { onEvents: (ev) => out.push(...ev) });
+          log('choice', title);
+          route(out);
+        } else {
+          const choice = pickDecision(state, chooser);
+          const res = dispatch(state, { type: 'resolveDecision', choice });
+          log('choice', `${title}: ${state.pendingDecision ? '(still pending)' : `choice ${choice}`}`);
+          route(res.events);
+          if (!res.ok) for (let c = 0; c < 4 && state.pendingDecision; c++) route(dispatch(state, { type: 'resolveDecision', choice: c }).events);
+        }
         reading = null;
       }
     } else if (!menu && cards.length) {
@@ -297,9 +326,12 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       const why = player === 'eager' ? '' : attention ? `, ${attention}` : ', routine';
       if (player === 'batch') { nextSession = state.week + Math.round(draw(HUMAN.batchWeeks)); attention = null; }
       const before = fingerprint(state);
-      for (const a of botFn(state) ?? []) dispatch(state, a);
+      const out = [];
+      if (sinkApi) bots.botTurn(bot, state, { onEvents: (ev) => out.push(...ev) });
+      else for (const a of bots.BOTS[bot](state) ?? []) dispatch(state, a);
       const { n, newStaff } = countActions(before, fingerprint(state));
-      route(newStaff.map((staffId) => ({ type: 'hire', staffId })));
+      // Without the sink the bot's events are lost; hires are the ones the diff can recover.
+      route(sinkApi ? out : newStaff.map((staffId) => ({ type: 'hire', staffId })));
       if (n > 0) {
         const seconds = draw(HUMAN.menuBase) + n * draw(HUMAN.menuPerAction);
         menu = { until: t + seconds, kind: 'menu' };
@@ -315,7 +347,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     else if (state.pendingDecision) paused.decision += frame;
     if (pacer.step(frame, { speed, running })) {
       route(pacer.schedule(tick(state)));
-      route(pacer.takeQuiet().map((e) => ({ ...e, quiet: true })));
+      route(pacer.takeDropped().map((e) => ({ ...e, dropped: true })));
       botDue = true;
       if (state.cash < 0) attention ??= 'cash';
       if (state.era && state.era.id !== lastEra) { lastEra = state.era.id; firsts.era[lastEra] ??= t; }
@@ -339,7 +371,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   const toMin = (obj) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, r1(v / 60)]));
 
   const metrics = {
-    seed, speed, bot, player, weekSeconds: WEEK_SECONDS / speed,
+    seed, speed, bot, player, playerEvents: sinkApi ? 'all' : 'hires only', weekSeconds: WEEK_SECONDS / speed,
     realMinutes: r1(minutesPlayed), weeks: state.week, gameOver: state.gameOver ? { won: state.gameOver.won, reason: state.gameOver.reason } : null,
     pausedShare: { decision: r2(paused.decision / t), menu: r2(paused.menu / t), menuSessions: r2(paused.sessions / t) },
     menuSessions: sessionCount(timeline),
@@ -349,7 +381,9 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       gapSeconds: gaps.length ? { min: r1(gaps[0]), p10: r1(pct(gaps, 0.1)), p25: r1(pct(gaps, 0.25)), median: r1(pct(gaps, 0.5)), p75: r1(pct(gaps, 0.75)), p90: r1(pct(gaps, 0.9)), max: r1(gaps.at(-1)), mean: r1(gaps.reduce((a, b) => a + b, 0) / gaps.length) } : null,
     },
     toasts: { shownPerMinute: perMin(toastStats.shown), heldPerMinute: perMin(toastStats.held), ...toastStats },
-    chat: { linesPerMinute: perMin(counts.chat), lines: counts.chat, botLines: counts.chatBot, feedOnly: counts.chatQuiet },
+    chat: { linesPerMinute: perMin(counts.chat), lines: counts.chat, botLines: counts.chatBot },
+    say: { linesPerMinute: perMin(counts.says), lines: counts.says, droppedStale: counts.sayDropped },
+    standups: { count: counts.standups, staged: counts.standupsStaged },
     bubbles: {
       perMinute: perMin(bubbleStats.shown), meanOnScreen: r2(integral / Math.max(1, samples)), shareOfTimeAny: r2(covered / Math.max(1, samples)),
       maxConcurrent: bubbleStats.maxConcurrent, dropped: bubbleStats.dropped, overlaps: bubbleStats.overlaps.length,
@@ -366,7 +400,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
 
 function printSummary(m, overlaps) {
   const L = (k, v) => console.log(`${k.padEnd(26)}${v}`);
-  console.log(`pacing: seed ${m.seed}, bot ${m.bot}, ${m.player} player, ${m.speed}x (${m.weekSeconds}s per week)`);
+  console.log(`pacing: seed ${m.seed}, bot ${m.bot}, ${m.player} player, ${m.speed}x (${m.weekSeconds}s per week); player's own events: ${m.playerEvents}`);
   L('played', `${m.realMinutes} real min, ${m.weeks} weeks${m.gameOver ? `, game over (${m.gameOver.won ? 'won' : 'lost'}: ${m.gameOver.reason})` : ''}`);
   L('time paused', `decisions ${Math.round(m.pausedShare.decision * 100)}%, menus and popups ${Math.round(m.pausedShare.menu * 100)}% (menu sessions alone ${Math.round(m.pausedShare.menuSessions * 100)}%)`);
   L('menu sessions (w/ changes)', Object.entries(m.menuSessions).map(([k, v]) => `${k} ${v}`).join('  '));
@@ -378,7 +412,9 @@ function printSummary(m, overlaps) {
   }
   L('toasts per minute', `${m.toasts.shownPerMinute} shown, ${m.toasts.heldPerMinute} held by the budget`);
   L('  shown by tone', Object.entries(m.toasts.byTone).map(([k, v]) => `${k} ${v}`).join('  '));
-  L('chat lines per minute', `${m.chat.linesPerMinute} (${m.chat.lines} lines, ${m.chat.botLines} from bots, ${m.chat.feedOnly} feed-only because the speaker was mid-bubble)`);
+  L('Slackk lines per minute', `${m.chat.linesPerMinute} (${m.chat.lines} lines, ${m.chat.botLines} from bots)`);
+  L('spoken lines per minute', `${m.say.linesPerMinute} (${m.say.lines} lines, ${m.say.droppedStale} dropped stale while the speaker talked)`);
+  L('standups', `${m.standups.count} (${m.standups.staged} staged in person)`);
   L('speech bubbles', `${m.bubbles.perMinute}/min, mean ${m.bubbles.meanOnScreen} on screen, any up ${Math.round(m.bubbles.shareOfTimeAny * 100)}% of the time, max ${m.bubbles.maxConcurrent}`);
   L('  dropped at the cap', m.bubbles.dropped);
   L('  same-speaker overlaps', m.bubbles.overlaps);

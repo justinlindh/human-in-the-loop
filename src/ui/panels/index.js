@@ -21,6 +21,6 @@ export const PANELS = {
   models: { title: 'Model Vendors', wide: true, build: (ctx) => modelsPanel(ctx) },
   automation: { title: 'Automation', wide: true, build: (ctx) => automationPanel(ctx) },
   ops: { title: 'Ops and Security', wide: true, build: (ctx) => opsPanel(ctx) },
-  office: { title: 'Office', build: (ctx) => officePanel(ctx) },
+  office: { title: 'Office', wide: true, build: (ctx) => officePanel(ctx) },
   reports: { title: 'Reports', wide: true, build: (ctx) => reportsPanel(ctx) },
 };

@@ -109,6 +109,14 @@ function placementProblem(stage, item, others) {
   return null;
 }
 
+const SAID = {
+  aside: ['Okay. Okay okay okay.', 'Who moved my mug?', 'That build was fast. Suspicious.', 'Coffee. Now.', 'Huh. It works.'],
+  exchanges: [
+    ['Got a sec to look at this diff?', 'Sure. Oh. Oh no.', 'Yeah. That is why I asked.'],
+    ['Lunch?', 'Tacos?', 'Tacos.'],
+    ['Did the agent write this?', 'Parts of it. The weird parts.', 'I can tell.'],
+  ],
+};
 const REACTIONS = ['🎉', '😂', '💀', '🫡', '🔥', '👀', '🙏'];
 const PRICES = { email: 10, support: 60, pm: 25, notes: 12, crm: 70, analytics: 55, design: 30, devtools: 35 };
 
@@ -256,6 +264,9 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     return { type: 'chat', id: `m${++chatSeq}`, channel, from: bot ?? person.name, fromId: bot ? null : person.id, text, replyTo, reactions };
   }
 
+  let saySeq = 0;
+  const say = (person, text, to = null, replyTo = null) => ({ type: 'say', id: `v${++saySeq}`, week: state.week, staffId: person.id, text, toId: to?.id ?? null, replyTo });
+
   let ticks = 0;
   let gameOverEmitted = false;
 
@@ -289,6 +300,17 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     if (ticks % 2 === 0) {
       const replier = pick(state.staff.filter((p) => p !== talker)) ?? talker;
       events.push(chat('general', replier, pick(['same', 'this is fine', 'you taught me everything I know', 'lunch?', '+1']), post.id));
+    }
+    // Spoken lines: one aside a week, and a short exchange between two people every third week.
+    const here = state.staff.filter((p) => p.mood !== 'away' && p.assignment.type !== 'sabbatical');
+    if (here.length) events.push(say(pick(here), pick(SAID.aside)));
+    if (ticks % 3 === 0 && here.length >= 2) {
+      const a = pick(here);
+      const b = pick(here.filter((p) => p !== a));
+      const [open, reply, close] = pick(SAID.exchanges);
+      const first = say(a, open, b);
+      const second = say(b, reply, a, first.id);
+      events.push(first, second, say(a, close, b, second.id));
     }
     if (ticks % 4 === 0) events.push(chat('random', pick(state.staff), pick(['who took the good mug', 'the office dog is in the server room again', 'coffee machine is making the noise again'])));
 

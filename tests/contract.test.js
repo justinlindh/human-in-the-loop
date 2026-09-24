@@ -50,6 +50,24 @@ describe('mock sim honors the contract', () => {
     }
   });
 
+  it('say events are spoken by present staff, answer earlier says, and stay out of chatLog', () => {
+    const m = createMockSim({ scenario: 'floor' });
+    const says = [];
+    for (let i = 0; i < 30; i++) {
+      if (m.state.pendingDecision) m.dispatch({ type: 'resolveDecision', choice: 0 });
+      const said = m.tick().filter((e) => e.type === 'say');
+      for (const e of said) expect(m.state.staff.find((p) => p.id === e.staffId)?.mood, e.staffId).not.toBe('away');
+      says.push(...said);
+    }
+    expect(says.some((e) => e.replyTo)).toBe(true);
+    for (const e of says) {
+      expect(typeof e.id).toBe('string');
+      if (e.replyTo) expect(says.findIndex((x) => x.id === e.replyTo)).toBeLessThan(says.indexOf(e));
+      if (e.toId) expect(e.toId).not.toBe(e.staffId);
+    }
+    expect((m.state.chatLog ?? []).some((c) => c.type === 'say')).toBe(false);
+  });
+
   it('ending scenario emits gameOver once', () => {
     const m = createMockSim({ scenario: 'ending' });
     expect(m.tick().map((e) => e.type)).toEqual(['gameOver']);

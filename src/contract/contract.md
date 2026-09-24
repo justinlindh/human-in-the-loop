@@ -141,7 +141,7 @@ These supersede the matching parts above. Where v2 and v1 disagree, v2 wins.
 ### createGame
 ```js
 createGame({ seed, companyName, logoColor, tagline, founders /* [archetypeId, archetypeId] */, funding /* 'bootstrapped'|'family'|'preseed' */ })
-// every option is optional; defaults: a random founder pair suited to building, 'bootstrapped'
+// every option is optional; defaults: founders ['engineer', 'designer'], funding 'bootstrapped'
 ```
 The run starts at week 0 = January 2019 (dateOf(0).year === 2019).
 
