@@ -164,7 +164,7 @@ export const GLYPHS = {
   'mood.ok': { d: face(eyes + cheeks + `<path d="M8.5 14.5q3.5 3.5 7 0" ${line(1.8)}/>`) },
   'mood.coasting': { d: face(`<path d="M7.5 11h3M13.5 11h3" ${line(1.8)}/>` + `<path d="M9 16h6" ${line(1.8)}/>`) },
   'mood.burnout': { d: face(`<path d="M7.5 9.5l3 3M10.5 9.5l-3 3M13.5 9.5l3 3M16.5 9.5l-3 3" ${line(1.6)}/>` + `<path d="M8.5 17q1-1.5 1.8 0t1.7 0 1.7 0 1.8 0" ${line(1.5)}/>`, '#d9c6b0') },
-  'mood.away': { d: face(`<path d="M5.5 10h13" ${line(1.6)}/>` + rr(6, 9.5, 5, 3.5, 1.5, INK).replace(`stroke="${INK}"`, `stroke="${INK}"`) + rr(13, 9.5, 5, 3.5, 1.5, INK) + `<path d="M9.5 15.5q2.5 2 5 0" ${line(1.8)}/>`) },
+  'mood.away': { d: path('M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2', 'none') + rr(3, 7, 18, 13.5, 2.5, C.terracotta) + `<path d="M3 12h18" ${line(1.6)}/>` + circ(16, 16, 2.2, C.yellow) + `<path d="M7 20.5v1.5M17 20.5v1.5" ${line(2)}/>` },
 
   // project sizes
   'size.small': { d: path('M6.5 13h11l-1.5 8h-8Z', C.pink) + path('M5 13a7 7 0 0 1 14 0Z', C.cream) + dot(12, 5.5, 1.8, C.red) + `<path d="M9 16.5v2.5M12 16.5v2.5M15 16.5v2.5" ${line(1.2)}/>` },
@@ -218,16 +218,18 @@ export const GLYPHS = {
   research: { d: D.testtube },
 
   // automation functions
-  'fn.engineering': { d: D.keyboard },
+  'fn.engineering': { d: rr(1.5, 6, 21, 13, 3, C.cream) + [4, 8.5, 13, 17.5].map((x) => `<rect x="${x}" y="8.5" width="3" height="3" rx=".7" fill="${C.metalDark}"/>`).join('')
+    + `<rect x="5.5" y="13.5" width="13" height="3" rx=".8" fill="${C.metalDark}"/>` },
   'fn.support': { d: D.headset },
   'fn.sales': { d: D.briefcase },
   'fn.marketing': { d: D.pencil },
-  'fn.qa': { d: D.testtube },
+  'fn.qa': { d: path('M9 2.5h6M10 2.5v6L4.5 18.5A2 2 0 0 0 6.3 21.5h11.4a2 2 0 0 0 1.8-3L14 8.5v-6', PAPER)
+    + path('M7 14h10l2.6 4.6a1.3 1.3 0 0 1-1.1 1.9h-13a1.3 1.3 0 0 1-1.1-1.9Z', C.green) + dot(10, 17, 1.1, PAPER) + dot(14, 16, 0.8, PAPER) },
   'fn.ops': { d: D.monitor },
 
   // marketing channels
   'channel.launch': { d: D.rocket },
-  'channel.content': { d: D.pencil },
+  'channel.content': { d: rr(4, 2.5, 16, 19, 2, PAPER) + `<rect x="6.5" y="5" width="11" height="4" rx="1" fill="${C.blue}"/>` + `<path d="M7 12h10M7 15h10M7 18h6" ${line(1.6)}/>` },
   'channel.producthunt': { d: circ(12, 12, 9.5, C.orange) + `<path d="M9.5 17V7.5h3.5a2.8 2.8 0 0 1 0 5.6H9.5" stroke="${PAPER}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
   'channel.community': { d: path('M2.5 5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3h-1a2 2 0 0 1-2-2Z', C.purple) + path('M11 13v1.5a2 2 0 0 0 2 2h4l3.5 3v-3h.5a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-3.5', C.blue) },
   'channel.ads': { d: D.megaphone },
@@ -243,7 +245,7 @@ export const GLYPHS = {
   // Slackk bot avatars
   'bot.pager': { d: D.siren },
   'bot.vendor': { d: D.brain },
-  'bot.launch': { d: D.rocket },
+  'bot.launch': { d: circ(12, 12, 10.5, C.blue) + `<g transform="translate(3.6 3.4) scale(.7)">${D.rocket}</g>` },
   'bot.hr': { d: path('M3 21 8 8l8 8Z', C.yellow) + `<path d="M5 15.5l3.5 3.5M6.5 11.5l6 6" stroke="${C.red}" stroke-width="1.6" fill="none"/>` + dot(15, 5, 1.4, C.pink) + dot(19.5, 9.5, 1.4, C.blue) + dot(18, 3.5, 1, C.green) + `<path d="M12 7q1-3 4-4M16.5 12q3-1 4.5 1" ${line(1.6)}/>` },
   'bot.awards': { d: D.trophy },
   'bot.office': { d: D.building },
