@@ -21,7 +21,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | Name | Lane | Worktree | Owns |
 |---|---|---|---|
 | team-lead | coordination | `/home/justin/src/gamedev` | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
-| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, merges into `feat/one-shot` when team-lead approves |
+| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges into `feat/one-shot` when team-lead approves |
 | sim | simulation | `/home/justin/src/gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
 | art | render and art | `/home/justin/src/gamedev-art` | `src/render/`, `blender/`, `public/models/` |
 | ui | UI and audio | `/home/justin/src/gamedev-ui` | `src/ui/`, `src/audio/` |
