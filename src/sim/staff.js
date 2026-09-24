@@ -136,12 +136,15 @@ export function makeCandidate(state, role, seniority) {
 
 const MOOD_MULT = { ok: 1, coasting: () => B.coastingOutput, burnout: () => B.burnoutOutput, away: 0 };
 
+const BUILDER_ROLES = new Set(['engineer', 'designer']);
+
 export function outputMult(state, person) {
   const m = MOOD_MULT[person.mood];
   const moodMult = typeof m === 'function' ? m() : (m ?? 1);
   const staminaMult = person.stamina < B.staminaLowBelow ? 0.7 : 1;
   const strained = Math.max(0.6, 1 - B.strainOutputPenalty * Math.max(0, (person.strain ?? 0) - B.strainWarn) / (100 - B.strainWarn));
-  const craft = (state.policies.craft_fridays ? B.craftFridaysOutput : 1) * (state.policies.no_crunch ? 1 + B.noCrunchOutput : 1);
+  const craft = (state.policies.craft_fridays ? B.craftFridaysOutput : 1) * (state.policies.no_crunch ? 1 + B.noCrunchOutput : 1)
+    * (state.policies.crunch && BUILDER_ROLES.has(person.role) ? 1 + B.crunchOutput : 1);
   return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * strained * staffMods(person).output * craft
     * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0));
 }

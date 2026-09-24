@@ -33,9 +33,11 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
   const accent = new THREE.PointLight(C('lamp_warm'), 0, 4.5, 1.8);
   accent.position.set(0, -50, 0);
   scene.add(accent);
-  function setAccent(p, intensity = 0) {
+  const accentWarm = C('lamp_warm');
+  function setAccent(p, intensity = 0, hex = null) {
     if (p) accent.position.set(p.x, p.y ?? 1.7, p.z);
     accent.intensity = p ? intensity : 0;
+    accent.color.copy(hex ? new THREE.Color(hex) : accentWarm);
   }
   // A permanent picture spotlight (off until something is hung), for the same reason.
   const picture = new THREE.SpotLight(C('lamp_warm'), 0, 4, 0.45, 0.5, 1.2);

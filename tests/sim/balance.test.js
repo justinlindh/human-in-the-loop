@@ -63,6 +63,16 @@ describe('balance thresholds (40 seeds per bot, 20 years each; an exit is retiri
     expect(median(r.map((x) => x.score))).toBeLessThan(0.25 * median(get('balanced').map((x) => x.score)));
   }, 300000);
 
+  it('turnover: crunch burns reckless teams out; careful teams lose someone every year or two', () => {
+    const resign = (name) => median(get(name).map((x) => x.resignations));
+    expect(resign('recklessHumans')).toBeGreaterThanOrEqual(10);
+    expect(resign('recklessHumans')).toBeLessThanOrEqual(40);
+    for (const name of ['allHumans', 'balanced', 'sensible']) {
+      expect(resign(name), name).toBeGreaterThanOrEqual(3);
+      expect(resign(name), name).toBeLessThanOrEqual(25);
+    }
+  }, 300000);
+
   it('every run that lasts ends at the 20th anniversary with a score', () => {
     for (const name of ['allHumans', 'balanced', 'sensible']) {
       for (const r of get(name)) {
