@@ -1,0 +1,144 @@
+import './style.css';
+import { h } from './dom.js';
+import { createHud } from './hud.js';
+import { createToasts } from './toasts.js';
+import { createChat } from './chat.js';
+import { createMenu, MENU } from './menu.js';
+import { PANELS } from './panels/index.js';
+
+// UI sound cues go out as window events so the audio lane needs no reference to the UI.
+export function sfx(name) {
+  window.dispatchEvent(new CustomEvent('hitl:sfx', { detail: name }));
+}
+
+const PANEL_REFRESH_MS = 150;
+
+export function createUI({ root, getState, dispatch, controls }) {
+  const layer = h('div.hitl');
+  root.append(layer);
+
+  const toasts = createToasts(layer);
+  let lastSpeed = 1;
+
+  const ui = {
+    setSpeed(k) {
+      if (k > 0) lastSpeed = k;
+      controls.setSpeed(k);
+      sfx('click');
+    },
+    togglePause() {
+      const cur = controls.getSpeed?.() ?? 0;
+      ui.setSpeed(cur === 0 ? lastSpeed || 1 : 0);
+    },
+    open: (id, arg) => menu.open(id, arg),
+    close: () => menu.close(),
+  };
+
+  // Every player action goes through here: failures surface their reason as a warn toast.
+  function act(action) {
+    let res;
+    try {
+      res = dispatch(action);
+    } catch (e) {
+      console.warn('dispatch threw', e);
+      res = { ok: false, reason: 'Something went wrong' };
+    }
+    if (!res || !res.ok) {
+      toasts.push(res?.reason ?? 'That did not work', 'warn');
+      sfx('error');
+    }
+    return res ?? { ok: false };
+  }
+
+  const ctx = {
+    getState,
+    act,
+    toast: (text, tone) => toasts.push(text, tone),
+    open: (id, arg) => menu.open(id, arg),
+    close: () => menu.close(),
+    controls,
+    sfx,
+  };
+
+  const hud = createHud({ root: layer, controls, ui });
+
+  const bottom = h('div.bottom');
+  layer.append(bottom);
+  const chat = createChat(bottom);
+  const menu = createMenu({
+    bottom, panelRoot: layer, panels: PANELS, ctx,
+    onChange: (id) => sfx(id ? 'open' : 'close'),
+  });
+  bottom.append(h('div'));
+
+  // Panel wrap sits under toasts in paint order so toasts stay visible over panels.
+  layer.append(toasts.el);
+
+  function onKey(e) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
+      if (e.key === 'Escape') t.blur();
+      return;
+    }
+    if (ui.modalKey?.(e)) return;
+    if (e.key === 'Escape') { if (menu.close()) e.preventDefault(); return; }
+    if (e.code === 'Space') { e.preventDefault(); ui.togglePause(); return; }
+    if (e.key === '1') return ui.setSpeed(1);
+    if (e.key === '2') return ui.setSpeed(2);
+    if (e.key === '3') return ui.setSpeed(4);
+    if (e.key === 'c' || e.key === 'C') return chat.toggle();
+    const m = MENU.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
+    if (m) { e.preventDefault(); menu.toggle(m.id); }
+  }
+  addEventListener('keydown', onKey);
+
+  let lastPanelAt = 0;
+  function update(state) {
+    hud.update(state);
+    const now = performance.now();
+    if (now - lastPanelAt >= PANEL_REFRESH_MS) {
+      lastPanelAt = now;
+      menu.update(state);
+      menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout').length);
+      menu.setBadge('ops', state.outage ? 1 : 0);
+    }
+  }
+
+  function handleEvents(events, state) {
+    for (const e of events) {
+      switch (e.type) {
+        case 'toast': toasts.push(e.text, e.tone); break;
+        case 'chat': chat.add(e.from, e.text, state.week); break;
+        case 'resign': toasts.push(`${e.name} resigned.`, 'bad'); break;
+        case 'hire': {
+          const p = state.staff.find((s) => s.id === e.staffId);
+          if (p) toasts.push(`${p.name} joined the team!`, 'good');
+          break;
+        }
+        case 'launch': {
+          const p = state.products.find((x) => x.id === e.productId);
+          if (p) toasts.push(`${p.name} launched! Score ${p.score.toFixed(1)}`, 'good');
+          break;
+        }
+        case 'incident': {
+          const p = state.products.find((x) => x.id === e.productId);
+          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${e.severity})`, e.caught ? 'good' : 'bad');
+          break;
+        }
+        case 'award': toasts.push(`🏆 ${e.text}`, 'good'); break;
+        case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
+        default: break;
+      }
+    }
+  }
+
+  return {
+    update,
+    handleEvents,
+    showTitle() {},
+    hideTitle() {},
+    openStaff: (id) => menu.open('staff', { staffId: id }),
+    _ui: ui,
+  };
+}

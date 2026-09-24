@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createMockSim, MOCK_SCENARIOS } from '../src/dev/mockSim.js';
-import { EVENT_TYPES, ASSIGNMENT_TYPES } from '../src/contract/events.js';
+import { EVENT_TYPES, ASSIGNMENT_TYPES, CHAT_CHANNELS } from '../src/contract/events.js';
 
 const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'items', 'research', 'campaigns', 'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
 ];
 
@@ -32,6 +32,22 @@ describe('mock sim honors the contract', () => {
       for (const e of m.tick()) seen.add(e.type);
     }
     for (const t of EVENT_TYPES.filter((t) => t !== 'gameOver')) expect(seen.has(t), t).toBe(true);
+  });
+
+  it('chat events carry channel, ids, and reactions', () => {
+    const m = createMockSim({ scenario: 'floor' });
+    const chats = [];
+    for (let i = 0; i < 30; i++) {
+      if (m.state.pendingDecision) m.dispatch({ type: 'resolveDecision', choice: 0 });
+      chats.push(...m.tick().filter((e) => e.type === 'chat'));
+    }
+    const channels = new Set(chats.map((c) => c.channel));
+    for (const ch of CHAT_CHANNELS) expect(channels.has(ch), ch).toBe(true);
+    for (const c of chats) {
+      expect(typeof c.id).toBe('string');
+      expect(typeof c.reactions).toBe('object');
+      if (c.replyTo) expect(chats.some((x) => x.id === c.replyTo)).toBe(true);
+    }
   });
 
   it('ending scenario emits gameOver once', () => {
