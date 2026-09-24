@@ -71,13 +71,14 @@ export function createUI({ root, getState, dispatch, controls }) {
     meaningLog: new Map(),
     modal: null,
     // A simple modal card for panel-owned dialogs (career paths, training). Returns a close function.
-    openModal({ title, iconName, body, cls = '' }) {
+    openModal({ title, iconName, body, cls = '', onClose = null }) {
       ctx.modal?.close();
       const back = h('div.modal-back.generic');
       const dock = h('div.modal-dock');
       const close = () => {
         back.remove();
         if (ctx.modal?.back === back) { ctx.modal = null; toasts.setDock(menu.current ? menu.dockEl : null); }
+        onClose?.();
         sfx('close');
       };
       back.addEventListener('pointerdown', (e) => { if (e.target === back) close(); });
@@ -202,7 +203,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       if (e.key === 'Escape') t.blur();
       return;
     }
-    if (announcer.onKey(e)) return;
+    if (!ctx.modal && announcer.onKey(e)) return;
     if (ui.modalKey?.(e)) return;
     if (buildMode.onKey(e)) return;
     if (e.key === 'Escape') { if (menu.close()) e.preventDefault(); return; }

@@ -86,5 +86,8 @@ export function openRecap(ctx) {
     moments.length ? h('div.rsec', null, h('h3', { text: 'Last time' }),
       h('div.rlist', null, ...moments.map((m) => h('div.ritem', null, icon(m.icon, { size: 14 }), h('span', { text: m.text }), h('span.rwhen', { text: when(m.week, s.week) }))))) : null,
     h('div.row', null, h('span.small.muted', { text: 'The game is paused until you close this.' }), h('span.spacer'), go));
-  close = ctx.openModal({ title: 'Welcome back', iconName: 'continue', body, cls: 'recapm' });
+  // The recap goes first: decision, launch, era, and unlock popups wait behind it until it closes.
+  const layer = document.querySelector('.hitl');
+  layer?.classList.add('recapping');
+  close = ctx.openModal({ title: 'Welcome back', iconName: 'continue', body, cls: 'recapm', onClose: () => layer?.classList.remove('recapping') });
 }
