@@ -3,12 +3,11 @@
 //   node blender/checks/golden.mjs            compare; exits 1 if any scene differs
 //   node blender/checks/golden.mjs --update   rewrite the references (commit them deliberately)
 //
-// Each scene loads the game with Math.random seeded and the clock frozen, then steps a fixed
-// number of frames by hand, so a render depends only on the code. Differences are counted per
-// pixel (any channel off by more than CHANNEL_TOL); a scene fails when more than MAX_SHARE of
-// pixels differ. Failures write <scene>.actual.png and <scene>.diff.png next to the reference.
-import { createServer } from 'vite';
-import { chromium } from 'playwright';
+// Each scene loads the game through harness.mjs (Math.random seeded, the clock frozen, the game
+// loop held) and steps a fixed number of frames by hand, so a render depends only on the code.
+// Differences are counted per pixel (any channel off by more than CHANNEL_TOL); a scene fails when
+// more than MAX_SHARE of pixels differ. Failures write <scene>.actual.png and <scene>.diff.png next to the reference.
+import { startHarness } from './harness.mjs';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +19,7 @@ const UPDATE = process.argv.includes('--update');
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',');
 const CHANNEL_TOL = 24;
 const MAX_SHARE = 0.004;
-const W = 960, H = 640;
+const W = 960, H_PX = 640;
 
 // The page setup for a scene: query string, then a script run after the game is ready.
 const MOODS = `(m) => { const S = __HITL.state; S.staff.forEach((p, i) => { const k = m[i % m.length]; if (k === 'tired') { p.mood = 'ok'; p.stamina = 10; } else { p.mood = k; p.stamina = 80; } p.assignment = { type: 'project', targetId: null }; }); }`;
@@ -34,25 +33,7 @@ const SCENES = [
   { name: 'nap-pod', query: 'mock=floor', setup: `__HITL.state.office.placed.push({ id: 'g_pod', itemId: 'nap_pod', level: 2, x: 3, y: 9, rot: 0 }); __nap = 'g_pod';`, steps: 60, zoom: 4.2 },
 ];
 
-// Runs before any page script: a seeded Math.random, a clock that only moves when stepped, and
-// requestAnimationFrame held so the game's own loop never runs after start-up.
-const INIT = `(() => {
-  let s = 1234567;
-  Math.random = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
-  let t = 0;
-  performance.now = () => t;
-  Date.now = () => 1700000000000 + t;
-  window.__tick = (ms) => { t += ms; };
-  const raf = window.requestAnimationFrame.bind(window);
-  let hold = false;
-  window.__holdFrames = () => { hold = true; };
-  window.requestAnimationFrame = (cb) => raf((ts) => { if (!hold) { t += 16; cb(t); } });
-})();`;
-
-const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
-await server.listen();
-const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const H = await startHarness();
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
@@ -60,22 +41,13 @@ let failed = 0;
 const results = [];
 for (const sc of SCENES) {
   if (ONLY && !ONLY.includes(sc.name)) continue;
-  const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(INIT);
-  await page.goto(`${base}?snap=1&quality=medium&time=day&${sc.query}`, { waitUntil: 'load' });
-  await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 120000 });
-  await page.waitForTimeout(1500);           // models and fonts finish loading (the clock is frozen)
+  const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX });
   const png = await page.evaluate(async ({ setup, steps, zoom }) => {
-    window.__holdFrames();
     const R = window.__hitlRender;
     const S = window.__HITL?.state;
     window.__focus = null; window.__nap = null;
-    R.setSpeed?.(1);                         // snaps start at speed 0 and paused, which freezes poses
-    R.setPaused?.(false);
     if (setup) (0, eval)(setup);
-    const step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(S); R.render(1 / 30); } };
+    const step = window.__step;
     step(10);
     if (window.__nap) {
       const who = S.staff[0].id;
@@ -128,8 +100,7 @@ for (const sc of SCENES) {
   results.push(`${sc.name}: ${ok ? 'ok' : 'DIFFERS'} ${(cmp.share * 100).toFixed(3)}% of pixels${errors.length ? `, page errors: ${errors.join('; ')}` : ''}`);
   await page.close();
 }
-await browser.close();
-await server.close();
+await H.close();
 for (const r of results) console.log(`GOLDEN ${r}`);
 if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended`);
 process.exit(failed ? 1 : 0);
