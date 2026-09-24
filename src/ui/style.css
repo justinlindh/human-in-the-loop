@@ -670,3 +670,8 @@
 .hitl .coach b { font-size: 1.1em; }
 .hitl .coach p { margin: 0; line-height: 1.35; }
 .hitl .coach.pop { animation: hitl-modal-in 300ms cubic-bezier(.2,1.5,.4,1) both; }
+.hitl .toast.still, .hitl .dtoast.still { animation: none; }
+.hitl .dtoast .more { margin-left: auto; flex: none; font-size: 0.85em; background: var(--ink); color: var(--cream); border-radius: 1em; padding: 0 0.5em; }
+.hitl .choice.unavail { opacity: 0.6; background: var(--cream-2); box-shadow: 0 0.08em 0 var(--ink); }
+.hitl .choice.unavail .ckey { background: var(--ink-faint); }
+.hitl .choice .creason { font-size: 0.82em; color: var(--bad); font-weight: 600; }

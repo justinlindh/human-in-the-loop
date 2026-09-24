@@ -40,11 +40,13 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     const product = s.products.find((p) => p.id === d.subjectId);
     choiceBtns = d.choices.map((c, i) => {
       const later = DELAYED.test(c.hint ?? '');
-      return h('button.choice', { onclick: () => choose(i) },
+      const off = c.available === false;
+      return h(`button.choice${off ? '.unavail' : ''}`, { onclick: () => choose(i), title: off ? c.reason ?? '' : '' },
         h('span.ckey.num', { text: String(i + 1) }),
         h('span.cbody', null,
           h('b.clabel', { text: c.label }),
-          c.hint ? h('span.chint', null, later ? icon('hourglass', { size: 13, title: 'Effects arrive later' }) : null, later ? ' ' : null, c.hint) : null));
+          c.hint ? h('span.chint', null, later ? icon('hourglass', { size: 13, title: 'Effects arrive later' }) : null, later ? ' ' : null, c.hint) : null,
+          off && c.reason && c.reason !== c.hint ? h('span.creason', null, icon('lock', { size: 12 }), ` ${c.reason}`) : null));
     });
     const body = leader && subject
       ? h('div.leader', null,

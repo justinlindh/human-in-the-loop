@@ -180,14 +180,15 @@ export function createHud({ root, controls, ui }) {
     setText(cashVal, fmtMoney(s.cash));
     const neg = s.cash < 0;
     toggleClass(cash, 'neg', neg);
+    const now = performance.now();
+    if (now - (last.netAt ?? 0) > 250) { last.net = weeklyNet(s); last.netAt = now; }
+    const net = last.net;
     if (neg) {
+      // Only losing weeks in the red count toward folding, so a profitable week is "holding".
       const left = Math.max(0, (B.runwayLoseWeeks ?? 8) - (s.lowCashWeeks ?? 0));
-      setText(cashSub, `Broke! ${left} wk to fold`);
-      setClass(cashSub, 'sub bad');
+      setText(cashSub, net !== null && net > 0 ? `In the red, holding · ${left} wk left` : `Broke! ${left} losing wk left`);
+      setClass(cashSub, net !== null && net > 0 ? 'sub warn' : 'sub bad');
     } else {
-      const now = performance.now();
-      if (now - (last.netAt ?? 0) > 250) { last.net = weeklyNet(s); last.netAt = now; }
-      const net = last.net;
       if (net !== null && net < 0) {
         const wk = Math.floor(s.cash / -net);
         setText(cashSub, wk > 99 ? `${fmtMoney(net)}/wk` : `${wk} wk runway`);
