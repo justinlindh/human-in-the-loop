@@ -56,6 +56,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
   - Scopes: `sim`, `art`, `ui`, `audio`, `integ`, `contract`, `pacing`, `capture`, `docs`, or a feature name.
   - Breaking contract changes add `!` (`feat(contract)!: ...`).
+  - No `@name` in commit subjects or bodies (write `officebot`, not `@officebot`): release notes turn them into GitHub mentions that can ping real accounts.
+  - Merges to `feat/one-shot` cut releases automatically (semantic-release, 0.x while pre-alpha), and each release deploys to GitHub Pages, so the commit type decides the version bump: `feat` bumps minor, `fix` and `perf` bump patch.
 - PR descriptions follow `.github/pull_request_template.md`.
 - Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
 - Gate every commit and push on the test command's exit code (`npm test && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0.
