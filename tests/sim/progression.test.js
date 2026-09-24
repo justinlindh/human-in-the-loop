@@ -48,7 +48,11 @@ describe('office shop', () => {
     expect(res.ok).toBe(true);
     expect(s.items).toEqual([{ id: res.id, itemId: 'espresso', level: 1 }]);
     expect(s.cash).toBe(1e6 - ITEMS.espresso.costs[0]);
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'espresso' }, 'Already owned');
+    expect(dispatch(s, { type: 'buyItem', itemId: 'espresso' }).ok).toBe(true);
+    s.officeStage = 1;
+    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'espresso' }, 'You already have two');
+    s.officeStage = 0;
+    dispatch(s, { type: 'sellItem', id: s.items[1].id });
     dispatch(s, { type: 'buyItem', itemId: 'plant_wall' });
     dispatch(s, { type: 'buyItem', itemId: 'standing_desk' });
     expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'whiteboard_wall' }, 'No free item slots');
@@ -64,6 +68,13 @@ describe('office shop', () => {
     expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'whiteboard_wall' }, 'Not enough cash');
     const pw = s.items.find((i) => i.itemId === 'plant_wall');
     expectFail(expect, dispatch, s, { type: 'upgradeItem', id: pw.id }, 'Not enough cash');
+  });
+
+  it('a second copy of an item gives half its effect', () => {
+    const s = withItem(withItem(game(), 'library', 3), 'library', 1);
+    expect(itemBonus(s, 'knowledgeGain')).toBeCloseTo(ITEMS.library.effects[2].knowledgeGain + 0.5 * ITEMS.library.effects[0].knowledgeGain);
+    const t = withItem(withItem(game(), 'library', 1), 'library', 3);
+    expect(itemBonus(t, 'knowledgeGain')).toBeCloseTo(itemBonus(s, 'knowledgeGain'));
   });
 
   it('itemBonus sums the table value at each level', () => {

@@ -68,7 +68,7 @@ function pivot(ctx) {
   const live = liveProducts(state);
   if (live.length < 2) return;
   const weakest = live.reduce((a, b) => (b.score * (b.mrr + 1) < a.score * (a.mrr + 1) ? b : a));
-  sunsetProduct(ctx, weakest);
+  const cancelled = sunsetProduct(ctx, weakest, { quiet: true });
   const t = TRENDS[state.market.trend];
   let best = null;
   for (const c of state.market.unlockedCategories) {
@@ -83,7 +83,8 @@ function pivot(ctx) {
     pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
     productId: null, startedWeek: state.week, bankedHype: 0,
   });
-  ctx.emit({ type: 'toast', text: `${weakest.name} is sunset. The new plan: ${weakest.name} 2.`, tone: 'info' });
+  const dropped = cancelled.length ? ` Cancelled: ${cancelled.map((j) => j.name).join(', ')}.` : '';
+  ctx.emit({ type: 'toast', text: `${weakest.name} is sunset.${dropped} The new plan: ${weakest.name} 2.`, tone: 'info' });
 }
 
 // Applies an effects object from event data. subjectId may name a staff member or a product.

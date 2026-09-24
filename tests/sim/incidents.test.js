@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, securityPosture } from '../../src/sim/index.js';
-import { incidentsSystem, rogueRisk, catchChance, cyberChance, startOutage, fixCapacity } from '../../src/sim/incidents.js';
+import { incidentsSystem, rogueRisk, catchChance, cyberChance, startOutage, fixCapacity, postureParts } from '../../src/sim/incidents.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { INCIDENT_EVENT } from '../../src/data/events.js';
@@ -24,6 +24,19 @@ describe('security posture', () => {
     expect(securityPosture(s)).toBeLessThan(p2);
     s.comprehensionDebt = 100;
     expect(securityPosture(s)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('postureParts adds up to securityPosture', () => {
+    const s = game();
+    addStaff(s, 'security', 'senior', { path: 'red_team_lead' });
+    s.research.done = ['red_team_suite'];
+    s.security = { auditBoost: 12, tooling: true };
+    for (const debt of [0, 30, 100]) {
+      s.comprehensionDebt = debt;
+      const p = postureParts(s);
+      expect(p.total).toBeCloseTo(securityPosture(s));
+      expect(p.total).toBeCloseTo(Math.min(100, Math.max(0, p.staff + p.bonus + p.audit + p.tooling - p.debt)));
+    }
   });
 
   it('audit decays, tooling toggles, audit needs cash', () => {

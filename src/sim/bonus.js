@@ -1,12 +1,21 @@
 import { ITEMS } from '../data/items.js';
 import { RESEARCH } from '../data/research.js';
 
-// Sum of owned office items' effects for a key at their current levels.
+// Sum of owned office items' effects for a key at their current levels. The best copy of an item
+// counts in full and a second copy at half.
 export function itemBonus(state, key) {
+  const byItem = {};
+  for (const it of state.items) (byItem[it.itemId] ??= []).push(it.level);
   let total = 0;
-  for (const it of state.items) total += ITEMS[it.itemId]?.effects[it.level - 1]?.[key] ?? 0;
+  for (const [itemId, levels] of Object.entries(byItem)) {
+    levels.sort((a, b) => b - a).slice(0, 2).forEach((level, i) => {
+      total += (ITEMS[itemId]?.effects[level - 1]?.[key] ?? 0) * (i === 0 ? 1 : SECOND_COPY);
+    });
+  }
   return total;
 }
+
+const SECOND_COPY = 0.5;
 
 // Sum of finished research effects for a key.
 export function researchBonus(state, key) {

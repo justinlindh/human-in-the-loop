@@ -29,12 +29,17 @@ const KIND_LABEL = {
 
 const onSecurity = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'security');
 
-export function securityPosture(state) {
-  const staffPart = sum(onSecurity(state), (p) => avg(Object.values(p.skills)) * B.postureSecurityPerSkill * outputMult(state, p) / 10);
-  const flat = researchBonus(state, 'postureFlat') + sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).postureFlat);
-  return clamp(staffPart + flat + state.security.auditBoost + (state.security.tooling ? B.postureTooling : 0)
-    - state.comprehensionDebt * B.postureDebtPenalty, 0, 100);
+// Security posture broken into the pieces the Ops panel shows; total is securityPosture.
+export function postureParts(state) {
+  const staff = sum(onSecurity(state), (p) => avg(Object.values(p.skills)) * B.postureSecurityPerSkill * outputMult(state, p) / 10);
+  const bonus = researchBonus(state, 'postureFlat') + sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).postureFlat);
+  const audit = state.security.auditBoost;
+  const tooling = state.security.tooling ? B.postureTooling : 0;
+  const debt = state.comprehensionDebt * B.postureDebtPenalty;
+  return { staff, bonus, audit, tooling, debt, total: clamp(staff + bonus + audit + tooling - debt, 0, 100) };
 }
+
+export const securityPosture = (state) => postureParts(state).total;
 
 function shortfall(state) {
   const req = oversightRequired(state);
