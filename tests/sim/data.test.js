@@ -118,6 +118,7 @@ describe('content data', () => {
     for (const p of Object.values(POLICIES)) {
       expect(typeof p.unlock).toBe('function');
       expect(p.weeklyCost).toBeGreaterThanOrEqual(0);
+      expect(typeof p.lockText).toBe('string');
     }
     expect(Object.keys(POLICIES).sort()).toEqual(['apprenticeship', 'blameless', 'comprehension_reviews', 'craft_fridays', 'pair', 'sabbatical']);
   });
