@@ -188,7 +188,7 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 Speech bubbles in the office and Slackk messages are separate streams.
 
 ```js
-{ type: 'say', id, week, staffId, text, toId, replyTo }   // spoken aloud in the office; toId: the person addressed (or null); replyTo: the say id this answers (or null)
+{ type: 'say', id, week, staffId, text, toId, replyTo, tone }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
 ```
 - The renderer shows speech bubbles for `say` events only. A `chat` event is Slackk only; the renderer may show a small typing emote on the author's character, never a bubble.
 - `say` events are never added to `chatLog` and never appear in Slackk.
