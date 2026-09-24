@@ -53,6 +53,13 @@ export function weeklyCosts(state) {
 
 export const weeklyRevenue = (state) => totalMrr(state) * 12 / 52;
 
+// A number of weeks of this company's agent spend, rounded to the thousand, with a floor so the agent bill
+// beats still bite for a company that barely automates.
+export const agentSpend = (state, weeks) => Math.round(Math.max(B.agentSpendFloor, weeklyCosts(state).automation) * weeks / 1000) * 1000;
+
+// What merging with the rival costs: more the stronger it grew, and more in later eras.
+export const rivalMergePrice = (state) => Math.round((B.rivalMergeBase + B.rivalMergePerStrength * (state.rival?.strength ?? 0)) / 10000) * 10000;
+
 export function economySystem(ctx) {
   const { state } = ctx;
   const net = weeklyRevenue(state) - sum(Object.values(weeklyCosts(state)));

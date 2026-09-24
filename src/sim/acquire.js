@@ -41,7 +41,10 @@ export function forSaleSystem(ctx) {
 
 registerSystem('for-sale', forSaleSystem, 62);
 
-registerAction('acquire', (ctx, { targetId }) => {
+registerAction('acquire', (ctx, { targetId }) => acquireCompany(ctx, targetId));
+
+// Buys a listed company: its product, its customers, and its team (one free desk each).
+export function acquireCompany(ctx, targetId) {
   const { state, rng } = ctx;
   const t = (state.market.forSale ?? []).find((c) => c.id === targetId && c.expiresWeek > state.week);
   if (!t) return { ok: false, reason: 'No such company' };
@@ -81,4 +84,4 @@ registerAction('acquire', (ctx, { targetId }) => {
   if (joined[0]) emitChat(ctx, { person: joined[0], text: `Hi all! ${t.name} here. We come in peace and with our own mugs.` });
   state.brand = clamp(state.brand + B.acquiredBrand, 0, 100);
   return { ok: true };
-});
+}

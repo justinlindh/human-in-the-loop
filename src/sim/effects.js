@@ -15,6 +15,9 @@ import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision, ransomFor, summitCost } from './events.js';
+import { agentSpend, rivalMergePrice } from './economy.js';
+import { acquireCompany } from './acquire.js';
+import { expandOffice } from './products.js';
 import { danceBreak } from './incentives.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
@@ -237,6 +240,20 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     }
   }
   if (fx.rivalHit && state.rival) state.rival.strength = clamp(state.rival.strength - fx.rivalHit, 0, 100);
+  if (fx.agentAudit) {
+    state.cash -= agentSpend(state, B.agentAuditWeeks);
+    state.modifiers.push({ id: newId(state, 'mod'), key: 'rogueRisk', value: -B.agentAuditRogueRelief, label: 'The agent audit', untilWeek: state.week + 52, source });
+  }
+  if (fx.agentCap) {
+    for (const fn of Object.keys(state.automation)) state.automation[fn].level = Math.min(state.automation[fn].level, B.agentCapLevel);
+  }
+  if (fx.agentInvoice) state.cash -= agentSpend(state, B.agentInvoiceWeeks) * fx.agentInvoice;
+  if (fx.rivalMerge && state.rival) state.cash -= rivalMergePrice(state);
+  if (fx.acquireBest) {
+    const deal = [...(state.market.forSale ?? [])].sort((a, b) => b.arr / b.price - a.arr / a.price)[0];
+    if (deal) acquireCompany(ctx, deal.id);
+  }
+  if (fx.expandNow) expandOffice(ctx);
   if (fx.rivalFate && state.rival) {
     state.rival.status = fx.rivalFate;
     if (fx.rivalFate === 'merged') {
