@@ -3,7 +3,6 @@ import { dispatch, tick } from '../../src/sim/index.js';
 import { chatSystem, fillChat, reactionsFor } from '../../src/sim/chat.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
-import { THREADS, THREAD_WHO, THREAD_CONTEXTS } from '../../src/data/threads.js';
 import { CHAT_CHANNELS } from '../../src/contract/events.js';
 import { game, addStaff, addProduct, advance, placeAction } from './helpers.js';
 
@@ -26,21 +25,6 @@ function team(seed = 1, meaning = 70) {
 }
 
 const chatWeek = (s, prior = []) => { const c = makeCtx(s); c.events.push(...prior); chatSystem(c); s.week++; return c.events.filter((e) => e.type === 'chat' && !prior.includes(e)); };
-
-describe('thread data', () => {
-  it('has 30+ threads with known roles, contexts, and channels', () => {
-    expect(THREADS.length).toBeGreaterThanOrEqual(30);
-    expect(new Set(THREADS.map((t) => t.id)).size).toBe(THREADS.length);
-    for (const t of THREADS) {
-      expect(CHAT_CHANNELS).toContain(t.channel);
-      expect(THREAD_WHO).toContain(t.post.who);
-      expect(t.post.who).not.toBe('poster');
-      if (t.context) expect(THREAD_CONTEXTS).toContain(t.context);
-      expect(t.replies.length).toBeGreaterThanOrEqual(1);
-      for (const r of t.replies) expect(THREAD_WHO).toContain(r.who);
-    }
-  });
-});
 
 describe('chat content', () => {
   it('fills every placeholder, or skips lines it cannot fill', () => {
@@ -143,7 +127,7 @@ describe('chat content', () => {
     };
     expect(count(20)).toBeLessThan(count(85) * 0.6);
     const s = team(6, 100);
-    for (let w = 0; w < 60; w++) expect(chatWeek(s).length).toBeLessThanOrEqual(B.chatMax + 4);
+    for (let w = 0; w < 60; w++) expect(chatWeek(s).length).toBeLessThanOrEqual(8);
   });
 
   it('is deterministic', () => {

@@ -7,6 +7,7 @@ import { MODELS } from '../data/models.js';
 import { INCUMBENTS } from '../data/incumbents.js';
 import { GOALS } from '../data/goals.js';
 import { assignSeats } from '../sim/office.js';
+import { voiceFor } from '../sim/staff.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
 
@@ -18,7 +19,7 @@ const REQUIRED_KEYS = [
 ];
 
 const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [], lockdown: null, workPolicy: null, pets: [], rival: null });
-const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 }, remote: false });
+const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 }, remote: false, call: null });
 
 const store = (storage) => storage ?? globalThis.localStorage;
 
@@ -121,6 +122,7 @@ function normalize(state) {
   for (const [k, v] of Object.entries(STATE_DEFAULTS())) if (!(k in state)) state[k] = v;
   for (const list of [state.staff, state.candidates]) {
     for (const p of list) for (const [k, v] of Object.entries(STAFF_DEFAULTS())) if (!(k in p)) p[k] = v;
+    for (const p of list) p.voice ??= voiceFor(p);
   }
   for (const j of state.projects) if (!('researchId' in j)) j.researchId = null;
   // Per-id maps gain an entry for every id the data knows, so lookups by id never miss.

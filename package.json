@@ -16,6 +16,7 @@
     "pace": "node scripts/pace.js",
     "lifecycle": "node scripts/lifecycle.js",
     "soak": "node scripts/soak.js",
+    "capture": "node scripts/capture.js",
     "models": "bash scripts/build-models.sh"
   },
   "type": "module",

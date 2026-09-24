@@ -45,7 +45,7 @@ describe('lockdown and the work policy', () => {
     expect(s.scheduled).toEqual([]);
   });
 
-  it('remote-first halves the rent, widens hiring, keeps most people home, and slows mentoring', () => {
+  it('remote-first cuts the rent, widens hiring, keeps many people home but not the core', () => {
     const s = classicGame(5);
     s.flags.lockdownWeek = -1;
     addDesks(s, 4);
@@ -68,7 +68,8 @@ describe('lockdown and the work policy', () => {
       changes += now.filter((r, i) => r !== last[i]).length;
       last = now;
     }
-    expect(remoteWeeks / (104 * hires.length)).toBeGreaterThan(0.6);
+    expect(remoteWeeks / (104 * hires.length)).toBeGreaterThan(0.45);
+    expect(remoteWeeks / (104 * hires.length)).toBeLessThan(0.85);
     // Patterns are sticky: at most one change per person every 8 weeks.
     expect(changes).toBeLessThanOrEqual(hires.length * Math.ceil(104 / 8));
     s.week = 200;
@@ -228,5 +229,50 @@ describe('chunk (a) fixes', () => {
     s.pets.push({ id: 'd', species: 'dog', name: 'Biscuit', ownerId: owner.id, arrivedWeek: 0 }, { id: 'c', species: 'cat', name: 'Null', ownerId: owner.id, arrivedWeek: 0 });
     removeStaff(s, owner);
     expect(s.pets).toEqual([expect.objectContaining({ species: 'cat', ownerId: null })]);
+  });
+});
+
+describe('video calls', () => {
+  it('lockdown weeks put everyone on a call with glitch flags, and calls have their moments', () => {
+    const s = classicGame(4);
+    for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'mid');
+    s.week = B.lockdownWeek;
+    let moments = 0;
+    let flags = 0;
+    for (let w = 0; w < B.lockdownWeeks; w++) {
+      const ev = step(s);
+      s.pendingDecision = null;
+      for (const p of s.staff) {
+        expect(p.call).toEqual({ muted: expect.any(Boolean), frozen: expect.any(Boolean), badCamera: expect.any(Boolean) });
+        flags += p.call.muted + p.call.frozen + p.call.badCamera;
+      }
+      const says = ev.filter((e) => e.type === 'say' && e.replyTo);
+      if (says.length) moments++;
+      s.week++;
+    }
+    expect(moments).toBeGreaterThanOrEqual(3);
+    expect(flags).toBeGreaterThan(5);
+    s.week = s.lockdown.until + 1;
+    s.workPolicy = 'office';
+    step(s);
+    expect(s.staff.every((p) => p.call === null)).toBe(true);
+  });
+});
+
+describe('voices', () => {
+  it('every person gets a voice that agrees with their name, spread across variants', async () => {
+    const { NAME_VOICE } = await import('../../src/data/names.js');
+    const s = classicGame(7);
+    for (let i = 0; i < 12; i++) addStaff(s, 'engineer', 'mid');
+    const variants = new Set();
+    for (const p of [...s.staff, ...s.candidates]) {
+      expect(['fem', 'masc']).toContain(p.voice.set);
+      const named = NAME_VOICE[p.name.split(' ')[0]];
+      if (named) expect(p.voice.set).toBe(named);
+      expect(Number.isInteger(p.voice.variant) && p.voice.variant >= 0 && p.voice.variant <= 7).toBe(true);
+      expect(Math.abs(p.voice.pitch)).toBeLessThanOrEqual(1);
+      variants.add(p.voice.variant);
+    }
+    expect(variants.size).toBeGreaterThanOrEqual(6);
   });
 });

@@ -142,6 +142,8 @@ describe('cyber attacks', () => {
     const s = game();
     const base = cyberChance(s);
     const p = addProduct(s, { mrr: 500000 });
+    expect(cyberChance(s)).toBe(0);
+    s.week += B.cyberGraceWeeks;
     expect(cyberChance(s)).toBeGreaterThan(base);
     p.mrr = 1e9;
     expect(cyberChance(s)).toBe(B.cyberMax);

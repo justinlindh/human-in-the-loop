@@ -226,7 +226,7 @@ export function projectsSystem(ctx) {
   }
 }
 
-const BEATS = [
+export const OPENING_BEATS = [
   { at: 0.25, toast: '{project}: the prototype runs. As long as nobody clicks the second button.', say: ['It works! Do not touch it.', 'Prototype is up. It is ugly and I love it.', 'First end-to-end run. Only one thing caught fire.'] },
   { at: 0.5, decision: 'first_user_test' },
   { at: 0.75, toast: '{project} is three-quarters done. Someone has started a launch playlist.', say: ['I can see the finish line. It is blurry, but I can see it.', 'We should pick a launch date. A real one.', 'I rewrote the landing page again. Last time. Probably.'] },
@@ -237,7 +237,7 @@ function openingBeats(ctx, j) {
   const { state } = ctx;
   if (j.kind !== 'new' || state.stats.launches > 0) return;
   const done = state.flags.openingBeats ?? 0;
-  const beat = BEATS[done];
+  const beat = OPENING_BEATS[done];
   if (!beat || j.progress / j.pointsNeeded < beat.at) return;
   state.flags.openingBeats = done + 1;
   if (beat.decision) { raiseDecision(ctx, beat.decision, null, { queue: true }); return; }
