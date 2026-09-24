@@ -202,6 +202,7 @@ pets: [{ id, species /* 'dog'|'cat' */, name, ownerId /* staff id, or null once 
 rival: null | { name, founderName, logoColor, categoryId, strength /* 0..100 */, status /* 'rising'|'stalled'|'acquired'|'dead'|'merged' */ },
 // Staff gains:
 remote /* bool: working from home this week; the renderer hides them like 'away', ui marks them remote */,
+call /* null, or during a video-call week { muted, frozen, badCamera } (booleans, rerolled weekly) for ui's call grid */,
 ```
 - During a lockdown every staff member except `stayerId` has `remote: true`. The office stays placed but empty; ui may show a video-call grid of the remote staff using portraits.
 - Under `workPolicy: 'hybrid'` the sim sets `remote` per person per week; under `'remote'` most staff are remote most weeks; under `'office'` nobody is.
