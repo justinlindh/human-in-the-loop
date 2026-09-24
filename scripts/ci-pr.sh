@@ -40,8 +40,10 @@ else
   what="merged into $base locally"
 fi
 sha="$(git -C "$WT" rev-parse --short HEAD)"
-# Same lockfile as the main checkout: share its node_modules; otherwise ci-local installs clean.
-if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_modules" ]; then
+# Same lockfile as this checkout and a real, complete install there: share it; otherwise
+# ci-local installs clean.
+if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_modules" ] && [ ! -L "$REPO/node_modules" ] \
+  && (cd "$REPO" && npm ls --depth=0 >/dev/null 2>&1); then
   ln -s "$REPO/node_modules" "$WT/node_modules"
 fi
 
