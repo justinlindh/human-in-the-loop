@@ -13,6 +13,7 @@ import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
 import { createBuild } from './build.js';
+import { createPortraits } from './portraits.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
 
@@ -67,6 +68,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const floating = createLabels(labelLayer);
   const fx = createFx({ scene, overlayEl: labelsEl });
   let ready = false;
+  const portraits = createPortraits({ ready: () => ready });
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);
@@ -180,6 +182,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
     setSpeed(k) { staff?.setSpeed(k); },
+    // Menu portraits from the office character builder (see portraits.js).
+    portrait(person, opts) { return portraits.portrait(person, opts); },
+    portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
+    get portraitStats() { return portraits.stats; },
     // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId?, validate? }.
     setBuildMode(m) { build?.setMode(m); },
     // validate(x, y, rot) -> boolean | { ok, reason }; the UI supplies it from the sim.
@@ -219,6 +225,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       floating.update(dt);
       fx.update(dt);
       build?.update(dt, scene);
+      portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);
