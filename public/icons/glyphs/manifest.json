@@ -458,5 +458,9 @@
  "home": {
   "file": "glyphs/home.svg",
   "size": 14
+ },
+ "mic.off": {
+  "file": "glyphs/mic.off.svg",
+  "size": 14
  }
 }

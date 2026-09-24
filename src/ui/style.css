@@ -986,3 +986,17 @@
 .hitl .go-head, .hitl .go-foot { flex: none; }
 .hitl.ended > .announce-back, .hitl.ended > .modal-back { visibility: hidden; }
 .hitl .callgrid .btn { color: var(--ink); }
+.hitl .tl-slot.pickable.on { color: var(--ink); background: #fff4dc; box-shadow: 0 0.2em 0 var(--ink), 0 0 0 0.2em var(--yellow); }
+.hitl .cgface { position: relative; display: block; width: 3.4em; height: 3.4em; border-radius: 0.55em; overflow: hidden; }
+.hitl .cgface .portrait { width: 3.4em !important; height: 3.4em !important; }
+.hitl .cgtile .cgmute { position: absolute; top: 0.2em; right: 0.2em; width: 1.4em; height: 1.4em; border-radius: 50%; display: grid; place-items: center; background: var(--red); border: 0.12em solid var(--ink); }
+.hitl .cgtile.muted.talking { border-color: var(--red); box-shadow: 0 0 0 0.15em rgba(229,72,77,0.45); animation: none; }
+.hitl .cgtile.frozen .portrait { filter: grayscale(0.6) blur(0.6px) brightness(0.8); }
+.hitl .cgspin { position: absolute; inset: 0; margin: auto; width: 1.4em; height: 1.4em; border-radius: 50%; border: 0.22em solid rgba(255,255,255,0.35); border-top-color: #fff; animation: hitl-spin 0.9s linear infinite; }
+@keyframes hitl-spin { to { transform: rotate(360deg); } }
+/* Bad camera: only the top of the head, from below, over a ceiling. */
+.hitl .cgtile.badcam .cgface { background: linear-gradient(#e9e4dc, #cfc6bb); }
+.hitl .cgtile.badcam .cgface .portrait { transform: scale(2.3) translateY(-6%); transform-origin: 50% 0; background: transparent !important; border: none; }
+.hitl .rivalcard { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.8em; }
+.hitl .rivalcard .rlogo { flex: none; width: 2.2em; height: 2.2em; border-radius: 0.6em; border: 0.14em solid var(--ink); display: grid; place-items: center; font-weight: 700; color: #fff; text-shadow: 0 0.08em 0 var(--ink); }
+.hitl .rivalcard .row { gap: 0.4em; align-items: center; }

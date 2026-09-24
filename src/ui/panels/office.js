@@ -3,7 +3,7 @@ import { OFFICE_STAGES } from '../content.js';
 import { ITEMS } from '../../data/items.js';
 import { liveView, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
-import { CATALOG, isDesk } from '../v2content.js';
+import { CATALOG, isDesk, beforeEra } from '../v2content.js';
 import { placedOf, stageOf } from '../placement.js';
 
 const EFFECT_LABEL = {
@@ -111,6 +111,12 @@ function legacyOfficePanel(ctx) {
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
 
+const WORK_POLICY = {
+  office: { name: 'Office-first', tip: 'Everyone comes in.' },
+  hybrid: { name: 'Hybrid', tip: 'People split their weeks between home and the office.' },
+  remote: { name: 'Remote-first: half rent, 2 more candidates', tip: 'Most people work from home most weeks. Rent is halved and each candidate refresh brings 2 more people.' },
+};
+
 const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
 
 function adjacencyLine(it) {
@@ -124,7 +130,7 @@ function adjacencyLine(it) {
 // The Office panel as a build palette: the stage card, then furniture and shop items to place.
 function buildPalette(ctx) {
   const view = liveView(
-    (s) => `${stageOf(s)}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
+    (s) => `${s.era?.id}|${s.workPolicy}|${stageOf(s)}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
     (s, bind) => {
       const stageIx = stageOf(s);
       const stage = OFFICE_STAGES[stageIx];
@@ -138,7 +144,8 @@ function buildPalette(ctx) {
           icon('seat', { size: 12 }), s.staff.length > desks
             ? ` ${desks} desk${desks === 1 ? '' : 's'} for ${s.staff.length} ${s.staff.length === 1 ? 'person' : 'people'}`
             : ` ${s.staff.length}/${desks} desks used`),
-        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(stage.rent)}/wk rent`));
+        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(stage.rent)}/wk rent`),
+        s.workPolicy ? h('span.pill', { title: WORK_POLICY[s.workPolicy]?.tip ?? '' }, icon('home', { size: 12 }), ` ${WORK_POLICY[s.workPolicy]?.name ?? s.workPolicy}`) : null);
       let right;
       if (next) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
@@ -181,7 +188,8 @@ function buildPalette(ctx) {
         return c;
       };
 
-      const all = Object.values(CATALOG);
+      // Items about AI work (era-tagged) stay hidden until their era.
+      const all = Object.values(CATALOG).filter((it) => !beforeEra(s, it.era));
       const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));
       const shop = all.filter((it) => it.kind !== 'furniture');
       return [stageCard, hint,

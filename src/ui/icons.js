@@ -51,6 +51,7 @@ export const ICONS = {
   'stat.polish': I('🖌️', 'Polish and Craft', 16),
   'stat.reliability': I('🛡️', 'Reliability and Rigor', 16),
   'stat.novelty': I('💡', 'Freshness and Ideas', 16),
+  'mic.off': I('🔇', 'Muted marker in the lockdown call grid', 14),
   home: I('🏠', 'Remote staff marker, video call grid', 14),
   'item.desk': I('🪑', 'Office build palette', 30),
   'item.meeting_table': I('🤝', 'Office build palette', 30),

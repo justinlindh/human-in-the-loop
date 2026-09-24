@@ -34,12 +34,14 @@ export function reportsPanel(ctx) {
   let retireSig = null;
   const syncBanner = (s) => {
     const o = retireOptions(s);
-    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}|${s.flags?.anniversaryScore}`;
+    const r = s.rival;
+    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}|${s.flags?.anniversaryScore}|${r ? `${r.status}${Math.round((r.strength ?? 0) / 5)}` : ''}`;
     if (sig === retireSig) return;
     retireSig = sig;
     const anniv = s.flags?.anniversaryScore;
     bannerHost.replaceChildren(...[
       Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: 'Locked in at 20 years. You kept going.' })) : null,
+      rivalCard(s),
       retireBanner(ctx, s)].filter(Boolean));
   };
 
@@ -212,3 +214,19 @@ export function reportsPanel(ctx) {
   };
 }
 
+
+const RIVAL_STATUS = { rising: ['Rising', 'warn'], stalled: ['Stalled', ''], acquired: ['Acquired', 'good'], dead: ['Shut down', 'good'], merged: ['Merged', ''] };
+
+// The rival company: who, where, how strong, and how it ended.
+function rivalCard(s) {
+  const r = s.rival;
+  if (!r) return null;
+  const [label, tone] = RIVAL_STATUS[r.status] ?? [r.status, ''];
+  const fill = h('i', { style: { width: `${Math.max(0, Math.min(100, r.strength ?? 0))}%`, background: 'var(--ink-soft)' } });
+  return h('div.card.rivalcard', null,
+    h('span.rlogo', { style: { background: r.logoColor ?? '' }, text: (r.name || '?').slice(0, 1).toUpperCase() }),
+    h('div', { style: { minWidth: 0, flex: 1 } },
+      h('div.row', null, h('b', { text: r.name }), h('span.small.muted', { text: ` Your rival, run by ${r.founderName ?? 'someone you used to know'}` })),
+      h('div.row', null, h('span.small', { text: `${categoryName(r.categoryId)} · strength` }), h('div.bar', { style: { flex: 1, maxWidth: '12em' } }, fill), h('b.num.small', { text: String(Math.round(r.strength ?? 0)) }))),
+    h(`span.pill${tone ? `.${tone}` : ''}`, { text: label }));
+}

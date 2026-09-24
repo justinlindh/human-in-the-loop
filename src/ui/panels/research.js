@@ -2,6 +2,7 @@ import { h, setText, setWidth, fmtNum, toggleClass } from '../dom.js';
 import { RESEARCH } from '../../data/research.js';
 import { liveView } from '../widgets.js';
 import { icon } from '../icons.js';
+import { beforeEra } from '../v2content.js';
 
 // Roots first, each followed by the tools that require it (one level of prerequisites).
 function treeOrder() {
@@ -14,10 +15,11 @@ function treeOrder() {
 
 export function researchView(ctx, { onStarted }) {
   return liveView(
-    (s) => `${(s.research?.done ?? []).join()}|${s.projects.filter((j) => j.kind === 'research').map((j) => j.researchId).join()}`,
+    (s) => `${s.era?.id}|${(s.research?.done ?? []).join()}|${s.projects.filter((j) => j.kind === 'research').map((j) => j.researchId).join()}`,
     (s, bind) => {
       const done = new Set(s.research?.done ?? []);
-      const cards = treeOrder().map(({ r, depth }) => {
+      // AI research stays out of sight until the Agents era.
+      const cards = treeOrder().filter(({ r }) => !(r.ai && beforeEra(s, 'agents'))).map(({ r, depth }) => {
         const proj = s.projects.find((j) => j.kind === 'research' && j.researchId === r.id);
         const state = done.has(r.id) ? 'done' : proj ? 'running' : r.requires && !done.has(r.requires) ? 'locked' : 'open';
         let action;

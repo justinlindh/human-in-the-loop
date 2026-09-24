@@ -104,6 +104,14 @@ export function foundingWarning(ids) {
   return DATA.NO_BUILDER_WARNING ?? 'Neither founder builds software. Your first product will crawl until you hire an engineer.';
 }
 
+// True while the run has not yet reached eraId (AI-era content stays hidden until then).
+export function beforeEra(s, eraId) {
+  if (!s?.era || !eraId) return false;
+  const at = ERAS.findIndex((e) => e.id === s.era.id);
+  const need = ERAS.findIndex((e) => e.id === eraId);
+  return at >= 0 && need >= 0 && at < need;
+}
+
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
 export const fundingMult = (f) => f.scoreMult ?? B.funding?.[f.id]?.scoreMult ?? 1;
 

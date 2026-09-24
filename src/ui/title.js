@@ -30,7 +30,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   // recent first. Without it, the single save from loadStatus(). Each becomes one row in the slot list.
   function saveSlots() {
     const list = controls.listSaves?.();
-    if (Array.isArray(list)) return list.length ? list.map((m) => ({ id: m.id, ok: true, meta: m })) : [{ id: null, ok: false, reason: 'No saved companies yet' }];
+    if (Array.isArray(list)) return list.length ? list.map((m) => ({ id: m.id, ok: m.ok !== false, reason: m.reason, meta: m })) : [{ id: null, ok: false, reason: 'No saved companies yet' }];
     const st = controls.loadStatus?.() ?? { ok: false, reason: 'No save found' };
     return [{ id: null, ...st }];
   }
@@ -90,9 +90,46 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   const TAGLINES = ['Build software. Keep the humans.', 'Small team, big opinions.', 'We read the docs so you do not have to.', 'Software with a pulse.', 'Made by people, mostly.', 'Ship it, then ship it better.'];
   let draft = null;
 
+  const MAX_SAVES = 6;
+
   function newGameView() {
-    draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped' };
-    identityStep();
+    draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', replaceId: null };
+    const list = controls.listSaves?.();
+    if (Array.isArray(list) && list.length >= (controls.maxSaves ?? MAX_SAVES)) replaceView(list);
+    else identityStep();
+  }
+
+  // Every slot is taken: the player picks which company the new one replaces (the oldest by default).
+  // Nothing is deleted until the founding steps finish.
+  function replaceView(list) {
+    const oldest = [...list].sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))[0];
+    let pick = oldest.id;
+    const label = (m) => `${m.companyName ?? 'A company'}, ${m.year ?? ''}`.replace(/, $/, '');
+    const note = h('div.small');
+    const rows = h('div.tl-slots', null, ...list.map((m) => {
+      const b = h('button.btn.big.tl-btn.tl-slot.pickable', { onclick: () => { pick = m.id; sync(); } },
+        h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }),
+        h('span.sinfo', null, h('b', { text: m.companyName ?? 'Company' }),
+          h('span.small.muted', { text: [m.year, ERA[m.eraId]?.name, m.over ? 'finished' : null, ago(m.savedAt)].filter(Boolean).join(' · ') })));
+      b.dataset.id = m.id;
+      return b;
+    }));
+    const sync = () => {
+      rows.querySelectorAll('.tl-slot').forEach((b) => b.classList.toggle('on', b.dataset.id === pick));
+      const m = list.find((x) => x.id === pick);
+      setText(note, `Starting a new company replaces ${label(m)}.`);
+      sfx('click');
+    };
+    root.replaceChildren(h('div.tl-card', null, lockup(),
+      h('div.tl-form', null,
+        h('b', { text: `All ${list.length} save slots are full` }),
+        h('div.small.muted', { text: 'Pick the company to make room for. It is only replaced once you start the new one.' }),
+        rows, note,
+        h('div.row', null,
+          h('button.btn.big', { onclick: () => { sfx('click'); menuView(); } }, icon('arrow.back'), ' Back'),
+          h('span.spacer'),
+          h('button.btn.go.big', { onclick: () => { draft.replaceId = pick; sfx('click'); identityStep(); } }, 'Replace and continue')))));
+    sync();
   }
 
   function steps(n) {
@@ -169,7 +206,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('b.fname', { text: a.name }),
       roleChip(a.role),
       h('span.small', { text: archetypeBlurb(a) }),
-      Array.isArray(a.strengths) && a.strengths.length ? h('span.fstr', null, ...a.strengths.filter((k) => STAT[k]).map((k) => h('span.pill.strength', { style: { '--sc': STAT[k].color }, title: `${STAT[k].skill}: drives ${STAT[k].product}` }, icon(STAT[k].icon, { size: 12 }), ` ${STAT[k].skill}`))) : null,
+      // A non-builder never shows Building as a strength: it would contradict their warning line.
+      Array.isArray(a.strengths) && a.strengths.length ? h('span.fstr', null, ...a.strengths.filter((k) => STAT[k] && !(k === 'features' && a.builder === false)).map((k) => h('span.pill.strength', { style: { '--sc': STAT[k].color }, title: `${STAT[k].skill}: drives ${STAT[k].product}` }, icon(STAT[k].icon, { size: 12 }), ` ${STAT[k].skill}`))) : null,
       a.warning ? h('span.small.fcardwarn', null, icon('warn', { size: 11 }), ` ${a.warning}`) : null,
       a.trait ? h('span.pill.trait', { title: traitInfo(a.trait).desc, text: traitInfo(a.trait).name }) : null);
       if (draft.founders.includes(a.id)) card.classList.add('on');
@@ -207,6 +245,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const raw = draft.seed.trim();
     const seed = raw ? Number(raw) : Math.floor(Math.random() * 1e9);
     sfx('confirm');
+    if (draft.replaceId) controls.deleteSave?.(draft.replaceId);
     controls.newGame?.({
       companyName: draft.companyName.trim(), seed, logoColor: draft.logoColor, tagline: draft.tagline.trim(),
       founders: [...draft.founders], funding: draft.funding,

@@ -6,6 +6,20 @@ import { icon } from './icons.js';
 import { portrait, portraitLive } from './widgets.js';
 
 const MAX_TILES = 12;
+const FLAGS = ['muted', 'frozen', 'badCamera'];
+
+// Call glitches per person: { muted, frozen, badCamera }. The sim sets them on staff (flat, or under
+// p.call); until it does, a deterministic stand-in picks a few people per turn so the jokes show.
+function glitches(s, remote, turn) {
+  const real = remote.some((p) => FLAGS.some((f) => p[f] || p.call?.[f]));
+  const out = new Map();
+  remote.forEach((p, i) => {
+    if (real) { out.set(p.id, { muted: !!(p.muted ?? p.call?.muted), frozen: !!(p.frozen ?? p.call?.frozen), badCamera: !!(p.badCamera ?? p.call?.badCamera) }); return; }
+    const k = (i * 5 + s.week + turn) % Math.max(4, remote.length);
+    out.set(p.id, { muted: k === 0, frozen: k === 2 && remote.length > 4, badCamera: (i + s.week) % Math.max(5, remote.length) === 3 });
+  });
+  return out;
+}
 const TURN_MS = 5000;
 
 export function createCallGrid({ layer, openStaff }) {
@@ -27,7 +41,11 @@ export function createCallGrid({ layer, openStaff }) {
     const remote = s.staff.filter((p) => p.remote);
     const turn = Math.floor(performance.now() / TURN_MS);
     const speakers = new Set(remote.length ? [remote[turn % remote.length].id, remote[(turn * 7 + 3) % remote.length].id] : []);
-    const next = `${folded}|${remote.map((p) => `${p.id}${p.mood}`).join()}|${[...speakers].join()}`;
+    const gl = glitches(s, remote, turn);
+    // A muted person is always one of the speakers: talking away with the mic off is the joke.
+    const mutedOne = remote.find((p) => gl.get(p.id)?.muted);
+    if (mutedOne && speakers.size) { speakers.delete([...speakers][1]); speakers.add(mutedOne.id); }
+    const next = `${folded}|${remote.map((p) => { const g = gl.get(p.id); return `${p.id}${p.mood}${g.muted ? 'm' : ''}${g.frozen ? 'f' : ''}${g.badCamera ? 'c' : ''}`; }).join()}|${[...speakers].join()}`;
     if (next === sig) return;
     sig = next;
     const stayer = s.staff.find((p) => p.id === lock.stayerId);
@@ -39,9 +57,14 @@ export function createCallGrid({ layer, openStaff }) {
     if (folded) { tiles.replaceChildren(); return; }
     const shown = remote.slice(0, MAX_TILES);
     tiles.replaceChildren(...shown.map((p) => {
-      const talking = speakers.has(p.id);
-      return h(`button.cgtile${talking ? '.talking' : ''}`, { title: `${p.name}: open in Staff`, onclick: () => openStaff(p.id) },
-        talking ? portraitLive(p, 60) : portrait(p, 60),
+      const g = gl.get(p.id);
+      const talking = speakers.has(p.id) && !g.frozen;
+      const face = talking ? portraitLive(p, 60) : portrait(p, 60);
+      const cls = `${talking ? '.talking' : ''}${g.muted ? '.muted' : ''}${g.frozen ? '.frozen' : ''}${g.badCamera ? '.badcam' : ''}`;
+      const status = g.frozen ? 'Connection frozen' : g.badCamera ? 'Camera pointed at the ceiling' : g.muted && talking ? 'Talking, but muted' : '';
+      return h(`button.cgtile${cls}`, { title: `${p.name}${status ? `: ${status}` : ''}. Open in Staff`, onclick: () => openStaff(p.id) },
+        h('span.cgface', null, face, g.frozen ? h('span.cgspin') : null),
+        g.muted ? h('span.cgmute', { title: 'Muted' }, icon('mic.off', { size: 12 })) : null,
         h('span.cgname', { text: p.name.split(' ')[0] }));
     }), ...(remote.length > MAX_TILES ? [h('div.cgmore', { text: `+${remote.length - MAX_TILES} more` })] : []));
   }

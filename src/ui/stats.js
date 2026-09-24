@@ -24,7 +24,7 @@ export function bestSkill(p) {
   return STATS.reduce((best, s) => ((sk[s.id] ?? 0) > (sk[best.id] ?? 0) ? s : best), STATS[0]);
 }
 
-const tier = (v) => (v >= 80 ? 'Great at' : v >= 60 ? 'Strong at' : v >= 40 ? 'Decent at' : 'Learning');
+const tier = (v) => (v >= 80 ? 'Great at' : v >= 60 ? 'Strong at' : v >= 40 ? 'Decent at' : 'New to');
 
 // "Strong at Craft", with the skill's icon; tier words keep the chip readable without the number.
 export function strengthChip(p) {
