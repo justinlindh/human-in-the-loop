@@ -197,7 +197,7 @@ Out (future iterations): multiplayer, mobile layout, localization, mod support, 
 
 ## Progression
 
-Upgrades change the game in ways the player can see and feel, but no single upgrade is decisive. Guideline: a single item or tool moves its stat by 10% to 40%, never more than 50%; stacking several is how a player builds an edge.
+Upgrades change the game in ways the player can see and feel, but no single upgrade is decisive. Guideline: a single item or tool moves its stat by 10% to 40%, never more than 50%; stacking several is how a player builds an edge. Effects are relative to the base value they modify (never flat amounts added to a small base), and stacked meaning boosts together must not make burnout impossible: a fully kitted office with good policies should keep average meaning high but still let neglected people burn out.
 
 ### Career paths and training
 
@@ -222,15 +222,15 @@ Buyable items that appear in the diorama, each upgradeable from level 1 to 3 wit
 | Item | Effect per level (1 / 2 / 3) |
 |---|---|
 | Espresso | stamina recovery +15% / +30% / +45% |
-| Plant Wall | meaning recovery +0.1 / +0.2 / +0.3 per week |
-| Nap Pod | burnout lasts +1 / +2 / +3 weeks before resignations roll |
-| Arcade | base meaning recovery +0.2 / +0.35 / +0.5, output -2% / -3% / -4% |
+| Plant Wall | meaning recovery +10% / +20% / +30% |
+| Nap Pod | burnout resignation chance -15% / -30% / -45% |
+| Arcade | meaning recovery +15% / +25% / +35%, output -2% / -3% / -4% |
 | Standing Desks | stamina drain -10% / -20% / -30% |
 | Whiteboard Wall | novelty points +5% / +10% / +15% |
 | Library | knowledge gain +15% / +30% / +45% |
 | Monitoring Wall | oversight hours per person +15% / +30% / +45% |
 | Server Racks | maintenance need -5% / -10% / -15%, uptime floor +0.03 / +0.06 / +0.1 |
-| Trophy Case | brand +0.02 / +0.04 / +0.06 per week (needs an award) |
+| Trophy Case | brand decay -15% / -30% / -45% (needs an award) |
 
 ### Internal tools (research)
 
