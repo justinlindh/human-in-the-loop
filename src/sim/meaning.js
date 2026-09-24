@@ -72,7 +72,10 @@ export function meaningSystem(ctx) {
     return false;
   });
   for (const p of leavers) {
-    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell), kind: 'farewell' });
+    const recent = state.flags.recentFarewells ?? [];
+    const line = pick(ctx.rng, CHATTER.farewell.filter((l) => !recent.includes(l)));
+    state.flags.recentFarewells = [...recent, line].slice(-4);
+    emitChat(ctx, { person: p, text: line, kind: 'farewell' });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name });
     ctx.emit({ type: 'toast', text: `${p.name} resigned.`, tone: 'bad' });
     removeStaff(state, p);

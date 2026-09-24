@@ -12,7 +12,7 @@ const REQUIRED_KEYS = [
   'flags', 'stats', 'history', 'gameOver',
 ];
 
-const STATE_DEFAULTS = () => ({ items: [], research: { done: [] }, modifiers: [], scheduled: [] });
+const STATE_DEFAULTS = () => ({ items: [], research: { done: [] }, modifiers: [], scheduled: [], chatLog: [] });
 const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 } });
 
 const store = (storage) => storage ?? globalThis.localStorage;
@@ -48,7 +48,7 @@ const arrayOfObjects = (v) => Array.isArray(v) && v.every(isObj);
 function wellFormed(state) {
   const lists = ['staff', 'candidates', 'projects', 'products', 'campaigns', 'incidentLog', 'history'];
   if (!lists.every((k) => arrayOfObjects(state[k]))) return false;
-  if (['items', 'modifiers', 'scheduled'].some((k) => k in state && !arrayOfObjects(state[k]))) return false;
+  if (['items', 'modifiers', 'scheduled', 'chatLog'].some((k) => k in state && !arrayOfObjects(state[k]))) return false;
   if (![...state.staff, ...state.candidates].every((p) => isObj(p.assignment) && isObj(p.skills) && Array.isArray(p.traits))) return false;
   return ['rng', 'automation', 'market', 'models', 'stats', 'flags', 'ops', 'security', 'policies'].every((k) => isObj(state[k]));
 }

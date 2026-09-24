@@ -22,7 +22,7 @@ export const EFFECT_KEYS = [
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [
   'subjectCompliant', 'trustedVendor', 'blameless', 'ik40', 'bestScore7', 'sabbaticalPolicy', 'stage1', 'mentorAvailable',
-  'affordConsultants',
+  'affordConsultants', 'noCraftRunning',
 ];
 
 const ONCE = 100000;
@@ -91,7 +91,7 @@ const list = [
     title: 'A little side project',
     text: '{name} has been rebuilding the admin panel on weekends "just to see". It is beautiful.',
     choices: [
-      { label: 'Greenlight a craft project', hint: 'Starts a craft project for you to staff; meaning up', effects: { startCraft: true, meaning: 5 }, outcome: 'The craft project begins. Fonts will be discussed.' },
+      { label: 'Greenlight a craft project', hint: 'Starts a craft project for you to staff; meaning up', requires: 'noCraftRunning', effects: { startCraft: true, meaning: 5 }, outcome: 'The craft project begins. Fonts will be discussed.' },
       { label: 'Not now', hint: 'Meaning down a little', effects: { meaning: -3 }, outcome: 'Back to the backlog.' },
     ],
   },
