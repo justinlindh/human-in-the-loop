@@ -201,6 +201,22 @@ if (typeof window !== 'undefined' && typeof fetch === 'function') loadManifests(
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 
+// Inner markup of each glyph file, fetched once; icons drawn before it arrives are refilled.
+const svgText = new Map();
+const svgLoading = new Set();
+function loadSvg(file) {
+  if (svgLoading.has(file) || typeof fetch !== 'function') return;
+  svgLoading.add(file);
+  fetch(`${BASE}${file}`).then((r) => r.text()).then((txt) => {
+    const m = /<svg[^>]*>([\s\S]*)<\/svg>/.exec(txt);
+    if (!m) return;
+    svgText.set(file, m[1].replace(/\sid="g"/, ''));
+    for (const el of document.querySelectorAll('.ic[data-art]')) {
+      if (ART.get(el.dataset.icon)?.file === file && el.querySelector('use')) fill(el, el.dataset.icon);
+    }
+  }).catch(() => {});
+}
+
 function fill(el, name) {
   const art = ART.get(name);
   if (!art) {
@@ -210,12 +226,19 @@ function fill(el, name) {
   el.dataset.art = '1';
   el.textContent = '';
   if (art.file.endsWith('.svg')) {
+    // Glyphs are inlined: an external <use> whose currentColor changes (a speed button turning on
+    // or off) can stop repainting in Chrome and show an empty box.
     const svg = document.createElementNS(SVGNS, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('aria-hidden', 'true');
-    const use = document.createElementNS(SVGNS, 'use');
-    use.setAttribute('href', `${BASE}${art.file}#g`);
-    svg.append(use);
+    const markup = svgText.get(art.file);
+    if (markup) svg.innerHTML = markup;
+    else {
+      const use = document.createElementNS(SVGNS, 'use');
+      use.setAttribute('href', `${BASE}${art.file}#g`);
+      svg.append(use);
+      loadSvg(art.file);
+    }
     el.append(svg);
   } else {
     const img = document.createElement('img');

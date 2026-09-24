@@ -24,7 +24,7 @@ export function applySettings(controls, s) {
   controls.setVolume?.(s.muted ? 0 : s.volume);
   controls.setQuality?.(s.quality);
   controls.setTiltShift?.(s.tiltShift);
-  controls.setAutoPause?.(s.autoPause !== false);
+  (controls.setAutoPause ?? controls.setPauseOnBlur)?.(s.autoPause !== false);
 }
 
 export function createSettings({ layer, controls, sfx }) {
