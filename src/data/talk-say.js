@@ -8,7 +8,7 @@ export const SAY_EXCHANGES = [
   // launch
   { id: 'say_launch_refresh', stream: 'say', on: 'launch', cast: { a: 'engineer', b: 'any' },
     turns: [
-      ['a', ['{product} is live. I have refreshed the dashboard forty times.', "It's live. I keep refreshing the signup count.", 'We shipped {product}. I have not blinked since.']],
+      ['a', ['{product} is live. I refreshed the dashboard forty times.', "It's live. I keep refreshing the signup count.", 'We shipped {product}. I have not blinked since.']],
       ['b', ['Any signups?', 'And?', 'How many so far?']],
       ['a', ['Eleven. Nine are my mom on different browsers.', 'Four. One is a competitor. One is me.', 'Three. I know all of them personally.']],
     ] },

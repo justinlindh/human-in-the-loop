@@ -97,6 +97,7 @@ export const B = {
   agentSpendFloor: 3000, agentAuditWeeks: 8, agentInvoiceWeeks: 20, agentAuditRogueRelief: 0.3, agentCapLevel: 0.5,
   rivalMergeBase: 150000, rivalMergePerStrength: 60000,
   beatAgentBillAfter: 45, beatMegaroundAfter: 95, beatFloorNextDoorAfter: 130, megaroundWeeks: 26,
+  productNameMax: 20,
   forSaleWeek: 30, forSaleWeeks: 13, forSalePerRound: 3, forSaleMinArr: 600000, forSaleArrShare: [0.03, 0.12],
   forSalePriceMult: [6, 10], forSaleConsolidationDiscount: 0.8, acquiredScore: [6, 7.8], acquiredBrand: 1,
   epilogueOutcomeLines: 2, epilogueLines: 7,

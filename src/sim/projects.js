@@ -81,8 +81,12 @@ registerAction('startProject', (ctx, a) => {
   if (a.kind === 'new') {
     const reason = validateNew(state, a);
     if (reason) return { ok: false, reason };
+    // A name is 1 to productNameMax characters after trimming; with no name at all the product gets a default.
+    const given = a.name === undefined || a.name === null ? null : String(a.name).trim();
+    if (given === '') return { ok: false, reason: 'Needs a name' };
+    if (given && given.length > B.productNameMax) return { ok: false, reason: `Names are ${B.productNameMax} characters at most` };
     if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
-    const name = String(a.name ?? '').trim().slice(0, 40) || `${CATEGORIES[a.category].name}${ANGLES[a.angle].ai ? ' AI' : 'ly'}`;
+    const name = given ?? `${CATEGORIES[a.category].name}${ANGLES[a.angle].ai ? ' AI' : 'ly'}`.slice(0, B.productNameMax);
     state.cash -= B.sizes[a.size].cost;
     project = baseProject(state, {
       kind: 'new', name, category: a.category, angle: a.angle, model: ANGLES[a.angle].ai ? a.model : null, size: a.size,
