@@ -31,7 +31,8 @@ fi
 
 summary="$(mktemp)"
 t0=$(date +%s)
-( cd "$WT" && scripts/ci-local.sh --base "origin/$base" --title "$title" --summary "$summary" )
+# This checkout's ci-local.sh, so PRs cut before it existed are tested the same way.
+CI_DIR="$WT" bash "$REPO/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary"
 rc=$?
 secs=$(( $(date +%s) - t0 ))
 verdict=$([ $rc -eq 0 ] && echo "PASS" || echo "FAIL")

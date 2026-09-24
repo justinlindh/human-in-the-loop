@@ -17,7 +17,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-cd "$(dirname "$0")/.."
+# Tools come from this script's own checkout; the tree under test is CI_DIR (default: that checkout).
+SELF="$(cd "$(dirname "$0")" && pwd)"
+cd "${CI_DIR:-$SELF/..}"
 LOGS="$(mktemp -d)"
 declare -a NAMES RESULTS TIMES
 now() { date +%s; }
@@ -49,7 +51,7 @@ step test:fast npm run test:fast
 step build npm run build
 step lifecycle npm run lifecycle -- --quality low --no-shots
 step soak npm run soak
-commits() { scripts/check-commits.sh "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
+commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
 if wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
