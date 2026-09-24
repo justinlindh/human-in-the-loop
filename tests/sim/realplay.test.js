@@ -32,7 +32,7 @@ describe('runway only counts weeks that lose money', () => {
     s.cash = -50000;
     econ(s); econ(s);
     expect(s.lowCashWeeks).toBe(2);
-    addProduct(s, { mrr: 30000, customers: 3000 });
+    addProduct(s, { mrr: 60000, customers: 3000 });
     econ(s);
     expect(s.lowCashWeeks).toBe(2);
   });

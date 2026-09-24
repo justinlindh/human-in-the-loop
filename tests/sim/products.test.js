@@ -146,7 +146,7 @@ describe('economy', () => {
     const p = addProduct(s, { customers: 1000, mrr: 10000 });
     const before = s.cash;
     runEconomy(s, 1);
-    const modelCost = 2.0 * 1000 * 12 / 52;
+    const modelCost = 2.0 * B.modelCostMult * 1000 * 12 / 52;
     expect(s.cash - before).toBeCloseTo(10000 * 12 / 52 - salaries - OFFICE_STAGES[0].rent - modelCost);
     expect(p.mrr).toBe(10000);
   });
@@ -157,7 +157,7 @@ describe('economy', () => {
     const b0 = base();
     s.automation.support = { level: 0.5, model: 'llamarama' };
     const b1 = base();
-    expect(b1 - b0).toBeCloseTo(600 * 0.5 + B.gpuWeeklySelfHost);
+    expect(b1 - b0).toBeCloseTo(600 * B.autoCostMult * 0.5 + B.gpuWeeklySelfHost);
     s.policies.apprenticeship = true;
     s.security.tooling = true;
     expect(base() - b1).toBeCloseTo(1500 + B.toolingWeekly);

@@ -43,3 +43,11 @@ export function advance(state, n, tickFn, dispatchFn) {
   }
   return state;
 }
+
+// Runs fn with the everyday meaning grind switched off, for tests that measure exact drain or recovery ratios.
+export function withoutGrind(B, fn) {
+  const saved = [B.meaningGrind, B.meaningGrindPerHead];
+  B.meaningGrind = 0;
+  B.meaningGrindPerHead = 0;
+  try { return fn(); } finally { [B.meaningGrind, B.meaningGrindPerHead] = saved; }
+}

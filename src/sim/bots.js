@@ -170,7 +170,7 @@ function automateAll(s) {
   act(s, FUNCTIONS.filter((fn) => fn === 'engineering' || live)
     .filter((fn) => s.automation[fn].level !== 1 || s.automation[fn].model !== model)
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
-  if (weeksOfBurn(s) > 20 && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
+  if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
     const res = dispatch(s, startNew(s, 'medium', model, fixedName(s)));
     if (res.ok) act(s, assignAll(s, builders(s), res.projectId));

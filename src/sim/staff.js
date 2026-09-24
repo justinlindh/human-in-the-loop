@@ -318,6 +318,7 @@ export function staffUpkeep(ctx) {
     }
   }
   for (const p of state.staff) progressRecords(ctx, p);
+  if (state.week % 52 === 51) for (const p of state.staff) p.salary = Math.round((p.salary * (1 + B.yearlyRaise)) / 10) * 10;
   if (state.week - state.candidatesWeek >= B.candidateRefreshWeeks) refreshCandidates(state);
 }
 

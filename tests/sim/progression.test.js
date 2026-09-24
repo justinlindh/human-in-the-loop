@@ -17,7 +17,7 @@ import { RESEARCH } from '../../src/data/research.js';
 import { PATHS } from '../../src/data/paths.js';
 import { TRAINING } from '../../src/data/training.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, withoutGrind } from './helpers.js';
 
 const once = (s, sys) => { const c = makeCtx(s); sys(c); return c.events; };
 const withItem = (s, itemId, level) => { s.items.push({ id: `i${s.nextId++}`, itemId, level }); return s; };
@@ -98,11 +98,11 @@ describe('office shop', () => {
     expect(100 - b.staff[0].stamina).toBeCloseTo((100 - a.staff[0].stamina) * 0.7);
 
     [a, b] = pair('plant_wall');
-    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); once(s, meaningSystem); }
+    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); withoutGrind(B, () => once(s, meaningSystem)); }
     expect(b.staff[0].meaning - 50).toBeCloseTo((a.staff[0].meaning - 50) * 1.3);
 
     [a, b] = pair('arcade');
-    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); once(s, meaningSystem); }
+    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); withoutGrind(B, () => once(s, meaningSystem)); }
     expect(b.staff[0].meaning - 50).toBeCloseTo((a.staff[0].meaning - 50) * 1.35);
 
     [a, b] = pair('arcade');
