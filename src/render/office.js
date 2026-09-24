@@ -1106,6 +1106,9 @@ export function createOffice({ parent, screens, lighting }) {
         }
         const f = col.userData.fade += ((hide ? COLUMN_FADE : 1) - col.userData.fade) * k;
         for (const m of col.userData.mats) { m.opacity = f; m.depthWrite = f > 0.99; }
+        // A faded column casts no shadow: a dark streak under something barely visible reads as dirt.
+        const cast = f > 0.9;
+        if (col.userData.cast !== cast) { col.userData.cast = cast; col.traverse((o) => { if (o.isMesh) o.castShadow = cast; }); }
       }
     },
     // Height of the office shell while it moves in (0 when settled), so people move with it.
