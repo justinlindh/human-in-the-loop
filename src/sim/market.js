@@ -1,0 +1,49 @@
+import { B } from './balance.js';
+import { chance } from './rng.js';
+import { dateOf } from './util.js';
+import { registerSystem } from './registry.js';
+import { emitChat } from './chat.js';
+import { liveProducts } from './projects.js';
+import { competition } from './products.js';
+import { CATEGORIES } from '../data/categories.js';
+import { ANGLES } from '../data/angles.js';
+import { incumbentFor } from '../data/incumbents.js';
+
+export const cloneChance = (state) => B.cloneChanceBase * (1 + B.cloneChanceYearGrowth * dateOf(state.week).yearIndex);
+
+export function marketSystem(ctx) {
+  const { state } = ctx;
+  const live = liveProducts(state);
+  const p = cloneChance(state);
+  for (const [catId, c] of Object.entries(state.market.categories)) {
+    let kept = 0;
+    for (let i = 0; i < c.clones; i++) if (!chance(ctx.rng, B.cloneDecay)) kept++;
+    c.clones = kept;
+    if (live.some((pr) => pr.category === catId && pr.score >= 6) && chance(ctx.rng, p)) {
+      c.clones++;
+      emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but with AI` });
+    }
+  }
+  for (const pr of live) {
+    if (pr.copied || state.week < pr.copyAtWeek || pr.score < 6) continue;
+    pr.novelty *= B.copyNoveltyMult;
+    state.market.categories[pr.category].incumbentStrength *= B.copyIncumbentMult;
+    pr.copied = true;
+    ctx.emit({ type: 'toast', text: `${incumbentFor(pr.category).name} announces ${ANGLES[pr.angle].name} features. Sounds familiar.`, tone: 'warn' });
+  }
+}
+
+registerSystem('market', marketSystem, 60);
+
+// Categories where your best live product holds a bigger share of the market than the incumbent.
+export function categoryLeaders(state) {
+  const out = [];
+  for (const catId of Object.keys(CATEGORIES)) {
+    const mine = liveProducts(state).filter((p) => p.category === catId);
+    if (!mine.length) continue;
+    const best = mine.reduce((a, b) => (b.customers > a.customers ? b : a));
+    const c = competition(state, best);
+    if (c.total > 0 && best.customers / CATEGORIES[catId].tam > c.incumbent / c.total) out.push(catId);
+  }
+  return out;
+}

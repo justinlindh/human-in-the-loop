@@ -8,6 +8,7 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
+import { emitChat } from './chat.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -22,7 +23,7 @@ const LEVEL_RANGE = { junior: [1, 2], mid: [5, 7], senior: [10, 13] };
 
 export function topStats(role) {
   const w = B.roleWeights[role];
-  return [...STATS].sort((a, b) => w[b] - w[a]).slice(0, 2);
+  return [...STATS].filter((st) => w[st] > 0).sort((a, b) => w[b] - w[a]).slice(0, 2);
 }
 
 const DEFAULT_MODS = {
@@ -60,6 +61,7 @@ export function generateStaff(state, { role, seniority }) {
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
     salary: 0, hiredWeek: state.week, founder: false,
+    path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
       pants: pick(r, PANTS), accessory: pick(r, ACCESSORIES), build: int(r, 0, 2),
@@ -114,6 +116,13 @@ export const roleName = (role) => ROLES[role].name;
 
 const ASSIGNMENT_TYPES = ['project', 'maintenance', 'oversight', 'mentor', 'hardProblem', 'support', 'sales', 'security', 'marketing', 'idle', 'sabbatical'];
 
+// Sends anyone mentoring this person back to their default assignment.
+export function endMentorshipsOf(state, person) {
+  for (const m of state.staff) {
+    if (m.assignment.type === 'mentor' && m.assignment.targetId === person.id) m.assignment = defaultAssignment(m);
+  }
+}
+
 // Removes a person from staff and runs departure bookkeeping.
 export function removeStaff(state, person) {
   state.staff = state.staff.filter((p) => p.id !== person.id);
@@ -134,7 +143,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
-  ctx.emit({ type: 'chat', from: c.name, text: pick(ctx.rng, CHATTER.hello) });
+  emitChat(ctx, { person: c, text: pick(ctx.rng, CHATTER.hello) });
   return { ok: true };
 });
 
@@ -144,6 +153,7 @@ registerAction('fire', (ctx, { staffId }) => {
   if (!p) return { ok: false, reason: 'No such staff member' };
   if (p.founder) return { ok: false, reason: 'Founders cannot be fired' };
   removeStaff(state, p);
+  ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: true });
   ctx.emit({ type: 'toast', text: `${p.name} has left ${state.companyName}.`, tone: 'info' });
   return { ok: true };
 });
@@ -159,6 +169,7 @@ function validateAssignment(state, p, a) {
       if (p.seniority === 'junior') return 'Only mids and seniors can mentor';
       const t = findStaff(state, a.targetId);
       if (!t || t.id === p.id || t.seniority !== 'junior') return 'Mentors need a junior to mentor';
+      if (state.staff.some((m) => m.id !== p.id && m.assignment.type === 'mentor' && m.assignment.targetId === t.id)) return 'Already has a mentor';
       break;
     }
     case 'hardProblem':
@@ -179,6 +190,7 @@ export function applyAssignment(state, p, a) {
   if (a.type === 'sabbatical') {
     p.mood = 'away';
     p.sabbaticalWeeksLeft = B.sabbaticalWeeks;
+    endMentorshipsOf(state, p);
   }
 }
 
@@ -221,9 +233,7 @@ function levelUp(ctx, p) {
   if (!next) return;
   p.seniority = next;
   p.salary = Math.round((B.salary[next] * staffMods(p).salary) / 10) * 10;
-  for (const m of state.staff) {
-    if (m.assignment.type === 'mentor' && m.assignment.targetId === p.id) m.assignment = defaultAssignment(m);
-  }
+  endMentorshipsOf(state, p);
   ctx.emit({ type: 'toast', text: `${p.name} is now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
 }
@@ -235,7 +245,7 @@ export function staffUpkeep(ctx) {
     const mods = staffMods(p);
     const working = isWorking(p);
     const mentor = p.seniority === 'junior' ? mentorOf(state, p) : null;
-    if (working || mentor) {
+    if (working) {
       let gain = B.xpPerWeekWorking * mods.xp;
       if (p.seniority === 'junior') {
         gain *= mentor ? B.mentorXpMult * staffMods(mentor).mentorBonus : 1 - B.juniorXpAutomationPenalty * engLevel;

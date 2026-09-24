@@ -100,7 +100,7 @@ const list = [
     id: 'team_offsite', kind: 'staff', weight: 1, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.staff.length >= 6,
     title: 'Team offsite',
-    text: 'The team wants an offsite. A cabin, a lake, zero Slack.',
+    text: 'The team wants an offsite. A cabin, a lake, zero Slackk.',
     choices: [
       { label: 'Book the cabin', hint: 'Expensive, big team meaning boost', effects: { cash: -12000, teamMeaning: 10 }, outcome: 'Someone fell in the lake. Morale has never been higher.' },
       { label: 'Maybe next quarter', hint: 'Nothing happens', effects: {}, outcome: 'Next quarter, everyone says.' },
@@ -307,7 +307,7 @@ const list = [
     text: 'An agent spun up 4,000 GPUs to "optimize" a cron job. The bill is still counting.',
     choices: [
       { label: 'Pay it and apologize to finance', hint: 'Big cash hit', effects: { cash: -25000 }, outcome: 'Finance puts a sticky note on the agent. It does nothing.' },
-      { label: 'Beg the cloud provider for credits', hint: 'Half the time they say yes', effects: { gamble: { p: 0.5, effects: { cash: -30000 } } }, outcome: 'You write a very nice email.' },
+      { label: 'Beg the cloud provider for credits', hint: 'Half the time you still pay $30k', effects: { gamble: { p: 0.5, effects: { cash: -30000 } } }, outcome: 'You write a very nice email.' },
       { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cash: -12000, cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'The postmortem includes a graph shaped like a rocket.' },
     ],
   },
@@ -351,7 +351,7 @@ const list = [
     text: 'Your support agent promised 400 customers a full refund plus "a small pony". Lawyers are asking about the pony.',
     choices: [
       { label: 'Pay the refunds', hint: 'Cash hit, brand kept', effects: { cash: -15000 }, outcome: 'No ponies were purchased.' },
-      { label: 'Blame the vendor', hint: 'Brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } }, customersPct: -4 }, outcome: 'Customers do not care whose fault the pony is.' },
+      { label: 'Blame the vendor', hint: 'Lose 4% of customers, plus a brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } }, customersPct: -4 }, outcome: 'Customers do not care whose fault the pony is.' },
       { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cash: -6000, cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'The pony becomes a company mascot.' },
     ],
   },
@@ -401,7 +401,7 @@ const list = [
     id: 'phishing_ceo', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'The CEO wants gift cards',
-    text: 'An email from "you" asked finance to buy $25,000 of gift cards "for a client". Finance was very efficient.',
+    text: 'An email from "you" asked finance to buy $25,000 of gift cards "for a client". Finance almost did it. Finance is very efficient.',
     choices: [
       { label: 'Mandatory security training', hint: 'Small cost, team grumbles', effects: { cash: -4000, teamMeaning: -1 }, outcome: 'The training video is 40 minutes long.' },
       { label: 'Laugh it off', hint: 'It may happen again', effects: { gamble: { p: 0.3, effects: { cash: -25000 } } }, outcome: 'Finance now calls you before buying anything.' },

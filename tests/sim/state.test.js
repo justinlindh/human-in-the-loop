@@ -5,7 +5,7 @@ import { B } from '../../src/sim/balance.js';
 const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'items', 'research', 'modifiers', 'scheduled', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
 ];
 
@@ -34,6 +34,24 @@ describe('game state', () => {
     expect(s.models.mistrale.available).toBe(false);
     expect(s.models.claudius.available).toBe(true);
     expect(s.market.categories.crm.incumbentStrength).toBe(650);
+    expect(s.items).toEqual([]);
+    expect(s.research).toEqual({ done: [] });
+    expect(s.modifiers).toEqual([]);
+    expect(s.scheduled).toEqual([]);
+  });
+
+  it('founders never share a first name', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const [a, b] = game(seed).staff;
+      expect(a.name.split(' ')[0], `seed ${seed}`).not.toBe(b.name.split(' ')[0]);
+    }
+  });
+
+  it('only the economy counts down the GPU shortage', () => {
+    const s = game();
+    s.flags.gpuShortageWeeks = 5;
+    tick(s);
+    expect(s.flags.gpuShortageWeeks).toBe(4);
   });
 
   it('is JSON-safe', () => {

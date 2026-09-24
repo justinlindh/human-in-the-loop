@@ -35,6 +35,32 @@ describe('content data', () => {
     expect(EPILOGUES.length).toBeGreaterThanOrEqual(20);
   });
 
+  it('pins rows against the plan tables', () => {
+    const pick = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k]]));
+    expect(pick(CATEGORIES.notes, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 180000, price: 12, unlockYear: 2026, compliance: false });
+    expect(pick(CATEGORIES.legal, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 20000, price: 250, unlockYear: 2031, compliance: true });
+    expect(pick(CATEGORIES.video, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 110000, price: 28, unlockYear: 2030, compliance: false });
+    expect(Object.fromEntries(INCUMBENTS.map((i) => [i.name, i.strength]))).toMatchObject({ Salesfarce: 650, Zendisk: 360, GitHug: 620, LexisNaxis: 460 });
+    const m = (id) => pick(MODELS[id], ['capability', 'productCost', 'autoCost', 'guardrails', 'trust', 'complianceOk', 'selfHosted', 'releaseYear']);
+    expect(m('claudius')).toEqual({ capability: 80, productCost: 2.4, autoCost: 1500, guardrails: 0.9, trust: 0.8, complianceOk: true, selfHosted: false, releaseYear: 2026 });
+    expect(m('grokk')).toEqual({ capability: 70, productCost: 1.0, autoCost: 700, guardrails: 0.25, trust: 0.35, complianceOk: false, selfHosted: false, releaseYear: 2026 });
+    expect(m('llamarama')).toEqual({ capability: 66, productCost: 0.6, autoCost: 600, guardrails: 0.45, trust: 0.55, complianceOk: true, selfHosted: true, releaseYear: 2026 });
+    expect(m('mistrale').releaseYear).toBe(2027);
+    const ch = (id) => pick(CHANNELS[id], ['cost', 'weeks', 'hype', 'brand', 'minStage']);
+    expect(ch('launch')).toEqual({ cost: 5000, weeks: 3, hype: 9, brand: 0.4, minStage: 0 });
+    expect(ch('producthunt')).toEqual({ cost: 1500, weeks: 1, hype: 22, brand: 0.6, minStage: 0 });
+    expect(ch('conference')).toEqual({ cost: 35000, weeks: 2, hype: 14, brand: 1.5, minStage: 1 });
+    expect(OFFICE_STAGES.map((o) => [o.capacity, o.rent, o.upgradeCost])).toEqual([[4, 300, 0], [12, 3500, 60000], [30, 14000, 400000]]);
+    expect(TRAITS.craftsperson.mods).toEqual({ polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 });
+    expect(TRAITS.red_teamer.mods).toEqual({ catch: 0.2, oversight: 1.2 });
+    expect(ROLES.engineer.automatedBy).toEqual({ engineering: 1, qa: 0.5, ops: 0.4 });
+    expect(ROLES.security.automatedBy).toEqual({ ops: 0.6 });
+    expect(TRENDS.compliance).toMatchObject({ weeks: 39, angleMods: { agent: 0.8 }, categoryMods: { hr: 0.8, legal: 1.2, accounting: 1.1 } });
+    expect(POLICIES.apprenticeship.weeklyCost).toBe(1500);
+    expect(comboFit('legal', 'vertical')).toBe(1.5);
+    expect(comboFit('accounting', 'voice')).toBe(0.6);
+  });
+
   it('keyed collections use their id as the key', () => {
     for (const [name, coll] of Object.entries(KEYED)) {
       for (const [k, v] of Object.entries(coll)) expect(v.id, `${name}.${k}`).toBe(k);
