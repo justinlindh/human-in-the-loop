@@ -1,4 +1,5 @@
 import { h, setText, dateOf } from './dom.js';
+import { icon } from './icons.js';
 
 const MAX_LINES = 50;
 
@@ -6,7 +7,7 @@ export function createChat(root, { onToggle } = {}) {
   let collapsed = false;
   let unread = 0;
   const count = h('span.count', { text: '0' });
-  const caret = h('span.caret', { text: '▾' });
+  const caret = h('span.caret', null, icon('caret.down'));
   const body = h('div.chat-body');
   const head = h('div.chat-head', { title: 'Office chat (C)', onclick: () => toggle() },
     h('span.hash', { text: '#' }), h('span', { text: 'general' }), count, caret);
@@ -19,7 +20,7 @@ export function createChat(root, { onToggle } = {}) {
   function toggle(force) {
     collapsed = force ?? !collapsed;
     el.classList.toggle('collapsed', collapsed);
-    setText(caret, collapsed ? '▸' : '▾');
+    caret.replaceChildren(icon(collapsed ? 'caret.right' : 'caret.down'));
     if (!collapsed) { unread = 0; count.style.display = 'none'; body.scrollTop = body.scrollHeight; }
     onToggle?.(collapsed);
   }

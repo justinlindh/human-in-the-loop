@@ -1,14 +1,15 @@
 import { h, toggleClass, setText, clear } from './dom.js';
+import { icon } from './icons.js';
 
 export const MENU = [
-  { id: 'build', label: 'Build', icon: '🔨', key: 'B', accent: '#4f8cff' },
-  { id: 'staff', label: 'Staff', icon: '🧑‍💻', key: 'S', accent: '#34c38f' },
-  { id: 'marketing', label: 'Marketing', icon: '📣', key: 'M', accent: '#ffb020' },
-  { id: 'models', label: 'Models', icon: '🧠', key: 'V', accent: '#9b6bff' },
-  { id: 'automation', label: 'Automation', icon: '🤖', key: 'A', accent: '#3fb6b0' },
-  { id: 'ops', label: 'Ops', icon: '🛡️', key: 'O', accent: '#e5484d' },
-  { id: 'office', label: 'Office', icon: '🏢', key: 'F', accent: '#d98c5f' },
-  { id: 'reports', label: 'Reports', icon: '📊', key: 'R', accent: '#5b6cff' },
+  { id: 'build', label: 'Build', key: 'B', accent: '#4f8cff' },
+  { id: 'staff', label: 'Staff', key: 'S', accent: '#34c38f' },
+  { id: 'marketing', label: 'Marketing', key: 'M', accent: '#ffb020' },
+  { id: 'models', label: 'Models', key: 'V', accent: '#9b6bff' },
+  { id: 'automation', label: 'Automation', key: 'A', accent: '#3fb6b0' },
+  { id: 'ops', label: 'Ops', key: 'O', accent: '#e5484d' },
+  { id: 'office', label: 'Office', key: 'F', accent: '#d98c5f' },
+  { id: 'reports', label: 'Reports', key: 'R', accent: '#5b6cff' },
 ];
 
 // Bottom menu plus the single open panel. Panels are { title, icon, accent, wide?, build(ctx, arg) -> { el, update?(state), foot? , destroy?() } }.
@@ -20,7 +21,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const badge = h('span.badge');
     badges[m.id] = badge;
     buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, onclick: () => toggle(m.id) },
-      badge, h('span.key', { text: m.key }), h('span.ico', { text: m.icon }), h('span.lbl', { text: m.label }));
+      badge, h('span.key', { text: m.key }), h('span.ico', null, icon(`menu.${m.id}`)), h('span.lbl', { text: m.label }));
     menu.append(buttons[m.id]);
   }
   bottom.append(menu);
@@ -49,8 +50,8 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const inst = def.build(ctx, arg);
     const title = h('h2', { text: def.title ?? meta.label });
     const head = h('div.panel-head', null,
-      h('span.ico', { text: def.icon ?? meta.icon ?? '' }), title,
-      h('button.btn.x', { title: 'Close (Esc)', onclick: () => close(), text: '✕' }));
+      h('span.ico', null, icon(def.icon ?? `menu.${id}`, { size: 24 })), title,
+      h('button.btn.x', { title: 'Close (Esc)', onclick: () => close() }, icon('close')));
     const body = h('div.panel-body', null, inst.el);
     const el = h(`div.panel${def.wide ? '.wide' : ''}`, { style: { '--accent': def.accent ?? meta.accent ?? '#4f8cff' } },
       head, inst.tabs ?? null, body, inst.foot ?? null);

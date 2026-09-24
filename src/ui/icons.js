@@ -1,0 +1,132 @@
+// Every icon in the UI goes through icon(name). Names map to emoji stand-ins until the
+// custom set in public/icons/ exists. ICONS also records where each icon appears and its
+// display size in px at 1080p (the overlay scales sizes with the window).
+import { CATEGORIES } from './content.js';
+
+const I = (glyph, where, size = 16) => ({ glyph, where, size });
+
+export const ICONS = {
+  // bottom menu
+  'menu.build': I('🔨', 'Bottom menu button', 26),
+  'menu.staff': I('🧑‍💻', 'Bottom menu button', 26),
+  'menu.marketing': I('📣', 'Bottom menu button', 26),
+  'menu.models': I('🧠', 'Bottom menu button', 26),
+  'menu.automation': I('🤖', 'Bottom menu button', 26),
+  'menu.ops': I('🛡️', 'Bottom menu button', 26),
+  'menu.office': I('🏢', 'Bottom menu button', 26),
+  'menu.reports': I('📊', 'Bottom menu button', 26),
+  // speed controls
+  'speed.pause': I('❚❚', 'Top bar speed buttons', 16),
+  'speed.play': I('▶', 'Top bar speed buttons', 16),
+  'speed.fast': I('▶▶', 'Top bar speed buttons', 16),
+  'speed.fastest': I('▶▶▶', 'Top bar speed buttons', 16),
+  // arrows and glyphs
+  'arrow.up': I('▲', 'MRR trend, active effects (green)', 12),
+  'arrow.down': I('▼', 'MRR trend, active effects (red)', 12),
+  'arrow.flat': I('•', 'MRR trend when flat', 12),
+  'arrow.back': I('◀', 'Staff detail back button', 14),
+  'caret.down': I('▾', 'Chat header, expanded', 12),
+  'caret.right': I('▸', 'Chat header, collapsed', 12),
+  'sort.up': I('▲', 'Staff table sorted column', 10),
+  'sort.down': I('▼', 'Staff table sorted column', 10),
+  close: I('✕', 'Panel close button, crew chip remove', 16),
+  check: I('✔', 'Picked team member, active policy, compliant badge', 12),
+  cross: I('✖', 'Non-compliant badge', 12),
+  star: I('★', 'Combo fit stars (Build)', 14),
+  lock: I('🔒', 'Locked category/angle/size/channel/model/policy', 18),
+  hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
+  warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),
+  // toasts
+  'toast.info': I('💬', 'Toast, info tone', 18),
+  'toast.good': I('✨', 'Toast, good tone', 18),
+  'toast.warn': I('⚠️', 'Toast, warn tone (failed actions)', 18),
+  'toast.bad': I('🔥', 'Toast, bad tone', 18),
+  // left tray
+  'tray.outage': I('🚨', 'Tray outage alert card', 16),
+  'tray.project': I('🔨', 'Tray project progress card', 16),
+  'tray.trend': I('📡', 'Tray market trend card', 16),
+  'tray.effects': I('🌀', 'Tray active effects card header', 16),
+  // moods
+  'mood.ok': I('😊', 'Staff table, team picker, top bar', 16),
+  'mood.coasting': I('😐', 'Staff table, team picker, top bar', 16),
+  'mood.burnout': I('😵', 'Staff table, team picker', 16),
+  'mood.away': I('🏖️', 'Staff table (on sabbatical)', 16),
+  // sizes
+  'size.small': I('🧁', 'Build size picker', 20),
+  'size.medium': I('🎂', 'Build size picker', 20),
+  'size.large': I('🏰', 'Build size picker', 20),
+  // actions and concepts
+  new: I('✨', 'Build tab: New Product', 16),
+  project: I('🔨', 'Build tab: Projects, assignment text', 16),
+  dice: I('🎲', 'Build: Suggest name button', 14),
+  launch: I('🚀', 'Build: Start building button', 18),
+  agentic: I('🤖', 'Agentic angle tag, AI copy pill, automation cost', 14),
+  compliance: I('📜', 'Compliance-heavy category tag', 14),
+  update: I('⬆️', 'Build: Update a product card', 16),
+  migrate: I('🔁', 'Build and Models: migration', 16),
+  refactor: I('🧹', 'Build: Refactor card', 16),
+  craft: I('🪵', 'Build: Craft project card', 16),
+  mentor: I('🎓', 'Staff: mentoring action, juniors mentored chip', 16),
+  hardProblem: I('🧩', 'Staff: hard problem action', 16),
+  oversight: I('👀', 'Staff and Automation: oversight', 16),
+  sabbatical: I('🏖️', 'Staff: sabbatical action and assignment', 16),
+  training: I('📚', 'Staff: training action', 16),
+  letgo: I('👋', 'Staff: let go action', 16),
+  team: I('👥', 'Staff: seats summary chip', 14),
+  seat: I('🪑', 'Hire: seats chip', 14),
+  refresh: I('🔄', 'Hire: next candidates chip', 14),
+  hire: I('📨', 'Staff: Hire tab and button', 16),
+  office: I('🏢', 'Hire: need more seats button, Office panel', 16),
+  money: I('💵', 'Costs: models, automation, policies', 14),
+  debt: I('🧠', 'Comprehension debt readouts', 14),
+  pair: I('🤝', 'AI as Pair policy note', 14),
+  policy: I('📜', 'Automation: Policies tab', 16),
+  product: I('📦', 'Models: products using a model', 12),
+  selfhost: I('🖥️', 'Models: self-hosted badge', 14),
+  deprecated: I('⛔', 'Models: deprecated status', 14),
+  hype: I('🔥', 'Marketing: hype per week', 12),
+  brand: I('💜', 'Marketing: brand per week', 12),
+  wrapper: I('🌯', 'Marketing: "just a wrapper" warning', 16),
+  marketer: I('📣', 'Marketing: marketers boosting', 14),
+  humanCopy: I('✍️', 'Marketing: human-written copy', 14),
+  clock: I('⏱', 'Marketing: campaign duration', 12),
+  award: I('🏆', 'Award toasts', 18),
+  security: I('🛡️', 'Ops: security posture', 16),
+  audit: I('🔍', 'Ops: audit button', 16),
+  consultants: I('🧑‍🚒', 'Ops: call consultants', 16),
+  incident: I('🚨', 'Ops: incident log', 16),
+  caught: I('🥅', 'Ops: incident caught by overseer', 14),
+  rent: I('🧾', 'Office: rent', 14),
+  chart: I('📈', 'Reports: charts', 16),
+  // automation functions
+  'fn.engineering': I('⌨️', 'Automation row', 20),
+  'fn.support': I('🎧', 'Automation row', 20),
+  'fn.sales': I('💼', 'Automation row', 20),
+  'fn.marketing': I('✍️', 'Automation row', 20),
+  'fn.qa': I('🧪', 'Automation row', 20),
+  'fn.ops': I('🖥️', 'Automation row', 20),
+  // marketing channels
+  'channel.launch': I('🚀', 'Marketing channel card', 20),
+  'channel.content': I('✍️', 'Marketing channel card', 20),
+  'channel.producthunt': I('🐱', 'Marketing channel card', 20),
+  'channel.community': I('💬', 'Marketing channel card', 20),
+  'channel.ads': I('📣', 'Marketing channel card', 20),
+  'channel.influencer': I('🤳', 'Marketing channel card', 20),
+  'channel.conference': I('🎪', 'Marketing channel card', 20),
+  'channel.enterprise': I('💼', 'Marketing channel card', 20),
+};
+
+// Category icons come from the content data's stand-in emoji.
+for (const c of CATEGORIES) ICONS[`cat.${c.id}`] = I(c.icon ?? '📦', 'Build category tile', 22);
+
+export function icon(name, { size, title } = {}) {
+  const def = ICONS[name];
+  const px = size ?? def?.size ?? 16;
+  const el = document.createElement('span');
+  el.className = 'ic';
+  el.style.setProperty('--is', String(px / 16));
+  el.textContent = def?.glyph ?? '❔';
+  el.dataset.icon = name;
+  if (title) el.title = title;
+  return el;
+}

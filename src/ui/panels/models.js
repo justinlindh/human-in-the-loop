@@ -1,6 +1,7 @@
 import { h, fmtMoney, toggleClass } from '../dom.js';
 import { MODELS, FUNCTIONS, FUNCTION_INFO, CATEGORY } from '../content.js';
 import { liveView } from '../widgets.js';
+import { icon } from '../icons.js';
 
 function statRow(label, frac, color, text) {
   return h('div.mstat.big', null, h('span', { text: label }),
@@ -18,7 +19,7 @@ export function modelsPanel(ctx) {
       const due = live.filter((p) => p.migrationDueWeek !== null && p.migrationDueWeek !== undefined);
 
       const warns = due.length ? h('div.card.migwarn', null,
-        h('b', { text: '🔁 Migrations due' }),
+        h('b', null, icon('migrate'), ' Migrations due'),
         h('span.small', { text: 'The vendor is retiring the model version these run on. Miss the deadline and product health drops every week.' }),
         ...due.map((p) => {
           const late = p.migrationDueWeek <= s.week;
@@ -36,7 +37,7 @@ export function modelsPanel(ctx) {
         const prods = live.filter((p) => p.model === m.id);
         const fns = FUNCTIONS.filter((f) => s.automation[f]?.model === m.id && s.automation[f]?.level > 0);
         const cost = m.productCost * (ms.costMult ?? 1);
-        const status = !ms.available ? `🔒 Arrives ${m.releaseYear}` : ms.deprecated ? '⛔ Deprecated' : null;
+        const status = !ms.available ? `Arrives ${m.releaseYear}` : ms.deprecated ? 'Deprecated' : null;
         const card = h('div.vendor', { style: { '--mc': m.color } },
           h('div.vhead', null,
             h('span.vname', { text: m.name }),
@@ -48,11 +49,11 @@ export function modelsPanel(ctx) {
             statRow('Guardrails', m.guardrails, '#34c38f', `${Math.round(m.guardrails * 100)}%`),
             statRow('Brand trust', m.trust, '#9b6bff', `${Math.round(m.trust * 100)}%`),
             h('div.row.wrap.vcost', null,
-              h('span.pill', { title: 'Model cost per customer per month', text: `💵 $${cost.toFixed(2)}/customer` }),
-              h('span.pill', { title: 'Weekly cost of one automation function at 100%', text: `🤖 ${fmtMoney(m.autoCost * (ms.costMult ?? 1))}/wk` })),
+              h('span.pill', { title: 'Model cost per customer per month', }, icon('money'), ` $${cost.toFixed(2)}/customer`),
+              h('span.pill', { title: 'Weekly cost of one automation function at 100%', }, icon('agentic'), ` ${fmtMoney(m.autoCost * (ms.costMult ?? 1))}/wk`)),
             h('div.row.wrap', null,
-              h('span', { class: m.complianceOk ? 'pill good' : 'pill bad', text: m.complianceOk ? '✔ Enterprise compliant' : '✖ Fails compliance' }),
-              m.selfHosted ? h('span.pill.warn', { title: 'You run the GPUs: a flat weekly bill once anything uses it', text: '🖥️ Self-hosted' }) : null),
+              h('span', { class: m.complianceOk ? 'pill good' : 'pill bad' }, icon(m.complianceOk ? 'check' : 'cross'), m.complianceOk ? ' Enterprise compliant' : ' Fails compliance'),
+              m.selfHosted ? h('span.pill.warn', { title: 'You run the GPUs: a flat weekly bill once anything uses it', }, icon('selfhost'), ' Self-hosted') : null),
             h('div.vuses', null,
               h('span.small.faint', { text: 'Used by' }),
               prods.length || fns.length
@@ -60,11 +61,11 @@ export function modelsPanel(ctx) {
                   ...prods.map((p) => {
                     const warn = CATEGORY[p.category]?.compliance && !m.complianceOk;
                     const behind = (p.modelVersion ?? ms.version) < (ms.version ?? 1);
-                    return h('span', { class: `pill ${warn || p.migrationDueWeek != null ? 'warn' : 'ink'}`, title: warn ? 'Compliance-heavy category on a non-compliant model' : behind ? `Runs v${p.modelVersion}` : '', text: `📦 ${p.name}${behind ? ` (v${p.modelVersion})` : ''}` });
+                    return h('span', { class: `pill ${warn || p.migrationDueWeek != null ? 'warn' : 'ink'}`, title: warn ? 'Compliance-heavy category on a non-compliant model' : behind ? `Runs v${p.modelVersion}` : '', }, icon('product'), ` ${p.name}${behind ? ` (v${p.modelVersion})` : ''}`);
                   }),
-                  ...fns.map((f) => h('span.pill', { text: `${FUNCTION_INFO[f].icon} ${FUNCTION_INFO[f].name} ${Math.round(s.automation[f].level * 100)}%` })))
+                  ...fns.map((f) => h('span.pill', null, icon(`fn.${f}`, { size: 12 }), ` ${FUNCTION_INFO[f].name} ${Math.round(s.automation[f].level * 100)}%`)))
                 : h('span.small.faint', { text: 'Nothing yet' }))),
-          status ? h('div.vstatus', { text: status }) : null);
+          status ? h('div.vstatus', null, icon(ms.available ? 'deprecated' : 'lock', { size: 14 }), ` ${status}`) : null);
         toggleClass(card, 'off', !!status);
         grid.append(card);
       }

@@ -1,6 +1,7 @@
 import { h, setText, setWidth, fmtMoney, toggleClass, setClass } from '../dom.js';
 import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, policyUnlocked, policyLockText } from '../content.js';
 import { liveView, tabs } from '../widgets.js';
+import { icon } from '../icons.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
@@ -40,7 +41,7 @@ function affected(s, fn) {
 
 export function automationPanel(ctx) {
   let tab = 'dials';
-  const t = tabs([{ id: 'dials', label: '🤖 Automation' }, { id: 'policies', label: '📜 Policies' }], tab, (id) => { tab = id; t.set(id); render(); });
+  const t = tabs([{ id: 'dials', icon: 'menu.automation', label: 'Automation' }, { id: 'policies', icon: 'policy', label: 'Policies' }], tab, (id) => { tab = id; t.set(id); render(); });
   const host = h('div');
 
   const dials = liveView(
@@ -73,14 +74,14 @@ export function automationPanel(ctx) {
         setText(debtEl, debt > 0 ? `+${debt.toFixed(1)}/wk` : 'none');
       });
       const summary = h('div.card.autosum', null,
-        h('div.ovhead', null, h('b', { text: '👀 Oversight' }), h('span', null, provEl, ' provided of ', reqEl, ' needed'), h('span.spacer'),
+        h('div.ovhead', null, h('b', null, icon('oversight'), ' Oversight'), h('span', null, provEl, ' provided of ', reqEl, ' needed'), h('span.spacer'),
           h('button.btn.small', { onclick: () => ctx.open('staff') }, 'Assign overseers')),
         h('div.bar.thick', null, ovFill),
         ovNote,
         h('div.row.wrap.autometa', null,
-          h('span.pill', null, '💵 Automation cost ', costEl),
-          h('span.pill.warn', null, '🧠 Comprehension debt ', debtEl),
-          s.policies.pair ? h('span.pill.good', { text: '🤝 AI as Pair: less output, far less meaning drain' }) : null));
+          h('span.pill', null, icon('money'), ' Automation cost ', costEl),
+          h('span.pill.warn', null, icon('debt'), ' Comprehension debt ', debtEl),
+          s.policies.pair ? h('span.pill.good', null, icon('pair'), ' AI as Pair: less output, far less meaning drain') : null));
 
       const rows = h('div.autorows');
       for (const fn of FUNCTIONS) {
@@ -110,14 +111,14 @@ export function automationPanel(ctx) {
         const ov = fnOversight(s, fn);
         const debt = (DEBT[fn] ?? 0) * a.level;
         rows.append(h('div.autorow', { class: a.level > 0 ? 'lit' : '' },
-          h('div.fname', null, h('span.fico', { text: FUNCTION_INFO[fn].icon }), h('b', { text: FUNCTION_INFO[fn].name })),
+          h('div.fname', null, h('span.fico', null, icon(`fn.${fn}`)), h('b', { text: FUNCTION_INFO[fn].name })),
           seg,
           modelSel,
           h('div.readouts', null,
             h('span.ro.good-t', { text: outputText(s, fn) }),
             h('span.ro', { text: a.level > 0 ? `${fmtMoney(fnCost(s, fn))}/wk` : '' }),
-            h('span.ro', { class: ov > 0 ? 'ro warn-t' : 'ro', text: ov > 0 ? `👀 ${ov.toFixed(1)}h oversight` : '' }),
-            debt > 0 ? h('span.ro.bad-t', { text: `🧠 +${debt.toFixed(2)} debt/wk` }) : null),
+            ov > 0 ? h('span.ro.warn-t', null, icon('oversight', { size: 12 }), ` ${ov.toFixed(1)}h oversight`) : null,
+            debt > 0 ? h('span.ro.bad-t', null, icon('debt', { size: 12 }), ` +${debt.toFixed(2)} debt/wk`) : null),
           h('div.whoaff', { title: who.map((p) => p.name).join(', ') }, whoEl, meanEl)));
       }
       return [summary, rows,
@@ -139,8 +140,8 @@ export function automationPanel(ctx) {
         h('div.row', null, h('b.pname', { text: p.name }), h('span.spacer'), sw),
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,
-          h('span.pill', { text: p.weeklyCost ? `💵 ${fmtMoney(p.weeklyCost)}/wk` : '💵 Free' }),
-          !unlocked && !on ? h('span.pill.warn', { text: `🔒 ${policyLockText(p)}` }) : on ? h('span.pill.good', { text: '✔ Active' }) : null));
+          h('span.pill', null, icon('money'), p.weeklyCost ? ` ${fmtMoney(p.weeklyCost)}/wk` : ' Free'),
+          !unlocked && !on ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${policyLockText(p)}`) : on ? h('span.pill.good', null, icon('check'), ' Active') : null));
       toggleClass(card, 'on', on);
       toggleClass(card, 'locked', !unlocked && !on);
       return card;
@@ -156,7 +157,7 @@ export function automationPanel(ctx) {
     el: host,
     tabs: t.el,
     update(s) {
-      t.setLabel('policies', `📜 Policies (${Object.keys(s.policies).length} on)`);
+      t.setLabel('policies', `Policies (${Object.keys(s.policies).length} on)`);
       (tab === 'dials' ? dials : pol).update(s);
     },
   };

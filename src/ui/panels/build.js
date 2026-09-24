@@ -1,6 +1,7 @@
 import { h, setText, setWidth, fmtMoney, fmtNum, dateOf, toggleClass } from '../dom.js';
 import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../content.js';
 import { portrait, liveView, stars, tabs } from '../widgets.js';
+import { icon } from '../icons.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
 
 export const STAT_INFO = [
@@ -10,13 +11,13 @@ export const STAT_INFO = [
   { id: 'novelty', name: 'Novelty', short: 'N', color: '#ffb020' },
 ];
 
-const SIZE_INFO = { small: { name: 'Small', icon: '🧁' }, medium: { name: 'Medium', icon: '🎂' }, large: { name: 'Large', icon: '🏰' } };
+const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large: { name: 'Large' } };
 
 export function buildPanel(ctx) {
   let tab = 'new';
   const form = { name: suggestName(), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
 
-  const t = tabs([{ id: 'new', label: '✨ New Product' }, { id: 'projects', label: '🔨 Projects' }], tab, (id) => { tab = id; t.set(id); render(); });
+  const t = tabs([{ id: 'new', icon: 'new', label: 'New Product' }, { id: 'projects', icon: 'project', label: 'Projects' }], tab, (id) => { tab = id; t.set(id); render(); });
   const host = h('div');
 
   const newView = liveView(
@@ -49,7 +50,7 @@ export function buildPanel(ctx) {
     // Name
     const nameInput = h('input.text', { value: form.name, maxlength: 28, placeholder: 'Product name', oninput: (e) => { form.name = e.target.value; } });
     const nameRow = h('div.row', null, nameInput,
-      h('button.btn.small', { onclick: () => { form.name = suggestName(form.category); nameInput.value = form.name; }, title: 'Suggest a name' }, '🎲 Suggest'));
+      h('button.btn.small', { onclick: () => { form.name = suggestName(form.category); nameInput.value = form.name; }, title: 'Suggest a name' }, icon('dice'), ' Suggest'));
 
     // Category grid
     const catGrid = h('div.tiles.cats');
@@ -60,10 +61,10 @@ export function buildPanel(ctx) {
         title: unlocked ? `${c.name}: $${c.price}/customer/month, ${fmtNum(c.tam)} potential customers${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
         onclick: () => { form.category = c.id; refreshNew(); },
       },
-      h('span.ti', { text: unlocked ? c.icon : '🔒' }),
+      h('span.ti', null, icon(unlocked ? `cat.${c.id}` : 'lock')),
       h('span.tn', { text: c.name }),
       h('span.ts.num', { text: unlocked ? `$${c.price}/mo` : `${c.unlockYear}` }),
-      c.compliance && unlocked ? h('span.tag', { text: '📜', title: 'Compliance-heavy' }) : null);
+      c.compliance && unlocked ? h('span.tag', { title: 'Compliance-heavy' }, icon('compliance')) : null);
       toggleClass(tile, 'on', form.category === c.id);
       toggleClass(tile, 'locked', !unlocked);
       catGrid.append(tile);
@@ -79,10 +80,10 @@ export function buildPanel(ctx) {
         title: unlocked ? a.blurb : `Unlocks in ${a.unlockYear}`,
         onclick: () => { form.angle = a.id; refreshNew(); },
       },
-      h('span.tn', { text: unlocked ? a.name : `🔒 ${a.name}` }),
+      h('span.tn', null, unlocked ? null : icon('lock', { size: 13 }), unlocked ? a.name : ` ${a.name}`),
       h('span.tb', { text: unlocked ? a.blurb : `Unlocks in ${a.unlockYear}` }),
       h('span.tf', null, fit !== undefined ? stars(fit) : h('span.faint', { text: form.category && unlocked ? '? fit' : '' }),
-        a.agentic && unlocked ? h('span.tag', { title: 'Agentic: needs human oversight', text: '🤖' }) : null));
+        a.agentic && unlocked ? h('span.tag', { title: 'Agentic: needs human oversight' }, icon('agentic')) : null));
       toggleClass(tile, 'on', form.angle === a.id);
       toggleClass(tile, 'locked', !unlocked);
       angGrid.append(tile);
@@ -108,9 +109,9 @@ export function buildPanel(ctx) {
       bar('Trust', m.trust, '#9b6bff'),
       h('span.mfoot', null,
         h('span.num', { text: `$${(m.productCost * (ms.costMult ?? 1)).toFixed(2)}/cust`, title: 'Model cost per customer per month' }),
-        h('span', { class: m.complianceOk ? 'pill good' : 'pill bad', text: m.complianceOk ? '✔ Compliant' : '✖ Compliance', title: m.complianceOk ? 'Passes enterprise compliance' : 'Enterprise buyers in compliance-heavy categories will balk' })),
-      !ok ? h('span.lockover', { text: ms.deprecated ? 'Deprecated' : `🔒 ${m.releaseYear ?? ''}` }) : null,
-      warn ? h('span.warnover', { text: '⚠️ Compliance penalty here' }) : null);
+        h('span', { class: m.complianceOk ? 'pill good' : 'pill bad', title: m.complianceOk ? 'Passes enterprise compliance' : 'Enterprise buyers in compliance-heavy categories will balk' }, icon(m.complianceOk ? 'check' : 'cross'), m.complianceOk ? ' Compliant' : ' Compliance')),
+      !ok ? h('span.lockover', null, ms.deprecated ? 'Deprecated' : icon('lock'), ms.deprecated ? null : ` ${m.releaseYear ?? ''}`) : null,
+      warn ? h('span.warnover', null, icon('warn', { size: 12 }), ' Compliance penalty here') : null);
       toggleClass(card, 'on', form.model === m.id);
       modelGrid.append(card);
     }
@@ -124,7 +125,7 @@ export function buildPanel(ctx) {
         disabled: locked,
         title: locked ? 'Needs a bigger office' : `${pts} work points to finish`,
         onclick: () => { form.size = id; refreshNew(); },
-      }, h('span.ti', { text: locked ? '🔒' : SIZE_INFO[id].icon }), h('span.tn', { text: SIZE_INFO[id].name }),
+      }, h('span.ti', null, icon(locked ? 'lock' : `size.${id}`)), h('span.tn', { text: SIZE_INFO[id].name }),
       h('span.ts.num', { text: locked ? 'Office Floor' : `${fmtMoney(sz.cost)} · ${pts} pts` }));
       toggleClass(btn, 'on', form.size === id);
       sizeRow.append(btn);
@@ -140,11 +141,11 @@ export function buildPanel(ctx) {
         onclick: () => { if (form.team.has(p.id)) form.team.delete(p.id); else form.team.add(p.id); toggleClass(row, 'on', form.team.has(p.id)); setText(countEl, `${form.team.size} picked`); newView.update(ctx.getState()); },
         title: onProj ? `Currently on ${assignmentText(s, p)}. Picking moves them.` : assignmentText(s, p),
       },
-      h('span.check', { text: '✔' }),
+      h('span.check', null, icon('check')),
       portrait(p, 30),
       h('span.pn', null, h('b', { text: p.name }), h('span.faint', { text: ` Lv${p.level}` })),
       h('span.pr', { style: { background: ROLES[p.role]?.color } }),
-      h('span.pm', { text: p.mood === 'burnout' ? '😵' : p.mood === 'coasting' ? '😐' : '😊' }),
+      h('span.pm', null, icon(`mood.${p.mood === 'away' ? 'away' : p.mood}`)),
       onProj ? h('span.busy', { text: 'busy' }) : null);
       toggleClass(row, 'on', form.team.has(p.id));
       team.append(row);
@@ -155,7 +156,7 @@ export function buildPanel(ctx) {
     const size = B.sizes[form.size];
     const missing = !form.category ? 'Pick a category' : !form.angle ? 'Pick an AI angle' : !form.name.trim() ? 'Name it' : null;
     const cashAfter = h('span.num');
-    const startBtn = h('button.btn.go.big', { onclick: () => start() }, '🚀 Start building');
+    const startBtn = h('button.btn.go.big', { onclick: () => start() }, icon('launch'), ' Start building');
     const note = h('div.faint.small');
     bind((st) => {
       setText(cashAfter, fmtMoney(st.cash - size.cost));
@@ -175,7 +176,7 @@ export function buildPanel(ctx) {
       h('div.buildmain', null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
-        h('div.section', null, h('h3', null, '3. AI angle', h('span.aside', { text: '★ = combos you have launched' })), angGrid),
+        h('div.section', null, h('h3', null, '3. AI angle', h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
         h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid),
         h('div.section', null, h('h3', null, '5. Size'), sizeRow)),
       h('div.buildside', null,
@@ -225,7 +226,7 @@ export function buildPanel(ctx) {
         .map((p) => h('option', { value: p.id, text: `${p.name} (${ROLES[p.role]?.name ?? p.role} Lv${p.level})` })));
       const crew = h('div.crew', null, ...people.map((p) => h('span.crewmate', { title: `${p.name}: click to take off this project` },
         portrait(p, 26), h('span', { text: p.name.split(' ')[0] }),
-        h('button.x', { text: '✕', onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }))),
+        h('button.x', { onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }, icon('close', { size: 12 })))),
       people.length ? null : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel);
       const meta = j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle} · ${MODEL[j.model]?.name ?? j.model}` : KIND_LABEL[j.kind];
       out.push(h('div.card.proj', null,
@@ -250,22 +251,22 @@ export function buildPanel(ctx) {
     const migr = live.filter((p) => p.migrationDueWeek !== null && p.migrationDueWeek !== undefined);
     const other = h('div.grid.others', null,
       h('div.card.other', null,
-        h('b', { text: '⬆️ Update a product' }),
+        h('b', null, icon('update'), ' Update a product'),
         h('span.small.muted', { text: 'Refreshes novelty and gets fresh reviews.' }),
         live.length ? h('div.row', null, updSel, h('button.btn.small.blue', { onclick: () => startKind({ kind: 'update', productId: updSel.value }) }, 'Start')) : h('span.faint.small', { text: 'No live products yet.' })),
       h('div.card.other', null,
-        h('b', { text: '🔁 Model migration' }),
+        h('b', null, icon('migrate'), ' Model migration'),
         h('span.small.muted', { text: 'Vendors deprecate old versions. Skipping a migration hurts health.' }),
         migr.length ? h('div.col', null, ...migr.map((p) => h('div.row', null,
           h('span.small', { text: `${p.name}: due ${p.migrationDueWeek <= s.week ? 'NOW' : `in ${p.migrationDueWeek - s.week}w`}`, class: p.migrationDueWeek <= s.week ? 'bad-t small' : 'warn-t small' }),
           h('button.btn.small.blue', { onclick: () => startKind({ kind: 'migration', productId: p.id }) }, 'Migrate'))))
           : h('span.faint.small', { text: 'Nothing due.' })),
       h('div.card.other', null,
-        h('b', { text: '🧹 Refactor' }),
+        h('b', null, icon('refactor'), ' Refactor'),
         h('span.small.muted', { text: `Humans read and clean the code. Pays down comprehension debt (now ${Math.round(s.comprehensionDebt)}).` }),
         h('button.btn.small.blue', { onclick: () => startKind({ kind: 'refactor' }) }, 'Start refactor')),
       h('div.card.other', null,
-        h('b', { text: '🪵 Craft project' }),
+        h('b', null, icon('craft'), ' Craft project'),
         h('span.small.muted', { text: 'A lovingly hand-made side project. Big meaning boost for whoever builds it.' }),
         h('button.btn.small.blue', { onclick: () => startKind({ kind: 'craft' }) }, 'Start craft project')));
     out.push(h('div.section', { style: { marginTop: '1em' } }, h('h3', null, 'Start other work'), other));
@@ -282,7 +283,7 @@ export function buildPanel(ctx) {
     el: host,
     tabs: t.el,
     update(s) {
-      t.setLabel('projects', `🔨 Projects (${s.projects.length})`);
+      t.setLabel('projects', `Projects (${s.projects.length})`);
       (tab === 'new' ? newView : projView).update(s);
     },
   };

@@ -1,6 +1,7 @@
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { CHANNELS, CHANNEL, B, OFFICE_STAGES } from '../content.js';
 import { liveView, meter } from '../widgets.js';
+import { icon } from '../icons.js';
 
 // A campaign target is a live product or a pre-launch 'new' project (hype banks until launch).
 function targets(s) {
@@ -38,7 +39,10 @@ export function marketingPanel(ctx) {
       // Company brand plus the selected target's hype
       const brand = meter({ label: 'Brand', cls: 'brand thick' });
       const hype = meter({ label: 'Hype', cls: 'thick', color: '#ffb020' });
-      const risk = h('div.riskline');
+      const riskText = h('span');
+      const riskIco = h('span');
+      const risk = h('div.riskline', null, riskIco, ' ', riskText);
+      let riskKind = null;
       bind((st) => {
         brand.set(st.brand);
         hype.set(hypeOf(st, target));
@@ -46,9 +50,11 @@ export function marketingPanel(ctx) {
         const r = p ? wrapperRisk(p) : null;
         toggleClass(risk, 'show', !!r);
         toggleClass(risk, 'hit', r === 'hit');
-        if (p && r) setText(risk, r === 'hit'
-          ? `🌯 Hype (${Math.round(p.hype)}) is way past what ${p.name} delivers (score ${p.score.toFixed(1)}). Expect "just a wrapper" jokes and churn.`
-          : `⚠️ Hype is getting ahead of ${p.name}'s quality. Improve it with an update before pushing harder.`);
+        if (r && r !== riskKind) riskIco.replaceChildren(icon(r === 'hit' ? 'wrapper' : 'warn'));
+        riskKind = r;
+        if (p && r) setText(riskText, r === 'hit'
+          ? `Hype (${Math.round(p.hype)}) is way past what ${p.name} delivers (score ${p.score.toFixed(1)}). Expect "just a wrapper" jokes and churn.`
+          : `Hype is getting ahead of ${p.name}'s quality. Improve it with an update before pushing harder.`);
       });
 
       const tgtRow = h('div.tiles.targets', null, ...list.map((t) => {
@@ -64,8 +70,8 @@ export function marketingPanel(ctx) {
         h('div.mkmeters', null, brand.el, hype.el),
         risk,
         h('div.row.wrap.small', null,
-          h('span', { class: marketers ? 'pill good' : 'pill warn', text: `📣 ${marketers} marketer${marketers === 1 ? '' : 's'} boosting campaigns` }),
-          auto > 0 ? h('span.pill.warn', { text: `🤖 AI copy at ${Math.round(auto * 100)}%: more hype, less brand` }) : h('span.pill', { text: '✍️ Human-written copy' })));
+          h('span', { class: marketers ? 'pill good' : 'pill warn' }, icon('marketer'), ` ${marketers} marketer${marketers === 1 ? '' : 's'} boosting campaigns`),
+          auto > 0 ? h('span.pill.warn', null, icon('agentic'), ` AI copy at ${Math.round(auto * 100)}%: more hype, less brand`) : h('span.pill', null, icon('humanCopy'), ' Human-written copy')));
 
       // Channel cards
       const chans = h('div.tiles.chans');
@@ -85,12 +91,12 @@ export function marketingPanel(ctx) {
           setText(why, r);
         });
         const card = h('div.card.chan', null,
-          h('div.row', null, h('span.cico', { text: locked ? '🔒' : c.icon }), h('b', { text: c.name }), h('span.spacer'), h('b.num', { text: fmtMoney(c.cost) })),
+          h('div.row', null, h('span.cico', null, icon(locked ? 'lock' : `channel.${c.id}`)), h('b', { text: c.name }), h('span.spacer'), h('b.num', { text: fmtMoney(c.cost) })),
           h('div.small.muted', { text: c.desc }),
           h('div.row.wrap.chanstats', null,
-            h('span.pill', { text: `⏱ ${c.weeks}w` }),
-            h('span.pill', { style: { background: '#ffecc2' }, text: `🔥 ${c.hype}/wk hype` }),
-            c.brand > 0 ? h('span.pill', { style: { background: '#ece3ff' }, text: `💜 +${c.brand}/wk brand` }) : h('span.pill.faint', { text: 'no brand' })),
+            h('span.pill', null, icon('clock'), ` ${c.weeks}w`),
+            h('span.pill', { style: { background: '#ffecc2' } }, icon('hype'), ` ${c.hype}/wk hype`),
+            c.brand > 0 ? h('span.pill', { style: { background: '#ece3ff' } }, icon('brand'), ` +${c.brand}/wk brand`) : h('span.pill.faint', { text: 'no brand' })),
           h('div.row', null, why, h('span.spacer'), btn));
         toggleClass(card, 'locked', locked);
         chans.append(card);
@@ -109,7 +115,7 @@ export function marketingPanel(ctx) {
           setWidth(fill, c2.weeksLeft / Math.max(1, ch?.weeks ?? c2.weeksLeft));
           setText(left, `${c2.weeksLeft}w left`);
         });
-        active.append(h('div.camp', null, h('span', { text: ch?.icon ?? '📣' }), h('b', { text: ch?.name ?? cp.channel }),
+        active.append(h('div.camp', null, icon(`channel.${cp.channel}`), h('b', { text: ch?.name ?? cp.channel }),
           h('span.muted.small', { text: `for ${tname ?? '?'}` }), h('div.bar', null, fill), left));
       }
 
