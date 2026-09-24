@@ -135,7 +135,7 @@ export const mentorOf = (state, junior) => state.staff.find((p) => p.assignment.
 
 export const defaultAssignment = (p) => ({ type: ROLES[p.role].defaultAssignment, targetId: null });
 
-export const roleName = (role) => ROLES[role].name;
+export const roleName = (role) => ROLES[role].title ?? ROLES[role].name;
 
 const ASSIGNMENT_TYPES = ['project', 'maintenance', 'oversight', 'mentor', 'hardProblem', 'support', 'sales', 'security', 'marketing', 'idle', 'sabbatical'];
 
@@ -318,6 +318,10 @@ export function staffUpkeep(ctx) {
     }
   }
   for (const p of state.staff) progressRecords(ctx, p);
+  if (state.week % 52 === 51 && state.staff.length) {
+    for (const p of state.staff) p.salary = Math.round((p.salary * (1 + B.yearlyRaise)) / 10) * 10;
+    ctx.emit({ type: 'toast', text: `Annual raises: payroll +${Math.round(B.yearlyRaise * 100)}%.`, tone: 'info' });
+  }
   if (state.week - state.candidatesWeek >= B.candidateRefreshWeeks) refreshCandidates(state);
 }
 

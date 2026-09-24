@@ -2,19 +2,20 @@
 // custom set in public/icons/ exists. ICONS also records where each icon appears and its
 // display size in px at 1080p (the overlay scales sizes with the window).
 import { CATEGORIES } from './content.js';
+import { REACTION_GLYPH } from './tools/glyphs.js';
 
 const I = (glyph, where, size = 16) => ({ glyph, where, size });
 
 export const ICONS = {
   // bottom menu
-  'menu.build': I('🔨', 'Bottom menu button', 26),
-  'menu.staff': I('🧑‍💻', 'Bottom menu button', 26),
-  'menu.marketing': I('📣', 'Bottom menu button', 26),
-  'menu.models': I('🧠', 'Bottom menu button', 26),
-  'menu.automation': I('🤖', 'Bottom menu button', 26),
-  'menu.ops': I('🛡️', 'Bottom menu button', 26),
-  'menu.office': I('🏢', 'Bottom menu button', 26),
-  'menu.reports': I('📊', 'Bottom menu button', 26),
+  'menu.build': I('🔨', 'Bottom menu button', 30),
+  'menu.staff': I('🧑‍💻', 'Bottom menu button', 30),
+  'menu.marketing': I('📣', 'Bottom menu button', 30),
+  'menu.models': I('🧠', 'Bottom menu button', 30),
+  'menu.automation': I('🤖', 'Bottom menu button', 30),
+  'menu.ops': I('🛡️', 'Bottom menu button', 30),
+  'menu.office': I('🏢', 'Bottom menu button', 30),
+  'menu.reports': I('📊', 'Bottom menu button', 30),
   // speed controls
   'speed.pause': I('❚❚', 'Top bar speed buttons', 16),
   'speed.play': I('▶', 'Top bar speed buttons', 16),
@@ -39,6 +40,39 @@ export const ICONS = {
   settings: I('⚙️', 'Settings: top bar gear, title button, settings header', 16),
   continue: I('💾', 'Title: Continue button', 18),
   gameover: I('🪦', 'Game over header when lost', 44),
+  slot: I('🔲', 'Office: item slots chip', 12),
+  research: I('🧰', 'Build: Internal tools tab', 16),
+  path: I('🧭', 'Staff: career path badge and picker', 16),
+  legend: I('🌟', 'Staff: Legend badge (level 20)', 14),
+  'train.workshop': I('🛠️', 'Training program picker', 22),
+  'train.conference': I('🎤', 'Training program picker', 22),
+  'train.course': I('🎓', 'Training program picker', 22),
+  'item.espresso': I('☕', 'Office shop item card', 30),
+  'item.plant_wall': I('🪴', 'Office shop item card', 30),
+  'item.nap_pod': I('🛌', 'Office shop item card', 30),
+  'item.arcade': I('🕹️', 'Office shop item card', 30),
+  'item.standing_desk': I('🧍', 'Office shop item card', 30),
+  'item.whiteboard_wall': I('📝', 'Office shop item card', 30),
+  'item.library': I('📚', 'Office shop item card', 30),
+  'item.monitoring_wall': I('🖥️', 'Office shop item card', 30),
+  'item.server_rack': I('🗄️', 'Office shop item card', 30),
+  'item.trophy_case': I('🏆', 'Office shop item card', 30),
+  'research.eval_harness': I('🧪', 'Internal tools card', 26),
+  'research.agent_sandbox': I('📦', 'Internal tools card', 26),
+  'research.observability': I('🔭', 'Internal tools card', 26),
+  'research.ci_cd': I('🔁', 'Internal tools card', 26),
+  'research.design_system': I('🧩', 'Internal tools card', 26),
+  'research.docs_culture': I('📖', 'Internal tools card', 26),
+  'research.onboarding_kit': I('🧭', 'Internal tools card', 26),
+  'research.red_team_suite': I('🥷', 'Internal tools card', 26),
+  'bot.pager': I('🚨', 'Slackk avatar for @pagerbot', 13),
+  'bot.vendor': I('🧠', 'Slackk avatar for @vendorbot', 13),
+  'bot.launch': I('🚀', 'Slackk avatar for @launchbot and @shipbot', 13),
+  'bot.hr': I('🎉', 'Slackk avatar for @hr-bot', 13),
+  'bot.awards': I('🏆', 'Slackk avatar for @saasies', 13),
+  'bot.office': I('🏢', 'Slackk avatar for @officebot', 13),
+  'bot.hn': I('🟧', 'Slackk avatar for @hackernewsbot', 13),
+  'bot.generic': I('🤖', 'Slackk avatar for other bots', 13),
   hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
   warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),
   // toasts
@@ -120,23 +154,84 @@ export const ICONS = {
   'channel.enterprise': I('💼', 'Marketing channel card', 20),
 };
 
+// Slackk reactions: the sim sends emoji; each maps to a glyph name.
+for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(emo, 'Slackk reaction pill', 12);
+export const reactionIcon = (emo) => REACTION_GLYPH[emo] ?? null;
+
 // Category icons come from the content data's stand-in emoji.
 for (const c of CATEGORIES) ICONS[`cat.${c.id}`] = I(c.icon ?? '📦', 'Build category tile', 22);
 
 const warned = new Set();
 
+// Art from public/icons: manifest.json lists the sub-manifests to merge (glyphs, objects), each
+// mapping an icon name to { file, size }. Until they load, and for names they do not cover,
+// icon() shows the emoji stand-in; loading upgrades icons already on screen.
+const ART = new Map();
+const BASE = `${import.meta.env?.BASE_URL ?? '/'}icons/`;
+let artReady = false;
+
+async function loadManifests() {
+  try {
+    const root = await (await fetch(`${BASE}manifest.json`)).json();
+    for (const inc of root.include ?? []) {
+      const m = await (await fetch(`${BASE}${inc}`)).json();
+      for (const [name, entry] of Object.entries(m)) ART.set(name, entry);
+    }
+    for (const [name, entry] of Object.entries(root.icons ?? {})) ART.set(name, entry);
+  } catch {
+    return;
+  }
+  artReady = true;
+  for (const el of document.querySelectorAll('.ic[data-icon]:not([data-art])')) fill(el, el.dataset.icon);
+  window.dispatchEvent(new CustomEvent('hitl:icons'));
+}
+if (typeof window !== 'undefined' && typeof fetch === 'function') loadManifests();
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function fill(el, name) {
+  const art = ART.get(name);
+  if (!art) {
+    el.textContent = ICONS[name]?.glyph ?? '❔';
+    return;
+  }
+  el.dataset.art = '1';
+  el.textContent = '';
+  if (art.file.endsWith('.svg')) {
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS(SVGNS, 'use');
+    use.setAttribute('href', `${BASE}${art.file}#g`);
+    svg.append(use);
+    el.append(svg);
+  } else {
+    const img = document.createElement('img');
+    img.src = `${BASE}${art.file}`;
+    img.alt = '';
+    img.draggable = false;
+    el.append(img);
+  }
+}
+
 export function icon(name, { size, title } = {}) {
   const def = ICONS[name];
-  if (!def && !warned.has(name)) {
+  if (!def && !ART.has(name) && !warned.has(name)) {
     warned.add(name);
     if (!location.search.includes('snap')) console.warn(`Unknown icon name: ${name}`);
   }
-  const px = size ?? def?.size ?? 16;
+  const px = size ?? def?.size ?? ART.get(name)?.size ?? 16;
   const el = document.createElement('span');
   el.className = 'ic';
   el.style.setProperty('--is', String(px / 16));
-  el.textContent = def?.glyph ?? '❔';
   el.dataset.icon = name;
+  fill(el, name);
   if (title) el.title = title;
   return el;
 }
+
+// Names in the registry that still fall back to an emoji.
+export function iconFallbacks() {
+  return Object.keys(ICONS).filter((n) => !ART.has(n));
+}
+export const iconsLoaded = () => artReady;

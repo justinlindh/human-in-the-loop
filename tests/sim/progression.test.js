@@ -17,7 +17,7 @@ import { RESEARCH } from '../../src/data/research.js';
 import { PATHS } from '../../src/data/paths.js';
 import { TRAINING } from '../../src/data/training.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, withoutGrind } from './helpers.js';
 
 const once = (s, sys) => { const c = makeCtx(s); sys(c); return c.events; };
 const withItem = (s, itemId, level) => { s.items.push({ id: `i${s.nextId++}`, itemId, level }); return s; };
@@ -71,9 +71,9 @@ describe('office shop', () => {
   });
 
   it('a second copy of an item gives half its effect', () => {
-    const s = withItem(withItem(game(), 'library', 3), 'library', 1);
-    expect(itemBonus(s, 'knowledgeGain')).toBeCloseTo(ITEMS.library.effects[2].knowledgeGain + 0.5 * ITEMS.library.effects[0].knowledgeGain);
-    const t = withItem(withItem(game(), 'library', 1), 'library', 3);
+    const s = withItem(withItem(game(), 'library', 2), 'library', 1);
+    expect(itemBonus(s, 'knowledgeGain')).toBeCloseTo(ITEMS.library.effects[1].knowledgeGain + 0.5 * ITEMS.library.effects[0].knowledgeGain);
+    const t = withItem(withItem(game(), 'library', 1), 'library', 2);
     expect(itemBonus(t, 'knowledgeGain')).toBeCloseTo(itemBonus(s, 'knowledgeGain'));
   });
 
@@ -98,11 +98,11 @@ describe('office shop', () => {
     expect(100 - b.staff[0].stamina).toBeCloseTo((100 - a.staff[0].stamina) * 0.7);
 
     [a, b] = pair('plant_wall');
-    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); once(s, meaningSystem); }
+    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); withoutGrind(B, () => once(s, meaningSystem)); }
     expect(b.staff[0].meaning - 50).toBeCloseTo((a.staff[0].meaning - 50) * 1.3);
 
     [a, b] = pair('arcade');
-    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); once(s, meaningSystem); }
+    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); withoutGrind(B, () => once(s, meaningSystem)); }
     expect(b.staff[0].meaning - 50).toBeCloseTo((a.staff[0].meaning - 50) * 1.35);
 
     [a, b] = pair('arcade');

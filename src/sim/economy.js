@@ -8,6 +8,17 @@ import { POLICIES } from '../data/policies.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { raiseDecision } from './events.js';
 
+// Dollars per customer per month for a product on this model, including price hikes.
+export const modelCostPerCustomer = (state, modelId) => MODELS[modelId].productCost * B.modelCostMult * state.models[modelId].costMult;
+
+// Dollars per week for one automation function at its current level and model.
+export function automationWeeklyCost(state, fn) {
+  const a = state.automation[fn];
+  if (a.level <= 0) return 0;
+  const gpuMult = state.flags.gpuShortageWeeks > 0 ? 1.5 : 1;
+  return MODELS[a.model].autoCost * B.autoCostMult * state.models[a.model].costMult * a.level * gpuMult;
+}
+
 // Weekly spend broken out by line item; the UI can show it as a burn breakdown.
 export function weeklyCosts(state) {
   const live = liveProducts(state);
@@ -17,11 +28,12 @@ export function weeklyCosts(state) {
   return {
     salaries: sum(state.staff, (p) => p.salary),
     rent: OFFICE_STAGES[state.officeStage].rent,
-    models: sum(live, (p) => MODELS[p.model].productCost * state.models[p.model].costMult * p.customers * 12 / 52),
-    automation: sum(autos, (a) => MODELS[a.model].autoCost * state.models[a.model].costMult * a.level) * gpuMult,
+    models: sum(live, (p) => modelCostPerCustomer(state, p.model) * p.customers * 12 / 52),
+    automation: sum(Object.keys(state.automation), (fn) => automationWeeklyCost(state, fn)),
     gpu: selfHosted ? B.gpuWeeklySelfHost : 0,
     policies: sum(Object.keys(state.policies).filter((id) => state.policies[id] && POLICIES[id]), (id) => POLICIES[id].weeklyCost),
     tooling: state.security.tooling ? B.toolingWeekly : 0,
+    overhead: Math.max(0, state.staff.length - B.overheadFreeHeadcount) * B.overheadPerHead,
   };
 }
 

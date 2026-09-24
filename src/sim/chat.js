@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { avg, newId } from './util.js';
+import { avg, newId, article } from './util.js';
 import { chance, pick, range, shuffle } from './rng.js';
 import { registerSystem } from './registry.js';
 import { automationExposure } from './automation.js';
@@ -19,6 +19,7 @@ const REACTIONS = {
 };
 
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
+const liveProducts = (state) => state.products.filter((p) => !p.killed);
 export const teamMeaning = (state) => avg(present(state), (p) => p.meaning);
 
 // Reaction pills for a message: more of them, and more varied, when the team is doing well.
@@ -44,6 +45,11 @@ export function emitChat(ctx, { channel = 'general', person = null, from = perso
     reactions: reactions ?? reactionsFor(ctx.state, ctx.rng, channel, kind),
   };
   ctx.emit(msg);
+  const log = ctx.state.chatLog;
+  if (Array.isArray(log)) {
+    log.push(msg);
+    if (log.length > B.chatLogSize) log.splice(0, log.length - B.chatLogSize);
+  }
   return msg;
 }
 
@@ -64,7 +70,14 @@ export function fillChat(state, rng, text, { speaker = null, product = null, pos
     poster: poster ? poster.name.split(' ')[0] : null,
   };
   let missing = false;
-  const out = text.replace(/\{(\w+)\}/g, (_, key) => {
+  // "a {category}" becomes "an Email" or "a CRM" depending on what is filled in.
+  const withArticles = text.replace(/\b([Aa])n? \{(\w+)\}/g, (m, a, key) => {
+    const v = values[key];
+    if (v === null || v === undefined) return m;
+    const phrase = article(v);
+    return a === 'A' ? phrase[0].toUpperCase() + phrase.slice(1) : phrase;
+  });
+  const out = withArticles.replace(/\{(\w+)\}/g, (_, key) => {
     const v = values[key];
     if (v === null || v === undefined) missing = true;
     return v ?? '';
@@ -87,7 +100,7 @@ function happenings(ctx) {
   const { state } = ctx;
   const ev = ctx.events;
   const productOf = (e) => state.products.find((p) => p.id === e?.productId) ?? null;
-  const launch = ev.find((e) => e.type === 'launch');
+  const launch = ev.find((e) => e.type === 'launch' && productOf(e)?.version === 1);
   const incident = ev.find((e) => e.type === 'incident' && !e.caught);
   const caught = ev.find((e) => e.type === 'incident' && e.caught);
   const promotedId = ctx.happenings?.promoted?.[0];
@@ -101,7 +114,8 @@ function happenings(ctx) {
     award: ev.some((e) => e.type === 'award' && e.text.startsWith('Product of the Year')) ? {} : null,
     item: lastItem && state.flags.lastItemWeek >= state.week - 1 ? { item: ITEMS[lastItem.itemId]?.name } : null,
     priceHike: ev.some((e) => e.type === 'toast' && /raised prices/.test(e.text)) ? {} : null,
-    clone: ev.some((e) => e.type === 'chat' && e.from === '@hackernewsbot') ? {} : null,
+    clone: ev.some((e) => e.type === 'chat' && e.from === '@hackernewsbot')
+      ? { product: liveProducts(state).find((p) => p.category === state.flags.lastCloneCategory) ?? null } : null,
     copied: ev.some((e) => e.type === 'toast' && /Sounds familiar/.test(e.text)) ? {} : null,
   };
 }
@@ -119,6 +133,7 @@ function cast(state, who, poster, used, promoted) {
     case 'automated senior': return pool.filter((p) => p.seniority === 'senior' && automationExposure(state, p) > 0.5);
     case 'burnout': return pool.filter((p) => p.mood === 'burnout');
     case 'mentor': return pool.filter((p) => p.assignment.type === 'mentor' && pool.some((q) => q.id === p.assignment.targetId));
+    case 'mentored junior': return pool.filter((p) => p.seniority === 'junior' && mentorOf(p));
     case 'their mentee': return poster?.assignment.type === 'mentor' ? pool.filter((p) => p.id === poster.assignment.targetId) : [];
     case 'their mentor': return poster ? pool.filter((p) => mentorOf(poster)?.id === p.id) : [];
     case 'overseer': return pool.filter((p) => p.assignment.type === 'oversight');
@@ -155,7 +170,7 @@ function postThread(ctx, t, lines) {
   const kind = t.channel === 'wins' ? 'win' : t.channel === 'incidents' ? 'incident' : null;
   const root = emitChat(ctx, { channel: t.channel, person: lines[0].person, text: lines[0].text, kind });
   for (const l of lines.slice(1)) emitChat(ctx, { channel: t.channel, person: l.person, text: l.text, replyTo: root.id, kind });
-  ctx.state.flags[`cdThread_${t.id}`] = ctx.state.week + B.threadCooldownWeeks;
+  ctx.state.flags[`cdThread_${t.id}`] = ctx.state.week + (t.cooldown ?? B.threadCooldownWeeks);
 }
 
 // Weekly Slackk: launch announcements, a thread about this week's news, an occasional everyday

@@ -1,6 +1,6 @@
 import { ASSIGNMENT_LABEL } from '../content.js';
 
-export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project' };
+export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project', research: 'Internal tool' };
 
 export function projectLabel(state, j) {
   const prod = j.productId ? state.products.find((p) => p.id === j.productId) : null;
@@ -8,6 +8,7 @@ export function projectLabel(state, j) {
   if (j.kind === 'update') return `${prod?.name ?? j.name ?? 'Product'} v${(prod?.version ?? 1) + 1}`;
   if (j.kind === 'migration') return `Migrate ${prod?.name ?? j.name ?? 'product'}`;
   if (j.kind === 'refactor') return j.name || 'Refactor';
+  if (j.kind === 'research') return j.name || 'Internal tool';
   return j.name || 'Craft project';
 }
 

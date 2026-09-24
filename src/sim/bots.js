@@ -19,6 +19,7 @@ import { MODELS } from '../data/models.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { POLICIES } from '../data/policies.js';
 import { EVENTS } from '../data/events.js';
+import { ROLES } from '../data/roles.js';
 
 // Throws with the path of the first non-finite number found in state.
 export function assertFinite(value, path = 'state') {
@@ -120,7 +121,7 @@ function balancedChooser(s, d, fx) {
     const { yearIndex } = dateOf(s.week);
     const hist = s.history;
     const flat = hist.length > 26 && totalMrr(s) <= hist[hist.length - 27].mrr * 1.05;
-    return fx.win ? (yearIndex >= 8 && flat ? 100 : -100) : 0;
+    return fx.win ? (yearIndex >= 6 || (yearIndex >= 4 && flat) ? 100 : -100) : 0;
   }
   if (d.eventId === 'bridge_loan') return fx.later ? 10 : fx.modifier ? 2 : 0;
   if (d.eventId === 'outage_unfixable') return fx.consultants ? 10 : fx.clearOutage || fx.later ? 8 : 0;
@@ -170,7 +171,7 @@ function automateAll(s) {
   act(s, FUNCTIONS.filter((fn) => fn === 'engineering' || live)
     .filter((fn) => s.automation[fn].level !== 1 || s.automation[fn].model !== model)
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
-  if (weeksOfBurn(s) > 20 && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
+  if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
     const res = dispatch(s, startNew(s, 'medium', model, fixedName(s)));
     if (res.ok) act(s, assignAll(s, builders(s), res.projectId));
@@ -182,8 +183,8 @@ function automateAll(s) {
   return [];
 }
 
-// Plays like the plan's "no automation, all humans" player.
-function allHumans(s) {
+// An impatient humans-only player: overhires, builds big, takes the first choice. Kept for invariant runs.
+function recklessHumans(s) {
   act(s, FUNCTIONS.filter((fn) => s.automation[fn].level !== 0).map((fn) => ({ type: 'setAutomation', fn, level: 0 })));
   if (canAffordHire(s) && s.staff.length < capacity(s)) act(s, hireBest(s, () => true, (a, b) => skillSum(b) - skillSum(a)));
   act(s, pairMentors(s));
@@ -210,6 +211,9 @@ function careTeam(s) {
     if (p.mood === 'burnout' && s.policies.sabbatical) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'sabbatical', targetId: null } });
     else if (p.mood === 'coasting' && p.seniority === 'senior' && s.staff.length >= 6 && p.assignment.type !== 'project' && p.assignment.type !== 'mentor') {
       dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'hardProblem', targetId: null } });
+    } else if (p.assignment.type === 'hardProblem' && p.meaning > 60) {
+      // A hard problem is a break for someone coasting; once they have recovered they go back to their job.
+      dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role].defaultAssignment, targetId: null } });
     }
   }
 }
@@ -228,9 +232,14 @@ function staffProjects(s) {
   const projects = [...s.projects].sort((a, b) => (a.kind === 'new' ? -1 : 1) - (b.kind === 'new' ? -1 : 1));
   if (!projects.length) return;
   const free = builders(s).filter((p) => ['idle', 'maintenance'].includes(p.assignment.type) || (p.assignment.type === 'project' && !s.projects.some((j) => j.id === p.assignment.targetId)));
-  const keepOnMaintenance = liveProducts(s).length ? 1 : 0;
-  const maint = builders(s).filter((p) => p.assignment.type === 'maintenance');
-  const spare = maint.length > keepOnMaintenance ? free : free.filter((p) => p.assignment.type !== 'maintenance');
+  // Keep enough engineers on maintenance that products stay healthy; pull one more off projects when short.
+  const maint = builders(s).filter((p) => p.assignment.type === 'maintenance' && p.role === 'engineer');
+  if (liveProducts(s).length && s.ops.maintenanceShortfall > 0.15) {
+    const pull = builders(s).find((p) => p.role === 'engineer' && p.assignment.type === 'project' && !p.founder);
+    if (pull) dispatch(s, { type: 'assign', staffId: pull.id, assignment: { type: 'maintenance', targetId: null } });
+  }
+  const keep = s.ops.maintenanceShortfall > 0.05 ? maint.length : Math.max(liveProducts(s).length ? 1 : 0, maint.length - 1);
+  const spare = free.filter((p) => p.assignment.type !== 'maintenance' || maint.indexOf(p) >= keep);
   let i = 0;
   for (const p of spare) {
     const j = projects[i % projects.length];
@@ -304,6 +313,13 @@ function balanced(s) {
   return [];
 }
 
+// The balanced player's careful play with every automation dial at 0.
+function allHumans(s) {
+  const out = balanced(s);
+  for (const fn of FUNCTIONS) if (s.automation[fn].level !== 0) dispatch(s, { type: 'setAutomation', fn, level: 0 });
+  return out;
+}
+
 // A careful new player: one early hire, small products on good combos, light automation, sensible choices.
 function sensible(s) {
   if (s.week <= 2 && s.stats.hires < (s.flags.botEarlyHires ?? 1)) act(s, hireBest(s, (c) => c.role === 'engineer' && c.seniority !== 'senior', (a, b) => skillSum(b) - skillSum(a)));
@@ -320,9 +336,9 @@ function sensible(s) {
   return balanced(s);
 }
 
-export const BOTS = { automateAll, allHumans, balanced, sensible };
+export const BOTS = { automateAll, allHumans, balanced, sensible, recklessHumans };
 
-export const CHOOSERS = { automateAll: cheapestChooser, allHumans: firstChooser, balanced: balancedChooser, sensible: balancedChooser };
+export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChooser, balanced: balancedChooser, sensible: balancedChooser, recklessHumans: firstChooser };
 
 // Plays one full run headless. Returns the outcome plus a few numbers for the balance table.
 export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
@@ -331,20 +347,28 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
   const chooser = CHOOSERS[name];
   let maxStage = 0;
   let firstLaunch = null;
+  let crises = 0;
+  let wasUnrecoverable = false;
   while (!s.gameOver && s.week < maxWeeks) {
     for (let guard = 0; s.pendingDecision && guard < 5; guard++) {
-      const res = dispatch(s, { type: 'resolveDecision', choice: pickDecision(s, chooser) });
+      const pickIdx = pickDecision(s, chooser);
+      if (s.pendingDecision.eventId === 'bridge_loan' && pickIdx === 0) crises++;
+      const res = dispatch(s, { type: 'resolveDecision', choice: pickIdx });
       if (!res.ok) for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
     }
     if (s.gameOver) break;
     for (const a of bot(s)) dispatch(s, a);
-    tick(s);
+    const events = tick(s);
     maxStage = Math.max(maxStage, s.officeStage);
+    const unrecoverable = !!s.outage?.unrecoverable;
+    if (unrecoverable && !wasUnrecoverable) crises++;
+    wasUnrecoverable = unrecoverable;
     if (firstLaunch === null && s.stats.launches > 0) firstLaunch = s.week;
-    onWeek?.(s);
+    onWeek?.(s, events);
   }
   return {
     won: !!s.gameOver?.won, reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,
     peakMrr: s.stats.peakMrr, score: s.gameOver?.score ?? scoreRun(s).score, maxStage, firstLaunch, state: s,
+    resignations: s.stats.resignations, incidents: s.stats.incidents, crises,
   };
 }

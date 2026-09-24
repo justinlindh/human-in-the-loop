@@ -1,6 +1,6 @@
 export const EVENT_TYPES = [
   'bubble', 'toast', 'chat', 'launch', 'incident', 'resign',
-  'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver',
+  'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver', 'standup',
 ];
 
 export const ACTION_TYPES = [
@@ -14,4 +14,4 @@ export const ASSIGNMENT_TYPES = [
   'sales', 'security', 'marketing', 'idle', 'sabbatical',
 ];
 
-export const CHAT_CHANNELS = ['general', 'incidents', 'wins', 'random'];
+export const CHAT_CHANNELS = ['general', 'incidents', 'wins', 'random', 'standup'];

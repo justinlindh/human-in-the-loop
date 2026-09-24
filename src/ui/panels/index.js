@@ -15,7 +15,7 @@ const stub = (label) => ({
 
 export const PANELS = {
   ...Object.fromEntries(MENU.map((m) => [m.id, stub(m.label)])),
-  build: { title: 'Build', wide: true, build: (ctx) => buildPanel(ctx) },
+  build: { title: 'Build', wide: true, build: (ctx, arg) => buildPanel(ctx, arg) },
   staff: { title: 'Staff', wide: true, build: (ctx, arg) => staffPanel(ctx, arg) },
   marketing: { title: 'Marketing', wide: true, build: (ctx) => marketingPanel(ctx) },
   models: { title: 'Model Vendors', wide: true, build: (ctx) => modelsPanel(ctx) },

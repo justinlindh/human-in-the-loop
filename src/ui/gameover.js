@@ -12,7 +12,7 @@ const HEADLINE = {
 };
 
 const BREAKDOWN = [
-  ['valuation', 'Valuation'], ['brand', 'Brand'], ['wellbeing', 'Staff wellbeing'],
+  ['valuation', 'Valuation points'], ['brand', 'Brand'], ['wellbeing', 'Staff wellbeing'],
   ['caught', 'Incidents caught'], ['breaches', 'Breaches'], ['resignations', 'Resignations'],
 ];
 
@@ -38,6 +38,14 @@ export function createGameOver({ layer, controls, sfx }) {
       const v = Math.round(run.breakdown[k]) || 0;
       return h('div.kv', null, h('span', { text: label }), h(`b.num${v < 0 ? '.bad-t' : ''}`, { text: `${v > 0 ? '+' : ''}${fmtNum(v)}` }));
     }) : [];
+    // Multipliers under the raw rows, so the breakdown lands exactly on the score.
+    if (run?.breakdown) {
+      const raw = Math.max(0, Object.values(run.breakdown).reduce((a, v) => a + v, 0));
+      rows.push(h('div.kv.sum', null, h('span', { text: 'Points' }), h('b.num', { text: fmtNum(Math.round(raw)) })));
+      if (!g.won) rows.push(h('div.kv', null, h('span', { text: 'Run lost' }), h('b.num.bad-t', { text: 'x0.5' })));
+      if (s.flags?.diluted) rows.push(h('div.kv', null, h('span', { text: 'VC dilution' }), h('b.num.bad-t', { text: 'x0.8' })));
+      rows.push(h('div.kv.sum', null, h('span', { text: 'Score' }), h('b.num', { text: fmtNum(g.score ?? run.score) })));
+    }
     root.replaceChildren(h(`div.go-card${g.won ? '.won' : '.lost'}`, null,
       h('div.go-head', null,
         icon(g.won ? 'award' : 'gameover', { size: 44 }),

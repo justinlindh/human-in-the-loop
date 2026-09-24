@@ -2,6 +2,8 @@ import { h, setText, setWidth, setClass, fmtMoney, fmtNum, dateOf, toggleClass }
 import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../content.js';
 import { portrait, liveView, stars, tabs } from '../widgets.js';
 import { icon } from '../icons.js';
+import { researchView } from './research.js';
+import { marketSize } from '../../sim/products.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
 
 export const STAT_INFO = [
@@ -13,11 +15,23 @@ export const STAT_INFO = [
 
 const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large: { name: 'Large' } };
 
-export function buildPanel(ctx) {
-  let tab = 'new';
+export function buildPanel(ctx, arg) {
+  let tab = arg?.projectId ? 'projects' : 'new';
   const form = { name: suggestName(), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
+  // A starter preset (from the tutorial): fields plus the founders as the team.
+  const preset = arg?.preset ?? null;
+  if (preset) {
+    const s0 = ctx.getState();
+    if (s0.market.unlockedCategories.includes(preset.category)) form.category = preset.category;
+    if (s0.market.unlockedAngles.includes(preset.angle)) form.angle = preset.angle;
+    form.model = preset.model ?? form.model;
+    form.size = preset.size ?? form.size;
+    form.name = suggestName(form.category);
+    form.team = new Set(s0.staff.filter((p) => p.founder && isAvailable(p)).map((p) => p.id));
+  }
 
-  const t = tabs([{ id: 'new', icon: 'new', label: 'New Product' }, { id: 'projects', icon: 'project', label: 'Projects' }], tab, (id) => { tab = id; t.set(id); render(); });
+  const t = tabs([{ id: 'new', icon: 'new', label: 'New Product' }, { id: 'projects', icon: 'project', label: 'Projects' }, { id: 'research', icon: 'research', label: 'Internal tools' }], tab, (id) => { tab = id; t.set(id); render(); });
+  let focusProject = arg?.projectId ?? null;
   const host = h('div');
 
   const newView = liveView(
@@ -31,9 +45,18 @@ export function buildPanel(ctx) {
       s.products.map((p) => `${p.id}${p.killed}${p.migrationDueWeek}`).join()].join('|'),
     (s, bind) => renderProjects(s, bind));
 
+  // Starting research jumps to its project card so the player can add a team.
+  const resView = researchView(ctx, { onStarted: (projectId) => { focusProject = projectId; tab = 'projects'; t.set(tab); render(); } });
+  const viewFor = () => (tab === 'new' ? newView : tab === 'research' ? resView : projView);
+
   function render() {
-    host.replaceChildren(tab === 'new' ? newView.el : projView.el);
-    (tab === 'new' ? newView : projView).update(ctx.getState(), true);
+    host.replaceChildren(viewFor().el);
+    viewFor().update(ctx.getState(), true);
+    if (tab === 'projects' && focusProject) {
+      const card = host.querySelector(`[data-project="${focusProject}"]`);
+      if (card) { card.classList.add('focus'); card.scrollIntoView({ block: 'nearest' }); card.querySelector('.addsel')?.focus(); }
+      focusProject = null;
+    }
   }
 
   function refreshNew() { newView.update(ctx.getState(), true); }
@@ -58,7 +81,7 @@ export function buildPanel(ctx) {
       const unlocked = s.market.unlockedCategories.includes(c.id);
       const tile = h('button.tile', {
         disabled: !unlocked,
-        title: unlocked ? `${c.name}: $${c.price}/customer/month, ${fmtNum(c.tam)} potential customers${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
+        title: unlocked ? `${c.name}: $${c.price}/customer/month, ${fmtNum(marketSize(s, c.id))} potential customers today${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
         onclick: () => { form.category = c.id; refreshNew(); },
       },
       h('span.ti', null, icon(unlocked ? `cat.${c.id}` : 'lock')),
@@ -108,7 +131,7 @@ export function buildPanel(ctx) {
       bar('Guardrails', m.guardrails, '#34c38f'),
       bar('Trust', m.trust, '#9b6bff'),
       h('span.mfoot', null,
-        h('span.num', { text: `$${(m.productCost * (ms.costMult ?? 1)).toFixed(2)}/cust`, title: 'Model cost per customer per month' }),
+        h('span.num', { text: `$${(m.productCost * (B.modelCostMult ?? 1) * (ms.costMult ?? 1)).toFixed(2)}/cust`, title: 'Model cost per customer per month' }),
         h('span', { class: m.complianceOk ? 'pill good' : 'pill bad', title: m.complianceOk ? 'Passes enterprise compliance' : 'Enterprise buyers in compliance-heavy categories will balk' }, icon(m.complianceOk ? 'check' : 'cross'), m.complianceOk ? ' Compliant' : ' Compliance')),
       !ok ? h('span.lockover', null, ms.deprecated ? 'Deprecated' : icon('lock'), ms.deprecated ? null : ` ${m.releaseYear ?? ''}`) : null,
       warn ? h('span.warnover', null, icon('warn', { size: 12 }), ' Compliance penalty here') : null);
@@ -173,6 +196,7 @@ export function buildPanel(ctx) {
 
     return h('div.buildgrid', null,
       h('div.buildmain', null,
+        preset ? h('div.starterhint', null, icon('idea', { size: 18 }), h('span', { text: 'A good first product is picked for you: Email × Summarizer on ChatGBT, small, with both founders. Great combos earn stars once they launch. Press Start building, or change anything.' })) : null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
         h('div.section', null, h('h3', null, '3. AI angle', h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
@@ -239,8 +263,8 @@ export function buildPanel(ctx) {
         portrait(p, 26), h('span', { text: p.name.split(' ')[0] }),
         h('button.x', { onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }, icon('close', { size: 12 })))),
       people.length ? null : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel);
-      const meta = j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle} · ${MODEL[j.model]?.name ?? j.model}` : KIND_LABEL[j.kind];
-      out.push(h('div.card.proj', null,
+      const meta = j.kind === 'research' ? 'Internal tool' : j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle} · ${MODEL[j.model]?.name ?? j.model}` : KIND_LABEL[j.kind];
+      out.push(h('div.card.proj', { dataset: { project: j.id } },
         h('div.row', null, h('span.pill.ink', { text: KIND_LABEL[j.kind] ?? j.kind }), h('b.ptitle', { text: projectLabel(s, j) }), h('span.faint.small', { text: meta }), h('span.spacer'), pct),
         h('div.bar.thick', null, fill),
         j.kind === 'new' || j.kind === 'update' ? h('div.pstats', null, ...statEls.map((x) => x.el)) : null,
@@ -295,7 +319,7 @@ export function buildPanel(ctx) {
     tabs: t.el,
     update(s) {
       t.setLabel('projects', `Projects (${s.projects.length})`);
-      (tab === 'new' ? newView : projView).update(s);
+      viewFor().update(s);
     },
   };
 }

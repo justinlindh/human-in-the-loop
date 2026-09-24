@@ -184,7 +184,9 @@ describe('outages', () => {
     run(s, 3);
     expect(s.outage.weeks).toBe(3);
     expect(s.outage.unrecoverable).toBe(true);
-    for (let i = 0; i < 5; i++) addStaff(s, 'engineer', 'senior', { knowledge: 100 });
+    for (const f of s.staff) f.knowledge = 100;
+    s.comprehensionDebt = 20;
+    for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'senior', { knowledge: 100 });
     run(s, 1);
     expect(s.outage === null || s.outage.unrecoverable === false).toBe(true);
     run(s, 20);
@@ -215,6 +217,27 @@ describe('outages', () => {
     startOutage(makeCtx(s), { productId: p.id, kind: 'db_wipe', severity: 1 });
     run(s, 5);
     expect(eng.knowledge).toBe(k + 5);
+  });
+
+  it('only the few people who understand the system count toward a fix', () => {
+    const s = game();
+    for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'senior', { knowledge: 90 });
+    const three = fixCapacity(s);
+    for (let i = 0; i < 10; i++) addStaff(s, 'engineer', 'junior', { knowledge: 30 });
+    expect(fixCapacity(s)).toBeCloseTo(three);
+  });
+
+  it('a sprawling product portfolio makes outages harder to fix', () => {
+    const s = game();
+    for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'senior', { knowledge: 70 });
+    const p = addProduct(s);
+    s.comprehensionDebt = 0;
+    startOutage(makeCtx(s), { productId: p.id, kind: 'db_wipe', severity: 5 });
+    expect(s.outage.unrecoverable).toBe(false);
+    s.outage = null;
+    for (let i = 0; i < 14; i++) addProduct(s);
+    startOutage(makeCtx(s), { productId: p.id, kind: 'db_wipe', severity: 5 });
+    expect(s.outage.unrecoverable).toBe(true);
   });
 
   it('two founders can fix a severity 3 outage at low debt', () => {

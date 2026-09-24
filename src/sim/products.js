@@ -22,7 +22,7 @@ export function productAppeal(state, product) {
   const model = MODELS[product.model];
   let appeal = Math.max(0, product.score) ** B.appealExp
     * comboFit(product.category, product.angle) * trendMods(state, product.category, product.angle)
-    * (1 + state.brand / 100) * (1 + product.novelty / 20) * (0.7 + 0.3 * model.trust) * product.uptime
+    * (1 + state.brand / 100) * (1 + product.novelty * B.noveltyAppealPer) * (0.7 + 0.3 * model.trust) * product.uptime
     * B.appealScale * (B.sizeAppeal[product.size] ?? 1);
   if (cat.compliance && !model.complianceOk) appeal *= B.enterpriseComplianceMult;
   return appeal;
@@ -87,6 +87,7 @@ export function productsSystem(ctx) {
     const churn = Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
       + (p.hype / 10 > p.score + B.wrapperGap ? B.wrapperChurn : 0)
       + state.ops.supportShortfall * B.supportShortfallChurn
+      + (1 - Math.min(10, p.novelty) / 10) * B.staleChurn
       + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn;
     p.customers = Math.max(0, Math.floor(p.customers * (1 - churn)));
 

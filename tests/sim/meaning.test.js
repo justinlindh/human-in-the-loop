@@ -4,7 +4,7 @@ import { automationExposure } from '../../src/sim/automation.js';
 import { meaningSystem } from '../../src/sim/meaning.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, withoutGrind } from './helpers.js';
 
 const runMeaning = (s, n = 1) => { const ev = []; for (let i = 0; i < n; i++) { const c = makeCtx(s); meaningSystem(c); ev.push(...c.events); s.week++; } return ev; };
 const plain = (s, role, seniority, over = {}) => addStaff(s, role, seniority, { traits: [], speed: 1, meaning: 60, ...over });
@@ -26,14 +26,14 @@ describe('automation exposure', () => {
 });
 
 describe('meaning drain and recovery', () => {
-  const drainOver = (seniority, setup = () => {}) => {
+  const drainOver = (seniority, setup = () => {}) => withoutGrind(B, () => {
     const s = game();
     s.automation.engineering.level = 1;
     const p = plain(s, 'engineer', seniority, { assignment: { type: 'maintenance', targetId: null } });
     setup(s, p);
     runMeaning(s, 5);
     return 60 - p.meaning;
-  };
+  });
 
   it('a senior drains faster than a junior at equal exposure', () => {
     expect(drainOver('senior')).toBeGreaterThan(drainOver('junior'));

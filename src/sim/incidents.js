@@ -13,6 +13,7 @@ import { MODELS } from '../data/models.js';
 import { CHATTER } from '../data/chatter.js';
 import { INCIDENT_EVENT } from '../data/events.js';
 import { modifierBonus } from './modifiers.js';
+import { fillChat } from './chat.js';
 import { researchBonus } from './bonus.js';
 
 const ROGUE_KINDS = {
@@ -20,6 +21,9 @@ const ROGUE_KINDS = {
   marketing: ['mass_email'], qa: ['prompt_injection_leak'], ops: ['prompt_injection_leak'],
 };
 const CYBER_KINDS = ['credential_stuffing', 'ransomware', 'supply_chain', 'data_exfiltration', 'phishing'];
+
+// Incident kinds that can take a product down; stolen data and phished money hurt cash and trust instead.
+export const OUTAGE_KINDS = new Set(['db_wipe', 'runaway_spend', 'refund_hallucination', 'pricing_rewrite', 'mass_email', 'prompt_injection_leak', 'ransomware', 'supply_chain']);
 const KIND_LABEL = {
   db_wipe: 'agent wiped a database', runaway_spend: 'agent runaway cloud spend', refund_hallucination: 'support bot promised refunds',
   pricing_rewrite: 'agent rewrote pricing', mass_email: 'agent emailed every customer', prompt_injection_leak: 'agent leaked config via prompt injection',
@@ -36,7 +40,7 @@ export function postureParts(state) {
   const audit = state.security.auditBoost;
   const tooling = state.security.tooling ? B.postureTooling : 0;
   const debt = state.comprehensionDebt * B.postureDebtPenalty;
-  return { staff, bonus, audit, tooling, debt, total: clamp(staff + bonus + audit + tooling - debt, 0, 100) };
+  return { people: onSecurity(state).length, staff, bonus, audit, tooling, debt, total: clamp(staff + bonus + audit + tooling - debt, 0, 100) };
 }
 
 export const securityPosture = (state) => postureParts(state).total;
@@ -71,13 +75,17 @@ export function fixCapacity(state) {
   const present = state.staff.filter((p) => p.mood !== 'away');
   const commander = Math.max(1, ...present.map((p) => staffMods(p).outageFix));
   // Engineers can debug; founders built the thing and can debug it whatever their role, and do it better.
-  const fixers = present.filter((p) => p.role === 'engineer' || p.founder);
-  return sum(fixers, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
-    * commander * (1 + researchBonus(state, 'outageFix'));
+  // Debugging does not parallelize: only the few who best understand the systems count.
+  const fixers = present.filter((p) => p.role === 'engineer' || p.founder)
+    .map((p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
+    .sort((a, b) => b - a).slice(0, B.fixersCounted);
+  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix'));
 }
 
+// More live products means more tangled systems to understand when something breaks.
 const isUnrecoverable = (state, severity) => fixCapacity(state)
-  < severity * (0.4 + state.comprehensionDebt / 100) * Math.max(0, 1 + researchBonus(state, 'unrecoverableThreshold'));
+  < severity * (0.4 + state.comprehensionDebt / 100) * Math.max(0, 1 + researchBonus(state, 'unrecoverableThreshold'))
+    * (1 + B.outageComplexityPerProduct * liveProducts(state).length);
 
 export function startOutage(ctx, { productId, kind, severity }) {
   const { state } = ctx;
@@ -126,6 +134,15 @@ function outageStep(ctx) {
   if (!o.unrecoverable && o.weeks >= Math.max(1, Math.ceil(o.severity / Math.max(fixCapacity(state), 0.1)))) clearOutage(ctx, '');
 }
 
+// A chat line from a pool with its placeholders filled; falls back to a line that needs none.
+function filledLine(ctx, pool, speaker, product) {
+  for (let i = 0; i < 6; i++) {
+    const text = fillChat(ctx.state, ctx.rng, pick(ctx.rng, pool), { speaker, product });
+    if (text !== null) return text;
+  }
+  return pick(ctx.rng, pool.filter((l) => !l.includes('{'))) ?? 'On it.';
+}
+
 function incident(ctx, { kind, severity, caught, model }) {
   const { state } = ctx;
   const live = liveProducts(state);
@@ -154,12 +171,15 @@ function incident(ctx, { kind, severity, caught, model }) {
     }
     const best = eyes.reduce((a, b) => (staffMods(b).catch + b.skills.reliability > staffMods(a).catch + a.skills.reliability ? b : a));
     ctx.emit({ type: 'celebrate', staffId: best.id });
-    emitChat(ctx, { channel: 'incidents', person: best, text: pick(ctx.rng, CHATTER.overseer) });
+    emitChat(ctx, { channel: 'incidents', person: best, text: filledLine(ctx, CHATTER.overseer, best, product) });
     return;
   }
-  if (witnesses.length) emitChat(ctx, { channel: 'incidents', person: pick(ctx.rng, witnesses), text: pick(ctx.rng, CHATTER.incident) });
+  if (witnesses.length) {
+    const who = pick(ctx.rng, witnesses);
+    emitChat(ctx, { channel: 'incidents', person: who, text: filledLine(ctx, CHATTER.incident, who, product) });
+  }
   if (severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
-  if (severity >= B.outageMinSeverity && !state.outage && product) startOutage(ctx, { productId, kind, severity });
+  if (severity >= B.outageMinSeverity && OUTAGE_KINDS.has(kind) && !state.outage && product) startOutage(ctx, { productId, kind, severity });
 }
 
 export function incidentsSystem(ctx) {

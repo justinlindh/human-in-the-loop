@@ -1,0 +1,418 @@
+{
+ "menu.build": {
+  "file": "glyphs/menu.build.svg",
+  "size": 26
+ },
+ "menu.staff": {
+  "file": "glyphs/menu.staff.svg",
+  "size": 26
+ },
+ "menu.marketing": {
+  "file": "glyphs/menu.marketing.svg",
+  "size": 26
+ },
+ "menu.models": {
+  "file": "glyphs/menu.models.svg",
+  "size": 26
+ },
+ "menu.automation": {
+  "file": "glyphs/menu.automation.svg",
+  "size": 26
+ },
+ "menu.ops": {
+  "file": "glyphs/menu.ops.svg",
+  "size": 26
+ },
+ "menu.office": {
+  "file": "glyphs/menu.office.svg",
+  "size": 26
+ },
+ "menu.reports": {
+  "file": "glyphs/menu.reports.svg",
+  "size": 26
+ },
+ "speed.pause": {
+  "file": "glyphs/speed.pause.svg"
+ },
+ "speed.play": {
+  "file": "glyphs/speed.play.svg"
+ },
+ "speed.fast": {
+  "file": "glyphs/speed.fast.svg"
+ },
+ "speed.fastest": {
+  "file": "glyphs/speed.fastest.svg"
+ },
+ "arrow.up": {
+  "file": "glyphs/arrow.up.svg"
+ },
+ "arrow.down": {
+  "file": "glyphs/arrow.down.svg"
+ },
+ "arrow.flat": {
+  "file": "glyphs/arrow.flat.svg"
+ },
+ "arrow.back": {
+  "file": "glyphs/arrow.back.svg"
+ },
+ "caret.down": {
+  "file": "glyphs/caret.down.svg"
+ },
+ "caret.right": {
+  "file": "glyphs/caret.right.svg"
+ },
+ "sort.up": {
+  "file": "glyphs/sort.up.svg"
+ },
+ "sort.down": {
+  "file": "glyphs/sort.down.svg"
+ },
+ "close": {
+  "file": "glyphs/close.svg"
+ },
+ "check": {
+  "file": "glyphs/check.svg"
+ },
+ "cross": {
+  "file": "glyphs/cross.svg"
+ },
+ "star": {
+  "file": "glyphs/star.svg"
+ },
+ "lock": {
+  "file": "glyphs/lock.svg"
+ },
+ "hourglass": {
+  "file": "glyphs/hourglass.svg"
+ },
+ "warn": {
+  "file": "glyphs/warn.svg"
+ },
+ "settings": {
+  "file": "glyphs/settings.svg"
+ },
+ "idea": {
+  "file": "glyphs/idea.svg"
+ },
+ "decision": {
+  "file": "glyphs/decision.svg"
+ },
+ "legend": {
+  "file": "glyphs/legend.svg"
+ },
+ "path": {
+  "file": "glyphs/path.svg"
+ },
+ "slot": {
+  "file": "glyphs/slot.svg"
+ },
+ "toast.info": {
+  "file": "glyphs/toast.info.svg"
+ },
+ "toast.good": {
+  "file": "glyphs/toast.good.svg"
+ },
+ "toast.warn": {
+  "file": "glyphs/toast.warn.svg"
+ },
+ "toast.bad": {
+  "file": "glyphs/toast.bad.svg"
+ },
+ "tray.outage": {
+  "file": "glyphs/tray.outage.svg"
+ },
+ "tray.project": {
+  "file": "glyphs/tray.project.svg"
+ },
+ "tray.trend": {
+  "file": "glyphs/tray.trend.svg"
+ },
+ "tray.effects": {
+  "file": "glyphs/tray.effects.svg"
+ },
+ "mood.ok": {
+  "file": "glyphs/mood.ok.svg"
+ },
+ "mood.coasting": {
+  "file": "glyphs/mood.coasting.svg"
+ },
+ "mood.burnout": {
+  "file": "glyphs/mood.burnout.svg"
+ },
+ "mood.away": {
+  "file": "glyphs/mood.away.svg"
+ },
+ "size.small": {
+  "file": "glyphs/size.small.svg"
+ },
+ "size.medium": {
+  "file": "glyphs/size.medium.svg"
+ },
+ "size.large": {
+  "file": "glyphs/size.large.svg"
+ },
+ "new": {
+  "file": "glyphs/new.svg"
+ },
+ "project": {
+  "file": "glyphs/project.svg"
+ },
+ "dice": {
+  "file": "glyphs/dice.svg"
+ },
+ "launch": {
+  "file": "glyphs/launch.svg"
+ },
+ "agentic": {
+  "file": "glyphs/agentic.svg"
+ },
+ "compliance": {
+  "file": "glyphs/compliance.svg"
+ },
+ "update": {
+  "file": "glyphs/update.svg"
+ },
+ "migrate": {
+  "file": "glyphs/migrate.svg"
+ },
+ "refactor": {
+  "file": "glyphs/refactor.svg"
+ },
+ "craft": {
+  "file": "glyphs/craft.svg"
+ },
+ "mentor": {
+  "file": "glyphs/mentor.svg"
+ },
+ "hardProblem": {
+  "file": "glyphs/hardProblem.svg"
+ },
+ "oversight": {
+  "file": "glyphs/oversight.svg"
+ },
+ "sabbatical": {
+  "file": "glyphs/sabbatical.svg"
+ },
+ "training": {
+  "file": "glyphs/training.svg"
+ },
+ "letgo": {
+  "file": "glyphs/letgo.svg"
+ },
+ "team": {
+  "file": "glyphs/team.svg"
+ },
+ "seat": {
+  "file": "glyphs/seat.svg"
+ },
+ "refresh": {
+  "file": "glyphs/refresh.svg"
+ },
+ "hire": {
+  "file": "glyphs/hire.svg"
+ },
+ "office": {
+  "file": "glyphs/office.svg"
+ },
+ "money": {
+  "file": "glyphs/money.svg"
+ },
+ "debt": {
+  "file": "glyphs/debt.svg"
+ },
+ "pair": {
+  "file": "glyphs/pair.svg"
+ },
+ "policy": {
+  "file": "glyphs/policy.svg"
+ },
+ "product": {
+  "file": "glyphs/product.svg"
+ },
+ "selfhost": {
+  "file": "glyphs/selfhost.svg"
+ },
+ "hype": {
+  "file": "glyphs/hype.svg"
+ },
+ "brand": {
+  "file": "glyphs/brand.svg"
+ },
+ "wrapper": {
+  "file": "glyphs/wrapper.svg"
+ },
+ "marketer": {
+  "file": "glyphs/marketer.svg"
+ },
+ "humanCopy": {
+  "file": "glyphs/humanCopy.svg"
+ },
+ "clock": {
+  "file": "glyphs/clock.svg"
+ },
+ "award": {
+  "file": "glyphs/award.svg"
+ },
+ "security": {
+  "file": "glyphs/security.svg"
+ },
+ "audit": {
+  "file": "glyphs/audit.svg"
+ },
+ "consultants": {
+  "file": "glyphs/consultants.svg"
+ },
+ "incident": {
+  "file": "glyphs/incident.svg"
+ },
+ "caught": {
+  "file": "glyphs/caught.svg"
+ },
+ "rent": {
+  "file": "glyphs/rent.svg"
+ },
+ "chart": {
+  "file": "glyphs/chart.svg"
+ },
+ "continue": {
+  "file": "glyphs/continue.svg"
+ },
+ "gameover": {
+  "file": "glyphs/gameover.svg"
+ },
+ "research": {
+  "file": "glyphs/research.svg"
+ },
+ "fn.engineering": {
+  "file": "glyphs/fn.engineering.svg"
+ },
+ "fn.support": {
+  "file": "glyphs/fn.support.svg"
+ },
+ "fn.sales": {
+  "file": "glyphs/fn.sales.svg"
+ },
+ "fn.marketing": {
+  "file": "glyphs/fn.marketing.svg"
+ },
+ "fn.qa": {
+  "file": "glyphs/fn.qa.svg"
+ },
+ "fn.ops": {
+  "file": "glyphs/fn.ops.svg"
+ },
+ "channel.launch": {
+  "file": "glyphs/channel.launch.svg"
+ },
+ "channel.content": {
+  "file": "glyphs/channel.content.svg"
+ },
+ "channel.producthunt": {
+  "file": "glyphs/channel.producthunt.svg"
+ },
+ "channel.community": {
+  "file": "glyphs/channel.community.svg"
+ },
+ "channel.ads": {
+  "file": "glyphs/channel.ads.svg"
+ },
+ "channel.influencer": {
+  "file": "glyphs/channel.influencer.svg"
+ },
+ "channel.conference": {
+  "file": "glyphs/channel.conference.svg"
+ },
+ "channel.enterprise": {
+  "file": "glyphs/channel.enterprise.svg"
+ },
+ "train.workshop": {
+  "file": "glyphs/train.workshop.svg"
+ },
+ "train.conference": {
+  "file": "glyphs/train.conference.svg"
+ },
+ "train.course": {
+  "file": "glyphs/train.course.svg"
+ },
+ "bot.pager": {
+  "file": "glyphs/bot.pager.svg"
+ },
+ "bot.vendor": {
+  "file": "glyphs/bot.vendor.svg"
+ },
+ "bot.launch": {
+  "file": "glyphs/bot.launch.svg"
+ },
+ "bot.hr": {
+  "file": "glyphs/bot.hr.svg"
+ },
+ "bot.awards": {
+  "file": "glyphs/bot.awards.svg"
+ },
+ "bot.office": {
+  "file": "glyphs/bot.office.svg"
+ },
+ "bot.hn": {
+  "file": "glyphs/bot.hn.svg"
+ },
+ "bot.generic": {
+  "file": "glyphs/bot.generic.svg"
+ },
+ "react.party": {
+  "file": "glyphs/react.party.svg"
+ },
+ "react.rocket": {
+  "file": "glyphs/react.rocket.svg"
+ },
+ "react.clap": {
+  "file": "glyphs/react.clap.svg"
+ },
+ "react.fire": {
+  "file": "glyphs/react.fire.svg"
+ },
+ "react.100": {
+  "file": "glyphs/react.100.svg"
+ },
+ "react.skull": {
+  "file": "glyphs/react.skull.svg"
+ },
+ "react.eyes": {
+  "file": "glyphs/react.eyes.svg"
+ },
+ "react.grimace": {
+  "file": "glyphs/react.grimace.svg"
+ },
+ "react.melt": {
+  "file": "glyphs/react.melt.svg"
+ },
+ "react.salute": {
+  "file": "glyphs/react.salute.svg"
+ },
+ "react.blueheart": {
+  "file": "glyphs/react.blueheart.svg"
+ },
+ "react.cry": {
+  "file": "glyphs/react.cry.svg"
+ },
+ "react.laugh": {
+  "file": "glyphs/react.laugh.svg"
+ },
+ "react.dog": {
+  "file": "glyphs/react.dog.svg"
+ },
+ "react.coffee": {
+  "file": "glyphs/react.coffee.svg"
+ },
+ "react.sprout": {
+  "file": "glyphs/react.sprout.svg"
+ },
+ "react.pizza": {
+  "file": "glyphs/react.pizza.svg"
+ },
+ "react.thumbsup": {
+  "file": "glyphs/react.thumbsup.svg"
+ },
+ "react.upside": {
+  "file": "glyphs/react.upside.svg"
+ }
+}

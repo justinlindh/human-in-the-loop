@@ -259,6 +259,13 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
       };
       events.push({ type: 'decision' });
     }
+    if (ticks % 6 === 0) {
+      const present = state.staff.filter((p) => p.mood !== 'away').slice(0, 4);
+      const lines = present.map((p) => ({ staffId: p.id, text: p.mood === 'burnout' ? '' : p.mood === 'coasting' ? 'Same as yesterday.' : pick(['Legalese is at 60%. Polish pass today.', 'Pairing on billing.', 'Blocked on the flaky test.', 'Shipping the onboarding fix.']) }));
+      const mode = ticks % 12 === 0 ? 'async' : 'daily';
+      events.push({ type: 'standup', mode, lines });
+      if (mode === 'async') for (const l of lines.filter((x) => x.text)) events.push(chat('standup', state.staff.find((x) => x.id === l.staffId), l.text));
+    }
     if (ticks % 23 === 0) events.push({ type: 'award', text: 'Product of the Year: Deskbot' });
     if (ticks % 29 === 0) events.push({ type: 'officeUpgrade', stage: state.officeStage });
     state.history.push({ ...state.history[state.history.length - 1] ?? {}, week: state.week });

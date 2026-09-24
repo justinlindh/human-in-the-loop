@@ -29,9 +29,13 @@ function weeklyMeaning(state, p) {
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
   // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
   const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery'));
-  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
-    + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0);
-  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain'));
+  // Recovery slows near the top, so even well-cared-for people settle below 100.
+  const ceiling = clamp((100 - p.meaning) / B.meaningCeilingBand, 0, 1);
+  const recovery = ((B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
+    + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0)) * ceiling;
+  // Everyday grind, heavier as the company grows past the size where everyone knows everyone.
+  const grind = B.meaningGrind + B.meaningGrindPerHead * Math.max(0, state.staff.length - B.overheadFreeHeadcount);
+  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain')) - grind;
 }
 
 export function meaningSystem(ctx) {
@@ -68,7 +72,10 @@ export function meaningSystem(ctx) {
     return false;
   });
   for (const p of leavers) {
-    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell), kind: 'farewell' });
+    const recent = state.flags.recentFarewells ?? [];
+    const line = pick(ctx.rng, CHATTER.farewell.filter((l) => !recent.includes(l)));
+    state.flags.recentFarewells = [...recent, line].slice(-4);
+    emitChat(ctx, { person: p, text: line, kind: 'farewell' });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name });
     ctx.emit({ type: 'toast', text: `${p.name} resigned.`, tone: 'bad' });
     removeStaff(state, p);

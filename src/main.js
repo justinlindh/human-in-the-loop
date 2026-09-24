@@ -12,7 +12,12 @@ const mockScenario = params.get('mock');
 const isSnap = params.has('snap');
 // ?seed or ?weeks skips the title and plays immediately (tests, snapshots, reproducible runs).
 const directPlay = !!mockScenario || params.has('seed') || params.has('weeks');
-const WEEK_SECONDS = 2.0;
+// Real seconds per in-game week at 1x; a full 15-year run is about an hour.
+const WEEK_SECONDS = 5.0;
+// Events that must land the moment they happen; everything else is spread across the week.
+const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 'officeUpgrade', 'standup']);
+// Paced events are released across this fraction of the week, leaving a quiet beat before the next tick.
+const SPREAD = 0.85;
 // Ambient day/night runs on real time so higher game speeds never strobe the scene.
 const DAY_SECONDS = 120;
 const AUTOSAVE_WEEKS = 4;
@@ -54,6 +59,7 @@ async function boot() {
     quality,
   }) ?? null;
   const audio = audioMod?.createAudio() ?? null;
+  renderer?.setSpeed?.(speed);
 
   const route = (events, state) => {
     if (!events?.length) return;
@@ -61,6 +67,29 @@ async function boot() {
     ui?.handleEvents(events, state);
     audio?.onEvents(events);
   };
+
+  // A tick's non-urgent events trickle out over the week instead of arriving in one frame.
+  let paced = [];
+  function schedule(events) {
+    releaseAll();
+    const now = [];
+    const later = [];
+    for (const e of events) (IMMEDIATE.has(e.type) ? now : later).push(e);
+    route(now, sim.state);
+    later.forEach((e, i) => paced.push({ at: later.length === 1 ? 0 : (i / later.length) * SPREAD, e }));
+  }
+  function releaseDue(progress) {
+    if (!paced.length) return;
+    const due = [];
+    while (paced.length && paced[0].at <= progress) due.push(paced.shift().e);
+    route(due, sim.state);
+  }
+  function releaseAll() {
+    if (!paced.length) return;
+    const all = paced.map((x) => x.e);
+    paced = [];
+    route(all, sim.state);
+  }
   const dispatch = (action) => {
     const res = sim.dispatch(action);
     route(res.events, sim.state);
@@ -75,6 +104,7 @@ async function boot() {
   }
 
   function startPlaying(state) {
+    paced = [];
     if (realSim) useState(state);
     playing = true;
     acc = 0;
@@ -82,12 +112,13 @@ async function boot() {
 
   function showTitle() {
     playing = false;
+    paced = [];
     if (realSim) useState(simMod.createGame({ seed: randomSeed() }));
     ui?.showTitle();
   }
 
   const controls = {
-    setSpeed: (k) => { speed = k; },
+    setSpeed: (k) => { speed = k; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
     // No options means "back to the title" (the game-over screen's New Game).
     newGame: (opts) => {
@@ -147,14 +178,17 @@ async function boot() {
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
-    if (playing && speed > 0 && !sim.state.pendingDecision && !sim.state.gameOver) {
+    // The UI reports busy while a panel or modal is open (auto-pause for menus).
+    const menuPause = ui?.isBusy?.() === true;
+    if (playing && speed > 0 && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver) {
       acc += dt * speed;
       if (acc >= WEEK_SECONDS) {
         acc -= WEEK_SECONDS;
-        route(sim.tick(), sim.state);
+        schedule(sim.tick());
         if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
       }
     }
+    if (!menuPause) releaseDue(acc / WEEK_SECONDS);
     dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     if (renderer) {
       renderer.setTimeOfDay(forcedTime === 'night' ? 0.95 : forcedTime === 'day' ? 0.45 : dayClock);

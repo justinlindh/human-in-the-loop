@@ -46,6 +46,7 @@ State = {
   discoveredCombos: { ['cat:angle']: fitNumber },
   outage: null | { productId, kind, severity, weeks, unrecoverable },
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
+  chatLog: [ChatEvent],   // the most recent chat events (same shape as the chat SimEvent), last 80, so the feed survives save and load
   lowCashWeeks,
   pendingDecision: null | { eventId, title, text, subjectId, choices: [{ label, hint, available, reason }], vars },   // available false: requirement unmet, reason says why   // vars: placeholder values fixed when raised; UI may ignore
   flags: {},
@@ -88,7 +89,7 @@ Product = {
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
 { type: 'toast', text, tone }             // tone: info|good|warn|bad
 { type: 'chat', id, channel, from, fromId, text, replyTo, reactions }
-                                          // channel: general|incidents|wins|random; from: staff name or a bot handle like '@pagerbot'
+                                          // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
@@ -99,6 +100,7 @@ Product = {
 { type: 'celebrate', staffId }            // staffId may be null for company-wide
 { type: 'award', text }
 { type: 'gameOver' }
+{ type: 'standup', mode, lines: [{ staffId, text }] }   // mode: 'daily' (in person) | 'async' (lines also emitted as #standup chat)
 ```
 
 ### Actions (`dispatch` payloads)

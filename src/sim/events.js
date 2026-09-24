@@ -91,7 +91,9 @@ export function helpers(state) {
 
 export function eligibleEvents(state) {
   const h = helpers(state);
-  return Object.values(EVENTS).filter((ev) => ev.random
+  // A new company gets a quiet start: no decisions until its first launch or a few weeks in.
+  const grace = state.stats.launches === 0 && state.week < B.eventGraceWeeks;
+  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && ev.when(state, h)
     && (ev.subject === null || resolveSubjects(state, ev).length > 0));
@@ -100,7 +102,7 @@ export function eligibleEvents(state) {
 export function fireEvent(ctx, ev, subjectId) {
   const { state } = ctx;
   state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
-  if (ev.kind === 'misc') emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.text, subjectId) });
+  if (ev.chat) emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.chat, subjectId) });
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);
   const vars = decisionVars(state, ctx.rng, subjectId);
   ctx.emit({ type: 'toast', text: `${fillText(state, ctx.rng, ev.title, subjectId, vars)}: ${fillText(state, ctx.rng, ev.text, subjectId, vars)}`, tone: 'info' });

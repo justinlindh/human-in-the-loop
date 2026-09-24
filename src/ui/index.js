@@ -6,10 +6,11 @@ import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
+import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
-import { createTutorial } from './tutorial.js';
+import { createTutorial, tutorialDone } from './tutorial.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -64,13 +65,38 @@ export function createUI({ root, getState, dispatch, controls }) {
     controls,
     sfx,
     meaningLog: new Map(),
+    modal: null,
+    // A simple modal card for panel-owned dialogs (career paths, training). Returns a close function.
+    openModal({ title, iconName, body, cls = '' }) {
+      ctx.modal?.close();
+      const back = h('div.modal-back.generic');
+      const dock = h('div.modal-dock');
+      const close = () => {
+        back.remove();
+        if (ctx.modal?.back === back) { ctx.modal = null; toasts.setDock(menu.current ? menu.dockEl : null); }
+        sfx('close');
+      };
+      back.addEventListener('pointerdown', (e) => { if (e.target === back) close(); });
+      back.append(h(`div.modal${cls ? `.${cls}` : ''}`, null,
+        h('div.mhead', null, iconName ? icon(iconName, { size: 24 }) : null, h('h2', { text: title }), h('span.spacer'),
+          h('button.btn.x', { title: 'Close (Esc)', onclick: close }, icon('close'))),
+        h('div.mbody', null, body), dock));
+      layer.insertBefore(back, toasts.el);
+      ctx.modal = { back, close };
+      toasts.setDock(dock);
+      sfx('open');
+      return close;
+    },
   };
 
   const hud = createHud({ root: layer, controls, ui });
 
   const bottom = h('div.bottom');
   layer.append(bottom);
-  const chat = createChat(bottom);
+  const chat = createChat(bottom, {
+    getState,
+    onName: (id) => { controls.focusStaff?.(id); menu.open('staff', { staffId: id }); },
+  });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
     onChange: (id) => { sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
@@ -79,7 +105,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
   const gameover = createGameOver({ layer, controls, sfx });
-  const tutorial = createTutorial({ layer, sfx });
+  const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx });
   ui.openSettings = () => settings.open();
   const title = createTitle({
@@ -88,13 +114,16 @@ export function createUI({ root, getState, dispatch, controls }) {
     openSettings: () => settings.open(),
     onStart: ({ fresh }) => {
       title.hide();
-      controls.setSpeed(settings.values.speed ?? 1);
-      if (fresh) setTimeout(() => tutorial.start(), 600);
+      const speed = settings.values.speed ?? 1;
+      // A first game waits, paused, while the coach marks are up.
+      if (fresh && !tutorialDone()) { controls.setSpeed(0); setTimeout(() => tutorial.start(false, speed), 600); }
+      else controls.setSpeed(speed);
     },
   });
 
   // Overlays take keys in stacking order: settings, title, tutorial, popups, game over.
   ui.modalKey = (e) => {
+    if (ctx.modal) { if (e.key === 'Escape') ctx.modal.close(); e.preventDefault(); return true; }
     if (settings.isOpen) { if (e.key === 'Escape') settings.close(); e.preventDefault(); return true; }
     if (title.isOpen) return true;
     if (tutorial.onKey(e)) return true;
@@ -125,12 +154,18 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   addEventListener('keydown', onKey);
 
+  const launchScores = new Map(); // last seen review score per product, to spot notable updates
+
   // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
   let loggedWeek = -1;
   let loggedState = null;
   function logMeaning(state) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
-    if (state !== loggedState) { loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; }
+    if (state !== loggedState) {
+      loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
+      launchScores.clear();
+      for (const p of state.products) launchScores.set(p.id, p.score);
+    }
     if (state.week === loggedWeek) return;
     loggedWeek = state.week;
     const log = ctx.meaningLog;
@@ -156,7 +191,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
       lastPanelAt = now;
       menu.update(state);
-      menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout').length);
+      chat.update(state);
+      menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout' || p.pathPending).length);
       menu.setBadge('ops', state.outage ? 1 : 0);
       menu.setAlarm('ops', !!state.outage);
     }
@@ -165,8 +201,13 @@ export function createUI({ root, getState, dispatch, controls }) {
   function handleEvents(events, state) {
     for (const e of events) {
       switch (e.type) {
-        case 'toast': toasts.push(e.text, e.tone); break;
-        case 'chat': chat.add(e.from, e.text, state.week); break;
+        case 'toast': {
+          // "X is ready to choose a career path." opens the path picker when clicked.
+          const who = /ready to choose a career path/.test(e.text) ? state.staff.find((p) => p.pathPending && e.text.startsWith(p.name)) : null;
+          toasts.push(e.text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
+          break;
+        }
+        case 'chat': chat.add(e, state.week); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
@@ -174,11 +215,18 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
-          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
+          toasts.push(e.caught ? `An overseer caught an incident${p ? ` on ${p.name}` : ''}!` : `Incident${p ? ` on ${p.name}` : ''} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
         case 'award': toasts.push(e.text, 'good'); break;
-        case 'launch': popups.queueLaunch(e.productId); break;
+        case 'launch': {
+          // New products always get the launch popup; updates only when the score moved noticeably.
+          const p = state.products.find((x) => x.id === e.productId);
+          const prev = launchScores.get(e.productId);
+          if (p) launchScores.set(e.productId, p.score);
+          if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) popups.queueLaunch(e.productId);
+          break;
+        }
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }
@@ -198,6 +246,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const q = new URLSearchParams(location.search);
   if (q.has('title')) api.showTitle();
   if (q.has('tutorial')) setTimeout(() => tutorial.start(true), 300);
+  if (q.has('icons')) import('./iconboard.js').then((m) => m.showIconBoard(layer));
   if (import.meta.env?.DEV) window.__HITL_UI = api;
   return api;
 }

@@ -197,6 +197,27 @@ describe('reviewScore', () => {
   });
 });
 
+describe('every automation dial has an upside', () => {
+  it('ops automation adds maintenance capacity even while projects run', () => {
+    const s = game();
+    dispatch(s, newProject());
+    build(s, 1);
+    const base = s.ops.maintenanceCapacity;
+    s.automation.ops.level = 1;
+    build(s, 1);
+    expect(s.ops.maintenanceCapacity).toBeCloseTo(base + B.autoOpsMaintenance * s.models.chatgbt.capability / 100);
+  });
+
+  it('QA automation adds reliability to project work', () => {
+    const a = game(4);
+    const b = game(4);
+    b.automation.qa.level = 1;
+    for (const s of [a, b]) { startWithFounders(s); build(s, 3); }
+    expect(b.projects[0].stats.reliability / a.projects[0].stats.reliability).toBeCloseTo(1 + B.autoQaReliability);
+    expect(b.projects[0].stats.features).toBeCloseTo(a.projects[0].stats.features);
+  });
+});
+
 describe('automation output', () => {
   it('adds points only when the level is above zero', () => {
     const s = game();

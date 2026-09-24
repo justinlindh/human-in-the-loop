@@ -2,13 +2,14 @@
 // who: poster (replies only), random, founder, any junior, coasting senior, automated senior, burnout,
 //      mentor, their mentee, their mentor, overseer, new hire, promoted, engineer, designer, marketer,
 //      support, sales, security.
+// cooldown: weeks before the thread can run again (default B.threadCooldownWeeks).
 // context: which of this week's happenings the thread is about: launch, incident, caught, promotion,
 //          research, award, item, priceHike, clone, copied. Context threads only fire that week.
 // Placeholders: {product} {coworker} {model} {incumbent} {category} {item} {poster}.
 // when(state, h): h = { avgMeaning, debt, ik, hasModifier(label), week }.
 
 export const THREAD_WHO = [
-  'poster', 'random', 'founder', 'any junior', 'coasting senior', 'automated senior', 'burnout', 'mentor',
+  'poster', 'random', 'founder', 'any junior', 'mentored junior', 'coasting senior', 'automated senior', 'burnout', 'mentor',
   'their mentee', 'their mentor', 'overseer', 'new hire', 'promoted', 'engineer', 'designer', 'marketer',
   'support', 'sales', 'security',
 ];
@@ -73,7 +74,7 @@ export const THREADS = [
     post: { who: 'mentor', text: 'Proud moment: my mentee found a bug I introduced. Humbling.' },
     replies: [{ who: 'their mentee', text: 'It was a very small bug. Mostly.' }] },
   { id: 'mentee_thanks', channel: 'general', when: always,
-    post: { who: 'their mentee', text: 'Shipped my first thing without asking for help. {poster}, I owe you a coffee.' },
+    post: { who: 'mentored junior', text: 'Shipped my first thing without asking for help. Thanks for everything, mentor.' },
     replies: [{ who: 'their mentor', text: 'You owe me nothing. But yes to the coffee.' }] },
   { id: 'fumes', channel: 'general', when: always,
     post: { who: 'random', text: 'Is anyone else running on fumes this week?' },
@@ -110,7 +111,7 @@ export const THREADS = [
   { id: 'apologies', channel: 'general', when: always,
     post: { who: 'overseer', text: 'Six hours of agent logs. The agent apologized 41 times. I apologized zero.' },
     replies: [{ who: 'random', text: 'Mutual respect.' }] },
-  { id: 'final_v2', channel: 'general', when: (s, h) => h.debt >= 50,
+  { id: 'final_v2', channel: 'general', cooldown: 156, when: (s, h) => h.debt >= 50,
     post: { who: 'engineer', text: 'Found a file called final_v2_REAL_use_this.js. No author. No tests. Fourteen things import it.' },
     replies: [{ who: 'founder', text: 'Do not touch it. It knows.' }] },
   { id: 'deploy_doc', channel: 'general', when: (s, h) => h.ik < 30,
