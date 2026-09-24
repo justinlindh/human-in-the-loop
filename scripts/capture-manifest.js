@@ -76,6 +76,19 @@ const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
 
+// Keeps the Incentives Program on once it unlocks; true when the sixth reward, the Waffle Party, is due.
+const WAFFLE_DUE = "((s.policies.incentives || sim.dispatch(s, { type: 'setPolicy', id: 'incentives', on: true })), s.flags.incentiveCount === 5 && s.week - s.flags.incentiveWeek >= 7)";
+// Unstaffed product updates the bot started are dropped, as for readme-hq, so Needs You shows the game.
+const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
+// Idle people go onto the projects nobody is on, as a player would.
+const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
+const WAFFLE_SETUP = PLAY({ weeks: 400, until: WAFFLE_DUE, after: IN_OFFICE + CHAT_HISTORY + DROP_UNSTAFFED + STAFF_IDLE });
+// Clicks through the incentive card each second, so the party plays as soon as it is awarded;
+// decisions get the first choice.
+const WAFFLE_ACTIONS = (seconds) => [
+  ...Array.from({ length: Math.floor(seconds) }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
+  ...DISMISS_EVERY(seconds).filter((a) => a.at % 4 === 0),
+];
 // Follows one person with the camera as close as it zooms.
 const CLOSE_UP = (id) => `(() => { window.__HITL.controls.focusStaff(${id}); document.getElementById('scene').dispatchEvent(new WheelEvent('wheel', { deltaY: -400, cancelable: true })); })()`;
 
@@ -252,6 +265,14 @@ export const ITEMS = [
     screenshots: [1.5, 10],
   },
   {
+    // The real sim's Waffle Party: the Incentives Program switched on as soon as it unlocks, played
+    // until the sixth reward is due, so the next live week awards it.
+    id: '5-4-waffle-party-real', title: '5.4 Waffle Party in a real game', query: 'seed=1&speed=1', seconds: 30,
+    setup: WAFFLE_SETUP,
+    actions: WAFFLE_ACTIONS(30),
+    screenshots: [20, 23, 27],
+  },
+  {
     id: '5-5-burnout-resign', title: '5.5 Burnout and a resignation', query: 'mock=floor&speed=1', seconds: 16,
     setup: `(() => { const p = window.__HITL.state.staff[3]; p.mood = 'burnout'; p.meaning = 8; window.__HITL.controls.focusStaff(p.id); })()`,
     actions: [{ at: 7, js: `(() => { const p = window.__HITL.state.staff[3]; window.__HITL.emit([{ type: 'resign', staffId: p.id, name: p.name, fired: false }]); })()` }],
@@ -322,6 +343,10 @@ export const ITEMS = [
     id: 'readme-lockdown', group: 'readme', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', still: true,
     setup: PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY }), warmup: 3,
     actions: DISMISS_EVERY(6), screenshots: [6],
+  },
+  {
+    id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(24), screenshots: [23],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
