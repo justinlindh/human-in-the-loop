@@ -61,8 +61,10 @@ export function createPortraits({ ready, lowQuality = () => false }) {
     camera.position.set(Math.sin(yaw) * d, 1.02, Math.cos(yaw) * d);
     camera.lookAt(0, 0.86, 0);
     // Warm the programs up asynchronously with a sample character; portraits wait until ready.
+    // The probe is kept (out of the scene) so its programs stay cached: disposing the last user of
+    // a program frees it, and every portrait would then compile it again synchronously.
     const probe = build({ appearance: {}, role: 'engineer', mood: 'ok' });
-    gl.compileAsync(scene, camera).then(() => { compiled = true; }, () => { compiled = true; }).finally(() => probe.dispose());
+    gl.compileAsync(scene, camera).then(() => { compiled = true; }, () => { compiled = true; }).finally(() => scene.remove(probe.root));
     return true;
   }
 
