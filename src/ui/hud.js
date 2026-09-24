@@ -2,7 +2,7 @@ import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, 
 import { B, trendName, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel, stalledProject } from './panels/common.js';
-import { GOALS, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
+import { GOALS, ERA, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -110,8 +110,11 @@ export function createHud({ root, controls, ui }) {
   const logo = h('div.logo');
   const name = h('div.name');
   const dateVal = h('span.num');
+  // The era's emblem sits in front of the date; it swaps when the era changes.
+  const eraEl = h('span.eramark');
   const company = h('div.chip.company', { title: 'Your company' },
-    logo, h('div', null, name, h('div.date', null, dateVal)));
+    logo, h('div', null, name, h('div.date', null, eraEl, dateVal)));
+  let lastEra = null;
 
   const cashVal = h('div.val.num');
   const cashSub = h('div.sub');
@@ -238,6 +241,13 @@ export function createHud({ root, controls, ui }) {
   let lastLogoColor = '';
   function update(s) {
     const d = dateOf(s.week);
+    const era = s.era?.id ?? null;
+    if (era !== lastEra) {
+      lastEra = era;
+      eraEl.replaceChildren(...(era ? [icon(`era.${era}`, { size: 14 })] : []));
+      eraEl.title = era ? `${ERA[era]?.name ?? era} era` : '';
+      eraEl.style.display = era ? '' : 'none';
+    }
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
     const lc = s.founding?.logoColor ?? '';
     if (lc !== lastLogoColor) { lastLogoColor = lc; logo.style.background = lc; }

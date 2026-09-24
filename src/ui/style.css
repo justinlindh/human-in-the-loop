@@ -1064,3 +1064,13 @@
 .hitl .record .recmain { display: flex; flex-wrap: wrap; gap: 0.1em 0.8em; }
 .hitl .record .recstat b.num { font-size: 1.12em; font-weight: 700; }
 .hitl .record .recmore { margin-top: 0.3em; line-height: 1.35; }
+
+/* Era emblems: large on the arrival card, small before the date in the HUD. */
+.hitl .announce.era .erahead { flex-direction: row; align-items: center; gap: 1em; }
+.hitl .announce.era .eratitle { display: flex; flex-direction: column; gap: 0.3em; min-width: 0; }
+.hitl .announce.era .eraemblem { flex: none; filter: drop-shadow(0 0.2em 0 rgba(0,0,0,0.25)); animation: emblemin 500ms cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes emblemin { from { transform: scale(0.4) rotate(-20deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .hitl .announce.era .eraemblem { animation: none; } }
+.hitl .announce.era.plateau .erahead { background: #c0652b; }
+.hitl .announce.era.classic .erahead { background: #9a6a44; }
+.hitl .chip.company .eramark { display: inline-flex; vertical-align: -0.15em; margin-right: 0.3em; }

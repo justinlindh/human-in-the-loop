@@ -1,4 +1,19 @@
 {
+ "era.classic": {
+  "file": "glyphs/era.classic.svg"
+ },
+ "era.chatgbt": {
+  "file": "glyphs/era.chatgbt.svg"
+ },
+ "era.agents": {
+  "file": "glyphs/era.agents.svg"
+ },
+ "era.consolidation": {
+  "file": "glyphs/era.consolidation.svg"
+ },
+ "era.plateau": {
+  "file": "glyphs/era.plateau.svg"
+ },
  "menu.build": {
   "file": "glyphs/menu.build.svg",
   "size": 26
