@@ -185,15 +185,15 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 { type: 'goal', goalId }        // a goal completed
 ```
 
-## Speech vs Slackk
+## Speech vs Yak
 
-Speech bubbles in the office and Slackk messages are separate streams.
+Speech bubbles in the office and Yak messages are separate streams.
 
 ```js
 { type: 'say', id, week, staffId, text, toId, replyTo, tone }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
 ```
-- The renderer shows speech bubbles for `say` events only. A `chat` event is Slackk only; the renderer may show a small typing emote on the author's character, never a bubble.
-- `say` events are never added to `chatLog` and never appear in Slackk.
+- The renderer shows speech bubbles for `say` events only. A `chat` event is Yak only; the renderer may show a small typing emote on the author's character, never a bubble.
+- `say` events are never added to `chatLog` and never appear in Yak.
 - Spoken exchanges are between people in the office (not away); `toId` lets the renderer turn speakers toward each other.
 
 ## Content ladder state (Phase 6)
@@ -233,7 +233,7 @@ chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 { type: 'cancelProject', projectId }   // reasons: 'No such project'
 ```
 - Removes an unfinished project of any kind. Its progress is lost and nothing is refunded; anyone assigned to it goes idle, and campaigns aimed at it end.
-- Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Slackk.
+- Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Yak.
 
 ### Late-game money sinks
 ```js

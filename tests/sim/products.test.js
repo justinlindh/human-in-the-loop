@@ -211,7 +211,7 @@ describe('actions', () => {
     expect(s.cash).toBe(1e7 - OFFICE_STAGES[1].upgradeCost);
     expect(res.events).toContainEqual({ type: 'officeUpgrade', stage: 1 });
     dispatch(s, { type: 'upgradeOffice' });
-    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Already at the biggest office');
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Needs 28 people');
   });
 
   it('killProduct zeroes the product and hurts its builders', () => {

@@ -4,7 +4,7 @@ name: release
 # publishes a GitHub release; a new release then deploys to Pages. Release rules: .releaserc.json.
 on:
   push:
-    branches: [main, feat/one-shot]
+    branches: [main]
   workflow_dispatch:
     inputs:
       dry_run:
