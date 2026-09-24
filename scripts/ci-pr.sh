@@ -3,11 +3,21 @@
 # (GitHub's merge ref) when there is one, else the PR head, in a throwaway worktree.
 # Besides the comment it sets the commit status "local-ci" on the PR head (pending while it runs,
 # then success or failure), which branch protection can require.
-# Usage: scripts/ci-pr.sh <pr-number> [--no-comment]   (--no-comment also skips the status)
+# Usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>]
+#   --no-comment  no comment and no status (a local check)
+#   --head        the head to test, such as the commit just pushed: waits until GitHub reports it
 set -uo pipefail
 
-pr="${1:?usage: scripts/ci-pr.sh <pr-number> [--no-comment]}"
-comment=1; [ "${2:-}" = "--no-comment" ] && comment=0
+usage="usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>]"
+pr="${1:?$usage}"; shift
+comment=1; want=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-comment) comment=0; shift ;;
+    --head) want="${2:?$usage}"; shift 2 ;;
+    *) echo "$usage" >&2; exit 2 ;;
+  esac
+done
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
 mkdir -p "$ROOT"
@@ -17,8 +27,14 @@ exec 9>"$ROOT/pr-$pr.lock"
 flock -n 9 || { echo "ci-pr: another run for #$pr is in progress; not starting a second one" >&2; exit 3; }
 WT="$ROOT/pr-$pr-$$"
 
-read -r head base title < <(gh pr view "$pr" --json headRefOid,baseRefName,title --jq '[.headRefOid, .baseRefName, .title] | @tsv' | tr '\t' '\037' | awk -F'\037' '{ printf "%s %s %s\n", $1, $2, $3 }')
+read_pr() { read -r head base title < <(gh pr view "$pr" --json headRefOid,baseRefName,title --jq '[.headRefOid, .baseRefName, .title] | @tsv' | tr '\t' '\037' | awk -F'\037' '{ printf "%s %s %s\n", $1, $2, $3 }'); }
+read_pr
 [ -n "$head" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
+# Right after a push GitHub can still report the previous head for a while.
+if [ -n "$want" ]; then
+  for _ in $(seq 1 24); do case "$head" in "$want"*) break ;; esac; sleep 5; read_pr; done
+  case "$head" in "$want"*) ;; *) echo "ci-pr: GitHub still reports head ${head:0:7} for #$pr, not $want; try again shortly" >&2; exit 2 ;; esac
+fi
 
 # Commit status "local-ci" on the PR head: status <state> <description> [target url].
 status_final=0
@@ -29,6 +45,8 @@ status() {
 }
 
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
+[ "$(git -C "$REPO" rev-parse "refs/ci/pr-$pr/head")" = "$head" ] \
+  || { echo "ci-pr: refs/pull/$pr/head is not yet $head; try again shortly" >&2; exit 2; }
 git -C "$REPO" worktree prune
 cleanup() {
   git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
@@ -37,11 +55,13 @@ cleanup() {
 }
 trap cleanup EXIT
 status pending "Local CI running"
-if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null; then
+# GitHub rebuilds the merge ref after each push; use it only when it merges this head.
+if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null \
+  && [ "$(git -C "$REPO" rev-parse "refs/ci/pr-$pr/merge^2" 2>/dev/null)" = "$head" ]; then
   git -C "$REPO" worktree add -q --detach "$WT" "refs/ci/pr-$pr/merge"
   what="GitHub's merge into $base"
 else
-  # GitHub has not computed a merge ref yet (or cannot): merge the head into the base here.
+  # No current merge ref from GitHub: merge the head into the base here.
   git -C "$REPO" worktree add -q --detach "$WT" "origin/$base"
   if ! git -C "$WT" -c user.name=ci -c user.email=ci@localhost merge -q --no-edit "refs/ci/pr-$pr/head" >/dev/null 2>&1; then
     files="$(git -C "$WT" diff --name-only --diff-filter=U | sed 's/^/- `/; s/$/`/')"
