@@ -24,6 +24,19 @@ const PERKS = {
   foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.3)], [0, f.h / 2 + 0.3]], face: 'item' },
 };
 
+// Per-model spots, authored in the model's own frame (x right, z toward its front, meters as built
+// in Blender). seat: the seat height to sit on; look: a model-space point to face; yaw: a fixed
+// model-space facing. These override the generic footprint spots for that model.
+const SEAT_HIP_Y = 0.47;
+const MODEL_SPOTS = {
+  arcade_l1: [{ x: 0.55, z: 0.1, anim: 'sprawl', look: [0, -0.1] }],
+  arcade_l2: [{ x: 0.55, z: 0.35, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
+  arcade_l3: [{ x: 0, z: 0.45, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
+  library_l1: [{ x: 0, z: 0.2, anim: 'browse', yaw: Math.PI }],
+  library_l2: [{ x: -0.45, z: 0.2, anim: 'browse', yaw: Math.PI }, { x: 0.55, z: 0.1, anim: 'read', seat: 0.45, yaw: -0.44 }],
+  library_l3: [{ x: -0.55, z: 0.2, anim: 'browse', yaw: Math.PI }, { x: 0.35, z: 0.45, anim: 'read', seat: 0.45, yaw: -0.35 }],
+};
+
 function perkOf(e) {
   const k = kindOf(e.itemId);
   if (k === 'coffee' || e.itemId === 'espresso') return 'coffee';
@@ -44,7 +57,29 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     return { x: t.x + Math.cos(t.rotY) * lx + Math.sin(t.rotY) * lz, z: t.z - Math.sin(t.rotY) * lx + Math.cos(t.rotY) * lz };
   }
 
+  function modelSpots(e) {
+    return MODEL_SPOTS[e.obj.userData.model] ?? null;
+  }
+
   function spotFor(e, def, i, other) {
+    const ms = modelSpots(e)?.[i];
+    if (ms) {
+      const fit = e.obj.userData.fit;
+      const v = new THREE.Vector3(ms.x, 0, ms.z).applyMatrix4(fit);
+      const fitYaw = Math.atan2(fit.elements[8], fit.elements[10]);
+      const scale = Math.hypot(fit.elements[0], fit.elements[1], fit.elements[2]);
+      const p = toWorld(e.target, v.x, v.z);
+      let yaw;
+      if (ms.look) {
+        const t = new THREE.Vector3(ms.look[0], 0, ms.look[1]).applyMatrix4(fit);
+        const q = toWorld(e.target, t.x, t.z);
+        yaw = Math.atan2(q.x - p.x, q.z - p.z);
+      } else {
+        yaw = e.target.rotY + fitYaw + (ms.yaw ?? 0);
+      }
+      const lift = ms.seat ? Math.max(-0.1, ms.seat * scale - SEAT_HIP_Y) : 0;
+      return { x: p.x, z: p.z, yaw, anim: 'idle', perkAnim: ms.anim, lift };
+    }
     const f = footprint(e.itemId, 0);
     const [lx, lz] = def.spots(f)[i];
     const p = toWorld(e.target, lx, lz);
@@ -73,7 +108,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
         if (!slots.has(`${e.id}:0`) && !slots.has(`${e.id}:1`)) out.push({ e, kind, def, i: 0 });
         continue;
       }
-      const n = def.spots(footprint(e.itemId, 0)).length;
+      const n = modelSpots(e)?.length ?? def.spots(footprint(e.itemId, 0)).length;
       for (let i = 0; i < Math.min(def.cap, n); i++) if (!slots.has(`${e.id}:${i}`)) { out.push({ e, kind, def, i }); break; }
     }
     return out;
@@ -100,11 +135,11 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     const key = `${e.id}:${i}`;
     const spot = spotFor(e, def, i);
     const lying = kind === 'nap_pod';
-    const anim = lying ? (e.level <= 1 ? 'sprawl' : 'lie') : def.anim;
+    const anim = spot.perkAnim ?? (lying ? (e.level <= 1 ? 'sprawl' : 'lie') : def.anim);
     slots.set(key, r);
     r.temp = {
       anim, t: rnd(...def.dur), goal: spot, back: true, wander: true, perkKey: key,
-      lift: lying ? lieHeight(e) : 0, tick: perkTick, def, burstT: rnd(2, 4), emoteT: rnd(1, 3),
+      lift: lying ? lieHeight(e) : spot.lift ?? 0, tick: perkTick, def, burstT: rnd(2, 4), emoteT: rnd(1, 3),
     };
     walkTo(r, spot);
   }
@@ -117,7 +152,9 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     if (def.bursts) {
       tp.burstT -= dt;
       if (tp.burstT <= 0) { tp.burstT = rnd(3, 5); tp.burst = 1.0; if (Math.random() < 0.5) emote(r, 'sparkle', 1.2); }
-      if (tp.burst > 0) { tp.burst -= dt; r.char.setAnim(tp.burst > 0 ? 'celebrate' : tp.anim); return true; }
+      // Seated players cheer in their seat (a quick sparkle) rather than jumping off the stool.
+      if (tp.burst > 0 && !tp.lift) { tp.burst -= dt; r.char.setAnim(tp.burst > 0 ? 'celebrate' : tp.anim); return true; }
+      if (tp.burst > 0) tp.burst = 0;
     }
     return false;
   }
@@ -229,7 +266,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     peek(id) { const r = recs.get(id); return r && { seat: r.seat, yaw: r.yaw, face: r.face ?? null, path: r.path.length, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
     get phases() { return sessions.map((x) => `${x.phase}:${x.t.toFixed(1)}/${x.dur.toFixed(1)}`); },
     // Test hook: send a person (or a pair) to a specific placed item now.
-    send(ids, placedId, { dur } = {}) {
+    send(ids, placedId, { dur, slot = 0 } = {}) {
       const e = office.placed.get(placedId);
       const kind = e && perkOf(e);
       if (!kind) return false;
@@ -243,7 +280,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
         if (dur) sessions[sessions.length - 1].dur = dur;
         return true;
       }
-      visit(rs[0], { e, kind, def, i: 0 });
+      visit(rs[0], { e, kind, def, i: slot });
       if (dur) rs[0].temp.t = dur;
       return true;
     },

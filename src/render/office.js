@@ -399,6 +399,10 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind));
   const g = new THREE.Group();
   g.add(inner);
+  inner.updateMatrix();
+  // Model space to item space (the footprint fit), so interaction spots can be authored per model.
+  g.userData.fit = inner.matrix.clone();
+  g.userData.model = inner.name;
   g.userData.kind = kind;
   g.userData.chairs = inner.userData.chairs ?? [];
   g.userData.table = inner.userData.table ?? null;
