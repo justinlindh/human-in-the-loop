@@ -4,7 +4,7 @@
 // along world +x and tile y along world +z.
 
 import { ITEMS } from '../data/items.js';
-import { OFFICE_STAGES } from '../data/office.js';
+import { OFFICE_STAGES, officeShape } from '../data/office.js';
 
 const PI = Math.PI;
 
@@ -71,7 +71,8 @@ function stage2() {
 
 export const STAGES = [stage0(), stage1(), stage2()];
 
-export function stageLayout(stage) {
+export function stageLayout(stage, expansion = 0) {
+  if (stage === 2 && expansion > 0 && OFFICE_STAGES[2]?.expansions?.[expansion - 1]) return hqExpanded(expansion);
   const L = STAGES[Math.max(0, Math.min(STAGES.length - 1, stage | 0))];
   const data = OFFICE_STAGES[stage]?.grid;
   const grid = { w: data?.w ?? L.W, h: data?.h ?? L.D };
@@ -79,6 +80,66 @@ export function stageLayout(stage) {
   return {
     ...L, grid, door, doorWorld: tileCenter(L, door.x, door.y), openings: withDoor(L, grid, door),
     blocked: OFFICE_STAGES[stage]?.blocked ?? L.blocked ?? [],
+    extras: {},
+  };
+}
+
+// The HQ after expansion steps. Everything is placed by tile, so the original part of the floor keeps
+// its windows, floor split and pillars. extras describes what the shell adds for each step:
+//   seams:   floor threshold strips where an old wall stood ({ axis: 'x'|'z', at, from, to }, world m)
+//   columns: pilasters left at the ends of a removed wall
+//   decks:   decking areas (the roof terrace) with a glass rail on their outer edges
+//   annex:   the new wing's floor rectangle
+function hqExpanded(expansion) {
+  const base = STAGES[2];
+  const shape = officeShape(2, expansion);
+  const W = shape.grid.w, D = shape.grid.h;
+  const X = (tx) => -W / 2 + tx;           // world x of a tile edge
+  const Z = (ty) => -D / 2 + ty;
+  const zones = shape.zones ?? [];
+  const terrace = zones.find((z) => z.id === 'terrace');
+  const annex = zones.find((z) => z.id === 'annex');
+  const win = (wall, at) => ({ wall, at, width: 2.4, bottom: wall === 'z' ? 1.3 : 1.0, top: wall === 'z' ? 2.6 : 2.5, kind: 'window', wide: true });
+  const openings = [];
+  // Back wall along x: a window every 6 tiles across the indoor part; the terrace span is open rail.
+  const indoorW = terrace ? terrace.x0 : W;
+  for (let t = 3; t + 1.2 <= indoorW - 0.6; t += 6) openings.push(win('z', X(t)));
+  if (terrace) openings.push({ wall: 'z', at: X((terrace.x0 + terrace.x1 + 1) / 2), width: terrace.x1 + 1 - terrace.x0, bottom: 0, top: base.wallH, kind: 'rail' });
+  // Left wall along z: the original windows, then one more per annex bay.
+  for (const t of [4, 9.5, 13.5]) openings.push(win('x', Z(t)));
+  if (annex) for (let t = annex.y0 + 3; t < D - 1; t += 5) openings.push(win('x', Z(t)));
+  // Right wall: rail beside the terrace, wall with windows elsewhere.
+  if (terrace) {
+    openings.push({ wall: 'px', at: Z((terrace.y0 + terrace.y1 + 1) / 2), width: terrace.y1 + 1 - terrace.y0, bottom: 0, top: base.wallH, kind: 'rail' });
+    if (annex) openings.push(win('px', Z((annex.y0 + D) / 2)));
+  } else {
+    for (const t of [4, 11]) openings.push(win('px', Z(t)));
+  }
+  // Front wall: windows spread between the corners, clear of the door.
+  for (let t = 5.5; t < W - 2; t += 10) openings.push(win('pz', X(t)));
+  const grid = { w: W, h: D };
+  const door = shape.door;
+  const L0 = { ...base, W, D, split: X(6), openings };
+  // Interior lights: the renderer has six, spread evenly over the indoor floor.
+  const lights = [];
+  const rows = 2, cols = 3;
+  for (let i = 0; i < cols; i++) for (let k = 0; k < rows; k++) lights.push({ x: X(indoorW * (i + 0.5) / cols), z: Z(D * (k + 0.5) / rows) });
+  const extras = { seams: [], columns: [], decks: [], annex: null };
+  // Knock-through: the old right wall line at tile 21, now open floor.
+  extras.seams.push({ axis: 'x', at: X(21), from: Z(0), to: Z(16) });
+  extras.columns.push({ x: X(21), z: Z(0) + 0.12 }, { x: X(21), z: Z(16) - 0.12 });
+  if (terrace) {
+    extras.decks.push({ x0: X(terrace.x0), x1: X(terrace.x1 + 1), z0: Z(terrace.y0), z1: Z(terrace.y1 + 1) });
+    extras.seams.push({ axis: 'x', at: X(terrace.x0), from: Z(terrace.y0), to: Z(terrace.y1 + 1) });
+  }
+  if (annex) {
+    extras.annex = { x0: X(annex.x0), x1: X(annex.x1 + 1), z0: Z(annex.y0), z1: Z(annex.y1 + 1) };
+    extras.seams.push({ axis: 'z', at: Z(16), from: X(0), to: X(W) });
+    extras.columns.push({ x: X(0) + 0.12, z: Z(16) }, { x: X(W) - 0.12, z: Z(16) });
+  }
+  return {
+    ...L0, name: base.name, grid, door, doorWorld: tileCenter(L0, door.x, door.y), openings: withDoor(L0, grid, door),
+    blocked: shape.blocked, lights, extras, expansion,
   };
 }
 

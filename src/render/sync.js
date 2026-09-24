@@ -39,6 +39,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const hired = new Set();
   const leaving = new Map();    // staff id -> { fired }
   let stageSeen = -1;
+  let lastL = null;
+  let lastStage = -1;
   let firstSync = true;
   let lastState = null;
   const ledMats = {
@@ -159,8 +161,20 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     lastState = state;
     const cur = office.current;
     if (!cur) return;
-    const stageChanged = cur.stage !== stageSeen;
-    stageSeen = cur.stage;
+    const key = cur.key ?? cur.stage;
+    const stageChanged = key !== stageSeen;
+    // An HQ expansion grows the floor, so its centre (the world origin) moves: everyone keeps their
+    // tile by shifting with it.
+    if (stageChanged && lastL && cur.stage === lastStage) {
+      const dx = (lastL.W - cur.L.W) / 2, dz = (lastL.D - cur.L.D) / 2;
+      for (const r of [...recs.values(), ...leavers]) {
+        r.pos.x += dx; r.pos.z += dz;
+        for (const q of r.path) { q.x += dx; q.z += dz; }
+      }
+    }
+    stageSeen = key;
+    lastL = cur.L;
+    lastStage = cur.stage;
     const list = state.staff ?? [];
     const ids = new Set(list.map((s) => s.id));
 
