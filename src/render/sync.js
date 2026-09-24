@@ -3,6 +3,9 @@ import { createCharacter } from './character.js';
 import { ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
 import { createPerks } from './perks.js';
+import { createPets } from './pets.js';
+import { createIncentives } from './incentives.js';
+import { holdSeconds } from './reading.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -10,6 +13,8 @@ import { createPerks } from './perks.js';
 const WALK = 1.25;
 const RUN = 2.8;
 const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
+const TIRED_STAMINA = 25;           // below this a person shows the exhaustion warning signs
+const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const MAX_SPEECH = 6;
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
@@ -23,7 +28,7 @@ function angleLerp(a, b, k) {
   return a + d * k;
 }
 
-export function createStaffSync({ office, parent, labels, fx, rig }) {
+export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {}, setPictureLight = () => {} }) {
   const group = new THREE.Group();
   group.name = 'staff';
   parent.add(group);
@@ -78,9 +83,9 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const cur = office.current;
     const Z = cur.zones;
     const type = s.assignment?.type ?? 'idle';
-    if (s.mood === 'away' || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
+    if (s.mood === 'away' || s.remote || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
     const desk = r.seat !== null ? office.deskById(r.seat) : null;
-    const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: SEATED_ANIM[s.mood] ?? 'typing', seated: true });
+    const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: isTired(s) ? 'tired' : SEATED_ANIM[s.mood] ?? 'typing', seated: true });
     if (type === 'oversight') {
       const wall = [...office.placed.values()].find((it) => it.itemId === 'monitoring_wall');
       if (wall) {
@@ -115,7 +120,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         return { x: md.seat.x - rx * 0.55 - Math.sin(f) * 0.15, z: md.seat.z - rz * 0.55 - Math.cos(f) * 0.15, yaw: f + 0.7, anim: 'idle', key: `mentor-${mentee.id}-${md.seat.x.toFixed(2)},${md.seat.z.toFixed(2)}`, mentoring: true };
       }
     }
-    if (desk) return { ...seated(desk), key: `desk-${desk.seat.x.toFixed(2)},${desk.seat.z.toFixed(2)},${desk.seat.rotY.toFixed(2)}-${s.mood}` };
+    if (desk) return { ...seated(desk), key: `desk-${desk.seat.x.toFixed(2)},${desk.seat.z.toFixed(2)},${desk.seat.rotY.toFixed(2)}-${s.mood}-${isTired(s) ? 't' : ''}` };
     const W = Z.wander?.length ? Z.wander : [Z.door];
     const w = W[r.id.length % W.length];
     return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
@@ -125,7 +130,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const nav = office.nav();
     r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: goal.x, z: goal.z });
     r.path.shift();
-    r.speed = run ? RUN : WALK;
+    r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
   }
 
@@ -174,7 +179,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -186,6 +191,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       if (s.assignment?.type === 'hardProblem') roleIndex.hard++;
       const g = goalFor(s, r, idx);
       if (r.char.mood !== s.mood && s.mood !== 'away') r.char.setMood(s.mood);
+      r.char.setTired(isTired(s));
       r.char.setLegend(!!s.legend);
       if (r.seat !== null) occupied.set(r.seat, s);
 
@@ -232,6 +238,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
     }
     firstSync = false;
+    pets.sync(state);
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
@@ -289,6 +296,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         }
         case 'incident': incident(e); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
+        case 'incentive': incentives.handle(e); break;
         default: break;
       }
     }
@@ -323,7 +331,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     if (staged) faceToward(other, r);
     // Only the opening line may walk over, and only a short way; its bubble then shows on arrival.
     if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text)) return;
-    labels.say(e.text, r.char.root, 3.2);
+    labels.say(e.text, r.char.root, holdSeconds(e.text, speed));
     if (!staged) return;
     faceToward(r, other);
     if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
@@ -402,6 +410,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
+  const pets = createPets({ office, recs, emote, parent: group });
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -432,6 +442,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       const m = r.staff.mood;
       if (!c.emote) {
         if (m === 'burnout') emote(r, 'zzz', 3);
+        else if (isTired(r.staff)) {
+          emote(r, 'tired', 2.6);
+          // Now and then a tired person nods off at the desk for a few seconds.
+          if (r.goal?.seated && !r.temp && !r.path.length && Math.random() < 0.35) r.temp = { anim: 'desknap', t: rnd(3, 5), keepPos: true };
+        }
         else if (m === 'coasting' && Math.random() < 0.6) emote(r, 'sweat', 2.5);
         else if (r.goal?.thinking && Math.random() < 0.7) emote(r, 'lightbulb', 2.5);
         else if (r.goal?.mentoring && Math.random() < 0.5) emote(r, 'heart', 2);
@@ -445,7 +460,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       const tp = r.temp;
       if (tp.delay > 0) { tp.delay -= dt; }
       else {
-        if (tp.sayText) { labels.say(tp.sayText, c.root, 3.2); tp.sayText = null; }
+        if (tp.sayText) { labels.say(tp.sayText, c.root, holdSeconds(tp.sayText, speed)); tp.sayText = null; }
         tp.t -= dt;
         if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
@@ -563,7 +578,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     // While a staged standup is still talking, the desk week stays silent so bubbles never overlap.
     if (speed >= 4 || standup) return;
     const said = lines.filter((l) => l.text).sort((a, b) => a.text.length - b.text.length)[0];
-    if (said && !(labels.speechCount?.() >= MAX_SPEECH)) labels.say(said.text, recs.get(said.staffId).char.root, 2.4);
+    if (said && !(labels.speechCount?.() >= MAX_SPEECH)) labels.say(said.text, recs.get(said.staffId).char.root, holdSeconds(said.text, speed));
   }
 
   function startStandup(e, state) {
@@ -572,20 +587,10 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     standupCount++;
     if (week < lastStagedWeek) lastStagedWeek = -Infinity;   // a new or loaded game
     const every = STAGE_EVERY[speed >= 2 ? 2 : 1];
-    const stage = speed < 4 && week - lastStagedWeek >= every;
+    // A standup still talking is never cut off: the new week's update stays at the desks, silent.
+    const stage = speed < 4 && !standup && week - lastStagedWeek >= every;
     const present = (l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !r.temp?.standup; };
     if (!stage) { deskStandup((e.lines ?? []).filter(present)); return; }
-    // A new week's standup takes over from one still running; attendees not in it head back.
-    if (standup) {
-      const next = new Set((e.lines ?? []).map((l) => l.staffId));
-      for (const { r } of standup.people) {
-        if (next.has(r.id) || !recs.has(r.id) || !r.temp?.standup) continue;
-        r.temp = null;
-        if (r.goal && !r.goal.hidden) walkTo(r, r.goal);
-      }
-      for (const { r } of standup.people) if (next.has(r.id)) { r.temp = null; labels.clearFor(r.char.root); }
-      standup = null;
-    }
     const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed'; });
     if (!lines.length) return;
     lastStagedWeek = week;
@@ -620,19 +625,20 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
 
   function updateStandup(dt) {
     if (!standup) return;
-    const k = speed >= 2 ? 2 : 1;
     const st = standup;
-    st.t += dt * k;
+    st.t += dt;
     const live = st.people.filter((p) => recs.has(p.r.id) && p.r.temp?.standup);
     if (!live.length) { standup = null; office.tuckMeetingChairs(false); return; }
     if (speed >= 4) { endStandup(); return; }
     if (st.phase === 'gather') {
       const arrived = live.every((p) => !p.r.path.length);
-      if (arrived || st.t > GATHER + 0.6) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
+      if (arrived || st.t > GATHER / (speed >= 2 ? 2 : 1) + 0.6) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
       return;
     }
     if (st.phase === 'talk') {
-      const beat = (p) => (p.text ? 0.9 + Math.min(0.6, p.text.length * 0.018) : 0.6);
+      // Each speaker holds the floor for the full reading time of their line, then a short pause.
+      const GAP = 0.3;
+      const beat = (p) => (p.text ? holdSeconds(p.text, speed) + GAP : (speed >= 2 ? 0.9 : 1.3));
       const cur = st.i >= 0 ? st.people[st.i] : null;
       if (st.i < 0 || st.t >= beat(cur)) {
         st.i++;
@@ -640,8 +646,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         if (st.i >= st.people.length) { st.phase = 'close'; st.t = 0; return; }
         const p = st.people[st.i];
         if (!recs.has(p.r.id)) return;
-        if (p.text) labels.say(p.text, p.r.char.root, Math.max(0.6, beat(p) / k - 0.1));
-        else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p) / k);
+        if (p.text) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
+        else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
       }
       return;
     }
@@ -653,6 +659,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     updateStandup(dt);
     updateFast(dt);
     perks.update(dt, lastState);
+    pets.update(dt);
+    incentives.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
@@ -692,7 +700,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   }
 
   return {
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives,
     get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },

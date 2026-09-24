@@ -17,8 +17,8 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read'];
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read']);
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap'];
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
 const ink = new THREE.Color(PALETTE.ink);
 const inkL = ink.r * 0.2126 + ink.g * 0.7152 + ink.b * 0.0722;
@@ -64,6 +64,14 @@ function ringMaterial(role, hex) {
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 const pickGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.15, 8).translate(0, 0.58, 0);
+const HAT_COLORS = ['fabric_teal', 'fabric_terracotta', 'fabric_mustard', 'fabric_slate', 'fabric_sage', 'wood_walnut'];
+function hashLook(a) {
+  const s = `${a.hairColor}|${a.shirt}|${a.pants}|${a.skin}|${a.hair}`;
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
 let haloMat = null;
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
 
@@ -166,7 +174,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   headGroup.add(eyes, shine, blush, mouths.ok, mouths.coasting, mouths.burnout);
   // A hat replaces the hair; drawing both makes them fight through each other.
   if (!hat) headGroup.add(P(`hair_${hairIdx}`));
-  if (acc !== 'none') headGroup.add(P(`acc_${acc}`));
+  if (acc !== 'none') {
+    const a = P(`acc_${acc}`);
+    // Hats take a colour picked from the person's look, so a row of cap wearers are not clones.
+    if (hat) {
+      const pickHat = HAT_COLORS[hashLook(appearance) % HAT_COLORS.length];
+      const body = new Set([mat('fabric_teal'), mat('fabric_terracotta')]);
+      a.traverse((m) => { if (m.isMesh && body.has(m.material)) m.material = mat(pickHat); });
+    }
+    // Most caps face forward; about one person in four wears theirs backwards.
+    if (acc === 'cap' && (appearance.capBack ?? hashLook(appearance) % 4 === 1)) a.rotateY(Math.PI);
+    headGroup.add(a);
+  }
   if (role === 'support') headGroup.add(P('role_support'));
 
   const arms = [-1, 1].map((sx) => {
@@ -221,6 +240,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let emoteT = 0;
   let tint = 0;
   let mood = 'ok';
+  let tired = false;
   const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = Math.random() * Math.PI * 2;
@@ -272,14 +292,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       case 'walk':
       case 'run': {
         const run = anim === 'run';
-        const f = run ? 13 : 8;
+        const f = run ? 13 : tired ? 6 : 8;
         const a = run ? 0.75 : 0.45;
         tgt.legL = s(t * f) * a;
         tgt.legR = -s(t * f) * a;
         tgt.armLX = -s(t * f) * a * 0.9;
         tgt.armRX = s(t * f) * a * 0.9;
         tgt.bodyY = Math.abs(s(t * f)) * (run ? 0.05 : 0.025);
-        tgt.lean = run ? 0.22 : 0.04;
+        tgt.lean = run ? 0.22 : tired ? 0.2 : 0.04;
+        if (tired && !run) { tgt.headX = 0.25; tgt.armLZ = 0.05; tgt.armRZ = -0.05; }
         tgt.twist = s(t * f) * 0.08;
         break;
       }
@@ -320,6 +341,36 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headZ = 0.25;
         break;
       }
+      case 'tired': {
+        // Exhausted but working: chin propped on one hand, the other hand typing slowly.
+        const nod = Math.max(0, s(t * 0.9 + phase)) ** 8;
+        tgt.lean = 0.3;
+        tgt.headX = 0.22 + nod * 0.25;
+        tgt.headZ = 0.22;
+        tgt.armRX = -2.0; tgt.armRZ = -0.55;
+        tgt.armLX = -1.1 + s(t * 6) * 0.06; tgt.armLZ = 0.3;
+        tgt.bodyY -= 0.02;
+        break;
+      }
+      case 'desknap': {
+        // A short nap on folded arms, gently breathing.
+        tgt.lean = 0.8;
+        tgt.headX = 0.35;
+        tgt.headZ = 0.45;
+        tgt.armLX = tgt.armRX = -1.55;
+        tgt.armLZ = 0.7; tgt.armRZ = -0.7;
+        tgt.bodyY -= 0.04 - s(t * 1.1 + phase) * 0.006;
+        break;
+      }
+      case 'nap':
+        // Lying on the back, the upper body inclined so the head rests up on an armrest.
+        tgt.pitch = -Math.PI / 2 + 0.3;
+        tgt.bodyZ = 0.5;
+        tgt.bodyY = 0.1 + s(t * 1.2 + phase) * 0.006;
+        tgt.headX = 0.3;
+        tgt.armLZ = 0.35; tgt.armRZ = -0.35;
+        tgt.armLX = -0.3; tgt.armRX = -0.3;
+        break;
       case 'sit':
         tgt.lean = -0.18;
         tgt.headZ = s(t * 0.5 + phase) * 0.08;
@@ -384,7 +435,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       case 'groan':
         tgt.lean = 0.28;
-        tgt.headX = 0.5;
+        tgt.headX = 0.3;
         tgt.headZ = s(t * 1.5) * 0.12;
         tgt.armLZ = 0.05; tgt.armRZ = -0.05;
         break;
@@ -397,6 +448,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
     }
     if (mood === 'coasting' && !seated && anim === 'idle') { tgt.headX += 0.25; tgt.lean += 0.12; }
+    if (tired && !seated && anim === 'idle') { tgt.headX += 0.3; tgt.lean += 0.15; tgt.bodyY -= 0.015; }
     const k = 1 - Math.exp(-dt * 16);
     for (const key in cur) cur[key] += (tgt[key] - cur[key]) * k;
 
@@ -444,6 +496,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
   setMood('ok');
 
+  // Low stamina: slower, slouched walk and a drooping idle (the seated pose is chosen by sync).
+  function setTired(on) { tired = !!on; }
+
   function setLegend(on) {
     if (on && !halo) {
       haloMat ??= new THREE.MeshStandardMaterial({ color: color('gold'), emissive: color('gold'), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.4 });
@@ -489,7 +544,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   update(0);
   return {
-    root, setAnim, update, setEmote, setTint, setMood, setLegend, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setAnim, update, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

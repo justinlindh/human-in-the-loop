@@ -338,7 +338,102 @@ def scale_all(k):
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
 
-def export(path=None, budget=3000, clear=False):
+ZF_NORMAL = 0.999      # cos of the largest angle between faces that count as parallel
+ZF_DIST = 0.0006       # meters between planes that still z-fight (the game's ortho depth is linear)
+ZF_MIN_AREA = 2e-5     # m^2 of shared surface worth reporting (about 4.5 mm square)
+
+
+def _tri_inside(p, a, b, c, eps=1e-6):
+    def cross(o, u, v):
+        return (u[0] - o[0]) * (v[1] - o[1]) - (u[1] - o[1]) * (v[0] - o[0])
+    d1, d2, d3 = cross(a, b, p), cross(b, c, p), cross(c, a, p)
+    neg = d1 < -eps or d2 < -eps or d3 < -eps
+    pos = d1 > eps or d2 > eps or d3 > eps
+    return not (neg and pos)
+
+
+def zfight_report(kit=False):
+    """Print ZFIGHT lines for faces with different materials (or on different objects) that lie
+    in the same plane, face the same way, and overlap: they flicker against each other in game.
+    Downward faces are never seen from the game camera and are skipped. kit=True (part kits whose
+    objects are alternatives, like hair styles) compares faces within one object only.
+    Returns the number of overlapping pairs found."""
+    from mathutils import Vector
+    faces = []
+    dg = bpy.context.evaluated_depsgraph_get()
+    for o in bpy.context.scene.objects:
+        if o.type != 'MESH':
+            continue
+        me = o.evaluated_get(dg).to_mesh()
+        me.calc_loop_triangles()
+        mw = o.matrix_world
+        mats = [m.name if m else '' for m in me.materials] or ['']
+        for t in me.loop_triangles:
+            vs = [mw @ me.vertices[i].co for i in t.vertices]
+            n = (vs[1] - vs[0]).cross(vs[2] - vs[0])
+            area = n.length / 2
+            if area < 1e-7:
+                continue
+            n.normalize()
+            if n.z < -0.9:
+                continue            # the game camera always looks down, so undersides never show
+            faces.append((o.name, mats[t.material_index] if t.material_index < len(mats) else '', n, n.dot(vs[0]), vs, area))
+        o.evaluated_get(dg).to_mesh_clear()
+    buckets = {}
+    for i, f in enumerate(faces):
+        n, d = f[2], f[3]
+        key = (round(n.x * 40), round(n.y * 40), round(n.z * 40))
+        buckets.setdefault(key, []).append(i)
+    hits = {}
+    for key, idx in buckets.items():
+        idx.sort(key=lambda i: faces[i][3])
+        for a_i, i in enumerate(idx):
+            fa = faces[i]
+            for j in idx[a_i + 1:]:
+                fb = faces[j]
+                if fb[3] - fa[3] > ZF_DIST:
+                    break
+                if fa[0] == fb[0] and fa[1] == fb[1]:
+                    continue
+                if kit and fa[0] != fb[0]:
+                    continue
+                if fa[2].dot(fb[2]) < ZF_NORMAL:
+                    continue
+                # Project both triangles onto the plane and estimate the shared area by sampling.
+                n = fa[2]
+                u = n.orthogonal().normalized()
+                v = n.cross(u)
+                A = [(p.dot(u), p.dot(v)) for p in fa[4]]
+                B = [(p.dot(u), p.dot(v)) for p in fb[4]]
+                if (max(x for x, _ in A) < min(x for x, _ in B) or max(x for x, _ in B) < min(x for x, _ in A)
+                        or max(y for _, y in A) < min(y for _, y in B) or max(y for _, y in B) < min(y for _, y in A)):
+                    continue
+                small, big, sarea = (A, B, fa[5]) if fa[5] <= fb[5] else (B, A, fb[5])
+                k = 0
+                pts = [(a, b) for a in range(1, 5) for b in range(1, 5 - a)]
+                for a, b in pts:
+                    wa, wb = a / 5, b / 5
+                    wc = 1 - wa - wb
+                    p = (small[0][0] * wa + small[1][0] * wb + small[2][0] * wc, small[0][1] * wa + small[1][1] * wb + small[2][1] * wc)
+                    if _tri_inside(p, *big):
+                        k += 1
+                shared = sarea * k / len(pts)
+                if shared <= 0:
+                    continue
+                key2 = tuple(sorted([(fa[0], fa[1]), (fb[0], fb[1])]))
+                h = hits.setdefault(key2, [0, 0.0, fa[4][0]])
+                h[0] += 1
+                h[1] += shared
+    n_pairs = 0
+    for (a, b), (count, area, at) in sorted(hits.items(), key=lambda kv: -kv[1][1]):
+        if area < ZF_MIN_AREA:
+            continue
+        n_pairs += 1
+        print(f'ZFIGHT {a[0]}[{a[1]}] vs {b[0]}[{b[1]}]: {count} tris, {area * 1e4:.1f} cm2 near ({at.x:.2f}, {at.y:.2f}, {at.z:.2f})')
+    return n_pairs
+
+
+def export(path=None, budget=3000, clear=False, zfight_kit=False):
     path = path or out_path()
     for o in list(bpy.context.scene.objects):
         if o.type != 'MESH':
@@ -351,6 +446,7 @@ def export(path=None, budget=3000, clear=False):
         apply_mods(o)
         _canonical_order(o)
     _strip_uvs()
+    zfight_report(kit=zfight_kit)
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tris = tri_count()
     if os.environ.get('HITL_TRIS'):
