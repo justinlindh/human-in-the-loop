@@ -102,22 +102,28 @@ describe('moods and resignations', () => {
     expect(p.burnoutWeeks).toBe(1);
   });
 
-  it('warning signs come well before resignations under full automation', () => {
-    for (const seed of [1, 2, 3, 4, 5, 6]) {
+  it('every resignation is preceded by a warn toast naming that person', () => {
+    let resignations = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
       const s = game(seed);
       s.automation.engineering.level = 1;
-      for (let i = 0; i < 2; i++) plain(s, 'engineer', 'senior', { meaning: 80, assignment: { type: 'maintenance', targetId: null } });
-      let firstWarning = null;
-      let firstResign = null;
-      for (let w = 0; w < 200 && firstResign === null; w++) {
-        const ev = runMeaning(s, 1);
-        const warned = s.staff.some((p) => p.mood === 'coasting' || p.mood === 'burnout') && ev.some((e) => e.type === 'chat' || e.type === 'bubble');
-        if (warned && firstWarning === null) firstWarning = w;
-        if (ev.some((e) => e.type === 'resign')) firstResign = w;
+      for (let i = 0; i < 3; i++) plain(s, 'engineer', 'senior', { meaning: 80, assignment: { type: 'maintenance', targetId: null } });
+      const firstWarn = {};
+      for (let w = 0; w < 250; w++) {
+        for (const e of runMeaning(s, 1)) {
+          if (e.type === 'toast' && e.tone === 'warn') {
+            const who = s.staff.find((p) => e.text.startsWith(p.name));
+            if (who && !(who.name in firstWarn)) firstWarn[who.name] = w;
+          }
+          if (e.type === 'resign') {
+            resignations++;
+            expect(e.name in firstWarn, `seed ${seed}: ${e.name} quit without a warning`).toBe(true);
+            expect(w - firstWarn[e.name], `seed ${seed}: ${e.name}`).toBeGreaterThanOrEqual(3);
+          }
+        }
       }
-      expect(firstWarning, `seed ${seed}`).not.toBe(null);
-      if (firstResign !== null) expect(firstResign - firstWarning, `seed ${seed}`).toBeGreaterThanOrEqual(3);
     }
+    expect(resignations).toBeGreaterThan(5);
   });
 
   it('a burnout run makes a non-founder resign and never a founder', () => {
@@ -197,6 +203,17 @@ describe('setAutomation and setPolicy', () => {
     expectFail(expect, dispatch, s, { type: 'setAutomation', fn: 'vibes', level: 1 }, 'Unknown function');
     expectFail(expect, dispatch, s, { type: 'setAutomation', fn: 'qa', level: 'lots' }, 'Invalid level');
     expectFail(expect, dispatch, s, { type: 'setAutomation', fn: 'qa', level: 1, model: 'mistrale' }, 'Model is not available');
+  });
+
+  it('turning a function off or changing only the level skips the model check', () => {
+    const s = game();
+    dispatch(s, { type: 'setAutomation', fn: 'support', level: 1, model: 'grokk' });
+    s.models.grokk.deprecated = true;
+    expect(dispatch(s, { type: 'setAutomation', fn: 'support', level: 0.5 }).ok).toBe(true);
+    expect(dispatch(s, { type: 'setAutomation', fn: 'support', level: 0, model: 'grokk' }).ok).toBe(true);
+    expect(s.automation.support).toEqual({ level: 0, model: 'grokk' });
+    expectFail(expect, dispatch, s, { type: 'setAutomation', fn: 'qa', level: 1, model: 'grokk' }, 'Model is not available');
+    expectFail(expect, dispatch, s, { type: 'setAutomation', fn: 'qa', level: 0, model: 'mistrale' }, 'Model is not available');
   });
 
   it('a locked policy cannot be turned on; turning off always works', () => {
