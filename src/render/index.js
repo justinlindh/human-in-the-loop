@@ -285,7 +285,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       post.render(dt);
       labels.render(scene, rig.camera);
       const ls = labels.getSize();
-      floating.layout(dt, rig.camera, ls.width, ls.height);
+      floating.layout(dt, rig.camera, ls.width, ls.height, labels.domElement);
       perf.calls = renderer.info.render.calls;
       perf.triangles = renderer.info.render.triangles;
       perf.ms = perf.frames ? perf.ms * 0.9 + (performance.now() - t0) * 0.1 : performance.now() - t0;
