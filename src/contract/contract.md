@@ -16,6 +16,8 @@ oversightRequired(state) -> hours; oversightProvided(state) -> hours
 securityPosture(state) -> 0..100
 scoreRun(state) -> { score, valuation, breakdown }
 loadGame(storage) -> { ok, state?, reason?, notice? }   // notice: a message to toast after a successful load (src/save/save.js)
+// A save the current build can't run returns { ok:false, stale:true, version, reason:'Save is from an older build'|'Save is from a newer build' }; ui offers Start fresh instead of failing.
+exportSave(storage, id) -> string   // the raw save text, for keeping a stale save; saveMeta carries `version`
 FUNCTIONS = ['engineering','support','sales','marketing','qa','ops']
 SAVE_VERSION = 1
 ```
