@@ -1,21 +1,122 @@
 import * as THREE from 'three';
 import { getModel } from './models.js';
-import { mat } from './materials.js';
-import { roundedBox, mesh } from './prims.js';
+import { mat, color } from './materials.js';
+import { roundedBox, roundedCylinder, mesh } from './prims.js';
 import { PALETTE as P } from './palette.js';
 import { wallGap } from './office.js';
 
 // Incentive rewards. { type: 'incentive', staffId, reward } where reward is 'balloons' (on the
 // winner's desk until the next award), 'caricature' (a framed big-head portrait on the wall), or
-// 'waffle_party' (a staged scene: the station rolls in, the lights go dim and warm, the winner eats
-// alone at the table while a few colleagues watch from a distance; a caricature goes up afterwards).
+// 'waffle_party' (a staged scene: the cart rolls in, the room goes dark around one warm pool of
+// light, the winner eats a towering stack alone under bunting, and colleagues watch through a
+// frosted partition; the caricature goes up afterwards).
 
-const PARTY_S = 14;
+const PARTY_S = 15;
 const ROLL_S = 2.2;
+const DIM = 1.9;            // how far the room lights drop (see lighting.setSkeleton)
+const POOL = 5.5;             // warm light over the table
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
 
-export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent }) {
+// Chibi-sized waffles: a tall stack with a grid on top, syrup running down, cream and berries.
+function waffleStack() {
+  const g = new THREE.Group();
+  const syrup = new THREE.MeshStandardMaterial({ color: color('wood_walnut'), roughness: 0.12, metalness: 0.05 });
+  g.add(mesh(roundedCylinder(0.24, 0.22, 0.03, 0.01, 24), mat('paper'), 0, 0, 0));
+  const n = 5, S = 0.3, T = 0.055;
+  for (let k = 0; k < n; k++) {
+    const w = mesh(roundedBox(S, T, S, 0.018), mat('wood_honey'), 0, 0.03 + T / 2 + k * T, 0);
+    w.rotation.y = (k % 2 ? 1 : -1) * 0.12;
+    g.add(w);
+  }
+  const top = 0.03 + n * T;
+  // The waffle grid: raised ridges across the top face.
+  for (let i = -2; i <= 2; i++) {
+    g.add(mesh(roundedBox(S - 0.03, 0.012, 0.018, 0.004, 1), mat('wood_light'), 0, top + 0.004, i * 0.055, { cast: false }));
+    g.add(mesh(roundedBox(0.018, 0.012, S - 0.03, 0.004, 1), mat('wood_light'), i * 0.055, top + 0.005, 0, { cast: false }));
+  }
+  // A glossy puddle of syrup and drips running down the sides.
+  g.add(mesh(roundedCylinder(0.11, 0.12, 0.02, 0.008, 18), syrup, 0.02, top + 0.012, 0.01, { cast: false }));
+  for (const [x, z, h] of [[0.15, 0.04, 0.12], [-0.06, 0.15, 0.17], [0.07, -0.15, 0.09], [-0.15, -0.05, 0.14]]) {
+    g.add(mesh(roundedCylinder(0.018, 0.022, h, 0.008, 8), syrup, x, top - h + 0.01, z, { cast: false }));
+  }
+  const cream = new THREE.Mesh(new THREE.SphereGeometry(0.08, 14, 10), mat('paper'));
+  cream.scale.set(1, 0.75, 1);
+  cream.position.set(0, top + 0.07, 0);
+  g.add(cream);
+  g.add(mesh(new THREE.SphereGeometry(0.03, 10, 8), mat('fabric_terracotta'), 0.01, top + 0.14, 0));
+  for (const [x, z, m] of [[0.1, 0.08, 'role_engineer'], [-0.09, -0.07, 'fabric_terracotta'], [0.05, -0.1, 'role_engineer']]) {
+    g.add(mesh(new THREE.SphereGeometry(0.022, 8, 6), mat(m), x, top + 0.03, z));
+  }
+  return g;
+}
+
+// Pennant bunting spelling a word, strung between two poles.
+function bunting(word, len) {
+  const g = new THREE.Group();
+  const H = 1.95;
+  for (const sx of [-1, 1]) g.add(mesh(roundedCylinder(0.02, 0.025, H + 0.1, 0.006, 8), mat('metal_dark'), sx * len / 2, 0, 0));
+  const letters = [...word];
+  const n = letters.length;
+  const cols = [P.role_designer, P.fabric_mustard, P.fabric_teal, P.marker_orange];
+  for (let i = 0; i < n; i++) {
+    if (letters[i] === ' ') continue;
+    const t = (i + 0.5) / n;
+    const x = -len / 2 + t * len;
+    const sag = Math.sin(t * Math.PI) * 0.14;
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 80;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = cols[i % cols.length];
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(64, 0); ctx.lineTo(32, 80); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = P.paper;
+    ctx.font = '700 40px Fredoka, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(letters[i], 32, 36);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.32), new THREE.MeshStandardMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, roughness: 0.9 }));
+    flag.position.set(x, H - sag - 0.16, 0);
+    g.add(flag);
+  }
+  // The string, as short segments following the sag.
+  for (let i = 0; i < 16; i++) {
+    const t0 = i / 16, t1 = (i + 1) / 16;
+    const a = new THREE.Vector3(-len / 2 + t0 * len, H - Math.sin(t0 * Math.PI) * 0.14, 0);
+    const b = new THREE.Vector3(-len / 2 + t1 * len, H - Math.sin(t1 * Math.PI) * 0.14, 0);
+    const seg = mesh(new THREE.CylinderGeometry(0.006, 0.006, a.distanceTo(b), 5), mat('paper'), 0, 0, 0, { cast: false });
+    seg.position.copy(a).add(b).multiplyScalar(0.5);
+    seg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    g.add(seg);
+  }
+  return g;
+}
+
+// A rolling frosted glass divider: panels on wheeled feet.
+function partition(width) {
+  const g = new THREE.Group();
+  const frost = new THREE.MeshStandardMaterial({ color: color('paper'), transparent: true, opacity: 0.3, roughness: 0.25, depthWrite: false });
+  const H = 1.85;
+  const panes = Math.max(2, Math.round(width / 1.1));
+  const pw = width / panes;
+  for (let i = 0; i < panes; i++) {
+    const x = -width / 2 + pw * (i + 0.5);
+    const pane = new THREE.Mesh(new THREE.BoxGeometry(pw - 0.06, H - 0.2, 0.02), frost);
+    pane.position.set(x, H / 2 + 0.06, 0);
+    pane.renderOrder = 2;
+    g.add(pane);
+    g.add(mesh(roundedBox(pw - 0.02, 0.05, 0.05, 0.015), mat('metal_soft'), x, H - 0.03, 0));
+  }
+  for (let i = 0; i <= panes; i++) {
+    const x = -width / 2 + pw * i;
+    g.add(mesh(roundedBox(0.05, H, 0.05, 0.015), mat('metal_soft'), x, H / 2 + 0.06, 0));
+    g.add(mesh(roundedBox(0.06, 0.04, 0.4, 0.012), mat('metal_dark'), x, 0.05, 0));
+    for (const sz of [-1, 1]) g.add(mesh(new THREE.SphereGeometry(0.03, 8, 6), mat('plastic_charcoal'), x, 0.03, sz * 0.17));
+  }
+  return g;
+}
+
+export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
   let party = null;
@@ -42,36 +143,62 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (frame) frame.removeFromParent();
     const L = cur.L;
     const gap = wallGap(L, 'z');
-    if (!gap) return;
-    const x = Math.min(gap[1] - 0.45, (gap[0] + gap[1]) / 2 + (gap[1] - gap[0] > 2.6 ? 0.9 : 0));
+    if (!gap || gap[1] - gap[0] < 1.3) return;
+    const x = (gap[0] + gap[1]) / 2;
     const zw = -L.D / 2;
+    const y = 1.78;           // high enough to clear boards and shelves in front of the wall
     const g = new THREE.Group();
-    g.add(mesh(roundedBox(0.7, 0.8, 0.04, 0.012), mat('gold'), x, 1.55, zw + 0.03));
-    g.add(mesh(roundedBox(0.6, 0.7, 0.01, 0.004), mat('paper'), x, 1.55, zw + 0.052, { cast: false }));
+    g.add(mesh(roundedBox(1.0, 1.12, 0.05, 0.015), mat('gold'), x, y, zw + 0.03));
+    g.add(mesh(roundedBox(0.88, 1.0, 0.01, 0.004), mat('paper'), x, y, zw + 0.058, { cast: false }));
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
-    const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.54, 0.54), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.9 }));
-    pic.position.set(x, 1.58, zw + 0.06);
+    const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.84, 0.84), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.9 }));
+    pic.position.set(x, y + 0.05, zw + 0.066);
     g.add(pic);
-    // A little brass plaque under the picture.
-    g.add(mesh(roundedBox(0.26, 0.05, 0.012, 0.004), mat('gold'), x, 1.24, zw + 0.058, { cast: false }));
+    g.add(mesh(roundedBox(0.34, 0.06, 0.014, 0.004), mat('gold'), x, y - 0.46, zw + 0.064, { cast: false }));
     cur.root.add(g);
     frame = g;
+    frame.userData.at = { x, y, z: zw };
+    setPictureLight({ x, y: 2.5, z: zw + 1.4 }, { x, y, z: zw }, 2.2);
   }
 
-  // Where the party happens: the meeting table when there is one, else by the coffee corner or
-  // on open floor. Returns the table (or spot) centre, a facing, and the winner's seat.
+  // Party layout around the meeting table (or the coffee corner): the winner sits on the far side
+  // of the table facing the camera; the cart is at one end; the partition and watchers are on the
+  // other, across the screen, so the watchers are seen in profile looking through the glass.
   function venue() {
     const Z = office.current.zones;
-    if (Z.meeting) {
-      const M = Z.meeting;
-      const c = Math.cos(M.rotY), s = Math.sin(M.rotY);
-      const w = (lx, lz) => ({ x: M.x + c * lx + s * lz, z: M.z - s * lx + c * lz });
-      const seat = w(-M.L / 2 + 0.45, M.D / 2 + 0.33);
-      return { center: { x: M.x, z: M.z }, seat: { ...seat, yaw: M.rotY + Math.PI, sit: true }, cart: w(M.L / 2 + 0.75, 0), plate: w(-M.L / 2 + 0.45, M.D / 2 - 0.2), plateY: 0.7 };
+    const L = office.current.L;
+    const yaw = getYaw();
+    const cam = { x: Math.sin(yaw), z: Math.cos(yaw) };
+    const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+    let center, rotY, tl, td;
+    if (Z.meeting) { center = { x: Z.meeting.x, z: Z.meeting.z }; rotY = Z.meeting.rotY; tl = Z.meeting.L; td = Z.meeting.D; }
+    else { const b = Z.coffee ?? Z.wander?.[0] ?? Z.door; center = { x: b.x, z: b.z }; rotY = 0; tl = 1.2; td = 0.8; }
+    const c = Math.cos(rotY), s = Math.sin(rotY);
+    const w = (lx, lz) => ({ x: center.x + c * lx + s * lz, z: center.z - s * lx + c * lz });
+    // Far side: the long side whose outward normal points away from the camera.
+    const nz = (s * cam.x + c * cam.z) > 0 ? -1 : 1;
+    const seatL = w(0, nz * (td / 2 + 0.33));
+    const seat = { ...seatL, yaw: Math.atan2(center.x - seatL.x, center.z - seatL.z) };
+    const plate = w(0, nz * (td / 2 - 0.22));
+    // The partition stands beyond the winner (camera, table, winner, glass, watchers), so the
+    // watchers are seen through the frosted glass and spread across the screen. If that side has
+    // no room, it moves to a screen side instead.
+    const inside = (p) => Math.abs(p.x) < L.W / 2 - 0.5 && Math.abs(p.z) < L.D / 2 - 0.5;
+    const at = (dir, d) => ({ x: center.x + dir.x * d, z: center.z + dir.z * d });
+    const back = { x: -cam.x, z: -cam.z };
+    let dir = back, spread = right;
+    if (!inside(at(back, 2.5))) {
+      dir = inside(at(right, 3)) ? right : { x: -right.x, z: -right.z };
+      spread = { x: -dir.z, z: dir.x };
     }
-    const base = Z.coffee ?? (Z.wander?.[0] ?? Z.door);
-    return { center: base, seat: { x: base.x, z: base.z + 0.4, yaw: Math.PI, sit: false }, cart: { x: base.x + 0.9, z: base.z }, plate: null };
+    const cartDir = dir === back ? right : { x: -dir.x, z: -dir.z };
+    return {
+      center, seat, plate, sit: !!Z.meeting, tableLen: tl, rotY, yaw, bannerAt: at(dir, 0.95),
+      cart: at(cartDir, tl / 2 + 0.9),
+      glass: at(dir, 1.75), glassYaw: Math.atan2(dir.x, dir.z),
+      watch: (i) => { const p = at(dir, 2.3); return { x: p.x + spread.x * (i - 1) * 0.65, z: p.z + spread.z * (i - 1) * 0.65 }; },
+    };
   }
 
   // Everyone gets into place within a few seconds (weeks are short); far walkers jog.
@@ -85,29 +212,41 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
   function startParty(r) {
     if (!office.current || party) return;
     const v = venue();
+    const props = new THREE.Group();
+    parent.add(props);
     const cart = getModel('waffle_station');
+    cart.scale.setScalar(1.3);
     const door = office.current.zones.door;
     cart.position.set(door.x, 0, door.z);
-    parent.add(cart);
-    let plate = null;
-    if (v.plate) {
-      plate = new THREE.Group();
-      plate.add(mesh(roundedBox(0.2, 0.012, 0.2, 0.006), mat('paper'), 0, 0, 0));
-      for (let k = 0; k < 3; k++) plate.add(mesh(roundedBox(0.15, 0.022, 0.15, 0.006), mat('wood_honey'), 0, 0.02 + k * 0.024, 0));
-      plate.position.set(v.plate.x, v.plateY, v.plate.z);
-      plate.scale.setScalar(0.001);
-      parent.add(plate);
-    }
-    // The winner walks to the lone seat; a few colleagues gather at a distance to watch.
+    props.add(cart);
+    const stack = waffleStack();
+    stack.position.set(v.plate.x, v.sit ? 0.69 : 0.02, v.plate.z);
+    stack.scale.setScalar(0.001);
+    props.add(stack);
+    const banner = bunting('WAFFLE PARTY', Math.max(2.6, v.tableLen + 1.2));
+    // The bunting hangs square to the camera between the winner and the glass, so it reads.
+    banner.position.set(v.bannerAt.x, 0, v.bannerAt.z);
+    banner.rotation.y = v.yaw;
+    props.add(banner);
+    const glass = partition(2.4);
+    glass.position.set(v.glass.x, 0, v.glass.z);
+    glass.rotation.y = v.glassYaw;
+    props.add(glass);
+    const chairBalloons = getModel('balloons');
+    const back = { x: v.seat.x - Math.sin(v.seat.yaw) * 0.35, z: v.seat.z - Math.cos(v.seat.yaw) * 0.35 };
+    chairBalloons.position.set(back.x + 0.2, 0, back.z);
+    props.add(chairBalloons);
+    const grow = [[banner, 1], [glass, 1], [chairBalloons, 1.6]];
+    for (const [o] of grow) o.scale.setScalar(0.001);
+    // The winner walks to the lone seat; three colleagues press up to the glass.
     const seat = { x: v.seat.x, z: v.seat.z, yaw: v.seat.yaw, anim: 'idle' };
-    r.temp = { anim: v.seat.sit ? 'sit' : 'sip', t: PARTY_S, goal: seat, back: true, party: true };
+    r.temp = { anim: v.sit ? 'sit' : 'sip', t: PARTY_S, goal: seat, back: true, party: true };
     walkTo(r, seat);
     hurry(r, 3);
     const others = [...recs.values()].filter((o) => o !== r && !o.hidden && o.mode === 'placed' && !o.temp)
       .sort(() => Math.random() - 0.5).slice(0, 3);
     const watchers = others.map((o, i) => {
-      const ang = Math.PI / 4 + (i - 1) * 0.35;
-      const spot = { x: v.center.x + Math.sin(ang) * 4.4, z: v.center.z + Math.cos(ang) * 4.4 };
+      const spot = v.watch(i);
       spot.yaw = Math.atan2(v.center.x - spot.x, v.center.z - spot.z);
       spot.anim = 'idle';
       o.temp = { anim: 'idle', t: PARTY_S - 1, goal: spot, back: true, party: true };
@@ -115,16 +254,15 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       hurry(o, 3.5);
       return o;
     });
-    party = { r, v, cart, plate, watchers, t: 0 };
+    party = { r, v, props, cart, stack, grow, watchers, t: 0 };
   }
 
   function endParty() {
     const p = party;
     party = null;
     setDim(0);
-    p.cart.removeFromParent();
     setAccent(null);
-    p.plate?.removeFromParent();
+    p.props.removeFromParent();
     if (recs.has(p.r.id)) hangCaricature(p.r);
   }
 
@@ -136,16 +274,18 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     const e = 1 - (1 - k) ** 3;
     const door = office.current.zones.door;
     p.cart.position.set(door.x + (p.v.cart.x - door.x) * e, 0, door.z + (p.v.cart.z - door.z) * e);
-    p.cart.rotation.y = Math.atan2(p.v.cart.x - door.x, p.v.cart.z - door.z) * (1 - e) + (p.v.seat.yaw + Math.PI / 2) * e;
-    // Lights ease down to a warm, slightly eerie glow, then come back at the end.
+    p.cart.rotation.y = p.v.seat.yaw + Math.PI / 2;
+    // Props pop in once the cart arrives; lights drop to one warm pool, then come back at the end.
+    const pop = Math.min(1, Math.max(0, (p.t - ROLL_S * 0.5) / 0.35));
+    for (const [o, s] of p.grow) o.scale.setScalar(s * Math.max(0.001, pop));
     const fade = Math.min(1, p.t / 1.5) * Math.min(1, (PARTY_S + 1 - p.t) / 1.5);
-    setDim(1.0 * fade);
-    setAccent({ x: p.v.center.x, y: 1.7, z: p.v.center.z }, 3.5 * fade);
-    if (p.plate && p.t > ROLL_S + 1) p.plate.scale.setScalar(Math.min(1, (p.t - ROLL_S - 1) / 0.3));
+    setDim(DIM * fade);
+    setAccent({ x: p.v.plate.x, y: 1.8, z: p.v.plate.z }, POOL * fade);
+    if (p.t > ROLL_S + 0.8) p.stack.scale.setScalar(Math.min(1, (p.t - ROLL_S - 0.8) / 0.3));
     if (p.t > ROLL_S + 2 && !p.cheered) {
       p.cheered = true;
-      emote(p.r, 'sparkle', 2.5);
-      for (const w of p.watchers) if (recs.has(w.id)) emote(w, Math.random() < 0.5 ? 'sweat' : 'storm', rnd(2, 3.5));
+      emote(p.r, 'sparkle', 3);
+      for (const w of p.watchers) if (recs.has(w.id)) emote(w, Math.random() < 0.5 ? 'sweat' : 'storm', rnd(2.5, 4));
     }
     if (p.t >= PARTY_S + 1) endParty();
   }
@@ -161,8 +301,9 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
   function reset() {
     balloons = null;
     frame = null;
-    if (party) { party.cart.removeFromParent(); setAccent(null); party.plate?.removeFromParent(); party = null; setDim(0); }
+    setPictureLight(null);
+    if (party) { party.props.removeFromParent(); party = null; setDim(0); setAccent(null); }
   }
 
-  return { handle, update, reset, get party() { return party ? { t: party.t } : null; } };
+  return { handle, update, reset, get party() { return party ? { t: party.t } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
 }

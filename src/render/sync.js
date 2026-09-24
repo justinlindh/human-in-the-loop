@@ -27,7 +27,7 @@ function angleLerp(a, b, k) {
   return a + d * k;
 }
 
-export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {} }) {
+export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {}, setPictureLight = () => {} }) {
   const group = new THREE.Group();
   group.name = 'staff';
   parent.add(group);
@@ -410,7 +410,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
   const pets = createPets({ office, recs, emote, parent: group });
-  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent });
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4 });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
