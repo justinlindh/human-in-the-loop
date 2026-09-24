@@ -21,7 +21,12 @@ export function marketSystem(ctx) {
     c.clones = kept;
     if (live.some((pr) => pr.category === catId && pr.score >= 6) && chance(ctx.rng, p)) {
       c.clones++;
-      emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but with AI` });
+      state.flags.lastCloneCategory = catId;
+      // One Show HN post every few weeks is funny; one for every clone is spam.
+      if (state.week - (state.flags.lastShowHnWeek ?? -99) >= B.showHnEveryWeeks) {
+        state.flags.lastShowHnWeek = state.week;
+        emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but with AI` });
+      }
     }
   }
   // Incumbents are slow: holding a great product in their category for a year wears them down.
