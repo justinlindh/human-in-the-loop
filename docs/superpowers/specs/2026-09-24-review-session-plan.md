@@ -72,7 +72,7 @@ A long, interactive review with the user: go through every major element of the 
 |---|---|---|---|
 | 7.1 | Pacing: the milestone timeline for a 4 to 5 hour run | pace.js timeline chart | Does the curve feel right? |
 | 7.2 | Balance: bot outcomes, and money in the late game | balance table | Is the challenge right? |
-| 7.3 | Performance: fps table (5090 under load, Low with a CPU throttle) | table | Acceptable? |
+| 7.3 | Performance: fps table (a fast GPU under load, and Low with a CPU throttle) | table | Acceptable? |
 
 ## Prerequisites
 - `npm run capture` (integrator): deterministic 1080p60 clips with scripted scenarios and camera paths.
