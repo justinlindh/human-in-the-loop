@@ -18,7 +18,7 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap'];
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake'];
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
@@ -460,6 +460,27 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY -= 0.04 - s(t * 1.1 + phase) * 0.006;
         break;
       }
+      case 'point':
+        tgt.armRX = -1.85; tgt.armRZ = -0.12;
+        tgt.lean = 0.06;
+        tgt.headX = -0.05;
+        break;
+      case 'press':
+        // Both hands up against the glass.
+        tgt.armLX = tgt.armRX = -1.55;
+        tgt.armLZ = 0.4; tgt.armRZ = -0.4;
+        tgt.lean = 0.14;
+        break;
+      case 'whisper':
+        tgt.lean = 0.12;
+        tgt.headZ = 0.32;
+        tgt.armRX = -1.25; tgt.armRZ = -0.7;
+        break;
+      case 'shake':
+        tgt.headZ = s(t * 7) * 0.22;
+        tgt.headX = 0.12;
+        tgt.armLZ = 0.05; tgt.armRZ = -0.05;
+        break;
       case 'nap':
         // Lying on the back, the upper body inclined so the head rests up on an armrest.
         tgt.pitch = -Math.PI / 2 + 0.3;
