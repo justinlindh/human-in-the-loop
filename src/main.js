@@ -163,8 +163,7 @@ async function boot() {
     const running = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
     if (pacer.step(dt, { speed, running })) {
       route(pacer.schedule(sim.tick()), sim.state);
-      const quiet = pacer.takeQuiet();
-      if (quiet.length) { ui?.handleEvents(quiet, sim.state); audio?.onEvents(quiet); }
+      pacer.takeDropped();
       if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
     }
     if (!menuPause) route(pacer.due(), sim.state);

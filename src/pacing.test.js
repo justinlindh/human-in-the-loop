@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createPacer, WEEK_SECONDS, BUBBLE_SECONDS, MAX_STEP, replyDelay } from './pacing.js';
 
-const chat = (id, fromId, text, replyTo = null) => ({ type: 'chat', id, fromId, from: fromId, text, replyTo, channel: 'general', reactions: {} });
+const say = (id, staffId, text, replyTo = null) => ({ type: 'say', id, week: 0, staffId, text, toId: null, replyTo });
+const chat = (id, fromId, text) => ({ type: 'chat', id, fromId, from: fromId, text, replyTo: null, channel: 'general', reactions: {} });
 
 // Steps the pacer at 30 fps for `seconds`, collecting releases with their real time.
 function run(p, seconds, { speed = 1, running = true } = {}) {
@@ -42,37 +43,45 @@ describe('pacer scheduling', () => {
     expect(out[1].g).toBeGreaterThan(1);
   });
 
-  it('releases a reply only after its parent plus the reading delay, scaled by speed', () => {
+  it('releases a reply only after the line it answers plus the reading delay, scaled by speed', () => {
     for (const speed of [1, 2]) {
       const p = createPacer();
-      const root = chat('m1', 's1', 'x'.repeat(50));
-      p.schedule([root, chat('m2', 's2', 'ok', 'm1')]);
-      const out = run(p, WEEK_SECONDS / speed, { speed });
-      const [a, b] = out;
-      expect(a.e.id).toBe('m1');
-      expect(b.g - a.g).toBeGreaterThanOrEqual(replyDelay(root.text) - 1e-6);
-      expect(b.t - a.t).toBeLessThan(replyDelay(root.text) / speed + 0.1);
+      const first = say('v1', 's1', 'x'.repeat(50));
+      const second = say('v2', 's2', 'ok then', 'v1');
+      p.schedule([first, second, say('v3', 's1', 'good', 'v2')]);
+      const out = run(p, 2 * WEEK_SECONDS / speed, { speed });
+      expect(out.map((x) => x.e.id)).toEqual(['v1', 'v2', 'v3']);
+      expect(out[1].g - out[0].g).toBeGreaterThanOrEqual(replyDelay(first.text) - 1e-6);
+      expect(out[1].t - out[0].t).toBeLessThan(replyDelay(first.text) / speed + 0.1);
+      expect(out[2].g - out[1].g).toBeGreaterThanOrEqual(replyDelay(second.text) - 1e-6);
     }
   });
 
   it('never gives one speaker two bubbles at once', () => {
     const p = createPacer();
-    p.schedule([chat('m1', 's1', 'one'), chat('m2', 's1', 'two'), chat('m3', 's2', 'hey', 'm1'), chat('m4', 's1', 'three', 'm1')]);
-    const out = run(p, 3 * WEEK_SECONDS).filter((x) => x.e.fromId === 's1');
+    p.schedule([say('v1', 's1', 'one'), say('v2', 's1', 'two'), say('v3', 's2', 'hey', 'v1'), say('v4', 's1', 'three', 'v3')]);
+    const out = run(p, 3 * WEEK_SECONDS).filter((x) => x.e.staffId === 's1');
+    expect(out.length).toBe(3);
     for (let i = 1; i < out.length; i++) expect(out[i].t - out[i - 1].t).toBeGreaterThanOrEqual(BUBBLE_SECONDS - 1e-6);
   });
 
-  it('carries waiting chat into the next week once, then sends it to the feed without a bubble', () => {
+  it('does not hold Slackk chat for speakers', () => {
     const p = createPacer();
-    const lines = [1, 2, 3, 4, 5].map((i) => chat(`m${i}`, 's1', `line ${i}`));
-    p.schedule(lines);
+    p.schedule([say('v1', 's1', 'spoken'), chat('m1', 's1', 'posted'), chat('m2', 's1', 'posted again')]);
+    expect(run(p, WEEK_SECONDS).map((x) => x.e.id)).toEqual(['v1', 'm1', 'm2']);
+  });
+
+  it('carries a waiting line into the next week once, then drops it if the speaker is still talking', () => {
+    const p = createPacer();
+    p.schedule([1, 2, 3, 4, 5].map((i) => say(`v${i}`, 's1', `line ${i}`)));
     run(p, 0.5);
     p.schedule([]);
     run(p, 0.5);
     const flushed = p.schedule([]);
-    const quiet = p.takeQuiet();
-    expect(flushed.length + quiet.length).toBeGreaterThan(0);
-    expect(quiet.every((e) => e.fromId === 's1')).toBe(true);
+    const gone = p.takeDropped();
+    expect(flushed.length).toBe(0);
+    expect(gone.map((e) => e.id)).toEqual(['v2', 'v3', 'v4', 'v5']);
     expect(p.queued).toBe(0);
+    expect(p.takeDropped()).toEqual([]);
   });
 });
