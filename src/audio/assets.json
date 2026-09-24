@@ -1,0 +1,162 @@
+{
+ "version": 1,
+ "sampleRate": 48000,
+ "music": {
+  "classic": {
+   "bpm": 96,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 10,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/classic/a_full.ogg",
+       "duration": 25.259,
+       "loopStart": 0,
+       "loopEnd": 1212416
+      }
+     }
+    }
+   ]
+  },
+  "chatgbt": {
+   "bpm": 102,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/chatgbt/a_full.ogg",
+       "duration": 18.827,
+       "loopStart": 0,
+       "loopEnd": 903680
+      }
+     }
+    }
+   ]
+  },
+  "agents": {
+   "bpm": 108,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/agents/a_full.ogg",
+       "duration": 17.771,
+       "loopStart": 0,
+       "loopEnd": 852992
+      }
+     }
+    }
+   ]
+  },
+  "consolidation": {
+   "bpm": 90,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/consolidation/a_full.ogg",
+       "duration": 21.333,
+       "loopStart": 0,
+       "loopEnd": 1024000
+      }
+     }
+    }
+   ]
+  },
+  "plateau": {
+   "bpm": 84,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/plateau/a_full.ogg",
+       "duration": 22.592,
+       "loopStart": 0,
+       "loopEnd": 1084416
+      }
+     }
+    }
+   ]
+  }
+ },
+ "stingers": {},
+ "ui": {
+  "click": {
+   "file": "ui/click.ogg",
+   "duration": 0.012,
+   "candidate": true
+  },
+  "open": {
+   "file": "ui/open.ogg",
+   "duration": 0.38,
+   "candidate": true
+  },
+  "close": {
+   "file": "ui/close.ogg",
+   "duration": 0.364,
+   "candidate": true
+  },
+  "confirm": {
+   "file": "ui/confirm.ogg",
+   "duration": 0.539,
+   "candidate": true
+  },
+  "error": {
+   "file": "ui/error.ogg",
+   "duration": 0.104,
+   "candidate": true
+  },
+  "blip": {
+   "file": "ui/blip.ogg",
+   "duration": 0.04,
+   "candidate": true
+  },
+  "coin": {
+   "file": "ui/coin.ogg",
+   "duration": 0.122,
+   "candidate": true
+  },
+  "decision": {
+   "file": "ui/decision.ogg",
+   "duration": 0.489,
+   "candidate": true
+  },
+  "goal": {
+   "file": "ui/goal.ogg",
+   "duration": 0.489,
+   "candidate": true
+  },
+  "unlock": {
+   "file": "ui/unlock.ogg",
+   "duration": 0.225,
+   "candidate": true
+  }
+ },
+ "sfx": {},
+ "voice": {},
+ "voiceVariants": {
+  "fem": [],
+  "masc": []
+ },
+ "crowd": {
+  "file": "voice/crowd.ogg",
+  "duration": 4.0,
+  "loopStart": 0,
+  "loopEnd": 192000,
+  "candidate": true
+ }
+}
