@@ -203,8 +203,14 @@ pets: [{ id, species /* 'dog'|'cat' */, name, ownerId /* staff id, or null once 
 rival: null | { name, founderName, logoColor, categoryId, strength /* 0..100 */, status /* 'rising'|'stalled'|'acquired'|'dead'|'merged' */ },
 // Staff gains:
 remote /* bool: working from home this week; the renderer hides them like 'away', ui marks them remote */,
+strain /*0..100: sustained exhaustion from load; high strain leads to burnout even when meaning is fine*/,
 call /* null, or during a video-call week { muted, frozen, badCamera } (booleans, rerolled weekly) for ui's call grid */,
 ```
 - During a lockdown every staff member except `stayerId` has `remote: true`. The office stays placed but empty; ui may show a video-call grid of the remote staff using portraits.
 - Under `workPolicy: 'hybrid'` the sim sets `remote` per person per week; under `'remote'` most staff are remote most weeks; under `'office'` nobody is.
 - Pets are rendered in the office whenever their owner is present (or always, once `ownerId` is null and the pet has stayed as the office pet).
+
+### Content ladder events
+```js
+{ type: 'incentive', staffId, reward /* 'balloons'|'caricature'|'waffle_party' */ }   // the Incentives Program rewards a top performer; the renderer stages it
+```
