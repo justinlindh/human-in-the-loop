@@ -1,4 +1,4 @@
-"""Water cooler: white cabinet, taps, and an upturned bottle; cup dispenser on the side."""
+'''Water cooler: white cabinet, taps, and an upturned bottle; cup dispenser on the side.'''
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *
