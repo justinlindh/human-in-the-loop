@@ -22,8 +22,9 @@ export function onDeparture(state, person) {
 
 export function institutionalKnowledge(state) {
   const live = state.products.filter((p) => !p.killed).length;
-  const holders = state.staff.filter((p) => p.role === 'engineer' || p.role === 'security');
-  const held = sum(holders, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
+  // Engineers and security hold the systems in their heads; founders built them, whatever their role.
+  const weight = (p) => (p.role === 'engineer' || p.role === 'security' ? 1 : p.founder ? B.founderIkWeight : 0);
+  const held = sum(state.staff, (p) => weight(p) * (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
   const standup = state.policies.daily_standups ? B.standupIkBonus : state.policies.async_standups ? B.standupIkBonus / 2 : 0;
   return clamp(((100 * held) / (B.ikBaseline + B.ikPerProduct * live)) * (1 + researchBonus(state, 'ik') + standup), 0, 100);
 }

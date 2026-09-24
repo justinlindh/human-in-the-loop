@@ -71,7 +71,7 @@ export const B = {
     family: { cash: 150000, scoreMult: 0.97, brand: 0, seniorCandidates: 0 },
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
-  founderStrengthBonus: 3, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
+  founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6,
   eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3, plateau: 2 },
   unlockGapWeeks: 6,

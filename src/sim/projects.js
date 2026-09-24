@@ -15,7 +15,7 @@ import { eraAtLeast, eraIndex } from './eras.js';
 import { emitChat } from './chat.js';
 import { raiseDecision } from './events.js';
 
-const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty' };
+const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
 
 export function trendMods(state, category, angle) {
   const t = TRENDS[state.market.trend] ?? TRENDS.steady;

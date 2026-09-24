@@ -33,6 +33,7 @@ export function passOfficeGates(s) {
   s.stats.launches = Math.max(s.stats.launches, 3);
   s.brand = Math.max(s.brand, 40);
   while (s.products.filter((p) => !p.killed).length < 3) addProduct(s, { name: `Filler ${s.products.length}` });
+  s.products.find((p) => !p.killed).mrr = Math.max(s.products.find((p) => !p.killed).mrr, 600000);
   while (s.staff.length < 12) addStaff(s, 'engineer', 'mid');
   return s;
 }

@@ -162,6 +162,7 @@ export function officeGateReason(state, stage) {
   if (g.liveProducts && liveProducts(state).length < g.liveProducts) return `Needs ${g.liveProducts} live products`;
   if (g.staff && state.staff.length < g.staff) return `Needs ${g.staff} people`;
   if (g.brand && state.brand < g.brand) return `Needs brand ${g.brand}`;
+  if (g.mrr && totalMrr(state) < g.mrr) return `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
   return null;
 }
 

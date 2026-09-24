@@ -371,6 +371,15 @@ describe('founding', () => {
     }
   });
 
+  it('founders hold know-how whatever their role: a no-builder pair stays above the collapse line in year 1', async () => {
+    const { runBot } = await import('../../src/sim/bots.js');
+    for (const seed of [1, 2, 3]) {
+      let low = 100;
+      runBot('sensible', seed, 52, { founding: { founders: ['hustler', 'seller'] }, onWeek: (st) => { low = Math.min(low, st.institutionalKnowledge); } });
+      expect(low, `seed ${seed}`).toBeGreaterThan(B.collapseIkBelow);
+    }
+  });
+
   it('funding sets cash and the score multiplier', () => {
     const scores = {};
     for (const f of Object.keys(FUNDING)) {

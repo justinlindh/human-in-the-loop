@@ -227,7 +227,7 @@ export function autoArrange(stageIdx, placed) {
 }
 
 const EFFECT_LABEL = {
-  meaningRecovery: 'meaning recovery', novelty: 'novelty', staminaRecovery: 'stamina recovery',
+  meaningRecovery: 'meaning recovery', novelty: 'freshness', staminaRecovery: 'stamina recovery',
   knowledgeGain: 'learning speed', uptimeFloor: 'uptime floor', staminaDrain: 'stamina drain', output: 'output',
   burnoutResign: 'burnout resignations', oversight: 'oversight', maintenanceNeed: 'maintenance load', brandDecay: 'brand decay',
 };
