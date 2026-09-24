@@ -27,7 +27,9 @@ const BLEND_S = 0.3;
 // the walker's speed so feet do not slide.
 const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
-const FACE_GEOS = new Map();       // mood (and ':closed') -> face geometry shared by every character
+// Mood (and ':closed') -> face geometry shared by every character. Shared geometry bakes its
+// colours in, so face parts must use fixed palette colours only, never a per-person colour.
+const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
