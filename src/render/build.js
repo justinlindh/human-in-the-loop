@@ -38,6 +38,10 @@ export function createBuild({ office, getCamera, canvas }) {
   const plateGeo = new THREE.PlaneGeometry(0.94, 0.94).rotateX(-Math.PI / 2);
   const plates = new THREE.Group();
   group.add(plates);
+  // Adjacency preview: plates under the placed items the UI names, shown whenever any are set.
+  const marks = new THREE.Group();
+  let markIds = [];
+  const markMat = new THREE.MeshBasicMaterial({ color: color('lamp_warm'), transparent: true, opacity: 0.5, depthWrite: false });
 
   function onMove(e) { pointer.x = e.clientX; pointer.y = e.clientY; pointer.seen = true; }
   addEventListener('pointermove', onMove);
@@ -106,6 +110,7 @@ export function createBuild({ office, getCamera, canvas }) {
   function setMode(m) {
     showHidden(true);
     mode = m && (m.select || m.itemId) ? { ...m } : null;
+    if (typeof m?.validate === 'function') validator = m.validate;
     validCache.clear();
     if (!mode?.itemId) clearGhost();
     if (mode?.moveId) {
@@ -143,12 +148,37 @@ export function createBuild({ office, getCamera, canvas }) {
     return out;
   }
 
+  function highlightItems(ids) {
+    markIds = Array.isArray(ids) ? ids.slice() : [];
+    marksDirty = true;
+  }
+  let marksDirty = false;
+  function updateMarks(cur) {
+    if (!marksDirty) return;
+    marksDirty = false;
+    marks.clear();
+    for (const id of markIds) {
+      const e = office.placed.get(id);
+      if (!e) continue;
+      const f = footprint(e.itemId, e.rot);
+      for (const c of footprintTiles(cur.L, e.x, e.y, f.w, f.h)) {
+        const m = new THREE.Mesh(plateGeo, markMat);
+        m.position.set(c.x, 0.014, c.z);
+        marks.add(m);
+      }
+    }
+  }
+
   // Validation results depend on sim state, so they are dropped whenever the office changes.
-  function invalidate() { validCache.clear(); }
+  function invalidate() { validCache.clear(); marksDirty = true; }
 
   function update(dt, scene) {
     const cur = office.current;
-    if (attached !== scene) { scene.add(group); attached = scene; }
+    if (attached !== scene) { scene.add(group); scene.add(marks); attached = scene; }
+    if (cur) updateMarks(cur);
+    const t0 = performance.now() / 1000;
+    markMat.opacity = 0.55 + 0.15 * Math.sin(t0 * 4);
+    marks.visible = !!cur && markIds.length > 0;
     group.visible = !!mode && !!cur;
     if (!mode || !cur) return;
     if (gridFor !== cur) {
@@ -202,7 +232,7 @@ export function createBuild({ office, getCamera, canvas }) {
   }
 
   return {
-    setMode, pickTile, pickPlaced, update, invalidate, dispose,
+    setMode, pickTile, pickPlaced, highlightItems, update, invalidate, dispose,
     set validator(fn) { validator = typeof fn === 'function' ? fn : null; validCache.clear(); },
     get validator() { return validator; },
     get target() { return target; },

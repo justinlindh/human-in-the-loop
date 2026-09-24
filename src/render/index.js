@@ -170,13 +170,15 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
     setSpeed(k) { staff?.setSpeed(k); },
-    // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId? }.
+    // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId?, validate? }.
     setBuildMode(m) { build?.setMode(m); },
     // validate(x, y, rot) -> boolean | { ok, reason }; the UI supplies it from the sim.
     set validate(fn) { if (build) build.validator = fn; },
     get validate() { return build?.validator ?? null; },
     pickTile(x, y) { return build?.pickTile(x, y) ?? null; },
     pickPlaced(x, y) { return build?.pickPlaced(x, y) ?? null; },
+    // Warm plates under these placed ids (adjacency preview); null clears.
+    highlightItems(ids) { build?.highlightItems(ids); },
     // The ghost's anchor tile and rotation, plus whether the validator accepted it.
     get buildTarget() { return build?.target ?? null; },
     get hoverPlaced() { return build?.hoverId ?? null; },

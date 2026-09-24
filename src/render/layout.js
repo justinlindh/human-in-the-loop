@@ -15,10 +15,12 @@ function stage0() {
     floor: 'concrete', wall: 'block',
     openings: [
       { wall: 'x', at: -1.0, width: 2.6, bottom: 0, top: 2.1, kind: 'garage' },
-      { wall: 'z', at: 0.5, width: 1.6, bottom: 1.05, top: 2.35, kind: 'window' },
+      { wall: 'z', at: 1.5, width: 1.6, bottom: 1.05, top: 2.35, kind: 'window' },
       { wall: 'px', at: 0.5, width: 1.6, bottom: 1.05, top: 2.35, kind: 'window' },
+      { wall: 'pz', at: 0, width: 1.1, bottom: 0, top: 2.05, kind: 'door' },
     ],
-    door: { x: 0, y: 2 },
+    door: { x: 4, y: 6 },
+    blocked: [[8, 0]],
     lights: [{ x: -1.5, z: 0.5 }, { x: 2.0, z: -1.5 }, { x: 1.5, z: 2.0 }],
   };
 }
@@ -29,17 +31,19 @@ function stage1() {
     name: 'Office Floor', W, D, wallH: 2.6,
     floor: 'carpet', wall: 'cream',
     openings: [
-      { wall: 'x', at: 4.5, width: 1.3, bottom: 0, top: 2.1, kind: 'door' },
+      { wall: 'pz', at: 0, width: 1.3, bottom: 0, top: 2.1, kind: 'door' },
       { wall: 'z', at: -5.0, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
       { wall: 'z', at: 0.0, width: 1.6, bottom: 1.25, top: 2.45, kind: 'window' },
       { wall: 'z', at: 4.5, width: 1.6, bottom: 1.25, top: 2.45, kind: 'window' },
       { wall: 'x', at: -2.5, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
+      { wall: 'x', at: 2.5, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
       { wall: 'px', at: -2.5, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
       { wall: 'px', at: 2.5, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
-      { wall: 'pz', at: -3.0, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
-      { wall: 'pz', at: 3.0, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
+      { wall: 'pz', at: -3.5, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
+      { wall: 'pz', at: 3.5, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
     ],
-    door: { x: 0, y: 10 },
+    door: { x: 7, y: 11 },
+    blocked: [[5, 4], [9, 4], [5, 8], [9, 8]],
     lights: [{ x: -4.5, z: -3.0 }, { x: 0, z: -3.0 }, { x: 4.5, z: -3.0 }, { x: -4.5, z: 2.5 }, { x: 0, z: 2.5 }, { x: 4.5, z: 2.5 }],
   };
 }
@@ -50,7 +54,7 @@ function stage2() {
     name: 'HQ Building', W, D, wallH: 2.8,
     floor: 'twotone', wall: 'sage', split: -4.5,
     openings: [
-      { wall: 'x', at: 6.5, width: 1.4, bottom: 0, top: 2.2, kind: 'door' },
+      { wall: 'pz', at: 0, width: 1.4, bottom: 0, top: 2.2, kind: 'door' },
       { wall: 'z', at: -7.5, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
       { wall: 'z', at: -1.5, width: 2.4, bottom: 1.3, top: 2.6, kind: 'window', wide: true },
       { wall: 'z', at: 4.5, width: 2.4, bottom: 1.3, top: 2.6, kind: 'window', wide: true },
@@ -58,10 +62,12 @@ function stage2() {
       { wall: 'x', at: 1.5, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
       { wall: 'px', at: -4, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
       { wall: 'px', at: 3, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
+      { wall: 'x', at: 5.5, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
       { wall: 'pz', at: -5, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
-      { wall: 'pz', at: 4, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
+      { wall: 'pz', at: 5, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
     ],
-    door: { x: 0, y: 14 },
+    door: { x: 10, y: 15 },
+    blocked: [[6, 5], [14, 5], [6, 10], [14, 10]],
     lights: [{ x: -6, z: -4 }, { x: 0, z: -4 }, { x: 6, z: -4 }, { x: -6, z: 3 }, { x: 0, z: 3 }, { x: 6, z: 3 }],
   };
 }
@@ -73,16 +79,16 @@ export function stageLayout(stage) {
   const data = OFFICE_STAGES[stage]?.grid;
   const grid = { w: data?.w ?? L.W, h: data?.h ?? L.D };
   const door = OFFICE_STAGES[stage]?.door ?? L.door;
-  return { ...L, grid, door, doorWorld: tileCenter(L, door.x, door.y), blocked: OFFICE_STAGES[stage]?.blocked ?? [] };
+  return { ...L, grid, door, doorWorld: tileCenter(L, door.x, door.y), blocked: OFFICE_STAGES[stage]?.blocked ?? L.blocked ?? [] };
 }
 
-// Footprints the renderer falls back on when ITEMS has none (sized to fit the level 3 models).
+// Footprints the renderer falls back on when ITEMS has none.
 const FOOTPRINTS = {
-  desk: { w: 2, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, coffee_corner: { w: 2, h: 1 },
-  plant: { w: 1, h: 1 }, bookshelf: { w: 1, h: 1 }, couch: { w: 2, h: 1 }, rack: { w: 1, h: 1 },
-  espresso: { w: 2, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 2, h: 1 }, arcade: { w: 2, h: 1 },
-  standing_desk: { w: 2, h: 1 }, trophy_case: { w: 2, h: 1 }, server_rack: { w: 2, h: 1 }, library: { w: 2, h: 2 },
-  monitoring_wall: { w: 2, h: 1 }, whiteboard_wall: { w: 2, h: 1 },
+  desk: { w: 1, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, coffee_corner: { w: 2, h: 1 },
+  plant: { w: 1, h: 1 }, bookshelf: { w: 2, h: 1 },
+  espresso: { w: 1, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, arcade: { w: 1, h: 1 },
+  standing_desk: { w: 1, h: 1 }, trophy_case: { w: 1, h: 1 }, server_rack: { w: 1, h: 1 }, library: { w: 2, h: 2 },
+  monitoring_wall: { w: 3, h: 1 }, whiteboard_wall: { w: 3, h: 1 },
 };
 
 export function footprint(itemId, rot = 0) {
@@ -99,10 +105,11 @@ export function worldToTile(L, x, z) {
 }
 
 // World transform of a placed item: its footprint center, and a yaw that turns the model's +Z
-// front toward +y at rot 0, +x at rot 1, -y at rot 2, -x at rot 3 (its back is against -y at rot 0).
+// front toward +y at rot 0, -x at rot 1, -y at rot 2, +x at rot 3 (the sim's rotation: local
+// cell (lx, ly) goes to (h-1-ly, lx) at rot 1).
 export function placedTransform(L, p) {
   const f = footprint(p.itemId, p.rot ?? 0);
-  return { x: -L.W / 2 + p.x + f.w / 2, z: -L.D / 2 + p.y + f.h / 2, rotY: (p.rot ?? 0) * PI / 2, w: f.w, h: f.h };
+  return { x: -L.W / 2 + p.x + f.w / 2, z: -L.D / 2 + p.y + f.h / 2, rotY: -(p.rot ?? 0) * PI / 2, w: f.w, h: f.h };
 }
 
 // Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters.

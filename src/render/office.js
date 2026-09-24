@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { mat, color, paletteMaterial, setGlowBase } from './materials.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
-import { stageLayout, createNav, placedTransform, footprint } from './layout.js';
+import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 
 const T = 0.2;            // wall thickness
 const SLAB = 0.35;        // floor slab thickness
@@ -219,8 +219,9 @@ const SEAT_Z = 0.2;
 
 function deskSet(i, stageIdx, screens) {
   const g = new THREE.Group();
+  // Desk sets are one tile wide, so neighbours butt together into a bench.
   const desk = getModel('desk');
-  desk.scale.x = 1.15;
+  desk.scale.x = 0.96 / 1.3;
   g.add(place(desk, 0, 0, DESK_Z));
   const chair = place(getModel('chair'), 0, 0, SEAT_Z + 0.05, Math.PI);
   g.add(chair);
@@ -236,16 +237,16 @@ function deskSet(i, stageIdx, screens) {
     }
   });
   const side = i % 2 ? 1 : -1;
-  if (i % 3 === 0) g.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.5, 0.62, DESK_Z + 0.1));
+  if (i % 3 === 0) g.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
   if (i % 4 === 1) {
-    const p = mesh(roundedBox(0.22, 0.03, 0.3, 0.006), mat('paper_sheet'), -side * 0.48, 0.635, DESK_Z + 0.08);
+    const p = mesh(roundedBox(0.18, 0.02, 0.24, 0.006), mat('paper_sheet'), -side * 0.3, 0.63, DESK_Z + 0.12);
     p.rotation.y = 0.2;
     g.add(p);
   }
   if (i % 5 === 2) {
     const pl = getModel('plant_small');
     pl.scale.setScalar(0.45);
-    g.add(place(pl, side * 0.55, 0.62, DESK_Z - 0.12));
+    g.add(place(pl, side * 0.36, 0.62, DESK_Z - 0.16));
   }
   g.userData.screen = screen;
   return g;
@@ -296,6 +297,23 @@ function screensFor(obj, screens, seed) {
   });
 }
 
+// Turns a model's long side along the footprint's long side and shrinks it to fit. Wall pieces
+// then sit against the back edge; the rest are centered.
+function fitFootprint(inner, f, againstBack) {
+  let b = new THREE.Box3().setFromObject(inner);
+  let sx = b.max.x - b.min.x, sz = b.max.z - b.min.z;
+  if (f.h > f.w && sx > sz * 1.2) {
+    inner.rotation.y = Math.PI / 2;
+    b = new THREE.Box3().setFromObject(inner);
+    sx = b.max.x - b.min.x; sz = b.max.z - b.min.z;
+  }
+  const k = Math.min(1, (f.w - 0.06) / sx, (f.h + 0.15) / sz);
+  inner.scale.multiplyScalar(k);
+  b = new THREE.Box3().setFromObject(inner);
+  inner.position.x -= (b.min.x + b.max.x) / 2;
+  inner.position.z -= againstBack ? b.min.z + f.h / 2 - 0.06 : (b.min.z + b.max.z) / 2;
+}
+
 // The model for a placed item in its local frame: origin at the footprint center, front toward +Z.
 export function buildPlacedModel(p, stageIdx, screens = null, seed = 0) {
   const kind = kindOf(p.itemId);
@@ -312,12 +330,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0) {
   else if (hasModel(itemModelName(p.itemId, p.level))) inner = getModel(itemModelName(p.itemId, p.level));
   else inner = crate(f.w, f.h);
   if (kind !== 'desk') screensFor(inner, screens, seed);
-  if (!FREE_STANDING.has(kind)) {
-    // Wall pieces sit against the back edge of their footprint, centered along it.
-    const b = new THREE.Box3().setFromObject(inner);
-    inner.position.x -= (b.min.x + b.max.x) / 2;
-    inner.position.z += -f.h / 2 + 0.06 - b.min.z;
-  }
+  if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind));
   const g = new THREE.Group();
   g.add(inner);
   g.userData.kind = kind;
@@ -325,6 +338,10 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0) {
   g.userData.table = inner.userData.table ?? null;
   g.userData.screen = inner.userData.screen ?? null;
   return g;
+}
+
+function wallMatFor(L) {
+  return L.wall === 'block' ? surfaceMat('block', null, WALLS.block()) : mat(L.wall === 'sage' ? 'wall_sage' : 'wall_cream');
 }
 
 // Builds one stage shell: slab, floor, walls, windows, and the door. Furniture is placed separately.
@@ -345,7 +362,7 @@ function buildStage(stageIdx, screens) {
     statics.add(floorPlane(L.W, L.D, surfaceMat(L.floor, null, FLOORS[L.floor]())));
   }
 
-  const wallMat = L.wall === 'block' ? surfaceMat('block', null, WALLS.block()) : mat(L.wall === 'sage' ? 'wall_sage' : 'wall_cream');
+  const wallMat = wallMatFor(L);
   const walls = {};
   for (const key of WALL_KEYS) {
     const wg = buildWall(L, key, wallMat);
@@ -356,6 +373,25 @@ function buildStage(stageIdx, screens) {
     }
     walls[key] = wg;
   }
+
+  // Blocked tiles: a water heater in the garage, structural pillars elsewhere.
+  for (const [bx, by] of L.blocked) {
+    const c = tileCenter(L, bx, by);
+    if (stageIdx === 0) {
+      statics.add(mesh(roundedCylinder(0.3, 0.3, 1.45, 0.05, 20), mat('plastic_white'), c.x, 0, c.z));
+      statics.add(mesh(roundedCylinder(0.22, 0.3, 0.12, 0.03, 20), mat('metal_soft'), c.x, 1.45, c.z));
+      statics.add(mesh(roundedCylinder(0.04, 0.04, 0.9, 0.01, 8), mat('metal_dark'), c.x + 0.18, 1.5, c.z + 0.1));
+      statics.add(mesh(roundedBox(0.16, 0.1, 0.06, 0.02), mat('pot_terracotta'), c.x, 0.3, c.z + 0.3));
+    } else {
+      // Pillars are cut like the front walls so they never hide the people behind them.
+      const H = 1.15;
+      statics.add(mesh(roundedBox(0.5, H, 0.5, 0.04), wallMatFor(L), c.x, H / 2, c.z));
+      statics.add(mesh(roundedBox(0.54, 0.1, 0.54, 0.02), mat('baseboard'), c.x, 0.05, c.z));
+      statics.add(mesh(roundedBox(0.52, 0.04, 0.52, 0.01), mat('slab_edge'), c.x, H + 0.02, c.z));
+    }
+  }
+  const dm = tileCenter(L, L.door.x, L.door.y);
+  statics.add(mesh(roundedBox(0.9, 0.02, 0.6, 0.01), mat('rug_teal'), dm.x, 0.011, dm.z + 0.1, { cast: false }));
 
   root.add(mergeStatic(statics));
   for (const key of WALL_KEYS) {
@@ -377,10 +413,11 @@ function buildStage(stageIdx, screens) {
   };
 }
 
-// The door tile's center, nudged into the room.
+// The door tile's center, nudged toward the middle of the room.
 function inward(L) {
   const d = L.doorWorld;
-  return { x: d.x + (L.door.x === 0 ? 0.2 : 0), z: d.z + (L.door.y === 0 ? 0.2 : 0) };
+  const len = Math.hypot(d.x, d.z) || 1;
+  return { x: d.x - (d.x / len) * 0.3, z: d.z - (d.z / len) * 0.3 };
 }
 
 // A point in front of a placed item, `dist` meters past its front edge.
