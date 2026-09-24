@@ -165,7 +165,17 @@ Target look: a **polished miniature diorama**, like a high-end isometric toy set
 
 ## Audio
 
-Phase 1 ships only a small set of placeholder sound effects via WebAudio (UI clicks, launch, alarm, hire, resign, notification) with mute and volume in Settings, and no music. Real audio (music, a curated sound-effect set, and possibly per-character voice blips on chat lines and speech bubbles) is a later phase with its own design, because a synthesized loop would sound bad and the quality bar applies to sound as much as art.
+Audio is its own engine subsystem (`src/audio`): a pure director that reads the same paced events and state as the renderer and outputs play commands, a small WebAudio backend with buses (music, ambience, SFX, UI, voice), and a data manifest. Game code holds no sounds. The tools, licences and engine design are in `docs/superpowers/specs/2026-09-24-audio-tools-report.md`.
+
+- **Music:** ACE-Step (the latest XL checkpoint with its planner, at full quality), curated by ear into loops. 2 to 3 beds per era with a shared instrument core, plus short stingers.
+- **SFX:** curated CC0 (Kenney first).
+- **Voices (Simlish barks):** acted gibberish, 0.5 to 2 s, per voice set (fem, masc), per variant and per emotion, designed with Qwen3-TTS. Each person's voice comes from `staff.voice`, with a small pitch offset.
+- **Voice barks are rare. Less is more.** They are never tied to every speech bubble or chat line. They play:
+  - always when the player clicks a character in the office;
+  - on moments that matter: a launch cheer, an incident groan, an era arrival, the Waffle Party, someone burning out or quitting, a hire's first day;
+  - otherwise only as an occasional ambient line, with a global cooldown (roughly one every 30 to 60 s at most) and never over a decision or menu.
+- **Mix:** music ducks under barks and decisions, and everything obeys pause.
+- **Quality bar:** every generated asset is judged by the user's ear before it ships.
 
 ## Architecture
 

@@ -33,6 +33,8 @@ async function boot() {
 
   let sim;
   let playing = false;
+  let autoPause = true;
+  let awayPaused = false;
 
   function useState(state) {
     sim = { state, tick: () => simMod.tick(state), dispatch: (a) => simMod.dispatch(state, a) };
@@ -92,8 +94,13 @@ async function boot() {
   }
 
   const controls = {
-    setSpeed: (k) => { speed = k; renderer?.setSpeed?.(k); },
+    setSpeed: (k) => { speed = k; if (k > 0) awayPaused = false; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
+    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setPauseOnBlur).
+    setPauseOnBlur: (on) => { autoPause = on !== false; },
+    getPauseOnBlur: () => autoPause,
+    // True after an auto-pause until the player picks a speed again (for a "paused while away" hint).
+    get awayPaused() { return awayPaused; },
     // No options means "back to the title" (the game-over screen's New Game).
     newGame: (opts) => {
       if (!opts) { showTitle(); return; }
@@ -153,7 +160,20 @@ async function boot() {
   // navigation or close, and the bfcache.
   addEventListener('beforeunload', () => { save(); });
   addEventListener('pagehide', () => { save(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  // Leaving the page (another window, another tab) pauses like the pause button and saves. Nothing
+  // resumes on return; the player does.
+  function leftPage() {
+    if (autoPause && playing && !isSnap && speed > 0 && !sim.state.gameOver) {
+      const resumeSpeed = speed;
+      controls.setSpeed(0);
+      awayPaused = true;
+      // ui shows a tap-to-resume hint when the player comes back.
+      dispatchEvent(new CustomEvent('hitl:awaypaused', { detail: { resumeSpeed } }));
+    }
+    save();
+  }
+  addEventListener('blur', leftPage);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) leftPage(); });
 
   let last = performance.now();
   let dayClock = 0.35;
