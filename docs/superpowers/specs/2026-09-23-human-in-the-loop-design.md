@@ -257,3 +257,20 @@ The #general feed becomes a small Slack-like panel, branded Slackk, and a storyt
 - **Reactions:** emoji counts on posts. A healthy team reacts; a checked-out team does not.
 - **Volume follows morale:** a happy team is chatty; a burnt-out team goes quiet.
 - **Clickable names** focus the camera on that person and open their card. Unread badges show per channel while the panel is collapsed.
+
+## Decision events
+
+Random events regularly put a decision in front of the player (roughly one every three weeks). They carry the game's personality and its themes.
+
+- **Kinds:** people (complaints, someone not showing up, poaching, burnout, side projects), leadership ideas (a founder read a blog post and wants to replace support with agents, a four-day week, an AI-first mandate, a rebrand, a pivot, an open-plan office), market, vendors, incidents, and office life.
+- **Not every consequence is immediate.** A choice can:
+  - apply effects now;
+  - apply effects later ("in 6 weeks, the rebrand lands");
+  - start a temporary modifier that runs for a number of weeks ("four-day week trial: +meaning, -10% output for 8 weeks");
+  - schedule a follow-up event that revisits the decision ("the trial is over: keep it?").
+- **Visibility:** active modifiers show in the HUD tray with weeks remaining. Scheduled consequences are not shown in full; the decision's hint says "effects later" so the player knows something is coming.
+- **No-shows:** someone who does not show up is away for a few weeks; how the player responds (check in, dock pay, ignore) changes that person's meaning and the team's.
+
+## Icons
+
+No stock emoji anywhere in the shipped game. Every icon (menu buttons, categories, toasts, meters, Slackk reactions, emotes above characters, event art) comes from one custom set in the diorama's art direction: the same palette, chunky rounded forms, and thick outlines as the UI. The art director chooses the technique (for example, small renders of the game's own 3D models for object icons, and hand-drawn SVG for small glyphs) as long as the set reads as one family at 16 to 48 px.
