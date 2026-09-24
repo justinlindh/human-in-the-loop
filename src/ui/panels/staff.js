@@ -3,7 +3,7 @@ import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
 import { portrait, portraitLive, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
 import { assignmentOptions, assignmentText, mentorOf, isAvailable } from './common.js';
 import { icon } from '../icons.js';
-import { STAT_INFO } from './build.js';
+import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
@@ -27,7 +27,7 @@ export function openPathPicker(ctx, staffId) {
 export function openTraining(ctx, staffId) {
   const p = ctx.getState().staff.find((x) => x.id === staffId);
   if (!p) return;
-  let focus = STAT_INFO.reduce((lo, st) => (p.skills[st.id] < p.skills[lo] ? st.id : lo), 'features');
+  let focus = STATS.reduce((lo, st) => (p.skills[st.id] < p.skills[lo] ? st.id : lo), 'features');
   let close = null;
   const cards = Object.values(TRAINING).map((t) => {
     const lines = [`+${t.xp} XP`];
@@ -36,7 +36,7 @@ export function openTraining(ctx, staffId) {
     if (t.knowledge) lines.push(`+${t.knowledge} know-how`);
     if (t.brand) lines.push('a little brand');
     const focusSel = t.skill ? h('select', { onchange: (e) => { focus = e.target.value; } },
-      ...STAT_INFO.map((st) => h('option', { value: st.id, text: `Focus: ${st.name} (${p.skills[st.id]})` }))) : null;
+      ...STATS.map((st) => h('option', { value: st.id, text: `Focus: ${st.skill} (${p.skills[st.id]})` }))) : null;
     if (focusSel) focusSel.value = focus;
     const go = h('button.btn.small.blue', {
       onclick: () => {
@@ -72,6 +72,7 @@ const COLS = [
   { id: 'name', label: 'Name', key: (p) => p.name },
   { id: 'role', label: 'Role', key: (p) => p.role },
   { id: 'level', label: 'Level', key: (p) => SEN_ORDER[p.seniority] * 100 + p.level },
+  { id: 'best', label: 'Best at', key: (p) => STATS.findIndex((x) => x.id === STATS.reduce((m, y) => ((p.skills?.[y.id] ?? 0) > (p.skills?.[m.id] ?? 0) ? y : m), STATS[0]).id) },
   { id: 'meaning', label: 'Meaning', key: (p) => p.meaning },
   { id: 'knowledge', label: 'Know-how', key: (p) => p.knowledge },
   { id: 'assignment', label: 'Doing', key: (p) => p.assignment.type },
@@ -143,6 +144,7 @@ export function staffPanel(ctx, arg) {
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null, pathBadge(p)))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
+        h('td.bestcol', null, bestChip(p)),
         h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`, { size: 19 })), h('div.bar', null, mFill), mVal)),
         h('td.kcol', null, h('div.row', null, h('div.bar', null, kFill), kVal)),
         h('td', null, assignSelect(ctx, s, p)),
@@ -185,11 +187,11 @@ export function staffPanel(ctx, arg) {
     const need = (B.xpPerLevel ?? 60) * p.level;
     bind((st) => { const c = st.staff.find((x) => x.id === p.id); if (!c) return; setWidth(xpFill, c.xp / need); setText(xpText, `${Math.floor(c.xp)}/${need} xp`); });
 
-    const statBar = (label, get, color, max = 100, fmt = (v) => Math.round(v)) => {
+    const statBar = (label, get, color, max = 100, fmt = (v) => Math.round(v), sub = null) => {
       const f = h('i', { style: { background: color } });
       const v = h('b.num');
       bind((st) => { const c = st.staff.find((x) => x.id === p.id); if (!c) return; setWidth(f, get(c) / max); setText(v, fmt(get(c))); });
-      return h('div.dstat', null, h('span', { text: label }), h('div.bar', null, f), v);
+      return h('div.dstat', null, h('span', null, label, sub ? h('span.dsub', { text: sub }) : null), h('div.bar', null, f), v);
     };
 
     const log = ctx.meaningLog?.get(p.id) ?? [];
@@ -214,7 +216,7 @@ export function staffPanel(ctx, arg) {
       acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor a junior'), h('span.small.muted', { text: 'Grows the next generation. Restores meaning.' }), sel));
     }
     if (p.seniority === 'senior') {
-      acts.append(h('div.act', null, h('b', null, icon('hardProblem'), ' Hard problem'), h('span.small.muted', { text: 'Something gnarly only a human can crack. Novelty and meaning.' }),
+      acts.append(h('div.act', null, h('b', null, icon('hardProblem'), ' Hard problem'), h('span.small.muted', { text: 'Something gnarly only a human can crack. Ideas and meaning.' }),
         h('button.btn.small', { disabled: away || p.assignment.type === 'hardProblem', onclick: () => assign('hardProblem') }, p.assignment.type === 'hardProblem' ? 'On it' : 'Assign')));
     }
     acts.append(h('div.act', null, h('b', null, icon('oversight'), ' Oversight'), h('span.small.muted', { text: 'Watches the agents. Catching incidents feels great.' }),
@@ -245,8 +247,8 @@ export function staffPanel(ctx, arg) {
           h('div.small', null, h('b', { text: 'Doing: ' }), assignmentText(s, p)),
           assignSelect(ctx, s, p)),
         h('div.dmid', null,
-          h('div.section', null, h('h3', null, 'Skills'),
-            ...STAT_INFO.map((st) => statBar(st.name, (c) => c.skills[st.id], st.color))),
+          h('div.section', null, h('h3', null, 'Skills', h('span.aside', null, strengthChip(p))),
+            ...STATS.map((st) => statBar(h('span.skname', null, icon(st.icon, { size: 14 }), ` ${st.skill}`), (c) => c.skills[st.id], st.color, 100, (v) => Math.round(v), `drives ${st.product}`))),
           h('div.section', null, h('h3', null, 'Condition'),
             statBar('Meaning', (c) => c.meaning, moodColor(p)),
             statBar('Stamina', (c) => c.stamina, '#ffb020'),
@@ -277,3 +279,9 @@ export function staffPanel(ctx, arg) {
   };
 }
 
+
+// Dense lists show only the person's best skill: icon and name, no number.
+function bestChip(p) {
+  const b = STATS.reduce((best, x) => ((p.skills?.[x.id] ?? 0) > (p.skills?.[best.id] ?? 0) ? x : best), STATS[0]);
+  return h('span.bestskill', { title: `Best skill: ${b.skill} ${p.skills?.[b.id] ?? 0} (drives ${b.product})` }, icon(b.icon, { size: 14 }), ` ${b.skill}`);
+}

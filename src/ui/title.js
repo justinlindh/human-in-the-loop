@@ -1,8 +1,9 @@
 import { h, setText, fmtMoney, dateOf } from './dom.js';
 import { portrait, roleChip } from './widgets.js';
 import { traitInfo } from './content.js';
-import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, strengthChips, archetypeBlurb, foundingWarning } from './v2content.js';
+import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
+import { STAT } from './stats.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
 const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
@@ -142,7 +143,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('b.fname', { text: a.name }),
       roleChip(a.role),
       h('span.small', { text: archetypeBlurb(a) }),
-      strengthChips(a).length ? h('span.fstr', null, ...strengthChips(a).map((n) => h('span.pill.good', { text: n }))) : null,
+      Array.isArray(a.strengths) && a.strengths.length ? h('span.fstr', null, ...a.strengths.filter((k) => STAT[k]).map((k) => h('span.pill.strength', { style: { '--sc': STAT[k].color }, title: `${STAT[k].skill}: drives ${STAT[k].product}` }, icon(STAT[k].icon, { size: 12 }), ` ${STAT[k].skill}`))) : null,
       a.warning ? h('span.small.fcardwarn', null, icon('warn', { size: 11 }), ` ${a.warning}`) : null,
       a.trait ? h('span.pill.trait', { title: traitInfo(a.trait).desc, text: traitInfo(a.trait).name }) : null);
       if (draft.founders.includes(a.id)) card.classList.add('on');

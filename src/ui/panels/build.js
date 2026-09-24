@@ -4,16 +4,13 @@ import { portrait, liveView, stars, tabs } from '../widgets.js';
 import { icon } from '../icons.js';
 import { researchView } from './research.js';
 import { ERA } from '../v2content.js';
+import { STATS, STAT } from '../stats.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
 
-export const STAT_INFO = [
-  { id: 'features', name: 'Features', short: 'F', color: '#4f8cff' },
-  { id: 'polish', name: 'Polish', short: 'P', color: '#ff7eb6' },
-  { id: 'reliability', name: 'Reliability', short: 'R', color: '#34c38f' },
-  { id: 'novelty', name: 'Novelty', short: 'N', color: '#ffb020' },
-];
+// Product stats as the player sees them (Freshness is stored as novelty).
+export const STAT_INFO = STATS.map((s) => ({ id: s.id, name: s.product, color: s.color, icon: s.icon }));
 
 const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large: { name: 'Large' } };
 
@@ -177,7 +174,11 @@ export function buildPanel(ctx, arg) {
       },
       h('span.check', null, icon('check')),
       portrait(p, 30),
-      h('span.pn', null, h('b', { text: p.name }), h('span.faint', { text: ` Lv${p.level}` })),
+      (() => {
+        const b = STATS.reduce((m, y) => ((p.skills?.[y.id] ?? 0) > (p.skills?.[m.id] ?? 0) ? y : m), STATS[0]);
+        return h('span.pn', null, h('span.pnl', null, h('b', { text: p.name }), h('span.faint', { text: ` Lv${p.level}` })),
+          h('span.bestskill.pb', { title: `Best skill: ${b.skill} (drives ${b.product})` }, icon(b.icon, { size: 12 }), ` ${b.skill}`));
+      })(),
       h('span.pr', { style: { background: ROLES[p.role]?.color } }),
       h('span.pm', null, icon(`mood.${p.mood === 'away' ? 'away' : p.mood}`)),
       onProj ? h('span.busy', { text: 'busy' }) : null);
@@ -264,7 +265,7 @@ export function buildPanel(ctx, arg) {
       const statEls = STAT_INFO.map((st) => {
         const v = h('b.num');
         const f = h('i', { style: { background: st.color } });
-        return { st, v, f, el: h('div.pstat', { title: st.name }, h('span', { text: st.short }), h('div.bar', null, f), v) };
+        return { st, v, f, el: h('div.pstat.named', { title: st.name }, h('span.skname', null, icon(st.icon, { size: 13 }), ` ${st.name}`), h('div.bar', null, f), v) };
       });
       const people = s.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
       const addSel = h('select.addsel', {
@@ -305,7 +306,7 @@ export function buildPanel(ctx, arg) {
     const other = h('div.grid.others', null,
       h('div.card.other', null,
         h('b', null, icon('update'), ' Update a product'),
-        h('span.small.muted', { text: 'Refreshes novelty and gets fresh reviews.' }),
+        h('span.small.muted', { text: 'Makes it fresh again and gets new reviews.' }),
         live.length ? h('div.row', null, updSel, h('button.btn.small.blue', { onclick: () => startKind({ kind: 'update', productId: updSel.value }) }, 'Start')) : h('span.faint.small', { text: 'No live products yet.' })),
       h('div.card.other', null,
         h('b', null, icon('migrate'), ' Model migration'),

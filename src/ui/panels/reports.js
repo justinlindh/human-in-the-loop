@@ -133,7 +133,7 @@ export function reportsPanel(ctx) {
         const risk = wrapperRisk(p);
         const tags = h('div.row.wrap.ptags', null,
           p.wrapperHit || risk === 'hit' ? h('span.pill.bad', null, icon('wrapper', { size: 12 }), ' "Just a wrapper"') : null,
-          p.copied ? h('span.pill.warn', { title: 'An incumbent copied your features; novelty halved' }, 'Copied by incumbent') : null,
+          p.copied ? h('span.pill.warn', { title: 'An incumbent copied your features; freshness halved' }, 'Copied by incumbent') : null,
           p.migrationDueWeek != null ? h('span.pill.warn', null, icon('migrate', { size: 12 }), ` Migrate by ${p.migrationDueWeek <= s.week ? 'NOW' : `${p.migrationDueWeek - s.week}w`}`) : null,
           s.outage?.productId === p.id ? h('span.pill.bad', null, icon('tray.outage', { size: 12 }), ' DOWN') : null,
         );
@@ -154,7 +154,7 @@ export function reportsPanel(ctx) {
             h('div', null, h('span.small.muted', { text: 'Uptime' }), up)),
           h('div.pbars', null,
             h('div.pstat', null, h('span', { text: 'Health' }), h('div.bar', null, healthF), healthV),
-            h('div.pstat', null, h('span', { text: 'Novelty' }), h('div.bar', null, novF), novV),
+            h('div.pstat', null, h('span.skname', null, icon('stat.novelty', { size: 13 }), ' Freshness'), h('div.bar', null, novF), novV),
             h('div.pstat', null, h('span', { text: 'Hype' }), h('div.bar', null, hypeF), hypeV)),
           tags,
           h('div.row.pacts', null,

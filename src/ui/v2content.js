@@ -82,9 +82,6 @@ export function goalReward(g) {
   return [r.cash ? `+${FMT_K(r.cash)}` : null, r.brand ? `+${r.brand} brand` : null, g.trophy ? 'a trophy' : null].filter(Boolean).join(', ');
 }
 
-const STAT_NAME = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty', hype: 'Hype', sales: 'Sales', support: 'Support', security: 'Security', oversight: 'Oversight' };
-// Founder strengths come as stat ids from the data or as a sentence from the fallback.
-export const strengthChips = (a) => (Array.isArray(a.strengths) ? a.strengths.map((k) => STAT_NAME[k] ?? k) : []);
 export const archetypeBlurb = (a) => a.blurb ?? (typeof a.strengths === 'string' ? a.strengths : '');
 
 // A short name for lists: "Marketing", "Policy: Craft Fridays".

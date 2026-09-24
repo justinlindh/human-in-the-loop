@@ -929,3 +929,22 @@
 .hitl .fwarn { display: flex; align-items: center; gap: 0.2em; background: #fff4dc; border: 0.14em solid var(--warn); border-radius: 0.7em; padding: 0.35em 0.6em; font-weight: 600; font-size: 0.9em; }
 .hitl.recapping > .modal-back:not(.generic), .hitl.recapping > .announce-back { visibility: hidden; }
 .hitl .fcard .fcardwarn { color: var(--warn); font-weight: 600; line-height: 1.2; }
+
+/* ---------- stat names (Building, Craft, Rigor, Ideas; Features, Polish, Reliability, Freshness) ---------- */
+.hitl .pill.strength { background: var(--cream); border-color: var(--sc, var(--ink)); gap: 0.2em; }
+.hitl .skrow { display: grid; grid-template-columns: 6.2em 1fr 2em; align-items: center; gap: 0.45em; font-size: 0.85em; }
+.hitl .skrow .skname { display: inline-flex; align-items: center; gap: 0.2em; font-weight: 600; white-space: nowrap; }
+.hitl .skrow .num { text-align: right; }
+.hitl .skrow .bar { height: 0.55em; }
+.hitl .skills2 { display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .skmore { align-self: flex-start; min-height: 2.5em; }
+.hitl .bestskill { display: inline-flex; align-items: center; gap: 0.2em; font-weight: 600; font-size: 0.85em; white-space: nowrap; }
+.hitl .dstat .dsub { display: block; font-size: 0.72em; font-weight: 500; color: var(--ink-soft); }
+.hitl .dstat .skname { display: inline-flex; align-items: center; gap: 0.2em; }
+.hitl .pstat.named { grid-template-columns: 6.8em 1fr 2.4em; font-weight: 600; }
+.hitl .pstat .skname { display: inline-flex; align-items: center; gap: 0.2em; white-space: nowrap; }
+.hitl .pbars .pstat { grid-template-columns: 6.5em 1fr 2.4em; }
+.hitl .pick .bestskill.pb { font-size: 0.72em; color: var(--ink-soft); }
+.hitl .pick .pn { display: flex; flex-direction: column; line-height: 1.15; }
+.hitl .pick .pnl { overflow: hidden; text-overflow: ellipsis; }
+.hitl .pick .bestskill.pb { font-size: 0.85em; }

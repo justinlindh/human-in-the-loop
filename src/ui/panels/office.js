@@ -8,7 +8,7 @@ import { placedOf, stageOf } from '../placement.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
-  output: 'output', staminaDrain: 'stamina drain', novelty: 'novelty', knowledgeGain: 'knowledge gain',
+  output: 'output', staminaDrain: 'stamina drain', novelty: 'freshness', knowledgeGain: 'knowledge gain',
   oversight: 'oversight per person', maintenanceNeed: 'maintenance need', uptimeFloor: 'minimum uptime', brandDecay: 'brand decay',
 };
 
@@ -111,7 +111,7 @@ function legacyOfficePanel(ctx) {
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
 
-const ADJ_WORDS = { novelty: 'novelty', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
 
 function adjacencyLine(it) {
   const a = it.adjacency;
