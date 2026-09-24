@@ -28,7 +28,10 @@ export function reportsPanel(ctx) {
     { id: 'people', icon: 'team', label: 'People' },
     { id: 'products', icon: 'product', label: 'Products' },
     { id: 'combos', icon: 'star', label: 'Combos' },
+    { id: 'acquire', icon: 'money', label: 'Acquisitions' },
   ], tab, (id) => { tab = id; t.set(id); render(); });
+  // Acquisitions appear once the sim offers companies for sale.
+  t.setHidden('acquire', !Array.isArray(ctx.getState().market?.forSale));
   const host = h('div');
   const bannerHost = h('div');
   const root = h('div', null, bannerHost, host);
@@ -193,7 +196,11 @@ export function reportsPanel(ctx) {
           h('td.num', { text: `${r.fit.toFixed(2)}x` })))));
     });
 
-  const views = { overview, people, products, combos };
+  const acquire = liveView(
+    (s) => `${(s.market?.forSale ?? []).map((c) => c.id).join()}|${Math.floor(s.cash / 50000)}|${s.staff.length}|${s.week}`,
+    (s, bind) => acquisitionsView(ctx, s, bind));
+
+  const views = { overview, people, products, combos, acquire };
   function render() {
     host.replaceChildren(views[tab].el);
     views[tab].update(ctx.getState(), true);
@@ -210,6 +217,9 @@ export function reportsPanel(ctx) {
     destroy() { removeEventListener('resize', onResize); clearTimeout(resizeTimer); },
     update(s) {
       t.setLabel('products', `Products (${s.products.filter((p) => !p.killed).length})`);
+      const sale = s.market?.forSale;
+      t.setHidden('acquire', !Array.isArray(sale));
+      if (Array.isArray(sale)) t.setLabel('acquire', `Acquisitions (${sale.length})`);
       syncBanner(s);
       if (host.firstChild) views[tab].update(s);
     },
@@ -248,4 +258,33 @@ function purposeCard(s) {
     tests.length ? h('div.ptests', null, ...tests.map((t) => h('div.ptest', null,
       h(`span.num.${(t.delta ?? 0) >= 0 ? 'good-t' : 'bad-t'}`, { text: `${(t.delta ?? 0) >= 0 ? '+' : ''}${Math.round(t.delta ?? 0)}` }),
       h('span', { text: t.text ?? '' }), h('span.small.muted', { text: Number.isFinite(t.week) ? `${dateOf(t.week).year} Q${dateOf(t.week).quarter}` : '' })))) : null);
+}
+
+// Companies for sale: buy one to take on its product, its customers and its people. Big money, so
+// Acquire takes two taps; the sim's refusal reason shows as a toast.
+function acquisitionsView(ctx, s, bind) {
+  const sale = s.market?.forSale ?? [];
+  if (!sale.length) return h('div.empty', { text: 'No companies are for sale right now. Offers come and go.' });
+  return h('div.acqlist', null, ...sale.map((c) => {
+    const left = Math.max(0, (c.expiresWeek ?? s.week) - s.week);
+    const acq = confirmButton(`Acquire · ${money(c.price)}`, `Spend ${money(c.price)}?`, 'go.acqbtn', () => {
+      if (ctx.act({ type: 'acquire', targetId: c.id }).ok) ctx.sfx('confirm');
+    });
+    const why = h('span.why.small');
+    bind((st) => {
+      const r = st.cash < c.price ? 'Not enough cash' : '';
+      acq.disabled = !!r;
+      setText(why, r);
+    });
+    return h('div.card.acq', null,
+      h('div.row', null, h('span.iico', null, icon(`cat.${c.categoryId}`, { size: 26 })),
+        h('div', { style: { minWidth: 0, flex: 1 } }, h('b.aname', { text: c.name }), h('div.small.muted', { text: categoryName(c.categoryId) })),
+        h('span', { class: left <= 4 ? 'pill warn' : 'pill', title: 'The offer ends then' }, icon('hourglass', { size: 12 }), ` ${left} wk left`)),
+      h('div.row.wrap.acqstats', null,
+        h('div.acqstat', null, h('span.small.muted', { text: 'Revenue a year' }), h('b.num', { text: money(c.arr) })),
+        h('div.acqstat', null, h('span.small.muted', { text: 'Price' }), h('b.num', { text: money(c.price) })),
+        h('div.acqstat', null, h('span.small.muted', { text: 'People joining' }), h('b.num', { text: String(c.staff ?? 0) })),
+        h('div.acqstat', null, h('span.small.muted', { text: 'Pays back in' }), h('b.num', { text: c.arr > 0 ? `${(c.price / c.arr).toFixed(1)} yr` : '-' }))),
+      h('div.row', null, h('span.small.muted', { text: `Each person needs a free desk.` }), h('span.spacer'), why, acq));
+  }));
 }

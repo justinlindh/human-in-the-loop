@@ -138,7 +138,10 @@ export function createHud({ root, controls, ui }) {
   const mBrand = meter('Brand', 'brand', 'Brand: multiplies signups and reduces churn. Slow to build.');
   const mIk = meter('Know-how', 'ik', 'Institutional Knowledge: how well your people understand your own systems.');
   const mDebt = meter('Debt', 'debt', 'Comprehension Debt: shipped behavior nobody on staff understands. Raises incidents.');
-  const meters = h('div.chip.meters', null, mBrand.el, mIk.el, mDebt.el);
+  // Fame joins the meters once it is above zero (late game).
+  const mFame = meter('Fame', 'fame', 'Fame: softens churn and hiring costs. Raised by fame campaigns; fades slowly.');
+  mFame.el.style.display = 'none';
+  const meters = h('div.chip.meters', null, mBrand.el, mIk.el, mDebt.el, mFame.el);
 
   const pausedTag = h('span.paused-tag', { text: 'Paused' });
   const menuTag = h('span.paused-tag.menu', { text: 'Paused: menu open', title: 'Time waits while a menu is open. Change this in Settings.' });
@@ -303,6 +306,10 @@ export function createHud({ root, controls, ui }) {
     setWidth(mDebt.fill, s.comprehensionDebt / 100);
     setText(mDebt.v, Math.round(s.comprehensionDebt));
     toggleClass(mDebt.bar, 'hot', s.comprehensionDebt >= 60);
+    const fame = Number.isFinite(s.fame) ? s.fame : 0;
+    const showFame = fame > 0;
+    if (showFame !== last.fame) { last.fame = showFame; mFame.el.style.display = showFame ? '' : 'none'; }
+    if (showFame) { setWidth(mFame.fill, fame / 100); setText(mFame.v, Math.round(fame)); }
 
     const sp = controls.getSpeed?.() ?? 1;
     if (sp !== last.speed) {

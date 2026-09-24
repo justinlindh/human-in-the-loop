@@ -157,7 +157,7 @@ export function automationPanel(ctx) {
     });
 
   const pol = liveView(
-    (s) => [Object.keys(s.policies).sort().join(), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
+    (s) => [Object.keys(s.policies).sort().join(), s.staff.length, Math.floor(s.week / 13), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
     // With progressive unlocks, a policy appears only once it has arrived.
     (s) => h('div.policies', null, ...POLICIES.filter((p) => !s.unlocks || s.policies[p.id] || policyUnlocked(s, p)).map((p) => {
       const on = !!s.policies[p.id];
@@ -174,7 +174,7 @@ export function automationPanel(ctx) {
         h('div.row', null, h('b.pname', { text: p.name }), h('span.spacer'), sw),
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,
-          h('span.pill', null, icon('money'), p.weeklyCost ? ` ${fmtMoney(p.weeklyCost)}/wk` : ' Free'),
+          (() => { const c = call('policyCost', s, p.id) ?? p.weeklyCost; return h('span.pill', { title: call('policyCost', s, p.id) != null ? 'Grows with the company' : '' }, icon('money'), c ? ` ${fmtMoney(c)}/wk` : ' Free'); })(),
           !unlocked && !on ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${policyLockText(p)}`) : on ? h('span.pill.good', null, icon('check'), ' Active') : null,
           rivals.length ? h('span', { class: rivalOn && !on ? 'pill warn' : 'pill', title: 'Only one of these can be on at a time' },
             icon('migrate', { size: 12 }), rivalOn && !on ? ` Turns off ${POLICY[rivalOn].name}` : ` Either this or ${rivals.map((id) => POLICY[id].name).join(', ')}`) : null));
