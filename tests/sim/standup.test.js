@@ -96,8 +96,8 @@ describe('a daily standup', () => {
     expect(outputMult(s, p) / base).toBeCloseTo(1 + B.standupDailyOutput);
     expect(institutionalKnowledge(s)).toBeGreaterThan(ik);
     const meanings = s.staff.map((x) => x.meaning);
-    run(s);
-    s.staff.forEach((x, i) => expect(x.meaning).toBeCloseTo(Math.min(100, meanings[i] + B.standupDailyMeaning)));
+    const spoke = new Set(run(s).find((e) => e.type === 'standup').lines.map((l) => l.staffId));
+    s.staff.forEach((x, i) => expect(x.meaning).toBeCloseTo(spoke.has(x.id) ? Math.min(100, meanings[i] + B.standupDailyMeaning) : meanings[i]));
   });
 });
 
