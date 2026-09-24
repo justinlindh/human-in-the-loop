@@ -8,6 +8,7 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
+import { emitChat } from './chat.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -60,6 +61,7 @@ export function generateStaff(state, { role, seniority }) {
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
     salary: 0, hiredWeek: state.week, founder: false,
+    path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
       pants: pick(r, PANTS), accessory: pick(r, ACCESSORIES), build: int(r, 0, 2),
@@ -134,7 +136,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
-  ctx.emit({ type: 'chat', from: c.name, text: pick(ctx.rng, CHATTER.hello) });
+  emitChat(ctx, { person: c, text: pick(ctx.rng, CHATTER.hello) });
   return { ok: true };
 });
 

@@ -32,6 +32,8 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
     models: Object.fromEntries(Object.values(MODELS).map((m) => [m.id, {
       version: 1, capability: m.capability, costMult: 1, available: m.releaseYear <= START_YEAR, deprecated: false,
     }])),
+    items: [],
+    research: { done: [] },
     discoveredCombos: {},
     outage: null,
     incidentLog: [],

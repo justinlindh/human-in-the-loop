@@ -38,6 +38,7 @@ describe('generateStaff', () => {
           expect(ASSIGNMENT_TYPES).toContain(p.assignment.type);
           expect(p.mood).toBe('ok');
           expect(p.founder).toBe(false);
+          expect(p).toMatchObject({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 } });
           expect(p.appearance.hairColor).toMatch(/^#[0-9a-f]{6}$/);
           expect(['none', 'glasses', 'headphones', 'beanie', 'cap']).toContain(p.appearance.accessory);
         }
@@ -60,6 +61,9 @@ describe('hire', () => {
     expect(s.candidates.find((x) => x.id === c.id)).toBeUndefined();
     expect(s.staff.find((x) => x.id === c.id).hiredWeek).toBe(s.week);
     expect(res.events.map((e) => e.type)).toEqual(expect.arrayContaining(['hire', 'chat']));
+    const chat = res.events.find((e) => e.type === 'chat');
+    expect(chat).toMatchObject({ channel: 'general', from: c.name, fromId: c.id, replyTo: null, reactions: {} });
+    expect(chat.id).toMatch(/^m\d+$/);
   });
 
   it('fails without cash, when the office is full, or with a bad id', () => {

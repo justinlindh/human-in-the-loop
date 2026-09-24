@@ -42,7 +42,7 @@ const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.
 function baseProject(state, fields) {
   return {
     id: newId(state, 'j'), kind: fields.kind, name: fields.name, category: fields.category ?? null, angle: fields.angle ?? null,
-    model: fields.model ?? null, size: fields.size ?? 'small', pointsNeeded: fields.pointsNeeded, progress: 0,
+    model: fields.model ?? null, size: fields.size ?? 'small', researchId: fields.researchId ?? null, pointsNeeded: fields.pointsNeeded, progress: 0,
     stats: zeroPoints(), productId: fields.productId ?? null, startedWeek: state.week, bankedHype: 0,
   };
 }

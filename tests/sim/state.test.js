@@ -5,7 +5,7 @@ import { B } from '../../src/sim/balance.js';
 const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'items', 'research', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
 ];
 
@@ -34,6 +34,8 @@ describe('game state', () => {
     expect(s.models.mistrale.available).toBe(false);
     expect(s.models.claudius.available).toBe(true);
     expect(s.market.categories.crm.incumbentStrength).toBe(650);
+    expect(s.items).toEqual([]);
+    expect(s.research).toEqual({ done: [] });
   });
 
   it('is JSON-safe', () => {
