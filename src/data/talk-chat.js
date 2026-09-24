@@ -1,4 +1,4 @@
-// Slackk exchanges: a post and threaded replies in the team chat. Format and rules are in talk.js.
+// Yak exchanges: a post and threaded replies in the team chat. Format and rules are in talk.js.
 const AI = ['chatgbt', 'agents', 'consolidation', 'plateau'];
 const AGENTS = ['agents', 'consolidation', 'plateau'];
 

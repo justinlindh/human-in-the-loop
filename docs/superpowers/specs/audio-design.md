@@ -156,7 +156,7 @@ music bus -> lowpass BiquadFilter (pause and lockdown) -> duck gain -> bus gain
 
 ### Voice barks
 
-Barks are rare, and less is more. They are never tied to speech bubbles or Slackk lines (`say` and `chat` map to no voice).
+Barks are rare, and less is more. They are never tied to speech bubbles or Yak lines (`say` and `chat` map to no voice).
 
 - **Bank.** `Staff.voice = { set: 'fem'|'masc', variant, pitch: -1..1 }` picks the bank: `${set}_${VOICE_VARIANTS[set][variant % n]}`, for example `fem_alto40`.
   - `VOICE_VARIANTS` in the manifest lists the recorded variants per set (8 each), so adding one is a data edit.

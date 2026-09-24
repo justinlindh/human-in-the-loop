@@ -37,7 +37,7 @@ A long, interactive review with the user: go through every major element of the 
 | 3.3 | Poses: typing, slumped, tired, burnout, napping | close-up video | Readability; the typing tap |
 | 3.4 | Conversations: say bubbles, exchanges, reading time | video at 1x and 2x | Too many or too few? Fast enough to read? Funny? |
 | 3.5 | Standups: staged in person and at desks | video | Length, and whether it's worth watching |
-| 3.6 | Slackk: channels, threads, bots, reactions | screenshots from early, mid and late game | Quality of the writing; volume |
+| 3.6 | Yak: channels, threads, bots, reactions | screenshots from early, mid and late game | Quality of the writing; volume |
 
 ### 4. Screens and decisions
 | # | Item | Media | Questions |
