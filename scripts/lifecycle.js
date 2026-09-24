@@ -18,7 +18,17 @@ const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await (await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } })).newPage();
+const context = await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } });
+// No CSS animation or transitions: on a slow runner an animating card never counts as stable, so
+// clicks on it time out. The checks here are about behavior, not motion.
+await context.addInitScript(() => {
+  addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
+    document.head.append(style);
+  });
+});
+const page = await context.newPage();
 const shot = (name) => (SHOTS ? page.screenshot({ path: `${OUT}/${name}` }) : null);
 const errors = [];
 const failures = [];
@@ -27,7 +37,10 @@ page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || 
 const ready = () => page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
 // Generous: CI runners render with software GL and can take many seconds per frame.
-const clickText = (re) => page.locator('button:visible', { hasText: re }).first().click({ timeout: 30000 });
+// force skips Playwright's "stable" wait: on a software-GL runner a frame can take seconds (the
+// menus draw 3D portraits), so an element may never be seen stable. These checks are about behavior.
+const click = (loc) => loc.click({ timeout: 30000, force: true });
+const clickText = (re) => click(page.locator('button:visible', { hasText: re }).first());
 
 try {
   await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base, { waitUntil: 'domcontentloaded', timeout: 90000 }); await ready(); await page.waitForTimeout(1000);
@@ -49,10 +62,10 @@ try {
     if (shots) await shot('2-company.png');
     await clickText(/Next: founders/);
     const cards = page.locator('button.fcard');
-    await cards.nth(0).click(); await cards.nth(1).click();
+    await click(cards.nth(0)); await click(cards.nth(1));
     if (shots) await shot('3-founders.png');
     await clickText(/Next: funding/);
-    await page.locator('button.fund').last().click();
+    await click(page.locator('button.fund').last());
     if (shots) await shot('4-funding.png');
     await clickText(/Start the company/);
     await page.waitForTimeout(800);
