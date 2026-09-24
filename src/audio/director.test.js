@@ -178,5 +178,52 @@ describe('audio director', () => {
     }
     expect(play({ fired: true, reason: 'fired' }).filter((x) => x.op === 'play')).toHaveLength(0);
   });
+
+  it('marks an outage starting and ending, and a door under hires and departures', () => {
+    const d = createDirector();
+    const s = state();
+    d.update(s, 0, { speed: 1 });
+    expect(d.update({ ...s, outage: { productId: 'p1' } }, 1, { speed: 1 }).some((c) => c.cue === 'sfx.outage')).toBe(true);
+    expect(d.update(s, 20, { speed: 1 }).some((c) => c.cue === 'sfx.fixed')).toBe(true);
+    expect(d.events([{ type: 'hire', staffId: 's1' }], s, 30).some((c) => c.cue === 'sfx.door')).toBe(true);
+    expect(createDirector().events([{ type: 'resign', staffId: 's1', fired: true }], s, 30).some((c) => c.cue === 'sfx.door')).toBe(false);
+  });
+
+  it('plays pets and coffee rarely, only with a pet or a coffee machine', () => {
+    const d = createDirector();
+    const s = state({ pets: [{ id: 'pet1', species: 'dog', ownerId: 's1' }], office: { placed: [{ itemId: 'espresso' }] } });
+    let dog = 0, coffee = 0;
+    for (let t = 0; t < 600; t += 0.5) {
+      const c = d.update(s, t, { speed: 1, running: true });
+      dog += c.filter((x) => x.cue === 'sfx.dog').length;
+      coffee += c.filter((x) => x.cue === 'sfx.coffee').length;
+    }
+    expect(dog).toBeGreaterThanOrEqual(2);
+    expect(dog).toBeLessThanOrEqual(7);
+    expect(coffee).toBeGreaterThanOrEqual(1);
+    expect(coffee).toBeLessThanOrEqual(5);
+    const bare = createDirector();
+    let none = 0;
+    for (let t = 0; t < 600; t += 0.5) none += bare.update(state(), t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.dog' || x.cue === 'sfx.coffee').length;
+    expect(none).toBe(0);
+  });
+
+  it('keeps the typing bed quiet, scaled by who is working, and off when paused or in lockdown', () => {
+    const d = createDirector();
+    const working = state({ staff: staff(4).map((p) => ({ ...p, assignment: { type: 'project' } })) });
+    const loop = (cmds) => cmds.find((c) => c.op === 'loop');
+    expect(loop(d.update(working, 0, { speed: 1 })).gain).toBeGreaterThan(0);
+    expect(loop(d.update(working, 1, { speed: 0 })).gain).toBe(0);
+    expect(loop(d.update(working, 2, { speed: 1 })).gain).toBeGreaterThan(0);
+    expect(loop(d.update({ ...working, lockdown: { until: 99 }, week: 10 }, 3, { speed: 1 })).gain).toBe(0);
+    expect(createDirector({ quality: 'low' }).update(working, 0, { speed: 1 }).find((c) => c.op === 'loop')).toBeUndefined();
+  });
+
+  it('plays a perk sound when a prop is in use, rate-limited', () => {
+    const d = createDirector();
+    expect(d.prop('foosball', 1).some((c) => c.cue === 'sfx.foosball')).toBe(true);
+    expect(d.prop('foosball', 5)).toHaveLength(0);
+    expect(d.prop('desk', 50)).toHaveLength(0);
+  });
 });
 

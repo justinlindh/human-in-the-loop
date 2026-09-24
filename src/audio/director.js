@@ -11,7 +11,7 @@
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
-  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit } from './manifest.js';
+  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -53,6 +53,9 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   let nextAmbient = null;
   let playing = [];               // { bus, priority, until, t }
   const moods = new Map();        // staffId -> last mood
+  let hadOutage = null;
+  let nextPet = null, nextCoffee = null;
+  let typing = 0;
   const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
@@ -81,7 +84,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     if (!admit(c.bus, c.priority ?? 5, t, 1.2)) return [];
     lastCue.set(id, t);
     const j = c.jitter?.gain ? 1 - c.jitter.gain * rng() : 1;
-    const out = [{ op: 'play', cue: id, file: pick(c.files), bus: c.bus, gain: gain * j, at: t, priority: c.priority ?? 5 }];
+    const out = [{ op: 'play', cue: id, file: pick(c.files), bus: c.bus, gain: gain * j * (c.gain ?? 1), at: t, priority: c.priority ?? 5 }];
     if (c.duck) out.push({ op: 'duck', key: c.duck, on: true, at: t }, { op: 'duck', key: c.duck, on: false, at: t + 1.2 });
     return out;
   }
@@ -138,6 +141,8 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         const rule = ON_EVENT[e.type];
         const id = typeof rule === 'function' ? rule(e, state) : rule;
         if (id && !seen.has(id)) { seen.add(id); out.push(...playCue(id, t, { speed })); }
+        // A door under arrivals and departures.
+        if ((e.type === 'hire' || (e.type === 'resign' && !e.fired)) && !seen.has('sfx.door')) { seen.add('sfx.door'); out.push(...playCue('sfx.door', t + 0.1, { speed })); }
         // Voice moments.
         if (e.type === 'launch') { if (isFirstLaunch(e, state)) out.push(...cheer('launch', state, t + 0.15)); }
         else if (e.type === 'incentive' && e.reward === 'waffle_party') out.push(...cheer('waffleParty', state, t + 0.2, e.staffId));
@@ -161,6 +166,9 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
 
     // A UI 'hitl:sfx' name.
     cue(name, t) { return playCue(UI_CUES[name] ?? name, t); },
+
+    // The renderer staged someone using a perk prop.
+    prop(itemId, t) { return PROP_CUES[itemId] ? playCue(PROP_CUES[itemId], t) : []; },
 
     // The player clicked a person.
     poke(staffId, state, t) {
@@ -200,7 +208,17 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         music.level = level; music.lowpass = lowpass;
         out.push({ op: 'musicMix', level, lowpass, fade: 0.4 });
       }
+      // The typing bed: quiet, scaled by how many people are at their desks working; off while
+      // paused, in lockdown, on the title, and on Low.
+      const working = (state?.staff ?? []).filter((p) => p.mood !== 'away' && !p.remote && ['project', 'maintenance', 'support', 'security', 'sales', 'marketing'].includes(p.assignment?.type)).length;
+      const total = Math.max(1, (state?.staff ?? []).length);
+      const tg = q === 'low' || ctx.title || hold || stopped || state?.lockdown && state.week < (state.lockdown.until ?? Infinity) ? 0 : Math.round((WORLD.typingMax * Math.min(1, working / total)) * 20) / 20;
+      if (tg !== typing) { typing = tg; out.push({ op: 'loop', id: 'ambience/typing', bus: 'ambience', gain: tg, fade: 1.5 }); }
       if (!state?.staff || ctx.title) return out;
+      // Outage start and end.
+      const outage = !!state.outage;
+      if (hadOutage !== null && outage !== hadOutage) out.push(...playCue(outage ? 'sfx.outage' : 'sfx.fixed', t));
+      hadOutage = outage;
       // Burnout: once per episode, from last week's moods.
       for (const p of state.staff) {
         const before = moods.get(p.id);
@@ -210,7 +228,19 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         moods.set(p.id, p.mood);
       }
       // Ambient: rare, only while time runs and nothing holds the screen.
-      const running = ctx.running !== false && (ctx.speed ?? 1) > 0 && !hold && !state.lockdown;
+      const running = ctx.running !== false && (ctx.speed ?? 1) > 0 && !hold && !(state.lockdown && state.week < (state.lockdown.until ?? Infinity));
+      if (nextPet === null) { nextPet = t + WORLD.petMinGap + rng() * WORLD.petSpread; nextCoffee = t + WORLD.coffeeMinGap + rng() * WORLD.coffeeSpread; }
+      if (running && t >= nextPet) {
+        nextPet = t + WORLD.petMinGap + rng() * WORLD.petSpread;
+        const here = new Set(present(state).map((p) => p.id));
+        const pets = (state.pets ?? []).filter((p) => p.ownerId == null || here.has(p.ownerId));
+        if (pets.length) out.push(...playCue(pick(pets).species === 'cat' ? 'sfx.cat' : 'sfx.dog', t));
+      }
+      if (running && t >= nextCoffee) {
+        nextCoffee = t + WORLD.coffeeMinGap + rng() * WORLD.coffeeSpread;
+        const hasCoffee = (state.office?.placed ?? []).some((p) => p.itemId === 'espresso' || p.itemId === 'coffee_corner');
+        if (hasCoffee && present(state).length) out.push(...playCue('sfx.coffee', t));
+      }
       if (nextAmbient === null) nextAmbient = t + VOICE.ambientMinGap + rng() * VOICE.ambientSpread;
       if (running && t >= nextAmbient) {
         nextAmbient = t + VOICE.ambientMinGap + rng() * VOICE.ambientSpread;

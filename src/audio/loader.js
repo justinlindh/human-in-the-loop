@@ -23,6 +23,7 @@ export function entryFor(id) {
   if (kind === 'stingers') return ASSETS.stingers?.[a] ?? null;
   if (kind === 'ui') return ASSETS.ui?.[a] ?? null;
   if (kind === 'sfx') return ASSETS.sfx?.[a] ?? null;
+  if (kind === 'ambience') return ASSETS.ambience?.[a] ?? null;
   return null;
 }
 

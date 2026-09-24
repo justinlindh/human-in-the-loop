@@ -23,6 +23,7 @@ export function createAudio({ quality = 'high' } = {}) {
   const busUser = {};
   const log = [];
   let music = null; // { src, gain, era }
+  const loops = new Map(); // id -> { src, gain }
 
   function unlock() {
     if (!AC) return;
@@ -35,7 +36,7 @@ export function createAudio({ quality = 'high' } = {}) {
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
       // Small sounds decode up front; music and voice banks load on first use.
-      loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd']);
+      loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd', 'ambience/typing', 'sfx/door']);
       // iOS wants a sound started inside the gesture.
       const s = ctx.createBufferSource();
       s.buffer = ctx.createBuffer(1, 1, 22050);
@@ -106,6 +107,25 @@ export function createAudio({ quality = 'high' } = {}) {
     music = { src, gain: g, era: cmd.era };
   }
 
+  // A looping bed (typing): started on first use, then only its gain moves.
+  function setLoop(c) {
+    let l = loops.get(c.id);
+    if (!l) {
+      if (c.gain <= 0) return;
+      const buf = loader.get(c.id);
+      const meta = loader.ready(c.id) ? loader.meta(c.id) : null;
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      if (meta?.loopEnd) { const sr = loader.sampleRate(); src.loopStart = (meta.loopStart ?? 0) / sr; src.loopEnd = meta.loopEnd / sr; }
+      const g = ctx.createGain(); g.gain.value = 0.0001;
+      src.connect(g).connect(mix.bus[c.bus] ?? mix.bus.ambience);
+      src.start();
+      l = { src, gain: g };
+      loops.set(c.id, l);
+    }
+    l.gain.gain.setTargetAtTime(Math.max(0.0001, c.gain), ctx.currentTime, (c.fade ?? 1) / 3);
+  }
+
   function run(cmds) {
     if (!cmds.length) return;
     for (const c of cmds) { log.push(c); if (log.length > KEEP_COMMANDS) log.shift(); }
@@ -136,6 +156,7 @@ export function createAudio({ quality = 'high' } = {}) {
             playBuffer(loader.get(c.file), c.bus, c.gain, c.at);
           }
         } else if (c.op === 'music') startMusic(c);
+        else if (c.op === 'loop') setLoop(c);
         else if (c.op === 'musicMix') mix.musicMix(c);
         else if (c.op === 'duck') {
           const delay = Math.max(0, ((c.at ?? ctx.currentTime) - ctx.currentTime) * 1000);
@@ -148,6 +169,7 @@ export function createAudio({ quality = 'high' } = {}) {
   // UI cues and character clicks arrive as window events, so the UI needs no reference to audio.
   if (typeof window !== 'undefined') {
     addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
+    addEventListener('hitl:propUse', (e) => run(director.prop(e.detail?.itemId, now())));
     addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
