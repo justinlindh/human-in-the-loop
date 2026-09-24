@@ -1,22 +1,23 @@
 # Publishing the repo
 
-How the private repo becomes a fresh public `human-in-the-loop`, with a cleaned history. team-lead
-calls the quiet point and does the GitHub-side steps with the user's approval; the integrator builds
-and verifies the history.
+How the private repo becomes a fresh public `human-in-the-loop` with a cleaned history. team-lead
+calls the quiet point and gives the go; the integrator runs the steps and reports evidence for each.
+Nothing on GitHub changes before the go.
 
 ## 0. Quiet point
 
-- [ ] Every PR that should ship is merged into `feat/one-shot`, and its Local CI comment says PASS.
-- [ ] No lane has unpushed work it wants to keep (lanes commit and push, or note what they will
-      re-apply by hand).
-- [ ] Open PRs that will not merge first are listed: they are re-opened against the new repo later.
+- [ ] The PRs that should ship are merged into `feat/one-shot`, each with a Local CI PASS comment.
+- [ ] Every lane has pushed; no lane pushes to the old repo from the announcement until the lanes
+      are re-pointed (section 4).
+- [ ] Open PRs that will not merge first are listed; they are re-opened on the new repo later.
 
-## 1. Build the cleaned history (integrator)
+## 1. Build the cleaned history
 
-`scripts/publish-history.sh <scratch-dir>` makes a fresh clone of `feat/one-shot` only and rewrites it
-with git-filter-repo:
+`scripts/publish-history.sh <scratch-dir>` makes a fresh clone of `feat/one-shot` only and rewrites
+it with git-filter-repo:
 
-- removes `docs/superpowers/specs/2026-09-24-audio-tools-report.md` from every commit;
+- removes `docs/superpowers/specs/2026-09-24-audio-tools-report.md` from every commit (commits that
+  touched nothing else disappear);
 - strips `Co-Authored-By`, `Claude-Session`, and "Generated with Claude Code" lines from messages;
 - replaces home-directory paths in file contents and messages (`<home>/src/gamedev*` becomes a
   relative `../gamedev*`, anything else under the home directory becomes `~/`);
@@ -26,7 +27,9 @@ with git-filter-repo:
 The audit's list of local names (paths, ports, service and project names) is not in the repo. It is
 read from `~/.config/hitl-publish/audit.txt` (or `PUBLISH_AUDIT_FILE`), one extended regex per line.
 
-## 2. Verify (the same script, automatically)
+## 2. Verify
+
+The script runs these and exits non-zero if any fails:
 
 - [ ] The audio report is absent from every commit.
 - [ ] No attribution lines in any message.
@@ -36,38 +39,52 @@ read from `~/.config/hitl-publish/audit.txt` (or `PUBLISH_AUDIT_FILE`), one exte
 - [ ] `trufflehog git` reports no verified or unknown secrets over the full history.
 - [ ] `npm run ci` passes on the rewritten tree.
 
-The script exits non-zero if any check fails. Read its output before going further.
+Plus the pre-publication review's own list, checked against the rewrite through filter-repo's
+commit map (`.git/filter-repo/commit-map` in the scratch clone):
 
-## 3. Switch (team-lead, with the user's approval)
+- [ ] The roster commits with absolute worktree paths (old `8368133`, `76a77c3`, `d27a9be`,
+      `0e7b27e`) have rewritten counterparts with no home paths; the roster reads `../gamedev*`.
+- [ ] The commits that carried the audio report (old `8ede3e3`, `cccef12`) no longer contain it:
+      a commit that only touched the report is gone, the other keeps its other changes.
+- [ ] Every term the review found only inside the report returns zero hits in the rewrite.
+- [ ] Zero `Claude-Session` and zero `Co-Authored-By` lines remain.
+- [ ] Only `refs/heads/main` exists; nothing else is pushed.
 
+## 3. Switch (after the go)
+
+- [ ] Tell every lane the move is starting; nobody pushes to the old repo until section 4.
+- [ ] Rebuild the cleaned history from the current `feat/one-shot` (section 1) and re-run section 2.
 - [ ] Rename the current repo to `human-in-the-loop-private` (it stays private):
       `gh repo rename human-in-the-loop-private`.
-- [ ] Create the new public repo: `gh repo create justinlindh/human-in-the-loop --public`.
-- [ ] Push the rewritten history from the scratch clone:
+- [ ] Create the public repo: `gh repo create justinlindh/human-in-the-loop --public`.
+- [ ] Push the rewritten `main` only:
       `git remote add origin git@github.com:justinlindh/human-in-the-loop.git && git push -u origin main`.
-- [ ] Make `main` the default branch; turn on delete-branch-on-merge
-      (`gh repo edit --default-branch main --delete-branch-on-merge`); make sure Actions is enabled.
-      (Public repos have free Actions minutes: the workflow can go back to push and pull_request.)
-- [ ] Transfer the open issues from the private repo (`gh issue transfer <n> justinlindh/human-in-the-loop`).
-- [ ] Update CLAUDE.md, the spec, and scripts that name `feat/one-shot` as the integration branch to
-      `main`, in the first PR on the new repo.
+- [ ] Settings: `gh repo edit justinlindh/human-in-the-loop --default-branch main --delete-branch-on-merge`;
+      Actions enabled.
+- [ ] Transfer the open issues from the private repo
+      (`gh issue transfer <n> justinlindh/human-in-the-loop` for each).
+- [ ] Social preview (`docs/readme/social-preview.png`): GitHub has no API for it; upload it in the
+      repo's Settings page.
+- [ ] First PR on the new repo: the workflow runs on push and pull_request again (public repos have
+      free Actions minutes), and CLAUDE.md, the scripts, and the docs name `main` instead of
+      `feat/one-shot` as the integration branch.
 
 ## 4. Re-point the worktrees (every lane)
 
-Every commit SHA changes, so nothing is merged or rebased across the two histories. In each worktree:
+Every commit SHA changes, and the new history shares no commits with the old one, so old branches
+are never merged or rebased across. At the quiet point every lane's work is already in `main`. In
+each worktree:
 
 ```sh
 git remote rename origin private
 git remote add origin git@github.com:justinlindh/human-in-the-loop.git
 git fetch origin
-# Work already on feat/one-shot is in main. Anything the lane had beyond it:
-git log --oneline private/feat/one-shot..HEAD      # the commits to carry over
-git switch -c lane/<lane>-new origin/main
-git cherry-pick <those commits>                      # patch content is unchanged by the rewrite
-git branch -M lane/<lane>-new lane/<lane> && git push -u origin lane/<lane>
+git log --oneline private/feat/one-shot..HEAD     # anything not yet merged, to carry over
+git switch -C lane/<lane> origin/main
+git cherry-pick <those commits, if any>            # patch content is unchanged by the rewrite
+git push -u origin lane/<lane>
 ```
 
 - [ ] sim, art, ui, the integrator, and team-lead each confirm their worktree tracks the new repo.
-- [ ] The preview script and local CI run against the new `main` (`scripts/preview.sh`,
-      `scripts/ci-pr.sh`).
+- [ ] The preview script and local CI run against the new `main`.
 - [ ] The private repo stays as the archive of the original history and the old PRs.
