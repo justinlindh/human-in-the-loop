@@ -15,6 +15,8 @@ export function registerAction(type, fn) {
   actions[type] = fn;
 }
 
+export const getActionTypes = () => Object.keys(actions);
+
 export const getAction = (type) => (Object.hasOwn(actions, type) ? actions[type] : null);
 
 export function makeCtx(state) {
