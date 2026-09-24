@@ -12,6 +12,8 @@ import { createOffice } from './office.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
+import { createBuild } from './build.js';
+import { createPortraits } from './portraits.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
 
@@ -35,6 +37,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  // Counters cover every pass of a frame (shadows, AO, main, post), reset once per frame.
+  renderer.info.autoReset = false;
+  const perf = { calls: 0, triangles: 0, ms: 0, frames: 0 };
 
   const labels = new CSS2DRenderer();
   labels.domElement.style.position = 'absolute';
@@ -56,12 +61,14 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   let office = null;
   let staff = null;
+  let build = null;
   const labelLayer = new THREE.Group();
   labelLayer.name = 'labels';
   scene.add(labelLayer);
   const floating = createLabels(labelLayer);
   const fx = createFx({ scene, overlayEl: labelsEl });
   let ready = false;
+  const portraits = createPortraits({ ready: () => ready });
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);
@@ -71,6 +78,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   } else {
     office = createOffice({ parent: scene, screens, lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig });
+    build = createBuild({ office, getCamera: () => rig.camera, canvas });
     loadModels().then(() => { ready = true; });
   }
   const applyDebugCamera = () => {
@@ -116,6 +124,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let lastT = -1;
   let pendingUpgrade = false;
   let stageJustBuilt = false;
+  let buildSig = '';
+  let firstSync = true;
 
   function sync(state) {
     if (!office || !ready || !state) return;
@@ -129,8 +139,17 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       firstStage = false;
       pendingUpgrade = false;
     }
-    const changed = office.setItems(state.items ?? []);
+    // Era dressing; a change after the first build gets the window-light swell.
+    if (office.setEra(state.era?.id ?? 'classic')) {
+      screens.setEra(office.era, !stageJustBuilt && !firstSync);
+      lighting.setEraTone(office.era);
+    }
+    firstSync = false;
+    const changed = office.setPlaced(state.office?.placed ?? []);
     if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);
+    // Placement validity depends on cash, the week, and what is placed; recheck when any changes.
+    const sig = `${state.week}|${state.cash}|${changed.length}|${state.office?.placed?.length ?? 0}`;
+    if (sig !== buildSig) { buildSig = sig; build?.invalidate(); }
     stageJustBuilt = false;
     screens.setAutomation(state.automation);
     staff.sync(state);
@@ -163,17 +182,40 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
     setSpeed(k) { staff?.setSpeed(k); },
+    // Menu portraits from the office character builder (see portraits.js).
+    portrait(person, opts) { return portraits.portrait(person, opts); },
+    portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
+    get portraitStats() { return portraits.stats; },
+    // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId?, validate? }.
+    setBuildMode(m) { build?.setMode(m); },
+    // validate(x, y, rot) -> boolean | { ok, reason }; the UI supplies it from the sim.
+    set validate(fn) { if (build) build.validator = fn; },
+    get validate() { return build?.validator ?? null; },
+    pickTile(x, y) { return build?.pickTile(x, y) ?? null; },
+    pickPlaced(x, y) { return build?.pickPlaced(x, y) ?? null; },
+    // Warm plates under these placed ids (adjacency preview); null clears.
+    highlightItems(ids) { build?.highlightItems(ids); },
+    // The ghost's anchor tile and rotation, plus whether the validator accepted it.
+    get buildTarget() { return build?.target ?? null; },
+    get hoverPlaced() { return build?.hoverId ?? null; },
     // Steps characters, labels, and effects without drawing (for headless verification).
     advance(seconds, step = 1 / 30) {
       for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); }
     },
-    pick(x, y) { return staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null }; },
+    pick(x, y) {
+      const r = staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null };
+      if (r.kind) return r;
+      const id = build?.pickPlaced(x, y);
+      return id ? { kind: 'item', id } : r;
+    },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
     },
     resize,
     render(dt) {
+      const t0 = performance.now();
+      renderer.info.reset();
       rig.update(dt);
       lighting.setViewYaw(rig.yaw);
       debugRoot.userData.update?.(dt);
@@ -182,9 +224,15 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       staff?.update(dt);
       floating.update(dt);
       fx.update(dt);
+      build?.update(dt, scene);
+      portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);
+      perf.calls = renderer.info.render.calls;
+      perf.triangles = renderer.info.render.triangles;
+      perf.ms = perf.frames ? perf.ms * 0.9 + (performance.now() - t0) * 0.1 : performance.now() - t0;
+      perf.frames++;
     },
     dispose() {
       rig.dispose();
@@ -194,7 +242,15 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
-    get stats() { return { standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
+    // Draw calls and triangles for the last frame (all passes) and a smoothed CPU frame time.
+    get perf() {
+      let meshes = 0;
+      scene.traverseVisible((o) => { if (o.isMesh) meshes++; });
+      return { calls: perf.calls, triangles: perf.triangles, cpuMs: +perf.ms.toFixed(1), meshes, programs: renderer.info.programs?.length ?? 0, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures };
+    },
+    // Dev and snap hook: perk visits (send people to a placed item, counts).
+    get perks() { return staff?.perks ?? null; },
+    get stats() { return { perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).
   if (import.meta.env?.DEV) window.__hitlRender = api;

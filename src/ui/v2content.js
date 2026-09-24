@@ -25,6 +25,7 @@ const FB_FUNDING = [
 
 const FB_GOALS = [
   { id: 'place_desks', name: 'Set up shop', desc: 'Place 2 desks in the garage.' },
+  { id: 'start_product', name: 'Start a product', desc: 'Pick a category and an approach in the Build panel.' },
   { id: 'first_launch', name: 'Ship it', desc: 'Launch your first product.' },
   { id: 'first_hire', name: 'Not alone', desc: 'Hire your first employee.' },
   { id: 'office_floor', name: 'Real office', desc: 'Move to an Office Floor.' },
@@ -60,14 +61,50 @@ export const ERA = Object.fromEntries(ERAS.map((e) => [e.id, e]));
 export const GOAL = Object.fromEntries(GOALS.map((g) => [g.id, g]));
 
 export function unlockInfo(key) {
-  const d = DATA.UNLOCKS?.[key];
-  if (d) return d;
+  const d = Array.isArray(DATA.UNLOCKS) ? DATA.UNLOCKS.find((u) => u.key === key) : DATA.UNLOCKS?.[key];
+  if (d) return { title: d.name ?? d.title ?? key, why: d.explainer ?? d.why ?? d.reason ?? '' };
   if (FB_UNLOCKS[key]) return FB_UNLOCKS[key];
   if (key.startsWith('policy.')) {
     const p = DATA.POLICIES?.[key.slice(7)];
     return { title: `New policy: ${p?.name ?? key.slice(7)}`, why: p?.desc ?? 'A new company policy is available in Automation, Policies.' };
   }
   return { title: key, why: '' };
+}
+
+const FMT_K = (n) => (Math.abs(n) >= 1000 ? `$${Math.round(n / 1000)}K` : `$${n}`);
+
+// "+$5K, +2 brand" for a goal's reward, or '' when there is none.
+export function goalReward(g) {
+  if (typeof g?.rewardText === 'string') return g.rewardText;
+  const r = g?.reward;
+  if (!r) return '';
+  if (typeof r === 'string') return r;
+  return [r.cash ? `+${FMT_K(r.cash)}` : null, r.brand ? `+${r.brand} brand` : null, g.trophy ? 'a trophy' : null].filter(Boolean).join(', ');
+}
+
+const STAT_NAME = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty', hype: 'Hype', sales: 'Sales', support: 'Support', security: 'Security', oversight: 'Oversight' };
+// Founder strengths come as stat ids from the data or as a sentence from the fallback.
+export const strengthChips = (a) => (Array.isArray(a.strengths) ? a.strengths.map((k) => STAT_NAME[k] ?? k) : []);
+export const archetypeBlurb = (a) => a.blurb ?? (typeof a.strengths === 'string' ? a.strengths : '');
+
+// A short name for lists: "Marketing", "Policy: Craft Fridays".
+export function unlockShort(key) {
+  if (key.startsWith('policy.')) {
+    const p = DATA.POLICIES?.[key.slice(7)];
+    return `Policy: ${p?.name ?? key.slice(7)}`;
+  }
+  return unlockInfo(key).title;
+}
+
+// A warning for a founder pair that cannot build: the sim's helper or text when it has one,
+// else a plain check for an engineer or designer in the pair.
+export function foundingWarning(ids) {
+  if (ids.length < 2) return null;
+  if (typeof DATA.foundingWarning === 'function') { try { return DATA.foundingWarning(ids) ?? null; } catch { /* use the local check */ } }
+  const picked = ids.map((id) => ARCHETYPES.find((a) => a.id === id)).filter(Boolean);
+  const builds = (a) => (a.builder ?? (a.role === 'engineer' || a.role === 'designer'));
+  if (picked.some(builds)) return null;
+  return DATA.NO_BUILDER_WARNING ?? 'Neither founder builds software. Your first product will crawl until you hire an engineer.';
 }
 
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
@@ -90,9 +127,9 @@ export function archetypePerson(a, i = 0) {
 // ---------- office grid and build catalog ----------
 
 const FB_GRIDS = [
-  { w: 9, h: 7, door: { x: 0, y: 3 }, blocked: [] },
-  { w: 15, h: 12, door: { x: 0, y: 6 }, blocked: [] },
-  { w: 21, h: 16, door: { x: 0, y: 8 }, blocked: [] },
+  { w: 9, h: 7, door: { x: 4, y: 6 }, blocked: [] },
+  { w: 15, h: 12, door: { x: 7, y: 11 }, blocked: [] },
+  { w: 21, h: 16, door: { x: 10, y: 15 }, blocked: [] },
 ];
 
 export function stageGrid(stage) {
@@ -106,7 +143,6 @@ const FB_FURNITURE = [
   { id: 'meeting_table', name: 'Meeting Table', desc: 'Where standups and arguments happen.', costs: [2500], footprint: { w: 3, h: 2 }, minStage: 0 },
   { id: 'whiteboard', name: 'Whiteboard', desc: 'Nearby desks think a little weirder.', costs: [900], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'novelty', value: 0.03 } },
   { id: 'coffee_corner', name: 'Coffee Corner', desc: 'Nearby desks get their energy back faster.', costs: [1500], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 3, key: 'staminaRecovery', value: 0.05 } },
-  { id: 'rack', name: 'Server Rack', desc: 'Racks next to racks keep things up.', costs: [3000], footprint: { w: 1, h: 1 }, minStage: 0, adjacency: { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'rack' } },
   { id: 'plant', name: 'Potted Plant', desc: 'Nearby desks feel a bit better about their work.', costs: [300], footprint: { w: 1, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'meaningRecovery', value: 0.03 } },
   { id: 'bookshelf', name: 'Bookshelf', desc: 'Nearby desks pick up the systems faster.', costs: [1200], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'knowledgeGain', value: 0.05 } },
 ];

@@ -9,14 +9,14 @@ export function hireFee(c) {
 }
 
 export function hireBlocker(s, c) {
-  if (s.staff.length >= capacityOf(s)) return 'Office is full';
+  if (s.staff.length >= capacityOf(s)) return s.office?.placed ? 'No free desk' : 'Office is full';
   if (s.cash < hireFee(c)) return 'Not enough cash';
   return null;
 }
 
 export function hireView(ctx) {
   return liveView(
-    (s) => `${s.candidates.map((c) => c.id).join()}|${s.staff.length}|${s.officeStage}`,
+    (s) => `${s.candidates.map((c) => c.id).join()}|${s.staff.length}|${s.officeStage}|${capacityOf(s)}`,
     (s, bind) => {
       const cap = capacityOf(s);
       const nextIn = Math.max(0, (s.candidatesWeek ?? s.week) + (B.candidateRefreshWeeks ?? 4) - s.week);
@@ -25,8 +25,8 @@ export function hireView(ctx) {
       bind((st) => setText(seatsT, `${st.staff.length}/${cap} seats`));
       const header = h('div.row.wrap.summaryline', null, seats,
         h('span.pill', null, icon('refresh'), nextIn > 0 ? ` New candidates in ${nextIn}w` : ' New candidates soon'),
-        s.staff.length >= cap && s.officeStage < OFFICE_STAGES.length - 1
-          ? h('button.btn.small.primary', { onclick: () => ctx.open('office') }, icon('office'), ' Need more seats? Office') : null,
+        s.staff.length >= cap && (s.office?.placed || s.officeStage < OFFICE_STAGES.length - 1)
+          ? h('button.btn.small.primary', { onclick: () => ctx.open('office') }, icon('office'), s.office?.placed ? ' Place another desk' : ' Need more seats? Office') : null,
         h('span.spacer'),
         h('span.small.muted', { text: `Hiring fee is ${B.hireFeeWeeks ?? 2} weeks of salary.` }));
       if (!s.candidates.length) return [header, h('div.empty', { text: 'No candidates right now. Check back soon.' })];

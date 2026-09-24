@@ -37,6 +37,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - `src/sim/` is pure and deterministic: no `three`, no DOM, no `localStorage`, no `Math.random` or `Date.now`. Randomness goes through `src/sim/rng.js` with its state in game state.
 - Render and UI never mutate game state. UI changes state only through `dispatch(state, action)`.
 - Every tunable number lives in `src/sim/balance.js`.
+- Keep a path open to touch and low-end devices (issue #8): nothing hover-only or keyboard-only in new UI, and new render features must degrade under the Low quality setting.
 - Stay in your lane's paths (see the plan's lane table). Need something elsewhere: message its owner. Need a contract change: message the lead.
 - Game text says "company" or "lab", never "startup", except inside a parody joke.
 - No em dash characters anywhere (files, commits, messages); a hook blocks them. Do not type the escape sequence for U+2014 either: the hook decodes it.

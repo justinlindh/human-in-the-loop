@@ -16,12 +16,17 @@ export const MENU = [
 export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
   const buttons = {};
   const badges = {};
+  const labels = {};
+  const newTags = {};
+  const hidden = new Set();
   const menu = h('div.menu');
   for (const m of MENU) {
     const badge = h('span.badge');
     badges[m.id] = badge;
+    labels[m.id] = h('span.lbl', { text: m.label });
+    newTags[m.id] = h('span.newtag', { text: 'New!' });
     buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
-      badge, h('span.key', { text: m.key }), h('span.ico', null, icon(`menu.${m.id}`)), h('span.lbl', { text: m.label }));
+      badge, newTags[m.id], h('span.key', { text: m.key }), h('span.ico', null, icon(`menu.${m.id}`)), labels[m.id]);
     menu.append(buttons[m.id]);
   }
   bottom.append(menu);
@@ -44,7 +49,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
 
   function open(id, arg) {
     const def = panels[id];
-    if (!def) return;
+    if (!def || hidden.has(id)) return;
     if (current) close();
     const meta = MENU.find((m) => m.id === id) ?? {};
     const inst = def.build(ctx, arg);
@@ -85,5 +90,25 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     if (buttons[id]) toggleClass(buttons[id], 'alarm', on);
   }
 
-  return { open, close, toggle, update, setBadge, setAlarm, get current() { return current?.id ?? null; }, get dockEl() { return current?.dock ?? null; }, clearAll: () => { close(); clear(wrap); } };
+  // Progressive unlocks: hidden buttons take no space; revealing one can slide it in.
+  function setVisible(id, on, { animate = false } = {}) {
+    const b = buttons[id];
+    if (!b || on === !hidden.has(id)) return;
+    if (on) hidden.delete(id); else { hidden.add(id); if (current?.id === id) close(); }
+    b.style.display = on ? '' : 'none';
+    if (on && animate) { b.classList.remove('slidein'); void b.offsetWidth; b.classList.add('slidein'); }
+  }
+
+  function setNew(id, on) {
+    if (newTags[id]) toggleClass(newTags[id], 'show', on);
+  }
+
+  function setLabel(id, text) {
+    const m = MENU.find((x) => x.id === id);
+    if (!labels[id] || labels[id].textContent === text) return;
+    setText(labels[id], text);
+    buttons[id].title = `${text} (${m?.key})`;
+  }
+
+  return { open, close, toggle, update, setBadge, setAlarm, setVisible, setNew, setLabel, isVisible: (id) => !hidden.has(id), get current() { return current?.id ?? null; }, get dockEl() { return current?.dock ?? null; }, clearAll: () => { close(); clear(wrap); } };
 }

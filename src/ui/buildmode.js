@@ -41,7 +41,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     const m = mode;
     r.setBuildMode({
       itemId: m.itemId, rot: m.rot, moveId: m.moveId,
-      validate: (x, y, rot = m.rot) => checkPlace(ctx.getState(), { itemId: m.itemId, x, y, rot, moveId: m.moveId }).ok,
+      validate: (x, y, rot = m.rot) => checkPlace(ctx.getState(), { itemId: m.itemId, x, y, rot, moveId: m.moveId }),
     });
   }
 
@@ -72,6 +72,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     bar.style.display = 'none';
     tip.style.display = 'none';
     layer.classList.remove('building');
+    highlight(null);
     syncRenderer();
     ctx.sfx('close');
     return true;
@@ -118,7 +119,26 @@ export function createBuildMode({ layer, ctx, controls }) {
     }
     const chk = checkPlace(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
     if (!chk.ok) return { ok: false, text: chk.reason ?? 'Cannot place here' };
-    return { ok: true, text: adjacencyWords(adjacencyPreview(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId })) || 'Click to place' };
+    const prev = adjacencyPreview(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
+    return { ok: true, text: adjacencyWords(prev) || 'Click to place', ids: prev.gives?.ids ?? [] };
+  }
+
+  // Warm plates under the things the item would boost, when the renderer offers them.
+  let litSig = '';
+  function highlight(ids) {
+    const sig = ids?.length ? ids.join() : '';
+    if (sig === litSig) return;
+    litSig = sig;
+    R()?.highlightItems?.(sig ? ids : null);
+  }
+
+  // The tile the ghost is anchored at. The renderer centers big footprints on the cursor, so its
+  // buildTarget is the placement corner; pickTile is the fallback.
+  function anchorAt(clientX, clientY) {
+    const r = R();
+    const t = r?.buildTarget;
+    if (t && Number.isFinite(t.x)) return { x: t.x, y: t.y };
+    return r?.pickTile?.(clientX, clientY) ?? null;
   }
 
   function refresh() {
@@ -131,6 +151,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     setText(tip, st.text);
     toggleClass(tip, 'bad', st.ok === false);
     tip.style.display = hover ? '' : 'none';
+    highlight(st.ok ? st.ids : null);
   }
 
   // Pointer: a press and release that barely moved is a click; anything more is the camera pan.
@@ -144,10 +165,10 @@ export function createBuildMode({ layer, ctx, controls }) {
     const d = down;
     down = null;
     if (!d || !onScene(e) || Math.hypot(e.clientX - d.x, e.clientY - d.y) > CLICK_PX) return;
-    const tile = R()?.pickTile?.(e.clientX, e.clientY);
-    if (!tile) return;
-    if (mode) place(tile.x, tile.y);
-    else inspect(tile);
+    if (mode) {
+      const at = anchorAt(e.clientX, e.clientY);
+      if (at) place(at.x, at.y);
+    } else inspect(e.clientX, e.clientY);
   }, true);
   addEventListener('pointermove', (e) => {
     if (!mode) return;
@@ -159,18 +180,21 @@ export function createBuildMode({ layer, ctx, controls }) {
       const ev = pendingMove;
       pendingMove = null;
       if (!mode) return;
-      const tile = onScene(ev) ? R()?.pickTile?.(ev.clientX, ev.clientY) ?? null : null;
+      const tile = onScene(ev) ? anchorAt(ev.clientX, ev.clientY) : null;
       if ((tile?.x ?? -1) !== (hover?.x ?? -1) || (tile?.y ?? -1) !== (hover?.y ?? -1)) { hover = tile; refresh(); }
     });
   });
 
   // Clicking a placed item outside build mode opens its card: move, upgrade, sell.
-  function inspect(tile) {
+  function inspect(clientX, clientY) {
     if (ctx.isBusy?.() || layer.classList.contains('title-mode')) return;
-    const s = ctx.getState();
-    const p = itemAt(s, tile.x, tile.y);
-    if (!p) return;
-    openItemCard(p.id);
+    const r = R();
+    let id = r?.pickPlaced?.(clientX, clientY) ?? null;
+    if (!id) {
+      const tile = r?.pickTile?.(clientX, clientY);
+      id = tile ? itemAt(ctx.getState(), tile.x, tile.y)?.id ?? null : null;
+    }
+    if (id) openItemCard(id);
   }
 
   function openItemCard(id) {
@@ -230,13 +254,15 @@ const ADJ_LABEL = { novelty: 'novelty', staminaRecovery: 'stamina recovery', mea
 
 // "Boosts 2 desks: +3% novelty" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
 export function adjacencyWords(prev) {
+  if (prev.texts?.length) return prev.texts.join('. ');
   const parts = [];
   if (prev.gives) {
     const g = prev.gives;
     const val = g.key === 'uptimeFloor' ? `+${Math.round(g.value * 100)} pts` : `+${Math.round(g.value * 100)}%`;
     const label = ADJ_LABEL[g.key] ?? g.key;
+    const empty = g.empty ? ` (${g.empty} empty until someone sits there)` : '';
     parts.push(g.count
-      ? `Boosts ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby: ${val} ${label}`
+      ? `Boosts ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby: ${val} ${label}${empty}`
       : `No ${g.to}s within ${g.radius} tiles yet (${val} ${label} each)`);
   }
   if (prev.receives?.length) {

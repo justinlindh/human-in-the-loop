@@ -17,7 +17,7 @@ function markDone() {
   try { localStorage.setItem(KEY, '1'); } catch { /* storage unavailable: the tutorial just shows again next time */ }
 }
 
-// Five dismissible coach marks pointing at real parts of the HUD.
+// Dismissible coach marks for the HUD and the speed controls.
 export function createTutorial({ layer, sfx, controls, ui }) {
   let resume = null; // speed to restore when the tips close
   const ring = h('div.coach-ring');
@@ -31,6 +31,9 @@ export function createTutorial({ layer, sfx, controls, ui }) {
   root.style.display = 'none';
   layer.append(root);
   let i = -1;
+  // Held while a menu, modal, or card is open: the coach marks hide and a pending start waits.
+  let held = false;
+  let pending = null;
 
   function place() {
     if (i < 0) return;
@@ -61,7 +64,7 @@ export function createTutorial({ layer, sfx, controls, ui }) {
     setText(text, step.text);
     setText(count, `${i + 1} of ${STEPS.length}`);
     setText(next, i === STEPS.length - 1 ? 'Got it' : 'Next');
-    root.style.display = '';
+    root.style.display = held ? 'none' : '';
     bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
     step.enter?.(ui);
     place();
@@ -82,13 +85,20 @@ export function createTutorial({ layer, sfx, controls, ui }) {
 
   return {
     start(force = false, resumeSpeed = null) {
+      if (held) { pending = { force, resumeSpeed }; return; }
       if (!force && tutorialDone()) return;
       if (resumeSpeed !== null && resume === null) resume = resumeSpeed;
       go(0);
     },
     get open() { return i >= 0; },
+    setHeld(on) {
+      if (on === held) return;
+      held = on;
+      if (i >= 0) { root.style.display = held ? 'none' : ''; if (!held) { place(); requestAnimationFrame(place); } }
+      if (!held && pending) { const p = pending; pending = null; this.start(p.force, p.resumeSpeed); }
+    },
     onKey(e) {
-      if (i < 0) return false;
+      if (i < 0 || held) return false;
       if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); return true; }
       if (e.key === 'Escape') { e.preventDefault(); finish(); return true; }
       return false;

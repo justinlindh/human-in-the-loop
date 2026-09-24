@@ -1,0 +1,84 @@
+// Retiring: taking an IPO or an open acquisition offer ends the run as a win.
+// Availability comes from a sim export when there is one; otherwise it mirrors the sim's IPO rules
+// and looks for an open offer in state.
+import { h, fmtMoney, fmtNum } from './dom.js';
+import { icon } from './icons.js';
+import { B } from './content.js';
+import { scoreRun } from '../sim/endgame.js';
+import { totalMrr } from '../sim/products.js';
+import { FUNDING, fundingMult } from './v2content.js';
+
+import { SIMX, call } from './simapi.js';
+
+const offerOf = (s) => s.acquisitionOffer ?? s.offers?.acquisition ?? (s.pendingDecision?.eventId === 'acquisition_offer' ? s.pendingDecision : null);
+
+// { ipo: { ok, reason }, acquired: { ok, reason, by? }, any }
+export function retireOptions(s) {
+  if (!s.unlocks && !s.era) return { ipo: { ok: false }, acquired: { ok: false }, any: false };
+  const r = call('retireOptions', s);
+  if (r?.ipo && r?.acquired) return { ...r, any: !!(r.ipo.ok || r.acquired.ok) };
+  if (SIMX.ipoBlocker && SIMX.acquisitionOpen) {
+    const why = call('ipoBlocker', s) ?? null;
+    const open = !!call('acquisitionOpen', s);
+    const by = s.flags?.acquisitionOfferFrom ?? null;
+    return { ipo: { ok: !why, reason: why }, acquired: { ok: open, reason: open ? null : 'No open offer', by }, any: !why || open };
+  }
+  const mrr = totalMrr(s);
+  const ipoWhy = mrr < B.ipoMrr ? `Needs ${fmtMoney(B.ipoMrr)} MRR` : s.brand < B.ipoBrand ? `Needs brand ${B.ipoBrand}` : (s.office?.stage ?? s.officeStage) !== 2 ? 'Needs the HQ Building' : null;
+  const offer = offerOf(s);
+  const ipo = { ok: !ipoWhy, reason: ipoWhy };
+  const acquired = { ok: !!offer, reason: offer ? null : 'No open offer', by: offer?.acquirer ?? offer?.by ?? null };
+  return { ipo, acquired, any: ipo.ok || acquired.ok };
+}
+
+export function projectedScore(s) {
+  try {
+    return scoreRun({ ...s, gameOver: { won: true, reason: 'retired' } });
+  } catch {
+    return null;
+  }
+}
+
+const PARTS = { valuation: 'Valuation', brand: 'Brand', wellbeing: 'Team wellbeing', caught: 'Incidents caught', breaches: 'Breaches', resignations: 'Resignations' };
+
+// Confirmation modal with the projected score. Dispatches { type: 'retire' } on confirm.
+export function openRetire(ctx) {
+  const s = ctx.getState();
+  const opts = retireOptions(s);
+  const proj = projectedScore(s);
+  const f = FUNDING.find((x) => x.id === s.founding?.funding);
+  const mult = f ? fundingMult(f) : 1;
+  let close = null;
+  const confirm = () => {
+    const res = ctx.act({ type: 'retire' });
+    if (res.ok) { ctx.sfx('confirm'); close?.(); }
+  };
+  // The sim retires through an IPO when one is possible, otherwise through the open offer.
+  const via = opts.ipo.ok ? 'an IPO' : `${opts.acquired.by ? `${opts.acquired.by}'s` : 'the'} acquisition offer`;
+  const body = h('div.col', { style: { gap: '0.8em' } },
+    h('div', { text: `Retire through ${via}. The run ends as a win, the epilogue rolls, and your score is final.` }),
+    proj ? h('div.card', null,
+      h('div.small.muted', { text: 'Projected score' }),
+      h('div.scorebig.num', { text: fmtNum(proj.score) }),
+      h('div.breakdown', null, ...Object.entries(proj.breakdown ?? {}).flatMap(([k, v]) => [
+        h('span', { text: PARTS[k] ?? k }), ...[Math.round(v) || 0].map((n) => h(`span.num${n < 0 ? '.neg' : ''}`, { text: n === 0 ? '0' : `${n < 0 ? '' : '+'}${fmtNum(n)}` }))])),
+      mult < 1 ? h('div.small.muted', { text: `${f.name} funding: score x${mult}.` }) : null) : null,
+    h('div.small.muted', { text: 'Or keep playing: the company keeps going, and so can you.' }),
+    h('div.row', null,
+      h('button.btn.big', { onclick: () => close?.() }, 'Keep playing'),
+      h('span.spacer'),
+      h('button.btn.go.big', { onclick: confirm }, icon('award'), ' Retire')));
+  close = ctx.openModal({ title: 'Retire?', iconName: 'award', body, cls: 'small' });
+}
+
+// The Reports banner: shown only while retiring is possible.
+export function retireBanner(ctx, s) {
+  const opts = retireOptions(s);
+  if (!opts.any) return null;
+  const what = [opts.ipo.ok ? 'An IPO is on the table.' : null, opts.acquired.ok ? `${opts.acquired.by ?? 'A buyer'} has an open offer.` : null].filter(Boolean).join(' ');
+  return h('div.card.retirecard', null,
+    icon('award', { size: 30 }),
+    h('div', null, h('b.big', { text: 'You could retire now' }), h('div.small', { text: what })),
+    h('span.spacer'),
+    h('button.btn.go', { onclick: () => openRetire(ctx) }, 'Retire...'));
+}

@@ -3,6 +3,7 @@ import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../conten
 import { portrait, liveView, stars, tabs } from '../widgets.js';
 import { icon } from '../icons.js';
 import { researchView } from './research.js';
+import { ERA } from '../v2content.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
@@ -32,12 +33,14 @@ export function buildPanel(ctx, arg) {
   }
 
   const t = tabs([{ id: 'new', icon: 'new', label: 'New Product' }, { id: 'projects', icon: 'project', label: 'Projects' }, { id: 'research', icon: 'research', label: 'Internal tools' }], tab, (id) => { tab = id; t.set(id); render(); });
+  const u0 = ctx.getState().unlocks;
+  if (u0 && !u0.research) { t.setHidden('research', true); if (tab === 'research') { tab = 'new'; t.set(tab); } }
   let focusProject = arg?.projectId ?? null;
   const host = h('div');
 
   const newView = liveView(
     (s) => [form.category, form.angle, form.model, form.size, s.market.unlockedCategories.join(), s.market.unlockedAngles.join(),
-      Object.values(s.models).map((m) => `${m.available}${m.deprecated}${m.capability}`).join(), s.officeStage,
+      Object.values(s.models).map((m) => `${m.available}${m.deprecated}${m.capability}`).join(), s.officeStage, s.era?.id,
       s.staff.map((p) => `${p.id}${p.mood}${p.assignment.type}`).join()].join('|'),
     (s, bind) => renderNew(s, bind));
 
@@ -65,8 +68,10 @@ export function buildPanel(ctx, arg) {
   function renderNew(s, bind) {
     const year = dateOf(s.week).year;
     if (!form.team) {
-      form.team = new Set(s.staff.filter((p) => isAvailable(p) && (p.role === 'engineer' || p.role === 'designer')
-        && (p.assignment.type === 'idle' || (p.founder && p.assignment.type !== 'project'))).map((p) => p.id));
+      // Builders who are free, plus the founders; with nobody like that, whoever is idle.
+      const free = (p) => isAvailable(p) && (p.assignment.type === 'idle' || (p.founder && p.assignment.type !== 'project'));
+      const builders = s.staff.filter((p) => free(p) && (p.role === 'engineer' || p.role === 'designer' || p.founder));
+      form.team = new Set((builders.length ? builders : s.staff.filter((p) => isAvailable(p) && p.assignment.type === 'idle')).map((p) => p.id));
     }
     for (const id of [...form.team]) if (!s.staff.some((p) => p.id === id && isAvailable(p))) form.team.delete(id);
     if (!s.models[form.model]?.available || s.models[form.model]?.deprecated) form.model = MODELS.find((m) => s.models[m.id]?.available && !s.models[m.id]?.deprecated)?.id ?? form.model;
@@ -94,18 +99,21 @@ export function buildPanel(ctx, arg) {
       catGrid.append(tile);
     }
 
-    // Angle grid, with stars for combos you have already discovered in this category
+    // Angle grid, with stars for combos you have already discovered in this category.
+    // With eras, an angle stays hidden until its era arrives.
+    const lockText = (a) => (a.era ? `Arrives with ${ERA[a.era]?.name ?? a.era}` : `Unlocks in ${a.unlockYear}`);
     const angGrid = h('div.tiles.angles');
     for (const a of ANGLES) {
       const unlocked = s.market.unlockedAngles.includes(a.id);
+      if (!unlocked && a.era) continue;
       const fit = form.category ? s.discoveredCombos?.[`${form.category}:${a.id}`] : undefined;
       const tile = h('button.tile.wide', {
         disabled: !unlocked,
-        title: unlocked ? a.blurb : `Unlocks in ${a.unlockYear}`,
+        title: unlocked ? a.blurb : lockText(a),
         onclick: () => { form.angle = a.id; refreshNew(); },
       },
       h('span.tn', null, unlocked ? null : icon('lock', { size: 13 }), unlocked ? a.name : ` ${a.name}`),
-      h('span.tb', { text: unlocked ? a.blurb : `Unlocks in ${a.unlockYear}` }),
+      h('span.tb', { text: unlocked ? a.blurb : lockText(a) }),
       h('span.tf', null, fit !== undefined ? stars(fit) : h('span.faint', { text: form.category && unlocked ? '? fit' : '' }),
         a.agentic && unlocked ? h('span.tag', { title: 'Agentic: needs human oversight' }, icon('agentic')) : null));
       toggleClass(tile, 'on', form.angle === a.id);
@@ -113,7 +121,9 @@ export function buildPanel(ctx, arg) {
       angGrid.append(tile);
     }
 
-    // Model cards
+    // Model cards, only for AI angles (pre-AI approaches have no model).
+    const hasEras = !!s.era;
+    const needsModel = modelNeeded();
     const cat = CATEGORY[form.category];
     const modelGrid = h('div.tiles.models');
     for (const m of MODELS) {
@@ -186,7 +196,7 @@ export function buildPanel(ctx, arg) {
       setClass(cashAfter, `num ${st.cash - size.cost < 0 ? 'bad-t' : ''}`);
       const reason = blocker(st);
       startBtn.disabled = !!reason;
-      setText(note, reason ?? `${CATEGORY[form.category]?.name} × ${ANGLES.find((a) => a.id === form.angle)?.name} on ${MODEL[form.model]?.name}`);
+      setText(note, reason ?? `${CATEGORY[form.category]?.name} × ${ANGLES.find((a) => a.id === form.angle)?.name}${modelNeeded() ? ` on ${MODEL[form.model]?.name}` : ''}`);
     });
     const fit = form.category && form.angle ? s.discoveredCombos?.[`${form.category}:${form.angle}`] : undefined;
     const summary = h('div.card.summary', null,
@@ -200,19 +210,26 @@ export function buildPanel(ctx, arg) {
         preset ? h('div.starterhint', null, icon('idea', { size: 18 }), h('span', { text: 'A good first product is picked for you: Email × Summarizer on ChatGBT, small, with both founders. Great combos earn stars once they launch. Press Start building, or change anything.' })) : null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
-        h('div.section', null, h('h3', null, '3. AI angle', h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
-        h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid),
-        h('div.section', null, h('h3', null, '5. Size'), sizeRow)),
+        h('div.section', null, h('h3', null, `3. ${!hasEras ? 'AI angle' : ANGLES.some((a) => a.ai && s.market.unlockedAngles.includes(a.id)) ? 'Angle' : 'Approach'}`, h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
+        needsModel ? h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid) : null,
+        h('div.section', null, h('h3', null, `${needsModel ? 5 : 4}. Size`), sizeRow)),
       h('div.buildside', null,
-        h('div.section', null, h('h3', null, '6. Team', countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
+        h('div.section', null, h('h3', null, `${needsModel ? 6 : 5}. Team`, countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
           h('div.small.muted.teamhint', { text: 'Stronger people make a better product. More people make it faster.' })),
         summary));
+  }
+
+  // Angles carry ai: false for the pre-AI approaches; older data has no flag and always needs one.
+  function modelNeeded() {
+    const a = ANGLES.find((x) => x.id === form.angle);
+    return a ? a.ai !== false : !ctx.getState().era;
   }
 
   // Checked live, so clearing the name or losing cash disables Start right away.
   function blocker(s) {
     if (!form.category) return 'Pick a category';
-    if (!form.angle) return 'Pick an AI angle';
+    if (!form.angle) return s.era ? 'Pick an approach' : 'Pick an AI angle';
+    if (modelNeeded() && !(s.models[form.model]?.available && !s.models[form.model]?.deprecated)) return 'Pick a model vendor';
     if (!form.name.trim()) return 'Name it';
     if (s.cash < (B.sizes[form.size]?.cost ?? 0)) return 'Not enough cash';
     if (!form.team || form.team.size === 0) return 'Pick at least one person';
@@ -222,7 +239,7 @@ export function buildPanel(ctx, arg) {
   function start() {
     const why = blocker(ctx.getState());
     if (why) { ctx.toast(why, 'warn'); return; }
-    const res = ctx.act({ type: 'startProject', kind: 'new', name: form.name.trim(), category: form.category, angle: form.angle, model: form.model, size: form.size });
+    const res = ctx.act({ type: 'startProject', kind: 'new', name: form.name.trim(), category: form.category, angle: form.angle, model: modelNeeded() ? form.model : null, size: form.size });
     if (!res.ok) return;
     const s = ctx.getState();
     const proj = s.projects.find((j) => j.id === res.projectId);

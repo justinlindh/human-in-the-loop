@@ -19,7 +19,8 @@ Time advances in weeks (pausable; 1x/2x/4x speed). A run spans about 15 in-game 
 
 1. **Conceive a product:** choose a **Category × AI Angle** combo, a **Model vendor**, and a team.
 2. **Build:** assigned staff generate four product stats over development weeks, shown as floating "+N" bubbles from their desks:
-   - **Features** (what it does), **Polish** (taste/UX), **Reliability** (it works), **Novelty** (differentiation).
+   - **Features** (what it does), **Polish** (taste/UX), **Reliability** (it works), **Freshness** (how new it feels; decays weekly, restored by updates, cut by clones).
+   - Player-facing names: products are rated on Features, Polish, Reliability and Freshness. People have their own skills that drive them: Building (Features), Craft (Polish), Rigor (Reliability), Ideas (Freshness); each pair shares an icon and colour. Internal state keys stay `features`, `polish`, `reliability`, `novelty`.
 3. **Launch:** marketing campaign choice, review scores from parody tech press, initial signups.
 4. **Operate (live SaaS):** each shipped product has MRR, customer count, churn, uptime, and a feature-request backlog. Products need ongoing maintenance and can get updates (v2, v3) that refresh them.
 5. **Grow:** spend money on hiring, office expansions, marketing, security, model upgrades. Unlock new categories and angles via research and market trends.
