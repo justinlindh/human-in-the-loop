@@ -58,6 +58,58 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     return { x: t.x + Math.cos(t.rotY) * lx + Math.sin(t.rotY) * lz, z: t.z - Math.sin(t.rotY) * lx + Math.cos(t.rotY) * lz };
   }
 
+  function toLocal(t, x, z) {
+    const dx = x - t.x, dz = z - t.z;
+    return { lx: Math.cos(t.rotY) * dx - Math.sin(t.rotY) * dz, lz: Math.sin(t.rotY) * dx + Math.cos(t.rotY) * dz };
+  }
+
+  // A spot on the furniture itself (a seat, a couch or pod to lie on) is reached from one of its
+  // sides: the walk ends APPROACH_M past that edge, level with the spot, and sync slides the person
+  // onto the spot from there. A side qualifies when its approach point is walkable and rays at
+  // seated torso heights from there to the spot meet nothing of the item first (so never over a
+  // backrest or an armrest). The front (+z, the way every model faces) wins when it qualifies,
+  // otherwise the qualifying side nearest the walker. Spots off the item are walked to directly.
+  const APPROACH_M = 0.35;
+  const TORSO_YS = [0.5, 0.75];
+  const side = new THREE.Raycaster();
+  function approachFor(r, e, spot) {
+    const f = footprint(e.itemId, 0);
+    const { lx, lz } = toLocal(e.target, spot.x, spot.z);
+    if (Math.abs(lx) >= f.w / 2 || Math.abs(lz) >= f.h / 2) return null;
+    const nav = office.nav();
+    const L = office.current.L;
+    const walkable = (p) => {
+      const i = Math.floor((p.x + L.W / 2) / nav.cell), k = Math.floor((p.z + L.D / 2) / nav.cell);
+      return i >= 0 && k >= 0 && i < nav.nx && k < nav.nz && !nav.blocked[i + k * nav.nx];
+    };
+    e.obj.updateMatrixWorld(true);
+    const clear = (p) => {
+      const to = new THREE.Vector3(spot.x - p.x, 0, spot.z - p.z);
+      const d = to.length();
+      to.normalize();
+      side.far = d;
+      return TORSO_YS.every((y) => { side.set(new THREE.Vector3(p.x, y, p.z), to); return side.intersectObject(e.obj, true).length === 0; });
+    };
+    const ok = (p) => walkable(p) && clear(p);
+    const front = toWorld(e.target, lx, f.h / 2 + APPROACH_M);
+    if (ok(front)) return front;
+    const sides = [[lx, -f.h / 2 - APPROACH_M], [f.w / 2 + APPROACH_M, lz], [-f.w / 2 - APPROACH_M, lz]]
+      .map(([x, z]) => toWorld(e.target, x, z))
+      .filter(ok)
+      .sort((a, b) => Math.hypot(a.x - r.pos.x, a.z - r.pos.z) - Math.hypot(b.x - r.pos.x, b.z - r.pos.z));
+    return sides[0] ?? front;
+  }
+  function walkToSpot(r, e, spot) {
+    const a = approachFor(r, e, spot);
+    if (a) {
+      r.temp.enter = { from: null, t: 0 };
+      walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
+    } else {
+      walkTo(r, spot);
+    }
+  }
+
+
   // Napping along a couch: centred on the seat depth, lying along its length with the head on the
   // throw pillow's end (-x in the couch's frame, see kit.couch). Works for any couch length and rotation.
   function couchNap(e) {
@@ -105,10 +157,21 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     return { x: p.x, z: p.z, yaw, anim: 'idle' };
   }
 
-  // Top of a nap pod for lying on; a beanbag (level 1) is sat in instead.
+  // Lift for lying on a nap pod (a beanbag, level 1, is sat in instead): the mattress top under the
+  // pod's centre, found by a ray down (hits above LIE_MAX_Y are a canopy, not the bed), less
+  // LIE_BELOW so the start is a little low and settle() lifts them onto the surface.
+  const LIE_MAX_Y = 0.9;
+  const LIE_BELOW = 0.15;
+  const down = new THREE.Raycaster();
   function lieHeight(e) {
-    // A starting height a little low; settle() then lifts them onto the surface.
-    if (e.lieY === undefined) e.lieY = new THREE.Box3().setFromObject(e.obj).max.y * 0.3;
+    if (e.lieY !== undefined) return e.lieY;
+    // The beanbag is soft: start low and let the body sink in (settle keeps only the head clear).
+    if (e.level <= 1) return (e.lieY = new THREE.Box3().setFromObject(e.obj).max.y * 0.3);
+    e.obj.updateMatrixWorld(true);
+    down.set(new THREE.Vector3(e.target.x, 2, e.target.z), new THREE.Vector3(0, -1, 0));
+    const hit = down.intersectObject(e.obj, true).find((h) => h.point.y < LIE_MAX_Y);
+    const top = hit ? hit.point.y : new THREE.Box3().setFromObject(e.obj).max.y * 0.5;
+    e.lieY = Math.max(0, top - LIE_BELOW);
     return e.lieY;
   }
 
@@ -155,7 +218,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
       anim, t: rnd(...def.dur), goal: spot, back: true, wander: true, perkKey: key,
       lift: lying ? lieHeight(e) : spot.lift ?? 0, tick: perkTick, def, burstT: rnd(2, 4), emoteT: rnd(1, 3),
     };
-    walkTo(r, spot);
+    walkToSpot(r, e, spot);
   }
 
   // Runs every frame while someone is at their perk spot.
@@ -165,15 +228,25 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
   const SLEEP_ANIMS = new Set(['lie', 'nap', 'desknap']);
   function settle(r, dt, tp) {
     if (!RESTING.has(tp.anim) || tp.settled >= 2) return;
-    tp.settleT = (tp.settleT ?? 0) + dt;
-    if (tp.settleT < (tp.settled ? 0.9 : 0.45)) return;
     const e = office.placed.get(tp.perkKey?.split(':')[0]);
     if (!e) { tp.settled = 2; return; }
+    // On the first frame at the spot the pose is formed at once and measured, so the lift is right
+    // before the pose shows (no sinking in and popping up); a second pass re-measures it later.
+    const first = tp.settled === undefined;
+    if (first) {
+      r.char.setAnim(tp.anim);
+      r.char.update(1);
+      r.char.root.position.y = tp.lift ?? 0;
+    } else {
+      tp.settleT = (tp.settleT ?? 0) + dt;
+      if (tp.settleT < 0.9) return;
+    }
     // A beanbag is soft: the body sinks into it and only the head has to stay clear of the bag.
     const soft = perkOf(e) === 'nap_pod' && e.level <= 1;
     const d = sinkDepth(r.char.root, furnitureMeshes(e.obj), soft ? { parts: ['head'] } : undefined);
     if (d > 0.002) tp.lift = (tp.lift ?? 0) + d + 0.004;
     tp.settled = (tp.settled ?? 0) + 1;
+    if (first) r.char.root.position.y = tp.lift ?? 0;
   }
 
   function perkTick(r, dt, tp) {
@@ -281,7 +354,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
           stayer.temp.goal = n;
           stayer.temp.anim = 'nap';
           stayer.temp.lift = n.lift;
-          walkTo(stayer, n);
+          walkToSpot(stayer, slot.e, n);
         }
       }
       return;
@@ -354,7 +427,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
       if (nap && kind === 'couch') {
         const n = couchNap(e);
         Object.assign(rs[0].temp, { goal: n, anim: 'nap', lift: n.lift });
-        walkTo(rs[0], n);
+        walkToSpot(rs[0], e, n);
       }
       if (dur) rs[0].temp.t = dur;
       return true;
