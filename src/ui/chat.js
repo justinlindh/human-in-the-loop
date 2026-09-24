@@ -153,5 +153,8 @@ export function createChat(root, { getState, onName } = {}) {
 
   renderChannel();
   refreshBadges();
+  // On phones Yak starts collapsed so it does not cover the tray and the office; the header's
+  // unread badge still counts new messages.
+  if (typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches) toggle(true);
   return { add, toggle, update, reset, el };
 }
