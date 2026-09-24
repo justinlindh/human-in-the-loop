@@ -17,7 +17,7 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read'];
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap'];
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read']);
 
 const ink = new THREE.Color(PALETTE.ink);
@@ -337,6 +337,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headZ = 0.25;
         break;
       }
+      case 'nap':
+        // Lying on the back, the upper body inclined so the head rests up on an armrest.
+        tgt.pitch = -Math.PI / 2 + 0.3;
+        tgt.bodyZ = 0.5;
+        tgt.bodyY = 0.1 + s(t * 1.2 + phase) * 0.006;
+        tgt.headX = 0.3;
+        tgt.armLZ = 0.35; tgt.armRZ = -0.35;
+        tgt.armLX = -0.3; tgt.armRX = -0.3;
+        break;
       case 'sit':
         tgt.lean = -0.18;
         tgt.headZ = s(t * 0.5 + phase) * 0.08;
@@ -401,7 +410,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       case 'groan':
         tgt.lean = 0.28;
-        tgt.headX = 0.5;
+        tgt.headX = 0.3;
         tgt.headZ = s(t * 1.5) * 0.12;
         tgt.armLZ = 0.05; tgt.armRZ = -0.05;
         break;

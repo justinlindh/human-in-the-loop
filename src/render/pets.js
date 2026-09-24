@@ -15,6 +15,8 @@ const COATS = {
   cat: [['marker_orange', 'paper'], ['fabric_slate', 'paper_sheet']],
 };
 const SPEED = { dog: 1.4, cat: 1.1 };
+const PET_SCALE = 1.45;
+const EMOTE_SIZE = 0.42;
 const RUN = 3.0;
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -53,9 +55,13 @@ function buildPet(species, look) {
   const R = RIG[species];
   const root = new THREE.Group();
   root.name = 'pet';
+  // Chibi scale: a dog comes up to about seat height. Emotes stay outside it at people size.
+  const model = new THREE.Group();
+  model.scale.setScalar(PET_SCALE);
+  root.add(model);
   const body = new THREE.Group();
   body.position.y = R.hip;
-  root.add(body);
+  model.add(body);
   body.add(part(`${species}_body`));
   const legs = R.legs.map(([x, z]) => {
     const p = new THREE.Group();
@@ -85,9 +91,9 @@ function buildPet(species, look) {
   tail.add(part(`${species}_tail`));
   body.add(tail);
   const emote = new THREE.Sprite(emoteMaterial('heart'));
-  emote.position.y = 0.62;
+  emote.position.y = (species === 'dog' ? 0.5 : 0.42) * PET_SCALE + 0.12;
   emote.center.set(0.5, 0.1);
-  emote.scale.setScalar(0.28);
+  emote.scale.setScalar(EMOTE_SIZE);
   emote.visible = false;
   emote.renderOrder = 10;
   root.add(emote);
@@ -145,6 +151,7 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
     r.rig.emote.material = emoteMaterial(kind);
     r.rig.emote.visible = true;
     r.emoteT = s;
+    r.emoteAge = 0;
   }
 
   function placedOf(pred) {
@@ -291,7 +298,14 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
     clock += dt;
     for (const r of pets.values()) {
       const g = r.rig;
-      if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) g.emote.visible = false; }
+      if (r.emoteT > 0) {
+        r.emoteT -= dt;
+        // Same squash-and-stretch pop as people's emotes.
+        r.emoteAge = (r.emoteAge ?? 0) + dt;
+        const q = Math.min(1, r.emoteAge / 0.2);
+        g.emote.scale.setScalar(EMOTE_SIZE * (q < 0.7 ? (q / 0.7) * 1.15 : 1.15 - ((q - 0.7) / 0.3) * 0.15));
+        if (r.emoteT <= 0) g.emote.visible = false;
+      }
       if (r.mode === 'chase' && r.target && !r.target.hop && r.t > 0) {
         // Keep following the cat as it runs, stopping short of it.
         r.retarget = (r.retarget ?? 0) - dt;

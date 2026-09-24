@@ -76,8 +76,8 @@ def solidify(o, t=0.02):
     return o
 
 
-def hair_cap(name, front_z=0.06, back_z=-0.1, r=HEAD_R + 0.018, side_z=None, scale=(1.04, 1.0, 1.0)):
-    o = uvsphere(name, r, (0, 0, 0), None, seg=14, rings=9, scale=scale)
+def hair_cap(name, front_z=0.06, back_z=-0.1, r=HEAD_R + 0.018, side_z=None, scale=(1.04, 1.0, 1.0), seg=14, rings=9):
+    o = uvsphere(name, r, (0, 0, 0), None, seg=seg, rings=rings, scale=scale)
     cut_below(o, front_z, back_z, side_z)
     use(o, 'hair')
     return o
@@ -202,13 +202,17 @@ cuff.data.shade_smooth()
 b.append(cuff)
 b.append(uvsphere('bnpom', 0.05, (0, 0.01, BN_R * BN_S[2] + 0.028), 'paper', seg=8, rings=5))
 join(at_head(b), 'acc_beanie')
-CP_R, CP_S, CP_Z = HEAD_R + 0.02, (1.06, 1.05, 0.98), 0.085
-cp = [hair_cap('cpdome', CP_Z, CP_Z - 0.03, r=CP_R, scale=CP_S)]
-edge_y = -CP_R * CP_S[1] * math.cos(math.asin(min(0.99, CP_Z / (CP_R * CP_S[2]))))
-# Worn backwards: from the high camera a forward brim hides the eyes.
-cp.append(box('cpbrim', (0.22, 0.12, 0.02), (0, -edge_y + 0.04, CP_Z - 0.01), 'fabric_teal', bevel=0.01, rot=(math.radians(10), 0, 0)))
-cp.append(box('cpstrap', (0.07, 0.01, 0.03), (0, -edge_y - 0.004, CP_Z + 0.03), 'plastic_charcoal', bevel=0.004, segments=1))
-cp.append(uvsphere('cpbutton', 0.022, (0, 0, CP_R * CP_S[2] + 0.005), 'fabric_teal', seg=8, rings=5))
+CP_R, CP_S = HEAD_R + 0.016, (1.07, 1.06, 1.0)
+CP_FRONT, CP_BACK = 0.05, -0.05        # the dome comes down to the brow and low at the back
+cp = [hair_cap('cpdome', CP_FRONT, CP_BACK, r=CP_R, scale=CP_S, seg=20, rings=18)]
+# Worn backwards (from the high camera a forward brim hides the eyes). The brim starts inside the
+# dome's back rim and sweeps out and slightly down, so it reads as one piece with the crown.
+rim_y = CP_R * CP_S[1] * math.sqrt(max(0.0, 1 - (CP_BACK / (CP_R * CP_S[2])) ** 2))
+BL = 0.15
+# The dome's cut edge is coarse, so the brim starts well inside the crown above that edge and
+# tilts down out of it; its root is always buried in the dome.
+cp.append(box('cpbrim', (0.25, BL, 0.024), (0, rim_y - 0.04 + BL / 2, CP_BACK + 0.04), 'fabric_teal', bevel=0.01, rot=(math.radians(-22), 0, 0)))
+cp.append(uvsphere('cpbutton', 0.022, (0, 0, CP_R * CP_S[2] + 0.004), 'fabric_teal', seg=8, rings=5))
 cp[0].data.materials.clear(); cp[0].data.materials.append(mat('fabric_teal'))
 join(at_head(cp), 'acc_cap')
 
