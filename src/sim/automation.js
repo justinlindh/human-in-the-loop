@@ -30,9 +30,12 @@ registerAction('setAutomation', (ctx, { fn, level, model }) => {
   const { state } = ctx;
   if (!FUNCTIONS.includes(fn)) return { ok: false, reason: 'Unknown function' };
   if (typeof level !== 'number' || !Number.isFinite(level)) return { ok: false, reason: 'Invalid level' };
-  const m = model ?? state.automation[fn].model;
+  const current = state.automation[fn].model;
+  const m = model ?? current;
   const ms = state.models[m];
-  if (!ms || !ms.available || ms.deprecated) return { ok: false, reason: 'Model is not available' };
+  if (!ms) return { ok: false, reason: 'Model is not available' };
+  // Keeping the current model is always allowed, so a retired model can still be dialed down or off.
+  if (m !== current && (!ms.available || ms.deprecated)) return { ok: false, reason: 'Model is not available' };
   state.automation[fn] = { level: Math.min(1, Math.max(0, Math.round(level * 4) / 4)), model: m };
   return { ok: true };
 });
