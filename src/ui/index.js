@@ -58,6 +58,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     close: () => menu.close(),
     controls,
     sfx,
+    meaningLog: new Map(),
   };
 
   const hud = createHud({ root: layer, controls, ui });
@@ -67,7 +68,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom);
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => sfx(id ? 'open' : 'close'),
+    onChange: (id) => { sfx(id ? 'open' : 'close'); layer.classList.toggle('panel-open', !!id); },
   });
   bottom.append(h('div'));
 
@@ -93,9 +94,28 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   addEventListener('keydown', onKey);
 
+  // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
+  let loggedWeek = -1;
+  function logMeaning(state) {
+    if (state.week === loggedWeek) return;
+    loggedWeek = state.week;
+    const log = ctx.meaningLog;
+    for (const p of state.staff) {
+      let arr = log.get(p.id);
+      if (!arr) log.set(p.id, (arr = []));
+      arr.push(p.meaning);
+      if (arr.length > 52) arr.shift();
+    }
+    if (log.size > state.staff.length + 20) {
+      const ids = new Set(state.staff.map((p) => p.id));
+      for (const id of log.keys()) if (!ids.has(id)) log.delete(id);
+    }
+  }
+
   let lastPanelAt = 0;
   function update(state) {
     hud.update(state);
+    logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
       lastPanelAt = now;
