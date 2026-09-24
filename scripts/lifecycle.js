@@ -30,7 +30,7 @@ const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${la
 const clickText = (re) => page.locator('button:visible', { hasText: re }).first().click({ timeout: 30000 });
 
 try {
-  await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base); await ready(); await page.waitForTimeout(1000);
+  await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base, { waitUntil: 'domcontentloaded', timeout: 90000 }); await ready(); await page.waitForTimeout(1000);
   const t0 = await page.evaluate(() => ({ playing: window.__HITL.playing, text: document.body.innerText }));
   check('title shows, not playing', !t0.playing && /New Game/.test(t0.text));
   await shot('1-title.png');
@@ -123,7 +123,8 @@ try {
   check('with auto-pause off, blur leaves the game running', offSpeed === 1, `speed ${offSpeed}`);
   const lastWeek = away.week;
 
-  await page.reload(); await ready(); await page.waitForTimeout(1000);
+  // DOM-ready is enough: ready() then waits for the game itself, and slow runners can miss 'load' within 30 s.
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 }); await ready(); await page.waitForTimeout(1000);
   const t2 = await page.evaluate(() => ({ playing: window.__HITL.playing, status: window.__HITL.controls.loadStatus() }));
   check('reload shows the title with a save', !t2.playing && t2.status.ok, JSON.stringify(t2.status));
   check('loadStatus carries the save meta', t2.status.meta?.companyName === 'Testco' && t2.status.meta?.week === lastWeek && 'logoColor' in (t2.status.meta ?? {}), JSON.stringify(t2.status.meta));
