@@ -147,8 +147,8 @@ The run starts at week 0 = January 2019 (dateOf(0).year === 2019).
 
 ### State additions and changes
 ```js
-era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation' */, since /* week */ },
-eraSchedule: { chatgbt, agents, consolidation },          // arrival weeks for this run (jittered)
+era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /* week */ },
+eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
 unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
 founding: { founders: [archetypeIds], funding, logoColor, tagline },
@@ -157,8 +157,10 @@ office: {
   placed: [{ id, itemId, level /*1..3*/, x, y, rot /*0..3*/ }],   // tile coordinates on the stage grid
 },
 // REMOVED: items[] (the fixed-slot shop list); shop items are now entries in office.placed.
-// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired'); 'timeout' and the fixed run end are gone.
+// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired') and 'anniversary' (won: true; set at the end of week 1039, so state.week reads 1040); 'timeout' is gone.
 ```
+Seats: each Staff has `deskId` (the id of a placed desk, or null while they have no desk). A person keeps their desk until that desk is sold or they leave; only then is a free desk assigned (the lowest free desk in placed order). Moving a desk keeps its sitter. The renderer and adjacency `paid` read `deskId`; nobody else changes seat when one person leaves.
+
 Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y], ...]. Tile (0, 0) is the back corner where the two visible walls meet; x runs along the right-hand back wall, y along the left-hand back wall. Item footprints come from ITEMS[itemId].footprint = { w, h } before rotation (rot 1 and 3 swap w and h).
 
 ### Actions
@@ -168,6 +170,7 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 { type: 'upgradeItem', id }
 { type: 'sellItem', id }                      // half refund of total spent
 { type: 'retire' }                            // valid when an IPO is available or an acquisition offer is open
+{ type: 'keepPlaying' }                       // valid only after the anniversary ending; clears gameOver, keeps flags.anniversaryScore, play continues
 // REMOVED: buyItem (placement replaces it)
 // hire gains the reason 'No free desk'
 ```
@@ -189,3 +192,17 @@ Speech bubbles in the office and Slackk messages are separate streams.
 - The renderer shows speech bubbles for `say` events only. A `chat` event is Slackk only; the renderer may show a small typing emote on the author's character, never a bubble.
 - `say` events are never added to `chatLog` and never appear in Slackk.
 - Spoken exchanges are between people in the office (not away); `toId` lets the renderer turn speakers toward each other.
+
+## Content ladder state (Phase 6)
+
+```js
+lockdown: null | { since /* week */, until /* week */, stayerId /* staff id of the one person who never left, or null */ },
+workPolicy: null | 'office' | 'hybrid' | 'remote',     // chosen when the lockdown ends; null before
+pets: [{ id, species /* 'dog'|'cat' */, name, ownerId /* staff id, or null once the owner leaves */, arrivedWeek }],
+rival: null | { name, founderName, logoColor, categoryId, strength /* 0..100 */, status /* 'rising'|'stalled'|'acquired'|'dead'|'merged' */ },
+// Staff gains:
+remote /* bool: working from home this week; the renderer hides them like 'away', ui marks them remote */,
+```
+- During a lockdown every staff member except `stayerId` has `remote: true`. The office stays placed but empty; ui may show a video-call grid of the remote staff using portraits.
+- Under `workPolicy: 'hybrid'` the sim sets `remote` per person per week; under `'remote'` most staff are remote most weeks; under `'office'` nobody is.
+- Pets are rendered in the office whenever their owner is present (or always, once `ownerId` is null and the pet has stayed as the office pet).

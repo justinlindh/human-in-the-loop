@@ -3,7 +3,11 @@
 // stepped as fast as the machine allows.
 //
 // node scripts/pace.js [--seed 1] [--speed 1] [--bot sensible] [--minutes 30 | --weeks 200]
-//                 [--player batch|eager] [--timeline] [--json] [--frame 0.0333]
+//                 [--week-seconds 5] [--player batch|eager|both] [--milestones] [--timeline] [--json] [--frame 0.0333]
+//
+// --milestones prints only the one-line milestone timeline; --player both runs each player.
+// --check tests the milestone line against PACING_TARGETS and exits non-zero on a miss; run it
+// with --weeks 400 or more so the HQ window can be reached.
 //
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
@@ -121,12 +125,45 @@ function sessionCount(timeline) {
   return out;
 }
 
+// Timeline kinds that count as something presented to the player (ambient chat and bubbles do not).
+const NOTABLE = new Set(['decision', 'choice', 'toast', 'launch', 'incident', 'era', 'unlock', 'goal', 'gameOver', 'menu']);
+
+const STAGE_NAMES = ['garage', 'floor', 'hq'];
+
+// One line: minute and label of each milestone in order, unlocks marked with +.
+const milestoneLine = (m) => (m.milestones.length ? m.milestones.map((x) => `${x.minute} ${x.label}`).join(' | ') : 'none');
+
+// Office stages are timed in game weeks; the spacing and quiet rules are in real time at 1x.
+const PACING_TARGETS = { floorWeeks: [104, 156], hqWeeks: [260, 364], maxUnlocksPerMinute: 2, maxQuietAfterTenMinutes: 45 };
+
+// Pass or fail per target. Unlocks that arrive with an era do not count toward the per-minute cap.
+function checkTargets(m) {
+  const weekOf = (label) => m.milestones.find((x) => x.label === label)?.week ?? null;
+  const within = (v, [lo, hi]) => v !== null && v >= lo && v <= hi;
+  const eraMinutes = new Set(m.milestones.filter((x) => x.label.startsWith('era ')).map((x) => x.minute));
+  const perMinute = new Map();
+  for (const x of m.milestones) {
+    if (!x.label.startsWith('+') || eraMinutes.has(x.minute)) continue;
+    const k = Math.floor(x.minute);
+    perMinute.set(k, (perMinute.get(k) ?? 0) + 1);
+  }
+  const worst = [...perMinute.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
+  return [
+    { target: `floor in weeks ${PACING_TARGETS.floorWeeks.join(' to ')}`, ok: within(weekOf('floor'), PACING_TARGETS.floorWeeks), got: weekOf('floor') === null ? null : `week ${weekOf('floor')}` },
+    { target: `hq in weeks ${PACING_TARGETS.hqWeeks.join(' to ')}`, ok: within(weekOf('hq'), PACING_TARGETS.hqWeeks), got: weekOf('hq') === null ? null : `week ${weekOf('hq')}` },
+    { target: `at most ${PACING_TARGETS.maxUnlocksPerMinute} unlocks in any minute outside eras`, ok: worst[1] <= PACING_TARGETS.maxUnlocksPerMinute, got: worst[0] === null ? 0 : `${worst[1]} in minute ${worst[0]}` },
+    { target: `no quiet stretch over ${PACING_TARGETS.maxQuietAfterTenMinutes}s after minute 10`, ok: m.longestQuiet.afterTenMinutes <= PACING_TARGETS.maxQuietAfterTenMinutes, got: `${m.longestQuiet.afterTenMinutes}s` },
+    // The opening is reported, not checked: it is content work, not clock work.
+    { target: 'longest quiet stretch overall (report only)', ok: true, info: true, got: `${m.longestQuiet.seconds}s from minute ${m.longestQuiet.fromMinute}` },
+  ];
+}
+
 const mmss = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const pct = (arr, p) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(p * arr.length))] : null);
 const r1 = (x) => (x === null || x === undefined ? null : Math.round(x * 10) / 10);
 const r2 = (x) => (x === null || x === undefined ? null : Math.round(x * 100) / 100);
 
-export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player = 'batch', minutes = null, weeks = null, frame = 1 / 30 } = {}) {
+export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player = 'batch', minutes = null, weeks = null, frame = 1 / 30, weekSeconds = WEEK_SECONDS } = {}) {
   if (!['batch', 'eager'].includes(player)) throw new Error(`Unknown player "${player}". Players: batch, eager`);
   if (!bots.BOTS[bot]) throw new Error(`Unknown bot "${bot}". Bots: ${Object.keys(bots.BOTS).join(', ')}`);
   const limitSeconds = minutes !== null ? minutes * 60 : weeks === null ? 30 * 60 : Infinity;
@@ -137,11 +174,26 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   const sinkApi = typeof bots.botTurn === 'function' && typeof bots.botDecide === 'function';
   const rand = mulberry(seed ^ 0x9e3779b9);
   const draw = ([a, b]) => a + rand() * (b - a);
-  const pacer = createPacer();
+  const pacer = createPacer({ weekSeconds });
 
   let t = 0; // real seconds
   const timeline = [];
-  const log = (kind, text, extra = {}) => timeline.push({ t, week: state.week, kind, text, ...extra });
+  // The longest real stretch with nothing notable presented and the player not in a menu or popup.
+  let lastActive = 0;
+  let dead = { seconds: 0, from: 0, week: 0 };
+  let deadLater = 0; // longest quiet stretch starting after the opening ten minutes
+  let quietOver45 = 0;
+  const touch = () => {
+    const gap = t - lastActive;
+    if (gap > dead.seconds) dead = { seconds: gap, from: lastActive, week: state.week };
+    if (lastActive >= 600) deadLater = Math.max(deadLater, gap);
+    if (gap > 45) quietOver45++;
+    lastActive = t;
+  };
+  const log = (kind, text, extra = {}) => {
+    timeline.push({ t, week: state.week, kind, text, ...extra });
+    if (NOTABLE.has(kind)) touch();
+  };
 
   // Player activity: at most one of these at a time.
   let reading = null; // { until } while reading a decision (the sim holds time itself)
@@ -202,6 +254,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   };
 
   const firsts = { launch: null, era: {}, goal: {}, unlock: {} };
+  const milestones = []; // { minute, week, label } for first launch, office stages, eras, unlocks
+  const milestone = (label) => milestones.push({ minute: r1(t / 60), week: state.week, label });
   const decisions = [];
   let lastStaged = -Infinity;
   const counts = { chat: 0, chatBot: 0, sayDropped: 0, says: 0, standupsStaged: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
@@ -218,7 +272,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           break;
         }
         case 'award': toast(e.text, 'good'); break;
-        case 'officeUpgrade': toast('Moved into a bigger office!', 'good'); break;
+        case 'officeUpgrade': milestone(STAGE_NAMES[e.stage] ?? `stage ${e.stage}`); toast('Moved into a bigger office!', 'good'); break;
         case 'incident': {
           counts.incidents++;
           const p = state.products.find((x) => x.id === e.productId);
@@ -232,7 +286,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           const prev = launchScores.get(e.productId);
           if (p) launchScores.set(e.productId, p.score);
           const popup = !p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5;
-          if (p?.version === 1 && firsts.launch === null) firsts.launch = t;
+          if (p?.version === 1 && firsts.launch === null) { firsts.launch = t; milestone('first launch'); }
           log('launch', `${p?.name ?? e.productId} v${p?.version ?? '?'} score ${p ? r1(p.score) : '?'}${popup ? '' : ' (no popup)'}`);
           if (popup) launchQueue.push(p?.name ?? e.productId);
           attention ??= 'launch';
@@ -244,8 +298,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           decisions.push(t);
           break;
         }
-        case 'era': firsts.era[e.eraId] ??= t; log('era', e.eraId); cards.push({ kind: 'era', seconds: draw(HUMAN.eraCard), text: e.eraId }); break;
-        case 'unlock': attention ??= 'unlock'; firsts.unlock[e.key] ??= t; log('unlock', e.key); cards.push({ kind: 'unlock', seconds: draw(HUMAN.unlockCard), text: e.key }); break;
+        case 'era': if (firsts.era[e.eraId] === undefined) milestone(`era ${e.eraId}`); firsts.era[e.eraId] ??= t; log('era', e.eraId); cards.push({ kind: 'era', seconds: draw(HUMAN.eraCard), text: e.eraId }); break;
+        case 'unlock': attention ??= 'unlock'; if (firsts.unlock[e.key] === undefined) milestone(`+${e.key}`); firsts.unlock[e.key] ??= t; log('unlock', e.key); cards.push({ kind: 'unlock', seconds: draw(HUMAN.unlockCard), text: e.key }); break;
         case 'goal': firsts.goal[e.goalId] ??= t; log('goal', e.goalId); break;
         case 'chat': {
           counts.chat++;
@@ -343,6 +397,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     // One frame of main.js.
     const menuPause = !!menu;
     const running = !menuPause && !state.pendingDecision && !state.gameOver;
+    if (menuPause || state.pendingDecision) touch();
     if (menuPause) { paused.menu += frame; if (menu.kind === 'menu') paused.sessions += frame; }
     else if (state.pendingDecision) paused.decision += frame;
     if (pacer.step(frame, { speed, running })) {
@@ -350,11 +405,17 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       route(pacer.takeDropped().map((e) => ({ ...e, dropped: true })));
       botDue = true;
       if (state.cash < 0) attention ??= 'cash';
-      if (state.era && state.era.id !== lastEra) { lastEra = state.era.id; firsts.era[lastEra] ??= t; }
+      if (state.era && state.era.id !== lastEra) {
+        lastEra = state.era.id;
+        if (firsts.era[lastEra] === undefined) milestone(`era ${lastEra}`);
+        firsts.era[lastEra] ??= t;
+      }
     }
     if (!menuPause) route(pacer.due());
     t += frame;
   }
+
+  touch();
 
   // Bubble density, sampled every 0.1 real seconds.
   let covered = 0, integral = 0, samples = 0;
@@ -371,7 +432,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   const toMin = (obj) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, r1(v / 60)]));
 
   const metrics = {
-    seed, speed, bot, player, playerEvents: sinkApi ? 'all' : 'hires only', weekSeconds: WEEK_SECONDS / speed,
+    seed, speed, bot, player, playerEvents: sinkApi ? 'all' : 'hires only', weekSeconds: weekSeconds / speed,
+    minutesPerYear: r1((t / 60) / Math.max(1e-9, state.week / 52)),
     realMinutes: r1(minutesPlayed), weeks: state.week, gameOver: state.gameOver ? { won: state.gameOver.won, reason: state.gameOver.reason } : null,
     pausedShare: { decision: r2(paused.decision / t), menu: r2(paused.menu / t), menuSessions: r2(paused.sessions / t) },
     menuSessions: sessionCount(timeline),
@@ -394,16 +456,20 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       firstLaunch: firsts.launch === null ? null : r1(firsts.launch / 60),
       era: toMin(firsts.era), goal: toMin(firsts.goal), unlock: toMin(firsts.unlock),
     },
+    milestones,
+    longestQuiet: { seconds: r1(dead.seconds), fromMinute: r1(dead.from / 60), week: dead.week, afterTenMinutes: r1(deadLater), over45s: quietOver45 },
   };
   return { metrics, timeline, overlaps: bubbleStats.overlaps, state };
 }
 
 function printSummary(m, overlaps) {
-  const L = (k, v) => console.log(`${k.padEnd(26)}${v}`);
+  const L = (k, v) => console.log(`${k.padEnd(28)}${v}`);
   console.log(`pacing: seed ${m.seed}, bot ${m.bot}, ${m.player} player, ${m.speed}x (${m.weekSeconds}s per week); player's own events: ${m.playerEvents}`);
   L('played', `${m.realMinutes} real min, ${m.weeks} weeks${m.gameOver ? `, game over (${m.gameOver.won ? 'won' : 'lost'}: ${m.gameOver.reason})` : ''}`);
   L('time paused', `decisions ${Math.round(m.pausedShare.decision * 100)}%, menus and popups ${Math.round(m.pausedShare.menu * 100)}% (menu sessions alone ${Math.round(m.pausedShare.menuSessions * 100)}%)`);
   L('menu sessions (w/ changes)', Object.entries(m.menuSessions).map(([k, v]) => `${k} ${v}`).join('  '));
+  L('real minutes per game year', m.minutesPerYear);
+  L('longest quiet stretch', `${m.longestQuiet.seconds}s from minute ${m.longestQuiet.fromMinute} (week ${m.longestQuiet.week}); after minute 10: ${m.longestQuiet.afterTenMinutes}s; stretches over 45s: ${m.longestQuiet.over45s}`);
   L('popups per minute', m.popupsPerMinute);
   L('decisions', `${m.decisions.count} (${m.decisions.perMinute}/min)`);
   if (m.decisions.gapSeconds) {
@@ -420,6 +486,7 @@ function printSummary(m, overlaps) {
   L('  same-speaker overlaps', m.bubbles.overlaps);
   for (const o of overlaps.slice(0, 5)) console.log(`    ${mmss(o.t)} w${o.week} ${o.source} ${o.who} cut the last bubble ${o.cutShort}s short: ${o.text.slice(0, 60)}`);
   L('launches and updates', `${m.launches.count} (${m.launches.popups} popups), incidents ${m.incidents}`);
+  L('milestones (real min)', milestoneLine(m));
   L('minutes to first launch', m.minutesTo.firstLaunch ?? 'never');
   for (const kind of ['era', 'unlock', 'goal']) {
     const e = Object.entries(m.minutesTo[kind]);
@@ -431,16 +498,35 @@ const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const a = parseArgs(process.argv.slice(2));
   const num = (k) => (a[k] === undefined || a[k] === true ? null : Number(a[k]));
-  const res = simulatePacing({
-    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player: typeof a.player === 'string' ? a.player : 'batch',
-    minutes: num('minutes'), weeks: num('weeks'), frame: num('frame') ?? 1 / 30,
-  });
-  if (a.json) console.log(JSON.stringify({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }, null, 2));
-  else {
-    if (a.timeline) {
-      for (const e of res.timeline) console.log(`${mmss(e.t)}  w${String(e.week).padStart(3)}  ${e.kind.padEnd(10)} ${e.text}`);
-      console.log('');
+  const players = a.player === 'both' ? ['batch', 'eager'] : [typeof a.player === 'string' ? a.player : 'batch'];
+  const runs = players.map((player) => simulatePacing({
+    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player,
+    minutes: num('minutes'), weeks: num('weeks'), frame: num('frame') ?? 1 / 30, weekSeconds: num('week-seconds') ?? WEEK_SECONDS,
+  }));
+  if (a.check) {
+    let failed = false;
+    for (const { metrics: m } of runs) {
+      console.log(`${m.bot} ${m.player} ${m.speed}x seed ${m.seed}: ${milestoneLine(m)}`);
+      for (const c of checkTargets(m)) {
+        failed ||= !c.ok;
+        console.log(`  ${c.info ? 'info' : c.ok ? 'ok  ' : 'MISS'} ${c.target}: ${c.got ?? 'never'}`);
+      }
     }
-    printSummary(res.metrics, res.overlaps);
+    if (runs[0].metrics.speed !== 1) console.log('note: the real-time targets are for 1x');
+    process.exitCode = failed ? 1 : 0;
+  } else if (a.json) {
+    const out = runs.map((res) => ({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }));
+    console.log(JSON.stringify(out.length === 1 ? out[0] : out, null, 2));
+  } else if (a.milestones) {
+    for (const { metrics: m } of runs) console.log(`${m.bot} ${m.player} ${m.speed}x seed ${m.seed} (${m.realMinutes} min, ${m.weeks} wk): ${milestoneLine(m)}`);
+  } else {
+    runs.forEach((res, i) => {
+      if (i) console.log('');
+      if (a.timeline) {
+        for (const e of res.timeline) console.log(`${mmss(e.t)}  w${String(e.week).padStart(3)}  ${e.kind.padEnd(10)} ${e.text}`);
+        console.log('');
+      }
+      printSummary(res.metrics, res.overlaps);
+    });
   }
 }

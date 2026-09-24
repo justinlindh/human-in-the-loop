@@ -55,24 +55,48 @@ try {
   check('newGame got the founding options', o.companyName === 'Testco' && o.founders?.length === 2 && !!o.funding && !!o.logoColor && typeof o.tagline === 'string', JSON.stringify(o));
 
   for (let i = 0; i < 6; i++) await page.keyboard.press('Escape');
-  await page.evaluate((n) => {
-    for (let i = 0; i < n; i++) {
-      if (window.__HITL.state.pendingDecision) window.__HITL.dispatch({ type: 'resolveDecision', choice: 0 });
-      window.__HITL.tickN(1);
-    }
-    window.__HITL.controls.save();
-  }, WEEKS);
+  // Advances n weeks, resolving any decision first (tick does nothing while one is pending).
+  await page.evaluate(() => {
+    window.__advance = (n) => {
+      const H = window.__HITL;
+      for (let i = 0; i < n; i++) {
+        for (let g = 0; g < 5 && H.state.pendingDecision; g++) H.dispatch({ type: 'resolveDecision', choice: 0 });
+        H.tickN(1);
+      }
+      return H.state.week;
+    };
+  });
+  await page.evaluate((n) => { window.__advance(n); window.__HITL.controls.save(); }, WEEKS);
   const saved = await page.evaluate(() => ({ week: window.__HITL.state.week, has: Object.keys(localStorage).some((k) => k.startsWith('hitl.save')) }));
   check(`played ${WEEKS} weeks and saved`, saved.week === WEEKS && saved.has, JSON.stringify(saved));
   await page.screenshot({ path: `${OUT}/5-played.png` });
 
+  // Saves without an explicit save: the tab going hidden, then the page being hidden (pagehide).
+  const savedWeek = () => page.evaluate(() => {
+    const k = Object.keys(localStorage).find((x) => x.startsWith('hitl.save'));
+    try { return JSON.parse(localStorage.getItem(k)).week ?? JSON.parse(localStorage.getItem(k)).state?.week; } catch { return null; }
+  });
+  const hiddenWeek = await page.evaluate(() => {
+    const week = window.__advance(2);
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    return week;
+  });
+  const onHidden = await savedWeek();
+  check('saves when the tab is hidden', hiddenWeek === WEEKS + 2 && onHidden === hiddenWeek, `week ${hiddenWeek}, saved week ${onHidden}`);
+  const finalWeek = await page.evaluate(() => { const week = window.__advance(1); dispatchEvent(new Event('pagehide')); return week; });
+  const onPagehide = await savedWeek();
+  check('saves on pagehide', finalWeek === WEEKS + 3 && onPagehide === finalWeek, `week ${finalWeek}, saved week ${onPagehide}`);
+
   await page.reload(); await ready(); await page.waitForTimeout(1000);
   const t2 = await page.evaluate(() => ({ playing: window.__HITL.playing, status: window.__HITL.controls.loadStatus() }));
   check('reload shows the title with a save', !t2.playing && t2.status.ok, JSON.stringify(t2.status));
+  check('loadStatus carries the save meta', t2.status.meta?.companyName === 'Testco' && t2.status.meta?.week === WEEKS + 3 && 'logoColor' in (t2.status.meta ?? {}), JSON.stringify(t2.status.meta));
   await clickText(/Continue/);
   await page.waitForTimeout(800);
   const t3 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, week: window.__HITL.state.week }));
-  check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === WEEKS, JSON.stringify(t3));
+  check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === WEEKS + 3, JSON.stringify(t3));
   await page.screenshot({ path: `${OUT}/6-continued.png` });
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);

@@ -9,10 +9,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:fast": "vitest run --exclude tests/sim/balance.test.js",
+    "test:balance": "vitest run tests/sim/balance.test.js",
     "balance": "node scripts/balance.js",
     "snap": "node scripts/snap.js",
     "pace": "node scripts/pace.js",
     "lifecycle": "node scripts/lifecycle.js",
+    "soak": "node scripts/soak.js",
     "models": "bash scripts/build-models.sh"
   },
   "type": "module",

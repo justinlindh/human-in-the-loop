@@ -89,6 +89,16 @@ describe('mock sim honors the contract', () => {
 describe('mock sim placement', () => {
   const garage = () => createMockSim({ scenario: 'garage' });
 
+  it('every scenario starts with a valid layout and a desk per person', () => {
+    for (const scenario of MOCK_SCENARIOS) {
+      const m = createMockSim({ scenario });
+      const placed = m.state.office.placed;
+      expect(placed.filter((o) => o.itemId === 'desk').length, scenario).toBeGreaterThanOrEqual(m.state.staff.length);
+      // Moving an item onto its own spot re-validates it against everything else.
+      for (const o of placed) expect(m.dispatch({ type: 'moveItem', id: o.id, x: o.x, y: o.y, rot: o.rot }).reason, `${scenario} ${o.id} ${o.itemId}`).toBeUndefined();
+    }
+  });
+
   it('places, moves, upgrades, and sells on office.placed', () => {
     const m = garage();
     const cash = m.state.cash;

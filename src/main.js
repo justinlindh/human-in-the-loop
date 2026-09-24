@@ -112,7 +112,9 @@ async function boot() {
     loadStatus: () => {
       if (!canSave()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame();
-      return { ok: res.ok, reason: res.reason };
+      // meta labels the title's Continue row.
+      const meta = res.ok ? { companyName: res.state.companyName, week: res.state.week, logoColor: res.state.founding?.logoColor ?? null } : null;
+      return { ok: res.ok, reason: res.reason, meta };
     },
     save,
     setQuality: (q) => renderer?.setQuality(q),
@@ -147,7 +149,11 @@ async function boot() {
   };
 
   if (renderer) addEventListener('resize', () => renderer.resize());
+  // Save whenever the page may be going away: tab hidden (mobile browsers often kill it after this),
+  // navigation or close, and the bfcache.
   addEventListener('beforeunload', () => { save(); });
+  addEventListener('pagehide', () => { save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
   let last = performance.now();
   let dayClock = 0.35;
