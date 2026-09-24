@@ -49,7 +49,7 @@ function story(state) {
     eraCount: eraIndex(state) + 1,
     launches: state.stats.launches,
     people: state.stats.hires + state.staff.filter((p) => p.founder).length,
-    alumni: state.flags.alumni?.length ?? 0,
+    alumni: state.flags.departures ?? state.flags.alumni?.length ?? 0,
     veteran: veteran ? veteran.name : null,
     veteranYears: veteran ? Math.floor((state.week - veteran.hiredWeek) / 52) : 0,
   };
@@ -62,10 +62,18 @@ const fill = (state, text, x = {}) => text.replaceAll('{company}', state.company
   .replaceAll('{people}', String(x.people ?? 0)).replaceAll('{alumni}', String(x.alumni ?? 0))
   .replaceAll('{veteran}', x.veteran ?? 'Someone').replaceAll('{veteranYears}', String(x.veteranYears ?? 0));
 
-// Every matching epilogue in list order (outcome lines come first), capped at 5, topped up to 3 with generic lines.
+// The ending in order: how it ended, a recap of the run, one line about its people, then the consequences;
+// capped at epilogueLines and topped up to 3 with generic lines.
 export function buildEpilogue(state, outcome) {
   const x = summary(state, outcome);
-  const lines = EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)).slice(0, 5).map((e) => fill(state, e.text, x));
+  const fits = EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text));
+  const picked = [
+    ...fits.filter((e) => e.group === 'outcome').slice(0, B.epilogueOutcomeLines),
+    ...fits.filter((e) => e.group === 'recap').slice(0, 1),
+    ...fits.filter((e) => e.group === 'people').slice(0, 1),
+    ...fits.filter((e) => !e.group),
+  ].slice(0, B.epilogueLines);
+  const lines = picked.map((e) => fill(state, e.text, x));
   for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
     if (lines.length >= 3) break;
     lines.push(fill(state, g.text, x));
