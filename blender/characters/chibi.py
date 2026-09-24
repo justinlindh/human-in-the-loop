@@ -169,21 +169,11 @@ join(at_head(curls), 'hair_6')                                     # curly
 h = at_head([hair_cap('h7cap', 0.1, -0.08), lump('h7swoop', 0.12, (-0.07, -0.13, 0.14), (1.3, 0.7, 0.5))])
 join(h, 'hair_7')                                                   # side swoop
 
-# Accessories (head-centered)
+# Accessories (head-centered). Glasses are the frame front only: temple arms read as antennae or
+# floating bars on a round chibi head from every angle.
 g = []
 for sx in (-1, 1):
     g.append(torus(f'gl{sx}', 0.044, 0.008, (sx * EX, surf_y(EX, EZ, 0.014), EZ), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=12, minor_seg=4))
-    # Temple arm: a short stub from the lens hinge that bends back and sinks into the side of the
-    # head just behind the cheek, the chibi way (a full arm to the ear reads as a bar across the face).
-    rx, ry = HEAD_R * HEAD_S[0], HEAD_R * HEAD_S[1]
-    kz = math.sqrt(max(0.0, 1 - (EZ / (HEAD_S[2] * HEAD_R)) ** 2))
-    hinge = (sx * (EX + 0.046), surf_y(EX + 0.046, EZ, 0.012), EZ)
-    a = 0.78
-    tip = (sx * (rx * kz - 0.004) * math.sin(a), -(ry * kz - 0.004) * math.cos(a), EZ + 0.004)
-    (x0, y0, z0), (x1, y1, z1) = hinge, tip
-    L = math.hypot(x1 - x0, y1 - y0)
-    g.append(box(f'glarm{sx}', (0.009, L + 0.004, 0.011), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), 'plastic_charcoal', bevel=0,
-                 rot=(0, 0, math.atan2(-(x1 - x0), y1 - y0))))
 g.append(box('glbridge', (0.05, 0.008, 0.008), (0, face_y - 0.014, EZ + 0.01), 'plastic_charcoal', bevel=0))
 join(at_head(g), 'acc_glasses')
 hp = [torus('hpband', HEAD_R + 0.04, 0.018, (0, 0, 0), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=18, minor_seg=5)]
