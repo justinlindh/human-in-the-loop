@@ -35,7 +35,8 @@ describe('natural attrition', () => {
     const r = ev.find((e) => e.type === 'resign');
     expect(r).toMatchObject({ fired: false, reason: 'poached' });
     expect(ev.some((e) => e.type === 'chat' && e.fromId === r.staffId)).toBe(true);
-    expect(ev.find((e) => e.type === 'toast')).toMatchObject({ tone: 'good' });
+    // Losing someone to a competitor is news, not good news.
+    expect(ev.find((e) => e.type === 'toast')).toMatchObject({ tone: 'info' });
     expect(s.stats.resignations).toBe(1);
     expect(s.flags.alumni.at(-1).name).toBe(r.name);
   });
