@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { mat, color, glow, paletteMaterial, setGlowBase } from './materials.js';
 import { ROLE_COLORS } from './palette.js';
-import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
+import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 
@@ -233,8 +233,8 @@ function deskEra(g, i, era, laptop) {
   }
   if (era === 'agents') {
     const led = mesh(new THREE.SphereGeometry(0.022, 10, 8), glow('led_green', 3), 0.38, 0.645, DESK_Z - 0.22, { cast: false });
-    led.name = 'desk_led';
-    led.userData.dynamic = true;
+    led.name = 'desk_status';
+    led.userData.noAO = true;
     g.add(led);
     g.add(mesh(roundedCylinder(0.035, 0.04, 0.02, 0.005, 12), mat('plastic_charcoal'), 0.38, 0.62, DESK_Z - 0.22));
   }
@@ -267,6 +267,8 @@ function deskSet(i, stageIdx, screens, era) {
   // Team mat under the whole set, tinted by whoever sits here (hidden until someone does).
   const rug = mesh(roundedBox(0.92, 0.012, 1.9, 0.006, 1), mat('laminate'), 0, 0.008, 0, { cast: false });
   rug.userData.dynamic = true;
+  rug.userData.batch = true;
+  rug.userData.noAO = true;
   g.add(rug);
   g.userData.rug = rug;
   let screen = null;
@@ -274,6 +276,7 @@ function deskSet(i, stageIdx, screens, era) {
     if (c.isMesh && c.name.endsWith('_screen')) {
       if (screens) c.material = screens.deskMaterial(i);
       c.userData.dynamic = true;
+      c.userData.batch = true;
       screen = c;
     }
   });
@@ -388,6 +391,8 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   else if (hasModel(itemModelName(p.itemId, p.level))) inner = getModel(itemModelName(p.itemId, p.level));
   else inner = crate(f.w, f.h);
   if (kind !== 'desk') screensFor(inner, screens, seed);
+  // LEDs blink per mesh, so they stay out of the static merge.
+  inner.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) { c.userData.dynamic = true; c.userData.noAO = true; } });
   if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind));
   const g = new THREE.Group();
   g.add(inner);
@@ -555,6 +560,7 @@ export function createOffice({ parent, screens, lighting }) {
     cur = next;
     placed.clear();
     eraQueue = [];
+    batch = null;
     ledCache = null;
     holder.add(cur.root);
     poster = null;
@@ -633,7 +639,7 @@ export function createOffice({ parent, screens, lighting }) {
       dying.push({ obj: e.obj, t: 0 });
       dirty = true;
     }
-    if (dirty) refresh();
+    if (dirty) { dropBatch(); refresh(); }
     return changed;
   }
 
@@ -685,6 +691,7 @@ export function createOffice({ parent, screens, lighting }) {
     if (!d?.screen || d.screenKind === kind) return;
     d.screenKind = kind;
     d.screen.material = kind === 'work' ? screens.deskMaterial(d.seed) : screens.material(kind);
+    dropBatch();
   }
 
   // LED meshes on racks and wall screens, rebuilt when furniture changes.
@@ -710,8 +717,10 @@ export function createOffice({ parent, screens, lighting }) {
       m.position.set(0, 0.74, DESK_Z + 0.2);
       m.rotation.x = -0.25;
       m.castShadow = true;
+      m.userData.dynamic = true;
       d.obj.add(m);
       d.sign = m;
+      dropBatch();
     }
     if (d.sign) d.sign.visible = on;
   }
@@ -744,7 +753,7 @@ export function createOffice({ parent, screens, lighting }) {
       if (old.desk) e.desk = { ...old.desk, screen: e.obj.userData.screen, obj: e.obj, sign: null, screenKind: null, role: undefined };
       placed.set(old.id, e);
     }
-    if (n) refresh();
+    if (n) { dropBatch(); refresh(); }
   }
 
   function updatePoster() {
@@ -761,6 +770,7 @@ export function createOffice({ parent, screens, lighting }) {
     const rug = d?.obj.userData.rug;
     if (!rug || d.role === role) return;
     d.role = role;
+    dropBatch();
     const key = role ?? 'none';
     let m = rugMats.get(key);
     if (!m) {
@@ -771,10 +781,51 @@ export function createOffice({ parent, screens, lighting }) {
     rug.material = m;
   }
 
+  // Idle furniture is drawn as one merged batch per material. Any change (placement, era, a mat
+  // colour, an item hidden for a move) drops the batch and shows the originals until things settle.
+  let batch = null;
+  let idleT = 0;
+  const BATCH_AFTER = 0.5;
+  function dropBatch() {
+    idleT = 0;
+    if (!batch) return;
+    for (const m of batch.members) m.visible = true;
+    batch.group.removeFromParent();
+    batch.group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    batch = null;
+  }
+  function buildBatch() {
+    const members = [];
+    const owners = [];
+    for (const e of placed.values()) {
+      if (!e.obj.visible || e.sliding) continue;
+      owners.push(e.obj);
+      for (const m of e.obj.children) {
+        if (m.isMesh && m.visible && (!m.userData.dynamic || m.userData.batch)) members.push(m);
+      }
+    }
+    if (members.length < 2) return;
+    const group = batchMeshes(members, cur.furniture);
+    for (const m of members) m.visible = false;
+    cur.furniture.add(group);
+    batch = { group, members, owners };
+  }
+  function updateBatch(dt) {
+    if (batch) {
+      // Something hid or moved an item (build mode moving it, a pop): fall back to the originals.
+      if (batch.owners.some((o) => !o.visible || o.scale.x !== 1 || !o.parent)) dropBatch();
+      return;
+    }
+    const busy = eraQueue.length || dying.length || [...placed.values()].some((e) => e.sliding || e.obj.scale.x !== 1);
+    idleT = busy ? 0 : idleT + dt;
+    if (idleT >= BATCH_AFTER && placed.size) buildBatch();
+  }
+
   const camDir = new THREE.Vector2();
   function update(dt, { yaw = Math.PI / 4, env } = {}) {
     if (!cur) return;
     if (eraQueue.length) rebuildForEra();
+    updateBatch(dt);
     camDir.set(Math.sin(yaw), Math.cos(yaw));
     for (const key of WALL_KEYS) {
       const [ox, oz] = OUTWARD[key];

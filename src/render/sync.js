@@ -12,7 +12,8 @@ const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const MAX_WANDERERS = 2;
 const MAX_SPEECH = 6;
-const APPROACH_M = 3.2;        // conversations farther apart than this: the speaker walks over
+const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
+const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -314,12 +315,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const staged = other && !other.hidden && other.mode === 'placed';
     if (!staged && labels.speechCount?.() >= MAX_SPEECH) return;
     if (r.char.emote === 'typing') { r.char.setEmote(null); r.emoteT = 0; }
-    labels.say(e.text, r.char.root, 3.2);
-    if (!staged) return;
-    faceToward(r, other);
     faceToward(other, r);
-    // Only the opening line walks over; replies answer from where they are.
-    if (!e.replyTo && !other.temp?.talk) approach(r, other);
+    // Only the opening line may walk over, and only a short way; its bubble then shows on arrival.
+    if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text)) return;
+    labels.say(e.text, r.char.root, 3.2);
+    if (staged) faceToward(r, other);
     if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
   }
 
@@ -334,14 +334,15 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     a.face = { yaw, t: 3.6 };
   }
 
-  function approach(r, other) {
-    if (r.temp || r.path.length || r.mode !== 'placed' || r.staff.mood === 'burnout') return;
+  function approach(r, other, text) {
+    if (r.temp || r.path.length || r.mode !== 'placed' || r.staff.mood === 'burnout') return false;
     const dx = r.pos.x - other.pos.x, dz = r.pos.z - other.pos.z;
     const d = Math.hypot(dx, dz);
-    if (d < APPROACH_M) return;
+    if (d < NEAR_M || d - 1.0 > WALK * WALK_MAX_S) return false;
     const spot = { x: other.pos.x + (dx / d) * 1.0, z: other.pos.z + (dz / d) * 1.0, yaw: Math.atan2(-dx, -dz), anim: 'idle' };
-    r.temp = { anim: 'idle', t: 5, goal: spot, back: true, talk: true };
+    r.temp = { anim: 'idle', t: 5, goal: spot, back: true, talk: true, sayText: text };
     walkTo(r, spot);
+    return true;
   }
 
   function updateFast(dt) {
@@ -458,6 +459,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       const tp = r.temp;
       if (tp.delay > 0) { tp.delay -= dt; }
       else {
+        if (tp.sayText) { labels.say(tp.sayText, c.root, 3.2); tp.sayText = null; }
         tp.t -= dt;
         c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));

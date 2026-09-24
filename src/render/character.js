@@ -90,7 +90,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const base = Object.fromEntries(Object.entries(own).map(([k, m]) => [k, m.color.clone()]));
   const roleMat = roleMaterial(role, roleColor);
 
-  function skinMats(o) {
+  // Only the big shapes cast shadows, and people skip the AO pass (their floor ring grounds them);
+  // that keeps a full office's extra passes to a few draw calls per person.
+  function skinMats(o, cast = false) {
     o.traverse((m) => {
       if (!m.isMesh) return;
       const pick = (mm) => {
@@ -103,12 +105,14 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         return paletteMaterial(mm?.name) ?? mm;
       };
       m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material);
-      m.castShadow = true;
+      m.castShadow = cast;
       m.receiveShadow = true;
+      m.userData.noAO = true;
     });
     return o;
   }
-  const P = (name) => (tpl ? skinMats(part(tpl, name)) : new THREE.Group());
+  const CASTERS = /^(head|hair_|torso_|leg|acc_beanie|acc_cap)/;
+  const P = (name) => (tpl ? skinMats(part(tpl, name), CASTERS.test(name)) : new THREE.Group());
 
   const root = new THREE.Group();
   root.name = 'character';

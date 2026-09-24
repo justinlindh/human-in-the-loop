@@ -36,6 +36,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  // Counters cover every pass of a frame (shadows, AO, main, post), reset once per frame.
+  renderer.info.autoReset = false;
+  const perf = { calls: 0, triangles: 0, ms: 0, frames: 0 };
 
   const labels = new CSS2DRenderer();
   labels.domElement.style.position = 'absolute';
@@ -202,6 +205,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     resize,
     render(dt) {
+      const t0 = performance.now();
+      renderer.info.reset();
       rig.update(dt);
       lighting.setViewYaw(rig.yaw);
       debugRoot.userData.update?.(dt);
@@ -214,6 +219,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);
+      perf.calls = renderer.info.render.calls;
+      perf.triangles = renderer.info.render.triangles;
+      perf.ms = perf.frames ? perf.ms * 0.9 + (performance.now() - t0) * 0.1 : performance.now() - t0;
+      perf.frames++;
     },
     dispose() {
       rig.dispose();
@@ -223,6 +232,12 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
+    // Draw calls and triangles for the last frame (all passes) and a smoothed CPU frame time.
+    get perf() {
+      let meshes = 0;
+      scene.traverseVisible((o) => { if (o.isMesh) meshes++; });
+      return { calls: perf.calls, triangles: perf.triangles, cpuMs: +perf.ms.toFixed(1), meshes, programs: renderer.info.programs?.length ?? 0, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures };
+    },
     get stats() { return { standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).
