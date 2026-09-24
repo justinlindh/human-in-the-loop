@@ -162,13 +162,16 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
   // Resting poses settle onto the furniture: once the pose has formed, the person is lifted by how
   // far they sank into it (measured, so every item and level works the same way).
   const RESTING = new Set(['lie', 'nap', 'sprawl', 'sit', 'read', 'playsit']);
+  const SLEEP_ANIMS = new Set(['lie', 'nap', 'desknap']);
   function settle(r, dt, tp) {
     if (!RESTING.has(tp.anim) || tp.settled >= 2) return;
     tp.settleT = (tp.settleT ?? 0) + dt;
     if (tp.settleT < (tp.settled ? 0.9 : 0.45)) return;
     const e = office.placed.get(tp.perkKey?.split(':')[0]);
     if (!e) { tp.settled = 2; return; }
-    const d = sinkDepth(r.char.root, furnitureMeshes(e.obj));
+    // A beanbag is soft: the body sinks into it and only the head has to stay clear of the bag.
+    const soft = perkOf(e) === 'nap_pod' && e.level <= 1;
+    const d = sinkDepth(r.char.root, furnitureMeshes(e.obj), soft ? { parts: ['head'] } : undefined);
     if (d > 0.002) tp.lift = (tp.lift ?? 0) + d + 0.004;
     tp.settled = (tp.settled ?? 0) + 1;
   }
@@ -177,7 +180,12 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     const def = tp.def;
     settle(r, dt, tp);
     tp.emoteT -= dt;
-    if (def.emote && tp.emoteT <= 0) { tp.emoteT = rnd(3.5, 5); if (!r.char.emote) emote(r, def.emote, 2.2); }
+    if (def.emote && tp.emoteT <= 0) {
+      tp.emoteT = rnd(3.5, 5);
+      // Sleep emotes only over a sleeping pose; a beanbag lounger is awake and humming.
+      const kind = def.emote === 'zzz' && !SLEEP_ANIMS.has(tp.anim) ? 'music' : def.emote;
+      if (!r.char.emote) emote(r, kind, 2.2);
+    }
     if (def.bursts) {
       tp.burstT -= dt;
       if (tp.burstT <= 0) { tp.burstT = rnd(3, 5); tp.burst = 1.0; if (Math.random() < 0.5) emote(r, 'sparkle', 1.2); }

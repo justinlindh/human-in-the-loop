@@ -141,12 +141,34 @@ export async function runClipChecks(R, S, { frames = 24, dt = 0.07 } = {}) {
   return { pass: results.every((r) => r.pass), results };
 }
 
+// Float gap: how far the body hangs above the furniture under it. Any sampled point inside the
+// furniture is contact (0); otherwise the smallest drop from a point to the surface below it.
+function floatGap(points, targets) {
+  const saved = targets.map((m) => m.material.side);
+  for (const m of targets) m.material.side = THREE.DoubleSide;
+  let gap = Infinity;
+  for (const p of points) {
+    ray.set(p, UP);
+    const up = ray.intersectObjects(targets, false).length;
+    ray.set(p, DOWN);
+    const down = ray.intersectObjects(targets, false);
+    if (up % 2 === 1 && down.length % 2 === 1) { gap = 0; break; }
+    if (down.length) gap = Math.min(gap, down[0].distance);
+  }
+  targets.forEach((m, i) => { m.material.side = saved[i]; });
+  return gap;
+}
+
+const FLOAT_MAX = 0.03;           // resting on furniture: the body comes within 3 cm of it
+const SOFT_SINK = 0.35;           // soft furniture (a beanbag): the body sinks this far below its top
+
 // Furniture poses: send one person to each item and measure how much of them sinks into it.
+// Items with soft: true may swallow the body; only the head must stay clear, and the body must sink.
 export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt = 0.1 } = {}) {
   const results = [];
   const staff = S.staff.filter((p) => p.mood !== 'away').map((p) => p.id);
   let k = 0;
-  for (const { id, slot = 0, nap = false, label } of items) {
+  for (const { id, slot = 0, nap = false, soft = false, label } of items) {
     const who = staff[k++ % staff.length];
     if (!R.perks.send([who], id, { dur: 60, slot, nap })) { results.push({ name: label, pass: false, reason: 'not sent' }); continue; }
     for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) R.advance(0.1);
@@ -154,9 +176,13 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     const e = R.office.placed.get(id);
     const root = charOf(R.scene, who);
     const furniture = meshes(e.obj);
-    let inside = 0, total = 0, headIn = 0, headTotal = 0;
+    let inside = 0, total = 0, headIn = 0, headTotal = 0, gap = 0, low = Infinity;
+    const top = new THREE.Box3().setFromObject(e.obj).max.y;
     for (let f = 0; f < frames; f++) {
       R.advance(dt);
+      const body = vertices(root, 4);
+      gap = Math.max(gap, floatGap(body, furniture));
+      for (const p of body) low = Math.min(low, p.y);
       const pts = vertices(root, 4, isUpper);
       inside += insideCount(pts, furniture);
       total += pts.length;
@@ -169,7 +195,10 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     }
     const pct = total ? (100 * inside) / total : 0;
     const headPct = headTotal ? (100 * headIn) / headTotal : 0;
-    results.push({ name: label, anim: R.perks.peek(who)?.temp?.anim, pass: pct < 2 && headPct < 1, insidePct: +pct.toFixed(2), headInsidePct: +headPct.toFixed(2) });
+    const sunk = top - low;
+    const pass = headPct < 1 && gap < FLOAT_MAX && (soft ? sunk > SOFT_SINK : pct < 2);
+    results.push({ name: label, anim: R.perks.peek(who)?.temp?.anim, pass, insidePct: +pct.toFixed(2), headInsidePct: +headPct.toFixed(2),
+      floatGap: +gap.toFixed(3), ...(soft ? { sunkBelowTop: +sunk.toFixed(2) } : {}) });
   }
   return { pass: results.every((r) => r.pass), results };
 }
