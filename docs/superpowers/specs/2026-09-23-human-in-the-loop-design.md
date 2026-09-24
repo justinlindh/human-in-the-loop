@@ -194,3 +194,83 @@ Lightweight procedural audio via WebAudio (UI clicks, typing ambience, launch fa
 In: everything above, at modest content depth (roughly 14 categories, 7 angles, 7 models, 8+ incumbents, 40+ events, 20+ traits, 6 policies, 3 office stages).
 
 Out (future iterations): multiplayer, mobile layout, localization, mod support, accessibility beyond readable contrast and keyboard shortcuts for menus.
+
+## Progression
+
+Upgrades change the game in ways the player can see and feel, but no single upgrade is decisive. Guideline: a single item or tool moves its stat by 10% to 40%, never more than 50%; stacking several is how a player builds an edge.
+
+### Career paths and training
+
+- **Training programs** replace the single Train button:
+  - *Workshop*: cheap, +XP, +3 to one chosen skill.
+  - *Conference*: pricier, bigger XP gain, +meaning, a small brand bump; the person is away for a week.
+  - *Course*: two weeks away, +knowledge, +XP.
+- **Career path at promotion to Senior.** The player picks one path; the person shows a "path pending" badge until chosen. Each path has one clear perk:
+  - Engineer: *Architect* (pays down comprehension debt, faster knowledge gain), *Tech Lead* (mentees grow faster), *AI Wrangler* (much stronger oversight and catch chance; oversight restores more meaning), *Staff Engineer* (stronger hard-problem novelty, bonus features).
+  - Designer: *UX Lead* (polish), *Brand Designer* (steady brand gain).
+  - Marketer: *Growth Lead* (hype), *Brand Lead* (brand gain).
+  - Support: *Support Lead* (support capacity, lower churn), *Community Manager* (brand, hype).
+  - Security: *Red Team Lead* (posture), *Incident Commander* (faster outage recovery).
+  - Sales: *Enterprise AE* (sales boost, compliance deals), *Partnerships* (acquisition in new categories).
+- **Legend** at level 20: a title and a 25% boost to the path perk.
+- **Earned traits** from experience (max 3 traits per person): 20 weeks mentoring earns *Natural Mentor*; catching 3 incidents earns *Paranoid*; 20 weeks on hard problems earns *Visionary*.
+
+### Office shop
+
+Buyable items that appear in the diorama, each upgradeable from level 1 to 3 with visibly fancier models. Each office stage has a limited number of item slots (Garage 3, Office Floor 8, HQ 16). Items can be sold for half their cost.
+
+| Item | Effect per level (1 / 2 / 3) |
+|---|---|
+| Espresso | stamina recovery +15% / +30% / +45% |
+| Plant Wall | meaning recovery +0.1 / +0.2 / +0.3 per week |
+| Nap Pod | burnout lasts +1 / +2 / +3 weeks before resignations roll |
+| Arcade | base meaning recovery +0.2 / +0.35 / +0.5, output -2% / -3% / -4% |
+| Standing Desks | stamina drain -10% / -20% / -30% |
+| Whiteboard Wall | novelty points +5% / +10% / +15% |
+| Library | knowledge gain +15% / +30% / +45% |
+| Monitoring Wall | oversight hours per person +15% / +30% / +45% |
+| Server Racks | maintenance need -5% / -10% / -15%, uptime floor +0.03 / +0.06 / +0.1 |
+| Trophy Case | brand +0.02 / +0.04 / +0.06 per week (needs an award) |
+
+### Internal tools (research)
+
+Engineering time spent on tools with permanent effects, run as projects of kind `research`. Some require another tool first.
+
+| Tool | Effect | Requires |
+|---|---|---|
+| Eval Harness | rogue-agent incident chance -25% | |
+| Agent Sandbox | rogue-agent damage -40% | Eval Harness |
+| Observability | outage fixes 40% faster; unrecoverable threshold 20% lower | |
+| CI/CD | reliability points +10%; health decay -20% | |
+| Design System | polish points +10% | |
+| Docs Culture | debt from departures -40%; institutional knowledge +10% | |
+| Onboarding Kit | new hires start with +15 knowledge | Docs Culture |
+| Red Team Suite | security posture +10 | |
+
+## Slackk (team chat)
+
+The #general feed becomes a small Slack-like panel, branded Slackk, and a storytelling surface: morale shows up in chat before it shows up in the meters.
+
+- **Channels:** `#general` (staff chatter), `#incidents` (pagerbot and the scramble), `#wins` (launches, promotions, awards), `#random` (coffee machine drama, office dog).
+- **Contextual lines:** templates that reference real products, coworkers, models, and incumbents ("Claudius refused to drop the users table again").
+- **Conversations:** a post plus one or two replies from other staff, triggered by moods, roles, and recent events (a coasting senior posts, a junior they mentored replies).
+- **Reactions:** emoji counts on posts. A healthy team reacts; a checked-out team does not.
+- **Volume follows morale:** a happy team is chatty; a burnt-out team goes quiet.
+- **Clickable names** focus the camera on that person and open their card. Unread badges show per channel while the panel is collapsed.
+
+## Decision events
+
+Random events regularly put a decision in front of the player (roughly one every three weeks). They carry the game's personality and its themes.
+
+- **Kinds:** people (complaints, someone not showing up, poaching, burnout, side projects), leadership ideas (a founder read a blog post and wants to replace support with agents, a four-day week, an AI-first mandate, a rebrand, a pivot, an open-plan office), market, vendors, incidents, and office life.
+- **Not every consequence is immediate.** A choice can:
+  - apply effects now;
+  - apply effects later ("in 6 weeks, the rebrand lands");
+  - start a temporary modifier that runs for a number of weeks ("four-day week trial: +meaning, -10% output for 8 weeks");
+  - schedule a follow-up event that revisits the decision ("the trial is over: keep it?").
+- **Visibility:** active modifiers show in the HUD tray with weeks remaining. Scheduled consequences are not shown in full; the decision's hint says "effects later" so the player knows something is coming.
+- **No-shows:** someone who does not show up is away for a few weeks; how the player responds (check in, dock pay, ignore) changes that person's meaning and the team's.
+
+## Icons
+
+No stock emoji anywhere in the shipped game. Every icon (menu buttons, categories, toasts, meters, Slackk reactions, emotes above characters, event art) comes from one custom set in the diorama's art direction: the same palette, chunky rounded forms, and thick outlines as the UI. The art director chooses the technique (for example, small renders of the game's own 3D models for object icons, and hand-drawn SVG for small glyphs) as long as the set reads as one family at 16 to 48 px.

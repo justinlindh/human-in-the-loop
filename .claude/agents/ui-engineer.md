@@ -17,4 +17,4 @@ How you work:
 - The UI must feel like a Kairosoft game made with care: chunky, friendly, legible at a glance, with numbers that are easy to scan. Opaque panels over the 3D scene. It must work from 1920x1080 down to 1024x640.
 - Keep DOM bounded (toasts, chat, labels) and per-frame updates cheap: update text and widths, do not rebuild panels every frame.
 - Verify with `npm run snap` at both sizes and Read the PNGs; zero console errors.
-- After each task: commit, then message the lead with the commit hash and screenshot paths.
+- After each task: commit, message team-lead, then end your turn (mailbox messages only arrive between turns; team-lead replies with the go-ahead). The report includes the commit hash and screenshot paths.

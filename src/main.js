@@ -10,6 +10,8 @@ const params = new URLSearchParams(location.search);
 const mockScenario = params.get('mock');
 const isSnap = params.has('snap');
 const WEEK_SECONDS = 2.0;
+// Ambient day/night runs on real time so higher game speeds never strobe the scene.
+const DAY_SECONDS = 120;
 
 async function loadOptional(mods) {
   const loader = Object.values(mods)[0];
@@ -97,7 +99,7 @@ async function boot() {
         route(sim.tick(), sim.state);
       }
     }
-    dayClock = (dayClock + dt * Math.max(speed, 0.25) / 4) % 1;
+    dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     if (renderer) {
       renderer.setTimeOfDay(forcedTime === 'night' ? 0.95 : forcedTime === 'day' ? 0.45 : dayClock);
       renderer.sync(sim.state);

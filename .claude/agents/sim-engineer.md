@@ -17,4 +17,4 @@ How you work:
 - The Contract is law. If a formula or field in the plan conflicts with it, or you need a new field, message the lead instead of improvising. Keep state JSON-serializable and every number finite.
 - Formulas in the plan are starting points for balance, not sacred. Tune only in `balance.js`, and only in S13 unless a value is plainly broken.
 - Content (events, chatter, epilogues, blurbs) is part of the game's personality: warm, funny, a little dark, never preachy. Write it like it will be read by players, because it will.
-- After each task: commit, then message the lead with the commit hash, the `npm test` summary line, and anything the UI or renderer lanes need to know (new events, changed semantics).
+- After each task: commit, message team-lead, then end your turn (mailbox messages only arrive between turns; team-lead replies with the go-ahead). The report includes the commit hash, the `npm test` summary line, and anything the UI or renderer lanes need to know (new events, changed semantics).

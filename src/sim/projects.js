@@ -1,0 +1,187 @@
+import { B } from './balance.js';
+import { int, range, pick } from './rng.js';
+import { clamp, round, sum, newId, dateOf } from './util.js';
+import { registerAction, registerSystem } from './registry.js';
+import { STATS, defaultAssignment } from './staff.js';
+import { zeroPoints } from './work.js';
+import { comboFit } from '../data/combos.js';
+import { TRENDS } from '../data/trends.js';
+import { PRESS, REVIEW_QUOTES } from '../data/press.js';
+import { CATEGORIES } from '../data/categories.js';
+
+const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty' };
+
+export function trendMods(state, category, angle) {
+  const t = TRENDS[state.market.trend] ?? TRENDS.steady;
+  return (t.angleMods[angle] ?? 1) * (t.categoryMods[category] ?? 1);
+}
+
+export const isLive = (p) => !p.killed;
+export const liveProducts = (state) => state.products.filter(isLive);
+export const findProduct = (state, id) => state.products.find((p) => p.id === id);
+
+// Scores a finished project against the year's expectations. Uses rng for per-outlet noise.
+export function reviewScore(state, project) {
+  const stats = project.stats;
+  const total = sum(STATS, (st) => stats[st]);
+  const { yearIndex } = dateOf(state.week);
+  const E = B.sizes[project.size].points * (1 + B.expectationGrowth * yearIndex);
+  const fit = comboFit(project.category, project.angle) * trendMods(state, project.category, project.angle);
+  const imbalance = total > 0 ? ['features', 'polish', 'reliability'].filter((st) => stats[st] / total < B.balancePenaltyBelow).length : 3;
+  const base = clamp(B.reviewScale * (total / E) * fit - 0.8 * imbalance, 1, 10);
+  const reviews = PRESS.map((outlet) => {
+    const score = Math.round(clamp(base + range(state.rng, -B.reviewNoise, B.reviewNoise), 1, 10) * 2) / 2;
+    const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
+    return { outlet: outlet.name, score, quote: pick(state.rng, REVIEW_QUOTES[band]) };
+  });
+  return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit };
+}
+
+const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer'));
+
+function baseProject(state, fields) {
+  return {
+    id: newId(state, 'j'), kind: fields.kind, name: fields.name, category: fields.category ?? null, angle: fields.angle ?? null,
+    model: fields.model ?? null, size: fields.size ?? 'small', pointsNeeded: fields.pointsNeeded, progress: 0,
+    stats: zeroPoints(), productId: fields.productId ?? null, startedWeek: state.week, bankedHype: 0,
+  };
+}
+
+function validateNew(state, a) {
+  const size = B.sizes[a.size];
+  if (!size) return 'Unknown size';
+  if (!state.market.unlockedCategories.includes(a.category)) return 'Category is locked';
+  if (!state.market.unlockedAngles.includes(a.angle)) return 'Angle is locked';
+  const m = state.models[a.model];
+  if (!m || !m.available || m.deprecated) return 'Model is not available';
+  if (state.officeStage < size.minStage) return 'Needs a bigger office';
+  if (state.cash < size.cost) return 'Not enough cash';
+  return null;
+}
+
+registerAction('startProject', (ctx, a) => {
+  const { state } = ctx;
+  const { yearIndex } = dateOf(state.week);
+  let project;
+  if (a.kind === 'new') {
+    const reason = validateNew(state, a);
+    if (reason) return { ok: false, reason };
+    if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
+    const name = String(a.name ?? '').trim().slice(0, 40) || `${CATEGORIES[a.category].name} AI`;
+    state.cash -= B.sizes[a.size].cost;
+    project = baseProject(state, {
+      kind: 'new', name, category: a.category, angle: a.angle, model: a.model, size: a.size,
+      pointsNeeded: B.sizes[a.size].points * (1 + B.pointsGrowthPerYear * yearIndex),
+    });
+  } else if (a.kind === 'update' || a.kind === 'migration') {
+    const pr = findProduct(state, a.productId);
+    if (!pr || pr.killed) return { ok: false, reason: 'No such product' };
+    if (a.kind === 'migration' && pr.migrationDueWeek === null) return { ok: false, reason: 'No migration needed' };
+    if (state.projects.some((j) => j.productId === pr.id && j.kind === a.kind)) return { ok: false, reason: 'Already in progress' };
+    if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
+    const isUpdate = a.kind === 'update';
+    project = baseProject(state, {
+      kind: a.kind, name: isUpdate ? `${pr.name} v${pr.version + 1}` : `${pr.name} migration`,
+      category: pr.category, angle: pr.angle, model: pr.model, size: pr.size, productId: pr.id,
+      pointsNeeded: isUpdate ? B.sizes[pr.size].points * B.updatePointsMult : B.migrationPoints,
+    });
+  } else if (a.kind === 'refactor' || a.kind === 'craft') {
+    if (state.projects.some((j) => j.kind === a.kind)) return { ok: false, reason: 'Already in progress' };
+    if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
+    project = baseProject(state, {
+      kind: a.kind, name: a.kind === 'refactor' ? 'The Big Refactor' : 'Craft project',
+      pointsNeeded: a.kind === 'refactor' ? B.refactorPoints : B.craftPoints,
+    });
+  } else {
+    return { ok: false, reason: 'Unknown project kind' };
+  }
+  state.projects.push(project);
+  ctx.emit({ type: 'toast', text: `Started: ${project.name}`, tone: 'info' });
+  return { ok: true };
+});
+
+const shares = (stats) => {
+  const total = sum(STATS, (st) => stats[st]);
+  return (st) => (total > 0 ? stats[st] / total : 0);
+};
+
+function launchNew(ctx, j) {
+  const { state } = ctx;
+  const review = reviewScore(state, j);
+  const share = shares(j.stats);
+  const baseHealth = clamp(50 + 150 * share('reliability'), 30, 100);
+  const product = {
+    id: newId(state, 'p'), name: j.name, category: j.category, angle: j.angle, model: j.model,
+    modelVersion: state.models[j.model].version, version: 1, size: j.size,
+    stats: { ...j.stats }, score: review.score, reviews: review.reviews,
+    customers: 0, mrr: 0, hype: clamp(j.bankedHype, 0, 100),
+    novelty: clamp(30 * share('novelty') * review.fit, 0, 10),
+    health: baseHealth, baseHealth, uptime: 1, launchedWeek: state.week,
+    copyAtWeek: state.week + int(state.rng, B.copyDelayWeeks[0], B.copyDelayWeeks[1]),
+    copied: false, wrapperHit: false, ownerId: null, migrationDueWeek: null, killed: false,
+  };
+  state.products.push(product);
+  const combo = `${j.category}:${j.angle}`;
+  if (!(combo in state.discoveredCombos)) state.discoveredCombos[combo] = round(review.fit, 2);
+  for (const c of state.campaigns) if (c.projectId === j.id) { c.projectId = null; c.productId = product.id; }
+  state.stats.launches++;
+  ctx.emit({ type: 'launch', productId: product.id });
+  ctx.emit({ type: 'celebrate', staffId: null });
+  ctx.emit({ type: 'toast', text: `${product.name} launched! Reviews average ${product.score}.`, tone: product.score >= 6 ? 'good' : 'warn' });
+  return product;
+}
+
+function complete(ctx, j) {
+  const { state } = ctx;
+  const team = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
+  const pr = j.productId ? findProduct(state, j.productId) : null;
+  if (j.kind === 'new') {
+    launchNew(ctx, j);
+    for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
+  } else if (j.kind === 'update' && pr && !pr.killed) {
+    for (const st of STATS) pr.stats[st] = pr.stats[st] * 0.6 + j.stats[st];
+    const review = reviewScore(state, { ...j, stats: pr.stats, size: pr.size });
+    Object.assign(pr, { score: review.score, reviews: review.reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
+    ctx.emit({ type: 'launch', productId: pr.id });
+    ctx.emit({ type: 'toast', text: `${pr.name} v${pr.version} shipped. Reviews average ${pr.score}.`, tone: 'good' });
+    for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
+  } else if (j.kind === 'migration' && pr && !pr.killed) {
+    pr.model = j.model;
+    pr.modelVersion = state.models[j.model].version;
+    pr.migrationDueWeek = null;
+    ctx.emit({ type: 'toast', text: `${pr.name} migrated. Nothing broke. Probably.`, tone: 'good' });
+  } else if (j.kind === 'refactor') {
+    state.comprehensionDebt = Math.max(0, state.comprehensionDebt - B.debtPaydownRefactor);
+    for (const p of team) p.knowledge = Math.min(100, p.knowledge + 10);
+    ctx.emit({ type: 'toast', text: 'The Big Refactor is done. People understand things again.', tone: 'good' });
+  } else if (j.kind === 'craft') {
+    for (const p of team) p.meaning = Math.min(100, p.meaning + 15);
+    state.brand = Math.min(100, state.brand + 1);
+    ctx.emit({ type: 'toast', text: 'The craft project shipped. It is small and perfect.', tone: 'good' });
+  }
+  for (const p of team) {
+    p.assignment = defaultAssignment(p);
+    ctx.emit({ type: 'celebrate', staffId: p.id });
+  }
+  state.projects = state.projects.filter((x) => x.id !== j.id);
+}
+
+export function projectsSystem(ctx) {
+  const { state } = ctx;
+  const speed = state.policies.comprehension_reviews ? B.comprehensionReviewSpeed : 1;
+  for (const j of [...state.projects]) {
+    const pts = ctx.weekPoints?.[j.id] ?? zeroPoints();
+    for (const st of STATS) j.stats[st] += pts[st];
+    j.progress += sum(STATS, (st) => pts[st]) * speed;
+    const top = [...(ctx.contributors?.[j.id] ?? [])]
+      .sort((a, b) => sum(STATS, (st) => b.pts[st]) - sum(STATS, (st) => a.pts[st])).slice(0, 3);
+    for (const c of top) {
+      const best = STATS.reduce((m, st) => (c.pts[st] > c.pts[m] ? st : m), 'features');
+      const n = Math.round(c.pts[best]);
+      if (n > 0) ctx.emit({ type: 'bubble', staffId: c.staffId, text: `+${n} ${STAT_LABEL[best]}`, tone: best });
+    }
+    if (j.progress >= j.pointsNeeded) complete(ctx, j);
+  }
+}
+
+registerSystem('projects', projectsSystem, 30);
