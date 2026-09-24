@@ -14,6 +14,17 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
 | `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
 
+## Music night dance breaks (candidates)
+
+Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs permitted): the XL-sft 4B checkpoint plus the 4B planner, 60 steps, 48 kHz. Each is an original short piece: rendered at 24 s, cut at a natural ending between 15 and 20 s, faded, and mastered to about -18 LUFS, the same loudness as the stingers (Sad Lo-fi uses a gentle limiter to get there).
+
+| File | Genre | Tempo, key | Length |
+|---|---|---|---|
+| `music_night/synthwave.ogg` | Corporate Synthwave | 118 bpm, A minor | 15.6 s |
+| `music_night/polka.ogg` | Motivational Polka | 124 bpm, F major | 18.9 s |
+| `music_night/bossa.ogg` | Aggressive Bossa Nova | 132 bpm, D minor | 16.4 s |
+| `music_night/lofi.ogg` | Sad Lo-fi | 80 bpm, Eb major | 17.8 s |
+
 ## Stingers (candidates)
 
 Generated with ACE-Step 1.5 using the same model and settings as the music (XL-sft 4B plus the 4B planner, 60 steps, 48 kHz) and the shared instrument core. Each was rendered at 12 s, then cut at a quiet point near its target length, faded out and mastered to -18 LUFS.

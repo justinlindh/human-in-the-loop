@@ -1928,5 +1928,27 @@
   "loopStart": 0,
   "loopEnd": 192000,
   "candidate": true
+ },
+ "music_night": {
+  "synthwave": {
+   "file": "music_night/synthwave.ogg",
+   "duration": 15.6,
+   "candidate": true
+  },
+  "polka": {
+   "file": "music_night/polka.ogg",
+   "duration": 18.85,
+   "candidate": true
+  },
+  "bossa": {
+   "file": "music_night/bossa.ogg",
+   "duration": 16.42,
+   "candidate": true
+  },
+  "lofi": {
+   "file": "music_night/lofi.ogg",
+   "duration": 17.78,
+   "candidate": true
+  }
  }
 }
