@@ -1,8 +1,10 @@
 name: ci
 
-# Manual only: GitHub Actions minutes are used up on this private repo, so CI runs locally
-# (npm run ci; scripts/ci-pr.sh <pr> posts the merge-gate comment).
+# Public repos get free Actions minutes. The local gate (scripts/ci-pr.sh <pr>, a Local CI PASS
+# comment) stays the merge requirement until these runs have proven themselves.
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
