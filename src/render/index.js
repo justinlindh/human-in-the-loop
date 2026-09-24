@@ -13,6 +13,8 @@ import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
 
+const STAGE_ZOOM = [1, 1.05, 1.25];
+
 const DEBUG_VIEWS = {
   kit: { '1': buildKitBoard },
   props: { '1': buildPropLineup },
@@ -121,6 +123,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     if (office.setStage(stage, { animate: !firstStage && pendingUpgrade })) {
       stageJustBuilt = true;
       rig.setBounds(office.bounds, true);
+      // The big HQ floor starts a little closer so seated staff read; the whole office is a scroll away.
+      rig.setZoom(STAGE_ZOOM[stage] ?? 1);
       if (firstStage) applyDebugCamera();
       firstStage = false;
       pendingUpgrade = false;
@@ -161,7 +165,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     setSpeed(k) { staff?.setSpeed(k); },
     // Steps characters, labels, and effects without drawing (for headless verification).
     advance(seconds, step = 1 / 30) {
-      for (let t = 0; t < seconds; t += step) { staff?.update(step); floating.update(step); fx.update(step); }
+      for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); }
     },
     pick(x, y) { return staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null }; },
     focusStaff(id) {
@@ -178,6 +182,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       staff?.update(dt);
       floating.update(dt);
       fx.update(dt);
+      lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);
     },

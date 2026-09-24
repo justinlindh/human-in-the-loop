@@ -271,7 +271,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
           break;
         }
         case 'incident': incident(e); break;
-        case 'standup': if (e.mode === 'daily') startStandup(e); break;
+        case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
         default: break;
       }
     }
@@ -468,11 +468,14 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         const t = (i / inside) * Math.PI * 2 + 0.3;
         spots.push({ x: cx + Math.cos(t) * a, z: cz + Math.sin(t) * b, cx, cz });
       }
-      // Overflow stands in an arc just outside the glass, on the open (door) side.
-      for (let i = inside; i < n; i++) {
-        const k = i - inside;
-        const row = Math.floor(k / 7), col = k % 7;
-        spots.push({ x: M.x1 + 0.55 + row * 0.6, z: M.z0 + 0.3 + col * ((M.z1 - M.z0 - 0.6) / 6), cx, cz });
+      // Overflow stands in a shallow arc outside the glass on the open side, everyone facing the
+      // table, so it reads as part of the huddle rather than a line waiting at a counter.
+      const extra = n - inside;
+      const R = (M.x1 - M.x0) / 2 + 0.7;
+      const span = Math.min(1.4, 0.32 * extra);
+      for (let k = 0; k < extra; k++) {
+        const t = extra === 1 ? 0 : (k / (extra - 1) - 0.5) * span;
+        spots.push({ x: cx + Math.cos(t) * R, z: cz + Math.sin(t) * R * 0.9, cx, cz });
       }
     } else {
       const w = L.zones.whiteboard;
@@ -487,8 +490,28 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     return spots;
   }
 
-  function startStandup(e) {
+  // In-person standups are staged only every few game weeks so the office is not always in a
+  // meeting; the other weeks get a quick emote at the desks and one short spoken update.
+  const STAGE_EVERY = { 1: 3, 2: 6 };
+  let lastStagedWeek = -Infinity;
+  let standupCount = 0;
+
+  function deskStandup(lines) {
+    for (const l of lines) emote(recs.get(l.staffId), l.text ? 'lightbulb' : 'zzz', 1.4);
+    if (speed >= 4) return;
+    const said = lines.filter((l) => l.text).sort((a, b) => a.text.length - b.text.length)[0];
+    if (said && !(labels.speechCount?.() >= MAX_SPEECH)) labels.say(said.text, recs.get(said.staffId).char.root, 2.4);
+  }
+
+  function startStandup(e, state) {
     if (!office.current) return;
+    const week = Number.isFinite(state?.week) ? state.week : standupCount;
+    standupCount++;
+    if (week < lastStagedWeek) lastStagedWeek = -Infinity;   // a new or loaded game
+    const every = STAGE_EVERY[speed >= 2 ? 2 : 1];
+    const stage = speed < 4 && week - lastStagedWeek >= every;
+    const present = (l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !r.temp?.standup; };
+    if (!stage) { deskStandup((e.lines ?? []).filter(present)); return; }
     // A new week's standup takes over from one still running; attendees not in it head back.
     if (standup) {
       const next = new Set((e.lines ?? []).map((l) => l.staffId));
@@ -502,10 +525,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     }
     const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed'; });
     if (!lines.length) return;
-    if (speed >= 4) {
-      for (const l of lines) emote(recs.get(l.staffId), l.text ? 'lightbulb' : 'zzz', 1.2);
-      return;
-    }
+    lastStagedWeek = week;
     const spots = ringSpots(lines.length);
     const people = lines.map((l, i) => {
       const r = recs.get(l.staffId);
@@ -522,9 +542,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       return { r, text: l.text };
     });
     standup = { people, phase: 'gather', t: 0, i: 0 };
+    office.tuckMeetingChairs(true);
   }
 
   function endStandup() {
+    office.tuckMeetingChairs(false);
     for (const { r } of standup.people) {
       if (!recs.has(r.id) || r.temp?.standup !== true) continue;
       r.temp = null;
@@ -539,7 +561,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const st = standup;
     st.t += dt * k;
     const live = st.people.filter((p) => recs.has(p.r.id) && p.r.temp?.standup);
-    if (!live.length) { standup = null; return; }
+    if (!live.length) { standup = null; office.tuckMeetingChairs(false); return; }
     if (speed >= 4) { endStandup(); return; }
     if (st.phase === 'gather') {
       const arrived = live.every((p) => !p.r.path.length);

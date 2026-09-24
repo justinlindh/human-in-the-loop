@@ -238,8 +238,15 @@ function meetingRoom(M) {
   g.add(mesh(roundedBox(1.9, 0.06, 1.0, 0.025), top, cx, 0.66, cz));
   g.add(mesh(roundedCylinder(0.06, 0.1, 0.63, 0.01), mat('metal_dark'), cx - 0.6, 0, cz));
   g.add(mesh(roundedCylinder(0.06, 0.1, 0.63, 0.01), mat('metal_dark'), cx + 0.6, 0, cz));
+  // Chairs stay separate so a standup can tuck them under the table.
+  g.userData.chairs = [];
   for (const [dx, dz, r] of [[-0.5, -0.8, 0], [0.5, -0.8, 0], [-0.5, 0.8, Math.PI], [0.5, 0.8, Math.PI]]) {
-    g.add(place(getModel('chair'), cx + dx, 0, cz + dz, r));
+    const ch = place(getModel('chair'), cx + dx, 0, cz + dz, r);
+    ch.userData.dynamic = true;
+    ch.userData.home = new THREE.Vector3(cx + dx, 0, cz + dz);
+    ch.userData.tucked = new THREE.Vector3(cx + dx, 0, cz + Math.sign(dz) * 0.42);
+    g.add(ch);
+    g.userData.chairs.push(ch);
   }
   g.add(mesh(roundedBox(0.3, 0.02, 0.22, 0.008), mat('paper_sheet'), cx - 0.3, 0.7, cz + 0.1));
   g.add(mesh(roundedBox(0.34, 0.02, 0.24, 0.008), mat('metal_soft'), cx + 0.35, 0.7, cz - 0.1));
@@ -257,6 +264,22 @@ function metalShelf() {
   g.add(mesh(roundedCylinder(0.09, 0.09, 0.2, 0.01), mat('fabric_terracotta'), -0.08, 0.615, 0));
   g.add(mesh(roundedBox(0.5, 0.12, 0.3, 0.02), mat('plastic_charcoal'), 0.25, 0.68, 0));
   g.add(mesh(roundedBox(0.36, 0.3, 0.3, 0.03), mat('cardboard'), 0.1, 1.27, 0));
+  return g;
+}
+
+// A long planter with plants and bench seats on both sides, to give bare floor a focal point.
+function planterIsland(len) {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(len, 0.42, 0.55, 0.06), mat('wood_honey'), 0, 0.21, 0));
+  g.add(mesh(roundedBox(len - 0.1, 0.03, 0.45, 0.01, 1), mat('soil'), 0, 0.43, 0, { cast: false }));
+  for (const sz of [-1, 1]) g.add(mesh(roundedBox(len, 0.07, 0.3, 0.03), mat('wood_light'), 0, 0.3, sz * 0.46));
+  const n = Math.max(3, Math.round(len / 0.55));
+  for (let i = 0; i < n; i++) {
+    const x = (i - (n - 1) / 2) * (len / n);
+    const pl = getModel(i % 2 ? 'plant_small' : 'plant_tall');
+    pl.scale.setScalar(i % 2 ? 1.45 : 0.95);
+    g.add(place(pl, x, 0.2, 0, i * 1.3));
+  }
   return g;
 }
 
@@ -304,7 +327,7 @@ function buildStage(stageIdx, screens) {
   root.name = `stage_${stageIdx}`;
   const statics = new THREE.Group();
   const obstacles = [];
-  const dyn = { screens: [], racks: [], wallScreens: [] };
+  const dyn = { screens: [], racks: [], wallScreens: [], meetingChairs: [] };
 
   // Slab and floor
   statics.add(mesh(roundedBox(L.W + 2 * T + 0.3, SLAB, L.D + 2 * T + 0.3, 0.08, 3), mat('slab_side'), 0, -SLAB / 2, 0));
@@ -353,6 +376,8 @@ function buildStage(stageIdx, screens) {
       o = mesh(roundedBox(f.w, 0.02, f.d, 0.01, 1), mat(f.rug), f.x, 0.012, f.z, { cast: false });
     } else if (f.shelf) {
       o = place(metalShelf(), f.x, 0, f.z, f.rotY ?? 0);
+    } else if (f.island) {
+      o = place(planterIsland(f.len ?? 2.4), f.x, 0, f.z, f.rotY ?? 0);
     } else if (f.trophyShelf) {
       o = place(trophyShelf(), f.x, 0, f.z, f.rotY ?? 0);
     }
@@ -362,6 +387,7 @@ function buildStage(stageIdx, screens) {
   }
   if (L.meeting) {
     const mr = meetingRoom(L.meeting);
+    dyn.meetingChairs = mr.userData.chairs;
     statics.add(mr);
     const M = L.meeting;
     obstacles.push({ x0: M.x1 - 0.05, x1: M.x1 + 0.05, z0: M.z0, z1: (M.z0 + M.z1) / 2 - 0.45 });
@@ -561,6 +587,9 @@ export function createOffice({ parent, screens, lighting }) {
     if (d.sign) d.sign.visible = on;
   }
 
+  let tuck = false;
+  function tuckMeetingChairs(on) { tuck = on; }
+
   const camDir = new THREE.Vector2();
   function update(dt, { yaw = Math.PI / 4, env } = {}) {
     if (!cur) return;
@@ -573,6 +602,9 @@ export function createOffice({ parent, screens, lighting }) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
       if (lampMat) setGlowBase(lampMat, THREE.MathUtils.lerp(0.9, 3.2, n));
       if (growMat) setGlowBase(growMat, THREE.MathUtils.lerp(1.4, 2.8, n));
+    }
+    for (const ch of cur.dyn.meetingChairs) {
+      ch.position.lerp(tuck ? ch.userData.tucked : ch.userData.home, 1 - Math.exp(-dt * 6));
     }
     if (leaving) {
       leaving.t += dt;
@@ -604,7 +636,7 @@ export function createOffice({ parent, screens, lighting }) {
   }
 
   return {
-    setStage, setItems, setDeskScreen, setDeskSign, leds, update, nav,
+    setStage, setItems, setDeskScreen, setDeskSign, leds, update, nav, tuckMeetingChairs,
     get current() { return cur; },
     get items() { return items; },
     get bounds() { return cur?.bounds; },
