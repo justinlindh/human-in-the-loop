@@ -161,6 +161,7 @@ async function boot() {
   window.__HITL = {
     get state() { return sim.state; },
     get playing() { return playing; },
+    get clock() { return { acc, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null }; },
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
@@ -175,8 +176,11 @@ async function boot() {
   let last = performance.now();
   let dayClock = 0.35;
   let firstFrame = true;
+  let frameCount = 0;
   function frame(now) {
-    const dt = Math.min(0.1, (now - last) / 1000);
+    frameCount++;
+    // Capped so a stalled tab cannot jump weeks, but high enough that slow machines keep real time.
+    const dt = Math.min(0.25, (now - last) / 1000);
     last = now;
     // The UI reports busy while a panel or modal is open (auto-pause for menus).
     const menuPause = ui?.isBusy?.() === true;

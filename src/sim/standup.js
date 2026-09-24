@@ -45,7 +45,7 @@ function lineFor(ctx, p) {
 }
 
 // Weekly standup when a standup policy is on: 3 to 5 people give an update. Daily standups also lift
-// everyone's meaning a little; async updates are posted to #standup instead.
+// the speakers' meaning a little; async updates are posted to #standup instead.
 export function standupSystem(ctx) {
   const { state } = ctx;
   const mode = standupMode(state);
@@ -56,7 +56,7 @@ export function standupSystem(ctx) {
   const lines = speakers.map((p) => ({ staffId: p.id, text: lineFor(ctx, p) }));
   ctx.emit({ type: 'standup', mode, lines });
   if (mode === 'daily') {
-    for (const p of present) p.meaning = Math.min(100, p.meaning + B.standupDailyMeaning);
+    for (const p of speakers) p.meaning = Math.min(100, p.meaning + B.standupDailyMeaning);
   } else {
     for (const l of lines) {
       if (l.text) emitChat(ctx, { channel: 'standup', person: state.staff.find((p) => p.id === l.staffId), text: l.text });
