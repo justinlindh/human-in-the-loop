@@ -21,6 +21,8 @@ export function personEffort(state, person) {
   const w = buildWeights(person);
   const out = zeroPoints();
   for (const st of STATS) out[st] = base * w[st];
+  // Fresh ideas come from people bumping into each other; working from home has fewer of those.
+  if (person.remote) out.novelty *= B.remoteNoveltyMult;
   return out;
 }
 

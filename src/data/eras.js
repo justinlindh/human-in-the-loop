@@ -21,6 +21,11 @@ export const ERAS = [
     blurb: 'Everyone is buying everyone. The vendors change their prices, their models, and their minds.',
     changes: ['Price wars and frequent model deprecations', 'Incumbents fight back', 'Acquisition offers arrive more often'],
   },
+  {
+    id: 'plateau', name: 'The Plateau', week: 780,
+    blurb: 'Everyone has the same models now. The robots are table stakes. What is left is people, taste, and whether anyone trusts you.',
+    changes: ['AI is a commodity: automation no longer sets you apart', 'Well-made products and a trusted brand win customers', 'Human craft is back in fashion'],
+  },
 ];
 
 export const ERA_IDS = ERAS.map((e) => e.id);

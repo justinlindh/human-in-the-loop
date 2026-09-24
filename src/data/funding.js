@@ -12,7 +12,7 @@ export const FUNDING = {
   },
   preseed: {
     id: 'preseed', name: 'Pre-seed VC',
-    desc: 'About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise. Score x0.93.',
+    desc: 'About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise. Score x0.96.',
     pressure: 'Investors push for growth now and for automation later. They have a deck about it.',
   },
 };

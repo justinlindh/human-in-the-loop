@@ -11,6 +11,7 @@ const rows = [
   ['api_economy', 'The API Economy', 'Developers are buying software with a credit card and a curl command.', 26, { api: 1.35 }, { devtools: 1.15 }],
   ['freemium_fever', 'Freemium Fever', 'Nobody pays for anything up front anymore. Some of them pay later.', 26, { freemium: 1.3 }, {}],
   ['cloud_shift', 'Everyone Moves to the Cloud', 'The server room is now a storage closet. The on-prem crowd is nervous.', 26, { onprem: 0.75, web: 1.15 }, {}],
+  ['made_by_humans', 'Made by Humans', 'Customers want to know a person was involved. Some want to meet them.', 26, { web: 1.15, mobile: 1.1, native: 0.85, agent: 0.85 }, {}, ['plateau']],
   ['steady', 'Steady Market', 'The market is calm. Suspiciously calm.', 13, {}, {}],
 ];
 

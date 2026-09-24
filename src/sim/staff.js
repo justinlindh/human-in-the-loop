@@ -4,7 +4,7 @@ import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
-import { deskCapacity } from './office.js';
+import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
@@ -15,6 +15,7 @@ import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
 import { eraLines, eraAllowsText } from './eras.js';
+import { remoteLearning } from './ladder.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -22,7 +23,7 @@ export const SENIORITIES = ['junior', 'mid', 'senior'];
 const SHIRTS = ['#4f8cff', '#ff7eb6', '#ffb020', '#34c38f', '#e5484d', '#9b6bff', '#f2efe6', '#2f3a4a', '#7fc8c0', '#d98c5f'];
 const HAIR = ['#2b1d16', '#4a3222', '#7a4b2a', '#c68b4e', '#e8c170', '#b8b8b8', '#1c1c24', '#a3442f'];
 const PANTS = ['#2e3440', '#4b5563', '#6b4f3a', '#1f3b5c', '#8a7f6a', '#3b3b46'];
-const ACCESSORIES = ['none', 'none', 'none', 'glasses', 'headphones', 'beanie', 'cap'];
+const ACCESSORIES = ['none', 'none', 'none', 'none', 'none', 'glasses', 'glasses', 'headphones', 'beanie', 'cap'];
 
 const SKILL_RANGE = { junior: [15, 35], mid: [35, 60], senior: [60, 85] };
 const LEVEL_RANGE = { junior: [1, 2], mid: [5, 7], senior: [10, 13] };
@@ -84,7 +85,7 @@ export function generateStaff(state, { role, seniority }) {
     meaning: int(r, 70, 90), stamina: 100, knowledge: B.newHireKnowledge, traits,
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
-    salary: 0, hiredWeek: state.week, founder: false,
+    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false,
     path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
@@ -100,7 +101,9 @@ const ROLE_WEIGHTS = { engineer: 35, designer: 13, marketer: 13, support: 13, se
 
 export function refreshCandidates(state) {
   state.candidates = [];
-  for (let i = 0; i < B.candidateCount; i++) {
+  // Remote-first companies hire from a wider pool.
+  const count = B.candidateCount + (state.workPolicy === 'remote' ? B.remoteExtraCandidates : 0);
+  for (let i = 0; i < count; i++) {
     const seniority = weighted(state.rng, SENIORITIES, (s) => SENIORITY_WEIGHTS[s]);
     const role = weighted(state.rng, Object.keys(ROLES), (x) => ROLE_WEIGHTS[x]);
     state.candidates.push(makeCandidate(state, role, seniority));
@@ -165,6 +168,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   c.hiredWeek = state.week;
   c.knowledge = Math.min(100, c.knowledge + researchBonus(state, 'newHireKnowledge'));
   state.staff.push(c);
+  assignSeats(state);
   state.cash -= fee;
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
@@ -296,7 +300,7 @@ export function staffUpkeep(ctx) {
     if (working) {
       let gain = B.xpPerWeekWorking * mods.xp * Math.max(0, 1 + modifierBonus(state, 'xp'));
       if (p.seniority === 'junior') {
-        gain *= mentor ? B.mentorXpMult * staffMods(mentor).mentorBonus : 1 - B.juniorXpAutomationPenalty * engLevel;
+        gain *= mentor ? B.mentorXpMult * staffMods(mentor).mentorBonus * remoteLearning(state, p) * remoteLearning(state, mentor) : 1 - B.juniorXpAutomationPenalty * engLevel;
       }
       p.xp += gain;
       levelUp(ctx, p);

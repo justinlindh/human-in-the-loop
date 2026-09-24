@@ -32,6 +32,7 @@ describe('era schedule', () => {
       }
       expect(s.eraSchedule.chatgbt).toBeLessThan(s.eraSchedule.agents);
       expect(s.eraSchedule.agents).toBeLessThan(s.eraSchedule.consolidation);
+      expect(s.eraSchedule.consolidation).toBeLessThan(s.eraSchedule.plateau);
       expect(createGame({ seed }).eraSchedule).toEqual(s.eraSchedule);
     }
     expect(dateOf(ERAS[1].week).year).toBe(2022);
@@ -154,7 +155,7 @@ describe('era arrivals', () => {
   it('a whole run passes through every era in order, once each', () => {
     const s = game(9);
     const seen = [];
-    for (let w = 0; w <= s.eraSchedule.consolidation + 1; w++) {
+    for (let w = 0; w <= s.eraSchedule.plateau + 1; w++) {
       s.week = w;
       const c = makeCtx(s);
       calendarStart(c);
@@ -162,7 +163,7 @@ describe('era arrivals', () => {
       s.pendingDecision = null;
     }
     expect(seen).toEqual(ERAS.slice(1).map((e) => [e.id, s.eraSchedule[e.id]]));
-    expect(s.era).toEqual({ id: 'consolidation', since: s.eraSchedule.consolidation });
+    expect(s.era).toEqual({ id: 'plateau', since: s.eraSchedule.plateau });
   });
 
   it('the Classic era has its own events and trends', () => {

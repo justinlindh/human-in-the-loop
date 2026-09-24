@@ -81,7 +81,8 @@ export function fixCapacity(state) {
   const fixers = present.filter((p) => p.role === 'engineer' || p.founder)
     .map((p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
     .sort((a, b) => b - a).slice(0, B.fixersCounted);
-  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix'));
+  const remote = state.staff.length ? state.staff.filter((p) => p.remote).length / state.staff.length : 0;
+  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix')) * (1 - B.remoteFixPenalty * remote);
 }
 
 // More live products means more tangled systems to understand when something breaks.
