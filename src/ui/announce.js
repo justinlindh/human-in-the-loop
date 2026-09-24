@@ -2,7 +2,7 @@
 // Era cards jump the queue. Esc, the backdrop, or the button dismisses; the game waits while one is up.
 import { h, dateOf } from './dom.js';
 import { icon } from './icons.js';
-import { ERA, unlockInfo, unlockShort } from './v2content.js';
+import { ERA, CATALOG, unlockInfo, unlockShort } from './v2content.js';
 
 const MAX_QUEUE = 8;
 
@@ -16,7 +16,7 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
     const back = h(`div.announce-back${item.kind === 'era' ? '.docked' : ''}`);
     const done = () => { if (cur?.back !== back) return; back.remove(); cur = null; layer.classList.remove('announcing'); sfx('close'); show(); };
     back.addEventListener('pointerdown', (e) => { if (e.target === back) done(); });
-    back.append(item.kind === 'era' ? eraCard(item, done) : item.kind === 'unlocks' ? unlocksCard(item, done)
+    back.append(item.kind === 'era' ? eraCard(item, done) : item.kind === 'unlocks' ? unlocksCard(item, done) : item.kind === 'items' ? itemsCard(item, done)
       : item.kind === 'milestone' ? milestoneCard(item, done) : unlockCard(item, done));
     layer.append(back);
     layer.classList.add('announcing');
@@ -69,6 +69,23 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
       h('div.row.acts', null, ok));
   }
 
+  // New office items to place: their icons and names, and a button that opens Office on them.
+  function itemsCard({ ids }, done) {
+    const its = ids.map((id) => CATALOG[id]).filter(Boolean);
+    const show = h('button.btn.go', { onclick: () => { done(); openMenu('office', { focus: its[0]?.id }); } }, icon('menu.office', { size: 16 }), ' Show me');
+    const ok = h('button.btn', { onclick: done }, 'Later');
+    setTimeout(() => show.focus(), 0);
+    return h('div.announce.unlock.items', null,
+      h('div.row', { style: { gap: '0.8em', alignItems: 'center' } },
+        h('div.uico', null, icon(`item.${its[0]?.id}`, { size: 30 })),
+        h('div', null, h('div.kicker', null, icon('new', { size: 14 }), ' New in the Office'),
+          h('h2', { text: its.length === 1 ? its[0].name : `${its.length} new things to place` }))),
+      its.length === 1 ? (its[0].desc ? h('div.ablurb', { text: its[0].desc }) : null) : h('div.ulist', null, ...its.slice(0, 5).map((it) => h('div.uitem', null, h('span.uico', null, icon(`item.${it.id}`, { size: 20 })),
+        h('div', null, h('b', { text: it.name }), it.desc ? h('div.small.muted', { text: it.desc }) : null)))),
+      its.length > 5 ? h('div.small.muted', { text: `And ${its.length - 5} more.` }) : null,
+      h('div.row.acts', null, ok, show));
+  }
+
   function unlockCard({ key, menuId, menuLabel }, done) {
     const u = unlockInfo(key);
     const open = menuId ? h('button.btn.go', { onclick: () => { done(); openMenu(menuId); } }, `Open ${menuLabel}`) : null;
@@ -98,6 +115,11 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
     milestone(m) {
       if (queue.length >= MAX_QUEUE) return;
       queue.push({ kind: 'milestone', ...m });
+      show();
+    },
+    items(ids) {
+      if (!ids.length || queue.length >= MAX_QUEUE) return;
+      queue.push({ kind: 'items', ids });
       show();
     },
     unlocks(items) {
