@@ -191,7 +191,7 @@ export function buildPanel(ctx) {
     const proj = s.projects.find((j) => !before.has(j.id));
     let placed = 0;
     if (proj) for (const id of form.team) if (ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: proj.id } }).ok) placed++;
-    ctx.toast(`Started ${form.name.trim()} with ${placed} ${placed === 1 ? 'person' : 'people'}`, 'good');
+    if (placed) ctx.toast(`${placed} ${placed === 1 ? 'person' : 'people'} on ${proj.name}`, 'info');
     ctx.sfx('confirm');
     form.name = suggestName();
     form.team = null;
@@ -274,7 +274,7 @@ export function buildPanel(ctx) {
 
   function startKind(action) {
     const res = ctx.act({ type: 'startProject', ...action });
-    if (res.ok) { ctx.toast(`${KIND_LABEL[action.kind]} started. Assign some people!`, 'good'); ctx.sfx('confirm'); }
+    if (res.ok) ctx.sfx('confirm');
   }
 
   render();

@@ -24,6 +24,8 @@ const FB_B = {
   ipoMrr: 1500000, ipoBrand: 60, runWeeks: 780, sabbaticalWeeks: 4, xpPerLevel: 60, candidateRefreshWeeks: 4,
   postureSecurityPerSkill: 0.6, postureTooling: 12, postureDebtPenalty: 0.5,
   seniorityOutput: { junior: 0.6, mid: 1.0, senior: 1.45 },
+  autoSupportHours: 160, autoSalesBoost: 0.008, autoMarketingHype: 0.4, autoMarketingBrandPenalty: 0.6,
+  supportHoursPerCustomer: 1 / 150, supportHoursPerPerson: 40,
 };
 
 export const B = BAL ?? FB_B;
