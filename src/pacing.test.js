@@ -18,7 +18,8 @@ describe('pacer clock', () => {
   it('ticks one week per WEEK_SECONDS / speed and caps long frames', () => {
     const p = createPacer();
     let weeks = 0;
-    for (let i = 0; i < 30 * WEEK_SECONDS; i++) if (p.step(1 / 30, { speed: 2, running: true })) weeks++;
+    // WEEK_SECONDS real seconds at 2x is two weeks; one extra frame absorbs float drift.
+    for (let i = 0; i <= 30 * WEEK_SECONDS; i++) if (p.step(1 / 30, { speed: 2, running: true })) weeks++;
     expect(weeks).toBe(2);
     const q = createPacer();
     q.step(10, { speed: 1, running: true });
