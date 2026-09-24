@@ -220,11 +220,12 @@ export function createHud({ root, controls, ui }) {
   }
 
   let last = {};
+  let lastLogoColor = '';
   function update(s) {
     const d = dateOf(s.week);
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
-    const lc = s.founding?.logoColor;
-    if (lc && logo.style.background !== lc) logo.style.background = lc;
+    const lc = s.founding?.logoColor ?? '';
+    if (lc !== lastLogoColor) { lastLogoColor = lc; logo.style.background = lc; }
     setText(name, s.companyName || 'Your Lab');
     const tag = s.founding?.tagline ?? '';
     if (name.title !== tag) name.title = tag;

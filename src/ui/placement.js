@@ -2,9 +2,9 @@
 // The sim's own check wins when src/sim exports one; the local check mirrors the contract's rules
 // so the ghost preview works before it does. The sim still has the final say on dispatch.
 import { CATALOG, stageGrid, isDesk } from './v2content.js';
+import { SIMX } from './simapi.js';
 
-const SIM = Object.values(import.meta.glob('../sim/*.js', { eager: true }));
-const simCheck = SIM.map((m) => m.placementCheck ?? m.canPlace).find((f) => typeof f === 'function') ?? null;
+const simCheck = SIMX.placementCheck;
 
 export const placedOf = (s) => s.office?.placed ?? [];
 export const stageOf = (s) => s.office?.stage ?? s.officeStage ?? 0;

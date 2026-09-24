@@ -1,7 +1,7 @@
 import { h, setText, fmtMoney } from './dom.js';
 import { portrait, roleChip } from './widgets.js';
 import { traitInfo } from './content.js';
-import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult } from './v2content.js';
+import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, strengthChips, archetypeBlurb } from './v2content.js';
 import { icon } from './icons.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
@@ -124,7 +124,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       portrait(archetypePerson(a, i), 64),
       h('b.fname', { text: a.name }),
       roleChip(a.role),
-      h('span.small', { text: a.strengths ?? a.blurb ?? '' }),
+      h('span.small', { text: archetypeBlurb(a) }),
+      strengthChips(a).length ? h('span.fstr', null, ...strengthChips(a).map((n) => h('span.pill.good', { text: n }))) : null,
       a.trait ? h('span.pill.trait', { title: traitInfo(a.trait).desc, text: traitInfo(a.trait).name }) : null);
       if (draft.founders.includes(a.id)) card.classList.add('on');
       return card;
@@ -146,7 +147,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('b.fname', { text: f.name }),
       h('span.fcash.num', { text: fmtMoney(fundingCash(f)) }),
       h('span', { class: mult < 1 ? 'pill warn' : 'pill good', text: mult < 1 ? `Score x${mult}` : 'Full score' }),
-      h('span.small', { text: f.desc ?? '' }));
+      h('span.small', { text: f.desc ?? '' }),
+      f.pressure ? h('span.small.fpress', null, icon('warn', { size: 12 }), ` ${f.pressure}`) : null);
       if (f.id === draft.funding) card.classList.add('on');
       return card;
     });

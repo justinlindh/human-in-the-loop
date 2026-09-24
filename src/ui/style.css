@@ -886,3 +886,16 @@
 .hitl .scorebig { font-size: 2.6em; font-weight: 700; line-height: 1; }
 .hitl .breakdown { display: grid; grid-template-columns: 1fr auto; gap: 0.2em 1em; font-size: 0.92em; }
 .hitl .breakdown .neg { color: var(--bad); }
+.hitl .fstr { display: flex; gap: 0.25em; flex-wrap: wrap; justify-content: center; }
+.hitl .fund .fpress { color: var(--ink); background: var(--cream); border-radius: 0.5em; padding: 0.2em 0.4em; }
+.hitl .autorow.capped { opacity: 0.6; }
+.hitl .goallist .ggroup { margin-top: 0.4em; font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.hitl .goallist .ggroup:first-child { margin-top: 0; }
+/* Docked cards: a tall card on the right, clear of the tray, over a light dim that keeps the office visible. */
+.hitl .modal-back.docked, .hitl .announce-back.docked {
+  justify-content: flex-end; place-items: center end; padding: 5em 0.8em 6.6em 18.5em;
+  background: linear-gradient(90deg, rgba(42, 38, 48, 0) 40%, rgba(42, 38, 48, 0.28) 100%);
+}
+.hitl .modal-back.docked .modal.decision { width: min(28em, 100%); max-height: 100%; }
+.hitl .announce-back.docked .announce.era { width: min(28em, 100%); }
+.hitl .announce-back.docked .announce.era .erahead h2 { font-size: 1.9em; }

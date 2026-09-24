@@ -64,6 +64,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
         h('div.small.muted.keys', null, 'Press ', h('span.kbd', { text: '1' }), ` to `, h('span.kbd', { text: String(d.choices.length) }), ' to choose. The week waits for you.')),
       dock);
     backdrop.replaceChildren(card);
+    // Decisions dock to the right with a light dim so the office stays readable behind them.
+    backdrop.classList.add('docked');
     backdrop.style.display = '';
     toasts.setDock(dock);
     ctx.sfx('decision');
@@ -94,6 +96,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     const final = h(`div.final.${tier(p.score)}`, null, h('span.small', { text: 'Review average' }), h('b.num', { text: p.score.toFixed(1) }), h('span.verdict', { text: verdict }));
     const ok = h('button.btn.go.big', { onclick: () => closeLaunch() }, 'Nice!');
     const dock = h('div.modal-dock');
+    backdrop.classList.remove('docked');
     backdrop.replaceChildren(h('div.modal.launch', null,
       h('div.mhead', null, icon('launch', { size: 24 }), h('h2', { text: p.version > 1 ? `${p.name} v${p.version} is out!` : `${p.name} launched!` }), h('span.spacer'),
         h('span.mtag', { text: 'Launch day' })),

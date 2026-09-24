@@ -51,7 +51,6 @@ export const ICONS = {
   'item.meeting_table': I('🤝', 'Office build palette', 30),
   'item.whiteboard': I('📋', 'Office build palette', 30),
   'item.coffee_corner': I('☕', 'Office build palette', 30),
-  'item.rack': I('🗄️', 'Office build palette', 30),
   'item.plant': I('🌱', 'Office build palette', 30),
   'item.bookshelf': I('📚', 'Office build palette', 30),
   'item.espresso': I('☕', 'Office shop item card', 30),

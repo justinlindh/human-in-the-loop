@@ -13,7 +13,7 @@ import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
 import { createAnnouncer } from './announce.js';
-import { GOALS, GOAL } from './v2content.js';
+import { GOALS, GOAL, goalReward } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -135,12 +135,15 @@ export function createUI({ root, getState, dispatch, controls }) {
   function goalsModal() {
     const s = getState();
     const list = GOALS.filter((g) => s.goals?.[g.id]);
-    const body = h('div.goallist', null, ...list.map((g) => {
+    let group = null;
+    const body = h('div.goallist', null, ...list.flatMap((g) => {
       const st = s.goals[g.id];
+      const head = g.group && g.group !== group ? h('div.ggroup', { text: (group = g.group) }) : null;
+      const reward = goalReward(g);
       const wk = st.done && st.week != null ? dateOf(st.week) : null;
-      return h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
-        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), g.reward ? h('div.small', { text: `Reward: ${g.reward}` }) : null),
-        wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null);
+      return [head, h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
+        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
+        wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null)].filter(Boolean);
     }));
     ctx.openModal({ title: `Goals (${list.filter((g) => s.goals[g.id].done).length}/${list.length})`, iconName: 'star', body, cls: 'small' });
   }
@@ -284,7 +287,8 @@ export function createUI({ root, getState, dispatch, controls }) {
         case 'era': announcer.era(e.eraId, state.week, state.pendingDecision?.title ?? null); break;
         case 'goal': {
           const g = GOAL[e.goalId];
-          toasts.push(`Goal complete: ${g?.name ?? e.goalId}${g?.reward ? ` (${g.reward})` : ''}`, 'good', { action: () => goalsModal() });
+          const reward = goalReward(g);
+          toasts.push(`Goal complete: ${g?.name ?? e.goalId}${reward ? ` (${reward})` : ''}`, 'good', { action: () => goalsModal() });
           sfx('coin');
           break;
         }

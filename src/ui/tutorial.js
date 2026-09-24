@@ -17,7 +17,7 @@ function markDone() {
   try { localStorage.setItem(KEY, '1'); } catch { /* storage unavailable: the tutorial just shows again next time */ }
 }
 
-// Five dismissible coach marks pointing at real parts of the HUD.
+// Dismissible coach marks for the HUD and the speed controls.
 export function createTutorial({ layer, sfx, controls, ui }) {
   let resume = null; // speed to restore when the tips close
   const ring = h('div.coach-ring');

@@ -13,7 +13,7 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
   function show() {
     if (cur || !queue.length) return;
     const item = queue.shift();
-    const back = h('div.announce-back');
+    const back = h(`div.announce-back${item.kind === 'era' ? '.docked' : ''}`);
     const done = () => { if (cur?.back !== back) return; back.remove(); cur = null; layer.classList.remove('announcing'); sfx('close'); show(); };
     back.addEventListener('pointerdown', (e) => { if (e.target === back) done(); });
     back.append(item.kind === 'era' ? eraCard(item, done) : unlockCard(item, done));

@@ -8,20 +8,19 @@ import { scoreRun } from '../sim/endgame.js';
 import { totalMrr } from '../sim/products.js';
 import { FUNDING, fundingMult } from './v2content.js';
 
-const SIM = Object.values(import.meta.glob('../sim/*.js', { eager: true }));
-const simRetire = SIM.map((m) => m.retireOptions).find((f) => typeof f === 'function') ?? null;
+import { SIMX, call } from './simapi.js';
 
 const offerOf = (s) => s.acquisitionOffer ?? s.offers?.acquisition ?? (s.pendingDecision?.eventId === 'acquisition_offer' ? s.pendingDecision : null);
 
 // { ipo: { ok, reason }, acquired: { ok, reason, by? }, any }
 export function retireOptions(s) {
-  if (simRetire) {
-    try {
-      const r = simRetire(s);
-      if (r) return { ...r, any: !!(r.ipo?.ok || r.acquired?.ok) };
-    } catch { /* use the local rules */ }
-  }
   if (!s.unlocks && !s.era) return { ipo: { ok: false }, acquired: { ok: false }, any: false };
+  if (SIMX.ipoBlocker && SIMX.acquisitionOpen) {
+    const why = call('ipoBlocker', s) ?? null;
+    const open = !!call('acquisitionOpen', s);
+    const by = s.flags?.acquisitionOfferFrom ?? null;
+    return { ipo: { ok: !why, reason: why }, acquired: { ok: open, reason: open ? null : 'No open offer', by }, any: !why || open };
+  }
   const mrr = totalMrr(s);
   const ipoWhy = mrr < B.ipoMrr ? `Needs ${fmtMoney(B.ipoMrr)} MRR` : s.brand < B.ipoBrand ? `Needs brand ${B.ipoBrand}` : (s.office?.stage ?? s.officeStage) !== 2 ? 'Needs the HQ Building' : null;
   const offer = offerOf(s);
@@ -52,8 +51,8 @@ export function openRetire(ctx) {
     const res = ctx.act({ type: 'retire' });
     if (res.ok) { ctx.sfx('confirm'); close?.(); }
   };
-  const via = opts.ipo.ok && opts.acquired.ok ? 'an IPO or the open acquisition offer'
-    : opts.ipo.ok ? 'an IPO' : 'the acquisition offer';
+  // The sim retires through an IPO when one is possible, otherwise through the open offer.
+  const via = opts.ipo.ok ? 'an IPO' : `${opts.acquired.by ? `${opts.acquired.by}'s` : 'the'} acquisition offer`;
   const body = h('div.col', { style: { gap: '0.8em' } },
     h('div', { text: `Retire through ${via}. The run ends as a win, the epilogue rolls, and your score is final.` }),
     proj ? h('div.card', null,
