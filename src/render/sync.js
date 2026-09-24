@@ -53,7 +53,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   function makeRec(s) {
-    const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role });
+    const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role, seed: s.id });
     if (!charShadows) char.setShadows(false);
     char.pickProxy.userData.staffId = s.id;
     group.add(char.root);

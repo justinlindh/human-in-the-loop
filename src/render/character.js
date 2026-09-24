@@ -155,7 +155,22 @@ function part(tpl, name) {
   return o ? o.clone(true) : new THREE.Group();
 }
 
+// A small generator for one character's animation timing (phase, blinks, breaths). Seeded from the
+// staff id, a person moves the same way however much else was randomised before they appeared.
+function timingRandom(seed) {
+  if (seed == null) return Math.random;
+  let h = 2166136261;
+  for (const ch of String(seed)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let x = Math.imul(h ^ (h >>> 15), 1 | h);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function createCharacter(appearance = {}, roleColor = PALETTE.role_engineer, opts = {}) {
+  const rand = timingRandom(opts.seed);
   const tpl = getTemplate('chibi');
   const role = opts.role ?? null;
   const build = Math.max(0, Math.min(2, appearance.build ?? 1));
@@ -336,9 +351,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   // Animation state
   let anim = 'idle';
-  let t = Math.random() * 10;
+  let t = rand() * 10;
   let animT = 0;
-  let blinkIn = 2 + Math.random() * 3;
+  let blinkIn = 2 + rand() * 3;
   let blinkT = 0;
   let emoteKind = null;
   let emoteT = 0;
@@ -349,7 +364,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let flushFor = 0;
   const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
-  const phase = Math.random() * Math.PI * 2;
+  const phase = rand() * Math.PI * 2;
 
   // Authored clips: when the rig is on and has a clip for this pose, a mixer plays it. The mixer
   // animates a bare proxy of the pivots that is copied onto them each frame (it skips writing
@@ -362,8 +377,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let blendT = BLEND_S;
   const snap = pivotList.map(() => ({ q: new THREE.Quaternion(), p: new THREE.Vector3() }));
   const tmpQ = new THREE.Quaternion();
+  // Variants the clips do not cover stay procedural: the drooping idle and the tired walk.
+  const RIG_PROCEDURAL = { idle: () => tired || mood === 'coasting', walk: () => tired };
   function rigPose(dt) {
-    const clip = rigEnabled() ? rigClips()?.get(anim) ?? null : null;
+    const clip = rigEnabled() && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
     if (clip !== rigClip) {
       pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
       blendT = 0;
@@ -705,7 +722,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     animT += dt;
     pose(dt);
     blinkIn -= dt;
-    if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + Math.random() * 3.5; }
+    if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + rand() * 3.5; }
     const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || (mood === 'burnout' && anim !== 'celebrate');
     if (blinkT > 0) blinkT -= dt;
     eyes.scale.y = closed ? 0.15 : 1;
@@ -725,7 +742,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
 
   // While the game is paused everything holds its pose; only a faint breath shows it is alive.
-  let breathT = Math.random() * 6;
+  let breathT = rand() * 6;
   function breathe(dt) {
     breathT += dt;
     // A playing clip holds its own frame; the offset below is for procedural poses.
