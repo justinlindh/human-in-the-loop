@@ -6,12 +6,12 @@ import { STATS, defaultAssignment } from './staff.js';
 import { zeroPoints } from './work.js';
 import { comboFit } from '../data/combos.js';
 import { TRENDS } from '../data/trends.js';
-import { PRESS, REVIEW_QUOTES } from '../data/press.js';
+import { PRESS, REVIEW_QUOTES, AI_REVIEW_QUOTES } from '../data/press.js';
 import { CATEGORIES } from '../data/categories.js';
 import { RESEARCH } from '../data/research.js';
 import { ANGLES } from '../data/angles.js';
 import { lockedReason } from './unlocks.js';
-import { eraAtLeast } from './eras.js';
+import { eraAtLeast, eraIndex } from './eras.js';
 import { emitChat } from './chat.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty' };
@@ -41,7 +41,8 @@ export function reviewScore(state, project) {
   const reviews = PRESS.map((outlet) => {
     const score = Math.round(clamp(base + range(state.rng, -B.reviewNoise, B.reviewNoise), 1, 10) * 2) / 2;
     const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
-    return { outlet: outlet.name, score, quote: pick(state.rng, REVIEW_QUOTES[band]) };
+    const quotes = eraIndex(state) > 0 ? [...REVIEW_QUOTES[band], ...AI_REVIEW_QUOTES[band]] : REVIEW_QUOTES[band];
+    return { outlet: outlet.name, score, quote: pick(state.rng, quotes) };
   });
   return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit, quality };
 }
