@@ -1,8 +1,20 @@
 // End-of-run lines. `when(state, summary)` where summary =
-// { won, reason /* for a retirement, how: 'ipo'|'acquired' */, leaders, years, avgMeaning, juniorsHired, caught, breaches, debt, resignations, seniors, peakMrr }.
-// Placeholders: {company}, {acquirer}.
+// { won, reason /* for a retirement, how: 'ipo'|'acquired' */, leaders, years, avgMeaning, juniorsHired, caught, breaches, debt, resignations, seniors, peakMrr,
+//   officeStage, office, eraCount, launches, people, alumni, veteran, veteranYears }.
+// Placeholders: {company}, {acquirer}, {office}, {eras}, {launches}, {people}, {alumni}, {veteran}, {veteranYears}.
+// The story lines come first: they retell the run itself.
 
 export const EPILOGUES = [
+  { id: 'story_hq', when: (s, x) => x.won && x.officeStage >= 2 && x.launches > 0,
+    text: '{company} started in a garage and ended up in {office}. {launches} launches, {eras}, and {people} people along the way.' },
+  { id: 'story_floor', when: (s, x) => x.won && x.officeStage === 1 && x.launches > 0,
+    text: '{company} never outgrew the Office Floor, and never really wanted to. {launches} launches, {eras}, {people} people.' },
+  { id: 'story_garage', when: (s, x) => x.won && x.officeStage === 0 && x.launches > 0,
+    text: '{company} never left the garage. {launches} launches from one room, a folding table, and a very tired router.' },
+  { id: 'story_veteran', when: (s, x) => x.won && x.veteran && x.veteranYears >= 10,
+    text: '{veteran} has been at {company} for {veteranYears} years. They have survived every reorg and still keep the first mug.' },
+  { id: 'story_alumni', when: (s, x) => x.alumni >= 10,
+    text: '{alumni} people have worked at {company} and moved on. Most of them still read the company blog. Some of them write for it.' },
   { id: 'acquired_seniors_left', when: (s, x) => x.reason === 'acquired' && x.avgMeaning < 50,
     text: 'Acquired by {acquirer}. Your seniors left within the year. The product was sunset in 18 months.' },
   { id: 'acquired_happy', when: (s, x) => x.reason === 'acquired' && x.avgMeaning >= 50,
