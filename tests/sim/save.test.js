@@ -43,7 +43,7 @@ describe('save and load', () => {
     const store = fakeStorage();
     const shapes = [
       (s) => { s.candidates = null; }, (s) => { s.projects = null; }, (s) => { s.projects = {}; }, (s) => { s.staff = [null]; },
-      (s) => { s.products = [3]; }, (s) => { s.campaigns = 'x'; }, (s) => { s.incidentLog = {}; }, (s) => { s.items = null; },
+      (s) => { s.products = [3]; }, (s) => { s.campaigns = 'x'; }, (s) => { s.incidentLog = {}; }, (s) => { s.office = null; }, (s) => { s.office.placed = 'x'; },
       (s) => { s.modifiers = {}; }, (s) => { s.scheduled = 5; }, (s) => { s.staff[0].assignment = null; }, (s) => { s.history = [1]; },
     ];
     for (const [i, mutate] of shapes.entries()) {
@@ -59,6 +59,8 @@ describe('save and load', () => {
   it('reports an incompatible version', () => {
     const store = fakeStorage();
     store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 999 }));
+    expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an incompatible version' });
+    store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 1 }));
     expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an incompatible version' });
   });
 
@@ -95,5 +97,25 @@ describe('save and load', () => {
     expect(hasSave(broken)).toBe(false);
     expect(saveGame(game(), broken)).toBe(false);
     expect(() => clearSave(broken)).not.toThrow();
+  });
+});
+
+describe('per-id maps are backfilled on load', () => {
+  it('a save missing a model, a category, or a goal gets default entries', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const { modelCostPerCustomer } = await import('../../src/sim/economy.js');
+    const mem = {};
+    const store = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; }, removeItem: (k) => { delete mem[k]; } };
+    const s = createGame({ seed: 3 });
+    delete s.models.mistrale;
+    delete s.market.categories.legal;
+    delete s.goals.hq;
+    store.setItem(SAVE_KEY, JSON.stringify(s));
+    const res = loadGame(store);
+    expect(res.ok).toBe(true);
+    expect(res.state.models.mistrale).toMatchObject({ costMult: 1, available: false });
+    expect(Number.isFinite(modelCostPerCustomer(res.state, 'mistrale'))).toBe(true);
+    expect(res.state.market.categories.legal.clones).toBe(0);
+    expect(res.state.goals.hq).toEqual({ done: false, week: null });
   });
 });

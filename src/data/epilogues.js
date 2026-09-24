@@ -1,5 +1,5 @@
 // End-of-run lines. `when(state, summary)` where summary =
-// { won, reason, avgMeaning, juniorsHired, caught, breaches, debt, resignations, seniors, peakMrr }.
+// { won, reason /* for a retirement, how: 'ipo'|'acquired' */, leaders, years, avgMeaning, juniorsHired, caught, breaches, debt, resignations, seniors, peakMrr }.
 // Placeholders: {company}, {acquirer}.
 
 export const EPILOGUES = [
@@ -11,14 +11,14 @@ export const EPILOGUES = [
     text: '{company} rang the opening bell. Someone from the garage days cried on the livestream.' },
   { id: 'ipo_ticker', when: (s, x) => x.reason === 'ipo' && x.debt > 50,
     text: 'The stock did great for two quarters. Then an analyst asked what the billing service actually does.' },
-  { id: 'leader', when: (s, x) => x.reason === 'leader',
+  { id: 'leader', when: (s, x) => x.leaders >= 3,
     text: '{company} leads its categories. The incumbents now copy you, 6 to 12 months late.' },
   { id: 'runway', when: (s, x) => x.reason === 'runway',
     text: 'The money ran out on a Tuesday. The last Slackk message was a gif of a burning dumpster, captioned "we tried".' },
   { id: 'collapse', when: (s, x) => x.reason === 'collapse',
     text: 'The outage never ended. Nobody left knew how the system worked, and the system did not know either.' },
-  { id: 'timeout', when: (s, x) => x.reason === 'timeout',
-    text: '{company} is still around. Not famous, not dead. A nice, medium-sized lab with a very good snack drawer.' },
+  { id: 'long_haul', when: (s, x) => x.won && x.years >= 15,
+    text: '{company} lasted longer than most of its competitors, two of its vendors, and one entire era of computing.' },
   { id: 'juniors_grew', when: (s, x) => x.juniorsHired >= 5 && s.week >= 156,
     text: 'Three of your former juniors now run teams of their own. They still use your code review checklist.' },
   { id: 'no_juniors', when: (s, x) => x.juniorsHired === 0 && s.week >= 156,
@@ -55,7 +55,7 @@ export const EPILOGUES = [
     text: 'The VC who wrote the first check tells the story at dinner parties. You come off fine in it. Mostly.' },
 ];
 
-const stillRunning = (s, x) => x.won || x.reason === 'timeout';
+const stillRunning = (s, x) => x.won;
 const wentUnder = (s, x) => !stillRunning(s, x);
 
 export const GENERIC_EPILOGUES = [

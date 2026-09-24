@@ -1,0 +1,313 @@
+import { newId } from './util.js';
+import { registerAction } from './registry.js';
+import { emitChat } from './chat.js';
+import { ITEMS } from '../data/items.js';
+import { OFFICE_STAGES } from '../data/office.js';
+import { adjacencyLinks, itemBonus } from './bonus.js';
+
+const key = (x, y) => `${x},${y}`;
+
+// A footprint cell (lx, ly) at rot 0 moved to its place for a rotation; rot 1 and 3 swap w and h.
+function rotateLocal(lx, ly, w, h, rot) {
+  switch (rot) {
+    case 1: return [h - 1 - ly, lx];
+    case 2: return [w - 1 - lx, h - 1 - ly];
+    case 3: return [ly, w - 1 - lx];
+    default: return [lx, ly];
+  }
+}
+
+// Every tile an item covers when its rotated box has its min corner at (x, y).
+export function footprintCells(itemId, x, y, rot) {
+  const { w, h } = ITEMS[itemId].footprint;
+  const cells = [];
+  for (let ly = 0; ly < h; ly++) {
+    for (let lx = 0; lx < w; lx++) {
+      const [dx, dy] = rotateLocal(lx, ly, w, h, rot);
+      cells.push([x + dx, y + dy]);
+    }
+  }
+  return cells;
+}
+
+// The chair tile of a desk set: its second footprint row, so the sitter faces the desk.
+export function seatTile(placed) {
+  const { w, h } = ITEMS[placed.itemId].footprint;
+  const [dx, dy] = rotateLocal(0, h - 1, w, h, placed.rot);
+  return [placed.x + dx, placed.y + dy];
+}
+
+export const desksOf = (placed) => placed.filter((p) => p.itemId === 'desk');
+export const deskCapacity = (state) => desksOf(state.office.placed).length;
+
+// Staff sit at desks in order: the i-th person on staff takes the i-th desk set.
+export function seatOf(state, staffId) {
+  const i = state.staff.findIndex((p) => p.id === staffId);
+  const desk = desksOf(state.office.placed)[i];
+  return desk ? seatTile(desk) : null;
+}
+
+// Whether every desk's chair has a free tile beside it that can be walked to from the door.
+export function pathsClear(stageIdx, placed) {
+  const st = OFFICE_STAGES[stageIdx];
+  const { w, h } = st.grid;
+  const solid = new Set(st.blocked.map(([x, y]) => key(x, y)));
+  for (const p of placed) for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) solid.add(key(x, y));
+  const open = (x, y) => x >= 0 && y >= 0 && x < w && y < h && !solid.has(key(x, y));
+  if (!open(st.door.x, st.door.y)) return false;
+  const seen = new Set([key(st.door.x, st.door.y)]);
+  const queue = [[st.door.x, st.door.y]];
+  const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  while (queue.length) {
+    const [x, y] = queue.shift();
+    for (const [dx, dy] of STEPS) {
+      const k = key(x + dx, y + dy);
+      if (!seen.has(k) && open(x + dx, y + dy)) { seen.add(k); queue.push([x + dx, y + dy]); }
+    }
+  }
+  return desksOf(placed).every((d) => {
+    const [sx, sy] = seatTile(d);
+    return STEPS.some(([dx, dy]) => seen.has(key(sx + dx, sy + dy)));
+  });
+}
+
+// Why an item cannot go at (x, y, rot) on a stage given the other placed items, or null. Layout only.
+function layoutProblem(stageIdx, others, { itemId, x, y, rot }) {
+  const st = OFFICE_STAGES[stageIdx];
+  if (![x, y, rot].every(Number.isInteger) || rot < 0 || rot > 3) return 'Out of bounds';
+  const cells = footprintCells(itemId, x, y, rot);
+  if (cells.some(([cx, cy]) => cx < 0 || cy < 0 || cx >= st.grid.w || cy >= st.grid.h)) return 'Out of bounds';
+  const blocked = new Set(st.blocked.map(([bx, by]) => key(bx, by)));
+  if (cells.some(([cx, cy]) => blocked.has(key(cx, cy)))) return 'Blocked';
+  if (cells.some(([cx, cy]) => cx === st.door.x && cy === st.door.y)) return 'Keep the door clear';
+  const taken = new Set();
+  for (const p of others) for (const [ox, oy] of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(key(ox, oy));
+  if (cells.some(([cx, cy]) => taken.has(key(cx, cy)))) return 'Overlaps something';
+  if (!pathsClear(stageIdx, [...others, { itemId, x, y, rot }])) return 'Would block the path to a desk';
+  return null;
+}
+
+// Why a new copy of an item cannot be bought right now, ignoring where it goes, or null.
+export function purchaseProblem(state, itemId) {
+  const it = ITEMS[itemId];
+  if (!it) return 'Unknown item';
+  if (state.officeStage < it.minStage) return 'Needs a bigger office';
+  if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';
+  if (it.kind === 'shop' && state.office.placed.filter((p) => p.itemId === itemId).length >= 2) return 'You already have two';
+  if (state.cash < it.costs[0]) return 'Not enough cash';
+  return null;
+}
+
+// The same check placeItem and moveItem run. Pass id to check a move of an already placed item (moves are free).
+export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
+  const moving = id ? state.office.placed.find((p) => p.id === id) : null;
+  if (id && !moving) return { ok: false, reason: 'No such item' };
+  const item = moving ? moving.itemId : itemId;
+  if (!ITEMS[item]) return { ok: false, reason: 'Unknown item' };
+  if (state.officeStage < ITEMS[item].minStage) return { ok: false, reason: 'Needs a bigger office' };
+  const others = state.office.placed.filter((p) => p !== moving);
+  const problem = layoutProblem(state.officeStage, others, { itemId: item, x, y, rot });
+  if (problem) return { ok: false, reason: problem };
+  if (!moving) {
+    const reason = purchaseProblem(state, item);
+    if (reason) return { ok: false, reason };
+  }
+  return { ok: true, reason: null };
+}
+
+// The first free spot for an item, scanning rows from the back corner, or null.
+export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3]) {
+  const { w, h } = OFFICE_STAGES[stageIdx].grid;
+  for (const rot of rots) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!layoutProblem(stageIdx, placed, { itemId, x, y, rot })) return { x, y, rot };
+      }
+    }
+  }
+  return null;
+}
+
+// Desk slots in islands: bands four tiles tall (chair, desk, desk, chair, so each pair faces across the
+// island), ISLAND_W desks wide, with a one-tile aisle between islands and between bands. The back-wall
+// row stays free for walking and wall items. Slots fill column by column, top then bottom.
+const ISLAND_W = 3;
+
+export function islandSlots(stageIdx) {
+  const { w, h } = OFFICE_STAGES[stageIdx].grid;
+  const slots = [];
+  for (let y0 = 1; y0 + 3 < h - 1; y0 += 5) {
+    for (let x0 = 1; x0 < w - 1; x0 += ISLAND_W + 1) {
+      for (let x = x0; x < Math.min(x0 + ISLAND_W, w - 1); x++) {
+        slots.push({ x, y: y0, rot: 2 }, { x, y: y0 + 2, rot: 0 });
+      }
+    }
+  }
+  return slots;
+}
+
+// Where an item should go: desks take the next free island slot; other items go where they are near
+// the most occupied desks (the adjacency rule), else the first free spot along the back wall.
+// Returns { x, y, rot } or null when nothing fits. Layout only: cash is not checked.
+export function suggestPlacement(state, itemId) {
+  if (!ITEMS[itemId]) return null;
+  const stage = state.officeStage;
+  const placed = state.office.placed;
+  if (itemId === 'desk') {
+    const slot = islandSlots(stage).find((sl) => !layoutProblem(stage, placed, { itemId, ...sl }));
+    return slot ?? findSpot(stage, placed, itemId, [0, 2, 1, 3]);
+  }
+  const adj = ITEMS[itemId].adjacency;
+  if (adj && !adj.to) {
+    const { w, h } = ITEMS[itemId].footprint;
+    const reach = adj.radius + Math.max(w, h);
+    const seats = desksOf(placed).slice(0, state.staff.length).map(seatTile);
+    const tried = new Set();
+    let best = null;
+    for (const [sx, sy] of seats) {
+      for (let y = sy - reach; y <= sy + reach; y++) {
+        for (let x = sx - reach; x <= sx + reach; x++) {
+          for (const rot of [0, 1]) {
+            const k = `${x},${y},${rot}`;
+            if (tried.has(k)) continue;
+            tried.add(k);
+            const cells = footprintCells(itemId, x, y, rot);
+            const v = seats.filter(([ax, ay]) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - ax), Math.abs(cy - ay)) <= adj.radius)).length;
+            if (v && (!best || v > best.v) && !layoutProblem(stage, placed, { itemId, x, y, rot })) best = { x, y, rot, v };
+          }
+        }
+      }
+    }
+    if (best) return { x: best.x, y: best.y, rot: best.rot };
+  }
+  return findSpot(stage, placed, itemId);
+}
+
+// Packs existing furniture into a stage: desks first (into islands), then bigger items. Returns what did not fit.
+export function autoArrange(stageIdx, placed) {
+  const area = (p) => ITEMS[p.itemId].footprint.w * ITEMS[p.itemId].footprint.h;
+  const order = [...placed].sort((a, b) => (b.itemId === 'desk') - (a.itemId === 'desk') || area(b) - area(a));
+  const out = [];
+  const left = [];
+  const islands = islandSlots(stageIdx);
+  for (const p of order) {
+    const slot = p.itemId === 'desk' ? islands.find((sl) => !layoutProblem(stageIdx, out, { itemId: 'desk', ...sl })) : null;
+    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3]);
+    if (spot) out.push({ ...p, ...spot });
+    else left.push(p);
+  }
+  // Keep the original order so desk seating does not reshuffle people.
+  const byId = new Map(out.map((p) => [p.id, p]));
+  return { placed: placed.filter((p) => byId.has(p.id)).map((p) => byId.get(p.id)), left };
+}
+
+const EFFECT_LABEL = {
+  meaningRecovery: 'meaning recovery', novelty: 'novelty', staminaRecovery: 'stamina recovery',
+  knowledgeGain: 'learning speed', uptimeFloor: 'uptime floor',
+};
+
+// What placing (or moving, with id) an item at (x, y, rot) would do, measured exactly as itemBonus pays:
+// links: every adjacency link involving the item ({ sourceId, targetId, target, key, value, paid, text });
+// effects: [{ key, delta, text }], the change in itemBonus per key after averaging and the 50% cap;
+// text: those texts joined, ready to show. A moved item keeps its place in desk order.
+export function adjacencyPreview(state, { itemId, x, y, rot = 0, id = null }) {
+  const moving = id ? state.office.placed.find((p) => p.id === id) : null;
+  const item = moving ? moving.itemId : itemId;
+  if (!ITEMS[item]) return { links: [], effects: [], text: '' };
+  const candidate = { id: moving?.id ?? 'preview', itemId: item, level: moving?.level ?? 1, x, y, rot };
+  const layout = moving ? state.office.placed.map((p) => (p === moving ? candidate : p)) : [...state.office.placed, candidate];
+  const links = adjacencyLinks(layout, state.staff.length).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
+  for (const l of links) {
+    const each = `+${Math.round(l.value * 1000) / 10}% ${EFFECT_LABEL[l.key] ?? l.key}`;
+    l.text = l.target === 'item' ? `${each} per neighbour` : l.paid ? `${each} at this desk, averaged over the team` : `${each} once someone sits at this desk`;
+  }
+  const after = { ...state, office: { ...state.office, placed: layout } };
+  const keys = new Set([...links.map((l) => l.key), ...Object.keys(ITEMS[item].effects[candidate.level - 1] ?? {})]);
+  const effects = [];
+  for (const key of keys) {
+    const delta = itemBonus(after, key) - itemBonus(state, key);
+    const paid = links.filter((l) => l.key === key && l.target === 'desk' && l.paid).length;
+    const empty = links.filter((l) => l.key === key && l.target === 'desk' && !l.paid).length;
+    const racks = links.filter((l) => l.key === key && l.target === 'item').length;
+    if (Math.abs(delta) < 1e-9 && !empty) continue;
+    const pct = Math.round(delta * 1000) / 10;
+    const bits = [];
+    if (paid) bits.push(`${paid} ${paid === 1 ? 'desk' : 'desks'} nearby`);
+    if (empty) bits.push(`${empty} empty ${empty === 1 ? 'desk' : 'desks'}`);
+    if (racks) bits.push(`${racks} neighbouring ${racks === 1 ? 'link' : 'links'}`);
+    const label = EFFECT_LABEL[key] ?? key;
+    const text = `${pct >= 0 ? '+' : ''}${pct}% ${label}${paid ? ' for the team' : ''}${bits.length ? ` (${bits.join(', ')})` : ''}`;
+    effects.push({ key, delta, text });
+  }
+  return { links, effects, text: effects.map((e) => e.text).join('; ') };
+}
+
+export const spentOn = (p) => ITEMS[p.itemId].costs.slice(0, p.level).reduce((a, b) => a + b, 0);
+
+// Buys and places an item; the caller has already checked it.
+export function placeNow(ctx, itemId, spot) {
+  const { state } = ctx;
+  const it = ITEMS[itemId];
+  state.cash -= it.costs[0];
+  const id = newId(state, 'f');
+  state.office.placed.push({ id, itemId, level: 1, x: spot.x, y: spot.y, rot: spot.rot });
+  state.flags.lastItemWeek = state.week;
+  state.flags.lastItemId = itemId;
+  if (it.kind === 'shop') {
+    ctx.emit({ type: 'toast', text: `New in the office: ${it.name}.`, tone: 'good' });
+    emitChat(ctx, { channel: 'random', from: '@officebot', text: `The new ${it.name} has arrived. Please be nice to it.` });
+  }
+  return id;
+}
+
+registerAction('placeItem', (ctx, { itemId, x, y, rot = 0 }) => {
+  const check = placementCheck(ctx.state, { itemId, x, y, rot });
+  if (!check.ok) return check;
+  return { ok: true, id: placeNow(ctx, itemId, { x, y, rot }) };
+});
+
+registerAction('moveItem', (ctx, { id, x, y, rot = 0 }) => {
+  if (!id) return { ok: false, reason: 'No such item' };
+  const check = placementCheck(ctx.state, { id, x, y, rot });
+  if (!check.ok) return check;
+  Object.assign(ctx.state.office.placed.find((p) => p.id === id), { x, y, rot });
+  return { ok: true };
+});
+
+// Why a placed item cannot be upgraded right now, or null.
+export function upgradeProblem(state, placed) {
+  if (!placed) return 'No such item';
+  const it = ITEMS[placed.itemId];
+  if (it.kind !== 'shop') return 'Nothing to upgrade';
+  if (placed.level >= it.costs.length) return 'Already max level';
+  if (state.cash < it.costs[placed.level]) return 'Not enough cash';
+  return null;
+}
+
+export function upgradeNow(ctx, placed) {
+  const it = ITEMS[placed.itemId];
+  ctx.state.cash -= it.costs[placed.level];
+  placed.level++;
+  ctx.emit({ type: 'toast', text: `${it.name} upgraded to level ${placed.level}.`, tone: 'good' });
+}
+
+registerAction('upgradeItem', (ctx, { id }) => {
+  const placed = ctx.state.office.placed.find((p) => p.id === id);
+  const reason = upgradeProblem(ctx.state, placed);
+  if (reason) return { ok: false, reason };
+  upgradeNow(ctx, placed);
+  return { ok: true };
+});
+
+registerAction('sellItem', (ctx, { id }) => {
+  const { state } = ctx;
+  const placed = state.office.placed.find((p) => p.id === id);
+  if (!placed) return { ok: false, reason: 'No such item' };
+  if (placed.itemId === 'desk' && deskCapacity(state) <= state.staff.length) return { ok: false, reason: 'Someone sits there' };
+  const it = ITEMS[placed.itemId];
+  const refund = spentOn(placed) / 2;
+  state.cash += refund;
+  state.office.placed = state.office.placed.filter((p) => p !== placed);
+  ctx.emit({ type: 'toast', text: `Sold the ${it.name} for $${refund.toLocaleString('en-US')}.`, tone: 'info' });
+  return { ok: true };
+});

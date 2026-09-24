@@ -4,6 +4,7 @@ import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { mentorOf } from './staff.js';
 import { STANDUP } from '../data/standup.js';
+import { eraLines } from './eras.js';
 
 export const standupMode = (state) => (state.policies.daily_standups ? 'daily' : state.policies.async_standups ? 'async' : null);
 
@@ -12,36 +13,37 @@ const first = (p) => p.name.split(' ')[0];
 // Picks a line for one person from what they are doing this week; '' means they say nothing.
 function lineFor(ctx, p) {
   const { state, rng } = ctx;
+  const lines = (key) => eraLines(state, STANDUP[key]);
   if (p.mood === 'burnout') return '';
-  if (p.mood === 'coasting') return pick(rng, STANDUP.coasting);
+  if (p.mood === 'coasting') return pick(rng, lines('coasting'));
   const others = state.staff.filter((x) => x.id !== p.id && x.mood !== 'away' && first(x) !== first(p));
   const fill = (text, vars = {}) => text
     .replaceAll('{coworker}', others.length ? first(pick(rng, others)) : 'the team')
     .replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const a = p.assignment;
   const outage = state.outage && state.products.find((x) => x.id === state.outage.productId);
-  if (outage && p.role === 'engineer' && a.type !== 'project') return fill(pick(rng, STANDUP.outage), { product: outage.name });
+  if (outage && p.role === 'engineer' && a.type !== 'project') return fill(pick(rng, lines('outage')), { product: outage.name });
   if (a.type === 'project') {
     const j = state.projects.find((x) => x.id === a.targetId);
     if (j) {
       const pct = Math.floor((100 * j.progress) / j.pointsNeeded);
-      const pool = pct < 25 ? STANDUP.projectEarly : pct < 80 ? STANDUP.projectMid : STANDUP.projectLate;
+      const pool = lines(pct < 25 ? 'projectEarly' : pct < 80 ? 'projectMid' : 'projectLate');
       return fill(pick(rng, pool), { project: j.name, pct });
     }
   }
   if (a.type === 'mentor') {
     const m = state.staff.find((x) => x.id === a.targetId);
-    if (m) return fill(pick(rng, STANDUP.mentor), { mentee: first(m) });
+    if (m) return fill(pick(rng, lines('mentor')), { mentee: first(m) });
   }
-  if (p.seniority === 'junior' && mentorOf(state, p)) return fill(pick(rng, STANDUP.mentee));
-  if (a.type === 'hardProblem') return fill(pick(rng, STANDUP.hardProblem));
-  if (a.type === 'oversight') return fill(pick(rng, STANDUP.oversight));
+  if (p.seniority === 'junior' && mentorOf(state, p)) return fill(pick(rng, lines('mentee')));
+  if (a.type === 'hardProblem') return fill(pick(rng, lines('hardProblem')));
+  if (a.type === 'oversight') return fill(pick(rng, lines('oversight')));
   if (a.type === 'maintenance') {
     const due = state.products.find((x) => !x.killed && x.migrationDueWeek !== null);
-    return due && p.role === 'engineer' ? fill(pick(rng, STANDUP.migration), { product: due.name }) : fill(pick(rng, STANDUP.maintenance));
+    return due && p.role === 'engineer' ? fill(pick(rng, lines('migration')), { product: due.name }) : fill(pick(rng, lines('maintenance')));
   }
   const byRole = { support: 'support', sales: 'sales', marketing: 'marketing', security: 'security' }[a.type];
-  return fill(pick(rng, STANDUP[byRole ?? 'idle']));
+  return fill(pick(rng, lines(byRole ?? 'idle')));
 }
 
 // Weekly standup when a standup policy is on: 3 to 5 people give an update. Daily standups also lift

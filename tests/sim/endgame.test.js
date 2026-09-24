@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, tick, scoreRun } from '../../src/sim/index.js';
 import { endgameSystem, historySystem, endGame, buildEpilogue } from '../../src/sim/endgame.js';
+import { raiseDecision } from '../../src/sim/events.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { CATEGORIES } from '../../src/data/categories.js';
@@ -97,27 +98,53 @@ describe('winning', () => {
     s = ipoReady();
     const res = dispatch(s, { type: 'ipo' });
     expect(res.ok).toBe(true);
-    expect(s.gameOver).toMatchObject({ won: true, reason: 'ipo' });
+    expect(s.gameOver).toMatchObject({ won: true, reason: 'retired', retiredVia: 'ipo' });
     expect(res.events).toContainEqual({ type: 'gameOver' });
   });
 
-  it('run end: leader with 3 categories, otherwise timeout', () => {
+  it('the run is open-ended: leading categories for decades does not end it', () => {
     const lead = game();
     for (const cat of ['email', 'notes', 'pm']) {
       lead.market.categories[cat].incumbentStrength = 1;
       addProduct(lead, { category: cat, customers: CATEGORIES[cat].tam * 0.9 });
     }
-    lead.week = B.runWeeks - 1;
-    check(lead);
-    expect(lead.gameOver).toMatchObject({ won: true, reason: 'leader' });
+    for (const w of [779, 1040, 2000]) {
+      lead.week = w;
+      check(lead);
+      expect(lead.gameOver).toBe(null);
+    }
+  });
 
-    const meh = game();
-    meh.week = B.runWeeks - 2;
-    check(meh);
-    expect(meh.gameOver).toBe(null);
-    meh.week = B.runWeeks - 1;
-    check(meh);
-    expect(meh.gameOver).toMatchObject({ won: false, reason: 'timeout' });
+  it('retire needs an IPO or an open offer, then ends the run as a win', () => {
+    const s = game();
+    expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');
+    s.flags.acquisitionOfferUntil = s.week - 1;
+    expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');
+    s.flags.acquisitionOfferUntil = s.week + 5;
+    s.flags.acquisitionOfferFrom = 'Gmale';
+    const res = dispatch(s, { type: 'retire' });
+    expect(res.ok).toBe(true);
+    expect(s.gameOver).toMatchObject({ won: true, reason: 'retired', retiredVia: 'acquired' });
+    expect(s.flags.acquirer).toBe('Gmale');
+    expect(s.gameOver.epilogue.some((l) => l.includes('Gmale'))).toBe(true);
+
+    const t = ipoReady();
+    t.flags.acquisitionOfferUntil = t.week + 5;
+    expect(dispatch(t, { type: 'retire' }).ok).toBe(true);
+    expect(t.gameOver.retiredVia).toBe('ipo');
+    expect(t.gameOver.score).toBeGreaterThan(0);
+  });
+
+  it('keeping an acquisition offer on the table opens retirement for a while', () => {
+    const s = game();
+    s.products.length || addProduct(s, { customers: 1000 });
+    raiseDecision(makeCtx(s), 'acquisition_offer');
+    expect(s.flags.acquisitionOfferWeek).toBe(s.week);
+    expect(dispatch(s, { type: 'resolveDecision', choice: 1 }).ok).toBe(true);
+    expect(s.gameOver).toBe(null);
+    expect(s.flags.acquisitionOfferUntil).toBe(s.week + B.acquisitionOfferOpenWeeks);
+    s.week += B.acquisitionOfferOpenWeeks + 1;
+    expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');
   });
 });
 
@@ -147,13 +174,14 @@ describe('score and epilogue', () => {
   });
 
   it('the epilogue has 3 to 5 lines with placeholders filled', () => {
-    for (const reason of ['ipo', 'acquired', 'leader', 'runway', 'collapse', 'timeout']) {
+    for (const reason of ['ipo', 'acquired', 'runway', 'collapse']) {
       for (const seed of [1, 2, 3]) {
         const s = game(seed);
         s.flags.acquirer = 'Salesfarce';
         s.comprehensionDebt = seed * 30;
         s.stats.juniorsHired = seed * 2;
-        const lines = buildEpilogue(s, { won: ['ipo', 'acquired', 'leader'].includes(reason), reason });
+        const won = ['ipo', 'acquired'].includes(reason);
+        const lines = buildEpilogue(s, won ? { won, reason: 'retired', retiredVia: reason } : { won, reason });
         expect(lines.length, reason).toBeGreaterThanOrEqual(3);
         expect(lines.length, reason).toBeLessThanOrEqual(5);
         for (const l of lines) expect(l).not.toMatch(/[{}]/);
@@ -214,5 +242,16 @@ describe('history', () => {
     for (let i = 0; i < B.maxHistory + 20; i++) { s.week++; historySystem(makeCtx(s)); }
     expect(s.history.length).toBe(B.maxHistory);
     expect(s.history.at(-1).week).toBe(s.week);
+  });
+});
+
+describe('retire options', () => {
+  it('reports both routes with reasons', async () => {
+    const { retireOptions } = await import('../../src/sim/endgame.js');
+    const s = game();
+    expect(retireOptions(s)).toEqual({ ipo: { ok: false, reason: expect.any(String) }, acquired: { ok: false, reason: 'No acquisition offer on the table', by: null } });
+    s.flags.acquisitionOfferUntil = s.week + 3;
+    s.flags.acquisitionOfferFrom = 'Jirra';
+    expect(retireOptions(s).acquired).toEqual({ ok: true, reason: null, by: 'Jirra' });
   });
 });

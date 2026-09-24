@@ -17,10 +17,9 @@ import { RESEARCH } from '../../src/data/research.js';
 import { PATHS } from '../../src/data/paths.js';
 import { TRAINING } from '../../src/data/training.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, expectFail, withoutGrind } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, withoutGrind, withItem, placeAction } from './helpers.js';
 
 const once = (s, sys) => { const c = makeCtx(s); sys(c); return c.events; };
-const withItem = (s, itemId, level) => { s.items.push({ id: `i${s.nextId++}`, itemId, level }); return s; };
 const walkFinite = (v, p = 's') => {
   if (typeof v === 'number') expect(Number.isFinite(v), p).toBe(true);
   else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walkFinite(x, `${p}.${k}`);
@@ -28,45 +27,47 @@ const walkFinite = (v, p = 's') => {
 
 describe('office shop', () => {
   it('uses the exact item ids the art lane modeled', () => {
-    expect(Object.keys(ITEMS).sort()).toEqual(['arcade', 'espresso', 'library', 'monitoring_wall', 'nap_pod', 'plant_wall', 'server_rack', 'standing_desk', 'trophy_case', 'whiteboard_wall']);
-    for (const it of Object.values(ITEMS)) {
+    const shop = Object.values(ITEMS).filter((i) => i.kind === 'shop');
+    expect(shop.map((i) => i.id).sort()).toEqual(['arcade', 'espresso', 'library', 'monitoring_wall', 'nap_pod', 'plant_wall', 'server_rack', 'standing_desk', 'trophy_case', 'whiteboard_wall']);
+    for (const it of shop) {
       expect(it.costs).toHaveLength(3);
       expect(it.effects).toHaveLength(3);
       expect(it.costs[0]).toBeLessThanOrEqual(8000);
       expect(it.costs[1]).toBeGreaterThan(it.costs[0] * 2);
     }
-    expect(OFFICE_STAGES.map((o) => o.itemSlots)).toEqual([3, 8, 16]);
+    const furniture = Object.values(ITEMS).filter((i) => i.kind === 'furniture');
+    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'coffee_corner', 'desk', 'meeting_table', 'plant', 'whiteboard']);
+    for (const it of furniture) expect(it.costs).toHaveLength(1);
   });
 
   it('buy, upgrade, and sell with every reason', () => {
     const s = game();
     s.cash = 1e6;
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'jacuzzi' }, 'Unknown item');
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'nap_pod' }, 'Needs a bigger office');
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'trophy_case' }, 'Needs an award first');
-    const res = dispatch(s, { type: 'buyItem', itemId: 'espresso' });
+    expectFail(expect, dispatch, s, { type: 'placeItem', itemId: 'jacuzzi', x: 0, y: 0, rot: 0 }, 'Unknown item');
+    expectFail(expect, dispatch, s, placeAction(s, 'nap_pod'), 'Needs a bigger office');
+    expectFail(expect, dispatch, s, placeAction(s, 'trophy_case'), 'Needs an award first');
+    const at = placeAction(s, 'espresso');
+    const res = dispatch(s, at);
     expect(res.ok).toBe(true);
-    expect(s.items).toEqual([{ id: res.id, itemId: 'espresso', level: 1 }]);
+    expect(s.office.placed.at(-1)).toEqual({ id: res.id, itemId: 'espresso', level: 1, x: at.x, y: at.y, rot: at.rot });
     expect(s.cash).toBe(1e6 - ITEMS.espresso.costs[0]);
-    expect(dispatch(s, { type: 'buyItem', itemId: 'espresso' }).ok).toBe(true);
-    s.officeStage = 1;
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'espresso' }, 'You already have two');
-    s.officeStage = 0;
-    dispatch(s, { type: 'sellItem', id: s.items[1].id });
-    dispatch(s, { type: 'buyItem', itemId: 'plant_wall' });
-    dispatch(s, { type: 'buyItem', itemId: 'standing_desk' });
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'whiteboard_wall' }, 'No free item slots');
+    const second = dispatch(s, placeAction(s, 'espresso'));
+    expect(second.ok).toBe(true);
+    expectFail(expect, dispatch, s, placeAction(s, 'espresso'), 'You already have two');
+    dispatch(s, { type: 'sellItem', id: second.id });
     expect(dispatch(s, { type: 'upgradeItem', id: res.id }).ok).toBe(true);
     expect(dispatch(s, { type: 'upgradeItem', id: res.id }).ok).toBe(true);
     expectFail(expect, dispatch, s, { type: 'upgradeItem', id: res.id }, 'Already max level');
     expectFail(expect, dispatch, s, { type: 'upgradeItem', id: 'nope' }, 'No such item');
+    const desk = s.office.placed.find((p) => p.itemId === 'desk');
+    expectFail(expect, dispatch, s, { type: 'upgradeItem', id: desk.id }, 'Nothing to upgrade');
     const cash = s.cash;
     expect(dispatch(s, { type: 'sellItem', id: res.id }).ok).toBe(true);
     expect(s.cash).toBe(cash + (ITEMS.espresso.costs[0] + ITEMS.espresso.costs[1] + ITEMS.espresso.costs[2]) / 2);
-    expect(s.items.find((i) => i.id === res.id)).toBeUndefined();
+    expect(s.office.placed.find((i) => i.id === res.id)).toBeUndefined();
+    const pw = dispatch(s, placeAction(s, 'plant_wall'));
     s.cash = 10;
-    expectFail(expect, dispatch, s, { type: 'buyItem', itemId: 'whiteboard_wall' }, 'Not enough cash');
-    const pw = s.items.find((i) => i.itemId === 'plant_wall');
+    expectFail(expect, dispatch, s, placeAction(s, 'whiteboard_wall'), 'Not enough cash');
     expectFail(expect, dispatch, s, { type: 'upgradeItem', id: pw.id }, 'Not enough cash');
   });
 
@@ -78,7 +79,7 @@ describe('office shop', () => {
   });
 
   it('itemBonus sums the table value at each level', () => {
-    for (const it of Object.values(ITEMS)) {
+    for (const it of Object.values(ITEMS).filter((i) => i.kind === 'shop')) {
       for (let level = 1; level <= 3; level++) {
         const s = withItem(game(), it.id, level);
         for (const [k, v] of Object.entries(it.effects[level - 1])) expect(itemBonus(s, k)).toBeCloseTo(v);
@@ -382,8 +383,11 @@ describe('everything stays JSON-safe and finite', () => {
   it('a long run with items, research, and paths', () => {
     const s = game(5);
     s.cash = 1e7;
-    s.officeStage = 2;
-    for (const id of ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'library', 'monitoring_wall', 'server_rack']) dispatch(s, { type: 'buyItem', itemId: id });
+    expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
+    expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
+    for (const id of ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'library', 'monitoring_wall', 'server_rack', 'server_rack', 'plant', 'whiteboard', 'coffee_corner', 'bookshelf', 'meeting_table']) {
+      expect(dispatch(s, placeAction(s, id)).ok, id).toBe(true);
+    }
     s.research.done = ['eval_harness', 'observability', 'ci_cd', 'docs_culture', 'red_team_suite'];
     for (let w = 0; w < 200; w++) {
       if (s.pendingDecision) for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });

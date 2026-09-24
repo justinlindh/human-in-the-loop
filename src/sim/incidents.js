@@ -15,6 +15,8 @@ import { INCIDENT_EVENT } from '../data/events.js';
 import { modifierBonus } from './modifiers.js';
 import { fillChat } from './chat.js';
 import { researchBonus } from './bonus.js';
+import { eraAtLeast, eraLines } from './eras.js';
+import { lockedReason } from './unlocks.js';
 
 const ROGUE_KINDS = {
   engineering: ['db_wipe', 'runaway_spend'], support: ['refund_hallucination'], sales: ['pricing_rewrite'],
@@ -52,7 +54,7 @@ function shortfall(state) {
 
 export function rogueRisk(state, fn) {
   const a = state.automation[fn];
-  if (a.level <= 0) return 0;
+  if (a.level <= 0 || !eraAtLeast(state, 'agents')) return 0;
   return B.rogueBase * a.level * (1 - MODELS[a.model].guardrails) * (B.rogueShortfallFloor + shortfall(state))
     * (1 + state.comprehensionDebt / 50) * Math.max(0, 1 + modifierBonus(state, 'rogueRisk') + researchBonus(state, 'rogueRisk'));
 }
@@ -137,10 +139,10 @@ function outageStep(ctx) {
 // A chat line from a pool with its placeholders filled; falls back to a line that needs none.
 function filledLine(ctx, pool, speaker, product) {
   for (let i = 0; i < 6; i++) {
-    const text = fillChat(ctx.state, ctx.rng, pick(ctx.rng, pool), { speaker, product });
+    const text = fillChat(ctx.state, ctx.rng, pick(ctx.rng, eraLines(ctx.state, pool)), { speaker, product });
     if (text !== null) return text;
   }
-  return pick(ctx.rng, pool.filter((l) => !l.includes('{'))) ?? 'On it.';
+  return pick(ctx.rng, eraLines(ctx.state, pool).filter((l) => !l.includes('{'))) ?? 'On it.';
 }
 
 function incident(ctx, { kind, severity, caught, model }) {
@@ -211,6 +213,8 @@ registerSystem('incidents', incidentsSystem, 65);
 
 registerAction('buyAudit', (ctx) => {
   const { state } = ctx;
+  const locked = lockedReason(state, 'ops');
+  if (locked) return { ok: false, reason: locked };
   if (state.cash < B.auditCost) return { ok: false, reason: 'Not enough cash' };
   state.cash -= B.auditCost;
   state.security.auditBoost = B.postureAudit;
@@ -219,6 +223,8 @@ registerAction('buyAudit', (ctx) => {
 });
 
 registerAction('setTooling', (ctx, { on }) => {
+  const locked = on ? lockedReason(ctx.state, 'ops') : null;
+  if (locked) return { ok: false, reason: locked };
   ctx.state.security.tooling = !!on;
   return { ok: true };
 });

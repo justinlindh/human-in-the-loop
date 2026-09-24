@@ -5,8 +5,9 @@ import { B } from '../../src/sim/balance.js';
 const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'items', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
+  'era', 'eraSchedule', 'unlocks', 'goals',
 ];
 
 const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
@@ -24,7 +25,7 @@ describe('game state', () => {
     expect(s.staff.every((p) => p.founder)).toBe(true);
     expect(s.staff.map((p) => `${p.role}:${p.seniority}`).sort()).toEqual(['designer:mid', 'engineer:senior']);
     expect(s.staff.every((p) => p.assignment.type === 'idle')).toBe(true);
-    expect(s.cash).toBe(B.startCash);
+    expect(s.cash).toBe(B.funding.bootstrapped.cash);
     expect(s.cash).toBeGreaterThan(0);
     expect(s.brand).toBe(B.startBrand);
     expect(s.version).toBe(SAVE_VERSION);
@@ -33,10 +34,13 @@ describe('game state', () => {
     expect(s.candidates.length).toBe(B.candidateCount);
     expect(s.market.trend).toBe('steady');
     expect(s.market.unlockedCategories).toEqual(['notes', 'email', 'pm', 'support']);
-    expect(s.models.mistrale.available).toBe(false);
-    expect(s.models.claudius.available).toBe(true);
+    expect(Object.values(s.models).some((m) => m.available)).toBe(false);
+    expect(s.era).toEqual({ id: 'classic', since: 0 });
+    expect(s.unlocks).toEqual({});
+    expect(Object.values(s.goals).every((g) => g.done === false && g.week === null)).toBe(true);
     expect(s.market.categories.crm.incumbentStrength).toBe(650);
-    expect(s.items).toEqual([]);
+    expect(s.office).toEqual({ stage: 0, placed: [] });
+    expect(s.founding).toEqual({ founders: ['engineer', 'designer'], funding: 'bootstrapped', logoColor: '#ffb020', tagline: '' });
     expect(s.research).toEqual({ done: [] });
     expect(s.modifiers).toEqual([]);
     expect(s.scheduled).toEqual([]);
@@ -107,6 +111,6 @@ describe('game state', () => {
   });
 
   it('dateOf is exported from the public API', () => {
-    expect(dateOf(0).year).toBe(2026);
+    expect(dateOf(0).year).toBe(2019);
   });
 });

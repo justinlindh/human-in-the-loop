@@ -51,7 +51,8 @@ def laptop(p, x=0, y=0, z=0, rz=0, screen='laptop_screen'):
     hy = D / 2 + 0.11 * math.sin(-tilt) - 0.005
     parts.append(box(f'{p}lid', (W, 0.012, 0.22), (0, hy, hz), 'metal_soft', bevel=0.005, rot=(tilt, 0, 0)))
     place(parts, x, y, rz)
-    scr = plane(screen, W - 0.03, 0.19, (0, hy - 0.0065 * math.cos(tilt), hz - 0.0065 * math.sin(-tilt)), 'screen', rot=(math.pi / 2 + tilt, 0, 0))
+    # The screen sits just proud of the lid's inner face, along the lid's tilted normal.
+    scr = plane(screen, W - 0.03, 0.19, (0, hy - 0.0078 * math.cos(tilt), hz + 0.0078 * math.sin(-tilt)), 'screen', rot=(math.pi / 2 + tilt, 0, 0))
     place([scr], x, y, rz)
     return parts
 

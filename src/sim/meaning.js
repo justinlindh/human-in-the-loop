@@ -9,6 +9,7 @@ import { CHATTER } from '../data/chatter.js';
 import { emitChat } from './chat.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
+import { eraLines } from './eras.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -73,7 +74,7 @@ export function meaningSystem(ctx) {
   });
   for (const p of leavers) {
     const recent = state.flags.recentFarewells ?? [];
-    const line = pick(ctx.rng, CHATTER.farewell.filter((l) => !recent.includes(l)));
+    const line = pick(ctx.rng, eraLines(state, CHATTER.farewell).filter((l) => !recent.includes(l)));
     state.flags.recentFarewells = [...recent, line].slice(-4);
     emitChat(ctx, { person: p, text: line, kind: 'farewell' });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name });

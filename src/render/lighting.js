@@ -107,10 +107,17 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
   const alarmRed = C('alarm_red');
   let baseSun = 3.4;
   let alarmK = 0;
+  // Era tone: the Plateau fill is a little warmer and the sun a little softer.
+  const eraWarm = C('lamp_warm');
+  let warmK = 0;
+  function setEraTone(id) {
+    warmK = id === 'plateau' ? 1 : 0;
+    applyAlarm();
+  }
   function applyAlarm() {
-    hemi.color.copy(baseHemi).lerp(alarmRed, 0.55 * alarmK);
-    hemi.groundColor.copy(baseGround).lerp(alarmRed, 0.35 * alarmK);
-    sun.intensity = baseSun * (1 - 0.45 * alarmK);
+    hemi.color.copy(baseHemi).lerp(eraWarm, 0.16 * warmK).lerp(alarmRed, 0.55 * alarmK);
+    hemi.groundColor.copy(baseGround).lerp(eraWarm, 0.12 * warmK).lerp(alarmRed, 0.35 * alarmK);
+    sun.intensity = baseSun * (1 - 0.1 * warmK) * (1 - 0.45 * alarmK);
   }
   function setAlarm(k) {
     if (Math.abs(k - alarmK) < 0.005 && k !== 0) return;
@@ -125,7 +132,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.shadow.map = null;
   }
 
-  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm };
+  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone };
 }
 
 export function createBackdrop() {

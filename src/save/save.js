@@ -2,6 +2,9 @@
 // tests pass any object with getItem/setItem/removeItem.
 import { SAVE_VERSION } from '../sim/state.js';
 import { EVENTS } from '../data/events.js';
+import { MODELS } from '../data/models.js';
+import { INCUMBENTS } from '../data/incumbents.js';
+import { GOALS } from '../data/goals.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
 
@@ -9,10 +12,10 @@ const REQUIRED_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge', 'comprehensionDebt',
   'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products', 'automation', 'policies', 'campaigns',
   'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage', 'incidentLog', 'lowCashWeeks', 'pendingDecision',
-  'flags', 'stats', 'history', 'gameOver',
+  'flags', 'stats', 'history', 'gameOver', 'era', 'eraSchedule', 'unlocks', 'goals', 'office', 'founding',
 ];
 
-const STATE_DEFAULTS = () => ({ items: [], research: { done: [] }, modifiers: [], scheduled: [], chatLog: [] });
+const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [] });
 const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 } });
 
 const store = (storage) => storage ?? globalThis.localStorage;
@@ -48,9 +51,10 @@ const arrayOfObjects = (v) => Array.isArray(v) && v.every(isObj);
 function wellFormed(state) {
   const lists = ['staff', 'candidates', 'projects', 'products', 'campaigns', 'incidentLog', 'history'];
   if (!lists.every((k) => arrayOfObjects(state[k]))) return false;
-  if (['items', 'modifiers', 'scheduled', 'chatLog'].some((k) => k in state && !arrayOfObjects(state[k]))) return false;
+  if (!isObj(state.office) || !arrayOfObjects(state.office.placed)) return false;
+  if (['modifiers', 'scheduled', 'chatLog'].some((k) => k in state && !arrayOfObjects(state[k]))) return false;
   if (![...state.staff, ...state.candidates].every((p) => isObj(p.assignment) && isObj(p.skills) && Array.isArray(p.traits))) return false;
-  return ['rng', 'automation', 'market', 'models', 'stats', 'flags', 'ops', 'security', 'policies'].every((k) => isObj(state[k]));
+  return ['rng', 'automation', 'market', 'models', 'stats', 'flags', 'ops', 'security', 'policies', 'era', 'eraSchedule', 'unlocks', 'goals'].every((k) => isObj(state[k]));
 }
 
 // Fills fields added after a save was written, so older saves of the same version keep loading.
@@ -60,6 +64,12 @@ function normalize(state) {
     for (const p of list) for (const [k, v] of Object.entries(STAFF_DEFAULTS())) if (!(k in p)) p[k] = v;
   }
   for (const j of state.projects) if (!('researchId' in j)) j.researchId = null;
+  // Per-id maps gain an entry for every id the data knows, so lookups by id never miss.
+  for (const m of Object.values(MODELS)) {
+    state.models[m.id] ??= { version: 1, capability: m.capability, costMult: 1, available: false, deprecated: false };
+  }
+  for (const i of INCUMBENTS) state.market.categories[i.category] ??= { incumbentStrength: i.strength, clones: 0 };
+  for (const g of GOALS) state.goals[g.id] ??= { done: false, week: null };
   return state;
 }
 

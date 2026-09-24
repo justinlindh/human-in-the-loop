@@ -28,8 +28,8 @@ describe('util', () => {
   });
 
   it('dateOf maps weeks to calendar dates', () => {
-    expect(dateOf(0)).toEqual({ year: 2026, yearIndex: 0, week: 1, quarter: 1 });
-    expect(dateOf(52).year).toBe(2027);
+    expect(dateOf(0)).toEqual({ year: 2019, yearIndex: 0, week: 1, quarter: 1 });
+    expect(dateOf(52).year).toBe(2020);
     expect(dateOf(51).quarter).toBe(4);
     expect(dateOf(51).week).toBe(52);
     expect(dateOf(13).quarter).toBe(2);

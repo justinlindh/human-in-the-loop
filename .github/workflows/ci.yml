@@ -40,4 +40,4 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run soak
-      - run: npm run lifecycle -- --out lifecycle-shots
+      - run: npm run lifecycle -- --quality low --no-shots

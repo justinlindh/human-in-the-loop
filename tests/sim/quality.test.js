@@ -43,9 +43,10 @@ describe('review scores reflect team quality', () => {
   const crowd = band([['engineer', 'junior'], ['engineer', 'junior'], ['designer', 'junior'], ['engineer', 'junior']]);
   const greatCombo = band([], { category: 'email', angle: 'summarizer' });
 
-  it('founders alone score 6 to 7.5', () => {
+  // Founders bring their archetype's signature trait, so they edge a little above a random pair.
+  it('founders alone score 6 to 7.75', () => {
     expect(founders.score).toBeGreaterThanOrEqual(6);
-    expect(founders.score).toBeLessThanOrEqual(7.5);
+    expect(founders.score).toBeLessThanOrEqual(7.75);
   });
 
   it('a mixed team with seniors scores 7 to 8.5', () => {

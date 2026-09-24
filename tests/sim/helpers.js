@@ -1,7 +1,56 @@
 import { createGame } from '../../src/sim/index.js';
 import { generateStaff } from '../../src/sim/staff.js';
+import { findSpot } from '../../src/sim/office.js';
+import { offerPaths } from '../../src/sim/progression.js';
+import { ANGLES } from '../../src/data/angles.js';
+import { UNLOCK_KEYS } from '../../src/data/unlocks.js';
 
-export const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
+// A fresh run exactly as a player starts it: Classic era, nothing unlocked.
+export const classicGame = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
+
+// The whole toolbox at week 0: Agents era, every system and angle open, every model released,
+// four desks in the garage, the policies that have no growth trigger of their own, and every goal already met (so rewards
+// never land in the middle of a mechanics test). Mechanics tests start here.
+export function openEverything(s) {
+  s.era = { id: 'agents', since: 0 };
+  for (const k of UNLOCK_KEYS) s.unlocks[k] = 0;
+  offerPaths(s);
+  for (const id of ['daily_standups', 'async_standups', 'pair', 'craft_fridays']) s.unlocks[`policy.${id}`] = 0;
+  // Mistrale stays unreleased so tests can reach for a model that is not out yet.
+  for (const [id, m] of Object.entries(s.models)) m.available = id !== 'mistrale';
+  for (const g of Object.values(s.goals)) Object.assign(g, { done: true, week: 0 });
+  s.market.unlockedAngles = Object.keys(ANGLES).filter((a) => ANGLES[a].era !== 'consolidation');
+  addDesks(s, 4);
+  return s;
+}
+
+export const game = (seed = 1) => openEverything(classicGame(seed));
+
+// Places n free desk sets wherever they fit on the current stage.
+export function addDesks(s, n) {
+  for (let i = 0; i < n; i++) {
+    const spot = findSpot(s.officeStage, s.office.placed, 'desk', [0, 2, 1, 3]);
+    if (!spot) throw new Error('no room for a desk');
+    s.office.placed.push({ id: `d${s.nextId++}`, itemId: 'desk', level: 1, ...spot });
+  }
+  return s;
+}
+
+// A placeItem action for the first free spot.
+export const placeAction = (s, itemId) => ({ type: 'placeItem', itemId, ...findSpot(s.officeStage, s.office.placed, itemId) });
+
+// Adds a placed item for free, off in its own row so it touches nothing. For effect tests.
+export function withItem(s, itemId, level = 1) {
+  s.office.placed.push({ id: `i${s.nextId++}`, itemId, level, x: 0, y: 100 + s.office.placed.length * 4, rot: 0 });
+  return s;
+}
+
+// Replaces every non-desk item with the given list (each placed apart from the rest).
+export function setItems(s, list) {
+  s.office.placed = s.office.placed.filter((p) => p.itemId === 'desk');
+  for (const it of list) withItem(s, it.itemId, it.level);
+  return s;
+}
 
 // Adds a generated person to staff with optional overrides and returns them.
 export function addStaff(state, role, seniority, over = {}) {

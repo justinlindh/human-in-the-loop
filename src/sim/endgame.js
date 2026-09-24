@@ -17,13 +17,14 @@ export function scoreRun(state) {
   };
   const raw = sum(Object.values(breakdown));
   const won = !!state.gameOver?.won;
-  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1));
+  const funding = B.funding[state.founding?.funding]?.scoreMult ?? 1;
+  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding);
   return { score, valuation, breakdown };
 }
 
-function summary(state, { won, reason }) {
+function summary(state, { won, reason, retiredVia }) {
   return {
-    won, reason,
+    won, reason: retiredVia ?? reason, leaders: categoryLeaders(state).length, years: Math.floor(state.week / 52),
     avgMeaning: avg(state.staff, (p) => p.meaning),
     juniorsHired: state.stats.juniorsHired, caught: state.stats.caught, breaches: state.stats.breaches,
     debt: state.comprehensionDebt, resignations: state.stats.resignations,
@@ -44,12 +45,13 @@ export function buildEpilogue(state, outcome) {
   return lines;
 }
 
-export function endGame(ctx, { won, reason }) {
+export function endGame(ctx, { won, reason, retiredVia = null }) {
   const { state } = ctx;
   if (state.gameOver) return;
   state.gameOver = { won, reason, score: 0, epilogue: [] };
+  if (retiredVia) state.gameOver.retiredVia = retiredVia;
   state.gameOver.score = scoreRun(state).score;
-  state.gameOver.epilogue = buildEpilogue(state, { won, reason });
+  state.gameOver.epilogue = buildEpilogue(state, { won, reason, retiredVia });
   ctx.emit({ type: 'gameOver' });
 }
 
@@ -68,10 +70,6 @@ export function endgameSystem(ctx) {
   const { state } = ctx;
   if (state.lowCashWeeks >= B.runwayLoseWeeks) return endGame(ctx, { won: false, reason: 'runway' });
   if (collapsed(state)) return endGame(ctx, { won: false, reason: 'collapse' });
-  if (state.week >= B.runWeeks - 1) {
-    const won = categoryLeaders(state).length >= B.leaderCategoriesToWin;
-    endGame(ctx, { won, reason: won ? 'leader' : 'timeout' });
-  }
 }
 
 export function historySystem(ctx) {
@@ -89,11 +87,45 @@ export function historySystem(ctx) {
 registerSystem('endgame', endgameSystem, 90);
 registerSystem('history', historySystem, 95);
 
-registerAction('ipo', (ctx) => {
+// Why an IPO is not available yet, or null when it is.
+export function ipoBlocker(state) {
+  if (totalMrr(state) < B.ipoMrr) return `Needs $${B.ipoMrr.toLocaleString('en-US')} MRR`;
+  if (state.brand < B.ipoBrand) return `Needs brand ${B.ipoBrand}`;
+  if (state.officeStage !== 2) return 'Needs the HQ Building';
+  return null;
+}
+
+export const acquisitionOpen = (state) => (state.flags.acquisitionOfferUntil ?? -1) >= state.week;
+
+// How the player can retire right now: 'ipo', 'acquired', or null.
+export const retireVia = (state) => (!ipoBlocker(state) ? 'ipo' : acquisitionOpen(state) ? 'acquired' : null);
+
+// Both ways to retire, each with whether it is open now and why not; the UI's Retire flow reads this.
+export function retireOptions(state) {
+  const ipo = ipoBlocker(state);
+  const open = acquisitionOpen(state);
+  return {
+    ipo: { ok: !ipo, reason: ipo },
+    acquired: { ok: open, reason: open ? null : 'No acquisition offer on the table', by: open ? state.flags.acquisitionOfferFrom ?? null : null },
+  };
+}
+
+export function retire(ctx, via) {
   const { state } = ctx;
-  if (totalMrr(state) < B.ipoMrr) return { ok: false, reason: `Needs $${B.ipoMrr.toLocaleString('en-US')} MRR` };
-  if (state.brand < B.ipoBrand) return { ok: false, reason: `Needs brand ${B.ipoBrand}` };
-  if (state.officeStage !== 2) return { ok: false, reason: 'Needs the HQ Building' };
-  endGame(ctx, { won: true, reason: 'ipo' });
+  if (via === 'acquired') state.flags.acquirer ??= state.flags.acquisitionOfferFrom ?? 'a much bigger company';
+  endGame(ctx, { won: true, reason: 'retired', retiredVia: via });
+}
+
+registerAction('retire', (ctx) => {
+  const via = retireVia(ctx.state);
+  if (!via) return { ok: false, reason: 'Needs an IPO or an open acquisition offer' };
+  retire(ctx, via);
+  return { ok: true };
+});
+
+registerAction('ipo', (ctx) => {
+  const reason = ipoBlocker(ctx.state);
+  if (reason) return { ok: false, reason };
+  retire(ctx, 'ipo');
   return { ok: true };
 });

@@ -24,3 +24,15 @@ describe('invariants hold for every bot over full runs', () => {
     expect(() => assertFinite({ a: 1, b: 'x', c: null })).not.toThrow();
   });
 });
+
+describe('bot event sink', () => {
+  it('forwards the events of every bot dispatch, including goals and unlocks', async () => {
+    const { runBot } = await import('../../src/sim/bots.js');
+    const seen = [];
+    runBot('balanced', 3, 60, { onEvents: (events, action) => seen.push(...events.map((e) => [e.type, action.type])) });
+    const types = new Set(seen.map(([t]) => t));
+    expect(types.has('goal')).toBe(true);
+    expect(seen.some(([t, a]) => t === 'goal' && a === 'placeItem')).toBe(true);
+    expect(seen.some(([, a]) => a === 'startProject')).toBe(true);
+  });
+});
