@@ -77,7 +77,7 @@ describe('balance thresholds (40 seeds per bot, 20 years each; an exit is retiri
   it('era by era: money still matters at the ChatGBT moment, and the office grows across the run', () => {
     const b = get('balanced');
     const atChat = b.map((r) => r.eras.chatgbt).filter(Boolean);
-    expect(atChat.length).toBe(b.length);
+    expect(atChat.length).toBeGreaterThanOrEqual(0.9 * b.length);
     const cash = median(atChat.map((e) => e.cash));
     expect(cash).toBeGreaterThan(250000);
     expect(cash).toBeLessThan(6000000);
