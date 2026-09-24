@@ -156,6 +156,13 @@ export function createHud({ root, controls, ui }) {
   const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
+  // The bar wraps onto more rows on narrow screens; the tray and toasts sit below its real height.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => {
+      const hgt = bar.offsetHeight;
+      if (hgt) root.style.setProperty('--topbar-h', `${bar.offsetTop + hgt}px`);
+    }).observe(bar);
+  }
 
   const tray = h('div.tray');
   root.append(bar, tray);
