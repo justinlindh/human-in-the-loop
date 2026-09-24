@@ -433,7 +433,7 @@ const list = [
     id: 'product_hunt_top', kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.score >= 6),
     title: 'Product of the Day',
-    text: '{product} hit #1 on Product Hunt. Your mom upvoted it twice from two accounts.',
+    text: '{product} hit #1 on Product Hunch. Your mom upvoted it twice from two accounts.',
     auto: { hype: 15, brand: 2 },
   },
   {
