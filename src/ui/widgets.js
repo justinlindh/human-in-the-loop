@@ -18,6 +18,25 @@ export function portrait(person, size = 48) {
   return c;
 }
 
+const urlCache = new Map();
+
+// Portrait as a cached data URL, for places that show many small copies (the chat feed).
+export function portraitURL(person, size = 44) {
+  const a = person.appearance ?? {};
+  const key = `${person.id}|${person.mood}|${person.role}|${a.skin}|${a.hair}|${a.hairColor}|${a.shirt}|${a.accessory}|${size}`;
+  let url = urlCache.get(key);
+  if (!url) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    if (g) { g.scale(size / 64, size / 64); drawPortrait(g, person); }
+    url = c.toDataURL();
+    if (urlCache.size > 300) urlCache.clear();
+    urlCache.set(key, url);
+  }
+  return url;
+}
+
 function drawPortrait(g, p) {
   const a = p.appearance ?? {};
   const role = roleColor(p.role);
