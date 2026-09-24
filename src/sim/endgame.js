@@ -6,13 +6,16 @@ import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { categoryLeaders } from './market.js';
 import { EPILOGUES, GENERIC_EPILOGUES } from '../data/epilogues.js';
+import { eraOnlyAllowsText } from './eras.js';
 
 export function scoreRun(state) {
   const mrr = totalMrr(state);
   const valuation = mrr * 12 * (4 + (8 * state.brand) / 100) + Math.max(0, state.cash);
   const wellbeing = avg(state.staff, (p) => p.meaning) * state.staff.length;
+  // A company that never shipped earns nothing for brand or a happy team: there was nothing to be good at.
+  const shipped = state.stats.launches > 0 ? 1 : 0;
   const breakdown = {
-    valuation: valuation / 10000, brand: state.brand * 50, wellbeing: wellbeing * 2,
+    valuation: valuation / 10000, brand: state.brand * 50 * shipped, wellbeing: wellbeing * 2 * shipped,
     caught: state.stats.caught * 100, breaches: -state.stats.breaches * 200, resignations: -state.stats.resignations * 50,
   };
   const raw = sum(Object.values(breakdown));
@@ -37,8 +40,8 @@ const fill = (state, text) => text.replaceAll('{company}', state.companyName).re
 // Every matching epilogue in list order (outcome lines come first), capped at 5, topped up to 3 with generic lines.
 export function buildEpilogue(state, outcome) {
   const x = summary(state, outcome);
-  const lines = EPILOGUES.filter((e) => e.when(state, x)).slice(0, 5).map((e) => fill(state, e.text));
-  for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x)))) {
+  const lines = EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)).slice(0, 5).map((e) => fill(state, e.text));
+  for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
     if (lines.length >= 3) break;
     lines.push(fill(state, g.text));
   }

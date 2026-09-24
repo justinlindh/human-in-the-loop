@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, dispatch, tick } from '../../src/sim/index.js';
 import { EVENTS } from '../../src/data/events.js';
+import { OPENING_BEATS } from '../../src/sim/projects.js';
+
+const isBeat = (e) => e.type === 'say' && OPENING_BEATS.some((b) => b.say?.includes(e.text));
 
 describe('first product beats', () => {
   it('the first build has a prototype, a user test decision, and a late aside, once each', () => {
@@ -15,7 +18,7 @@ describe('first product beats', () => {
       }
       for (const e of tick(s)) {
         if (e.type === 'toast' && /Jotter/.test(e.text) && !/launched|Started/.test(e.text)) seen.push('beat');
-        if (e.type === 'say') {
+        if (isBeat(e)) {
           expect(e).toMatchObject({ staffId: expect.any(String), text: expect.any(String), toId: null, replyTo: null });
           seen.push('say');
         }
@@ -32,7 +35,7 @@ describe('first product beats', () => {
     let beats = 0;
     for (let w = 0; w < 30; w++) {
       for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
-      for (const e of tick(s)) if (e.type === 'say' || e.type === 'decision' && s.pendingDecision?.eventId === 'first_user_test') beats++;
+      for (const e of tick(s)) if (isBeat(e) || (e.type === 'decision' && s.pendingDecision?.eventId === 'first_user_test')) beats++;
     }
     expect(beats).toBe(0);
   });

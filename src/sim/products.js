@@ -179,6 +179,7 @@ registerAction('upgradeOffice', (ctx) => {
   const { placed, left } = autoArrange(state.officeStage, state.office.placed);
   for (const p of left) state.cash += spentOn(p);
   state.office = { stage: state.officeStage, placed };
+  state.flags.officeMovedWeek = state.week;
   ctx.emit({ type: 'officeUpgrade', stage: state.officeStage });
   ctx.emit({ type: 'toast', text: `Welcome to the ${next.name}! The movers put everything somewhere. Rearrange as you like.`, tone: 'good' });
   return { ok: true };

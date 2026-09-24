@@ -1,15 +1,15 @@
 import { B } from './balance.js';
-import { avg, newId, article } from './util.js';
+import { avg, newId, article, clamp } from './util.js';
 import { chance, pick, range, shuffle } from './rng.js';
 import { registerSystem } from './registry.js';
 import { automationExposure } from './automation.js';
 import { CHATTER } from '../data/chatter.js';
-import { THREADS } from '../data/threads.js';
 import { MODELS } from '../data/models.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ITEMS } from '../data/items.js';
 import { incumbentFor } from '../data/incumbents.js';
-import { eraAllowsText, eraLines } from './eras.js';
+import { eraLines } from './eras.js';
+import { talkSystem } from './talk.js';
 
 const REACTIONS = {
   win: ['🎉', '🚀', '👏', '🔥', '💯'],
@@ -121,59 +121,6 @@ function happenings(ctx) {
   };
 }
 
-// Everyone who could play a thread role, not counting people already in the thread.
-function cast(state, who, poster, used, promoted) {
-  if (who === 'poster') return poster ? [poster] : [];
-  const pool = present(state).filter((p) => !used.has(p.id));
-  const mentorOf = (p) => state.staff.find((m) => m.assignment.type === 'mentor' && m.assignment.targetId === p.id && m.mood !== 'away');
-  switch (who) {
-    case 'random': return pool;
-    case 'founder': return pool.filter((p) => p.founder);
-    case 'any junior': return pool.filter((p) => p.seniority === 'junior');
-    case 'coasting senior': return pool.filter((p) => p.seniority === 'senior' && p.mood === 'coasting');
-    case 'automated senior': return pool.filter((p) => p.seniority === 'senior' && automationExposure(state, p) > 0.5);
-    case 'burnout': return pool.filter((p) => p.mood === 'burnout');
-    case 'mentor': return pool.filter((p) => p.assignment.type === 'mentor' && pool.some((q) => q.id === p.assignment.targetId));
-    case 'mentored junior': return pool.filter((p) => p.seniority === 'junior' && mentorOf(p));
-    case 'their mentee': return poster?.assignment.type === 'mentor' ? pool.filter((p) => p.id === poster.assignment.targetId) : [];
-    case 'their mentor': return poster ? pool.filter((p) => mentorOf(poster)?.id === p.id) : [];
-    case 'overseer': return pool.filter((p) => p.assignment.type === 'oversight');
-    case 'new hire': return pool.filter((p) => !p.founder && p.hiredWeek >= state.week - 8);
-    case 'promoted': return promoted && pool.includes(promoted) ? [promoted] : [];
-    default: return pool.filter((p) => p.role === who);
-  }
-}
-
-// Casts and fills a thread; returns null if any part cannot be cast or filled.
-function planThread(state, rng, t, context) {
-  const used = new Set();
-  const posters = cast(state, t.post.who, null, used, context?.person);
-  if (!posters.length) return null;
-  const poster = pick(rng, posters);
-  used.add(poster.id);
-  const fillOpts = { product: context?.product ?? null, item: context?.item ?? null };
-  const postText = fillChat(state, rng, t.post.text, { ...fillOpts, speaker: poster });
-  if (postText === null) return null;
-  const lines = [{ person: poster, text: postText }];
-  for (const r of t.replies) {
-    const options = cast(state, r.who, poster, used, context?.person);
-    if (!options.length) return null;
-    const person = pick(rng, options);
-    used.add(person.id);
-    const text = fillChat(state, rng, r.text, { ...fillOpts, speaker: person, poster });
-    if (text === null) return null;
-    lines.push({ person, text });
-  }
-  return lines;
-}
-
-function postThread(ctx, t, lines) {
-  const kind = t.channel === 'wins' ? 'win' : t.channel === 'incidents' ? 'incident' : null;
-  const root = emitChat(ctx, { channel: t.channel, person: lines[0].person, text: lines[0].text, kind });
-  for (const l of lines.slice(1)) emitChat(ctx, { channel: t.channel, person: l.person, text: l.text, replyTo: root.id, kind });
-  ctx.state.flags[`cdThread_${t.id}`] = ctx.state.week + (t.cooldown ?? B.threadCooldownWeeks);
-}
-
 const NUDGES = {
   desks: ['We should probably get desks in here first.', 'I have been sitting on a paint can for a week. Desks?', 'Standing is fine. Standing for a year is not. Desks.'],
   product: ['Desks: done. Now we just need, you know, a product.', 'Should we build something? I feel like we should build something.'],
@@ -194,10 +141,6 @@ export function chatSystem(ctx) {
   const { state } = ctx;
   const team = present(state);
   const meaning = teamMeaning(state);
-  const h = {
-    avgMeaning: meaning, debt: state.comprehensionDebt, ik: state.institutionalKnowledge, week: state.week,
-    hasModifier: (label) => state.modifiers.some((m) => m.label === label && m.untilWeek > state.week),
-  };
 
   for (const e of ctx.events.filter((x) => x.type === 'launch')) {
     const p = state.products.find((x) => x.id === e.productId);
@@ -209,36 +152,22 @@ export function chatSystem(ctx) {
   if (nudge) {
     const f = pick(ctx.rng, team.filter((p) => p.founder).length ? team.filter((p) => p.founder) : team);
     emitChat(ctx, { person: f, text: nudge });
-    ctx.emit({ type: 'bubble', staffId: f.id, text: nudge, tone: 'good' });
+    ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: f.id, text: nudge, toId: null, replyTo: null });
   }
 
-  const cooled = (t) => (state.flags[`cdThread_${t.id}`] ?? -1) <= state.week && eraAllowsText(state, [t.post.text, ...t.replies.map((r) => r.text)].join(' '));
-  const happened = happenings(ctx);
-  for (const t of shuffle(ctx.rng, THREADS.filter((x) => x.context && happened[x.context] && cooled(x)))) {
-    const lines = planThread(state, ctx.rng, t, happened[t.context]);
-    if (lines) { postThread(ctx, t, lines); break; }
-  }
-
-  let budget = Math.min(B.chatMax, Math.round(B.chatBase + B.chatPerMeaning * meaning));
-  if (budget >= 2 && chance(ctx.rng, B.threadChance)) {
-    for (const t of shuffle(ctx.rng, THREADS.filter((x) => !x.context && cooled(x) && x.when(state, h)))) {
-      const lines = planThread(state, ctx.rng, t, null);
-      if (lines && lines.length <= budget) { postThread(ctx, t, lines); budget -= lines.length; break; }
-    }
-  }
-  // Recently used template lines are kept in flags so the feed does not loop.
+  // Conversations, spoken and in Slackk; then, if nobody posted, an occasional mood line in #general.
+  const posted = talkSystem(ctx, happenings(ctx));
+  if (posted || !chance(ctx.rng, B.chatSoloChance * clamp(meaning / 70, 0.3, 1.2))) return;
   const recent = state.flags.recentChat ?? [];
-  for (let i = 0; i < budget; i++) {
-    const p = pick(ctx.rng, team);
-    const pool = eraLines(state, CHATTER[chatterKey(state, p)]).filter((line) => !recent.includes(line));
-    for (let tries = 0; tries < 4 && pool.length; tries++) {
-      const line = pick(ctx.rng, pool);
-      const text = fillChat(state, ctx.rng, line, { speaker: p });
-      if (text !== null) {
-        emitChat(ctx, { person: p, text });
-        recent.push(line);
-        break;
-      }
+  const p = pick(ctx.rng, team);
+  const pool = eraLines(state, CHATTER[chatterKey(state, p)]).filter((line) => !recent.includes(line));
+  for (let tries = 0; tries < 4 && pool.length; tries++) {
+    const line = pick(ctx.rng, pool);
+    const text = fillChat(state, ctx.rng, line, { speaker: p });
+    if (text !== null) {
+      emitChat(ctx, { person: p, text });
+      recent.push(line);
+      break;
     }
   }
   state.flags.recentChat = recent.slice(-B.chatMemory);

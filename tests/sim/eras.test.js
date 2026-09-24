@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, dispatch, tick, dateOf } from '../../src/sim/index.js';
-import { eraIndex, currentEra, eraAllowsText } from '../../src/sim/eras.js';
+import { eraIndex, currentEra, eraAllowsText, eraOnlyAllowsText } from '../../src/sim/eras.js';
 import { eligibleEvents } from '../../src/sim/events.js';
 import { applyEffects } from '../../src/sim/effects.js';
 import { refreshCandidates as refreshCandidatesFor } from '../../src/sim/staff.js';
@@ -103,7 +103,7 @@ describe('what each era allows', () => {
     s.week = 60;
     addProduct(s, { model: null, angle: 'web' });
     const ids = eligibleEvents(s).map((e) => e.id);
-    for (const id of ids) expect(eraAllowsText(s, JSON.stringify([EVENTS[id].title, EVENTS[id].text])), id).toBe(true);
+    for (const id of ids) expect(eraOnlyAllowsText(s, JSON.stringify([EVENTS[id].title, EVENTS[id].text])), id).toBe(true);
     expect(ids).not.toContain('vendor_new_version');
     expect(eraAllowsText(s, 'The agent rewrote pricing')).toBe(false);
     expect(eraAllowsText(s, 'Pairing today was fun')).toBe(true);
@@ -122,7 +122,7 @@ describe('what each era allows', () => {
       s.lowCashWeeks = 0;
     }
     expect(s.products.length).toBeGreaterThan(0);
-    const ai = lines.filter((t) => !eraAllowsText({ era: { id: 'classic' } }, t));
+    const ai = lines.filter((t) => !eraOnlyAllowsText({ era: { id: 'classic' } }, t));
     expect(ai).toEqual([]);
     expect(currentEra(s).id).toBe('classic');
     expect(eraIndex(s)).toBe(0);

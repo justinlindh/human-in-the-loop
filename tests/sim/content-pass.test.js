@@ -48,8 +48,9 @@ describe('content pass', () => {
       const c = makeCtx(s);
       marketSystem(c);
       chatSystem(c);
-      const thread = c.events.find((e) => e.type === 'chat' && /clone with our exact tagline/.test(e.text));
-      if (thread) { expect(thread.text).toContain('a Notes clone'); return; }
+      const cloned = c.events.some((e) => e.from === '@hackernewsbot');
+      const talk = c.events.filter((e) => (e.type === 'chat' && e.fromId) || e.type === 'say').map((e) => e.text).join(' ');
+      if (cloned && /Notes/.test(talk)) { expect(talk).not.toMatch(/Email/); return; }
       s.week++;
     }
     throw new Error('clone thread never fired');

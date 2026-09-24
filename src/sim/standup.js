@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { int, pick, shuffle } from './rng.js';
+import { chance, int, pick, shuffle } from './rng.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { mentorOf } from './staff.js';
@@ -60,8 +60,9 @@ export function standupSystem(ctx) {
   if (mode === 'daily') {
     for (const p of speakers) p.meaning = Math.min(100, p.meaning + B.standupDailyMeaning);
   } else {
+    // Async updates are easy to skip: about half the speakers actually post.
     for (const l of lines) {
-      if (l.text) emitChat(ctx, { channel: 'standup', person: state.staff.find((p) => p.id === l.staffId), text: l.text });
+      if (l.text && chance(ctx.rng, B.asyncStandupPostChance)) emitChat(ctx, { channel: 'standup', person: state.staff.find((p) => p.id === l.staffId), text: l.text });
     }
   }
 }
