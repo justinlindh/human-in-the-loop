@@ -259,6 +259,8 @@ function balanced(s) {
     const level = fn === 'engineering' || affordAuto ? target[fn] : 0;
     if (s.automation[fn].level !== level || s.automation[fn].model !== model) dispatch(s, { type: 'setAutomation', fn, level, model });
   }
+  const standup = s.flags.botStandup ?? 'daily_standups';
+  if (!s.policies[standup]) dispatch(s, { type: 'setPolicy', id: standup, on: true });
   for (const id of ['pair', 'comprehension_reviews', 'apprenticeship', 'sabbatical']) {
     if (!s.policies[id] && POLICIES[id].unlock(s) && (POLICIES[id].weeklyCost === 0 || weeksOfBurn(s) > 30)) dispatch(s, { type: 'setPolicy', id, on: true });
   }
@@ -322,6 +324,8 @@ function allHumans(s) {
 
 // A careful new player: one early hire, small products on good combos, light automation, sensible choices.
 function sensible(s) {
+  s.flags.botStandup = 'async_standups';
+  if (!s.policies.async_standups) dispatch(s, { type: 'setPolicy', id: 'async_standups', on: true });
   if (s.week <= 2 && s.stats.hires < (s.flags.botEarlyHires ?? 1)) act(s, hireBest(s, (c) => c.role === 'engineer' && c.seniority !== 'senior', (a, b) => skillSum(b) - skillSum(a)));
   if (s.week < 52) {
     if (!s.projects.some((j) => j.kind === 'new') && s.cash > 5000) dispatch(s, startNew(s, 'small', 'chatgbt', fixedName(s)));
