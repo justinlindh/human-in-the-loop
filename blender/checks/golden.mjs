@@ -31,6 +31,12 @@ const SCENES = [
   { name: 'desk-moods', query: 'mock=floor', setup: `(${MOODS})(['coasting', 'burnout', 'tired']); __focus = 1;`, steps: 45, zoom: 3.2 },
   { name: 'couch-nap', query: 'mock=floor', setup: `__HITL.state.office.placed.push({ id: 'g_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }); __nap = 'g_couch';`, steps: 60, zoom: 4.2 },
   { name: 'nap-pod', query: 'mock=floor', setup: `__HITL.state.office.placed.push({ id: 'g_pod', itemId: 'nap_pod', level: 2, x: 3, y: 9, rot: 0 }); __nap = 'g_pod';`, steps: 60, zoom: 4.2 },
+  // Turnarounds of hair, accessory and role combinations that used to clip or read wrong.
+  { name: 'combo-curly-headphones', query: 'chars=2&hair=6&acc=headphones&role=engineer&hc=0', steps: 8, at: [0, 0, 1.7] },
+  { name: 'combo-longhair-hood', query: 'chars=2&hair=2&acc=none&role=engineer', steps: 8, at: [0, 0, 1.7] },
+  { name: 'combo-support-hat', query: 'chars=2&hair=2&acc=cap&role=support', steps: 8, at: [0, 0, 1.7] },
+  { name: 'combo-security', query: 'chars=2&hair=5&acc=none&role=security&build=2', steps: 8, at: [0, 0, 1.7] },
+  { name: 'combo-headphones-side', query: 'chars=2&hair=2&acc=headphones&role=designer', steps: 8, at: [0, 0, 1.7] },
   { name: 'char-lineup-rig', query: 'chars=1&rig=1', steps: 20 },
   { name: 'desk-typing-rig', query: 'mock=floor&rig=1', setup: `(${MOODS})(['ok']); __focus = 0;`, steps: 45, zoom: 4.2 },
   { name: 'desk-moods-rig', query: 'mock=floor&rig=1', setup: `(${MOODS})(['coasting', 'burnout', 'tired']); __focus = 1;`, steps: 45, zoom: 3.2 },
@@ -46,7 +52,7 @@ const results = [];
 for (const sc of SCENES) {
   if (ONLY && !ONLY.includes(sc.name)) continue;
   const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX });
-  const png = await page.evaluate(async ({ setup, steps, zoom }) => {
+  const png = await page.evaluate(async ({ setup, steps, zoom, at }) => {
     const R = window.__hitlRender;
     const S = window.__HITL?.state;
     window.__focus = null; window.__nap = null;
@@ -59,6 +65,8 @@ for (const sc of SCENES) {
       for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) R.advance(0.1);
       const e = R.office.placed.get(window.__nap);
       R.focusAt(e.target.x, e.target.z, zoom);
+    } else if (at) {
+      R.focusAt(at[0], at[1], at[2]);
     } else if (window.__focus !== null && R.office?.current) {
       const d = R.office.current.desks[window.__focus];
       R.focusAt(d.seat.x, d.seat.z, zoom);
@@ -66,7 +74,7 @@ for (const sc of SCENES) {
     step(steps);
     const c = document.querySelector('canvas');
     return c.toDataURL('image/png');
-  }, { setup: sc.setup ?? '', steps: sc.steps, zoom: sc.zoom ?? 1 });
+  }, { setup: sc.setup ?? '', steps: sc.steps, zoom: sc.zoom ?? 1, at: sc.at ?? null });
   const buf = Buffer.from(png.split(',')[1], 'base64');
   const refPath = join(REF, `${sc.name}.png`);
   if (UPDATE || !existsSync(refPath)) {

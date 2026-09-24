@@ -43,12 +43,19 @@ function characterColor(hex, mute = 0.15) {
   return c.lerp(gray, mute);
 }
 
-// A shirt close to the role color would swallow the role garment; push it toward pale cream.
+// A shirt close to the role color would swallow the role garment, so it is swapped for another
+// palette fabric far from that color; the pick follows the original shirt, so a person keeps theirs.
+const SHIRT_SWAPS = ['fabric_teal', 'fabric_mustard', 'fabric_terracotta', 'fabric_sage', 'wood_light'];
+const CLASH = 0.35;
+const dist = (a, b) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
 function shirtColor(hex, roleHex) {
   const c = characterColor(hex);
   const r = new THREE.Color(roleHex);
-  const d = Math.hypot(c.r - r.r, c.g - r.g, c.b - r.b);
-  return d < 0.35 ? c.lerp(new THREE.Color(PALETTE.paper), 0.6) : c;
+  if (dist(c, r) >= CLASH) return c;
+  const ok = SHIRT_SWAPS.map((k) => characterColor(PALETTE[k])).filter((s) => dist(s, r) >= CLASH);
+  let h = 0;
+  for (const ch of String(hex)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return ok.length ? ok[h % ok.length] : c;
 }
 
 const roleMats = new Map();
@@ -177,8 +184,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const tpl = getTemplate('chibi');
   const role = opts.role ?? null;
   const build = Math.max(0, Math.min(2, appearance.build ?? 1));
-  const acc = appearance.accessory ?? 'none';
+  // Support's headset is its headwear: no hat or headphones over it (glasses are fine).
+  const acc = role === 'support' && appearance.accessory !== 'glasses' ? 'none' : appearance.accessory ?? 'none';
   const hairIdx = Math.max(0, Math.min(7, appearance.hair ?? 0));
+  // Headphones press curly hair flat under the band; long hair covers the hood of a hoodie.
+  const hairPart = hairIdx === 6 && acc === 'headphones' ? 'hair_6_hp' : `hair_${hairIdx}`;
+  const LONG_HAIR = 2;
   const hat = acc === 'beanie' || acc === 'cap';
 
   // Per-character materials (tintable); everything else is shared.
@@ -250,7 +261,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   torso.add(lanyard, badge);
   const torsoParts = [torsoMesh, lanyard, badge];
   if (role && role !== 'support') {
-    const g = P(`role_${role}`);
+    const g = P(role === 'engineer' && hairIdx === LONG_HAIR && !hat ? 'role_engineer_tucked' : `role_${role}`);
     g.scale.set(wScale, 1, bdepth);
     torso.add(g);
     torsoParts.push(g);
@@ -270,7 +281,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const cheeks = makeCheeks(tpl, own.skin.color);
   headGroup.add(cheeks.group);
   // A hat replaces the hair; drawing both makes them fight through each other.
-  if (!hat) { const h = P(`hair_${hairIdx}`); headGroup.add(h); headParts.push(h); }
+  if (!hat) { const h = P(hairPart); headGroup.add(h); headParts.push(h); }
   if (acc !== 'none') {
     const a = P(`acc_${acc}`);
     // Hats take a colour picked from the person's look, so a row of cap wearers are not clones.

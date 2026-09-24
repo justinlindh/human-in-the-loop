@@ -152,20 +152,34 @@ h = at_head([hair_cap('h5cap', 0.09, -0.1), lump('h5bun', 0.1, (0, 0.1, 0.22), (
 join(h, 'hair_5')                                                   # bun
 # Curly: a close cap covered in small curls. Curls sit on a shell around the head and stop above
 # the brow in front, so there is no cut edge to show.
-curls = [hair_cap('h6cap', 0.1, -0.08)]
-k = 0
-for ring, (elev, n) in enumerate([(80, 1), (48, 5), (18, 7)]):
-    for i in range(n):
-        az = math.radians(i * 360 / n + ring * 17)
-        el = math.radians(elev)
-        cr = HEAD_R + 0.035
-        x, y, z = cr * math.cos(el) * math.sin(az) * 1.05, -cr * math.cos(el) * math.cos(az), cr * math.sin(el)
-        if y < -0.1 and z < 0.12:
-            continue
-        c = uvsphere(f'h6c{k}', 0.085 if ring else 0.1, (x, y, z), None, seg=8, rings=5, scale=(1, 1, 0.9))
-        curls.append(use(c, 'hair'))
-        k += 1
-join(at_head(curls), 'hair_6')                                     # curly
+# hair_6_hp is the same style under headphones: curls on the band's plane (y = 0) give way and
+# their neighbours are pressed flat, so the band shows in the channel they leave.
+def curly(name, pressed=False):
+    curls = [hair_cap(f'{name}cap', 0.1, -0.08)]
+    k = 0
+    for ring, (elev, n) in enumerate([(80, 1), (48, 5), (18, 7)]):
+        for i in range(n):
+            az = math.radians(i * 360 / n + ring * 17)
+            el = math.radians(elev)
+            cr = HEAD_R + 0.035
+            x, y, z = cr * math.cos(el) * math.sin(az) * 1.05, -cr * math.cos(el) * math.cos(az), cr * math.sin(el)
+            if y < -0.1 and z < 0.12:
+                continue
+            r, sq = (0.085 if ring else 0.1), 1.0
+            if pressed and abs(y) < 0.05:
+                continue
+            if pressed and abs(y) < 0.12:
+                sq = 0.5 + 0.5 * (abs(y) - 0.05) / 0.07
+                cr2 = HEAD_R + 0.035 * sq
+                x, y, z = cr2 * math.cos(el) * math.sin(az) * 1.05, -cr2 * math.cos(el) * math.cos(az), cr2 * math.sin(el)
+            c = uvsphere(f'{name}c{k}', r * sq, (x, y, z), None, seg=8, rings=5, scale=(1, 1, 0.9))
+            curls.append(use(c, 'hair'))
+            k += 1
+    join(at_head(curls), name)
+
+
+curly('hair_6')                                                     # curly
+curly('hair_6_hp', pressed=True)
 h = at_head([hair_cap('h7cap', 0.1, -0.08), lump('h7swoop', 0.12, (-0.07, -0.13, 0.14), (1.3, 0.7, 0.5))])
 join(h, 'hair_7')                                                   # side swoop
 
@@ -176,9 +190,15 @@ for sx in (-1, 1):
     g.append(torus(f'gl{sx}', 0.044, 0.008, (sx * EX, surf_y(EX, EZ, 0.014), EZ), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=12, minor_seg=4))
 g.append(box('glbridge', (0.05, 0.008, 0.008), (0, face_y - 0.014, EZ + 0.01), 'plastic_charcoal', bevel=0))
 join(at_head(g), 'acc_glasses')
-hp = [torus('hpband', HEAD_R + 0.04, 0.018, (0, 0, 0), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=18, minor_seg=5)]
+# The band is a flat strap resting on the hair cap's ellipse (HEAD_R + 0.018, 4% wider), so from the
+# side it reads as part of the head's outline rather than a hoop standing over it.
+HP_R, HP_T = HEAD_R + 0.022, 0.01
+hp = [torus('hpband', HP_R, HP_T, (0, 0, 0), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=18, minor_seg=5)]
 bm = bmesh.new(); bm.from_mesh(hp[0].data)
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < 0.02], context='VERTS')
+for v in bm.verts:
+    v.co.x *= 1.06
+    v.co.y *= 2.2           # a flat strap: wide across the head, thin edge-on
 bm.to_mesh(hp[0].data); bm.free()
 for sx in (-1, 1):
     hp.append(cyl(f'hpcup{sx}', 0.07, 0.05, (sx * (HEAD_R + 0.03), 0, -0.01), 'fabric_slate', verts=12, bevel=0.012, rot=(0, math.pi / 2, 0)))
@@ -292,6 +312,13 @@ use(collar, 'role')
 pouch = box('pouch', (0.2, 0.02, 0.09), (0, -0.112, 0.08), None, bevel=0.012, segments=1)
 use(pouch, 'role')
 join([hood, collar, pouch] + strings, 'role_engineer')
+# The same without the hood behind the neck, for long hair that covers it.
+collar2 = torus('hood_collar2', 0.105, 0.028, (0, -0.005, TORSO_H - 0.005), None, major_seg=14, minor_seg=5)
+use(collar2, 'role')
+pouch2 = box('pouch2', (0.2, 0.02, 0.09), (0, -0.112, 0.08), None, bevel=0.012, segments=1)
+use(pouch2, 'role')
+strings2 = [use(box(f'hs2{sx}', (0.014, 0.014, 0.1), (sx * 0.045, -0.118, TORSO_H - 0.075), None, bevel=0), 'role') for sx in (-1, 1)]
+join([collar2, pouch2] + strings2, 'role_engineer_tucked')
 # Designer: a chunky scarf with two long tails.
 sc = [torus('scarf_ring', 0.095, 0.042, (0, -0.01, TORSO_H - 0.015), None, major_seg=14, minor_seg=5),
       box('scarf_tail', (0.07, 0.035, 0.2), (0.05, -0.125, TORSO_H - 0.13), None, bevel=0.014, segments=1, rot=(math.radians(8), 0, math.radians(-8))),
@@ -357,6 +384,9 @@ join([vs, stripe, stripe2, shield], 'role_security')
 REQUIRED = ['head', 'eyes', 'eye_shine', 'mouth_smile', 'mouth_flat', 'mouth_frown', 'blush',
             *[f'hair_{i}' for i in range(8)], 'acc_glasses', 'acc_headphones', 'acc_beanie', 'acc_cap',
             'torso_0', 'torso_1', 'torso_2', 'lanyard', 'badge', 'arm', 'hand', 'leg', 'shoe', 'mug',
-            *[f'role_{r}' for r in ('engineer', 'designer', 'marketer', 'support', 'security', 'sales')]]
+            *[f'role_{r}' for r in ('engineer', 'designer', 'marketer', 'support', 'security', 'sales')],
+            'hair_6_hp', 'role_engineer_tucked']
 require_parts(REQUIRED)
-export(budget=8000, zfight_kit=True)
+# The budget covers the whole kit; a character draws one part per slot (one hair, one role garment),
+# so variants such as hair_6_hp add to the file, not to any one person.
+export(budget=9000, zfight_kit=True)
