@@ -26,7 +26,9 @@ export function assignmentText(state, p) {
     const t = state.staff.find((x) => x.id === a.targetId);
     return `Mentoring ${t ? t.name.split(' ')[0] : ''}`.trim();
   }
-  if (a.type === 'sabbatical') return `Sabbatical${p.sabbaticalWeeksLeft ? ` (${p.sabbaticalWeeksLeft}w)` : ''}`;
+  // The sim reuses the sabbatical assignment for vacations, time off and training trips, and names
+  // the reason in flags.awayFor_<id>.
+  if (a.type === 'sabbatical') return `${state.flags?.[`awayFor_${p.id}`] ?? 'Sabbatical'}${p.sabbaticalWeeksLeft ? ` (${p.sabbaticalWeeksLeft}w)` : ''}`;
   return ASSIGNMENT_LABEL[a.type] ?? a.type;
 }
 
@@ -48,7 +50,10 @@ export function assignmentOptions(state, p) {
   if (p.seniority !== 'junior') {
     for (const j of state.staff) if (j.seniority === 'junior' && j.id !== p.id) add('mentor', j.id, `Mentor ${j.name}`, 'Growth');
   }
-  if (state.policies?.sabbatical || p.assignment?.type === 'sabbatical') add('sabbatical', null, 'Sabbatical', 'Growth');
+  // Someone away for another reason shows that reason (the current option below), not "Sabbatical".
+  const awayFor = p.assignment?.type === 'sabbatical' ? state.flags?.[`awayFor_${p.id}`] : null;
+  // While someone is away for another reason, "Sabbatical" is not offered: the current option shows the reason.
+  if (!awayFor && (state.policies?.sabbatical || p.assignment?.type === 'sabbatical')) add('sabbatical', null, 'Sabbatical', 'Growth');
   add('idle', null, 'Idle', 'Jobs');
   const cur = `${p.assignment?.type}:${p.assignment?.targetId ?? ''}`;
   if (!out.some((o) => o.value === cur)) add(p.assignment?.type ?? 'idle', p.assignment?.targetId, assignmentText(state, p), 'Current');

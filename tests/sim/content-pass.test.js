@@ -74,7 +74,7 @@ describe('content pass', () => {
     for (const kind of ['ransomware', 'supply_chain', 'db_wipe', 'runaway_spend']) expect(OUTAGE_KINDS.has(kind), kind).toBe(true);
   });
 
-  it('Hacker News clone posts are rate limited', () => {
+  it('Show HS clone posts are rate limited', () => {
     let last = -99;
     const r = runBot('balanced', 3, 520, {
       onWeek: (s, ev) => {

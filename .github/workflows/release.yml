@@ -1,0 +1,63 @@
+name: release
+
+# semantic-release reads the Conventional Commits since the last tag, tags the next version, and
+# publishes a GitHub release; a new release then deploys to Pages. Release rules: .releaserc.json.
+on:
+  push:
+    branches: [main, feat/one-shot]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only compute and print the next version
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - id: before
+        run: echo "tags=$(git tag --points-at HEAD --list 'v*' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+      - name: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release ${{ inputs.dry_run && '--dry-run' || '' }}
+      # A release made with GITHUB_TOKEN triggers no other workflow, so Pages is called from here.
+      - id: tag
+        env:
+          BEFORE: ${{ steps.before.outputs.tags }}
+        run: |
+          for t in $(git tag --points-at HEAD --list 'v*'); do
+            case " $BEFORE " in *" $t "*) ;; *) echo "tag=$t" >> "$GITHUB_OUTPUT" ;; esac
+          done
+
+  pages:
+    needs: release
+    if: needs.release.outputs.tag != ''
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+    with:
+      ref: ${{ needs.release.outputs.tag }}

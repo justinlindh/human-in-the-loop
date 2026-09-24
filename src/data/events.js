@@ -2,7 +2,8 @@
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way.
-// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder}.
+// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
+// {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
 export const SUBJECTS = [
@@ -13,11 +14,12 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
-  'cash', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
+  'cash', 'summit', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
+  'mission', 'purpose', 'ransom',
 ];
 
 
@@ -232,7 +234,7 @@ const list = [
     title: '{name} has an idea',
     text: '{name} read a blog post called "Support Teams Are Dead". They want support fully automated by Monday. "Think of the savings!"',
     choices: [
-      { label: 'Do it', hint: 'Support automation to 100% now (adds a weekly model bill); how customers feel shows up later', effects: { setAutomation: { support: 1 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
+      { label: 'Do it', hint: 'Support automation to 100% now (adds a weekly model bill); how customers feel shows up later', effects: { setAutomation: { support: 1 }, purpose: { people: -8, trust: -5, growth: 4 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
       { label: 'Trial it on half the tickets', hint: 'Support automation to 50%', effects: { setAutomation: { support: 0.5 } }, outcome: 'A careful rollout. {name} calls it "timid". You call it Tuesday.' },
       { label: 'Talk them down', hint: '{name} sulks a little', effects: { meaning: -3 }, outcome: '{name} reads a different blog post. It is about sourdough.' },
     ],
@@ -273,7 +275,7 @@ const list = [
     title: '"We are an AI-first company now"',
     text: '{name} wants to announce that {company} is AI-first. Every team must use agents for everything. There is a slide with a rocket on it.',
     choices: [
-      { label: 'Announce it', hint: 'Every automation dial +25% and a hype bump now; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, hype: 10, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'AI-first mandate' }, followUp: { eventId: 'ai_first_review', inWeeks: 12 } }, outcome: 'The press release goes out. Engineers read it on their phones, silently.' },
+      { label: 'Announce it', hint: 'Every automation dial +25% and a hype bump now; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, hype: 10, purpose: { craft: -8, people: -8, trust: -3, growth: 6 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'AI-first mandate' }, followUp: { eventId: 'ai_first_review', inWeeks: 12 } }, outcome: 'The press release goes out. Engineers read it on their phones, silently.' },
       { label: 'Make agents optional', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: 'People use the agents where they help. It is almost boring.' },
       { label: 'Kill the slide', hint: '{name} is a bit deflated', effects: { meaning: -3 }, outcome: 'The rocket slide lives on in a folder called "someday".' },
     ],
@@ -431,7 +433,7 @@ const list = [
     id: 'product_hunt_top', kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.score >= 6),
     title: 'Product of the Day',
-    text: '{product} hit #1 on Product Hunt. Your mom upvoted it twice from two accounts.',
+    text: '{product} hit #1 on Product Hunch. Your mom upvoted it twice from two accounts.',
     auto: { hype: 15, brand: 2 },
   },
   {
@@ -589,7 +591,7 @@ const list = [
     title: 'Ransomware',
     text: 'Every server now displays a skull and a crypto wallet address. The skull is animated.',
     choices: [
-      { label: 'Pay the ransom', hint: 'Huge cash hit', effects: { cash: -60000 }, outcome: 'The keys work. You feel dirty.' },
+      { label: 'Pay the ransom', hint: 'Pay {ransom}: it hurts, and it is sized to what you can pay', effects: { ransom: true }, outcome: 'The keys work. You feel dirty.' },
       { label: 'Restore from backups', hint: 'Needs institutional knowledge 40+, else heavy churn', effects: { cond: { test: 'ik40', then: { ik: 2 }, else: { customersPct: -20, brand: -4 } } }, outcome: 'Someone has to remember where the backups are.' },
     ],
   },
@@ -664,9 +666,9 @@ const list = [
     title: 'The Plateau',
     text: 'Every company has the same agents now. {incumbent} runs its whole support desk with three people and a very tired dashboard. Customers have started asking a new question: "Who actually made this?"',
     choices: [
-      { label: 'Lean into craft', hint: 'Brand up; people recover faster for 52 weeks', effects: { brand: 3, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 52, label: 'The craft turn' } }, outcome: 'You rewrite the About page. It now has photos of actual people. Some of them are even smiling.' },
-      { label: 'Automate to the floor', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Automate to the floor' } }, outcome: 'Margins go up. The office gets quieter. Someone starts a support group in the kitchen.' },
-      { label: 'Become the trusted one', hint: '-$20k; customers churn less for 52 weeks', effects: { cash: -20000, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Trust program' } }, outcome: 'You publish your incident history, your model choices, and a phone number that a human answers.' },
+      { label: 'Lean into craft', hint: 'Brand up; people recover faster for 52 weeks', effects: { brand: 3, purpose: { craft: 8, people: 4 }, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 52, label: 'The craft turn' } }, outcome: 'You rewrite the About page. It now has photos of actual people. Some of them are even smiling.' },
+      { label: 'Automate to the floor', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, purpose: { craft: -8, people: -8, growth: 6 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Automate to the floor' } }, outcome: 'Margins go up. The office gets quieter. Someone starts a support group in the kitchen.' },
+      { label: 'Become the trusted one', hint: '-$20k; customers churn less for 52 weeks', effects: { cash: -20000, purpose: { trust: 10, craft: 2 }, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Trust program' } }, outcome: 'You publish your incident history, your model choices, and a phone number that a human answers.' },
     ],
   },
   // The first product's user test (raised halfway through the first build)
@@ -763,6 +765,124 @@ const list = [
     choices: [
       { label: 'Merge', hint: '-$150k; their customers join your product in that market; {rival} is gone', effects: { cash: -150000, rivalFate: 'merged' }, outcome: '{rivalFounder} gets a nice title and a nicer chair. Their customers get your product. Most of them are fine with it.' },
       { label: 'Let them fall', hint: '{rival} shuts down', effects: { rivalFate: 'dead' }, outcome: 'Their last blog post is titled "What we learned". It is very long.' },
+    ],
+  },
+  // Purpose: the mission, and the decisions that test it
+  {
+    id: 'mission_statement', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'What are we for?',
+    text: 'The agents can do most of the work now. The team keeps asking the same question in different words: what is {company} actually for? Pick one answer and mean it.',
+    choices: [
+      { label: 'Make software people love', hint: 'Purpose from craft and care; automating the craft away will cost it later', effects: { mission: 'craft', teamMeaning: 3 }, outcome: 'Someone prints it on a mug. The mug has a typo. You keep it.' },
+      { label: 'A place where people grow', hint: 'Purpose from mentoring and juniors; replacing people will cost it later', effects: { mission: 'people', teamMeaning: 4 }, outcome: 'The juniors read it twice. One of them cries a little, quietly, in a good way.' },
+      { label: 'The company customers trust', hint: 'Purpose from reliability and honesty; hype and shortcuts will cost it later', effects: { mission: 'trust', brand: 2 }, outcome: 'You write it at the top of the incident runbook. It is the only line anyone reads.' },
+      { label: 'Grow as fast as the tools allow', hint: 'Purpose starts lower; automation keeps faith with it later', effects: { mission: 'growth', hype: 10 }, outcome: 'The all-hands claps. Some of the clapping is real.' },
+    ],
+  },
+  {
+    id: 'mission_test_support', kind: 'leadership', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['agents', 'consolidation', 'plateau'],
+    when: (s) => !!s.purpose && s.staff.some((p) => p.role === 'support'),
+    title: 'Humans on the phones?',
+    text: 'The board has a spreadsheet showing support run entirely by agents. The support team has seen the spreadsheet. The spreadsheet is very convincing.',
+    choices: [
+      { label: 'Keep humans on support', hint: '-$20k; Purpose up if this is who you are', effects: { cash: -20000, teamMeaning: 2, purpose: { people: 6, trust: 6, craft: 3 } }, outcome: 'The support team sends you a photo of their very old headsets, raised in salute.' },
+      { label: 'Hand support to the agents', hint: 'Support automation up; Purpose down unless you are here to grow', effects: { setAutomation: { support: 1 }, purpose: { people: -10, trust: -6, craft: -3, growth: 5 } }, outcome: 'The agents are polite, fast, and very sure about refunds.' },
+    ],
+  },
+  {
+    id: 'mission_test_demo', kind: 'market', weight: 2, cooldownWeeks: 78, random: true, subject: 'randomProduct', eras: ['agents', 'consolidation', 'plateau'],
+    when: (s) => !!s.purpose,
+    title: 'Ship it for the demo?',
+    text: 'There is a big conference next week. The new {product} feature is half finished. Marketing has already made the slide.',
+    choices: [
+      { label: 'Ship it for the demo', hint: 'Hype +15; Purpose down if you promised care or trust', effects: { hype: 15, purpose: { craft: -6, trust: -6, growth: 4 } }, outcome: 'The demo goes perfectly, as long as nobody clicks anywhere.' },
+      { label: 'Wait until it is right', hint: 'Hype down a little; Purpose up if this is who you are', effects: { hype: -5, purpose: { craft: 5, trust: 4 } }, outcome: 'Marketing mourns the slide. The feature ships three weeks later and works.' },
+    ],
+  },
+  // The AI Summit, one of three formats a year in rotation. Costs scale with the era ({summitSmall}, {summitBig}).
+  {
+    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The AI Summit',
+    text: 'The AI Summit is next month. Every company will announce something. Some of them will announce the same thing, in the same font. {incumbent} has booked the main stage.',
+    choices: [
+      { label: 'Skip it', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'You watch the keynotes at 2x speed. They are better that way.' },
+      { label: 'A talk in a side room', hint: '-{summitSmall}, brand +2, hype +10 on your newest product', effects: { summit: 'small', brand: 2, hype: 10 }, outcome: 'Forty people come. Thirty-eight stay. Two of them become customers.' },
+      { label: 'A live demo on the main stage', hint: '-{summitBig} and a gamble: a big brand and hype win, or a very public crash. Needs the Office Floor', requires: 'stage1', effects: { summit: 'big', gamble: { p: 0.6, effects: { brand: 6, hype: 30 }, else: { brand: -3, hype: 10 } } }, outcome: 'The lights go down. Someone in the front row is already filming.' },
+    ],
+  },
+  {
+    id: 'ai_summit_panel', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The AI Summit: the big panel',
+    text: 'This year the AI Summit wants {company} on its headline panel: "Will AI Replace Us?" The other panelists are {incumbent} and a man who only speaks in predictions.',
+    choices: [
+      { label: 'Decline the panel', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'The panel goes ahead without you. The answer, apparently, is "yes, but in a good way".' },
+      { label: 'Send someone thoughtful', hint: '-{summitSmall}; brand +3 and Purpose up if you promised trust', effects: { summit: 'small', brand: 3, purpose: { trust: 3 } }, outcome: 'You say something careful and true. It gets clipped to four words. They are good words.' },
+      { label: 'Go for the viral moment', hint: '-{summitBig} and a gamble: the clip everyone shares, or the clip everyone shares for the wrong reasons', effects: { summit: 'big', gamble: { p: 0.5, effects: { brand: 8, hype: 20 }, else: { brand: -4 } } }, outcome: 'You lean into the microphone. The moderator looks worried. So does your comms person.' },
+    ],
+  },
+  {
+    id: 'ai_summit_hackathon', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The AI Summit: the hackathon',
+    text: 'The AI Summit is running a 36-hour hackathon and wants a sponsor. The prize is a giant cheque. The real prize is whatever the teams build on top of your product.',
+    choices: [
+      { label: 'Pass', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'Someone else sponsors it. The giant cheque has their logo. It is very large.' },
+      { label: 'Sponsor a prize', hint: '-{summitSmall}; hype +15 on your newest product and a few junior candidates', effects: { summit: 'small', hype: 15, candidates: 'juniorBatch' }, outcome: 'The winning team built a thing that orders pizza by feel. You hire two of them.' },
+      { label: 'Put your whole API on the table', hint: '-{summitBig} and a gamble: the teams build you an ecosystem, or one of them builds a better version of you', effects: { summit: 'big', gamble: { p: 0.55, effects: { brand: 5, hype: 25, ik: 2 }, else: { brand: -2, clones: 1 } } }, outcome: 'Thirty teams, one API key each. The Wi-Fi gives up at hour four. The teams do not.' },
+    ],
+  },
+  {
+    id: 'hearing_summons', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Invited to testify',
+    text: 'A committee on AI in the workplace would like {company} to testify. The invitation is on very thick paper. The hearing will be on television.',
+    choices: [
+      { label: 'Send a founder', hint: 'A gamble: they come across well, or a clip goes viral for the wrong reasons. The report lands 13 weeks later', effects: { gamble: { p: 0.55, effects: { brand: 6 }, else: { brand: -5 } }, followUp: { eventId: 'hearing_report', inWeeks: 13 } }, outcome: 'Your founder practises in the mirror. The mirror has questions.' },
+      { label: 'Send the lawyers', hint: '-$30k; safe and very boring. The report lands 13 weeks later', effects: { cash: -30000, followUp: { eventId: 'hearing_report', inWeeks: 13 } }, outcome: 'The lawyers say "we would have to get back to you" eleven times. It is a masterpiece.' },
+      { label: 'Decline politely', hint: 'Brand down a little; the report lands 13 weeks later', effects: { brand: -3, followUp: { eventId: 'hearing_report', inWeeks: 13 } }, outcome: 'Your empty chair is on the news. It looks very dignified. It does not help.' },
+    ],
+  },
+  {
+    id: 'hearing_report', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The committee report',
+    text: 'The committee has published its report. Page 212 mentions {company}. Nobody has read pages 1 to 211.',
+    choices: [
+      { label: 'Comply early', hint: '-$40k; customers churn less for 52 weeks, and Purpose up if you promised trust', effects: { cash: -40000, purpose: { trust: 6, people: 3 }, modifier: { key: 'churn', value: -0.1, weeks: 52, label: 'Early compliance' } }, outcome: 'You are the first company to comply. There is a small ceremony. Nobody attends.' },
+      { label: 'Wait for the final rules', hint: 'Nothing now; signups slow a little for 26 weeks while customers wait to see', effects: { modifier: { key: 'acquisition', value: -0.08, weeks: 26, label: 'Regulatory fog' } }, outcome: 'You wait. Everyone waits. The rules are still being written. By an agent, allegedly.' },
+    ],
+  },
+  {
+    id: 'alumni_referral', kind: 'staff', weight: 1, cooldownWeeks: 104, random: true, subject: null,
+    when: (s) => (s.flags.alumni?.length ?? 0) >= 1,
+    title: 'A note from {alum}',
+    text: '{alum}, who left a while ago, writes: "My old team is looking around. I told them you were the good kind of chaos."',
+    choices: [
+      { label: 'Take the introductions', hint: 'Three senior candidates appear', effects: { candidates: 'seniorBatch', teamMeaning: 1 }, outcome: 'Three very good résumés arrive, each with a nice note about {alum}.' },
+      { label: 'Invite {alum} to lunch', hint: '-$500; knowledge flows back a little', effects: { cash: -500, ik: 3 }, outcome: '{alum} explains how the billing service really works. Someone takes notes this time.' },
+    ],
+  },
+  {
+    id: 'alumni_competitor', kind: 'market', weight: 1, cooldownWeeks: 104, random: true, subject: 'randomProduct',
+    when: (s, h) => (s.flags.alumni?.length ?? 0) >= 2 && h.live.length > 0,
+    title: '{alum} started something',
+    text: '{alum}, who used to work here, just launched a company that competes with {product}. Their launch post thanks you for "everything I learned about what not to do".',
+    choices: [
+      { label: 'Congratulate them publicly', hint: 'Brand up a little; a new clone in the market', effects: { brand: 1, clones: 1 }, outcome: 'Your reply is gracious. Their reply is more gracious. It becomes a whole thing.' },
+      { label: 'Offer to acquire them', hint: '-$120k; no new competitor, and a few hires come home', effects: { cash: -120000, candidates: 'seniorBatch' }, outcome: '{alum} signs. Their first week back, they sit at their old desk out of habit.' },
+    ],
+  },
+  {
+    id: 'alumni_reunion', kind: 'staff', weight: 1, cooldownWeeks: 156, random: true, subject: null,
+    when: (s) => (s.flags.alumni?.length ?? 0) >= 3,
+    title: 'The alumni reunion',
+    text: 'The #alumni group chat wants a reunion. It has more members than the company. {alum} volunteered to bring the old office sign.',
+    choices: [
+      { label: 'Host it', hint: '-$8k; team meaning up, brand and knowledge up a little', effects: { cash: -8000, brand: 1, teamMeaning: 3, ik: 2 }, outcome: 'Old and new people swap war stories. Several bugs are finally explained.' },
+      { label: 'Let them organise it', hint: 'Nothing happens', effects: {}, outcome: 'You hear it was great. There are photos. You are in none of them.' },
     ],
   },
   // Classic era flavor
@@ -873,8 +993,8 @@ const list = [
     title: 'Why so many humans?',
     text: 'Your investor read a thread about a company with three employees and fifty million in revenue. They would like to discuss your headcount.',
     choices: [
-      { label: 'Automate harder', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Headcount pressure' } }, outcome: 'The agents get more work. The humans get more dashboards about the agents.' },
-      { label: 'Defend the team', hint: 'Team meaning up; fewer signups for 13 weeks while the investor sulks', effects: { teamMeaning: 4, modifier: { key: 'acquisition', value: -0.1, weeks: 13, label: 'Investor sulking' } }, outcome: '"Those three employees have not slept since 2027," you say. The call ends early.' },
+      { label: 'Automate harder', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, purpose: { craft: -5, people: -8, growth: 5 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Headcount pressure' } }, outcome: 'The agents get more work. The humans get more dashboards about the agents.' },
+      { label: 'Defend the team', hint: 'Team meaning up; fewer signups for 13 weeks while the investor sulks', effects: { teamMeaning: 4, purpose: { people: 8, craft: 3 }, modifier: { key: 'acquisition', value: -0.1, weeks: 13, label: 'Investor sulking' } }, outcome: '"Those three employees have not slept since 2027," you say. The call ends early.' },
     ],
   },
   // Annual calendar (raised by the annual system)

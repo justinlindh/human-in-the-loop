@@ -37,7 +37,8 @@ export function createCallGrid({ layer, openStaff }) {
   const SAY_MS = 4500;
 
   function update(s, hidden) {
-    const lock = s.lockdown;
+    // The sim keeps the lockdown object after it ends; it is active only while week < until.
+    const lock = s.lockdown && (!Number.isFinite(s.lockdown.until) || s.week < s.lockdown.until) ? s.lockdown : null;
     const show = !!lock && !s.gameOver && !hidden;
     card.style.display = show ? '' : 'none';
     if (!show) { if (sig) { sig = ''; tiles.replaceChildren(); } return; }
@@ -80,7 +81,7 @@ export function createCallGrid({ layer, openStaff }) {
   return {
     update,
     say(e, s) {
-      if (!s?.lockdown || !e?.staffId || !e.text) return false;
+      if (!s?.lockdown || s.week >= (s.lockdown.until ?? Infinity) || !e?.staffId || !e.text) return false;
       const p = s.staff.find((x) => x.id === e.staffId);
       if (!p?.remote) return false;
       said.set(p.id, { text: e.text, until: performance.now() + SAY_MS });

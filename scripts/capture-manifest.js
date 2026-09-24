@@ -3,7 +3,8 @@
 //   id, title, query (URL params: mock=<scenario> or seed=N, speed, time, ...), seconds, seed (for
 //   the page's Math.random), warmup (seconds run before recording starts), hideUi, gif,
 //   still (screenshots only, no video), setup (page JS run once after boot, may be async),
-//   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG).
+//   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG), sound (an
+//   item made for --audio).
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
@@ -249,6 +250,46 @@ export const ITEMS = [
     screenshots: [5],
   },
 
+  // 6. Sound (record with --audio): one music bed per era and the title, stingers, effects, voices.
+  { id: '6-1-music-title', title: '6.1 Music: title', query: '', seconds: 20, sound: true },
+  ...['classic', 'chatgbt', 'agents', 'consolidation', 'plateau'].map((era) => ({
+    id: `6-1-music-${era}`, title: `6.1 Music: ${era}`, query: 'mock=floor&speed=1', seconds: 20, sound: true, setup: ERA(era),
+  })),
+  {
+    id: '6-1-stingers', title: '6.1 Stingers: launch, era, office, award', query: 'mock=floor&speed=1', seconds: 22, sound: true,
+    actions: [
+      { at: 1, js: `window.__HITL.emit([{ type: 'launch', productId: window.__HITL.state.products[0].id }])` },
+      { at: 4, js: CLICK('Nice!') },
+      { at: 7, js: `window.__HITL.emit([{ type: 'era', eraId: 'agents' }])` },
+      { at: 10, js: CLICK('Onward') },
+      { at: 13, js: `window.__HITL.emit([{ type: 'officeUpgrade', stage: 2 }])` },
+      { at: 17, js: `window.__HITL.emit([{ type: 'award', text: 'Saasie for Best Newcomer' }])` },
+    ],
+  },
+  {
+    id: '6-2-sfx', title: '6.2 UI and world effects', query: 'mock=floor&speed=1', seconds: 22, sound: true,
+    actions: [
+      { at: 1, js: KEY('s', 'KeyS') }, { at: 3, js: KEY('Escape') },
+      { at: 5, js: `window.__HITL.emit([{ type: 'hire', staffId: window.__HITL.state.staff[0].id }])` },
+      { at: 7, js: `window.__HITL.emit([{ type: 'incident', kind: 'bug', productId: window.__HITL.state.products[0].id, caught: true, severity: 2 }])` },
+      { at: 9, js: `window.__HITL.emit([{ type: 'incident', kind: 'outage', productId: window.__HITL.state.products[0].id, caught: false, severity: 3 }])` },
+      ...[12, 12.4, 12.8].map((at, i) => ({ at, js: `window.__HITL.emit([{ type: 'bubble', staffId: window.__HITL.state.staff[${i + 1}].id, text: '+4 Polish', tone: 'polish' }])` })),
+      { at: 15, js: `window.__HITL.emit([{ type: 'toast', text: 'Cash is getting thin', tone: 'warn' }])` },
+      { at: 17, js: `window.__HITL.emit([{ type: 'unlock', key: 'research' }])` },
+      { at: 20, js: `window.__HITL.emit([{ type: 'goal', goalId: 'first_launch' }])` },
+    ],
+  },
+  {
+    id: '6-3-voices', title: '6.3 Voices: spoken lines, a click, a group cheer', query: 'mock=floor&speed=1', seconds: 22, sound: true,
+    actions: [
+      ...[1, 3.5, 6].map((at, i) => ({ at, js: `(() => { const s = window.__HITL.state; const a = s.staff[${i}], b = s.staff[${i + 1}]; window.__HITL.emit([{ type: 'say', id: 'cap-say-${i}', week: s.week, staffId: a.id, text: ['Did the build pass?', 'It passed. I am suspicious.', 'Ship it before it changes its mind.'][${i}], toId: b.id, replyTo: null }]); })()` })),
+      { at: 9, js: `dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: window.__HITL.state.staff[2].id } }))` },
+      { at: 11, js: `dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: window.__HITL.state.staff[5].id } }))` },
+      { at: 14, js: `window.__HITL.emit([{ type: 'launch', productId: window.__HITL.state.products[1].id }])` },
+      { at: 19, js: CLICK('Nice!') },
+    ],
+  },
+
   // README (group 'readme'): hero stills at 1920x1080 with the UI, from real seeded games so every
   // shot is internally consistent (date, era, effects, goals), plus one short loop.
   {
@@ -258,8 +299,8 @@ export const ITEMS = [
     actions: [...DISMISS_AT([0.1, 0.5]), { at: 0.3, js: KEY('c', 'KeyC') }], screenshots: [3],
   },
   {
-    // The bot starts more product updates than it staffs; as a player would, cancel the ones nobody
-    // is on, so the Needs You tray shows the game rather than the bot. Shot before the first live tick.
+    // The bot starts more product updates than it staffs; the setup drops the ones nobody is on, so
+    // the Needs You tray shows the game rather than the bot. Shot before the first live tick.
     id: 'readme-hq', group: 'readme', title: 'A busy Agents-era HQ with pets and perks', query: 'seed=1&speed=1&time=day', still: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE + CHAT_HISTORY + "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));" }), warmup: 2,
     actions: DISMISS_EVERY(4), screenshots: [4],

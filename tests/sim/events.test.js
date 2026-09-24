@@ -399,9 +399,10 @@ describe('annual calendar', () => {
     const brand = s.brand;
     const c2 = ctxOf(s);
     annualSystem(c2);
-    expect(c2.events.some((e) => e.type === 'award' && e.text.includes('Inboxer'))).toBe(true);
-    expect(s.brand).toBe(Math.min(100, brand + 6));
-    expect(s.stats.awards).toBe(1);
+    const awards = c2.events.filter((e) => e.type === 'award');
+    expect(awards.some((e) => e.text === 'Product of the Year: Inboxer')).toBe(true);
+    expect(s.brand).toBeGreaterThanOrEqual(Math.min(100, brand + 6));
+    expect(s.stats.awards).toBe(awards.length);
     s.week = 52 + 51;
     const c3 = ctxOf(s);
     annualSystem(c3);

@@ -11,6 +11,7 @@ import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 import { eraLines } from './eras.js';
 import { petComfort } from './ladder.js';
+import { purposeLift } from './purpose.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -30,7 +31,7 @@ function weeklyMeaning(state, p) {
 
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
   // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
-  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state));
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state) + B.purposeMeaning * purposeLift(state));
   // Recovery slows near the top, so even well-cared-for people settle below 100.
   const ceiling = clamp((100 - p.meaning) / B.meaningCeilingBand, 0, 1);
   const recovery = ((B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
@@ -51,7 +52,9 @@ export function meaningSystem(ctx) {
     p.meaning = clamp(p.meaning + deltas[i], 0, 100);
     if (p.mood === 'away') return;
     const prev = p.mood;
-    p.mood = p.meaning < B.burnoutBelow ? 'burnout' : p.meaning < B.coastingBelow ? 'coasting' : 'ok';
+    // Burnout comes from emptiness (meaning) or exhaustion (strain); exhaustion lets go once strain has eased.
+    const exhausted = (p.strain ?? 0) >= B.strainBurnout || (prev === 'burnout' && (p.strain ?? 0) >= B.strainRecoveredBelow);
+    p.mood = p.meaning < B.burnoutBelow || exhausted ? 'burnout' : p.meaning < B.coastingBelow ? 'coasting' : 'ok';
     p.burnoutWeeks = p.mood === 'burnout' ? p.burnoutWeeks + 1 : 0;
     if (p.mood === 'burnout' && prev !== 'burnout') {
       ctx.emit({ type: 'toast', text: `${p.name} is running on empty.`, tone: 'warn' });
@@ -62,7 +65,7 @@ export function meaningSystem(ctx) {
 
   const leavers = state.staff.filter((p) => {
     if (p.founder || p.mood === 'away') return false;
-    const mult = staffMods(p).resign;
+    const mult = staffMods(p).resign * Math.max(0, 1 - B.purposeRetention * purposeLift(state));
     if (p.mood === 'coasting') {
       // Freshly coasting people rarely quit; the chance ramps up as meaning sinks toward burnout.
       const depth = clamp((B.coastingBelow - p.meaning) / (B.coastingBelow - B.burnoutBelow), 0, 1);

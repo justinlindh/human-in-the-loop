@@ -15,7 +15,7 @@ const check = (s) => { const c = makeCtx(s); checkUnlocks(c); return c.events; }
 
 describe('unlock data', () => {
   it('covers the contract keys with a reason and an explainer each', () => {
-    expect(UNLOCK_KEYS.sort()).toEqual(['automation', 'marketing', 'models', 'ops', 'paths', 'research', 'standups']);
+    expect(UNLOCK_KEYS.sort()).toEqual(['automation', 'marketing', 'meaning', 'models', 'ops', 'paths', 'research', 'standups']);
     for (const u of UNLOCKS) {
       expect(u.reason.length, u.key).toBeGreaterThan(5);
       expect(u.explainer.length, u.key).toBeGreaterThan(40);
@@ -115,7 +115,7 @@ describe('triggers', () => {
     check(s);
     s.era = { id: 'chatgbt', since: 1 };
     s.week = 1;
-    expect(unlocksOf(check(s))).toEqual(['models', 'automation', 'policy.pair']);
+    expect(unlocksOf(check(s))).toEqual(['models', 'automation', 'meaning', 'policy.pair']);
   });
 
   it('a policy stays usable once unlocked even if its trigger lapses', () => {
