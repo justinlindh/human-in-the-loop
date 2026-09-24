@@ -16,8 +16,9 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry'];
-const SEATED = new Set(['typing', 'slumped', 'burnout']);
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan'];
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl']);
 
 const ink = new THREE.Color(PALETTE.ink);
 const inkL = ink.r * 0.2126 + ink.g * 0.7152 + ink.b * 0.0722;
@@ -218,13 +219,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let emoteT = 0;
   let tint = 0;
   let mood = 'ok';
-  const cur = { bodyY: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
+  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = Math.random() * Math.PI * 2;
 
   function pose(dt) {
     const s = Math.sin;
-    Object.assign(tgt, { bodyY: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
+    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
     const seated = SEATED.has(anim);
     if (seated) {
       tgt.bodyY = SEAT_HIP_Y - HIP_Y;
@@ -308,6 +309,69 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.06;
         break;
       }
+      case 'lie': {
+        // Flat on the back, centered on the spot; a slow breathing rise.
+        tgt.pitch = -Math.PI / 2;
+        tgt.bodyZ = 0.5;
+        tgt.bodyY = 0.1 + s(t * 1.2 + phase) * 0.008;
+        tgt.armLZ = 0.25; tgt.armRZ = -0.25;
+        tgt.headZ = 0.25;
+        break;
+      }
+      case 'sit':
+        tgt.lean = -0.18;
+        tgt.headZ = s(t * 0.5 + phase) * 0.08;
+        tgt.armLX = tgt.armRX = -0.5;
+        tgt.armLZ = 0.3; tgt.armRZ = -0.3;
+        break;
+      case 'sprawl':
+        tgt.bodyY = 0.24 - HIP_Y;
+        tgt.lean = -0.55;
+        tgt.legL = -1.1; tgt.legR = -0.95;
+        tgt.armLZ = 1.25; tgt.armRZ = -1.25;
+        tgt.headX = -0.2 + s(t * 0.8 + phase) * 0.04;
+        break;
+      case 'play': {
+        tgt.lean = 0.12;
+        tgt.headX = 0.1;
+        tgt.armLX = -1.15 + s(t * 17) * 0.1;
+        tgt.armRX = -1.15 + s(t * 13 + 1) * 0.12;
+        tgt.armLZ = 0.2; tgt.armRZ = -0.2;
+        tgt.twist = s(t * 3 + phase) * 0.06;
+        tgt.bodyY = Math.abs(s(t * 6)) * 0.01;
+        break;
+      }
+      case 'paddle': {
+        const sw = s(t * 6.5 + phase);
+        tgt.armRX = -0.9 + sw * 0.6;
+        tgt.armRZ = -0.55 - sw * 0.25;
+        tgt.armLX = -0.4;
+        tgt.twist = sw * 0.28;
+        tgt.lean = 0.1;
+        tgt.bodyY = Math.abs(s(t * 6.5)) * 0.03;
+        tgt.legL = s(t * 6.5) * 0.15; tgt.legR = -s(t * 6.5) * 0.15;
+        break;
+      }
+      case 'browse': {
+        const reach = Math.max(0, s(t * 0.7 + phase));
+        tgt.armRX = -1.0 - reach * 1.1;
+        tgt.armLX = -0.7;
+        tgt.headX = 0.2 - reach * 0.45;
+        tgt.headZ = s(t * 0.4) * 0.12;
+        break;
+      }
+      case 'water':
+        tgt.lean = 0.2;
+        tgt.headX = 0.25;
+        tgt.armRX = -1.25 + s(t * 2) * 0.12;
+        tgt.armRZ = -0.15;
+        break;
+      case 'groan':
+        tgt.lean = 0.28;
+        tgt.headX = 0.5;
+        tgt.headZ = s(t * 1.5) * 0.12;
+        tgt.armLZ = 0.05; tgt.armRZ = -0.05;
+        break;
       case 'wave':
         tgt.armRZ = 2.5 + s(t * 10) * 0.35;
         tgt.headZ = -0.1;
@@ -320,7 +384,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const k = 1 - Math.exp(-dt * 16);
     for (const key in cur) cur[key] += (tgt[key] - cur[key]) * k;
 
-    body.position.y = cur.bodyY;
+    body.position.set(0, cur.bodyY, cur.bodyZ);
+    body.rotation.x = cur.pitch;
     body.scale.set(1 / Math.sqrt(cur.squash), cur.squash, 1 / Math.sqrt(cur.squash));
     torso.rotation.set(cur.lean, cur.twist, 0);
     headGroup.rotation.set(cur.headX, 0, cur.headZ);
@@ -334,7 +399,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     if (!ANIMS.includes(name) || name === anim) return;
     anim = name;
     animT = 0;
-    mug.visible = name === 'sip';
+    mug.visible = name === 'sip' || name === 'water';
     box.visible = name === 'carry';
   }
 

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
+import { createPerks } from './perks.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -10,7 +11,6 @@ const WALK = 1.25;
 const RUN = 2.8;
 const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
-const MAX_WANDERERS = 2;
 const MAX_SPEECH = 6;
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
@@ -34,7 +34,6 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   let stageSeen = -1;
   let firstSync = true;
   let lastState = null;
-  let wanderClock = rnd(4, 8);
   const ledMats = {
     green: glow('led_green', 4), dim: glow('led_green', 0.5, 'dim'), amber: glow('led_amber', 4),
     red: glow('led_red', 5), redDim: glow('led_red', 1.2, 'dim'),
@@ -169,7 +168,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
       r.staff = s;
     }
-    if (stageChanged) for (const r of recs.values()) r.seat = null;
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -394,28 +393,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     });
   }
 
-  // Idle wandering: a few people at a time fetch coffee or stretch in the lounge.
-  function maybeWander(dt) {
-    wanderClock -= dt;
-    if (wanderClock > 0) return;
-    wanderClock = rnd(5, 11);
-    const cur = office.current;
-    const busy = [...recs.values()].filter((r) => r.temp?.wander).length;
-    if (busy >= MAX_WANDERERS) return;
-    if (standup) return;
-    const pool = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && !r.temp && !r.path.length
-      && r.staff.mood !== 'burnout' && ['idle', 'project', 'maintenance', 'marketing', 'sales', 'support', 'security'].includes(r.staff.assignment?.type));
-    if (!pool.length) return;
-    const r = pool[Math.floor(Math.random() * pool.length)];
-    const Z = cur.zones;
-    const coffee = !!Z.coffee && Math.random() < 0.65;
-    const pool2 = Z.lounge?.length ? Z.lounge : Z.wander ?? [];
-    if (!coffee && !pool2.length) return;
-    const base = coffee ? Z.coffee : pool2[Math.floor(Math.random() * pool2.length)];
-    const spot = { x: base.x + rnd(-0.4, 0.4), z: base.z + rnd(-0.3, 0.3), yaw: rnd(0, Math.PI * 2), anim: coffee ? 'sip' : 'idle' };
-    r.temp = { anim: spot.anim, t: rnd(5, 8), goal: spot, back: true, wander: true };
-    walkTo(r, spot);
-  }
+  // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
+  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -461,7 +440,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       else {
         if (tp.sayText) { labels.say(tp.sayText, c.root, 3.2); tp.sayText = null; }
         tp.t -= dt;
-        c.setAnim(tp.anim);
+        if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
         if (tp.t <= 0) {
           r.temp = null;
@@ -481,6 +460,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     }
     c.setRingScale(c.seated ? 1.4 : 1);
     c.root.position.copy(r.pos);
+    // Lying on a nap pod lifts the whole character onto it once they have arrived.
+    if (r.temp?.lift && !r.path.length) c.root.position.y = r.temp.lift;
     c.root.rotation.y = r.yaw;
     c.update(dt);
   }
@@ -664,7 +645,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     if (!office.current) return;
     updateStandup(dt);
     updateFast(dt);
-    maybeWander(dt);
+    perks.update(dt, lastState);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
@@ -704,7 +685,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   }
 
   return {
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks,
     get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },

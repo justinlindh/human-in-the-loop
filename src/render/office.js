@@ -209,9 +209,10 @@ const KIND = {
   desk: 'desk', desk_set: 'desk', meeting_table: 'meeting', meeting: 'meeting', whiteboard: 'whiteboard',
   coffee_corner: 'coffee', coffee: 'coffee', kitchenette: 'coffee', plant: 'plant', plants: 'plant', plant_tall: 'plant',
   bookshelf: 'bookshelf', couch: 'couch', sofa: 'couch', rack: 'rack',
+  ping_pong_table: 'pingpong', ping_pong: 'pingpong', foosball: 'foosball',
 };
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
-const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch']);
+const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch', 'pingpong', 'foosball']);
 const LOUNGE = new Set(['couch', 'nap_pod', 'arcade', 'library', 'plant_wall', 'bookshelf']);
 
 // Desk sets face -Z at rot 0: desk in the back tile row, chair and sitter in the front row.
@@ -388,6 +389,8 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   else if (kind === 'bookshelf') inner = getModel('bookshelf');
   else if (kind === 'couch') inner = getModel('couch');
   else if (kind === 'rack') inner = getModel('server_rack');
+  else if (kind === 'pingpong') inner = getModel('ping_pong_table');
+  else if (kind === 'foosball') inner = getModel('foosball');
   else if (hasModel(itemModelName(p.itemId, p.level))) inner = getModel(itemModelName(p.itemId, p.level));
   else inner = crate(f.w, f.h);
   if (kind !== 'desk') screensFor(inner, screens, seed);

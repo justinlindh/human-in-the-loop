@@ -99,6 +99,7 @@ const FOOTPRINTS = {
   espresso: { w: 2, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, arcade: { w: 1, h: 1 },
   standing_desk: { w: 2, h: 1 }, trophy_case: { w: 2, h: 1 }, server_rack: { w: 2, h: 1 }, library: { w: 2, h: 2 },
   monitoring_wall: { w: 3, h: 1 }, whiteboard_wall: { w: 3, h: 1 },
+  ping_pong_table: { w: 2, h: 1 }, ping_pong: { w: 2, h: 1 }, foosball: { w: 1, h: 1 },
 };
 
 export function footprint(itemId, rot = 0) {

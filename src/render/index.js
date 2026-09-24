@@ -238,7 +238,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       scene.traverseVisible((o) => { if (o.isMesh) meshes++; });
       return { calls: perf.calls, triangles: perf.triangles, cpuMs: +perf.ms.toFixed(1), meshes, programs: renderer.info.programs?.length ?? 0, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures };
     },
-    get stats() { return { standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
+    // Dev and snap hook: perk visits (send people to a placed item, counts).
+    get perks() { return staff?.perks ?? null; },
+    get stats() { return { perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).
   if (import.meta.env?.DEV) window.__hitlRender = api;
