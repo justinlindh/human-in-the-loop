@@ -148,7 +148,7 @@ export function buildCharLineup(group) {
   group.userData.update = (dt) => { for (const c of chars) c.update(dt); };
   const at = (col, row) => [(col - (cols - 1) / 2) * step, (row - (rows - 1) / 2) * rowStep];
   const add = (col, row, app, role, setup) => {
-    const c = createCharacter({ skin: 1, hair: 0, hairColor: HAIRC[1], shirt: SHIRTS[0], pants: PANTS[0], accessory: 'none', build: 1, ...app }, ROLE_COLORS[role], { role });
+    const c = createCharacter({ skin: 1, hair: 0, hairColor: HAIRC[1], shirt: SHIRTS[0], pants: PANTS[0], accessory: 'none', build: 1, ...app }, ROLE_COLORS[role], { role, seed: `lineup-${col}-${row}` });
     const [x, z] = at(col, row);
     c.root.position.set(x, 0.04, z);
     c.root.rotation.y = Math.PI / 4;
@@ -203,7 +203,7 @@ export function buildCharTurnaround(group) {
       const acc = new URLSearchParams(location.search).get('acc') ?? 'none';
       const qp = new URLSearchParams(location.search);
       const role = qp.get('role') ?? 'designer';
-      const c = createCharacter({ skin: Number(qp.get('skin') ?? 1), hair: Number(qp.get('hair') ?? 1), hairColor: HAIRC[Number(qp.get('hc') ?? 3)], shirt: SHIRTS[Number(qp.get('shirt') ?? 3)], pants: PANTS[0], accessory: acc, build: Number(qp.get('build') ?? 1), capBack: qp.get('back') === '1' }, ROLE_COLORS[role], { role });
+      const c = createCharacter({ skin: Number(qp.get('skin') ?? 1), hair: Number(qp.get('hair') ?? 1), hairColor: HAIRC[Number(qp.get('hc') ?? 3)], shirt: SHIRTS[Number(qp.get('shirt') ?? 3)], pants: PANTS[0], accessory: acc, build: Number(qp.get('build') ?? 1), capBack: qp.get('back') === '1' }, ROLE_COLORS[role], { role, seed: `turn-${i}` });
       c.root.position.set((i - 1.5) * 1.1, 0.04, 0);
       c.root.rotation.y = Math.PI / 4 + i * Math.PI / 2;
       group.add(c.root);

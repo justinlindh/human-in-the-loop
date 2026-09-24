@@ -69,7 +69,7 @@ export function createPortraits({ ready, lowQuality = () => false }) {
   }
 
   function build(person, caricature = false) {
-    const c = createCharacter(person.appearance ?? {}, ROLE_COLORS[person.role], { role: person.role });
+    const c = createCharacter(person.appearance ?? {}, ROLE_COLORS[person.role], { role: person.role, seed: person.id });
     if (caricature) {
       // Big head, small body: the party-favour caricature look.
       c.head.scale.setScalar(1.45);

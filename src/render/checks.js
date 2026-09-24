@@ -86,8 +86,11 @@ export async function runClipChecks(R, S, { frames = 24, dt = 0.07 } = {}) {
     if (!s) continue;
     const root = charOf(scene, s.id);
     if (!root) continue;
-    // Only people actually sitting at their desk (not off at a perk or a standup).
-    if (Math.hypot(root.position.x - d.seat.x, root.position.z - d.seat.z) > 0.2 || R.perks.peek(s.id)?.temp) continue;
+    // Measure only while they sit at the desk: someone off on a break is waited for, and a person
+    // who never comes back is a failed check rather than a silently skipped one.
+    const away = () => Math.hypot(root.position.x - d.seat.x, root.position.z - d.seat.z) > 0.2 || R.perks.peek(s.id)?.temp;
+    for (let i = 0; i < 400 && away(); i++) step(1);
+    if (away()) { results.push({ name: `desk:${d.id}`, pass: false, reason: 'never back at the desk' }); continue; }
     const furniture = meshes(d.obj);
     let lowGap = Infinity, highGap = -Infinity, inside = 0, total = 0;
     const byPart = {};
