@@ -811,3 +811,33 @@
   .hitl .fcard .portrait { width: 2.6em !important; height: 2.6em !important; }
   .hitl .fcard { padding: 0.4em 0.45em 0.5em; gap: 0.2em; }
 }
+
+/* ---------- build mode ---------- */
+.hitl.building .bottom .menu, .hitl.building .tray, .hitl.building .chat { visibility: hidden; }
+.hitl .buildbar {
+  position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 0.8em; width: min(52em, calc(100% - 1.2em)); box-sizing: border-box;
+  pointer-events: auto; display: flex; align-items: center; gap: 0.6em; padding: 0.55em 0.7em;
+  background: var(--cream); border: 0.22em solid var(--ink); border-radius: 1em; box-shadow: 0 0.3em 0 var(--ink), var(--soft);
+  animation: hitl-modal-in 260ms cubic-bezier(.2,1.4,.4,1) both; z-index: 12;
+}
+.hitl .buildbar .iico { flex: none; width: 2.6em; height: 2.6em; display: grid; place-items: center; background: var(--cream-2); border: 0.13em solid var(--ink); border-radius: 0.7em; }
+.hitl .buildbar .binfo { min-width: 0; display: flex; flex-direction: column; gap: 0.2em; }
+.hitl .buildbar .binfo .row { gap: 0.4em; align-items: center; }
+.hitl .buildbar .bname { font-size: 1.1em; white-space: nowrap; }
+.hitl .bstatus { font-size: 0.88em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .bstatus.bad { color: var(--bad); }
+.hitl .bstatus.good { color: var(--good); }
+.hitl .buildbar .btn { white-space: nowrap; }
+.hitl .buildtip {
+  position: absolute; pointer-events: none; z-index: 13; max-width: 18em; padding: 0.25em 0.6em; border-radius: 0.6em;
+  background: var(--ink); color: var(--cream); font-weight: 600; font-size: 0.85em; box-shadow: var(--soft);
+}
+.hitl .buildtip.bad { background: var(--bad); color: #fff; }
+.hitl .item.pal .adj { display: flex; align-items: center; gap: 0.2em; color: var(--ink-soft); background: #eef4ff; border-radius: 0.5em; padding: 0.15em 0.45em; }
+.hitl .item.pal .placedrow { gap: 0.3em; align-items: center; }
+.hitl .item.pal.locked { opacity: 0.7; }
+.hitl .itemcard { gap: 0.55em; min-width: 20em; }
+@media (max-width: 1200px) {
+  .hitl .buildbar .key { display: none; }
+}
+.hitl .modal.small { width: min(28em, 100%); }

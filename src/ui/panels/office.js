@@ -3,6 +3,8 @@ import { OFFICE_STAGES } from '../content.js';
 import { ITEMS } from '../../data/items.js';
 import { liveView, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
+import { CATALOG, isDesk } from '../v2content.js';
+import { placedOf, stageOf } from '../placement.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
@@ -27,6 +29,12 @@ function pips(level) {
 }
 
 export function officePanel(ctx) {
+  if (!ctx.getState().office?.placed) return legacyOfficePanel(ctx);
+  return buildPalette(ctx);
+}
+
+// The fixed-slot shop, for a state without office.placed.
+function legacyOfficePanel(ctx) {
   const view = liveView(
     (s) => `${s.officeStage}|${s.staff.length}|${s.items.map((i) => `${i.id}${i.level}`).join()}|${s.stats?.awards ?? 0}`,
     (s, bind) => {
@@ -101,4 +109,84 @@ export function officePanel(ctx) {
         h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Items show up in the office. Sell for half of what you paid.' })), grid)];
     });
   return { el: view.el, update: (s, f) => view.update(s, f) };
+}
+
+const ADJ_WORDS = { novelty: 'novelty', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+
+function adjacencyLine(it) {
+  const a = it.adjacency;
+  if (!a) return null;
+  const val = a.key === 'uptimeFloor' ? `+${Math.round(a.value * 100)} pts` : `+${Math.round(a.value * 100)}%`;
+  const to = a.to ? `${CATALOG[a.to]?.name ?? a.to}s` : 'desks';
+  return `Nearby ${to} (within ${a.radius} tile${a.radius === 1 ? '' : 's'}): ${val} ${ADJ_WORDS[a.key] ?? a.key}`;
+}
+
+// The Office panel as a build palette: the stage card, then furniture and shop items to place.
+function buildPalette(ctx) {
+  const view = liveView(
+    (s) => `${stageOf(s)}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
+    (s, bind) => {
+      const stageIx = stageOf(s);
+      const stage = OFFICE_STAGES[stageIx];
+      const next = OFFICE_STAGES[stageIx + 1];
+      const placed = placedOf(s);
+      const desks = placed.filter((p) => isDesk(p.itemId)).length;
+      const full = s.staff.length >= desks;
+
+      const pills = h('div.row.wrap', null,
+        h('span', { class: full ? 'pill warn' : 'pill good', title: 'Each desk set seats one person. Hiring needs a free desk.' },
+          icon('seat', { size: 12 }), ` ${s.staff.length}/${desks} desks used`),
+        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(stage.rent)}/wk rent`));
+      let right;
+      if (next) {
+        const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
+          icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
+        const why = h('span.why.small');
+        bind((st) => { const r = st.cash < next.upgradeCost ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
+        right = h('div.col.right', null,
+          h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(next.rent)}/wk rent. Your furniture comes along.` }), btn, why);
+      } else right = h('span.small.muted', { text: 'The biggest office in town.' });
+      const stageCard = h('div.card.stagecard', null,
+        h('div', null, h('div.small.muted', { text: 'Your office' }), h('h2.oname', { text: stage.name })),
+        pills, h('span.spacer'), right);
+
+      const hint = !desks ? h('div.starterhint', null, icon('seat', { size: 18 }), 'Start with desks: nobody can work (or be hired) without one.') : null;
+
+      const card = (it) => {
+        const mine = placed.filter((p) => p.itemId === it.id);
+        const price = it.costs?.[0] ?? 0;
+        const locked = stageIx < (it.minStage ?? 0) ? `Needs ${OFFICE_STAGES[it.minStage]?.name ?? 'a bigger office'}`
+          : it.requires === 'award' && (s.stats?.awards ?? 0) < 1 ? 'Needs an award first' : null;
+        const f = it.footprint ?? { w: 1, h: 1 };
+        const btn = h('button.btn.small.primary', { onclick: () => { ctx.sfx('click'); ctx.build?.enter(it.id); } }, icon('menu.build', { size: 14 }), ` Place · ${fmtMoney(price)}`);
+        const why = h('span.why.small');
+        if (!locked) bind((st) => { const r = st.cash < price ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
+        const eff = it.effects?.[0] && Object.keys(it.effects[0]).length ? effectWords(it.effects[0]) : null;
+        const adj = adjacencyLine(it);
+        const c = h('div.card.item.pal', null,
+          h('div.row', null, h('span.iico', null, icon(`item.${it.id}`, { size: 30 })),
+            h('div', { style: { minWidth: 0, flex: 1 } },
+              h('div.row', null, h('b.iname', { text: it.name }), h('span.spacer'), h('span.pill.num', { title: 'Footprint in tiles', text: `${f.w}x${f.h}` })),
+              h('div.small.muted', { text: it.desc ?? '' }))),
+          eff ? h('div.small', null, h('b', { text: it.costs?.length > 1 ? 'Level 1: ' : 'Effect: ' }), eff) : null,
+          adj ? h('div.small.adj', null, icon('team', { size: 12 }), ` ${adj}`) : null,
+          mine.length ? h('div.row.wrap.placedrow', null,
+            h('span.small.muted', { text: `Placed: ${mine.length}` }),
+            ...(it.kind === 'furniture' ? [] : mine.slice(0, 6)).map((p, i) => h('button.btn.small', { title: 'Move, upgrade, or sell', onclick: () => ctx.build?.openItemCard(p.id) },
+              it.costs?.length > 1 ? `#${i + 1} Lv ${p.level ?? 1}` : `#${i + 1}`))) : null,
+          h('div.row', null, locked ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${locked}`) : btn, h('span.spacer'), locked ? null : why));
+        toggleClass(c, 'locked', !!locked);
+        return c;
+      };
+
+      const all = Object.values(CATALOG);
+      const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));
+      const shop = all.filter((it) => it.kind !== 'furniture');
+      return [stageCard, hint,
+        h('div.section', null, h('h3', null, 'Furniture', h('span.aside', { text: 'Click a spot on the floor to place. Click anything placed to move or sell it.' })),
+          h('div.shop', null, ...furniture.map(card))),
+        h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Upgradeable. Sell for half of what you paid.' })),
+          h('div.shop', null, ...shop.map(card)))];
+    });
+  return { el: view.el, update: (st, f) => view.update(st, f) };
 }
