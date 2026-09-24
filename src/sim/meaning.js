@@ -25,10 +25,12 @@ function weeklyMeaning(state, p) {
   if (a === 'oversight') bonus += B.meaningRecovery.oversight * mods.oversightMeaning;
   if (mentored) bonus += B.meaningRecovery.mentee;
   if (a === 'project' && state.projects.some((j) => j.id === p.assignment.targetId && j.kind === 'craft')) bonus += B.meaningRecovery.craft;
-  if (state.policies.craft_fridays) bonus += B.meaningRecovery.craftFridays;
-  bonus += itemBonus(state, 'meaningRecoveryFlat') + itemBonus(state, 'meaningBaseFlat');
+
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
-  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * Math.max(0, 1 + modifierBonus(state, 'meaningRecovery'));
+  // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery'));
+  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
+    + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0);
   return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain'));
 }
 
@@ -60,7 +62,9 @@ export function meaningSystem(ctx) {
       const depth = clamp((B.coastingBelow - p.meaning) / (B.coastingBelow - B.burnoutBelow), 0, 1);
       return chance(ctx.rng, B.resignChance.coasting * depth * mult);
     }
-    if (p.mood === 'burnout' && p.burnoutWeeks >= B.burnoutWeeksBeforeResign + itemBonus(state, 'burnoutGraceWeeks')) return chance(ctx.rng, B.resignChance.burnout * mult);
+    if (p.mood === 'burnout' && p.burnoutWeeks >= B.burnoutWeeksBeforeResign) {
+      return chance(ctx.rng, B.resignChance.burnout * mult * Math.max(0, 1 + itemBonus(state, 'burnoutResign')));
+    }
     return false;
   });
   for (const p of leavers) {

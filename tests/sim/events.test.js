@@ -140,10 +140,12 @@ describe('decisions', () => {
     const up = dispatch(s, { type: 'startProject', kind: 'update', productId: weak.id }).projectId;
     const f = s.staff.find((p) => p.founder);
     raise(s, 'pivot_pitch', f.id);
-    resolve(s, 0);
+    const res = resolve(s, 0);
+    expect(res.events.filter((e) => e.type === 'toast').length).toBeLessThanOrEqual(2);
     expect(weak.killed).toBe(true);
     expect(s.projects.some((j) => j.id === up)).toBe(false);
     const fresh = s.projects.find((j) => j.kind === 'new');
+    expect(s.pendingDecision).toBe(null);
     expect(fresh.pointsNeeded).toBeCloseTo(B.sizes.medium.points * (1 + 3 * B.pointsGrowthPerYear));
   });
 

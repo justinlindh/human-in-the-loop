@@ -15,12 +15,14 @@ export const EFFECT_KEYS = [
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
+  'consultants', 'clearOutage',
 ];
 
 
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [
   'subjectCompliant', 'trustedVendor', 'blameless', 'ik40', 'bestScore7', 'sabbaticalPolicy', 'stage1', 'mentorAvailable',
+  'affordConsultants',
 ];
 
 const ONCE = 100000;
@@ -541,6 +543,18 @@ const list = [
       { label: 'Pay the refunds', hint: 'Cash hit, brand kept', effects: { cash: -15000 }, outcome: 'No ponies were purchased.' },
       { label: 'Blame the vendor', hint: 'Lose 4% of customers, plus a brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } }, customersPct: -4 }, outcome: 'Customers do not care whose fault the pony is.' },
       { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cash: -6000, cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'The pony becomes a company mascot.' },
+    ],
+  },
+
+  {
+    id: 'outage_unfixable', kind: 'incident', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Nobody here can debug this',
+    text: '{product} is down and nobody on staff understands the part that broke. The logs are long, confident, and wrong.',
+    choices: [
+      { label: 'Call in consultants', hint: '$45k, and it is fixed this week', requires: 'affordConsultants', effects: { consultants: true }, outcome: 'Three people in vests arrive, say "interesting" a lot, and fix it by Thursday.' },
+      { label: 'Hire an emergency contractor', hint: '$15k; fixed in about 2 weeks, effects later; adds some debt nobody will understand', effects: { cash: -15000, debt: 3, later: [{ inWeeks: 2, effects: { clearOutage: true } }] }, outcome: 'A contractor named Dmitri logs in from an airport. He seems calm. That is something.' },
+      { label: 'Keep trying ourselves', hint: 'If {product} stays down {collapseWeeks} more weeks and it is your main product, the company collapses', effects: {}, outcome: 'Someone orders pizza. Someone else opens the oldest file in the repo.' },
     ],
   },
 

@@ -14,6 +14,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision } from './events.js';
+import { clearOutage } from './incidents.js';
 
 export { modifierBonus } from './modifiers.js';
 
@@ -44,6 +45,7 @@ export function checkCondition(state, id, subjectId) {
     case 'bestScore7': return liveProducts(state).some((p) => p.score >= 7);
     case 'sabbaticalPolicy': return !!state.policies.sabbatical;
     case 'stage1': return state.officeStage >= 1;
+    case 'affordConsultants': return state.cash >= B.consultantCost;
     case 'mentorAvailable': return !!person && person.seniority === 'junior' && !!freeMentor(state, person)
       && !state.staff.some((m) => m.assignment.type === 'mentor' && m.assignment.targetId === person.id);
     default: return false;
@@ -53,7 +55,7 @@ export function checkCondition(state, id, subjectId) {
 export const REQUIRE_REASON = {
   sabbaticalPolicy: 'Needs the Sabbatical Program', stage1: 'Needs the Office Floor', mentorAvailable: 'No mentor is free',
   subjectCompliant: 'Needs a compliance-friendly model', trustedVendor: 'Needs a trusted model vendor', blameless: 'Needs Blameless Postmortems',
-  ik40: 'Needs more institutional knowledge', bestScore7: 'Needs a product scoring 7+',
+  ik40: 'Needs more institutional knowledge', bestScore7: 'Needs a product scoring 7+', affordConsultants: 'Not enough cash',
 };
 
 function sendAway(state, p, weeks) {
@@ -68,7 +70,7 @@ function pivot(ctx) {
   const live = liveProducts(state);
   if (live.length < 2) return;
   const weakest = live.reduce((a, b) => (b.score * (b.mrr + 1) < a.score * (a.mrr + 1) ? b : a));
-  sunsetProduct(ctx, weakest);
+  const cancelled = sunsetProduct(ctx, weakest, { quiet: true });
   const t = TRENDS[state.market.trend];
   let best = null;
   for (const c of state.market.unlockedCategories) {
@@ -83,7 +85,8 @@ function pivot(ctx) {
     pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
     productId: null, startedWeek: state.week, bankedHype: 0,
   });
-  ctx.emit({ type: 'toast', text: `${weakest.name} is sunset. The new plan: ${weakest.name} 2.`, tone: 'info' });
+  const dropped = cancelled.length ? ` Cancelled: ${cancelled.map((j) => j.name).join(', ')}.` : '';
+  ctx.emit({ type: 'toast', text: `${weakest.name} is sunset.${dropped} The new plan: ${weakest.name} 2.`, tone: 'info' });
 }
 
 // Applies an effects object from event data. subjectId may name a staff member or a product.
@@ -169,6 +172,11 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     if (person && person.mood !== 'away') person.assignment = { type: 'project', targetId: id };
   }
   if (fx.pivot) pivot(ctx);
+  if (fx.consultants && state.outage) {
+    state.cash -= B.consultantCost;
+    clearOutage(ctx, ' thanks to very expensive consultants');
+  }
+  if (fx.clearOutage && state.outage && (!subjectProduct || state.outage.productId === subjectProduct.id)) clearOutage(ctx, ' thanks to the contractor');
   for (const m of [fx.modifier].flat().filter((x) => x && MODIFIER_KEYS[x.key])) {
     state.modifiers.push({ id: newId(state, 'mod'), key: m.key, value: m.value, label: m.label, untilWeek: state.week + m.weeks, source });
   }

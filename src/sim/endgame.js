@@ -60,7 +60,9 @@ function collapsed(state) {
   const product = state.products.find((p) => p.id === o.productId);
   const share = mrr > 0 ? (product?.mrr ?? 0) / mrr : 1;
   if (o.unrecoverable && o.weeks >= B.outageCollapseWeeks && share >= B.collapseMrrShare) return true;
-  return !state.staff.some((p) => !p.founder) && state.institutionalKnowledge < 10;
+  // A founders-only lab with no knowledge left collapses on any unfixable outage, after the same window.
+  return o.unrecoverable && o.weeks >= B.outageCollapseWeeks
+    && !state.staff.some((p) => !p.founder) && state.institutionalKnowledge < 10;
 }
 
 export function endgameSystem(ctx) {

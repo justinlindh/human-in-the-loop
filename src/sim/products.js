@@ -105,7 +105,7 @@ registerAction('killProduct', (ctx, { productId }) => {
 });
 
 // Sunsets a live product: zeroes it, hurts its builders, and cancels its update and migration work.
-export function sunsetProduct(ctx, p) {
+export function sunsetProduct(ctx, p, { quiet = false } = {}) {
   const { state } = ctx;
   Object.assign(p, { killed: true, customers: 0, mrr: 0 });
   for (const s of state.staff) {
@@ -120,8 +120,10 @@ export function sunsetProduct(ctx, p) {
     for (const s of state.staff) if (s.assignment.type === 'project' && ids.has(s.assignment.targetId)) s.assignment = defaultAssignment(s);
     state.projects = state.projects.filter((j) => !ids.has(j.id));
   }
+  if (quiet) return cancelled;
   ctx.emit({ type: 'toast', text: `${p.name} has been sunset. A moment of silence in #general.`, tone: 'info' });
   if (cancelled.length) ctx.emit({ type: 'toast', text: `Cancelled work on ${p.name}: ${cancelled.map((j) => j.name).join(', ')}.`, tone: 'info' });
+  return cancelled;
 }
 
 registerAction('setOwner', (ctx, { productId, staffId }) => {

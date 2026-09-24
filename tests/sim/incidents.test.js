@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, securityPosture } from '../../src/sim/index.js';
-import { incidentsSystem, rogueRisk, catchChance, cyberChance, startOutage, fixCapacity } from '../../src/sim/incidents.js';
+import { incidentsSystem, rogueRisk, catchChance, cyberChance, startOutage, fixCapacity, postureParts } from '../../src/sim/incidents.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
+import { processScheduled } from '../../src/sim/effects.js';
 import { INCIDENT_EVENT } from '../../src/data/events.js';
 import { game, addStaff, addProduct, expectFail } from './helpers.js';
 
@@ -24,6 +25,19 @@ describe('security posture', () => {
     expect(securityPosture(s)).toBeLessThan(p2);
     s.comprehensionDebt = 100;
     expect(securityPosture(s)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('postureParts adds up to securityPosture', () => {
+    const s = game();
+    addStaff(s, 'security', 'senior', { path: 'red_team_lead' });
+    s.research.done = ['red_team_suite'];
+    s.security = { auditBoost: 12, tooling: true };
+    for (const debt of [0, 30, 100]) {
+      s.comprehensionDebt = debt;
+      const p = postureParts(s);
+      expect(p.total).toBeCloseTo(securityPosture(s));
+      expect(p.total).toBeCloseTo(Math.min(100, Math.max(0, p.staff + p.bonus + p.audit + p.tooling - p.debt)));
+    }
   });
 
   it('audit decays, tooling toggles, audit needs cash', () => {
@@ -95,16 +109,18 @@ describe('rogue agents', () => {
     s.automation.engineering = { level: 1, model: 'grokk' };
     s.comprehensionDebt = 90;
     addProduct(s, { customers: 1000 });
-    let raised = null;
-    for (let i = 0; i < 600 && !raised; i++) {
-      const ev = run(s, 1);
-      if (ev.some((e) => e.type === 'decision')) raised = s.pendingDecision;
+    const raised = [];
+    for (let i = 0; i < 600 && !raised.some((d) => Object.values(INCIDENT_EVENT).includes(d.eventId)); i++) {
+      run(s, 1);
+      if (s.pendingDecision) raised.push(s.pendingDecision);
+      s.pendingDecision = null;
+      s.scheduled = [];
       s.outage = null;
     }
-    expect(raised).not.toBe(null);
-    expect(Object.values(INCIDENT_EVENT)).toContain(raised.eventId);
-    expect(raised.choices.length).toBeGreaterThanOrEqual(2);
-    expect(raised.text).not.toMatch(/[{}]/);
+    const d = raised.find((x) => Object.values(INCIDENT_EVENT).includes(x.eventId));
+    expect(d).toBeDefined();
+    expect(d.choices.length).toBeGreaterThanOrEqual(2);
+    expect(d.text).not.toMatch(/[{}]/);
   });
 });
 
@@ -199,6 +215,46 @@ describe('outages', () => {
     startOutage(makeCtx(s), { productId: p.id, kind: 'db_wipe', severity: 1 });
     run(s, 5);
     expect(eng.knowledge).toBe(k + 5);
+  });
+
+  it('two founders can fix a severity 3 outage at low debt', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = game(seed);
+      const p = addProduct(s);
+      s.comprehensionDebt = 29;
+      startOutage(makeCtx(s), { productId: p.id, kind: 'prompt_injection_leak', severity: 3 });
+      expect(s.outage.unrecoverable, `seed ${seed}`).toBe(false);
+    }
+  });
+
+  it('an unrecoverable outage raises a rescue decision with the collapse countdown', () => {
+    const s = game();
+    const p = addProduct(s, { mrr: 5000 });
+    s.comprehensionDebt = 90;
+    for (const f of s.staff) f.knowledge = 5;
+    const c = makeCtx(s);
+    startOutage(c, { productId: p.id, kind: 'db_wipe', severity: 5 });
+    expect(s.pendingDecision.eventId).toBe('outage_unfixable');
+    expect(s.pendingDecision.choices.map((x) => x.hint).join(' ')).toContain(`${B.outageCollapseWeeks} more weeks`);
+    s.cash = 1000;
+    expectFail(expect, dispatch, s, { type: 'resolveDecision', choice: 0 }, 'Not enough cash');
+    s.cash = 1e6;
+    expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
+    expect(s.outage).toBe(null);
+    expect(s.cash).toBe(1e6 - B.consultantCost);
+  });
+
+  it('an emergency contractor clears the outage a few weeks later', () => {
+    const s = game();
+    const p = addProduct(s, { mrr: 5000 });
+    s.comprehensionDebt = 90;
+    for (const f of s.staff) f.knowledge = 5;
+    startOutage(makeCtx(s), { productId: p.id, kind: 'db_wipe', severity: 5 });
+    const debt = s.comprehensionDebt;
+    expect(dispatch(s, { type: 'resolveDecision', choice: 1 }).ok).toBe(true);
+    expect(s.comprehensionDebt).toBeGreaterThan(debt - 0.001);
+    for (let w = 0; w < 4 && s.outage; w++) { s.week++; processScheduled(makeCtx(s)); }
+    expect(s.outage).toBe(null);
   });
 
   it('consultants clear an outage and cost cash', () => {

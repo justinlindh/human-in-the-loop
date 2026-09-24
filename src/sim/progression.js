@@ -14,7 +14,7 @@ registerAction('buyItem', (ctx, { itemId }) => {
   const { state } = ctx;
   const it = ITEMS[itemId];
   if (!it) return { ok: false, reason: 'Unknown item' };
-  if (state.items.some((i) => i.itemId === itemId)) return { ok: false, reason: 'Already owned' };
+  if (state.items.filter((i) => i.itemId === itemId).length >= 2) return { ok: false, reason: 'You already have two' };
   if (state.officeStage < it.minStage) return { ok: false, reason: 'Needs a bigger office' };
   if (it.requires === 'award' && state.stats.awards < 1) return { ok: false, reason: 'Needs an award first' };
   if (state.items.length >= OFFICE_STAGES[state.officeStage].itemSlots) return { ok: false, reason: 'No free item slots' };

@@ -29,12 +29,17 @@ const KIND_LABEL = {
 
 const onSecurity = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'security');
 
-export function securityPosture(state) {
-  const staffPart = sum(onSecurity(state), (p) => avg(Object.values(p.skills)) * B.postureSecurityPerSkill * outputMult(state, p) / 10);
-  const flat = researchBonus(state, 'postureFlat') + sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).postureFlat);
-  return clamp(staffPart + flat + state.security.auditBoost + (state.security.tooling ? B.postureTooling : 0)
-    - state.comprehensionDebt * B.postureDebtPenalty, 0, 100);
+// Security posture broken into the pieces the Ops panel shows; total is securityPosture.
+export function postureParts(state) {
+  const staff = sum(onSecurity(state), (p) => avg(Object.values(p.skills)) * B.postureSecurityPerSkill * outputMult(state, p) / 10);
+  const bonus = researchBonus(state, 'postureFlat') + sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).postureFlat);
+  const audit = state.security.auditBoost;
+  const tooling = state.security.tooling ? B.postureTooling : 0;
+  const debt = state.comprehensionDebt * B.postureDebtPenalty;
+  return { staff, bonus, audit, tooling, debt, total: clamp(staff + bonus + audit + tooling - debt, 0, 100) };
 }
+
+export const securityPosture = (state) => postureParts(state).total;
 
 function shortfall(state) {
   const req = oversightRequired(state);
@@ -62,7 +67,9 @@ export const cyberChance = (state) => Math.min(B.cyberMax, B.cyberBase + B.cyber
 export function fixCapacity(state) {
   const present = state.staff.filter((p) => p.mood !== 'away');
   const commander = Math.max(1, ...present.map((p) => staffMods(p).outageFix));
-  return sum(present.filter((p) => p.role === 'engineer'), (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority])
+  // Engineers can debug; founders built the thing and can debug it whatever their role, and do it better.
+  const fixers = present.filter((p) => p.role === 'engineer' || p.founder);
+  return sum(fixers, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
     * commander * (1 + researchBonus(state, 'outageFix'));
 }
 
@@ -74,11 +81,22 @@ export function startOutage(ctx, { productId, kind, severity }) {
   state.outage = { productId, kind, severity, weeks: 0, unrecoverable: isUnrecoverable(state, severity) };
   const p = state.products.find((x) => x.id === productId);
   noteWorstOutage(state, p);
+  state.flags.outageRescueAsked = false;
   ctx.emit({ type: 'toast', text: `${p?.name ?? 'A product'} is down.${state.outage.unrecoverable ? ' Nobody knows how to fix it.' : ''}`, tone: 'bad' });
+  askForRescue(ctx);
 }
 
-function clearOutage(ctx, how) {
+// Once per outage, when nobody on staff can fix it, ask the player how to get it fixed.
+function askForRescue(ctx) {
   const { state } = ctx;
+  if (!state.outage?.unrecoverable || state.flags.outageRescueAsked) return;
+  state.flags.outageRescueAsked = true;
+  raiseDecision(ctx, 'outage_unfixable', state.outage.productId, { queue: true });
+}
+
+export function clearOutage(ctx, how) {
+  const { state } = ctx;
+  if (!state.outage) return;
   const p = state.products.find((x) => x.id === state.outage.productId);
   state.outage = null;
   const engineers = state.staff.filter((x) => x.role === 'engineer');
@@ -101,6 +119,7 @@ function outageStep(ctx) {
   o.weeks++;
   o.unrecoverable = isUnrecoverable(state, o.severity);
   noteWorstOutage(state, state.products.find((p) => p.id === o.productId));
+  askForRescue(ctx);
   if (!o.unrecoverable && o.weeks >= Math.max(1, Math.ceil(o.severity / Math.max(fixCapacity(state), 0.1)))) clearOutage(ctx, '');
 }
 
@@ -136,8 +155,8 @@ function incident(ctx, { kind, severity, caught, model }) {
     return;
   }
   if (witnesses.length) emitChat(ctx, { channel: 'incidents', person: pick(ctx.rng, witnesses), text: pick(ctx.rng, CHATTER.incident) });
-  if (severity >= B.outageMinSeverity && !state.outage && product) startOutage(ctx, { productId, kind, severity });
   if (severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
+  if (severity >= B.outageMinSeverity && !state.outage && product) startOutage(ctx, { productId, kind, severity });
 }
 
 export function incidentsSystem(ctx) {

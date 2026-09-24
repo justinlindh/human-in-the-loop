@@ -247,9 +247,11 @@ registerAction('train', (ctx, { staffId, program, focus }) => {
   p.knowledge = Math.min(100, p.knowledge + t.knowledge);
   state.brand = Math.min(100, state.brand + t.brand);
   if (t.awayWeeks > 0) {
+    const before = p.assignment;
     p.mood = 'away';
     p.assignment = { type: 'sabbatical', targetId: null };
     p.sabbaticalWeeksLeft = t.awayWeeks;
+    if (before.type === 'project') state.flags[`returnTo_${p.id}`] = before.targetId;
     endMentorshipsOf(state, p);
     state.flags[`awayFor_${p.id}`] = t.name;
   }
@@ -304,7 +306,9 @@ export function staffUpkeep(ctx) {
       p.sabbaticalWeeksLeft--;
       if (p.sabbaticalWeeksLeft === 0) {
         p.mood = 'ok';
-        p.assignment = defaultAssignment(p);
+        const back = state.flags[`returnTo_${p.id}`];
+        delete state.flags[`returnTo_${p.id}`];
+        p.assignment = back && state.projects.some((j) => j.id === back) ? { type: 'project', targetId: back } : defaultAssignment(p);
         const from = state.flags[`awayFor_${p.id}`];
         delete state.flags[`awayFor_${p.id}`];
         ctx.emit({ type: 'toast', text: from ? `${p.name} is back from the ${from.toLowerCase()}, full of ideas.` : `${p.name} is back, rested and dangerous.`, tone: 'good' });
