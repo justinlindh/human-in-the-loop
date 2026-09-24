@@ -706,10 +706,10 @@
 .hitl .trcard .gpick { align-self: flex-start; }
 .hitl .toast.clickable, .hitl .dtoast.clickable { cursor: pointer; text-decoration: underline dotted; }
 
-/* ---------- Slackk ---------- */
+/* ---------- Yak ---------- */
 .hitl .chat { pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: var(--radius); box-shadow: var(--pop), var(--soft); overflow: hidden; display: flex; flex-direction: column; }
 .hitl .chat-head { display: flex; align-items: center; gap: 0.45em; padding: 0.3em 0.6em; background: #4a154b; color: #fff; cursor: pointer; }
-.hitl .chat-head .slogo { width: 1.4em; height: 1.4em; display: grid; place-items: center; border-radius: 0.35em; background: var(--yellow); color: #4a154b; font-weight: 700; }
+.hitl .chat-head .slogo { width: 1.5em; height: 1.5em; display: grid; place-items: center; border-radius: 0.4em; background: var(--yellow); }
 .hitl .chat-head .sbrand { letter-spacing: 0.01em; }
 .hitl .chat-head .count { margin-left: auto; display: none; min-width: 1.5em; text-align: center; font-size: 0.75em; font-weight: 700; background: var(--red); border-radius: 1em; padding: 0.05em 0.45em; }
 .hitl .chat-head .count.show { display: inline-block; }
