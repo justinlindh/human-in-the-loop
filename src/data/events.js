@@ -113,7 +113,7 @@ const list = [
     id: 'team_offsite', kind: 'staff', weight: 1, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.staff.length >= 6,
     title: 'Team offsite',
-    text: 'The team wants an offsite. A cabin, a lake, zero Slackk.',
+    text: 'The team wants an offsite. A cabin, a lake, zero Yak.',
     choices: [
       { label: 'Book the cabin', hint: 'Expensive, big team meaning boost', effects: { cash: -12000, teamMeaning: 10 }, outcome: 'Someone fell in the lake. Morale has never been higher.' },
       { label: 'Maybe next quarter', hint: 'Nothing happens', effects: {}, outcome: 'Next quarter, everyone says.' },
@@ -166,7 +166,7 @@ const list = [
     id: 'no_show', kind: 'staff', weight: 2, cooldownWeeks: 40, random: true, subject: 'workingStaff',
     when: (s) => s.staff.length >= 4,
     title: 'Where is {name}?',
-    text: '{name} has not been in for three days. Their Slackk status just says "focusing". It has said that since Tuesday.',
+    text: '{name} has not been in for three days. Their Yak status just says "focusing". It has said that since Tuesday.',
     choices: [
       { label: 'Check in kindly', hint: 'They take a couple of weeks off; comes back stronger, effects later', effects: { awayWeeks: 2, teamMeaning: 1, later: [{ inWeeks: 3, effects: { meaning: 15 } }] }, outcome: 'You send soup. Actual soup. {name} replies with a single heart.' },
       { label: 'Dock their pay', hint: 'Saves a little cash; they and the team notice', effects: { awayWeeks: 2, cash: 1500, salaryPct: -10, meaning: -15, teamMeaning: -3 }, outcome: 'HR sends a very formal email. Everyone reads it. Everyone.' },
@@ -327,7 +327,7 @@ const list = [
     title: 'A whole hackathon week',
     text: '{name} wants to stop everything for a week of pure hacking. "Remember when we used to have fun?"',
     choices: [
-      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Slackk. It is the best thing you own.' },
+      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Yak. It is the best thing you own.' },
       { label: 'Not this quarter', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The hackathon becomes a "hack afternoon". It gets moved twice.' },
     ],
   },

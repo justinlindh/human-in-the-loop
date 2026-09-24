@@ -20,7 +20,7 @@ export const EPILOGUES = [
   { id: 'anniversary_small', when: (s, x) => x.reason === 'anniversary' && x.peakMrr > 0 && x.peakMrr < 1000000,
     text: '{company} turned twenty. Not famous, not dead: a medium-sized lab with loyal customers and a very good snack drawer.' },
   { id: 'runway', when: (s, x) => x.reason === 'runway',
-    text: 'The money ran out on a Tuesday. The last Slackk message was a gif of a burning dumpster, captioned "we tried".' },
+    text: 'The money ran out on a Tuesday. The last Yak message was a gif of a burning dumpster, captioned "we tried".' },
   { id: 'collapse', when: (s, x) => x.reason === 'collapse',
     text: 'The outage never ended. Nobody left knew how the system worked, and the system did not know either.' },
   { id: 'long_haul', when: (s, x) => x.won && x.years >= 15 && x.peakMrr > 0,

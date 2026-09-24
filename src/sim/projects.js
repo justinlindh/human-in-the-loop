@@ -260,7 +260,7 @@ const CANCEL_LINES = [
 ];
 
 // Cancels an unfinished project: progress is lost, nothing is refunded, its people go idle, and campaigns
-// aimed at it end. Someone who worked on it (or a founder) says so in Slackk.
+// aimed at it end. Someone who worked on it (or a founder) says so in Yak.
 registerAction('cancelProject', (ctx, { projectId }) => {
   const { state } = ctx;
   const j = state.projects.find((x) => x.id === projectId);

@@ -61,7 +61,7 @@ const VACATION_POSTS = [
   'Vacation starts tomorrow. My out-of-office is a photo of a lake.',
   'Off for two weeks. If something is on fire, it will still be on fire when I am back.',
   'Taking my vacation. Handover doc is in the usual place, which is my head. Kidding. Mostly.',
-  'Two weeks off. I have promised my family I will not check Slackk. I am lying to them.',
+  'Two weeks off. I have promised my family I will not check Yak. I am lying to them.',
 ];
 
 // Natural vacations: everyone takes about two weeks a year, staggered so few are away at once. A crunch or
