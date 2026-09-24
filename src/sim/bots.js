@@ -231,6 +231,9 @@ function recklessHumans(s) {
   act(s, FUNCTIONS.filter((fn) => s.automation[fn].level !== 0).map((fn) => ({ type: 'setAutomation', fn, level: 0 })));
   if (canAffordHire(s) && s.staff.length < capacity(s)) act(s, hireBest(s, () => true, (a, b) => skillSum(b) - skillSum(a)));
   act(s, pairMentors(s));
+  // The impatient player crunches whenever something is in flight.
+  const crunch = s.projects.length > 0;
+  if (!!s.policies.crunch !== crunch) dispatch(s, { type: 'setPolicy', id: 'crunch', on: crunch });
   if (!s.projects.some((j) => j.kind === 'new')) {
     const size = s.officeStage >= 1 ? 'large' : 'medium';
     const res = dispatch(s, startNew(s, size, 'chatgbt', fixedName(s)));
