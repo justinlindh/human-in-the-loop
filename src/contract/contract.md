@@ -257,3 +257,18 @@ state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ s
 - The timed reward ladder keeps its other rewards and no longer ends in the Waffle Party.
 - Items carry an `outdoor` flag; the HQ roof terrace takes only outdoor items, and placement refuses others with 'Only outdoor items go on the terrace'.
 - An acquisition brings as many of the company's people as there are free desks; the rest stay behind, and the for-sale entry says how many would join.
+
+### Per-person track record
+```js
+staff.record: {
+  launches,        // shipped launches this person worked on (also drives the Waffle Party milestone)
+  features,        // features built (engineering and design output, in whole features)
+  prsMerged,       // flavour count derived from engineering output
+  salesMrr,        // new MRR attributed to this person's sales work, in dollars
+  deals,           // deals closed
+  tickets,         // support tickets handled
+  incidentsCaught, // incidents and rogue agents this person caught
+  mentored,        // people this person mentored to a level-up
+}
+```
+- Lifetime totals, starting at 0 on hire and kept when someone becomes an alum. Each counter only moves for work the person actually did, so a role's own numbers are the meaningful ones; ui shows the ones that fit the role.
