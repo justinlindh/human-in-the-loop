@@ -5,8 +5,10 @@ const KEY = 'hitl.tutorialDone';
 const STEPS = [
   { target: '.topbar', place: 'below', title: 'Your company at a glance',
     text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Comprehension Debt. Hover anything for details.' },
-  { target: '.mbtn[data-menu="build"]', place: 'above', title: 'Build a product',
-    text: 'Pick a category, an AI angle, a model vendor, and a team. Great combos score higher. Start small.' },
+  { target: '.buildside .summary', place: 'left', title: 'Build a product',
+    text: 'Pick a category, an AI angle, a model vendor, and a team. We picked a solid starter. Great combos score higher; start small.',
+    enter: (ui) => ui.open('build', { preset: { category: 'email', angle: 'summarizer', model: 'chatgbt', size: 'small' } }),
+    leave: (ui) => ui.close() },
   { target: '.mbtn[data-menu="staff"]', place: 'above', title: 'Look after your people',
     text: 'Hire, pair juniors with mentors, and give seniors hard problems. People who lose their sense of meaning burn out and leave.' },
   { target: '.mbtn[data-menu="automation"]', place: 'above', title: 'Automation is a trade',
@@ -24,7 +26,7 @@ function markDone() {
 }
 
 // Five dismissible coach marks pointing at real parts of the HUD.
-export function createTutorial({ layer, sfx, controls }) {
+export function createTutorial({ layer, sfx, controls, ui }) {
   let resume = null; // speed to restore when the tips close
   const ring = h('div.coach-ring');
   const title = h('b');
@@ -50,12 +52,14 @@ export function createTutorial({ layer, sfx, controls }) {
     let x = r.left - box.left + r.width / 2 - bw / 2;
     let y = step.place.startsWith('below') ? r.bottom - box.top + 16 : r.top - box.top - bh - 16;
     if (step.place === 'below-left') x = r.right - box.left - bw;
+    if (step.place === 'left') { x = r.left - box.left - bw - 16; y = r.top - box.top; }
     x = Math.max(12, Math.min(box.width - bw - 12, x));
     y = Math.max(12, Math.min(box.height - bh - 12, y));
     Object.assign(bubble.style, { left: `${x}px`, top: `${y}px` });
   }
 
   function go(n) {
+    if (i >= 0) STEPS[i].leave?.(ui);
     if (n >= STEPS.length) { finish(); return; }
     if (i < 0 && resume === null) { resume = controls?.getSpeed?.() ?? 1; controls?.setSpeed?.(0); }
     i = n;
@@ -66,11 +70,14 @@ export function createTutorial({ layer, sfx, controls }) {
     setText(next, i === STEPS.length - 1 ? 'Got it' : 'Next');
     root.style.display = '';
     bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
+    step.enter?.(ui);
     place();
+    requestAnimationFrame(place);
     sfx('blip');
   }
 
   function finish() {
+    if (i >= 0) STEPS[i].leave?.(ui);
     root.style.display = 'none';
     i = -1;
     if (resume !== null && (controls?.getSpeed?.() ?? 0) === 0) controls?.setSpeed?.(resume);

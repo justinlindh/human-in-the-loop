@@ -29,7 +29,7 @@ function soundFor(e) {
     case 'resign': return e.fired ? null : 'resign';
     case 'incident': return e.caught ? 'coin' : 'alarm';
     case 'officeUpgrade': return 'fanfare';
-    case 'toast': return e.tone === 'bad' ? 'error' : 'blip';
+    case 'toast': return e.tone === 'bad' ? 'error' : e.tone === 'warn' ? 'blip' : null;
     default: return null;
   }
 }

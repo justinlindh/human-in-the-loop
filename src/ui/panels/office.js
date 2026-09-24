@@ -11,8 +11,9 @@ const EFFECT_LABEL = {
 };
 
 // Plain words for an effects map, for example "+15% stamina recovery, -2% output".
-export function effectWords(effects) {
-  return Object.entries(effects ?? {}).map(([k, v]) => {
+export function effectWords(effects, scale = 1) {
+  return Object.entries(effects ?? {}).map(([k, v0]) => {
+    const v = v0 * scale;
     const label = EFFECT_LABEL[k] ?? k.replace(/([A-Z])/g, ' $1').toLowerCase();
     const n = Math.round(v * 100);
     return `${n > 0 ? '+' : ''}${n}${k === 'uptimeFloor' ? ' pts' : '%'} ${label}`;
@@ -81,8 +82,8 @@ export function officePanel(ctx) {
           bind((st) => { if (nextCost !== null) up.disabled = st.cash < nextCost; });
           return h('div.copy', null,
             h('div.row', null, pips(o.level), h('b.small', { text: idx === 1 ? 'Second copy (half effect)' : `Level ${o.level}` })),
-            h('div.small', { text: `Now: ${effectWords(it.effects[o.level - 1])}` }),
-            nextCost !== null ? h('div.small.muted', { text: `Next: ${effectWords(it.effects[o.level])}` }) : null,
+            h('div.small', { text: `Now: ${effectWords(it.effects[o.level - 1], idx === 1 ? 0.5 : 1)}` }),
+            nextCost !== null ? h('div.small.muted', { text: `Next: ${effectWords(it.effects[o.level], idx === 1 ? 0.5 : 1)}` }) : null,
             h('div.row', null, up, h('span.spacer'),
               confirmButton(`Sell ${fmtMoney(refund(it, o.level))}`, 'Sell? Click again', 'small', () => ctx.act({ type: 'sellItem', id: o.id }))));
         });

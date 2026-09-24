@@ -69,6 +69,7 @@ export function createToasts(root) {
 
   // Pass a panel's strip element to dock there, or null to go back to the corner stack.
   function setDock(d) {
+    if (dock && dock !== d) dock.replaceChildren(h('span.dockidle'));
     dock = d;
     for (const t of live) if (t.node) { t.node.remove(); t.node = null; }
     if (dock) renderDock();

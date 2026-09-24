@@ -51,7 +51,7 @@ export function createChat(root, { getState, onName } = {}) {
     return h(`div.msg${bot ? '.bot' : ''}${m.replyTo ? '.reply' : ''}`, { dataset: { id: m.id ?? '', root: m.replyTo ?? m.id ?? '' } },
       avatar(m),
       h('div.mcol', null,
-        h('div.mline', null, name, h('span.w.num', { text: `W${dateOf(m.week).week}` })),
+        h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${dateOf(m.week).week}` })),
         h('div.mtext', { text: m.text }),
         reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
   }
@@ -102,21 +102,21 @@ export function createChat(root, { getState, onName } = {}) {
     refreshBadges();
   }
 
-  function add(e, week) {
+  function add(e, week, { quiet: silent = false } = {}) {
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
     const m = { id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
     const msgs = store[channel];
     msgs.push(m);
     const dropped = msgs.length > MAX_PER_CHANNEL ? msgs.shift() : null;
-    if (channel === 'general') lastGeneralWeek = week;
+    if (channel === 'general' && week !== null) lastGeneralWeek = week;
     if (channel === current) {
       list.querySelector('.chat-quiet.empty')?.remove();
       if (dropped) (dropped.id ? list.querySelector(`.msg[data-id="${CSS.escape(dropped.id)}"]`) : list.querySelector('.msg'))?.remove();
       const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
       place(m, node(m));
       if (nearBottom) list.scrollTop = list.scrollHeight;
-      if (collapsed) unread[channel]++;
-    } else {
+      if (collapsed && !silent) unread[channel]++;
+    } else if (!silent) {
       unread[channel]++;
     }
     refreshBadges();
@@ -133,11 +133,12 @@ export function createChat(root, { getState, onName } = {}) {
     }
   }
 
-  // A new or loaded game starts the feed over.
-  function reset() {
+  // A new or loaded game rebuilds the feed from the state's recent chat log.
+  function reset(s) {
     for (const c of CHANNELS) { store[c] = []; unread[c] = 0; }
     lastGeneralWeek = null;
     renderChannel();
+    for (const e of s?.chatLog ?? []) add(e, Number.isFinite(e.week) ? e.week : null, { quiet: true });
     refreshBadges();
   }
 
