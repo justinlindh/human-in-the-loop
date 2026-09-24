@@ -9,8 +9,8 @@ import { loadRig } from './rig.js';
 // Incentive rewards. { type: 'incentive', staffId, reward } where reward is 'balloons' (on the
 // winner's desk until the next award), 'caricature' (a framed big-head portrait on the wall), or
 // 'waffle_party' (a staged scene: the cart rolls in, the room goes dark around one warm pool of
-// light, the winner eats a towering stack alone under bunting, and colleagues watch through a
-// frosted partition; the caricature goes up afterwards).
+// light, the winner eats a towering stack alone under bunting, and colleagues crowd in on the camera
+// side to watch; the caricature goes up afterwards).
 
 const PARTY_S = 15;
 // Music night: a dance break. The winner fully commits to the genre's dance, the next two bob along,
@@ -27,7 +27,7 @@ const BOB_BAR = 2.0;            // dance_bob's authored bar (chibi_rig.py)
 const STIFF_BAR = 4.0;          // dance_stiff covers two bars
 const DANCE_POOL = 7;
 const CROWD_REACTIONS = ['point', 'whisper', 'wave', 'shake'];
-const REACTIONS = ['whisper', 'point', 'press', 'shake'];
+const REACTIONS = ['whisper', 'point', 'wave', 'shake'];
 const ROLL_S = 2.2;
 const DIM = 1.9;            // how far the room lights drop (see lighting.setSkeleton)
 const POOL = 5.5;             // warm light over the table
@@ -109,30 +109,6 @@ function bunting(word, len) {
   return g;
 }
 
-// A rolling frosted glass divider: panels on wheeled feet.
-function partition(width) {
-  const g = new THREE.Group();
-  const frost = new THREE.MeshStandardMaterial({ color: color('paper'), transparent: true, opacity: 0.3, roughness: 0.25, depthWrite: false });
-  const H = 1.85;
-  const panes = Math.max(2, Math.round(width / 1.1));
-  const pw = width / panes;
-  for (let i = 0; i < panes; i++) {
-    const x = -width / 2 + pw * (i + 0.5);
-    const pane = new THREE.Mesh(new THREE.BoxGeometry(pw - 0.06, H - 0.2, 0.02), frost);
-    pane.position.set(x, H / 2 + 0.06, 0);
-    pane.renderOrder = 2;
-    g.add(pane);
-    g.add(mesh(roundedBox(pw - 0.02, 0.05, 0.05, 0.015), mat('metal_soft'), x, H - 0.03, 0));
-  }
-  for (let i = 0; i <= panes; i++) {
-    const x = -width / 2 + pw * i;
-    g.add(mesh(roundedBox(0.05, H, 0.05, 0.015), mat('metal_soft'), x, H / 2 + 0.06, 0));
-    g.add(mesh(roundedBox(0.06, 0.04, 0.4, 0.012), mat('metal_dark'), x, 0.05, 0));
-    for (const sz of [-1, 1]) g.add(mesh(new THREE.SphereGeometry(0.03, 8, 6), mat('plastic_charcoal'), x, 0.03, sz * 0.17));
-  }
-  return g;
-}
-
 export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
@@ -202,9 +178,9 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     return best ?? { x: 0, z: 0 };
   }
 
-  // Party layout around the meeting table (or the coffee corner): the winner sits on the far side
-  // of the table facing the camera; the cart is at one end; the partition and watchers are on the
-  // other, across the screen, so the watchers are seen in profile looking through the glass.
+  // Party layout around the meeting table (or an open spot): the winner sits on the far side of the
+  // table facing the camera, the cart is at one end, the bunting hangs behind the winner, and the
+  // watchers crowd in on the camera side, clear of the camera's line to the winner.
   function venue() {
     const Z = office.current.zones;
     const L = office.current.L;
@@ -225,18 +201,22 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     const seatL = w(0, nz * (td / 2 + 0.33));
     const seat = { ...seatL, yaw: Math.atan2(center.x - seatL.x, center.z - seatL.z) };
     const plate = w(0, nz * (td / 2 - 0.22));
-    // The partition stands beyond the winner (camera, table, winner, glass, watchers), so the
-    // watchers are seen through the frosted glass and spread across the screen. If that side has
-    // no room, it moves to a screen side instead.
+    // The bunting and cart use the far side of the table (away from the camera), or a screen side
+    // when the far side has no room.
     const inside = (p) => Math.abs(p.x) < L.W / 2 - 0.5 && Math.abs(p.z) < L.D / 2 - 0.5;
     const at = (dir, d) => ({ x: center.x + dir.x * d, z: center.z + dir.z * d });
     const back = { x: -cam.x, z: -cam.z };
-    let dir = back, spread = right;
-    if (!inside(at(back, 2.5))) {
-      dir = inside(at(right, 3)) ? right : { x: -right.x, z: -right.z };
-      spread = { x: -dir.z, z: dir.x };
-    }
+    let dir = back;
+    if (!inside(at(back, 2.5))) dir = inside(at(right, 3)) ? right : { x: -right.x, z: -right.z };
     const cartDir = dir === back ? right : { x: -dir.x, z: -dir.z };
+    // Watchers crowd in on the camera side, in an arc that leaves the camera's line to the winner
+    // open: two to the left, one to the right, a step closer to the camera than the table.
+    const ARC = [[-1.9, 1.1], [-1.25, 1.75], [1.8, 1.25]];
+    const frontArc = (i) => {
+      const [u, v] = ARC[i % ARC.length];
+      const p = { x: center.x + right.x * u + cam.x * v, z: center.z + right.z * u + cam.z * v };
+      return inside(p) ? p : { x: center.x + right.x * u * 0.7 + cam.x * v * 0.7, z: center.z + right.z * u * 0.7 + cam.z * v * 0.7 };
+    };
     if (!Z.meeting) {
       // The winner stands beside the cart (screen right), turned a little toward it, facing us.
       const stand = { x: center.x + right.x * 0.8 - cam.x * 0.1, z: center.z + right.z * 0.8 - cam.z * 0.1 };
@@ -244,15 +224,13 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
         center, seat: { ...stand, yaw: Math.atan2(cam.x, cam.z) - 0.5 }, plate: { x: center.x - cam.x * 0.08, z: center.z - cam.z * 0.08 }, plateY: 0.82 * 1.3 + 0.02,
         sit: false, tableLen: 1.4, rotY, yaw, bannerAt: at(dir, 1.05),
         cart: center, cartYaw: yaw,
-        glass: at(dir, 1.75), glassYaw: Math.atan2(dir.x, dir.z),
-        watch: (i) => { const p = at(dir, 2.3); return { x: p.x + spread.x * (i - 1) * 0.65, z: p.z + spread.z * (i - 1) * 0.65 }; },
+        watch: frontArc,
       };
     }
     return {
       center, seat, plate, plateY: 0.69, sit: true, tableLen: tl, rotY, yaw, bannerAt: at(dir, 0.95),
       cart: at(cartDir, tl / 2 + 0.9), cartYaw: seat.yaw + Math.PI / 2,
-      glass: at(dir, 1.75), glassYaw: Math.atan2(dir.x, dir.z),
-      watch: (i) => { const p = at(dir, 2.3); return { x: p.x + spread.x * (i - 1) * 0.65, z: p.z + spread.z * (i - 1) * 0.65 }; },
+      watch: frontArc,
     };
   }
 
@@ -293,21 +271,17 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     stack.scale.setScalar(0.001);
     props.add(stack);
     const banner = bunting('WAFFLE PARTY', Math.max(2.6, v.tableLen + 1.2));
-    // The bunting hangs square to the camera between the winner and the glass, so it reads.
+    // The bunting hangs square to the camera behind the winner, so it reads.
     banner.position.set(v.bannerAt.x, 0, v.bannerAt.z);
     banner.rotation.y = v.yaw;
     props.add(banner);
-    const glass = partition(2.4);
-    glass.position.set(v.glass.x, 0, v.glass.z);
-    glass.rotation.y = v.glassYaw;
-    props.add(glass);
     const chairBalloons = getModel('balloons');
     const back = { x: v.seat.x - Math.sin(v.seat.yaw) * 0.35, z: v.seat.z - Math.cos(v.seat.yaw) * 0.35 };
     chairBalloons.position.set(back.x + 0.2, 0, back.z);
     props.add(chairBalloons);
-    const grow = [[banner, 1], [glass, 1], [chairBalloons, 1.6]];
+    const grow = [[banner, 1], [chairBalloons, 1.6]];
     for (const [o] of grow) o.scale.setScalar(0.001);
-    // The winner walks to the lone seat; three colleagues press up to the glass.
+    // The winner walks to the lone seat; three colleagues gather to watch.
     const seat = { x: v.seat.x, z: v.seat.z, yaw: v.seat.yaw, anim: 'idle' };
     r.temp = { anim: v.sit ? 'sit' : 'sip', t: PARTY_S, goal: seat, back: true, party: true };
     easeIn(v);
@@ -354,8 +328,8 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setDim(DIM * fade);
     setAccent({ x: p.v.plate.x, y: 1.8, z: p.v.plate.z }, POOL * fade);
     if (p.t > ROLL_S + 0.8) p.stack.scale.setScalar(Math.min(1, (p.t - ROLL_S - 0.8) / 0.3));
-    // Watchers react while they look on, taking turns: a whisper to a neighbour, a point, hands
-    // on the glass, a slow shake of the head.
+    // Watchers react while they look on, taking turns: a whisper to a neighbour, a point, a wave,
+    // a slow shake of the head.
     if (p.t > ROLL_S + 1) {
       const slot = Math.floor((p.t - ROLL_S - 1) / 2.4);
       p.watchers.forEach((w, i) => {
@@ -517,5 +491,5 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (dance) { dance.props.removeFromParent(); for (const r of dance.dancers) r.char.setAnimRate(1); dance = null; setDim(0); setAccent(null); ease = null; }
   }
 
-  return { handle, update, reset, get party() { return party ? { t: party.t } : null; }, get dance() { return dance ? { t: dance.t, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id) } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
+  return { handle, update, reset, get party() { return party ? { t: party.t, center: party.v.center, yaw: party.v.yaw, watchers: party.watchers.map((w) => w.id), winner: party.r.id } : null; }, get dance() { return dance ? { t: dance.t, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id) } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
 }
