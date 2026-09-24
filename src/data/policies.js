@@ -1,18 +1,18 @@
 export const POLICIES = {
   daily_standups: {
-    id: 'daily_standups', lockText: 'Always available', name: 'Daily Standups', weeklyCost: 0, unlock: () => true, excludes: 'async_standups',
+    id: 'daily_standups', lockText: 'Unlocks at 5 people', name: 'Daily Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'async_standups',
     desc: 'Everyone gathers at the whiteboard for quick updates. A little less output, better knowledge sharing, and a small meaning lift.',
   },
   async_standups: {
-    id: 'async_standups', lockText: 'Always available', name: 'Async Standups', weeklyCost: 0, unlock: () => true, excludes: 'daily_standups',
+    id: 'async_standups', lockText: 'Unlocks at 5 people', name: 'Async Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'daily_standups',
     desc: 'Updates go to the #standup channel instead. No output cost, a smaller knowledge boost, and the quiet ones stop posting.',
   },
   pair: {
-    id: 'pair', lockText: 'Always available', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: () => true,
+    id: 'pair', lockText: 'Arrives with the ChatGBT moment', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: (s) => s.era.id !== 'classic',
     desc: 'Automation works alongside people, not in place of them. Much less meaning drain, smaller automation output.',
   },
   craft_fridays: {
-    id: 'craft_fridays', lockText: 'Always available', name: 'Craft Fridays', weeklyCost: 0, unlock: () => true,
+    id: 'craft_fridays', lockText: 'Unlocks at 4 people', name: 'Craft Fridays', weeklyCost: 0, unlock: (s) => s.staff.length >= 4,
     desc: 'Fridays are for making things nice. 10% less output, steady meaning recovery.',
   },
   blameless: {

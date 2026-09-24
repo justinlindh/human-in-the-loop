@@ -7,6 +7,7 @@ import { PATHS } from '../data/paths.js';
 import { TRAITS, EARNED_TRAITS } from '../data/traits.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { ROLES } from '../data/roles.js';
+import { lockedReason } from './unlocks.js';
 
 const ownedItem = (state, id) => state.items.find((i) => i.id === id);
 
@@ -82,6 +83,8 @@ registerAction('choosePath', (ctx, { staffId, pathId }) => {
   const p = state.staff.find((x) => x.id === staffId);
   if (!p) return { ok: false, reason: 'No such staff member' };
   if (!p.pathPending) return { ok: false, reason: 'No path to choose yet' };
+  const locked = lockedReason(state, 'paths');
+  if (locked) return { ok: false, reason: locked };
   const path = PATHS[pathId];
   if (!path) return { ok: false, reason: 'Unknown path' };
   if (path.role !== p.role) return { ok: false, reason: `That path is for ${ROLES[path.role].name.toLowerCase()}s` };
@@ -94,6 +97,7 @@ registerAction('choosePath', (ctx, { staffId, pathId }) => {
 
 export function onReachedSenior(ctx, p) {
   p.pathPending = true;
+  ctx.state.flags.firstSeniorWeek ??= ctx.state.week;
   ctx.emit({ type: 'toast', text: `${p.name} is ready to choose a career path.`, tone: 'info' });
 }
 

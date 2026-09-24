@@ -105,7 +105,7 @@ describe('decisions', () => {
     raise(s, 'acquisition_offer');
     const res = resolve(s, 0);
     expect(res.ok).toBe(true);
-    expect(s.gameOver).toMatchObject({ won: true, reason: 'acquired' });
+    expect(s.gameOver).toMatchObject({ won: true, reason: 'retired', retiredVia: 'acquired' });
     expect(s.flags.acquirer).toBe('Gmale');
     expect(res.events).toContainEqual({ type: 'gameOver' });
   });

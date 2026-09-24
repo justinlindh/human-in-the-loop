@@ -10,6 +10,7 @@ import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
+import { eraAllowsText, eraAtLeast, currentEra } from './eras.js';
 
 // Placeholder values chosen once per event, so every string in a decision names the same incumbent.
 export function decisionVars(state, rng, subjectId) {
@@ -54,6 +55,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     return false;
   }
   if (spaced) state.flags.lastDecisionWeek = state.week;
+  if (ev.marks) state.flags[ev.marks] = state.week;
   const vars = decisionVars(state, ctx.rng, subjectId);
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
@@ -96,9 +98,20 @@ export function resolveSubjects(state, ev) {
 
 export function helpers(state) {
   const live = liveProducts(state);
-  const used = new Set([...live.map((p) => p.model), ...Object.values(state.automation).filter((a) => a.level > 0).map((a) => a.model)]);
-  return { B, mrr: totalMrr(state), live, bestScore: Math.max(0, ...live.map((p) => p.score)), usesModel: (id) => used.has(id) };
+  const used = new Set([...live.map((p) => p.model).filter(Boolean), ...Object.values(state.automation).filter((a) => a.level > 0).map((a) => a.model)]);
+  const mrr = totalMrr(state);
+  const offerMult = eraAtLeast(state, 'consolidation') ? B.consolidationOfferMult : 1;
+  return {
+    B, mrr, live, bestScore: Math.max(0, ...live.map((p) => p.score)), usesModel: (id) => used.has(id),
+    offerReady: mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
+  };
 }
+
+// Every player-facing string an event can show, for the era text check.
+const eventText = (ev) => JSON.stringify([ev.title, ev.text, ev.chat ?? '', (ev.choices ?? []).map((c) => [c.label, c.hint, c.outcome ?? ''])]);
+
+// An event fits the era if it names the era explicitly, or names none and its text fits.
+export const eventFitsEra = (state, ev) => (ev.eras ? ev.eras.includes(currentEra(state).id) : eraAllowsText(state, eventText(ev)));
 
 export function eligibleEvents(state) {
   const h = helpers(state);
@@ -107,6 +120,7 @@ export function eligibleEvents(state) {
     || (state.flags.lastDecisionWeek !== undefined && state.week - state.flags.lastDecisionWeek < B.decisionGapWeeks);
   return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
+    && eventFitsEra(state, ev)
     && ev.when(state, h)
     && (ev.subject === null || resolveSubjects(state, ev).length > 0));
 }

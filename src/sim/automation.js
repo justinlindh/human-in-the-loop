@@ -8,6 +8,16 @@ import { MODELS } from '../data/models.js';
 import { POLICIES } from '../data/policies.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
+import { lockedReason, isUnlocked } from './unlocks.js';
+import { eraAtLeast } from './eras.js';
+
+// The highest automation level the era allows for a function: none in Classic, support and
+// marketing copy only (capped) in the ChatGBT era, everything from Agents on.
+export function automationCap(state, fn) {
+  if (eraAtLeast(state, 'agents')) return 1;
+  if (eraAtLeast(state, 'chatgbt')) return B.chatgbtAutomationFns.includes(fn) ? B.chatgbtAutomationCap : 0;
+  return 0;
+}
 
 export function automationExposure(state, person) {
   let max = 0;
@@ -33,13 +43,17 @@ registerAction('setAutomation', (ctx, { fn, level, model }) => {
   const { state } = ctx;
   if (!FUNCTIONS.includes(fn)) return { ok: false, reason: 'Unknown function' };
   if (typeof level !== 'number' || !Number.isFinite(level)) return { ok: false, reason: 'Invalid level' };
+  const locked = lockedReason(state, 'automation');
+  if (locked) return { ok: false, reason: locked };
+  const cap = automationCap(state, fn);
+  if (cap <= 0 && level > 0) return { ok: false, reason: 'Arrives with the Agents era' };
   const current = state.automation[fn].model;
   const m = model ?? current;
   const ms = state.models[m];
   if (!ms) return { ok: false, reason: 'Model is not available' };
   // Keeping the current model is always allowed, so a retired model can still be dialed down or off.
   if (m !== current && (!ms.available || ms.deprecated)) return { ok: false, reason: 'Model is not available' };
-  state.automation[fn] = { level: Math.min(1, Math.max(0, Math.round(level * 4) / 4)), model: m };
+  state.automation[fn] = { level: Math.min(cap, Math.max(0, Math.round(level * 4) / 4)), model: m };
   return { ok: true };
 });
 
@@ -48,7 +62,7 @@ registerAction('setPolicy', (ctx, { id, on }) => {
   const pol = POLICIES[id];
   if (!pol) return { ok: false, reason: 'Unknown policy' };
   if (on) {
-    if (!state.policies[id] && !pol.unlock(state)) return { ok: false, reason: pol.lockText };
+    if (!state.policies[id] && !isUnlocked(state, `policy.${id}`) && !pol.unlock(state)) return { ok: false, reason: pol.lockText };
     state.policies[id] = true;
     if (pol.excludes) delete state.policies[pol.excludes];
     ctx.emit({ type: 'toast', text: `Policy on: ${pol.name}`, tone: 'info' });

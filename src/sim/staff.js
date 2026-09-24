@@ -14,6 +14,7 @@ import { itemBonus, researchBonus } from './bonus.js';
 import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
+import { eraLines } from './eras.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -167,7 +168,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
-  emitChat(ctx, { person: c, text: pick(ctx.rng, CHATTER.hello) });
+  emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
   return { ok: true };
 });
 

@@ -9,7 +9,7 @@ const REQUIRED_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge', 'comprehensionDebt',
   'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products', 'automation', 'policies', 'campaigns',
   'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage', 'incidentLog', 'lowCashWeeks', 'pendingDecision',
-  'flags', 'stats', 'history', 'gameOver',
+  'flags', 'stats', 'history', 'gameOver', 'era', 'eraSchedule', 'unlocks', 'goals',
 ];
 
 const STATE_DEFAULTS = () => ({ items: [], research: { done: [] }, modifiers: [], scheduled: [], chatLog: [] });
@@ -50,7 +50,7 @@ function wellFormed(state) {
   if (!lists.every((k) => arrayOfObjects(state[k]))) return false;
   if (['items', 'modifiers', 'scheduled', 'chatLog'].some((k) => k in state && !arrayOfObjects(state[k]))) return false;
   if (![...state.staff, ...state.candidates].every((p) => isObj(p.assignment) && isObj(p.skills) && Array.isArray(p.traits))) return false;
-  return ['rng', 'automation', 'market', 'models', 'stats', 'flags', 'ops', 'security', 'policies'].every((k) => isObj(state[k]));
+  return ['rng', 'automation', 'market', 'models', 'stats', 'flags', 'ops', 'security', 'policies', 'era', 'eraSchedule', 'unlocks', 'goals'].every((k) => isObj(state[k]));
 }
 
 // Fills fields added after a save was written, so older saves of the same version keep loading.

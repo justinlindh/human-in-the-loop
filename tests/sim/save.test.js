@@ -60,6 +60,8 @@ describe('save and load', () => {
     const store = fakeStorage();
     store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 999 }));
     expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an incompatible version' });
+    store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 1 }));
+    expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an incompatible version' });
   });
 
   it('fills missing staff defaults on load', () => {

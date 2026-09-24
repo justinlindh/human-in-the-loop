@@ -1,5 +1,6 @@
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
-// h = { B, mrr, live, bestScore, usesModel(id) }.
+// h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
+// without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}.
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
@@ -8,14 +9,14 @@ export const SUBJECTS = [
   'automatedSenior', 'mentorStaff', 'founder', 'randomProduct',
 ];
 
-export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc'];
+export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era'];
 
 export const EFFECT_KEYS = [
   'cash', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
-  'consultants', 'clearOutage', 'buyItem', 'upgradeItem',
+  'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer',
 ];
 
 
@@ -394,12 +395,13 @@ const list = [
     auto: { hype: 20 },
   },
   {
-    id: 'acquisition_offer', kind: 'market', weight: 6, cooldownWeeks: 104, random: true, subject: null,
-    when: (s, h) => h.mrr >= h.B.acquisitionOfferMrr && s.brand >= h.B.acquisitionOfferBrand,
+    id: 'acquisition_offer', kind: 'market', weight: 6, cooldownWeeks: 52, random: true, subject: null, marks: 'acquisitionOfferWeek',
+    when: (s, h) => h.offerReady,
     title: 'An acquisition offer',
     text: '{incumbent} wants to buy {company}. The number has a lot of zeros. The integration plan has a lot of question marks.',
     choices: [
-      { label: 'Accept the offer', hint: 'Ends the run as a win', effects: { win: 'acquired' }, outcome: 'You sign. Somewhere, a press release is already written.' },
+      { label: 'Accept and retire', hint: 'Ends the run as a win', effects: { win: 'acquired' }, outcome: 'You sign. Somewhere, a press release is already written.' },
+      { label: 'Keep it on the table', hint: 'You can retire from Reports for six months', effects: { openOffer: true }, outcome: '"Let us circle back," you say, like a real executive.' },
       { label: 'Decline', hint: 'Brand up a little', effects: { brand: 2 }, outcome: '"We are just getting started," you tell TechCrunchy.' },
     ],
   },
@@ -594,7 +596,7 @@ const list = [
     id: 'supply_chain', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'Supply chain compromise',
-    text: 'A tiny package your agents auto-installed turned out to be a crypto miner in a trench coat.',
+    text: 'A tiny package someone installed at 2 a.m. turned out to be a crypto miner in a trench coat.',
     choices: [
       { label: 'Audit every dependency', hint: 'Costs cash, lowers debt', effects: { cash: -15000, debt: -3 }, outcome: 'You now know what left-pad is. Again.' },
       { label: 'Remove it and move on', hint: 'Risky', effects: { gamble: { p: 0.5, effects: { brand: -5, debt: 3 } } }, outcome: 'Probably fine. Probably.' },
@@ -621,6 +623,91 @@ const list = [
     ],
   },
 
+  // Era arrivals (raised by the calendar when an era begins)
+  {
+    id: 'era_chatgbt', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The ChatGBT moment',
+    text: 'A chatbot is on the evening news. Your customers want to know your AI strategy. So does your mom. {incumbent} has a banner that says AI in a font normally used for funerals.',
+    choices: [
+      { label: 'Try copilots', hint: 'Hype on your newest product now; everyone learns faster for 26 weeks', effects: { hype: 15, teamMeaning: 2, modifier: { key: 'xp', value: 0.2, weeks: 26, label: 'Copilot experiments' } }, outcome: 'Everyone gets a copilot license. Three people use it. One of them for poetry.' },
+      { label: 'Wait and see', hint: 'Customers stay calmer for 26 weeks; the brand slips a little later', effects: { modifier: { key: 'churn', value: -0.1, weeks: 26, label: 'Steady hands' }, later: [{ inWeeks: 13, effects: { brand: -2 } }] }, outcome: 'You let the hype cycle cycle. Your customers find this oddly soothing.' },
+      { label: 'The board wants an AI strategy', hint: 'Brand up and more signups for 26 weeks; the team rolls its eyes', effects: { brand: 4, teamMeaning: -3, modifier: { key: 'acquisition', value: 0.15, weeks: 26, label: 'AI strategy buzz' } }, outcome: 'The deck has 40 slides. Slide 12 just says "agents". Nobody knows what that means yet.' },
+    ],
+  },
+  {
+    id: 'era_agents', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The agents are here',
+    text: 'The models stopped suggesting and started doing. {incumbent} announced an agent that replaces a whole team. The team found out from the press release.',
+    choices: [
+      { label: 'Go all in', hint: 'Every automation dial +25% and a hype bump; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, hype: 15, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Agent gold rush' } }, outcome: 'The agents start work on Monday. By Wednesday one of them has opened a ticket about the other.' },
+      { label: 'Humans stay in the loop', hint: 'Brand up; people recover faster for 26 weeks', effects: { brand: 2, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 26, label: 'Humans in the loop' } }, outcome: 'You put a sign on the door: HUMANS IN THE LOOP. Someone adds "mostly" in pencil.' },
+      { label: 'Pilot with oversight', hint: '-$10k; more oversight hours and fewer rogue agents for 52 weeks', effects: { cash: -10000, modifier: [{ key: 'oversight', value: 0.3, weeks: 52, label: 'Agent pilot program' }, { key: 'rogueRisk', value: -0.3, weeks: 52, label: 'Agent pilot program' }] }, outcome: 'Every agent gets a babysitter and a tiny badge. The badges were a mistake. Everyone loves them.' },
+    ],
+  },
+  {
+    id: 'era_consolidation', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Consolidation',
+    text: 'Everyone is buying everyone. Two of your vendors merged, a third is "exploring strategic options", and regulators have discovered AI. There is a hearing. It is on TV.',
+    choices: [
+      { label: 'Hire a compliance lead', hint: '-$25k; customers churn less for 52 weeks', effects: { cash: -25000, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Compliance lead' } }, outcome: 'They arrive with three binders and a label maker. Everyone feels safer and slightly afraid.' },
+      { label: 'Lobby a little', hint: '-$10k and a coin flip: good press or a scandal', effects: { cash: -10000, gamble: { p: 0.5, effects: { brand: 5 }, else: { brand: -6 } } }, outcome: 'You buy a senator a sandwich. The results are pending.' },
+      { label: 'Keep your head down', hint: 'Nothing now; the price war slows signups for 26 weeks', effects: { modifier: { key: 'acquisition', value: -0.1, weeks: 26, label: 'Price war' } }, outcome: 'You ship features and ignore the news. The news does not ignore you.' },
+    ],
+  },
+  // Classic era flavor
+  {
+    id: 'cloud_bill', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, eras: ['classic'],
+    when: (s, h) => h.live.length > 0,
+    title: 'The hosting bill',
+    text: 'The hosting invoice has a new line item called "Egress". Nobody knows what egress is. Everyone is paying for it.',
+    choices: [
+      { label: 'Spend a sprint optimizing', hint: 'Less output for 4 weeks; savings arrive later', effects: { modifier: { key: 'output', value: -0.1, weeks: 4, label: 'Cost-cutting sprint' }, later: [{ inWeeks: 8, effects: { cash: 8000 } }] }, outcome: 'Someone finds a test server that has been running since the garage. It had a name. It was Kevin.' },
+      { label: 'Just pay it', hint: '-$6k', effects: { cash: -6000 }, outcome: 'You pay it. Egress remains a mystery, like most of the cloud.' },
+    ],
+  },
+  {
+    id: 'app_store_rejection', kind: 'market', weight: 2, cooldownWeeks: 39, random: true, subject: 'randomProduct', eras: ['classic'],
+    when: (s, h) => h.live.length > 0,
+    title: 'Rejected by the app store',
+    text: 'The app store rejected the latest {product} update for "unclear reasons". The reasons are, in fact, unclear.',
+    choices: [
+      { label: 'Appeal politely', hint: 'Slow, but it works out; hype later', effects: { later: [{ inWeeks: 4, effects: { hype: 8 } }] }, outcome: 'You fill in a form. Then another form. Then the first form again.' },
+      { label: 'Complain loudly online', hint: 'A gamble: sympathy and hype, or you look petty', effects: { gamble: { p: 0.45, effects: { brand: 3, hype: 15 }, else: { brand: -3 } } }, outcome: 'Your post has a lot of replies. Some of them are even on your side.' },
+    ],
+  },
+  {
+    id: 'blockchain_pitch', kind: 'leadership', weight: 1, cooldownWeeks: 104, random: true, subject: 'founder', eras: ['classic'],
+    when: (s, h) => s.week >= 26 && h.live.length > 0,
+    title: 'Have you considered the blockchain?',
+    text: 'A friend of {name} corners you at a barbecue with a plan to put {product} "on the blockchain". He has a hoodie with a logo on it.',
+    choices: [
+      { label: 'Politely decline', hint: 'The team is relieved', effects: { teamMeaning: 2 }, outcome: 'You say "interesting" four times and leave early. Your team is quietly proud of you.' },
+      { label: 'Mint a coin', hint: 'A long shot: a hype spike or a brand hit', effects: { gamble: { p: 0.3, effects: { hype: 25, brand: 2 }, else: { brand: -5, teamMeaning: -3 } } }, outcome: 'The coin is called {product}Coin. Nobody can explain what it does, including the coin.' },
+    ],
+  },
+  {
+    id: 'onprem_bank', kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: 'randomProduct', eras: ['classic'],
+    when: (s, h) => s.week >= 30 && h.live.length > 0,
+    title: 'A bank wants it on their servers',
+    text: 'A regional bank wants {product} installed in their own server room. They will pay well. They also sent a 90-page security questionnaire.',
+    choices: [
+      { label: 'Do the install', hint: '+$20k; less output for 8 weeks', effects: { cash: 20000, modifier: { key: 'output', value: -0.1, weeks: 8, label: 'The bank install' } }, outcome: 'Your engineer spends three weeks in a room with no windows and one very old chair.' },
+      { label: 'Say no', hint: 'Nothing happens', effects: {}, outcome: 'The bank is disappointed. The bank is always a little disappointed.' },
+    ],
+  },
+  {
+    id: 'ping_pong', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['classic'],
+    when: (s) => s.staff.length >= 3,
+    title: 'The ping pong question',
+    text: 'Someone printed a picture of a ping pong table and taped it to the wall where a ping pong table would go.',
+    choices: [
+      { label: 'Buy one', hint: '-$1.5k; people recover a bit faster for 26 weeks', effects: { cash: -1500, modifier: { key: 'meaningRecovery', value: 0.1, weeks: 26, label: 'Ping pong' } }, outcome: 'The tournament bracket goes up within the hour. The founders lose in round one.' },
+      { label: 'Not yet', hint: 'Nothing happens', effects: {}, outcome: 'The picture stays up. Someone draws a tiny ball on it.' },
+    ],
+  },
   // Annual calendar (raised by the annual system)
   {
     id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,

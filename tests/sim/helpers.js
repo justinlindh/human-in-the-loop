@@ -1,7 +1,26 @@
 import { createGame } from '../../src/sim/index.js';
 import { generateStaff } from '../../src/sim/staff.js';
+import { ANGLES } from '../../src/data/angles.js';
+import { UNLOCK_KEYS } from '../../src/data/unlocks.js';
 
-export const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
+// A fresh run exactly as a player starts it: Classic era, nothing unlocked.
+export const classicGame = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
+
+// The whole toolbox at week 0: Agents era, every system and angle open, every model released,
+// the policies that have no growth trigger of their own, and every goal already met (so rewards
+// never land in the middle of a mechanics test). Mechanics tests start here.
+export function openEverything(s) {
+  s.era = { id: 'agents', since: 0 };
+  for (const k of UNLOCK_KEYS) s.unlocks[k] = 0;
+  for (const id of ['daily_standups', 'async_standups', 'pair', 'craft_fridays']) s.unlocks[`policy.${id}`] = 0;
+  // Mistrale stays unreleased so tests can reach for a model that is not out yet.
+  for (const [id, m] of Object.entries(s.models)) m.available = id !== 'mistrale';
+  for (const g of Object.values(s.goals)) Object.assign(g, { done: true, week: 0 });
+  s.market.unlockedAngles = Object.keys(ANGLES).filter((a) => ANGLES[a].era !== 'consolidation');
+  return s;
+}
+
+export const game = (seed = 1) => openEverything(classicGame(seed));
 
 // Adds a generated person to staff with optional overrides and returns them.
 export function addStaff(state, role, seniority, over = {}) {

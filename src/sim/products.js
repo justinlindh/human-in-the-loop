@@ -10,6 +10,7 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { modifierBonus } from './modifiers.js';
 import { perk } from './bonus.js';
 import { staffMods } from './staff.js';
+import { currentEra } from './eras.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -19,12 +20,13 @@ export function marketSize(state, category) {
 
 export function productAppeal(state, product) {
   const cat = CATEGORIES[product.category];
-  const model = MODELS[product.model];
+  const model = product.model ? MODELS[product.model] : null;
+  const trust = model ? model.trust : B.noModelTrust;
   let appeal = Math.max(0, product.score) ** B.appealExp
     * comboFit(product.category, product.angle) * trendMods(state, product.category, product.angle)
-    * (1 + state.brand / 100) * (1 + product.novelty * B.noveltyAppealPer) * (0.7 + 0.3 * model.trust) * product.uptime
+    * (1 + state.brand / 100) * (1 + product.novelty * B.noveltyAppealPer) * (0.7 + 0.3 * trust) * product.uptime
     * B.appealScale * (B.sizeAppeal[product.size] ?? 1);
-  if (cat.compliance && !model.complianceOk) appeal *= B.enterpriseComplianceMult;
+  if (cat.compliance && model && !model.complianceOk) appeal *= B.enterpriseComplianceMult;
   return appeal;
 }
 
@@ -32,8 +34,10 @@ export function productAppeal(state, product) {
 export function competition(state, product, appeal = productAppeal(state, product)) {
   const { yearIndex } = dateOf(state.week);
   const c = state.market.categories[product.category];
-  const incumbent = c.incumbentStrength * (1 + B.incumbentStrengthGrowth * yearIndex);
-  const clones = c.clones * B.cloneStrength * (1 + 0.2 * yearIndex);
+  // Incumbents and clones bolt AI onto their products as the eras turn, which raises the bar for everyone.
+  const era = B.eraCompetition[currentEra(state).id] ?? 1;
+  const incumbent = c.incumbentStrength * (1 + B.incumbentStrengthGrowth * yearIndex) * era;
+  const clones = c.clones * B.cloneStrength * (1 + 0.2 * yearIndex) * era;
   const ownOthers = sum(liveProducts(state).filter((p) => p.id !== product.id && p.category === product.category), (p) => productAppeal(state, p));
   return { appeal, incumbent, clones, ownOthers, total: appeal + incumbent + clones + ownOthers };
 }

@@ -9,6 +9,9 @@ import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
 import { MODELS } from '../data/models.js';
 import { TRENDS } from '../data/trends.js';
+import { ERAS } from '../data/eras.js';
+import { eraIndex, eraAtLeast, eraAllowsText, currentEra } from './eras.js';
+import { raiseDecision } from './events.js';
 
 const VENDOR_LINES = [
   '{model} v{version} is here! Smarter, faster, and only slightly more expensive to think about.',
@@ -16,7 +19,8 @@ const VENDOR_LINES = [
   '{model} v{version} just shipped. The benchmarks are incredible. The benchmarks are always incredible.',
 ];
 
-function yearStart(ctx) {
+// Opens the categories, angles, and models that the current year and era allow.
+function openMarkets(ctx) {
   const { state } = ctx;
   const { year } = dateOf(state.week);
   const m = state.market;
@@ -27,11 +31,12 @@ function yearStart(ctx) {
     }
   }
   for (const a of Object.values(ANGLES)) {
-    if (a.unlockYear <= year && !m.unlockedAngles.includes(a.id)) {
+    if (eraAtLeast(state, a.era) && !m.unlockedAngles.includes(a.id)) {
       m.unlockedAngles.push(a.id);
       ctx.emit({ type: 'toast', text: `New AI angle unlocked: ${a.name}.`, tone: 'info' });
     }
   }
+  if (!eraAtLeast(state, 'chatgbt')) return;
   for (const md of Object.values(MODELS)) {
     const s = state.models[md.id];
     if (md.releaseYear <= year && !s.available) {
@@ -41,11 +46,25 @@ function yearStart(ctx) {
   }
 }
 
+// Advances to every era whose arrival week has come, with its card and decision.
+function eraStep(ctx) {
+  const { state } = ctx;
+  for (const e of ERAS.slice(eraIndex(state) + 1)) {
+    if (state.week < state.eraSchedule[e.id]) break;
+    state.era = { id: e.id, since: state.week };
+    ctx.emit({ type: 'era', eraId: e.id });
+    openMarkets(ctx);
+    raiseDecision(ctx, `era_${e.id}`, null, { queue: true });
+  }
+}
+
+const trendFits = (state, t) => (t.eras ? t.eras.includes(currentEra(state).id) : eraAllowsText(state, `${t.name} ${t.text}`));
+
 function trendStep(ctx) {
   const m = ctx.state.market;
   m.trendWeeksLeft--;
   if (m.trendWeeksLeft > 0) return;
-  const next = pick(ctx.rng, Object.keys(TRENDS).filter((id) => id !== m.trend));
+  const next = pick(ctx.rng, Object.keys(TRENDS).filter((id) => id !== m.trend && trendFits(ctx.state, TRENDS[id])));
   m.trend = next;
   m.trendWeeksLeft = TRENDS[next].weeks;
   ctx.emit({ type: 'toast', text: `Trend: ${TRENDS[next].name}. ${TRENDS[next].text}`, tone: 'info' });
@@ -61,7 +80,8 @@ function vendorRelease(ctx) {
   ms.capability = Math.min(100, ms.capability + B.vendorCapabilityStep);
   const name = MODELS[id].name;
   emitChat(ctx, { from: '@vendorbot', text: pick(ctx.rng, VENDOR_LINES).replace('{model}', name).replace('{version}', ms.version) });
-  if (chance(ctx.rng, B.deprecateChance)) {
+  const consolidation = eraAtLeast(state, 'consolidation');
+  if (chance(ctx.rng, consolidation ? B.consolidationDeprecateChance : B.deprecateChance)) {
     const affected = liveProducts(state).filter((p) => p.model === id && p.modelVersion < ms.version && p.migrationDueWeek === null);
     for (const p of affected) p.migrationDueWeek = state.week + B.migrationDeadlineWeeks;
     if (affected.length) {
@@ -80,13 +100,15 @@ export function priceHike(ctx, modelId = null) {
   ctx.emit({ type: 'toast', text: `${MODELS[id].name} raised prices by ${Math.round((B.priceHikeMult - 1) * 100)}%. "Exciting changes."`, tone: 'warn' });
 }
 
-// Weekly calendar step: scheduled consequences, year-start unlocks, trend countdown, and vendor releases.
+// Weekly calendar step: scheduled consequences, era arrivals, year-start unlocks, trend countdown, and vendor releases.
 export function calendarStart(ctx) {
   const { week } = ctx.state;
   processScheduled(ctx);
-  if (week > 0 && week % 52 === 0) yearStart(ctx);
+  eraStep(ctx);
+  if (week > 0 && week % 52 === 0) openMarkets(ctx);
   trendStep(ctx);
-  if (week > 0 && week % B.vendorReleaseEveryWeeks === 0) vendorRelease(ctx);
+  const every = eraAtLeast(ctx.state, 'consolidation') ? B.consolidationVendorEveryWeeks : B.vendorReleaseEveryWeeks;
+  if (week > 0 && week % every === 0) vendorRelease(ctx);
 }
 
 registerSystem('calendar-start', calendarStart, 10);

@@ -8,6 +8,7 @@ import { competition, marketSize } from './products.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
 import { incumbentFor } from '../data/incumbents.js';
+import { eraAtLeast } from './eras.js';
 
 export const cloneChance = (state) => B.cloneChanceBase * (1 + B.cloneChanceYearGrowth * dateOf(state.week).yearIndex);
 
@@ -25,7 +26,7 @@ export function marketSystem(ctx) {
       // One Show HN post every few weeks is funny; one for every clone is spam.
       if (state.week - (state.flags.lastShowHnWeek ?? -99) >= B.showHnEveryWeeks) {
         state.flags.lastShowHnWeek = state.week;
-        emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but with AI` });
+        emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but ${eraAtLeast(state, 'chatgbt') ? 'with AI' : 'faster'}` });
       }
     }
   }

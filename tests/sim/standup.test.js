@@ -39,6 +39,9 @@ describe('standup content', () => {
 describe('standup policies', () => {
   it('both exist, unlock at once, and are mutually exclusive', () => {
     const s = game();
+    s.staff = s.staff.slice(0, 4);
+    expect(POLICIES.daily_standups.unlock(s)).toBe(false);
+    for (let i = s.staff.length; i < 5; i++) addStaff(s, 'engineer', 'mid');
     expect(POLICIES.daily_standups.unlock(s)).toBe(true);
     expect(POLICIES.async_standups.unlock(s)).toBe(true);
     dispatch(s, { type: 'setPolicy', id: 'daily_standups', on: true });

@@ -66,5 +66,8 @@ export const B = {
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 52, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
+  eraJitterWeeks: 13, chatgbtAutomationCap: 0.5, chatgbtAutomationFns: ['support', 'marketing'], noModelTrust: 0.85,
+  eraCompetition: { classic: 1, chatgbt: 1.12, agents: 1.25, consolidation: 1.4 }, consolidationVendorEveryWeeks: 13, consolidationDeprecateChance: 0.8,
+  acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.6,
   ipoMrr: 2800000, ipoBrand: 60, acquisitionOfferMrr: 2500000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };

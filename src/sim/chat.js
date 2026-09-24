@@ -9,6 +9,7 @@ import { MODELS } from '../data/models.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ITEMS } from '../data/items.js';
 import { incumbentFor } from '../data/incumbents.js';
+import { eraAllowsText, eraLines } from './eras.js';
 
 const REACTIONS = {
   win: ['🎉', '🚀', '👏', '🔥', '💯'],
@@ -65,7 +66,7 @@ export function fillChat(state, rng, text, { speaker = null, product = null, pos
     category: prod ? CATEGORIES[prod.category].name : null,
     incumbent: incumbentFor(prod?.category ?? pick(rng, state.market.unlockedCategories)).name,
     coworker: others.length ? pick(rng, others).name.split(' ')[0] : null,
-    model: prod ? MODELS[prod.model].name : auto.level > 0 ? MODELS[auto.model].name : null,
+    model: prod?.model ? MODELS[prod.model].name : auto.level > 0 ? MODELS[auto.model].name : null,
     item,
     poster: poster ? poster.name.split(' ')[0] : null,
   };
@@ -190,7 +191,7 @@ export function chatSystem(ctx) {
   }
   if (!team.length) return;
 
-  const cooled = (t) => (state.flags[`cdThread_${t.id}`] ?? -1) <= state.week;
+  const cooled = (t) => (state.flags[`cdThread_${t.id}`] ?? -1) <= state.week && eraAllowsText(state, [t.post.text, ...t.replies.map((r) => r.text)].join(' '));
   const happened = happenings(ctx);
   for (const t of shuffle(ctx.rng, THREADS.filter((x) => x.context && happened[x.context] && cooled(x)))) {
     const lines = planThread(state, ctx.rng, t, happened[t.context]);
@@ -208,7 +209,7 @@ export function chatSystem(ctx) {
   const recent = state.flags.recentChat ?? [];
   for (let i = 0; i < budget; i++) {
     const p = pick(ctx.rng, team);
-    const pool = CHATTER[chatterKey(state, p)].filter((line) => !recent.includes(line));
+    const pool = eraLines(state, CHATTER[chatterKey(state, p)]).filter((line) => !recent.includes(line));
     for (let tries = 0; tries < 4 && pool.length; tries++) {
       const line = pick(ctx.rng, pool);
       const text = fillChat(state, ctx.rng, line, { speaker: p });

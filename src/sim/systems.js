@@ -18,3 +18,5 @@ import './calendar.js';
 import './economy.js';
 import './endgame.js';
 import './chat.js';
+import './unlocks.js';
+import './goals.js';

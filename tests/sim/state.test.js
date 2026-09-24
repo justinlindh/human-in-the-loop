@@ -7,6 +7,7 @@ const STATE_KEYS = [
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
   'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'items', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
+  'era', 'eraSchedule', 'unlocks', 'goals',
 ];
 
 const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
@@ -33,8 +34,10 @@ describe('game state', () => {
     expect(s.candidates.length).toBe(B.candidateCount);
     expect(s.market.trend).toBe('steady');
     expect(s.market.unlockedCategories).toEqual(['notes', 'email', 'pm', 'support']);
-    expect(s.models.mistrale.available).toBe(false);
-    expect(s.models.claudius.available).toBe(true);
+    expect(Object.values(s.models).some((m) => m.available)).toBe(false);
+    expect(s.era).toEqual({ id: 'classic', since: 0 });
+    expect(s.unlocks).toEqual({});
+    expect(Object.values(s.goals).every((g) => g.done === false && g.week === null)).toBe(true);
     expect(s.market.categories.crm.incumbentStrength).toBe(650);
     expect(s.items).toEqual([]);
     expect(s.research).toEqual({ done: [] });
@@ -107,6 +110,6 @@ describe('game state', () => {
   });
 
   it('dateOf is exported from the public API', () => {
-    expect(dateOf(0).year).toBe(2026);
+    expect(dateOf(0).year).toBe(2019);
   });
 });

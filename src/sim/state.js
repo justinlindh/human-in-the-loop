@@ -1,15 +1,17 @@
 import { B } from './balance.js';
 import { createRng } from './rng.js';
+import { START_YEAR } from './util.js';
 import { generateStaff, refreshCandidates } from './staff.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
 import { MODELS } from '../data/models.js';
 import { INCUMBENTS } from '../data/incumbents.js';
 import { TRENDS } from '../data/trends.js';
+import { GOALS } from '../data/goals.js';
+import { rollEraSchedule } from './eras.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
-export const SAVE_VERSION = 1;
-export const START_YEAR = 2026;
+export const SAVE_VERSION = 2;
 
 export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
   const state = {
@@ -27,11 +29,15 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
       categories: Object.fromEntries(INCUMBENTS.map((i) => [i.category, { incumbentStrength: i.strength, clones: 0 }])),
       trend: 'steady', trendWeeksLeft: TRENDS.steady.weeks,
       unlockedCategories: Object.values(CATEGORIES).filter((c) => c.unlockYear <= START_YEAR).map((c) => c.id),
-      unlockedAngles: Object.values(ANGLES).filter((a) => a.unlockYear <= START_YEAR).map((a) => a.id),
+      unlockedAngles: Object.values(ANGLES).filter((a) => a.era === 'classic').map((a) => a.id),
     },
     models: Object.fromEntries(Object.values(MODELS).map((m) => [m.id, {
-      version: 1, capability: m.capability, costMult: 1, available: m.releaseYear <= START_YEAR, deprecated: false,
+      version: 1, capability: m.capability, costMult: 1, available: false, deprecated: false,
     }])),
+    era: { id: 'classic', since: 0 },
+    eraSchedule: {},
+    unlocks: {},
+    goals: Object.fromEntries(GOALS.map((g) => [g.id, { done: false, week: null }])),
     items: [],
     research: { done: [] },
     modifiers: [],
@@ -54,6 +60,8 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
     Object.assign(p, { knowledge: 70, meaning: 85, founder: true, hiredWeek: 0, assignment: { type: 'idle', targetId: null } });
     state.staff.push(p);
   }
+  // A side stream, so the era jitter does not shift every other roll in the run.
+  state.eraSchedule = rollEraSchedule(createRng(seed * 7919 + 13), B.eraJitterWeeks);
   refreshCandidates(state);
   return state;
 }
