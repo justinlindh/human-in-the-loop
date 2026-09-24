@@ -8,7 +8,7 @@ import { STATS, STAT } from '../stats.js';
 import { picker, personOption } from '../picker.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
-import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject } from './common.js';
+import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject, NAME_MAX } from './common.js';
 
 // Product stats as the player sees them (Freshness is stored as novelty).
 export const STAT_INFO = STATS.map((s) => ({ id: s.id, name: s.product, color: s.color, icon: s.icon }));
@@ -75,7 +75,7 @@ export function buildPanel(ctx, arg) {
     if (!s.models[form.model]?.available || s.models[form.model]?.deprecated) form.model = MODELS.find((m) => s.models[m.id]?.available && !s.models[m.id]?.deprecated)?.id ?? form.model;
 
     // Name
-    const nameInput = h('input.text', { value: form.name, maxlength: 28, placeholder: 'Product name', oninput: (e) => { form.name = e.target.value; newView.update(ctx.getState()); } });
+    const nameInput = h('input.text', { value: form.name, maxlength: NAME_MAX, placeholder: 'Product name', title: `Up to ${NAME_MAX} characters`, oninput: (e) => { form.name = e.target.value; newView.update(ctx.getState()); } });
     const nameRow = h('div.row', null, nameInput,
       h('button.btn.small', { onclick: () => { form.name = suggestName(form.category); nameInput.value = form.name; }, title: 'Suggest a name' }, icon('dice'), ' Suggest'));
 
@@ -234,6 +234,7 @@ export function buildPanel(ctx, arg) {
     if (!form.angle) return s.era ? 'Pick an approach' : 'Pick an AI angle';
     if (modelNeeded() && !(s.models[form.model]?.available && !s.models[form.model]?.deprecated)) return 'Pick a model vendor';
     if (!form.name.trim()) return 'Name it';
+    if (form.name.trim().length > NAME_MAX) return `Names are up to ${NAME_MAX} characters`;
     if (s.cash < (B.sizes[form.size]?.cost ?? 0)) return 'Not enough cash';
     if (!form.team || form.team.size === 0) return 'Pick at least one person';
     return null;

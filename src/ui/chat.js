@@ -34,7 +34,7 @@ export function createChat(root, { getState, onName } = {}) {
   }));
   const quiet = h('div.chat-quiet.banner');
   const list = h('div.chat-body');
-  const el = h('div.chat.yak', null, head, tabsEl, quiet, list);
+  const el = h('div.chat.yak', { dataset: { occludes: '' } }, head, tabsEl, quiet, list);
   root.append(el);
 
   function avatar(m) {

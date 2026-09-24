@@ -158,6 +158,8 @@ export function createHud({ root, controls, ui }) {
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
 
   const tray = h('div.tray');
+  // HUD cards over the scene carry data-occludes, so the renderer keeps speech bubbles clear of them.
+  for (const c of bar.querySelectorAll('.chip')) c.dataset.occludes = '';
   root.append(bar, tray);
 
   let traySig = '';
@@ -235,6 +237,7 @@ export function createHud({ root, controls, ui }) {
         h('div.t', null, h('span', null, icon('tray.trend'), ` ${trendName(s.market.trend)}`), k)));
       trayBinds.push((st) => setText(k, `${st.market.trendWeeksLeft}w`));
     }
+    for (const c of tray.children) c.dataset.occludes = '';
   }
 
   let last = {};

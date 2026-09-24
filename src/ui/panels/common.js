@@ -77,10 +77,13 @@ const SILLY = ['Synergy.ai', 'Clippy Returns', 'Yet Another Copilot', 'Prompt an
 const CAT_WORD = { notes: 'Note', email: 'Inbox', pm: 'Plan', support: 'Desk', crm: 'Deal', analytics: 'Chart', design: 'Pixel', devtools: 'Ship', hr: 'People', recruiting: 'Hire', accounting: 'Ledger', video: 'Clip', legal: 'Brief', security: 'Vault' };
 
 let suggestN = 0;
+export const NAME_MAX = 20;
+
 export function suggestName(category) {
   suggestN++;
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  if (suggestN % 5 === 0) return pick(SILLY);
+  // Product names are capped at NAME_MAX characters; long jokes are skipped.
+  if (suggestN % 5 === 0) return pick(SILLY.filter((n) => n.length <= NAME_MAX));
   const base = category && CAT_WORD[category] && Math.random() < 0.7 ? CAT_WORD[category] : pick(PREFIX);
-  return `${base}${pick(SUFFIX)}`;
+  return `${base}${pick(SUFFIX)}`.slice(0, NAME_MAX);
 }

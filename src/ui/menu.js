@@ -21,7 +21,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
   const icos = {};
   const iconOf = {}; // menu id -> icon id when it differs from menu.<id>
   const hidden = new Set();
-  const menu = h('div.menu');
+  const menu = h('div.menu', { dataset: { occludes: '' } });
   for (const m of MENU) {
     const badge = h('span.badge');
     badges[m.id] = badge;
@@ -61,7 +61,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
       h('button.btn.x', { title: 'Close (Esc)', onclick: () => close() }, icon('close')));
     const body = h('div.panel-body', null, inst.el);
     const dock = h('div.panel-dock');
-    const el = h(`div.panel${def.wide ? '.wide' : ''}`, { style: { '--accent': def.accent ?? meta.accent ?? '#4f8cff' } },
+    const el = h(`div.panel${def.wide ? '.wide' : ''}`, { dataset: { occludes: '' }, style: { '--accent': def.accent ?? meta.accent ?? '#4f8cff' } },
       head, inst.tabs ?? null, body, inst.foot ?? null, dock);
     inst.setTitle = (t) => setText(title, t);
     inst.body = body;
