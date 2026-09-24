@@ -106,7 +106,35 @@ const D = {
     + path('M8 6v12.5A2 2 0 0 1 6 20.5a2 2 0 0 1-2-2v-1h4', C.cream) + `<path d="M10.5 8.5h6M10.5 11.5h6M10.5 14.5h4" ${line(1.5)}/>`,
 };
 
+// Era emblems: a round badge in the era's colour with its motif.
+const ERA_BG = { classic: '#9a6a44', chatgbt: '#2f5fd0', agents: '#0f7f79', consolidation: '#5b5361', plateau: '#c0652b' };
+const badge = (era, motif) => circ(12, 12, 10, ERA_BG[era]) + motif;
+const EMBLEM = {
+  classic: badge('classic', path('M7 10h8v5a3.5 3.5 0 0 1-3.5 3.5h-1A3.5 3.5 0 0 1 7 15Z', C.mug)
+    + `<path d="M15 11.2h1a1.9 1.9 0 0 1 0 3.8h-1" stroke="${C.mug}" stroke-width="1.6" fill="none"/>`
+    + `<path d="M9.5 8q.8-1.2 0-2.4M12.5 8q.8-1.2 0-2.4" stroke="${C.mug}" stroke-width="1.4" stroke-linecap="round" fill="none"/>`),
+  chatgbt: badge('chatgbt', path('M6 8.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-4.5L8.5 18v-2.5H8a2 2 0 0 1-2-2Z', PAPER)
+    + dot(9.5, 11, 1.1) + dot(12, 11, 1.1) + dot(14.5, 11, 1.1)
+    + `<path d="${sparkle(17.5, 6.2, 2.4)}" fill="${C.yellow}" stroke="${INK}" stroke-width="1" stroke-linejoin="round"/>`),
+  agents: badge('agents', `<path d="M12 5.5v2" stroke="${PAPER}" stroke-width="1.6" stroke-linecap="round"/>` + `<circle cx="12" cy="5.2" r="1.1" fill="${C.red}"/>`
+    + rr(6.5, 7.5, 11, 9, 3, C.metal) + rr(8.3, 9.8, 7.4, 3.8, 1.6, C.screen)
+    + `<circle cx="10.4" cy="11.7" r="1" fill="${C.screenBlue}"/><circle cx="13.6" cy="11.7" r="1" fill="${C.screenBlue}"/>`
+),
+  consolidation: badge('consolidation', `<path d="M8.2 9.8 11 14M15.8 9.8 13 14" stroke="${PAPER}" stroke-width="1.8" stroke-linecap="round" fill="none"/>`
+    + `<circle cx="7.6" cy="8.2" r="2.4" fill="${C.pink}" stroke="${INK}" stroke-width="1.3"/><circle cx="16.4" cy="8.2" r="2.4" fill="${C.yellow}" stroke="${INK}" stroke-width="1.3"/>`
+    + `<circle cx="12" cy="15.6" r="3.2" fill="${C.purple}" stroke="${INK}" stroke-width="1.3"/>`),
+  plateau: badge('plateau', `<path d="M5.5 16.5l3-3.6 2.6 1.8h7.4" stroke="${PAPER}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+    + `<path d="M14.8 14.2V5.8" stroke="${PAPER}" stroke-width="1.5" stroke-linecap="round"/>`
+    + `<path d="M14.8 5.8h4.6l-1.4 1.9 1.4 1.9h-4.6Z" fill="${C.yellow}" stroke="${INK}" stroke-width="1" stroke-linejoin="round"/>`),
+};
+
 export const GLYPHS = {
+  // era emblems
+  'era.classic': { d: EMBLEM.classic },
+  'era.chatgbt': { d: EMBLEM.chatgbt },
+  'era.agents': { d: EMBLEM.agents },
+  'era.consolidation': { d: EMBLEM.consolidation },
+  'era.plateau': { d: EMBLEM.plateau },
   // menu
   'menu.build': { d: D.hammer, size: 26 },
   'menu.staff': { d: D.person, size: 26 },
