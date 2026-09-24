@@ -6,7 +6,8 @@ import { annualSystem } from '../../src/sim/calendar.js';
 import { outputMult } from '../../src/sim/staff.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
-import { EVENTS } from '../../src/data/events.js';
+import { EVENTS, INCIDENT_EVENT } from '../../src/data/events.js';
+import { MODIFIER_KEYS } from '../../src/data/modifiers.js';
 import { game, addStaff, addProduct, expectFail } from './helpers.js';
 
 const ctxOf = (s) => makeCtx(s);
@@ -211,8 +212,25 @@ describe('delayed consequences', () => {
     expect(s.scheduled.some((x) => x.kind === 'event' && x.payload.eventId === 'ceo_support_fallout')).toBe(true);
   });
 
+  it('unknown modifier keys are ignored at runtime', () => {
+    const s = busy();
+    applyEffects(ctxOf(s), { modifier: { key: 'vibes', value: 0.5, weeks: 4, label: 'Vibes' } }, null);
+    expect(s.modifiers).toEqual([]);
+  });
+
+  it('the polarity table covers every modifierBonus key', () => {
+    expect(Object.keys(MODIFIER_KEYS).sort()).toEqual(['acquisition', 'brandPerWeek', 'churn', 'hype', 'meaningDrain', 'meaningRecovery', 'oversight', 'output', 'rogueRisk', 'staminaDrain', 'xp'].sort());
+    for (const [k, v] of Object.entries(MODIFIER_KEYS)) {
+      expect(v.key).toBe(k);
+      expect(['up', 'down']).toContain(v.goodWhen);
+      expect(['pct', 'flat']).toContain(v.format);
+      expect(v.label.length).toBeGreaterThan(2);
+    }
+    for (const k of ['meaningDrain', 'churn', 'staminaDrain', 'rogueRisk']) expect(MODIFIER_KEYS[k].goodWhen).toBe('down');
+  });
+
   it('modifier keys only use the supported set', () => {
-    const KEYS = ['output', 'meaningRecovery', 'meaningDrain', 'hype', 'brandPerWeek', 'churn', 'acquisition', 'staminaDrain', 'xp', 'oversight', 'rogueRisk'];
+    const KEYS = Object.keys(MODIFIER_KEYS);
     const walk = (fx) => {
       if (!fx) return;
       for (const m of [fx.modifier].flat().filter(Boolean)) {
@@ -223,6 +241,35 @@ describe('delayed consequences', () => {
       for (const l of fx.later ?? []) walk(l.effects);
     };
     for (const e of Object.values(EVENTS)) (e.choices ?? [{ effects: e.auto }]).forEach((c) => walk(c.effects));
+  });
+});
+
+describe('incident decisions', () => {
+  it('every decision the incidents system can raise resolves with every choice', () => {
+    for (const eventId of new Set(Object.values(INCIDENT_EVENT))) {
+      for (let choice = 0; choice < EVENTS[eventId].choices.length; choice++) {
+        const s = busy();
+        raise(s, eventId, s.products[0].id);
+        const res = resolve(s, choice);
+        expect(res.ok, `${eventId}[${choice}] ${res.reason}`).toBe(true);
+        expect(s.pendingDecision).toBe(null);
+        const w = s.week;
+        tick(s);
+        expect(s.week).toBe(w + 1);
+      }
+    }
+  });
+
+  it('a severe incident while another decision is pending is queued, not dropped', () => {
+    const s = busy();
+    raise(s, 'hackathon');
+    const c = ctxOf(s);
+    raiseDecision(c, 'agent_db_wipe', s.products[0].id, { queue: true });
+    expect(s.pendingDecision.eventId).toBe('hackathon');
+    expect(s.scheduled.some((x) => x.kind === 'event' && x.payload.eventId === 'agent_db_wipe')).toBe(true);
+    resolve(s, 1);
+    processScheduled(ctxOf(s));
+    expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
   });
 });
 

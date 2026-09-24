@@ -38,7 +38,7 @@ export const B = {
     medium: { points: 1000, cost: 8000, minStage: 0 },
     large: { points: 2400, cost: 25000, minStage: 1 },
   },
-  pointsGrowthPerYear: 0.1, expectationGrowth: 0.1, reviewNoise: 0.9, balancePenaltyBelow: 0.08,
+  pointsGrowthPerYear: 0.1, expectationGrowth: 0.1, expectationYearsCap: 6, reviewNoise: 0.9, balancePenaltyBelow: 0.08,
   qualityBase: 0.5, autoQualityBase: 0.4, autoQualityPerCap: 0.6,
   reviewBase: 6.1, reviewScale: 4.1, fitScoreScale: 3.3, reviewsReliabilityBonus: 0.1, updateOldScoreWeight: 0.4,
   migrationPoints: 250, updatePointsMult: 0.6, refactorPoints: 450, craftPoints: 320,

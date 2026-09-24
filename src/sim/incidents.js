@@ -121,6 +121,7 @@ function incident(ctx, { kind, severity, caught, model }) {
     const eyes = overseers(state);
     for (const p of eyes) {
       p.meaning = Math.min(100, p.meaning + B.meaningCatchBonus);
+      p.record ??= { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 };
       p.record.catches++;
     }
     const best = eyes.reduce((a, b) => (staffMods(b).catch + b.skills.reliability > staffMods(a).catch + a.skills.reliability ? b : a));
@@ -130,7 +131,7 @@ function incident(ctx, { kind, severity, caught, model }) {
   }
   if (witnesses.length) emitChat(ctx, { channel: 'incidents', person: pick(ctx.rng, witnesses), text: pick(ctx.rng, CHATTER.incident) });
   if (severity >= B.outageMinSeverity && !state.outage && product) startOutage(ctx, { productId, kind, severity });
-  if (severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[kind], productId);
+  if (severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
 }
 
 export function incidentsSystem(ctx) {

@@ -11,6 +11,7 @@ import { TRENDS } from '../data/trends.js';
 import { MODELS } from '../data/models.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
+import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision } from './events.js';
 
 export { modifierBonus } from './modifiers.js';
@@ -167,7 +168,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null) {
     if (person && person.mood !== 'away') person.assignment = { type: 'project', targetId: id };
   }
   if (fx.pivot) pivot(ctx);
-  for (const m of [fx.modifier].flat().filter(Boolean)) {
+  for (const m of [fx.modifier].flat().filter((x) => x && MODIFIER_KEYS[x.key])) {
     state.modifiers.push({ id: newId(state, 'mod'), key: m.key, value: m.value, label: m.label, untilWeek: state.week + m.weeks, source });
   }
   for (const l of fx.later ?? []) {

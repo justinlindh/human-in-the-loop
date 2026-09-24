@@ -21,15 +21,15 @@ export const liveProducts = (state) => state.products.filter(isLive);
 export const findProduct = (state, id) => state.products.find((p) => p.id === id);
 
 // Scores a finished project. Quality is stat points per point of effort (the team's skill mix),
-// judged against a bar that rises each year; combo fit and trends add or subtract a flat amount.
+// judged against a bar that rises each year the project started, up to a cap; combo fit and trends add or subtract a flat amount.
 // Uses rng for per-outlet noise.
 export function reviewScore(state, project) {
   const stats = project.stats;
   const total = sum(STATS, (st) => stats[st]);
-  const { yearIndex } = dateOf(state.week);
+  const { yearIndex } = dateOf(project.startedWeek ?? state.week);
   const effort = project.pointsNeeded ?? B.sizes[project.size].points;
   const quality = effort > 0 ? total / effort : 0;
-  const bar = 1 + B.expectationGrowth * yearIndex;
+  const bar = 1 + B.expectationGrowth * Math.min(yearIndex, B.expectationYearsCap);
   const fit = comboFit(project.category, project.angle) * trendMods(state, project.category, project.angle);
   const imbalance = total > 0 ? ['features', 'polish', 'reliability'].filter((st) => stats[st] / total < B.balancePenaltyBelow).length : 3;
   const base = clamp(B.reviewBase + B.reviewScale * (quality / bar - 1) + B.fitScoreScale * (fit - 1) - 0.8 * imbalance, 1, 10);

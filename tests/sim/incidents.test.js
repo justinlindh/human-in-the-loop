@@ -108,6 +108,19 @@ describe('rogue agents', () => {
   });
 });
 
+describe('robustness', () => {
+  it('a catch does not crash on staff without a record', () => {
+    const s = game(2);
+    s.automation.engineering = { level: 1, model: 'grokk' };
+    addProduct(s);
+    const eye = addStaff(s, 'engineer', 'mid', { traits: ['red_teamer'], assignment: { type: 'oversight', targetId: null } });
+    delete eye.record;
+    for (let i = 0; i < 3000 && s.stats.caught === 0; i++) { s.comprehensionDebt = 80; run(s, 1); s.pendingDecision = null; s.scheduled = []; s.outage = null; }
+    expect(s.stats.caught).toBeGreaterThan(0);
+    expect(eye.record.catches).toBeGreaterThan(0);
+  });
+});
+
 describe('cyber attacks', () => {
   it('chance grows with MRR and caps', () => {
     const s = game();

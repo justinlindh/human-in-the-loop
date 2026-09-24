@@ -17,10 +17,6 @@ export const EFFECT_KEYS = [
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot',
 ];
 
-// Keys a `modifier` effect may target; each maps onto one sim bonus read through modifierBonus().
-export const MODIFIER_KEYS = [
-  'output', 'meaningRecovery', 'meaningDrain', 'hype', 'brandPerWeek', 'churn', 'acquisition', 'staminaDrain', 'xp', 'oversight', 'rogueRisk',
-];
 
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [

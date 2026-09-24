@@ -1,6 +1,7 @@
 import { B } from './balance.js';
 import { chance, pick, weighted } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
+import { newId } from './util.js';
 import { mentorOf } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
@@ -21,11 +22,16 @@ export function fillText(state, rng, text, subjectId) {
     .replaceAll('{incumbent}', incumbentFor(category).name);
 }
 
-// Opens a decision popup for a choice event. Returns false if one is already pending.
-export function raiseDecision(ctx, eventId, subjectId = null) {
+// Opens a decision popup for a choice event. If one is already pending it returns false, or with
+// { queue: true } schedules this one to be raised as soon as the popup is clear.
+export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } = {}) {
   const { state } = ctx;
   const ev = EVENTS[eventId];
-  if (!ev || !ev.choices || state.pendingDecision) return false;
+  if (!ev || !ev.choices) return false;
+  if (state.pendingDecision) {
+    if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
+    return false;
+  }
   state.pendingDecision = {
     eventId, subjectId,
     title: fillText(state, ctx.rng, ev.title, subjectId),
