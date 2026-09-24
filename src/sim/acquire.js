@@ -75,7 +75,9 @@ registerAction('acquire', (ctx, { targetId }) => {
   state.stats.hires += joined.length;
   const who = `${joined.length} ${joined.length === 1 ? 'person joins' : 'people join'}.`;
   ctx.emit({ type: 'toast', tone: 'good', text: `${state.companyName} acquired ${t.name} for $${t.price.toLocaleString('en-US')}. ${who}` });
-  emitChat(ctx, { channel: 'wins', from: '@dealbot', text: pick(rng, ACQUIRED_LINES).replaceAll('{target}', t.name).replaceAll('{product}', t.name) });
+  // The greetings talk about the new people, so a deal that brings nobody gets a plain announcement.
+  const line = joined.length ? pick(rng, ACQUIRED_LINES) : '{target} is officially ours. {product} keeps its name.';
+  emitChat(ctx, { channel: 'wins', from: '@dealbot', text: line.replaceAll('{target}', t.name).replaceAll('{product}', t.name) });
   if (joined[0]) emitChat(ctx, { person: joined[0], text: `Hi all! ${t.name} here. We come in peace and with our own mugs.` });
   state.brand = clamp(state.brand + B.acquiredBrand, 0, 100);
   return { ok: true };

@@ -66,6 +66,25 @@ describe('HQ expansion', () => {
   });
 });
 
+describe('desk caps', () => {
+  it('the Office Floor holds 30 desks too, so moving to the HQ never exceeds its cap', () => {
+    const s = passOfficeGates(game(8));
+    s.cash = 1e9;
+    expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
+    let desks = s.office.placed.filter((p) => p.itemId === 'desk').length;
+    for (let i = 0; i < 60; i++) {
+      const spot = suggestPlacement(s, 'desk');
+      if (!spot || !dispatch(s, { type: 'placeItem', itemId: 'desk', ...spot }).ok) break;
+      desks++;
+    }
+    expect(desks).toBeLessThanOrEqual(B.hqDeskCap);
+    const spot = suggestPlacement(s, 'desk');
+    if (spot) expect(placementCheck(s, { itemId: 'desk', ...spot }).reason).toBe('Desk limit reached');
+    expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
+    expect(s.office.placed.filter((p) => p.itemId === 'desk').length).toBeLessThanOrEqual(deskCap(s));
+  });
+});
+
 describe('acquisitions', () => {
   function market(seed = 4) {
     const s = game(seed);
