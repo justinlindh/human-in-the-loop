@@ -62,7 +62,8 @@ export function marketingSystem(ctx) {
   if (target) target.hype += sum(team, (p) => B.marketerHypePerWeek * outputMult(state, p) * staffMods(p).hype);
 
   const steady = sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).brandPerWeek);
-  state.brand = clamp(state.brand - B.brandDecay + modifierBonus(state, 'brandPerWeek') + itemBonus(state, 'brandPerWeek') + steady, 0, 100);
+  const decay = B.brandDecay * Math.max(0, 1 + itemBonus(state, 'brandDecay'));
+  state.brand = clamp(state.brand - decay + modifierBonus(state, 'brandPerWeek') + steady, 0, 100);
   for (const p of live) {
     p.hype = clamp(p.hype * (1 - B.hypeDecay), 0, 100);
     if (!p.wrapperHit && p.hype / 10 > p.score + B.wrapperGap) {

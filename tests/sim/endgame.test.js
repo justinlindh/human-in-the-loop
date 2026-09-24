@@ -51,6 +51,15 @@ describe('losing', () => {
     s.institutionalKnowledge = 5;
     s.outage = { productId: p.id, kind: 'db_wipe', severity: 2, weeks: 0, unrecoverable: false };
     check(s);
+    expect(s.gameOver).toBe(null);
+    s.outage.unrecoverable = true;
+    check(s);
+    expect(s.gameOver).toBe(null);
+    s.outage.weeks = B.outageCollapseWeeks - 1;
+    check(s);
+    expect(s.gameOver).toBe(null);
+    s.outage.weeks = B.outageCollapseWeeks;
+    check(s);
     expect(s.gameOver?.reason).toBe('collapse');
   });
 });

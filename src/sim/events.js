@@ -16,7 +16,8 @@ export function decisionVars(state, rng, subjectId) {
   const product = state.products.find((p) => p.id === subjectId);
   const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
   const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
-  return { incumbent: incumbentFor(category).name };
+  const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
+  return { incumbent: incumbentFor(category).name, collapseWeeks };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -28,7 +29,8 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{name}', person?.name ?? 'Someone')
     .replaceAll('{product}', product?.name ?? liveProducts(state).at(-1)?.name ?? 'your product')
     .replaceAll('{company}', state.companyName)
-    .replaceAll('{incumbent}', v.incumbent);
+    .replaceAll('{incumbent}', v.incumbent)
+    .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks));
 }
 
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with

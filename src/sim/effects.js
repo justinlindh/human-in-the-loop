@@ -14,6 +14,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision } from './events.js';
+import { clearOutage } from './incidents.js';
 
 export { modifierBonus } from './modifiers.js';
 
@@ -44,6 +45,7 @@ export function checkCondition(state, id, subjectId) {
     case 'bestScore7': return liveProducts(state).some((p) => p.score >= 7);
     case 'sabbaticalPolicy': return !!state.policies.sabbatical;
     case 'stage1': return state.officeStage >= 1;
+    case 'affordConsultants': return state.cash >= B.consultantCost;
     case 'mentorAvailable': return !!person && person.seniority === 'junior' && !!freeMentor(state, person)
       && !state.staff.some((m) => m.assignment.type === 'mentor' && m.assignment.targetId === person.id);
     default: return false;
@@ -53,7 +55,7 @@ export function checkCondition(state, id, subjectId) {
 export const REQUIRE_REASON = {
   sabbaticalPolicy: 'Needs the Sabbatical Program', stage1: 'Needs the Office Floor', mentorAvailable: 'No mentor is free',
   subjectCompliant: 'Needs a compliance-friendly model', trustedVendor: 'Needs a trusted model vendor', blameless: 'Needs Blameless Postmortems',
-  ik40: 'Needs more institutional knowledge', bestScore7: 'Needs a product scoring 7+',
+  ik40: 'Needs more institutional knowledge', bestScore7: 'Needs a product scoring 7+', affordConsultants: 'Not enough cash',
 };
 
 function sendAway(state, p, weeks) {
@@ -170,6 +172,11 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     if (person && person.mood !== 'away') person.assignment = { type: 'project', targetId: id };
   }
   if (fx.pivot) pivot(ctx);
+  if (fx.consultants && state.outage) {
+    state.cash -= B.consultantCost;
+    clearOutage(ctx, ' thanks to very expensive consultants');
+  }
+  if (fx.clearOutage && state.outage && (!subjectProduct || state.outage.productId === subjectProduct.id)) clearOutage(ctx, ' thanks to the contractor');
   for (const m of [fx.modifier].flat().filter((x) => x && MODIFIER_KEYS[x.key])) {
     state.modifiers.push({ id: newId(state, 'mod'), key: m.key, value: m.value, label: m.label, untilWeek: state.week + m.weeks, source });
   }

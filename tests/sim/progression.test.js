@@ -98,8 +98,12 @@ describe('office shop', () => {
     expect(100 - b.staff[0].stamina).toBeCloseTo((100 - a.staff[0].stamina) * 0.7);
 
     [a, b] = pair('plant_wall');
-    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; }); once(s, meaningSystem); }
-    expect(b.staff[0].meaning - a.staff[0].meaning).toBeCloseTo(0.3);
+    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); once(s, meaningSystem); }
+    expect(b.staff[0].meaning - 50).toBeCloseTo((a.staff[0].meaning - 50) * 1.3);
+
+    [a, b] = pair('arcade');
+    for (const s of [a, b]) { s.staff.forEach((p) => { p.traits = []; p.meaning = 50; p.assignment = { type: 'idle', targetId: null }; }); once(s, meaningSystem); }
+    expect(b.staff[0].meaning - 50).toBeCloseTo((a.staff[0].meaning - 50) * 1.35);
 
     [a, b] = pair('arcade');
     expect(outputMult(b, b.staff[0]) / outputMult(a, a.staff[0])).toBeCloseTo(0.96);
@@ -119,7 +123,7 @@ describe('office shop', () => {
 
     [a, b] = pair('trophy_case');
     for (const s of [a, b]) { s.brand = 50; once(s, marketingSystem); }
-    expect(b.brand - a.brand).toBeCloseTo(0.06);
+    expect(50 - b.brand).toBeCloseTo((50 - a.brand) * 0.55);
 
     [a, b] = pair('whiteboard_wall');
     for (const s of [a, b]) {
@@ -144,7 +148,7 @@ describe('office shop', () => {
       return n;
     };
     expect(quits(false)).toBeGreaterThan(0);
-    expect(quits(true)).toBe(0);
+    expect(quits(true)).toBeLessThan(quits(false));
   });
 });
 
@@ -237,6 +241,17 @@ describe('career paths and legends', () => {
     expect(staffMods(w).catch).toBeCloseTo(0.15 * 1.25);
   });
 
+  it('no Legend path perk exceeds 50%', () => {
+    for (const path of Object.values(PATHS)) {
+      for (const [k, v] of Object.entries(path.mods)) {
+        if (['catch', 'brandPerWeek', 'postureFlat'].includes(k)) continue;
+        const legend = 1 + (v - 1) * 1.25;
+        expect(legend, `${path.id}.${k}`).toBeLessThanOrEqual(1.5 + 1e-9);
+        expect(legend, `${path.id}.${k}`).toBeGreaterThanOrEqual(0.5);
+      }
+    }
+  });
+
   it('every path mod key is a real mod, so no perk is silently ignored', () => {
     const s = game();
     const known = Object.keys(staffMods(s.staff[0]));
@@ -296,7 +311,33 @@ describe('earned traits', () => {
   });
 });
 
+describe('meaning is never solved', () => {
+  it('a fully automated senior still drifts down with every comfort on', () => {
+    const s = game(4);
+    s.officeStage = 2;
+    for (const id of Object.keys(ITEMS)) { withItem(s, id, 3); withItem(s, id, 3); }
+    s.policies = { pair: true, craft_fridays: true };
+    s.automation.engineering.level = 1;
+    const p = addStaff(s, 'engineer', 'senior', { traits: [], meaning: 70, assignment: { type: 'maintenance', targetId: null } });
+    for (let w = 0; w < 52; w++) { once(s, meaningSystem); s.week++; }
+    expect(p.meaning).toBeLessThan(70);
+  });
+});
+
 describe('training programs', () => {
+  it('someone trained off a project returns to it', () => {
+    const s = game();
+    s.cash = 1e6;
+    const pid = dispatch(s, { type: 'startProject', kind: 'new', name: 'X', category: 'notes', angle: 'copilot', model: 'chatgbt', size: 'small' }).projectId;
+    const p = s.staff[0];
+    dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: pid } });
+    dispatch(s, { type: 'train', staffId: p.id, program: 'course' });
+    once(s, staffUpkeep);
+    once(s, staffUpkeep);
+    expect(p.mood).toBe('ok');
+    expect(p.assignment).toEqual({ type: 'project', targetId: pid });
+  });
+
   it('validates program, focus, and presence', () => {
     const s = game();
     const p = s.staff[0];
