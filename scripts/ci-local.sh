@@ -43,6 +43,13 @@ deps() {
 step deps deps
 tracked_modules() { test -z "$(git ls-files node_modules)"; }
 step no-node-modules tracked_modules
+# A parse check of every script, so a syntax error fails in seconds with its file and line.
+syntax() {
+  local failed=0
+  while IFS= read -r f; do node --check "$f" || failed=1; done < <(git ls-files 'src/**.js' 'src/**.mjs' 'scripts/**.js' 'scripts/**.mjs' 'blender/**.mjs')
+  return $failed
+}
+step syntax syntax
 
 # The balance suite is the slow one; start it now and collect it at the end.
 bal_t0=$(now)
@@ -53,6 +60,13 @@ step test:fast npm run test:fast
 step build npm run build
 step lifecycle npm run lifecycle -- --quality low --no-shots
 step soak npm run soak
+# Render checks (headless SwiftShader, deterministic): clipping with and without the rig,
+# standups indoors, and the golden images. Ten minutes at most.
+render_checks() {
+  timeout 600 bash -c 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig \
+    && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
+}
+step render-checks render_checks
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
