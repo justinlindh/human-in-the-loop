@@ -226,6 +226,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // Menu portraits from the office character builder (see portraits.js).
     portrait(person, opts) { return portraits.portrait(person, opts); },
     portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
+    // A celebrating big-head render (the framed caricature), as a canvas.
+    caricature(person, px) { return portraits.caricature(person, px); },
     get portraitStats() { return portraits.stats; },
     // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId?, validate? }.
     setBuildMode(m) { build?.setMode(m); },
