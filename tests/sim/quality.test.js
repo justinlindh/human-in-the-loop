@@ -8,10 +8,11 @@ import { game, addStaff } from './helpers.js';
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 // Builds one small product with the given team and returns { score, weeks }.
-function ship(seed, team, { category = 'notes', angle = 'copilot', founders = true, year = 0, reviews = false, autoOnly = false, capability = null } = {}) {
+function ship(seed, team, { category = 'notes', angle = 'copilot', founders = true, year = 0, reviews = false, autoOnly = false, capability = null, assist = false } = {}) {
   const s = game(seed);
   s.cash = 1e6;
   s.week = year * 52;
+  if (assist) s.automation.engineering.level = 1;
   if (autoOnly) { s.automation.engineering.level = 1; if (capability) s.models.chatgbt.capability = capability; for (const p of s.staff) p.assignment = { type: 'idle', targetId: null }; }
   if (reviews) s.policies.comprehension_reviews = true;
   if (!founders) s.staff = [];
@@ -116,5 +117,14 @@ describe('humans win on taste', () => {
       expect(auto.score, `year ${year} automation`).toBeLessThanOrEqual(6.5);
       expect(humans.score, `year ${year} humans`).toBeGreaterThan(auto.score + 1);
     }
+  });
+});
+
+describe('human in the loop', () => {
+  it('automation on a human-led project keeps most of the team quality and ships faster', () => {
+    const humans = band([['engineer', 'senior'], ['designer', 'senior']], { founders: false, category: 'email', angle: 'summarizer' });
+    const withAuto = band([['engineer', 'senior'], ['designer', 'senior']], { founders: false, category: 'email', angle: 'summarizer', assist: true });
+    expect(withAuto.weeks).toBeLessThan(humans.weeks * 0.8);
+    expect(withAuto.score).toBeGreaterThan(humans.score - 0.6);
   });
 });
