@@ -69,7 +69,7 @@ export const PALETTE = {
   skin_4: '#8e5a3b',
   skin_5: '#5f3b28',
   eye: '#2f2a33',
-  blush: '#f09a8a',
+  blush: '#eea596',
 
   // Role accents (match ROLES colors in the sim data)
   role_engineer: '#4f8cff',
