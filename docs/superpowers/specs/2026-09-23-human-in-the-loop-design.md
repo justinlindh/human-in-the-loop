@@ -270,3 +270,7 @@ Random events regularly put a decision in front of the player (roughly one every
   - schedule a follow-up event that revisits the decision ("the trial is over: keep it?").
 - **Visibility:** active modifiers show in the HUD tray with weeks remaining. Scheduled consequences are not shown in full; the decision's hint says "effects later" so the player knows something is coming.
 - **No-shows:** someone who does not show up is away for a few weeks; how the player responds (check in, dock pay, ignore) changes that person's meaning and the team's.
+
+## Icons
+
+No stock emoji anywhere in the shipped game. Every icon (menu buttons, categories, toasts, meters, Slackk reactions, emotes above characters, event art) comes from one custom set in the diorama's art direction: the same palette, chunky rounded forms, and thick outlines as the UI. The art director chooses the technique (for example, small renders of the game's own 3D models for object icons, and hand-drawn SVG for small glyphs) as long as the set reads as one family at 16 to 48 px.

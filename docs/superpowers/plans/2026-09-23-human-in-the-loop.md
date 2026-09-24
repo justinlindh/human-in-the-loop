@@ -930,3 +930,14 @@ Spec: the spec's **Decision events** section. Applies to Task S11; everything el
 
 - U1 tray: an "Active effects" list of `state.modifiers` (label, weeks left, a small up or down arrow colored by sign).
 - U5 decision popup: show each choice's hint; if it mentions effects later, add a small hourglass icon. Leadership-idea events show the founder's portrait and a speech-bubble framing.
+
+### Task A8: Custom icon set (art), with U-lane integration
+
+Spec: the spec's **Icons** section.
+
+- ui first routes every icon through `icon(name, { size })` in `src/ui/icons.js`, returning emoji as a stand-in, and sends art an inventory: every icon name, where it appears, and its display size.
+- art builds the set in `public/icons/` (SVG or PNG plus a `manifest.json` mapping icon name to file and a recommended size), in a consistent style: palette colors, thick ink outline, chunky rounded shapes, legible at 16 px. Object icons (categories, items, research tools) can be Blender renders of the game's own models from the isometric angle, with a transparent background; glyph icons (arrows, locks, warning, hourglass) are hand-drawn SVG.
+- The set includes Slackk reaction icons and character emotes (A4's emote sprites use the same set).
+- ui swaps `icon()` to read the manifest; emoji stay only as the fallback for a missing name, and a test fails if any name falls back.
+- **Verify:** a `?icons=1` board showing the whole set at 16, 24, and 48 px on light and dark panels, snapped and critiqued with the art-direction checklist; then the panels re-snapped with the new icons.
+- Order: after A6, before A7 (so the quality pass judges the final icons).
