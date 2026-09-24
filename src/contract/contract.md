@@ -233,3 +233,13 @@ chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 ```
 - Removes an unfinished project of any kind. Its progress is lost and nothing is refunded; anyone assigned to it goes idle, and campaigns aimed at it end.
 - Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Slackk.
+
+### Late-game money sinks
+```js
+{ type: 'acquire', targetId }   // buy a company from state.market.forSale; reasons: 'No such company', 'Not enough cash'
+state.market.forSale: [{ id, name, categoryId, arr, price, staff /* 1..3 */, expiresWeek }]
+state.fame /* 0..100: softens churn and hiring costs; raised by fame campaigns, decays slowly */
+state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ shell per step */
+```
+- An acquisition adds the company's product (with its customers) and staff to the player's company, and emits `chat` lines announcing it.
+- HQ expansion steps each raise the staff cap; the renderer keeps the whole office within the Low quality budget at the maximum cap.
