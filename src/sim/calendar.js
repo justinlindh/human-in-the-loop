@@ -9,29 +9,30 @@ import { eraAtLeast } from './eras.js';
 import { ANGLES } from '../data/angles.js';
 
 // The newer Saasies: Best AI Feature (from the ChatGBT moment), Best Place to Work, and Most Trusted
-// (from Consolidation). Each is judged on this year.
+// (from Consolidation). Each is judged on this year, and each pays out in its own currency: hype for the
+// product, pride for the team, brand for trust.
 function otherAwards(ctx) {
   const { state } = ctx;
   const since = state.flags.yearStart ?? { resignations: 0, breaches: 0, incidents: 0 };
-  const win = (title, detail, brand) => {
-    state.brand = Math.min(100, state.brand + brand);
+  const win = (title, detail) => {
     state.stats.awards++;
     ctx.emit({ type: 'award', text: `${title}: ${detail}` });
     emitChat(ctx, { channel: 'wins', from: '@saasies', text: `And the Saasie for ${title} goes to... ${detail}!` });
   };
   if (eraAtLeast(state, 'chatgbt')) {
     const ai = liveProducts(state).filter((p) => ANGLES[p.angle]?.ai && p.score >= B.awardAiScore).sort((a, b) => b.score - a.score)[0];
-    if (ai) win('Best AI Feature', ai.name, 3);
+    if (ai) { win('Best AI Feature', ai.name); ai.hype = Math.min(100, ai.hype + B.awardAiHype); }
   }
   const team = state.staff.filter((p) => p.mood !== 'away');
   if (team.length >= B.awardWorkplaceStaff && avg(team, (p) => p.meaning) >= B.awardWorkplaceMeaning
-    && state.stats.resignations - since.resignations <= 1) {
-    win('Best Place to Work', state.companyName, 2);
-    for (const p of state.staff) p.meaning = Math.min(100, p.meaning + 3);
+    && state.stats.resignations === since.resignations) {
+    win('Best Place to Work', state.companyName);
+    for (const p of state.staff) p.meaning = Math.min(100, p.meaning + B.awardWorkplacePride);
   }
   if (eraAtLeast(state, 'consolidation') && liveProducts(state).length && state.stats.breaches === since.breaches
-    && state.stats.incidents - since.incidents <= 1) {
-    win('Most Trusted', state.companyName, 3);
+    && state.stats.incidents - since.incidents <= B.awardTrustedIncidents) {
+    win('Most Trusted', state.companyName);
+    state.brand = Math.min(100, state.brand + B.awardTrustedBrand);
   }
 }
 

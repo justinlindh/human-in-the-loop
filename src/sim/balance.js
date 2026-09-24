@@ -90,7 +90,7 @@ export const B = {
   vacationWeeks: 2, vacationFirstAfter: 20, vacationMaxShare: 0.15, vacationPostponeWeeks: 4, vacationMaxPostpones: 2,
   vacationPostponeStrain: 6, vacationStamina: 60,
   incentiveEveryWeeks: 8, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
-  awardAiScore: 7.5, awardWorkplaceStaff: 6, awardWorkplaceMeaning: 70,
+  awardAiScore: 8.5, awardWorkplaceStaff: 8, awardWorkplaceMeaning: 80, awardTrustedIncidents: 0, awardAiHype: 15, awardWorkplacePride: 2, awardTrustedBrand: 2,
   alumniKept: 40, alumniNeeded: 6, aiSummitWeek: 20, hearingFromWeek: 416,
   purposeStart: { craft: 55, people: 55, trust: 55, growth: 40 }, missionAfterWeeks: 8, purposeTestsKept: 12,
   purposeMeaning: 0.3, purposeRetention: 0.4, purposeAppeal: 0.3, purposeHiring: 6,
