@@ -3,7 +3,7 @@
 // follow it), so clips are smooth and repeatable however slowly the machine renders.
 //
 // npm run capture -- --only waffle-party            one item from the manifest
-// npm run capture -- --manifest scripts/capture-manifest.js --out ~/src/gamedev-reel/review-2026-09-24
+// npm run capture -- --manifest scripts/capture-manifest.js --out shots/capture
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
 //   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
 // Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
