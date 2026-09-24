@@ -1,5 +1,6 @@
 import { h, clear, setText, setWidth, toggleClass } from './dom.js';
 import { roleColor, roleName, traitInfo, MOOD_INFO } from './content.js';
+import { icon } from './icons.js';
 
 const SKIN = ['#ffe0c7', '#f5c9a4', '#e0a67c', '#c68658', '#9a6440', '#6b4428'];
 
@@ -203,7 +204,9 @@ export function traitChips(ids = []) {
 export function stars(fit) {
   // fit in roughly [0.6, 1.5] maps onto 1 to 5 stars
   const n = Math.max(1, Math.min(5, Math.round(((fit - 0.6) / 0.9) * 4 + 1)));
-  return h('span.stars', { title: `Fit ${fit.toFixed(2)}x` }, '★'.repeat(n), h('span.off', { text: '★'.repeat(5 - n) }));
+  const el = h('span.stars', { title: `Fit ${fit.toFixed(2)}x` });
+  for (let i = 0; i < 5; i++) el.append(h(i < n ? 'span.on' : 'span.off', null, icon('star')));
+  return el;
 }
 
 // A block of UI that rebuilds only when its signature changes, and otherwise runs cheap binders.
@@ -247,11 +250,12 @@ export function confirmButton(label, armedLabel, cls, onConfirm) {
 
 export function tabs(list, current, onPick) {
   const el = h('div.panel-tabs');
-  const btns = list.map((t) => h('button.tab', { onclick: () => onPick(t.id) }, t.label));
+  const labels = list.map((t) => h('span', { text: t.label }));
+  const btns = list.map((t, i) => h('button.tab', { onclick: () => onPick(t.id) }, t.icon ? icon(t.icon, { size: 16 }) : null, t.icon ? ' ' : null, labels[i]));
   el.append(...btns);
   const set = (id) => btns.forEach((b, i) => toggleClass(b, 'on', list[i].id === id));
   set(current);
-  const setLabel = (id, text) => { const i = list.findIndex((t) => t.id === id); if (i >= 0) setText(btns[i], text); };
+  const setLabel = (id, text) => { const i = list.findIndex((t) => t.id === id); if (i >= 0) setText(labels[i], text); };
   return { el, set, setLabel };
 }
 

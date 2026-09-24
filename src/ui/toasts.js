@@ -1,8 +1,8 @@
 import { h } from './dom.js';
+import { icon } from './icons.js';
 
 const MAX_VISIBLE = 5;
 const LIFE = { info: 4000, good: 4000, warn: 7000, bad: 7000 };
-const ICON = { info: '💬', good: '✨', warn: '⚠️', bad: '🔥' };
 
 export function createToasts(root) {
   const el = h('div.toasts', { 'aria-live': 'polite' });
@@ -28,7 +28,7 @@ export function createToasts(root) {
     lastAt = now;
     const t = { node: null, timer: 0 };
     t.node = h(`div.toast.${LIFE[tone] ? tone : 'info'}`, { onclick: () => remove(t) },
-      h('span.ico', { text: ICON[tone] ?? ICON.info }), h('span', { text }));
+      h('span.ico', null, icon(`toast.${LIFE[tone] ? tone : 'info'}`)), h('span', { text }));
     el.append(t.node);
     live.push(t);
     t.timer = setTimeout(() => remove(t), LIFE[tone] ?? LIFE.info);

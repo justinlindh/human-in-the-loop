@@ -1,6 +1,7 @@
 import { h, setText, fmtMoney } from '../dom.js';
 import { B, capacityOf, OFFICE_STAGES } from '../content.js';
 import { portrait, roleChip, seniorityChip, traitChips, liveView } from '../widgets.js';
+import { icon } from '../icons.js';
 import { STAT_INFO } from './build.js';
 
 export function hireFee(c) {
@@ -19,12 +20,13 @@ export function hireView(ctx) {
     (s, bind) => {
       const cap = capacityOf(s);
       const nextIn = Math.max(0, (s.candidatesWeek ?? s.week) + (B.candidateRefreshWeeks ?? 4) - s.week);
-      const seats = h('span.pill');
-      bind((st) => setText(seats, `🪑 ${st.staff.length}/${cap} seats`));
+      const seatsT = h('span');
+      const seats = h('span.pill', null, icon('seat'), ' ', seatsT);
+      bind((st) => setText(seatsT, `${st.staff.length}/${cap} seats`));
       const header = h('div.row.wrap.summaryline', null, seats,
-        h('span.pill', { text: nextIn > 0 ? `🔄 New candidates in ${nextIn}w` : '🔄 New candidates soon' }),
+        h('span.pill', null, icon('refresh'), nextIn > 0 ? ` New candidates in ${nextIn}w` : ' New candidates soon'),
         s.staff.length >= cap && s.officeStage < OFFICE_STAGES.length - 1
-          ? h('button.btn.small.primary', { onclick: () => ctx.open('office') }, '🏢 Need more seats? Office') : null,
+          ? h('button.btn.small.primary', { onclick: () => ctx.open('office') }, icon('office'), ' Need more seats? Office') : null,
         h('span.spacer'),
         h('span.small.muted', { text: `Hiring fee is ${B.hireFeeWeeks ?? 2} weeks of salary.` }));
       if (!s.candidates.length) return [header, h('div.empty', { text: 'No candidates right now. Check back soon.' })];

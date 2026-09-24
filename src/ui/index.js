@@ -147,7 +147,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
-        case 'award': toasts.push(`🏆 ${e.text}`, 'good'); break;
+        case 'award': toasts.push(e.text, 'good'); break;
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }
