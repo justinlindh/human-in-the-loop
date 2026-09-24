@@ -37,9 +37,10 @@ page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || 
 const ready = () => page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
 // Generous: CI runners render with software GL and can take many seconds per frame.
-// force skips Playwright's "stable" wait: on a software-GL runner a frame can take seconds (the
-// menus draw 3D portraits), so an element may never be seen stable. These checks are about behavior.
-const click = (loc) => loc.click({ timeout: 30000, force: true });
+// DOM clicks, not mouse input: on a software-GL runner a frame can take seconds (menus draw 3D
+// portraits), and real input waits behind rendering long enough to time out. These checks are
+// about behavior, not pointer handling.
+const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 60000 }); await loc.evaluate((el) => el.click()); };
 const clickText = (re) => click(page.locator('button:visible', { hasText: re }).first());
 
 try {
