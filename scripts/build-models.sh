@@ -7,11 +7,13 @@ BLENDER="${BLENDER:-blender}"
 mkdir -p public/models
 scripts=(blender/props/*.py blender/items/*.py)
 [ -f blender/characters/chibi.py ] && scripts+=(blender/characters/chibi.py)
+models=0
 for s in "${scripts[@]}"; do
   name="$(basename "$s" .py)"
   out="public/models/${name}.glb"
   log="$("$BLENDER" -b --factory-startup -P "$s" -- --out "$out" 2>&1)" || { echo "$log" | tail -n 30; echo "FAILED: $s"; exit 1; }
   if ! grep -q "^MODEL " <<<"$log"; then echo "$log" | tail -n 30; echo "FAILED (no export): $s"; exit 1; fi
   grep "^MODEL " <<<"$log"
+  models=$((models + $(grep -c "^MODEL " <<<"$log")))
 done
-echo "built ${#scripts[@]} models"
+echo "built ${models} models from ${#scripts[@]} scripts"

@@ -33,7 +33,7 @@ def l2():
 
 def l3():
     parts = kit.arcade_cabinet('a_', -0.45, 0.2, body='role_sales', screen='arcade_screen', marquee='neon_pink')
-    parts += kit.arcade_cabinet('b_', 0.45, 0.2, body='role_engineer', screen='arcade_screen_2', marquee='neon_cyan')
+    parts += kit.arcade_cabinet('b_', 0.45, 0.2, body='role_engineer', screen='arcade2_screen', marquee='neon_cyan')
     parts += kit.stool('s_', 0.0, -0.45, h=0.5, seat='fabric_mustard')
     parts.append(box('signback', (1.2, 0.04, 0.5), (0, 0.47, 2.15), 'plastic_charcoal', bevel=0.02))
     return parts

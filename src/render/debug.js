@@ -88,7 +88,8 @@ export function buildPropLineup(group) {
   const ib = buildItemLineup(items);
   const perRow = 4, stepX = 3.0, stepZ = 3.0;
   const w = perRow * stepX, d = 4 * stepZ;
-  const ix = w / 2 + 1.5 + (ib.max.x - ib.min.x) / 2;
+  // Both slabs overhang their content by 0.3; leave a clear 1 m gap between them.
+  const ix = w / 2 + 0.3 + 1.0 + 0.3 + (ib.max.x - ib.min.x) / 2;
   items.position.x = ix;
   group.add(items);
   group.add(mesh(roundedBox(w + 0.6, 0.3, d + 0.6, 0.08), mat('slab_side'), 0, -0.15, 0));
