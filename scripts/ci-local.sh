@@ -53,6 +53,13 @@ step test:fast npm run test:fast
 step build npm run build
 step lifecycle npm run lifecycle -- --quality low --no-shots
 step soak npm run soak
+# Render checks (headless SwiftShader, deterministic): clipping with and without the rig,
+# standups indoors, and the golden images. Ten minutes at most.
+render_checks() {
+  timeout 600 bash -c 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig \
+    && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
+}
+step render-checks render_checks
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
