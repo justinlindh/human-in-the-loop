@@ -91,9 +91,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const base = Object.fromEntries(Object.entries(own).map(([k, m]) => [k, m.color.clone()]));
   const roleMat = roleMaterial(role, roleColor);
 
-  // Only the big shapes cast shadows, and people skip the AO pass (their floor ring grounds them);
-  // that keeps a full office's extra passes to a few draw calls per person.
-  function skinMats(o, cast = false) {
+  // Only the big shapes cast shadows. Everything but the tiny face and badge details stays in the
+  // AO depth pass: AO is applied from that depth, so a part missing from it gets the shading of
+  // whatever is behind it and reads as see-through.
+  function skinMats(o, cast = false, ao = true) {
     o.traverse((m) => {
       if (!m.isMesh) return;
       const pick = (mm) => {
@@ -108,12 +109,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material);
       m.castShadow = cast;
       m.receiveShadow = true;
-      m.userData.noAO = true;
+      if (!ao) m.userData.noAO = true;
     });
     return o;
   }
   const CASTERS = /^(head|hair_|torso_|leg|acc_beanie|acc_cap)/;
-  const P = (name) => (tpl ? skinMats(part(tpl, name), CASTERS.test(name)) : new THREE.Group());
+  const TINY = /^(eyes|eye_shine|blush|mouth_|lanyard|badge)/;
+  const P = (name) => (tpl ? skinMats(part(tpl, name), CASTERS.test(name), !TINY.test(name)) : new THREE.Group());
 
   const root = new THREE.Group();
   root.name = 'character';
