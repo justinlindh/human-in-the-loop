@@ -27,7 +27,7 @@ page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || 
 const ready = () => page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
 // Generous: CI runners render with software GL and can take many seconds per frame.
-const clickText = (re) => page.locator('button', { hasText: re }).first().click({ timeout: 30000 });
+const clickText = (re) => page.locator('button:visible', { hasText: re }).first().click({ timeout: 30000 });
 
 try {
   await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base); await ready(); await page.waitForTimeout(1000);
@@ -105,7 +105,8 @@ try {
   await shot('6-continued.png');
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);
-  console.log(`FAIL step threw: ${e.message.split('\n')[0]}`);
+  // The first lines of Playwright's call log say what the click was waiting on.
+  console.log(`FAIL step threw: ${e.message.split('\n').slice(0, 8).join('\n     ')}`);
 } finally {
   await browser.close(); await server.close();
 }
