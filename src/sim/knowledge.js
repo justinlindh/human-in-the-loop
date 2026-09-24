@@ -1,3 +1,4 @@
+import { forgetCarry } from './record.js';
 import { B } from './balance.js';
 import { clamp, sum } from './util.js';
 import { registerSystem } from './registry.js';
@@ -14,7 +15,8 @@ export function onDeparture(state, person) {
   const alumni = (state.flags.alumni ??= []);
   // The alumni list keeps the most recent few; this counts everyone who ever left.
   state.flags.departures = (state.flags.departures ?? alumni.length) + 1;
-  alumni.push({ name: person.name, role: person.role, week: state.week });
+  alumni.push({ name: person.name, role: person.role, week: state.week, record: { ...(person.record ?? {}) } });
+  forgetCarry(state, person.id);
   if (alumni.length > B.alumniKept) alumni.splice(0, alumni.length - B.alumniKept);
   state.comprehensionDebt = Math.min(100, state.comprehensionDebt
     + person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));

@@ -1,3 +1,4 @@
+import { addToRecord } from './record.js';
 import { B } from './balance.js';
 import { int, range, pick } from './rng.js';
 import { clamp, round, sum, newId, dateOf } from './util.js';
@@ -161,7 +162,7 @@ function complete(ctx, j) {
   const team = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
   const pr = j.productId ? findProduct(state, j.productId) : null;
   // Everyone on a new product's launch gets credit; the Waffle Party milestone counts these.
-  const credit = () => { const m = (state.flags.shippedBy ??= {}); for (const p of team) m[p.id] = (m[p.id] ?? 0) + 1; };
+  const credit = () => { for (const p of team) addToRecord(state, p, 'launches', 1); };
   if (j.kind === 'new') {
     launchNew(ctx, j);
     credit();

@@ -3,6 +3,7 @@ import { int, range, pick, shuffle, weighted } from './rng.js';
 import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
+import { emptyRecord, addToRecord } from './record.js';
 import { FIRST_NAMES, LAST_NAMES, NAME_VOICE } from '../data/names.js';
 import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
@@ -101,7 +102,7 @@ export function generateStaff(state, { role, seniority }) {
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
     salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false, call: null, strain: 0,
-    path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
+    path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: emptyRecord(),
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
       pants: pick(r, PANTS), accessory: pick(r, ACCESSORIES), build: int(r, 0, 2),
@@ -303,6 +304,8 @@ function levelUp(ctx, p) {
   while (p.level < B.maxLevel && p.xp >= B.xpPerLevel * p.level) {
     p.xp -= B.xpPerLevel * p.level;
     p.level++;
+    const mentor = state.staff.find((m) => m.assignment.type === 'mentor' && m.assignment.targetId === p.id);
+    if (mentor) addToRecord(state, mentor, 'mentored', 1);
     for (const st of topStats(p.role)) p.skills[st] = Math.min(100, p.skills[st] + int(ctx.rng, 2, 4));
     onLevelUp(ctx, p);
   }

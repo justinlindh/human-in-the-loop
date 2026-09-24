@@ -8,6 +8,7 @@ import { INCUMBENTS } from '../data/incumbents.js';
 import { GOALS } from '../data/goals.js';
 import { assignSeats } from '../sim/office.js';
 import { voiceFor } from '../sim/staff.js';
+import { ensureRecord } from '../sim/record.js';
 import { tick } from '../sim/tick.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
@@ -124,6 +125,12 @@ function normalize(state) {
   for (const list of [state.staff, state.candidates]) {
     for (const p of list) for (const [k, v] of Object.entries(STAFF_DEFAULTS())) if (!(k in p)) p[k] = v;
     for (const p of list) p.voice ??= voiceFor(p);
+    for (const p of list) ensureRecord(p);
+  }
+  // Launch credit used to live in flags.shippedBy; it now lives on each person's record.
+  if (state.flags.shippedBy) {
+    for (const p of state.staff) p.record.launches = Math.max(p.record.launches, state.flags.shippedBy[p.id] ?? 0);
+    delete state.flags.shippedBy;
   }
   for (const j of state.projects) if (!('researchId' in j)) j.researchId = null;
   // Per-id maps gain an entry for every id the data knows, so lookups by id never miss.

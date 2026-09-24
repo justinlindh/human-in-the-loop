@@ -46,7 +46,7 @@ describe('the Waffle Party', () => {
     const s = program(8);
     s.flags.incentiveWeek = s.week;
     const [a, b, c] = s.staff.filter((p) => !p.founder);
-    s.flags.shippedBy = { [a.id]: B.waffleLaunches };
+    a.record.launches = B.waffleLaunches;
     let ev = run(s);
     const party = ev.find((e) => e.type === 'incentive');
     expect(party).toMatchObject({ staffId: a.id, reward: 'waffle_party', milestone: 'launches', count: B.waffleLaunches });
@@ -61,7 +61,7 @@ describe('the Waffle Party', () => {
     expect(ev.find((e) => e.type === 'incentive')).toMatchObject({ staffId: b.id, milestone: 'level', count: B.waffleLevel });
     s.week += B.waffleCooldownWeeks;
     s.flags.incentiveWeek = s.week;
-    s.flags.shippedBy[c.id] = 1;
+    c.record.launches = 1;
     expect(run(s).some((e) => e.reward === 'waffle_party')).toBe(false);
   });
 
@@ -73,7 +73,7 @@ describe('the Waffle Party', () => {
     dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: r.projectId } });
     const { tick } = await import('../../src/sim/index.js');
     for (let i = 0; i < 200 && s.projects.some((j) => j.id === r.projectId); i++) { tick(s); s.pendingDecision = null; }
-    expect(s.flags.shippedBy[p.id]).toBe(1);
+    expect(p.record.launches).toBe(1);
   });
 });
 
@@ -116,5 +116,19 @@ describe('capture findings', () => {
     }
     expect(rewards[0]).toEqual([0, 'waffle_party']);
     expect(rewards.slice(1).every(([w]) => w >= B.incentiveEveryWeeks)).toBe(true);
+  });
+});
+
+describe('stageIncentive and vacations', () => {
+  it('a staged Waffle Party lands on the next tick even if the winner was due a vacation', async () => {
+    const { tick } = await import('../../src/sim/index.js');
+    const s = program(14);
+    const top = s.staff.filter((p) => !p.founder).sort((a, b) => b.level - a.level)[0];
+    top.hiredWeek = s.week - 100;
+    (s.flags.vacationDue ??= {})[top.id] = s.week;
+    const id = stageIncentive(s, 'waffle_party');
+    expect(id).toBe(top.id);
+    const ev = tick(s);
+    expect(ev.find((e) => e.type === 'incentive')).toMatchObject({ staffId: id, reward: 'waffle_party' });
   });
 });
