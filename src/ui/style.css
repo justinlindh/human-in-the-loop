@@ -1042,3 +1042,5 @@
 .hitl .chip.speed .btn.spd .ic svg * { fill: var(--ink); }
 .hitl .chip.speed .btn.spd.on .ic svg * { fill: var(--cream); }
 .hitl .tl-prealpha { background: #fff4dc; border: 0.14em solid var(--warn); border-radius: 0.8em; padding: 0.45em 0.7em; font-size: 0.88em; line-height: 1.3; color: var(--ink); box-shadow: 0 0.18em 0 var(--ink); }
+.hitl .tl-form .row { flex-wrap: wrap; }
+.hitl .tl-wide { width: 100%; justify-content: center; }

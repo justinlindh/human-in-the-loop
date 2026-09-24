@@ -84,16 +84,32 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   function oldSaveView(slot) {
     sfx('error');
     const name = slot.meta?.companyName;
+    // Export keeps a copy of the save as a file; hidden when the host cannot read the slot's text.
+    const text = slot.id ? controls.exportSave?.(slot.id) ?? null : null;
+    const exportBtn = text ? h('button.btn.big', { onclick: () => { downloadSave(text, name, slot.id); sfx('confirm'); toast('Save exported as a file.', 'good'); } }, icon('continue'), ' Export') : null;
     root.replaceChildren(h('div.tl-card', null, lockup(),
       h('div.tl-form', null,
         h('b', { text: 'This save is from a different build' }),
-        h('div', { text: `${name ? `${name} was` : 'It was'} saved by another version of the game, and this build cannot read it. That comes with pre-alpha, sorry.` }),
+        h('div', { text: `${name ? `${name} was` : 'It was'} saved by another version of the game, and this build cannot read it. That comes with pre-alpha, sorry.${text ? ' You can export it to keep a copy.' : ''}` }),
+        // The main action gets its own full-width row, so it never wraps alone.
+        h('button.btn.go.big.tl-wide', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' Start fresh'),
         h('div.row', null,
           h('button.btn.big', { onclick: () => { sfx('click'); menuView(); } }, icon('arrow.back'), ' Back'),
           h('span.spacer'),
-          slot.id && controls.deleteSave ? confirmButton('Delete it', 'Delete? Tap again', 'big', () => { controls.deleteSave(slot.id); sfx('close'); menuView(); }) : null,
-          h('button.btn.go.big', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' Start fresh')),
+          exportBtn,
+          slot.id && controls.deleteSave ? confirmButton('Delete it', 'Delete? Tap again', 'big', () => { controls.deleteSave(slot.id); sfx('close'); menuView(); }) : null),
         prealpha())));
+  }
+
+  // Saves the raw text through a temporary link; no dialog.
+  function downloadSave(text, name, id) {
+    const safe = String(name ?? 'company').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'company';
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const a = h('a', { href: url, download: `${safe}-${id}.hitl.json` });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function deleteButton(onConfirm, name) {
