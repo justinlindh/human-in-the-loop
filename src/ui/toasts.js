@@ -17,7 +17,7 @@ export function createToasts(root) {
   const toneOf = (t) => (LIFE[t] ? t : 'info');
 
   function node(t, cls, more = 0) {
-    return h(`div.${cls}.${t.tone}`, { onclick: () => remove(t) },
+    return h(`div.${cls}.${t.tone}${t.action ? '.act' : ''}`, { onclick: () => { t.action?.(); remove(t); } },
       h('span.ico', null, icon(`toast.${t.tone}`)), h('span.tt', { text: t.text }),
       more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
   }
@@ -53,13 +53,13 @@ export function createToasts(root) {
   }
 
   let seq = 0;
-  function push(text, tone = 'info') {
+  function push(text, tone = 'info', { action } = {}) {
     if (!text) return;
     const now = performance.now();
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;
-    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null };
+    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action };
     live.push(t);
     t.timer = setTimeout(() => remove(t), LIFE[t.tone]);
     if (dock) renderDock();

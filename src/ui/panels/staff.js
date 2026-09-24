@@ -5,6 +5,66 @@ import { assignmentOptions, assignmentText, mentorOf, isAvailable } from './comm
 import { icon } from '../icons.js';
 import { STAT_INFO } from './build.js';
 import { hireView } from './hire.js';
+import { PATHS } from '../../data/paths.js';
+import { TRAINING } from '../../data/training.js';
+
+// Career path picker for a senior with pathPending.
+export function openPathPicker(ctx, staffId) {
+  const p = ctx.getState().staff.find((x) => x.id === staffId);
+  if (!p) return;
+  const paths = Object.values(PATHS).filter((x) => x.role === p.role);
+  let close = null;
+  const body = h('div.pathpick', null,
+    h('div.row', null, portrait(p, 56), h('div', null, h('b', { text: p.name }),
+      h('div.small.muted', { text: `Senior ${roleName(p.role)}. Pick one path; it stays with them. At level 20 they become a Legend and the perk grows by a quarter.` }))),
+    h('div.pathcards', null, ...paths.map((path) => h('button.pathcard', {
+      onclick: () => { if (ctx.act({ type: 'choosePath', staffId: p.id, pathId: path.id }).ok) { ctx.sfx('confirm'); close?.(); } },
+    }, h('b.pname', null, icon('path', { size: 14 }), ` ${path.name}`), h('span.small', { text: path.desc }), h('span.pick', { text: 'Choose' })))));
+  close = ctx.openModal({ title: 'Choose a career path', iconName: 'path', body, cls: 'paths' });
+}
+
+// Training program picker; the workshop needs a skill focus.
+export function openTraining(ctx, staffId) {
+  const p = ctx.getState().staff.find((x) => x.id === staffId);
+  if (!p) return;
+  let focus = 'features';
+  let close = null;
+  const cards = Object.values(TRAINING).map((t) => {
+    const lines = [`+${t.xp} XP`];
+    if (t.skill) lines.push(`+${t.skill} to one skill`);
+    if (t.meaning) lines.push(`+${t.meaning} meaning`);
+    if (t.knowledge) lines.push(`+${t.knowledge} know-how`);
+    if (t.brand) lines.push('a little brand');
+    const focusSel = t.skill ? h('select', { onchange: (e) => { focus = e.target.value; } },
+      ...STAT_INFO.map((st) => h('option', { value: st.id, text: `Focus: ${st.name} (${p.skills[st.id]})` }))) : null;
+    const go = h('button.btn.small.blue', {
+      onclick: () => {
+        const res = ctx.act({ type: 'train', staffId: p.id, program: t.id, focus: t.skill ? focus : undefined });
+        if (res.ok) { ctx.sfx('coin'); close?.(); }
+      },
+    }, `Send · ${fmtMoney(t.cost)}`);
+    const why = h('span.why.small');
+    const st = ctx.getState();
+    if (st.cash < t.cost) { go.disabled = true; setText(why, 'Not enough cash'); }
+    return h('div.card.trcard', null,
+      h('div.row', null, icon(`train.${t.id}`), h('b', { text: t.name }), h('span.spacer'),
+        h('span', { class: t.awayWeeks ? 'pill warn' : 'pill good', text: t.awayWeeks ? `Away ${t.awayWeeks}w` : 'No time away' })),
+      h('div.small.muted', { text: t.desc }),
+      h('div.small', { text: lines.join(' · ') }),
+      focusSel,
+      h('div.row', null, why, h('span.spacer'), go));
+  });
+  const body = h('div', null,
+    h('div.row', null, portrait(p, 44), h('b', { text: `Train ${p.name}` }), h('span.spacer'), h('span.small.muted', { text: `Lv ${p.level}` })),
+    h('div.trcards', null, ...cards));
+  close = ctx.openModal({ title: 'Training', iconName: 'training', body, cls: 'training' });
+}
+
+function pathBadge(p) {
+  if (p.pathPending) return h('span.pill.pathpend.tiny', { title: 'Ready to choose a career path' }, icon('path', { size: 11 }), ' Pick path');
+  if (!p.path) return null;
+  return h('span.pill.pathb.tiny', { title: PATHS[p.path]?.desc ?? '' }, p.legend ? icon('legend', { size: 11 }) : null, `${p.legend ? ' Legend ' : ''}${PATHS[p.path]?.name ?? p.path}`);
+}
 
 const SEN_ORDER = { junior: 0, mid: 1, senior: 2 };
 const COLS = [
@@ -47,10 +107,10 @@ export function staffPanel(ctx, arg) {
 
   const table = liveView(
     (s) => [sort.col, sort.dir, s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0,
-      s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}`).join()].join('|'),
+      s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
   const detail = liveView(
-    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week].join('|') : 'gone'; },
+    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week].join('|') : 'gone'; },
     (s, bind) => renderDetail(s, bind));
   const hire = hireView(ctx);
 
@@ -79,7 +139,7 @@ export function staffPanel(ctx, arg) {
       const kFill = h('i', { style: { background: '#3fb6b0' } });
       const kVal = h('span.num');
       const tr = h('tr', { onclick: () => { detailId = p.id; render(); }, title: 'Click for details' },
-        h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null))),
+        h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null, pathBadge(p)))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
         h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`)), h('div.bar', null, mFill), mVal)),
@@ -160,8 +220,8 @@ export function staffPanel(ctx, arg) {
       h('button.btn.small', { disabled: away || p.assignment.type === 'oversight', onclick: () => assign('oversight') }, p.assignment.type === 'oversight' ? 'On duty' : 'Assign')));
     acts.append(h('div.act', null, h('b', null, icon('sabbatical'), ' Sabbatical'), h('span.small.muted', { text: s.policies?.sabbatical ? `${B.sabbaticalWeeks ?? 4} weeks off. Comes back refreshed.` : 'Needs the Sabbatical Program policy.' }),
       h('button.btn.small', { disabled: away, onclick: () => assign('sabbatical') }, away ? 'Away' : 'Send')));
-    acts.append(h('div.act', null, h('b', null, icon('training'), ' Training'), h('span.small.muted', { text: `Course and conference budget. +XP.` }),
-      h('button.btn.small.blue', { disabled: away, onclick: () => { if (ctx.act({ type: 'train', staffId: p.id }).ok) ctx.sfx('coin'); } }, `Train ${fmtMoney(B.trainingCost ?? 3000)}`)));
+    acts.append(h('div.act', null, h('b', null, icon('training'), ' Training'), h('span.small.muted', { text: 'Workshop, conference, or course. XP, skills, meaning, know-how.' }),
+      h('button.btn.small.blue', { disabled: away, onclick: () => openTraining(ctx, p.id) }, 'Pick a program')));
     const fire = p.founder
       ? h('button.btn.small.danger', { disabled: true, title: 'Founders cannot be fired' }, 'Founder')
       : confirmButton('Let go', 'Really? Click again', 'small.danger', () => { if (ctx.act({ type: 'fire', staffId: p.id }).ok) { detailId = null; render(); } });
@@ -178,6 +238,9 @@ export function staffPanel(ctx, arg) {
           h('div.row', null, h('b.num', { text: `Lv ${p.level}` }), h('div.bar', { style: { flex: 1 } }, xpFill), xpText),
           h('div.small.muted', { text: `Salary ${fmtMoney(p.salary)}/wk · hired week ${p.hiredWeek}` }),
           h('div.moodbadge', { style: { background: mood.color } }, icon(`mood.${p.mood}`), ` ${mood.name}`),
+          p.pathPending ? h('button.btn.primary', { onclick: () => openPathPicker(ctx, p.id) }, icon('path'), ' Choose a career path')
+            : p.path ? h('div.pathinfo', null, h('b', null, p.legend ? icon('legend') : icon('path'), ` ${p.legend ? 'Legend ' : ''}${PATHS[p.path]?.name ?? p.path}`),
+              h('div.small.muted', { text: PATHS[p.path]?.desc ?? '' })) : null,
           h('div.small', null, h('b', { text: 'Doing: ' }), assignmentText(s, p)),
           assignSelect(ctx, s, p)),
         h('div.dmid', null,
@@ -198,6 +261,7 @@ export function staffPanel(ctx, arg) {
   }
 
   render();
+  if (arg?.pickPath && arg.staffId) setTimeout(() => openPathPicker(ctx, arg.staffId), 0);
   return {
     el: host,
     tabs: t.el,

@@ -6,6 +6,7 @@ import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
+import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
@@ -64,6 +65,28 @@ export function createUI({ root, getState, dispatch, controls }) {
     controls,
     sfx,
     meaningLog: new Map(),
+    modal: null,
+    // A simple modal card for panel-owned dialogs (career paths, training). Returns a close function.
+    openModal({ title, iconName, body, cls = '' }) {
+      ctx.modal?.close();
+      const back = h('div.modal-back.generic');
+      const dock = h('div.modal-dock');
+      const close = () => {
+        back.remove();
+        if (ctx.modal?.back === back) { ctx.modal = null; toasts.setDock(menu.current ? menu.dockEl : null); }
+        sfx('close');
+      };
+      back.addEventListener('pointerdown', (e) => { if (e.target === back) close(); });
+      back.append(h(`div.modal${cls ? `.${cls}` : ''}`, null,
+        h('div.mhead', null, iconName ? icon(iconName, { size: 24 }) : null, h('h2', { text: title }), h('span.spacer'),
+          h('button.btn.x', { title: 'Close (Esc)', onclick: close }, icon('close'))),
+        h('div.mbody', null, body), dock));
+      layer.insertBefore(back, toasts.el);
+      ctx.modal = { back, close };
+      toasts.setDock(dock);
+      sfx('open');
+      return close;
+    },
   };
 
   const hud = createHud({ root: layer, controls, ui });
@@ -95,6 +118,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   // Overlays take keys in stacking order: settings, title, tutorial, popups, game over.
   ui.modalKey = (e) => {
+    if (ctx.modal) { if (e.key === 'Escape') ctx.modal.close(); e.preventDefault(); return true; }
     if (settings.isOpen) { if (e.key === 'Escape') settings.close(); e.preventDefault(); return true; }
     if (title.isOpen) return true;
     if (tutorial.onKey(e)) return true;
@@ -156,7 +180,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
       lastPanelAt = now;
       menu.update(state);
-      menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout').length);
+      menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout' || p.pathPending).length);
       menu.setBadge('ops', state.outage ? 1 : 0);
       menu.setAlarm('ops', !!state.outage);
     }
@@ -165,7 +189,12 @@ export function createUI({ root, getState, dispatch, controls }) {
   function handleEvents(events, state) {
     for (const e of events) {
       switch (e.type) {
-        case 'toast': toasts.push(e.text, e.tone); break;
+        case 'toast': {
+          // "X is ready to choose a career path." opens the path picker when clicked.
+          const who = /ready to choose a career path/.test(e.text) ? state.staff.find((p) => p.pathPending && e.text.startsWith(p.name)) : null;
+          toasts.push(e.text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
+          break;
+        }
         case 'chat': chat.add(e.from, e.text, state.week); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
