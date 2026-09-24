@@ -254,6 +254,7 @@ const ADJ_LABEL = { novelty: 'novelty', staminaRecovery: 'stamina recovery', mea
 
 // "Boosts 2 desks: +3% novelty" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
 export function adjacencyWords(prev) {
+  if (prev.texts?.length) return prev.texts.join('. ');
   const parts = [];
   if (prev.gives) {
     const g = prev.gives;

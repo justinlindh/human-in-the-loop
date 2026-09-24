@@ -96,6 +96,17 @@ export function unlockShort(key) {
   return unlockInfo(key).title;
 }
 
+// A warning for a founder pair that cannot build: the sim's helper or text when it has one,
+// else a plain check for an engineer or designer in the pair.
+export function foundingWarning(ids) {
+  if (ids.length < 2) return null;
+  if (typeof DATA.foundingWarning === 'function') { try { return DATA.foundingWarning(ids) ?? null; } catch { /* use the local check */ } }
+  const picked = ids.map((id) => ARCHETYPES.find((a) => a.id === id)).filter(Boolean);
+  const builds = (a) => (a.builder ?? (a.role === 'engineer' || a.role === 'designer'));
+  if (picked.some(builds)) return null;
+  return DATA.NO_BUILDER_WARNING ?? 'Neither founder builds software. Your first product will crawl until you hire an engineer.';
+}
+
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
 export const fundingMult = (f) => f.scoreMult ?? B.funding?.[f.id]?.scoreMult ?? 1;
 

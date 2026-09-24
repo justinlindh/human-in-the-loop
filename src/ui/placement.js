@@ -113,7 +113,9 @@ export function firstFit(s, itemId, rot = 0) {
 function fromLinks(s, itemId, links, candId) {
   const byId = new Map(placedOf(s).map((p) => [p.id, p]));
   const adj = CATALOG[itemId]?.adjacency;
-  const out = { gives: null, receives: [] };
+  const out = { gives: null, receives: [], texts: [] };
+  // When the sim supplies display text for a link (the real, clamped delta), it is shown verbatim.
+  for (const l of links) if (typeof l.text === 'string' && l.text && !out.texts.includes(l.text)) out.texts.push(l.text);
   const given = links.filter((l) => l.sourceId === candId);
   if (adj || given.length) {
     const ids = [...new Set(given.map((l) => l.targetId))];

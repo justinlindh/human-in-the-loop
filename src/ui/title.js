@@ -1,7 +1,7 @@
 import { h, setText, fmtMoney, dateOf } from './dom.js';
 import { portrait, roleChip } from './widgets.js';
 import { traitInfo } from './content.js';
-import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, strengthChips, archetypeBlurb } from './v2content.js';
+import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, strengthChips, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
@@ -118,9 +118,13 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
 
   function foundersStep() {
     const count = h('span.small.muted');
+    const warn = h('div.fwarn');
     let nextBtn = null;
     const refresh = () => {
       setText(count, `${draft.founders.length} of 2 picked`);
+      const w = foundingWarning(draft.founders);
+      warn.replaceChildren(...(w ? [icon('warn', { size: 14 }), h('span', { text: ` ${w}` })] : []));
+      warn.style.display = w ? '' : 'none';
       if (nextBtn) nextBtn.disabled = draft.founders.length !== 2;
     };
     const cards = ARCHETYPES.map((a, i) => {
@@ -147,7 +151,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     nextBtn = frame(1, h('div.fbody', null,
       h('div.row', null, h('b', { text: 'Pick two founders' }), h('span.spacer'), count),
       h('div.small.muted', { text: 'The pair shapes your opening: who builds, who sells, who keeps things running.' }),
-      cardsEl), () => { sfx('click'); fundingStep(); }, 'Next: funding', draft.founders.length === 2);
+      cardsEl, warn), () => { sfx('click'); fundingStep(); }, 'Next: funding', draft.founders.length === 2);
     refresh();
   }
 
