@@ -46,6 +46,8 @@ registerAction('acquire', (ctx, { targetId }) => {
   const t = (state.market.forSale ?? []).find((c) => c.id === targetId && c.expiresWeek > state.week);
   if (!t) return { ok: false, reason: 'No such company' };
   if (state.cash < t.price) return { ok: false, reason: 'Not enough cash' };
+  // Everyone always has a desk, so a deal needs a free desk for each incoming person.
+  if (deskCapacity(state) - state.staff.length < t.staff) return { ok: false, reason: 'No desks for their team' };
   state.cash -= t.price;
   state.market.forSale = state.market.forSale.filter((c) => c.id !== t.id);
   const cat = CATEGORIES[t.categoryId];
@@ -62,9 +64,7 @@ registerAction('acquire', (ctx, { targetId }) => {
   state.products.push(product);
   const roles = ['engineer', 'engineer', 'designer', 'support', 'sales', 'marketer'];
   const joined = [];
-  // Only as many people join as there are free desks; the rest take the payout and move on.
-  const seats = Math.max(0, Math.min(t.staff, deskCapacity(state) - state.staff.length));
-  for (let i = 0; i < seats; i++) {
+  for (let i = 0; i < t.staff; i++) {
     const p = generateStaff(state, { role: pick(rng, roles), seniority: pick(rng, ['mid', 'mid', 'senior']) });
     p.hiredWeek = state.week;
     state.staff.push(p);
@@ -73,7 +73,7 @@ registerAction('acquire', (ctx, { targetId }) => {
   }
   assignSeats(state);
   state.stats.hires += joined.length;
-  const who = joined.length ? `${joined.length} ${joined.length === 1 ? 'person joins' : 'people join'}.` : 'Nobody had a desk to come to, so the team took the payout.';
+  const who = `${joined.length} ${joined.length === 1 ? 'person joins' : 'people join'}.`;
   ctx.emit({ type: 'toast', tone: 'good', text: `${state.companyName} acquired ${t.name} for $${t.price.toLocaleString('en-US')}. ${who}` });
   emitChat(ctx, { channel: 'wins', from: '@dealbot', text: pick(rng, ACQUIRED_LINES).replaceAll('{target}', t.name).replaceAll('{product}', t.name) });
   if (joined[0]) emitChat(ctx, { person: joined[0], text: `Hi all! ${t.name} here. We come in peace and with our own mugs.` });

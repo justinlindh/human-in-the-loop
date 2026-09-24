@@ -112,13 +112,15 @@ describe('acquisitions', () => {
     tick(s);
   });
 
-  it('only as many people join as there are free desks', () => {
+  it('refuses without a free desk for each incoming person', () => {
     const s = market(7);
-    const free = Math.max(0, s.office.placed.filter((p) => p.itemId === 'desk').length - s.staff.length);
     const t = s.market.forSale[0];
-    const staff = s.staff.length;
+    const free = s.office.placed.filter((p) => p.itemId === 'desk').length - s.staff.length;
+    if (free >= t.staff) s.office.placed = s.office.placed.filter((p, i, all) => p.itemId !== 'desk' || all.slice(0, i).filter((q) => q.itemId === 'desk').length < s.staff.length);
+    expectFail(expect, dispatch, s, { type: 'acquire', targetId: t.id }, 'No desks for their team');
+    addDesks(s, t.staff);
     expect(dispatch(s, { type: 'acquire', targetId: t.id }).ok).toBe(true);
-    expect(s.staff.length).toBe(staff + Math.min(free, t.staff));
+    expect(s.staff.every((p) => p.deskId)).toBe(true);
   });
 
   it('rejects unknown companies and empty wallets', () => {

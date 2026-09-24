@@ -133,6 +133,12 @@ export function purchaseProblem(state, itemId) {
 // Most desks the HQ holds: a base cap plus a few per expansion step.
 export const deskCap = (state) => B.hqDeskCap + B.expansionDeskStep * (state.office.expansion ?? 0);
 
+// The next HQ expansion step ({ step, name, upgradeCost, rent, gate, ... }), or null before the HQ or after the last step.
+export function nextExpansion(state) {
+  if (state.officeStage !== OFFICE_STAGES.length - 1) return null;
+  return OFFICE_STAGES[state.officeStage].expansions?.[state.office.expansion ?? 0] ?? null;
+}
+
 // The same check placeItem and moveItem run. Pass id to check a move of an already placed item (moves are free).
 export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
   const moving = id ? state.office.placed.find((p) => p.id === id) : null;
