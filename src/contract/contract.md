@@ -147,8 +147,8 @@ The run starts at week 0 = January 2019 (dateOf(0).year === 2019).
 
 ### State additions and changes
 ```js
-era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation' */, since /* week */ },
-eraSchedule: { chatgbt, agents, consolidation },          // arrival weeks for this run (jittered)
+era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /* week */ },
+eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
 unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
 founding: { founders: [archetypeIds], funding, logoColor, tagline },
@@ -159,6 +159,8 @@ office: {
 // REMOVED: items[] (the fixed-slot shop list); shop items are now entries in office.placed.
 // gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired'); 'timeout' and the fixed run end are gone.
 ```
+Seats: each Staff has `deskId` (the id of a placed desk, or null while they have no desk). A person keeps their desk until that desk is sold or they leave; only then is a free desk assigned (the lowest free desk in placed order). Moving a desk keeps its sitter. The renderer and adjacency `paid` read `deskId`; nobody else changes seat when one person leaves.
+
 Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y], ...]. Tile (0, 0) is the back corner where the two visible walls meet; x runs along the right-hand back wall, y along the left-hand back wall. Item footprints come from ITEMS[itemId].footprint = { w, h } before rotation (rot 1 and 3 swap w and h).
 
 ### Actions
