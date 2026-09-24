@@ -208,6 +208,7 @@ export function buildPanel(ctx, arg) {
 
     return h('div.buildgrid', null,
       h('div.buildmain', null,
+        pickGuide(s),
         preset ? h('div.starterhint', null, icon('idea', { size: 18 }), h('span', { text: 'A good first product is picked for you: Email × Summarizer on ChatGBT, small, with both founders. Great combos earn stars once they launch. Press Start building, or change anything.' })) : null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
@@ -345,3 +346,20 @@ export function buildPanel(ctx, arg) {
   };
 }
 
+// A short guide on the first project: what each choice trades off. It shows until the first
+// product ships or the player closes it.
+const GUIDE_KEY = 'hitl.pickGuideDone';
+function pickGuide(s) {
+  let done = false;
+  try { done = localStorage.getItem(GUIDE_KEY) === '1'; } catch { /* storage unavailable: show it */ }
+  if (done || (s.products?.length ?? 0) > 0) return null;
+  const el = h('div.card.pickguide', null,
+    h('div.row', null, icon('idea', { size: 18 }), h('b', { text: ' How to pick your first product' }), h('span.spacer'),
+      h('button.btn.small', { onclick: () => { try { localStorage.setItem(GUIDE_KEY, '1'); } catch { /* shows again next time */ } el.remove(); } }, 'Got it')),
+    h('ul', null,
+      h('li', null, h('b', { text: 'Category' }), ' sets the price and the crowd. Cheap ones like Notes have lots of customers at a few dollars; pricey ones like CRM have fewer customers who pay more and expect more.'),
+      h('li', null, h('b', { text: 'Angle' }), ' is your pitch. Some fit a category far better than others. Ship a combo and it earns stars, so next time you know.'),
+      h('li', null, h('b', { text: 'Size' }), ' is speed against reach. Small ships fast and cheap; bigger takes longer and draws more customers.'),
+      h('li', null, h('b', { text: 'Team' }), ' decides the reviews. Building makes Features, Craft makes Polish, Rigor makes Reliability, Ideas make Freshness. Reviewers punish a product missing any of the first three, so mix skills.')));
+  return el;
+}
