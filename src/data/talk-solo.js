@@ -158,7 +158,7 @@ export const SAY_SOLO_LINES = {
   security: [
     'Someone taped the wifi password to the door. Facing out.',
     'People are the vulnerability. People keep being people.',
-    'Somebody clicked the phishing test. Somebody also clicked the real one.',
+    'Somebody clicked the phishing test. And the real one.',
     "The password is 'password1'. The 1 is doing a lot of work.",
     'I trust nobody. Myself included, especially before lunch.',
     'Found a USB stick in the car park. I will not plug it in. Probably.',
