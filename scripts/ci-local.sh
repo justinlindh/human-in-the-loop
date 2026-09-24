@@ -62,9 +62,13 @@ step lifecycle npm run lifecycle -- --quality low --no-shots
 step soak npm run soak
 # Render checks (headless SwiftShader, deterministic): clipping with and without the rig,
 # standups indoors, and the golden images. Ten minutes at most.
+# A run can lose a page to vite reloading while it optimizes a dependency, so a failed pass is
+# retried once; a real failure fails both.
 render_checks() {
-  timeout 600 bash -c 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig \
-    && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
+  local pass='node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
+  timeout 600 bash -c "$pass" && return 0
+  echo "render-checks: first pass failed; retrying once"
+  timeout 600 bash -c "$pass"
 }
 step render-checks render_checks
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
