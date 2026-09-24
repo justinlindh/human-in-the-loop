@@ -40,8 +40,9 @@ export function createBuild({ office, getCamera, canvas }) {
   group.add(plates);
   // Adjacency preview: plates under the placed items the UI names, shown whenever any are set.
   const marks = new THREE.Group();
+  marks.name = 'buildMarks';
   let markIds = [];
-  const markMat = new THREE.MeshBasicMaterial({ color: color('lamp_warm'), transparent: true, opacity: 0.5, depthWrite: false });
+  const markMat = new THREE.MeshBasicMaterial({ color: color('gold'), transparent: true, opacity: 0.7, depthWrite: false, toneMapped: false });
 
   function onMove(e) { pointer.x = e.clientX; pointer.y = e.clientY; pointer.seen = true; }
   addEventListener('pointermove', onMove);
@@ -138,7 +139,7 @@ export function createBuild({ office, getCamera, canvas }) {
     list.forEach((p, i) => {
       const m = plates.children[i];
       m.material = material;
-      m.position.set(p.x, 0.015, p.z);
+      m.position.set(p.x, 0.032, p.z);
     });
   }
 
@@ -163,7 +164,7 @@ export function createBuild({ office, getCamera, canvas }) {
       const f = footprint(e.itemId, e.rot);
       for (const c of footprintTiles(cur.L, e.x, e.y, f.w, f.h)) {
         const m = new THREE.Mesh(plateGeo, markMat);
-        m.position.set(c.x, 0.014, c.z);
+        m.position.set(c.x, 0.034, c.z);
         marks.add(m);
       }
     }
@@ -177,7 +178,7 @@ export function createBuild({ office, getCamera, canvas }) {
     if (attached !== scene) { scene.add(group); scene.add(marks); attached = scene; }
     if (cur) updateMarks(cur);
     const t0 = performance.now() / 1000;
-    markMat.opacity = 0.55 + 0.15 * Math.sin(t0 * 4);
+    markMat.opacity = 0.85 + 0.12 * Math.sin(t0 * 4);
     marks.visible = !!cur && markIds.length > 0;
     group.visible = !!mode && !!cur;
     if (!mode || !cur) return;
