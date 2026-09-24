@@ -183,14 +183,14 @@ function drawPortrait(g, p) {
 
   const hx = 32, hy = 30, r = 17;
   const style = a.hair ?? 0;
-  // back hair for long styles
-  g.fillStyle = hair;
-  if (style === 2 || style === 4) {
-    g.beginPath();
-    roundRect(g, hx - r - 2, hy - 6, (r + 2) * 2, style === 2 ? 26 : 18, 8);
-    g.fill();
-    g.stroke();
-  }
+  // Hair follows render's eight styles (blender/characters/chibi.py): 0 short crop, 1 bob, 2 long,
+  // 3 ponytail, 4 spiky, 5 bun, 6 curly, 7 side swoop. A hat replaces the hair, as in the office.
+  const hat = a.accessory === 'beanie' || a.accessory === 'cap';
+  const hairShape = (draw) => { g.fillStyle = hair; g.beginPath(); draw(); g.fill(); g.stroke(); };
+  // Behind the head: long hair, a bob's sides, a ponytail's tail.
+  if (!hat && style === 2) hairShape(() => roundRect(g, hx - r - 2, hy - 6, (r + 2) * 2, 28, 9));
+  if (!hat && style === 1) hairShape(() => roundRect(g, hx - r - 3, hy - 4, (r + 3) * 2, 17, 7));
+  if (!hat && style === 3) hairShape(() => { g.moveTo(hx + r - 2, hy - 8); g.quadraticCurveTo(hx + r + 10, hy + 2, hx + r + 3, hy + 16); g.quadraticCurveTo(hx + r - 3, hy + 6, hx + r - 6, hy - 2); g.closePath(); });
   // head
   g.fillStyle = skin;
   g.beginPath();
@@ -198,42 +198,47 @@ function drawPortrait(g, p) {
   g.fill();
   g.stroke();
 
-  // hair on top
-  g.fillStyle = hair;
-  g.beginPath();
-  switch (style) {
-    case 5: break; // bald
-    case 1: // spiky
-      g.moveTo(hx - r, hy - 2);
-      for (let i = 0; i <= 5; i++) {
-        const x = hx - r + (i * 2 * r) / 5;
-        g.lineTo(x, hy - r - (i % 2 ? 9 : 2));
-      }
-      g.lineTo(hx + r, hy - 2);
-      g.quadraticCurveTo(hx, hy - 12, hx - r, hy - 2);
-      break;
-    case 3: // bun
-      g.arc(hx, hy - r - 3, 6, 0, Math.PI * 2);
-      g.moveTo(hx + r, hy - 3);
-      g.arc(hx, hy - 3, r, 0, Math.PI, true);
-      break;
-    case 6: // curly
-      for (let i = 0; i < 7; i++) {
-        const ang = Math.PI + (i / 6) * Math.PI;
-        g.moveTo(hx + Math.cos(ang) * r + 5, hy + Math.sin(ang) * r);
-        g.arc(hx + Math.cos(ang) * r, hy + Math.sin(ang) * r - 1, 5, 0, Math.PI * 2);
-      }
-      break;
-    case 7: // mohawk
-      roundRect(g, hx - 4, hy - r - 8, 8, 16, 4);
-      break;
-    default: // short cap of hair
-      g.moveTo(hx + r, hy - 1);
-      g.arc(hx, hy - 1, r, 0, Math.PI, true);
-      g.quadraticCurveTo(hx - 4, hy - 10, hx + r, hy - 1);
+  // On top of the head.
+  const cap = () => { g.moveTo(hx + r, hy - 1); g.arc(hx, hy - 1, r, 0, Math.PI, true); g.quadraticCurveTo(hx, hy - 9, hx + r, hy - 1); };
+  if (!hat) {
+    switch (style) {
+      case 4: // spiky
+        hairShape(() => {
+          g.moveTo(hx - r, hy - 2);
+          for (let i = 0; i <= 5; i++) g.lineTo(hx - r + (i * 2 * r) / 5, hy - r - (i % 2 ? 9 : 2));
+          g.lineTo(hx + r, hy - 2);
+          g.quadraticCurveTo(hx, hy - 12, hx - r, hy - 2);
+        });
+        break;
+      case 5: // bun on top
+        hairShape(() => g.arc(hx, hy - r - 3, 6, 0, Math.PI * 2));
+        hairShape(cap);
+        break;
+      case 6: // curly
+        hairShape(() => {
+          for (let i = 0; i < 7; i++) {
+            const ang = Math.PI + (i / 6) * Math.PI;
+            g.moveTo(hx + Math.cos(ang) * r + 5, hy + Math.sin(ang) * r);
+            g.arc(hx + Math.cos(ang) * r, hy + Math.sin(ang) * r - 1, 5, 0, Math.PI * 2);
+          }
+        });
+        break;
+      case 3: // ponytail: a cap and the tie at the back
+        hairShape(cap);
+        hairShape(() => g.arc(hx + r - 3, hy - 9, 3.5, 0, Math.PI * 2));
+        break;
+      case 7: // side swoop across the forehead
+        hairShape(cap);
+        hairShape(() => { g.moveTo(hx - r + 1, hy - 4); g.quadraticCurveTo(hx - 4, hy - 14, hx + 8, hy - 8); g.quadraticCurveTo(hx - 2, hy - 4, hx - r + 3, hy + 2); g.closePath(); });
+        break;
+      case 0: // short crop with a little fringe
+        hairShape(cap);
+        hairShape(() => { g.moveTo(hx - 8, hy - 9); g.quadraticCurveTo(hx - 2, hy - 3, hx + 5, hy - 8); g.closePath(); });
+        break;
+      default: // bob and long: a full cap over the back hair
+        hairShape(cap);
+    }
   }
-  g.fill();
-  if (style !== 5) g.stroke();
 
   // face
   const mood = p.mood ?? 'ok';
