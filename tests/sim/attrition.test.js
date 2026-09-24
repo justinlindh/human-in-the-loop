@@ -40,6 +40,21 @@ describe('natural attrition', () => {
     expect(s.flags.alumni.at(-1).name).toBe(r.name);
   });
 
+  it('someone leaving a happy team sends a friend with the same role and level', () => {
+    const s = game(4);
+    for (let i = 0; i < 8; i++) addStaff(s, 'designer', 'senior', { hiredWeek: -100, meaning: 95 });
+    s.candidates = [];
+    let r = null;
+    for (let w = 0; w < 4000 && !r; w++) {
+      const c = makeCtx(s);
+      attritionSystem(c);
+      r = c.events.find((e) => e.type === 'resign');
+      s.week++;
+    }
+    expect(r).toBeTruthy();
+    expect(s.candidates.at(-1)).toMatchObject({ role: 'designer', seniority: 'senior' });
+  });
+
   it('a balanced company loses someone every year or two, not zero and not a flood', () => {
     const rates = [];
     for (const seed of [1, 2, 3, 4]) {

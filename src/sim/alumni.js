@@ -1,7 +1,8 @@
 import { B } from './balance.js';
 import { registerSystem } from './registry.js';
 import { chance, pick } from './rng.js';
-import { removeStaff, endMentorshipsOf, staffMods } from './staff.js';
+import { removeStaff, endMentorshipsOf, staffMods, makeCandidate } from './staff.js';
+import { avg } from './util.js';
 import { emitChat } from './chat.js';
 import { itemBonus } from './bonus.js';
 import { purposeLift } from './purpose.js';
@@ -27,6 +28,15 @@ const FAREWELLS = [
   'Moving on, but not far. You know where to find me: #alumni.',
 ];
 
+// Someone leaving a happy team sends a friend for their seat: a candidate with the same role and level.
+function referFriend(ctx, p) {
+  const { state } = ctx;
+  if (!state.staff.length || avg(state.staff, (x) => x.meaning) < B.referralMeaning) return '';
+  state.candidates.push(makeCandidate(state, p.role, p.seniority));
+  state.candidates = state.candidates.slice(-B.candidateListMax);
+  return ' They are sending a friend your way.';
+}
+
 // Now and then someone who has been around for years leaves on good terms. They join the alumni.
 export function moveOnSystem(ctx) {
   const { state, rng } = ctx;
@@ -37,8 +47,9 @@ export function moveOnSystem(ctx) {
   emitChat(ctx, { person: p, text: pick(rng, FAREWELLS) });
   endMentorshipsOf(state, p);
   removeStaff(state, p);
+  const friend = referFriend(ctx, p);
   ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'moved_on' });
-  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, REASONS)}` });
+  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, REASONS)}${friend}` });
 }
 
 // Why someone takes an offer. {who} is the company that hired them.
@@ -88,8 +99,9 @@ export function attritionSystem(ctx) {
   endMentorshipsOf(state, p);
   removeStaff(state, p);
   state.stats.resignations++;
+  const friend = referFriend(ctx, p);
   ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'poached' });
-  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, OFFERS).replaceAll('{who}', who)}` });
+  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, OFFERS).replaceAll('{who}', who)}${friend}` });
 }
 
 registerSystem('move-on', moveOnSystem, 52);
