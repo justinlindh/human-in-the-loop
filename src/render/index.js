@@ -4,6 +4,7 @@ import { createSceneGraph, buildTestDiorama } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop, windowUpdater } from './lighting.js';
 import { createPost } from './post.js';
+import { buildKitBoard } from './debug.js';
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
@@ -28,7 +29,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   scene.background = backdrop.texture;
   lighting.env.listeners.add(backdrop.update);
 
-  const bounds = buildTestDiorama(office);
+  const params = new URLSearchParams(location.search);
+  const bounds = params.get('kit') === '1' ? buildKitBoard(office) : buildTestDiorama(office);
   rig.setBounds(bounds);
   lighting.env.listeners.add(windowUpdater(office.userData.windowMaterials ?? []));
   lighting.fitShadow(bounds);

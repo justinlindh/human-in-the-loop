@@ -12,7 +12,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
   const hemi = new THREE.HemisphereLight(C('hemi_sky_day'), C('hemi_ground_day'), 1.2);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(C('sun_day'), 2.6);
+  const sun = new THREE.DirectionalLight(C('sun_day'), 3.4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(shadowSize, shadowSize);
   sun.shadow.bias = -0.0004;
@@ -79,11 +79,11 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
 
     hemi.color.copy(skyNight).lerp(skyDay, daylight);
     hemi.groundColor.copy(gNight).lerp(gDay, daylight);
-    hemi.intensity = THREE.MathUtils.lerp(0.55, 1.2, daylight);
+    hemi.intensity = THREE.MathUtils.lerp(0.55, 0.85, daylight);
 
     tmpC.copy(sunDay).lerp(sunDusk, dusk * 0.8);
     sun.color.copy(moon).lerp(tmpC, daylight);
-    sun.intensity = THREE.MathUtils.lerp(0.55, 2.6, daylight);
+    sun.intensity = THREE.MathUtils.lerp(0.55, 3.4, daylight);
 
     // Sun swings a little across the day; the key stays upper left of the view for readability.
     const az = viewYaw - Math.PI / 4 + THREE.MathUtils.degToRad(THREE.MathUtils.lerp(12, 34, THREE.MathUtils.clamp(t * 2 - 0.5, 0, 1)));
