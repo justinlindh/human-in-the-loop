@@ -252,6 +252,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     popups.update(state);
     buildMode.update(state);
     syncMenus(state);
+    tutorial.setHeld(!!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
