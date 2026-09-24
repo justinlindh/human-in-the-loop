@@ -1,4 +1,4 @@
-"""Office chair: five-star base with casters, gas lift, cushioned seat and backrest."""
+'''Office chair: five-star base with casters, gas lift, cushioned seat and backrest.'''
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *

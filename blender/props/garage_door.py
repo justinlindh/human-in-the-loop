@@ -1,4 +1,4 @@
-"""Roll-up garage door set into a frame; fits a 2.7 m wide wall opening. Faces -Y."""
+'''Roll-up garage door set into a frame; fits a 2.7 m wide wall opening. Faces -Y.'''
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *

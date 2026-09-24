@@ -21,7 +21,8 @@ def _load_palette():
 
 PALETTE = _load_palette()
 SLOT_COLORS = {'screen': '#62b4ff', 'led': '#3ee07a', 'led_amber': '#ffb238', 'led_red': '#ff4d4d',
-               'lamp': '#ffcf96', 'glass': '#bcdde8', 'window': '#d3ebf5'}
+               'lamp': '#ffcf96', 'glass': '#bcdde8', 'window': '#d3ebf5', 'neon_pink': '#ff8fc4',
+               'neon_cyan': '#5fe0d0', 'grow': '#ffcf96'}
 
 
 def args():
@@ -161,6 +162,48 @@ def lathe(name, profile, loc, material, steps=24):
     return _finish(o, name, material, 0)
 
 
+def prism(name, pts, width, loc, material, bevel=0.01, segments=2):
+    """Extrude a 2D outline [(y, z), ...] (counter-clockwise seen from +X) along X by width."""
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    a = [bm.verts.new((-width / 2, y, z)) for y, z in pts]
+    b = [bm.verts.new((width / 2, y, z)) for y, z in pts]
+    bm.faces.new(list(reversed(a)))
+    bm.faces.new(b)
+    n = len(pts)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((a[i], a[j], b[j], b[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    o.location = loc
+    for s_ in bpy.context.selected_objects:
+        s_.select_set(False)
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    return _finish(o, name, material, bevel, segments)
+
+
+def place(objs, x=0.0, y=0.0, rz=0.0):
+    """Rotate objects about the origin by rz, then move them by (x, y). Transforms are applied."""
+    c, s_ = math.cos(rz), math.sin(rz)
+    for o in objs:
+        if not o:
+            continue
+        lx, ly, lz = o.location
+        o.location = (lx * c - ly * s_ + x, lx * s_ + ly * c + y, lz)
+        o.rotation_euler[2] += rz
+        for sel in bpy.context.selected_objects:
+            sel.select_set(False)
+        bpy.context.view_layer.objects.active = o
+        o.select_set(True)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    return objs
+
+
 def subdivide(o, levels=1):
     m = o.modifiers.new('sub', 'SUBSURF')
     m.levels = levels
@@ -226,8 +269,66 @@ def tri_count():
     return n
 
 
-def export(path=None, budget=3000):
+UV_PARTS = ('screen', 'window_glass')
+
+
+def _canonical_order(o):
+    # Modifiers emit faces in a varying order; sort vertices and faces by position so exports are stable.
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    r = lambda v: (round(v[0], 5), round(v[1], 5), round(v[2], 5))
+    bm.verts.index_update()
+    vrank = [0] * len(bm.verts)
+    for i, v in enumerate(sorted(bm.verts, key=lambda v: r(v.co))):
+        vrank[v.index] = i
+    bm.verts.sort(key=lambda v: vrank[v.index])
+    bm.verts.index_update()
+    bm.faces.index_update()
+    frank = [0] * len(bm.faces)
+    fkey = lambda f: (f.material_index, r(f.calc_center_median()), tuple(sorted(v.index for v in f.verts)))
+    for i, f in enumerate(sorted(bm.faces, key=fkey)):
+        frank[f.index] = i
+    bm.faces.sort(key=lambda f: frank[f.index])
+    bm.to_mesh(o.data)
+    bm.free()
+
+
+def _strip_uvs():
+    # Solid-color parts need no UVs, and float noise in them makes rebuilt .glb files differ.
+    for o in bpy.context.scene.objects:
+        if o.type != 'MESH':
+            continue
+        if any(k in o.name for k in UV_PARTS):
+            for layer in o.data.uv_layers:
+                for d in layer.data:
+                    d.uv = (round(d.uv[0], 4), round(d.uv[1], 4))
+            continue
+        while o.data.uv_layers:
+            o.data.uv_layers.remove(o.data.uv_layers[0])
+
+
+def scale_all(k):
+    """Uniformly scale every object about the origin (for small props that need to read bigger)."""
+    for o in bpy.context.scene.objects:
+        o.location = (o.location[0] * k, o.location[1] * k, o.location[2] * k)
+        o.scale = (o.scale[0] * k, o.scale[1] * k, o.scale[2] * k)
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+
+def export(path=None, budget=3000, clear=False):
     path = path or out_path()
+    for o in list(bpy.context.scene.objects):
+        if o.type != 'MESH':
+            continue
+        # Triangulate here with fixed rules; the exporter's own triangulation order varies run to run.
+        t = o.modifiers.new('tri', 'TRIANGULATE')
+        t.quad_method = 'FIXED'
+        t.ngon_method = 'BEAUTY'
+        t.keep_custom_normals = True
+        apply_mods(o)
+        _canonical_order(o)
+    _strip_uvs()
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tris = tri_count()
     bpy.ops.object.select_all(action='SELECT')
@@ -239,3 +340,13 @@ def export(path=None, budget=3000):
     print(f'MODEL {name}: {tris} tris ({status}, budget {budget})')
     if tris > budget:
         sys.exit(2)
+    if clear:
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.delete()
+
+
+def tier_path(level):
+    """public/models/<item>.glb given as --out becomes <item>_l<level>.glb."""
+    base = out_path()
+    root, ext = os.path.splitext(base)
+    return f'{root}_l{level}{ext}'

@@ -1,13 +1,25 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
 import { icon } from './icons.js';
+import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
 export const totalMrr = (s) => liveProducts(s).reduce((a, p) => a + (Number.isFinite(p.mrr) ? p.mrr : 0), 0);
 export const totalCustomers = (s) => liveProducts(s).reduce((a, p) => a + (Number.isFinite(p.customers) ? p.customers : 0), 0);
 
-// Average weekly cash change over the last few recorded weeks.
+// Weekly cash change from the sim's own revenue and cost functions.
 export function weeklyNet(s) {
+  try {
+    const costs = Object.values(weeklyCosts(s)).reduce((a, v) => a + v, 0);
+    const net = weeklyRevenue(s) - costs;
+    if (Number.isFinite(net)) return net;
+  } catch {
+    // Fall through to the history estimate for states the economy module cannot read.
+  }
+  return historyNet(s);
+}
+
+function historyNet(s) {
   const hist = s.history ?? [];
   if (hist.length < 2) return null;
   const k = Math.min(4, hist.length - 1);
@@ -16,15 +28,26 @@ export function weeklyNet(s) {
   return Number.isFinite(net) ? net : null;
 }
 
-// Modifier keys where an increase hurts the player, so their arrows color red when positive.
-const BAD_WHEN_UP = new Set(['debt', 'comprehensionDebt', 'churn', 'cost', 'costs', 'salary', 'incidentRate', 'incidentChance', 'meaningDrain', 'rent', 'burn']);
+// Modifier labels and polarity come from src/data/modifiers.js; the fallback covers the keys
+// where an increase hurts until that table is merged.
+const modMods = import.meta.glob('../data/modifiers.js', { eager: true });
+const MODIFIER_KEYS = Object.values(modMods)[0]?.MODIFIER_KEYS ?? {};
+const BAD_WHEN_UP = new Set(['meaningDrain', 'churn', 'staminaDrain', 'rogueRisk']);
+
+const isGood = (m) => {
+  const k = MODIFIER_KEYS[m.key];
+  if (k) return (m.value > 0) === (k.goodWhen === 'up');
+  return BAD_WHEN_UP.has(m.key) ? m.value < 0 : m.value > 0;
+};
 
 function keyLabel(k) {
-  return String(k).replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+  return MODIFIER_KEYS[k]?.label ?? String(k).replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
 }
 
-function fmtValue(v) {
-  return Math.abs(v) < 1 ? `${Math.round(v * 100)}%` : String(Math.round(v * 10) / 10);
+function fmtValue(m) {
+  const pct = (MODIFIER_KEYS[m.key]?.format ?? (Math.abs(m.value) < 1 ? 'pct' : 'flat')) === 'pct';
+  const sign = m.value > 0 ? '+' : '';
+  return pct ? `${sign}${Math.round(m.value * 100)}%` : `${sign}${Math.round(m.value * 10) / 10}/wk`;
 }
 
 // Modifiers sharing a label and end week (one decision's effects) show as one row.
@@ -105,7 +128,7 @@ export function createHud({ root, controls, ui }) {
       tray.append(h('div.tray-card.alert', { onclick: () => ui.open('ops') },
         h('div.t', null, h('span', null, icon('tray.outage'), ` ${p?.name ?? 'Product'} is down`), k),
         h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : (INCIDENT_LABEL[o.kind] ?? 'Outage') })));
-      trayBinds.push((st) => st.outage && setText(k, `SEV${st.outage.severity} · ${st.outage.weeks}w`));
+      trayBinds.push((st) => st.outage && setText(k, `SEV${6 - st.outage.severity} · ${st.outage.weeks}w`));
     }
     for (const j of s.projects.slice(0, 4)) {
       const fill = h('i');
@@ -127,11 +150,10 @@ export function createHud({ root, controls, ui }) {
       const list = h('div.effects');
       for (const e of effects) {
         const left = h('span.k.num');
-        list.append(h('div.effect', { title: e.parts.map((m) => `${keyLabel(m.key)} ${m.value > 0 ? '+' : ''}${fmtValue(m.value)}`).join(', ') },
+        list.append(h('div.effect', { title: e.parts.map((m) => `${keyLabel(m.key)} ${fmtValue(m)}`).join(', ') },
           h('span.en', { text: e.label }),
           h('span.arrows', null, ...e.parts.map((m) => {
-            const good = BAD_WHEN_UP.has(m.key) ? m.value < 0 : m.value > 0;
-            return h(`span.arr.${good ? 'good' : 'bad'}`, null, icon(m.value >= 0 ? 'arrow.up' : 'arrow.down', { size: 11 }));
+            return h(`span.arr.${isGood(m) ? 'good' : 'bad'}`, { title: `${keyLabel(m.key)} ${fmtValue(m)}` }, icon(m.value >= 0 ? 'arrow.up' : 'arrow.down', { size: 13 }));
           })),
           left));
         trayBinds.push((st) => setText(left, `${Math.max(0, e.untilWeek - st.week)}w`));
@@ -162,7 +184,9 @@ export function createHud({ root, controls, ui }) {
       setText(cashSub, `Broke! ${left} wk to fold`);
       setClass(cashSub, 'sub bad');
     } else {
-      const net = weeklyNet(s);
+      const now = performance.now();
+      if (now - (last.netAt ?? 0) > 250) { last.net = weeklyNet(s); last.netAt = now; }
+      const net = last.net;
       if (net !== null && net < 0) {
         const wk = Math.floor(s.cash / -net);
         setText(cashSub, wk > 99 ? `${fmtMoney(net)}/wk` : `${wk} wk runway`);
