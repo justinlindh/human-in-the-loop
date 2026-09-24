@@ -14,7 +14,7 @@ import { itemBonus, researchBonus } from './bonus.js';
 import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
-import { eraLines, eraOnlyAllowsText } from './eras.js';
+import { eraLines, eraOnlyAllowsText, eraAtLeast } from './eras.js';
 import { remoteLearning } from './ladder.js';
 import { purposeLift } from './purpose.js';
 
@@ -89,7 +89,8 @@ export function generateStaff(state, { role, seniority }) {
     skills[st] = Math.round(clamp(base, 1, 100));
   }
   // AI-flavoured traits (an AI Enthusiast, a Vibe Coder) wait for the AI eras.
-  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraOnlyAllowsText(state, `${TRAITS[id].name} ${TRAITS[id].desc}`))).slice(0, int(r, 0, 2));
+  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraOnlyAllowsText(state, `${TRAITS[id].name} ${TRAITS[id].desc}`)
+    && (!TRAITS[id].era || eraAtLeast(state, TRAITS[id].era)))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
     name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,

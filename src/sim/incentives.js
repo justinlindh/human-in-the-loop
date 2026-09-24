@@ -30,13 +30,14 @@ export function incentivesSystem(ctx) {
   const reward = LADDER[Math.min(count, LADDER.length - 1)];
   state.flags.incentiveWeek = state.week;
   state.flags.incentiveCount = count + 1;
-  award(ctx, winner, reward, count);
   if (reward.id === 'music_night') {
-    // The winner picks the music first; the dance break happens when the decision resolves.
+    // The winner picks the music first; the reward and the dance break happen when the decision resolves.
     state.flags.musicNightWinner = winner.id;
+    state.flags.musicNightCount = count;
     raiseDecision(ctx, 'music_night_genre', winner.id, { queue: true });
     return;
   }
+  award(ctx, winner, reward, count);
   ctx.emit({ type: 'incentive', staffId: winner.id, reward: reward.id });
   ctx.emit({ type: 'toast', text: `Incentives Program: ${winner.name} wins ${reward.name}.`, tone: 'good' });
   stageTalk(ctx, winner, reward);
@@ -62,9 +63,12 @@ function award(ctx, winner, reward, count) {
 export function danceBreak(ctx, genre) {
   const { state, rng } = ctx;
   const winner = state.staff.find((p) => p.id === state.flags.musicNightWinner);
+  const count = state.flags.musicNightCount ?? 0;
   delete state.flags.musicNightWinner;
+  delete state.flags.musicNightCount;
   if (!winner) return;
   const reward = INCENTIVES.find((r) => r.id === 'music_night');
+  award(ctx, winner, reward, count);
   const crowd = shuffle(rng, state.staff.filter((p) => p !== winner && inOffice(p)));
   const dancers = [winner.id, ...crowd.slice(0, int(rng, B.musicNightDancers[0], B.musicNightDancers[1])).map((p) => p.id)];
   ctx.emit({ type: 'incentive', staffId: winner.id, reward: 'music_night', genre, dancers });
@@ -92,6 +96,8 @@ function waffleMilestone(ctx) {
     const count = milestone === 'launches' ? launches : p.level;
     won.push(p.id);
     state.flags.waffleWeek = state.week;
+    // The party is the event of the season: the timed ladder waits a full round after it.
+    state.flags.incentiveWeek = state.week;
     const reward = INCENTIVES.find((r) => r.id === 'waffle_party');
     award(ctx, p, reward, 0);
     const first = p.name.split(' ')[0];
@@ -139,7 +145,8 @@ function stageTalk(ctx, winner, reward) {
 
 registerSystem('incentives', incentivesSystem, 51);
 
-// Dev and capture only: sets up a reward so the next tick stages it, whatever the ladder position.
+// Dev and capture only: sets up a reward so the next tick stages it, whatever the ladder position. A tick
+// does nothing while a decision is pending, so resolve any open decision before ticking.
 // 'music_night' makes it the next timed reward (its genre decision follows); 'waffle_party' puts the top
 // performer at the launch milestone with the cooldown clear. Turns the program on. Returns the staff id.
 export function stageIncentive(state, reward) {
@@ -152,6 +159,7 @@ export function stageIncentive(state, reward) {
     state.flags.incentiveWeek = state.week - B.incentiveEveryWeeks;
   } else if (reward === 'waffle_party') {
     (state.flags.shippedBy ??= {})[who.id] = B.waffleLaunches;
+    state.flags.incentiveWeek = state.week;
     state.flags.waffleWinners = (state.flags.waffleWinners ?? []).filter((id) => id !== who.id);
     delete state.flags.waffleWeek;
   }
