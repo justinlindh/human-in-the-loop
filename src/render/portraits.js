@@ -152,7 +152,9 @@ export function createPortraits({ ready, lowQuality = () => false }) {
       e.ctx.drawImage(gl.domElement, 0, 0, e.px, e.px);
       scene.remove(e.char.root);
     }
-    if (announce && !queue.size) {
+    // Announce after every frame that finished some portraits; waiting for an empty queue can
+    // starve when callers keep requesting new sizes or people.
+    if (announce) {
       announce = false;
       dispatchEvent(new Event('hitl:portraits'));
     }
