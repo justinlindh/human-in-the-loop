@@ -353,6 +353,9 @@
  "train.course": {
   "file": "glyphs/train.course.svg"
  },
+ "brand.yak": {
+  "file": "glyphs/brand.yak.svg"
+ },
  "bot.pager": {
   "file": "glyphs/bot.pager.svg"
  },

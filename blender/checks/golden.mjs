@@ -37,6 +37,8 @@ const SCENES = [
   { name: 'combo-support-hat', query: 'chars=2&hair=2&acc=cap&role=support', steps: 8, at: [0, 0, 1.7] },
   { name: 'combo-security', query: 'chars=2&hair=5&acc=none&role=security&build=2', steps: 8, at: [0, 0, 1.7] },
   { name: 'combo-headphones-side', query: 'chars=2&hair=2&acc=headphones&role=designer', steps: 8, at: [0, 0, 1.7] },
+  { name: 'hq-exp2', query: 'mock=hq', setup: `__HITL.state.office.expansion = 2;`, steps: 30 },
+  { name: 'hq-exp3', query: 'mock=hq', setup: `__HITL.state.office.expansion = 3;`, steps: 30 },
   { name: 'char-lineup-rig', query: 'chars=1&rig=1', steps: 20 },
   { name: 'desk-typing-rig', query: 'mock=floor&rig=1', setup: `(${MOODS})(['ok']); __focus = 0;`, steps: 45, zoom: 4.2 },
   { name: 'desk-moods-rig', query: 'mock=floor&rig=1', setup: `(${MOODS})(['coasting', 'burnout', 'tired']); __focus = 1;`, steps: 45, zoom: 3.2 },

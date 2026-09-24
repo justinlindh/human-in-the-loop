@@ -91,7 +91,7 @@ describe('pacer scheduling', () => {
     expect(run(p, readSeconds('first line') + 0.2).map((x) => x.e.id)).toEqual(['v2']);
   });
 
-  it('does not hold Slackk chat for speakers', () => {
+  it('does not hold Yak chat for speakers', () => {
     const p = createPacer();
     p.schedule([say('v1', 's1', 'spoken'), chat('m1', 's1', 'posted'), chat('m2', 's1', 'posted again')]);
     expect(run(p, WEEK_SECONDS).map((x) => x.e.id)).toEqual(['v1', 'm1', 'm2']);

@@ -272,7 +272,13 @@ export const GLYPHS = {
   'train.conference': { d: rr(8.5, 2.5, 7, 11, 3.5, C.metalDark) + `<path d="M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v4.5M8.5 21.5h7" ${line(2)}/>` + `<path d="M10 5.5h4M10 8h4" stroke="${C.metal}" stroke-width="1.2" stroke-linecap="round"/>` },
   'train.course': { d: D.gradcap },
 
-  // Slackk bot avatars
+  // Yak: the team chat's logo, a shaggy yak head.
+  'brand.yak': { d: path('M4.5 7.5C2.5 7 2 4.5 3 3c.8 2 2.2 2.6 4 2.7M19.5 7.5c2-.5 2.5-3 1.5-4.5-.8 2-2.2 2.6-4 2.7', C.cream)
+    + path('M6 8.5c0-2.2 2.7-3.8 6-3.8s6 1.6 6 3.8c1.2.6 1.8 1.7 1.3 2.8-.6 1.2-1.6 1.2-1.6 1.2l-.7 4.3c-.5 2.8-2.6 4.5-5 4.5s-4.5-1.7-5-4.5l-.7-4.3s-1 0-1.6-1.2c-.5-1.1.1-2.2 1.3-2.8Z', C.woodDark)
+    + path('M9 15.5c0-1.2 1.3-2 3-2s3 .8 3 2-1.3 2.5-3 2.5-3-1.3-3-2.5Z', C.wood)
+    + dot(9.4, 11.2, 1.1) + dot(14.6, 11.2, 1.1) + dot(11, 15.6, 0.6) + dot(13, 15.6, 0.6)
+    + `<path d="M8 7.5q2 1.6 4 .2 2 1.4 4-.2" ${line(1.3)}/>` },
+  // Yak bot avatars
   'bot.pager': { d: D.siren },
   'bot.vendor': { d: D.brain },
   'bot.launch': { d: circ(12, 12, 10.5, C.blue) + `<g transform="translate(3.6 3.4) scale(.7)">${D.rocket}</g>` },
@@ -285,7 +291,7 @@ export const GLYPHS = {
   'bot.news': { size: 13, d: "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\" fill=\"#fbf5ea\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><rect x=\"6\" y=\"7\" width=\"6\" height=\"5\" rx=\"1\" fill=\"#4f8cff\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M14.5 8h3.5M14.5 11h3.5M6 15h12M6 17.5h8\" stroke=\"#2a2630\" stroke-width=\"1.6\" stroke-linecap=\"round\" fill=\"none\"/>" },
   'bot.build': { size: 13, d: "<path d=\"M14.5 3.5a4.5 4.5 0 0 0-5.3 5.7l-5.4 5.4a2 2 0 0 0 2.8 2.8l5.4-5.4a4.5 4.5 0 0 0 5.7-5.3l-2.6 2.6-2.3-.6-.6-2.3z\" fill=\"#b9bcc4\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><circle cx=\"18\" cy=\"18\" r=\"3.5\" fill=\"#34c38f\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M16.6 18l1 1 1.9-2\" stroke=\"#fbf5ea\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"/>" },
 
-  // Slackk reactions
+  // Yak reactions
   'react.party': { d: path('M3 21 8 8l8 8Z', C.yellow) + `<path d="M5 15.5l3.5 3.5M6.5 11.5l6 6" stroke="${C.red}" stroke-width="1.6" fill="none"/>` + dot(15, 5, 1.4, C.pink) + dot(19.5, 9.5, 1.4, C.blue) + dot(18, 3.5, 1, C.green) },
   'react.rocket': { d: D.rocket },
   'react.clap': { d: path('M7 12.5 5 8.5a1.3 1.3 0 0 1 2.3-1.2L10 12l-2.5-6a1.3 1.3 0 0 1 2.4-1l3 6.5-.5-4a1.3 1.3 0 0 1 2.6-.2l1 7a6 6 0 0 1-3.5 6.3 6 6 0 0 1-7.4-2.7Z', C.skin) + `<path d="M17.5 3.5l-1 2M20.5 6l-2 1M20.5 10h-2" ${line(1.5)}/>` },

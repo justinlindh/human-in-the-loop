@@ -11,6 +11,7 @@ const rows = [
   ['xp', 'Learning speed', 'up', 'pct'],
   ['oversight', 'Oversight hours', 'up', 'pct'],
   ['rogueRisk', 'Rogue agent risk', 'down', 'pct'],
+  ['attrition', 'Outside offers taken', 'down', 'pct'],
 ];
 
 export const MODIFIER_KEYS = Object.fromEntries(rows.map(([key, label, goodWhen, format]) => [key, { key, label, goodWhen, format }]));

@@ -160,7 +160,12 @@ const FB_GRIDS = [
   { w: 21, h: 16, door: { x: 10, y: 15 }, blocked: [] },
 ];
 
-export function stageGrid(stage) {
+export function stageGrid(stage, expansion = 0) {
+  // With HQ expansion steps, the sim's officeShape gives the grown layout.
+  if (expansion > 0 && typeof DATA.officeShape === 'function') {
+    const sh = DATA.officeShape(stage, expansion);
+    if (sh?.grid) return { w: sh.grid.w, h: sh.grid.h, door: sh.door, blocked: sh.blocked ?? [] };
+  }
   const g = DATA_STAGES[stage]?.grid ?? FB_GRIDS[stage] ?? FB_GRIDS[0];
   return { w: g.w, h: g.h, door: DATA_STAGES[stage]?.door ?? g.door ?? { x: g.w - 1, y: g.h - 1 }, blocked: DATA_STAGES[stage]?.blocked ?? g.blocked ?? [] };
 }

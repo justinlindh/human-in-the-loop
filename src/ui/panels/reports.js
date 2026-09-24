@@ -6,6 +6,8 @@ import { lineChart, stackedChart, sample } from '../charts.js';
 import { wrapperRisk } from './marketing.js';
 import { retireOptions, retireBanner } from '../retire.js';
 import { PURPOSE_INFO } from '../v2content.js';
+import { picker, personOption } from '../picker.js';
+import { call } from '../simapi.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -147,10 +149,11 @@ export function reportsPanel(ctx) {
           p.migrationDueWeek != null ? h('span.pill.warn', null, icon('migrate', { size: 12 }), ` Migrate by ${p.migrationDueWeek <= s.week ? 'NOW' : `${p.migrationDueWeek - s.week}w`}`) : null,
           s.outage?.productId === p.id ? h('span.pill.bad', null, icon('tray.outage', { size: 12 }), ' DOWN') : null,
         );
-        const ownerSel = h('select.ownersel', {
-          onchange: (e) => { const v = e.target.value; e.target.blur(); ctx.act({ type: 'setOwner', productId: p.id, staffId: v || null }); },
-        }, h('option', { value: '', text: 'No owner' }), ...s.staff.map((x) => h('option', { value: x.id, text: x.name })));
-        ownerSel.value = p.ownerId ?? '';
+        const ownerSel = picker({
+          className: 'ownersel', value: p.ownerId ?? '', title: 'Who owns this product',
+          options: [{ value: '', label: 'No owner', sub: 'Nobody answers for it' }, ...s.staff.map((x) => personOption(x, { busy: null, free: false }))],
+          onChange: (v) => ctx.act({ type: 'setOwner', productId: p.id, staffId: v || null }),
+        }).el;
         return h('div.card.prodcard', null,
           h('div.row', null,
             h(`div.score.${scoreClass(p.score)}`, { title: 'Review average' }, p.score.toFixed(1)),
@@ -272,7 +275,9 @@ function acquisitionsView(ctx, s, bind) {
     });
     const why = h('span.why.small');
     bind((st) => {
-      const r = st.cash < c.price ? 'Not enough cash' : '';
+      const need = c.staff ?? 0;
+      const free = Math.max(0, (call('deskCapacity', st) ?? Infinity) - st.staff.length);
+      const r = st.cash < c.price ? 'Not enough cash' : free < need ? `Needs ${need} free desk${need === 1 ? '' : 's'} (${free} free)` : '';
       acq.disabled = !!r;
       setText(why, r);
     });

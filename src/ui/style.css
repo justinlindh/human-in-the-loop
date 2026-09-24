@@ -367,7 +367,7 @@
 .hitl .stafftable .mico { width: 1.2em; }
 .hitl .stafftable td.tr { max-width: 14em; }
 .hitl .stafftable td.tr .pill { margin: 0.1em 0.15em 0.1em 0; }
-.hitl .stafftable select.assign { max-width: 13em; font-size: 0.9em; }
+.hitl .stafftable .gpick.assign { max-width: 13em; font-size: 0.9em; }
 .hitl .stafftable .lv { font-size: 0.85em; }
 @media (max-width: 1250px) { .hitl .stafftable td.tr, .hitl .stafftable th:last-child { display: none; } }
 
@@ -384,7 +384,7 @@
 .hitl .traitrow { display: flex; flex-direction: column; gap: 0.1em; align-items: flex-start; }
 .hitl .actions { grid-template-columns: repeat(auto-fill, minmax(12em, 1fr)); }
 .hitl .act { display: flex; flex-direction: column; gap: 0.3em; background: #fffaf1; border: 0.13em solid var(--line); border-radius: 0.7em; padding: 0.5em; }
-.hitl .act .btn, .hitl .act select { align-self: flex-start; margin-top: auto; }
+.hitl .act .btn, .hitl .act .gpick { align-self: flex-start; margin-top: auto; }
 
 /* hire */
 .hitl .cands { display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); gap: 0.7em; }
@@ -399,7 +399,7 @@
 .hitl .mbtn.alarm { animation: hitl-alarm 1.1s ease-in-out infinite; }
 .hitl .mbtn.alarm:not(.active) { background: #ffd9d7; }
 @keyframes hitl-alarm { 0%, 100% { box-shadow: inset 0 -0.3em 0 var(--cream-3), 0 0 0 0 rgba(229,72,77,0.7); } 50% { box-shadow: inset 0 -0.3em 0 var(--cream-3), 0 0 0 0.35em rgba(229,72,77,0); } }
-.hitl .act select { max-width: 100%; }
+.hitl .act .gpick { max-width: 100%; }
 
 /* ---------- marketing ---------- */
 .hitl .tiles.targets { grid-template-columns: repeat(auto-fill, minmax(10em, 1fr)); }
@@ -544,7 +544,7 @@
 .hitl .pnums b { font-size: 1.15em; }
 .hitl .pbars { display: flex; flex-direction: column; gap: 0.2em; }
 .hitl .pbars .pstat { grid-template-columns: 4.5em 1fr 2.4em; font-weight: 600; }
-.hitl .pacts select { max-width: 11em; font-size: 0.85em; }
+.hitl .pacts .gpick { max-width: 11em; font-size: 0.85em; }
 
 /* toast strip docked at the bottom of an open panel */
 .hitl .panel-dock { flex: none; min-height: 2.3em; display: flex; align-items: center; padding: 0.25em 0.7em; border-top: var(--bw) solid var(--ink); background: var(--cream-2); }
@@ -703,13 +703,13 @@
 .hitl .pathcard .pick { align-self: flex-end; margin-top: auto; font-weight: 700; background: var(--purple); color: #fff; border-radius: 0.5em; padding: 0.15em 0.7em; }
 .hitl .trcards { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.6em; }
 .hitl .trcard { display: flex; flex-direction: column; gap: 0.3em; }
-.hitl .trcard select { align-self: flex-start; }
+.hitl .trcard .gpick { align-self: flex-start; }
 .hitl .toast.clickable, .hitl .dtoast.clickable { cursor: pointer; text-decoration: underline dotted; }
 
-/* ---------- Slackk ---------- */
+/* ---------- Yak ---------- */
 .hitl .chat { pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: var(--radius); box-shadow: var(--pop), var(--soft); overflow: hidden; display: flex; flex-direction: column; }
 .hitl .chat-head { display: flex; align-items: center; gap: 0.45em; padding: 0.3em 0.6em; background: #4a154b; color: #fff; cursor: pointer; }
-.hitl .chat-head .slogo { width: 1.4em; height: 1.4em; display: grid; place-items: center; border-radius: 0.35em; background: var(--yellow); color: #4a154b; font-weight: 700; }
+.hitl .chat-head .slogo { width: 1.5em; height: 1.5em; display: grid; place-items: center; border-radius: 0.4em; background: var(--yellow); }
 .hitl .chat-head .sbrand { letter-spacing: 0.01em; }
 .hitl .chat-head .count { margin-left: auto; display: none; min-width: 1.5em; text-align: center; font-size: 0.75em; font-weight: 700; background: var(--red); border-radius: 1em; padding: 0.05em 0.45em; }
 .hitl .chat-head .count.show { display: inline-block; }
@@ -1055,6 +1055,52 @@
 .hitl .bar.fame > i { background: var(--yellow); }
 .hitl .pill.expiring { background: var(--yellow); color: var(--ink); font-weight: 700; }
 
+/* Picker: the game's dropdown (picker.js). A chunky button and a listbox of rows over the scene. */
+.hitl .gpick {
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 0.45em; min-width: 0; max-width: 100%;
+  font: inherit; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer;
+  background: #fff; border: 0.15em solid var(--ink); border-radius: 0.55em; padding: 0.28em 0.5em;
+  box-shadow: 0 0.14em 0 var(--ink);
+}
+.hitl .gpick:hover:not(:disabled) { background: #fffaf0; }
+.hitl .gpick:active:not(:disabled) { transform: translateY(0.1em); box-shadow: 0 0.04em 0 var(--ink); }
+.hitl .gpick:focus-visible { outline: 0.18em solid var(--yellow); outline-offset: 0.05em; }
+.hitl .gpick:disabled { opacity: 0.55; cursor: default; }
+.hitl .gpick.empty .pk-label { color: var(--ink-soft); }
+.hitl .gpick .pk-face { display: inline-flex; align-items: center; gap: 0.35em; min-width: 0; flex: 1; }
+.hitl .gpick .pk-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .gpick .pk-caret { flex: none; color: var(--ink-soft); display: inline-flex; }
+.hitl .gpick .portrait { flex: none; }
+.hitl .pk-pop {
+  position: fixed; z-index: 60; pointer-events: auto; display: flex; flex-direction: column;
+  background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 0.8em; box-shadow: var(--pop), var(--soft);
+  overflow: hidden; font-size: var(--fs);
+}
+.hitl .pk-list { overflow-y: auto; overscroll-behavior: contain; padding: 0.3em; outline: none; -webkit-overflow-scrolling: touch; }
+.hitl .pk-group { font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); padding: 0.55em 0.5em 0.2em; }
+.hitl .pk-row {
+  display: flex; align-items: center; gap: 0.55em; padding: 0.35em 0.5em; border-radius: 0.55em; cursor: pointer;
+  border: 0.13em solid transparent; min-height: 2.2em;
+}
+.hitl .pk-row.pk-on { background: #fff; border-color: var(--ink); }
+.hitl .pk-row.sel { background: #fff3d6; }
+.hitl .pk-row.sel.pk-on { background: #ffe9b8; }
+.hitl .pk-row.off { opacity: 0.45; cursor: default; }
+.hitl .pk-row .pk-main { flex: 1; min-width: 0; }
+.hitl .pk-row .pk-top { display: flex; align-items: center; gap: 0.4em; min-width: 0; }
+.hitl .pk-row .pk-top b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .pk-row .pk-top .role { font-size: 0.72em; }
+.hitl .pk-row .pk-sub { font-size: 0.78em; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .pk-row .pk-stat { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.82em; color: var(--ink-soft); flex: none; }
+.hitl .pk-row .pk-tag { flex: none; font-size: 0.7em; font-weight: 700; border-radius: 1em; padding: 0.1em 0.55em; border: 0.12em solid var(--ink); }
+.hitl .pk-row .pk-tag.busy { background: #ffe1c2; }
+.hitl .pk-row .pk-tag.free { background: #c9f0dc; }
+.hitl .pk-row .pk-ico { flex: none; display: inline-flex; }
+.hitl .pk-empty { padding: 0.8em; color: var(--ink-soft); font-size: 0.85em; }
+@media (pointer: coarse) {
+  .hitl .gpick { min-height: 44px; }
+  .hitl .pk-row { min-height: 44px; }
+}
 /* Track record: a compact line under the name in the Staff table, a block in the person detail. */
 .hitl .stafftable .recline { text-align: left; font-variant-numeric: tabular-nums; font-size: 0.74em; color: var(--ink-soft); white-space: nowrap; margin-top: 0.1em; }
 .hitl .pill.top { background: var(--yellow); color: var(--ink); font-weight: 700; }
@@ -1073,4 +1119,14 @@
 @media (prefers-reduced-motion: reduce) { .hitl .announce.era .eraemblem { animation: none; } }
 .hitl .announce.era.plateau .erahead { background: #c0652b; }
 .hitl .announce.era.classic .erahead { background: #9a6a44; }
-.hitl .chip.company .eramark { display: inline-flex; vertical-align: -0.15em; margin-right: 0.3em; }
+.hitl .chip.company .eramark { display: inline-flex; vertical-align: -0.3em; margin-right: 0.3em; position: relative; cursor: help; pointer-events: auto; }
+@media (pointer: coarse) { .hitl .chip.company .eramark::after { content: ''; position: absolute; inset: -13px; } }
+/* Locked office items stay hidden; one line says more are coming. An item opened from its unlock
+   card flashes once. */
+.hitl .laterline { margin-top: 0.5em; }
+.hitl .card.item.flash { animation: itemflash 0.6s ease-in-out 3; }
+@keyframes itemflash { 50% { box-shadow: 0 0 0 0.3em var(--yellow); } }
+@media (prefers-reduced-motion: reduce) { .hitl .card.item.flash { animation: none; box-shadow: 0 0 0 0.3em var(--yellow); } }
+/* First-project guide in the New Product form. */
+.hitl .pickguide { background: #fff8e6; margin-bottom: 0.7em; }
+.hitl .pickguide ul { margin: 0.4em 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 0.3em; font-size: 0.88em; line-height: 1.35; }

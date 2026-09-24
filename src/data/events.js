@@ -14,7 +14,7 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
-  'cash', 'summit', 'musicNight', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
+  'cash', 'summit', 'musicNight', 'agentAudit', 'agentCap', 'agentInvoice', 'rivalMerge', 'acquireBest', 'expandNow', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
@@ -26,7 +26,7 @@ export const EFFECT_KEYS = [
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [
   'subjectCompliant', 'trustedVendor', 'blameless', 'ik40', 'bestScore7', 'sabbaticalPolicy', 'stage1', 'mentorAvailable',
-  'affordConsultants', 'noCraftRunning', 'canBuyEspresso', 'canUpgradeEspresso',
+  'affordConsultants', 'noCraftRunning', 'canBuyEspresso', 'canUpgradeEspresso', 'dealTakeable', 'expansionReady',
 ];
 
 const ONCE = 100000;
@@ -113,7 +113,7 @@ const list = [
     id: 'team_offsite', kind: 'staff', weight: 1, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.staff.length >= 6,
     title: 'Team offsite',
-    text: 'The team wants an offsite. A cabin, a lake, zero Slackk.',
+    text: 'The team wants an offsite. A cabin, a lake, zero Yak.',
     choices: [
       { label: 'Book the cabin', hint: 'Expensive, big team meaning boost', effects: { cash: -12000, teamMeaning: 10 }, outcome: 'Someone fell in the lake. Morale has never been higher.' },
       { label: 'Maybe next quarter', hint: 'Nothing happens', effects: {}, outcome: 'Next quarter, everyone says.' },
@@ -166,7 +166,7 @@ const list = [
     id: 'no_show', kind: 'staff', weight: 2, cooldownWeeks: 40, random: true, subject: 'workingStaff',
     when: (s) => s.staff.length >= 4,
     title: 'Where is {name}?',
-    text: '{name} has not been in for three days. Their Slackk status just says "focusing". It has said that since Tuesday.',
+    text: '{name} has not been in for three days. Their Yak status just says "focusing". It has said that since Tuesday.',
     choices: [
       { label: 'Check in kindly', hint: 'They take a couple of weeks off; comes back stronger, effects later', effects: { awayWeeks: 2, teamMeaning: 1, later: [{ inWeeks: 3, effects: { meaning: 15 } }] }, outcome: 'You send soup. Actual soup. {name} replies with a single heart.' },
       { label: 'Dock their pay', hint: 'Saves a little cash; they and the team notice', effects: { awayWeeks: 2, cash: 1500, salaryPct: -10, meaning: -15, teamMeaning: -3 }, outcome: 'HR sends a very formal email. Everyone reads it. Everyone.' },
@@ -327,7 +327,7 @@ const list = [
     title: 'A whole hackathon week',
     text: '{name} wants to stop everything for a week of pure hacking. "Remember when we used to have fun?"',
     choices: [
-      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Slackk. It is the best thing you own.' },
+      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Yak. It is the best thing you own.' },
       { label: 'Not this quarter', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The hackathon becomes a "hack afternoon". It gets moved twice.' },
     ],
   },
@@ -761,10 +761,64 @@ const list = [
     id: 'rival_merge', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'Merge with {rival}?',
-    text: '{rival} is running out of money. {rivalFounder} proposes a merger: their customers, their team, and your name on the door.',
+    text: '{rival} is running out of money. {rivalFounder} proposes a merger: their customers, their team, and your name on the door. The bigger they got, the more they want for it.',
     choices: [
-      { label: 'Merge', hint: '-$150k; their customers join your product in that market; {rival} is gone', effects: { cash: -150000, rivalFate: 'merged' }, outcome: '{rivalFounder} gets a nice title and a nicer chair. Their customers get your product. Most of them are fine with it.' },
+      { label: 'Merge', hint: '-{mergePrice}; their customers join your product in that market; {rival} is gone', effects: { rivalMerge: true, rivalFate: 'merged' }, outcome: '{rivalFounder} gets a nice title and a nicer chair. Their customers get your product. Most of them are fine with it.' },
       { label: 'Let them fall', hint: '{rival} shuts down', effects: { rivalFate: 'dead' }, outcome: 'Their last blog post is titled "What we learned". It is very long.' },
+    ],
+  },
+  // Mid-era beats (raised by the beats system): the agent bill, the rival's mega-round, the floor next
+  // door, and the first companies for sale.
+  {
+    id: 'agent_bill', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The agent bill',
+    text: 'Finance ran the numbers. The agents cost more than the coffee, the rent, and the holiday party combined. The agents did not come to the holiday party.',
+    choices: [
+      { label: 'Audit every agent', hint: '-{auditCost}; rogue agents are rarer for a year', effects: { agentAudit: true }, outcome: 'The audit finds four agents that were only talking to each other. They are very polite about it.' },
+      { label: 'Cap the spend', hint: 'Every automation dial above half comes down to half', effects: { agentCap: true, purpose: { people: 2 } }, outcome: 'The dials come down. Somewhere a server fan slows, and a human picks up a ticket.' },
+      { label: 'It is fine', hint: 'Nothing now. The invoice lands in 26 weeks', effects: { followUp: { eventId: 'agent_invoice', inWeeks: 26 } }, outcome: 'You close the spreadsheet. The spreadsheet does not close you. Yet.' },
+    ],
+  },
+  {
+    id: 'agent_invoice', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The invoice arrived',
+    text: 'It is for {agentBill}. The line items include "reasoning", "more reasoning", and "reasoning about the reasoning".',
+    choices: [
+      { label: 'Pay it', hint: '-{agentBill}', effects: { agentInvoice: 1 }, outcome: 'You pay it. The agents do not say thank you. They send a summary of the payment instead.' },
+      { label: 'Dispute it', hint: 'A gamble: pay half, or pay it all and look petty', effects: { gamble: { p: 0.5, effects: { agentInvoice: 0.5 }, else: { agentInvoice: 1, brand: -2 } } }, outcome: 'The vendor assigns an agent to handle your dispute. It is very persuasive.' },
+    ],
+  },
+  {
+    id: 'rival_megaround', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: '{rival} raised a mega-round',
+    text: '{rival} just raised more money than you have made. {rivalFounder} says they will "hire the best people in the industry". Several of the best people in the industry work for you.',
+    choices: [
+      { label: 'Match their offers', hint: 'Everyone gets a raise; almost nobody takes their calls for 26 weeks', effects: { teamSalaryPct: 8, modifier: { key: 'attrition', value: -0.5, weeks: 26, label: 'Matched offers' } }, outcome: 'Payroll goes up. The recruiter emails go unanswered. One is framed.' },
+      { label: 'Remind them why they are here', hint: 'Team meaning up; a few more people take the calls for 26 weeks', effects: { teamMeaning: 4, purpose: { people: 3 }, modifier: { key: 'attrition', value: 0.25, weeks: 26, label: 'Recruiters circling' } }, outcome: 'You give a speech. It is a good speech. A few people take the calls anyway.' },
+      { label: 'Let them try', hint: 'Nothing now; half again as many people take the calls for 26 weeks', effects: { modifier: { key: 'attrition', value: 0.5, weeks: 26, label: 'Recruiters circling' } }, outcome: '"They cannot buy culture," you say. They can buy a lot of it, it turns out.' },
+    ],
+  },
+  {
+    id: 'floor_next_door', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The floor next door is empty',
+    text: 'The company next door moved out. Someone has already measured the wall between you twice. "It is only drywall," they say. They are not a builder.',
+    choices: [
+      { label: 'Knock through', hint: 'Buy the first HQ expansion now', requires: 'expansionReady', effects: { expandNow: true }, outcome: 'A contractor arrives with a hammer and a lot of confidence. By Friday there is a lot more office.' },
+      { label: 'Not yet', hint: 'The expansion stays in the office menu', effects: {}, outcome: 'You put a plant against the wall. It feels symbolic.' },
+    ],
+  },
+  {
+    id: 'deals_open', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Small companies are for sale',
+    text: 'Consolidation has started. Small companies want a soft landing, and {deal} is the best of the bunch. Their founders are very tired and very reasonable.',
+    choices: [
+      { label: 'Make an offer on {deal}', hint: 'Buy it now: needs the cash and a free desk for each of their people', requires: 'dealTakeable', effects: { acquireBest: true }, outcome: 'The term sheet is two pages. One of them is a thank-you note.' },
+      { label: 'Just looking', hint: 'The listings stay open in the market panel', effects: {}, outcome: 'You bookmark all of them. Then you bookmark the bookmarks.' },
     ],
   },
   // Purpose: the mission, and the decisions that test it

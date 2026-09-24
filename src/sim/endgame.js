@@ -6,7 +6,8 @@ import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { categoryLeaders } from './market.js';
 import { EPILOGUES, GENERIC_EPILOGUES } from '../data/epilogues.js';
-import { eraOnlyAllowsText } from './eras.js';
+import { eraOnlyAllowsText, eraIndex } from './eras.js';
+import { OFFICE_STAGES } from '../data/office.js';
 
 export function scoreRun(state) {
   const mrr = totalMrr(state);
@@ -32,18 +33,50 @@ function summary(state, { won, reason, retiredVia }) {
     juniorsHired: state.stats.juniorsHired, caught: state.stats.caught, breaches: state.stats.breaches,
     debt: state.comprehensionDebt, resignations: state.stats.resignations,
     seniors: state.staff.filter((p) => p.seniority === 'senior').length, peakMrr: state.stats.peakMrr,
+    ...story(state),
   };
 }
 
-const fill = (state, text) => text.replaceAll('{company}', state.companyName).replaceAll('{acquirer}', state.flags.acquirer ?? 'a much bigger company');
+// What the run was, for the lines that retell it: where the company ended up, what it lived through,
+// what it shipped, and who was there.
+function story(state) {
+  const stage = OFFICE_STAGES[state.officeStage];
+  const expansion = stage.expansions?.[(state.office.expansion ?? 0) - 1];
+  const veteran = state.staff.filter((p) => !p.founder).sort((a, b) => a.hiredWeek - b.hiredWeek)[0] ?? null;
+  return {
+    officeStage: state.officeStage,
+    office: expansion ? `an HQ with ${expansion.name === 'The Annex' ? 'an annex' : `a ${expansion.name.toLowerCase()}`}` : stage.name === 'HQ Building' ? 'its own HQ' : `the ${stage.name}`,
+    eraCount: eraIndex(state) + 1,
+    launches: state.stats.launches,
+    people: state.stats.hires + state.staff.filter((p) => p.founder).length,
+    alumni: state.flags.departures ?? state.flags.alumni?.length ?? 0,
+    veteran: veteran ? veteran.name : null,
+    veteranYears: veteran ? Math.floor((state.week - veteran.hiredWeek) / 52) : 0,
+  };
+}
 
-// Every matching epilogue in list order (outcome lines come first), capped at 5, topped up to 3 with generic lines.
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five'];
+const fill = (state, text, x = {}) => text.replaceAll('{company}', state.companyName).replaceAll('{acquirer}', state.flags.acquirer ?? 'a much bigger company')
+  .replaceAll('{office}', x.office ?? 'the garage').replaceAll('{launches}', String(x.launches ?? 0))
+  .replaceAll('{eras}', `${NUMBER_WORDS[x.eraCount] ?? x.eraCount} ${x.eraCount === 1 ? 'era' : 'eras'}`)
+  .replaceAll('{people}', String(x.people ?? 0)).replaceAll('{alumni}', String(x.alumni ?? 0))
+  .replaceAll('{veteran}', x.veteran ?? 'Someone').replaceAll('{veteranYears}', String(x.veteranYears ?? 0));
+
+// The ending in order: how it ended, a recap of the run, one line about its people, then the consequences;
+// capped at epilogueLines and topped up to 3 with generic lines.
 export function buildEpilogue(state, outcome) {
   const x = summary(state, outcome);
-  const lines = EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)).slice(0, 5).map((e) => fill(state, e.text));
+  const fits = EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text));
+  const picked = [
+    ...fits.filter((e) => e.group === 'outcome').slice(0, B.epilogueOutcomeLines),
+    ...fits.filter((e) => e.group === 'recap').slice(0, 1),
+    ...fits.filter((e) => e.group === 'people').slice(0, 1),
+    ...fits.filter((e) => !e.group),
+  ].slice(0, B.epilogueLines);
+  const lines = picked.map((e) => fill(state, e.text, x));
   for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
     if (lines.length >= 3) break;
-    lines.push(fill(state, g.text));
+    lines.push(fill(state, g.text, x));
   }
   return lines;
 }
