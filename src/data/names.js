@@ -16,3 +16,11 @@ export const LAST_NAMES = [
   'Ibrahim', 'Jovanovic', 'Kowalski', 'Lopez', 'Mbeki', 'Nguyen', 'Olsen', 'Patel', 'Ramirez', 'Sato', 'Torres',
   'Oduya', 'Laine',
 ];
+
+// Which voice set a first name suggests for the audio barks. Names not listed are neutral and may take either.
+const FEM = ['Ada', 'Farah', 'Hana', 'Ines', 'Leila', 'Nia', 'Priya', 'Sana', 'Uma', 'Yara', 'Aiko', 'Cleo', 'Esme', 'Greta',
+  'Imani', 'Lena', 'Rosa', 'Ulla', 'Vera', 'Ximena', 'Zara', 'Amara', 'Chloe', 'Elif', 'Fatima', 'Hye-jin', 'Jaya', 'Lucia',
+  'Nadia', 'Sofia', 'Anouk', 'Carmen', 'Freya', 'Noor'];
+const MASC = ['Emeka', 'Gus', 'Mateo', 'Omar', 'Rafa', 'Tomas', 'Vik', 'Zeke', 'Bram', 'Hiro', 'Jonas', 'Kofi', 'Malik', 'Oskar',
+  'Soren', 'Tariq', 'Yusuf', 'Beto', 'Dmitri', 'Gael', 'Ivo', 'Kenji', 'Pita', 'Ravi', 'Thabo', 'Bilal', 'Diego'];
+export const NAME_VOICE = Object.fromEntries([...FEM.map((n) => [n, 'fem']), ...MASC.map((n) => [n, 'masc'])]);

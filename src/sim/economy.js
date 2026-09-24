@@ -28,7 +28,7 @@ export function weeklyCosts(state) {
   const selfHosted = live.some((p) => p.model && MODELS[p.model].selfHosted) || autos.some((a) => MODELS[a.model].selfHosted);
   return {
     salaries: sum(state.staff, (p) => p.salary),
-    rent: OFFICE_STAGES[state.officeStage].rent,
+    rent: OFFICE_STAGES[state.officeStage].rent * (state.workPolicy === 'remote' ? B.remoteRentMult : 1),
     models: sum(live, (p) => modelCostPerCustomer(state, p.model) * p.customers * 12 / 52),
     automation: sum(Object.keys(state.automation), (fn) => automationWeeklyCost(state, fn)),
     gpu: selfHosted ? B.gpuWeeklySelfHost : 0,

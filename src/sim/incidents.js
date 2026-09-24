@@ -68,9 +68,12 @@ export function catchChance(state) {
   return Math.min(B.catchMax, B.catchBase * coverage + bonus);
 }
 
+// Attackers find a company once it has been around for a while: no attacks in the first months after the first launch.
 export function cyberChance(state) {
   const mrr = totalMrr(state);
-  return mrr > 0 ? Math.min(B.cyberMax, B.cyberBase + B.cyberPerMrr * mrr) : 0;
+  const firstLaunch = Math.min(...state.products.map((p) => p.launchedWeek));
+  if (!(mrr > 0) || state.week - firstLaunch < B.cyberGraceWeeks) return 0;
+  return Math.min(B.cyberMax, B.cyberBase + B.cyberPerMrr * mrr);
 }
 
 export function fixCapacity(state) {
@@ -81,7 +84,8 @@ export function fixCapacity(state) {
   const fixers = present.filter((p) => p.role === 'engineer' || p.founder)
     .map((p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
     .sort((a, b) => b - a).slice(0, B.fixersCounted);
-  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix'));
+  const remote = state.staff.length ? state.staff.filter((p) => p.remote).length / state.staff.length : 0;
+  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix')) * (1 - B.remoteFixPenalty * remote);
 }
 
 // More live products means more tangled systems to understand when something breaks.

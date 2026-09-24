@@ -87,7 +87,7 @@ export const CHATTER = {
     'Anyone need a hand with anything?',
     'Refactoring my dotfiles. Again.',
     'Reading docs for fun. Is that weird?',
-    'Found a cool paper, sharing in #random.',
+    'Found a cool paper. Reading it instead of working.',
     'Just watering the office plant. It is thriving.',
     'Waiting for the next project like a golden retriever.',
   ],

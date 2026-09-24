@@ -17,7 +17,7 @@ import { RESEARCH } from '../../src/data/research.js';
 import { PATHS } from '../../src/data/paths.js';
 import { TRAINING } from '../../src/data/training.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, expectFail, withoutGrind, withItem, placeAction } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, withoutGrind, withItem, placeAction, passOfficeGates } from './helpers.js';
 
 const once = (s, sys) => { const c = makeCtx(s); sys(c); return c.events; };
 const walkFinite = (v, p = 's') => {
@@ -36,7 +36,7 @@ describe('office shop', () => {
       expect(it.costs[1]).toBeGreaterThan(it.costs[0] * 2);
     }
     const furniture = Object.values(ITEMS).filter((i) => i.kind === 'furniture');
-    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'coffee_corner', 'desk', 'meeting_table', 'plant', 'whiteboard']);
+    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'coffee_corner', 'couch', 'desk', 'foosball', 'meeting_table', 'ping_pong_table', 'plant', 'whiteboard']);
     for (const it of furniture) expect(it.costs).toHaveLength(1);
   });
 
@@ -383,6 +383,7 @@ describe('everything stays JSON-safe and finite', () => {
   it('a long run with items, research, and paths', () => {
     const s = game(5);
     s.cash = 1e7;
+    passOfficeGates(s);
     expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
     expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
     for (const id of ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'library', 'monitoring_wall', 'server_rack', 'server_rack', 'plant', 'whiteboard', 'coffee_corner', 'bookshelf', 'meeting_table']) {

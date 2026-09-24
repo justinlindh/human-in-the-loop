@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, dispatch, tick, dateOf } from '../../src/sim/index.js';
-import { eraIndex, currentEra, eraAllowsText } from '../../src/sim/eras.js';
+import { eraIndex, currentEra, eraAllowsText, eraOnlyAllowsText } from '../../src/sim/eras.js';
 import { eligibleEvents } from '../../src/sim/events.js';
 import { applyEffects } from '../../src/sim/effects.js';
 import { refreshCandidates as refreshCandidatesFor } from '../../src/sim/staff.js';
@@ -32,6 +32,7 @@ describe('era schedule', () => {
       }
       expect(s.eraSchedule.chatgbt).toBeLessThan(s.eraSchedule.agents);
       expect(s.eraSchedule.agents).toBeLessThan(s.eraSchedule.consolidation);
+      expect(s.eraSchedule.consolidation).toBeLessThan(s.eraSchedule.plateau);
       expect(createGame({ seed }).eraSchedule).toEqual(s.eraSchedule);
     }
     expect(dateOf(ERAS[1].week).year).toBe(2022);
@@ -102,7 +103,7 @@ describe('what each era allows', () => {
     s.week = 60;
     addProduct(s, { model: null, angle: 'web' });
     const ids = eligibleEvents(s).map((e) => e.id);
-    for (const id of ids) expect(eraAllowsText(s, JSON.stringify([EVENTS[id].title, EVENTS[id].text])), id).toBe(true);
+    for (const id of ids) expect(eraOnlyAllowsText(s, JSON.stringify([EVENTS[id].title, EVENTS[id].text])), id).toBe(true);
     expect(ids).not.toContain('vendor_new_version');
     expect(eraAllowsText(s, 'The agent rewrote pricing')).toBe(false);
     expect(eraAllowsText(s, 'Pairing today was fun')).toBe(true);
@@ -121,7 +122,7 @@ describe('what each era allows', () => {
       s.lowCashWeeks = 0;
     }
     expect(s.products.length).toBeGreaterThan(0);
-    const ai = lines.filter((t) => !eraAllowsText({ era: { id: 'classic' } }, t));
+    const ai = lines.filter((t) => !eraOnlyAllowsText({ era: { id: 'classic' } }, t));
     expect(ai).toEqual([]);
     expect(currentEra(s).id).toBe('classic');
     expect(eraIndex(s)).toBe(0);
@@ -154,7 +155,7 @@ describe('era arrivals', () => {
   it('a whole run passes through every era in order, once each', () => {
     const s = game(9);
     const seen = [];
-    for (let w = 0; w <= s.eraSchedule.consolidation + 1; w++) {
+    for (let w = 0; w <= s.eraSchedule.plateau + 1; w++) {
       s.week = w;
       const c = makeCtx(s);
       calendarStart(c);
@@ -162,7 +163,7 @@ describe('era arrivals', () => {
       s.pendingDecision = null;
     }
     expect(seen).toEqual(ERAS.slice(1).map((e) => [e.id, s.eraSchedule[e.id]]));
-    expect(s.era).toEqual({ id: 'consolidation', since: s.eraSchedule.consolidation });
+    expect(s.era).toEqual({ id: 'plateau', since: s.eraSchedule.plateau });
   });
 
   it('the Classic era has its own events and trends', () => {

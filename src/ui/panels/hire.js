@@ -2,7 +2,7 @@ import { h, setText, fmtMoney } from '../dom.js';
 import { B, capacityOf, OFFICE_STAGES } from '../content.js';
 import { portrait, roleChip, seniorityChip, traitChips, liveView } from '../widgets.js';
 import { icon } from '../icons.js';
-import { STAT_INFO } from './build.js';
+import { STATS, roleSkills, bestSkill, strengthChip, skillRow } from '../stats.js';
 
 export function hireFee(c) {
   return (c.salary ?? 0) * (B.hireFeeWeeks ?? 2);
@@ -43,9 +43,9 @@ export function hireView(ctx) {
         grid.append(h('div.card.cand', null,
           h('div.row', null, portrait(c, 64), h('div', null,
             h('b.cname', { text: c.name }),
-            h('div.row.wrap', null, roleChip(c.role), seniorityChip(c.seniority), h('span.num.small', { text: `Lv${c.level}` })))),
-          h('div.skills', null, ...STAT_INFO.map((st) => h('div.pstat', { title: st.name }, h('span', { text: st.short }),
-            h('div.bar', null, h('i', { style: { width: `${c.skills[st.id]}%`, background: st.color } })), h('b.num', { text: c.skills[st.id] })))),
+            h('div.row.wrap', null, roleChip(c.role), seniorityChip(c.seniority), h('span.num.small', { text: `Level ${c.level}` })))),
+          h('div.row.wrap', null, strengthChip(c)),
+          skillsBlock(c),
           h('div.row.wrap.traits', null, ...(c.traits.length ? traitChips(c.traits) : [h('span.faint.small', { text: 'No notable traits' })])),
           h('div.row.money', null,
             h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), h('div.small.muted.num', { text: `fee ${fmtMoney(hireFee(c))}` })),
@@ -53,4 +53,18 @@ export function hireView(ctx) {
       }
       return [header, grid];
     });
+}
+
+// The role's top two skills, with a tap-to-expand button for all four.
+function skillsBlock(c) {
+  const box = h('div.skills2');
+  let all = false;
+  const render = () => {
+    // The headline skill always shows, then the role's key skills, two rows in all.
+    const ids = all ? STATS.map((x) => x.id) : [...new Set([bestSkill(c).id, ...roleSkills(c.role)])].slice(0, 2);
+    box.replaceChildren(...ids.map((id) => skillRow(id, c.skills[id] ?? 0)),
+      h('button.btn.small.skmore', { onclick: () => { all = !all; render(); } }, all ? 'Fewer skills' : 'All skills'));
+  };
+  render();
+  return box;
 }

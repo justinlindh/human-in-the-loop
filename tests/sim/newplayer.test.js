@@ -7,7 +7,7 @@ import { emitChat } from '../../src/sim/chat.js';
 import { staffUpkeep } from '../../src/sim/staff.js';
 import { meaningSystem } from '../../src/sim/meaning.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { saveGame, loadGame, SAVE_KEY } from '../../src/save/save.js';
+import { saveGame, loadGame } from '../../src/save/save.js';
 import { EVENTS } from '../../src/data/events.js';
 import { B } from '../../src/sim/balance.js';
 import { MODELS } from '../../src/data/models.js';
@@ -71,9 +71,10 @@ describe('small fixes', () => {
     const store = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) };
     saveGame(s, store);
     expect(loadGame(store).state.chatLog).toEqual(s.chatLog);
-    const old = JSON.parse(m.get(SAVE_KEY));
+    const key = `hitl.save.v2.${s.flags.saveSlot}`;
+    const old = JSON.parse(m.get(key));
     delete old.chatLog;
-    m.set(SAVE_KEY, JSON.stringify(old));
+    m.set(key, JSON.stringify(old));
     expect(loadGame(store).state.chatLog).toEqual([]);
   });
 

@@ -16,7 +16,8 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
     const back = h(`div.announce-back${item.kind === 'era' ? '.docked' : ''}`);
     const done = () => { if (cur?.back !== back) return; back.remove(); cur = null; layer.classList.remove('announcing'); sfx('close'); show(); };
     back.addEventListener('pointerdown', (e) => { if (e.target === back) done(); });
-    back.append(item.kind === 'era' ? eraCard(item, done) : item.kind === 'unlocks' ? unlocksCard(item, done) : unlockCard(item, done));
+    back.append(item.kind === 'era' ? eraCard(item, done) : item.kind === 'unlocks' ? unlocksCard(item, done)
+      : item.kind === 'milestone' ? milestoneCard(item, done) : unlockCard(item, done));
     layer.append(back);
     layer.classList.add('announcing');
     cur = { back, item, done };
@@ -40,6 +41,19 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
         keys.length ? h('div.eranew', null, icon('new', { size: 16 }), h('b', { text: ' New: ' }), keys.map(unlockShort).join(', ')) : null,
         decision ? h('div.eranote', null, icon('decision', { size: 16 }), ` A decision is waiting: ${decision}`) : null,
         h('div.row.acts', null, go)));
+  }
+
+  // A big birthday: headline, a line of copy, and what it opens (e.g. retiring at ten years).
+  function milestoneCard({ title, text, lines = [], action, kicker = 'Milestone' }, done) {
+    const ok = h('button.btn', { onclick: done }, 'Onward');
+    const act = action ? h('button.btn.go', { onclick: () => { done(); action.run(); } }, action.label) : null;
+    setTimeout(() => (act ?? ok).focus(), 0);
+    return h('div.announce.milestone', null,
+      h('div.kicker', null, icon('award', { size: 14 }), ` ${kicker}`),
+      h('h2', { text: title }),
+      text ? h('div.ablurb', { text }) : null,
+      lines.length ? h('ul.changes', null, ...lines.map((l) => h('li', { text: l }))) : null,
+      h('div.row.acts', null, ok, act));
   }
 
   function unlocksCard({ items }, done) {
@@ -79,6 +93,11 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
     unlock(key, menuId, menuLabel) {
       if (queue.length >= MAX_QUEUE || queue.some((q) => q.key === key)) return;
       queue.push({ kind: 'unlock', key, menuId, menuLabel });
+      show();
+    },
+    milestone(m) {
+      if (queue.length >= MAX_QUEUE) return;
+      queue.push({ kind: 'milestone', ...m });
       show();
     },
     unlocks(items) {

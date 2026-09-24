@@ -167,7 +167,16 @@ export function createBuildMode({ layer, ctx, controls }) {
     if (!d || !onScene(e) || Math.hypot(e.clientX - d.x, e.clientY - d.y) > CLICK_PX) return;
     if (mode) {
       const at = anchorAt(e.clientX, e.clientY);
-      if (at) place(at.x, at.y);
+      if (!at) return;
+      // Touch has no hover: the first tap aims (ghost, reason, adjacency), a second tap on the same spot places.
+      if (e.pointerType !== 'mouse' && (at.x !== hover?.x || at.y !== hover?.y)) {
+        hover = at;
+        tip.style.left = `${e.clientX - layer.getBoundingClientRect().left + 16}px`;
+        tip.style.top = `${e.clientY - layer.getBoundingClientRect().top + 18}px`;
+        refresh();
+        return;
+      }
+      place(at.x, at.y);
     } else inspect(e.clientX, e.clientY);
   }, true);
   addEventListener('pointermove', (e) => {
@@ -187,8 +196,16 @@ export function createBuildMode({ layer, ctx, controls }) {
 
   // Clicking a placed item outside build mode opens its card: move, upgrade, sell.
   function inspect(clientX, clientY) {
-    if (ctx.isBusy?.() || layer.classList.contains('title-mode')) return;
+    if (layer.classList.contains('title-mode')) return;
     const r = R();
+    // A person under the cursor: tell the audio engine (a voice bark) and open them in Staff.
+    const hit = r?.pick?.(clientX, clientY);
+    if (hit?.kind === 'staff' && hit.id) {
+      window.dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: hit.id } }));
+      if (!ctx.isBusy?.() || ctx.currentMenu?.() === 'staff') ctx.open('staff', { staffId: hit.id });
+      return;
+    }
+    if (ctx.isBusy?.()) return;
     let id = r?.pickPlaced?.(clientX, clientY) ?? null;
     if (!id) {
       const tile = r?.pickTile?.(clientX, clientY);
@@ -250,9 +267,9 @@ export function createBuildMode({ layer, ctx, controls }) {
   };
 }
 
-const ADJ_LABEL = { novelty: 'novelty', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_LABEL = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
 
-// "Boosts 2 desks: +3% novelty" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
+// "Boosts 2 desks: +3% freshness" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
 export function adjacencyWords(prev) {
   if (prev.texts?.length) return prev.texts.join('. ');
   const parts = [];

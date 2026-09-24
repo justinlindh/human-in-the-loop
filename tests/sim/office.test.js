@@ -10,7 +10,7 @@ import { OFFICE_STAGES } from '../../src/data/office.js';
 import { ARCHETYPES } from '../../src/data/founders.js';
 import { FUNDING } from '../../src/data/funding.js';
 import { EVENTS } from '../../src/data/events.js';
-import { classicGame, game, addStaff, addProduct, expectFail, addDesks } from './helpers.js';
+import { classicGame, game, addStaff, addProduct, expectFail, addDesks, passOfficeGates } from './helpers.js';
 
 const place = (s, itemId, x, y, rot = 0) => dispatch(s, { type: 'placeItem', itemId, x, y, rot });
 const fresh = () => { const s = classicGame(); s.cash = 1e6; return s; };
@@ -148,14 +148,51 @@ describe('desks are capacity', () => {
     expect(place(s, 'desk', 1, 0).events).toContainEqual({ type: 'goal', goalId: 'place_desks' });
   });
 
-  it('people sit at desks in staff order', () => {
+  it('seats are sticky: people keep their desk when others leave or desks move', () => {
     const s = fresh();
-    addDesks(s, 2);
-    expect(seatOf(s, s.staff[0].id)).toEqual(seatTile(s.office.placed[0]));
-    expect(seatOf(s, s.staff[1].id)).toEqual(seatTile(s.office.placed[1]));
+    addDesks(s, 4);
+    const [a, b] = s.staff;
+    expect(seatOf(s, a.id)).toEqual(seatTile(s.office.placed[0]));
+    expect(seatOf(s, b.id)).toEqual(seatTile(s.office.placed[1]));
     expect(seatOf(s, 'nobody')).toBe(null);
+    const c = addStaff(s, 'engineer', 'mid');
+    const d = addStaff(s, 'engineer', 'mid');
+    expect([c.deskId, d.deskId]).toEqual([s.office.placed[2].id, s.office.placed[3].id]);
+    // c leaves: nobody else moves; the next hire takes c's old desk.
+    s.staff = s.staff.filter((p) => p !== c);
+    const e = addStaff(s, 'engineer', 'mid');
+    expect([a.deskId, b.deskId, d.deskId]).toEqual(s.office.placed.slice(0, 4).filter((_, i) => i !== 2).map((x) => x.id));
+    expect(e.deskId).toBe(s.office.placed[2].id);
+    // Moving a desk keeps its sitter.
+    const deskA = s.office.placed[0];
+    const spot = suggestPlacementFor(s);
+    expect(dispatch(s, { type: 'moveItem', id: deskA.id, ...spot }).ok).toBe(true);
+    expect(a.deskId).toBe(deskA.id);
+    expect(seatOf(s, a.id)).toEqual(seatTile(deskA));
+    // Selling a spare desk moves nobody.
+    s.cash = 1e6;
+    const spare = dispatch(s, { type: 'placeItem', itemId: 'desk', ...findSpot(0, s.office.placed, 'desk') });
+    const before = s.staff.map((p) => p.deskId);
+    expect(dispatch(s, { type: 'sellItem', id: spare.id }).ok).toBe(true);
+    expect(s.staff.map((p) => p.deskId)).toEqual(before);
+  });
+
+  it('the first desk seats a founder, and adjacency pays for seated desks', () => {
+    const s = fresh();
+    expect(s.staff.every((p) => p.deskId === null)).toBe(true);
+    const d = place(s, 'desk', 0, 0);
+    expect(s.staff[0].deskId).toBe(d.id);
+    expect(s.staff[1].deskId).toBe(null);
+    const preview = adjacencyPreview(s, { itemId: 'desk', x: 1, y: 0, rot: 0 });
+    expect(preview.links).toEqual([]);
+    expect(place(s, 'plant', 3, 1).ok).toBe(true);
+    expect(adjacencyPreview(s, { itemId: 'desk', x: 2, y: 0, rot: 0 }).links[0].paid).toBe(true);
   });
 });
+
+function suggestPlacementFor(s) {
+  return findSpot(0, s.office.placed, 'desk', [0]);
+}
 
 describe('adjacency', () => {
   it('a plant near a desk helps that desk, averaged over staff; far away it does nothing', () => {
@@ -231,6 +268,18 @@ describe('adjacency', () => {
     expect(move.text).toMatch(/^\+\d+(\.\d)?% meaning recovery for the team \(1 desk nearby\)$/);
   });
 
+  it('a move that loses a bonus reports the loss, and shop effects read in words', () => {
+    const s = fresh();
+    for (const x of [0, 1]) expect(place(s, 'desk', x, 0).ok).toBe(true);
+    const plant = place(s, 'plant', 1, 3);
+    const before = itemBonus(s, 'meaningRecovery');
+    expect(before).toBeGreaterThan(0);
+    const away = adjacencyPreview(s, { id: plant.id, x: 8, y: 5, rot: 0 });
+    expect(away.effects).toEqual([expect.objectContaining({ key: 'meaningRecovery', delta: expect.closeTo(-before, 6) })]);
+    expect(away.text).toMatch(/^-\d+(\.\d)?% meaning recovery$/);
+    expect(adjacencyPreview(s, { itemId: 'standing_desk', x: 4, y: 4, rot: 0 }).text).toBe('-10% stamina drain');
+  });
+
   it('preview effects respect the cap', () => {
     const s = fresh();
     addDesks(s, 2);
@@ -269,6 +318,7 @@ describe('moving offices', () => {
   it('an upgrade re-packs every item validly into the new grid and keeps ids, levels, and desk order', () => {
     for (const seed of [1, 2, 3]) {
       const s = furnished(seed);
+      passOfficeGates(s);
       const before = s.office.placed.map((p) => [p.id, p.itemId, p.level]);
       const deskIds = s.office.placed.filter((p) => p.itemId === 'desk').map((p) => p.id);
       expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
@@ -318,6 +368,15 @@ describe('founding', () => {
       const s = createGame({ seed: 1, founders, funding: 'lottery' });
       expect(s.founding.founders).toEqual(['engineer', 'designer']);
       expect(s.founding.funding).toBe('bootstrapped');
+    }
+  });
+
+  it('founders hold know-how whatever their role: a no-builder pair stays above the collapse line in year 1', async () => {
+    const { runBot } = await import('../../src/sim/bots.js');
+    for (const seed of [1, 2, 3]) {
+      let low = 100;
+      runBot('sensible', seed, 52, { founding: { founders: ['hustler', 'seller'] }, onWeek: (st) => { low = Math.min(low, st.institutionalKnowledge); } });
+      expect(low, `seed ${seed}`).toBeGreaterThan(B.collapseIkBelow);
     }
   });
 

@@ -1,8 +1,9 @@
 name: ci
 
+# Manual only: GitHub Actions minutes are used up on this private repo, so CI runs locally
+# (npm run ci; scripts/ci-pr.sh <pr> posts the merge-gate comment).
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -43,3 +44,17 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run soak
       - run: npm run lifecycle -- --quality low --no-shots
+
+  commits:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Conventional Commits (PR title and commits)
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-commits.sh "$BASE" "$HEAD" "$TITLE"
