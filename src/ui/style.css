@@ -1008,3 +1008,4 @@
 .hitl .purposecard > .row { gap: 0.4em; align-items: center; }
 .hitl .ptests { display: flex; flex-direction: column; gap: 0.2em; }
 .hitl .ptest { display: grid; grid-template-columns: 2.5em 1fr auto; gap: 0.5em; font-size: 0.88em; align-items: baseline; }
+.hitl .msg .mention { background: #fff0b8; color: #8a5a00; border-radius: 0.3em; padding: 0 0.2em; font-weight: 700; }

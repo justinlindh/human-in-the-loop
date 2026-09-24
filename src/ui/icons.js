@@ -168,7 +168,7 @@ export const ICONS = {
 };
 
 // Slackk reactions: the sim sends emoji; each maps to a glyph name.
-for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(emo, 'Slackk reaction pill', 12);
+for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(/^[a-z_]+$/.test(emo) ? '🚫' : emo, 'Slackk reaction pill', 12);
 export const reactionIcon = (emo) => REACTION_GLYPH[emo] ?? null;
 
 // Category icons come from the content data's stand-in emoji.
