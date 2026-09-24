@@ -20,10 +20,10 @@ Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs per
 
 | File | Genre | Tempo, key | Length |
 |---|---|---|---|
-| `music_night/synthwave.ogg` | Corporate Synthwave | 118 bpm, A minor | 15.6 s |
-| `music_night/polka.ogg` | Motivational Polka | 124 bpm, F major | 18.9 s |
-| `music_night/bossa.ogg` | Aggressive Bossa Nova | 132 bpm, D minor | 16.4 s |
-| `music_night/lofi.ogg` | Sad Lo-fi | 80 bpm, Eb major | 17.8 s |
+| `music_night/corporate_synthwave.ogg` | Corporate Synthwave | 118 bpm, A minor | 15.6 s |
+| `music_night/motivational_polka.ogg` | Motivational Polka | 124 bpm, F major | 18.9 s |
+| `music_night/aggressive_bossa_nova.ogg` | Aggressive Bossa Nova | 132 bpm, D minor | 16.4 s |
+| `music_night/sad_lofi.ogg` | Sad Lo-fi | 80 bpm, Eb major | 17.8 s |
 
 ## Stingers (candidates)
 
