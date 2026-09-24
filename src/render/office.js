@@ -522,8 +522,14 @@ function addExpansion(L, statics) {
 }
 
 // Builds one stage shell: slab, floor, walls, windows, and the door. Furniture is placed separately.
+const COLUMN_FADE = 0.25;      // opacity of a column standing in front of someone
+const LEAVE_S = 0.5;           // moving office: the old one drops away
+const ENTER_S = 0.9;           // then the new one lowers in
+const DROP_FROM = 3.5;         // metres above its place the new office starts
+
 function buildStage(stageIdx, screens, expansion = 0) {
   const L = stageLayout(stageIdx, expansion);
+  const columns = [];
   const root = new THREE.Group();
   root.name = `stage_${stageIdx}`;
   const statics = new THREE.Group();
@@ -560,11 +566,21 @@ function buildStage(stageIdx, screens, expansion = 0) {
       statics.add(mesh(roundedCylinder(0.04, 0.04, 0.9, 0.01, 8), mat('metal_dark'), c.x + 0.18, 1.5, c.z + 0.1));
       statics.add(mesh(roundedBox(0.16, 0.1, 0.06, 0.02), mat('pot_terracotta'), c.x, 0.3, c.z + 0.3));
     } else {
-      // Pillars are cut like the front walls so they never hide the people behind them.
-      const H = 1.15;
-      statics.add(mesh(roundedBox(0.5, H, 0.5, 0.04), wallMatFor(L), c.x, H / 2, c.z));
-      statics.add(mesh(roundedBox(0.54, 0.1, 0.54, 0.02), mat('baseboard'), c.x, 0.05, c.z));
-      statics.add(mesh(roundedBox(0.52, 0.04, 0.52, 0.01), mat('slab_edge'), c.x, H + 0.02, c.z));
+      // Structural columns run to the wall tops and are cut there with the same dark cap as the
+      // walls, so they read as holding up the floor above. Slim, so people behind stay visible.
+      // Each column has its own material and fades while it stands in front of someone.
+      const H = L.wallH;
+      const m = wallMatFor(L).clone();
+      m.transparent = true;
+      const cap = mat('slab_edge').clone();
+      cap.transparent = true;
+      const col = new THREE.Group();
+      col.add(mesh(roundedBox(0.34, H, 0.34, 0.03), m, 0, H / 2, 0));
+      col.add(mesh(roundedBox(0.38, 0.04, 0.38, 0.01), cap, 0, H + 0.02, 0));
+      col.position.set(c.x, 0, c.z);
+      col.userData = { mats: [m, cap], fade: 1, h: H };
+      columns.push(col);
+      statics.add(mesh(roundedBox(0.4, 0.1, 0.4, 0.02), mat('baseboard'), c.x, 0.05, c.z));
     }
   }
   addExpansion(L, statics);
@@ -572,6 +588,7 @@ function buildStage(stageIdx, screens, expansion = 0) {
   statics.add(mesh(roundedBox(0.9, 0.02, 0.6, 0.01), mat('rug_teal'), dm.x, 0.011, dm.z + 0.1, { cast: false }));
 
   root.add(mergeStatic(statics));
+  for (const c of columns) root.add(c);
   for (const key of WALL_KEYS) {
     const merged = mergeStatic(walls[key]);
     merged.position.copy(walls[key].position);
@@ -584,7 +601,7 @@ function buildStage(stageIdx, screens, expansion = 0) {
   root.add(furniture);
 
   return {
-    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture,
+    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture, columns,
     desks: [], zones: { door: inward(L) }, dyn: { screens: [], racks: [], wallScreens: [], meetingChairs: [] },
     bounds: new THREE.Box3(new THREE.Vector3(-L.W / 2 - T, 0, -L.D / 2 - T), new THREE.Vector3(L.W / 2 + T, L.wallH, L.D / 2 + T)),
     nav: null,
@@ -729,9 +746,10 @@ export function createOffice({ parent, screens, lighting }) {
     lighting?.fitShadow(cur.bounds);
     lighting?.setInteriorLights(cur.L.lights.map((l) => ({ ...l, y: cur.L.wallH - 0.3 })));
     if (animate) {
-      cur.root.position.y = -4;
+      // The new office lowers in from above once the old one has dropped away; dust on landing.
+      cur.root.position.y = DROP_FROM;
+      cur.root.visible = false;
       cur.enterT = 0;
-      spawnDust(cur.L);
     } else if (grow) {
       spawnDust(cur.L);
     }
@@ -740,6 +758,7 @@ export function createOffice({ parent, screens, lighting }) {
 
   function disposeStage(s) {
     holder.remove(s.root);
+    for (const c of s.columns ?? []) for (const m of c.userData.mats) m.dispose();
     s.root.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); });
   }
 
@@ -1025,20 +1044,26 @@ export function createOffice({ parent, screens, lighting }) {
     for (const ch of cur.dyn.meetingChairs) {
       ch.position.lerp(tuck ? ch.userData.tucked : ch.userData.home, 1 - Math.exp(-dt * 6));
     }
+    // Moving office, in sequence so the two never overlap: the old one drops away (LEAVE_S),
+    // then the new one lowers in from above (ENTER_S), squashes a little on landing, and dust puffs out.
     if (leaving) {
       leaving.t += dt;
-      const q = Math.min(1, leaving.t / 0.7);
-      leaving.s.root.position.y = -q * q * 5;
-      leaving.s.root.scale.setScalar(1 - q * 0.15);
+      const q = Math.min(1, leaving.t / LEAVE_S);
+      leaving.s.root.position.y = -q * q * 6;
+      leaving.s.root.scale.setScalar(1 - q * 0.2);
       if (q >= 1) { disposeStage(leaving.s); leaving = null; }
     }
     if (cur.enterT !== undefined) {
       cur.enterT += dt;
-      const q = Math.min(1, Math.max(0, (cur.enterT - 0.35) / 0.8));
+      const q = Math.min(1, Math.max(0, (cur.enterT - LEAVE_S) / ENTER_S));
+      cur.root.visible = cur.enterT >= LEAVE_S;
       const e = 1 - Math.pow(1 - q, 3);
-      const over = Math.sin(q * Math.PI) * 0.25;
-      cur.root.position.y = -4 * (1 - e) + over * (q > 0.6 ? 1 : 0);
-      if (q >= 1) { cur.root.position.y = 0; delete cur.enterT; }
+      cur.root.position.y = DROP_FROM * (1 - e);
+      // A squash on landing, over the last fifth.
+      const land = q > 0.8 ? Math.sin(((q - 0.8) / 0.2) * Math.PI) * 0.04 : 0;
+      cur.root.scale.set(1 + land * 0.5, 1 - land, 1 + land * 0.5);
+      if (q > 0.8 && !cur.landed) { cur.landed = true; spawnDust(cur.L); }
+      if (q >= 1) { cur.root.position.y = 0; cur.root.scale.setScalar(1); delete cur.enterT; }
     }
     if (dust) {
       dust.t += dt;
@@ -1062,6 +1087,29 @@ export function createOffice({ parent, screens, lighting }) {
     get bounds() { return cur?.bounds; },
     // Bumps whenever the walkable grid is rebuilt (furniture placed, moved or removed).
     get navVersion() { return navVersion; },
+    // Columns standing in front of anyone (on screen, nearer the camera) fade to COLUMN_FADE.
+    fadeColumns(camera, people, dt) {
+      if (!cur?.columns?.length) return;
+      const k = 1 - Math.exp(-dt * 10);
+      const a = new THREE.Vector3(), b = new THREE.Vector3(), p = new THREE.Vector3(), q = new THREE.Vector3();
+      for (const col of cur.columns) {
+        a.set(col.position.x, 0, col.position.z).project(camera);
+        b.set(col.position.x, col.userData.h, col.position.z).project(camera);
+        const half = 0.3 * Math.abs(b.y - a.y) / col.userData.h + 0.02;
+        const camD = camera.position.distanceTo(col.position);
+        let hide = false;
+        for (const pos of people) {
+          p.set(pos.x, 0.5, pos.z).project(camera);
+          if (Math.abs(p.x - a.x) > half + 0.03 || p.y < a.y - 0.02 || p.y > b.y + 0.02) continue;
+          q.set(pos.x, 0.5, pos.z);
+          if (camera.position.distanceTo(q) > camD) { hide = true; break; }
+        }
+        const f = col.userData.fade += ((hide ? COLUMN_FADE : 1) - col.userData.fade) * k;
+        for (const m of col.userData.mats) { m.opacity = f; m.depthWrite = f > 0.99; }
+      }
+    },
+    // Height of the office shell while it moves in (0 when settled), so people move with it.
+    get shellY() { return cur?.root.visible === false ? null : cur?.root.position.y ?? 0; },
   };
 }
 
