@@ -63,6 +63,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
+  const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(rng() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; } return arr; };
 
   // Voice allocation: a full bus accepts a new cue only by stealing a lower-priority voice.
   function admit(bus, priority, t, dur) {
@@ -94,13 +95,13 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     return [cmd];
   }
 
-  function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice' } = {}) {
+  function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice', take = null } = {}) {
     if (!person) return [];
     // Single barks (not a cheer) never stack beyond VOICE.maxSingle at once.
     if (key === 'voice' && playing.filter((v) => v.bus === 'voice' && v.single && v.until > t).length >= VOICE.maxSingle) return [];
     if (!admit('voice', priority, t, 1.5)) return [];
     if (key === 'voice') playing[playing.length - 1].single = true;
-    return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key }];
+    return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key, ...(take === null ? {} : { take }) }];
   }
 
   // A group cheer: several present people, staggered, quieter each, over a crowd bed.
@@ -117,13 +118,18 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     for (let i = rest.length - 1; i > 0; i--) { const k = Math.floor(rng() * (i + 1)); [rest[i], rest[k]] = [rest[k], rest[i]]; }
     const who = (lead ? [lead, ...rest] : rest).slice(0, n);
     const base = g.groupGain;
+    const deck = [...g.emotions];
+    const takeBase = Math.floor(rng() * 8);
     const out = [{ op: 'duck', key: g.duck, on: true, at: t }];
     let at = t;
     who.forEach((p, i) => {
       if (i > 0) at += g.stagger[0] + rng() * (g.stagger[1] - g.stagger[0]);
       const [lo, hi] = g.gainSpreadDb;
       const spread = 10 ** ((lo + rng() * (hi - lo)) / 20);
-      out.push(...bark(p, pick(g.emotions), at, { gain: base * spread, priority: 8, key: 'cheer' }));
+      // Emotions are dealt from a shuffled deck, and voices sharing an emotion take turns on its takes.
+      if (i % deck.length === 0) shuffle(deck);
+      const emotion = deck[i % deck.length];
+      out.push(...bark(p, emotion, at, { gain: base * spread, priority: 8, key: 'cheer', take: takeBase + Math.floor(i / deck.length) }));
     });
     if (g.crowdBed > 0) out.push({ op: 'play', cue: 'voice.crowd', file: 'voice/crowd', bus: 'ambience', gain: g.crowdBed, at: t, priority: 4 });
     out.push({ op: 'duck', key: g.duck, on: false, at: at + 1.5 });

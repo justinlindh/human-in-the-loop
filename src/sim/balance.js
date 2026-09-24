@@ -95,6 +95,7 @@ export const B = {
   hqDeskCap: 30, expansionDeskStep: 5, topPayAttrition: 0.6, upkeepAttrition: 0.85, upkeepMeaningRecovery: 0.15,
   forSaleWeek: 30, forSaleWeeks: 13, forSalePerRound: 3, forSaleMinArr: 600000, forSaleArrShare: [0.03, 0.12],
   forSalePriceMult: [6, 10], forSaleConsolidationDiscount: 0.8, acquiredScore: [6, 7.8], acquiredBrand: 1,
+  epilogueOutcomeLines: 2, epilogueLines: 6,
   alumniKept: 40, aiSummitWeek: 20, summitCost: { small: 20000, big: 80000 }, summitEraMult: [1, 1, 1.5, 2, 2.5], summitPauseAfter: 2,
   moveOnPerYear: 0.025, moveOnTenureWeeks: 156, moveOnMinStaff: 5,
   attritionPerYear: 0.025, attritionAfterWeeks: 26, attritionMinStaff: 5, attritionMeaningBelow: 60, attritionMeaningSpan: 20,
