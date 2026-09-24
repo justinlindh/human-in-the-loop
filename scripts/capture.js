@@ -5,8 +5,9 @@
 // npm run capture -- --only waffle-party            one item from the manifest
 // npm run capture -- --manifest scripts/capture-manifest.js --out ~/src/gamedev-reel/review-2026-09-24
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
-//   [--gif] [--seconds N] [--list]
+//   [--gif] [--no-webm] [--seconds N] [--list]
 // Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
+// <id>.webm (VP9, CRF 30),
 // optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -114,6 +115,14 @@ function ffmpeg(file) {
   return { write: (buf) => new Promise((ok) => (p.stdin.write(buf) ? ok() : p.stdin.once('drain', ok))), end: async () => { p.stdin.end(); await done; } };
 }
 
+// VP9 WebM alongside every MP4: some desktop players will not open the H.264 file.
+function webm(mp4, file) {
+  return new Promise((ok, fail) => {
+    const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-row-mt', '1', '-pix_fmt', 'yuv420p', file], { stdio: 'inherit' });
+    p.on('close', (code) => (code === 0 ? ok() : fail(new Error(`webm ffmpeg exited ${code}`))));
+  });
+}
+
 function gif(mp4, file) {
   return new Promise((ok, fail) => {
     const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-vf', 'fps=15,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse', file], { stdio: 'inherit' });
@@ -174,6 +183,8 @@ try {
       if (f % (FPS * 2) === 0) process.stdout.write(`\r${it.id}: ${t.toFixed(0)}/${seconds}s`);
     }
     await enc.end();
+    const webmFile = join(OUT, `${it.id}.webm`);
+    if (!args['no-webm']) await webm(mp4, webmFile);
     let gifFile = null;
     if (args.gif || it.gif) { gifFile = join(OUT, `${it.id}.gif`); await gif(mp4, gifFile); }
     const took = ((Date.now() - t0) / 1000).toFixed(0);
@@ -181,7 +192,7 @@ try {
     for (const e of errors.slice(0, 5)) console.log(`     ${e}`);
     failed ||= errors.length > 0;
     index.items[it.id] = {
-      title: it.title, file: `${it.id}.mp4`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
+      title: it.title, file: `${it.id}.mp4`, webm: args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
       seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, url: base, renderer, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
