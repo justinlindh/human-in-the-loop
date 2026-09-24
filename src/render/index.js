@@ -68,7 +68,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const floating = createLabels(labelLayer);
   const fx = createFx({ scene, overlayEl: labelsEl });
   let ready = false;
-  const portraits = createPortraits({ ready: () => ready });
+  const portraits = createPortraits({ ready: () => ready, lowQuality: () => q === 'low' });
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);

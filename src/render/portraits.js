@@ -22,7 +22,7 @@ function keyOf(p, px) {
   return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.legend ? 1 : 0}|${JSON.stringify(p.appearance ?? {})}|${px}`;
 }
 
-export function createPortraits({ ready }) {
+export function createPortraits({ ready, lowQuality = () => false }) {
   let gl = null;
   let scene, camera;
   const cache = new Map();     // key -> url (insertion order doubles as LRU)
@@ -101,7 +101,8 @@ export function createPortraits({ ready }) {
     el.width = el.height = px;
     el.style.width = el.style.height = `${size}px`;
     const entry = { el, ctx: el.getContext('2d'), person: { ...person }, px, char: null, dead: false };
-    if (live.size >= MAX_LIVE) {
+    // Low quality keeps a single live portrait and redraws it at half rate.
+    if (live.size >= (lowQuality() ? 1 : MAX_LIVE)) {
       // Over the cap: a static image drawn once it exists.
       entry.staticOnly = true;
     }
@@ -139,9 +140,12 @@ export function createPortraits({ ready }) {
         }
         continue;
       }
+      e.acc = (e.acc ?? 0) + dt;
+      if (lowQuality() && e.char && (e.skip = !e.skip)) continue;
       if (!e.char) e.char = build(e.person);
       else scene.add(e.char.root);
-      e.char.update(dt);
+      e.char.update(e.acc);
+      e.acc = 0;
       draw(e.px);
       e.ctx.clearRect(0, 0, e.px, e.px);
       e.ctx.drawImage(gl.domElement, 0, 0, e.px, e.px);
