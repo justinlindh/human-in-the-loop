@@ -29,6 +29,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
+- Team mailbox messages only arrive between turns. After each task: send your report to team-lead, then end your turn. team-lead replies with cross-lane news and the go-ahead for the next task.
 
 ## Rules
 

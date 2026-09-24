@@ -17,4 +17,4 @@ How you work:
 - Every visual change is verified by looking at it: `npm run snap`, then Read the PNG. Critique it against the art-direction checklist before you commit. Never report visual work done without screenshot paths.
 - Prefer Blender for anything the player looks at closely (characters, hero furniture); use procedural Three.js geometry for walls, floors, and repeated clutter.
 - Keep performance in mind from the start: shared materials, merged static geometry, pooled labels and particles, bounded texture updates.
-- After each task: commit, then message the lead with the commit hash, the screenshot paths, and your own top three remaining weaknesses.
+- After each task: commit, message team-lead, then end your turn (mailbox messages only arrive between turns; team-lead replies with the go-ahead). The report includes the commit hash, the screenshot paths, and your own top three remaining weaknesses.
