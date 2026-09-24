@@ -48,21 +48,25 @@ export function createAudio({ quality = 'high' } = {}) {
   if (AC) {
     addEventListener('pointerdown', unlock, { capture: true });
     addEventListener('keydown', unlock, { capture: true });
+    // A hidden tab goes silent at once (frames stop there, so nothing else would). On return, sound
+    // resumes only if the game is running or the title is up; after an auto-pause it waits for the
+    // player's next click or key (unlock resumes it).
     document.addEventListener('visibilitychange', () => {
       if (!ctx) return;
-      if (document.hidden) ctx.suspend().catch(() => {});
-      else ctx.resume().catch(() => {});
+      if (document.hidden) { ctx.suspend().catch(() => {}); return; }
+      const h = hostCtx();
+      if (h.title || (h.running && !window.__HITL?.controls?.awayPaused)) ctx.resume().catch(() => {});
     });
   }
 
   const now = () => (ctx ? ctx.currentTime : 0);
   // Pause and title state from the page when the host does not pass them (the menu pause flag and title screen).
-  const hostCtx = () => {
+  function hostCtx() {
     const h = typeof window !== 'undefined' ? window.__HITL : null;
     const busy = h?.clock?.busy === true;
     const s = h?.state;
     return { menuPause: busy, decision: !!s?.pendingDecision, title: h ? !h.playing : false, speed: h?.clock?.speed ?? 1, running: (h?.clock?.speed ?? 1) > 0, over: !!s?.gameOver };
-  };
+  }
   const ready = () => ctx && ctx.state === 'running';
 
   function playBuffer(buf, bus, gain, at, { offset = 0, duration } = {}) {
