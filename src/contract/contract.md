@@ -243,3 +243,7 @@ state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ s
 ```
 - An acquisition adds the company's product (with its customers) and staff to the player's company, and emits `chat` lines announcing it.
 - HQ expansion steps each raise the staff cap; the renderer keeps the whole office within the Low quality budget at the maximum cap.
+- `upgradeOffice` at the HQ buys the next expansion step: `office.expansion` +1 and an `officeUpgrade` event with `{ stage: 2, expansion }`. Gate reasons come from `officeGateReason`; past step 3 the reason is 'Already at the biggest office'.
+- Desks at the HQ are capped at 30 + 5 per expansion step (45 at most). `buyItem` and placement refuse more with 'Desk limit reached'.
+- `acquire` also needs a free desk for each incoming person; otherwise it refuses with 'No desks for their team'. Every staff member always has a desk.
+- policies: 'top_pay' (Top-of-Market Pay) and 'office_upkeep' (Office Upkeep), unlocking at the HQ, with a weekly cost that scales with the company. ui reads the current cost from `policyCost(state, id)`.
