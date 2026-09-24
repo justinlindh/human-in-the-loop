@@ -27,6 +27,7 @@ const BLEND_S = 0.3;
 // the walker's speed so feet do not slide.
 const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
+const FACE_GEOS = new Map();       // mood (and ':closed') -> face geometry shared by every character
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
@@ -336,17 +337,30 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   ['legL', 'legR', 'torso', 'head', 'armL', 'armR'].forEach((n, i) => { if (baked[i]) baked[i].userData.part = n; });
   // Faces: eyes, eye shine and mouth baked into one mesh per mood, with the eyes open or closed.
   // Only the face in use is attached; the mood picks the set and a blink swaps open for closed.
+  // Face geometry is the same for everyone, so it is baked once and shared (the per-person tint
+  // lives on the material).
   const faces = {};
   for (const k of ['ok', 'coasting', 'burnout']) {
     for (const closed of [false, true]) {
-      const e = eyes.clone();
-      e.scale.y = closed ? 0.15 : 1;
-      const parts = [e, mouths[k].clone()];
-      if (!closed) parts.push(shine.clone());
-      headGroup.add(...parts);
-      const f = bakeParts(parts, headGroup, bm, tintable);
-      f.removeFromParent();
-      faces[`${k}${closed ? ':closed' : ''}`] = f;
+      const key = `${k}${closed ? ':closed' : ''}`;
+      let geo = FACE_GEOS.get(key);
+      if (!geo) {
+        const e = eyes.clone();
+        e.scale.y = closed ? 0.15 : 1;
+        const parts = [e, mouths[k].clone()];
+        if (!closed) parts.push(shine.clone());
+        headGroup.add(...parts);
+        const once = bakeParts(parts, headGroup, bm, tintable);
+        once.removeFromParent();
+        geo = once.geometry;
+        geo.userData.shared = true;
+        FACE_GEOS.set(key, geo);
+      }
+      const f = new THREE.Mesh(geo, bm);
+      f.name = 'baked';
+      f.receiveShadow = true;
+      f.userData.noAO = true;
+      faces[key] = f;
       baked.push(f);
     }
   }
@@ -788,7 +802,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function dispose() {
     if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(proxy); }
     for (const m of Object.values(own)) m.dispose();
-    for (const b of baked) b?.geometry.dispose();
+    for (const b of baked) if (b && !b.geometry.userData.shared) b.geometry.dispose();
     bm.dispose();
     cheeks.dispose();
     pickProxy.material.dispose();
