@@ -1,6 +1,7 @@
 import { B } from './balance.js';
 import { chance, pick } from './rng.js';
-import { clamp, newId } from './util.js';
+import { clamp, newId, dateOf } from './util.js';
+import { sunsetProduct } from './products.js';
 import { findStaff, tryAssign, removeStaff, makeCandidate, staffMods, endMentorshipsOf } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
 import { priceHike } from './vendors.js';
@@ -67,8 +68,7 @@ function pivot(ctx) {
   const live = liveProducts(state);
   if (live.length < 2) return;
   const weakest = live.reduce((a, b) => (b.score * (b.mrr + 1) < a.score * (a.mrr + 1) ? b : a));
-  Object.assign(weakest, { killed: true, customers: 0, mrr: 0, ownerId: null });
-  if (state.outage?.productId === weakest.id) state.outage = null;
+  sunsetProduct(ctx, weakest);
   const t = TRENDS[state.market.trend];
   let best = null;
   for (const c of state.market.unlockedCategories) {
@@ -80,14 +80,14 @@ function pivot(ctx) {
   const model = Object.keys(state.models).find((m) => state.models[m].available && !state.models[m].deprecated) ?? weakest.model;
   state.projects.push({
     id: newId(state, 'j'), kind: 'new', name: `${weakest.name} 2`, category: best.c, angle: best.a, model, size: 'medium', researchId: null,
-    pointsNeeded: B.sizes.medium.points, progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
+    pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
     productId: null, startedWeek: state.week, bankedHype: 0,
   });
   ctx.emit({ type: 'toast', text: `${weakest.name} is sunset. The new plan: ${weakest.name} 2.`, tone: 'info' });
 }
 
 // Applies an effects object from event data. subjectId may name a staff member or a product.
-export function applyEffects(ctx, fx, subjectId = null, source = null) {
+export function applyEffects(ctx, fx, subjectId = null, source = null, vars = null) {
   const { state } = ctx;
   if (!fx) return;
   const person = findStaff(state, subjectId);
@@ -104,6 +104,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null) {
   }
   if (fx.health && product) product.health = clamp(product.health + fx.health, 0, 100);
   if (fx.teamMeaning) for (const p of state.staff) p.meaning = clamp(p.meaning + fx.teamMeaning, 0, 100);
+  if (fx.teamSalaryPct) for (const p of state.staff) p.salary = Math.round((p.salary * (1 + fx.teamSalaryPct / 100)) / 10) * 10;
   if (person) {
     if (fx.meaning) person.meaning = clamp(person.meaning + fx.meaning, 0, 100);
     if (fx.knowledge) person.knowledge = clamp(person.knowledge + fx.knowledge, 0, 100);
@@ -177,8 +178,8 @@ export function applyEffects(ctx, fx, subjectId = null, source = null) {
   if (fx.followUp) {
     state.scheduled.push({ id: newId(state, 'sch'), week: state.week + fx.followUp.inWeeks, kind: 'event', payload: { eventId: fx.followUp.eventId, subjectId } });
   }
-  if (fx.cond) applyEffects(ctx, checkCondition(state, fx.cond.test, subjectId) ? fx.cond.then : fx.cond.else, subjectId, source);
-  if (fx.gamble) applyEffects(ctx, chance(ctx.rng, fx.gamble.p) ? fx.gamble.effects : fx.gamble.else, subjectId, source);
+  if (fx.cond) applyEffects(ctx, checkCondition(state, fx.cond.test, subjectId) ? fx.cond.then : fx.cond.else, subjectId, source, vars);
+  if (fx.gamble) applyEffects(ctx, chance(ctx.rng, fx.gamble.p) ? fx.gamble.effects : fx.gamble.else, subjectId, source, vars);
   if (fx.resign && person && !person.founder) {
     removeStaff(state, person);
     state.stats.resignations++;
@@ -186,7 +187,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null) {
   }
   if (fx.win === 'acquired') {
     const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
-    state.flags.acquirer = incumbentFor(top?.category ?? 'crm').name;
+    state.flags.acquirer = vars?.incumbent ?? incumbentFor(top?.category ?? 'crm').name;
     endGame(ctx, { won: true, reason: 'acquired' });
   }
 }

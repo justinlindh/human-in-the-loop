@@ -57,6 +57,17 @@ describe('save and load', () => {
     expect(res.state.staff[0].path).toBe(null);
   });
 
+  it('drops a pending decision whose event no longer exists and says so', () => {
+    const store = fakeStorage();
+    const s = game();
+    s.pendingDecision = { eventId: 'gone_event', title: 't', text: 't', subjectId: null, choices: [] };
+    store.setItem(SAVE_KEY, JSON.stringify(s));
+    const res = loadGame(store);
+    expect(res.ok).toBe(true);
+    expect(res.state.pendingDecision).toBe(null);
+    expect(res.notice).toMatch(/decision/i);
+  });
+
   it('clearSave removes it, and a throwing storage never crashes', () => {
     const store = fakeStorage();
     saveGame(game(), store);

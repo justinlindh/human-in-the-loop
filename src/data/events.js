@@ -14,7 +14,7 @@ export const EFFECT_KEYS = [
   'cash', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
-  'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot',
+  'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
 ];
 
 
@@ -205,7 +205,7 @@ const list = [
     title: 'A question about pay',
     text: '{name} found out a new hire makes more than they do. They would like to understand why.',
     choices: [
-      { label: 'Fix it across the team', hint: 'Costs cash now; team meaning up', effects: { cash: -8000, salaryPct: 10, meaning: 10, teamMeaning: 4 }, outcome: 'Everyone gets a letter with a bigger number. Morale improves in real time.' },
+      { label: 'Fix it across the team', hint: 'A permanent raise for everyone (+8% salaries); team meaning up', effects: { teamSalaryPct: 8, meaning: 10, teamMeaning: 4 }, outcome: 'Everyone gets a letter with a bigger number. Morale improves in real time.' },
       { label: 'Explain the market', hint: 'Free now; it festers, effects later', effects: { meaning: -8, later: [{ inWeeks: 8, effects: { meaning: -6, teamMeaning: -2 } }] }, outcome: '"The market" is a very unsatisfying answer. Everyone knows it.' },
     ],
   },
@@ -228,7 +228,7 @@ const list = [
     title: '{name} has an idea',
     text: '{name} read a blog post called "Support Teams Are Dead". They want support fully automated by Monday. "Think of the savings!"',
     choices: [
-      { label: 'Do it', hint: 'Support automation to 100% now; how customers feel shows up later', effects: { setAutomation: { support: 1 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
+      { label: 'Do it', hint: 'Support automation to 100% now (adds a weekly model bill); how customers feel shows up later', effects: { setAutomation: { support: 1 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
       { label: 'Trial it on half the tickets', hint: 'Support automation to 50%', effects: { setAutomation: { support: 0.5 } }, outcome: 'A careful rollout. {name} calls it "timid". You call it Tuesday.' },
       { label: 'Talk them down', hint: '{name} sulks a little', effects: { meaning: -3 }, outcome: '{name} reads a different blog post. It is about sourdough.' },
     ],
@@ -256,10 +256,10 @@ const list = [
   {
     id: 'four_day_week_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
-    title: 'The four-day week trial is over',
-    text: 'Eight weeks in. Output dipped a bit. People look like they sleep now. What does {company} do?',
+    title: 'Four-day week: keep going?',
+    text: 'Time to review the four-day week. Output dipped a bit. People look like they sleep now. What does {company} do?',
     choices: [
-      { label: 'Keep it', hint: 'Less output, better recovery for 104 weeks', effects: { modifier: [{ key: 'output', value: -0.1, weeks: 104, label: 'Four-day week' }, { key: 'meaningRecovery', value: 0.4, weeks: 104, label: 'Four-day week' }] }, outcome: 'It is official. Someone makes a banner. It is slightly crooked and perfect.' },
+      { label: 'Keep it', hint: 'Less output, better recovery for 52 weeks, then review again', effects: { modifier: [{ key: 'output', value: -0.1, weeks: 52, label: 'Four-day week' }, { key: 'meaningRecovery', value: 0.4, weeks: 52, label: 'Four-day week' }], followUp: { eventId: 'four_day_week_review', inWeeks: 52 } }, outcome: 'It is official. Someone makes a banner. It is slightly crooked and perfect.' },
       { label: 'Back to five days', hint: 'Team meaning down', effects: { teamMeaning: -4 }, outcome: 'Friday returns. It is greeted like a tax audit.' },
     ],
   },
@@ -321,7 +321,7 @@ const list = [
     title: 'A whole hackathon week',
     text: '{name} wants to stop everything for a week of pure hacking. "Remember when we used to have fun?"',
     choices: [
-      { label: 'Stop everything for a week', hint: 'Half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Slackk. It is the best thing you own.' },
+      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Slackk. It is the best thing you own.' },
       { label: 'Not this quarter', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The hackathon becomes a "hack afternoon". It gets moved twice.' },
     ],
   },

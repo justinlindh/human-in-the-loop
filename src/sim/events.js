@@ -10,16 +10,24 @@ import { applyEffects, checkCondition, REQUIRE_REASON } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 
+// Placeholder values chosen once per event, so every string in a decision names the same incumbent.
+export function decisionVars(state, rng, subjectId) {
+  const product = state.products.find((p) => p.id === subjectId);
+  const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
+  const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
+  return { incumbent: incumbentFor(category).name };
+}
+
 // Resolves the text placeholders for an event against a subject (staff or product id).
-export function fillText(state, rng, text, subjectId) {
+export function fillText(state, rng, text, subjectId, vars = null) {
   const person = state.staff.find((p) => p.id === subjectId);
   const product = state.products.find((p) => p.id === subjectId);
-  const category = product?.category ?? pick(rng, state.market.unlockedCategories);
+  const v = vars ?? decisionVars(state, rng, subjectId);
   return text
     .replaceAll('{name}', person?.name ?? 'Someone')
     .replaceAll('{product}', product?.name ?? liveProducts(state).at(-1)?.name ?? 'your product')
     .replaceAll('{company}', state.companyName)
-    .replaceAll('{incumbent}', incumbentFor(category).name);
+    .replaceAll('{incumbent}', v.incumbent);
 }
 
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
@@ -32,11 +40,13 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
   }
+  const vars = decisionVars(state, ctx.rng, subjectId);
+  const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
-    eventId, subjectId,
-    title: fillText(state, ctx.rng, ev.title, subjectId),
-    text: fillText(state, ctx.rng, ev.text, subjectId),
-    choices: ev.choices.map((c) => ({ label: fillText(state, ctx.rng, c.label, subjectId), hint: fillText(state, ctx.rng, c.hint, subjectId) })),
+    eventId, subjectId, vars,
+    title: fill(ev.title),
+    text: fill(ev.text),
+    choices: ev.choices.map((c) => ({ label: fill(c.label), hint: fill(c.hint) })),
   };
   ctx.emit({ type: 'decision' });
   return true;
@@ -85,8 +95,9 @@ export function fireEvent(ctx, ev, subjectId) {
   const { state } = ctx;
   state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);
-  ctx.emit({ type: 'toast', text: `${fillText(state, ctx.rng, ev.title, subjectId)}: ${fillText(state, ctx.rng, ev.text, subjectId)}`, tone: 'info' });
-  applyEffects(ctx, ev.auto, subjectId, ev.id);
+  const vars = decisionVars(state, ctx.rng, subjectId);
+  ctx.emit({ type: 'toast', text: `${fillText(state, ctx.rng, ev.title, subjectId, vars)}: ${fillText(state, ctx.rng, ev.text, subjectId, vars)}`, tone: 'info' });
+  applyEffects(ctx, ev.auto, subjectId, ev.id, vars);
   return true;
 }
 
@@ -111,7 +122,7 @@ registerAction('resolveDecision', (ctx, { choice }) => {
   const c = ev.choices[choice];
   if (c.requires && !checkCondition(state, c.requires, d.subjectId)) return { ok: false, reason: REQUIRE_REASON[c.requires] ?? 'Not possible right now' };
   state.pendingDecision = null;
-  if (c.outcome) ctx.emit({ type: 'toast', text: fillText(state, ctx.rng, c.outcome, d.subjectId), tone: 'info' });
-  applyEffects(ctx, c.effects, d.subjectId, d.eventId);
+  if (c.outcome) ctx.emit({ type: 'toast', text: fillText(state, ctx.rng, c.outcome, d.subjectId, d.vars), tone: 'info' });
+  applyEffects(ctx, c.effects, d.subjectId, d.eventId, d.vars);
   return { ok: true };
 });

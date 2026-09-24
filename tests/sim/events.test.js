@@ -109,6 +109,61 @@ describe('decisions', () => {
     expect(res.events).toContainEqual({ type: 'gameOver' });
   });
 
+  it('the acquisition popup and the epilogue name the same acquirer', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = busy(seed);
+      raise(s, 'acquisition_offer');
+      const d = s.pendingDecision;
+      resolve(s, 0);
+      expect(d.text, `seed ${seed}`).toContain(s.flags.acquirer);
+      const named = s.gameOver.epilogue.join(' ').match(/Acquired by ([A-Za-z ]+?)\./);
+      if (named) expect(named[1]).toBe(s.flags.acquirer);
+    }
+  });
+
+  it('a decision uses one incumbent across title, text, hints, and outcome', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const s = busy(seed);
+      raise(s, 'poached_by_bigco', s.staff.find((p) => p.seniority === 'senior' && !p.founder).id);
+      const name = s.pendingDecision.vars.incumbent;
+      expect(s.pendingDecision.text).toContain(name);
+      const res = resolve(s, 1);
+      const out = res.events.find((e) => e.type === 'toast').text;
+      expect(out).toContain(name);
+    }
+  });
+
+  it('pivot cancels the killed product work and uses year-scaled points', () => {
+    const s = busy();
+    s.week = 52 * 3;
+    const weak = s.products[1];
+    const up = dispatch(s, { type: 'startProject', kind: 'update', productId: weak.id }).projectId;
+    const f = s.staff.find((p) => p.founder);
+    raise(s, 'pivot_pitch', f.id);
+    resolve(s, 0);
+    expect(weak.killed).toBe(true);
+    expect(s.projects.some((j) => j.id === up)).toBe(false);
+    const fresh = s.projects.find((j) => j.kind === 'new');
+    expect(fresh.pointsNeeded).toBeCloseTo(B.sizes.medium.points * (1 + 3 * B.pointsGrowthPerYear));
+  });
+
+  it('fixing pay equity raises everyone', () => {
+    const s = busy();
+    const before = s.staff.map((p) => p.salary);
+    raise(s, 'pay_equity_question', s.staff[2].id);
+    resolve(s, 0);
+    s.staff.forEach((p, i) => expect(p.salary).toBeGreaterThan(before[i]));
+    expect(EVENTS.pay_equity_question.choices[0].hint).toMatch(/permanent raise for everyone/i);
+  });
+
+  it('keeping the four-day week schedules a yearly review', () => {
+    const s = busy();
+    raise(s, 'four_day_week_review');
+    resolve(s, 0);
+    expect(s.modifiers.every((m) => m.untilWeek === s.week + 52)).toBe(true);
+    expect(s.scheduled.some((x) => x.kind === 'event' && x.payload.eventId === 'four_day_week_review' && x.week === s.week + 52)).toBe(true);
+  });
+
   it('pairing a junior with a mentor assigns a free senior', () => {
     const s = busy();
     const j = s.staff.find((p) => p.seniority === 'junior');
@@ -298,6 +353,10 @@ describe('content', () => {
         if (fx.later || fx.modifier || fx.followUp) expect(c.hint, `${e.id}: ${c.label}`).toMatch(/later|week|trial/i);
       }
     }
+  });
+
+  it('every choice has an outcome line', () => {
+    for (const e of Object.values(EVENTS)) for (const c of e.choices ?? []) expect(c.outcome, `${e.id}: ${c.label}`).toBeTruthy();
   });
 
   it('every event fills its placeholders', () => {

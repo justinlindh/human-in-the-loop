@@ -1,6 +1,7 @@
 // localStorage persistence for the sim state. storage defaults to globalThis.localStorage;
 // tests pass any object with getItem/setItem/removeItem.
 import { SAVE_VERSION } from '../sim/state.js';
+import { EVENTS } from '../data/events.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
 
@@ -70,5 +71,10 @@ export function loadGame(storage) {
   if (REQUIRED_KEYS.some((k) => !(k in state)) || !Array.isArray(state.staff) || !Array.isArray(state.products)) {
     return { ok: false, reason: 'Save is corrupted' };
   }
-  return { ok: true, state: normalize(state) };
+  normalize(state);
+  if (state.pendingDecision && !EVENTS[state.pendingDecision.eventId]) {
+    state.pendingDecision = null;
+    return { ok: true, state, notice: 'A decision from this save no longer exists and was skipped.' };
+  }
+  return { ok: true, state };
 }

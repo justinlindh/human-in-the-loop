@@ -91,9 +91,15 @@ export function productsSystem(ctx) {
 registerSystem('products', productsSystem, 40);
 
 registerAction('killProduct', (ctx, { productId }) => {
-  const { state } = ctx;
-  const p = findProduct(state, productId);
+  const p = findProduct(ctx.state, productId);
   if (!p || p.killed) return { ok: false, reason: 'No such product' };
+  sunsetProduct(ctx, p);
+  return { ok: true };
+});
+
+// Sunsets a live product: zeroes it, hurts its builders, and cancels its update and migration work.
+export function sunsetProduct(ctx, p) {
+  const { state } = ctx;
   Object.assign(p, { killed: true, customers: 0, mrr: 0 });
   for (const s of state.staff) {
     const builder = (s.role === 'engineer' || s.role === 'designer') && s.hiredWeek <= p.launchedWeek;
@@ -109,8 +115,7 @@ registerAction('killProduct', (ctx, { productId }) => {
   }
   ctx.emit({ type: 'toast', text: `${p.name} has been sunset. A moment of silence in #general.`, tone: 'info' });
   if (cancelled.length) ctx.emit({ type: 'toast', text: `Cancelled work on ${p.name}: ${cancelled.map((j) => j.name).join(', ')}.`, tone: 'info' });
-  return { ok: true };
-});
+}
 
 registerAction('setOwner', (ctx, { productId, staffId }) => {
   const { state } = ctx;
