@@ -76,7 +76,7 @@ describe('hire', () => {
     addStaff(s, 'engineer', 'mid');
     addStaff(s, 'engineer', 'mid');
     expect(s.staff.length).toBe(capacity(s));
-    expectFail(expect, dispatch, s, { type: 'hire', candidateId: s.candidates[0].id }, 'Office is full');
+    expectFail(expect, dispatch, s, { type: 'hire', candidateId: s.candidates[0].id }, 'No free desk');
     expectFail(expect, dispatch, s, { type: 'hire', candidateId: 'nope' }, 'No such candidate');
   });
 });
@@ -177,7 +177,7 @@ describe('train', () => {
     const p = s.staff[0];
     const res = dispatch(s, { type: 'train', staffId: p.id, program: 'workshop', focus: 'features' });
     expect(res.ok).toBe(true);
-    expect(s.cash).toBe(B.startCash - TRAINING.workshop.cost);
+    expect(s.cash).toBe(B.funding.bootstrapped.cash - TRAINING.workshop.cost);
     expect(p.xp).toBe(TRAINING.workshop.xp * staffMods(p).xp);
     expect(res.events[0]).toMatchObject({ type: 'bubble', staffId: p.id, tone: 'good' });
     s.cash = 5;

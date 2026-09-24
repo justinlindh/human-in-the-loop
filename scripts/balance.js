@@ -1,6 +1,7 @@
 // Headless balance harness: node scripts/balance.js --seeds 100 [--bots balanced,sensible]
-// crises = unrecoverable outages plus bridge loans taken.
+// crises = unrecoverable outages plus bridge loans taken. Prints an era-by-era table after the main one.
 import { runBot, BOTS } from '../src/sim/bots.js';
+import { B } from '../src/sim/balance.js';
 
 const args = process.argv.slice(2);
 const arg = (name, dflt) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : dflt; };
@@ -11,9 +12,11 @@ const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.lengt
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
 
 const rows = [];
+const all = {};
 for (const name of bots) {
   const results = [];
   for (let seed = 1; seed <= seeds; seed++) results.push(runBot(name, seed));
+  all[name] = results;
   const reasons = {};
   for (const r of results) reasons[r.reason] = (reasons[r.reason] ?? 0) + 1;
   rows.push({
@@ -30,5 +33,18 @@ for (const name of bots) {
     crises: median(results.map((r) => r.crises)),
   });
 }
-console.log(`seeds per bot: ${seeds}`);
+console.log(`seeds per bot: ${seeds}, up to ${B.runWeeks} weeks`);
 console.table(rows);
+
+// Era by era: how many runs reached each era, and median cash, staff, and MRR on arrival.
+const eraRows = [];
+for (const name of bots) {
+  for (const era of ['chatgbt', 'agents', 'consolidation']) {
+    const at = all[name].map((r) => r.eras[era]).filter(Boolean);
+    eraRows.push({
+      bot: name, era, reached: `${Math.round((100 * at.length) / seeds)}%`,
+      cash: fmt(median(at.map((e) => e.cash))), staff: median(at.map((e) => e.staff)), mrr: fmt(median(at.map((e) => e.mrr))),
+    });
+  }
+}
+console.table(eraRows);

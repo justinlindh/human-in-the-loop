@@ -15,6 +15,7 @@
     "snap": "node scripts/snap.js",
     "pace": "node scripts/pace.js",
     "lifecycle": "node scripts/lifecycle.js",
+    "soak": "node scripts/soak.js",
     "models": "bash scripts/build-models.sh"
   },
   "type": "module",

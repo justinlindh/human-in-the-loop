@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: No node_modules in the repo
+        run: test -z "$(git ls-files node_modules)"
       - uses: actions/setup-node@v7
         with:
           node-version: 25
@@ -27,3 +29,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:balance
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 25
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run soak
+      - run: npm run lifecycle -- --quality low --no-shots

@@ -8,7 +8,12 @@ const HEADLINE = {
   leader: ['Category leader', 'You own the categories that matter.'],
   runway: ['Out of runway', 'The cash ran out and stayed out.'],
   collapse: ['The lab collapsed', 'Nobody left could keep the lights on.'],
-  timeout: ['Time is up', 'Fifteen years went by. The company is still here, mostly.'],
+};
+
+// Retiring reuses the IPO or acquisition headline with a nod to the choice.
+const RETIRED = {
+  ipo: ['Retired at the bell', 'You took the company public and handed over the keys.'],
+  acquired: ['Retired: acquired!', 'You said yes to the offer and walked out on your own terms.'],
 };
 
 const BREAKDOWN = [
@@ -29,7 +34,7 @@ export function createGameOver({ layer, controls, sfx }) {
     shown = g;
     timers.forEach(clearTimeout);
     timers = [];
-    const [title, sub] = HEADLINE[g.reason] ?? [g.won ? 'You won' : 'Game over', ''];
+    const [title, sub] = (g.reason === 'retired' ? RETIRED[g.retiredVia] : HEADLINE[g.reason]) ?? [g.won ? 'You won' : 'Game over', ''];
     let run = null;
     try { run = typeof SIM.scoreRun === 'function' ? SIM.scoreRun(s) : null; } catch { run = null; }
     const d = dateOf(s.week);

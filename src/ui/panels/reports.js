@@ -4,6 +4,7 @@ import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { lineChart, stackedChart, sample } from '../charts.js';
 import { wrapperRisk } from './marketing.js';
+import { retireOptions, retireBanner } from '../retire.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -28,6 +29,16 @@ export function reportsPanel(ctx) {
     { id: 'combos', icon: 'star', label: 'Combos' },
   ], tab, (id) => { tab = id; t.set(id); render(); });
   const host = h('div');
+  const bannerHost = h('div');
+  const root = h('div', null, bannerHost, host);
+  let retireSig = null;
+  const syncBanner = (s) => {
+    const o = retireOptions(s);
+    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}`;
+    if (sig === retireSig) return;
+    retireSig = sig;
+    bannerHost.replaceChildren(...[retireBanner(ctx, s)].filter(Boolean));
+  };
 
   const chartW = () => {
     const body = host.closest('.panel-body');
@@ -185,12 +196,14 @@ export function reportsPanel(ctx) {
   let resizeTimer = 0;
   const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); };
   addEventListener('resize', onResize);
+  syncBanner(ctx.getState());
   return {
-    el: host,
+    el: root,
     tabs: t.el,
     destroy() { removeEventListener('resize', onResize); clearTimeout(resizeTimer); },
     update(s) {
       t.setLabel('products', `Products (${s.products.filter((p) => !p.killed).length})`);
+      syncBanner(s);
       if (host.firstChild) views[tab].update(s);
     },
   };

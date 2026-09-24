@@ -72,10 +72,14 @@ export function needsYou(s) {
     out.push({ key: 'outage', icon: 'tray.outage', text: `Nobody can fix ${p?.name ?? 'the outage'}`, go: ['ops'] });
   }
   if (s.cash < 0) out.push({ key: 'cash', icon: 'money', text: 'Cash is in the red', go: ['reports'] });
-  for (const j of s.projects) {
-    if (!s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) {
-      out.push({ key: `proj:${j.id}`, icon: 'tray.project', text: `Nobody is working on ${projectLabel(s, j)}`, go: ['build', { projectId: j.id }] });
-    }
+  // Several unstaffed projects fold into one line that opens the Projects tab.
+  const empty = s.projects.filter((j) => !s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));
+  if (empty.length === 1) {
+    const j = empty[0];
+    out.push({ key: `proj:${j.id}`, icon: 'tray.project', text: `Nobody is working on ${projectLabel(s, j)}`, go: ['build', { projectId: j.id }] });
+  } else if (empty.length > 1) {
+    const updates = empty.every((j) => j.kind === 'update');
+    out.push({ key: `proj:${empty.length}`, icon: 'tray.project', text: `${empty.length} ${updates ? 'product updates' : 'projects'} have nobody on them`, go: ['build', { projectId: empty[0].id }] });
   }
   for (const p of s.staff) {
     if (p.pathPending) out.push({ key: `path:${p.id}`, icon: 'path', text: `${p.name.split(' ')[0]} can pick a career path`, go: ['staff', { staffId: p.id, pickPath: true }] });
@@ -190,7 +194,7 @@ export function createHud({ root, controls, ui }) {
       const done = all.filter((g) => s.goals[g.id].done).length;
       const next = all.filter((g) => !s.goals[g.id].done).slice(0, 2);
       if (next.length) {
-        tray.append(h('div.tray-card.goals', { title: 'Milestones. Each one pays a small reward.' },
+        tray.append(h('div.tray-card.goals', { title: 'Milestones. Each one pays a small reward. Click for the full list.', onclick: () => ui.openGoals?.() },
           h('div.t', null, h('span', null, icon('star', { size: 14 }), ' Goals'), h('span.k.num', { text: `${done}/${all.length}` })),
           ...next.map((g) => h('div.goal', null, h('span.gbox'), h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc }))))));
       }
@@ -220,11 +224,12 @@ export function createHud({ root, controls, ui }) {
   }
 
   let last = {};
+  let lastLogoColor = '';
   function update(s) {
     const d = dateOf(s.week);
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
-    const lc = s.founding?.logoColor;
-    if (lc && logo.style.background !== lc) logo.style.background = lc;
+    const lc = s.founding?.logoColor ?? '';
+    if (lc !== lastLogoColor) { lastLogoColor = lc; logo.style.background = lc; }
     setText(name, s.companyName || 'Your Lab');
     const tag = s.founding?.tagline ?? '';
     if (name.title !== tag) name.title = tag;
@@ -272,11 +277,14 @@ export function createHud({ root, controls, ui }) {
     setText(teamVal, `${s.staff.length}/${cap}`);
     let sad = 0;
     for (const p of s.staff) if (p.mood === 'burnout' || p.mood === 'coasting') sad++;
-    const teamKey = sad ? `s${sad}` : 'ok';
+    // With placed furniture, too few desks outranks mood: nobody can be hired and people lack a seat.
+    const short = s.office?.placed && cap < s.staff.length ? s.staff.length - cap : 0;
+    const teamKey = short ? `d${short}` : sad ? `s${sad}` : 'ok';
     if (teamKey !== last.team) {
       last.team = teamKey;
-      teamSub.replaceChildren(icon(sad ? 'mood.coasting' : 'mood.ok', { size: 12 }), sad ? ` ${sad} unhappy` : ' all good');
-      toggleClass(teamSub, 'warn-t', sad > 0);
+      if (short) teamSub.replaceChildren(icon('seat', { size: 12 }), ` ${short} need${short === 1 ? 's' : ''} a desk`);
+      else teamSub.replaceChildren(icon(sad ? 'mood.coasting' : 'mood.ok', { size: 12 }), sad ? ` ${sad} unhappy` : ' all good');
+      toggleClass(teamSub, 'warn-t', sad > 0 || short > 0);
     }
 
     setWidth(mBrand.fill, s.brand / 100);

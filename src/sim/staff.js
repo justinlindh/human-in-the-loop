@@ -4,7 +4,7 @@ import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
-import { OFFICE_STAGES } from '../data/office.js';
+import { deskCapacity } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
@@ -14,6 +14,7 @@ import { itemBonus, researchBonus } from './bonus.js';
 import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
+import { eraLines, eraAllowsText } from './eras.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -72,7 +73,8 @@ export function generateStaff(state, { role, seniority }) {
     const base = (int(r, lo, hi) + growth) * (top.includes(st) ? 1.3 : 1);
     skills[st] = Math.round(clamp(base, 1, 100));
   }
-  const traits = shuffle(r, RANDOM_TRAITS).slice(0, int(r, 0, 2));
+  // AI-flavoured traits (an AI Enthusiast, a Vibe Coder) wait for the AI eras.
+  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraAllowsText(state, `${TRAITS[id].name} ${TRAITS[id].desc}`))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
     name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,
@@ -83,7 +85,7 @@ export function generateStaff(state, { role, seniority }) {
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
     salary: 0, hiredWeek: state.week, founder: false,
-    path: null, pathPending: seniority === 'senior', legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
+    path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
       pants: pick(r, PANTS), accessory: pick(r, ACCESSORIES), build: int(r, 0, 2),
@@ -125,7 +127,7 @@ export function outputMult(state, person) {
     * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0));
 }
 
-export const capacity = (state) => OFFICE_STAGES[state.officeStage].capacity;
+export const capacity = (state) => deskCapacity(state);
 
 export const findStaff = (state, id) => state.staff.find((p) => p.id === id);
 
@@ -156,7 +158,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   const { state } = ctx;
   const c = state.candidates.find((x) => x.id === candidateId);
   if (!c) return { ok: false, reason: 'No such candidate' };
-  if (state.staff.length >= capacity(state)) return { ok: false, reason: 'Office is full' };
+  if (state.staff.length >= deskCapacity(state)) return { ok: false, reason: 'No free desk' };
   const fee = c.salary * B.hireFeeWeeks;
   if (state.cash < fee) return { ok: false, reason: 'Not enough cash' };
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
@@ -167,7 +169,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
-  emitChat(ctx, { person: c, text: pick(ctx.rng, CHATTER.hello) });
+  emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
   return { ok: true };
 });
 

@@ -6,9 +6,12 @@ import { STATS, defaultAssignment } from './staff.js';
 import { zeroPoints } from './work.js';
 import { comboFit } from '../data/combos.js';
 import { TRENDS } from '../data/trends.js';
-import { PRESS, REVIEW_QUOTES } from '../data/press.js';
+import { PRESS, REVIEW_QUOTES, AI_REVIEW_QUOTES } from '../data/press.js';
 import { CATEGORIES } from '../data/categories.js';
 import { RESEARCH } from '../data/research.js';
+import { ANGLES } from '../data/angles.js';
+import { lockedReason } from './unlocks.js';
+import { eraAtLeast, eraIndex } from './eras.js';
 import { emitChat } from './chat.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty' };
@@ -38,12 +41,14 @@ export function reviewScore(state, project) {
   const reviews = PRESS.map((outlet) => {
     const score = Math.round(clamp(base + range(state.rng, -B.reviewNoise, B.reviewNoise), 1, 10) * 2) / 2;
     const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
-    return { outlet: outlet.name, score, quote: pick(state.rng, REVIEW_QUOTES[band]) };
+    const quotes = eraIndex(state) > 0 ? [...REVIEW_QUOTES[band], ...AI_REVIEW_QUOTES[band]] : REVIEW_QUOTES[band];
+    return { outlet: outlet.name, score, quote: pick(state.rng, quotes) };
   });
   return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit, quality };
 }
 
-const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer'));
+// Founders built the company, so any founder can build, whatever their role.
+const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder));
 
 function baseProject(state, fields) {
   return {
@@ -58,8 +63,10 @@ function validateNew(state, a) {
   if (!size) return 'Unknown size';
   if (!state.market.unlockedCategories.includes(a.category)) return 'Category is locked';
   if (!state.market.unlockedAngles.includes(a.angle)) return 'Angle is locked';
-  const m = state.models[a.model];
-  if (!m || !m.available || m.deprecated) return 'Model is not available';
+  if (ANGLES[a.angle].ai) {
+    const m = state.models[a.model];
+    if (!m || !m.available || m.deprecated) return 'Model is not available';
+  }
   if (state.officeStage < size.minStage) return 'Needs a bigger office';
   if (state.cash < size.cost) return 'Not enough cash';
   return null;
@@ -73,10 +80,10 @@ registerAction('startProject', (ctx, a) => {
     const reason = validateNew(state, a);
     if (reason) return { ok: false, reason };
     if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
-    const name = String(a.name ?? '').trim().slice(0, 40) || `${CATEGORIES[a.category].name} AI`;
+    const name = String(a.name ?? '').trim().slice(0, 40) || `${CATEGORIES[a.category].name}${ANGLES[a.angle].ai ? ' AI' : 'ly'}`;
     state.cash -= B.sizes[a.size].cost;
     project = baseProject(state, {
-      kind: 'new', name, category: a.category, angle: a.angle, model: a.model, size: a.size,
+      kind: 'new', name, category: a.category, angle: a.angle, model: ANGLES[a.angle].ai ? a.model : null, size: a.size,
       pointsNeeded: B.sizes[a.size].points * (1 + B.pointsGrowthPerYear * yearIndex),
     });
   } else if (a.kind === 'update' || a.kind === 'migration') {
@@ -101,6 +108,9 @@ registerAction('startProject', (ctx, a) => {
   } else if (a.kind === 'research') {
     const r = RESEARCH[a.researchId];
     if (!r) return { ok: false, reason: 'Unknown research' };
+    const locked = lockedReason(state, 'research');
+    if (locked) return { ok: false, reason: locked };
+    if (r.ai && !eraAtLeast(state, 'agents')) return { ok: false, reason: 'Arrives with the Agents era' };
     if (state.research.done.includes(r.id)) return { ok: false, reason: 'Already researched' };
     if (r.requires && !state.research.done.includes(r.requires)) return { ok: false, reason: `Requires ${RESEARCH[r.requires].name}` };
     if (state.projects.some((j) => j.researchId === r.id)) return { ok: false, reason: 'Already in progress' };
@@ -126,7 +136,7 @@ function launchNew(ctx, j) {
   const baseHealth = clamp(50 + 150 * share('reliability'), 30, 100);
   const product = {
     id: newId(state, 'p'), name: j.name, category: j.category, angle: j.angle, model: j.model,
-    modelVersion: state.models[j.model].version, version: 1, size: j.size,
+    modelVersion: j.model ? state.models[j.model].version : 0, version: 1, size: j.size,
     stats: { ...j.stats }, score: review.score, reviews: review.reviews,
     customers: 0, mrr: 0, hype: clamp(j.bankedHype, 0, 100),
     novelty: clamp(30 * share('novelty') * review.fit, 0, 10),
@@ -162,7 +172,7 @@ function complete(ctx, j) {
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'migration' && pr && !pr.killed) {
     pr.model = j.model;
-    pr.modelVersion = state.models[j.model].version;
+    pr.modelVersion = j.model ? state.models[j.model].version : 0;
     pr.migrationDueWeek = null;
     delete state.flags[`migrateTo_${pr.id}`];
     ctx.emit({ type: 'toast', text: `${pr.name} migrated. Nothing broke. Probably.`, tone: 'good' });

@@ -5,7 +5,7 @@ export const TRAIT_MOD_KEYS = [
 ];
 
 const rows = [
-  ['craftsperson', 'Craftsperson', 'Sweats the details. Takes automation of their craft personally.', { polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 }],
+  ['craftsperson', 'Craftsperson', 'Sweats the details. Takes it personally when the craft gets rushed.', { polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 }],
   ['hype_machine', 'Hype Machine', 'Can make a settings page sound like the moon landing.', { hype: 1.5 }],
   ['paranoid', 'Paranoid', 'Reads every agent log. Has been right twice.', { oversight: 1.4, catch: 0.15 }],
   ['mentor', 'Mentor', 'Loves teaching. Juniors grow fast around them.', { mentorBonus: 1.6, meaningRecovery: 1.2 }],

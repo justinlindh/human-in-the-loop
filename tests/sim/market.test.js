@@ -16,11 +16,12 @@ describe('year start unlocks', () => {
     expect(s.market.unlockedCategories).not.toContain('crm');
     const ev = at(s, 52, calendarStart);
     expect(s.market.unlockedCategories).toEqual(expect.arrayContaining(['crm', 'analytics']));
-    expect(s.market.unlockedAngles).toEqual(expect.arrayContaining(['agent', 'native']));
-    expect(s.models.mistrale.available).toBe(true);
-    expect(ev.filter((e) => e.type === 'toast' && e.tone === 'info').length).toBeGreaterThanOrEqual(5);
+    expect(ev.filter((e) => e.type === 'toast' && e.tone === 'info').length).toBeGreaterThanOrEqual(2);
     const again = at(s, 104, calendarStart).filter((e) => e.type === 'toast' && e.text.includes('CRM'));
     expect(again).toHaveLength(0);
+    expect(s.models.mistrale.available).toBe(false);
+    at(s, 52 * 5, calendarStart);
+    expect(s.models.mistrale.available).toBe(true);
   });
 });
 

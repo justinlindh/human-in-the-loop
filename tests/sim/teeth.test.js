@@ -5,7 +5,7 @@ import { productsSystem } from '../../src/sim/products.js';
 import { staffUpkeep } from '../../src/sim/staff.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
-import { game, addStaff, addProduct } from './helpers.js';
+import { game, addStaff, addProduct, setItems } from './helpers.js';
 
 const run = (s, sys, n) => { for (let i = 0; i < n; i++) { sys(makeCtx(s)); s.week++; } };
 const plain = (s, over = {}) => addStaff(s, 'support', 'mid', { traits: [], meaning: 60, assignment: { type: 'support', targetId: null }, ...over });
@@ -76,7 +76,7 @@ describe('burnout still bites in a kitted-out office', () => {
     for (let seed = 1; seed <= trials; seed++) {
       const s = game(seed);
       s.officeStage = 2;
-      s.items = [{ id: 'a', itemId: 'nap_pod', level: 3 }, { id: 'b', itemId: 'nap_pod', level: 3 }];
+      setItems(s, [{ id: 'a', itemId: 'nap_pod', level: 3 }, { id: 'b', itemId: 'nap_pod', level: 3 }]);
       const p = addStaff(s, 'engineer', 'mid', { traits: [], meaning: 0, mood: 'burnout', burnoutWeeks: 5 });
       meaningSystem(makeCtx(s));
       if (!s.staff.includes(p)) quits++;

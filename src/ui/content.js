@@ -11,6 +11,7 @@ import { TRENDS } from '../data/trends.js';
 import { comboFit } from '../data/combos.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { B } from '../sim/balance.js';
+import { call } from './simapi.js';
 
 export { B };
 
@@ -44,6 +45,7 @@ export function trendText(id) {
 }
 
 export function policyUnlocked(state, p) {
+  if (state.unlocks) return call('isUnlocked', state, `policy.${p.id}`) ?? state.unlocks[`policy.${p.id}`] != null;
   try { return !!p.unlock?.(state); } catch { return false; }
 }
 export function policyLockText(p) {
@@ -58,7 +60,11 @@ export function roleColor(role) { return ROLES[role]?.color ?? '#8a8a8a'; }
 export function roleName(role) { return ROLES[role]?.name ?? role; }
 export function traitInfo(id) { return TRAIT[id] ?? { id, name: id.replace(/_/g, ' '), desc: '' }; }
 
+// Seats: the sim's desk count when it has one, else desk sets placed, else the stage's fixed capacity.
 export function capacityOf(state) {
+  const d = call('deskCapacity', state);
+  if (typeof d === 'number') return d;
+  if (state.office?.placed) return state.office.placed.filter((p) => p.itemId === 'desk').length;
   return OFFICE_STAGES[state.officeStage]?.capacity ?? 4;
 }
 

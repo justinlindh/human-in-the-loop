@@ -142,7 +142,7 @@ describe('economy', () => {
     const s = game();
     const salaries = s.staff.reduce((a, p) => a + p.salary, 0);
     runEconomy(s, 1);
-    expect(s.cash).toBeCloseTo(B.startCash - salaries - OFFICE_STAGES[0].rent);
+    expect(s.cash).toBeCloseTo(B.funding.bootstrapped.cash - salaries - OFFICE_STAGES[0].rent);
     const p = addProduct(s, { customers: 1000, mrr: 10000 });
     const before = s.cash;
     runEconomy(s, 1);

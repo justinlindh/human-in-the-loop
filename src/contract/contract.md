@@ -67,6 +67,7 @@ Staff = {
   path /*career path id or null*/, pathPending /*bool: promoted to senior, path not chosen yet*/, legend /*bool*/,
   record: { mentorWeeks, catches, hardProblemWeeks },   // counters for earned traits
   appearance: { skin /*0..5*/, hair /*0..7*/, hairColor /*hex*/, shirt /*hex*/, pants /*hex*/, accessory /*none|glasses|headphones|beanie|cap*/, build /*0..2*/ },
+  voice: { set /*'fem'|'masc'*/, variant /*0..n-1 within the set*/, pitch /*-1..1 per-person offset*/ },   // chosen with the first name so name and voice agree; staff text refers to people by name or they/them
 }
 
 Project = {
@@ -157,7 +158,7 @@ office: {
   placed: [{ id, itemId, level /*1..3*/, x, y, rot /*0..3*/ }],   // tile coordinates on the stage grid
 },
 // REMOVED: items[] (the fixed-slot shop list); shop items are now entries in office.placed.
-// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired'); 'timeout' and the fixed run end are gone.
+// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired') and 'anniversary' (won: true; set at the end of week 1039, so state.week reads 1040); 'timeout' is gone.
 ```
 Seats: each Staff has `deskId` (the id of a placed desk, or null while they have no desk). A person keeps their desk until that desk is sold or they leave; only then is a free desk assigned (the lowest free desk in placed order). Moving a desk keeps its sitter. The renderer and adjacency `paid` read `deskId`; nobody else changes seat when one person leaves.
 
@@ -170,6 +171,7 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 { type: 'upgradeItem', id }
 { type: 'sellItem', id }                      // half refund of total spent
 { type: 'retire' }                            // valid when an IPO is available or an acquisition offer is open
+{ type: 'keepPlaying' }                       // valid only after the anniversary ending; clears gameOver, keeps flags.anniversaryScore, play continues
 // REMOVED: buyItem (placement replaces it)
 // hire gains the reason 'No free desk'
 ```
@@ -186,7 +188,7 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 Speech bubbles in the office and Slackk messages are separate streams.
 
 ```js
-{ type: 'say', id, week, staffId, text, toId, replyTo }   // spoken aloud in the office; toId: the person addressed (or null); replyTo: the say id this answers (or null)
+{ type: 'say', id, week, staffId, text, toId, replyTo, tone }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
 ```
 - The renderer shows speech bubbles for `say` events only. A `chat` event is Slackk only; the renderer may show a small typing emote on the author's character, never a bubble.
 - `say` events are never added to `chatLog` and never appear in Slackk.
@@ -201,7 +203,14 @@ pets: [{ id, species /* 'dog'|'cat' */, name, ownerId /* staff id, or null once 
 rival: null | { name, founderName, logoColor, categoryId, strength /* 0..100 */, status /* 'rising'|'stalled'|'acquired'|'dead'|'merged' */ },
 // Staff gains:
 remote /* bool: working from home this week; the renderer hides them like 'away', ui marks them remote */,
+strain /*0..100: sustained exhaustion from load; high strain leads to burnout even when meaning is fine*/,
+call /* null, or during a video-call week { muted, frozen, badCamera } (booleans, rerolled weekly) for ui's call grid */,
 ```
 - During a lockdown every staff member except `stayerId` has `remote: true`. The office stays placed but empty; ui may show a video-call grid of the remote staff using portraits.
 - Under `workPolicy: 'hybrid'` the sim sets `remote` per person per week; under `'remote'` most staff are remote most weeks; under `'office'` nobody is.
 - Pets are rendered in the office whenever their owner is present (or always, once `ownerId` is null and the pet has stayed as the office pet).
+
+### Content ladder events
+```js
+{ type: 'incentive', staffId, reward /* 'balloons'|'caricature'|'waffle_party' */ }   // the Incentives Program rewards a top performer; the renderer stages it
+```

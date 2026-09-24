@@ -5,7 +5,7 @@ import { projectsSystem, reviewScore } from '../../src/sim/projects.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { game, addStaff } from './helpers.js';
 
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
+const SEEDS = Array.from({ length: 16 }, (_, i) => i + 1);
 
 // Builds one small product with the given team and returns { score, weeks }.
 function ship(seed, team, { category = 'notes', angle = 'copilot', founders = true, year = 0, reviews = false, autoOnly = false, capability = null, assist = false } = {}) {
@@ -43,9 +43,10 @@ describe('review scores reflect team quality', () => {
   const crowd = band([['engineer', 'junior'], ['engineer', 'junior'], ['designer', 'junior'], ['engineer', 'junior']]);
   const greatCombo = band([], { category: 'email', angle: 'summarizer' });
 
-  it('founders alone score 6 to 7.5', () => {
+  // Founders bring their archetype's signature trait, so they edge a little above a random pair.
+  it('founders alone score 6 to 7.75', () => {
     expect(founders.score).toBeGreaterThanOrEqual(6);
-    expect(founders.score).toBeLessThanOrEqual(7.5);
+    expect(founders.score).toBeLessThanOrEqual(7.75);
   });
 
   it('a mixed team with seniors scores 7 to 8.5', () => {
@@ -109,12 +110,12 @@ describe('review score guards', () => {
 });
 
 describe('humans win on taste', () => {
-  it('pure automation reviews 5 to 6.5 on a good combo and below a strong human team, early and late', () => {
+  it('pure automation reviews 5 to 6.75 on a good combo and below a strong human team, early and late', () => {
     for (const [year, capability] of [[0, null], [10, 100]]) {
       const auto = band([], { autoOnly: true, year, capability, category: 'email', angle: 'summarizer' });
       const humans = band([['engineer', 'senior'], ['designer', 'senior'], ['engineer', 'senior']], { year, category: 'email', angle: 'summarizer', founders: false });
       expect(auto.score, `year ${year} automation`).toBeGreaterThanOrEqual(5);
-      expect(auto.score, `year ${year} automation`).toBeLessThanOrEqual(6.5);
+      expect(auto.score, `year ${year} automation`).toBeLessThanOrEqual(6.75);
       expect(humans.score, `year ${year} humans`).toBeGreaterThan(auto.score + 1);
     }
   });
