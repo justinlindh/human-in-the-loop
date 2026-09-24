@@ -24,8 +24,8 @@ Simulation tasks are specified to the formula and carry their test cases: the si
 | U | `ui-engineer` | `src/ui/`, `src/audio/` |
 | R | `game-reviewer` | nothing (read-only review, playtests, reports findings) |
 
-- Each builder works in its own git worktree on branch `lane/<sim|art|ui>`, cut from `feat/one-shot` after Task L0 merges.
-- Builders commit on their lane branch and message the lead when a task is done. The lead asks the reviewer to review, then merges into `feat/one-shot`. Lane branches are local and unpushed, so rebasing a lane branch onto `feat/one-shot` before merge is allowed and expected.
+- Each builder works in its own git worktree on branch `lane/<sim|art|ui>`, cut from `main` after Task L0 merges.
+- Builders commit on their lane branch and message the lead when a task is done. The lead asks the reviewer to review, then merges into `main`. Lane branches are local and unpushed, so rebasing a lane branch onto `main` before merge is allowed and expected.
 - Need a change outside your lane? Message the owner. Need a contract change? Message the lead; only the lead edits `src/contract/`.
 - Chrome (the real browser) belongs to the reviewer and lead. Builders verify visuals with `npm run snap` (headless Playwright).
 
@@ -43,7 +43,7 @@ Simulation tasks are specified to the formula and carry their test cases: the si
 - Office stages: Garage, Office Floor, HQ Building.
 - Content minimums: 14 categories, 7 angles, 7 models, 14 incumbents, 40+ events, 20+ traits, 6 policies.
 - Zero console errors in playtest. Target 60 fps at 1920x1080 on High quality with 30 staff; Low quality disables GTAO, bloom, and tilt-shift.
-- Never commit to `main`. Integration branch is `feat/one-shot`.
+- Never commit to `main`. Integration branch is `main`.
 
 ## Review Focus
 
@@ -190,7 +190,7 @@ Product = {
 - `src/main.js` reads `?mock=<scenario>` and `?seed=<n>`; with `mock` it uses `createMockSim`, otherwise the real sim once merged.
 - `scripts/snap.js`: `npm run snap -- --scenario floor --out shots/floor.png [--width 1920 --height 1080] [--quality high] [--wait 2500] [--time night] [--speed 4]`. Starts Vite programmatically (or reuses a dev server on 5173), opens headless Chromium via Playwright with `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, loads `/?mock=<scenario>&snap=1`, waits for `window.__HITL_READY === true` plus the wait time, writes the PNG, prints console errors, exits non-zero on any console error. `shots/` is gitignored.
 
-- [ ] **Step 1:** `git checkout -b feat/one-shot` from `design/human-in-the-loop`. `npm init -y`, `npm i three@0.186.0`, `npm i -D vite@8 vitest@5 playwright`, `npx playwright install chromium`. Scripts: `dev`, `build`, `preview`, `test` (`vitest run`), `balance` (`node scripts/balance.js`), `snap` (`node scripts/snap.js`), `models` (`bash scripts/build-models.sh`).
+- [ ] **Step 1:** `git checkout -b main` from `design/human-in-the-loop`. `npm init -y`, `npm i three@0.186.0`, `npm i -D vite@8 vitest@5 playwright`, `npx playwright install chromium`. Scripts: `dev`, `build`, `preview`, `test` (`vitest run`), `balance` (`node scripts/balance.js`), `snap` (`node scripts/snap.js`), `models` (`bash scripts/build-models.sh`).
 - [ ] **Step 2:** `index.html` with `<canvas id="scene">`, `<div id="labels">`, `<div id="ui">`, Google Fonts Fredoka (400 to 700) and JetBrains Mono (500). `vite.config.js` sets `test: { include: ['tests/**/*.test.js'], environment: 'node' }`.
 - [ ] **Step 3: Test** `tests/contract.test.js`:
 
@@ -838,7 +838,7 @@ createUI({ root, getState, dispatch, controls }) -> {
 
 - Reviewer and lead play the real game in Chrome: a full run at 4x using the balanced approach and one using automate-everything, screenshots at key moments, console clean. Findings go to the owning lane as tasks; fix; re-run.
 - Final evidence: `npm test` all green, `npm run balance` meets thresholds, `npm run build` clean, art bar screenshots reviewed, playtest at 1920x1080 and 1024x640.
-- [ ] Merge the lanes into `feat/one-shot`; report the evidence (test output, balance table, screenshots) to the user.
+- [ ] Merge the lanes into `main`; report the evidence (test output, balance table, screenshots) to the user.
 
 ---
 
@@ -852,13 +852,13 @@ S2 + A1 + U1 -> L1 (wiring starts early and grows as lanes merge)
 everything -> L2
 ```
 
-The lead merges each lane task after the reviewer passes it, keeps `feat/one-shot` green, and rebases lane branches when the contract changes.
+The lead merges each lane task after the reviewer passes it, keeps `main` green, and rebases lane branches when the contract changes.
 
 ---
 
-## Phase 2 additions: Progression and Slackk
+## Phase 2 additions: Progression and Yak
 
-Approved by the user after the lanes started. Specs: the spec's **Progression** and **Slackk (team chat)** sections. The canonical contract is `src/contract/contract.md` (it now includes `items`, `research`, staff `path`/`pathPending`/`legend`/`record`, project kind `research`, the extended `chat` event, and the `train`/`choosePath`/`buyItem`/`upgradeItem`/`sellItem` actions); the contract copy earlier in this plan is historical. Order: sim does S12b and S12c after S12 and before S13, so balance tunes everything together. ui does U7 and U8 after U6. art folds item props into A3 and item placement into A5 and A6.
+Approved by the user after the lanes started. Specs: the spec's **Progression** and **Yak (team chat)** sections. The canonical contract is `src/contract/contract.md` (it now includes `items`, `research`, staff `path`/`pathPending`/`legend`/`record`, project kind `research`, the extended `chat` event, and the `train`/`choosePath`/`buyItem`/`upgradeItem`/`sellItem` actions); the contract copy earlier in this plan is historical. Order: sim does S12b and S12c after S12 and before S13, so balance tunes everything together. ui does U7 and U8 after U6. art folds item props into A3 and item placement into A5 and A6.
 
 ### Task S12b: Progression (sim)
 
@@ -874,7 +874,7 @@ Approved by the user after the lanes started. Specs: the spec's **Progression** 
 - **Tests:** each item effect changes its system by the table amount at each level; slot limits per stage; sell refunds half; research prerequisites; each research effect applies; path mods apply and Legend boosts them; pathPending set on promotion and cleared by choosePath; earned traits at thresholds and cap at 3; training programs cost and effects; everything JSON-safe and finite.
 - [ ] TDD cycle; commit `Add office items, internal tools research, career paths, and training programs`.
 
-### Task S12c: Slackk chat content (sim)
+### Task S12c: Yak chat content (sim)
 
 **Files:** `src/data/chatter.js` (extended), `src/data/threads.js`, `src/sim/chat.js` (replaces the chatter emission in `meaning.js`), tests `tests/sim/chat.test.js`.
 
@@ -885,7 +885,7 @@ Approved by the user after the lanes started. Specs: the spec's **Progression** 
 - **Reactions:** count and variety scale with average meaning; wins get celebration emoji; incidents get 💀 and 👀; farewells get 🫡.
 - **Volume:** chat lines per week `= round(B.chatBase + B.chatPerMeaning * avgMeaning)`, so a burnt-out team goes quiet. Cap 6 per week.
 - **Tests:** placeholders always filled (no `{` left in text); replies reference an existing id; channel routing per source; reaction totals higher at high meaning than low; volume falls with meaning; deterministic.
-- [ ] TDD cycle; commit `Add Slackk chat: channels, contextual templates, threads, reactions`.
+- [ ] TDD cycle; commit `Add Yak chat: channels, contextual templates, threads, reactions`.
 
 ### Task U7: Progression UI (ui)
 
@@ -897,15 +897,15 @@ Approved by the user after the lanes started. Specs: the spec's **Progression** 
 - Training: program picker (Workshop needs a skill focus) with cost, effects, and away time.
 - [ ] Commit `Add office shop, research, career paths, and training UI`.
 
-### Task U8: Slackk panel (ui)
+### Task U8: Yak panel (ui)
 
 **Files:** `src/ui/chat.js` (rewrite), `src/ui/style.css`.
 
-- Branded Slackk panel (bottom-left, collapsible): channel list with unread badges; messages with avatar (from portrait widget), name, week, text; replies indented under their parent with a thread line; reaction pills; bot messages styled differently.
+- Branded Yak panel (bottom-left, collapsible): channel list with unread badges; messages with avatar (from portrait widget), name, week, text; replies indented under their parent with a thread line; reaction pills; bot messages styled differently.
 - Clicking a name calls `controls.focusStaff(id)` and `openStaff(id)`.
 - Bounded: last 60 messages per channel in memory and DOM.
 - A healthy team's feed looks busy and colorful; a quiet feed is visibly quiet (show "It's been quiet in #general for a while" after 6 silent weeks).
-- [ ] Commit `Add Slackk team chat panel`.
+- [ ] Commit `Add Yak team chat panel`.
 
 ### Art additions (art)
 
@@ -937,7 +937,7 @@ Spec: the spec's **Icons** section.
 
 - ui first routes every icon through `icon(name, { size })` in `src/ui/icons.js`, returning emoji as a stand-in, and sends art an inventory: every icon name, where it appears, and its display size.
 - art builds the set in `public/icons/` (SVG or PNG plus a `manifest.json` mapping icon name to file and a recommended size), in a consistent style: palette colors, thick ink outline, chunky rounded shapes, legible at 16 px. Object icons (categories, items, research tools) can be Blender renders of the game's own models from the isometric angle, with a transparent background; glyph icons (arrows, locks, warning, hourglass) are hand-drawn SVG.
-- The set includes Slackk reaction icons and character emotes (A4's emote sprites use the same set).
+- The set includes Yak reaction icons and character emotes (A4's emote sprites use the same set).
 - ui swaps `icon()` to read the manifest; emoji stay only as the fallback for a missing name, and a test fails if any name falls back.
 - **Verify:** a `?icons=1` board showing the whole set at 16, 24, and 48 px on light and dark panels, snapped and critiqued with the art-direction checklist; then the panels re-snapped with the new icons.
 - Order: after A6, before A7 (so the quality pass judges the final icons).
@@ -962,7 +962,7 @@ Spec: the spec's **Standups** section. Contract: the `standup` event and the `st
 - Verify with snaps mid-circle on the garage and floor stages.
 
 ### Task U9: Standup UI (ui)
-- A `#standup` Slackk channel. Policies appear automatically from POLICIES; show that the two are mutually exclusive in the Policies tab.
+- A `#standup` Yak channel. Policies appear automatically from POLICIES; show that the two are mutually exclusive in the Policies tab.
 
 ## Phase 4: Structure v2 (eras, unlocks, founding, placement)
 
@@ -1023,9 +1023,9 @@ From the user's playtest: speech bubbles need reasonable timing; employees shoul
 ### Task A12: Conversational staging (art)
 - When a chat event's speaker and its root's speaker are both in the office, stage it as a conversation: the replier turns toward (or walks a few tiles toward) the other speaker, bubbles alternate with the pacer's timing, and a small "..." typing indicator bridges turns. Solo lines stay as single bubbles. Keep the 40-label cap; at 4x, show only the last line of an exchange.
 
-### Phase 5 amendment: speech is not Slackk
+### Phase 5 amendment: speech is not Yak
 
-User direction: chat bubbles should not simply mirror Slackk messages. The contract's "Speech vs Slackk" section adds a `say` event. S18 now writes two pools: spoken lines and exchanges (short, in-person, reactive to the room and the moment, between nearby people) and Slackk posts (written, longer, channels, threads, bots). They may echo each other occasionally, but they are written separately. The volume target applies to each stream (speech: about 1 bubble line per week at 1x plus occasional exchanges; Slackk: its own modest rate). A12 stages `say` exchanges (turning toward `toId`) and shows only a typing emote for `chat`. The pacer's bubble timing applies to `say`; `chat` goes to the feed on its own pacing.
+User direction: chat bubbles should not simply mirror Yak messages. The contract's "Speech vs Yak" section adds a `say` event. S18 now writes two pools: spoken lines and exchanges (short, in-person, reactive to the room and the moment, between nearby people) and Yak posts (written, longer, channels, threads, bots). They may echo each other occasionally, but they are written separately. The volume target applies to each stream (speech: about 1 bubble line per week at 1x plus occasional exchanges; Yak: its own modest rate). A12 stages `say` exchanges (turning toward `toId`) and shows only a typing emote for `chat`. The pacer's bubble timing applies to `say`; `chat` goes to the feed on its own pacing.
 
 ## Phase 6: The long run (4 to 5 hours)
 

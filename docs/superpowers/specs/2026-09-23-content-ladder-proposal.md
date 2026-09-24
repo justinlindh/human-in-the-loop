@@ -59,7 +59,7 @@ Status: proposal for the lead and the user to review. Nothing marked NEW is buil
 | ~800 | 200 | **Made by Humans**: a certification decision and a Saasies category for human craft | Plateau era | NEW | S U A |
 | ~850 | 213 | **Hall of Fame**: Legends and long-serving people get a wall in the office; retirements of original hires | Plateau, 15+ years | NEW | S U A |
 | ~900 | 225 | **The founders' last big bet**: a once-per-run decision (a moonshot product, a spin-off, or handing over the keys) | World floor 2036 | NEW | S U |
-| ~1000 | 250 | **Anniversary countdown**: planning the 20th party; a retrospective of the run in Slackk | Week 1000 | NEW | S U |
+| ~1000 | 250 | **Anniversary countdown**: planning the 20th party; a retrospective of the run in Yak | Week 1000 | NEW | S U |
 | 1040 | 260 | **The 20th anniversary ending**: epilogue and score, then optional play | Week 1040 | NEW | S U |
 
 Gaps of more than about 80 weeks with only EXISTS entries are where the NEW rows sit; the longest stretch without a new card is roughly weeks 450 to 520 and 900 to 1000, which the yearly shows, awards and vendor news fill.

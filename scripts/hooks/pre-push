@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Refuses to push to a branch whose pull request is already merged or closed: those commits would
-# never reach feat/one-shot. Put them on a new branch and open a new PR instead.
+# never reach main. Put them on a new branch and open a new PR instead.
 # Installed by `npm run hooks` (core.hooksPath scripts/hooks: each worktree runs its own copy).
 # Skip once with `git push --no-verify`.
 set -u
@@ -16,7 +16,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   echo "$states" | grep -q " OPEN$" && continue                   # an open PR still takes pushes
   done_pr="$(echo "$states" | head -1)"
   echo "pre-push: refusing to push $branch: PR #${done_pr% *} is ${done_pr#* } (no open PR uses this branch)." >&2
-  echo "pre-push: new commits here would never merge. Start a new branch from origin/feat/one-shot, cherry-pick them, and open a new PR." >&2
+  echo "pre-push: new commits here would never merge. Start a new branch from origin/main, cherry-pick them, and open a new PR." >&2
   status=1
 done
 exit $status
