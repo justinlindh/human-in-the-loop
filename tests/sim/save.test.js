@@ -194,3 +194,16 @@ describe('save slots', () => {
     expect(saveGame({ flags: {}, week: 0 }, broken)).toBe(false);
   });
 });
+
+describe('voice backfill', () => {
+  it('a save without voices gets the same voices a new person would', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const mem = {};
+    const store = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; }, removeItem: (k) => { delete mem[k]; } };
+    const s = createGame({ seed: 4 });
+    const voices = s.staff.map((p) => p.voice);
+    for (const p of [...s.staff, ...s.candidates]) delete p.voice;
+    store.setItem(SAVE_KEY, JSON.stringify(s));
+    expect(loadGame(store).state.staff.map((p) => p.voice)).toEqual(voices);
+  });
+});

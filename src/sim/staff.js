@@ -3,7 +3,7 @@ import { int, range, pick, shuffle, weighted } from './rng.js';
 import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
-import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
+import { FIRST_NAMES, LAST_NAMES, NAME_VOICE } from '../data/names.js';
 import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -63,6 +63,18 @@ export function staffMods(person) {
 
 const RANDOM_TRAITS = Object.keys(TRAITS).filter((id) => id !== 'natural_mentor');
 
+// A person's voice for the audio barks, chosen from their first name and id without touching the rng:
+// the set follows the name (neutral names take either), the variant (0..7) and pitch spread by id.
+export function voiceFor(person) {
+  const n = Number(String(person.id).replace(/\D/g, '')) || 0;
+  const named = NAME_VOICE[person.name.split(' ')[0]];
+  return {
+    set: named ?? (n % 2 ? 'fem' : 'masc'),
+    variant: (n * 5) % 8,
+    pitch: Math.round((((n * 37) % 21) - 10) / 10 * 100) / 100,
+  };
+}
+
 export function generateStaff(state, { role, seniority }) {
   const r = state.rng;
   const top = topStats(role);
@@ -85,7 +97,7 @@ export function generateStaff(state, { role, seniority }) {
     meaning: int(r, 70, 90), stamina: 100, knowledge: B.newHireKnowledge, traits,
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
-    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false,
+    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false, call: null,
     path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
@@ -93,6 +105,7 @@ export function generateStaff(state, { role, seniority }) {
     },
   };
   person.salary = Math.round((B.salary[seniority] * staffMods(person).salary * range(r, 0.9, 1.1)) / 10) * 10;
+  person.voice = voiceFor(person);
   return person;
 }
 

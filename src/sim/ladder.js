@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { chance, int, pick, range } from './rng.js';
+import { chance, int, pick, range, shuffle } from './rng.js';
 import { clamp, newId } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
@@ -7,7 +7,7 @@ import { raiseDecision } from './events.js';
 import { liveProducts } from './projects.js';
 import { eraAtLeast } from './eras.js';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
-import { RIVAL_NAMES, PET_NAMES } from '../data/ladder.js';
+import { RIVAL_NAMES, PET_NAMES, CALL_SCRIPTS } from '../data/ladder.js';
 
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
 const hasPlants = (state) => state.office.placed.some((p) => p.itemId === 'plant' || p.itemId === 'plant_wall');
@@ -19,7 +19,7 @@ export function remoteLearning(state, person) {
 
 // Who works from home: everyone but the stayer during the lockdown, then per the work policy. Patterns are
 // sticky: each person keeps their in or out pattern for a couple of months before it is rolled again.
-// Under remote-first the founders keep a visible core in the office.
+// Under remote-first a core stays in the office: the founders and the seniors.
 function setRemote(ctx) {
   const { state } = ctx;
   const lock = state.lockdown && state.week < state.lockdown.until;
@@ -27,7 +27,8 @@ function setRemote(ctx) {
   for (const p of state.staff) {
     if (p.mood === 'away') { p.remote = false; continue; }
     if (lock) { p.remote = p.id !== state.lockdown.stayerId; continue; }
-    const share = state.workPolicy === 'hybrid' ? B.hybridRemoteShare : state.workPolicy === 'remote' && !p.founder ? B.remoteFirstShare : 0;
+    const core = p.founder || p.seniority === 'senior';
+    const share = state.workPolicy === 'hybrid' ? B.hybridRemoteShare : state.workPolicy === 'remote' && !core ? B.remoteFirstShare : 0;
     if (!share) { p.remote = false; delete until[p.id]; continue; }
     if ((until[p.id] ?? -1) > state.week) continue;
     p.remote = chance(ctx.rng, share);
@@ -119,10 +120,36 @@ export function adoptPet(state, species, ownerId, rng) {
   return pet;
 }
 
+// Call weeks: every lockdown week, and some weeks under hybrid or remote-first. People on the call get
+// staff.call = { muted, frozen, badCamera }; everyone else has call null. Sometimes the call has a moment.
+function callStep(ctx) {
+  const { state, rng } = ctx;
+  const lock = state.lockdown && state.week < state.lockdown.until;
+  const callWeek = lock || ((state.workPolicy === 'hybrid' || state.workPolicy === 'remote') && chance(rng, B.callWeekChance));
+  const onCall = callWeek ? state.staff.filter((p) => p.mood !== 'away' && (lock || p.remote)) : [];
+  for (const p of state.staff) {
+    p.call = onCall.includes(p)
+      ? { muted: chance(rng, B.callMutedChance), frozen: chance(rng, B.callFrozenChance), badCamera: chance(rng, B.callBadCameraChance) }
+      : null;
+  }
+  if (onCall.length < 2 || !chance(rng, B.callMomentChance)) return;
+  const [a, b] = shuffle(rng, onCall);
+  const names = { a: a.name.split(' ')[0], b: b.name.split(' ')[0] };
+  let prev = null;
+  for (const [role, variants] of pick(rng, CALL_SCRIPTS)) {
+    const who = role === 'a' ? a : b;
+    const text = pick(rng, variants).replace(/\{(a|b)\}/g, (_, k) => names[k]);
+    const e = { type: 'say', id: newId(state, 'v'), week: state.week, staffId: who.id, text, toId: (who === a ? b : a).id, replyTo: prev?.id ?? null };
+    ctx.emit(e);
+    prev = e;
+  }
+}
+
 export function ladderSystem(ctx) {
   const { state } = ctx;
   lockdownStep(ctx);
   setRemote(ctx);
+  callStep(ctx);
   rivalStep(ctx);
   petsStep(state);
   if (present(state).length && state.lockdown && state.week === state.lockdown.since + 1 && state.lockdown.stayerId) {
