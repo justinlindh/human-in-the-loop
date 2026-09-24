@@ -7,6 +7,7 @@ import { createPost } from './post.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
 import { loadModels } from './models.js';
+import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createLabels } from './labels.js';
@@ -83,6 +84,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const screens = createScreens();
 
   const params = new URLSearchParams(location.search);
+  // Authored clips for the poses the rig covers (sit and type, couch nap); the rest stay procedural.
+  setRigEnabled(params.get('rig') === '1');
   let debugBuild = null;
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
@@ -221,6 +224,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       resize();
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
+    setRig(on) { setRigEnabled(on); },
     // Speed 0 or a menu pause freezes the diorama (camera and build mode keep working).
     setSpeed(k) { speedZero = k === 0; if (k > 0) staff?.setSpeed(k); },
     setPaused(on) { menuPaused = !!on; },

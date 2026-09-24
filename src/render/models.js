@@ -35,7 +35,7 @@ function loadOne(name) {
   if (!p) {
     const url = `${import.meta.env.BASE_URL}models/${name}.glb`;
     p = loader.loadAsync(url).then(
-      (gltf) => { templates.set(name, prepare(gltf.scene)); },
+      (gltf) => { gltf.scene.userData.clips = gltf.animations; templates.set(name, prepare(gltf.scene)); },
       (err) => { console.warn(`models: could not load ${name}: ${err?.message ?? err}`); },
     );
     pending.set(name, p);
@@ -44,7 +44,7 @@ function loadOne(name) {
 }
 
 // Loads each named model once (cached per name) and resolves when all of them are ready.
-export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi', 'pets']) {
+export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi', 'chibi_rig', 'pets']) {
   return Promise.all(names.map(loadOne)).then(() => templates);
 }
 

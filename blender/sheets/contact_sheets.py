@@ -153,7 +153,8 @@ def sheet(family, glbs):
     return path
 
 
-files = sorted(f for f in os.listdir(MODELS) if f.endswith('.glb'))
+# Rigs (*_rig.glb) hold bones and clips, nothing to look at.
+files = sorted(f for f in os.listdir(MODELS) if f.endswith('.glb') and not f.endswith('_rig.glb'))
 if ONLY:
     files = [f for f in files if f in ONLY or os.path.splitext(f)[0] in ONLY]
 import re
@@ -163,7 +164,7 @@ for f in files:
     families.setdefault(fam, []).append(os.path.join(MODELS, f))
 if ONLY:
     fams = {re.sub(r'_l[123]$', '', o) for o in ONLY}
-    files = sorted(f for f in os.listdir(MODELS) if f.endswith('.glb') and re.sub(r'_l[123]$', '', os.path.splitext(f)[0]) in fams)
+    files = sorted(f for f in os.listdir(MODELS) if f.endswith('.glb') and not f.endswith('_rig.glb') and re.sub(r'_l[123]$', '', os.path.splitext(f)[0]) in fams)
     families = {}
     for f in files:
         families.setdefault(re.sub(r'_l[123]$', '', os.path.splitext(f)[0]), []).append(os.path.join(MODELS, f))
