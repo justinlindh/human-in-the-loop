@@ -1,4 +1,4 @@
 {
- "include": ["glyphs/manifest.json"],
+ "include": ["glyphs/manifest.json", "objects/manifest.json"],
  "icons": {}
 }
