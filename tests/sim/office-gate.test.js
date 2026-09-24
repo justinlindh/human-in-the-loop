@@ -6,22 +6,23 @@ import { ARCHETYPES } from '../../src/data/founders.js';
 import { game, addStaff, addProduct } from './helpers.js';
 
 describe('issue #67: the Office Floor gate', () => {
-  it('takes a stage index or a stage, and counts cash plus a year of revenue', () => {
+  it('takes a stage index or a stage; from orCashWeek, savings stand in for the MRR minimum', () => {
     const s = game(1);
-    s.week = 110;
+    const g = OFFICE_STAGES[1].gate;
+    s.week = g.orCashWeek - 1;
     s.stats.launches = 2;
     s.brand = 30;
     while (s.staff.length < 6) addStaff(s, 'engineer', 'mid');
     const p = addProduct(s, { mrr: 0 });
-    const worth = OFFICE_STAGES[1].gate.worth;
-    s.cash = worth - 1;
-    expect(officeGateReason(s, 1)).toMatch(/cash plus a year of revenue/);
+    s.cash = g.orCash;
+    expect(officeGateReason(s, 1)).toMatch(/MRR, or \$450,000 in the bank from/);
     expect(officeGateReason(s, OFFICE_STAGES[1])).toBe(officeGateReason(s, 1));
-    s.cash = worth;
+    s.week = g.orCashWeek;
     expect(officeGateReason(s, 1)).toBeNull();
-    s.cash = 0;
-    p.mrr = Math.ceil(worth / 12);
-    expect(totalMrr(s)).toBeGreaterThan(0);
+    s.cash = g.orCash - 1;
+    expect(officeGateReason(s, 1)).not.toBeNull();
+    p.mrr = g.mrr;
+    expect(totalMrr(s)).toBe(g.mrr);
     expect(officeGateReason(s, 1)).toBeNull();
   });
 
