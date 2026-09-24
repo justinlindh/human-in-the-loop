@@ -189,7 +189,11 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
-  emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
+  // One hello per week: when several people start together, the first one speaks for the group.
+  if (state.flags.helloWeek !== state.week) {
+    state.flags.helloWeek = state.week;
+    emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
+  }
   return { ok: true };
 });
 

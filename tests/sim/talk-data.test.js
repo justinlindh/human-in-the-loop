@@ -78,3 +78,20 @@ describe('talk data', () => {
     }
   });
 });
+
+describe('no line promises a follow-up that never comes', () => {
+  it('no template points at another channel or promises to post something later', async () => {
+    const { CHATTER } = await import('../../src/data/chatter.js');
+    const { STANDUP } = await import('../../src/data/standup.js');
+    const PROMISE = /#(random|wins|incidents|general|standup|alumni)\b|see (the )?thread|\b(sharing|posting|will post|will share|will write it up) (it )?in\b|\b(link|photo) in #/i;
+    const lines = [
+      ...TALK.flatMap((t) => t.turns.flatMap(([, v]) => v)),
+      ...Object.values(SAY_SOLO).flat(),
+      ...RUNNING_JOKES.flatMap((j) => j.beats.flatMap((b) => b.flatMap(([, v]) => v))),
+      ...Object.values(CHATTER).flat(),
+      ...Object.values(STANDUP).flat(),
+    ];
+    expect(lines.length).toBeGreaterThan(1000);
+    expect(lines.filter((l) => PROMISE.test(l))).toEqual([]);
+  });
+});

@@ -115,7 +115,7 @@ function happenings(ctx) {
     award: ev.some((e) => e.type === 'award' && e.text.startsWith('Product of the Year')) ? {} : null,
     item: lastItem && state.flags.lastItemWeek >= state.week - 1 ? { item: ITEMS[lastItem.itemId]?.name } : null,
     priceHike: ev.some((e) => e.type === 'toast' && /raised prices/.test(e.text)) ? {} : null,
-    clone: ev.some((e) => e.type === 'chat' && e.from === '@hackernewsbot')
+    clone: ev.some((e) => e.type === 'chat' && e.from === '@hackerspewsbot')
       ? { product: liveProducts(state).find((p) => p.category === state.flags.lastCloneCategory) ?? null } : null,
     copied: ev.some((e) => e.type === 'toast' && /Sounds familiar/.test(e.text)) ? {} : null,
   };
