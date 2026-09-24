@@ -90,40 +90,46 @@ export function mesh(geo, material, x = 0, y = 0, z = 0, { cast = true, receive 
   return m;
 }
 
-// Merge every static mesh under root into one mesh per material. Meshes flagged
-// userData.dynamic are left alone. Returns a new Group; root is left untouched.
+// Merge every static mesh under root into one mesh per material. Anything flagged
+// userData.dynamic (and its whole subtree), non-mesh objects (lights, labels), and multi-material
+// meshes are kept as separate objects. Invisible meshes are dropped. Returns a new Group.
 export function mergeStatic(root) {
   root.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
   const buckets = new Map();
   const keep = [];
-  root.traverse((o) => {
-    if (!o.isMesh) return;
-    if (o.userData.dynamic || Array.isArray(o.material)) { keep.push(o); return; }
-    const key = `${o.material.uuid}|${o.castShadow ? 1 : 0}${o.receiveShadow ? 1 : 0}`;
-    let b = buckets.get(key);
-    if (!b) { b = { material: o.material, cast: o.castShadow, receive: o.receiveShadow, geos: [] }; buckets.set(key, b); }
-    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
-    if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
-    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
-    b.geos.push(g);
-  });
+  const visit = (o) => {
+    if (o !== root && (o.userData.dynamic || !o.isMesh && !o.isGroup && o.type !== 'Object3D')) { keep.push(o); return; }
+    if (o.isMesh) {
+      if (!o.visible) return;
+      if (Array.isArray(o.material)) { keep.push(o); return; }
+      const key = `${o.material.uuid}|${o.castShadow ? 1 : 0}${o.receiveShadow ? 1 : 0}`;
+      let b = buckets.get(key);
+      if (!b) { b = { material: o.material, cast: o.castShadow, receive: o.receiveShadow, geos: [] }; buckets.set(key, b); }
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') g.deleteAttribute(k);
+      if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+      g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+      b.geos.push(g);
+    }
+    for (const c of o.children) visit(c);
+  };
+  visit(root);
   const out = new THREE.Group();
   out.name = `${root.name || 'static'}_merged`;
   for (const b of buckets.values()) {
     const g = mergeGeometries(b.geos, false);
     for (const x of b.geos) x.dispose();
-    if (!g) continue;
+    if (!g) { console.warn(`mergeStatic: could not merge ${b.geos.length} geometries for ${b.material.name}`); continue; }
     const m = new THREE.Mesh(g, b.material);
     m.castShadow = b.cast; m.receiveShadow = b.receive;
     out.add(m);
   }
   for (const o of keep) {
-    const c = o.clone();
-    c.matrixAutoUpdate = true;
-    new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld).decompose(c.position, c.quaternion, c.scale);
-    out.add(c);
+    const world = o.matrixWorld.clone();
+    o.removeFromParent();
+    new THREE.Matrix4().multiplyMatrices(inv, world).decompose(o.position, o.quaternion, o.scale);
+    out.add(o);
   }
   return out;
 }

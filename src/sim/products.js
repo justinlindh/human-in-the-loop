@@ -7,6 +7,9 @@ import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
 import { MODELS } from '../data/models.js';
 import { OFFICE_STAGES } from '../data/office.js';
+import { modifierBonus } from './modifiers.js';
+import { perk } from './bonus.js';
+import { staffMods } from './staff.js';
 
 export function productAppeal(state, product) {
   const cat = CATEGORIES[product.category];
@@ -43,16 +46,21 @@ export function productsSystem(ctx) {
 
   const customers = sum(live, (p) => p.customers);
   const supportNeed = customers * B.supportHoursPerCustomer;
-  const supportHave = sum(onAssignment(state, 'support'), (p) => B.supportHoursPerPerson * outputMult(state, p))
+  const supportHave = sum(onAssignment(state, 'support'), (p) => B.supportHoursPerPerson * outputMult(state, p) * staffMods(p).supportHours)
     + state.automation.support.level * B.autoSupportHours;
   state.ops.supportShortfall = supportNeed > 0 ? clamp(1 - supportHave / supportNeed, 0, 1) : 0;
 
-  const maintNeed = sum(live, (p) => B.maintenancePerProduct + p.customers * B.maintenancePerCustomer);
+  const maintNeed = sum(live, (p) => B.maintenancePerProduct + p.customers * B.maintenancePerCustomer) * Math.max(0, 1 + perk(state, 'maintenanceNeed'));
   const shortfall = maintNeed > 0 ? clamp(1 - state.ops.maintenanceCapacity / maintNeed, 0, 1) : 0;
   state.ops.maintenanceShortfall = shortfall;
 
-  const salesBoost = B.salesCloseBoostPerPerson * Math.min(onAssignment(state, 'sales').length, 5)
+  const sellers = onAssignment(state, 'sales');
+  const salesBoost = B.salesCloseBoostPerPerson * Math.min(sum(sellers, (p) => staffMods(p).salesBoost), 5)
     + B.autoSalesBoost * state.automation.sales.level;
+  const pathAcquisition = Math.max(1, ...sellers.map((p) => staffMods(p).acquisition));
+  const pathChurn = Math.min(1, ...onAssignment(state, 'support').map((p) => staffMods(p).churn));
+  const uptimeFloor = Math.min(0.9, B.uptimeFloor + perk(state, 'uptimeFloor'));
+  const decay = B.healthDecay * Math.max(0, 1 + perk(state, 'healthDecay'));
 
   // Targets use this week's appeal for every product before any customers move.
   const targets = live.map((p) => {
@@ -64,21 +72,22 @@ export function productsSystem(ctx) {
     const tam = CATEGORIES[p.category].tam;
     const target = targets[i];
     if (p.customers < target) {
-      const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200);
+      const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
+        * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition;
       p.customers = Math.min(tam, p.customers + (target - p.customers) * Math.min(1, rate));
     }
     const inOutage = state.outage?.productId === p.id;
     const churn = Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
       + (p.hype / 10 > p.score + B.wrapperGap ? B.wrapperChurn : 0)
       + state.ops.supportShortfall * B.supportShortfallChurn
-      + (inOutage ? B.outageChurn : 0));
+      + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn;
     p.customers = Math.max(0, Math.floor(p.customers * (1 - churn)));
 
-    if (shortfall > 0) p.health -= B.healthDecay * shortfall;
+    if (shortfall > 0) p.health -= decay * shortfall;
     else p.health = Math.min(p.baseHealth, p.health + B.healthRecovery);
     if (p.migrationDueWeek !== null && state.week > p.migrationDueWeek) p.health -= B.missedMigrationHealth;
     p.health = clamp(p.health, 0, 100);
-    p.uptime = inOutage ? 0 : B.uptimeFloor + (1 - B.uptimeFloor) * p.health / 100;
+    p.uptime = inOutage ? 0 : uptimeFloor + (1 - uptimeFloor) * p.health / 100;
 
     p.novelty = Math.max(0, p.novelty - B.noveltyDecay);
     p.mrr = p.customers * CATEGORIES[p.category].price;
@@ -89,9 +98,15 @@ export function productsSystem(ctx) {
 registerSystem('products', productsSystem, 40);
 
 registerAction('killProduct', (ctx, { productId }) => {
-  const { state } = ctx;
-  const p = findProduct(state, productId);
+  const p = findProduct(ctx.state, productId);
   if (!p || p.killed) return { ok: false, reason: 'No such product' };
+  sunsetProduct(ctx, p);
+  return { ok: true };
+});
+
+// Sunsets a live product: zeroes it, hurts its builders, and cancels its update and migration work.
+export function sunsetProduct(ctx, p) {
+  const { state } = ctx;
   Object.assign(p, { killed: true, customers: 0, mrr: 0 });
   for (const s of state.staff) {
     const builder = (s.role === 'engineer' || s.role === 'designer') && s.hiredWeek <= p.launchedWeek;
@@ -107,8 +122,7 @@ registerAction('killProduct', (ctx, { productId }) => {
   }
   ctx.emit({ type: 'toast', text: `${p.name} has been sunset. A moment of silence in #general.`, tone: 'info' });
   if (cancelled.length) ctx.emit({ type: 'toast', text: `Cancelled work on ${p.name}: ${cancelled.map((j) => j.name).join(', ')}.`, tone: 'info' });
-  return { ok: true };
-});
+}
 
 registerAction('setOwner', (ctx, { productId, staffId }) => {
   const { state } = ctx;

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Rebuild public/models/*.glb from the Blender scripts. Stops on the first failure.
+# Item scripts (blender/items) write <item>_l1.glb to <item>_l3.glb from one --out path.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 BLENDER="${BLENDER:-blender}"
 mkdir -p public/models
-scripts=(blender/props/*.py)
+scripts=(blender/props/*.py blender/items/*.py)
 [ -f blender/characters/chibi.py ] && scripts+=(blender/characters/chibi.py)
 for s in "${scripts[@]}"; do
   name="$(basename "$s" .py)"

@@ -3,13 +3,20 @@
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}.
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
-export const SUBJECTS = [null, 'randomStaff', 'seniorStaff', 'juniorStaff', 'burnoutStaff', 'automatedSenior', 'mentorStaff', 'randomProduct'];
+export const SUBJECTS = [
+  null, 'randomStaff', 'seniorStaff', 'juniorStaff', 'unmentoredJunior', 'burnoutStaff', 'coastingStaff', 'workingStaff',
+  'automatedSenior', 'mentorStaff', 'founder', 'randomProduct',
+];
+
+export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc'];
 
 export const EFFECT_KEYS = [
   'cash', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
+  'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
 ];
+
 
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [
@@ -32,7 +39,7 @@ const list = [
     ],
   },
   {
-    id: 'junior_asks_mentor', kind: 'staff', weight: 3, cooldownWeeks: 16, random: true, subject: 'juniorStaff',
+    id: 'junior_asks_mentor', kind: 'staff', weight: 3, cooldownWeeks: 16, random: true, subject: 'unmentoredJunior',
     when: () => true,
     title: 'Can someone show me how this works?',
     text: '{name} has been stuck on the same error for two days and finally asks for a mentor.',
@@ -146,6 +153,187 @@ const list = [
     title: 'A proud mentor',
     text: '{name} watched their mentee debug prod without help. They pretended not to tear up.',
     auto: { meaning: 8 },
+  },
+
+  // People
+  {
+    id: 'no_show', kind: 'staff', weight: 2, cooldownWeeks: 40, random: true, subject: 'workingStaff',
+    when: (s) => s.staff.length >= 4,
+    title: 'Where is {name}?',
+    text: '{name} has not been in for three days. Their Slackk status just says "focusing". It has said that since Tuesday.',
+    choices: [
+      { label: 'Check in kindly', hint: 'They take a couple of weeks off; comes back stronger, effects later', effects: { awayWeeks: 2, teamMeaning: 1, later: [{ inWeeks: 3, effects: { meaning: 15 } }] }, outcome: 'You send soup. Actual soup. {name} replies with a single heart.' },
+      { label: 'Dock their pay', hint: 'Saves a little cash; they and the team notice', effects: { awayWeeks: 2, cash: 1500, salaryPct: -10, meaning: -15, teamMeaning: -3 }, outcome: 'HR sends a very formal email. Everyone reads it. Everyone.' },
+      { label: 'Say nothing', hint: 'Nothing now. It may happen again, effects later', effects: { awayWeeks: 3, followUp: { eventId: 'no_show_again', inWeeks: 10 } }, outcome: 'The desk stays empty. The plant on it looks worried.' },
+    ],
+  },
+  {
+    id: 'no_show_again', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: '{name} vanished again',
+    text: 'Same empty desk, same "focusing" status. The plant has given up.',
+    choices: [
+      { label: 'Have a real conversation', hint: 'Costs a little, meaning up', effects: { cash: -1000, meaning: 12 }, outcome: 'It turns out a lot was going on. It usually is.' },
+      { label: 'Let them go', hint: 'They leave', effects: { resign: true }, outcome: 'The desk is cleared. The plant is adopted by support.' },
+    ],
+  },
+  {
+    id: 'quiet_quitter', kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'coastingStaff',
+    when: () => true,
+    title: 'Exactly what the ticket says',
+    text: '{name} does exactly what each ticket says. Nothing more. They are extremely polite about it.',
+    choices: [
+      { label: 'Give them something to own', hint: 'Meaning up now and more later', effects: { meaning: 8, later: [{ inWeeks: 4, effects: { meaning: 6 } }] }, outcome: '{name} gets a whole feature. They start a design doc. Unprompted.' },
+      { label: 'Performance plan', hint: 'A burst of output now; resentment later', effects: { meaning: -10, modifier: { key: 'output', value: 0.05, weeks: 6, label: 'Performance plan pressure' }, later: [{ inWeeks: 6, effects: { meaning: -8, teamMeaning: -2 } }] }, outcome: 'Tickets close faster. Nobody makes eye contact.' },
+      { label: 'Leave it', hint: 'Nothing happens', effects: {}, outcome: 'The tickets keep closing. Precisely.' },
+    ],
+  },
+  {
+    id: 'public_complaint', kind: 'staff', weight: 2, cooldownWeeks: 39, random: true, subject: 'randomStaff',
+    when: (s) => Object.values(s.automation).some((a) => a.level >= 0.5),
+    title: 'A post on LinkedOut',
+    text: '{name} wrote a LinkedOut post about being "a human rubber stamp for AI". It has 40,000 likes and a lot of people tagging {company}.',
+    choices: [
+      { label: 'Respond publicly with real changes', hint: 'Costs cash; brand and team meaning up', effects: { cash: -3000, brand: 2, teamMeaning: 2, meaning: 6 }, outcome: 'Your reply is the second most liked comment. {name} reposts it.' },
+      { label: 'Ask them to take it down', hint: 'Brand and their meaning down', effects: { brand: -3, meaning: -10 }, outcome: 'They take it down. Screenshots do not.' },
+      { label: 'Ignore it', hint: 'Might blow over, might not', effects: { gamble: { p: 0.5, effects: { brand: -5 } } }, outcome: 'You close the tab. You open the tab again.' },
+    ],
+  },
+  {
+    id: 'pay_equity_question', kind: 'staff', weight: 2, cooldownWeeks: 52, random: true, subject: 'randomStaff',
+    when: (s) => s.stats.hires >= 2,
+    title: 'A question about pay',
+    text: '{name} found out a new hire makes more than they do. They would like to understand why.',
+    choices: [
+      { label: 'Fix it across the team', hint: 'A permanent raise for everyone (+8% salaries); team meaning up', effects: { teamSalaryPct: 8, meaning: 10, teamMeaning: 4 }, outcome: 'Everyone gets a letter with a bigger number. Morale improves in real time.' },
+      { label: 'Explain the market', hint: 'Free now; it festers, effects later', effects: { meaning: -8, later: [{ inWeeks: 8, effects: { meaning: -6, teamMeaning: -2 } }] }, outcome: '"The market" is a very unsatisfying answer. Everyone knows it.' },
+    ],
+  },
+  {
+    id: 'junior_overwhelmed', kind: 'staff', weight: 2, cooldownWeeks: 26, random: true, subject: 'juniorStaff',
+    when: () => true,
+    title: 'Fourteen tabs of docs',
+    text: '{name} has fourteen tabs of documentation open and is quietly panicking in a very organized way.',
+    choices: [
+      { label: 'Pair them with a mentor', hint: 'A mid or senior becomes their mentor', requires: 'mentorAvailable', effects: { assign: { type: 'mentor' }, meaning: 5 }, outcome: 'Thirteen tabs close. The one that matters stays open.' },
+      { label: 'Give them a smaller task', hint: 'Meaning up a little', effects: { meaning: 3 }, outcome: 'A good first win. They ship it before lunch.' },
+      { label: 'Sink or swim', hint: 'They learn fast or hate it', effects: { knowledge: 5, meaning: -8 }, outcome: 'They swim. Barely. They remember who did not help.' },
+    ],
+  },
+
+  // Leadership ideas: a founder read something and has plans
+  {
+    id: 'ceo_replace_support', kind: 'leadership', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'founder',
+    when: (s, h) => h.live.length > 0 && s.automation.support.level < 1,
+    title: '{name} has an idea',
+    text: '{name} read a blog post called "Support Teams Are Dead". They want support fully automated by Monday. "Think of the savings!"',
+    choices: [
+      { label: 'Do it', hint: 'Support automation to 100% now (adds a weekly model bill); how customers feel shows up later', effects: { setAutomation: { support: 1 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
+      { label: 'Trial it on half the tickets', hint: 'Support automation to 50%', effects: { setAutomation: { support: 0.5 } }, outcome: 'A careful rollout. {name} calls it "timid". You call it Tuesday.' },
+      { label: 'Talk them down', hint: '{name} sulks a little', effects: { meaning: -3 }, outcome: '{name} reads a different blog post. It is about sourdough.' },
+    ],
+  },
+  {
+    id: 'ceo_support_fallout', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Customers noticed the support bot',
+    text: 'Customers noticed the support bot. The support bot did not notice the customers. A thread titled "is anyone human at {company}" is trending.',
+    choices: [
+      { label: 'Keep the bot', hint: 'Some customers leave; brand down', effects: { customersPct: -6, brand: -3 }, outcome: 'The bot keeps saying "Great question!". Fewer people are asking.' },
+      { label: 'Bring humans back', hint: 'Costs cash; brand recovers a little', effects: { setAutomation: { support: 0.25 }, cash: -5000, brand: 1 }, outcome: 'Real humans answer the phones. A customer cries with relief.' },
+    ],
+  },
+  {
+    id: 'four_day_week', kind: 'leadership', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'founder',
+    when: (s) => s.staff.length >= 5,
+    title: 'What about a four-day week?',
+    text: '{name} saw a study about four-day weeks and cannot stop talking about it. "Same output, happier people. Probably."',
+    choices: [
+      { label: 'Run an 8-week trial', hint: 'Less output, faster recovery for 8 weeks, then decide', effects: { modifier: [{ key: 'output', value: -0.1, weeks: 8, label: 'Four-day week trial' }, { key: 'meaningRecovery', value: 0.5, weeks: 8, label: 'Four-day week trial' }], followUp: { eventId: 'four_day_week_review', inWeeks: 8 } }, outcome: 'Fridays are gone. Nobody knows what day it is anymore. Everyone is thrilled.' },
+      { label: 'Not now', hint: 'The team is a little disappointed', effects: { teamMeaning: -2 }, outcome: 'The study gets forwarded around anyway.' },
+    ],
+  },
+  {
+    id: 'four_day_week_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Four-day week: keep going?',
+    text: 'Time to review the four-day week. Output dipped a bit. People look like they sleep now. What does {company} do?',
+    choices: [
+      { label: 'Keep it', hint: 'Less output, better recovery for 52 weeks, then review again', effects: { modifier: [{ key: 'output', value: -0.1, weeks: 52, label: 'Four-day week' }, { key: 'meaningRecovery', value: 0.4, weeks: 52, label: 'Four-day week' }], followUp: { eventId: 'four_day_week_review', inWeeks: 52 } }, outcome: 'It is official. Someone makes a banner. It is slightly crooked and perfect.' },
+      { label: 'Back to five days', hint: 'Team meaning down', effects: { teamMeaning: -4 }, outcome: 'Friday returns. It is greeted like a tax audit.' },
+    ],
+  },
+  {
+    id: 'ai_first_mandate', kind: 'leadership', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'founder',
+    when: (s) => s.week >= 26,
+    title: '"We are an AI-first company now"',
+    text: '{name} wants to announce that {company} is AI-first. Every team must use agents for everything. There is a slide with a rocket on it.',
+    choices: [
+      { label: 'Announce it', hint: 'Every automation dial +25% and a hype bump now; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, hype: 10, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'AI-first mandate' }, followUp: { eventId: 'ai_first_review', inWeeks: 12 } }, outcome: 'The press release goes out. Engineers read it on their phones, silently.' },
+      { label: 'Make agents optional', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: 'People use the agents where they help. It is almost boring.' },
+      { label: 'Kill the slide', hint: '{name} is a bit deflated', effects: { meaning: -3 }, outcome: 'The rocket slide lives on in a folder called "someday".' },
+    ],
+  },
+  {
+    id: 'ai_first_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Twelve weeks of AI-first',
+    text: 'Twelve weeks into AI-first. The dashboards look great. The standups are very quiet.',
+    choices: [
+      { label: 'Double down', hint: 'Another +25% on every dial; team meaning down', effects: { automationBump: 0.25, teamMeaning: -4 }, outcome: 'The rocket slide gets a second rocket.' },
+      { label: 'Roll it back quietly', hint: 'Every dial -25%; brand dips, team exhales', effects: { automationBump: -0.25, brand: -1, teamMeaning: 3 }, outcome: 'Nobody announces anything. Everyone notices.' },
+    ],
+  },
+  {
+    id: 'rebrand', kind: 'leadership', weight: 1, cooldownWeeks: ONCE, random: true, subject: 'founder',
+    when: (s) => s.week >= 52 && s.cash >= 30000,
+    title: 'Time for a rebrand?',
+    text: '{name} thinks the logo "feels very 2020s". An agency sent a deck with a lot of lowercase letters.',
+    choices: [
+      { label: 'Go bold', hint: 'Costs $20k now; lands in 6 weeks, could flop', effects: { cash: -20000, later: [{ inWeeks: 6, effects: { gamble: { p: 0.6, effects: { brand: 8 }, else: { brand: -4 } } } }] }, outcome: 'The new logo is a lowercase blob. The reveal is in six weeks.' },
+      { label: 'Refresh the logo', hint: 'Small cost, small brand bump', effects: { cash: -3000, brand: 1 }, outcome: 'Same logo, slightly rounder. People say it looks "friendlier".' },
+      { label: 'Keep it', hint: 'Nothing happens', effects: {}, outcome: 'The agency sends a follow-up deck. It is also lowercase.' },
+    ],
+  },
+  {
+    id: 'pivot_pitch', kind: 'leadership', weight: 1, cooldownWeeks: 104, random: true, subject: 'founder',
+    when: (s, h) => h.live.length >= 2,
+    title: '{name} wants to pivot',
+    text: '{name} gathers everyone: "The market has spoken. It said something else." They want to drop the weakest product and chase what is hot.',
+    choices: [
+      { label: 'Pivot', hint: 'Sunset your weakest product; start a free medium project on a hot combo', effects: { pivot: true }, outcome: 'Whiteboards are wiped. New sticky notes appear. Some are the same sticky notes.' },
+      { label: 'Stay the course', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: '"Focus is a feature," you say. It goes on a mug.' },
+    ],
+  },
+  {
+    id: 'open_plan_office', kind: 'leadership', weight: 1, cooldownWeeks: ONCE, random: true, subject: 'founder',
+    when: (s) => s.officeStage >= 1,
+    title: 'Knock down the walls?',
+    text: '{name} wants an open-plan office. "Collaboration!" The walls are not structural. Neither, it turns out, is the plan.',
+    choices: [
+      { label: 'Knock them down', hint: 'Cheap; more output but slower recovery for 26 weeks', effects: { cash: -2000, modifier: [{ key: 'output', value: 0.08, weeks: 26, label: 'Open-plan buzz' }, { key: 'meaningRecovery', value: -0.3, weeks: 26, label: 'Open-plan noise' }] }, outcome: 'Everyone can see everyone. Headphone sales in the area spike.' },
+      { label: 'Keep the walls', hint: 'Nothing happens', effects: {}, outcome: 'The walls stay. So do the doors, which close.' },
+    ],
+  },
+  {
+    id: 'hackathon_week', kind: 'leadership', weight: 1, cooldownWeeks: 52, random: true, subject: 'founder',
+    when: (s, h) => s.staff.length >= 5 && h.live.length > 0,
+    title: 'A whole hackathon week',
+    text: '{name} wants to stop everything for a week of pure hacking. "Remember when we used to have fun?"',
+    choices: [
+      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Slackk. It is the best thing you own.' },
+      { label: 'Not this quarter', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The hackathon becomes a "hack afternoon". It gets moved twice.' },
+    ],
+  },
+  {
+    id: 'founder_burnout', kind: 'leadership', weight: 3, cooldownWeeks: 52, random: true, subject: 'founder',
+    when: (s) => s.staff.some((p) => p.founder && p.meaning < 40 && p.mood !== 'away'),
+    title: 'Even founders run out',
+    text: '{name} answered an email at 3am, then another at 4am, then stared at a wall until 6. They say they are fine.',
+    choices: [
+      { label: 'Take a real break', hint: '{name} is away four weeks and comes back restored', effects: { awayWeeks: 4, meaning: 10 }, outcome: '{name} goes somewhere with no Wi-Fi and one very patient dog.' },
+      { label: 'Push through', hint: 'A burst of output now; the crash comes later', effects: { modifier: { key: 'output', value: 0.1, weeks: 8, label: 'Founder hustle' }, later: [{ inWeeks: 8, effects: { meaning: -20, teamMeaning: -3 } }] }, outcome: '{name} buys a standing desk and a second espresso machine.' },
+    ],
   },
 
   // Market

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE } from './palette.js';
 import { mat, glow, glass } from './materials.js';
-import { loadModels, getModel, PROP_NAMES } from './models.js';
+import { loadModels, getModel, PROP_NAMES, ITEM_IDS, itemModelName } from './models.js';
 import { roundedBox, roundedCylinder, pill, lathe, blob, mesh, mergeStatic } from './prims.js';
 
 // Debug lineups selected by URL params (kit=1). Each builder fills a group and returns bounds.
@@ -79,10 +79,15 @@ export function buildKitBoard(group) {
   return new THREE.Box3(new THREE.Vector3(-w / 2 - 0.5, 0, -z / 2 - 0.5), new THREE.Vector3(w / 2 + 0.5, 0.8, z / 2 + 0.5));
 }
 
-// Every Blender prop on a slab in two rows, labeled.
+// Every Blender prop on a slab, labeled, with the shop items and their tiers beside it.
 export function buildPropLineup(group) {
+  const items = new THREE.Group();
+  const ib = buildItemLineup(items);
   const perRow = 4, stepX = 3.0, stepZ = 3.0;
   const w = perRow * stepX, d = 4 * stepZ;
+  const ix = w / 2 + 1.5 + (ib.max.x - ib.min.x) / 2;
+  items.position.x = ix;
+  group.add(items);
   group.add(mesh(roundedBox(w + 0.6, 0.3, d + 0.6, 0.08), mat('slab_side'), 0, -0.15, 0));
   group.add(mesh(roundedBox(w + 0.4, 0.04, d + 0.4, 0.02), mat('floor_wood'), 0, 0.02, 0));
   group.userData.windowMaterials = [];
@@ -96,5 +101,28 @@ export function buildPropLineup(group) {
       group.add(label(name, x + 0.55, 0, z + 0.55));
     });
   });
-  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 2.4, d / 2));
+  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, ib.min.z), new THREE.Vector3(ix + ib.max.x, 2.4, ib.max.z));
+}
+
+// Every shop item: one row per item, tiers 1 to 3 left to right.
+export function buildItemLineup(group) {
+  const stepX = 3.2, stepZ = 2.6;
+  const rows = ITEM_IDS.length;
+  const w = 3 * stepX, d = rows * stepZ;
+  group.add(mesh(roundedBox(w + 0.6, 0.3, d + 0.6, 0.08), mat('slab_side'), 0, -0.15, 0));
+  group.add(mesh(roundedBox(w + 0.4, 0.04, d + 0.4, 0.02), mat('floor_tile'), 0, 0.02, 0));
+  group.userData.windowMaterials = [];
+  loadModels().then(() => {
+    ITEM_IDS.forEach((id, r) => {
+      for (let l = 1; l <= 3; l++) {
+        const x = (l - 2) * stepX;
+        const z = (r - (rows - 1) / 2) * stepZ;
+        const m = getModel(itemModelName(id, l));
+        m.position.set(x, 0.04, z);
+        group.add(m);
+        if (l === 1) group.add(label(id, x - stepX * 0.5 - 0.4, 0, z + 0.4));
+      }
+    });
+  });
+  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 2.2, d / 2));
 }

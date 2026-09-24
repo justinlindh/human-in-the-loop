@@ -7,6 +7,8 @@ import { automationExposure, oversightRequired, oversightProvided } from './auto
 import { liveProducts } from './projects.js';
 import { CHATTER } from '../data/chatter.js';
 import { emitChat } from './chat.js';
+import { modifierBonus } from './modifiers.js';
+import { itemBonus } from './bonus.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -30,13 +32,14 @@ function weeklyMeaning(state, p) {
   let bonus = 0;
   if (a === 'mentor') bonus += B.meaningRecovery.mentor;
   if (a === 'hardProblem') bonus += B.meaningRecovery.hardProblem;
-  if (a === 'oversight') bonus += B.meaningRecovery.oversight;
+  if (a === 'oversight') bonus += B.meaningRecovery.oversight * mods.oversightMeaning;
   if (mentored) bonus += B.meaningRecovery.mentee;
   if (a === 'project' && state.projects.some((j) => j.id === p.assignment.targetId && j.kind === 'craft')) bonus += B.meaningRecovery.craft;
   if (state.policies.craft_fridays) bonus += B.meaningRecovery.craftFridays;
+  bonus += itemBonus(state, 'meaningRecoveryFlat') + itemBonus(state, 'meaningBaseFlat');
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
-  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery;
-  return recovery - drain;
+  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * Math.max(0, 1 + modifierBonus(state, 'meaningRecovery'));
+  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain'));
 }
 
 export function meaningSystem(ctx) {
@@ -67,7 +70,7 @@ export function meaningSystem(ctx) {
       const depth = clamp((B.coastingBelow - p.meaning) / (B.coastingBelow - B.burnoutBelow), 0, 1);
       return chance(ctx.rng, B.resignChance.coasting * depth * mult);
     }
-    if (p.mood === 'burnout' && p.burnoutWeeks >= B.burnoutWeeksBeforeResign) return chance(ctx.rng, B.resignChance.burnout * mult);
+    if (p.mood === 'burnout' && p.burnoutWeeks >= B.burnoutWeeksBeforeResign + itemBonus(state, 'burnoutGraceWeeks')) return chance(ctx.rng, B.resignChance.burnout * mult);
     return false;
   });
   for (const p of leavers) {

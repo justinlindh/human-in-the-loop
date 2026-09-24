@@ -13,7 +13,7 @@ import { OFFICE_STAGES } from '../../src/data/office.js';
 import { TRENDS } from '../../src/data/trends.js';
 import { PRESS, REVIEW_QUOTES } from '../../src/data/press.js';
 import { CHATTER } from '../../src/data/chatter.js';
-import { EVENTS, EFFECT_KEYS, CONDITION_IDS, SUBJECTS } from '../../src/data/events.js';
+import { EVENTS, EFFECT_KEYS, CONDITION_IDS, SUBJECTS, EVENT_KINDS } from '../../src/data/events.js';
 import { EPILOGUES, GENERIC_EPILOGUES } from '../../src/data/epilogues.js';
 
 const KEYED = { CATEGORIES, ANGLES, MODELS, ROLES, TRAITS, POLICIES, CHANNELS, TRENDS, EVENTS };
@@ -182,14 +182,16 @@ describe('content data', () => {
         if (k === 'gamble') {
           expect(v.p).toBeGreaterThan(0);
           checkEffects(v.effects, `${where}.gamble`);
+          checkEffects(v.else ?? {}, `${where}.gamble.else`);
         }
+        if (k === 'later') for (const l of v) { expect(l.inWeeks).toBeGreaterThan(0); checkEffects(l.effects, `${where}.later`); }
       }
     };
     for (const e of Object.values(EVENTS)) {
       expect(e.title, e.id).toBeTruthy();
       expect(e.text, e.id).toBeTruthy();
       expect(Array.isArray(e.choices) || typeof e.auto === 'object', e.id).toBe(true);
-      expect(['staff', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc']).toContain(e.kind);
+      expect(EVENT_KINDS).toContain(e.kind);
       expect(SUBJECTS).toContain(e.subject);
       expect(typeof e.when).toBe('function');
       if (e.choices) {

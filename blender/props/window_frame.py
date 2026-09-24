@@ -1,5 +1,5 @@
-"""Wall window: frame, cross mullions, sill. window_glass (pal_window) is separate for day/night.
-Origin at the bottom center of the frame; faces -Y; depth spans a 0.25 m wall."""
+'''Wall window: frame, cross mullions, sill. window_glass (pal_window) is separate for day/night.
+Origin at the bottom center of the frame; faces -Y; depth spans a 0.25 m wall.'''
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *
