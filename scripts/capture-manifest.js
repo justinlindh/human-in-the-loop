@@ -70,6 +70,9 @@ const THREE_SAVES = `(async () => {
 // Everyone in the office: no lockdown, and an office work policy (the sim keeps nobody remote).
 const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
 
+// Presents the recent Slackk history the sim kept, since a fast-forward shows nothing as it goes.
+const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
+
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
 
 export const ITEMS = [
@@ -244,5 +247,28 @@ export const ITEMS = [
     id: '5-6-anniversary', title: '5.6 The 20th anniversary ending', query: 'seed=34&speed=1', seconds: 16, setup: PLAY({ weeks: 1030 }),
     actions: [{ at: 1, js: `(() => { const s = window.__HITL.state; s.gameOver = { won: true, reason: 'anniversary', score: 51240, epilogue: ['Twenty years. The garage is a museum now, which is to say a garage.'] }; window.__HITL.emit([{ type: 'gameOver' }]); })()` }],
     screenshots: [5],
+  },
+
+  // README (group 'readme'): hero stills at 1920x1080 with the UI, from real seeded games so every
+  // shot is internally consistent (date, era, effects, goals), plus one short loop.
+  {
+    id: 'readme-garage', group: 'readme', title: 'The garage opening: founders and the first desks', query: 'seed=1&speed=1', still: true,
+    setup: PLAY({ weeks: 1 }), warmup: 3,
+    // Nothing has been said in Slackk yet this early, so the panel is folded away.
+    actions: [...DISMISS_AT([0.1, 0.5]), { at: 0.3, js: KEY('c', 'KeyC') }], screenshots: [3],
+  },
+  {
+    id: 'readme-hq', group: 'readme', title: 'A busy Agents-era HQ with pets and perks', query: 'seed=1&speed=1&time=day', still: true,
+    setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE + CHAT_HISTORY }), warmup: 6,
+    actions: DISMISS_EVERY(5), screenshots: [5],
+  },
+  {
+    id: 'readme-lockdown', group: 'readme', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', still: true,
+    setup: PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY }), warmup: 3,
+    actions: DISMISS_EVERY(6), screenshots: [6],
+  },
+  {
+    id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
+    setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
   },
 ];
