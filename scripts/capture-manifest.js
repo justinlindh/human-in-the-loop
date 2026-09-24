@@ -80,8 +80,14 @@ const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id
 const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
 // Idle people go onto the projects nobody is on, as a player would.
 const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
-// A real game played to week 176, then the sim's own staging: the next live week awards the reward.
-const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, '${reward}');` });
+// A real game played to week 176, then the sim's own staging. The sim is deterministic, so a copy of
+// the state is ticked ahead to find the week the reward lands, and the game is advanced to the week
+// before it: the first live week awards it on camera.
+const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
+  sim.stageIncentive(s, '${reward}');
+  const ahead = structuredClone(s); let weeks = 0;
+  while (weeks < 12) { weeks++; const ev = sim.tick(ahead) ?? []; if (ev.some((e) => e.type === 'incentive' && e.reward === '${reward}')) break; b.botDecide('balanced', ahead); }
+  for (let i = 1; i < weeks; i++) { sim.tick(s); b.botDecide('balanced', s); }` });
 const WAFFLE_SETUP = STAGED('waffle_party');
 // Music night comes naturally: the Incentives Program on from its unlock, played until the fifth
 // reward is due next week, so the live week raises the genre decision.
@@ -294,7 +300,7 @@ export const ITEMS = [
     id: '5-4-waffle-party-real', title: '5.4 Waffle Party in a real game', query: 'seed=1&speed=1', seconds: 30,
     setup: WAFFLE_SETUP,
     actions: WAFFLE_ACTIONS(30),
-    screenshots: [13, 15, 20],
+    screenshots: [11, 14, 18],
   },
   {
     id: '5-5-burnout-resign', title: '5.5 Burnout and a resignation', query: 'mock=floor&speed=1', seconds: 16,
@@ -369,8 +375,9 @@ export const ITEMS = [
     actions: DISMISS_EVERY(6), screenshots: [6],
   },
   {
+    // Shot as the winner speaks, before the watchers behind the glass start their envy emotes.
     id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
-    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(15), screenshots: [14],
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(13), screenshots: [12.75],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,

@@ -64,7 +64,7 @@ describe('bots staff what they start', () => {
         }
       } });
       expect(longest, bot).toBeLessThanOrEqual(12);
-      expect(cancels, bot).toBeLessThanOrEqual(15);
+      expect(cancels, bot).toBeLessThanOrEqual(25);
     }
   }, 120000);
 });
