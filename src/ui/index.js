@@ -107,6 +107,10 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const bottom = h('div.bottom');
   layer.append(bottom);
+  // The bottom row's real height, so the tray can stop above it on short screens.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => layer.style.setProperty('--bottom-h', `${bottom.offsetHeight}px`)).observe(bottom);
+  }
   const chat = createChat(bottom, {
     getState,
     onName: (id) => { controls.focusStaff?.(id); menu.open('staff', { staffId: id }); },
