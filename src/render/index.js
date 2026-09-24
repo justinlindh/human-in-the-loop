@@ -103,6 +103,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);
+    // The view builds when its models load; ready follows a tick later, once it has built.
+    loadModels().then(() => Promise.resolve()).then(() => { ready = true; });
     rig.setBounds(b);
     lighting.fitShadow(b);
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
@@ -227,6 +229,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     setSpeed(k) { speedZero = k === 0; if (k > 0) staff?.setSpeed(k); },
     setPaused(on) { menuPaused = !!on; },
     get paused() { return speedZero || menuPaused; },
+    // Models loaded: the office and people can be built (headless checks wait on this).
+    get ready() { return ready; },
     // Menu portraits from the office character builder (see portraits.js).
     portrait(person, opts) { return portraits.portrait(person, opts); },
     portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
