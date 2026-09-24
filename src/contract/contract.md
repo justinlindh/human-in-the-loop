@@ -222,7 +222,7 @@ call /* null, or during a video-call week { muted, frozen, badCamera } (booleans
 unlocks: 'meaning'                 // opens with the ChatGBT era; before it, ui shows mood and energy, not Meaning
 purpose: null | { value /*0..100*/, mission /* mission id */, tests: [{ week, text, delta }] }   // set by the mission decision in Agents; moved by later test decisions
 { type: 'timeOff', staffId }       // 2 weeks away, strain recovers fast; reasons: 'No such staff member', 'They are away'
-policies: 'no_crunch', 'incentives' // with unlock keys 'policy.no_crunch', 'policy.incentives'
+policies: 'no_crunch', 'incentives', 'crunch' // with unlock keys 'policy.no_crunch', 'policy.incentives', 'policy.crunch'; 'crunch' (Crunch Mode) opens at the first launch and excludes 'no_crunch': turning either on turns the other off
 chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 ```
 - Rewards beyond balloons, caricature and waffle_party are toasts in ui; the renderer stages the three it has props for and treats the others as a small celebrate beat.
