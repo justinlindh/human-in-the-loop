@@ -280,7 +280,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);
-      floating.layout(dt);
+      const ls = labels.getSize();
+      floating.layout(dt, rig.camera, ls.width, ls.height);
       perf.calls = renderer.info.render.calls;
       perf.triangles = renderer.info.render.triangles;
       perf.ms = perf.frames ? perf.ms * 0.9 + (performance.now() - t0) * 0.1 : performance.now() - t0;

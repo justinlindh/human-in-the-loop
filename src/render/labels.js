@@ -76,6 +76,7 @@ export function createLabels(parent) {
     if (same) {
       same.num.n += Number(m[2]);
       same.inner.textContent = `${same.num.sign || '+'}${same.num.n} ${same.num.label}`;
+      same.w = null;
       same.t = Math.min(same.t, 0.12);
       return same;
     }
@@ -86,6 +87,7 @@ export function createLabels(parent) {
     l.kind = 'stat';
     l.el.className = 'hitl-lbl hitl-stat';
     l.inner.textContent = text;
+    l.w = null;
     l.inner.style.background = TONE[tone] ?? P.role_engineer;
     l.t = 0; l.life = 1.7; l.rise = 0.5; l.follow = follow; l.offsetY = offsetY;
     // Spread bubbles that land near each other at the same moment: stack them and nudge sideways.
@@ -106,6 +108,7 @@ export function createLabels(parent) {
     l.kind = 'say';
     l.el.className = 'hitl-lbl hitl-say';
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
+    l.w = null;
     l.inner.style.background = '';
     l.t = 0; l.life = seconds; l.rise = 0; l.follow = follow; l.offsetY = offsetY;
     l.jit.set(0, 0, 0);
@@ -145,11 +148,19 @@ export function createLabels(parent) {
 
   // Screen-space pass, run after the CSS2D render: speech bubbles draw over stat labels, bubbles
   // that overlap stack upward (the older one keeps its place), and stat labels slide sideways off
-  // any bubble. Offsets live on the inner span and ease toward their targets, so nothing jumps.
+  // any bubble. Positions are projected like the CSS2D renderer does and sizes are measured only
+  // when a label's text changes, so a frame does no layout reads. Offsets live on the inner span
+  // and ease toward their targets, so nothing jumps.
   const GAP = 6;
   const TAIL = 9;               // the bubble's pointer below its box
   const hits = (a, b) => a.left < b.right + GAP && a.right > b.left - GAP && a.top < b.bottom + GAP && a.bottom > b.top - GAP;
-  function layout(dt) {
+  const proj = new THREE.Vector3();
+  function rectOf(l, camera, w, h) {
+    proj.setFromMatrixPosition(l.obj.matrixWorld).project(camera);
+    const x = (proj.x * 0.5 + 0.5) * w, y = (-proj.y * 0.5 + 0.5) * h;
+    return { left: x - l.w / 2, right: x + l.w / 2, top: y - l.h / 2, bottom: y + l.h / 2 };
+  }
+  function layout(dt, camera, w, h) {
     const says = [];
     const stats = [];
     for (const l of live) {
@@ -162,12 +173,13 @@ export function createLabels(parent) {
       for (const l of stats) l.dx += (0 - l.dx) * k;
       return;
     }
+    for (const l of [...says, ...stats]) if (l.w == null) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
     says.sort((a, b) => b.t - a.t);
     const placed = [];
     for (const l of says) {
       l.el.style.zIndex = String(Number(l.el.style.zIndex || 0) + 1000);
-      const r = l.el.getBoundingClientRect();
-      const box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom + TAIL };
+      const box = rectOf(l, camera, w, h);
+      box.bottom += TAIL;
       let dy = 0;
       for (let pass = 0; pass < 6; pass++) {
         const at = { ...box, top: box.top + dy, bottom: box.bottom + dy };
@@ -179,7 +191,7 @@ export function createLabels(parent) {
       placed.push({ ...box, top: box.top + dy, bottom: box.bottom + dy });
     }
     for (const l of stats) {
-      const r = l.el.getBoundingClientRect();
+      const r = rectOf(l, camera, w, h);
       let dx = 0;
       for (let pass = 0; pass < 4; pass++) {
         const at = { left: r.left + dx, right: r.right + dx, top: r.top, bottom: r.bottom };
