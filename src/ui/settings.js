@@ -2,7 +2,7 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 
 const KEY = 'hitl.settings';
-const DEFAULTS = { volume: 0.7, muted: false, quality: 'high', tiltShift: true, speed: 1, pauseMenus: true };
+const DEFAULTS = { volume: 0.7, muted: false, quality: 'high', tiltShift: true, speed: 1, pauseMenus: true, pauseOnBlur: true };
 
 export function loadSettings() {
   try {
@@ -24,6 +24,7 @@ export function applySettings(controls, s) {
   controls.setVolume?.(s.muted ? 0 : s.volume);
   controls.setQuality?.(s.quality);
   controls.setTiltShift?.(s.tiltShift);
+  controls.setPauseOnBlur?.(s.pauseOnBlur !== false);
 }
 
 export function createSettings({ layer, controls, sfx }) {
@@ -71,6 +72,11 @@ export function createSettings({ layer, controls, sfx }) {
           const sw = h('button.switch', { onclick: () => { set('pauseMenus', !settings.pauseMenus); toggleClass(sw, 'on', settings.pauseMenus); } }, h('span.knob'));
           toggleClass(sw, 'on', settings.pauseMenus);
           return row('Pause while menus are open', 'Time stops while a panel or popup is open.', sw);
+        })(),
+        (() => {
+          const sw = h('button.switch', { onclick: () => { set('pauseOnBlur', !settings.pauseOnBlur); toggleClass(sw, 'on', settings.pauseOnBlur); } }, h('span.knob'));
+          toggleClass(sw, 'on', settings.pauseOnBlur !== false);
+          return row('Pause when the window loses focus', 'Switching tabs or apps stops the clock.', sw);
         })(),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
         h('div.small.muted', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),

@@ -5,6 +5,8 @@ import { liveView, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { CATALOG, isDesk, beforeEra } from '../v2content.js';
 import { placedOf, stageOf } from '../placement.js';
+import { EVENTS } from '../../data/events.js';
+import { weeklyCosts } from '../../sim/economy.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
@@ -111,11 +113,19 @@ function legacyOfficePanel(ctx) {
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
 
-const WORK_POLICY = {
-  office: { name: 'Office-first', tip: 'Everyone comes in.' },
-  hybrid: { name: 'Hybrid', tip: 'People split their weeks between home and the office.' },
-  remote: { name: 'Remote-first: half rent, 2 more candidates', tip: 'Most people work from home most weeks. Rent is halved and each candidate refresh brings 2 more people.' },
-};
+// Rent as the sim charges it (the work policy can discount it).
+function rentOf(s, stage) {
+  try { const r = weeklyCosts(s).rent; if (Number.isFinite(r)) return r; } catch { /* fall back to the list price */ }
+  return stage.rent;
+}
+
+// Work policy names and trade-offs come from the sim's work_policy decision choices.
+const WORK_POLICY = (() => {
+  const ev = EVENTS.work_policy ?? Object.values(EVENTS).find((e) => e.id === 'work_policy');
+  const out = {};
+  for (const c of ev?.choices ?? []) if (c.effects?.workPolicy) out[c.effects.workPolicy] = { name: c.label, tip: c.hint ?? '' };
+  return out;
+})();
 
 const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
 
@@ -144,8 +154,8 @@ function buildPalette(ctx) {
           icon('seat', { size: 12 }), s.staff.length > desks
             ? ` ${desks} desk${desks === 1 ? '' : 's'} for ${s.staff.length} ${s.staff.length === 1 ? 'person' : 'people'}`
             : ` ${s.staff.length}/${desks} desks used`),
-        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(stage.rent)}/wk rent`),
-        s.workPolicy ? h('span.pill', { title: WORK_POLICY[s.workPolicy]?.tip ?? '' }, icon('home', { size: 12 }), ` ${WORK_POLICY[s.workPolicy]?.name ?? s.workPolicy}`) : null);
+        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(rentOf(s, stage))}/wk rent`),
+        s.workPolicy ? h('span.pill.policy', null, icon('home', { size: 12 }), ` ${WORK_POLICY[s.workPolicy]?.name ?? s.workPolicy}`) : null);
       let right;
       if (next) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
@@ -155,9 +165,10 @@ function buildPalette(ctx) {
         right = h('div.col.right', null,
           h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(next.rent)}/wk rent. Your furniture comes along.` }), btn, why);
       } else right = h('span.small.muted', { text: 'The biggest office in town.' });
+      const policyTip = s.workPolicy && WORK_POLICY[s.workPolicy]?.tip ? h('div.small.muted.policytip', { text: WORK_POLICY[s.workPolicy].tip }) : null;
       const stageCard = h('div.card.stagecard', null,
         h('div', null, h('div.small.muted', { text: 'Your office' }), h('h2.oname', { text: stage.name })),
-        pills, h('span.spacer'), right);
+        h('div.col', null, pills, policyTip), h('span.spacer'), right);
 
       const hint = !desks ? h('div.starterhint', null, icon('seat', { size: 18 }), 'Start with desks: nobody can work (or be hired) without one.') : null;
 

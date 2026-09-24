@@ -1000,3 +1000,4 @@
 .hitl .rivalcard { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.8em; }
 .hitl .rivalcard .rlogo { flex: none; width: 2.2em; height: 2.2em; border-radius: 0.6em; border: 0.14em solid var(--ink); display: grid; place-items: center; font-weight: 700; color: #fff; text-shadow: 0 0.08em 0 var(--ink); }
 .hitl .rivalcard .row { gap: 0.4em; align-items: center; }
+.hitl .policytip { max-width: 34em; margin-top: 0.25em; }

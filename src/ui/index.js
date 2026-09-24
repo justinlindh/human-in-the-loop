@@ -222,6 +222,18 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   addEventListener('keydown', onKey);
 
+  // main.js pauses on blur (when the setting is on) and fires 'hitl:awaypaused' with the speed to
+  // restore; on return the player gets one hint they can tap to resume.
+  addEventListener('hitl:awaypaused', (e) => {
+    const resume = e.detail?.resumeSpeed ?? 1;
+    const back = () => {
+      removeEventListener('focus', back);
+      if ((controls.getSpeed?.() ?? 0) !== 0) return;
+      toasts.push('Paused while you were away. Tap to resume.', 'info', { action: () => ui.setSpeed(resume) });
+    };
+    if (document.hasFocus()) back(); else addEventListener('focus', back);
+  });
+
   const launchScores = new Map(); // last seen review score per product, to spot notable updates
 
   // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
