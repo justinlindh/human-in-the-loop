@@ -84,8 +84,11 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const screens = createScreens();
 
   const params = new URLSearchParams(location.search);
-  // Authored clips for the poses the rig covers (sit and type, couch nap); the rest stay procedural.
-  const rigLoaded = setRigEnabled(params.get('rig') === '1');
+  // Authored clips for the poses the rig covers are the default look; Low quality (and ?rig=0) keeps
+  // the lighter procedural poses. ?rig=1 forces the rig on at any quality.
+  const rigParam = params.get('rig');
+  const rigWanted = () => (rigParam === '1' ? true : rigParam === '0' ? false : q !== 'low');
+  const rigLoaded = setRigEnabled(rigWanted());
   let debugBuild = null;
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
@@ -138,6 +141,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const post = createPost(renderer, scene, rig.camera, q);
 
   function applyQuality() {
+    setRigEnabled(rigWanted());
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
     staff?.setCharacterShadows(q !== 'low');
     setGlowScale(q === 'low' ? 0.45 : 1);
