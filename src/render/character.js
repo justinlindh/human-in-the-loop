@@ -18,7 +18,7 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap'];
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake'];
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
@@ -296,6 +296,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   baked.push(bakeParts(torsoParts, torso, bm, tintable));
   baked.push(bakeParts(headParts, headGroup, bm, tintable));
   for (const a of arms) baked.push(bakeParts(a.parts, a.shoulder, bm, tintable));
+  ['legL', 'legR', 'torso', 'head', 'armL', 'armR'].forEach((n, i) => { if (baked[i]) baked[i].userData.part = n; });
   // Face variants per mood, one mesh each; setMood shows the matching one.
   const faces = {};
   for (const k of ['ok', 'coasting', 'burnout']) {
@@ -369,6 +370,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       }
       case 'slumped':
+        // Leaning poses sit back in the chair so the torso stays clear of the desk edge.
+        tgt.bodyZ = -0.06;
         tgt.lean = 0.42;
         tgt.headX = 0.5 + s(t * 0.6 + phase) * 0.05;
         tgt.headZ = 0.12;
@@ -380,13 +383,14 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       case 'burnout': {
         const sigh = Math.max(0, s(t * 1.4 + phase)) ** 6;
-        tgt.lean = 0.95 - sigh * 0.25;
-        tgt.headX = 0.55;
+        tgt.bodyZ = -0.12;
+        tgt.lean = 0.52 - sigh * 0.2;
+        tgt.headX = 0.45;
         tgt.headZ = 0.35;
         // Head down on folded arms that lie on the desk.
-        tgt.armLX = tgt.armRX = -2.98;
+        tgt.armLX = tgt.armRX = -2.6;
         tgt.armLZ = 0.55; tgt.armRZ = -0.55;
-        tgt.bodyY -= 0.05 - sigh * 0.03;
+        tgt.bodyY -= 0.02 - sigh * 0.03;
         break;
       }
       case 'walk':
@@ -444,6 +448,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       case 'tired': {
         // Exhausted but working: chin propped on one hand, the other hand typing slowly.
         const nod = Math.max(0, s(t * 0.9 + phase)) ** 8;
+        tgt.bodyZ = -0.05;
         tgt.lean = 0.3;
         tgt.headX = 0.22 + nod * 0.25;
         tgt.headZ = 0.22;
@@ -462,6 +467,27 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY -= 0.04 - s(t * 1.1 + phase) * 0.006;
         break;
       }
+      case 'point':
+        tgt.armRX = -1.85; tgt.armRZ = -0.12;
+        tgt.lean = 0.06;
+        tgt.headX = -0.05;
+        break;
+      case 'press':
+        // Both hands up against the glass.
+        tgt.armLX = tgt.armRX = -1.55;
+        tgt.armLZ = 0.4; tgt.armRZ = -0.4;
+        tgt.lean = 0.14;
+        break;
+      case 'whisper':
+        tgt.lean = 0.12;
+        tgt.headZ = 0.32;
+        tgt.armRX = -1.25; tgt.armRZ = -0.7;
+        break;
+      case 'shake':
+        tgt.headZ = s(t * 7) * 0.22;
+        tgt.headX = 0.12;
+        tgt.armLZ = 0.05; tgt.armRZ = -0.05;
+        break;
       case 'nap':
         // Lying on the back, the upper body inclined so the head rests up on an armrest.
         tgt.pitch = -Math.PI / 2 + 0.3;
