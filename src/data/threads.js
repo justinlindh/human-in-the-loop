@@ -40,7 +40,7 @@ export const THREADS = [
     replies: [{ who: 'random', text: 'Absolute hero behavior.' }, { who: 'founder', text: 'Lunch is on me, {poster}.' }] },
   { id: 'caught_logs', context: 'caught', channel: 'incidents', when: always,
     post: { who: 'overseer', text: 'The {model} agent explained its plan in the logs. The plan was bad. It was very confident.' },
-    replies: [{ who: 'engineer', text: 'Frame that log. Put it next to the coffee machine.' }] },
+    replies: [{ who: 'engineer', text: 'Frame that log. Put it on the fridge.' }] },
   { id: 'promotion_it_depends', context: 'promotion', channel: 'wins', when: always,
     post: { who: 'promoted', text: 'Just got promoted. Nothing changes, except now I am allowed to say "it depends".' },
     replies: [{ who: 'random', text: 'Congrats! Drinks are on you.' }, { who: 'founder', text: 'Deserved. Truly.' }] },

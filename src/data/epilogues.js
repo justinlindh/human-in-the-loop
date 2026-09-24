@@ -18,7 +18,7 @@ export const EPILOGUES = [
   { id: 'collapse', when: (s, x) => x.reason === 'collapse',
     text: 'The outage never ended. Nobody left knew how the system worked, and the system did not know either.' },
   { id: 'timeout', when: (s, x) => x.reason === 'timeout',
-    text: '{company} is still around. Not famous, not dead. A nice, medium-sized lab with a very good coffee machine.' },
+    text: '{company} is still around. Not famous, not dead. A nice, medium-sized lab with a very good snack drawer.' },
   { id: 'juniors_grew', when: (s, x) => x.juniorsHired >= 5 && s.week >= 156,
     text: 'Three of your former juniors now run teams of their own. They still use your code review checklist.' },
   { id: 'no_juniors', when: (s, x) => x.juniorsHired === 0 && s.week >= 156,

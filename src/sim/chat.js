@@ -41,7 +41,7 @@ export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(st
 // Emits a Slackk chat event in the contract shape. `person` may be a staff object or null for bots.
 export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null }) {
   const msg = {
-    type: 'chat', id: newId(ctx.state, 'm'), channel, from, fromId: person?.id ?? null, text, replyTo,
+    type: 'chat', id: newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
     reactions: reactions ?? reactionsFor(ctx.state, ctx.rng, channel, kind),
   };
   ctx.emit(msg);
