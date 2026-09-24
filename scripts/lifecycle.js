@@ -40,13 +40,17 @@ const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${la
 // DOM clicks, not mouse input: on a software-GL runner a frame can take seconds (menus draw 3D
 // portraits), and real input waits behind rendering long enough to time out. These checks are
 // about behavior, not pointer handling.
-const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 60000 }); await loc.evaluate((el) => el.click()); };
+// Long limits: opening the founders step blocks the main thread for seconds on a slow CPU (portraits).
+const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 120000 }); await loc.evaluate((el) => el.click(), undefined, { timeout: 120000 }); };
 const clickText = (re) => click(page.locator('button:visible', { hasText: re }).first());
 
 try {
   await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base, { waitUntil: 'domcontentloaded', timeout: 90000 }); await ready(); await page.waitForTimeout(1000);
   const t0 = await page.evaluate(() => ({ playing: window.__HITL.playing, text: document.body.innerText }));
   check('title shows, not playing', !t0.playing && /New Game/.test(t0.text));
+  // The saved setting is applied at startup, but an explicit ?quality= wins for the session.
+  const q0 = await page.evaluate(() => window.__HITL.controls.getQuality?.());
+  check('graphics quality follows ?quality, else the saved setting', q0 === (QUALITY ?? 'high'), `active ${q0}`);
   await shot('1-title.png');
 
   // Record what the UI hands to controls.newGame.
@@ -171,11 +175,15 @@ try {
   check('focus does not resume', away.afterFocus === 0, `speed ${away.afterFocus}`);
   const offSpeed = await page.evaluate(() => {
     const c = window.__HITL.controls;
+    // Both names ui has used for the setting must work.
     c.setPauseOnBlur(false); c.setSpeed(1);
     dispatchEvent(new Event('blur'));
-    const sp = window.__HITL.clock.speed;
-    c.setPauseOnBlur(true); c.setSpeed(0);
-    return sp;
+    const viaPauseOnBlur = window.__HITL.clock.speed;
+    c.setPauseOnBlur(true); c.setAutoPause(false); c.setSpeed(1);
+    dispatchEvent(new Event('blur'));
+    const viaAutoPause = window.__HITL.clock.speed;
+    c.setAutoPause(true); c.setSpeed(0);
+    return viaPauseOnBlur === 1 && viaAutoPause === 1 && c.getAutoPause() === true ? 1 : `${viaPauseOnBlur}/${viaAutoPause}`;
   });
   check('with auto-pause off, blur leaves the game running', offSpeed === 1, `speed ${offSpeed}`);
   const lastWeek = away.week;
