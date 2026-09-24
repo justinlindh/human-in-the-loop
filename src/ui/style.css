@@ -1101,3 +1101,12 @@
   .hitl .gpick { min-height: 44px; }
   .hitl .pk-row { min-height: 44px; }
 }
+/* Track record: a compact line under the name in the Staff table, a block in the person detail. */
+.hitl .stafftable .recline { text-align: left; font-variant-numeric: tabular-nums; font-size: 0.74em; color: var(--ink-soft); white-space: nowrap; margin-top: 0.1em; }
+.hitl .pill.top { background: var(--yellow); color: var(--ink); font-weight: 700; }
+.hitl .detail .record { margin-top: 0.4em; }
+.hitl .detail .record h3 { margin-bottom: 0.15em; }
+.hitl .detail .record h3 { display: flex; align-items: center; gap: 0.3em; }
+.hitl .record .recmain { display: flex; flex-wrap: wrap; gap: 0.1em 0.8em; }
+.hitl .record .recstat b.num { font-size: 1.12em; font-weight: 700; }
+.hitl .record .recmore { margin-top: 0.3em; line-height: 1.35; }

@@ -1,7 +1,11 @@
+// AI-themed trends only appear once their subject exists.
+const AI_ON = ['chatgbt', 'agents', 'consolidation', 'plateau'];
+const AGENTS_ON = ['agents', 'consolidation', 'plateau'];
+
 const rows = [
-  ['agents_hot', 'Agents Are Hot', 'Every pitch deck now has the word "agentic" on slide one.', 26, { agent: 1.4, workflow: 1.2 }, {}],
-  ['ai_fatigue', 'AI Fatigue', 'Customers are tired of sparkle buttons. "Does it just work?" is back.', 26, { copilot: 0.7, native: 0.7 }, {}],
-  ['compliance', 'Compliance Crackdown', 'Regulators discover AI. Everyone discovers lawyers.', 39, { agent: 0.8 }, { hr: 0.8, legal: 1.2, accounting: 1.1 }],
+  ['agents_hot', 'Agents Are Hot', 'Every pitch deck now has the word "agentic" on slide one.', 26, { agent: 1.4, workflow: 1.2 }, {}, AGENTS_ON],
+  ['ai_fatigue', 'AI Fatigue', 'Customers are tired of sparkle buttons. "Does it just work?" is back.', 26, { copilot: 0.7, native: 0.7 }, {}, AI_ON],
+  ['compliance', 'Compliance Crackdown', 'Regulators discover AI. Everyone discovers lawyers.', 39, { agent: 0.8 }, { hr: 0.8, legal: 1.2, accounting: 1.1 }, AGENTS_ON],
   ['voice_boom', 'Voice Boom', 'Everyone is talking to their software. On the train. Loudly.', 26, { voice: 1.5 }, {}, ['consolidation']],
   ['budget_cuts', 'Budget Cuts', 'CFOs are cancelling seats. Nice-to-haves are now nice-to-not-haves.', 13, {}, { crm: 0.8, analytics: 0.85, pm: 0.85 }],
   ['remote_wave', 'Remote Wave', 'Nobody is in the office and everyone needs a summary of the meeting they skipped.', 26, { summarizer: 1.3 }, { notes: 1.2, pm: 1.2 }],

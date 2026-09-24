@@ -255,3 +255,146 @@ export async function runDanceCheck(R, S, genre, { dt = 1 / 30 } = {}) {
   return { name: `dance:${genre}`, pass: dancers.length >= 4 && insidePct < 0.5 && minGap > 0.55 && away.length === 0,
     dancers: dancers.length, insidePct: +insidePct.toFixed(2), minGap: +minGap.toFixed(2), notBackAtDesk: away };
 }
+
+// Walking among furniture (issue #134):
+//   dropOnWalk: a desk placed across someone's walk; they re-path and never pass through it.
+//   dropOnStand: a desk placed where someone stands; they step out of it.
+//   walkers: over a stretch of normal office life, nobody's body (arms aside) enters furniture other
+//            than their own desk or the item they are getting on or off.
+//   use:<item>: someone using a counter or wall item stands within USE_MAX of its front, inside nothing.
+const USE_MAX = 0.45;
+// arms: false leaves out swinging arms (a walker's arm may brush an edge they walk past).
+function bodyInside(root, targets, arms = true) {
+  const pts = vertices(root, 8, arms ? () => true : (o) => !isArm(o));
+  return pts.length ? insideCount(pts, targets) / pts.length : 0;
+}
+function furnitureOf(R, skip = new Set()) {
+  const out = [];
+  for (const e of R.office.placed.values()) if (!skip.has(e.id)) out.push(...meshes(e.obj));
+  return out;
+}
+
+export async function runWalkChecks(R, S, { dt = 1 / 30 } = {}) {
+  const results = [];
+  const step = (n = 1) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  const ids = S.staff.map((p) => p.id);
+  const deskOf = (id) => R.perks.peek(id)?.seat;
+
+  // 1. A desk dropped across an active walk.
+  {
+    const who = ids[0];
+    const root = charOf(R.scene, who);
+    const L = R.office.current.L;
+    const target = R.office.current.zones.door;
+    // Walk to the far corner area, then drop a desk on the path a couple of meters ahead.
+    const perks = [...R.office.placed.values()].filter((e) => ['couch', 'nap_pod', 'arcade', 'library', 'espresso', 'coffee_corner'].includes(e.itemId));
+    const far = perks.sort((a, b) => Math.hypot(b.target.x - root.position.x, b.target.z - root.position.z) - Math.hypot(a.target.x - root.position.x, a.target.z - root.position.z))[0];
+    R.perks.send([who], far.id, { dur: 20 });
+    step(15);
+    const pos = root.position;
+    const dir = { x: far.target.x - pos.x, z: far.target.z - pos.z };
+    const len = Math.hypot(dir.x, dir.z) || 1;
+    const ahead = { x: pos.x + (dir.x / len) * 1.6, z: pos.z + (dir.z / len) * 1.6 };
+    const tx = Math.floor(ahead.x + L.W / 2), ty = Math.floor(ahead.z + L.D / 2);
+    S.office.placed.push({ id: 'walk_drop', itemId: 'desk', level: 1, x: tx, y: Math.min(ty, L.D - 2), rot: 0 });
+    step(2);
+    const drop = R.office.placed.get('walk_drop');
+    const targets = meshes(drop.obj);
+    let worst = 0;
+    for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) { step(1); if (i % 3 === 0) worst = Math.max(worst, bodyInside(root, targets)); }
+    results.push({ name: 'walk:dropOnWalk', pass: worst === 0, insidePct: +(100 * worst).toFixed(2), tile: [tx, ty], void: target && 0 });
+    S.office.placed = S.office.placed.filter((p) => p.id !== 'walk_drop');
+    step(10);
+  }
+
+  // 2. A desk dropped where someone stands.
+  {
+    const who = ids[1];
+    const root = charOf(R.scene, who);
+    const L = R.office.current.L;
+    // Stand them on open floor: a 1x2 spot with nothing on it or next to it.
+    R.perks.hold = true;
+    const nav = R.office.nav();
+    let tx = -1, ty = -1;
+    for (let y = 1; y < L.grid.h - 3 && tx < 0; y++) for (let x = 1; x < L.grid.w - 1 && tx < 0; x++) {
+      let ok = true;
+      for (let i = -1; i <= 1 && ok; i++) for (let j = -1; j <= 2 && ok; j++) if (nav.isBlocked(x + i - L.W / 2 + 0.5, y + j - L.D / 2 + 0.5)) ok = false;
+      if (ok) { tx = x; ty = y; }
+    }
+    step(1);
+    R.standAt(who, tx - L.W / 2 + 0.5, ty - L.D / 2 + 0.3);
+    step(1);
+    const rec = R.perks.peek(who);
+    S.office.placed.push({ id: 'stand_drop', itemId: 'desk', level: 1, x: tx, y: ty, rot: 0 });
+    step(2);
+    const drop = R.office.placed.get('stand_drop');
+    let inside = 1;
+    const before = { x: +root.position.x.toFixed(2), z: +root.position.z.toFixed(2), blocked: nav.isBlocked(root.position.x, root.position.z, 0.2), path: R.perks.peek(who)?.path };
+    for (let i = 0; i < 90; i++) step(1);
+    globalThis.__dbgStand = { before, after: { x: +root.position.x.toFixed(2), z: +root.position.z.toFixed(2), path: R.perks.peek(who)?.path, temp: R.perks.peek(who)?.temp?.anim } };
+    inside = bodyInside(root, meshes(drop.obj));
+    results.push({ name: 'walk:dropOnStand', pass: inside === 0, insidePct: +(100 * inside).toFixed(2), ...globalThis.__dbgStand });
+    S.office.placed = S.office.placed.filter((p) => p.id !== 'stand_drop');
+    S.staff[1].assignment = { type: 'project', targetId: null };
+    step(10);
+  }
+
+  // 3. Normal office life: walkers never inside furniture (a sitter's own desk excepted).
+  {
+    R.perks.hold = false;
+    let worst = 0, worstWho = null, samples = 0;
+    for (let f = 0; f < 30 * 40; f++) {
+      step(1);
+      if (f % 10) continue;
+      for (const id of ids) {
+        const pk = R.perks.peek(id);
+        if (!pk?.path) continue;
+        const root = charOf(R.scene, id);
+        if (!root) continue;
+        const own = new Set([deskOf(id)]);
+        // The item they are heading onto (a couch) is theirs too while they get on it.
+        if (pk.temp?.key) own.add(pk.temp.key.split(':')[0]);
+        if (pk.exitFrom) own.add(pk.exitFrom);
+        samples++;
+        for (const e of R.office.placed.values()) {
+          if (own.has(e.id)) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} (${pk.temp?.key ?? 'goal'}) at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} own ${deskOf(id)} item at ${e.target.x.toFixed(2)},${e.target.z.toFixed(2)} path ${pk.path}`; }
+        }
+      }
+    }
+    R.perks.hold = true;
+    results.push({ name: 'walk:walkers', pass: worst < 0.01 && samples > 20, worstInsidePct: +(100 * worst).toFixed(2), worstWho, samples });
+  }
+  return results;
+}
+
+// Use spots for counters and wall items: send someone to each placed item id, measure after arrival.
+export async function runUseChecks(R, S, itemIds, { dt = 1 / 30 } = {}) {
+  const results = [];
+  const step = (n = 1) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  const ids = S.staff.map((p) => p.id);
+  let k = 0;
+  const THREEv = new THREE.Vector3();
+  for (const pid of itemIds) {
+    const e = R.office.placed.get(pid);
+    const who = ids[k++ % ids.length];
+    if (!R.perks.send([who], pid, { dur: 30 })) { results.push({ name: `use:${e?.itemId ?? pid}`, pass: false, reason: 'not sent' }); continue; }
+    for (let i = 0; i < 600 && R.perks.peek(who)?.path; i++) step(1);
+    step(20);
+    const root = charOf(R.scene, who);
+    // Distance from the person to the model's front face, in the item's frame.
+    e.obj.updateMatrixWorld(true);
+    const inv = e.obj.matrixWorld.clone().invert();
+    const local = THREEv.copy(root.position).applyMatrix4(inv);
+    const box = new THREE.Box3();
+    e.obj.traverse((o) => { if (o.isMesh) { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld.clone().premultiply(inv))); } });
+    const gap = local.z - box.max.z;
+    const inOther = bodyInside(root, furnitureOf(R));
+    results.push({ name: `use:${e.itemId}_l${e.level}`, pass: gap > 0 && gap < USE_MAX && inOther === 0 && Math.abs(local.x) < (box.max.x - box.min.x) / 2 + 0.3,
+      frontGap: +gap.toFixed(2), across: +local.x.toFixed(2), insidePct: +(100 * inOther).toFixed(2) });
+    R.perks.send([who], pid, { dur: 0.01 });
+    step(5);
+  }
+  return results;
+}

@@ -8,6 +8,7 @@ import { hireView } from './hire.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
 import { picker, personOption } from '../picker.js';
+import { recordStats, recordLine, recordLeaders, hasRecord } from '../record.js';
 import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN, agentsHere } from '../v2content.js';
 
 // Career path picker for a senior with pathPending.
@@ -137,7 +138,13 @@ export function staffPanel(ctx, arg) {
       return (ka < kb ? -1 : ka > kb ? 1 : 0) * sort.dir || a.name.localeCompare(b.name);
     });
     const body = h('tbody');
+    // Track record leaders, recomputed once a week rather than per row per frame.
+    let leaders = new Map(), leadersWeek = null;
+    bind((st) => { if (st.week !== leadersWeek) { leadersWeek = st.week; leaders = recordLeaders(st.staff); } });
     for (const p of rows) {
+      const rec = h('div.recline');
+      const top = h('span.pill.tiny.top');
+      let recWeek = null;
       const tired = h('span.tired', { title: 'Running low on energy' }, icon('battery.low', { size: 16 }));
       const mFill = h('i');
       const mVal = h('span.num');
@@ -145,7 +152,7 @@ export function staffPanel(ctx, arg) {
       const kVal = h('span.num');
       const tr = h('tr', { onclick: () => { detailId = p.id; render(); }, title: 'Click for details' },
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null,
-          p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p)))),
+          p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p), top, rec))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
         h('td.bestcol', null, bestChip(p)),
@@ -166,6 +173,16 @@ export function staffPanel(ctx, arg) {
         tired.style.display = (cur.stamina ?? 100) < TIRED_STAMINA ? '' : 'none';
         setWidth(kFill, cur.knowledge / 100);
         setText(kVal, Math.round(cur.knowledge));
+        if (st.week !== recWeek) {
+          recWeek = st.week;
+          const line = recordLine(cur, 2);
+          setText(rec, line);
+          rec.style.display = line ? '' : 'none';
+          rec.title = recordStats(cur).map((x) => x.text).join('\n');
+          const badge = leaders.get(cur.id);
+          setText(top, badge ?? '');
+          top.style.display = badge ? '' : 'none';
+        }
       });
     }
     const cap = capacityOf(s);
@@ -188,6 +205,24 @@ export function staffPanel(ctx, arg) {
     const back = h('button.btn.small', { onclick: () => { detailId = null; render(); } }, icon('arrow.back'), ' Back to team');
     if (!p) return [back, h('div.empty', { text: 'They are no longer with the company.' })];
 
+    // Track record: the role's top three stats large, the rest listed below (tap-reachable here).
+    const recMain = h('div.recmain');
+    const recMore = h('div.recmore.small.muted');
+    const recBox = h('div.section.record', null, h('h3', null, icon('award'), ' Track record'), recMain, recMore);
+    let recKey = null;
+    bind((st) => {
+      const c = st.staff.find((x) => x.id === p.id);
+      if (!c) return;
+      const all = recordStats(c);
+      const key = all.map((x) => `${x.key}${Math.round(x.value)}`).join();
+      if (key === recKey) return;
+      recKey = key;
+      recBox.style.display = hasRecord(c) ? '' : 'none';
+      recMain.replaceChildren(...(all.length ? all.slice(0, 3).map((x) => h('div.recstat', null, h('b.num', { text: x.text.split(' ')[0] }), h('span.small', { text: ` ${x.text.split(' ').slice(1).join(' ')}` })))
+        : [h('span.faint.small', { text: 'Nothing on the board yet.' })]));
+      setText(recMore, all.slice(3).map((x) => x.text).join(' · '));
+      recMore.style.display = all.length > 3 ? '' : 'none';
+    });
     const xpFill = h('i', { style: { background: '#ffb020' } });
     const xpText = h('span.num.small');
     const need = (B.xpPerLevel ?? 60) * p.level;
@@ -263,6 +298,7 @@ export function staffPanel(ctx, arg) {
           h('div.row.wrap', null, roleChip(p.role), seniorityChip(p.seniority), p.founder ? h('span.pill.ink', { text: 'Founder' }) : null),
           h('div.row', null, h('b.num', { text: `Lv ${p.level}` }), h('div.bar', { style: { flex: 1 } }, xpFill), xpText),
           h('div.small.muted', { text: `Salary ${fmtMoney(p.salary)}/wk · hired week ${p.hiredWeek}` }),
+          recBox,
           h('div.moodbadge', { style: { background: mood.color } }, icon(`mood.${p.mood}`), ` ${mood.name}`),
           p.pathPending ? h('button.btn.primary', { onclick: () => openPathPicker(ctx, p.id) }, icon('path'), ' Choose a career path')
             : p.path ? h('div.pathinfo', null, h('b', null, p.legend ? icon('legend') : icon('path'), ` ${p.legend ? 'Legend ' : ''}${PATHS[p.path]?.name ?? p.path}`),

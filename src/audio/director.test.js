@@ -246,15 +246,32 @@ describe('audio director', () => {
     expect(createDirector().events([{ type: 'incentive', reward: 'music_night', genre: 'yodel' }], s, 1).some((c) => c.op === 'dance')).toBe(true);
   });
 
-  it('holds the dance track down while the game is paused', () => {
+  it('ducks the music under every stinger for the buffer, not a fixed time', () => {
+    const d = createDirector();
+    const s = state({ products: [{ id: 'p1', version: 1 }] });
+    const evs = [{ type: 'launch', productId: 'p1' }, { type: 'era', era: 'agents' }, { type: 'officeUpgrade' }, { type: 'award' }];
+    for (const [i, e] of evs.entries()) {
+      const cmds = d.events([e], s, 100 + i * 10);
+      const sting = cmds.find((c) => c.op === 'play' && (c.cue.startsWith('stinger.') || c.cue === 'sfx.award'));
+      expect(sting?.duck, e.type).toBe('stinger');
+      expect(cmds.some((c) => c.op === 'duck' && c.key === 'stinger'), e.type).toBe(false);
+    }
+    const over = d.events([{ type: 'gameOver' }], { ...s, gameOver: { won: true } }, 200).find((c) => c.cue === 'stinger.win');
+    expect(over.duck).toBe('stinger');
+    expect(DUCK.stinger.music).toBeCloseTo(0.25);
+    expect(DUCK.stinger.attack).toBeCloseTo(0.3);
+    expect(DUCK.stinger.release).toBeCloseTo(1);
+  });
+
+  it('pauses the dance track while the game is paused and resumes it after', () => {
     const d = createDirector();
     const s = state();
     d.update(s, 0, { speed: 1, running: true });
-    const mix = (cmds) => cmds.find((c) => c.op === 'danceMix');
-    expect(mix(d.update(s, 1, { speed: 1, running: true, menuPause: true })).level).toBeLessThan(0.2);
-    expect(mix(d.update(s, 2, { speed: 1, running: true, menuPause: true }))).toBeUndefined();
-    expect(mix(d.update(s, 3, { speed: 1, running: true })).level).toBe(1);
-    expect(mix(d.update(s, 4, { speed: 0, running: false })).level).toBeLessThan(0.2);
+    const dp = (cmds) => cmds.find((c) => c.op === 'dancePause');
+    expect(dp(d.update(s, 1, { speed: 1, running: true, menuPause: true })).paused).toBe(true);
+    expect(dp(d.update(s, 2, { speed: 1, running: true, menuPause: true }))).toBeUndefined();
+    expect(dp(d.update(s, 3, { speed: 1, running: true })).paused).toBe(false);
+    expect(dp(d.update(s, 4, { speed: 0, running: false })).paused).toBe(true);
   });
 
   it('preloads the genre tracks once when the genre pick appears', () => {
