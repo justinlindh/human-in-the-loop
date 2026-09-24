@@ -34,6 +34,8 @@ jobs:
       - run: npm test
       - name: Build for the Pages path
         run: npm run build -- --base "/${{ github.event.repository.name }}/"
+        env:
+          HITL_VERSION: ${{ inputs.ref || github.ref_name }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
