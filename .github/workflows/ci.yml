@@ -1,9 +1,10 @@
 name: ci
 
-# Public repos get free Actions minutes. The local gate (scripts/ci-pr.sh <pr>, a Local CI PASS
-# comment) stays the merge requirement until these runs have proven themselves.
+# Runs on pushes to the default branches and on every pull request. The merge gate is the Local CI
+# comment from scripts/ci-pr.sh (see CLAUDE.md).
 on:
   push:
+    branches: [main, feat/one-shot]
   pull_request:
   workflow_dispatch:
 
