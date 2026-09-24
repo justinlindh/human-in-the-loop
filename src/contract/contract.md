@@ -255,3 +255,5 @@ state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ s
 ```
 - While the Incentives Program is on, a person earns the Waffle Party by crossing a big personal milestone: a set number of shipped launches they worked on, or a top level. Each person can win it at most once, and the company holds one at most every couple of in-game years, so a good run sees one to three. The thresholds live in `balance.js`.
 - The timed reward ladder keeps its other rewards and no longer ends in the Waffle Party.
+- Items carry an `outdoor` flag; the HQ roof terrace takes only outdoor items, and placement refuses others with 'Only outdoor items go on the terrace'.
+- An acquisition brings as many of the company's people as there are free desks; the rest stay behind, and the for-sale entry says how many would join.
