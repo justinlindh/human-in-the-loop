@@ -201,13 +201,14 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
   }
 
   function decide(r) {
+    r.who = null; r.target = null; r.perch = null; r.spot = null;
     const people = [...recs.values()].filter((p) => !p.hidden && p.mode === 'placed');
     if (r.species === 'dog') {
       const cat = [...pets.values()].find((x) => x.species === 'cat' && x.y === 0 && !x.hop);
       const roll = Math.random();
       if (cat && roll < 0.15) {
         r.mode = 'chase'; r.t = 5; r.target = cat;
-        cat.mode = 'flee'; cat.t = 4;
+        cat.mode = 'flee'; cat.t = 4; cat.who = null; cat.perch = null; cat.spot = null; cat.target = r;
         const off = new THREE.Vector3().subVectors(cat.pos, r.pos).setY(0);
         if (off.lengthSq() < 0.01) off.set(Math.cos(r.phase), 0, Math.sin(r.phase));
         const away = off.normalize().multiplyScalar(4.5).add(cat.pos);
@@ -427,7 +428,19 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
       for (let i = 0; i < 40; i++) { decide(r); if (r.mode === mode) return true; r.path = []; }
       return false;
     },
-    peek(id) { const r = pets.get(id); return r && { mode: r.mode, pose: r.pose, y: +r.y.toFixed(2), path: r.path.length, pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)] }; },
+    // Read-only snapshot for scripts: one pet by id, or every pet when called with no id.
+    peek(id) {
+      const one = (r) => {
+        const last = r.path.length ? r.path[r.path.length - 1] : null;
+        const target = r.who ? { staffId: r.who.id } : r.target ? { petId: r.target.id } : r.perch ? { x: +r.perch.x.toFixed(2), z: +r.perch.z.toFixed(2), y: +r.perch.y.toFixed(2) }
+          : r.spot ? { x: +r.spot.x.toFixed(2), z: +r.spot.z.toFixed(2) } : last ? { x: +last.x.toFixed(2), z: +last.z.toFixed(2) } : null;
+        const plan = r.mode === 'sleep' ? 'perch' : r.mode;
+        return { id: r.id, species: r.species, plan, pose: r.pose, y: +r.y.toFixed(2), path: r.path.length, pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)], target };
+      };
+      if (id === undefined) return [...pets.values()].map(one);
+      const r = pets.get(id);
+      return r ? one(r) : null;
+    },
     get state() { return lastState; },
   };
 }
