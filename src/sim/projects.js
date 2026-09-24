@@ -173,6 +173,7 @@ function complete(ctx, j) {
   } else if (j.kind === 'research' && RESEARCH[j.researchId] && !state.research.done.includes(j.researchId)) {
     const r = RESEARCH[j.researchId];
     state.research.done.push(r.id);
+    (ctx.happenings ??= {}).research = true;
     ctx.emit({ type: 'toast', text: `${r.name} is live. ${r.desc}`, tone: 'good' });
     emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
   } else if (j.kind === 'craft') {

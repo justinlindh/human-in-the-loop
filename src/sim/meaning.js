@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { clamp } from './util.js';
-import { chance, pick, shuffle } from './rng.js';
+import { chance, pick } from './rng.js';
 import { registerSystem } from './registry.js';
 import { staffMods, mentorOf, removeStaff } from './staff.js';
 import { automationExposure, oversightRequired, oversightProvided } from './automation.js';
@@ -11,16 +11,6 @@ import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
-
-function chatterKey(state, p) {
-  if (automationExposure(state, p) > 0.5) return 'automated';
-  if (p.assignment.type === 'mentor') return 'mentor';
-  if (p.seniority === 'junior' && mentorOf(state, p)) return 'junior';
-  if (p.assignment.type === 'oversight') return 'overseer';
-  if (p.mood === 'coasting') return 'coasting';
-  if (p.mood === 'burnout') return 'burnout';
-  return p.assignment.type === 'idle' ? 'idle' : 'happy';
-}
 
 function weeklyMeaning(state, p) {
   const mods = staffMods(p);
@@ -74,7 +64,7 @@ export function meaningSystem(ctx) {
     return false;
   });
   for (const p of leavers) {
-    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell) });
+    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell), kind: 'farewell' });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name });
     ctx.emit({ type: 'toast', text: `${p.name} resigned.`, tone: 'bad' });
     removeStaff(state, p);
@@ -82,9 +72,6 @@ export function meaningSystem(ctx) {
   }
 
   const present = state.staff.filter((p) => p.mood !== 'away');
-  for (const p of shuffle(ctx.rng, present).slice(0, 2)) {
-    if (chance(ctx.rng, 0.5)) emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER[chatterKey(state, p)]) });
-  }
   const glum = present.filter((p) => p.mood === 'coasting' || p.mood === 'burnout');
   if (glum.length) ctx.emit({ type: 'bubble', staffId: pick(ctx.rng, glum).id, text: pick(ctx.rng, SIGHS), tone: 'bad' });
 }

@@ -13,7 +13,7 @@ function assertAllFinite(v, path) {
 const PLAN_ORDER = [
   ['calendar-start', 10], ['work', 20], ['projects', 30], ['products', 40], ['marketing', 45], ['meaning', 50],
   ['knowledge', 55], ['market', 60], ['incidents', 65], ['events', 70], ['annual', 75], ['economy', 80],
-  ['staff-upkeep', 85], ['endgame', 90], ['history', 95],
+  ['staff-upkeep', 85], ['chat', 88], ['endgame', 90], ['history', 95],
 ];
 
 function midGame(seed) {
@@ -87,6 +87,6 @@ describe('system order', () => {
     const got = getSystems().map((x) => [x.name, x.order]);
     for (const [name, order] of got) expect(plan[name], name).toBe(order);
     expect(got.map(([, o]) => o)).toEqual([...got.map(([, o]) => o)].sort((a, b) => a - b));
-    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'work', 'projects', 'products', 'marketing', 'meaning', 'knowledge', 'market', 'incidents', 'events', 'annual', 'economy', 'staff-upkeep', 'endgame', 'history']);
+    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'work', 'projects', 'products', 'marketing', 'meaning', 'knowledge', 'market', 'incidents', 'events', 'annual', 'economy', 'staff-upkeep', 'chat', 'endgame', 'history']);
   });
 });

@@ -14,6 +14,7 @@ import './incidents.js';
 import './events.js';
 import './calendar.js';
 import './endgame.js';
+import './chat.js';
 import './economy.js';
 
 export { createGame, FUNCTIONS, SAVE_VERSION } from './state.js';

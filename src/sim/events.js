@@ -9,6 +9,7 @@ import { automationExposure } from './automation.js';
 import { applyEffects, checkCondition, REQUIRE_REASON } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
+import { emitChat } from './chat.js';
 
 // Placeholder values chosen once per event, so every string in a decision names the same incumbent.
 export function decisionVars(state, rng, subjectId) {
@@ -94,6 +95,7 @@ export function eligibleEvents(state) {
 export function fireEvent(ctx, ev, subjectId) {
   const { state } = ctx;
   state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+  if (ev.kind === 'misc') emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.text, subjectId) });
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);
   const vars = decisionVars(state, ctx.rng, subjectId);
   ctx.emit({ type: 'toast', text: `${fillText(state, ctx.rng, ev.title, subjectId, vars)}: ${fillText(state, ctx.rng, ev.text, subjectId, vars)}`, tone: 'info' });

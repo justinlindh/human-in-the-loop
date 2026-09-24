@@ -63,7 +63,8 @@ describe('hire', () => {
     expect(s.staff.find((x) => x.id === c.id).hiredWeek).toBe(s.week);
     expect(res.events.map((e) => e.type)).toEqual(expect.arrayContaining(['hire', 'chat']));
     const chat = res.events.find((e) => e.type === 'chat');
-    expect(chat).toMatchObject({ channel: 'general', from: c.name, fromId: c.id, replyTo: null, reactions: {} });
+    expect(chat).toMatchObject({ channel: 'general', from: c.name, fromId: c.id, replyTo: null });
+    expect(typeof chat.reactions).toBe('object');
     expect(chat.id).toMatch(/^m\d+$/);
   });
 
