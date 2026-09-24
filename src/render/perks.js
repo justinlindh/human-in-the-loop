@@ -178,6 +178,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
 
   function perkTick(r, dt, tp) {
     const def = tp.def;
+    if (!tp.announced) { tp.announced = true; announceUse(office.placed.get(tp.perkKey?.split(':')[0]), [r.id]); }
     settle(r, dt, tp);
     tp.emoteT -= dt;
     if (def.emote && tp.emoteT <= 0) {
@@ -194,6 +195,12 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
       if (tp.burst > 0) tp.burst = 0;
     }
     return false;
+  }
+
+  // One window event as each use of a perk item begins, for sound (the audio engine listens).
+  function announceUse(e, staffIds) {
+    if (!e || typeof dispatchEvent !== 'function') return;
+    dispatchEvent(new CustomEvent('hitl:propUse', { detail: { itemId: e.itemId, placedId: e.id, staffIds } }));
   }
 
   function startPair(slot, a, b) {
@@ -234,6 +241,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
       if (s.phase === 'gather') {
         if (!s.a.path.length && !s.b.path.length) {
           s.phase = 'play'; s.t = 0;
+          announceUse(s.e, [s.a.id, s.b.id]);
           s.a.temp.anim = s.b.temp.anim = s.def.anim;
           if (s.def === PERKS.pingpong) { s.ball = new THREE.Mesh(ballGeo, mat('paper')); s.ball.castShadow = true; parent.add(s.ball); }
         } else if (s.t > 12) { endPair(s, false); sessions.splice(i, 1); }
