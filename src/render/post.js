@@ -43,6 +43,18 @@ export function createPost(renderer, scene, camera, quality) {
   gtao.blendIntensity = 0.9;
   gtao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.4, thickness: 1.5, scale: 1.1, samples: 12, distanceFallOff: 1, screenSpaceRadius: false });
   gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+  // GTAO's normal/depth pass only hides points and lines. Sprites, transparent surfaces (glass,
+  // floor rings), and objects flagged userData.noAO would otherwise stamp dark AO halos.
+  const baseHide = gtao._overrideVisibility.bind(gtao);
+  gtao._overrideVisibility = function hideNonOpaque() {
+    baseHide();
+    const cache = this._visibilityCache;
+    this.scene.traverse((o) => {
+      if (!o.visible) return;
+      const transparent = o.isMesh && [].concat(o.material).some((m) => m?.transparent);
+      if (o.isSprite || transparent || o.userData.noAO) { o.visible = false; cache.push(o); }
+    });
+  };
   composer.addPass(gtao);
   const dbg = new URLSearchParams(location.search).get('ao');
   if (dbg === '1') gtao.output = GTAOPass.OUTPUT.AO;
