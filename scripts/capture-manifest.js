@@ -270,7 +270,7 @@ export const ITEMS = [
     id: '5-4-waffle-party-real', title: '5.4 Waffle Party in a real game', query: 'seed=1&speed=1', seconds: 30,
     setup: WAFFLE_SETUP,
     actions: WAFFLE_ACTIONS(30),
-    screenshots: [16, 19.5, 24],
+    screenshots: [20, 23, 27],
   },
   {
     id: '5-5-burnout-resign', title: '5.5 Burnout and a resignation', query: 'mock=floor&speed=1', seconds: 16,
@@ -346,7 +346,7 @@ export const ITEMS = [
   },
   {
     id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
-    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(20), screenshots: [19.5],
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(24), screenshots: [23],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
