@@ -1,6 +1,9 @@
 // Office chat lines for #general. Keep each under 60 characters.
 export const CHATTER = {
   happy: [
+    '{product} got a five-star review. Framing it.',
+    '{coworker} fixed my bug before I saw it. Hero.',
+    "Our {category} app is nicer than {incumbent}'s. Fact.",
     'Shipped it. Feels good.',
     'Tests green on first try. Suspicious.',
     'Who brought donuts? I love you.',
@@ -11,6 +14,8 @@ export const CHATTER = {
     'Lunch at the good taco place?',
   ],
   coasting: [
+    "Approved {coworker}'s agent PR without reading it.",
+    "{product} works. I think. I didn't check.",
     'Just approving the agent PRs again.',
     'Do I even write code anymore?',
     'I miss hard problems.',
@@ -20,6 +25,8 @@ export const CHATTER = {
     'Reviewed 40 PRs. Understood 6.',
   ],
   burnout: [
+    '{product} is on fire and so am I.',
+    '{coworker}, if I disappear, water my plant.',
     'I cannot look at another diff.',
     'Updating my LinkedOut. For fun.',
     'I used to love this job.',
@@ -29,6 +36,8 @@ export const CHATTER = {
     'Everything is fine. Everything is fine.',
   ],
   automated: [
+    '{model} wrote my code and my standup notes.',
+    '{model} fixed my ticket while I was in the loo.',
     'My job is now clicking Approve.',
     'The agent wrote my code and my standup notes.',
     'I have become middle management for a GPU.',
@@ -38,6 +47,8 @@ export const CHATTER = {
     'Remember when we named our functions? Good times.',
   ],
   mentor: [
+    '{coworker} asked the best question today.',
+    'Walked {coworker} through {product}. They got it!',
     'My junior asked a question I could not answer. Proud.',
     'Explained the billing service. Still makes sense!',
     'Teaching is the best way to learn, it turns out.',
@@ -46,6 +57,8 @@ export const CHATTER = {
     'Code review today was more fun than coding.',
   ],
   junior: [
+    '{coworker} explained {product} to me. It clicked!',
+    'I finally understand how {product} deploys.',
     'I finally get how the queue works!',
     'Is it normal to be scared of prod?',
     'My mentor drew a diagram. I framed it.',
@@ -55,6 +68,8 @@ export const CHATTER = {
     'I asked a dumb question and nobody laughed.',
   ],
   incident: [
+    'Who touched {product}? Nobody? Great.',
+    '{model} did something. {model} will not say what.',
     'Who touched prod? Nobody? Great.',
     'Has anyone seen the runbook? Does it exist?',
     'I am rolling back. Do not stop me.',
@@ -64,6 +79,8 @@ export const CHATTER = {
     'Paging someone who knows how this works.',
   ],
   idle: [
+    'Anyone need a hand with {product}?',
+    "Reading {incumbent}'s docs for ideas. Shh.",
     'Anyone need a hand with anything?',
     'Refactoring my dotfiles. Again.',
     'Reading docs for fun. Is that weird?',
@@ -72,6 +89,8 @@ export const CHATTER = {
     'Waiting for the next project like a golden retriever.',
   ],
   overseer: [
+    '{model} tried to drop a table again. Denied.',
+    'Watching {model} closely. It knows.',
     'Agent tried to email every customer. Stopped it.',
     'Watching the agents like a hawk. A tired hawk.',
     'The support bot promised a refund in 2029. Fixed.',

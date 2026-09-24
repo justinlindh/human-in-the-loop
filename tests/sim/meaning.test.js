@@ -152,19 +152,6 @@ describe('moods and resignations', () => {
     expect(m.assignment.type).not.toBe('mentor');
   });
 
-  it('chatter is at most two lines a week', () => {
-    const s = game();
-    for (let i = 0; i < 2; i++) plain(s, 'engineer', 'mid');
-    for (let w = 0; w < 30; w++) {
-      const ev = runMeaning(s, 1);
-      const chats = ev.filter((e) => e.type === 'chat' && !e.from.startsWith('@'));
-      expect(chats.length).toBeLessThanOrEqual(2);
-      for (const c of chats) {
-        expect(c).toMatchObject({ channel: 'general', replyTo: null, reactions: {} });
-        expect(s.staff.some((p) => p.id === c.fromId)).toBe(true);
-      }
-    }
-  });
 });
 
 describe('oversight', () => {

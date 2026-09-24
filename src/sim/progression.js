@@ -22,8 +22,9 @@ registerAction('buyItem', (ctx, { itemId }) => {
   state.cash -= it.costs[0];
   const id = newId(state, 'i');
   state.items.push({ id, itemId, level: 1 });
+  state.flags.lastItemWeek = state.week;
   ctx.emit({ type: 'toast', text: `New in the office: ${it.name}.`, tone: 'good' });
-  emitChat(ctx, { channel: 'random', from: '@officebot', text: `A ${it.name} has appeared. Please be nice to it.` });
+  emitChat(ctx, { channel: 'random', from: '@officebot', text: `The new ${it.name} has arrived. Please be nice to it.` });
   return { ok: true, id };
 });
 

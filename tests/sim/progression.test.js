@@ -123,18 +123,17 @@ describe('office shop', () => {
   it('the nap pod delays burnout resignations', () => {
     const quits = (withPod) => {
       let n = 0;
-      for (let seed = 1; seed <= 30; seed++) {
+      for (let seed = 1; seed <= 200; seed++) {
         const s = game(seed);
         if (withPod) withItem(s, 'nap_pod', 3);
         const p = addStaff(s, 'engineer', 'mid', { traits: [], meaning: 0, mood: 'burnout', burnoutWeeks: 3 });
-        s.automation.engineering.level = 1;
         once(s, meaningSystem);
         if (!s.staff.includes(p)) n++;
-        for (let w = 0; w < 2; w++) { p.meaning = 0; once(s, meaningSystem); if (!s.staff.includes(p)) { n++; break; } }
       }
       return n;
     };
-    expect(quits(true)).toBeLessThan(quits(false));
+    expect(quits(false)).toBeGreaterThan(0);
+    expect(quits(true)).toBe(0);
   });
 });
 
