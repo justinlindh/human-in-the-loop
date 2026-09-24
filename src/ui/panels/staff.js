@@ -7,6 +7,7 @@ import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
+import { picker, personOption } from '../picker.js';
 import { recordStats, recordLine, recordLeaders, hasRecord } from '../record.js';
 import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN, agentsHere } from '../v2content.js';
 
@@ -37,9 +38,11 @@ export function openTraining(ctx, staffId) {
     if (t.meaning) lines.push(`+${t.meaning} meaning`);
     if (t.knowledge) lines.push(`+${t.knowledge} know-how`);
     if (t.brand) lines.push('a little brand');
-    const focusSel = t.skill ? h('select', { onchange: (e) => { focus = e.target.value; } },
-      ...STATS.map((st) => h('option', { value: st.id, text: `Focus: ${st.skill} (${p.skills[st.id]})` }))) : null;
-    if (focusSel) focusSel.value = focus;
+    const focusSel = t.skill ? picker({
+      value: focus, title: 'Which skill the workshop trains',
+      options: STATS.map((st) => ({ value: st.id, label: `Focus: ${st.skill}`, icon: st.icon, stat: String(Math.round(p.skills[st.id] ?? 0)) })),
+      onChange: (v) => { focus = v; },
+    }).el : null;
     const go = h('button.btn.small.blue', {
       onclick: () => {
         const res = ctx.act({ type: 'train', staffId: p.id, program: t.id, focus: t.skill ? focus : undefined });
@@ -83,22 +86,17 @@ const COLS = [
 
 function assignSelect(ctx, s, p) {
   const opts = assignmentOptions(s, p);
-  const cur = `${p.assignment.type}:${p.assignment.targetId ?? ''}`;
   const groups = {};
   for (const o of opts) (groups[o.group] ??= []).push(o);
-  const sel = h('select.assign', {
+  const pk = picker({
+    className: 'assign',
+    title: 'What they work on',
+    value: `${p.assignment.type}:${p.assignment.targetId ?? ''}`,
     disabled: p.mood === 'away',
-    onclick: (e) => e.stopPropagation(),
-    onchange: (e) => {
-      const o = opts.find((x) => x.value === e.target.value);
-      e.target.blur();
-      if (!o) return;
-      const res = ctx.act({ type: 'assign', staffId: p.id, assignment: { type: o.type, targetId: o.targetId } });
-      if (!res.ok) e.target.value = cur;
-    },
-  }, ...Object.entries(groups).map(([g, list]) => h('optgroup', { label: g }, ...list.map((o) => h('option', { value: o.value, text: o.label })))));
-  sel.value = cur;
-  return sel;
+    options: Object.values(groups).flat(),
+    onChange: (v, o) => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: o.type, targetId: o.targetId } }),
+  });
+  return pk.el;
 }
 
 export function staffPanel(ctx, arg) {
@@ -247,15 +245,20 @@ export function staffPanel(ctx, arg) {
     if (p.seniority === 'junior') {
       const m = mentorOf(s, p);
       const mentors = s.staff.filter((x) => x.seniority !== 'junior' && isAvailable(x) && x.id !== p.id);
-      const sel = h('select', { onchange: (e) => { const id = e.target.value; e.target.blur(); if (id) ctx.act({ type: 'assign', staffId: id, assignment: { type: 'mentor', targetId: p.id } }); } },
-        h('option', { value: '', text: m ? `Mentor: ${m.name}` : 'Pick a mentor...' }),
-        ...mentors.filter((x) => x !== m).map((x) => h('option', { value: x.id, text: `${x.name} (${roleName(x.role)}, ${x.seniority})` })));
+      const sel = picker({
+        placeholder: m ? `Mentor: ${m.name}` : 'Pick a mentor...', keepValue: false, title: 'Who mentors them',
+        options: mentors.filter((x) => x !== m).map((x) => personOption(x, { sub: `${x.seniority[0].toUpperCase()}${x.seniority.slice(1)} ${roleName(x.role).toLowerCase()}` })),
+        onChange: (id) => ctx.act({ type: 'assign', staffId: id, assignment: { type: 'mentor', targetId: p.id } }),
+      }).el;
       acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor'), h('span.small.muted', { text: m ? 'Learning fast, and less bothered by automation.' : 'Without a mentor, juniors grow slowly while automation eats their practice work.' }), sel));
     } else {
       const juniors = s.staff.filter((x) => x.seniority === 'junior');
-      const sel = h('select', { disabled: away, onchange: (e) => { const id = e.target.value; e.target.blur(); if (id) assign('mentor', id); } },
-        h('option', { value: '', text: p.assignment.type === 'mentor' ? `Mentoring ${s.staff.find((x) => x.id === p.assignment.targetId)?.name ?? ''}` : juniors.length ? 'Mentor a junior...' : 'No juniors to mentor' }),
-        ...juniors.map((x) => h('option', { value: x.id, text: x.name })));
+      const sel = picker({
+        placeholder: p.assignment.type === 'mentor' ? `Mentoring ${s.staff.find((x) => x.id === p.assignment.targetId)?.name ?? ''}` : juniors.length ? 'Mentor a junior...' : 'No juniors to mentor',
+        keepValue: false, disabled: away || !juniors.length, title: 'Mentor a junior',
+        options: juniors.map((x) => personOption(x, { busy: mentorOf(s, x) ? `Has ${mentorOf(s, x).name.split(' ')[0]}` : null, free: !mentorOf(s, x) ? true : false })),
+        onChange: (id) => assign('mentor', id),
+      }).el;
       acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor a junior'), h('span.small.muted', { text: 'Grows the next generation. Restores meaning.' }), sel));
     }
     if (p.seniority === 'senior') {

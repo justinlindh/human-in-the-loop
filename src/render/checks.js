@@ -398,3 +398,28 @@ export async function runUseChecks(R, S, itemIds, { dt = 1 / 30 } = {}) {
   }
   return results;
 }
+
+// A staged standup (issue #149): once everyone has gathered, nobody stands outside the walls, inside
+// furniture, or on top of someone else.
+export async function runStandupCheck(R, S, { dt = 1 / 30 } = {}) {
+  const lines = S.staff.filter((p) => !p.remote && p.mood !== 'away').slice(0, 8).map((p, i) => ({ staffId: p.id, text: i < 2 ? 'Shipping it today.' : null }));
+  R.handleEvents([{ type: 'standup', mode: 'daily', lines }], S);
+  for (let i = 0; i < 8 * 30; i++) { R.sync(S); R.advance(dt); }
+  const L = R.office.current.L;
+  const all = [];
+  for (const e of R.office.placed.values()) all.push(...meshes(e.obj));
+  let outside = 0, inside = 0, gathered = 0, minGap = Infinity;
+  const at = [];
+  for (const l of lines) {
+    const root = charOf(R.scene, l.staffId);
+    if (!root) continue;
+    gathered++;
+    const p = root.position;
+    for (const q of at) minGap = Math.min(minGap, Math.hypot(p.x - q.x, p.z - q.z));
+    at.push(p.clone());
+    if (Math.abs(p.x) > L.W / 2 - 0.2 || Math.abs(p.z) > L.D / 2 - 0.2) outside++;
+    if (bodyInside(root, all, false) > 0.01) inside++;
+  }
+  // Nobody piles onto one spot: people in a ring stand at least 0.4 m apart.
+  return { pass: gathered === lines.length && outside === 0 && inside === 0 && minGap > 0.4, people: gathered, outside, insideFurniture: inside, minGap: +minGap.toFixed(2) };
+}

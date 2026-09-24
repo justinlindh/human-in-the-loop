@@ -52,8 +52,9 @@ export const ICONS = {
   'stat.polish': I('🖌️', 'Polish and Craft', 16),
   'stat.reliability': I('🛡️', 'Reliability and Rigor', 16),
   'stat.novelty': I('💡', 'Freshness and Ideas', 16),
-  'bot.news': I('📰', 'Slackk avatar for @newsbot', 13),
-  'bot.build': I('🔧', 'Slackk avatar for @buildbot', 13),
+  'brand.yak': I('🐃', 'Yak logo in the chat header', 18),
+  'bot.news': I('📰', 'Yak avatar for @newsbot', 13),
+  'bot.build': I('🔧', 'Yak avatar for @buildbot', 13),
   'battery.low': I('🪫', 'Tired marker (stamina under 25), running-on-empty warnings', 14),
   'mic.off': I('🔇', 'Muted marker in the lockdown call grid', 14),
   home: I('🏠', 'Remote staff marker, video call grid', 14),
@@ -84,14 +85,14 @@ export const ICONS = {
   'research.docs_culture': I('📖', 'Internal tools card', 26),
   'research.onboarding_kit': I('🧭', 'Internal tools card', 26),
   'research.red_team_suite': I('🥷', 'Internal tools card', 26),
-  'bot.pager': I('🚨', 'Slackk avatar for @pagerbot', 13),
-  'bot.vendor': I('🧠', 'Slackk avatar for @vendorbot', 13),
-  'bot.launch': I('🚀', 'Slackk avatar for @launchbot and @shipbot', 13),
-  'bot.hr': I('🎉', 'Slackk avatar for @hr-bot', 13),
-  'bot.awards': I('🏆', 'Slackk avatar for @saasies', 13),
-  'bot.office': I('🏢', 'Slackk avatar for @officebot', 13),
-  'bot.hn': I('💬', 'Slackk avatar for @hackerspewsbot', 13),
-  'bot.generic': I('🤖', 'Slackk avatar for other bots', 13),
+  'bot.pager': I('🚨', 'Yak avatar for @pagerbot', 13),
+  'bot.vendor': I('🧠', 'Yak avatar for @vendorbot', 13),
+  'bot.launch': I('🚀', 'Yak avatar for @launchbot and @shipbot', 13),
+  'bot.hr': I('🎉', 'Yak avatar for @hr-bot', 13),
+  'bot.awards': I('🏆', 'Yak avatar for @saasies', 13),
+  'bot.office': I('🏢', 'Yak avatar for @officebot', 13),
+  'bot.hn': I('💬', 'Yak avatar for @hackerspewsbot', 13),
+  'bot.generic': I('🤖', 'Yak avatar for other bots', 13),
   hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
   warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),
   // toasts
@@ -173,8 +174,8 @@ export const ICONS = {
   'channel.enterprise': I('💼', 'Marketing channel card', 20),
 };
 
-// Slackk reactions: the sim sends emoji; each maps to a glyph name.
-for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(/^[a-z_]+$/.test(emo) ? '🚫' : emo, 'Slackk reaction pill', 12);
+// Yak reactions: the sim sends emoji; each maps to a glyph name.
+for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(/^[a-z_]+$/.test(emo) ? '🚫' : emo, 'Yak reaction pill', 12);
 export const reactionIcon = (emo) => REACTION_GLYPH[emo] ?? null;
 
 // Category icons come from the content data's stand-in emoji.
