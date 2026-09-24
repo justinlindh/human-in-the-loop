@@ -34,7 +34,6 @@ export function createAudio({ quality = 'high' } = {}) {
       mix.setUser('master', user.master);
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
-      if (q === 'low') mix.setUser('ambience', 0);
       // Small sounds decode up front; music and voice banks load on first use.
       loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd']);
       // iOS wants a sound started inside the gesture.
@@ -189,10 +188,11 @@ export function createAudio({ quality = 'high' } = {}) {
     setBus(bus, v) {
       if (bus === 'master') { api.setVolume(v); return; }
       busUser[bus] = v;
-      mix?.setUser(bus, q === 'low' && bus === 'ambience' ? 0 : v);
+      mix?.setUser(bus, v);
     },
     setMuted(m) { user.muted = !!m; mix?.setUser('muted', user.muted); },
-    setQuality(v) { q = v === 'low' ? 'low' : 'high'; director.setQuality(q); mix?.setUser('ambience', q === 'low' ? 0 : busUser.ambience ?? 1); },
+    // Low trims in the director (fewer voices, no ambient loops); the crowd bed under a cheer stays.
+    setQuality(v) { q = v === 'low' ? 'low' : 'high'; director.setQuality(q); },
     setMusic() {},
     get commands() { return log.slice(); },
     // A MediaStream of the final mix, for capture tools.

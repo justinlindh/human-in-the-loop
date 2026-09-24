@@ -37,14 +37,15 @@ function url(file) {
 export function createLoader(ctx) {
   const cache = new Map();   // id -> AudioBuffer
   const pending = new Map(); // id -> Promise
+  const failed = new Set();  // ids whose delivered file failed; they stay on the placeholder
 
   function load(id) {
-    if (cache.has(id) || pending.has(id)) return;
+    if (cache.has(id) || pending.has(id) || failed.has(id)) return;
     const e = entryFor(id);
     if (!e?.file) return;
     pending.set(id, fetch(url(e.file)).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
       .then((ab) => ctx.decodeAudioData(ab)).then((buf) => { cache.set(id, buf); })
-      .catch(() => { cache.set(id, synthesize(ctx, id)); }).finally(() => pending.delete(id)));
+      .catch(() => { failed.add(id); }).finally(() => pending.delete(id)));
   }
 
   return {

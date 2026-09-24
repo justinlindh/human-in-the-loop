@@ -57,7 +57,8 @@ export const ON_EVENT = {
   bubble: 'sfx.bubble',
   standup: null,
   celebrate: null,
-  launch: 'stinger.launch',
+  // A new product gets the full launch stinger; a version update gets a small chime.
+  launch: (e, s) => (isFirstLaunch(e, s) ? 'stinger.launch' : 'ui.goal'),
   incident: (e) => (e.caught ? 'sfx.caught' : 'sfx.incident'),
   hire: 'sfx.hire',
   resign: (e) => (e.fired ? null : 'sfx.resign'),
@@ -99,7 +100,14 @@ export const VOICE_VARIANTS = {
 };
 export const EMOTIONS = ['happy', 'excited', 'laughing', 'questioning', 'annoyed', 'tired', 'sighing'];
 
+// A launch event is a new product's first launch when that product is at version 1.
+export function isFirstLaunch(e, s) {
+  const p = s?.products?.find((x) => x.id === e.productId);
+  return !p || (p.version ?? 1) <= 1;
+}
+
 export const VOICE = {
+  cheerCooldown: 180,   // real s between group cheers (multiplied by game speed)
   pokeCooldown: 1.5,    // s per person for clicks
   globalGap: 2,         // s between separate voice moments
   ambientMinGap: 30,    // s since the last bark of any kind

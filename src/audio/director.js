@@ -11,7 +11,7 @@
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
-  VOICE_VARIANTS, VOICE, GROUP_CUES } from './manifest.js';
+  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -48,6 +48,8 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   const lastCue = new Map();      // cue id -> t
   const lastPoke = new Map();     // staffId -> t
   const lastVoiceMoment = { t: -1e9 };
+  let lastCheer = -1e9;
+  let speedNow = 1;
   let nextAmbient = null;
   let playing = [];               // { bus, priority, until, t }
   const moods = new Map();        // staffId -> last mood
@@ -86,7 +88,10 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
 
   function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice' } = {}) {
     if (!person) return [];
+    // Single barks (not a cheer) never stack beyond VOICE.maxSingle at once.
+    if (key === 'voice' && playing.filter((v) => v.bus === 'voice' && v.single && v.until > t).length >= VOICE.maxSingle) return [];
     if (!admit('voice', priority, t, 1.5)) return [];
+    if (key === 'voice') playing[playing.length - 1].single = true;
     return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key }];
   }
 
@@ -94,6 +99,8 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   function cheer(kind, s, t, leadId = null) {
     const g = GROUP_CUES[kind];
     if (!g) return [];
+    // Cheers are rare: at most one per cooldown of real time, longer at higher game speed.
+    if (t - lastCheer < VOICE.cheerCooldown * Math.max(1, speedNow)) return [];
     const here = present(s);
     if (!here.length) return [];
     const n = Math.min(q === 'low' ? g.lowMaxVoices : g.maxVoices, here.length);
@@ -113,6 +120,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     if (g.crowdBed > 0) out.push({ op: 'play', cue: 'voice.crowd', file: 'voice/crowd', bus: 'ambience', gain: g.crowdBed, at: t, priority: 4 });
     out.push({ op: 'duck', key: g.duck, on: false, at: at + 1.5 });
     lastVoiceMoment.t = at;
+    lastCheer = t;
     return out;
   }
 
@@ -123,6 +131,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
 
     // Sim events at real time t. Same-cue events in one batch play once.
     events(events, state, t, { speed = 1 } = {}) {
+      speedNow = speed;
       const out = [];
       const seen = new Set();
       for (const e of events ?? []) {
@@ -130,16 +139,14 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         const id = typeof rule === 'function' ? rule(e, state) : rule;
         if (id && !seen.has(id)) { seen.add(id); out.push(...playCue(id, t, { speed })); }
         // Voice moments.
-        if (e.type === 'launch') out.push(...cheer('launch', state, t + 0.15));
+        if (e.type === 'launch') { if (isFirstLaunch(e, state)) out.push(...cheer('launch', state, t + 0.15)); }
         else if (e.type === 'incentive' && e.reward === 'waffle_party') out.push(...cheer('waffleParty', state, t + 0.2, e.staffId));
         else if (e.type === 'era') music.pendingEra = e.eraId;
         else if (voiceMomentOk(t)) {
           const who = (id2) => state?.staff?.find((p) => p.id === id2);
           if (e.type === 'incident' && !e.caught) {
-            const p = present(state)[0];
-            if (p) { out.push(...bark(p, rng() < 0.5 ? 'annoyed' : 'sighing', t + 0.3)); lastVoiceMoment.t = t; }
-          } else if (e.type === 'incident' && e.caught && e.staffId) {
-            out.push(...bark(who(e.staffId), 'happy', t + 0.3)); lastVoiceMoment.t = t;
+            const here = present(state);
+            if (here.length) { out.push(...bark(pick(here), rng() < 0.5 ? 'annoyed' : 'sighing', t + 0.3)); lastVoiceMoment.t = t; }
           } else if (e.type === 'resign' && !e.fired) {
             const p = who(e.staffId) ?? { id: e.staffId, voice: e.voice };
             out.push(...bark(p, 'sighing', t + 0.2)); lastVoiceMoment.t = t;
@@ -166,6 +173,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     // Every frame: music state machine, pause filter, burnout barks, ambient barks.
     update(state, t, ctx = {}) {
       const out = [];
+      if (Number.isFinite(ctx.speed)) speedNow = Math.max(1, ctx.speed);
       const hold = !!(ctx.menuPause || ctx.decision);
       // Music: title bed on the title screen, else the era's bed. An era change waits for its card.
       const want = ctx.title ? 'title' : (music.pendingEra && hold ? music.era : state?.era?.id ?? 'classic');
@@ -175,13 +183,16 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         const barLen = (60 / m.bpm) * 4;
         const bed = m.beds[Math.floor(rng() * m.beds.length) % m.beds.length];
         const first = music.era === null;
+        const fromTitle = music.era === 'title';
         music.era = want; music.bed = bed;
         out.push({ op: 'music', era: want, bed, at: t, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
-        if (want !== 'title' && !first && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
+        // Only a real era arrival cheers: not the first bed, and not starting or loading from the title.
+        if (want !== 'title' && !first && !fromTitle && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
       }
       // Level and filter: paused holds get a lowpass and -6 dB; otherwise the state's mood rule.
       const rule = MOOD.find((r) => r.when(state ?? {}))?.music ?? { level: 1, lowpass: null };
-      const stopped = ctx.running === false && !ctx.title;
+      // Stopped: the host says so, or the speed is 0 (the Pause button, or an auto-pause on blur).
+      const stopped = (ctx.running === false || ctx.speed === 0) && !ctx.title;
       const level = ctx.over ? 0.8 : hold || stopped ? rule.level * PAUSE_GAIN : rule.level;
       const lowpass = hold || stopped ? PAUSE_LOWPASS : rule.lowpass;
       if (level !== music.level || lowpass !== music.lowpass) {

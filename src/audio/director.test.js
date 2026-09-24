@@ -115,4 +115,52 @@ describe('audio director', () => {
     const cmds = d.events([{ type: 'say', staffId: 's1', text: 'hi' }, { type: 'chat', from: 'x', text: 'y' }], state(), 1);
     expect(cmds.filter((c) => c.cue === 'voice.bark')).toHaveLength(0);
   });
+
+  it('muffles the music when the game is paused by speed 0, as for a menu', () => {
+    const d = createDirector();
+    const s = state();
+    d.update(s, 0, { speed: 1, running: true });
+    expect(d.musicState.lowpass).toBe(null);
+    d.update(s, 1, { speed: 0, running: true });
+    expect(d.musicState.lowpass).toBe(900);
+    expect(d.musicState.level).toBe(0.5);
+    d.update(s, 2, { speed: 1, running: true });
+    expect(d.musicState.lowpass).toBe(null);
+  });
+
+  it('cheers only a new product, at most once per cooldown, even in a burst of launches', () => {
+    const d = createDirector();
+    const products = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, version: i % 3 === 0 ? 1 : 2 }));
+    const s = state({ products });
+    let cheers = 0, stingers = 0;
+    for (let i = 0; i < 12; i++) {
+      const cmds = d.events([{ type: 'launch', productId: `p${i}` }], s, 10 + i * 3, { speed: 1 });
+      if (cmds.some((c) => c.op === 'duck' && c.key === 'cheer' && c.on)) cheers++;
+      if (cmds.some((c) => c.cue === 'stinger.launch')) stingers++;
+    }
+    expect(stingers).toBe(4);   // p0, p3, p6, p9 are version 1; updates get a small chime instead
+    expect(cheers).toBe(1);     // all within 36 s: the cooldown allows one
+    // An update never cheers, even after the cooldown.
+    const later = d.events([{ type: 'launch', productId: 'p1' }], s, 500, { speed: 1 });
+    expect(later.some((c) => c.cue === 'voice.bark')).toBe(false);
+    expect(d.events([{ type: 'launch', productId: 'p0' }], s, 500).some((c) => c.cue === 'voice.bark')).toBe(true);
+  });
+
+  it('does not cheer when a game starts or loads from the title', () => {
+    const d = createDirector();
+    const s = state();
+    d.update(s, 0, { title: true });
+    expect(d.musicState.era).toBe('title');
+    const start = d.update(s, 1, { speed: 1, running: true });
+    expect(start.find((c) => c.op === 'music')).toMatchObject({ era: 'classic' });
+    expect(start.filter((c) => c.cue === 'voice.bark')).toHaveLength(0);
+  });
+
+  it('keeps single barks to VOICE.maxSingle at once', () => {
+    const d = createDirector();
+    const s = state();
+    const out = ['s1', 's2', 's3', 's4'].flatMap((id) => d.poke(id, s, 1));
+    expect(out.filter((c) => c.cue === 'voice.bark').length).toBe(2);
+  });
 });
+
