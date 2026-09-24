@@ -244,8 +244,10 @@ export function createHud({ root, controls, ui }) {
     const era = s.era?.id ?? null;
     if (era !== lastEra) {
       lastEra = era;
-      eraEl.replaceChildren(...(era ? [icon(`era.${era}`, { size: 14 })] : []));
+      eraEl.replaceChildren(...(era ? [icon(`era.${era}`, { size: 22 })] : []));
+      // The title shows on hover, and on a tap through the tap tips.
       eraEl.title = era ? `${ERA[era]?.name ?? era} era` : '';
+      eraEl.setAttribute('aria-label', eraEl.title);
       eraEl.style.display = era ? '' : 'none';
     }
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
