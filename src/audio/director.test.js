@@ -162,5 +162,21 @@ describe('audio director', () => {
     const out = ['s1', 's2', 's3', 's4'].flatMap((id) => d.poke(id, s, 1));
     expect(out.filter((c) => c.cue === 'voice.bark').length).toBe(2);
   });
+
+  it('sends off a warm exit warmly and a burnout with a sigh', () => {
+    const s = state();
+    const play = (e) => createDirector().events([{ type: 'resign', staffId: 's2', ...e }], s, 5);
+    for (const reason of ['moved_on', 'retired', 'poached']) {
+      const c = play({ fired: false, reason });
+      expect(c.find((x) => x.op === 'play' && x.bus === 'sfx')?.cue, reason).toBe('sfx.farewell');
+      expect(c.find((x) => x.cue === 'voice.bark')?.emotion, reason).toBe('happy');
+    }
+    for (const e of [{ fired: false, reason: 'burnout' }, { fired: false }]) {
+      const c = play(e);
+      expect(c.find((x) => x.op === 'play' && x.bus === 'sfx')?.cue).toBe('sfx.resign');
+      expect(c.find((x) => x.cue === 'voice.bark')?.emotion).toBe('sighing');
+    }
+    expect(play({ fired: true, reason: 'fired' }).filter((x) => x.op === 'play')).toHaveLength(0);
+  });
 });
 

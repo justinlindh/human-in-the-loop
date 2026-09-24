@@ -11,7 +11,7 @@
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
-  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch } from './manifest.js';
+  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -147,9 +147,10 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
           if (e.type === 'incident' && !e.caught) {
             const here = present(state);
             if (here.length) { out.push(...bark(pick(here), rng() < 0.5 ? 'annoyed' : 'sighing', t + 0.3)); lastVoiceMoment.t = t; }
-          } else if (e.type === 'resign' && !e.fired) {
+          } else if (e.type === 'resign' && resignReason(e) !== 'fired') {
+            // A burnout leaves with a sigh; a warm exit with a happy goodbye.
             const p = who(e.staffId) ?? { id: e.staffId, voice: e.voice };
-            out.push(...bark(p, 'sighing', t + 0.2)); lastVoiceMoment.t = t;
+            out.push(...bark(p, isWarmExit(e) ? 'happy' : 'sighing', t + 0.2)); lastVoiceMoment.t = t;
           } else if (e.type === 'hire') {
             out.push(...bark(who(e.staffId), 'happy', t + 0.4)); lastVoiceMoment.t = t;
           }

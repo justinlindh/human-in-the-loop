@@ -34,6 +34,7 @@ export const CUES = {
   'ui.goal': { bus: 'ui', files: ['ui/goal'], cooldown: 1, priority: 5 },
   'sfx.hire': { bus: 'sfx', files: ['sfx/hire'], cooldown: 1.5, priority: 5 },
   'sfx.resign': { bus: 'sfx', files: ['sfx/resign'], cooldown: 2, priority: 5 },
+  'sfx.farewell': { bus: 'sfx', files: ['sfx/farewell'], cooldown: 2, priority: 5 },
   'sfx.incident': { bus: 'sfx', files: ['sfx/alarm'], cooldown: 4, priority: 8 },
   'sfx.caught': { bus: 'sfx', files: ['sfx/save'], cooldown: 2, priority: 6 },
   'sfx.award': { bus: 'sfx', files: ['sfx/award'], cooldown: 0.6, priority: 6 },
@@ -61,7 +62,7 @@ export const ON_EVENT = {
   launch: (e, s) => (isFirstLaunch(e, s) ? 'stinger.launch' : 'ui.goal'),
   incident: (e) => (e.caught ? 'sfx.caught' : 'sfx.incident'),
   hire: 'sfx.hire',
-  resign: (e) => (e.fired ? null : 'sfx.resign'),
+  resign: (e) => (e.fired ? null : isWarmExit(e) ? 'sfx.farewell' : 'sfx.resign'),
   decision: 'ui.decision',
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
@@ -99,6 +100,11 @@ export const VOICE_VARIANTS = {
   masc: ['bari45', 'tenor35', 'warm40', 'gruff50', 'soft35', 'bright30', 'deep55', 'easy40'],
 };
 export const EMOTIONS = ['happy', 'excited', 'laughing', 'questioning', 'annoyed', 'tired', 'sighing'];
+
+// Why someone left: 'fired'|'burnout'|'moved_on'|'poached'|'retired'. A missing reason with fired
+// false is a burnout (older saves). Moving on, retiring and being poached get a warm send-off.
+export const resignReason = (e) => e.reason ?? (e.fired ? 'fired' : 'burnout');
+export const isWarmExit = (e) => ['moved_on', 'retired', 'poached'].includes(resignReason(e));
 
 // A launch event is a new product's first launch when that product is at version 1.
 export function isFirstLaunch(e, s) {
