@@ -45,8 +45,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   };
   let ledClock = 0;
 
+  let charShadows = true;
+  function setCharacterShadows(on) {
+    charShadows = on;
+    for (const r of recs.values()) r.char.setShadows(on);
+    for (const r of leavers) r.char.setShadows(on);
+  }
+
   function makeRec(s) {
     const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role });
+    if (!charShadows) char.setShadows(false);
     char.pickProxy.userData.staffId = s.id;
     group.add(char.root);
     return {
@@ -736,7 +744,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   return {
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, setCharacterShadows,
     get playTime() { return playTime; },
     get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
