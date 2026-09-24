@@ -12,6 +12,7 @@ import { createOffice } from './office.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
+import { createBuild } from './build.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
 
@@ -56,6 +57,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   let office = null;
   let staff = null;
+  let build = null;
   const labelLayer = new THREE.Group();
   labelLayer.name = 'labels';
   scene.add(labelLayer);
@@ -71,6 +73,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   } else {
     office = createOffice({ parent: scene, screens, lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig });
+    build = createBuild({ office, getCamera: () => rig.camera, canvas });
     loadModels().then(() => { ready = true; });
   }
   const applyDebugCamera = () => {
@@ -116,6 +119,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let lastT = -1;
   let pendingUpgrade = false;
   let stageJustBuilt = false;
+  let buildSig = '';
 
   function sync(state) {
     if (!office || !ready || !state) return;
@@ -129,8 +133,11 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       firstStage = false;
       pendingUpgrade = false;
     }
-    const changed = office.setItems(state.items ?? []);
+    const changed = office.setPlaced(state.office?.placed ?? []);
     if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);
+    // Placement validity depends on cash, the week, and what is placed; recheck when any changes.
+    const sig = `${state.week}|${state.cash}|${changed.length}|${state.office?.placed?.length ?? 0}`;
+    if (sig !== buildSig) { buildSig = sig; build?.invalidate(); }
     stageJustBuilt = false;
     screens.setAutomation(state.automation);
     staff.sync(state);
@@ -163,11 +170,26 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
     setSpeed(k) { staff?.setSpeed(k); },
+    // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId? }.
+    setBuildMode(m) { build?.setMode(m); },
+    // validate(x, y, rot) -> boolean | { ok, reason }; the UI supplies it from the sim.
+    set validate(fn) { if (build) build.validator = fn; },
+    get validate() { return build?.validator ?? null; },
+    pickTile(x, y) { return build?.pickTile(x, y) ?? null; },
+    pickPlaced(x, y) { return build?.pickPlaced(x, y) ?? null; },
+    // The ghost's anchor tile and rotation, plus whether the validator accepted it.
+    get buildTarget() { return build?.target ?? null; },
+    get hoverPlaced() { return build?.hoverId ?? null; },
     // Steps characters, labels, and effects without drawing (for headless verification).
     advance(seconds, step = 1 / 30) {
       for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); }
     },
-    pick(x, y) { return staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null }; },
+    pick(x, y) {
+      const r = staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null };
+      if (r.kind) return r;
+      const id = build?.pickPlaced(x, y);
+      return id ? { kind: 'item', id } : r;
+    },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
@@ -182,6 +204,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       staff?.update(dt);
       floating.update(dt);
       fx.update(dt);
+      build?.update(dt, scene);
       lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);

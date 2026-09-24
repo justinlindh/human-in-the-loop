@@ -54,55 +54,70 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     r.char.dispose();
   }
 
-  // Seats: each staff member keeps a desk while the stage stays the same.
+  // Seats: each staff member keeps their desk (by placed id) while it exists.
   function assignSeats(list) {
     const cur = office.current;
     const taken = new Set();
-    for (const r of recs.values()) if (r.seat !== null && r.seat < cur.desks.length) taken.add(r.seat);
+    for (const r of recs.values()) if (r.seat !== null && office.deskById(r.seat)) taken.add(r.seat);
     for (const s of list) {
       const r = recs.get(s.id);
-      if (r.seat !== null && r.seat < cur.desks.length) continue;
+      if (r.seat !== null && office.deskById(r.seat)) continue;
       r.seat = null;
-      for (let i = 0; i < cur.desks.length; i++) if (!taken.has(i)) { r.seat = i; taken.add(i); break; }
+      const free = cur.desks.find((d) => !taken.has(d.id));
+      if (free) { r.seat = free.id; taken.add(free.id); }
     }
+  }
+
+  function openSpot() {
+    const W = office.current.zones.wander ?? [];
+    return W.length ? W[W.length - 1] : office.current.zones.door;
   }
 
   // Where someone should be and what they should be doing, from assignment and mood.
   function goalFor(s, r, roleIndex) {
-    const L = office.current.L;
-    const Z = L.zones;
+    const cur = office.current;
+    const Z = cur.zones;
     const type = s.assignment?.type ?? 'idle';
     if (s.mood === 'away' || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
-    const desk = r.seat !== null ? office.current.desks[r.seat] : null;
+    const desk = r.seat !== null ? office.deskById(r.seat) : null;
     const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: SEATED_ANIM[s.mood] ?? 'typing', seated: true });
     if (type === 'oversight') {
-      const wall = [...office.items.values()].find((it) => it.itemId === 'monitoring_wall');
+      const wall = [...office.placed.values()].find((it) => it.itemId === 'monitoring_wall');
       if (wall) {
         const o = wall.obj.position, ry = wall.obj.rotation.y;
         const off = (roleIndex.oversight % 3 - 1) * 0.6;
         return { x: o.x + Math.sin(ry) * 1.1 + Math.cos(ry) * off, z: o.z + Math.cos(ry) * 1.1 - Math.sin(ry) * off, yaw: ry + Math.PI, anim: 'idle', key: `ov-item-${off}` };
       }
-      const spots = Z.oversight;
-      const p = spots[roleIndex.oversight % spots.length];
-      const lap = Math.floor(roleIndex.oversight / spots.length);
-      return { x: p.x + lap * 0.5, z: p.z + lap * 0.4, yaw: Math.PI, anim: 'idle', key: `ov-${roleIndex.oversight}` };
+      // No monitoring wall: overseers watch the racks, or stand by the door with a laptop.
+      const rack = cur.dyn.racks[roleIndex.oversight % Math.max(1, cur.dyn.racks.length)];
+      const k = roleIndex.oversight;
+      if (rack) {
+        const ry = rack.rotation.y, o = rack.position;
+        const off = (k % 3 - 1) * 0.55;
+        return { x: o.x + Math.sin(ry) * 1.2 + Math.cos(ry) * off, z: o.z + Math.cos(ry) * 1.2 - Math.sin(ry) * off, yaw: ry + Math.PI, anim: 'idle', key: `ov-rack-${k}` };
+      }
+      const p = openSpot();
+      return { x: p.x + (k % 3) * 0.6, z: p.z + Math.floor(k / 3) * 0.6, yaw: Math.PI, anim: 'idle', key: `ov-${k}` };
     }
     if (type === 'hardProblem') {
-      const w = Z.whiteboard;
+      const w = Z.whiteboard ?? { ...openSpot(), yaw: Math.PI };
       const k = roleIndex.hard;
-      return { x: w.x + (k % 3 - 1) * 0.6, z: w.z + Math.floor(k / 3) * 0.5, yaw: Math.PI, anim: 'idle', key: `hp-${k}`, thinking: true };
+      const rx = Math.cos(w.yaw), rz = -Math.sin(w.yaw);
+      const off = (k % 3 - 1) * 0.6, back = Math.floor(k / 3) * 0.5;
+      return { x: w.x + rx * off - Math.sin(w.yaw) * back, z: w.z + rz * off - Math.cos(w.yaw) * back, yaw: w.yaw, anim: 'idle', key: `hp-${k}-${w.x.toFixed(1)},${w.z.toFixed(1)}`, thinking: true };
     }
     if (type === 'mentor' && s.assignment.targetId) {
       const mentee = recs.get(s.assignment.targetId);
-      const md = mentee?.seat != null ? office.current.desks[mentee.seat] : null;
+      const md = mentee?.seat != null ? office.deskById(mentee.seat) : null;
       if (md && mentee.staff.mood !== 'away') {
         const f = md.seat.rotY;
         const rx = Math.cos(f), rz = -Math.sin(f);
-        return { x: md.seat.x - rx * 0.55 - Math.sin(f) * 0.15, z: md.seat.z - rz * 0.55 - Math.cos(f) * 0.15, yaw: f + 0.7, anim: 'idle', key: `mentor-${mentee.id}-${md.index}`, mentoring: true };
+        return { x: md.seat.x - rx * 0.55 - Math.sin(f) * 0.15, z: md.seat.z - rz * 0.55 - Math.cos(f) * 0.15, yaw: f + 0.7, anim: 'idle', key: `mentor-${mentee.id}-${md.seat.x.toFixed(2)},${md.seat.z.toFixed(2)}`, mentoring: true };
       }
     }
-    if (desk) return { ...seated(desk), key: `desk-${desk.index}-${s.mood}` };
-    const w = Z.wander[r.id.length % Z.wander.length];
+    if (desk) return { ...seated(desk), key: `desk-${desk.seat.x.toFixed(2)},${desk.seat.z.toFixed(2)},${desk.seat.rotY.toFixed(2)}-${s.mood}` };
+    const W = Z.wander?.length ? Z.wander : [Z.door];
+    const w = W[r.id.length % W.length];
     return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
   }
 
@@ -163,7 +178,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     assignSeats(list);
 
     const roleIndex = { oversight: 0, hard: 0 };
-    const occupied = new Array(cur.desks.length).fill(null);
+    const occupied = new Map();
     for (const s of list) {
       const r = recs.get(s.id);
       const idx = { oversight: roleIndex.oversight, hard: roleIndex.hard };
@@ -172,14 +187,14 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       const g = goalFor(s, r, idx);
       if (r.char.mood !== s.mood && s.mood !== 'away') r.char.setMood(s.mood);
       r.char.setLegend(!!s.legend);
-      if (r.seat !== null) occupied[r.seat] = s;
+      if (r.seat !== null) occupied.set(r.seat, s);
 
       if (r.isNew) {
         r.isNew = false;
         r.goal = g; r.goalKey = g.key;
         if (hired.has(s.id) && !firstSync && !g.hidden) {
           hired.delete(s.id);
-          const d = cur.L.zones.door;
+          const d = cur.zones.door;
           r.pos.set(d.x, 0, d.z);
           r.yaw = Math.PI / 2;
           r.mode = 'enter';
@@ -205,7 +220,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         if (g.hidden && !r.hidden) {
           walkTo(r, g);           // head for the door, then disappear
         } else if (!g.hidden && r.hidden) {
-          const d = cur.L.zones.door;
+          const d = cur.zones.door;
           r.pos.set(d.x, 0, d.z);
           r.hidden = false;
           r.char.root.visible = true;
@@ -220,12 +235,12 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
-    for (let i = 0; i < cur.desks.length; i++) {
-      const s = occupied[i];
+    for (const d of cur.desks) {
+      const s = occupied.get(d.id);
       const away = s && (s.mood === 'away' || s.assignment?.type === 'sabbatical');
-      office.setDeskSign(i, !!away);
+      office.setDeskSign(d.id, !!away);
       const kind = outage ? 'red' : !s || away ? 'off' : s.mood === 'coasting' || s.mood === 'burnout' ? 'gray' : 'work';
-      office.setDeskScreen(i, kind);
+      office.setDeskScreen(d.id, kind);
     }
   }
 
@@ -333,9 +348,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       && r.staff.mood !== 'burnout' && ['idle', 'project', 'maintenance', 'marketing', 'sales', 'support', 'security'].includes(r.staff.assignment?.type));
     if (!pool.length) return;
     const r = pool[Math.floor(Math.random() * pool.length)];
-    const Z = cur.L.zones;
-    const coffee = Math.random() < 0.65;
-    const base = coffee ? Z.coffee : (Z.lounge ?? Z.wander)[Math.floor(Math.random() * (Z.lounge ?? Z.wander).length)];
+    const Z = cur.zones;
+    const coffee = !!Z.coffee && Math.random() < 0.65;
+    const pool2 = Z.lounge?.length ? Z.lounge : Z.wander ?? [];
+    if (!coffee && !pool2.length) return;
+    const base = coffee ? Z.coffee : pool2[Math.floor(Math.random() * pool2.length)];
     const spot = { x: base.x + rnd(-0.4, 0.4), z: base.z + rnd(-0.3, 0.3), yaw: rnd(0, Math.PI * 2), anim: coffee ? 'sip' : 'idle' };
     r.temp = { anim: spot.anim, t: rnd(5, 8), goal: spot, back: true, wander: true };
     walkTo(r, spot);
@@ -412,7 +429,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const c = r.char;
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
     if (r.leaveT > 1.1 && !r.exitPath) {
-      const d = office.current.L.zones.door;
+      const d = office.current.zones.door;
       r.exitPath = true;
       walkTo(r, { x: d.x, z: d.z });
       r.speed = 1.0;
@@ -456,36 +473,32 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   let standup = null;
   function setSpeed(k) { speed = k; }
 
+  // Where a standup gathers: around the meeting table, else in front of the whiteboard, else on
+  // open floor. Everyone faces the middle of the group.
   function ringSpots(n) {
-    const L = office.current.L;
+    const Z = office.current.zones;
     const spots = [];
-    if (L.meeting) {
-      const M = L.meeting;
-      const cx = (M.x0 + M.x1) / 2, cz = (M.z0 + M.z1) / 2;
-      const a = (M.x1 - M.x0) / 2 - 0.4, b = (M.z1 - M.z0) / 2 - 0.4;
-      const inside = Math.min(n, 10);
-      for (let i = 0; i < inside; i++) {
-        const t = (i / inside) * Math.PI * 2 + 0.3;
-        spots.push({ x: cx + Math.cos(t) * a, z: cz + Math.sin(t) * b, cx, cz });
-      }
-      // Overflow stands in a shallow arc outside the glass on the open side, everyone facing the
-      // table, so it reads as part of the huddle rather than a line waiting at a counter.
-      const extra = n - inside;
-      const R = (M.x1 - M.x0) / 2 + 0.7;
-      const span = Math.min(1.4, 0.32 * extra);
-      for (let k = 0; k < extra; k++) {
-        const t = extra === 1 ? 0 : (k / (extra - 1) - 0.5) * span;
-        spots.push({ x: cx + Math.cos(t) * R, z: cz + Math.sin(t) * R * 0.9, cx, cz });
-      }
-    } else {
-      const w = L.zones.whiteboard;
-      // A loose ring in front of the whiteboard, facing its own center so faces stay visible.
-      const cx = w.x + 0.4, cz = w.z + 0.35;
-      const r = Math.max(0.6, n * 0.17);
+    if (Z.meeting) {
+      const M = Z.meeting;
+      const a = M.L / 2 + 0.5, b = M.D / 2 + 0.5;
+      const c = Math.cos(M.rotY), sn = Math.sin(M.rotY);
       for (let i = 0; i < n; i++) {
-        const t = (i / n) * Math.PI * 2 + 2.2;
-        spots.push({ x: cx + Math.cos(t) * r, z: cz + Math.sin(t) * r, cx, cz });
+        const lap = Math.floor(i / 8);
+        const t = ((i % 8) / Math.min(8, n - lap * 8)) * Math.PI * 2 + 0.4 + lap * 0.4;
+        const lx = Math.cos(t) * (a + lap * 0.6), lz = Math.sin(t) * (b + lap * 0.6);
+        spots.push({ x: M.x + c * lx + sn * lz, z: M.z - sn * lx + c * lz, cx: M.x, cz: M.z });
       }
+      return spots;
+    }
+    const w = Z.whiteboard;
+    const base = w ?? openSpot();
+    const yaw = w?.yaw ?? Math.PI;
+    // The ring sits in front of the board so faces and the board stay visible.
+    const r = Math.max(0.6, n * 0.17);
+    const cx = base.x - Math.sin(yaw) * (w ? r * 0.7 : 0), cz = base.z - Math.cos(yaw) * (w ? r * 0.7 : 0);
+    for (let i = 0; i < n; i++) {
+      const t = (i / n) * Math.PI * 2 + 2.2;
+      spots.push({ x: cx + Math.cos(t) * r, z: cz + Math.sin(t) * r, cx, cz });
     }
     return spots;
   }
