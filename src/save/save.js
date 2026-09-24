@@ -8,6 +8,7 @@ import { INCUMBENTS } from '../data/incumbents.js';
 import { GOALS } from '../data/goals.js';
 import { assignSeats } from '../sim/office.js';
 import { voiceFor } from '../sim/staff.js';
+import { tick } from '../sim/tick.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
 
@@ -45,7 +46,7 @@ const writeIndex = (storage, idx) => store(storage).setItem(INDEX_KEY, JSON.stri
 export function saveMeta(state, id) {
   return {
     id, companyName: state.companyName, logoColor: state.founding?.logoColor ?? null, week: state.week,
-    year: dateOf(state.week).year, eraId: state.era?.id ?? 'classic', over: !!state.gameOver, savedAt: Date.now(),
+    year: dateOf(state.week).year, eraId: state.era?.id ?? 'classic', over: !!state.gameOver, savedAt: Date.now(), version: state.version,
   };
 }
 
@@ -139,14 +140,38 @@ function normalize(state) {
   return state;
 }
 
-// Loads a slot (by default the last one written, else the old single save). A successful result carries id.
-export function loadGame(storage, id = readIndex(storage).last) {
-  let raw;
+function readRaw(storage, id) {
   try {
-    raw = store(storage).getItem(id ? slotKey(id) : SAVE_KEY);
+    return store(storage).getItem(id ? slotKey(id) : SAVE_KEY);
   } catch {
-    return { ok: false, reason: 'No save found' };
+    return null;
   }
+}
+
+// The raw text of a slot (by default the last one written), even one that no longer loads, for export.
+export function exportSave(storage, id = readIndex(storage).last) {
+  return readRaw(storage, id);
+}
+
+// A trial week on a copy: a save written by an older build of the same version can still hold state this
+// build cannot run.
+function runs(raw) {
+  try {
+    const copy = normalize(JSON.parse(raw));
+    copy.pendingDecision = null;
+    copy.gameOver = null;
+    tick(copy);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Loads a slot (by default the last one written, else the old single save). A successful result carries id.
+// A save from another build fails with stale: true (and its version); the slot is kept, so exportSave still
+// reads it.
+export function loadGame(storage, id = readIndex(storage).last) {
+  const raw = readRaw(storage, id);
   if (raw === null || raw === undefined) return { ok: false, reason: 'No save found' };
   let state;
   try {
@@ -155,13 +180,17 @@ export function loadGame(storage, id = readIndex(storage).last) {
     return { ok: false, reason: 'Save is corrupted' };
   }
   if (!state || typeof state !== 'object' || Array.isArray(state)) return { ok: false, reason: 'Save is corrupted' };
-  if ('version' in state && state.version !== SAVE_VERSION) return { ok: false, reason: 'Save is from an incompatible version' };
+  if ('version' in state && state.version !== SAVE_VERSION) {
+    const older = !(state.version > SAVE_VERSION);
+    return { ok: false, reason: older ? 'Save is from an older build' : 'Save is from a newer build', stale: true, version: state.version };
+  }
   if (REQUIRED_KEYS.some((k) => !(k in state)) || !wellFormed(state)) return { ok: false, reason: 'Save is corrupted' };
   try {
     normalize(state);
   } catch {
     return { ok: false, reason: 'Save is corrupted' };
   }
+  if (!state.gameOver && !runs(raw)) return { ok: false, reason: 'Save is from an older build', stale: true, version: state.version, id: id ?? null };
   if (state.pendingDecision && !EVENTS[state.pendingDecision.eventId]) {
     state.pendingDecision = null;
     return { ok: true, id: id ?? null, state, notice: 'A decision from this save no longer exists and was skipped.' };

@@ -28,9 +28,12 @@ export function incentivesSystem(ctx) {
 
   winner.meaning = Math.min(100, winner.meaning + B.incentiveWinnerMeaning);
   for (const p of state.staff) if (p !== winner) p.meaning = Math.max(0, p.meaning - B.incentiveEnvy);
+  // Each reward's boost is named for the reward and runs until the next award replaces it quietly; only
+  // the last one, when the program stops, ends with a toast.
   const boost = Math.max(0, B.incentiveOutput - B.incentiveFatigue * count);
+  state.modifiers = state.modifiers.filter((m) => m.source !== 'incentives');
   if (boost > 0) {
-    state.modifiers.push({ id: newId(state, 'mod'), key: 'output', value: boost, label: 'Incentives Program', untilWeek: state.week + B.incentiveEveryWeeks, source: 'incentives' });
+    state.modifiers.push({ id: newId(state, 'mod'), key: 'output', value: boost, label: `The glow of ${reward.short}`, untilWeek: state.week + B.incentiveEveryWeeks + 1, source: 'incentives' });
   }
   testPurpose(state, { craft: -2, people: -3, trust: -1 }, 'The Incentives Program');
 

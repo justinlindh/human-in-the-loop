@@ -79,7 +79,7 @@ const list = [
     text: '{incumbent} offered {name} a job with a title that has three words and one of them is "Principal".',
     choices: [
       { label: 'Match the offer', hint: '+20% salary', effects: { salaryPct: 20, meaning: 3 }, outcome: '{name} stays and buys a nicer chair.' },
-      { label: 'Wish them well', hint: 'They leave', effects: { resign: true }, outcome: '{name} leaves for {incumbent}. They will be back in #alumni.' },
+      { label: 'Wish them well', hint: 'They leave', effects: { resign: 'poached' }, outcome: '{name} leaves for {incumbent}. They will be back in #alumni.' },
     ],
   },
   {
@@ -941,7 +941,7 @@ const list = [
     id: 'family_dinner', kind: 'leadership', weight: 2, cooldownWeeks: 52, random: true, subject: 'founder', funding: 'family',
     when: (s) => s.week >= 20,
     title: 'Dinner, with questions',
-    text: 'At a family dinner, {name}\'s uncle asks when {company} will "go public, like the Facebook". Everyone turns to look.',
+    text: 'At a family dinner, {name}\'s uncle asks when {company} will "go public, like the Facepage". Everyone turns to look.',
     choices: [
       { label: 'Show them the dashboard', hint: '{name} feels seen; brand up a little', effects: { meaning: 5, brand: 1 }, outcome: 'Grandma asks what churn is. {name} explains for forty minutes. Grandma is now an investor.' },
       { label: 'Promise big news next year', hint: 'More output for 12 weeks; people burn out faster for 12 weeks', effects: { modifier: [{ key: 'output', value: 0.06, weeks: 12, label: 'Family expectations' }, { key: 'meaningDrain', value: 0.3, weeks: 12, label: 'Family expectations' }] }, outcome: 'The uncle raises a glass. The pressure is now a houseguest.' },

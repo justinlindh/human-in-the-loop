@@ -112,6 +112,27 @@ describe('the Incentives Program (issue #11)', () => {
     return s;
   }
 
+  it('issue #87: a reward boost never ends with a toast that reads like the program was cancelled', async () => {
+    const { tick } = await import('../../src/sim/index.js');
+    const s = program(8);
+    s.cash = 1e8;
+    const ended = [];
+    let awards = 0;
+    for (let w = 0; w < B.incentiveEveryWeeks * 4; w++) {
+      const ev = tick(s);
+      s.pendingDecision = null;
+      awards += ev.filter((e) => e.type === 'incentive').length;
+      ended.push(...ev.filter((e) => e.type === 'toast' && /has ended/.test(e.text)).map((e) => e.text));
+    }
+    expect(awards).toBeGreaterThanOrEqual(3);
+    expect(ended.filter((t) => /Incentive|glow/i.test(t))).toEqual([]);
+    expect(s.modifiers.filter((m) => m.source === 'incentives').length).toBeLessThanOrEqual(1);
+    s.policies.incentives = false;
+    const last = [];
+    for (let w = 0; w < B.incentiveEveryWeeks + 2; w++) { last.push(...tick(s).filter((e) => e.type === 'toast').map((e) => e.text)); s.pendingDecision = null; }
+    expect(last.some((t) => /^The glow of .+ has ended\.$/.test(t))).toBe(true);
+  });
+
   it('climbs the reward ladder with staged talk, and each reward buys less', () => {
     const s = program();
     const rewards = [];
@@ -121,7 +142,7 @@ describe('the Incentives Program (issue #11)', () => {
       const inc = ev.find((e) => e.type === 'incentive');
       if (inc) {
         rewards.push(inc.reward);
-        boosts.push(s.modifiers.filter((m) => m.label === 'Incentives Program').at(-1)?.value ?? 0);
+        boosts.push(s.modifiers.filter((m) => m.source === 'incentives').at(-1)?.value ?? 0);
         const says = ev.filter((e) => e.type === 'say');
         expect(says.length).toBeGreaterThanOrEqual(3);
         expect(says.some((e) => e.staffId === inc.staffId)).toBe(true);

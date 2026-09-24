@@ -209,7 +209,7 @@ registerAction('fire', (ctx, { staffId }) => {
   if (!p) return { ok: false, reason: 'No such staff member' };
   if (p.founder) return { ok: false, reason: 'Founders cannot be fired' };
   removeStaff(state, p);
-  ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: true });
+  ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: true, reason: 'fired' });
   ctx.emit({ type: 'toast', text: `${p.name} has left ${state.companyName}.`, tone: 'info' });
   return { ok: true };
 });

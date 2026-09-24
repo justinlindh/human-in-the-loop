@@ -34,8 +34,8 @@ export function moveOnSystem(ctx) {
   emitChat(ctx, { person: p, text: pick(rng, FAREWELLS) });
   endMentorshipsOf(state, p);
   removeStaff(state, p);
-  ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false });
-  ctx.emit({ type: 'toast', tone: 'info', text: `${p.name} ${pick(rng, REASONS)}` });
+  ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'moved_on' });
+  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, REASONS)}` });
 }
 
 registerSystem('move-on', moveOnSystem, 52);

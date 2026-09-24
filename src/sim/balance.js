@@ -75,7 +75,7 @@ export const B = {
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
-  botBuildersPerProject: 6, botTimeOffStrain: 70,
+  botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2,
   eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3, plateau: 2 },
   unlockGapWeeks: 6,
   lockdownWeek: 62, lockdownWeeks: 10, hybridRemoteShare: 0.4, remoteFirstShare: 0.65, remoteLearningMult: 0.6,
