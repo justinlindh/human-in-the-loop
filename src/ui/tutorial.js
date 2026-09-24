@@ -13,7 +13,7 @@ const STEPS = [
     text: 'Hire, assign work, and watch how people feel. Tired people slow down, and burnt-out people leave.' },
   { target: '.mbtn[data-menu="office"]', place: 'above', title: 'The office',
     text: 'Everyone needs a desk. Place furniture here, and move somewhere bigger as the company grows.' },
-  { target: '.chat', place: 'right', title: 'Slackk',
+  { target: '.chat', place: 'right', title: 'Yak',
     text: 'The team talks here. It is the quickest way to hear that something is going wrong.' },
   { target: '.chip.speed', place: 'below-left', title: 'Time',
     text: 'Pause and speed live here (Space, 1, 2, and 3 on a keyboard). The game waits for you whenever there is a decision to make.' },
