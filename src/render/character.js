@@ -534,6 +534,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     }
   }
 
+  // While the game is paused everything holds its pose; only a faint breath shows it is alive.
+  let breathT = Math.random() * 6;
+  function breathe(dt) {
+    breathT += dt;
+    body.position.y = cur.bodyY + Math.sin(breathT * 1.8 + phase) * 0.004;
+  }
+
   function dispose() {
     for (const m of Object.values(own)) m.dispose();
     pickProxy.material.dispose();
@@ -544,7 +551,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   update(0);
   return {
-    root, head: headGroup, setAnim, update, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setAnim, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

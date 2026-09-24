@@ -654,8 +654,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (st.phase === 'close' && st.t > 0.3) endStandup();
   }
 
-  function update(dt) {
+  // paused: nothing moves, plans, or times out; people only breathe.
+  function update(dt, { paused = false } = {}) {
     if (!office.current) return;
+    if (paused) {
+      for (const r of recs.values()) if (!r.hidden) r.char.breathe(dt);
+      for (const r of leavers) r.char.breathe(dt);
+      return;
+    }
     updateStandup(dt);
     updateFast(dt);
     perks.update(dt, lastState);
