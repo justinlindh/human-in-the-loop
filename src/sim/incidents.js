@@ -13,6 +13,7 @@ import { MODELS } from '../data/models.js';
 import { CHATTER } from '../data/chatter.js';
 import { INCIDENT_EVENT } from '../data/events.js';
 import { modifierBonus } from './modifiers.js';
+import { researchBonus } from './bonus.js';
 
 const ROGUE_KINDS = {
   engineering: ['db_wipe', 'runaway_spend'], support: ['refund_hallucination'], sales: ['pricing_rewrite'],
@@ -30,7 +31,8 @@ const onSecurity = (state) => state.staff.filter((p) => p.mood !== 'away' && p.a
 
 export function securityPosture(state) {
   const staffPart = sum(onSecurity(state), (p) => avg(Object.values(p.skills)) * B.postureSecurityPerSkill * outputMult(state, p) / 10);
-  return clamp(staffPart + state.security.auditBoost + (state.security.tooling ? B.postureTooling : 0)
+  const flat = researchBonus(state, 'postureFlat') + sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).postureFlat);
+  return clamp(staffPart + flat + state.security.auditBoost + (state.security.tooling ? B.postureTooling : 0)
     - state.comprehensionDebt * B.postureDebtPenalty, 0, 100);
 }
 
@@ -43,7 +45,7 @@ export function rogueRisk(state, fn) {
   const a = state.automation[fn];
   if (a.level <= 0) return 0;
   return B.rogueBase * a.level * (1 - MODELS[a.model].guardrails) * (B.rogueShortfallFloor + shortfall(state))
-    * (1 + state.comprehensionDebt / 50) * Math.max(0, 1 + modifierBonus(state, 'rogueRisk'));
+    * (1 + state.comprehensionDebt / 50) * Math.max(0, 1 + modifierBonus(state, 'rogueRisk') + researchBonus(state, 'rogueRisk'));
 }
 
 export function catchChance(state) {
@@ -58,11 +60,14 @@ export function catchChance(state) {
 export const cyberChance = (state) => Math.min(B.cyberMax, B.cyberBase + B.cyberPerMrr * totalMrr(state));
 
 export function fixCapacity(state) {
-  return sum(state.staff.filter((p) => p.role === 'engineer' && p.mood !== 'away'),
-    (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
+  const present = state.staff.filter((p) => p.mood !== 'away');
+  const commander = Math.max(1, ...present.map((p) => staffMods(p).outageFix));
+  return sum(present.filter((p) => p.role === 'engineer'), (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority])
+    * commander * (1 + researchBonus(state, 'outageFix'));
 }
 
-const isUnrecoverable = (state, severity) => fixCapacity(state) < severity * (0.4 + state.comprehensionDebt / 100);
+const isUnrecoverable = (state, severity) => fixCapacity(state)
+  < severity * (0.4 + state.comprehensionDebt / 100) * Math.max(0, 1 + researchBonus(state, 'unrecoverableThreshold'));
 
 export function startOutage(ctx, { productId, kind, severity }) {
   const { state } = ctx;
@@ -104,7 +109,8 @@ function incident(ctx, { kind, severity, caught, model }) {
   const live = liveProducts(state);
   const product = live.length ? pick(ctx.rng, live) : null;
   const productId = product?.id ?? null;
-  const mult = caught ? B.caughtDamageMult : 1;
+  const sandbox = model ? Math.max(0, 1 + researchBonus(state, 'rogueDamage')) : 1;
+  const mult = (caught ? B.caughtDamageMult : 1) * sandbox;
   state.cash -= severity * B.incidentCashPerSeverity * (1 + B.incidentCashYearGrowth * dateOf(state.week).yearIndex) * mult;
   state.brand = clamp(state.brand - severity * mult, 0, 100);
   state.flags.lastIncidentModel = model;

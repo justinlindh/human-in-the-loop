@@ -8,6 +8,8 @@ import { comboFit } from '../data/combos.js';
 import { TRENDS } from '../data/trends.js';
 import { PRESS, REVIEW_QUOTES } from '../data/press.js';
 import { CATEGORIES } from '../data/categories.js';
+import { RESEARCH } from '../data/research.js';
+import { emitChat } from './chat.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty' };
 
@@ -96,6 +98,14 @@ registerAction('startProject', (ctx, a) => {
       kind: a.kind, name: a.kind === 'refactor' ? 'The Big Refactor' : 'Craft project',
       pointsNeeded: a.kind === 'refactor' ? B.refactorPoints : B.craftPoints,
     });
+  } else if (a.kind === 'research') {
+    const r = RESEARCH[a.researchId];
+    if (!r) return { ok: false, reason: 'Unknown research' };
+    if (state.research.done.includes(r.id)) return { ok: false, reason: 'Already researched' };
+    if (r.requires && !state.research.done.includes(r.requires)) return { ok: false, reason: `Requires ${RESEARCH[r.requires].name}` };
+    if (state.projects.some((j) => j.researchId === r.id)) return { ok: false, reason: 'Already in progress' };
+    if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
+    project = baseProject(state, { kind: 'research', name: r.name, researchId: r.id, pointsNeeded: r.points });
   } else {
     return { ok: false, reason: 'Unknown project kind' };
   }
@@ -160,6 +170,11 @@ function complete(ctx, j) {
     state.comprehensionDebt = Math.max(0, state.comprehensionDebt - B.debtPaydownRefactor);
     for (const p of team) p.knowledge = Math.min(100, p.knowledge + 10);
     ctx.emit({ type: 'toast', text: 'The Big Refactor is done. People understand things again.', tone: 'good' });
+  } else if (j.kind === 'research' && RESEARCH[j.researchId] && !state.research.done.includes(j.researchId)) {
+    const r = RESEARCH[j.researchId];
+    state.research.done.push(r.id);
+    ctx.emit({ type: 'toast', text: `${r.name} is live. ${r.desc}`, tone: 'good' });
+    emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
   } else if (j.kind === 'craft') {
     for (const p of team) p.meaning = Math.min(100, p.meaning + 15);
     state.brand = Math.min(100, state.brand + 1);

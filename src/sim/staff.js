@@ -10,6 +10,10 @@ import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
 import { emitChat } from './chat.js';
 import { modifierBonus } from './modifiers.js';
+import { itemBonus, researchBonus } from './bonus.js';
+import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
+import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
+import { TRAINING } from '../data/training.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -30,8 +34,13 @@ export function topStats(role) {
 const DEFAULT_MODS = {
   output: 1, meaningDrain: 1, meaningRecovery: 1, mentorBonus: 1, xp: 1, hype: 1, oversight: 1, stamina: 1,
   features: 1, polish: 1, reliability: 1, novelty: 1, resign: 1, salary: 1, catch: 0,
+  debtPaydown: 1, knowledgeGain: 1, oversightMeaning: 1, hardProblemNovelty: 1, brandGain: 1, supportHours: 1,
+  churn: 1, outageFix: 1, salesBoost: 1, acquisition: 1, brandPerWeek: 0, postureFlat: 0,
 };
 
+const LEGEND_BOOST = 1.25;
+
+// Trait mods and career-path mods merged. A Legend's path perk is 25% further from neutral.
 export function staffMods(person) {
   const m = { ...DEFAULT_MODS };
   for (const id of person.traits) {
@@ -39,8 +48,18 @@ export function staffMods(person) {
     if (!t) continue;
     for (const [k, v] of Object.entries(t.mods)) m[k] = k === 'catch' ? m[k] + v : m[k] * v;
   }
+  const path = person.path ? PATHS[person.path] : null;
+  if (path) {
+    const boost = person.legend ? LEGEND_BOOST : 1;
+    for (const [k, v] of Object.entries(path.mods)) {
+      if (ADDITIVE_PATH_KEYS.includes(k)) m[k] += v * boost;
+      else m[k] *= 1 + (v - 1) * boost;
+    }
+  }
   return m;
 }
+
+const RANDOM_TRAITS = Object.keys(TRAITS).filter((id) => id !== 'natural_mentor');
 
 export function generateStaff(state, { role, seniority }) {
   const r = state.rng;
@@ -51,7 +70,7 @@ export function generateStaff(state, { role, seniority }) {
     const base = int(r, lo, hi) * (top.includes(st) ? 1.3 : 1);
     skills[st] = Math.round(clamp(base, 1, 100));
   }
-  const traits = shuffle(r, Object.keys(TRAITS)).slice(0, int(r, 0, 2));
+  const traits = shuffle(r, RANDOM_TRAITS).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
     name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,
@@ -62,7 +81,7 @@ export function generateStaff(state, { role, seniority }) {
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
     salary: 0, hiredWeek: state.week, founder: false,
-    path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
+    path: null, pathPending: seniority === 'senior', legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
       pants: pick(r, PANTS), accessory: pick(r, ACCESSORIES), build: int(r, 0, 2),
@@ -101,7 +120,7 @@ export function outputMult(state, person) {
   const staminaMult = person.stamina < B.staminaLowBelow ? 0.7 : 1;
   const craft = state.policies.craft_fridays ? B.craftFridaysOutput : 1;
   return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * staffMods(person).output * craft
-    * Math.max(0, 1 + modifierBonus(state, 'output'));
+    * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output'));
 }
 
 export const capacity = (state) => OFFICE_STAGES[state.officeStage].capacity;
@@ -140,6 +159,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   if (state.cash < fee) return { ok: false, reason: 'Not enough cash' };
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
   c.hiredWeek = state.week;
+  c.knowledge = Math.min(100, c.knowledge + researchBonus(state, 'newHireKnowledge'));
   state.staff.push(c);
   state.cash -= fee;
   state.stats.hires++;
@@ -210,15 +230,31 @@ registerAction('assign', (ctx, { staffId, assignment }) => {
   return reason ? { ok: false, reason } : { ok: true };
 });
 
-registerAction('train', (ctx, { staffId }) => {
+registerAction('train', (ctx, { staffId, program, focus }) => {
   const { state } = ctx;
   const p = findStaff(state, staffId);
   if (!p) return { ok: false, reason: 'No such staff member' };
-  if (state.cash < B.trainingCost) return { ok: false, reason: 'Not enough cash' };
-  state.cash -= B.trainingCost;
-  const gain = B.trainingXp * staffMods(p).xp;
+  const t = TRAINING[program];
+  if (!t) return { ok: false, reason: 'Unknown program' };
+  if (t.skill > 0 && !STATS.includes(focus)) return { ok: false, reason: 'Pick a skill to focus' };
+  if (p.mood === 'away') return { ok: false, reason: 'They are away' };
+  if (state.cash < t.cost) return { ok: false, reason: 'Not enough cash' };
+  state.cash -= t.cost;
+  const gain = t.xp * staffMods(p).xp;
   p.xp += gain;
+  if (t.skill > 0) p.skills[focus] = Math.min(100, p.skills[focus] + t.skill);
+  p.meaning = Math.min(100, p.meaning + t.meaning);
+  p.knowledge = Math.min(100, p.knowledge + t.knowledge);
+  state.brand = Math.min(100, state.brand + t.brand);
+  if (t.awayWeeks > 0) {
+    p.mood = 'away';
+    p.assignment = { type: 'sabbatical', targetId: null };
+    p.sabbaticalWeeksLeft = t.awayWeeks;
+    endMentorshipsOf(state, p);
+    state.flags[`awayFor_${p.id}`] = t.name;
+  }
   ctx.emit({ type: 'bubble', staffId: p.id, text: `+${Math.round(gain)} XP`, tone: 'good' });
+  ctx.emit({ type: 'toast', text: `${p.name} is off to a ${t.name.toLowerCase()}.`, tone: 'info' });
   return { ok: true };
 });
 
@@ -228,6 +264,7 @@ function levelUp(ctx, p) {
     p.xp -= B.xpPerLevel * p.level;
     p.level++;
     for (const st of topStats(p.role)) p.skills[st] = Math.min(100, p.skills[st] + int(ctx.rng, 2, 4));
+    onLevelUp(ctx, p);
   }
   if (p.level >= B.maxLevel) p.xp = Math.min(p.xp, B.xpPerLevel * p.level);
   const next = p.seniority === 'junior' && p.level >= B.promoteMidLevel ? 'mid'
@@ -238,6 +275,7 @@ function levelUp(ctx, p) {
   endMentorshipsOf(state, p);
   ctx.emit({ type: 'toast', text: `${p.name} is now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
+  if (next === 'senior') onReachedSenior(ctx, p);
 }
 
 export function staffUpkeep(ctx) {
@@ -255,19 +293,23 @@ export function staffUpkeep(ctx) {
       p.xp += gain;
       levelUp(ctx, p);
     }
-    if (p.mood === 'away') p.stamina += B.staminaRecovery * 0.5;
-    else if (working) p.stamina -= B.staminaDrainWorking * mods.stamina * Math.max(0, 1 + modifierBonus(state, 'staminaDrain'));
-    else p.stamina += B.staminaRecovery * 2;
+    const recover = B.staminaRecovery * (1 + itemBonus(state, 'staminaRecovery'));
+    if (p.mood === 'away') p.stamina += recover * 0.5;
+    else if (working) p.stamina -= B.staminaDrainWorking * mods.stamina * Math.max(0, 1 + modifierBonus(state, 'staminaDrain') + itemBonus(state, 'staminaDrain'));
+    else p.stamina += recover * 2;
     p.stamina = clamp(p.stamina, 0, 100);
     if (p.mood === 'away' && p.sabbaticalWeeksLeft > 0) {
       p.sabbaticalWeeksLeft--;
       if (p.sabbaticalWeeksLeft === 0) {
         p.mood = 'ok';
         p.assignment = defaultAssignment(p);
-        ctx.emit({ type: 'toast', text: `${p.name} is back from sabbatical, tanned and dangerous.`, tone: 'good' });
+        const from = state.flags[`awayFor_${p.id}`];
+        delete state.flags[`awayFor_${p.id}`];
+        ctx.emit({ type: 'toast', text: from ? `${p.name} is back from the ${from.toLowerCase()}, full of ideas.` : `${p.name} is back, rested and dangerous.`, tone: 'good' });
       }
     }
   }
+  for (const p of state.staff) progressRecords(ctx, p);
   if (state.week - state.candidatesWeek >= B.candidateRefreshWeeks) refreshCandidates(state);
 }
 

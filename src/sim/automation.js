@@ -7,6 +7,7 @@ import { ROLES } from '../data/roles.js';
 import { MODELS } from '../data/models.js';
 import { POLICIES } from '../data/policies.js';
 import { modifierBonus } from './modifiers.js';
+import { itemBonus } from './bonus.js';
 
 export function automationExposure(state, person) {
   let max = 0;
@@ -25,7 +26,7 @@ export const overseers = (state) => state.staff.filter((p) => p.mood !== 'away' 
 
 export function oversightProvided(state) {
   return sum(overseers(state), (p) => B.oversightHoursPerPerson * outputMult(state, p) * staffMods(p).oversight)
-    * Math.max(0, 1 + modifierBonus(state, 'oversight'));
+    * Math.max(0, 1 + modifierBonus(state, 'oversight') + itemBonus(state, 'oversight'));
 }
 
 registerAction('setAutomation', (ctx, { fn, level, model }) => {
