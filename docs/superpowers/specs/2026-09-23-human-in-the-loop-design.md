@@ -288,17 +288,26 @@ A weekly ritual that shows morale in person.
 Approved after the first playtests: the game threw everything at the player at once, ran too fast, and started in a finished office. This section supersedes the earlier run shape (15 fixed years from 2026), the fixed item slots, and the up-front menus.
 
 ### Run shape
-- The run starts in January 2019 and is **open-ended**. There is no timeout.
+- The run starts in January 2019 and is a **20-year career**, like Game Dev Story. The 20th anniversary (2039) is the natural ending: it produces the epilogue and score, and the player may keep playing after it.
+- **Target length:** a first full run takes about 4 to 5 hours at 1x, played across several sessions. Saves must make that comfortable (see Saves).
 - **Goals** (first launch, reaching the Office Floor, reaching HQ, the first award, leading a category, an IPO, a 10-year anniversary, and similar) are milestones with small rewards (cash, brand, a trophy for the shelf), shown in a Goals card.
-- **Retiring:** when eligible, the player can take an IPO or accept an acquisition and retire, which produces the epilogue and score; or keep playing. Bankruptcy and collapse still end a run.
-- Pacing target: 5 real seconds per week at 1x. The Classic SaaS era lasts about 13 minutes at 1x.
+- **Retiring early:** from about year 10, when eligible, the player can take an IPO or accept an acquisition and retire, which produces the epilogue and score; or keep playing. Bankruptcy and collapse still end a run.
+- **Clock:** about 8 real seconds per week at 1x (to be confirmed with the pacing simulator). Balance is expressed in weeks, so the clock can change without retuning the sim. With decision and menu pauses, a game year takes roughly 12 to 15 real minutes at 1x.
+- **Content ladder:** something new arrives roughly every 10 to 20 real minutes for the whole run (product categories, items, office stages, research, awards, trade shows, rivals, perks, pets, world events), never more than 2 unlock cards in a real minute outside era arrivals. A longer run with the same content is not the goal.
+
+### Saves
+- Autosave every few weeks and when the tab is hidden or closed.
+- Several save slots, listed on the title screen with company, date and logo.
+- A "Welcome back" recap on Continue: the state of the company, what is waiting on the player, and the last few notable moments.
 
 ### Eras
 The world timeline is fixed, with each era's arrival jittered by up to one quarter per run. Each arrival is shown as an era card and usually comes with a decision.
 1. **Classic SaaS** (2019 to about 2022): no models, no automation, no rogue agents, no AI angles. A product is a category plus an **approach** (Web App, Mobile-first, API-first, Freemium, On-prem). The player learns building, hiring, launching, marketing, and the office.
 2. **The ChatGBT moment** (about 2022 to 2024): model vendors, the Copilot and Summarizer angles, and gentle automation (support and marketing copy only, capped at 50%). Incumbents and clones begin adopting AI.
 3. **Agents** (about 2025 to 2028): the Agent and Workflow angles, the AI-native angle, the full automation dials (engineering, QA, ops up to 100%), rogue agents, oversight, and AI research tools.
-4. **Consolidation** (about 2029 on): price wars, frequent vendor deprecations, incumbents fighting back, regulation, and regular acquisition offers. Open-ended from here, driven by trends.
+4. **Consolidation** (about 2029 to 2033): price wars, frequent vendor deprecations, incumbents fighting back, regulation, and regular acquisition offers.
+5. **The Plateau** (about 2034 on): AI is a commodity everyone has, so the edge is people, taste and trust. Human craft, comprehension and brand decide who wins. Open-ended from here, driven by trends.
+The pre-AI Classic era is deliberately long: at 1x it is the first hour or so of play.
 Approaches stay available after the AI eras; AI angles add to them.
 
 ### Progressive unlocks

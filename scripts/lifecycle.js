@@ -66,13 +66,30 @@ try {
   check(`played ${WEEKS} weeks and saved`, saved.week === WEEKS && saved.has, JSON.stringify(saved));
   await page.screenshot({ path: `${OUT}/5-played.png` });
 
+  // Saves without an explicit save: the tab going hidden, then the page being hidden (pagehide).
+  const savedWeek = () => page.evaluate(() => {
+    const k = Object.keys(localStorage).find((x) => x.startsWith('hitl.save'));
+    try { return JSON.parse(localStorage.getItem(k)).week ?? JSON.parse(localStorage.getItem(k)).state?.week; } catch { return null; }
+  });
+  await page.evaluate(() => {
+    window.__HITL.tickN(2);
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+  });
+  const onHidden = await savedWeek();
+  check('saves when the tab is hidden', onHidden === WEEKS + 2, `saved week ${onHidden}`);
+  await page.evaluate(() => { window.__HITL.tickN(1); dispatchEvent(new Event('pagehide')); });
+  const onPagehide = await savedWeek();
+  check('saves on pagehide', onPagehide === WEEKS + 3, `saved week ${onPagehide}`);
+
   await page.reload(); await ready(); await page.waitForTimeout(1000);
   const t2 = await page.evaluate(() => ({ playing: window.__HITL.playing, status: window.__HITL.controls.loadStatus() }));
   check('reload shows the title with a save', !t2.playing && t2.status.ok, JSON.stringify(t2.status));
   await clickText(/Continue/);
   await page.waitForTimeout(800);
   const t3 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, week: window.__HITL.state.week }));
-  check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === WEEKS, JSON.stringify(t3));
+  check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === WEEKS + 3, JSON.stringify(t3));
   await page.screenshot({ path: `${OUT}/6-continued.png` });
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);
