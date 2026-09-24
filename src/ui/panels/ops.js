@@ -7,8 +7,12 @@ import { oversightNeeded, oversightHave } from './automation.js';
 
 const MOOD_MULT = { ok: 1, coasting: 0.6, burnout: 0.2, away: 0 };
 
-// Posture parts per the sim's formula; the total uses the sim's own function when it exists.
+// Posture breakdown from the sim when it exports one; otherwise an estimate from the formula.
 export function postureParts(s) {
+  if (typeof SIM.postureParts === 'function') {
+    const p = SIM.postureParts(s);
+    return { ...p, people: p.people ?? s.staff.filter((x) => x.role === 'security' && x.mood !== 'away').length };
+  }
   const secStaff = s.staff.filter((p) => p.role === 'security' && p.mood !== 'away');
   const staff = secStaff.reduce((a, p) => {
     const avg = (p.skills.features + p.skills.polish + p.skills.reliability + p.skills.novelty) / 4;

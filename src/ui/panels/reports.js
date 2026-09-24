@@ -182,9 +182,13 @@ export function reportsPanel(ctx) {
   }
   // Charts need the panel's width, so the first render waits until the panel is in the DOM.
   requestAnimationFrame(() => render());
+  let resizeTimer = 0;
+  const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); };
+  addEventListener('resize', onResize);
   return {
     el: host,
     tabs: t.el,
+    destroy() { removeEventListener('resize', onResize); clearTimeout(resizeTimer); },
     update(s) {
       t.setLabel('products', `Products (${s.products.filter((p) => !p.killed).length})`);
       if (host.firstChild) views[tab].update(s);
