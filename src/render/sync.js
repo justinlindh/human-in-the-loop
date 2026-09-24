@@ -675,8 +675,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function update(dt, { paused = false } = {}) {
     if (!office.current) return;
     if (paused) {
-      for (const r of recs.values()) if (!r.hidden) r.char.breathe(dt);
-      for (const r of leavers) r.char.breathe(dt);
+      // Nothing advances, but everyone is still drawn where they are (new arrivals included).
+      for (const r of [...recs.values(), ...leavers]) {
+        r.char.root.position.copy(r.pos);
+        if (r.temp?.lift && !r.path.length) r.char.root.position.y = r.temp.lift;
+        r.char.root.rotation.y = r.yaw;
+        if (!r.hidden) r.char.breathe(dt);
+      }
       return;
     }
     updateStandup(dt);
