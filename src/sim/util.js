@@ -9,6 +9,12 @@ export function round(v, dp = 0) {
   return Math.round(v * f) / f;
 }
 
+// "an Architect", "a UX Lead", "a Tech Lead". Acronyms starting with U take "a".
+export function article(word) {
+  const an = /^[aeio]/i.test(word) || (/^u/i.test(word) && !/^U[A-Z]/.test(word));
+  return `${an ? 'an' : 'a'} ${word}`;
+}
+
 export function newId(state, prefix) {
   return `${prefix}${state.nextId++}`;
 }

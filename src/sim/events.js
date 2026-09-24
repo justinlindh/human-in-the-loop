@@ -27,7 +27,7 @@ export function fillText(state, rng, text, subjectId, vars = null) {
   const v = vars ?? decisionVars(state, rng, subjectId);
   return text
     .replaceAll('{name}', person?.name ?? 'Someone')
-    .replaceAll('{product}', product?.name ?? liveProducts(state).at(-1)?.name ?? 'your product')
+    .replaceAll('{product}', product?.name ?? liveProducts(state).at(-1)?.name ?? 'production')
     .replaceAll('{company}', state.companyName)
     .replaceAll('{incumbent}', v.incumbent)
     .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks));
@@ -49,7 +49,10 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     eventId, subjectId, vars,
     title: fill(ev.title),
     text: fill(ev.text),
-    choices: ev.choices.map((c) => ({ label: fill(c.label), hint: fill(c.hint) })),
+    choices: ev.choices.map((c) => {
+      const available = !c.requires || checkCondition(state, c.requires, subjectId);
+      return { label: fill(c.label), hint: fill(c.hint), available, reason: available ? null : (REQUIRE_REASON[c.requires] ?? 'Not possible right now') };
+    }),
   };
   ctx.emit({ type: 'decision' });
   return true;

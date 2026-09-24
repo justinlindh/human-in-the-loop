@@ -62,7 +62,10 @@ export function catchChance(state) {
   return Math.min(B.catchMax, B.catchBase * coverage + bonus);
 }
 
-export const cyberChance = (state) => Math.min(B.cyberMax, B.cyberBase + B.cyberPerMrr * totalMrr(state));
+export function cyberChance(state) {
+  const mrr = totalMrr(state);
+  return mrr > 0 ? Math.min(B.cyberMax, B.cyberBase + B.cyberPerMrr * mrr) : 0;
+}
 
 export function fixCapacity(state) {
   const present = state.staff.filter((p) => p.mood !== 'away');

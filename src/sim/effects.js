@@ -169,7 +169,6 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
       pointsNeeded: B.craftPoints, progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
       productId: null, startedWeek: state.week, bankedHype: 0,
     });
-    if (person && person.mood !== 'away') person.assignment = { type: 'project', targetId: id };
   }
   if (fx.pivot) pivot(ctx);
   if (fx.consultants && state.outage) {
