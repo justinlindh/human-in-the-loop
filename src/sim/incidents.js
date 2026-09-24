@@ -13,6 +13,7 @@ import { MODELS } from '../data/models.js';
 import { CHATTER } from '../data/chatter.js';
 import { INCIDENT_EVENT } from '../data/events.js';
 import { modifierBonus } from './modifiers.js';
+import { fillChat } from './chat.js';
 import { researchBonus } from './bonus.js';
 
 const ROGUE_KINDS = {
@@ -36,7 +37,7 @@ export function postureParts(state) {
   const audit = state.security.auditBoost;
   const tooling = state.security.tooling ? B.postureTooling : 0;
   const debt = state.comprehensionDebt * B.postureDebtPenalty;
-  return { staff, bonus, audit, tooling, debt, total: clamp(staff + bonus + audit + tooling - debt, 0, 100) };
+  return { people: onSecurity(state).length, staff, bonus, audit, tooling, debt, total: clamp(staff + bonus + audit + tooling - debt, 0, 100) };
 }
 
 export const securityPosture = (state) => postureParts(state).total;
@@ -126,6 +127,15 @@ function outageStep(ctx) {
   if (!o.unrecoverable && o.weeks >= Math.max(1, Math.ceil(o.severity / Math.max(fixCapacity(state), 0.1)))) clearOutage(ctx, '');
 }
 
+// A chat line from a pool with its placeholders filled; falls back to a line that needs none.
+function filledLine(ctx, pool, speaker, product) {
+  for (let i = 0; i < 6; i++) {
+    const text = fillChat(ctx.state, ctx.rng, pick(ctx.rng, pool), { speaker, product });
+    if (text !== null) return text;
+  }
+  return pick(ctx.rng, pool.filter((l) => !l.includes('{'))) ?? 'On it.';
+}
+
 function incident(ctx, { kind, severity, caught, model }) {
   const { state } = ctx;
   const live = liveProducts(state);
@@ -154,10 +164,13 @@ function incident(ctx, { kind, severity, caught, model }) {
     }
     const best = eyes.reduce((a, b) => (staffMods(b).catch + b.skills.reliability > staffMods(a).catch + a.skills.reliability ? b : a));
     ctx.emit({ type: 'celebrate', staffId: best.id });
-    emitChat(ctx, { channel: 'incidents', person: best, text: pick(ctx.rng, CHATTER.overseer) });
+    emitChat(ctx, { channel: 'incidents', person: best, text: filledLine(ctx, CHATTER.overseer, best, product) });
     return;
   }
-  if (witnesses.length) emitChat(ctx, { channel: 'incidents', person: pick(ctx.rng, witnesses), text: pick(ctx.rng, CHATTER.incident) });
+  if (witnesses.length) {
+    const who = pick(ctx.rng, witnesses);
+    emitChat(ctx, { channel: 'incidents', person: who, text: filledLine(ctx, CHATTER.incident, who, product) });
+  }
   if (severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
   if (severity >= B.outageMinSeverity && !state.outage && product) startOutage(ctx, { productId, kind, severity });
 }

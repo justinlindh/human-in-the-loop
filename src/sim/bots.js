@@ -170,7 +170,7 @@ function automateAll(s) {
   act(s, FUNCTIONS.filter((fn) => fn === 'engineering' || live)
     .filter((fn) => s.automation[fn].level !== 1 || s.automation[fn].model !== model)
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
-  if (weeksOfBurn(s) > 20 && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
+  if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
     const res = dispatch(s, startNew(s, 'medium', model, fixedName(s)));
     if (res.ok) act(s, assignAll(s, builders(s), res.projectId));
@@ -338,10 +338,10 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
     }
     if (s.gameOver) break;
     for (const a of bot(s)) dispatch(s, a);
-    tick(s);
+    const events = tick(s);
     maxStage = Math.max(maxStage, s.officeStage);
     if (firstLaunch === null && s.stats.launches > 0) firstLaunch = s.week;
-    onWeek?.(s);
+    onWeek?.(s, events);
   }
   return {
     won: !!s.gameOver?.won, reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,

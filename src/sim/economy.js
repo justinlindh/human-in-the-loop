@@ -17,11 +17,12 @@ export function weeklyCosts(state) {
   return {
     salaries: sum(state.staff, (p) => p.salary),
     rent: OFFICE_STAGES[state.officeStage].rent,
-    models: sum(live, (p) => MODELS[p.model].productCost * state.models[p.model].costMult * p.customers * 12 / 52),
-    automation: sum(autos, (a) => MODELS[a.model].autoCost * state.models[a.model].costMult * a.level) * gpuMult,
+    models: sum(live, (p) => MODELS[p.model].productCost * B.modelCostMult * state.models[p.model].costMult * p.customers * 12 / 52),
+    automation: sum(autos, (a) => MODELS[a.model].autoCost * B.autoCostMult * state.models[a.model].costMult * a.level) * gpuMult,
     gpu: selfHosted ? B.gpuWeeklySelfHost : 0,
     policies: sum(Object.keys(state.policies).filter((id) => state.policies[id] && POLICIES[id]), (id) => POLICIES[id].weeklyCost),
     tooling: state.security.tooling ? B.toolingWeekly : 0,
+    overhead: Math.max(0, state.staff.length - B.overheadFreeHeadcount) * B.overheadPerHead,
   };
 }
 

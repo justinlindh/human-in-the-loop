@@ -12,8 +12,11 @@ export function itemBonus(state, key) {
       total += (ITEMS[itemId]?.effects[level - 1]?.[key] ?? 0) * (i === 0 ? 1 : SECOND_COPY);
     });
   }
-  return total;
+  // No stack of items moves a single effect by more than half.
+  return Math.max(-ITEM_CAP, Math.min(ITEM_CAP, total));
 }
+
+const ITEM_CAP = 0.5;
 
 const SECOND_COPY = 0.5;
 

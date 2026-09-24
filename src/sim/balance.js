@@ -24,6 +24,8 @@ export const B = {
   salesCloseBoostPerPerson: 0.006, autoSalesBoost: 0.008,
   meaningDrain: { junior: 0.6, mid: 1.1, senior: 1.8 }, meaningBaseRecovery: 0.35,
   meaningRecovery: { mentor: 1.2, mentee: 0.6, hardProblem: 1.6, craft: 1.1, sabbatical: 4, oversight: 0.4, craftFridays: 0.5, owner: 0.4 },
+  meaningGrind: 0.25, meaningGrindPerHead: 0.025, meaningCeilingBand: 50,
+  yearlyRaise: 0.04, modelCostMult: 2, autoCostMult: 0.6, overheadFreeHeadcount: 12, overheadPerHead: 300, staleChurn: 0.004,
   meaningCatchBonus: 12, meaningAwardBonus: 8, meaningLaunchBonus: 4,
   coastingBelow: 35, burnoutBelow: 15, coastingOutput: 0.6, burnoutOutput: 0.2,
   resignChance: { coasting: 0.01, burnout: 0.07 }, burnoutWeeksBeforeResign: 3, sabbaticalWeeks: 4,
@@ -61,6 +63,6 @@ export const B = {
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
-  chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 20, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
-  ipoMrr: 2500000, ipoBrand: 60, acquisitionOfferMrr: 1800000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
+  chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 52, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
+  ipoMrr: 1600000, ipoBrand: 60, acquisitionOfferMrr: 1400000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };
