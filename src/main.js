@@ -98,7 +98,9 @@ async function boot() {
     newGame: (opts) => {
       if (!opts) { showTitle(); return; }
       const seed = Number.isFinite(opts.seed) ? opts.seed : randomSeed();
-      startPlaying(realSim ? simMod.createGame({ seed, companyName: opts.companyName || 'Loopworks' }) : sim.state);
+      // Founding options (logoColor, tagline, founders, funding) pass straight through to the sim.
+      const founding = { ...opts, seed, companyName: opts.companyName || 'Loopworks' };
+      startPlaying(realSim ? simMod.createGame(founding) : sim.state);
       if (canSave()) saveMod.clearSave();
     },
     continueGame: () => {
