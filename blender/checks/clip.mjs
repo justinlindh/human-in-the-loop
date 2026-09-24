@@ -38,7 +38,10 @@ const out = await page.evaluate(async () => {
     { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', soft: true, label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
     { id: 'k_arc', label: 'arcade:stool' }, { id: 'k_lib', slot: 1, label: 'library:armchair' }]);
   const seatCheck = { name: 'desks:all-seated', pass: unseated.length === 0, unseated };
-  return [seatCheck, ...a.results, ...b.results];
+  await (await import('/src/render/rig.js')).loadRig();
+  const dance = [];
+  for (const g of ['motivational_polka', 'corporate_synthwave', 'aggressive_bossa_nova', 'sad_lofi']) dance.push(await C.runDanceCheck(R, S, g));
+  return [seatCheck, ...a.results, ...b.results, ...dance];
 });
 await H.close();
 let failed = 0;

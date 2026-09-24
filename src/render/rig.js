@@ -18,8 +18,10 @@ let enabled = false;
 // The rig model downloads only once the rig is turned on. Resolves when its clips can play.
 export function setRigEnabled(on) {
   enabled = !!on;
-  return enabled ? loadModels(['chibi_rig']) : Promise.resolve();
+  return enabled ? loadRig() : Promise.resolve();
 }
+// Loads the rig model (once) without turning the rig on: some poses (dances) always use its clips.
+export function loadRig() { return loadModels(['chibi_rig']); }
 export function rigEnabled() { return enabled; }
 
 function worldRest(root) {
