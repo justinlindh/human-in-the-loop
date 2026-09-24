@@ -24,8 +24,8 @@ Simulation tasks are specified to the formula and carry their test cases: the si
 | U | `ui-engineer` | `src/ui/`, `src/audio/` |
 | R | `game-reviewer` | nothing (read-only review, playtests, reports findings) |
 
-- Each builder works in its own git worktree on branch `lane/<sim|art|ui>`, cut from `feat/one-shot` after Task L0 merges.
-- Builders commit on their lane branch and message the lead when a task is done. The lead asks the reviewer to review, then merges into `feat/one-shot`. Lane branches are local and unpushed, so rebasing a lane branch onto `feat/one-shot` before merge is allowed and expected.
+- Each builder works in its own git worktree on branch `lane/<sim|art|ui>`, cut from `main` after Task L0 merges.
+- Builders commit on their lane branch and message the lead when a task is done. The lead asks the reviewer to review, then merges into `main`. Lane branches are local and unpushed, so rebasing a lane branch onto `main` before merge is allowed and expected.
 - Need a change outside your lane? Message the owner. Need a contract change? Message the lead; only the lead edits `src/contract/`.
 - Chrome (the real browser) belongs to the reviewer and lead. Builders verify visuals with `npm run snap` (headless Playwright).
 
@@ -43,7 +43,7 @@ Simulation tasks are specified to the formula and carry their test cases: the si
 - Office stages: Garage, Office Floor, HQ Building.
 - Content minimums: 14 categories, 7 angles, 7 models, 14 incumbents, 40+ events, 20+ traits, 6 policies.
 - Zero console errors in playtest. Target 60 fps at 1920x1080 on High quality with 30 staff; Low quality disables GTAO, bloom, and tilt-shift.
-- Never commit to `main`. Integration branch is `feat/one-shot`.
+- Never commit to `main`. Integration branch is `main`.
 
 ## Review Focus
 
@@ -190,7 +190,7 @@ Product = {
 - `src/main.js` reads `?mock=<scenario>` and `?seed=<n>`; with `mock` it uses `createMockSim`, otherwise the real sim once merged.
 - `scripts/snap.js`: `npm run snap -- --scenario floor --out shots/floor.png [--width 1920 --height 1080] [--quality high] [--wait 2500] [--time night] [--speed 4]`. Starts Vite programmatically (or reuses a dev server on 5173), opens headless Chromium via Playwright with `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, loads `/?mock=<scenario>&snap=1`, waits for `window.__HITL_READY === true` plus the wait time, writes the PNG, prints console errors, exits non-zero on any console error. `shots/` is gitignored.
 
-- [ ] **Step 1:** `git checkout -b feat/one-shot` from `design/human-in-the-loop`. `npm init -y`, `npm i three@0.186.0`, `npm i -D vite@8 vitest@5 playwright`, `npx playwright install chromium`. Scripts: `dev`, `build`, `preview`, `test` (`vitest run`), `balance` (`node scripts/balance.js`), `snap` (`node scripts/snap.js`), `models` (`bash scripts/build-models.sh`).
+- [ ] **Step 1:** `git checkout -b main` from `design/human-in-the-loop`. `npm init -y`, `npm i three@0.186.0`, `npm i -D vite@8 vitest@5 playwright`, `npx playwright install chromium`. Scripts: `dev`, `build`, `preview`, `test` (`vitest run`), `balance` (`node scripts/balance.js`), `snap` (`node scripts/snap.js`), `models` (`bash scripts/build-models.sh`).
 - [ ] **Step 2:** `index.html` with `<canvas id="scene">`, `<div id="labels">`, `<div id="ui">`, Google Fonts Fredoka (400 to 700) and JetBrains Mono (500). `vite.config.js` sets `test: { include: ['tests/**/*.test.js'], environment: 'node' }`.
 - [ ] **Step 3: Test** `tests/contract.test.js`:
 
@@ -838,7 +838,7 @@ createUI({ root, getState, dispatch, controls }) -> {
 
 - Reviewer and lead play the real game in Chrome: a full run at 4x using the balanced approach and one using automate-everything, screenshots at key moments, console clean. Findings go to the owning lane as tasks; fix; re-run.
 - Final evidence: `npm test` all green, `npm run balance` meets thresholds, `npm run build` clean, art bar screenshots reviewed, playtest at 1920x1080 and 1024x640.
-- [ ] Merge the lanes into `feat/one-shot`; report the evidence (test output, balance table, screenshots) to the user.
+- [ ] Merge the lanes into `main`; report the evidence (test output, balance table, screenshots) to the user.
 
 ---
 
@@ -852,7 +852,7 @@ S2 + A1 + U1 -> L1 (wiring starts early and grows as lanes merge)
 everything -> L2
 ```
 
-The lead merges each lane task after the reviewer passes it, keeps `feat/one-shot` green, and rebases lane branches when the contract changes.
+The lead merges each lane task after the reviewer passes it, keeps `main` green, and rebases lane branches when the contract changes.
 
 ---
 
