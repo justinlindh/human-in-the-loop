@@ -96,9 +96,9 @@ async function boot() {
   const controls = {
     setSpeed: (k) => { speed = k; if (k > 0) awayPaused = false; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
-    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setAutoPause).
-    setAutoPause: (on) => { autoPause = on !== false; },
-    getAutoPause: () => autoPause,
+    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setPauseOnBlur).
+    setPauseOnBlur: (on) => { autoPause = on !== false; },
+    getPauseOnBlur: () => autoPause,
     // True after an auto-pause until the player picks a speed again (for a "paused while away" hint).
     get awayPaused() { return awayPaused; },
     // No options means "back to the title" (the game-over screen's New Game).
@@ -164,8 +164,11 @@ async function boot() {
   // resumes on return; the player does.
   function leftPage() {
     if (autoPause && playing && !isSnap && speed > 0 && !sim.state.gameOver) {
+      const resumeSpeed = speed;
       controls.setSpeed(0);
       awayPaused = true;
+      // ui shows a tap-to-resume hint when the player comes back.
+      dispatchEvent(new CustomEvent('hitl:awaypaused', { detail: { resumeSpeed } }));
     }
     save();
   }
