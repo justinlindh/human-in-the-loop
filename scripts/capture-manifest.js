@@ -213,8 +213,9 @@ export const ITEMS = [
     setup: PLAY({ weeks: 110, after: `${IN_OFFICE} window.__HITL.dispatch({ type: 'setPolicy', id: 'async_standups', on: false }); window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });` }),
     actions: DISMISS_EVERY(30), screenshots: [12],
   },
+  // The fast-forward sends Slackk nothing, so the recent history the sim kept is presented first.
   ...[['early', 20], ['mid', 300], ['late', 700]].map(([when, weeks]) => ({
-    id: `3-6-slackk-${when}`, title: `3.6 Slackk, ${when} game`, query: 'seed=27&speed=0', still: true, setup: PLAY({ weeks }), screenshots: [2],
+    id: `3-6-slackk-${when}`, title: `3.6 Slackk, ${when} game`, query: 'seed=27&speed=0', still: true, setup: PLAY({ weeks, after: CHAT_HISTORY }), screenshots: [2],
   })),
 
   // 4. Screens and decisions
