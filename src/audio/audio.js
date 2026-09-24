@@ -1,111 +1,191 @@
-// Placeholder procedural sound effects. Real audio replaces this module wholesale later, so
-// everything goes through the createAudio API. Nothing plays before the first user gesture.
+// Audio entry: runs the pure director and plays its commands through the mixer. It reads the
+// routed sim events and state (it never dispatches), listens for UI cues ('hitl:sfx') and
+// character clicks ('hitl:characterClick'), and stays silent until the first user gesture.
+// Without WebAudio every call is a no-op.
 
-// Each sound is a list of notes: [start s, freq Hz, duration s, wave, gain, endFreq?].
-const SOUNDS = {
-  click: [[0, 900, 0.035, 'square', 0.12, 700]],
-  open: [[0, 520, 0.07, 'triangle', 0.22, 780], [0.05, 880, 0.08, 'triangle', 0.16]],
-  close: [[0, 700, 0.07, 'triangle', 0.18, 440]],
-  confirm: [[0, 660, 0.08, 'triangle', 0.22], [0.07, 990, 0.12, 'triangle', 0.22]],
-  error: [[0, 220, 0.1, 'square', 0.14, 180], [0.1, 180, 0.14, 'square', 0.14, 140]],
-  coin: [[0, 988, 0.06, 'square', 0.14], [0.06, 1319, 0.16, 'square', 0.14]],
-  blip: [[0, 1200, 0.05, 'sine', 0.18, 1500]],
-  decision: [[0, 523, 0.1, 'triangle', 0.2], [0.1, 659, 0.1, 'triangle', 0.2], [0.2, 784, 0.18, 'triangle', 0.2]],
-  hire: [[0, 587, 0.09, 'triangle', 0.22], [0.09, 740, 0.09, 'triangle', 0.22], [0.18, 880, 0.2, 'triangle', 0.22]],
-  resign: [[0, 440, 0.16, 'sine', 0.22, 392], [0.16, 349, 0.3, 'sine', 0.22, 330]],
-  fanfare: [[0, 523, 0.12, 'square', 0.14], [0.12, 659, 0.12, 'square', 0.14], [0.24, 784, 0.12, 'square', 0.14],
-    [0.36, 1047, 0.4, 'square', 0.16], [0.36, 523, 0.4, 'triangle', 0.18]],
-  award: [[0, 784, 0.1, 'triangle', 0.2], [0.1, 988, 0.1, 'triangle', 0.2], [0.2, 1175, 0.1, 'triangle', 0.2], [0.3, 1568, 0.35, 'triangle', 0.2]],
-  alarm: [[0, 880, 0.18, 'sawtooth', 0.12, 660], [0.2, 880, 0.18, 'sawtooth', 0.12, 660], [0.4, 880, 0.18, 'sawtooth', 0.12, 660]],
-  gameover: [[0, 392, 0.25, 'triangle', 0.22], [0.25, 330, 0.25, 'triangle', 0.22], [0.5, 262, 0.6, 'triangle', 0.22]],
-};
+import { createDirector } from './director.js';
+import { createMixer } from './mixer.js';
+import { createLoader } from './loader.js';
 
-// Sim events that make a sound. Toast tones map to a soft blip so busy weeks stay quiet.
-function soundFor(e) {
-  switch (e.type) {
-    case 'launch': return 'fanfare';
-    case 'award': return 'award';
-    case 'hire': return 'hire';
-    case 'resign': return e.fired ? null : 'resign';
-    case 'incident': return e.caught ? 'coin' : 'alarm';
-    case 'officeUpgrade': return 'fanfare';
-    case 'toast': return e.tone === 'bad' ? 'error' : e.tone === 'warn' ? 'blip' : null;
-    default: return null;
-  }
-}
+const KEEP_COMMANDS = 60;
 
-const MIN_GAP_MS = { blip: 250, click: 30, alarm: 1500, error: 200 };
-
-export function createAudio() {
-  let ctx = null;
-  let master = null;
-  let volume = 0.7;
-  const lastAt = {};
+export function createAudio({ quality = 'high' } = {}) {
+  const AC = typeof window !== 'undefined' ? window.AudioContext || window.webkitAudioContext : null;
+  const director = createDirector({ seed: 7, quality });
+  let ctx = null, mix = null, loader = null;
+  let lastState = null;
+  // Until the host passes state, read it from the dev hook so music and group cheers still work.
+  const stateNow = () => lastState ?? (typeof window !== 'undefined' ? window.__HITL?.state ?? null : null);
+  let lastCtx = { running: true, title: false };
+  let lastUpdateAt = 0;
+  let q = quality;
+  const user = { master: 0.7, muted: false };
+  const busUser = {};
+  const log = [];
+  let music = null; // { src, gain, era }
 
   function unlock() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); return; }
-    const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    if (ctx) { if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(() => {}); return; }
     try {
       ctx = new AC();
-      master = ctx.createGain();
-      master.gain.value = volume;
-      master.connect(ctx.destination);
+      mix = createMixer(ctx);
+      loader = createLoader(ctx);
+      mix.setUser('master', user.master);
+      mix.setUser('muted', user.muted);
+      for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
+      if (q === 'low') mix.setUser('ambience', 0);
+      // iOS wants a sound started inside the gesture.
+      const s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, 22050);
+      s.connect(ctx.destination); s.start();
     } catch {
       ctx = null;
     }
   }
-
-  const onGesture = () => unlock();
-  addEventListener('pointerdown', onGesture, { capture: true });
-  addEventListener('keydown', onGesture, { capture: true });
-
-  function play(name) {
-    const notes = SOUNDS[name];
-    if (!ctx || !notes || volume <= 0 || ctx.state !== 'running') return;
-    const now = performance.now();
-    if (now - (lastAt[name] ?? -1e9) < (MIN_GAP_MS[name] ?? 60)) return;
-    lastAt[name] = now;
-    const t0 = ctx.currentTime + 0.005;
-    for (const [at, freq, dur, wave, gain, endFreq] of notes) {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = wave;
-      osc.frequency.setValueAtTime(freq, t0 + at);
-      if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, t0 + at + dur);
-      g.gain.setValueAtTime(0.0001, t0 + at);
-      g.gain.exponentialRampToValueAtTime(gain, t0 + at + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + dur);
-      osc.connect(g).connect(master);
-      osc.start(t0 + at);
-      osc.stop(t0 + at + dur + 0.02);
-    }
+  if (AC) {
+    addEventListener('pointerdown', unlock, { capture: true });
+    addEventListener('keydown', unlock, { capture: true });
+    document.addEventListener('visibilitychange', () => {
+      if (!ctx) return;
+      if (document.hidden) ctx.suspend().catch(() => {});
+      else ctx.resume().catch(() => {});
+    });
   }
 
-  // UI cues arrive as window events so the UI needs no reference to this module.
-  addEventListener('hitl:sfx', (e) => play(e.detail));
-  addEventListener('click', (e) => { if (e.target?.closest?.('.hitl button, .hitl .tile')) play('click'); }, { capture: true });
-
-  function onEvents(events) {
-    if (!events?.length) return;
-    // One sound per batch, the most notable one, so a busy week does not stack a chord.
-    let best = null;
-    const rank = ['blip', 'coin', 'error', 'hire', 'resign', 'alarm', 'award', 'fanfare'];
-    for (const e of events) {
-      const s = soundFor(e);
-      if (s && (best === null || rank.indexOf(s) > rank.indexOf(best))) best = s;
-    }
-    if (best) play(best);
-  }
-
-  return {
-    unlock,
-    play,
-    setVolume(v) {
-      volume = Math.max(0, Math.min(1, Number(v) || 0));
-      if (master && ctx) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
-    },
-    setMusic() {},
-    onEvents,
+  const now = () => (ctx ? ctx.currentTime : 0);
+  // Pause and title state from the page when the host does not pass them (the menu pause flag and title screen).
+  const hostCtx = () => {
+    const h = typeof window !== 'undefined' ? window.__HITL : null;
+    const busy = h?.clock?.busy === true;
+    const s = h?.state;
+    return { menuPause: busy, decision: !!s?.pendingDecision, title: h ? !h.playing : false, speed: h?.clock?.speed ?? 1, running: (h?.clock?.speed ?? 1) > 0, over: !!s?.gameOver };
   };
+  const ready = () => ctx && ctx.state === 'running';
+
+  function playBuffer(buf, bus, gain, at, { offset = 0, duration } = {}) {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    src.connect(g).connect(mix.bus[bus] ?? mix.bus.sfx);
+    src.start(Math.max(ctx.currentTime, at), offset, duration);
+    return src;
+  }
+
+  function startMusic(cmd) {
+    const id = `music/${cmd.bed}`;
+    const buf = loader.get(id);
+    const meta = loader.meta(id);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    if (meta?.loop) { src.loopStart = meta.loop[0] / buf.sampleRate; src.loopEnd = meta.loop[1] / buf.sampleRate; }
+    const g = ctx.createGain();
+    g.gain.value = 0.0001;
+    src.connect(g).connect(mix.musicIn);
+    const t = ctx.currentTime;
+    src.start(t);
+    g.gain.setTargetAtTime(1, t, cmd.fade / 3);
+    if (music) {
+      const old = music;
+      old.gain.gain.setTargetAtTime(0.0001, t, cmd.fade / 3);
+      old.src.stop(t + cmd.fade * 2);
+    }
+    music = { src, gain: g, era: cmd.era };
+  }
+
+  function run(cmds) {
+    if (!cmds.length) return;
+    for (const c of cmds) { log.push(c); if (log.length > KEEP_COMMANDS) log.shift(); }
+    if (!ready()) return;
+    for (const c of cmds) {
+      try {
+        if (c.op === 'play') {
+          if (c.cue === 'voice.bark') {
+            const meta = loader.meta(c.file);
+            const takes = meta?.sprite?.[c.emotion];
+            let dur;
+            if (loader.hasReal(c.file) && takes?.length) {
+              const [off, d] = takes[Math.floor(Math.random() * takes.length)];
+              playBuffer(loader.get(c.file), 'voice', c.gain, c.at, { offset: off, duration: d });
+              dur = d;
+            } else {
+              const buf = loader.get(`${c.file}#${c.emotion}`);
+              playBuffer(buf, 'voice', c.gain, c.at);
+              dur = buf.duration;
+            }
+            // A single bark ducks the music while it sounds.
+            if (c.duckKey === 'voice') {
+              mix.duck('voice', true);
+              setTimeout(() => mix.duck('voice', false), Math.max(0, c.at - ctx.currentTime + dur) * 1000);
+            }
+          } else {
+            playBuffer(loader.get(c.file), c.bus, c.gain, c.at);
+          }
+        } else if (c.op === 'music') startMusic(c);
+        else if (c.op === 'musicMix') mix.musicMix(c);
+        else if (c.op === 'duck') {
+          const delay = Math.max(0, ((c.at ?? ctx.currentTime) - ctx.currentTime) * 1000);
+          if (delay < 5) mix.duck(c.key, c.on); else setTimeout(() => mix.duck(c.key, c.on), delay);
+        }
+      } catch { /* a failed sound never breaks the game */ }
+    }
+  }
+
+  // UI cues and character clicks arrive as window events, so the UI needs no reference to audio.
+  if (typeof window !== 'undefined') {
+    addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
+    addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
+    addEventListener('hitl:audioSettings', (e) => {
+      const d = e.detail ?? {};
+      if (Number.isFinite(d.master)) api.setVolume(d.master);
+      api.setMuted(!!d.muted);
+      for (const [b, v] of Object.entries(d.bus ?? {})) api.setBus(b, v);
+    });
+  }
+
+  function update(state, dt, c = {}) {
+    lastState = state;
+    lastCtx = c;
+    lastUpdateAt = performance.now();
+    if (ready()) run(director.update(state, now(), c));
+  }
+
+  // Until the host calls update() every frame, keep music and ambient barks going from the last state seen.
+  if (typeof window !== 'undefined' && typeof requestAnimationFrame === 'function') {
+    const tick = () => {
+      const s = stateNow();
+      if (ready() && s && performance.now() - lastUpdateAt > 500) run(director.update(s, now(), { ...lastCtx, ...hostCtx() }));
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  const api = {
+    unlock,
+    onEvents(events, state) {
+      if (state) lastState = state;
+      if (!events?.length) return;
+      run(director.events(events, state ?? stateNow(), now(), { speed: lastCtx.speed ?? 1 }));
+    },
+    update,
+    cue(name) { run(director.cue(name, now())); },
+    play(name) { run(director.cue(name, now())); },
+    setVolume(v) { user.master = Math.max(0, Math.min(1, Number(v) || 0)); mix?.setUser('master', user.master); },
+    setBus(bus, v) {
+      if (bus === 'master') { api.setVolume(v); return; }
+      busUser[bus] = v;
+      mix?.setUser(bus, q === 'low' && bus === 'ambience' ? 0 : v);
+    },
+    setMuted(m) { user.muted = !!m; mix?.setUser('muted', user.muted); },
+    setQuality(v) { q = v === 'low' ? 'low' : 'high'; director.setQuality(q); mix?.setUser('ambience', q === 'low' ? 0 : busUser.ambience ?? 1); },
+    setMusic() {},
+    get commands() { return log.slice(); },
+    // A MediaStream of the final mix, for capture tools.
+    tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); mix.output.connect(d); return d.stream; },
+    get state() { return { unlocked: !!ctx, running: !!ready(), music: director.musicState }; },
+  };
+  if (typeof window !== 'undefined') window.__HITL_AUDIO = api;
+  return api;
 }

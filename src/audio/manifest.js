@@ -1,0 +1,131 @@
+// Audio data: buses, ducks, cues, which sim events and UI actions make which cues, music per era,
+// voice banks, and the voice rules. Everything tunable lives here; the director reads it and never
+// hardcodes a sound. File ids are asset ids (see assets.js); a missing asset falls back to a
+// synthesized placeholder with the same id.
+
+export const BUSES = {
+  music: { gain: 0.55, limit: 1 },
+  ambience: { gain: 0.35, limit: 3 },
+  sfx: { gain: 0.8, limit: 6 },
+  ui: { gain: 0.6, limit: 4 },
+  voice: { gain: 0.85, limit: 6 },
+};
+export const BUS_IDS = Object.keys(BUSES);
+
+// Target multiplier on the music bus while a duck is held; attack and release in seconds.
+export const DUCK = {
+  voice: { music: 0.7, attack: 0.08, release: 0.6 },
+  cheer: { music: 0.6, attack: 0.05, release: 1.5 },
+  decision: { music: 0.45, attack: 0.3, release: 1.2 },
+  stinger: { music: 0.3, attack: 0.05, release: 1.5 },
+};
+
+// priority 1..10 (higher steals lower on a full bus); cooldown in s per cue; files: variants picked by rng.
+export const CUES = {
+  'ui.click': { bus: 'ui', files: ['ui/click'], cooldown: 0.03, priority: 2 },
+  'ui.open': { bus: 'ui', files: ['ui/open'], cooldown: 0.05, priority: 2 },
+  'ui.close': { bus: 'ui', files: ['ui/close'], cooldown: 0.05, priority: 2 },
+  'ui.confirm': { bus: 'ui', files: ['ui/confirm'], cooldown: 0.05, priority: 3 },
+  'ui.error': { bus: 'ui', files: ['ui/error'], cooldown: 0.2, priority: 3 },
+  'ui.coin': { bus: 'ui', files: ['ui/coin'], cooldown: 0.08, priority: 3 },
+  'ui.blip': { bus: 'ui', files: ['ui/blip'], cooldown: 0.25, priority: 1 },
+  'ui.decision': { bus: 'ui', files: ['ui/decision'], cooldown: 1, priority: 6, duck: 'decision' },
+  'ui.unlock': { bus: 'ui', files: ['ui/unlock'], cooldown: 1, priority: 5 },
+  'ui.goal': { bus: 'ui', files: ['ui/goal'], cooldown: 1, priority: 5 },
+  'sfx.hire': { bus: 'sfx', files: ['sfx/hire'], cooldown: 1.5, priority: 5 },
+  'sfx.resign': { bus: 'sfx', files: ['sfx/resign'], cooldown: 2, priority: 5 },
+  'sfx.incident': { bus: 'sfx', files: ['sfx/alarm'], cooldown: 4, priority: 8 },
+  'sfx.caught': { bus: 'sfx', files: ['sfx/save'], cooldown: 2, priority: 6 },
+  'sfx.award': { bus: 'sfx', files: ['sfx/award'], cooldown: 0.6, priority: 6 },
+  'sfx.reward': { bus: 'sfx', files: ['sfx/reward'], cooldown: 1, priority: 5 },
+  'sfx.bad': { bus: 'sfx', files: ['sfx/bad'], cooldown: 0.8, priority: 4 },
+  'sfx.warn': { bus: 'sfx', files: ['ui/blip'], cooldown: 0.8, priority: 2 },
+  'sfx.bubble': { bus: 'sfx', files: ['sfx/pop'], cooldown: 0.25, priority: 1, scaleWithSpeed: true, jitter: { gain: 0.1 } },
+  'stinger.launch': { bus: 'sfx', files: ['stingers/launch'], cooldown: 2, priority: 9, duck: 'stinger' },
+  'stinger.era': { bus: 'sfx', files: ['stingers/era'], cooldown: 5, priority: 10, duck: 'stinger' },
+  'stinger.waffle': { bus: 'sfx', files: ['stingers/waffle'], cooldown: 5, priority: 9, duck: 'stinger' },
+  'stinger.office': { bus: 'sfx', files: ['stingers/office'], cooldown: 5, priority: 9, duck: 'stinger' },
+  'stinger.win': { bus: 'sfx', files: ['stingers/win'], cooldown: 5, priority: 10, duck: 'stinger' },
+  'stinger.gameover': { bus: 'sfx', files: ['stingers/gameover'], cooldown: 5, priority: 10, duck: 'stinger' },
+};
+
+// Sim events -> cue ids. Every event type in the contract is listed; null means deliberately silent.
+export const ON_EVENT = {
+  toast: (e) => ({ bad: 'sfx.bad', warn: 'sfx.warn' })[e.tone] ?? null,
+  chat: null,
+  say: null,
+  bubble: 'sfx.bubble',
+  standup: null,
+  celebrate: null,
+  launch: 'stinger.launch',
+  incident: (e) => (e.caught ? 'sfx.caught' : 'sfx.incident'),
+  hire: 'sfx.hire',
+  resign: (e) => (e.fired ? null : 'sfx.resign'),
+  decision: 'ui.decision',
+  award: 'sfx.award',
+  officeUpgrade: 'stinger.office',
+  gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),
+  era: 'stinger.era',
+  unlock: 'ui.unlock',
+  goal: 'ui.goal',
+  incentive: (e) => (e.reward === 'waffle_party' ? 'stinger.waffle' : 'sfx.reward'),
+};
+
+// UI 'hitl:sfx' names -> cue ids.
+export const UI_CUES = {
+  click: 'ui.click', open: 'ui.open', close: 'ui.close', confirm: 'ui.confirm', error: 'ui.error', coin: 'ui.coin',
+  blip: 'ui.blip', decision: 'ui.decision', fanfare: 'stinger.win', gameover: 'stinger.gameover', award: 'sfx.award',
+};
+
+// One bed per era. bpm sets the bar length for quantized crossfades; the key picks the placeholder chords.
+export const MUSIC = {
+  title: { bpm: 90, key: 'F', mode: 'major', beds: ['title/a'] },
+  classic: { bpm: 96, key: 'F', mode: 'major', beds: ['classic/a'] },
+  chatgbt: { bpm: 102, key: 'Bb', mode: 'major', beds: ['chatgbt/a'] },
+  agents: { bpm: 108, key: 'D', mode: 'minor', beds: ['agents/a'] },
+  consolidation: { bpm: 90, key: 'A', mode: 'minor', beds: ['consolidation/a'] },
+  plateau: { bpm: 84, key: 'Eb', mode: 'major', beds: ['plateau/a'] },
+};
+export const MUSIC_BARS = 8;          // placeholder bed length in bars
+export const CROSSFADE_BARS = 2;
+export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
+export const LOCKDOWN_LOWPASS = 1800;
+export const PAUSE_GAIN = 0.5;        // about -6 dB
+
+// Voice banks: `${set}_${VOICE_VARIANTS[set][variant % n]}`.
+export const VOICE_VARIANTS = {
+  fem: ['alto40', 'mezzo30', 'bright25', 'warm35', 'soft30', 'crisp25', 'husky40', 'light20'],
+  masc: ['bari45', 'tenor35', 'warm40', 'gruff50', 'soft35', 'bright30', 'deep55', 'easy40'],
+};
+export const EMOTIONS = ['happy', 'excited', 'laughing', 'questioning', 'annoyed', 'tired', 'sighing'];
+
+export const VOICE = {
+  pokeCooldown: 1.5,    // s per person for clicks
+  globalGap: 2,         // s between separate voice moments
+  ambientMinGap: 30,    // s since the last bark of any kind
+  ambientSpread: 30,    // extra random wait, s
+  maxSingle: 2,         // single barks sounding at once
+};
+
+// Group cheers: up to `voices` people present, staggered onsets, per-voice gain spread, a crowd bed,
+// and the cheer duck. gainDb is the group level relative to a single bark.
+export const GROUP_CUES = {
+  launch: { voices: 6, lowVoices: 2, emotions: ['excited', 'laughing'], stagger: [0.05, 0.25], spreadDb: 4, gainDb: -3, duck: 'cheer', crowd: 'voice/crowd' },
+  waffle_party: { voices: 6, lowVoices: 2, emotions: ['laughing', 'happy'], stagger: [0.05, 0.25], spreadDb: 4, gainDb: -3, duck: 'cheer', crowd: 'voice/crowd' },
+  era: { voices: 3, lowVoices: 2, emotions: ['questioning', 'excited'], stagger: [0.12, 0.35], spreadDb: 3, gainDb: -3, duck: 'cheer', crowd: null },
+};
+
+// Crunch: the share of present staff running low on stamina while on a project.
+export function crunch(s) {
+  const here = (s?.staff ?? []).filter((p) => p.mood !== 'away' && !p.remote);
+  if (!here.length) return 0;
+  return here.filter((p) => (p.stamina ?? 100) < 30 && p.assignment?.type === 'project').length / here.length;
+}
+
+// State -> music layers and filter; the first match wins.
+export const MOOD = [
+  { when: (s) => !!s.lockdown, music: { level: 0.8, lowpass: LOCKDOWN_LOWPASS } },
+  { when: (s) => !!s.outage, music: { level: 1, lowpass: null, tension: true } },
+  { when: (s) => crunch(s) > 0.6, music: { level: 1.1, lowpass: null } },
+  { when: () => true, music: { level: 1, lowpass: null } },
+];
