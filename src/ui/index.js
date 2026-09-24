@@ -132,7 +132,6 @@ export function createUI({ root, getState, dispatch, controls }) {
       switch (e.type) {
         case 'toast': toasts.push(e.text, e.tone); break;
         case 'chat': chat.add(e.from, e.text, state.week); break;
-        case 'resign': toasts.push(`${e.name} resigned.`, 'bad'); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
@@ -148,7 +147,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
-        case 'award': toasts.push(`🏆 ${e.text}`, 'good'); break;
+        case 'award': toasts.push(e.text, 'good'); break;
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }

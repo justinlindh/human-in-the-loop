@@ -47,6 +47,7 @@ export const PALETTE = {
   marker_green: '#3f9f6b',
   marker_orange: '#e08a3c',
   glass: '#bcdde8',
+  water: '#9fcfe0',
   glass_frame: '#8f8a86',
   gold: '#e3b04b',
   mug: '#f1ebe0',

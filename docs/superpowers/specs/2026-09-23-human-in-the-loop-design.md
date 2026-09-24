@@ -164,7 +164,7 @@ Target look: a **polished miniature diorama**, like a high-end isometric toy set
 
 ## Audio
 
-Lightweight procedural audio via WebAudio (UI clicks, typing ambience, launch fanfare, alarm), with a simple generated background loop. Mute and volume in Settings. Audio is polish, not a blocker.
+Phase 1 ships only a small set of placeholder sound effects via WebAudio (UI clicks, launch, alarm, hire, resign, notification) with mute and volume in Settings, and no music. Real audio (music, a curated sound-effect set, and possibly per-character voice blips on chat lines and speech bubbles) is a later phase with its own design, because a synthesized loop would sound bad and the quality bar applies to sound as much as art.
 
 ## Architecture
 

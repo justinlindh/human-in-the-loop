@@ -941,3 +941,8 @@ Spec: the spec's **Icons** section.
 - ui swaps `icon()` to read the manifest; emoji stay only as the fallback for a missing name, and a test fails if any name falls back.
 - **Verify:** a `?icons=1` board showing the whole set at 16, 24, and 48 px on light and dark panels, snapped and critiqued with the art-direction checklist; then the panels re-snapped with the new icons.
 - Order: after A6, before A7 (so the quality pass judges the final icons).
+
+
+### U6 scope change: placeholder sound only
+
+U6 ships placeholder sound effects (click, panel open and close, launch, alarm, hire, resign, notification blip) with volume and mute. No music and no typing ambience. Real audio is deferred to a later phase with its own design (see the spec's Audio section).
