@@ -7,6 +7,7 @@ import { createDirector } from './director.js';
 import { createMixer } from './mixer.js';
 import { createLoader } from './loader.js';
 import { createLoops } from './loops.js';
+import { createDance } from './dance.js';
 
 const KEEP_COMMANDS = 60;
 
@@ -25,6 +26,9 @@ export function createAudio({ quality = 'high' } = {}) {
   const log = [];
   let music = null; // { src, gain, era }
   let loops = null;
+  let danceBus = null; // the music night track's level node, into the sfx bus
+  let dance = null;
+  let lastDance = null;
 
   function unlock() {
     if (!AC) return;
@@ -34,6 +38,10 @@ export function createAudio({ quality = 'high' } = {}) {
       mix = createMixer(ctx);
       loader = createLoader(ctx);
       loops = createLoops(ctx, loader, (b) => mix.bus[b] ?? mix.bus.ambience);
+      danceBus = ctx.createGain();
+      danceBus.gain.value = director.musicState.dance ?? 1;
+      danceBus.connect(mix.bus.sfx);
+      dance = createDance(ctx, loader, { duck: (k, on) => mix.duck(k, on), out: () => danceBus, run: (cmds) => run(cmds) });
       mix.setUser('master', user.master);
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
@@ -140,6 +148,9 @@ export function createAudio({ quality = 'high' } = {}) {
           }
         } else if (c.op === 'music') startMusic(c);
         else if (c.op === 'loop') loops.set(c);
+        else if (c.op === 'dance') dance.play(c, 0, (src) => { lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt }; });
+        else if (c.op === 'danceMix') danceBus.gain.setTargetAtTime(c.level, ctx.currentTime, 0.1);
+        else if (c.op === 'preload') loader.preload(c.ids);
         else if (c.op === 'musicMix') mix.musicMix(c);
         else if (c.op === 'duck') {
           const delay = Math.max(0, ((c.at ?? ctx.currentTime) - ctx.currentTime) * 1000);
@@ -201,6 +212,8 @@ export function createAudio({ quality = 'high' } = {}) {
     setMusic() {},
     get commands() { return log.slice(); },
     loopState: (id) => loops?.state(id) ?? null,
+    // The last music night track started: whether it was the delivered file, its length and start time.
+    get lastDance() { return lastDance; },
     // A MediaStream of the final mix, for capture tools.
     tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); mix.output.connect(d); return d.stream; },
     get state() { return { unlocked: !!ctx, running: !!ready(), music: director.musicState }; },

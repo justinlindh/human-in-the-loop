@@ -108,7 +108,14 @@ export const MUSIC_NIGHT = {
   aggressive_bossa_nova: { bpm: 142, key: 'D', mode: 'minor' },
   sad_lofi: { bpm: 72, key: 'Eb', mode: 'major' },
 };
-export const MUSIC_NIGHT_SECONDS = 16;   // placeholder length, and the fallback when assets.json gives none
+export const MUSIC_NIGHT_SECONDS = 16;
+export const DANCE_PAUSE_LEVEL = 0.08;  // the dance track's level while the game is paused
+// A pending decision that picks a music night genre: it names the reward or offers the genres.
+export function isMusicNightDecision(d) {
+  if (!d) return false;
+  const text = JSON.stringify(d);
+  return text.includes('music_night') || Object.keys(MUSIC_NIGHT).some((g) => text.includes(g));
+}   // placeholder length, and the fallback when assets.json gives none
 export const MUSIC_BARS = 8;          // placeholder bed length in bars
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time

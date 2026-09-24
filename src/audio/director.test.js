@@ -226,23 +226,49 @@ describe('audio director', () => {
     expect(d.prop('desk', 50)).toHaveLength(0);
   });
 
-  it('plays a music night: the genre track over a ducked era bed, then a small cheer from the dancers', () => {
+  it('plays a music night: one dance command with the genre track and a small cheer from the dancers after it', () => {
     const d = createDirector();
     const s = state();
     const cmds = d.events([{ type: 'incentive', staffId: 's1', reward: 'music_night', genre: 'motivational_polka', dancers: ['s2', 's3'] }], s, 10);
-    const track = cmds.find((c) => c.cue === 'music.night');
-    expect(track.file).toBe('musicNight/motivational_polka');
-    const on = cmds.find((c) => c.op === 'duck' && c.key === 'dance' && c.on);
-    const off = cmds.find((c) => c.op === 'duck' && c.key === 'dance' && !c.on);
-    expect(on.at).toBeLessThan(track.at);
-    expect(off.at).toBeGreaterThan(track.at + 5);
-    const barks = cmds.filter((c) => c.cue === 'voice.bark');
+    const dance = cmds.find((c) => c.op === 'dance');
+    expect(dance.file).toBe('musicNight/motivational_polka');
+    expect(dance.duck).toBe('dance');
+    expect(dance.at).toBeCloseTo(10.4);
+    // The cheer is timed from the end of whatever buffer plays, so its offsets are small and positive.
+    const barks = dance.after.filter((c) => c.cue === 'voice.bark');
     expect(barks.length).toBeGreaterThan(0);
     expect(barks.length).toBeLessThanOrEqual(3);
-    for (const b of barks) { expect(['s1', 's2', 's3']).toContain(b.voiceKey); expect(b.at).toBeGreaterThan(off.at - 1); }
-    expect(cmds.some((c) => c.cue === 'sfx.reward')).toBe(false);
+    for (const b of barks) { expect(['s1', 's2', 's3']).toContain(b.voiceKey); expect(b.at).toBeGreaterThan(0); expect(b.at).toBeLessThan(3); }
+    expect(dance.after.some((c) => c.op === 'duck' && c.key === 'cheer' && !c.on)).toBe(true);
+    // Nothing else plays alongside: no fixed-time duck release and no reward sting.
+    expect(cmds.filter((c) => c.op !== 'dance')).toHaveLength(0);
     // An unknown genre still plays a track.
-    expect(createDirector().events([{ type: 'incentive', reward: 'music_night', genre: 'yodel' }], s, 1).some((c) => c.cue === 'music.night')).toBe(true);
+    expect(createDirector().events([{ type: 'incentive', reward: 'music_night', genre: 'yodel' }], s, 1).some((c) => c.op === 'dance')).toBe(true);
+  });
+
+  it('holds the dance track down while the game is paused', () => {
+    const d = createDirector();
+    const s = state();
+    d.update(s, 0, { speed: 1, running: true });
+    const mix = (cmds) => cmds.find((c) => c.op === 'danceMix');
+    expect(mix(d.update(s, 1, { speed: 1, running: true, menuPause: true })).level).toBeLessThan(0.2);
+    expect(mix(d.update(s, 2, { speed: 1, running: true, menuPause: true }))).toBeUndefined();
+    expect(mix(d.update(s, 3, { speed: 1, running: true })).level).toBe(1);
+    expect(mix(d.update(s, 4, { speed: 0, running: false })).level).toBeLessThan(0.2);
+  });
+
+  it('preloads the genre tracks once when the genre pick appears', () => {
+    const d = createDirector();
+    const s = state();
+    expect(d.update(s, 0, {}).some((c) => c.op === 'preload')).toBe(false);
+    const pick = { ...s, pendingDecision: { id: 'music_night_genre', options: [{ id: 'sad_lofi' }, { id: 'motivational_polka' }] } };
+    const pre = d.update(pick, 1, { decision: true }).find((c) => c.op === 'preload');
+    expect(pre.ids).toContain('musicNight/sad_lofi');
+    expect(pre.ids).toHaveLength(4);
+    expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload')).toBe(false);
+    // Other decisions do not.
+    const other = createDirector();
+    expect(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}).some((c) => c.op === 'preload')).toBe(false);
   });
 });
 
