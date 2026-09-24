@@ -1,6 +1,6 @@
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
-import { portraitURL } from './widgets.js';
+import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
 
 const CHANNELS = CHAT_CHANNELS;
@@ -40,7 +40,7 @@ export function createChat(root, { getState, onName } = {}) {
   function avatar(m) {
     if (m.from?.startsWith('@')) return h('span.av.bot', null, icon(BOT_ICON[m.from] ?? 'bot.generic', { size: 13 }));
     const p = m.fromId ? getState?.().staff.find((x) => x.id === m.fromId) : null;
-    if (p) return h('img.av', { src: portraitURL(p, 44), alt: '' });
+    if (p) return portraitImg(p, 44);
     return h('span.av.gone', { text: (m.from ?? '?').slice(0, 1) });
   }
 

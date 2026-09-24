@@ -302,6 +302,13 @@ export function createHud({ root, controls, ui }) {
       speedBtns.forEach((b, i) => toggleClass(b, 'on', SPEEDS[i].k === sp));
       pausedTag.style.display = sp === 0 ? '' : 'none';
     }
+    // After an auto-pause on blur, the paused tag says why until the player resumes.
+    const away = sp === 0 && !!controls.awayPaused;
+    if (away !== last.away) {
+      last.away = away;
+      setText(pausedTag, away ? 'Paused while you were away' : 'Paused');
+      pausedTag.title = away ? 'The game paused when the window lost focus. Press play or Space to resume. Change this in Settings.' : '';
+    }
     const busy = sp > 0 && !!ui.isBusy?.();
     if (busy !== last.busy) { last.busy = busy; menuTag.style.display = busy ? 'inline' : 'none'; }
 

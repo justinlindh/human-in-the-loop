@@ -438,5 +438,29 @@
  "item.bookshelf": {
   "file": "glyphs/item.bookshelf.svg",
   "size": 30
+ },
+ "stat.features": {
+  "file": "glyphs/stat.features.svg",
+  "size": 16
+ },
+ "stat.polish": {
+  "file": "glyphs/stat.polish.svg",
+  "size": 16
+ },
+ "stat.reliability": {
+  "file": "glyphs/stat.reliability.svg",
+  "size": 16
+ },
+ "stat.novelty": {
+  "file": "glyphs/stat.novelty.svg",
+  "size": 16
+ },
+ "home": {
+  "file": "glyphs/home.svg",
+  "size": 14
+ },
+ "mic.off": {
+  "file": "glyphs/mic.off.svg",
+  "size": 14
  }
 }

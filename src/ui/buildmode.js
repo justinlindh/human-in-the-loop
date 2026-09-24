@@ -250,9 +250,9 @@ export function createBuildMode({ layer, ctx, controls }) {
   };
 }
 
-const ADJ_LABEL = { novelty: 'novelty', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_LABEL = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
 
-// "Boosts 2 desks: +3% novelty" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
+// "Boosts 2 desks: +3% freshness" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
 export function adjacencyWords(prev) {
   if (prev.texts?.length) return prev.texts.join('. ');
   const parts = [];

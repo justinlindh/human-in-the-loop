@@ -12,8 +12,11 @@ import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
+import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
+import { createCallGrid } from './callgrid.js';
+import { retireOptions } from './retire.js';
 import { GOALS, GOAL, goalReward } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
@@ -26,6 +29,7 @@ const PANEL_REFRESH_MS = 150;
 export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
+  setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
@@ -109,6 +113,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   bottom.append(h('div'));
 
   const buildMode = createBuildMode({ layer, ctx, controls });
+  const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
   const announcer = createAnnouncer({ layer, sfx, openMenu: (id) => menu.open(id) });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
@@ -164,7 +169,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   ctx.isBusy = () => isBusy();
 
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
-  const gameover = createGameOver({ layer, controls, sfx });
+  const gameover = createGameOver({ layer, controls, sfx, act });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx });
   ui.openSettings = () => settings.open();
@@ -217,6 +222,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   addEventListener('keydown', onKey);
 
+
   const launchScores = new Map(); // last seen review score per product, to spot notable updates
 
   // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
@@ -255,6 +261,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     popups.update(state);
     buildMode.update(state);
     syncMenus(state);
+    callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
     tutorial.setHeld(!!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
     logMeaning(state);
     const now = performance.now();
@@ -302,6 +309,16 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'goal': {
           const g = GOAL[e.goalId];
+          if (e.goalId === 'ten_years') {
+            const o = retireOptions(state);
+            announcer.milestone({
+              title: 'Ten years in!', text: `${state.companyName} is ten. There was cake, a slideshow nobody asked for, and a toast to the first desk in the garage.`,
+              lines: ['From now on you can retire: take the company public or accept an acquisition, whenever one is on the table.',
+                o.ipo?.ok ? 'An IPO is available right now.' : `An IPO still ${(o.ipo?.reason ?? 'needs more growth').replace(/^Needs/, 'needs')}.`,
+                'Or keep building: the twentieth anniversary is the finish line.'],
+              action: o.any ? { label: 'Open Reports', run: () => menu.open('reports') } : null,
+            });
+          }
           const reward = goalReward(g);
           toasts.push(`Goal complete: ${g?.name ?? e.goalId}${reward ? ` (${reward})` : ''}`, 'good', { action: () => goalsModal() });
           sfx('coin');

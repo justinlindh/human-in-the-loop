@@ -82,9 +82,6 @@ export function goalReward(g) {
   return [r.cash ? `+${FMT_K(r.cash)}` : null, r.brand ? `+${r.brand} brand` : null, g.trophy ? 'a trophy' : null].filter(Boolean).join(', ');
 }
 
-const STAT_NAME = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty', hype: 'Hype', sales: 'Sales', support: 'Support', security: 'Security', oversight: 'Oversight' };
-// Founder strengths come as stat ids from the data or as a sentence from the fallback.
-export const strengthChips = (a) => (Array.isArray(a.strengths) ? a.strengths.map((k) => STAT_NAME[k] ?? k) : []);
 export const archetypeBlurb = (a) => a.blurb ?? (typeof a.strengths === 'string' ? a.strengths : '');
 
 // A short name for lists: "Marketing", "Policy: Craft Fridays".
@@ -105,6 +102,14 @@ export function foundingWarning(ids) {
   const builds = (a) => (a.builder ?? (a.role === 'engineer' || a.role === 'designer'));
   if (picked.some(builds)) return null;
   return DATA.NO_BUILDER_WARNING ?? 'Neither founder builds software. Your first product will crawl until you hire an engineer.';
+}
+
+// True while the run has not yet reached eraId (AI-era content stays hidden until then).
+export function beforeEra(s, eraId) {
+  if (!s?.era || !eraId) return false;
+  const at = ERAS.findIndex((e) => e.id === s.era.id);
+  const need = ERAS.findIndex((e) => e.id === eraId);
+  return at >= 0 && need >= 0 && at < need;
 }
 
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
