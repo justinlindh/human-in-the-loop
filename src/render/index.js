@@ -309,6 +309,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // Dev and snap hook: perk visits (send people to a placed item, counts).
     get perks() { return staff?.perks ?? null; },
     get incentives() { return staff?.incentives ?? null; },
+    standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },
     get incentivesFrame() { return staff?.incentives.frameAt ?? null; },
     get stats() { return { perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
