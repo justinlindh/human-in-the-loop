@@ -570,7 +570,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
 
   function deskStandup(lines) {
     for (const l of lines) emote(recs.get(l.staffId), l.text ? 'lightbulb' : 'zzz', 1.4);
-    if (speed >= 4) return;
+    // While a staged standup is still talking, the desk week stays silent so bubbles never overlap.
+    if (speed >= 4 || standup) return;
     const said = lines.filter((l) => l.text).sort((a, b) => a.text.length - b.text.length)[0];
     if (said && !(labels.speechCount?.() >= MAX_SPEECH)) labels.say(said.text, recs.get(said.staffId).char.root, 2.4);
   }

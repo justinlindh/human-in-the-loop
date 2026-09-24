@@ -266,7 +266,6 @@ function deskSet(i, stageIdx, screens, era) {
   deskEra(g, i, era, laptop);
   // Team mat under the whole set, tinted by whoever sits here (hidden until someone does).
   const rug = mesh(roundedBox(0.92, 0.012, 1.9, 0.006, 1), mat('laminate'), 0, 0.008, 0, { cast: false });
-  rug.visible = false;
   rug.userData.dynamic = true;
   g.add(rug);
   g.userData.rug = rug;
@@ -555,6 +554,7 @@ export function createOffice({ parent, screens, lighting }) {
     }
     cur = next;
     placed.clear();
+    eraQueue = [];
     ledCache = null;
     holder.add(cur.root);
     poster = null;
@@ -724,17 +724,27 @@ export function createOffice({ parent, screens, lighting }) {
     if (!id || id === era) return false;
     era = id;
     if (!cur) return true;
-    const list = [...placed.values()].map((e) => ({ id: e.id, itemId: e.itemId, level: e.level, x: e.x, y: e.y, rot: e.rot, seed: e.seed, desk: e.desk }));
-    for (const p of list) {
-      const old = placed.get(p.id);
-      cur.furniture.remove(old.obj);
-      const e = makeEntry(p, p.seed);
-      if (old.desk) { e.desk = { ...old.desk, screen: e.obj.userData.screen, obj: e.obj, sign: null, screenKind: null, role: undefined }; }
-      placed.set(p.id, e);
-    }
-    refresh();
+    // Only era-dressed pieces change; they are rebuilt a few per frame so a big office never hitches.
+    eraQueue = [...placed.keys()].filter((pid) => ERA_DRESSED.has(kindOf(placed.get(pid).itemId)) || placed.get(pid).itemId === 'monitoring_wall');
     updatePoster();
     return true;
+  }
+
+  const ERA_DRESSED = new Set(['desk', 'meeting']);
+  const ERA_PER_FRAME = 4;
+  let eraQueue = [];
+  function rebuildForEra() {
+    let n = 0;
+    while (eraQueue.length && n < ERA_PER_FRAME) {
+      const old = placed.get(eraQueue.shift());
+      if (!old) continue;
+      n++;
+      cur.furniture.remove(old.obj);
+      const e = makeEntry(old, old.seed);
+      if (old.desk) e.desk = { ...old.desk, screen: e.obj.userData.screen, obj: e.obj, sign: null, screenKind: null, role: undefined };
+      placed.set(old.id, e);
+    }
+    if (n) refresh();
   }
 
   function updatePoster() {
@@ -744,19 +754,19 @@ export function createOffice({ parent, screens, lighting }) {
     if (poster) cur.root.add(poster);
   }
 
-  // Team mat under a desk set, tinted by the sitter's role; null hides it.
+  // Team mat under a desk set, tinted by the sitter's role; an empty desk gets a neutral mat.
   const rugMats = new Map();
   function setDeskRole(id, role) {
     const d = deskById(id);
     const rug = d?.obj.userData.rug;
     if (!rug || d.role === role) return;
     d.role = role;
-    rug.visible = !!role;
-    if (!role) return;
-    let m = rugMats.get(role);
+    const key = role ?? 'none';
+    let m = rugMats.get(key);
     if (!m) {
-      m = new THREE.MeshStandardMaterial({ color: new THREE.Color(ROLE_COLORS[role] ?? P.laminate).lerp(color(cur.L.floor === 'concrete' ? 'floor_concrete' : 'laminate'), 0.55), roughness: 0.95 });
-      rugMats.set(role, m);
+      const base = color(cur.L.floor === 'concrete' ? 'floor_concrete' : 'laminate');
+      m = new THREE.MeshStandardMaterial({ color: role ? new THREE.Color(ROLE_COLORS[role] ?? P.laminate).lerp(base, 0.55) : color('wall_trim').lerp(base, 0.5), roughness: 0.95 });
+      rugMats.set(key, m);
     }
     rug.material = m;
   }
@@ -764,6 +774,7 @@ export function createOffice({ parent, screens, lighting }) {
   const camDir = new THREE.Vector2();
   function update(dt, { yaw = Math.PI / 4, env } = {}) {
     if (!cur) return;
+    if (eraQueue.length) rebuildForEra();
     camDir.set(Math.sin(yaw), Math.cos(yaw));
     for (const key of WALL_KEYS) {
       const [ox, oz] = OUTWARD[key];
