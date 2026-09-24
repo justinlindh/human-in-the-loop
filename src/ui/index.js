@@ -153,7 +153,10 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
 
   const REWARD_TEXT = {
+    finger_traps: (n) => `${n} won a Chinese finger trap. It is still on their finger.`,
     balloons: (n) => `${n} found balloons tied to their chair. Nobody will say who did it.`,
+    melon_bar: (n) => `${n} earned a melon bar. It is exactly what it sounds like.`,
+    music_night: (n, c) => `${c} had a music night. Someone brought a keytar.`,
     caricature: (n) => `${n} got a framed caricature. The nose is generous.`,
     waffle_party: (n, c) => `${c} threw a Waffle Party. Output dipped for an afternoon; nobody minded.`,
   };
@@ -297,6 +300,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'chat': chat.add(e, state.week); break;
+        case 'say': callGrid.say(e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
@@ -333,11 +337,11 @@ export function createUI({ root, getState, dispatch, controls }) {
           sfx('coin');
           break;
         }
-        case 'reward': {
-          // Incentives Program moments: small ones toast, the Waffle Party gets a card.
+        case 'incentive': {
+          // Incentives Program moments: the small rungs toast, the Waffle Party gets a card.
           const who = state.staff.find((p) => p.id === e.staffId);
-          const text = e.text ?? REWARD_TEXT[e.kind]?.(who?.name?.split(' ')[0] ?? 'Someone', state.companyName) ?? 'A little reward went out.';
-          if (e.kind === 'waffle_party') announcer.milestone({ title: 'The Waffle Party', text, lines: [], kicker: 'Incentives' });
+          const text = REWARD_TEXT[e.reward]?.(who?.name?.split(' ')[0] ?? 'Someone', state.companyName) ?? 'A little reward went out.';
+          if (e.reward === 'waffle_party') announcer.milestone({ title: 'The Waffle Party', text, lines: [], kicker: 'Incentives' });
           else toasts.push(text, 'good');
           sfx('coin');
           break;

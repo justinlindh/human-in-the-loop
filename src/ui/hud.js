@@ -2,7 +2,7 @@ import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, 
 import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel } from './panels/common.js';
-import { GOALS, emptyWeeks, EMPTY_WARN_WEEKS } from './v2content.js';
+import { GOALS, strainOf, STRAIN_WARN } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -91,9 +91,9 @@ export function needsYou(s) {
     }
   }
   // Several weeks at empty stamina is the warning sign before burnout.
-  const drained = s.staff.filter((p) => p.mood !== 'away' && p.mood !== 'burnout' && emptyWeeks(p) >= EMPTY_WARN_WEEKS);
-  if (drained.length === 1) out.push({ key: `empty:${drained[0].id}`, icon: 'battery.low', text: `${drained[0].name.split(' ')[0]} is running on empty`, go: ['staff', { staffId: drained[0].id }] });
-  else if (drained.length > 1) out.push({ key: `empty:${drained.length}`, icon: 'battery.low', text: `${drained.length} people are running on empty`, go: ['staff', { staffId: drained[0].id }] });
+  const drained = s.staff.filter((p) => p.mood !== 'away' && p.mood !== 'burnout' && strainOf(p) >= STRAIN_WARN).sort((a, b) => strainOf(b) - strainOf(a));
+  if (drained.length === 1) out.push({ key: `strain:${drained[0].id}`, icon: 'battery.low', text: `${drained[0].name.split(' ')[0]} looks exhausted`, go: ['staff', { staffId: drained[0].id }] });
+  else if (drained.length > 1) out.push({ key: `strain:${drained.length}`, icon: 'battery.low', text: `${drained.length} people look exhausted`, go: ['staff', { staffId: drained[0].id }] });
   const idle = s.staff.filter((p) => p.assignment?.type === 'idle' && p.mood !== 'away').length;
   if (idle) out.push({ key: 'idle', icon: 'team', text: `${idle} ${idle === 1 ? 'person is' : 'people are'} idle`, go: ['staff'] });
   return out;

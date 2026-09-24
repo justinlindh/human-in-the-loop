@@ -7,7 +7,7 @@ import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
-import { meaningShown, TIRED_STAMINA, emptyWeeks, EMPTY_WARN_WEEKS } from '../v2content.js';
+import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN } from '../v2content.js';
 
 // Career path picker for a senior with pathPending.
 export function openPathPicker(ctx, staffId) {
@@ -113,7 +113,7 @@ export function staffPanel(ctx, arg) {
       s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}${p.remote ? 'r' : ''}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
   const detail = liveView(
-    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week].join('|') : 'gone'; },
+    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week, Math.round(strainOf(p) / 5)].join('|') : 'gone'; },
     (s, bind) => renderDetail(s, bind));
   const hire = hireView(ctx);
 
@@ -241,15 +241,15 @@ export function staffPanel(ctx, arg) {
     const mood = MOOD_INFO[p.mood] ?? MOOD_INFO.ok;
     const showM = meaningShown(s);
     // Running on empty for a while: say so, with the two levers that help right now.
-    const empty = emptyWeeks(p);
+    const strain = strainOf(p);
     const onProject = p.assignment.type === 'project';
-    const emptyCard = empty >= EMPTY_WARN_WEEKS ? h('div.card.emptywarn', null,
+    const emptyCard = strain >= STRAIN_WARN ? h('div.card.emptywarn', null,
       icon('battery.low', { size: 22 }),
-      h('div', { style: { flex: 1, minWidth: 0 } }, h('b', { text: `Running on empty for ${empty} weeks` }),
-        h('div.small', { text: 'Stamina has been near zero. Keep this up and burnout comes next, then a resignation letter.' })),
+      h('div', { style: { flex: 1, minWidth: 0 } }, h('b', { text: `Running on empty (strain ${Math.round(strain)})` }),
+        h('div.small', { text: 'Too much load for too long. Keep this up and burnout comes next, then a resignation letter.' })),
       h('div.row.wrap', null,
-        h('button.btn.small', { disabled: !onProject && p.assignment.type === 'idle', onclick: () => { if (assign('idle').ok) ctx.sfx('click'); } }, 'Lighter load'),
-        h('button.btn.small.go', { disabled: away, title: s.policies?.sabbatical ? '' : 'Needs the Sabbatical Program policy', onclick: () => { if (assign('sabbatical').ok) ctx.sfx('confirm'); } }, 'Time off'))) : null;
+        h('button.btn.small', { disabled: p.assignment.type === 'idle', title: onProject ? 'Take them off their project for now' : '', onclick: () => { if (assign('idle').ok) ctx.sfx('click'); } }, 'Lighter load'),
+        h('button.btn.small.go', { disabled: away, title: 'Two weeks away. Strain drops fast.', onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, 'Time off'))) : null;
     return [
       h('div.row', null, back, h('span.spacer'), h('span.faint.small', { text: 'Tip: click people in the office to open this.' })),
       emptyCard,

@@ -11,7 +11,7 @@ const FLAGS = ['muted', 'frozen', 'badCamera'];
 // Call glitches per person: { muted, frozen, badCamera }. The sim sets them on staff (flat, or under
 // p.call); until it does, a deterministic stand-in picks a few people per turn so the jokes show.
 function glitches(s, remote, turn) {
-  const real = remote.some((p) => FLAGS.some((f) => p[f] || p.call?.[f]));
+  const real = remote.some((p) => 'call' in p || FLAGS.some((f) => p[f]));
   const out = new Map();
   remote.forEach((p, i) => {
     if (real) { out.set(p.id, { muted: !!(p.muted ?? p.call?.muted), frozen: !!(p.frozen ?? p.call?.frozen), badCamera: !!(p.badCamera ?? p.call?.badCamera) }); return; }
@@ -32,6 +32,9 @@ export function createCallGrid({ layer, openStaff }) {
   layer.append(card);
   let sig = '';
   let folded = false;
+  // Spoken lines from people on the call ('say' events), shown on their tile for a few seconds.
+  const said = new Map(); // staffId -> { text, until }
+  const SAY_MS = 4500;
 
   function update(s, hidden) {
     const lock = s.lockdown;
@@ -45,7 +48,11 @@ export function createCallGrid({ layer, openStaff }) {
     // A muted person is always one of the speakers: talking away with the mic off is the joke.
     const mutedOne = remote.find((p) => gl.get(p.id)?.muted);
     if (mutedOne && speakers.size) { speakers.delete([...speakers][1]); speakers.add(mutedOne.id); }
-    const next = `${folded}|${remote.map((p) => { const g = gl.get(p.id); return `${p.id}${p.mood}${g.muted ? 'm' : ''}${g.frozen ? 'f' : ''}${g.badCamera ? 'c' : ''}`; }).join()}|${[...speakers].join()}`;
+    const now = performance.now();
+    for (const [id, v] of said) if (v.until < now) said.delete(id);
+    // Whoever is talking on the call counts as a speaker.
+    for (const id of said.keys()) if (remote.some((p) => p.id === id)) speakers.add(id);
+    const next = `${[...said.keys()].join()}|${folded}|${remote.map((p) => { const g = gl.get(p.id); return `${p.id}${p.mood}${g.muted ? 'm' : ''}${g.frozen ? 'f' : ''}${g.badCamera ? 'c' : ''}`; }).join()}|${[...speakers].join()}`;
     if (next === sig) return;
     sig = next;
     const stayer = s.staff.find((p) => p.id === lock.stayerId);
@@ -65,9 +72,20 @@ export function createCallGrid({ layer, openStaff }) {
       return h(`button.cgtile${cls}`, { title: `${p.name}${status ? `: ${status}` : ''}. Open in Staff`, onclick: () => openStaff(p.id) },
         h('span.cgface', null, face, g.frozen ? h('span.cgspin') : null),
         g.muted ? h('span.cgmute', { title: 'Muted' }, icon('mic.off', { size: 12 })) : null,
+        said.has(p.id) ? h('span.cgsay', { text: said.get(p.id).text }) : null,
         h('span.cgname', { text: p.name.split(' ')[0] }));
     }), ...(remote.length > MAX_TILES ? [h('div.cgmore', { text: `+${remote.length - MAX_TILES} more` })] : []));
   }
 
-  return { update };
+  return {
+    update,
+    say(e, s) {
+      if (!s?.lockdown || !e?.staffId || !e.text) return false;
+      const p = s.staff.find((x) => x.id === e.staffId);
+      if (!p?.remote) return false;
+      said.set(p.id, { text: e.text, until: performance.now() + SAY_MS });
+      if (said.size > 4) said.delete(said.keys().next().value);
+      return true;
+    },
+  };
 }

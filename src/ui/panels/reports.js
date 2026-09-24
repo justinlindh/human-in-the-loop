@@ -5,6 +5,7 @@ import { icon } from '../icons.js';
 import { lineChart, stackedChart, sample } from '../charts.js';
 import { wrapperRisk } from './marketing.js';
 import { retireOptions, retireBanner } from '../retire.js';
+import { PURPOSE_INFO } from '../v2content.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -243,7 +244,7 @@ function purposeCard(s) {
   return h('div.card.purposecard', null,
     h('div.row', null, icon('idea', { size: 20 }), h('b', { text: 'Purpose' }), h('span.small.muted', { text: pu.mission ? ` "${pu.mission}"` : ' No mission yet' }), h('span.spacer'),
       h('div.bar', { style: { width: '10em' } }, h('i', { style: { width: `${v}%`, background: 'var(--purple)' } })), h('b.num', { text: String(Math.round(v)) })),
-    h('div.small.muted', { text: pu.affects ?? PURPOSE_AFFECTS }),
+    h('div.small.muted', { text: PURPOSE_INFO?.affects ?? PURPOSE_AFFECTS }),
     tests.length ? h('div.ptests', null, ...tests.map((t) => h('div.ptest', null,
       h(`span.num.${(t.delta ?? 0) >= 0 ? 'good-t' : 'bad-t'}`, { text: `${(t.delta ?? 0) >= 0 ? '+' : ''}${Math.round(t.delta ?? 0)}` }),
       h('span', { text: t.text ?? '' }), h('span.small.muted', { text: Number.isFinite(t.week) ? `${dateOf(t.week).year} Q${dateOf(t.week).quarter}` : '' })))) : null);

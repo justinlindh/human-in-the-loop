@@ -123,9 +123,10 @@ export function meaningShown(s) {
 }
 
 export const TIRED_STAMINA = 25;
-export const EMPTY_WARN_WEEKS = 3;
-// Weeks someone has run on empty: the sim's counter when it has one, else the stamina floor as a hint.
-export const emptyWeeks = (p) => (Number.isFinite(p.emptyWeeks) ? p.emptyWeeks : (p.stamina ?? 100) < 12 ? EMPTY_WARN_WEEKS : 0);
+// Strain (0..100) builds under sustained load; past B.strainWarn it is a warning sign.
+export const STRAIN_WARN = B.strainWarn ?? 60;
+export const strainOf = (p) => (Number.isFinite(p.strain) ? p.strain : 0);
+export const PURPOSE_INFO = DATA.PURPOSE_INFO ?? null;
 
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
 export const fundingMult = (f) => f.scoreMult ?? B.funding?.[f.id]?.scoreMult ?? 1;
