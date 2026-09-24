@@ -4,7 +4,7 @@ import { createSceneGraph, buildTestDiorama } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop, windowUpdater } from './lighting.js';
 import { createPost } from './post.js';
-import { buildKitBoard } from './debug.js';
+import { buildKitBoard, buildPropLineup } from './debug.js';
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
@@ -30,8 +30,16 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   lighting.env.listeners.add(backdrop.update);
 
   const params = new URLSearchParams(location.search);
-  const bounds = params.get('kit') === '1' ? buildKitBoard(office) : buildTestDiorama(office);
+  const bounds = params.get('kit') === '1' ? buildKitBoard(office)
+    : params.get('props') === '1' ? buildPropLineup(office)
+    : buildTestDiorama(office);
   rig.setBounds(bounds);
+  if (params.get('zoom')) rig.setZoom(Number(params.get('zoom')));
+  if (params.get('at')) {
+    const [ax, az] = params.get('at').split(',').map(Number);
+    rig.focus({ x: ax, z: az });
+    rig.update(10);
+  }
   lighting.env.listeners.add(windowUpdater(office.userData.windowMaterials ?? []));
   lighting.fitShadow(bounds);
   lighting.setInteriorLights([{ x: -1, y: 2.4, z: -1 }, { x: 2, y: 2.4, z: 1 }]);

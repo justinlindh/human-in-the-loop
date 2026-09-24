@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE } from './palette.js';
 import { mat, glow, glass } from './materials.js';
+import { loadModels, getModel, PROP_NAMES } from './models.js';
 import { roundedBox, roundedCylinder, pill, lathe, blob, mesh, mergeStatic } from './prims.js';
 
 // Debug lineups selected by URL params (kit=1). Each builder fills a group and returns bounds.
@@ -76,4 +77,24 @@ export function buildKitBoard(group) {
   for (const [title, rz] of rowZ) group.add(label(title, -(COLS - 1) * STEP / 2 - 0.6, 0.3, rz - (z - STEP) / 2 - 0.55));
   group.userData.windowMaterials = [];
   return new THREE.Box3(new THREE.Vector3(-w / 2 - 0.5, 0, -z / 2 - 0.5), new THREE.Vector3(w / 2 + 0.5, 0.8, z / 2 + 0.5));
+}
+
+// Every Blender prop on a slab in two rows, labeled.
+export function buildPropLineup(group) {
+  const perRow = 4, stepX = 3.0, stepZ = 3.0;
+  const w = perRow * stepX, d = 4 * stepZ;
+  group.add(mesh(roundedBox(w + 0.6, 0.3, d + 0.6, 0.08), mat('slab_side'), 0, -0.15, 0));
+  group.add(mesh(roundedBox(w + 0.4, 0.04, d + 0.4, 0.02), mat('floor_wood'), 0, 0.02, 0));
+  group.userData.windowMaterials = [];
+  loadModels().then(() => {
+    PROP_NAMES.forEach((name, i) => {
+      const x = (i % perRow - (perRow - 1) / 2) * stepX;
+      const z = (Math.floor(i / perRow) - 1.5) * stepZ;
+      const m = getModel(name);
+      m.position.set(x, 0.04, z);
+      group.add(m);
+      group.add(label(name, x + 0.55, 0, z + 0.55));
+    });
+  });
+  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 2.4, d / 2));
 }
