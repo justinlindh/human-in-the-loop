@@ -6,11 +6,13 @@ from common import *
 reset()
 L, W, H = 1.8, 1.0, 0.6
 parts = [
-    box('top', (L, W, 0.04), (0, 0, H - 0.02), 'fabric_teal', bevel=0.012),
+    box('top', (L, W, 0.04), (0, 0, H - 0.02), 'fabric_teal', bevel=0.006, segments=1),
     box('edge', (L + 0.02, W + 0.02, 0.025), (0, 0, H - 0.05), 'plastic_charcoal', bevel=0.008),
-    box('line_mid', (L - 0.04, 0.012, 0.003), (0, 0, H + 0.001), 'paper', bevel=0),
-    box('line_a', (0.012, W - 0.04, 0.003), (-L / 2 + 0.03, 0, H + 0.001), 'paper', bevel=0),
-    box('line_b', (0.012, W - 0.04, 0.003), (L / 2 - 0.03, 0, H + 0.001), 'paper', bevel=0),
+    # Lines sit clear of the top (no shared depth with it) and stop short of the net.
+    box('line_mid_a', (L / 2 - 0.06, 0.014, 0.002), (-L / 4 - 0.01, 0, H + 0.004), 'paper', bevel=0),
+    box('line_mid_b', (L / 2 - 0.06, 0.014, 0.002), (L / 4 + 0.01, 0, H + 0.004), 'paper', bevel=0),
+    box('line_a', (0.014, W - 0.04, 0.002), (-L / 2 + 0.03, 0, H + 0.004), 'paper', bevel=0),
+    box('line_b', (0.014, W - 0.04, 0.002), (L / 2 - 0.03, 0, H + 0.004), 'paper', bevel=0),
     box('net', (0.012, W + 0.1, 0.1), (0, 0, H + 0.05), 'paper_sheet', bevel=0.004),
     box('net_top', (0.02, W + 0.1, 0.012), (0, 0, H + 0.1), 'paper', bevel=0.004),
 ]

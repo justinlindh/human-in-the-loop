@@ -20,7 +20,7 @@ const PERKS = {
   library: { cap: 2, anim: 'browse', dur: [6, 10], weight: 1.2, spots: (f) => [[-0.45, f.h / 2 + 0.45], [0.45, f.h / 2 + 0.45]], face: 'item', emote: 'lightbulb' },
   bookshelf: { cap: 1, anim: 'browse', dur: [5, 9], weight: 1, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item', emote: 'lightbulb' },
   plant_wall: { cap: 1, anim: 'water', dur: [3.5, 5], weight: 0.6, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item' },
-  pingpong: { pair: true, anim: 'paddle', dur: [8, 12], weight: 1.3, spots: (f) => [[-(f.w / 2 + 0.35), 0], [f.w / 2 + 0.35, 0]], face: 'item' },
+  pingpong: { pair: true, anim: 'paddle', dur: [8, 12], weight: 1.3, spots: (f) => [[-(f.w / 2 + 0.2), 0], [f.w / 2 + 0.2, 0]], face: 'item' },
   foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.3)], [0, f.h / 2 + 0.3]], face: 'item' },
 };
 
