@@ -358,6 +358,14 @@
  "bot.generic": {
   "file": "glyphs/bot.generic.svg"
  },
+ "bot.news": {
+  "file": "glyphs/bot.news.svg",
+  "size": 13
+ },
+ "bot.build": {
+  "file": "glyphs/bot.build.svg",
+  "size": 13
+ },
  "react.party": {
   "file": "glyphs/react.party.svg"
  },

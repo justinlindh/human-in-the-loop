@@ -70,6 +70,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     toast: (text, tone) => toasts.push(text, tone),
     open: (id, arg) => menu.open(id, arg),
     close: () => menu.close(),
+    currentMenu: () => menu.current,
     controls,
     sfx,
     meaningLog: new Map(),

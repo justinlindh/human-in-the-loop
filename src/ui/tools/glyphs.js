@@ -251,6 +251,8 @@ export const GLYPHS = {
   'bot.office': { d: D.building },
   'bot.hn': { d: rr(3, 3, 18, 18, 3, C.orange) + `<path d="M8.5 7.5 12 12.5l3.5-5M12 12.5v5" stroke="${PAPER}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
   'bot.generic': { d: D.robot },
+  'bot.news': { size: 13, d: "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\" fill=\"#fbf5ea\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><rect x=\"6\" y=\"7\" width=\"6\" height=\"5\" rx=\"1\" fill=\"#4f8cff\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M14.5 8h3.5M14.5 11h3.5M6 15h12M6 17.5h8\" stroke=\"#2a2630\" stroke-width=\"1.6\" stroke-linecap=\"round\" fill=\"none\"/>" },
+  'bot.build': { size: 13, d: "<path d=\"M14.5 3.5a4.5 4.5 0 0 0-5.3 5.7l-5.4 5.4a2 2 0 0 0 2.8 2.8l5.4-5.4a4.5 4.5 0 0 0 5.7-5.3l-2.6 2.6-2.3-.6-.6-2.3z\" fill=\"#b9bcc4\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><circle cx=\"18\" cy=\"18\" r=\"3.5\" fill=\"#34c38f\" stroke=\"#2a2630\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M16.6 18l1 1 1.9-2\" stroke=\"#fbf5ea\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"/>" },
 
   // Slackk reactions
   'react.party': { d: path('M3 21 8 8l8 8Z', C.yellow) + `<path d="M5 15.5l3.5 3.5M6.5 11.5l6 6" stroke="${C.red}" stroke-width="1.6" fill="none"/>` + dot(15, 5, 1.4, C.pink) + dot(19.5, 9.5, 1.4, C.blue) + dot(18, 3.5, 1, C.green) },

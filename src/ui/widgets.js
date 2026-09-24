@@ -57,7 +57,8 @@ export function portrait(person, size = 48) {
   const url = rendered(person, size);
   if (url) return imgFor(url, person, size);
   const c = drawnPortrait(person, size);
-  if (url === null) track({ el: c, person, size, kind: 'el' });
+  // Queued (null) or the renderer not ready yet (undefined): swap in the rendered one when it arrives.
+  if (source) track({ el: c, person, size, kind: 'el' });
   return c;
 }
 
@@ -108,7 +109,7 @@ export function portraitImg(person, size = 44, cls = 'av') {
   img.alt = '';
   const r = rendered(person, size);
   img.src = r || drawnURL(person, size);
-  if (r === null) track({ el: img, person, size, kind: 'src' });
+  if (!r && source) track({ el: img, person, size, kind: 'src' });
   return img;
 }
 
