@@ -963,3 +963,46 @@ Spec: the spec's **Standups** section. Contract: the `standup` event and the `st
 
 ### Task U9: Standup UI (ui)
 - A `#standup` Slackk channel. Policies appear automatically from POLICIES; show that the two are mutually exclusive in the Policies tab.
+
+## Phase 4: Structure v2 (eras, unlocks, founding, placement)
+
+Spec: the spec's **Structure v2** section. Contract: the "v2 changes" section of `src/contract/contract.md` (canonical). The mock sim already produces the v2 shape (office.placed with tile coordinates, era, eraSchedule, unlocks, goals, founding, and era/unlock/goal events), so every lane can start now. Order within each lane is as listed. A7 (art polish) continues in parallel, before A10.
+
+### Task S15: Eras, approaches, unlocks, goals, open-ended run (sim)
+- Start at January 2019 (dateOf and every year-based unlock rebased). eraSchedule is set in createGame with a per-run jitter of up to 13 weeks: chatgbt about 2022 Q4, agents about 2025 Q2, consolidation about 2029. An era arrival emits `era` and raises an era decision (for example the ChatGBT moment: "try copilots" / "wait and see" / "board wants an AI strategy"), respecting the decision gap.
+- Pre-AI approaches as angles with an era tag: web, mobile, api, freemium, onprem (with combo fits in combos.js); AI angles gated by era. Models, automation dials, rogue agents, and AI research are unavailable in the Classic era; automation caps at 50% for support and marketing only during the ChatGBT era; the full dials arrive with Agents. Incumbents and clones adopt AI per era (appeal pressure).
+- The unlock system (`unlocks`, the `unlock` event) with the triggers in the spec; policies unlock individually with triggers. Actions on locked systems return a reason ("Unlocks with your first launch").
+- Goals (`goals`, the `goal` event) with small rewards; at least 15 goals across the run (getting started, first launch, first hire, first incident survived, the Office Floor, first award, 1,000 customers, HQ, category leader, IPO, acquisition offer, 5 years, 10 years, a Legend, a research tree complete).
+- Open-ended endgame: remove the fixed run end; `retire` action (valid with an IPO available or an open acquisition offer) ends the run with won true and reason 'retired'; the IPO and acquisition become goals and retire options rather than automatic ends.
+- Tests for era timing, gating, unlock triggers, goals, retire, and determinism.
+
+### Task S16: Founding, placement, adjacency, desk capacity (sim)
+- createGame founding options: 6 founder archetypes (src/data/founders.js) with skill profiles and a trait each; funding options (src/data/funding.js) with cash, score multiplier, and event hooks (investor pressure events for preseed, guilt-pressure events for family).
+- Office grid data in src/data/office.js (grid, door, blocked tiles per stage); ITEMS gain footprint, kind ('furniture' for desk sets, meeting table, whiteboard, coffee corner, rack, plants, bookshelf; 'shop' for the upgradeable items), and adjacency { radius, key, value } where applicable. Furniture items get prices.
+- Actions placeItem, moveItem, upgradeItem, sellItem per the contract, with validation (bounds, overlap, blocked tiles, and a path from the door to every desk: grid BFS). Capacity = number of desk sets; hire fails with 'No free desk'. The run starts with an empty office; the first goal is placing two desks.
+- itemBonus sums global effects plus adjacency effects (per desk, averaged over staff), all under the 50% cap. Office upgrade auto-arranges placed furniture into the new grid (deterministic packing that keeps the path valid).
+- Tests: placement validation cases, path check, capacity, adjacency math, auto-arrange validity, JSON safety.
+
+### Task S17: Bots and balance for v2 (sim)
+- Bots found a company (default founders and funding), place desks and items with a simple layout heuristic, and play from 2019 through the eras. Thresholds become: automateAll collapses in at least 70% of seeds once agents arrive; allHumans (careful, dials at 0) reaches an exit in at most 40% of seeds within 20 years; balanced reaches an exit within 20 years in 30 to 90% of seeds and beats allHumans by at least 20 points; sensible survives the opening. Report era-by-era stats (cash, staff, MRR at each era arrival) in the balance table.
+
+### Task A10: Grid office and placed furniture (art)
+- Stage shells become walls, windows, door, and floor only; everything else renders from `office.placed` (tile to world mapping per the contract's grid convention; rotations; the existing props and tier models). Desk sets render a desk, chair, and screen. Seats come from desk sets, not a fixed layout.
+- The nav grid is rebuilt from placed furniture whenever it changes; walking, standups (around the meeting table if placed, else the whiteboard, else a clear floor spot), and wandering use it.
+- Build-mode visuals: `renderer.setBuildMode({ itemId, rot } | null)` shows a ghost of the item under the cursor, tinted valid or invalid by a `renderer.validate(x, y, rot)` callback the UI provides from the sim; `renderer.pickTile(clientX, clientY) -> { x, y } | null`; hover highlight for existing placed items (for move and sell). Placement pops in; moves slide.
+- Verify with snaps: an empty garage, a garage with 2 desks, a furnished floor, HQ, and build mode with a valid and an invalid ghost.
+
+### Task A11: Era dressing (art)
+- Small visual cues per era: Classic (no monitoring wall even if data says so, older monitors), ChatGBT (sticky notes with prompts, a "Try AI" poster), Agents (monitoring wall glow, agent status lights), Consolidation (lawyer-grey conference tables, a "Compliance" binder). Plus an era-transition flourish (the skyline or window light shifts, confetti-free).
+
+### Task U10: Founding screens (ui)
+- After New Game: company name, logo color, tagline; pick 2 of 6 founder archetype cards (portrait, strengths, trait); funding choice with plain-words consequences. Then into the empty garage with the Goals card showing "place 2 desks". Replaces the tutorial's Build step; the tutorial keeps only HUD and speed basics.
+
+### Task U11: Build mode (ui)
+- The Office panel becomes a build palette: furniture and shop items with price and footprint; picking one enters build mode (the renderer ghost; click to place via placeItem; R rotates; Esc exits). Clicking a placed item offers move, upgrade, and sell. Invalid placement shows the sim's reason. Adjacency previews: while placing, show which desks gain which bonus.
+
+### Task U12: Unlock presentation, Goals card, era cards, retire (ui)
+- Menu buttons appear only when unlocked (the `unlock` event slides them in with a "New!" badge and a one-card explainer the first time); the Goals card in the tray; the era card (a large, skippable announcement with what changed and the era decision if any); the retire flow (a Retire button in Reports when available: IPO or open offer, with a confirmation showing the projected score).
+
+### Task L3: Wall-clock pacing simulator (lead)
+- Extract the clock, event pacing, and menu-pause logic from main.js into `src/pacing.js` (pure, shared by main.js and the tool). `scripts/pace.js` runs the real sim through that clock with a simulated player (a bot plus modelled menu time per decision and per action) and prints a timeline with wall-clock timestamps (mm:ss at the chosen speed) of every presented event, plus metrics: popups per real minute, the gap distribution between decisions, toasts per minute after the UI budget, minutes to first launch, to each era, and to each goal. Used to tune pacing without a browser.

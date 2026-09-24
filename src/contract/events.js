@@ -1,10 +1,10 @@
 export const EVENT_TYPES = [
   'bubble', 'toast', 'chat', 'launch', 'incident', 'resign',
-  'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver', 'standup',
+  'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver', 'standup', 'era', 'unlock', 'goal',
 ];
 
 export const ACTION_TYPES = [
-  'hire', 'fire', 'assign', 'train', 'choosePath', 'buyItem', 'upgradeItem', 'sellItem', 'startProject', 'setAutomation', 'setPolicy',
+  'hire', 'fire', 'assign', 'train', 'choosePath', 'placeItem', 'moveItem', 'upgradeItem', 'sellItem', 'retire', 'startProject', 'setAutomation', 'setPolicy',
   'runCampaign', 'setOwner', 'killProduct', 'upgradeOffice', 'buyAudit', 'setTooling',
   'callConsultants', 'resolveDecision', 'ipo',
 ];

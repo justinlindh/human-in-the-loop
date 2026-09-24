@@ -131,3 +131,50 @@ Product = {
 { type: 'ipo' }
 ```
 
+
+---
+
+## v2 changes (Structure v2: eras, unlocks, founding, placement)
+
+These supersede the matching parts above. Where v2 and v1 disagree, v2 wins.
+
+### createGame
+```js
+createGame({ seed, companyName, logoColor, tagline, founders /* [archetypeId, archetypeId] */, funding /* 'bootstrapped'|'family'|'preseed' */ })
+// every option is optional; defaults: a random founder pair suited to building, 'bootstrapped'
+```
+The run starts at week 0 = January 2019 (dateOf(0).year === 2019).
+
+### State additions and changes
+```js
+era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation' */, since /* week */ },
+eraSchedule: { chatgbt, agents, consolidation },          // arrival weeks for this run (jittered)
+unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
+goals: { [goalId]: { done /*bool*/, week /* or null */ } },
+founding: { founders: [archetypeIds], funding, logoColor, tagline },
+office: {
+  stage /* 0|1|2, mirrors officeStage */,
+  placed: [{ id, itemId, level /*1..3*/, x, y, rot /*0..3*/ }],   // tile coordinates on the stage grid
+},
+// REMOVED: items[] (the fixed-slot shop list); shop items are now entries in office.placed.
+// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired'); 'timeout' and the fixed run end are gone.
+```
+Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y], ...]. Tile (0, 0) is the back corner where the two visible walls meet; x runs along the right-hand back wall, y along the left-hand back wall. Item footprints come from ITEMS[itemId].footprint = { w, h } before rotation (rot 1 and 3 swap w and h).
+
+### Actions
+```js
+{ type: 'placeItem', itemId, x, y, rot }      // buys and places; returns { ok, id }; reasons include 'Blocked', 'Out of bounds', 'Would block the path to a desk', 'Not enough cash'
+{ type: 'moveItem', id, x, y, rot }           // free
+{ type: 'upgradeItem', id }
+{ type: 'sellItem', id }                      // half refund of total spent
+{ type: 'retire' }                            // valid when an IPO is available or an acquisition offer is open
+// REMOVED: buyItem (placement replaces it)
+// hire gains the reason 'No free desk'
+```
+
+### Events
+```js
+{ type: 'era', eraId }          // an era arrived (UI shows the era card)
+{ type: 'unlock', key }         // a system unlocked (UI slides in the menu button and explainer card)
+{ type: 'goal', goalId }        // a goal completed
+```

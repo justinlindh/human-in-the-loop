@@ -282,3 +282,43 @@ A weekly ritual that shows morale in person.
 - **Daily Standups policy:** once per in-game week the team walks to the whiteboard (or the meeting room once there is one), stands in a loose circle, and 3 to 5 speech bubbles play out in turn; then everyone returns to work. Lines come from real state: project progress, mentoring, blockers, outages. Coasting people give flat answers ("Same as yesterday."), and burnt-out people say nothing. Cost: a small output loss. Benefit: better knowledge sharing (institutional knowledge) and a small meaning lift.
 - **Async Standups policy:** the same updates are posted to a Slackk `#standup` channel instead. No output cost, a weaker benefit, and people who are checked out stop posting, so a quiet channel is a warning sign.
 - The two policies are mutually exclusive. At 2x speed and above, the in-person gathering is shortened and the bubbles are skipped, so it never drags.
+
+## Structure v2: eras, unlocks, founding, placement (supersedes the run shape above)
+
+Approved after the first playtests: the game threw everything at the player at once, ran too fast, and started in a finished office. This section supersedes the earlier run shape (15 fixed years from 2026), the fixed item slots, and the up-front menus.
+
+### Run shape
+- The run starts in January 2019 and is **open-ended**. There is no timeout.
+- **Goals** (first launch, reaching the Office Floor, reaching HQ, the first award, leading a category, an IPO, a 10-year anniversary, and similar) are milestones with small rewards (cash, brand, a trophy for the shelf), shown in a Goals card.
+- **Retiring:** when eligible, the player can take an IPO or accept an acquisition and retire, which produces the epilogue and score; or keep playing. Bankruptcy and collapse still end a run.
+- Pacing target: 5 real seconds per week at 1x. The Classic SaaS era lasts about 13 minutes at 1x.
+
+### Eras
+The world timeline is fixed, with each era's arrival jittered by up to one quarter per run. Each arrival is shown as an era card and usually comes with a decision.
+1. **Classic SaaS** (2019 to about 2022): no models, no automation, no rogue agents, no AI angles. A product is a category plus an **approach** (Web App, Mobile-first, API-first, Freemium, On-prem). The player learns building, hiring, launching, marketing, and the office.
+2. **The ChatGBT moment** (about 2022 to 2024): model vendors, the Copilot and Summarizer angles, and gentle automation (support and marketing copy only, capped at 50%). Incumbents and clones begin adopting AI.
+3. **Agents** (about 2025 to 2028): the Agent and Workflow angles, the AI-native angle, the full automation dials (engineering, QA, ops up to 100%), rogue agents, oversight, and AI research tools.
+4. **Consolidation** (about 2029 on): price wars, frequent vendor deprecations, incumbents fighting back, regulation, and regular acquisition offers. Open-ended from here, driven by trends.
+Approaches stay available after the AI eras; AI angles add to them.
+
+### Progressive unlocks
+Menus and systems appear as the company grows. At the start: Build, Staff, Office, and a simple Reports panel. Unlocks: Marketing at the first launch; Ops and Security at the first incident; Research at the third launch; Models and Automation at the ChatGBT moment; career paths at the first promotion to senior; standups at 5 staff; policies arrive one by one with their triggers. Each unlock shows a "New!" badge on its menu button and a one-card explainer (what it is, why it matters now).
+
+### Founding phase
+After New Game, before week 1:
+1. Company name, a logo color, and a tagline (cosmetic, with Suggest buttons).
+2. Two founders chosen from about 6 generated archetype cards: Engineer, Designer, Hustler (marketer), Operator (support or security), Researcher (novelty-heavy engineer), Seller. The pair shapes the opening.
+3. Funding: Bootstrapped (about $90k; full score), Friends and Family (about $150k; score x0.9; occasional guilt-pressure events), or Pre-seed VC (about $300k; score x0.8; investor events pushing growth and, later, automation).
+The first product is then started from the normal Build panel (guided by the first goal).
+
+### The office: empty start and free placement
+- Each stage is a tile grid (Garage 9x7, Office Floor 15x12, HQ 21x16) with fixed walls, windows, and a door. The run starts in an empty garage.
+- Everything is bought and placed on tiles: desk sets (desk, chair, and screen; one person each), meeting table, whiteboard, coffee corner, racks, plants, bookshelves, and every shop item (with their upgrade levels). Build mode shows a ghost preview (valid or invalid), and supports rotate, move, and sell (half refund). Placement must keep a walkable path from the door to every desk.
+- **Desks are capacity:** hiring needs a free desk.
+- **Adjacency:** some items give bonuses to nearby desks or items within a small radius (plants and meaning, whiteboards and novelty, racks next to racks and uptime, a coffee corner and stamina). Adjacency stacks with the item's global effect and follows the 50% cap.
+- **Moving offices:** a stage upgrade auto-arranges existing furniture into the new space; the player can then rearrange.
+
+### Guidance
+- A **Goals** card in the tray (for example "Getting started: place 2 desks, start a product, launch it"), updated as goals complete.
+- The founders nudge in speech bubbles and Slackk ("We should probably get desks in here first").
+- Unlock explainer cards. No front-loaded tutorial beyond the HUD and speed basics.
