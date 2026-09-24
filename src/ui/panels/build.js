@@ -68,8 +68,10 @@ export function buildPanel(ctx, arg) {
   function renderNew(s, bind) {
     const year = dateOf(s.week).year;
     if (!form.team) {
-      form.team = new Set(s.staff.filter((p) => isAvailable(p) && (p.role === 'engineer' || p.role === 'designer')
-        && (p.assignment.type === 'idle' || (p.founder && p.assignment.type !== 'project'))).map((p) => p.id));
+      // Builders who are free, plus the founders; with nobody like that, whoever is idle.
+      const free = (p) => isAvailable(p) && (p.assignment.type === 'idle' || (p.founder && p.assignment.type !== 'project'));
+      const builders = s.staff.filter((p) => free(p) && (p.role === 'engineer' || p.role === 'designer' || p.founder));
+      form.team = new Set((builders.length ? builders : s.staff.filter((p) => isAvailable(p) && p.assignment.type === 'idle')).map((p) => p.id));
     }
     for (const id of [...form.team]) if (!s.staff.some((p) => p.id === id && isAvailable(p))) form.team.delete(id);
     if (!s.models[form.model]?.available || s.models[form.model]?.deprecated) form.model = MODELS.find((m) => s.models[m.id]?.available && !s.models[m.id]?.deprecated)?.id ?? form.model;
