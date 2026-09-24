@@ -13,6 +13,7 @@ import * as SIM from '../../sim/index.js';
 import { automationWeeklyCost } from '../../sim/economy.js';
 import { icon } from '../icons.js';
 import { call } from '../simapi.js';
+import { picker } from '../picker.js';
 import { agentsHere } from '../v2content.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
@@ -124,11 +125,12 @@ export function automationPanel(ctx) {
           toggleClass(b, 'hot', lv >= 0.75);
           return b;
         }));
-        const modelSel = h('select', {
-          onchange: (e) => { const m = e.target.value; e.target.blur(); ctx.act({ type: 'setAutomation', fn, level: a.level, model: m }); },
-        }, ...MODELS.filter((m) => (s.models[m.id]?.available && !s.models[m.id]?.deprecated) || m.id === a.model)
-          .map((m) => h('option', { value: m.id, text: `${m.name} · ${Math.round(m.guardrails * 100)}% guard` })));
-        modelSel.value = a.model;
+        const modelSel = picker({
+          value: a.model, title: 'Which model runs it',
+          options: MODELS.filter((m) => (s.models[m.id]?.available && !s.models[m.id]?.deprecated) || m.id === a.model)
+            .map((m) => ({ value: m.id, label: m.name, stat: `${Math.round(m.guardrails * 100)}% guard`, icon: 'agentic' })),
+          onChange: (m) => ctx.act({ type: 'setAutomation', fn, level: a.level, model: m }),
+        }).el;
 
         const who = affected(s, fn);
         const meanEl = h('span.num');
