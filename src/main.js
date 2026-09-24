@@ -147,7 +147,11 @@ async function boot() {
   };
 
   if (renderer) addEventListener('resize', () => renderer.resize());
+  // Save whenever the page may be going away: tab hidden (mobile browsers often kill it after this),
+  // navigation or close, and the bfcache.
   addEventListener('beforeunload', () => { save(); });
+  addEventListener('pagehide', () => { save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
   let last = performance.now();
   let dayClock = 0.35;
