@@ -4,12 +4,13 @@ import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, po
 // Policies that cannot be on together. Data can declare it with excludes: [ids]; the standup pair is known here too.
 const EXCLUSIVE = [['daily_standups', 'async_standups']];
 function exclusiveWith(p) {
-  const ids = new Set(p.excludes ?? []);
+  const ids = new Set([].concat(p.excludes ?? []));
   for (const group of EXCLUSIVE) if (group.includes(p.id)) group.filter((x) => x !== p.id).forEach((x) => ids.add(x));
   return [...ids];
 }
 import { liveView, tabs } from '../widgets.js';
 import * as SIM from '../../sim/index.js';
+import { automationWeeklyCost } from '../../sim/economy.js';
 import { icon } from '../icons.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
@@ -35,7 +36,7 @@ export function oversightHave(s) {
 export function fnCost(s, fn) {
   const a = s.automation[fn];
   if (!a) return 0;
-  return (MODEL[a.model]?.autoCost ?? 0) * (B.autoCostMult ?? 1) * (s.models[a.model]?.costMult ?? 1) * a.level;
+  return automationWeeklyCost(s, fn);
 }
 
 function outputText(s, fn) {

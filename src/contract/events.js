@@ -1,6 +1,6 @@
 export const EVENT_TYPES = [
   'bubble', 'toast', 'chat', 'launch', 'incident', 'resign',
-  'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver', 'standup', 'era', 'unlock', 'goal',
+  'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver', 'standup', 'era', 'unlock', 'goal', 'say',
 ];
 
 export const ACTION_TYPES = [
