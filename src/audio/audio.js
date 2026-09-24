@@ -6,6 +6,7 @@
 import { createDirector } from './director.js';
 import { createMixer } from './mixer.js';
 import { createLoader } from './loader.js';
+import { createLoops } from './loops.js';
 
 const KEEP_COMMANDS = 60;
 
@@ -23,6 +24,7 @@ export function createAudio({ quality = 'high' } = {}) {
   const busUser = {};
   const log = [];
   let music = null; // { src, gain, era }
+  let loops = null;
 
   function unlock() {
     if (!AC) return;
@@ -31,11 +33,12 @@ export function createAudio({ quality = 'high' } = {}) {
       ctx = new AC();
       mix = createMixer(ctx);
       loader = createLoader(ctx);
+      loops = createLoops(ctx, loader, (b) => mix.bus[b] ?? mix.bus.ambience);
       mix.setUser('master', user.master);
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
       // Small sounds decode up front; music and voice banks load on first use.
-      loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd']);
+      loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd', 'ambience/typing', 'sfx/door']);
       // iOS wants a sound started inside the gesture.
       const s = ctx.createBufferSource();
       s.buffer = ctx.createBuffer(1, 1, 22050);
@@ -136,6 +139,7 @@ export function createAudio({ quality = 'high' } = {}) {
             playBuffer(loader.get(c.file), c.bus, c.gain, c.at);
           }
         } else if (c.op === 'music') startMusic(c);
+        else if (c.op === 'loop') loops.set(c);
         else if (c.op === 'musicMix') mix.musicMix(c);
         else if (c.op === 'duck') {
           const delay = Math.max(0, ((c.at ?? ctx.currentTime) - ctx.currentTime) * 1000);
@@ -148,6 +152,7 @@ export function createAudio({ quality = 'high' } = {}) {
   // UI cues and character clicks arrive as window events, so the UI needs no reference to audio.
   if (typeof window !== 'undefined') {
     addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
+    addEventListener('hitl:propUse', (e) => run(director.prop(e.detail?.itemId, now())));
     addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
@@ -195,6 +200,7 @@ export function createAudio({ quality = 'high' } = {}) {
     setQuality(v) { q = v === 'low' ? 'low' : 'high'; director.setQuality(q); },
     setMusic() {},
     get commands() { return log.slice(); },
+    loopState: (id) => loops?.state(id) ?? null,
     // A MediaStream of the final mix, for capture tools.
     tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); mix.output.connect(d); return d.stream; },
     get state() { return { unlocked: !!ctx, running: !!ready(), music: director.musicState }; },

@@ -41,6 +41,16 @@ export const CUES = {
   'sfx.reward': { bus: 'sfx', files: ['sfx/reward'], cooldown: 1, priority: 5 },
   'sfx.bad': { bus: 'sfx', files: ['sfx/bad'], cooldown: 0.8, priority: 4 },
   'sfx.warn': { bus: 'sfx', files: ['ui/blip'], cooldown: 0.8, priority: 2 },
+  'sfx.outage': { bus: 'sfx', files: ['sfx/outage'], cooldown: 10, priority: 8 },
+  'sfx.fixed': { bus: 'sfx', files: ['sfx/fixed'], cooldown: 5, priority: 6 },
+  'sfx.door': { bus: 'sfx', files: ['sfx/door'], cooldown: 3, priority: 3, gain: 0.7 },
+  'sfx.move': { bus: 'sfx', files: ['sfx/move'], cooldown: 0.2, priority: 3 },
+  'sfx.foosball': { bus: 'sfx', files: ['sfx/foosball'], cooldown: 25, priority: 2, gain: 0.6 },
+  'sfx.arcade': { bus: 'sfx', files: ['sfx/arcade'], cooldown: 25, priority: 2, gain: 0.6 },
+  'sfx.pingpong': { bus: 'sfx', files: ['sfx/pingpong'], cooldown: 25, priority: 2, gain: 0.6 },
+  'sfx.coffee': { bus: 'sfx', files: ['sfx/coffee'], cooldown: 60, priority: 2, gain: 0.6 },
+  'sfx.dog': { bus: 'sfx', files: ['sfx/dog'], cooldown: 60, priority: 2, gain: 0.6 },
+  'sfx.cat': { bus: 'sfx', files: ['sfx/cat'], cooldown: 60, priority: 2, gain: 0.6 },
   'sfx.bubble': { bus: 'sfx', files: ['sfx/pop'], cooldown: 0.25, priority: 1, scaleWithSpeed: true, jitter: { gain: 0.1 } },
   'stinger.launch': { bus: 'sfx', files: ['stingers/launch'], cooldown: 2, priority: 9, duck: 'stinger' },
   'stinger.era': { bus: 'sfx', files: ['stingers/era'], cooldown: 5, priority: 10, duck: 'stinger' },
@@ -75,7 +85,7 @@ export const ON_EVENT = {
 
 // UI 'hitl:sfx' names -> cue ids.
 export const UI_CUES = {
-  click: 'ui.click', open: 'ui.open', close: 'ui.close', confirm: 'ui.confirm', error: 'ui.error', coin: 'ui.coin',
+  move: 'sfx.move', click: 'ui.click', open: 'ui.open', close: 'ui.close', confirm: 'ui.confirm', error: 'ui.error', coin: 'ui.coin',
   blip: 'ui.blip', decision: 'ui.decision', fanfare: 'stinger.win', gameover: 'stinger.gameover', award: 'sfx.award',
 };
 
@@ -111,6 +121,15 @@ export function isFirstLaunch(e, s) {
   const p = s?.products?.find((x) => x.id === e.productId);
   return !p || (p.version ?? 1) <= 1;
 }
+
+// Rare world sounds: a pet or the coffee machine now and then, and the typing bed while people work.
+export const WORLD = {
+  petMinGap: 90, petSpread: 90,         // s between pet sounds
+  coffeeMinGap: 120, coffeeSpread: 120, // s between coffee sounds
+  typingMax: 0.5,                       // typing loop gain with everyone at their desk
+};
+// A placed perk item -> its in-use sound.
+export const PROP_CUES = { foosball: 'sfx.foosball', arcade: 'sfx.arcade', ping_pong_table: 'sfx.pingpong' };
 
 export const VOICE = {
   cheerCooldown: 180,   // real s between group cheers (multiplied by game speed)
