@@ -31,10 +31,42 @@ From Kenney's "Interface Sounds" pack, CC0 1.0 (public domain; credit to Kenney,
 | `ui/goal.ogg` | confirmation_004 |
 | `ui/unlock.ogg` | maximize_008 |
 
-## Voices
+## Voices (candidates)
 
-- `voice/crowd.ogg` (candidate): a looping crowd bed built from the game's own voice barks (see below). Low-passed, -26 LUFS, no pitch processing.
-- Voice banks (`voice/<bank>.ogg`) will be listed here with their model and reference voice when they are added. The barks are generated gibberish in the game's own invented lexicon:
-  - Chatterbox-Turbo (MIT; outputs carry Resemble AI's inaudible Perth watermark)
-  - Zonos v0.1 (Apache-2.0)
-  - reference voices from Qwen3-TTS (Apache-2.0)
+**Barks.** Gibberish in the game's own invented lexicon, which is not Simlish and not any real language. There are 7 emotions (happy, annoyed, tired, questioning, excited, laughing, sighing), up to 2 takes each, in one sprite per bank. Offsets are in `src/audio/assets.json`.
+- **Generation:** each voice was cloned from a neutral reference clip of the listed voice.
+- **Selection:** every kept take passed a speaker-gender classifier check (p >= 0.98; 0.99 for designed male voices) and a 0.4 to 2.2 s length window, then was picked by timbre match to the reference.
+- **Mastering:** -20 LUFS, limiter at -2 dBFS, and no pitch processing.
+
+**Models and licences:**
+- Chatterbox-Turbo, Resemble AI: MIT code and weights. Its outputs carry an inaudible Perth watermark that marks them as AI-generated.
+- Zonos v0.1 transformer, Zyphra: Apache-2.0 code and weights.
+- Qwen3-TTS, Alibaba Qwen: Apache-2.0. It supplied the reference voices (the CustomVoice presets, and the designed voices via VoiceDesign plus Base cloning).
+
+Only rendered audio ships, and none of these licences place conditions on generated output.
+
+| File | Set | Bark model | Reference voice | Barks |
+|---|---|---|---|---|
+| `voice/fem_serena.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "serena" | 14 |
+| `voice/fem_vivian.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "vivian" | 13 |
+| `voice/fem_ono_anna.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "ono_anna" | 14 |
+| `voice/fem_sohee.ogg` | fem | Zonos v0.1 transformer (Apache-2.0) | Qwen3-TTS CustomVoice preset speaker "sohee" | 14 |
+| `voice/masc_ryan.ogg` | masc | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "ryan" | 14 |
+| `voice/masc_aiden.ogg` | masc | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "aiden" | 14 |
+| `voice/masc_dylan.ogg` | masc | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "dylan" | 14 |
+| `voice/masc_eric.ogg` | masc | Chatterbox-Turbo (MIT; Perth watermark) | Qwen3-TTS CustomVoice preset speaker "eric" | 14 |
+| `voice/masc_uncle_fu.ogg` | masc | Zonos v0.1 transformer (Apache-2.0) | Qwen3-TTS CustomVoice preset speaker "uncle_fu" | 14 |
+| `voice/fem_alto40.ogg` | fem | Zonos v0.1 transformer (Apache-2.0) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+| `voice/fem_crisp.ogg` | fem | Zonos v0.1 transformer (Apache-2.0) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+| `voice/fem_deadpan.ogg` | fem | Zonos v0.1 transformer (Apache-2.0) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 13 |
+| `voice/fem_breathy.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+| `voice/fem_raspy50.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 12 |
+| `voice/fem_nasal.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+| `voice/fem_sixty.ogg` | fem | Chatterbox-Turbo (MIT; Perth watermark) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+| `voice/masc_crisp.ogg` | masc | Zonos v0.1 transformer (Apache-2.0) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 13 |
+| `voice/masc_deadpan.ogg` | masc | Zonos v0.1 transformer (Apache-2.0) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+| `voice/masc_gruff50.ogg` | masc | Chatterbox-Turbo (MIT; Perth watermark) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 13 |
+| `voice/masc_laidback.ogg` | masc | Chatterbox-Turbo (MIT; Perth watermark) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 13 |
+| `voice/masc_sixty.ogg` | masc | Zonos v0.1 transformer (Apache-2.0) | a voice designed with Qwen3-TTS VoiceDesign (text description), cloned with Qwen3-TTS Base | 14 |
+
+`voice/crowd.ogg` (candidate) is a looping crowd bed mixed from the barks above: scattered, low-passed, -26 LUFS, no pitch processing.
