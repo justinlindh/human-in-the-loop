@@ -214,6 +214,8 @@ def idle(t):
     }
 
 
+# One stride (two steps) in STRIDE seconds; with a 0.6 rad swing on 0.31 m legs it covers about
+# 0.7 m, so the clip's own ground speed is about 0.875 m/s (character.js WALK_CLIP_SPEED).
 STRIDE = 0.8
 
 
@@ -225,12 +227,12 @@ def walk(t):
     bob = abs(s(p))
     return {
         'body': ((0, 0, swing * 0.03), (0, bob * 0.03, 0)),
-        'legL': ((swing * 0.5, 0, 0), None),
-        'legR': ((-swing * 0.5, 0, 0), None),
+        'legL': ((swing * 0.6, 0, 0), None),
+        'legR': ((-swing * 0.6, 0, 0), None),
         'torso': ((0.06, swing * 0.1, 0), None),
         'head': ((-0.02 + bob * 0.03, -swing * 0.06, -swing * 0.03), None),
-        'armL': ((-swing * 0.45, 0, 0.1), None),
-        'armR': ((swing * 0.45, 0, -0.1), None),
+        'armL': ((-swing * 0.5, 0, 0.1), None),
+        'armR': ((swing * 0.5, 0, -0.1), None),
     }
 
 
