@@ -4,6 +4,7 @@ import { registerSystem } from './registry.js';
 import { ROLES } from '../data/roles.js';
 import { itemBonus, researchBonus } from './bonus.js';
 import { staffMods } from './staff.js';
+import { remoteLearning } from './ladder.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
@@ -40,7 +41,7 @@ export function knowledgeSystem(ctx) {
       const dulled = p.role === 'engineer' && a !== 'hardProblem';
       gain += B.knowledgeGainWorking * (dulled ? 1 - 0.7 * engLevel : 1);
     }
-    if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee;
+    if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee * remoteLearning(state, p);
     p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')));
   }
 

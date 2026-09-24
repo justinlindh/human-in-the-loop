@@ -15,6 +15,7 @@ import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
 import { eraLines, eraAllowsText } from './eras.js';
+import { remoteLearning } from './ladder.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -84,7 +85,7 @@ export function generateStaff(state, { role, seniority }) {
     meaning: int(r, 70, 90), stamina: 100, knowledge: B.newHireKnowledge, traits,
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
-    salary: 0, hiredWeek: state.week, founder: false, deskId: null,
+    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false,
     path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
@@ -100,7 +101,9 @@ const ROLE_WEIGHTS = { engineer: 35, designer: 13, marketer: 13, support: 13, se
 
 export function refreshCandidates(state) {
   state.candidates = [];
-  for (let i = 0; i < B.candidateCount; i++) {
+  // Remote-first companies hire from a wider pool.
+  const count = B.candidateCount + (state.workPolicy === 'remote' ? B.remoteExtraCandidates : 0);
+  for (let i = 0; i < count; i++) {
     const seniority = weighted(state.rng, SENIORITIES, (s) => SENIORITY_WEIGHTS[s]);
     const role = weighted(state.rng, Object.keys(ROLES), (x) => ROLE_WEIGHTS[x]);
     state.candidates.push(makeCandidate(state, role, seniority));
@@ -297,7 +300,7 @@ export function staffUpkeep(ctx) {
     if (working) {
       let gain = B.xpPerWeekWorking * mods.xp * Math.max(0, 1 + modifierBonus(state, 'xp'));
       if (p.seniority === 'junior') {
-        gain *= mentor ? B.mentorXpMult * staffMods(mentor).mentorBonus : 1 - B.juniorXpAutomationPenalty * engLevel;
+        gain *= mentor ? B.mentorXpMult * staffMods(mentor).mentorBonus * remoteLearning(state, p) * remoteLearning(state, mentor) : 1 - B.juniorXpAutomationPenalty * engLevel;
       }
       p.xp += gain;
       levelUp(ctx, p);

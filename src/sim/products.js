@@ -12,6 +12,7 @@ import { perk } from './bonus.js';
 import { staffMods } from './staff.js';
 import { currentEra, eraAtLeast } from './eras.js';
 import { autoArrange, spentOn } from './office.js';
+import { rivalPressure } from './ladder.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -42,7 +43,7 @@ export function competition(state, product, appeal = productAppeal(state, produc
   const c = state.market.categories[product.category];
   // Incumbents and clones bolt AI onto their products as the eras turn, which raises the bar for everyone.
   const era = B.eraCompetition[currentEra(state).id] ?? 1;
-  const incumbent = c.incumbentStrength * (1 + B.incumbentStrengthGrowth * yearIndex) * era;
+  const incumbent = (c.incumbentStrength * (1 + B.incumbentStrengthGrowth * yearIndex) + rivalPressure(state, product.category)) * era;
   const clones = c.clones * B.cloneStrength * (1 + 0.2 * yearIndex) * era;
   const ownOthers = sum(liveProducts(state).filter((p) => p.id !== product.id && p.category === product.category), (p) => productAppeal(state, p));
   return { appeal, incumbent, clones, ownOthers, total: appeal + incumbent + clones + ownOthers };

@@ -10,6 +10,7 @@ import { emitChat } from './chat.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 import { eraLines } from './eras.js';
+import { petComfort } from './ladder.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -29,13 +30,13 @@ function weeklyMeaning(state, p) {
 
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
   // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
-  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery'));
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state));
   // Recovery slows near the top, so even well-cared-for people settle below 100.
   const ceiling = clamp((100 - p.meaning) / B.meaningCeilingBand, 0, 1);
   const recovery = ((B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
     + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0)) * ceiling;
   // Everyday grind, heavier as the company grows past the size where everyone knows everyone.
-  const grind = B.meaningGrind + B.meaningGrindPerHead * Math.max(0, state.staff.length - B.overheadFreeHeadcount);
+  const grind = B.meaningGrind + B.meaningGrindPerHead * Math.max(0, state.staff.length - B.overheadFreeHeadcount) + (p.remote ? B.remoteMeaningGrind : 0);
   return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain')) - grind;
 }
 
