@@ -1146,3 +1146,9 @@
   .hitl .chip.meters .hmeter { min-width: 0; flex: 1; }
   .hitl .tray { width: min(17em, calc(100% - 1.2em)); }
 }
+/* Phones: the company chip takes the whole first row, so the date is never cut; the speed
+   controls follow on a row of their own. */
+@media (max-width: 480px) {
+  .hitl .chip.company { flex: 1 1 100%; }
+  .hitl .chip.speed { order: 1; flex: 1 1 100%; justify-content: space-between; }
+}
