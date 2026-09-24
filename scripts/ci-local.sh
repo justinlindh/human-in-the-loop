@@ -64,11 +64,21 @@ step soak npm run soak
 # standups indoors, and the golden images. Ten minutes at most.
 # A run can lose a page to vite reloading while it optimizes a dependency, so a failed pass is
 # retried once; a real failure fails both.
+# A retry is reported in the summary (and so in the PR comment) with the first pass's error.
+NOTES=()
 render_checks() {
   local pass='node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
-  timeout 600 bash -c "$pass" && return 0
+  local first="$LOGS/render-checks.first.log"
+  timeout 600 bash -c "$pass" >"$first" 2>&1 && { cat "$first"; return 0; }
+  cat "$first"
   echo "render-checks: first pass failed; retrying once"
-  timeout 600 bash -c "$pass"
+  local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
+  if timeout 600 bash -c "$pass"; then
+    NOTES+=("render-checks passed only on its retry. First pass: ${why:-exit without a message}")
+    return 0
+  fi
+  NOTES+=("render-checks failed twice. First pass: ${why:-exit without a message}")
+  return 1
 }
 step render-checks render_checks
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
@@ -84,9 +94,12 @@ for i in "${!NAMES[@]}"; do
   [ "${RESULTS[$i]}" = pass ] || failed=1
 done
 tests="$(grep -hE '^ +Tests ' "$LOGS/test:fast.log" "$LOGS/test:balance.log" 2>/dev/null | sed 's/^ *//' | paste -sd ';' -)"
+notes=""
+for n in "${NOTES[@]}"; do notes+="**Note:** $n"$'\n'; done
 echo
 echo "$table"
 echo "vitest: $tests"
-if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; } >"$SUMMARY"; fi
+[ -n "$notes" ] && printf '\n%s' "$notes"
+if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; [ -n "$notes" ] && printf '\n%s' "$notes"; } >"$SUMMARY"; fi
 rm -rf "$LOGS"
 exit "$failed"
