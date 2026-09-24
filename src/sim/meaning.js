@@ -31,7 +31,8 @@ function weeklyMeaning(state, p) {
 
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
   // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
-  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state) + B.purposeMeaning * purposeLift(state));
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state) + B.purposeMeaning * purposeLift(state)
+    + (state.policies.office_upkeep ? B.upkeepMeaningRecovery : 0));
   // Recovery slows near the top, so even well-cared-for people settle below 100.
   const ceiling = clamp((100 - p.meaning) / B.meaningCeilingBand, 0, 1);
   const recovery = ((B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort

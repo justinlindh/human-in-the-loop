@@ -7,13 +7,13 @@ import { PATHS } from '../data/paths.js';
 import { TRAITS, EARNED_TRAITS } from '../data/traits.js';
 import { ROLES } from '../data/roles.js';
 import { lockedReason } from './unlocks.js';
-import { purchaseProblem, findSpot, placeNow, upgradeProblem, upgradeNow } from './office.js';
+import { purchaseProblem, findSpot, placeNow, upgradeProblem, upgradeNow, layoutOf } from './office.js';
 
 // Why an item cannot be bought and placed automatically right now, or null. Used by events that buy things.
 export function buyItemBlocker(state, itemId) {
   const reason = purchaseProblem(state, itemId);
   if (reason) return reason;
-  return findSpot(state.officeStage, state.office.placed, itemId) ? null : 'No room for it';
+  return findSpot(layoutOf(state), state.office.placed, itemId) ? null : 'No room for it';
 }
 
 export const upgradeItemBlocker = upgradeProblem;
@@ -22,7 +22,7 @@ export const upgradeItemBlocker = upgradeProblem;
 export const ownedCopy = (state, itemId) => state.office.placed.filter((i) => i.itemId === itemId).sort((a, b) => a.level - b.level)[0] ?? null;
 
 // Buys an item and puts it in the first free spot.
-export const buyItemNow = (ctx, itemId) => placeNow(ctx, itemId, findSpot(ctx.state.officeStage, ctx.state.office.placed, itemId));
+export const buyItemNow = (ctx, itemId) => placeNow(ctx, itemId, findSpot(layoutOf(ctx.state), ctx.state.office.placed, itemId));
 
 export const upgradeItemNow = upgradeNow;
 

@@ -206,5 +206,18 @@ export function createNav(L, obstacles, cell = 0.35) {
     return pts;
   }
 
-  return { path, blocked, nx, nz, cell };
+  // The point itself when it is walkable, else the center of the nearest walkable cell.
+  function freePoint(x, z) {
+    const i = Math.max(0, Math.min(nx - 1, ix(x))), k = Math.max(0, Math.min(nz - 1, iz(z)));
+    if (!blocked[i + k * nx]) return { x, z };
+    const [a, b] = nearestFree(i, k);
+    return center(a, b);
+  }
+  // r > 0 tests a body's footprint (its center and four points r out), not just the center.
+  const isBlocked = (x, z, r = 0) => {
+    const one = (px, pz) => { const i = ix(px), k = iz(pz); return i < 0 || k < 0 || i >= nx || k >= nz || !!blocked[i + k * nx]; };
+    return one(x, z) || (r > 0 && (one(x + r, z) || one(x - r, z) || one(x, z + r) || one(x, z - r)));
+  };
+
+  return { path, blocked, nx, nz, cell, freePoint, isBlocked };
 }

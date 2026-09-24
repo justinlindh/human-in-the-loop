@@ -6,7 +6,7 @@ const PIECES = 70;
 const CONFETTI_COLORS = [P.role_engineer, P.role_designer, P.role_marketer, P.role_support, P.role_sales, P.gold, P.paper, P.screen_cyan];
 const GRAVITY = -5.5;
 
-// Effects that are not tied to one character: confetti, the incident alarm, item pop-ins.
+// Effects that are not tied to one character: confetti, the incident alarm, item placement cues.
 export function createFx({ scene, overlayEl }) {
   const group = new THREE.Group();
   group.name = 'fx';
@@ -103,22 +103,71 @@ export function createFx({ scene, overlayEl }) {
     vignette.style.opacity = String((0.3 + 0.25 * Math.sin(alarmT * 9)) * env);
   }
 
-  // Item pop-in: squash and stretch the new model and throw a small gold burst.
+  // Item placement: the model drops in from a little above with a small settle bounce, and a soft
+  // ring of dust puffs out from its base. Quiet on purpose; confetti is for real celebrations.
   const pops = [];
+  const DROP_M = 0.18, POP_S = 0.34;
   function pop(obj) {
-    obj.scale.setScalar(0.001);
-    pops.push({ obj, t: 0 });
+    const b = new THREE.Box3().setFromObject(obj);
     const p = obj.getWorldPosition(new THREE.Vector3());
-    confetti(p.x, 0.6, p.z, { spread: 0.6, power: 0.55 });
+    const y = obj.position.y;
+    obj.scale.setScalar(0.001);
+    pops.push({ obj, t: 0, y });
+    puff(p.x, p.z, Math.max(0.5, Math.min(1.4, Math.max(b.max.x - b.min.x, b.max.z - b.min.z) * 0.6)));
   }
   function updatePops(dt) {
     for (let i = pops.length - 1; i >= 0; i--) {
       const q = pops[i];
       q.t += dt;
-      const p = Math.min(1, q.t / 0.3);
-      const s = p < 0.65 ? (p / 0.65) * 1.15 : 1.15 - ((p - 0.65) / 0.35) * 0.15;
-      q.obj.scale.set(s, s * (p < 0.4 ? 1.12 : 1), s);
-      if (p >= 1) { q.obj.scale.setScalar(1); pops.splice(i, 1); }
+      const p = Math.min(1, q.t / POP_S);
+      // Scale in quickly, fall the last few centimetres, a small squash on landing, then settle.
+      const grow = Math.min(1, p / 0.35);
+      const fall = p < 0.6 ? (1 - (p / 0.6) ** 2) * DROP_M : 0;
+      const land = p >= 0.6 ? Math.sin(((p - 0.6) / 0.4) * Math.PI) * 0.06 : 0;
+      q.obj.scale.set(grow * (1 + land * 0.5), grow * (1 - land), grow * (1 + land * 0.5));
+      q.obj.position.y = q.y + fall;
+      if (p >= 1) { q.obj.scale.setScalar(1); q.obj.position.y = q.y; pops.splice(i, 1); }
+    }
+  }
+
+  // Dust puffs: a pool of rings of soft discs on the floor that spread and fade in half a second.
+  const PUFF_N = 9, PUFF_S = 0.5, MAX_PUFFS = 4;
+  const puffGeo = new THREE.CircleGeometry(0.09, 12).rotateX(-Math.PI / 2);
+  const puffs = [];
+  function puff(x, z, size) {
+    let q = puffs.find((u) => !u.active);
+    if (!q && puffs.length < MAX_PUFFS) {
+      const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(P.wall_warm), transparent: true, opacity: 0, depthWrite: false });
+      const mesh = new THREE.InstancedMesh(puffGeo, mat, PUFF_N);
+      mesh.frustumCulled = false;
+      mesh.userData.noAO = true;
+      mesh.renderOrder = 2;
+      group.add(mesh);
+      q = { mesh, mat, t: 0, active: false, x: 0, z: 0, size: 1 };
+      puffs.push(q);
+    }
+    if (!q) q = puffs.reduce((a, b) => (a.t > b.t ? a : b));
+    Object.assign(q, { active: true, t: 0, x, z, size });
+    q.mesh.visible = true;
+  }
+  function updatePuffs(dt) {
+    for (const q of puffs) {
+      if (!q.active) continue;
+      q.t += dt;
+      const k = q.t / PUFF_S;
+      if (k >= 1) { q.active = false; q.mesh.visible = false; continue; }
+      const e = 1 - (1 - k) ** 3;
+      q.mat.opacity = 0.55 * (1 - k);
+      for (let i = 0; i < PUFF_N; i++) {
+        const a = (i / PUFF_N) * Math.PI * 2 + 0.3;
+        const r = q.size * (0.35 + 0.35 * e);
+        dummy.position.set(q.x + Math.cos(a) * r, 0.03 + e * 0.05, q.z + Math.sin(a) * r);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.setScalar(0.6 + e * 0.9);
+        dummy.updateMatrix();
+        q.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      q.mesh.instanceMatrix.needsUpdate = true;
     }
   }
 
@@ -126,6 +175,7 @@ export function createFx({ scene, overlayEl }) {
     updateConfetti(dt);
     updateAlarm(dt);
     updatePops(dt);
+    updatePuffs(dt);
   }
 
   return {

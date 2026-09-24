@@ -1,4 +1,4 @@
-// Office talk: spoken exchanges (say events, shown as speech bubbles) and Slackk exchanges (chat events).
+// Office talk: spoken exchanges (say events, shown as speech bubbles) and Yak exchanges (chat events).
 //
 // An exchange:
 //   { id, stream: 'say' | 'chat', channel /* chat only: general | wins | incidents | random */,

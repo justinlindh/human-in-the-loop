@@ -71,7 +71,7 @@ const THREE_SAVES = `(async () => {
 // Everyone in the office: no lockdown, and an office work policy (the sim keeps nobody remote).
 const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
 
-// Presents the recent Slackk history the sim kept, since a fast-forward shows nothing as it goes.
+// Presents the recent Yak history the sim kept, since a fast-forward shows nothing as it goes.
 const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
@@ -80,8 +80,14 @@ const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id
 const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
 // Idle people go onto the projects nobody is on, as a player would.
 const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
-// A real game played to week 176, then the sim's own staging: the next live week awards the reward.
-const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, '${reward}');` });
+// A real game played to week 176, then the sim's own staging. The sim is deterministic, so a copy of
+// the state is ticked ahead to find the week the reward lands, and the game is advanced to the week
+// before it: the first live week awards it on camera.
+const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
+  sim.stageIncentive(s, '${reward}');
+  const ahead = structuredClone(s); let weeks = 0;
+  while (weeks < 12) { weeks++; const ev = sim.tick(ahead) ?? []; if (ev.some((e) => e.type === 'incentive' && e.reward === '${reward}')) break; b.botDecide('balanced', ahead); }
+  for (let i = 1; i < weeks; i++) { sim.tick(s); b.botDecide('balanced', s); }` });
 const WAFFLE_SETUP = STAGED('waffle_party');
 // Music night comes naturally: the Incentives Program on from its unlock, played until the fifth
 // reward is due next week, so the live week raises the genre decision.
@@ -213,8 +219,9 @@ export const ITEMS = [
     setup: PLAY({ weeks: 110, after: `${IN_OFFICE} window.__HITL.dispatch({ type: 'setPolicy', id: 'async_standups', on: false }); window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });` }),
     actions: DISMISS_EVERY(30), screenshots: [12],
   },
+  // The fast-forward sends Yak nothing, so the recent history the sim kept is presented first.
   ...[['early', 20], ['mid', 300], ['late', 700]].map(([when, weeks]) => ({
-    id: `3-6-slackk-${when}`, title: `3.6 Slackk, ${when} game`, query: 'seed=27&speed=0', still: true, setup: PLAY({ weeks }), screenshots: [2],
+    id: `3-6-yak-${when}`, title: `3.6 Yak, ${when} game`, query: 'seed=27&speed=0', still: true, setup: PLAY({ weeks, after: CHAT_HISTORY }), screenshots: [2],
   })),
 
   // 4. Screens and decisions
@@ -293,7 +300,7 @@ export const ITEMS = [
     id: '5-4-waffle-party-real', title: '5.4 Waffle Party in a real game', query: 'seed=1&speed=1', seconds: 30,
     setup: WAFFLE_SETUP,
     actions: WAFFLE_ACTIONS(30),
-    screenshots: [13, 15, 20],
+    screenshots: [11, 14, 18],
   },
   {
     id: '5-5-burnout-resign', title: '5.5 Burnout and a resignation', query: 'mock=floor&speed=1', seconds: 16,
@@ -352,7 +359,7 @@ export const ITEMS = [
   {
     id: 'readme-garage', group: 'readme', title: 'The garage opening: founders and the first desks', query: 'seed=1&speed=1', still: true,
     setup: PLAY({ weeks: 1 }), warmup: 3,
-    // Nothing has been said in Slackk yet this early, so the panel is folded away.
+    // Nothing has been said in Yak yet this early, so the panel is folded away.
     actions: [...DISMISS_AT([0.1, 0.5]), { at: 0.3, js: KEY('c', 'KeyC') }], screenshots: [3],
   },
   {
@@ -368,8 +375,9 @@ export const ITEMS = [
     actions: DISMISS_EVERY(6), screenshots: [6],
   },
   {
+    // Shot as the winner speaks, before the watchers behind the glass start their envy emotes.
     id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
-    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(15), screenshots: [14],
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(13), screenshots: [12.75],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
