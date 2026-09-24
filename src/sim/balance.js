@@ -86,6 +86,7 @@ export const B = {
   rivalStrengthScale: 3, rivalMergeCustomers: 0.25, petMeaningRecovery: 0.04, petMaxCount: 2,
   strainTiredBelow: 35, strainFromTired: 3, strainUnderstaffed: 2, strainPerCrunch: 25, strainOnCall: 3, strainOnCallWeeks: 8, strainSlack: 1, strainSlackMax: 3,
   strainRecoverWorking: 1.5, strainRestedAbove: 60, strainRecoverRest: 5, strainRecoverAway: 20, noCrunchStrainMult: 0.5, noCrunchOutput: -0.03,
+  crunchOutput: 0.15, crunchStrain: 2, crunchMeaningDrain: 0.3,
   strainWarn: 60, strainBurnout: 85, strainRecoveredBelow: 55, strainOutputPenalty: 0.3, timeOffWeeks: 2,
   vacationWeeks: 2, vacationFirstAfter: 20, vacationMaxShare: 0.15, vacationPostponeWeeks: 4, vacationMaxPostpones: 2,
   vacationPostponeStrain: 6, vacationStamina: 60,

@@ -38,7 +38,8 @@ function weeklyMeaning(state, p) {
     + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0)) * ceiling;
   // Everyday grind, heavier as the company grows past the size where everyone knows everyone.
   const grind = B.meaningGrind + B.meaningGrindPerHead * Math.max(0, state.staff.length - B.overheadFreeHeadcount) + (p.remote ? B.remoteMeaningGrind : 0);
-  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain')) - grind;
+  const crunch = state.policies.crunch && (p.assignment.type === 'project' || p.assignment.type === 'maintenance') ? B.crunchMeaningDrain : 0;
+  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain')) - grind - crunch;
 }
 
 export function meaningSystem(ctx) {
