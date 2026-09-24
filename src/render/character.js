@@ -64,6 +64,14 @@ function ringMaterial(role, hex) {
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 const pickGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.15, 8).translate(0, 0.58, 0);
+const HAT_COLORS = ['fabric_teal', 'fabric_terracotta', 'fabric_mustard', 'fabric_slate', 'fabric_sage', 'wood_walnut'];
+function hashLook(a) {
+  const s = `${a.hairColor}|${a.shirt}|${a.pants}|${a.skin}|${a.hair}`;
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
 let haloMat = null;
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
 
@@ -166,7 +174,16 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   headGroup.add(eyes, shine, blush, mouths.ok, mouths.coasting, mouths.burnout);
   // A hat replaces the hair; drawing both makes them fight through each other.
   if (!hat) headGroup.add(P(`hair_${hairIdx}`));
-  if (acc !== 'none') headGroup.add(P(`acc_${acc}`));
+  if (acc !== 'none') {
+    const a = P(`acc_${acc}`);
+    // Hats take a colour picked from the person's look, so a row of cap wearers are not clones.
+    if (hat) {
+      const pickHat = HAT_COLORS[hashLook(appearance) % HAT_COLORS.length];
+      const body = new Set([mat('fabric_teal'), mat('fabric_terracotta')]);
+      a.traverse((m) => { if (m.isMesh && body.has(m.material)) m.material = mat(pickHat); });
+    }
+    headGroup.add(a);
+  }
   if (role === 'support') headGroup.add(P('role_support'));
 
   const arms = [-1, 1].map((sx) => {
