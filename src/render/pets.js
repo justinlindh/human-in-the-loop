@@ -172,7 +172,7 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
         // The desk top, toward the side away from the chair.
         const dz = -0.35;
         const x = t.x + Math.sin(t.rotY) * dz + Math.cos(t.rotY) * 0.28, z = t.z + Math.cos(t.rotY) * dz - Math.sin(t.rotY) * 0.28;
-        out.push({ x, z, y: 0.64, fx: t.x + Math.cos(t.rotY) * 0.75, fz: t.z - Math.sin(t.rotY) * 0.75, desk: e });
+        out.push({ x, z, y: 0.59, fx: t.x + Math.cos(t.rotY) * 0.75, fz: t.z - Math.sin(t.rotY) * 0.75, desk: e });
       }
     }
     return out;

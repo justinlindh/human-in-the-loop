@@ -134,6 +134,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   function applyQuality() {
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
+    staff?.setCharacterShadows(q !== 'low');
     setGlowScale(q === 'low' ? 0.45 : 1);
     screens.setBrightness(q === 'low' ? 1.0 : 1.7);
   }
@@ -155,6 +156,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let stageJustBuilt = false;
   let buildSig = '';
   let partyDim = 0;
+  let speedZero = false;
+  let menuPaused = false;
   let firstSync = true;
 
   function sync(state) {
@@ -216,7 +219,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       resize();
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
-    setSpeed(k) { staff?.setSpeed(k); },
+    // Speed 0 or a menu pause freezes the diorama (camera and build mode keep working).
+    setSpeed(k) { speedZero = k === 0; if (k > 0) staff?.setSpeed(k); },
+    setPaused(on) { menuPaused = !!on; },
+    get paused() { return speedZero || menuPaused; },
     // Menu portraits from the office character builder (see portraits.js).
     portrait(person, opts) { return portraits.portrait(person, opts); },
     portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
@@ -256,11 +262,13 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       rig.update(dt);
       lighting.setViewYaw(rig.yaw);
       debugRoot.userData.update?.(dt);
+      const paused = speedZero || menuPaused;
+      const simDt = paused ? 0 : dt;
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
-      screens.update(dt, lighting.env);
-      staff?.update(dt);
-      floating.update(dt);
-      fx.update(dt);
+      screens.update(simDt, lighting.env);
+      staff?.update(dt, { paused });
+      floating.update(simDt);
+      fx.update(simDt);
       build?.update(dt, scene);
       portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);

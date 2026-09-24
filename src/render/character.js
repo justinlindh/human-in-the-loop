@@ -4,6 +4,7 @@ import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
 import { SKINS, ROLE_COLORS, PALETTE } from './palette.js';
 import { emoteMaterial } from './emotes.js';
+import { bakedMaterial, bakeParts } from './bake.js';
 
 // Chibi assembly from the named parts in chibi.glb, animated with plain transforms.
 // Pivots: neck (head parts), waist (torso parts), shoulder (arm), wrist (hand), hip (leg), ankle (shoe).
@@ -18,6 +19,8 @@ const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap'];
+// Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
+const TYPE_REACH = -1.32;
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
 const ink = new THREE.Color(PALETTE.ink);
@@ -141,6 +144,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     shoe.position.y = -LEG_L;
     pivot.add(leg, shoe);
     hips.add(pivot);
+    pivot.userData.parts = [leg, shoe];
     return pivot;
   });
 
@@ -155,10 +159,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   lanyard.scale.set(wScale, 1, bdepth);
   badge.position.z = (bdepth - 1) * 0.115;
   torso.add(lanyard, badge);
+  const torsoParts = [torsoMesh, lanyard, badge];
   if (role && role !== 'support') {
     const g = P(`role_${role}`);
     g.scale.set(wScale, 1, bdepth);
     torso.add(g);
+    torsoParts.push(g);
   }
 
   const neck = new THREE.Group();
@@ -166,14 +172,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   torso.add(neck);
   const headGroup = new THREE.Group();
   neck.add(headGroup);
-  headGroup.add(P('head'));
+  const headParts = [P('head')];
+  headGroup.add(headParts[0]);
   const eyes = P('eyes');
   const shine = P('eye_shine');
   const blush = P('blush');
   const mouths = { ok: P('mouth_smile'), coasting: P('mouth_flat'), burnout: P('mouth_frown') };
   headGroup.add(eyes, shine, blush, mouths.ok, mouths.coasting, mouths.burnout);
   // A hat replaces the hair; drawing both makes them fight through each other.
-  if (!hat) headGroup.add(P(`hair_${hairIdx}`));
+  if (!hat) { const h = P(`hair_${hairIdx}`); headGroup.add(h); headParts.push(h); }
   if (acc !== 'none') {
     const a = P(`acc_${acc}`);
     // Hats take a colour picked from the person's look, so a row of cap wearers are not clones.
@@ -185,8 +192,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     // Most caps face forward; about one person in four wears theirs backwards.
     if (acc === 'cap' && (appearance.capBack ?? hashLook(appearance) % 4 === 1)) a.rotateY(Math.PI);
     headGroup.add(a);
+    headParts.push(a);
   }
-  if (role === 'support') headGroup.add(P('role_support'));
+  if (role === 'support') { const h = P('role_support'); headGroup.add(h); headParts.push(h); }
 
   const arms = [-1, 1].map((sx) => {
     const shoulder = new THREE.Group();
@@ -194,10 +202,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const arm = P('arm');
     const wrist = new THREE.Group();
     wrist.position.y = -0.2;
-    wrist.add(P('hand'));
+    const hand = P('hand');
+    wrist.add(hand);
     shoulder.add(arm, wrist);
     torso.add(shoulder);
-    return { shoulder, wrist };
+    return { shoulder, wrist, parts: [arm, hand] };
   });
   const mug = P('mug');
   mug.position.set(0, -0.06, 0.04);
@@ -209,6 +218,24 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   box.castShadow = true;
   box.visible = false;
   torso.add(box);
+
+  // Bake the rigid parts under each pivot into one mesh (about 10 draws a person, not 20).
+  const bm = bakedMaterial();
+  const ownSet = new Set(Object.values(own));
+  const tintable = (m) => ownSet.has(m);
+  const baked = [];
+  for (const l of legs) baked.push(bakeParts(l.userData.parts, l, bm, tintable));
+  baked.push(bakeParts(torsoParts, torso, bm, tintable));
+  baked.push(bakeParts(headParts, headGroup, bm, tintable));
+  for (const a of arms) baked.push(bakeParts(a.parts, a.shoulder, bm, tintable));
+  // Face variants per mood: mouth plus blush, one mesh each; setMood shows the matching one.
+  const faces = {};
+  for (const k of ['ok', 'coasting', 'burnout']) {
+    const f = bakeParts(k === 'ok' ? [mouths.ok, blush] : [mouths[k]], headGroup, bm, tintable);
+    f.visible = false;
+    faces[k] = f;
+    baked.push(f);
+  }
 
   // Invisible hit proxy for picking (raycasts ignore visibility, rendering skips it).
   const pickProxy = new THREE.Mesh(pickGeo, new THREE.MeshBasicMaterial());
@@ -261,12 +288,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armRX = -s(t * 1.1) * 0.05;
         break;
       case 'typing': {
-        tgt.lean = 0.12;
+        tgt.lean = 0.18;
         tgt.headX = 0.12 + s(t * 1.3 + phase) * 0.04;
-        tgt.armLX = tgt.armRX = -1.15;
-        tgt.armLZ = 0.28; tgt.armRZ = -0.28;
-        tgt.armLX += s(t * 22) * 0.08;
-        tgt.armRX += s(t * 22 + 2) * 0.08;
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.18;
+        tgt.armLZ = 0.18; tgt.armRZ = -0.18;
+        // Fingers tap: the hands lift off the keys and come back down, never below them.
+        tgt.armLX -= Math.abs(s(t * 22)) * 0.06;
+        tgt.armRX -= Math.abs(s(t * 22 + 2)) * 0.06;
         tgt.bodyY += Math.abs(s(t * 11)) * 0.004;
         break;
       }
@@ -274,9 +302,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.42;
         tgt.headX = 0.5 + s(t * 0.6 + phase) * 0.05;
         tgt.headZ = 0.12;
-        tgt.armLX = tgt.armRX = -0.95;
+        // Arm angles are relative to the leaning torso: hands rest on the keys, typing slowly.
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.42 - 0.22;
         tgt.armLZ = 0.22; tgt.armRZ = -0.22;
-        tgt.armLX += s(t * 5) * 0.05;
+        tgt.armLX -= Math.abs(s(t * 5)) * 0.05;
         tgt.bodyY -= 0.03;
         break;
       case 'burnout': {
@@ -284,7 +313,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.95 - sigh * 0.25;
         tgt.headX = 0.55;
         tgt.headZ = 0.35;
-        tgt.armLX = tgt.armRX = -1.7;
+        // Head down on folded arms that lie on the desk.
+        tgt.armLX = tgt.armRX = -2.98;
         tgt.armLZ = 0.55; tgt.armRZ = -0.55;
         tgt.bodyY -= 0.05 - sigh * 0.03;
         break;
@@ -348,7 +378,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headX = 0.22 + nod * 0.25;
         tgt.headZ = 0.22;
         tgt.armRX = -2.0; tgt.armRZ = -0.55;
-        tgt.armLX = -1.1 + s(t * 6) * 0.06; tgt.armLZ = 0.3;
+        tgt.armLX = TYPE_REACH - 0.3 - 0.12 - Math.abs(s(t * 6)) * 0.05; tgt.armLZ = 0.3;
         tgt.bodyY -= 0.02;
         break;
       }
@@ -481,17 +511,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function setTint(g) {
     tint = Math.max(0, Math.min(1, g));
-    for (const [k, m] of Object.entries(own)) {
-      const c = base[k];
-      const l = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
-      m.color.setRGB(l, l, l).multiplyScalar(0.92).lerp(c, 1 - tint);
-    }
+    bm.userData.tint.value = tint;
   }
 
   function setMood(m) {
     mood = m;
-    for (const [k, o] of Object.entries(mouths)) o.visible = k === (m === 'burnout' ? 'burnout' : m === 'coasting' ? 'coasting' : 'ok');
-    blush.visible = m === 'ok';
+    const face = m === 'burnout' ? 'burnout' : m === 'coasting' ? 'coasting' : 'ok';
+    for (const [k, o] of Object.entries(faces)) o.visible = k === face;
     setTint(m === 'burnout' ? 0.7 : m === 'coasting' ? 0.4 : 0);
   }
   setMood('ok');
@@ -534,8 +560,20 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     }
   }
 
+  // While the game is paused everything holds its pose; only a faint breath shows it is alive.
+  let breathT = Math.random() * 6;
+  function breathe(dt) {
+    breathT += dt;
+    body.position.y = cur.bodyY + Math.sin(breathT * 1.8 + phase) * 0.004;
+  }
+
+  // Low quality drops character shadows (a pass per person) to save draw calls.
+  function setShadows(on) { for (const b of baked) if (b) b.castShadow = on && b.userData.cast; }
+
   function dispose() {
     for (const m of Object.values(own)) m.dispose();
+    for (const b of baked) b?.geometry.dispose();
+    bm.dispose();
     pickProxy.material.dispose();
     root.removeFromParent();
   }
@@ -544,7 +582,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   update(0);
   return {
-    root, head: headGroup, setAnim, update, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setShadows, setAnim, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },
