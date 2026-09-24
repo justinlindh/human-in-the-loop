@@ -201,11 +201,16 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
       if (cat && roll < 0.15) {
         r.mode = 'chase'; r.t = 5; r.target = cat;
         cat.mode = 'flee'; cat.t = 4;
-        const away = new THREE.Vector3().subVectors(cat.pos, r.pos).setY(0).normalize().multiplyScalar(3).add(cat.pos);
+        const off = new THREE.Vector3().subVectors(cat.pos, r.pos).setY(0);
+        if (off.lengthSq() < 0.01) off.set(Math.cos(r.phase), 0, Math.sin(r.phase));
+        const away = off.normalize().multiplyScalar(4.5).add(cat.pos);
         const L = office.current.L;
         away.x = Math.max(-L.W / 2 + 0.6, Math.min(L.W / 2 - 0.6, away.x));
         away.z = Math.max(-L.D / 2 + 0.6, Math.min(L.D / 2 - 0.6, away.z));
         walkTo(cat, away.x, away.z, true);
+        cat.speed = 3.2;
+        walkTo(r, cat.pos.x, cat.pos.z, true);
+        r.speed = 2.3;
         return;
       }
       if (people.length && roll < 0.65) {
@@ -287,6 +292,22 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
     for (const r of pets.values()) {
       const g = r.rig;
       if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) g.emote.visible = false; }
+      if (r.mode === 'chase' && r.target && !r.target.hop && r.t > 0) {
+        // Keep following the cat as it runs, stopping short of it.
+        r.retarget = (r.retarget ?? 0) - dt;
+        if (!r.path.length) r.t -= dt;
+        if (r.retarget <= 0) {
+          r.retarget = 0.5;
+          const c = r.target.pos;
+          const d = Math.hypot(c.x - r.pos.x, c.z - r.pos.z);
+          if (d > 0.7) {
+            const k = (d - 0.55) / d;
+            walkTo(r, r.pos.x + (c.x - r.pos.x) * k, r.pos.z + (c.z - r.pos.z) * k, true);
+            r.speed = 2.3;
+            r.arrived = false;
+          } else r.path = [];
+        }
+      }
       if (r.hop) {
         // A short arc onto or off a perch.
         r.hop.t += dt / 0.45;
@@ -303,10 +324,6 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
           dir.multiplyScalar(1 / d);
           r.pos.addScaledVector(dir, step);
           r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 10));
-        }
-        if (r.mode === 'chase' && r.target && !r.target.hop) {
-          // Keep following the cat as it runs.
-          if (Math.random() < dt * 2) walkTo(r, r.target.pos.x, r.target.pos.z, true);
         }
         r.pose = 'stand';
       } else {
