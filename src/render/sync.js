@@ -241,6 +241,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       office.setDeskSign(d.id, !!away);
       const kind = outage ? 'red' : !s || away ? 'off' : s.mood === 'coasting' || s.mood === 'burnout' ? 'gray' : 'work';
       office.setDeskScreen(d.id, kind);
+      office.setDeskRole(d.id, s && !away ? s.role : null);
     }
   }
 

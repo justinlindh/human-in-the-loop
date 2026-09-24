@@ -269,6 +269,8 @@ export function createScreens() {
     const d = q / 8;
     const { ctx } = win;
     const [top, bottom] = sky(d);
+    top.lerp(eraTint, 0.22 * d + 0.08);
+    bottom.lerp(eraTint, 0.3 * d + 0.1);
     const g = ctx.createLinearGradient(0, 0, 0, 128);
     g.addColorStop(0, `#${top.getHexString(THREE.SRGBColorSpace)}`);
     g.addColorStop(1, `#${bottom.getHexString(THREE.SRGBColorSpace)}`);
@@ -294,7 +296,23 @@ export function createScreens() {
     ctx.moveTo(20, 0); ctx.lineTo(50, 0); ctx.lineTo(0, 60); ctx.lineTo(0, 30);
     ctx.fill();
     win.tex.needsUpdate = true;
-    winMat.color.setScalar(THREE.MathUtils.lerp(1.35, 1.0, d));
+    winMat.color.setScalar(THREE.MathUtils.lerp(1.35, 1.0, d) + swell * 0.9 * Math.sin(Math.min(1, (1 - swell) * 3) * Math.PI / 2 + 0.3));
+  }
+
+  // Era tint on the skyline, with a brief swell of window light when an era arrives.
+  const ERA_TINT = { classic: '#f3c9a0', chatgbt: '#9fe0d0', agents: '#b8a8f0', consolidation: '#a9b0bb' };
+  const eraTint = new THREE.Color(ERA_TINT.classic);
+  const eraFrom = new THREE.Color(), eraTo = new THREE.Color(ERA_TINT.classic);
+  let eraT = 1, swell = 0, lastDaylight = 1;
+  function setEra(id, flourish = false) {
+    eraFrom.copy(eraTint);
+    eraTo.set(ERA_TINT[id] ?? ERA_TINT.classic);
+    eraT = flourish ? 0 : 1;
+    if (!flourish) eraTint.copy(eraTo);
+    swell = flourish ? 1 : 0;
+    wallMat.userData.eraGlow = id === 'agents' ? 1.35 : 1;
+    wallMat.color.setScalar(brightness * wallMat.userData.eraGlow);
+    winKey = -1;
   }
   drawWindows(1);
 
@@ -302,9 +320,16 @@ export function createScreens() {
   let t = 0;
   function update(dt, env) {
     t += dt;
+    if (eraT < 1 || swell > 0) {
+      eraT = Math.min(1, eraT + dt / 2.5);
+      eraTint.copy(eraFrom).lerp(eraTo, eraT);
+      swell = Math.max(0, swell - dt / 3);
+      winKey = -1;
+    }
     wall.alarm = Math.max(0, wall.alarm - dt);
     acc += dt;
-    if (env) drawWindows(env.daylight);
+    if (env) lastDaylight = env.daylight;
+    drawWindows(lastDaylight);
     if (acc < RATE) return;
     acc = 0;
     for (const v of pool.values()) {
@@ -317,8 +342,8 @@ export function createScreens() {
 
   function setBrightness(b) {
     brightness = b;
-    for (const m of mats) if (m.userData.bright) m.color.setScalar(b);
+    for (const m of mats) if (m.userData.bright) m.color.setScalar(b * (m.userData.eraGlow ?? 1));
   }
 
-  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness };
+  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra };
 }

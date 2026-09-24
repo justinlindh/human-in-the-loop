@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
-import { mat, color, paletteMaterial, setGlowBase } from './materials.js';
+import { mat, color, glow, paletteMaterial, setGlowBase } from './materials.js';
+import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
@@ -217,7 +218,40 @@ const LOUNGE = new Set(['couch', 'nap_pod', 'arcade', 'library', 'plant_wall', '
 const DESK_Z = -0.35;
 const SEAT_Z = 0.2;
 
-function deskSet(i, stageIdx, screens) {
+const STICKY = ['fabric_mustard', 'marker_orange', 'fabric_teal'];
+
+// Era dressing on a desk: a boxier monitor before AI, prompt sticky notes in the ChatGBT era,
+// a status light in the Agents era, and compliance binders once the lawyers arrive.
+function deskEra(g, i, era, laptop) {
+  if (era === 'chatgbt' && i % 2 === 0) {
+    for (let k = 0; k < 2 + (i % 3 ? 0 : 1); k++) {
+      const n = mesh(roundedBox(0.07, 0.07, 0.006, 0.002, 1), mat(STICKY[(i + k) % 3]), (k - 1) * 0.1, laptop ? 0.64 : 0.95 + k * 0.03, DESK_Z - 0.1, { cast: false });
+      n.rotation.z = (k - 1) * 0.2;
+      if (laptop) { n.rotation.x = -Math.PI / 2; n.position.z = DESK_Z + 0.22 + k * 0.02; n.position.x = 0.3 + k * 0.08; }
+      g.add(n);
+    }
+  }
+  if (era === 'agents') {
+    const led = mesh(new THREE.SphereGeometry(0.022, 10, 8), glow('led_green', 3), 0.38, 0.645, DESK_Z - 0.22, { cast: false });
+    led.name = 'desk_led';
+    led.userData.dynamic = true;
+    g.add(led);
+    g.add(mesh(roundedCylinder(0.035, 0.04, 0.02, 0.005, 12), mat('plastic_charcoal'), 0.38, 0.62, DESK_Z - 0.22));
+  }
+  if (era === 'consolidation' && i % 3 === 0) {
+    const b = mesh(roundedBox(0.07, 0.28, 0.22, 0.012), mat('fabric_slate'), -0.36, 0.76, DESK_Z - 0.14);
+    g.add(b);
+    g.add(mesh(roundedBox(0.072, 0.1, 0.12, 0.004, 1), mat('paper_sheet'), -0.36, 0.8, DESK_Z - 0.14));
+  }
+}
+
+function oldMonitor(g) {
+  // A deeper, smaller pre-AI screen: the same panel on a chunky warm-white housing.
+  g.scale.set(0.82, 0.9, 1);
+  g.add(mesh(roundedBox(0.4, 0.3, 0.2, 0.04), mat('plastic_white'), 0, 0.3, -0.13));
+}
+
+function deskSet(i, stageIdx, screens, era) {
   const g = new THREE.Group();
   // Desk sets are one tile wide, so neighbours butt together into a bench.
   const desk = getModel('desk');
@@ -227,7 +261,15 @@ function deskSet(i, stageIdx, screens) {
   g.add(chair);
   const laptop = stageIdx === 0;
   const mon = place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? DESK_Z + 0.02 : DESK_Z - 0.14);
+  if (era === 'classic' && !laptop) oldMonitor(mon);
   g.add(mon);
+  deskEra(g, i, era, laptop);
+  // Team mat under the whole set, tinted by whoever sits here (hidden until someone does).
+  const rug = mesh(roundedBox(0.92, 0.012, 1.9, 0.006, 1), mat('laminate'), 0, 0.008, 0, { cast: false });
+  rug.visible = false;
+  rug.userData.dynamic = true;
+  g.add(rug);
+  g.userData.rug = rug;
   let screen = null;
   mon.traverse((c) => {
     if (c.isMesh && c.name.endsWith('_screen')) {
@@ -252,10 +294,12 @@ function deskSet(i, stageIdx, screens) {
   return g;
 }
 
-function meetingTable(w, h) {
+function meetingTable(w, h, era) {
   const g = new THREE.Group();
   const L = Math.max(1.2, w - 1.1), D = Math.max(0.8, Math.min(1.0, h - 1.1));
-  g.add(mesh(roundedBox(L, 0.06, D, 0.025), mat('wood_light'), 0, 0.66, 0));
+  // Consolidation-era boardrooms go lawyer grey.
+  g.add(mesh(roundedBox(L, 0.06, D, 0.025), mat(era === 'consolidation' ? 'metal_soft' : 'wood_light'), 0, 0.66, 0));
+  if (era === 'consolidation') g.add(mesh(roundedBox(0.07, 0.28, 0.22, 0.012), mat('fabric_slate'), L / 2 - 0.3, 0.83, 0.1));
   for (const sx of [-1, 1]) g.add(mesh(roundedCylinder(0.06, 0.1, 0.63, 0.01), mat('metal_dark'), sx * (L / 2 - 0.35), 0, 0));
   g.add(mesh(roundedBox(0.3, 0.02, 0.22, 0.008), mat('paper_sheet'), -0.3, 0.7, 0.1));
   g.add(mesh(roundedBox(0.34, 0.02, 0.24, 0.008), mat('metal_soft'), 0.35, 0.7, -0.1));
@@ -276,6 +320,20 @@ function meetingTable(w, h) {
   }
   g.userData.chairs = chairs;
   g.userData.table = { L, D };
+  return g;
+}
+
+// Before AI there is no agent wall: a status TV on a cart stands in for it.
+function statusTv(screens) {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.7, 0.05, 0.45, 0.015), mat('metal_dark'), 0, 0.72, 0));
+  g.add(mesh(roundedBox(0.7, 0.04, 0.45, 0.015), mat('metal_dark'), 0, 0.12, 0));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(mesh(roundedCylinder(0.015, 0.015, 0.7, 0.004, 8), mat('metal_soft'), sx * 0.32, 0.05, sz * 0.2));
+  g.add(mesh(roundedBox(0.62, 0.46, 0.4, 0.05), mat('plastic_charcoal'), 0, 1.0, -0.02));
+  const scr = mesh(new THREE.PlaneGeometry(0.5, 0.36), screens ? screens.material('chart', 2) : mat('screen_bg'), 0, 1.0, 0.185, { cast: false });
+  scr.name = 'tv_screen';
+  scr.userData.dynamic = true;
+  g.add(scr);
   return g;
 }
 
@@ -315,12 +373,13 @@ function fitFootprint(inner, f, againstBack) {
 }
 
 // The model for a placed item in its local frame: origin at the footprint center, front toward +Z.
-export function buildPlacedModel(p, stageIdx, screens = null, seed = 0) {
+export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'classic') {
   const kind = kindOf(p.itemId);
   const f = footprint(p.itemId, 0);
   let inner;
-  if (kind === 'desk') inner = deskSet(seed, stageIdx, screens);
-  else if (kind === 'meeting') inner = meetingTable(f.w, f.h);
+  if (kind === 'desk') inner = deskSet(seed, stageIdx, screens, era);
+  else if (kind === 'meeting') inner = meetingTable(f.w, f.h, era);
+  else if (p.itemId === 'monitoring_wall' && era === 'classic') inner = statusTv(screens);
   else if (kind === 'whiteboard') inner = getModel('whiteboard');
   else if (kind === 'coffee') inner = getModel('kitchenette');
   else if (kind === 'plant') inner = getModel('plant_tall');
@@ -337,6 +396,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0) {
   g.userData.chairs = inner.userData.chairs ?? [];
   g.userData.table = inner.userData.table ?? null;
   g.userData.screen = inner.userData.screen ?? null;
+  g.userData.rug = inner.userData.rug ?? null;
   return g;
 }
 
@@ -439,6 +499,8 @@ export function createOffice({ parent, screens, lighting }) {
   const dying = [];
   let dust = null;
   let deskSeed = 0;
+  let era = 'classic';
+  let poster = null;
   const lampMat = paletteMaterial('pal_lamp');
   const growMat = paletteMaterial('pal_grow');
 
@@ -495,6 +557,8 @@ export function createOffice({ parent, screens, lighting }) {
     placed.clear();
     ledCache = null;
     holder.add(cur.root);
+    poster = null;
+    updatePoster();
     lighting?.fitShadow(cur.bounds);
     lighting?.setInteriorLights(cur.L.lights.map((l) => ({ ...l, y: cur.L.wallH - 0.3 })));
     if (animate) {
@@ -529,9 +593,9 @@ export function createOffice({ parent, screens, lighting }) {
     dust = { group: g, parts, t: 0 };
   }
 
-  function makeEntry(p) {
-    const seed = kindOf(p.itemId) === 'desk' ? deskSeed++ : placed.size;
-    const model = buildPlacedModel(p, cur.stage, screens, seed);
+  function makeEntry(p, fixedSeed) {
+    const seed = fixedSeed ?? (kindOf(p.itemId) === 'desk' ? deskSeed++ : placed.size);
+    const model = buildPlacedModel(p, cur.stage, screens, seed, era);
     const obj = mergeStatic(model);
     obj.userData = { ...model.userData, kind: 'placed', placedId: p.id, itemId: p.itemId };
     const target = placedTransform(cur.L, p);
@@ -629,7 +693,7 @@ export function createOffice({ parent, screens, lighting }) {
     if (!ledCache) {
       ledCache = [];
       for (const e of placed.values()) {
-        if (!['server_rack', 'rack', 'monitoring_wall'].includes(e.itemId)) continue;
+        if (!['server_rack', 'rack', 'monitoring_wall', 'desk'].includes(e.itemId)) continue;
         e.obj.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) ledCache.push({ mesh: c, phase: ledCache.length * 1.7 }); });
       }
     }
@@ -654,6 +718,48 @@ export function createOffice({ parent, screens, lighting }) {
 
   let tuck = false;
   function tuckMeetingChairs(on) { tuck = on; }
+
+  // Era dressing: rebuild placed models in place (no pop) and swap the wall poster.
+  function setEra(id) {
+    if (!id || id === era) return false;
+    era = id;
+    if (!cur) return true;
+    const list = [...placed.values()].map((e) => ({ id: e.id, itemId: e.itemId, level: e.level, x: e.x, y: e.y, rot: e.rot, seed: e.seed, desk: e.desk }));
+    for (const p of list) {
+      const old = placed.get(p.id);
+      cur.furniture.remove(old.obj);
+      const e = makeEntry(p, p.seed);
+      if (old.desk) { e.desk = { ...old.desk, screen: e.obj.userData.screen, obj: e.obj, sign: null, screenKind: null, role: undefined }; }
+      placed.set(p.id, e);
+    }
+    refresh();
+    updatePoster();
+    return true;
+  }
+
+  function updatePoster() {
+    if (poster) { poster.removeFromParent(); poster = null; }
+    if (!cur || era !== 'chatgbt') return;
+    poster = makePoster(cur.L);
+    if (poster) cur.root.add(poster);
+  }
+
+  // Team mat under a desk set, tinted by the sitter's role; null hides it.
+  const rugMats = new Map();
+  function setDeskRole(id, role) {
+    const d = deskById(id);
+    const rug = d?.obj.userData.rug;
+    if (!rug || d.role === role) return;
+    d.role = role;
+    rug.visible = !!role;
+    if (!role) return;
+    let m = rugMats.get(role);
+    if (!m) {
+      m = new THREE.MeshStandardMaterial({ color: new THREE.Color(ROLE_COLORS[role] ?? P.laminate).lerp(color(cur.L.floor === 'concrete' ? 'floor_concrete' : 'laminate'), 0.55), roughness: 0.95 });
+      rugMats.set(role, m);
+    }
+    rug.material = m;
+  }
 
   const camDir = new THREE.Vector2();
   function update(dt, { yaw = Math.PI / 4, env } = {}) {
@@ -722,11 +828,54 @@ export function createOffice({ parent, screens, lighting }) {
   }
 
   return {
-    setStage, setPlaced, setDeskScreen, setDeskSign, leds, update, nav, tuckMeetingChairs, deskById,
+    setStage, setPlaced, setDeskScreen, setDeskSign, setDeskRole, setEra, leds, update, nav, tuckMeetingChairs, deskById,
+    get era() { return era; },
     get current() { return cur; },
     get placed() { return placed; },
     get bounds() { return cur?.bounds; },
   };
+}
+
+// "Try AI" poster on the left back wall, in the widest gap between openings.
+function makePoster(L) {
+  const len = L.D;
+  const ops = L.openings.filter((o) => o.wall === 'x').map((o) => [o.at - o.width / 2, o.at + o.width / 2]).sort((a, b) => a[0] - b[0]);
+  let best = null, cursor = -len / 2 + 0.4;
+  for (const [a, b] of [...ops, [len / 2 - 0.4, len / 2]]) {
+    if (a - cursor > (best ? best[1] - best[0] : 0)) best = [cursor, a];
+    cursor = Math.max(cursor, b);
+  }
+  if (!best || best[1] - best[0] < 0.9) return null;
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 340;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 256, 340);
+  ctx.fillStyle = P.screen_cyan; ctx.fillRect(0, 0, 256, 120);
+  ctx.fillStyle = P.ink;
+  ctx.textAlign = 'center';
+  ctx.font = '700 64px Fredoka, sans-serif';
+  ctx.fillText('TRY', 128, 200);
+  ctx.fillText('AI', 128, 262);
+  ctx.font = '600 22px Fredoka, sans-serif';
+  ctx.fillText('ask it anything*', 128, 300);
+  ctx.font = '500 14px Fredoka, sans-serif';
+  ctx.fillText('*results may vary', 128, 326);
+  ctx.fillStyle = P.paper;
+  ctx.beginPath(); ctx.arc(128, 60, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = P.screen_cyan;
+  ctx.beginPath(); ctx.arc(116, 54, 6, 0, Math.PI * 2); ctx.arc(140, 54, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = P.screen_cyan; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(128, 64, 16, 0.2, Math.PI - 0.2); ctx.stroke();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const g = new THREE.Group();
+  const z = (best[0] + best[1]) / 2;
+  const frame = mesh(roundedBox(0.03, 0.9, 0.68, 0.01), mat('wood_dark'), -L.W / 2 + 0.015, 1.55, z);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.8), new THREE.MeshStandardMaterial({ map: t, roughness: 0.8 }));
+  face.position.set(-L.W / 2 + 0.035, 1.55, z);
+  face.rotation.y = Math.PI / 2;
+  g.add(frame, face);
+  return g;
 }
 
 let dustTex = null;

@@ -120,6 +120,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let pendingUpgrade = false;
   let stageJustBuilt = false;
   let buildSig = '';
+  let firstSync = true;
 
   function sync(state) {
     if (!office || !ready || !state) return;
@@ -133,6 +134,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       firstStage = false;
       pendingUpgrade = false;
     }
+    // Era dressing; a change after the first build gets the window-light swell.
+    if (office.setEra(state.era?.id ?? 'classic')) screens.setEra(office.era, !stageJustBuilt && !firstSync);
+    firstSync = false;
     const changed = office.setPlaced(state.office?.placed ?? []);
     if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);
     // Placement validity depends on cash, the week, and what is placed; recheck when any changes.
