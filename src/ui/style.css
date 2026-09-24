@@ -739,3 +739,20 @@
 .hitl .reacts { display: flex; flex-wrap: wrap; gap: 0.2em; margin-top: 0.15em; }
 .hitl .react { font-size: 0.72em; background: #eef4ff; border: 0.1em solid #b9cff7; border-radius: 1em; padding: 0 0.4em; }
 .hitl .go-card .kv.sum { font-weight: 700; border-bottom: none; border-top: 0.13em solid var(--ink); margin-top: 0.2em; padding-top: 0.25em; }
+
+/* icon art */
+.hitl .ic svg, .hitl .ic img { display: block; width: 1em; height: 1em; overflow: visible; }
+.hitl .ic[data-art] { vertical-align: -0.15em; }
+
+/* ?icons=1 board */
+.hitl .iconboard { position: absolute; inset: 0; z-index: 60; overflow-y: auto; pointer-events: auto; background: var(--cream); padding: 1em; }
+.hitl .ib-head { margin-bottom: 0.6em; }
+.hitl .ib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr)); gap: 0.4em; margin-bottom: 1em; padding: 0.6em; border-radius: 0.8em; background: #fffaf1; border: 0.15em solid var(--line); }
+.hitl .ib-grid.dark { background: var(--ink); }
+.hitl .ib-cell { display: flex; flex-direction: column; gap: 0.2em; padding: 0.3em; border-radius: 0.5em; border: 0.12em solid transparent; }
+.hitl .ib-cell.missing { border-color: var(--bad); }
+.hitl .ib-icons { display: flex; align-items: flex-end; gap: 0.4em; color: var(--ink); }
+.hitl .ib-cell.dark .ib-icons { color: var(--cream); }
+.hitl .ib-icons .ic { font-size: calc(var(--is) * 16px); }
+.hitl .ib-name { font-size: 0.7em; font-family: 'JetBrains Mono', monospace; color: var(--ink-soft); word-break: break-all; }
+.hitl .ib-cell.dark .ib-name { color: #cfc6d6; }

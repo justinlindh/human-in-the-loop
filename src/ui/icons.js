@@ -2,19 +2,20 @@
 // custom set in public/icons/ exists. ICONS also records where each icon appears and its
 // display size in px at 1080p (the overlay scales sizes with the window).
 import { CATEGORIES } from './content.js';
+import { REACTION_GLYPH } from './tools/glyphs.js';
 
 const I = (glyph, where, size = 16) => ({ glyph, where, size });
 
 export const ICONS = {
   // bottom menu
-  'menu.build': I('🔨', 'Bottom menu button', 26),
-  'menu.staff': I('🧑‍💻', 'Bottom menu button', 26),
-  'menu.marketing': I('📣', 'Bottom menu button', 26),
-  'menu.models': I('🧠', 'Bottom menu button', 26),
-  'menu.automation': I('🤖', 'Bottom menu button', 26),
-  'menu.ops': I('🛡️', 'Bottom menu button', 26),
-  'menu.office': I('🏢', 'Bottom menu button', 26),
-  'menu.reports': I('📊', 'Bottom menu button', 26),
+  'menu.build': I('🔨', 'Bottom menu button', 30),
+  'menu.staff': I('🧑‍💻', 'Bottom menu button', 30),
+  'menu.marketing': I('📣', 'Bottom menu button', 30),
+  'menu.models': I('🧠', 'Bottom menu button', 30),
+  'menu.automation': I('🤖', 'Bottom menu button', 30),
+  'menu.ops': I('🛡️', 'Bottom menu button', 30),
+  'menu.office': I('🏢', 'Bottom menu button', 30),
+  'menu.reports': I('📊', 'Bottom menu button', 30),
   // speed controls
   'speed.pause': I('❚❚', 'Top bar speed buttons', 16),
   'speed.play': I('▶', 'Top bar speed buttons', 16),
@@ -153,23 +154,84 @@ export const ICONS = {
   'channel.enterprise': I('💼', 'Marketing channel card', 20),
 };
 
+// Slackk reactions: the sim sends emoji; each maps to a glyph name.
+for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(emo, 'Slackk reaction pill', 12);
+export const reactionIcon = (emo) => REACTION_GLYPH[emo] ?? null;
+
 // Category icons come from the content data's stand-in emoji.
 for (const c of CATEGORIES) ICONS[`cat.${c.id}`] = I(c.icon ?? '📦', 'Build category tile', 22);
 
 const warned = new Set();
 
+// Art from public/icons: manifest.json lists the sub-manifests to merge (glyphs, objects), each
+// mapping an icon name to { file, size }. Until they load, and for names they do not cover,
+// icon() shows the emoji stand-in; loading upgrades icons already on screen.
+const ART = new Map();
+const BASE = `${import.meta.env?.BASE_URL ?? '/'}icons/`;
+let artReady = false;
+
+async function loadManifests() {
+  try {
+    const root = await (await fetch(`${BASE}manifest.json`)).json();
+    for (const inc of root.include ?? []) {
+      const m = await (await fetch(`${BASE}${inc}`)).json();
+      for (const [name, entry] of Object.entries(m)) ART.set(name, entry);
+    }
+    for (const [name, entry] of Object.entries(root.icons ?? {})) ART.set(name, entry);
+  } catch {
+    return;
+  }
+  artReady = true;
+  for (const el of document.querySelectorAll('.ic[data-icon]:not([data-art])')) fill(el, el.dataset.icon);
+  window.dispatchEvent(new CustomEvent('hitl:icons'));
+}
+if (typeof window !== 'undefined' && typeof fetch === 'function') loadManifests();
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function fill(el, name) {
+  const art = ART.get(name);
+  if (!art) {
+    el.textContent = ICONS[name]?.glyph ?? '❔';
+    return;
+  }
+  el.dataset.art = '1';
+  el.textContent = '';
+  if (art.file.endsWith('.svg')) {
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS(SVGNS, 'use');
+    use.setAttribute('href', `${BASE}${art.file}#g`);
+    svg.append(use);
+    el.append(svg);
+  } else {
+    const img = document.createElement('img');
+    img.src = `${BASE}${art.file}`;
+    img.alt = '';
+    img.draggable = false;
+    el.append(img);
+  }
+}
+
 export function icon(name, { size, title } = {}) {
   const def = ICONS[name];
-  if (!def && !warned.has(name)) {
+  if (!def && !ART.has(name) && !warned.has(name)) {
     warned.add(name);
     if (!location.search.includes('snap')) console.warn(`Unknown icon name: ${name}`);
   }
-  const px = size ?? def?.size ?? 16;
+  const px = size ?? def?.size ?? ART.get(name)?.size ?? 16;
   const el = document.createElement('span');
   el.className = 'ic';
   el.style.setProperty('--is', String(px / 16));
-  el.textContent = def?.glyph ?? '❔';
   el.dataset.icon = name;
+  fill(el, name);
   if (title) el.title = title;
   return el;
 }
+
+// Names in the registry that still fall back to an emoji.
+export function iconFallbacks() {
+  return Object.keys(ICONS).filter((n) => !ART.has(n));
+}
+export const iconsLoaded = () => artReady;

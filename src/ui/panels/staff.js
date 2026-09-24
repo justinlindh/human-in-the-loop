@@ -142,7 +142,7 @@ export function staffPanel(ctx, arg) {
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null, pathBadge(p)))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
-        h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`)), h('div.bar', null, mFill), mVal)),
+        h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`, { size: 19 })), h('div.bar', null, mFill), mVal)),
         h('td.kcol', null, h('div.row', null, h('div.bar', null, kFill), kVal)),
         h('td', null, assignSelect(ctx, s, p)),
         h('td.tr', null, ...traitChips(p.traits)));
