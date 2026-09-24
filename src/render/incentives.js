@@ -4,6 +4,7 @@ import { mat, color } from './materials.js';
 import { roundedBox, roundedCylinder, mesh } from './prims.js';
 import { PALETTE as P } from './palette.js';
 import { wallGap } from './office.js';
+import { loadRig } from './rig.js';
 
 // Incentive rewards. { type: 'incentive', staffId, reward } where reward is 'balloons' (on the
 // winner's desk until the next award), 'caricature' (a framed big-head portrait on the wall), or
@@ -12,12 +13,27 @@ import { wallGap } from './office.js';
 // frosted partition; the caricature goes up afterwards).
 
 const PARTY_S = 15;
+// Music night: a dance break. The winner fully commits to the genre's dance, the next two bob along,
+// the fourth shuffles stiffly (then bob and shuffle alternate); a speaker cart rolls in and the room
+// dims under a pool of the genre's colour that pulses on the beat. bar is the seconds per four beats.
+const DANCE_S = 15;
+const GENRES = {
+  motivational_polka: { lead: 'dance_polka', bar: 1.6, light: P.gold },
+  corporate_synthwave: { lead: 'dance_robot', bar: 2.0, light: P.role_designer },
+  aggressive_bossa_nova: { lead: 'dance_bossa', bar: 2.4, light: P.marker_orange },
+  sad_lofi: { lead: 'dance_lofi', bar: 2.8, light: P.marker_blue },
+};
+const BOB_BAR = 2.0;            // dance_bob's authored bar (chibi_rig.py)
+const STIFF_BAR = 4.0;          // dance_stiff covers two bars
+const DANCE_POOL = 7;
+const CROWD_REACTIONS = ['point', 'whisper', 'wave', 'shake'];
 const REACTIONS = ['whisper', 'point', 'press', 'shake'];
 const ROLL_S = 2.2;
 const DIM = 1.9;            // how far the room lights drop (see lighting.setSkeleton)
 const POOL = 5.5;             // warm light over the table
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
+const TAU = Math.PI * 2;
 
 // Chibi-sized waffles: a tall stack with a grid on top, syrup running down, cream and berries.
 function waffleStack() {
@@ -263,7 +279,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
   }
 
   function startParty(r) {
-    if (!office.current || party) return;
+    if (!office.current || party || dance) return;
     const v = venue();
     const props = new THREE.Group();
     parent.add(props);
@@ -322,6 +338,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
   }
 
   function update(dt) {
+    if (dance) updateDance(dt);
     if (!party) return;
     const p = party;
     p.t += dt;
@@ -360,8 +377,122 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (p.t >= PARTY_S + 1) endParty();
   }
 
-  // Minor rewards (finger traps, melon bar, music night): a quick cheer, a sparkle, a puff of confetti.
-  const SMALL_REWARDS = new Set(['finger_traps', 'melon_bar', 'music_night']);
+  // A trolley with two speakers and a little lamp on top; the lamp glows in the genre's colour.
+  function speakerCart(hex) {
+    const g = new THREE.Group();
+    g.add(mesh(roundedBox(0.72, 0.06, 0.46, 0.02), mat('metal_dark'), 0, 0.2, 0));
+    g.add(mesh(roundedBox(0.72, 0.04, 0.46, 0.015), mat('metal_dark'), 0, 0.05, 0));
+    for (const [x, z] of [[-0.3, -0.18], [0.3, -0.18], [-0.3, 0.18], [0.3, 0.18]]) {
+      g.add(mesh(roundedBox(0.03, 0.2, 0.03, 0.01), mat('metal_soft'), x, 0.12, z));
+      g.add(mesh(roundedCylinder(0.035, 0.035, 0.03, 0.01, 10), mat('plastic_charcoal'), x, 0.0, z).rotateZ(Math.PI / 2));
+    }
+    for (const x of [-0.19, 0.19]) {
+      g.add(mesh(roundedBox(0.28, 0.44, 0.26, 0.03), mat('wood_dark'), x, 0.45, 0));
+      for (const [y, r] of [[0.53, 0.08], [0.34, 0.05]]) {
+        const cone = mesh(roundedCylinder(r, r * 0.8, 0.03, 0.01, 16), mat('plastic_charcoal'), x, y, 0.13);
+        cone.rotation.x = Math.PI / 2;
+        g.add(cone);
+      }
+    }
+    const lampMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), emissive: new THREE.Color(hex), emissiveIntensity: 1.2, roughness: 0.4 });
+    const lamp = mesh(new THREE.SphereGeometry(0.07, 16, 12), lampMat, 0, 0.74, 0);
+    g.add(mesh(roundedCylinder(0.05, 0.06, 0.04, 0.01, 12), mat('metal_dark'), 0, 0.69, 0));
+    g.add(lamp);
+    return { group: g, lampMat };
+  }
+
+  let dance = null;
+  function startDance(winner, ev) {
+    if (!office.current || party || dance) return;
+    const genre = GENRES[ev.genre] ?? GENRES.corporate_synthwave;
+    loadRig();
+    const L = office.current.L;
+    const center = openSpot(L);
+    const yaw = getYaw();
+    const cam = { x: Math.sin(yaw), z: Math.cos(yaw) };
+    const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+    const at = (u, v) => ({ x: center.x + right.x * u + cam.x * v, z: center.z + right.z * u + cam.z * v });
+    const faceCam = Math.atan2(cam.x, cam.z);
+    const SPOTS = [[0, 0.35], [-0.85, 0], [0.85, 0], [-0.45, -0.75], [0.45, -0.75], [0, -0.95], [-1.3, -0.5], [1.3, -0.5]];
+    const others = (ev.dancers ?? []).map((id) => recs.get(id))
+      .filter((o) => o && o !== winner && !o.hidden && o.mode === 'placed');
+    const dancers = [winner, ...others].slice(0, SPOTS.length);
+    const moves = dancers.map((r, i) => {
+      if (i === 0) return { anim: genre.lead, rate: 1 };
+      return (i % 3 === 0) ? { anim: 'dance_stiff', rate: STIFF_BAR / (2 * genre.bar) } : { anim: 'dance_bob', rate: BOB_BAR / genre.bar };
+    });
+    dancers.forEach((r, i) => {
+      const p = at(...SPOTS[i]);
+      const spot = { x: p.x, z: p.z, yaw: faceCam, anim: 'idle' };
+      r.temp = { anim: moves[i].anim, t: DANCE_S, goal: spot, back: true, party: true };
+      r.char.setAnimRate(moves[i].rate);
+      walkTo(r, spot);
+      hurry(r, 3);
+    });
+    const taken = new Set(dancers);
+    const crowd = [...recs.values()].filter((o) => !taken.has(o) && !o.hidden && o.mode === 'placed' && !o.temp)
+      .sort(() => Math.random() - 0.5).slice(0, 3).map((o, i) => {
+        // Onlookers stand to the sides and back, never between the camera and the dancers.
+        const p = at(...[[-2.2, 0.2], [2.2, 0.2], [1.8, -1.5]][i]);
+        const spot = { x: p.x, z: p.z, yaw: Math.atan2(center.x - p.x, center.z - p.z), anim: 'idle' };
+        o.temp = { anim: 'idle', t: DANCE_S - 1, goal: spot, back: true, party: true };
+        walkTo(o, spot);
+        hurry(o, 3.5);
+        return o;
+      });
+    const props = new THREE.Group();
+    parent.add(props);
+    const cart = speakerCart(genre.light);
+    const door = office.current.zones.door;
+    cart.group.position.set(door.x, 0, door.z);
+    props.add(cart.group);
+    const cartAt = at(0, -1.7);
+    easeIn({ center });
+    dance = { genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0 };
+  }
+
+  function endDance() {
+    const d = dance;
+    dance = null;
+    setDim(0);
+    setAccent(null);
+    d.props.removeFromParent();
+    for (const r of d.dancers) r.char.setAnimRate(1);
+    easeOut();
+  }
+
+  function updateDance(dt) {
+    const d = dance;
+    d.t += dt;
+    const k = Math.min(1, d.t / ROLL_S);
+    const e = 1 - (1 - k) ** 3;
+    const door = office.current.zones.door;
+    d.cart.group.position.set(door.x + (d.cartAt.x - door.x) * e, 0, door.z + (d.cartAt.z - door.z) * e);
+    d.cart.group.rotation.y = d.yaw;
+    const beat = d.genre.bar / 4;
+    const pulse = Math.max(0, Math.cos((TAU * d.t) / beat)) ** 4;
+    const fade = Math.min(1, d.t / 1.5) * Math.min(1, (DANCE_S + 1 - d.t) / 1.5);
+    setDim(DIM * fade);
+    setAccent({ x: d.center.x, y: 2.1, z: d.center.z }, DANCE_POOL * fade * (0.75 + 0.25 * pulse), d.genre.light);
+    d.cart.lampMat.emissiveIntensity = 0.8 + 1.4 * pulse;
+    // Onlookers take turns reacting, as at the waffle party.
+    if (d.t > ROLL_S + 1) {
+      const slot = Math.floor((d.t - ROLL_S - 1) / 2.4);
+      d.crowd.forEach((w, i) => {
+        if (!recs.has(w.id) || w.path.length || !w.temp?.party) return;
+        w.temp.anim = (slot + i) % 2 ? 'idle' : CROWD_REACTIONS[Math.floor((slot + i) / 2) % CROWD_REACTIONS.length];
+      });
+    }
+    if (d.t > ROLL_S + 1.5 && !d.cheered) {
+      d.cheered = true;
+      emote(d.dancers[0], 'music', 3);
+      for (const w of d.crowd) if (recs.has(w.id)) emote(w, Math.random() < 0.5 ? 'sparkle' : 'heart', rnd(2, 3.5));
+    }
+    if (d.t >= DANCE_S + 1) endDance();
+  }
+
+  // Minor rewards (finger traps, melon bar): a quick cheer, a sparkle, a puff of confetti.
+  const SMALL_REWARDS = new Set(['finger_traps', 'melon_bar']);
   function smallBeat(r) {
     if (!r.temp) r.temp = { anim: 'celebrate', t: 1.4, keepPos: true };
     emote(r, 'sparkle', 1.8);
@@ -374,6 +505,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (e.reward === 'balloons') putBalloons(r);
     else if (e.reward === 'caricature') hangCaricature(r);
     else if (e.reward === 'waffle_party') { putBalloons(r); startParty(r); }
+    else if (e.reward === 'music_night') startDance(r, e);
     else if (SMALL_REWARDS.has(e.reward)) smallBeat(r);
   }
 
@@ -382,7 +514,8 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     frame = null;
     setPictureLight(null);
     if (party) { party.props.removeFromParent(); party = null; setDim(0); setAccent(null); ease = null; }
+    if (dance) { dance.props.removeFromParent(); for (const r of dance.dancers) r.char.setAnimRate(1); dance = null; setDim(0); setAccent(null); ease = null; }
   }
 
-  return { handle, update, reset, get party() { return party ? { t: party.t } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
+  return { handle, update, reset, get party() { return party ? { t: party.t } : null; }, get dance() { return dance ? { t: dance.t, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id) } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
 }

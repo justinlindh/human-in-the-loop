@@ -19,7 +19,11 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake'];
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
+// Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
+// for the moment before the rig model has loaded.
+const ALWAYS_CLIP = /^dance_/;
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
 const BLEND_S = 0.3;
@@ -425,7 +429,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   // Variants the clips do not cover stay procedural: the drooping idle and the tired walk.
   const RIG_PROCEDURAL = { idle: () => tired || mood === 'coasting', walk: () => tired };
   function rigPose(dt) {
-    const clip = rigEnabled() && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
+    const clip = (rigEnabled() || ALWAYS_CLIP.test(anim)) && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
     if (clip !== rigClip) {
       pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
       blendT = 0;
@@ -444,7 +448,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       }
     }
     if (!clip) return false;
-    rigAction.timeScale = anim === 'walk' ? Math.min(2.5, Math.max(0.5, moveSpeed / WALK_CLIP_SPEED)) : 1;
+    rigAction.timeScale = anim === 'walk' ? Math.min(2.5, Math.max(0.5, moveSpeed / WALK_CLIP_SPEED)) : animRate;
     mixer.update(dt);
     proxy.children.forEach((g, i) => { pivotList[i].quaternion.copy(g.quaternion); });
     body.position.copy(proxy.children[0].position);
@@ -686,6 +690,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headZ = s(t * 1.5) * 0.12;
         tgt.armLZ = 0.05; tgt.armRZ = -0.05;
         break;
+      case 'dance_polka': case 'dance_robot': case 'dance_bossa': case 'dance_lofi': case 'dance_bob': case 'dance_stiff':
+        tgt.bodyY = Math.abs(s(t * 6 + phase)) * 0.03;
+        tgt.headX = Math.abs(s(t * 6 + phase)) * 0.08;
+        tgt.armLZ = -0.3; tgt.armRZ = 0.3;
+        break;
       case 'wave':
         tgt.armRZ = 2.5 + s(t * 10) * 0.35;
         tgt.headZ = -0.1;
@@ -818,6 +827,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
   // Walking speed in m/s, for the walk clip's playback rate.
   function setMoveSpeed(v) { moveSpeed = v; }
+  // Playback rate for clips other than the walk (a dance at the music's tempo).
+  let animRate = 1;
+  function setAnimRate(k) { animRate = k; }
 
   // Parts that never move relative to their pivot keep their local matrix instead of recomposing
   // it every frame (the ring recomposes itself when its scale changes).
@@ -828,7 +840,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
   update(0);
   return {
-    root, head: headGroup, setShadows, setAnim, setMoveSpeed, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setShadows, setAnim, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

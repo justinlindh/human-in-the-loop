@@ -217,3 +217,41 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
   }
   return { pass: results.every((r) => r.pass), results };
 }
+
+// Music night: during the dance no dancer's body is inside any furniture or another dancer's space,
+// and once the break ends everyone is back at their desk.
+export async function runDanceCheck(R, S, genre, { dt = 1 / 30 } = {}) {
+  const ids = S.staff.map((p) => p.id);
+  R.handleEvents([{ type: 'incentive', staffId: ids[0], reward: 'music_night', genre, dancers: ids.slice(1, 4) }], S);
+  const d = R.incentives?.dance;
+  const dancers = (d?.dancers ?? ids.slice(0, 4)).map((id) => charOf(R.scene, id)).filter(Boolean);
+  const furniture = [];
+  for (const e of R.office.placed.values()) furniture.push(...meshes(e.obj));
+  let inside = 0, total = 0, minGap = Infinity;
+  for (let f = 0; f < 18 * 30; f++) {
+    R.advance(dt);
+    if (f < 120 || f > 440 || f % 15) continue;
+    for (const root of dancers) {
+      const pts = vertices(root, 8);
+      inside += insideCount(pts, furniture);
+      total += pts.length;
+    }
+    for (let i = 0; i < dancers.length; i++) for (let j = i + 1; j < dancers.length; j++) {
+      minGap = Math.min(minGap, Math.hypot(dancers[i].position.x - dancers[j].position.x, dancers[i].position.z - dancers[j].position.z));
+    }
+  }
+  const desks = R.office.current.desks;
+  const involved = new Set([...(d?.dancers ?? []), ...(d?.crowd ?? [])]);
+  const notBack = () => S.staff.filter((p) => involved.has(p.id)).filter((p) => {
+    const seat = R.perks.peek(p.id)?.seat;
+    const desk = desks.find((x) => x.id === seat);
+    const root = charOf(R.scene, p.id);
+    return desk && root && Math.hypot(root.position.x - desk.seat.x, root.position.z - desk.seat.z) > 0.2;
+  }).map((p) => p.id);
+  // Give the walk home up to 30 s (a water break on the way back is allowed).
+  for (let i = 0; i < 900 && notBack().length; i++) R.advance(dt);
+  const away = notBack();
+  const insidePct = total ? (100 * inside) / total : 0;
+  return { name: `dance:${genre}`, pass: dancers.length >= 4 && insidePct < 0.5 && minGap > 0.55 && away.length === 0,
+    dancers: dancers.length, insidePct: +insidePct.toFixed(2), minGap: +minGap.toFixed(2), notBackAtDesk: away };
+}
