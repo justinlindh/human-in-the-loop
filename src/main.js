@@ -59,14 +59,14 @@ async function boot() {
     labelsEl: document.getElementById('labels'),
     quality,
   }) ?? null;
-  const audio = audioMod?.createAudio() ?? null;
+  const audio = audioMod?.createAudio({ quality, renderer }) ?? null;
   renderer?.setSpeed?.(speed);
 
   const route = (events, state) => {
     if (!events?.length) return;
     renderer?.handleEvents(events, state);
     ui?.handleEvents(events, state);
-    audio?.onEvents(events);
+    audio?.onEvents(events, state);
   };
 
   // A tick's non-urgent events trickle out over the week instead of arriving in one frame.
@@ -150,10 +150,14 @@ async function boot() {
       if (urlQuality) return;
       activeQuality = q;
       renderer?.setQuality(q);
+      audio?.setQuality?.(q);
     },
     getQuality: () => activeQuality,
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
+    // Per-bus volume (music, ambience, sfx, ui, voice) and mute, from the Settings panel.
+    setBus: (bus, v) => audio?.setBus?.(bus, v),
+    setMuted: (m) => audio?.setMuted?.(m),
     focusStaff: (id) => renderer?.focusStaff(id),
     // Build mode and other renderer hooks (setBuildMode, pickTile) for the UI; null without a renderer.
     renderer,
@@ -234,6 +238,8 @@ async function boot() {
       renderer.render(dt);
     }
     ui?.update(sim.state);
+    // State-driven music and ambience; the same pause picture the renderer gets.
+    audio?.update?.(sim.state, dt, { speed, running, menuPause, decision: !!sim.state.pendingDecision, title: !playing, over: !!sim.state.gameOver });
     if (firstFrame) {
       firstFrame = false;
       requestAnimationFrame(() => { window.__HITL_READY = true; });
