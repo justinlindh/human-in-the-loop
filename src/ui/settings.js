@@ -7,7 +7,7 @@ export const BUSES = [
   { id: 'music', label: 'Music' }, { id: 'ambience', label: 'Ambience' }, { id: 'sfx', label: 'Sound effects' },
   { id: 'ui', label: 'Interface' }, { id: 'voice', label: 'Voices' },
 ];
-const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'high', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true };
+const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true };
 
 export function loadSettings() {
   try {
@@ -16,6 +16,9 @@ export function loadSettings() {
     const v = JSON.parse(raw);
     const out = { ...DEFAULTS, ...(v && typeof v === 'object' ? v : {}) };
     out.bus = { ...DEFAULTS.bus, ...(v?.bus && typeof v.bus === 'object' ? v.bus : {}) };
+    // Older builds stored 'high' without the player choosing it; move those to 'auto' once, so a
+    // slow GPU gets Low. A choice made in this build is kept (qualityChosen).
+    if (out.quality === 'high' && !out.qualityChosen) out.quality = 'auto';
     return out;
   } catch {
     return { ...DEFAULTS };
@@ -32,7 +35,8 @@ export function applySettings(controls, s) {
   controls.setBus?.('master', s.volume);
   for (const b of BUSES) controls.setBus?.(b.id, s.bus?.[b.id] ?? 1);
   (controls.setMuted ?? controls.setMute)?.(!!s.muted);
-  controls.setQuality?.(s.quality);
+  // A host without auto detection (no controls.autoQuality) gets 'high' for 'auto'.
+  controls.setQuality?.(s.quality === 'auto' && controls.autoQuality === undefined ? 'high' : s.quality);
   controls.setTiltShift?.(s.tiltShift);
   (controls.setAutoPause ?? controls.setPauseOnBlur)?.(s.autoPause !== false);
 }
@@ -85,7 +89,9 @@ export function createSettings({ layer, controls, sfx }) {
         ...BUSES.map((b) => row(b.label, null, level(settings.bus?.[b.id] ?? 1, (v) => setBus(b.id, v)))),
         row('Mute everything', null, mute),
         h('h3.sethead', { text: 'Game' }),
-        row('Graphics quality', 'Low turns off ambient occlusion, bloom, and tilt-shift.', seg([{ v: 'low', label: 'Low' }, { v: 'high', label: 'High' }], settings.quality, (v) => set('quality', v))),
+        row('Graphics quality', 'Low turns off ambient occlusion, bloom, and tilt-shift. Auto picks Low on a slow or software GPU.',
+          seg([{ v: 'auto', label: controls.autoQuality ? `Auto (${controls.autoQuality === 'low' ? 'Low' : 'High'})` : 'Auto' }, { v: 'low', label: 'Low' }, { v: 'high', label: 'High' }],
+            settings.quality, (v) => { settings.qualityChosen = true; set('quality', v); })),
         row('Tilt-shift blur', 'The miniature look.', tilt),
         (() => {
           const sw = h('button.switch', { onclick: () => { set('pauseMenus', !settings.pauseMenus); toggleClass(sw, 'on', settings.pauseMenus); } }, h('span.knob'));
