@@ -197,11 +197,8 @@ async function boot() {
   // resumes on return; the player does.
   function leftPage() {
     if (autoPause && playing && !isSnap && speed > 0 && !sim.state.gameOver) {
-      const resumeSpeed = speed;
       controls.setSpeed(0);
       awayPaused = true;
-      // ui shows a tap-to-resume hint when the player comes back.
-      dispatchEvent(new CustomEvent('hitl:awaypaused', { detail: { resumeSpeed } }));
     }
     save();
   }
