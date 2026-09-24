@@ -242,7 +242,7 @@ function purposeCard(s) {
   const v = Math.max(0, Math.min(100, pu.value ?? 0));
   const tests = (pu.tests ?? []).slice(-3).reverse();
   return h('div.card.purposecard', null,
-    h('div.row', null, icon('idea', { size: 20 }), h('b', { text: 'Purpose' }), h('span.small.muted', { text: pu.mission ? ` "${pu.mission}"` : ' No mission yet' }), h('span.spacer'),
+    h('div.row', null, icon('idea', { size: 20 }), h('b', { text: 'Purpose' }), h('span.small.muted', { text: pu.mission ? ` "${PURPOSE_INFO?.missions?.[pu.mission]?.name ?? pu.mission}"` : ' No mission yet' }), h('span.spacer'),
       h('div.bar', { style: { width: '10em' } }, h('i', { style: { width: `${v}%`, background: 'var(--purple)' } })), h('b.num', { text: String(Math.round(v)) })),
     h('div.small.muted', { text: PURPOSE_INFO?.affects ?? PURPOSE_AFFECTS }),
     tests.length ? h('div.ptests', null, ...tests.map((t) => h('div.ptest', null,

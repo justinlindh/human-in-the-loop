@@ -1017,3 +1017,6 @@
 .hitl .settings .levelrow .num { min-width: 2.6em; text-align: right; }
 .hitl .settings input.range { min-height: 2.5em; }
 .hitl .modal.settings .mbody { max-height: calc(100vh - 7em); overflow-y: auto; }
+.hitl .needrow { display: flex; align-items: center; gap: 0.3em; }
+.hitl .needrow .need { flex: 1; min-width: 0; }
+.hitl .needrow .nquick { flex: none; padding: 0.1em 0.5em; font-size: 0.75em; }

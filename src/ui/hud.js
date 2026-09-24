@@ -92,7 +92,7 @@ export function needsYou(s) {
   }
   // Several weeks at empty stamina is the warning sign before burnout.
   const drained = s.staff.filter((p) => p.mood !== 'away' && p.mood !== 'burnout' && strainOf(p) >= STRAIN_WARN).sort((a, b) => strainOf(b) - strainOf(a));
-  if (drained.length === 1) out.push({ key: `strain:${drained[0].id}`, icon: 'battery.low', text: `${drained[0].name.split(' ')[0]} looks exhausted`, go: ['staff', { staffId: drained[0].id }] });
+  if (drained.length === 1) out.push({ key: `strain:${drained[0].id}`, icon: 'battery.low', text: `${drained[0].name.split(' ')[0]} looks exhausted`, go: ['staff', { staffId: drained[0].id }], quick: { label: 'Time off', action: { type: 'timeOff', staffId: drained[0].id } } });
   else if (drained.length > 1) out.push({ key: `strain:${drained.length}`, icon: 'battery.low', text: `${drained.length} people look exhausted`, go: ['staff', { staffId: drained[0].id }] });
   const idle = s.staff.filter((p) => p.assignment?.type === 'idle' && p.mood !== 'away').length;
   if (idle) out.push({ key: 'idle', icon: 'team', text: `${idle} ${idle === 1 ? 'person is' : 'people are'} idle`, go: ['staff'] });
@@ -165,8 +165,12 @@ export function createHud({ root, controls, ui }) {
       const shown = needs.slice(0, 4);
       tray.append(h('div.tray-card.needs', null,
         h('div.t', null, h('span', { text: 'Needs you' }), h('span.k', { text: needs.length > 4 ? `+${needs.length - 4}` : '' })),
-        ...shown.map((n) => h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
-          icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })))));
+        ...shown.map((n) => {
+          // An item can carry a one-tap fix next to it (e.g. time off for someone exhausted).
+          const quick = n.quick ? h('button.btn.small.go.nquick', { onclick: (e) => { e.stopPropagation(); ui.act?.(n.quick.action); } }, n.quick.label) : null;
+          return h('div.needrow', null, h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
+            icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick);
+        })));
     }
     if (s.outage) {
       const o = s.outage;

@@ -64,6 +64,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     return res ?? { ok: false };
   }
 
+  ui.act = (a) => { const r = act(a); if (r.ok) sfx('confirm'); return r; };
   const ctx = {
     getState,
     act,
@@ -342,8 +343,8 @@ export function createUI({ root, getState, dispatch, controls }) {
           // Incentives Program moments: the small rungs toast, the Waffle Party gets a card.
           const who = state.staff.find((p) => p.id === e.staffId);
           const text = REWARD_TEXT[e.reward]?.(who?.name?.split(' ')[0] ?? 'Someone', state.companyName) ?? 'A little reward went out.';
+          // The sim toasts each reward itself; only the top rung gets a card here.
           if (e.reward === 'waffle_party') announcer.milestone({ title: 'The Waffle Party', text, lines: [], kicker: 'Incentives' });
-          else toasts.push(text, 'good');
           sfx('coin');
           break;
         }
