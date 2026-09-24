@@ -45,6 +45,11 @@ export function emitChat(ctx, { channel = 'general', person = null, from = perso
     reactions: reactions ?? reactionsFor(ctx.state, ctx.rng, channel, kind),
   };
   ctx.emit(msg);
+  const log = ctx.state.chatLog;
+  if (Array.isArray(log)) {
+    log.push(msg);
+    if (log.length > B.chatLogSize) log.splice(0, log.length - B.chatLogSize);
+  }
   return msg;
 }
 

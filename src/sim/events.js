@@ -91,7 +91,9 @@ export function helpers(state) {
 
 export function eligibleEvents(state) {
   const h = helpers(state);
-  return Object.values(EVENTS).filter((ev) => ev.random
+  // A new company gets a quiet start: no decisions until its first launch or a few weeks in.
+  const grace = state.stats.launches === 0 && state.week < B.eventGraceWeeks;
+  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && ev.when(state, h)
     && (ev.subject === null || resolveSubjects(state, ev).length > 0));

@@ -122,5 +122,9 @@ export const CHATTER = {
     'Leaving you my mechanical keyboard. Use it well.',
     'Last day! Do not rewrite my module. Or do.',
     'Bye all. I will miss the tacos most of all.',
+    'Going to go touch grass. Professionally.',
+    'My desk plant is up for adoption. Be kind to it.',
+    'I left a README in the drawer. It explains nothing.',
+    'Remember me when the build is green.',
   ],
 };
