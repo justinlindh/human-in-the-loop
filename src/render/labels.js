@@ -30,6 +30,8 @@ function injectStyle() {
     transform: rotate(45deg); }
   .hitl-leads { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
   .hitl-leads i { position: absolute; width: 2.5px; margin-left: -1.25px; background: ${P.ink}; border-radius: 2px; }
+  .hitl-leads i::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px;
+    margin-left: -4px; border-radius: 50%; background: ${P.ink}; box-shadow: 0 0 0 2px ${P.paper}; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
   `;
