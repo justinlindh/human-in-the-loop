@@ -7,6 +7,7 @@ import { CHANNELS } from '../data/channels.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 import { lockedReason } from './unlocks.js';
+import { eraAtLeast } from './eras.js';
 
 const marketers = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'marketing');
 
@@ -72,7 +73,8 @@ export function marketingSystem(ctx) {
     if (!p.wrapperHit && p.hype / 10 > p.score + B.wrapperGap) {
       p.wrapperHit = true;
       state.brand = Math.max(0, state.brand - B.wrapperBrandHit);
-      ctx.emit({ type: 'toast', text: `The Vergence calls ${p.name} 'just a wrapper'`, tone: 'bad' });
+      const jab = eraAtLeast(state, 'chatgbt') ? 'just a wrapper' : 'all hype, no product';
+      ctx.emit({ type: 'toast', text: `The Vergence calls ${p.name} '${jab}'`, tone: 'bad' });
     }
   }
 }

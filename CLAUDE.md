@@ -21,7 +21,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | Name | Lane | Worktree | Owns |
 |---|---|---|---|
 | team-lead | coordination | `/home/justin/src/gamedev` | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
-| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges into `feat/one-shot` when team-lead approves |
+| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `feat/one-shot` |
 | sim | simulation | `/home/justin/src/gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
 | art | render and art | `/home/justin/src/gamedev-art` | `src/render/`, `blender/`, `public/models/` |
 | ui | UI and audio | `/home/justin/src/gamedev-ui` | `src/ui/`, `src/audio/` |
@@ -42,5 +42,15 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Game text says "company" or "lab", never "startup", except inside a parody joke.
 - No em dash characters anywhere (files, commits, messages); a hook blocks them. Do not type the escape sequence for U+2014 either: the hook decodes it.
 - Comments describe what non-obvious code does now. No history, dates, or measurements in source.
-- Commit on your lane branch in your worktree. Never commit to `main`. The lead merges into `feat/one-shot`.
+- Commit on your lane branch in your worktree. Never commit to `main`.
+- Changes reach `feat/one-shot` only through pull requests (`gh pr create --base feat/one-shot --head lane/<lane>`), one per batch:
+  - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines.
+  - CI runs on the PR.
+  - The reviewer posts findings as a PR review (`gh pr review`).
+  - team-lead approves.
+  - The integrator merges with a merge commit (never squash) and resolves cross-lane conflicts on the PR.
+  - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
+  - If PRs start costing real velocity, tell team-lead rather than bypassing them.
+- PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
+- Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
 - Evidence before claims: when reporting a task done, include the commit hash, the test output, and screenshot paths for visual work.

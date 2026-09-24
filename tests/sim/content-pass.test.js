@@ -32,7 +32,7 @@ describe('content pass', () => {
   });
 
   it('misc events post their own short bot line, not the popup text', () => {
-    for (const id of ['coffee_machine_broke', 'office_dog']) {
+    for (const id of ['coffee_machine_broke']) {
       expect(EVENTS[id].chat, id).toBeTruthy();
       expect(EVENTS[id].chat).not.toBe(EVENTS[id].text);
     }

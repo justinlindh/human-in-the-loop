@@ -65,13 +65,14 @@ describe('people shape', () => {
     expect(avgSkill(52 * 10)).toBeGreaterThan(avgSkill(0) + 20);
   });
 
-  it('founders hold about half the institutional knowledge with one product and about a third with three', () => {
+  // The engineer founder holds about half; the designer founder adds a smaller share (founders built it).
+  it('founders hold well over half the institutional knowledge with one product and about 40% with three', () => {
     const s = game();
     addProduct(s);
-    expect(institutionalKnowledge(s)).toBeGreaterThan(42);
-    expect(institutionalKnowledge(s)).toBeLessThan(58);
+    expect(institutionalKnowledge(s)).toBeGreaterThan(55);
+    expect(institutionalKnowledge(s)).toBeLessThan(70);
     addProduct(s); addProduct(s);
-    expect(institutionalKnowledge(s)).toBeGreaterThan(24);
-    expect(institutionalKnowledge(s)).toBeLessThan(36);
+    expect(institutionalKnowledge(s)).toBeGreaterThan(32);
+    expect(institutionalKnowledge(s)).toBeLessThan(45);
   });
 });

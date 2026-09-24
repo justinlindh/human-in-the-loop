@@ -2,7 +2,7 @@
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way.
-// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}.
+// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder}.
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
 export const SUBJECTS = [
@@ -10,14 +10,14 @@ export const SUBJECTS = [
   'automatedSenior', 'mentorStaff', 'founder', 'randomProduct',
 ];
 
-export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era'];
+export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
   'cash', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
-  'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer',
+  'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
 ];
 
 
@@ -658,6 +658,113 @@ const list = [
       { label: 'Keep your head down', hint: 'Nothing now; the price war slows signups for 26 weeks', effects: { modifier: { key: 'acquisition', value: -0.1, weeks: 26, label: 'Price war' } }, outcome: 'You ship features and ignore the news. The news does not ignore you.' },
     ],
   },
+  {
+    id: 'era_plateau', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The Plateau',
+    text: 'Every company has the same agents now. {incumbent} runs its whole support desk with three people and a very tired dashboard. Customers have started asking a new question: "Who actually made this?"',
+    choices: [
+      { label: 'Lean into craft', hint: 'Brand up; people recover faster for 52 weeks', effects: { brand: 3, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 52, label: 'The craft turn' } }, outcome: 'You rewrite the About page. It now has photos of actual people. Some of them are even smiling.' },
+      { label: 'Automate to the floor', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Automate to the floor' } }, outcome: 'Margins go up. The office gets quieter. Someone starts a support group in the kitchen.' },
+      { label: 'Become the trusted one', hint: '-$20k; customers churn less for 52 weeks', effects: { cash: -20000, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Trust program' } }, outcome: 'You publish your incident history, your model choices, and a phone number that a human answers.' },
+    ],
+  },
+  // The first product's user test (raised halfway through the first build)
+  {
+    id: 'first_user_test', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The first user test',
+    text: 'A real person, found through a friend of a friend, is about to try {company}\'s first product. The founders are hiding behind a door.',
+    choices: [
+      { label: 'Watch in silence', hint: 'It hurts. Everyone learns faster for 8 weeks', effects: { teamMeaning: -1, modifier: { key: 'xp', value: 0.15, weeks: 8, label: 'Lessons from the user test' } }, outcome: 'They look for the save button for four minutes. Nobody breathes. Nobody forgets it.' },
+      { label: 'Explain everything as they go', hint: 'Feels great; the team is happier, and learns nothing', effects: { teamMeaning: 3 }, outcome: 'They love it! They loved the explanation, anyway.' },
+      { label: 'Skip it and keep building', hint: 'A little more output for 4 weeks', effects: { modifier: { key: 'output', value: 0.05, weeks: 4, label: 'Heads down' } }, outcome: 'You will find out what users think at launch. Like everyone does.' },
+    ],
+  },
+  // Ladder chunk: the lockdown, the work policy, office pets, and the rival
+  {
+    id: 'lockdown_start', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The office closes',
+    text: 'The whole world is working from home for a while. Everyone takes a laptop and a monitor from the office, except {name}, who says somebody has to keep the place running.',
+    choices: [
+      { label: 'Laptops and a stipend for everyone', hint: '-$5k; people take it better', effects: { cash: -5000, teamMeaning: 3 }, outcome: 'Someone buys a chair that costs more than their first car. It is a very good chair.' },
+      { label: 'Keep calm and ship', hint: 'More output for 10 weeks; people burn out faster for 10 weeks', effects: { modifier: [{ key: 'output', value: 0.05, weeks: 10, label: 'Lockdown sprint' }, { key: 'meaningDrain', value: 0.3, weeks: 10, label: 'Lockdown sprint' }] }, outcome: 'The commit graph goes up. So does the number of people who have not been outside.' },
+      { label: 'A daily video call for everyone', hint: 'Knowledge keeps flowing; the camera fatigue is real', effects: { ik: 5, teamMeaning: -2 }, outcome: 'You learn what everyone\'s kitchen looks like. One person always has their camera off. You respect it.' },
+    ],
+  },
+  {
+    id: 'work_policy', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'How do we work now?',
+    text: 'The office is open again. Some people missed it. Some people have discovered they like working next to their dog. {company} needs a policy.',
+    choices: [
+      { label: 'Back to the office', hint: 'Mentoring works best; the team grumbles', effects: { workPolicy: 'office', teamMeaning: -2 }, outcome: 'The kitchen is thrilled to see everyone. Nobody else says anything.' },
+      { label: 'Hybrid', hint: 'Some weeks in, some at home; mentoring and learning a little slower', effects: { workPolicy: 'hybrid', teamMeaning: 1 }, outcome: 'Tuesdays and Thursdays are office days. Everyone comes in on Wednesday by mistake.' },
+      { label: 'Remote-first', hint: 'Lower rent and a wider hiring pool; slower learning, fewer fresh ideas, slower fixes, and it gets lonely', effects: { workPolicy: 'remote', teamMeaning: 1 }, outcome: 'The office becomes a place people visit, like a museum of your own company.' },
+    ],
+  },
+  {
+    id: 'pet_request', kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
+    when: (s) => s.workPolicy !== null && s.workPolicy !== 'remote' && s.staff.length >= 6 && !s.pets.some((p) => p.species === 'dog'),
+    title: 'A dog on Fridays?',
+    text: '{name} would like to bring their dog in on Fridays. They have printed photos. The photos are laminated.',
+    choices: [
+      { label: 'Yes, dogs welcome', hint: 'A dog joins the office; everyone recovers a little faster', effects: { adoptPet: 'dog', teamMeaning: 2 }, outcome: 'The dog does a lap of every desk, then lies down under the one belonging to the person who least expected it.' },
+      { label: 'Not in the office', hint: '{name} is disappointed', effects: { meaning: -5 }, outcome: '{name} sets the dog as their video background instead. It is a strong statement.' },
+    ],
+  },
+  {
+    id: 'cat_request', kind: 'staff', weight: 2, cooldownWeeks: 78, random: true, subject: 'workingStaff',
+    when: (s) => s.workPolicy !== null && s.staff.length >= 8 && !s.pets.some((p) => p.species === 'cat') && s.week >= (s.flags.workPolicyAsked ?? 9999) + 52,
+    title: 'A cat, apparently',
+    text: '{name} wants to bring a cat to the office. The cat has not been consulted and does not care either way.',
+    choices: [
+      { label: 'Fine. One cat.', hint: 'A cat moves in, picks one favourite person, and stays', effects: { adoptPet: 'cat', teamMeaning: 1 }, outcome: 'The cat sleeps on the warmest server. It has never looked at you. It never will.' },
+      { label: 'Absolutely not', hint: 'Nothing happens. The cat is unbothered.', effects: {}, outcome: 'Somehow the cat is in the office on Monday anyway.' },
+    ],
+  },
+  {
+    id: 'pet_mishap', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    when: (s) => s.pets.length > 0,
+    title: 'Pet incident',
+    text: 'A pet chewed through the network cable in the middle of a customer demo. The demo is now about the pet.',
+    choices: [
+      { label: 'Laugh it off', hint: 'Brand up a little; a little less output for 2 weeks', effects: { brand: 1, modifier: { key: 'output', value: -0.03, weeks: 2, label: 'Chewed cable' } }, outcome: 'The customer asks if the pet comes with the enterprise plan.' },
+      { label: 'Pets stay home on demo days', hint: 'Team meaning dips a little', effects: { teamMeaning: -1 }, outcome: 'There is now a demo-day calendar. The pets are not invited to it.' },
+    ],
+  },
+  {
+    id: 'rival_appears', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'A rival appears',
+    text: '{rival} just launched in your market. Their founder, {rivalFounder}, says your product "feels a bit last year". Their launch video has a drone shot.',
+    choices: [
+      { label: 'Ignore them', hint: 'Nothing happens, for now', effects: {}, outcome: 'You do not watch the launch video. You watch it twice.' },
+      { label: 'Fire back online', hint: 'A coin flip: sympathy and a slower rival, or you look small', effects: { gamble: { p: 0.5, effects: { brand: 3, rivalHit: 10 }, else: { brand: -2 } } }, outcome: 'Your reply gets more likes than their launch. Or it does not. The internet decides.' },
+      { label: 'Out-ship them', hint: 'More output for 8 weeks; people burn out faster for 8 weeks', effects: { modifier: [{ key: 'output', value: 0.06, weeks: 8, label: 'Rivalry' }, { key: 'meaningDrain', value: 0.2, weeks: 8, label: 'Rivalry' }] }, outcome: 'The team has a new favourite hobby, and it is being better than {rival}.' },
+    ],
+  },
+  {
+    id: 'rival_jab', kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    when: (s) => s.rival?.status === 'rising' || s.rival?.status === 'stalled',
+    title: 'Another jab from {rival}',
+    text: '{rivalFounder} went on a podcast and called {company} "a nice little lifestyle business". The podcast has eleven listeners. All of them work for you.',
+    choices: [
+      { label: 'Rise above it', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: 'You say nothing. It is the most satisfying nothing you have ever said.' },
+      { label: 'Poach one of their people', hint: '-$10k; three senior candidates appear, and {rival} slows down', effects: { cash: -10000, candidates: 'seniorBatch', rivalHit: 15 }, outcome: 'Their best engineer takes your call. So do two of their friends.' },
+    ],
+  },
+  {
+    id: 'rival_merge', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Merge with {rival}?',
+    text: '{rival} is running out of money. {rivalFounder} proposes a merger: their customers, their team, and your name on the door.',
+    choices: [
+      { label: 'Merge', hint: '-$150k; their customers join your product in that market; {rival} is gone', effects: { cash: -150000, rivalFate: 'merged' }, outcome: '{rivalFounder} gets a nice title and a nicer chair. Their customers get your product. Most of them are fine with it.' },
+      { label: 'Let them fall', hint: '{rival} shuts down', effects: { rivalFate: 'dead' }, outcome: 'Their last blog post is titled "What we learned". It is very long.' },
+    ],
+  },
   // Classic era flavor
   {
     id: 'cloud_bill', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, eras: ['classic'],
@@ -820,14 +927,6 @@ const list = [
       { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
       { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The French press stays on its throne.' },
     ],
-  },
-  {
-    id: 'office_dog', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.staff.length >= 3,
-    chat: 'A very good dog has joined the office. All meetings are now dog meetings.',
-    title: 'Office dog',
-    text: 'Someone brought their dog to work. The dog has attended every meeting and approved every PR.',
-    auto: { teamMeaning: 4 },
   },
 ];
 

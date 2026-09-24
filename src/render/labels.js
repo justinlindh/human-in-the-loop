@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE as P } from './palette.js';
+import { readSeconds } from './reading.js';
 
 // Pooled floating labels in the CSS2D layer: rising "+N Stat" bubbles and speech bubbles.
 // At most MAX live at once; when full, the oldest is recycled.
@@ -97,8 +98,8 @@ export function createLabels(parent) {
     return l;
   }
 
-  // Speech bubble for a few seconds; replaces any bubble already on the same person.
-  function say(text, follow, seconds = 3, offsetY = 1.45) {
+  // Speech bubble for its reading time (or `seconds`); replaces any bubble already on the same person.
+  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45) {
     for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     const l = acquire();
     l.kind = 'say';

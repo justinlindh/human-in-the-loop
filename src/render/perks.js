@@ -57,6 +57,19 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     return { x: t.x + Math.cos(t.rotY) * lx + Math.sin(t.rotY) * lz, z: t.z - Math.sin(t.rotY) * lx + Math.cos(t.rotY) * lz };
   }
 
+  // Napping along a couch: centred on the seat depth, lying along its length with the head
+  // propped on the far armrest. Works for any couch length and rotation.
+  function couchNap(e) {
+    const b = new THREE.Box3().setFromObject(e.obj);
+    const len = e.target.rotY % Math.PI === 0 ? b.max.x - b.min.x : b.max.z - b.min.z;
+    // The head (about 0.45 m across) stays inside the armrest and clear of the back cushion;
+    // the figure's origin sits 0.34 m from the head centre along its length.
+    const armIn = len / 2 - 0.18;
+    const along = armIn - 0.24 - 0.34 + 0.05;
+    const p = toWorld(e.target, along, 0.16);
+    return { x: p.x, z: p.z, yaw: e.target.rotY - Math.PI / 2, anim: 'idle', lift: 0.44 };
+  }
+
   function modelSpots(e) {
     return MODEL_SPOTS[e.obj.userData.model] ?? null;
   }
@@ -93,8 +106,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
 
   // Top of a nap pod for lying on; a beanbag (level 1) is sat in instead.
   function lieHeight(e) {
-    if (e.level <= 1) return 0;
-    if (e.lieY === undefined) e.lieY = new THREE.Box3().setFromObject(e.obj).max.y * 0.5;
+    // Sprawled in a beanbag the hips sit in its dip; lying on a pod they rest on the mattress.
+    if (e.lieY === undefined) e.lieY = new THREE.Box3().setFromObject(e.obj).max.y * (e.level <= 1 ? 0.42 : 0.5);
     return e.lieY;
   }
 
@@ -221,6 +234,26 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
 
   function maybeStart(state) {
     const people = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && r.staff.mood !== 'away');
+    // Alone in a lockdown office, the stayer wanders more and naps on the couch.
+    const L = state?.lockdown;
+    const stayer = L && (state.week ?? 0) < L.until && L.stayerId ? recs.get(L.stayerId) : null;
+    if (stayer && eligible(stayer)) {
+      const free = freeSlots();
+      const couch = free.find((s) => s.kind === 'couch');
+      const solo = free.filter((s) => !s.def.pair);
+      const slot = couch && Math.random() < 0.5 ? couch : solo[Math.floor(Math.random() * solo.length)];
+      if (slot) {
+        visit(stayer, slot);
+        if (slot === couch) {
+          const n = couchNap(slot.e);
+          stayer.temp.goal = n;
+          stayer.temp.anim = 'nap';
+          stayer.temp.lift = n.lift;
+          walkTo(stayer, n);
+        }
+      }
+      return;
+    }
     const max = Math.max(1, Math.round(people.length / 7));
     const visiting = people.filter((r) => r.temp?.perkKey).length;
     if (visiting >= max) return;
@@ -249,7 +282,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     if (isBusy()) return;
     clock -= dt;
     if (clock > 0) return;
-    clock = rnd(2.5, 5);
+    clock = state?.lockdown && (state.week ?? 0) < state.lockdown.until ? rnd(1, 2) : rnd(2.5, 5);
     maybeStart(state);
   }
 

@@ -1,6 +1,6 @@
 import { ITEMS } from '../data/items.js';
 import { RESEARCH } from '../data/research.js';
-import { footprintCells, seatTile, desksOf } from './office.js';
+import { footprintCells, seatTile, desksOf, occupiedDesks } from './office.js';
 
 const ITEM_CAP = 0.5;
 const SECOND_COPY = 0.5;
@@ -9,9 +9,9 @@ const ADJACENCY_KEYS = new Set(Object.values(ITEMS).filter((it) => it.adjacency)
 const near = (cells, [x, y], radius) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - x), Math.abs(cy - y)) <= radius);
 
 // Every adjacency bonus in a layout: { sourceId, targetId, target: 'desk'|'item', key, value, paid }.
-// A desk link pays only when someone sits at that desk (staff take desks in order). Distance is
+// A desk link pays only when the desk's id is in `occupied` (a Set of desk ids someone sits at). Distance is
 // Chebyshev, from any tile of the source to the desk's seat tile, or to any tile of the other item.
-export function adjacencyLinks(placed, staffCount) {
+export function adjacencyLinks(placed, occupied) {
   const links = [];
   const desks = desksOf(placed);
   for (const src of placed) {
@@ -27,11 +27,11 @@ export function adjacencyLinks(placed, staffCount) {
         }
       }
     } else {
-      desks.forEach((d, i) => {
+      for (const d of desks) {
         if (near(cells, seatTile(d), adj.radius)) {
-          links.push({ sourceId: src.id, targetId: d.id, target: 'desk', key: adj.key, value: adj.value, paid: i < staffCount });
+          links.push({ sourceId: src.id, targetId: d.id, target: 'desk', key: adj.key, value: adj.value, paid: occupied.has(d.id) });
         }
-      });
+      }
     }
   }
   return links;
@@ -41,7 +41,7 @@ export function adjacencyLinks(placed, staffCount) {
 function adjacencyBonus(state, key) {
   let desk = 0;
   let item = 0;
-  for (const l of adjacencyLinks(state.office.placed, state.staff.length)) {
+  for (const l of adjacencyLinks(state.office.placed, occupiedDesks(state))) {
     if (l.key !== key || !l.paid) continue;
     if (l.target === 'desk') desk += l.value;
     else item += l.value;

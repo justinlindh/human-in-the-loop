@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 
 // Emote bubbles drawn once into canvas textures and shared by every character.
-export const EMOTES = ['sweat', 'sparkle', 'storm', 'lightbulb', 'heart', 'zzz', 'exclamation', 'music', 'typing'];
+export const EMOTES = ['sweat', 'sparkle', 'storm', 'lightbulb', 'heart', 'zzz', 'exclamation', 'music', 'typing', 'tired'];
 
 const SIZE = 128;
 const textures = new Map();
@@ -141,6 +141,15 @@ const DRAW = {
     ctx.beginPath();
     ctx.moveTo(61, 78); ctx.lineTo(61, 34); ctx.lineTo(95, 26); ctx.lineTo(95, 70);
     ctx.stroke();
+  },
+  tired(ctx) {
+    // A nearly empty battery: tiredness, as opposed to burnout's storm and zzz.
+    ctx.fillStyle = P.paper;
+    ctx.beginPath(); ctx.roundRect(30, 40, 60, 36, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = P.ink;
+    ctx.beginPath(); ctx.roundRect(92, 50, 8, 16, 3); ctx.fill();
+    ctx.fillStyle = P.marker_orange;
+    ctx.beginPath(); ctx.roundRect(36, 46, 12, 24, 3); ctx.fill();
   },
   typing(ctx) {
     ctx.fillStyle = P.ink;

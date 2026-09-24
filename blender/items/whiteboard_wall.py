@@ -55,7 +55,7 @@ def l3():
         for r in range(5 - c):
             parts.append(box(f'kn{c}{r}', (0.11, 0.006, 0.11), (cx, 0.435, 1.55 - r * 0.15), notes[(c + r) % 5], bevel=0))
     for i, col in enumerate(['marker_blue', 'marker_green', 'marker_orange', 'role_designer']):
-        parts.append(cyl(f'mk{i}', 0.012, 0.13, (-0.3 + i * 0.08, 0.4, 0.225), col, verts=8, bevel=0, rot=(0, math.pi / 2, 0)))
+        parts.append(cyl(f'mk{i}', 0.012, 0.13, (-0.3 + i * 0.08, 0.41 - i * 0.025, 0.225), col, verts=8, bevel=0, rot=(0, math.pi / 2, 0)))
     return parts
 
 

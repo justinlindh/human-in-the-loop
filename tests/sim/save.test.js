@@ -119,3 +119,78 @@ describe('per-id maps are backfilled on load', () => {
     expect(res.state.goals.hq).toEqual({ done: false, week: null });
   });
 });
+
+describe('seat backfill', () => {
+  it('a save without deskIds seats staff in their current order', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const { addDesks } = await import('./helpers.js');
+    const mem = {};
+    const store = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; }, removeItem: (k) => { delete mem[k]; } };
+    const s = addDesks(createGame({ seed: 3 }), 3);
+    for (const p of s.staff) delete p.deskId;
+    store.setItem(SAVE_KEY, JSON.stringify(s));
+    const res = loadGame(store);
+    expect(res.state.staff.map((p) => p.deskId)).toEqual(s.office.placed.slice(0, 2).map((d) => d.id));
+  });
+});
+
+describe('save slots', () => {
+  const memStore = () => { const mem = {}; return { mem, getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; } }; };
+
+  it('each company keeps its own slot with metadata for the title screen', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const { listSaves, deleteSave } = await import('../../src/save/save.js');
+    const store = memStore();
+    const a = createGame({ seed: 1, companyName: 'Alpha', logoColor: '#ff0000' });
+    const b = createGame({ seed: 2, companyName: 'Beta' });
+    expect(saveGame(a, store)).toBe(true);
+    expect(saveGame(b, store)).toBe(true);
+    expect(a.flags.saveSlot).not.toBe(b.flags.saveSlot);
+    a.week = 60;
+    expect(saveGame(a, store)).toBe(true);
+    const list = listSaves(store);
+    expect(list.map((m) => m.companyName).sort()).toEqual(['Alpha', 'Beta']);
+    const meta = list.find((m) => m.companyName === 'Alpha');
+    expect(meta).toMatchObject({ id: a.flags.saveSlot, logoColor: '#ff0000', week: 60, year: 2020, eraId: 'classic', over: false });
+    expect(loadGame(store).state.companyName).toBe('Alpha');
+    const res = loadGame(store, b.flags.saveSlot);
+    expect(res).toMatchObject({ ok: true, id: b.flags.saveSlot });
+    expect(res.state.companyName).toBe('Beta');
+    deleteSave(store, a.flags.saveSlot);
+    expect(listSaves(store).map((m) => m.companyName)).toEqual(['Beta']);
+    expect(loadGame(store).state.companyName).toBe('Beta');
+    expect(loadGame(store, 'nope')).toEqual({ ok: false, reason: 'No save found' });
+  });
+
+  it('when every slot is taken, a new company reuses the oldest', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const { listSaves, MAX_SLOTS } = await import('../../src/save/save.js');
+    const store = memStore();
+    const games = [];
+    for (let i = 0; i < MAX_SLOTS; i++) {
+      const g = createGame({ seed: i + 1, companyName: `Co ${i}` });
+      saveGame(g, store);
+      games.push(g);
+      const idx = JSON.parse(store.mem['hitl.saves.v2']);
+      idx.slots[g.flags.saveSlot].savedAt = i;
+      store.setItem('hitl.saves.v2', JSON.stringify(idx));
+    }
+    const extra = createGame({ seed: 99, companyName: 'Newcomer' });
+    saveGame(extra, store);
+    expect(extra.flags.saveSlot).toBe(games[0].flags.saveSlot);
+    const names = listSaves(store).map((m) => m.companyName);
+    expect(names).toHaveLength(MAX_SLOTS);
+    expect(names).toContain('Newcomer');
+    expect(names).not.toContain('Co 0');
+  });
+
+  it('a broken index or storage never crashes', async () => {
+    const { listSaves } = await import('../../src/save/save.js');
+    const store = memStore();
+    store.setItem('hitl.saves.v2', '{nope');
+    expect(listSaves(store)).toEqual([]);
+    const broken = { getItem: () => { throw new Error('x'); }, setItem: () => { throw new Error('x'); }, removeItem: () => { throw new Error('x'); } };
+    expect(listSaves(broken)).toEqual([]);
+    expect(saveGame({ flags: {}, week: 0 }, broken)).toBe(false);
+  });
+});

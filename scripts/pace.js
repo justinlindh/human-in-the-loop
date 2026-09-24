@@ -15,7 +15,7 @@
 import { createGame, tick, dispatch } from '../src/sim/index.js';
 import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
-import { createPacer, WEEK_SECONDS, BUBBLE_SECONDS } from '../src/pacing.js';
+import { createPacer, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
 
 // Modelled human time, in real seconds. Each range is [min, max], drawn uniformly.
 const HUMAN = {
@@ -31,12 +31,12 @@ const HUMAN = {
 const UI = {
   toastBudget: 3,          // info and good toasts per game week; warn and bad always show
   toastDedupSeconds: 0.8,
-  maxSpeech: 4,
-  bubbleFade: 0.25,        // seconds; a bubble cut shorter than this still reads as whole            // speech bubbles on screen before the renderer drops new ones
-  standupGather: 2.2,
+  maxSpeech: 4,             // speech bubbles on screen before the renderer drops new ones
+  bubbleFade: 0.25,         // seconds; a bubble cut shorter than this still reads as whole
+  standupGather: 2.2,       // seconds (scaled by speed, max 2x) to gather before a daily standup talks
   standupStageEvery: { 1: 3, 2: 6 }, // game weeks between staged standups at 1x, and at 2x and up
-  deskStandupBubble: 2.4, // seconds for the one spoken update on unstaged standup weeks      // seconds (scaled by speed, max 2x) to gather before a daily standup talks
 };
+// Every bubble stays up for readSeconds(text, speed), the shared rule the renderer follows.
 
 function parseArgs(argv) {
   const out = {};
@@ -242,7 +242,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       bubbleStats.dropped++;
       return;
     }
-    bubbles.push({ who, start, end: start + seconds });
+    bubbles.push({ who, start, end: start + seconds, want: seconds });
     bubbleStats.shown++;
     bubbleStats.maxConcurrent = Math.max(bubbleStats.maxConcurrent, onScreen(start).length);
   }
@@ -311,7 +311,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           if (e.dropped) { counts.sayDropped++; log('say-drop', `${e.staffId}: ${e.text}`); break; }
           counts.says++;
           log('say', `${e.staffId}${e.toId ? ` to ${e.toId}` : ''}: ${e.text}`, { reply: !!e.replyTo });
-          if (e.text && present.has(e.staffId)) bubble(e.staffId, e.text, t, BUBBLE_SECONDS, 'say');
+          if (e.text && present.has(e.staffId)) bubble(e.staffId, e.text, t, readSeconds(e.text, speed), 'say');
           break;
         }
         case 'standup': {
@@ -322,7 +322,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           const staged = e.mode === 'daily' && speed < 4 && state.week - lastStaged >= UI.standupStageEvery[speed >= 2 ? 2 : 1];
           if (e.mode === 'daily' && !staged && speed < 4) {
             const line = e.lines.filter((l) => l.text && present.has(l.staffId)).sort((a, b) => a.text.length - b.text.length)[0];
-            if (line) bubble(line.staffId, line.text, t, UI.deskStandupBubble, 'standup-desk');
+            if (line) bubble(line.staffId, line.text, t, readSeconds(line.text, speed), 'standup-desk');
           }
           if (staged && e.lines.some((l) => present.has(l.staffId))) {
             lastStaged = state.week;
@@ -331,8 +331,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
             let at = t + UI.standupGather / k + 0.2 / k;
             for (const l of e.lines) {
               if (!present.has(l.staffId)) continue;
-              const beat = (l.text ? 0.9 + Math.min(0.6, l.text.length * 0.018) : 0.6) / k;
-              if (l.text) bubble(l.staffId, l.text, at, Math.max(0.6, beat - 0.1), 'standup');
+              const beat = l.text ? readSeconds(l.text, speed) : 0.6 / k;
+              if (l.text) bubble(l.staffId, l.text, at, beat, 'standup');
               at += beat;
             }
           }
@@ -449,6 +449,9 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     bubbles: {
       perMinute: perMin(bubbleStats.shown), meanOnScreen: r2(integral / Math.max(1, samples)), shareOfTimeAny: r2(covered / Math.max(1, samples)),
       maxConcurrent: bubbleStats.maxConcurrent, dropped: bubbleStats.dropped, overlaps: bubbleStats.overlaps.length,
+      // On-screen time against each bubble's reading time.
+      readRatio: bubbles.length ? r2(bubbles.reduce((a, b) => a + (b.end - b.start) / b.want, 0) / bubbles.length) : null,
+      cutShort: bubbles.filter((b) => b.end - b.start < b.want - UI.bubbleFade).length,
     },
     launches: { count: counts.launches, popups: counts.launchPopups },
     incidents: counts.incidents,
@@ -482,6 +485,7 @@ function printSummary(m, overlaps) {
   L('spoken lines per minute', `${m.say.linesPerMinute} (${m.say.lines} lines, ${m.say.droppedStale} dropped stale while the speaker talked)`);
   L('standups', `${m.standups.count} (${m.standups.staged} staged in person)`);
   L('speech bubbles', `${m.bubbles.perMinute}/min, mean ${m.bubbles.meanOnScreen} on screen, any up ${Math.round(m.bubbles.shareOfTimeAny * 100)}% of the time, max ${m.bubbles.maxConcurrent}`);
+  L('  shown vs reading time', m.bubbles.readRatio === null ? 'no bubbles' : `${Math.round(m.bubbles.readRatio * 100)}% on average; ${m.bubbles.cutShort} cut short of readSeconds`);
   L('  dropped at the cap', m.bubbles.dropped);
   L('  same-speaker overlaps', m.bubbles.overlaps);
   for (const o of overlaps.slice(0, 5)) console.log(`    ${mmss(o.t)} w${o.week} ${o.source} ${o.who} cut the last bubble ${o.cutShort}s short: ${o.text.slice(0, 60)}`);

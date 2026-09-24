@@ -10,8 +10,9 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { modifierBonus } from './modifiers.js';
 import { perk } from './bonus.js';
 import { staffMods } from './staff.js';
-import { currentEra } from './eras.js';
+import { currentEra, eraAtLeast } from './eras.js';
 import { autoArrange, spentOn } from './office.js';
+import { rivalPressure } from './ladder.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -28,6 +29,11 @@ export function productAppeal(state, product) {
     * (1 + state.brand / 100) * (1 + product.novelty * B.noveltyAppealPer) * (0.7 + 0.3 * trust) * product.uptime
     * B.appealScale * (B.sizeAppeal[product.size] ?? 1);
   if (cat.compliance && model && !model.complianceOk) appeal *= B.enterpriseComplianceMult;
+  // In the Plateau everyone has the same AI, so polish and a trusted brand are what set a product apart.
+  if (eraAtLeast(state, 'plateau')) {
+    const total = product.stats.features + product.stats.polish + product.stats.reliability + product.stats.novelty;
+    appeal *= 1 + B.plateauPolishAppeal * (total > 0 ? product.stats.polish / total : 0) + B.plateauBrandAppeal * state.brand / 100;
+  }
   return appeal;
 }
 
@@ -37,7 +43,7 @@ export function competition(state, product, appeal = productAppeal(state, produc
   const c = state.market.categories[product.category];
   // Incumbents and clones bolt AI onto their products as the eras turn, which raises the bar for everyone.
   const era = B.eraCompetition[currentEra(state).id] ?? 1;
-  const incumbent = c.incumbentStrength * (1 + B.incumbentStrengthGrowth * yearIndex) * era;
+  const incumbent = (c.incumbentStrength * (1 + B.incumbentStrengthGrowth * yearIndex) + rivalPressure(state, product.category)) * era;
   const clones = c.clones * B.cloneStrength * (1 + 0.2 * yearIndex) * era;
   const ownOthers = sum(liveProducts(state).filter((p) => p.id !== product.id && p.category === product.category), (p) => productAppeal(state, p));
   return { appeal, incumbent, clones, ownOthers, total: appeal + incumbent + clones + ownOthers };
@@ -148,10 +154,24 @@ registerAction('setOwner', (ctx, { productId, staffId }) => {
   return { ok: true };
 });
 
+// Why the company cannot move into a stage yet, or null. Stage gates spread the office across the run.
+export function officeGateReason(state, stage) {
+  const g = stage.gate ?? {};
+  if (g.week && state.week < g.week) return `Available from ${dateOf(g.week).year}`;
+  if (g.launches && state.stats.launches < g.launches) return `Needs ${g.launches} launches`;
+  if (g.liveProducts && liveProducts(state).length < g.liveProducts) return `Needs ${g.liveProducts} live products`;
+  if (g.staff && state.staff.length < g.staff) return `Needs ${g.staff} people`;
+  if (g.brand && state.brand < g.brand) return `Needs brand ${g.brand}`;
+  if (g.mrr && totalMrr(state) < g.mrr) return `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
+  return null;
+}
+
 registerAction('upgradeOffice', (ctx) => {
   const { state } = ctx;
   const next = OFFICE_STAGES[state.officeStage + 1];
   if (!next) return { ok: false, reason: 'Already at the biggest office' };
+  const blocked = officeGateReason(state, next);
+  if (blocked) return { ok: false, reason: blocked };
   if (state.cash < next.upgradeCost) return { ok: false, reason: 'Not enough cash' };
   state.cash -= next.upgradeCost;
   state.officeStage++;
