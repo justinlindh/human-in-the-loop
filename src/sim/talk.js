@@ -337,8 +337,10 @@ export function talkSystem(ctx, happened) {
 
   // Slackk.
   let posted = false;
+  // A new person's own hello already greets the channel; no second welcome thread in the same stretch.
+  const greeted = state.flags.helloWeek !== undefined && state.week - state.flags.helloWeek <= 1;
   if (chance(rng, B.chatSituationChance)) {
-    for (const on of onNow) if (!posted) posted = !!runOne(ctx, eligible(state, talk, h, { stream: 'chat', on }), beats, talk);
+    for (const on of onNow) if (!posted && !(on === 'hire' && greeted)) posted = !!runOne(ctx, eligible(state, talk, h, { stream: 'chat', on }), beats, talk);
   }
   if (!posted) posted = runJoke(ctx, 'chat', talk, h);
   if (!posted && chance(rng, B.threadChance * factor)) posted = !!runOne(ctx, eligible(state, talk, h, { stream: 'chat' }), beats, talk);

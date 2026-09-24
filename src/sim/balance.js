@@ -67,7 +67,7 @@ export const B = {
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
-  saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
+  saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {
     bootstrapped: { cash: 110000, scoreMult: 1, brand: 0, seniorCandidates: 0 },
@@ -87,6 +87,8 @@ export const B = {
   strainTiredBelow: 35, strainFromTired: 3, strainUnderstaffed: 2, strainPerCrunch: 25, strainOnCall: 3, strainSlack: 1, strainSlackMax: 3,
   strainRecoverWorking: 1.5, strainRestedAbove: 60, strainRecoverRest: 5, strainRecoverAway: 20, noCrunchStrainMult: 0.5, noCrunchOutput: -0.03,
   strainWarn: 60, strainBurnout: 85, strainRecoveredBelow: 55, strainOutputPenalty: 0.3, timeOffWeeks: 2,
+  vacationWeeks: 2, vacationFirstAfter: 20, vacationMaxShare: 0.15, vacationUnderstaffed: 0.3, vacationPostponeWeeks: 4,
+  vacationPostponeStrain: 6, vacationStamina: 60,
   incentiveEveryWeeks: 8, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
   purposeStart: { craft: 55, people: 55, trust: 55, growth: 40 }, missionAfterWeeks: 8, purposeTestsKept: 12,
   purposeMeaning: 0.3, purposeRetention: 0.4, purposeAppeal: 0.3, purposeHiring: 6,
@@ -94,5 +96,5 @@ export const B = {
   eraJitterWeeks: 13, chatgbtAutomationCap: 0.5, chatgbtAutomationFns: ['support', 'marketing'], noModelTrust: 0.85,
   eraCompetition: { classic: 1, chatgbt: 1.12, agents: 1.25, consolidation: 1.4, plateau: 1.45 }, consolidationVendorEveryWeeks: 13, consolidationDeprecateChance: 0.8,
   acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.95,
-  ipoMrr: 2100000, ipoBrand: 60, acquisitionOfferMrr: 1900000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
+  ipoMrr: 2500000, ipoBrand: 60, acquisitionOfferMrr: 2200000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };

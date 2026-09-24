@@ -159,3 +159,31 @@ describe('the Incentives Program (issue #11)', () => {
     for (const p of s.staff) expect(Number.isFinite(p.strain)).toBe(true);
   });
 });
+
+describe('natural vacations', () => {
+  it('everyone takes about two weeks a year, staggered, and a crunch or outage postpones it with strain', async () => {
+    const { runBot } = await import('../../src/sim/bots.js');
+    const { vacationSystem } = await import('../../src/sim/strain.js');
+    const awayWeeks = {};
+    let worst = 0;
+    runBot('sensible', 3, 260, { onWeek: (st) => {
+      const onVacation = st.staff.filter((p) => st.flags[`awayFor_${p.id}`] === 'Vacation');
+      for (const p of onVacation) awayWeeks[p.id] = (awayWeeks[p.id] ?? 0) + 1;
+      if (st.staff.length >= 8) worst = Math.max(worst, onVacation.length / st.staff.length);
+    } });
+    const counts = Object.values(awayWeeks);
+    expect(counts.length).toBeGreaterThan(5);
+    expect(worst).toBeLessThanOrEqual(B.vacationMaxShare + 0.1);
+    const s = game(4);
+    const p = addStaff(s, 'engineer', 'mid', { hiredWeek: -200, strain: 10 });
+    const q = addProduct(s);
+    s.outage = { productId: q.id, kind: 'ransomware', severity: 3, weeks: 1, unrecoverable: false };
+    run(s, vacationSystem);
+    expect(p.mood).not.toBe('away');
+    expect(p.strain).toBe(10 + B.vacationPostponeStrain);
+    s.outage = null;
+    s.week = s.flags.vacationDue[p.id];
+    run(s, vacationSystem);
+    expect(p.mood).toBe('away');
+  });
+});

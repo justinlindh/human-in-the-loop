@@ -192,7 +192,13 @@ registerAction('hire', (ctx, { candidateId }) => {
   // One hello per week: when several people start together, the first one speaks for the group.
   if (state.flags.helloWeek !== state.week) {
     state.flags.helloWeek = state.week;
-    emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
+    // Hellos remember the last few so back-to-back hiring weeks do not greet the same way.
+    const recent = (state.flags.recentHello ??= []);
+    const pool = eraLines(state, CHATTER.hello).filter((l) => !recent.includes(l));
+    const line = pick(ctx.rng, pool.length ? pool : CHATTER.hello);
+    recent.push(line);
+    if (recent.length > B.helloMemory) recent.splice(0, recent.length - B.helloMemory);
+    emitChat(ctx, { person: c, text: line });
   }
   return { ok: true };
 });
