@@ -51,6 +51,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - The integrator merges with a merge commit (never squash) and resolves cross-lane conflicts on the PR.
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
+  - Never push to a PR's branch after it merges: those commits never reach `feat/one-shot`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/feat/one-shot` with its own PR.
 - PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`, imperative, lower case after the colon, no trailing period.
   - Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
