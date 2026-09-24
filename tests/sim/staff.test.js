@@ -4,7 +4,7 @@ import { generateStaff, refreshCandidates, outputMult, capacity, staffUpkeep, st
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { ASSIGNMENT_TYPES } from '../../src/contract/events.js';
-import { game, addStaff, expectFail } from './helpers.js';
+import { game, addStaff, expectFail, advance } from './helpers.js';
 
 const ROLES = ['engineer', 'designer', 'marketer', 'support', 'security', 'sales'];
 const upkeep = (s, n = 1) => { for (let i = 0; i < n; i++) { staffUpkeep(makeCtx(s)); s.week++; } };
@@ -272,7 +272,8 @@ describe('staff upkeep', () => {
   it('runs as part of tick deterministically', () => {
     const a = game(11);
     const b = game(11);
-    for (let i = 0; i < 30; i++) { tick(a); tick(b); }
+    advance(a, 30, tick, dispatch);
+    advance(b, 30, tick, dispatch);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
     expect(a.candidatesWeek).toBeGreaterThan(0);
   });

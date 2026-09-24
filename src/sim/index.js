@@ -9,6 +9,10 @@ import './automation.js';
 import './meaning.js';
 import './knowledge.js';
 import './market.js';
+import './incidents.js';
+import './events.js';
+import './calendar.js';
+import './endgame.js';
 import './economy.js';
 
 export { createGame, FUNCTIONS, SAVE_VERSION } from './state.js';
@@ -18,3 +22,5 @@ export { dateOf } from './util.js';
 export { productAppeal, totalMrr } from './products.js';
 export { oversightRequired, oversightProvided } from './automation.js';
 export { categoryLeaders } from './market.js';
+export { securityPosture } from './incidents.js';
+export { scoreRun } from './endgame.js';

@@ -34,3 +34,12 @@ export function addProduct(state, over = {}) {
   state.products.push(p);
   return p;
 }
+
+// Ticks n weeks, resolving any decision with its first choice that the sim accepts.
+export function advance(state, n, tickFn, dispatchFn) {
+  for (let i = 0; i < n && !state.gameOver; i++) {
+    for (let c = 0; state.pendingDecision && c < 4; c++) dispatchFn(state, { type: 'resolveDecision', choice: c });
+    tickFn(state);
+  }
+  return state;
+}

@@ -7,6 +7,7 @@ import { automationExposure, oversightRequired, oversightProvided } from './auto
 import { liveProducts } from './projects.js';
 import { CHATTER } from '../data/chatter.js';
 import { emitChat } from './chat.js';
+import { modifierBonus } from './modifiers.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -35,8 +36,8 @@ function weeklyMeaning(state, p) {
   if (a === 'project' && state.projects.some((j) => j.id === p.assignment.targetId && j.kind === 'craft')) bonus += B.meaningRecovery.craft;
   if (state.policies.craft_fridays) bonus += B.meaningRecovery.craftFridays;
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
-  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery;
-  return recovery - drain;
+  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * Math.max(0, 1 + modifierBonus(state, 'meaningRecovery'));
+  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain'));
 }
 
 export function meaningSystem(ctx) {

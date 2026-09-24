@@ -4,6 +4,11 @@ import { getActionTypes, getSystems } from '../../src/sim/registry.js';
 import { createRng, pick, int, chance } from '../../src/sim/rng.js';
 import { game, addStaff, addProduct } from './helpers.js';
 
+function assertAllFinite(v, path) {
+  if (typeof v === 'number') expect(Number.isFinite(v), path).toBe(true);
+  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) assertAllFinite(x, `${path}.${k}`);
+}
+
 // Systems registered so far with the plan's order table.
 const PLAN_ORDER = [
   ['calendar-start', 10], ['work', 20], ['projects', 30], ['products', 40], ['marketing', 45], ['meaning', 50],
@@ -53,6 +58,7 @@ describe('dispatch invariants', () => {
           const res = dispatch(s, randomAction(r, s, type));
           expect(typeof res.ok).toBe('boolean');
           expect(Array.isArray(res.events)).toBe(true);
+          if (res.ok) assertAllFinite(s, `${type}`);
           if (!res.ok) {
             failures++;
             expect(typeof res.reason, type).toBe('string');
@@ -81,6 +87,6 @@ describe('system order', () => {
     const got = getSystems().map((x) => [x.name, x.order]);
     for (const [name, order] of got) expect(plan[name], name).toBe(order);
     expect(got.map(([, o]) => o)).toEqual([...got.map(([, o]) => o)].sort((a, b) => a - b));
-    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'work', 'projects', 'products', 'marketing', 'meaning', 'knowledge', 'market', 'economy', 'staff-upkeep']);
+    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'work', 'projects', 'products', 'marketing', 'meaning', 'knowledge', 'market', 'incidents', 'events', 'annual', 'economy', 'staff-upkeep', 'endgame', 'history']);
   });
 });
