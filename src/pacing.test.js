@@ -24,6 +24,16 @@ describe('readSeconds', () => {
       expect(readSeconds(text, 4)).toBeLessThanOrEqual(readSeconds(text, 2));
     }
   });
+  it('never drops below the time it takes to read the line at faster speeds', () => {
+    for (const n of [10, 40, 70, 100, 140]) {
+      const text = 'x'.repeat(n);
+      const reading = Math.min(READ.max, READ.floorBase + n / READ.charsPerSecond);
+      for (const speed of [1, 2, 4]) expect(readSeconds(text, speed)).toBeGreaterThanOrEqual(reading - 1e-9);
+    }
+    // A 70-character line: unchanged at 1x, held to its reading time at 2x and 4x.
+    expect(readSeconds('x'.repeat(70), 1)).toBeCloseTo(READ.base + READ.perChar * 70);
+    expect(readSeconds('x'.repeat(70), 2)).toBeCloseTo(READ.floorBase + 70 / READ.charsPerSecond);
+  });
 });
 
 describe('pacer clock', () => {
