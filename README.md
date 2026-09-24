@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/readme/logo-dark-theme.png">
-    <img src="docs/readme/logo.png" alt="Human in the Loop" width="600">
+    <img src="docs/readme/logo.png" alt="Human in the Loop: an AI-era company sim" width="600">
   </picture>
 </p>
 
@@ -18,8 +18,9 @@ A run is a 20-year career, from a garage in 2019 through the AI boom and whateve
 
 | | |
 |---|---|
-| ![Two founders at their first desks in a garage](docs/readme/garage.png) | ![A busy headquarters with an arcade machine and a plant wall](docs/readme/hq.png) |
-| ![A waffle party in the office](docs/readme/waffle-party.png) | ![The office empty during lockdown, with everyone on a video call](docs/readme/lockdown.png) |
+| ![Two founders at their first desks in a garage](docs/readme/garage.png) | ![The office empty during lockdown, with everyone on a video call](docs/readme/lockdown.png) |
+
+![A busy headquarters with bookcases, plant walls and an office cat](docs/readme/hq.png)
 
 ## Running it
 
