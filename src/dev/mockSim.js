@@ -160,6 +160,8 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     models: Object.fromEntries(['claudius', 'chatgbt', 'gemenai', 'grokk', 'llamarama', 'deepsleep', 'mistrale'].map((m, i) => [m, { version: 1 + (i % 3), capability: 70 + i, costMult: 1, available: true, deprecated: false }])),
     discoveredCombos: { 'email:summarizer': 1.45, 'support:agent': 1.5 },
     items: MOCK_ITEMS[cfg.stage].map(([itemId, level], i) => ({ id: `i${i + 1}`, itemId, level })),
+    modifiers: cfg.stage >= 1 ? [{ id: 'x1', key: 'output', value: -0.1, label: 'Four-day week trial', untilWeek: week + 5, source: 'four_day_week' }, { id: 'x2', key: 'meaningRecovery', value: 0.5, label: 'Four-day week trial', untilWeek: week + 5, source: 'four_day_week' }] : [],
+    scheduled: cfg.stage >= 1 ? [{ id: 'q1', week: week + 5, kind: 'event', payload: { eventId: 'four_day_week_review' } }] : [],
     research: { done: cfg.stage === 0 ? [] : cfg.stage === 1 ? ['eval_harness', 'ci_cd'] : ['eval_harness', 'agent_sandbox', 'ci_cd', 'observability', 'docs_culture'] },
     outage: cfg.incident && products[0] ? { productId: products[0].id, kind: 'db_wipe', severity: 4, weeks: 2, unrecoverable: true } : null,
     incidentLog: cfg.incident ? [{ week: week - 2, kind: 'db_wipe', productId: products[0].id, caught: false, severity: 4 }] : [],

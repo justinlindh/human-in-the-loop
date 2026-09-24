@@ -39,6 +39,8 @@ State = {
   models: { [modelId]: { version, capability, costMult, available, deprecated } },
   items: [{ id, itemId, level /*1..3*/ }],     // office shop items; array index is the slot; max slots per stage in OFFICE_STAGES[stage].itemSlots
   research: { done: [researchIds] },
+  modifiers: [{ id, key, value, label, untilWeek, source }],   // temporary effects from decisions; key names a sim bonus (e.g. 'output', 'meaningRecovery')
+  scheduled: [{ id, week, kind /*'effects'|'event'*/, payload }],   // delayed consequences and follow-up events; UI does not reveal payloads
   discoveredCombos: { ['cat:angle']: fitNumber },
   outage: null | { productId, kind, severity, weeks, unrecoverable },
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30

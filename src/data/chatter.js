@@ -80,4 +80,20 @@ export const CHATTER = {
     'Agent asked for prod access. Denied. Politely.',
     'Another day, another hallucinated API.',
   ],
+  hello: [
+    'Hi all! Where do I find the good snacks?',
+    'Hello! I have already starred the repo.',
+    'Excited to be here. What does this button do?',
+    'Hi! I read the whole wiki. Some of it was wrong.',
+    'Hello team. I brought my own keyboard. Sorry.',
+    'Hey! Who do I ask about prod access? Kidding.',
+  ],
+  farewell: [
+    'It has been real. Take care of the billing service.',
+    'Thanks for everything. Please feed the plant.',
+    'Signing off. The runbook is in my head, sorry.',
+    'Leaving you my mechanical keyboard. Use it well.',
+    'Last day! Do not rewrite my module. Or do.',
+    'Bye all. I will miss the tacos most of all.',
+  ],
 };
