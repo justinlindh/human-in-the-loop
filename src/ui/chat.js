@@ -1,5 +1,5 @@
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
-import { icon } from './icons.js';
+import { icon, reactionIcon } from './icons.js';
 import { portraitURL } from './widgets.js';
 
 const CHANNELS = ['general', 'incidents', 'wins', 'random'];
@@ -53,7 +53,7 @@ export function createChat(root, { getState, onName } = {}) {
       h('div.mcol', null,
         h('div.mline', null, name, h('span.w.num', { text: `W${dateOf(m.week).week}` })),
         h('div.mtext', { text: m.text }),
-        reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, emo, h('b.num', { text: ` ${n}` })))) : null));
+        reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
   }
 
   // Replies go after the last message of their thread so threads stay together.

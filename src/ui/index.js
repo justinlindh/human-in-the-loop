@@ -246,6 +246,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const q = new URLSearchParams(location.search);
   if (q.has('title')) api.showTitle();
   if (q.has('tutorial')) setTimeout(() => tutorial.start(true), 300);
+  if (q.has('icons')) import('./iconboard.js').then((m) => m.showIconBoard(layer));
   if (import.meta.env?.DEV) window.__HITL_UI = api;
   return api;
 }
