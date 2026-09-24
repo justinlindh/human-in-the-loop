@@ -130,7 +130,8 @@ export function createAudio({ quality = 'high' } = {}) {
             if (meta?.file && !loader.ready(c.file)) loader.preload([c.file]);
             let dur;
             if (loader.ready(c.file) && takes?.length) {
-              const [off, d] = takes[Math.floor(Math.random() * takes.length)];
+              // A cheer passes a take index so voices sharing an emotion say different lines.
+              const [off, d] = takes[Number.isInteger(c.take) ? c.take % takes.length : Math.floor(Math.random() * takes.length)];
               playBuffer(loader.get(c.file), 'voice', c.gain, c.at, { offset: off, duration: d });
               dur = d;
             } else {
