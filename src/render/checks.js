@@ -416,6 +416,7 @@ export async function runDanceLengthCheck(R, S, { dt = 1 / 30 } = {}) {
   // The break ends a second after the music (the lights come up over that second).
   const ok = (t, want) => Math.abs(t - want) < 0.2;
   return { name: 'dance:trackLength', pass: ok(plain, 16) && ok(long, 18.85 + 0.4 + 1), noTrackS: +plain.toFixed(2), withTrackS: +long.toFixed(2) };
+}
 
 // A staged standup (issue #149): once everyone has gathered, nobody stands outside the walls, inside
 // furniture, or on top of someone else.
