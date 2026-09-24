@@ -79,7 +79,7 @@ const list = [
     text: '{incumbent} offered {name} a job with a title that has three words and one of them is "Principal".',
     choices: [
       { label: 'Match the offer', hint: '+20% salary', effects: { salaryPct: 20, meaning: 3 }, outcome: '{name} stays and buys a nicer chair.' },
-      { label: 'Wish them well', hint: 'They leave', effects: { resign: true }, outcome: '{name} leaves for {incumbent}. They will be back in #alumni.' },
+      { label: 'Wish them well', hint: 'They leave', effects: { resign: 'poached' }, outcome: '{name} leaves for {incumbent}. They will be back in #alumni.' },
     ],
   },
   {

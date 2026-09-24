@@ -153,7 +153,7 @@ describe('moving on', () => {
     for (let w = 0; w < 520 && s.staff.length > B.moveOnMinStaff; w++) {
       const c = makeCtx(s);
       moveOnSystem(c);
-      left += c.events.filter((e) => e.type === 'resign' && !e.fired).length;
+      left += c.events.filter((e) => e.type === 'resign' && !e.fired && e.reason === 'moved_on').length;
       s.week++;
     }
     expect(left).toBeGreaterThan(0);

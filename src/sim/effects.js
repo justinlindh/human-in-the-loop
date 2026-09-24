@@ -213,7 +213,8 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (fx.resign && person && !person.founder) {
     removeStaff(state, person);
     state.stats.resignations++;
-    ctx.emit({ type: 'resign', staffId: person.id, name: person.name });
+    // resign: true for someone who has had enough, or a reason string such as 'poached'.
+    ctx.emit({ type: 'resign', staffId: person.id, name: person.name, fired: false, reason: typeof fx.resign === 'string' ? fx.resign : 'burnout' });
   }
   if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);
   if (fx.summit === 'skip') {
