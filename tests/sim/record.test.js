@@ -43,4 +43,38 @@ describe('issue #132: per-person track record', () => {
     expect(res.ok).toBe(true);
     expect(res.state.staff[0].record).toEqual({ ...emptyRecord(), mentorWeeks: 4, catches: 1 });
   });
+
+  it('older saves move their flags.shippedBy launch counts onto the records', () => {
+    const s = game(4);
+    const p = addStaff(s, 'engineer', 'mid');
+    p.record.launches = 3;
+    s.flags.shippedBy = { [p.id]: 7, gone: 2 };
+    const store = fakeStorage();
+    saveGame(s, store);
+    const res = loadGame(store);
+    expect(res.ok).toBe(true);
+    expect(res.state.staff.find((x) => x.id === p.id).record.launches).toBe(7);
+    expect(res.state.flags.shippedBy).toBeUndefined();
+  });
+
+  it('security staff get credit for attacks they block', async () => {
+    const { makeCtx } = await import('../../src/sim/registry.js');
+    const { incidentsSystem } = await import('../../src/sim/incidents.js');
+    const s = game(5);
+    const sec = addStaff(s, 'security', 'senior', { assignment: { type: 'security', targetId: null } });
+    s.security.auditBoost = 100;
+    s.week = 400;
+    const { addProduct } = await import('./helpers.js');
+    addProduct(s, { mrr: 500000, customers: 5000, launchedWeek: 0 });
+    let blocked = 0;
+    for (let w = 0; w < 400; w++) {
+      const c = makeCtx(s);
+      incidentsSystem(c);
+      blocked += c.events.filter((e) => e.type === 'toast' && /Security blocked/.test(e.text)).length;
+      s.outage = null;
+      s.week++;
+    }
+    expect(blocked).toBeGreaterThan(0);
+    expect(sec.record.incidentsCaught).toBeGreaterThanOrEqual(blocked);
+  });
 });

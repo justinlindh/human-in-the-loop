@@ -127,6 +127,11 @@ function normalize(state) {
     for (const p of list) p.voice ??= voiceFor(p);
     for (const p of list) ensureRecord(p);
   }
+  // Launch credit used to live in flags.shippedBy; it now lives on each person's record.
+  if (state.flags.shippedBy) {
+    for (const p of state.staff) p.record.launches = Math.max(p.record.launches, state.flags.shippedBy[p.id] ?? 0);
+    delete state.flags.shippedBy;
+  }
   for (const j of state.projects) if (!('researchId' in j)) j.researchId = null;
   // Per-id maps gain an entry for every id the data knows, so lookups by id never miss.
   for (const m of Object.values(MODELS)) {
@@ -134,6 +139,9 @@ function normalize(state) {
   }
   for (const i of INCUMBENTS) state.market.categories[i.category] ??= { incumbentStrength: i.strength, clones: 0 };
   for (const g of GOALS) state.goals[g.id] ??= { done: false, week: null };
+  state.market.forSale ??= [];
+  state.office.expansion ??= 0;
+  state.fame ??= 0;
   // Saves from before sticky seats: seat everyone in staff order.
   if (state.staff.some((p) => !('deskId' in p))) {
     for (const p of state.staff) p.deskId = null;
