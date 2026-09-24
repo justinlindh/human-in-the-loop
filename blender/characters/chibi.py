@@ -98,7 +98,7 @@ face_y = surf_y(0, 0)
 EX, EZ = 0.072, -0.01
 eyes = []
 for sx in (-1, 1):
-    eyes.append(uvsphere(f'eye{sx}', 1.0, (sx * EX, surf_y(EX, EZ, -0.002), HEAD_C + EZ), 'eye', seg=10, rings=5, scale=(0.03, 0.014, 0.046)))
+    eyes.append(uvsphere(f'eye{sx}', 1.0, (sx * EX, surf_y(EX, EZ, -0.003), HEAD_C + EZ), 'eye', seg=10, rings=5, scale=(0.03, 0.009, 0.046)))
 join(eyes, 'eyes')
 shine = []
 for sx in (-1, 1):
@@ -106,13 +106,14 @@ for sx in (-1, 1):
 join(shine, 'eye_shine')
 
 MZ = -0.085
+# Mouth arcs: half of a torus facing forward. Vertex tests are in the object's local space.
 smile = torus('mouth_smile', 0.03, 0.0062, (0, surf_y(0, MZ, 0.004), HEAD_C + MZ + 0.012), 'eye', rot=(math.pi / 2, 0, 0), major_seg=16, minor_seg=5)
 bm = bmesh.new(); bm.from_mesh(smile.data)
-bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z > HEAD_C + MZ + 0.006], context='VERTS')
+bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z > -0.004], context='VERTS')
 bm.to_mesh(smile.data); bm.free()
-frown = torus('mouth_frown', 0.03, 0.0062, (0, surf_y(0, MZ, 0.004), HEAD_C + MZ - 0.022), 'eye', rot=(math.pi / 2, 0, 0), major_seg=16, minor_seg=5)
+frown = torus('mouth_frown', 0.03, 0.0062, (0, surf_y(0, MZ, 0.004), HEAD_C + MZ - 0.024), 'eye', rot=(math.pi / 2, 0, 0), major_seg=16, minor_seg=5)
 bm = bmesh.new(); bm.from_mesh(frown.data)
-bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < HEAD_C + MZ - 0.016], context='VERTS')
+bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < 0.004], context='VERTS')
 bm.to_mesh(frown.data); bm.free()
 box('mouth_flat', (0.046, 0.014, 0.012), (0, surf_y(0, MZ, 0.002), HEAD_C + MZ), 'eye', bevel=0.005, segments=1)
 # Blush is a patch cut from a copy of the head surface, lifted 1.5 mm, so it lies flush like a decal.
@@ -266,4 +267,9 @@ for o in tie:
     use(o, 'role')
 join(tie, 'role_sales')
 
+REQUIRED = ['head', 'eyes', 'eye_shine', 'mouth_smile', 'mouth_flat', 'mouth_frown', 'blush',
+            *[f'hair_{i}' for i in range(8)], 'acc_glasses', 'acc_headphones', 'acc_beanie', 'acc_cap',
+            'torso_0', 'torso_1', 'torso_2', 'lanyard', 'badge', 'arm', 'hand', 'leg', 'shoe', 'mug',
+            *[f'role_{r}' for r in ('engineer', 'designer', 'marketer', 'support', 'security', 'sales')]]
+require_parts(REQUIRED)
 export(budget=8000)

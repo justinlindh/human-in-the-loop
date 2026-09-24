@@ -257,6 +257,24 @@ def parent(child, par):
     return child
 
 
+def require_parts(names):
+    """Exit non-zero if any named object is missing or has no faces (the renderer looks them up by name)."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    bad = []
+    for n in names:
+        o = bpy.data.objects.get(n)
+        if not o or o.type != 'MESH':
+            bad.append(f'{n} (missing)')
+            continue
+        me = o.evaluated_get(dg).to_mesh()
+        if len(me.polygons) == 0:
+            bad.append(f'{n} (empty)')
+        o.evaluated_get(dg).to_mesh_clear()
+    if bad:
+        print('MISSING PARTS: ' + ', '.join(bad))
+        sys.exit(3)
+
+
 def tri_count():
     dg = bpy.context.evaluated_depsgraph_get()
     n = 0
