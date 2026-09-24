@@ -4,6 +4,7 @@ import { emitChat } from './chat.js';
 import { ITEMS } from '../data/items.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { adjacencyLinks, itemBonus } from './bonus.js';
+import { eraAtLeast } from './eras.js';
 
 const key = (x, y) => `${x},${y}`;
 
@@ -114,6 +115,7 @@ export function purchaseProblem(state, itemId) {
   const it = ITEMS[itemId];
   if (!it) return 'Unknown item';
   if (state.officeStage < it.minStage) return 'Needs a bigger office';
+  if (it.era && !eraAtLeast(state, it.era)) return 'Arrives with the Agents era';
   if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';
   if (it.kind === 'shop' && state.office.placed.filter((p) => p.itemId === itemId).length >= 2) return 'You already have two';
   if (state.cash < it.costs[0]) return 'Not enough cash';

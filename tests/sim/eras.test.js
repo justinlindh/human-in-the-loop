@@ -3,6 +3,7 @@ import { createGame, dispatch, tick, dateOf } from '../../src/sim/index.js';
 import { eraIndex, currentEra, eraAllowsText } from '../../src/sim/eras.js';
 import { eligibleEvents } from '../../src/sim/events.js';
 import { applyEffects } from '../../src/sim/effects.js';
+import { refreshCandidates as refreshCandidatesFor } from '../../src/sim/staff.js';
 import { calendarStart } from '../../src/sim/vendors.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { ANGLES } from '../../src/data/angles.js';
@@ -190,3 +191,28 @@ describe('events respect the era automation cap', () => {
     expect(s.automation.qa.level).toBe(0);
   });
 });
+
+describe('classic text: reviews, traits, and the office', () => {
+  it('classic reviews, candidates, and lines stay AI-free and match the office', async () => {
+    const { reviewScore } = await import('../../src/sim/projects.js');
+    const { isAiText, eraLines } = await import('../../src/sim/eras.js');
+    const { TRAITS } = await import('../../src/data/traits.js');
+    const s = game(3);
+    for (let i = 0; i < 60; i++) {
+      const r = reviewScore(s, { stats: { features: 200, polish: 100, reliability: 100, novelty: 40 }, pointsNeeded: 400, category: 'notes', angle: 'web', startedWeek: 0, size: 'small' });
+      for (const q of r.reviews) expect(isAiText(q.quote), q.quote).toBe(false);
+      for (const q of r.reviews) expect(q.quote).not.toMatch(/chat box|summarize|generated/i);
+    }
+    for (let i = 0; i < 20; i++) {
+      for (const c of makeCandidates(s)) for (const t of c.traits) expect(isAiText(`${TRAITS[t].name} ${TRAITS[t].desc}`), t).toBe(false);
+    }
+    expect(eraLines(s, ['Just watering the office plant. It is thriving.', 'Hello'])).toEqual(['Hello']);
+    s.office.placed.push({ id: 'p1', itemId: 'plant', level: 1, x: 0, y: 0, rot: 0 });
+    expect(eraLines(s, ['Just watering the office plant. It is thriving.', 'Hello'])).toHaveLength(2);
+  });
+});
+
+function makeCandidates(s) {
+  refreshCandidatesFor(s);
+  return s.candidates;
+}

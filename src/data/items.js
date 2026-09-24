@@ -23,6 +23,9 @@ const SHOP_SHAPE = {
   trophy_case: [{ w: 2, h: 1 }, null],
 };
 
+// Items about AI work arrive with that era.
+const SHOP_ERA = { monitoring_wall: 'agents' };
+
 const rows = [
   ['espresso', 'Espresso Machine', 'Proper coffee. Stamina comes back faster.', 0, [3000, 9000, 27000],
     [{ staminaRecovery: 0.15 }, { staminaRecovery: 0.3 }, { staminaRecovery: 0.45 }], null],
@@ -51,6 +54,6 @@ export const ITEMS = Object.fromEntries([
     id, { id, name, desc, kind: 'furniture', minStage: 0, costs, effects: [{}], requires: null, footprint, adjacency },
   ]),
   ...rows.map(([id, name, desc, minStage, costs, effects, requires]) => [
-    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1] },
+    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null },
   ]),
 ]);

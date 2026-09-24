@@ -21,13 +21,21 @@ const AI_WORDS = /\b(AI|LLMs?|GPUs?|agents?|agentic|models?|prompts?|prompting|C
 
 export const isAiText = (text) => AI_WORDS.test(text);
 
-// Whether a piece of player-facing text fits the current era.
-export const eraAllowsText = (state, text) => eraIndex(state) > 0 || !isAiText(String(text ?? ''));
+// Lines that name a piece of office furniture only fit when the office has one.
+const NEEDS_ITEM = [
+  [/office plant/i, ['plant', 'plant_wall']],
+  [/whiteboard/i, ['whiteboard', 'whiteboard_wall']],
+];
 
-// Filters a pool of lines to the ones the current era allows.
+const officeHas = (state, text) => NEEDS_ITEM.every(([re, ids]) => !re.test(text)
+  || (state.office?.placed ?? []).some((p) => ids.includes(p.itemId)));
+
+// Whether a piece of player-facing text fits the current era and the office as it is.
+export const eraAllowsText = (state, text) => (eraIndex(state) > 0 || !isAiText(String(text ?? ''))) && officeHas(state, String(text ?? ''));
+
+// Filters a pool of lines to the ones that fit the era and the office.
 // Falls back to the whole pool if nothing in it fits, so a pick never comes back empty.
 export function eraLines(state, lines) {
-  if (eraIndex(state) > 0) return lines;
-  const ok = lines.filter((l) => !isAiText(l));
+  const ok = lines.filter((l) => eraAllowsText(state, l));
   return ok.length ? ok : lines;
 }
