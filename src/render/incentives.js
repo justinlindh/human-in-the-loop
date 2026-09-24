@@ -343,7 +343,8 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       const slot = Math.floor((p.t - ROLL_S - 1) / 2.4);
       p.watchers.forEach((w, i) => {
         if (!recs.has(w.id) || w.path.length || !w.temp?.party) return;
-        const kind = REACTIONS[(slot + i) % REACTIONS.length];
+        // Every other beat is idle; the reaction beats cycle through the whole list.
+        const kind = REACTIONS[Math.floor((slot + i) / 2) % REACTIONS.length];
         w.temp.anim = (slot + i) % 2 ? 'idle' : kind;
         if (w.temp.anim === 'whisper') {
           const n = p.watchers[i + 1] ?? p.watchers[i - 1];
