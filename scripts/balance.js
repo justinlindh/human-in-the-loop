@@ -1,4 +1,5 @@
 // Headless balance harness: node scripts/balance.js --seeds 100 [--bots balanced,sensible]
+// crises = unrecoverable outages plus bridge loans taken.
 import { runBot, BOTS } from '../src/sim/bots.js';
 
 const args = process.argv.slice(2);
@@ -24,6 +25,9 @@ for (const name of bots) {
     peakMrr: fmt(median(results.map((r) => r.peakMrr))),
     score: fmt(median(results.map((r) => r.score))),
     hq: `${Math.round((100 * results.filter((r) => r.maxStage === 2).length) / seeds)}%`,
+    resign: median(results.map((r) => r.resignations)),
+    incidents: median(results.map((r) => r.incidents)),
+    crises: median(results.map((r) => r.crises)),
   });
 }
 console.log(`seeds per bot: ${seeds}`);
