@@ -147,7 +147,11 @@ export function createAudio({ quality = 'high' } = {}) {
           }
         } else if (c.op === 'music') startMusic(c);
         else if (c.op === 'loop') loops.set(c);
-        else if (c.op === 'dance') ducked.play(c, { wait: true, pausable: true, onStart: (src) => { lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt }; } });
+        else if (c.op === 'dance') ducked.play(c, { wait: true, pausable: true, onStart: (src) => {
+          lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt };
+          // The renderer stretches the dance to the track that actually plays.
+          dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: c.genre, seconds: src.buffer.duration, startsIn: Math.max(0, src.startAt - ctx.currentTime) } }));
+        } });
         else if (c.op === 'dancePause') { if (c.paused) ducked.pause(); else ducked.resume(); }
         else if (c.op === 'preload') loader.preload(c.ids);
         else if (c.op === 'musicMix') mix.musicMix(c);
