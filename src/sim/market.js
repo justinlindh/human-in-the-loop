@@ -23,10 +23,10 @@ export function marketSystem(ctx) {
     if (live.some((pr) => pr.category === catId && pr.score >= 6) && chance(ctx.rng, p)) {
       c.clones++;
       state.flags.lastCloneCategory = catId;
-      // One Show HN post every few weeks is funny; one for every clone is spam.
+      // One Show HS post every few weeks is funny; one for every clone is spam.
       if (state.week - (state.flags.lastShowHnWeek ?? -99) >= B.showHnEveryWeeks) {
         state.flags.lastShowHnWeek = state.week;
-        emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but ${eraAtLeast(state, 'chatgbt') ? 'with AI' : 'faster'}` });
+        emitChat(ctx, { channel: 'random', from: '@hackerspewsbot', text: `Show HS: ${CATEGORIES[catId].name} but ${eraAtLeast(state, 'chatgbt') ? 'with AI' : 'faster'}` });
       }
     }
   }

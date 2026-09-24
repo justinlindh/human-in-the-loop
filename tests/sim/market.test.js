@@ -79,7 +79,7 @@ describe('clones', () => {
     addProduct(s, { category: 'email', score: 8 });
     addProduct(s, { category: 'notes', score: 4 });
     let chats = 0;
-    for (let w = 0; w < 400; w++) chats += at(s, w, marketSystem).filter((e) => e.type === 'chat' && e.from === '@hackernewsbot').length;
+    for (let w = 0; w < 400; w++) chats += at(s, w, marketSystem).filter((e) => e.type === 'chat' && e.from === '@hackerspewsbot').length;
     expect(s.market.categories.email.clones).toBeGreaterThan(0);
     expect(s.market.categories.notes.clones).toBe(0);
     expect(chats).toBeGreaterThan(0);

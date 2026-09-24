@@ -8,7 +8,7 @@ const MAX_PER_CHANNEL = 60;
 const QUIET_WEEKS = 6;
 const BOT_ICON = {
   '@pagerbot': 'bot.pager', '@vendorbot': 'bot.vendor', '@launchbot': 'bot.launch', '@shipbot': 'bot.launch', '@hr-bot': 'bot.hr',
-  '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackernewsbot': 'bot.hn',
+  '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackerspewsbot': 'bot.hn',
 };
 
 // Slackk: the office's team chat. Channels with unread badges, threads, reactions, and names you

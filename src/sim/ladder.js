@@ -132,7 +132,9 @@ function callStep(ctx) {
       ? { muted: chance(rng, B.callMutedChance), frozen: chance(rng, B.callFrozenChance), badCamera: chance(rng, B.callBadCameraChance) }
       : null;
   }
-  if (onCall.length < 2 || !chance(rng, B.callMomentChance)) return;
+  // No call moment in the lockdown's last week: people are already packing up for the office.
+  const lastWeek = lock && state.week >= state.lockdown.until - 1;
+  if (onCall.length < 2 || lastWeek || !chance(rng, B.callMomentChance)) return;
   const [a, b] = shuffle(rng, onCall);
   const names = { a: a.name.split(' ')[0], b: b.name.split(' ')[0] };
   let prev = null;

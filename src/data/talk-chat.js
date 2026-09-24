@@ -87,7 +87,7 @@ export const CHAT_EXCHANGES = [
         'The agent wrote a whole paragraph justifying its change. Lovely prose. Terrible change.']],
       ['b', ['Frame that log. Put it on the fridge.',
         'Print it. I want it in the onboarding deck.',
-        'Pin that in #random. For science.']],
+        'Someone pin that. For science.']],
     ] },
   { id: 'promotion_it_depends', stream: 'chat', channel: 'wins', on: 'promotion',
     cast: { a: 'promoted', b: 'any', c: 'founder' },

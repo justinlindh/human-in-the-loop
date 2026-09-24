@@ -66,7 +66,7 @@ export const B = {
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
-  saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.5, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
+  saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {
     bootstrapped: { cash: 110000, scoreMult: 1, brand: 0, seniorCandidates: 0 },
