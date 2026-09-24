@@ -246,6 +246,23 @@ describe('audio director', () => {
     expect(createDirector().events([{ type: 'incentive', reward: 'music_night', genre: 'yodel' }], s, 1).some((c) => c.op === 'dance')).toBe(true);
   });
 
+  it('ducks the music under every stinger for the buffer, not a fixed time', () => {
+    const d = createDirector();
+    const s = state({ products: [{ id: 'p1', version: 1 }] });
+    const evs = [{ type: 'launch', productId: 'p1' }, { type: 'era', era: 'agents' }, { type: 'officeUpgrade' }, { type: 'award' }];
+    for (const [i, e] of evs.entries()) {
+      const cmds = d.events([e], s, 100 + i * 10);
+      const sting = cmds.find((c) => c.op === 'play' && (c.cue.startsWith('stinger.') || c.cue === 'sfx.award'));
+      expect(sting?.duck, e.type).toBe('stinger');
+      expect(cmds.some((c) => c.op === 'duck' && c.key === 'stinger'), e.type).toBe(false);
+    }
+    const over = d.events([{ type: 'gameOver' }], { ...s, gameOver: { won: true } }, 200).find((c) => c.cue === 'stinger.win');
+    expect(over.duck).toBe('stinger');
+    expect(DUCK.stinger.music).toBeCloseTo(0.25);
+    expect(DUCK.stinger.attack).toBeCloseTo(0.3);
+    expect(DUCK.stinger.release).toBeCloseTo(1);
+  });
+
   it('holds the dance track down while the game is paused', () => {
     const d = createDirector();
     const s = state();

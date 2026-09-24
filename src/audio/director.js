@@ -3,7 +3,7 @@
 // gives the same commands (and it runs headless in Node).
 //
 // Commands:
-//   { op: 'play', cue, file, bus, gain, at, priority, voiceKey? }
+//   { op: 'play', cue, file, bus, gain, at, priority, voiceKey?, duck? }  duck: hold it while the buffer plays
 //   { op: 'music', era, bed, at, fade }              crossfade to a bed at time `at`
 //   { op: 'musicMix', level, lowpass, fade }         music level and filter
 //   { op: 'duck', key, on }                          hold or release a music duck
@@ -88,9 +88,10 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     if (!admit(c.bus, c.priority ?? 5, t, 1.2)) return [];
     lastCue.set(id, t);
     const j = c.jitter?.gain ? 1 - c.jitter.gain * rng() : 1;
-    const out = [{ op: 'play', cue: id, file: pick(c.files), bus: c.bus, gain: gain * j * (c.gain ?? 1), at: t, priority: c.priority ?? 5 }];
-    if (c.duck) out.push({ op: 'duck', key: c.duck, on: true, at: t }, { op: 'duck', key: c.duck, on: false, at: t + 1.2 });
-    return out;
+    // A ducking cue carries its duck key; the host holds it for the buffer's actual length.
+    const cmd = { op: 'play', cue: id, file: pick(c.files), bus: c.bus, gain: gain * j * (c.gain ?? 1), at: t, priority: c.priority ?? 5 };
+    if (c.duck) cmd.duck = c.duck;
+    return [cmd];
   }
 
   function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice' } = {}) {
