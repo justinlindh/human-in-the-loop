@@ -17,3 +17,7 @@ for s in "${scripts[@]}"; do
   models=$((models + $(grep -c "^MODEL " <<<"$log")))
 done
 echo "built ${models} models from ${#scripts[@]} scripts"
+
+# Object icons are renders of the models above, so they rebuild after them.
+log="$("$BLENDER" -b --factory-startup -P blender/icons/render_icons.py -- --out public/icons/objects 2>&1)" || { echo "$log" | tail -n 30; echo "FAILED: icons"; exit 1; }
+grep "^rendered " <<<"$log"

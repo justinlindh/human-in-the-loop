@@ -105,7 +105,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
   const gameover = createGameOver({ layer, controls, sfx });
-  const tutorial = createTutorial({ layer, sfx, controls });
+  const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx });
   ui.openSettings = () => settings.open();
   const title = createTitle({
@@ -162,7 +162,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   function logMeaning(state) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
-      loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset();
+      loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
       launchScores.clear();
       for (const p of state.products) launchScores.set(p.id, p.score);
     }

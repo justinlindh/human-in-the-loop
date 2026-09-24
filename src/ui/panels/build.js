@@ -16,8 +16,19 @@ export const STAT_INFO = [
 const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large: { name: 'Large' } };
 
 export function buildPanel(ctx, arg) {
-  let tab = 'new';
+  let tab = arg?.projectId ? 'projects' : 'new';
   const form = { name: suggestName(), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
+  // A starter preset (from the tutorial): fields plus the founders as the team.
+  const preset = arg?.preset ?? null;
+  if (preset) {
+    const s0 = ctx.getState();
+    if (s0.market.unlockedCategories.includes(preset.category)) form.category = preset.category;
+    if (s0.market.unlockedAngles.includes(preset.angle)) form.angle = preset.angle;
+    form.model = preset.model ?? form.model;
+    form.size = preset.size ?? form.size;
+    form.name = suggestName(form.category);
+    form.team = new Set(s0.staff.filter((p) => p.founder && isAvailable(p)).map((p) => p.id));
+  }
 
   const t = tabs([{ id: 'new', icon: 'new', label: 'New Product' }, { id: 'projects', icon: 'project', label: 'Projects' }, { id: 'research', icon: 'research', label: 'Internal tools' }], tab, (id) => { tab = id; t.set(id); render(); });
   let focusProject = arg?.projectId ?? null;
@@ -185,6 +196,7 @@ export function buildPanel(ctx, arg) {
 
     return h('div.buildgrid', null,
       h('div.buildmain', null,
+        preset ? h('div.starterhint', null, icon('idea', { size: 18 }), h('span', { text: 'A good first product is picked for you: Email × Summarizer on ChatGBT, small, with both founders. Great combos earn stars once they launch. Press Start building, or change anything.' })) : null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
         h('div.section', null, h('h3', null, '3. AI angle', h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),

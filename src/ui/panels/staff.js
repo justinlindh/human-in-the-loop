@@ -27,7 +27,7 @@ export function openPathPicker(ctx, staffId) {
 export function openTraining(ctx, staffId) {
   const p = ctx.getState().staff.find((x) => x.id === staffId);
   if (!p) return;
-  let focus = 'features';
+  let focus = STAT_INFO.reduce((lo, st) => (p.skills[st.id] < p.skills[lo] ? st.id : lo), 'features');
   let close = null;
   const cards = Object.values(TRAINING).map((t) => {
     const lines = [`+${t.xp} XP`];
@@ -37,6 +37,7 @@ export function openTraining(ctx, staffId) {
     if (t.brand) lines.push('a little brand');
     const focusSel = t.skill ? h('select', { onchange: (e) => { focus = e.target.value; } },
       ...STAT_INFO.map((st) => h('option', { value: st.id, text: `Focus: ${st.name} (${p.skills[st.id]})` }))) : null;
+    if (focusSel) focusSel.value = focus;
     const go = h('button.btn.small.blue', {
       onclick: () => {
         const res = ctx.act({ type: 'train', staffId: p.id, program: t.id, focus: t.skill ? focus : undefined });
