@@ -77,7 +77,7 @@ export function vacationSystem(ctx) {
   const away = state.staff.filter((p) => p.mood === 'away').length;
   let leaving = 0;
   const postponedCount = (state.flags.vacationPostponed ??= {});
-  const blockedBy = state.outage ? 'the outage' : modifierBonus(state, 'output') > 0 ? 'the crunch' : null;
+  const blockedBy = state.outage ? 'the outage' : modifierBonus(state, 'output') > 0 || state.policies.crunch ? 'the crunch' : null;
   const postponed = [];
   for (const p of state.staff) {
     // The first vacation falls somewhere in the person's first year, spread by id.
