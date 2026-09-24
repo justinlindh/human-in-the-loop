@@ -137,13 +137,19 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
   let nextId = 1;
   const id = (p) => `${p}${nextId++}`;
 
+  // First names come off a shuffled deck, so nobody shares one until all of them are in use.
+  let deck = [];
+  const firstName = () => {
+    if (!deck.length) { deck = [...FIRST]; for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } }
+    return deck.pop();
+  };
   const person = (role, seniority, founder = false) => {
     const moodRoll = r();
     const meaning = founder ? 80 : moodRoll < 0.15 ? int(5, 14) : moodRoll < 0.35 ? int(18, 34) : int(45, 95);
     const mood = meaning < 15 ? 'burnout' : meaning < 35 ? 'coasting' : 'ok';
     const level = seniority === 'junior' ? int(1, 3) : seniority === 'mid' ? int(5, 8) : int(10, 14);
     return {
-      id: id('s'), name: `${pick(FIRST)} ${pick(LAST)}`, role, seniority, level, xp: int(0, 50),
+      id: id('s'), name: `${firstName()} ${pick(LAST)}`, role, seniority, level, xp: int(0, 50),
       skills: { features: int(20, 90), polish: int(20, 90), reliability: int(20, 90), novelty: int(20, 90) },
       speed: 0.8 + Math.round(r() * 40) / 100, meaning, stamina: int(40, 100), knowledge: int(10, 90),
       traits: r() < 0.6 ? [pick(TRAITS)] : [],
