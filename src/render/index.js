@@ -134,6 +134,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   function applyQuality() {
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
+    staff?.setCharacterShadows(q !== 'low');
     setGlowScale(q === 'low' ? 0.45 : 1);
     screens.setBrightness(q === 'low' ? 1.0 : 1.7);
   }
