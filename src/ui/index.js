@@ -5,6 +5,11 @@ import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
+import { createPopups } from './popups.js';
+import { createSettings } from './settings.js';
+import { createTitle } from './title.js';
+import { createGameOver } from './gameover.js';
+import { createTutorial } from './tutorial.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -68,12 +73,37 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom);
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    // Toasts ride inside the open panel so they never straddle its edge; otherwise they sit top-right.
-    onChange: (id) => { sfx(id ? 'open' : 'close'); (id ? menu.panelEl : layer).append(toasts.el); },
+    onChange: (id) => { sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
-  // Panel wrap sits under toasts in paint order so toasts stay visible over panels.
+  const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
+  const gameover = createGameOver({ layer, controls, sfx });
+  const tutorial = createTutorial({ layer, sfx });
+  const settings = createSettings({ layer, controls, sfx });
+  ui.openSettings = () => settings.open();
+  const title = createTitle({
+    layer, controls, sfx,
+    toast: (text, tone) => toasts.push(text, tone),
+    openSettings: () => settings.open(),
+    onStart: ({ fresh }) => {
+      title.hide();
+      controls.setSpeed(settings.values.speed ?? 1);
+      if (fresh) setTimeout(() => tutorial.start(), 600);
+    },
+  });
+
+  // Overlays take keys in stacking order: settings, title, tutorial, popups, game over.
+  ui.modalKey = (e) => {
+    if (settings.isOpen) { if (e.key === 'Escape') settings.close(); e.preventDefault(); return true; }
+    if (title.isOpen) return true;
+    if (tutorial.onKey(e)) return true;
+    if (popups.onKey(e)) return true;
+    if (gameover.open) { e.preventDefault(); return true; }
+    return false;
+  };
+
+  // Toasts paint above panels and the modal backdrop.
   layer.append(toasts.el);
 
   function onKey(e) {
@@ -97,7 +127,10 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
   let loggedWeek = -1;
+  let loggedState = null;
   function logMeaning(state) {
+    // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
+    if (state !== loggedState) { loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; }
     if (state.week === loggedWeek) return;
     loggedWeek = state.week;
     const log = ctx.meaningLog;
@@ -116,6 +149,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   let lastPanelAt = 0;
   function update(state) {
     hud.update(state);
+    gameover.update(state);
+    popups.update(state);
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
@@ -137,29 +172,32 @@ export function createUI({ root, getState, dispatch, controls }) {
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
           break;
         }
-        case 'launch': {
-          const p = state.products.find((x) => x.id === e.productId);
-          if (p) toasts.push(`${p.name} launched! Score ${p.score.toFixed(1)}`, 'good');
-          break;
-        }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
-          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${e.severity})`, e.caught ? 'good' : 'bad');
+          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
         case 'award': toasts.push(e.text, 'good'); break;
+        case 'launch': popups.queueLaunch(e.productId); break;
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }
     }
   }
 
-  return {
+  const api = {
     update,
     handleEvents,
-    showTitle() {},
-    hideTitle() {},
+    showTitle() { menu.close(); title.show(); },
+    hideTitle() { title.hide(); },
     openStaff: (id) => menu.open('staff', { staffId: id }),
-    _ui: ui,
+    openSettings: () => settings.open(),
+    startTutorial: () => tutorial.start(true),
   };
+  // Test hooks: ?title=1 shows the title screen and ?tutorial=1 runs the coach marks.
+  const q = new URLSearchParams(location.search);
+  if (q.has('title')) api.showTitle();
+  if (q.has('tutorial')) setTimeout(() => tutorial.start(true), 300);
+  if (import.meta.env?.DEV) window.__HITL_UI = api;
+  return api;
 }

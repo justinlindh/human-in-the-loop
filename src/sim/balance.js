@@ -2,7 +2,7 @@
 export const B = {
   runWeeks: 780, startCash: 90000, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
-  candidateRefreshWeeks: 4, candidateCount: 5, trainingCost: 3000, trainingXp: 40,
+  candidateRefreshWeeks: 4, candidateCount: 5,
   xpPerLevel: 60, xpPerWeekWorking: 8, promoteMidLevel: 5, promoteSeniorLevel: 10, maxLevel: 20,
   juniorXpAutomationPenalty: 0.7, mentorXpMult: 2.2, mentorOutputMult: 0.6,
   basePoints: 4, pointsPerLevel: 1.1,
@@ -38,7 +38,7 @@ export const B = {
     medium: { points: 1000, cost: 8000, minStage: 0 },
     large: { points: 2400, cost: 25000, minStage: 1 },
   },
-  pointsGrowthPerYear: 0.1, expectationGrowth: 0.1, reviewNoise: 0.9, balancePenaltyBelow: 0.08,
+  pointsGrowthPerYear: 0.1, expectationGrowth: 0.1, expectationYearsCap: 6, reviewNoise: 0.9, balancePenaltyBelow: 0.08,
   qualityBase: 0.5, autoQualityBase: 0.4, autoQualityPerCap: 0.6,
   reviewBase: 6.1, reviewScale: 4.1, fitScoreScale: 3.3, reviewsReliabilityBonus: 0.1, updateOldScoreWeight: 0.4,
   migrationPoints: 250, updatePointsMult: 0.6, refactorPoints: 450, craftPoints: 320,
@@ -57,8 +57,9 @@ export const B = {
   cyberBase: 0.006, cyberPerMrr: 0.00000004, cyberMax: 0.12,
   incidentCashPerSeverity: 4000, incidentCashYearGrowth: 0.3, outageMinSeverity: 3,
   postureSecurityPerSkill: 0.6, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
-  auditCost: 15000, toolingWeekly: 900, consultantCost: 45000,
+  auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageCollapseWeeks: 6, collapseMrrShare: 0.5,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.33,
+  chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 20, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
   ipoMrr: 1500000, ipoBrand: 60, acquisitionOfferMrr: 250000, leaderCategoriesToWin: 3,
 };

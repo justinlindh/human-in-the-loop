@@ -223,7 +223,7 @@ export function liveView(sigFn, buildFn) {
       binds = [];
       clear(el);
       const out = buildFn(state, (fn) => binds.push(fn));
-      if (out) el.append(...[].concat(out));
+      if (out) el.append(...[].concat(out).filter(Boolean));
     }
     for (const b of binds) b(state);
   }

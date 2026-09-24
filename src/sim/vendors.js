@@ -3,6 +3,7 @@ import { chance, pick } from './rng.js';
 import { dateOf } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
+import { processScheduled } from './effects.js';
 import { liveProducts } from './projects.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
@@ -79,9 +80,10 @@ export function priceHike(ctx, modelId = null) {
   ctx.emit({ type: 'toast', text: `${MODELS[id].name} raised prices by ${Math.round((B.priceHikeMult - 1) * 100)}%. "Exciting changes."`, tone: 'warn' });
 }
 
-// Weekly calendar step: year-start unlocks, trend countdown, and vendor releases.
+// Weekly calendar step: scheduled consequences, year-start unlocks, trend countdown, and vendor releases.
 export function calendarStart(ctx) {
   const { week } = ctx.state;
+  processScheduled(ctx);
   if (week > 0 && week % 52 === 0) yearStart(ctx);
   trendStep(ctx);
   if (week > 0 && week % B.vendorReleaseEveryWeeks === 0) vendorRelease(ctx);

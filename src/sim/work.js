@@ -1,6 +1,7 @@
 import { B } from './balance.js';
 import { outputMult, staffMods, STATS } from './staff.js';
 import { registerSystem } from './registry.js';
+import { perk } from './bonus.js';
 
 export const zeroPoints = () => ({ features: 0, polish: 0, reliability: 0, novelty: 0 });
 
@@ -69,7 +70,7 @@ export function workSystem(ctx) {
       addInto(weekStats[id], pts);
       contributors[id].push({ staffId: p.id, pts });
     } else if (t === 'hardProblem' && creative.length) {
-      const nov = B.hardProblemNovelty * outputMult(state, p) / creative.length;
+      const nov = B.hardProblemNovelty * outputMult(state, p) * staffMods(p).hardProblemNovelty / creative.length;
       for (const j of creative) {
         weekEffort[j.id].novelty += nov;
         weekStats[j.id].novelty += nov * skillFactor(p, 'novelty');
@@ -93,6 +94,10 @@ export function workSystem(ctx) {
   } else {
     maintenance += auto.features + auto.polish + auto.reliability + auto.novelty;
   }
+
+  // Office items and internal tools add quality to specific stats, never to effort.
+  const statPerk = { features: 1, polish: 1 + perk(state, 'polish'), reliability: 1 + perk(state, 'reliability'), novelty: 1 + perk(state, 'novelty') };
+  for (const pts of Object.values(weekStats)) for (const st of STATS) pts[st] *= statPerk[st];
 
   state.ops.maintenanceCapacity = maintenance;
   ctx.weekEffort = weekEffort;

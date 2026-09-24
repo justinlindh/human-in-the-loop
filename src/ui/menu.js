@@ -20,7 +20,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
   for (const m of MENU) {
     const badge = h('span.badge');
     badges[m.id] = badge;
-    buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, onclick: () => toggle(m.id) },
+    buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
       badge, h('span.key', { text: m.key }), h('span.ico', null, icon(`menu.${m.id}`)), h('span.lbl', { text: m.label }));
     menu.append(buttons[m.id]);
   }
@@ -53,12 +53,13 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
       h('span.ico', null, icon(def.icon ?? `menu.${id}`, { size: 24 })), title,
       h('button.btn.x', { title: 'Close (Esc)', onclick: () => close() }, icon('close')));
     const body = h('div.panel-body', null, inst.el);
+    const dock = h('div.panel-dock');
     const el = h(`div.panel${def.wide ? '.wide' : ''}`, { style: { '--accent': def.accent ?? meta.accent ?? '#4f8cff' } },
-      head, inst.tabs ?? null, body, inst.foot ?? null);
+      head, inst.tabs ?? null, body, inst.foot ?? null, dock);
     inst.setTitle = (t) => setText(title, t);
     inst.body = body;
     wrap.append(el);
-    current = { id, inst, el };
+    current = { id, inst, el, dock };
     if (buttons[id]) toggleClass(buttons[id], 'active', true);
     inst.update?.(ctx.getState(), true);
     onChange?.(id, null);
@@ -84,5 +85,5 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     if (buttons[id]) toggleClass(buttons[id], 'alarm', on);
   }
 
-  return { open, close, toggle, update, setBadge, setAlarm, get current() { return current?.id ?? null; }, get panelEl() { return current?.el ?? null; }, clearAll: () => { close(); clear(wrap); } };
+  return { open, close, toggle, update, setBadge, setAlarm, get current() { return current?.id ?? null; }, get dockEl() { return current?.dock ?? null; }, clearAll: () => { close(); clear(wrap); } };
 }

@@ -1,24 +1,16 @@
 import { B } from './balance.js';
 import { clamp } from './util.js';
-import { chance, pick, shuffle } from './rng.js';
+import { chance, pick } from './rng.js';
 import { registerSystem } from './registry.js';
 import { staffMods, mentorOf, removeStaff } from './staff.js';
 import { automationExposure, oversightRequired, oversightProvided } from './automation.js';
 import { liveProducts } from './projects.js';
 import { CHATTER } from '../data/chatter.js';
 import { emitChat } from './chat.js';
+import { modifierBonus } from './modifiers.js';
+import { itemBonus } from './bonus.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
-
-function chatterKey(state, p) {
-  if (automationExposure(state, p) > 0.5) return 'automated';
-  if (p.assignment.type === 'mentor') return 'mentor';
-  if (p.seniority === 'junior' && mentorOf(state, p)) return 'junior';
-  if (p.assignment.type === 'oversight') return 'overseer';
-  if (p.mood === 'coasting') return 'coasting';
-  if (p.mood === 'burnout') return 'burnout';
-  return p.assignment.type === 'idle' ? 'idle' : 'happy';
-}
 
 function weeklyMeaning(state, p) {
   const mods = staffMods(p);
@@ -30,13 +22,16 @@ function weeklyMeaning(state, p) {
   let bonus = 0;
   if (a === 'mentor') bonus += B.meaningRecovery.mentor;
   if (a === 'hardProblem') bonus += B.meaningRecovery.hardProblem;
-  if (a === 'oversight') bonus += B.meaningRecovery.oversight;
+  if (a === 'oversight') bonus += B.meaningRecovery.oversight * mods.oversightMeaning;
   if (mentored) bonus += B.meaningRecovery.mentee;
   if (a === 'project' && state.projects.some((j) => j.id === p.assignment.targetId && j.kind === 'craft')) bonus += B.meaningRecovery.craft;
-  if (state.policies.craft_fridays) bonus += B.meaningRecovery.craftFridays;
+
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
-  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery;
-  return recovery - drain;
+  // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery'));
+  const recovery = (B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
+    + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0);
+  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain'));
 }
 
 export function meaningSystem(ctx) {
@@ -67,11 +62,13 @@ export function meaningSystem(ctx) {
       const depth = clamp((B.coastingBelow - p.meaning) / (B.coastingBelow - B.burnoutBelow), 0, 1);
       return chance(ctx.rng, B.resignChance.coasting * depth * mult);
     }
-    if (p.mood === 'burnout' && p.burnoutWeeks >= B.burnoutWeeksBeforeResign) return chance(ctx.rng, B.resignChance.burnout * mult);
+    if (p.mood === 'burnout' && p.burnoutWeeks >= B.burnoutWeeksBeforeResign) {
+      return chance(ctx.rng, B.resignChance.burnout * mult * Math.max(0, 1 + itemBonus(state, 'burnoutResign')));
+    }
     return false;
   });
   for (const p of leavers) {
-    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell) });
+    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell), kind: 'farewell' });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name });
     ctx.emit({ type: 'toast', text: `${p.name} resigned.`, tone: 'bad' });
     removeStaff(state, p);
@@ -79,9 +76,6 @@ export function meaningSystem(ctx) {
   }
 
   const present = state.staff.filter((p) => p.mood !== 'away');
-  for (const p of shuffle(ctx.rng, present).slice(0, 2)) {
-    if (chance(ctx.rng, 0.5)) emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER[chatterKey(state, p)]) });
-  }
   const glum = present.filter((p) => p.mood === 'coasting' || p.mood === 'burnout');
   if (glum.length) ctx.emit({ type: 'bubble', staffId: pick(ctx.rng, glum).id, text: pick(ctx.rng, SIGHS), tone: 'bad' });
 }

@@ -165,8 +165,9 @@ describe('economy', () => {
 
   it('lowCashWeeks counts negative weeks and resets', () => {
     const s = game();
-    s.cash = -100;
+    s.cash = 100;
     const ev = runEconomy(s, 1);
+    s.pendingDecision = null;
     expect(s.lowCashWeeks).toBe(1);
     expect(ev.some((e) => e.type === 'toast' && e.tone === 'warn')).toBe(true);
     const ev2 = runEconomy(s, 1);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { workSystem } from '../../src/sim/work.js';
-import { projectsSystem } from '../../src/sim/projects.js';
+import { projectsSystem, reviewScore } from '../../src/sim/projects.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { game, addStaff } from './helpers.js';
 
@@ -75,8 +75,19 @@ describe('review score guards', () => {
     expect(big.score).toBeLessThan(9);
   });
 
-  it('the same team scores lower as the years pass', () => {
+  it('the same team scores lower as the years pass, but the bar stops rising', () => {
     expect(band([], { year: 5 }).score).toBeLessThan(band([]).score - 1);
+    const y6 = band([], { year: 6 }).score;
+    expect(Math.abs(band([], { year: 12 }).score - y6)).toBeLessThan(0.3);
+  });
+
+  it('a project is judged by the bar of the year it started', () => {
+    const s = game();
+    const p = { kind: 'new', category: 'notes', angle: 'copilot', size: 'small', pointsNeeded: 400, startedWeek: 0, stats: { features: 200, polish: 120, reliability: 120, novelty: 60 } };
+    s.week = 52 * 3;
+    const a = reviewScore(s, p).base;
+    const b = reviewScore(s, { ...p, startedWeek: 52 * 3 }).base;
+    expect(a).toBeGreaterThan(b);
   });
 
   it('comprehension reviews slow projects and nudge the score up only slightly', () => {

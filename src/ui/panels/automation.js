@@ -1,6 +1,7 @@
 import { h, setText, setWidth, fmtMoney, toggleClass, setClass } from '../dom.js';
 import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, policyUnlocked, policyLockText } from '../content.js';
 import { liveView, tabs } from '../widgets.js';
+import * as SIM from '../../sim/index.js';
 import { icon } from '../icons.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
@@ -11,6 +12,16 @@ export function fnOversight(s, fn) {
   if (!a) return 0;
   const g = MODEL[a.model]?.guardrails ?? 0.5;
   return a.level * (B.oversightHoursPerLevel?.[fn] ?? 10) * (1 - 0.6 * g);
+}
+
+// Oversight totals come from the sim when it exports them, so the UI and the sim agree.
+export function oversightNeeded(s) {
+  if (typeof SIM.oversightRequired === 'function') return SIM.oversightRequired(s);
+  return FUNCTIONS.reduce((a, f) => a + fnOversight(s, f), 0);
+}
+export function oversightHave(s) {
+  if (typeof SIM.oversightProvided === 'function') return SIM.oversightProvided(s);
+  return s.ops?.oversightProvided ?? 0;
 }
 
 export function fnCost(s, fn) {
@@ -56,8 +67,8 @@ export function automationPanel(ctx) {
       const costEl = h('b.num');
       const debtEl = h('b.num');
       bind((st) => {
-        const req = FUNCTIONS.reduce((a, f) => a + fnOversight(st, f), 0);
-        const prov = st.ops?.oversightProvided ?? 0;
+        const req = oversightNeeded(st);
+        const prov = oversightHave(st);
         setText(reqEl, `${Math.round(req)}h`);
         setText(provEl, `${Math.round(prov)}h`);
         const short = req > 0 && prov < req;

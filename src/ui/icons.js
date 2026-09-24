@@ -34,6 +34,11 @@ export const ICONS = {
   cross: I('✖', 'Non-compliant badge', 12),
   star: I('★', 'Combo fit stars (Build)', 14),
   lock: I('🔒', 'Locked category/angle/size/channel/model/policy', 18),
+  idea: I('💡', 'Decision popup header, leadership ideas', 24),
+  decision: I('🗳️', 'Decision popup header', 24),
+  settings: I('⚙️', 'Settings: top bar gear, title button, settings header', 16),
+  continue: I('💾', 'Title: Continue button', 18),
+  gameover: I('🪦', 'Game over header when lost', 44),
   hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
   warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),
   // toasts
@@ -83,7 +88,6 @@ export const ICONS = {
   policy: I('📜', 'Automation: Policies tab', 16),
   product: I('📦', 'Models: products using a model', 12),
   selfhost: I('🖥️', 'Models: self-hosted badge', 14),
-  deprecated: I('⛔', 'Models: deprecated status', 14),
   hype: I('🔥', 'Marketing: hype per week', 12),
   brand: I('💜', 'Marketing: brand per week', 12),
   wrapper: I('🌯', 'Marketing: "just a wrapper" warning', 16),
@@ -119,8 +123,14 @@ export const ICONS = {
 // Category icons come from the content data's stand-in emoji.
 for (const c of CATEGORIES) ICONS[`cat.${c.id}`] = I(c.icon ?? '📦', 'Build category tile', 22);
 
+const warned = new Set();
+
 export function icon(name, { size, title } = {}) {
   const def = ICONS[name];
+  if (!def && !warned.has(name)) {
+    warned.add(name);
+    if (!location.search.includes('snap')) console.warn(`Unknown icon name: ${name}`);
+  }
   const px = size ?? def?.size ?? 16;
   const el = document.createElement('span');
   el.className = 'ic';

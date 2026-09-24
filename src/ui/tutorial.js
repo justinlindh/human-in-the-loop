@@ -1,0 +1,89 @@
+import { h, setText } from './dom.js';
+
+const KEY = 'hitl.tutorialDone';
+
+const STEPS = [
+  { target: '.topbar', place: 'below', title: 'Your company at a glance',
+    text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Comprehension Debt. Hover anything for details.' },
+  { target: '.mbtn[data-menu="build"]', place: 'above', title: 'Build a product',
+    text: 'Pick a category, an AI angle, a model vendor, and a team. Great combos score higher. Start small.' },
+  { target: '.mbtn[data-menu="staff"]', place: 'above', title: 'Look after your people',
+    text: 'Hire, pair juniors with mentors, and give seniors hard problems. People who lose their sense of meaning burn out and leave.' },
+  { target: '.mbtn[data-menu="automation"]', place: 'above', title: 'Automation is a trade',
+    text: 'Agents are cheap output, but they drain meaning, pile up code nobody understands, and need humans watching them.' },
+  { target: '.chip.speed', place: 'below-left', title: 'Time',
+    text: 'Space pauses. 1, 2, and 3 set the speed. The game waits for you whenever there is a decision to make.' },
+];
+
+export function tutorialDone() {
+  try { return localStorage.getItem(KEY) === '1'; } catch { return false; }
+}
+
+function markDone() {
+  try { localStorage.setItem(KEY, '1'); } catch { /* storage unavailable: the tutorial just shows again next time */ }
+}
+
+// Five dismissible coach marks pointing at real parts of the HUD.
+export function createTutorial({ layer, sfx }) {
+  const ring = h('div.coach-ring');
+  const title = h('b');
+  const text = h('p');
+  const count = h('span.small.muted');
+  const next = h('button.btn.go.small', { onclick: () => go(i + 1) }, 'Next');
+  const bubble = h('div.coach', null, title, text, h('div.row', null, count, h('span.spacer'),
+    h('button.btn.small', { onclick: () => finish() }, 'Skip'), next));
+  const root = h('div.coach-layer', null, ring, bubble);
+  root.style.display = 'none';
+  layer.append(root);
+  let i = -1;
+
+  function place() {
+    const step = STEPS[i];
+    const t = layer.querySelector(step.target);
+    const box = layer.getBoundingClientRect();
+    if (!t) return;
+    const r = t.getBoundingClientRect();
+    const pad = 6;
+    Object.assign(ring.style, { left: `${r.left - box.left - pad}px`, top: `${r.top - box.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+    const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+    let x = r.left - box.left + r.width / 2 - bw / 2;
+    let y = step.place.startsWith('below') ? r.bottom - box.top + 16 : r.top - box.top - bh - 16;
+    if (step.place === 'below-left') x = r.right - box.left - bw;
+    x = Math.max(12, Math.min(box.width - bw - 12, x));
+    y = Math.max(12, Math.min(box.height - bh - 12, y));
+    Object.assign(bubble.style, { left: `${x}px`, top: `${y}px` });
+  }
+
+  function go(n) {
+    if (n >= STEPS.length) { finish(); return; }
+    i = n;
+    const step = STEPS[i];
+    setText(title, step.title);
+    setText(text, step.text);
+    setText(count, `${i + 1} of ${STEPS.length}`);
+    setText(next, i === STEPS.length - 1 ? 'Got it' : 'Next');
+    root.style.display = '';
+    bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
+    place();
+    sfx('blip');
+  }
+
+  function finish() {
+    root.style.display = 'none';
+    i = -1;
+    markDone();
+  }
+
+  addEventListener('resize', () => { if (i >= 0) place(); });
+
+  return {
+    start(force = false) { if (force || !tutorialDone()) go(0); },
+    get open() { return i >= 0; },
+    onKey(e) {
+      if (i < 0) return false;
+      if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); return true; }
+      if (e.key === 'Escape') { e.preventDefault(); finish(); return true; }
+      return false;
+    },
+  };
+}

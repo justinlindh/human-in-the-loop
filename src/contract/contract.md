@@ -15,6 +15,7 @@ productAppeal(state, product) -> number
 oversightRequired(state) -> hours; oversightProvided(state) -> hours
 securityPosture(state) -> 0..100
 scoreRun(state) -> { score, valuation, breakdown }
+loadGame(storage) -> { ok, state?, reason?, notice? }   // notice: a message to toast after a successful load (src/save/save.js)
 FUNCTIONS = ['engineering','support','sales','marketing','qa','ops']
 SAVE_VERSION = 1
 ```
@@ -46,7 +47,7 @@ State = {
   outage: null | { productId, kind, severity, weeks, unrecoverable },
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
   lowCashWeeks,
-  pendingDecision: null | { eventId, title, text, subjectId, choices: [{ label, hint }] },
+  pendingDecision: null | { eventId, title, text, subjectId, choices: [{ label, hint, available, reason }], vars },   // available false: requirement unmet, reason says why   // vars: placeholder values fixed when raised; UI may ignore
   flags: {},
   stats: { hires, juniorsHired, resignations, incidents, caught, breaches, launches, awards, peakMrr },
   history: [{ week, cash, mrr, customers, brand, debt, ik, juniors, mids, seniors, avgMeaning, incidents }],
