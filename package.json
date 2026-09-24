@@ -18,7 +18,8 @@
     "lifecycle": "node scripts/lifecycle.js",
     "soak": "node scripts/soak.js",
     "capture": "node scripts/capture.js",
-    "models": "bash scripts/build-models.sh"
+    "models": "bash scripts/build-models.sh",
+    "hooks": "git config core.hooksPath scripts/hooks"
   },
   "type": "module",
   "dependencies": {

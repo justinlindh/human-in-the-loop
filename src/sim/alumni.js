@@ -103,7 +103,7 @@ export function attritionSystem(ctx) {
   state.stats.resignations++;
   const friend = referFriend(ctx, p);
   ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'poached' });
-  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, OFFERS).replaceAll('{who}', who)}${friend}` });
+  ctx.emit({ type: 'toast', tone: 'info', text: `${p.name} ${pick(rng, OFFERS).replaceAll('{who}', who)}${friend}` });
 }
 
 registerSystem('move-on', moveOnSystem, 52);

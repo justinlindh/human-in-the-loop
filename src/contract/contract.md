@@ -185,15 +185,15 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 { type: 'goal', goalId }        // a goal completed
 ```
 
-## Speech vs Slackk
+## Speech vs Yak
 
-Speech bubbles in the office and Slackk messages are separate streams.
+Speech bubbles in the office and Yak messages are separate streams.
 
 ```js
 { type: 'say', id, week, staffId, text, toId, replyTo, tone }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
 ```
-- The renderer shows speech bubbles for `say` events only. A `chat` event is Slackk only; the renderer may show a small typing emote on the author's character, never a bubble.
-- `say` events are never added to `chatLog` and never appear in Slackk.
+- The renderer shows speech bubbles for `say` events only. A `chat` event is Yak only; the renderer may show a small typing emote on the author's character, never a bubble.
+- `say` events are never added to `chatLog` and never appear in Yak.
 - Spoken exchanges are between people in the office (not away); `toId` lets the renderer turn speakers toward each other.
 
 ## Content ladder state (Phase 6)
@@ -233,7 +233,7 @@ chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 { type: 'cancelProject', projectId }   // reasons: 'No such project'
 ```
 - Removes an unfinished project of any kind. Its progress is lost and nothing is refunded; anyone assigned to it goes idle, and campaigns aimed at it end.
-- Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Slackk.
+- Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Yak.
 
 ### Late-game money sinks
 ```js
@@ -256,4 +256,18 @@ state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ s
 - While the Incentives Program is on, a person earns the Waffle Party by crossing a big personal milestone: a set number of shipped launches they worked on, or a top level. Each person can win it at most once, and the company holds one at most every couple of in-game years, so a good run sees one to three. The thresholds live in `balance.js`.
 - The timed reward ladder keeps its other rewards and no longer ends in the Waffle Party.
 - Items carry an `outdoor` flag; the HQ roof terrace takes only outdoor items, and placement refuses others with 'Only outdoor items go on the terrace'.
-- An acquisition brings as many of the company's people as there are free desks; the rest stay behind, and the for-sale entry says how many would join.
+
+### Per-person track record
+```js
+staff.record: {
+  launches,        // shipped launches this person worked on (also drives the Waffle Party milestone)
+  features,        // features built (engineering and design output, in whole features)
+  prsMerged,       // flavour count derived from engineering output
+  salesMrr,        // new MRR attributed to this person's sales work, in dollars
+  deals,           // deals closed
+  tickets,         // support tickets handled
+  incidentsCaught, // incidents and rogue agents this person caught
+  mentored,        // people this person mentored to a level-up
+}
+```
+- Lifetime totals, starting at 0 on hire and kept when someone becomes an alum. Each counter only moves for work the person actually did, so a role's own numbers are the meaningful ones; ui shows the ones that fit the role.

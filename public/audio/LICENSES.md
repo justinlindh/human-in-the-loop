@@ -14,6 +14,17 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
 | `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
 
+## Music night dance breaks (candidates)
+
+Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs permitted): the XL-sft 4B checkpoint plus the 4B planner, 60 steps, 48 kHz. Each is an original short piece: rendered at 24 s, cut at a natural ending between 15 and 20 s, faded, and mastered to about -18 LUFS, the same loudness as the stingers (Sad Lo-fi uses a gentle limiter to get there).
+
+| File | Genre | Tempo, key | Length |
+|---|---|---|---|
+| `music_night/corporate_synthwave.ogg` | Corporate Synthwave | 118 bpm, A minor | 15.6 s |
+| `music_night/motivational_polka.ogg` | Motivational Polka | 124 bpm, F major | 18.9 s |
+| `music_night/aggressive_bossa_nova.ogg` | Aggressive Bossa Nova | 132 bpm, D minor | 16.4 s |
+| `music_night/sad_lofi.ogg` | Sad Lo-fi | 80 bpm, Eb major | 17.8 s |
+
 ## Stingers (candidates)
 
 Generated with ACE-Step 1.5 using the same model and settings as the music (XL-sft 4B plus the 4B planner, 60 steps, 48 kHz) and the shared instrument core. Each was rendered at 12 s, then cut at a quiet point near its target length, faded out and mastered to -18 LUFS.
@@ -53,7 +64,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 
 | File | Source |
 |---|---|
-| `sfx/hire.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles PIZZI01 |
+| `sfx/hire.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles PIZZI02 |
 | `sfx/resign.ogg` | Kenney (kenney.nl), CC0 1.0: rpg-audio doorClose_1 |
 | `sfx/alarm.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio lowThreeTone |
 | `sfx/save.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio threeTone1 |
@@ -79,7 +90,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 **Barks.** Gibberish in the game's own invented lexicon, which is not Simlish and not any real language. There are 7 emotions (happy, annoyed, tired, questioning, excited, laughing, sighing), up to 2 takes each, in one sprite per bank. Offsets are in `src/audio/assets.json`.
 - **Generation:** each voice was cloned from a neutral reference clip of the listed voice.
 - **Selection:** every kept take passed a speaker-gender classifier check (p >= 0.98; 0.99 for designed male voices) and a 0.4 to 2.2 s length window, then was picked by timbre match to the reference.
-- **Mastering:** -20 LUFS, limiter at -2 dBFS, and no pitch processing.
+- **Mastering:** -20 LUFS, limiter at -2 dBFS, and no pitch processing. Each bark ends 40 ms after its level falls 30 dB below its peak (a short fade), so no room-like tail rings into a group cheer.
 
 **Models and licences:**
 - Chatterbox-Turbo, Resemble AI: MIT code and weights. Its outputs carry an inaudible Perth watermark that marks them as AI-generated.

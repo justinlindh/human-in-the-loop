@@ -21,7 +21,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | Name | Lane | Worktree | Owns |
 |---|---|---|---|
 | team-lead | coordination | the main checkout | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
-| integrator | integration | the main checkout (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `feat/one-shot` |
+| integrator | integration | the main checkout (branch `main`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `main` |
 | sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
 | art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
@@ -30,7 +30,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
-- Team mailbox messages only arrive between turns. After each task: send your report to team-lead, then end your turn. team-lead replies with cross-lane news and the go-ahead for the next task.
+- Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with one short line. team-lead replies with cross-lane news and the go-ahead for the next task.
 
 ## Rules
 
@@ -42,23 +42,24 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Game text says "company" or "lab", never "startup", except inside a parody joke.
 - No em dash characters anywhere (files, commits, messages); a hook blocks them. Do not type the escape sequence for U+2014 either: the hook decodes it.
 - Comments describe what non-obvious code does now. No history, dates, or measurements in source.
-- Commit on your lane branch in your worktree. Never commit to `main`.
-- Changes reach `feat/one-shot` only through pull requests (`gh pr create --base feat/one-shot --head lane/<lane>`), one per batch:
+- Commit on a topic branch in your worktree. Never commit to `main`.
+- Changes reach `main` only through pull requests, one per batch, each from a fresh branch named `<lane>/<topic>` cut from `origin/main` (`gh pr create --base main --head <lane>/<topic>`). The pre-push hook (`npm run hooks` installs it) refuses pushes to a branch whose PR has merged or closed.
   - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines.
-  - CI runs locally (GitHub Actions minutes are used up): `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. A PASS comment for the PR's current head is required before merging. `npm run ci` runs the same checks in any worktree.
+  - `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. `npm run ci` runs the same checks in any worktree.
+  - Before merging, both gates must be green on the PR's current head: a Local CI PASS comment, and every GitHub check (`gh pr checks <pr>` shows no pending or failing check).
   - The reviewer posts findings as a PR review (`gh pr review`).
   - team-lead approves.
   - The integrator merges with a merge commit (never squash) and resolves cross-lane conflicts on the PR.
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
-  - Never push to a PR's branch after it merges: those commits never reach `feat/one-shot`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/feat/one-shot` with its own PR.
+  - Never push to a PR's branch after it merges: those commits never reach `main`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/main` with its own PR.
 - PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`, imperative, lower case after the colon, no trailing period.
   - Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
   - Scopes: `sim`, `art`, `ui`, `audio`, `integ`, `contract`, `pacing`, `capture`, `docs`, or a feature name.
   - Breaking contract changes add `!` (`feat(contract)!: ...`).
   - No `@name` in commit subjects or bodies (write `officebot`, not `@officebot`): release notes turn them into GitHub mentions that can ping real accounts.
-  - Merges to `feat/one-shot` cut releases automatically (semantic-release, 0.x while pre-alpha), and each release deploys to GitHub Pages, so the commit type decides the version bump: `feat` bumps minor, `fix` and `perf` bump patch.
+  - Merges to `main` cut releases automatically (semantic-release, 0.x while pre-alpha), and each release deploys to GitHub Pages, so the commit type decides the version bump: `feat` bumps minor, `fix` and `perf` bump patch.
 - PR descriptions follow `.github/pull_request_template.md`.
 - Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
 - Gate every commit and push on the test command's exit code (`npm test && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0.

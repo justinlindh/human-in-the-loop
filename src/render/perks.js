@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mat } from './materials.js';
 import { footprint } from './layout.js';
-import { kindOf } from './office.js';
+import { kindOf, frontEdge } from './office.js';
 import { sinkDepth, furnitureMeshes } from './contact.js';
 
 // Perk visits: people leave their desks to use what is placed in the office (coffee, nap pod,
@@ -29,6 +29,7 @@ const PERKS = {
 // in Blender). seat: the seat height to sit on; look: a model-space point to face; yaw: a fixed
 // model-space facing. These override the generic footprint spots for that model.
 const SEAT_HIP_Y = 0.47;
+const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const MODEL_SPOTS = {
   arcade_l1: [{ x: 0.55, z: 0.1, anim: 'sprawl', look: [0, -0.1] }],
   arcade_l2: [{ x: 0.55, z: 0.35, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
@@ -102,7 +103,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
   function walkToSpot(r, e, spot) {
     const a = approachFor(r, e, spot);
     if (a) {
-      r.temp.enter = { from: null, t: 0 };
+      r.temp.enter = { from: null, t: 0, side: { x: a.x, z: a.z }, item: e.id };
       walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
     } else {
       walkTo(r, spot);
@@ -147,7 +148,9 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
       return { x: p.x, z: p.z, yaw, anim: 'idle', perkAnim: ms.anim, lift };
     }
     const f = footprint(e.itemId, 0);
-    const [lx, lz] = def.spots(f)[i];
+    let [lx, lz] = def.spots(f)[i];
+    // A spot in front of the item is measured from where the model actually ends, not its footprint.
+    if (!def.pair && lz > f.h / 2 - 0.01) lz = frontEdge(e) + STAND_M;
     const p = toWorld(e.target, lx, lz);
     let yaw;
     if (def.face === 'front') yaw = e.target.rotY;
@@ -405,7 +408,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     get visiting() { return [...recs.values()].filter((r) => r.temp?.perkKey).length; },
     get sessions() { return sessions.length; },
     set hold(on) { held = !!on; },
-    peek(id) { const r = recs.get(id); return r && { seat: r.seat, yaw: r.yaw, face: r.face ?? null, path: r.path.length, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
+    peek(id) { const r = recs.get(id); return r && { seat: r.seat, yaw: r.yaw, face: r.face ?? null, path: r.path.length, exitFrom: r.exitFrom ?? null, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
     get phases() { return sessions.map((x) => `${x.phase}:${x.t.toFixed(1)}/${x.dur.toFixed(1)}`); },
     // Test hook: send a person (or a pair) to a specific placed item now.
     // nap: true lies the person along a couch, as the lockdown stayer does.

@@ -110,7 +110,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
     office = createOffice({ parent: scene, screens, lighting });
-    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i) => lighting.setAccent(p, i), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
+    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
     Promise.all([loadModels(), rigLoaded]).then(() => { ready = true; });
@@ -308,6 +308,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     // Dev and snap hook: perk visits (send people to a placed item, counts).
     get perks() { return staff?.perks ?? null; },
+    get incentives() { return staff?.incentives ?? null; },
+    standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },
     get incentivesFrame() { return staff?.incentives.frameAt ?? null; },
     get stats() { return { perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },

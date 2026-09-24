@@ -11,6 +11,8 @@ import { holdSeconds } from './reading.js';
 // Characters are keyed by staff id; removed staff walk out and are disposed.
 
 const WALK = 1.25;
+const CHAIR_BACK_M = 0.55;
+const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
@@ -140,7 +142,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function walkTo(r, goal, run = false) {
     const nav = office.nav();
-    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: goal.x, z: goal.z });
+    // A standing goal that falls inside furniture moves to the nearest walkable point.
+    if (!goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z)) Object.assign(goal, nav.freePoint(goal.x, goal.z));
+    // A seat is reached from behind its chair; the last step onto it happens once they arrive.
+    let to = goal;
+    if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
+    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
     r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
@@ -481,6 +488,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
     if (r.path.length) {
       stepWalker(r, dt, r.walkAnim);
+      // Stepping off an item lasts until they reach the side they got on from.
+      if (r.exitFrom && !r.path.includes(r.exitSide)) { r.exitFrom = null; r.exitSide = null; }
     } else if (r.temp) {
       const tp = r.temp;
       if (tp.delay > 0) { tp.delay -= dt; }
@@ -502,6 +511,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         if (tp.t <= 0) {
           r.temp = null;
           if (tp.back && r.goal) walkTo(r, r.goal);
+          // Off the furniture the way they got on: back to the side they came from, then onward.
+          if (tp.enter?.side) {
+            const side = tp.enter.side;
+            const rest = r.path.length ? office.nav().path(side, r.path[r.path.length - 1]) : [];
+            r.path = [side, ...rest.slice(1)];
+            r.exitFrom = tp.enter.item;
+            r.exitSide = side;
+          }
         }
       }
     } else if (r.goal) {
@@ -719,6 +736,40 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // paused: nothing moves, plans, or times out; people only breathe.
+  // Furniture changed: walkers take a fresh path to where they were going, and anyone standing
+  // where something now stands steps aside (sitters, people on a perk item, and leavers excepted).
+  let navSeen = -1;
+  function repath() {
+    const nav = office.nav();
+    for (const r of recs.values()) {
+      if (r.hidden || r.mode !== 'placed' && r.mode !== 'enter') continue;
+      if (r.path.length) {
+        const end = r.path[r.path.length - 1];
+        const goal = r.temp?.goal && !r.temp.enter ? r.temp.goal : r.goal;
+        const dest = goal && Math.hypot(goal.x - end.x, goal.z - end.z) < 0.9 ? goal : { x: end.x, z: end.z };
+        const speed = r.speed, anim = r.walkAnim;
+        walkTo(r, dest);
+        r.speed = speed; r.walkAnim = anim;
+        continue;
+      }
+      if (r.temp?.enter || r.temp?.lift || r.goal?.seated && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.3) continue;
+      if (nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
+        // The nearest point, in widening rings, where the whole body is clear.
+        let p = null;
+        for (let d = 0.3; d < 3 && !p; d += 0.2) {
+          for (let a = 0; a < 12; a++) {
+            const q = { x: r.pos.x + Math.cos((a / 12) * Math.PI * 2) * d, z: r.pos.z + Math.sin((a / 12) * Math.PI * 2) * d };
+            if (!nav.isBlocked(q.x, q.z, BODY_R)) { p = q; break; }
+          }
+        }
+        p ??= nav.freePoint(r.pos.x, r.pos.z);
+        r.path = [{ x: p.x, z: p.z }];
+        if (r.temp) r.temp.goal = { ...r.temp.goal, x: p.x, z: p.z };
+        else if (r.goal && !r.goal.seated) Object.assign(r.goal, r.goal && nav.isBlocked(r.goal.x, r.goal.z) ? p : {});
+      }
+    }
+  }
+
   function update(dt, { paused = false } = {}) {
     if (!office.current) return;
     if (paused) {
@@ -732,6 +783,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       return;
     }
     playTime += dt;
+    if (office.navVersion !== navSeen) { navSeen = office.navVersion; repath(); }
     updateStandup(dt);
     updateFast(dt);
     perks.update(dt, lastState);
@@ -778,6 +830,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   return {
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, setCharacterShadows,
     get playTime() { return playTime; },
+    // Test hook: stand a person at a floor point, idle, with no errand.
+    standAt(id, x, z) {
+      const r = recs.get(id);
+      if (!r) return false;
+      r.temp = { anim: 'idle', t: 30, goal: { x, z, yaw: 0, anim: 'idle' }, back: true };
+      r.path = [];
+      r.pos.set(x, 0, z);
+      return true;
+    },
     get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },

@@ -44,6 +44,20 @@ describe('Crunch Mode', () => {
     expect(strainDelta(s, eng, 0)).toBeCloseTo(strain + B.crunchStrain);
   });
 
+  it('postpones vacations like any crunch, at most twice in a row', async () => {
+    const { vacationSystem } = await import('../../src/sim/strain.js');
+    const s = game(6);
+    const p = addStaff(s, 'engineer', 'mid', { hiredWeek: -200, strain: 0 });
+    s.policies.crunch = true;
+    const c = makeCtx(s);
+    vacationSystem(c);
+    expect(p.mood).not.toBe('away');
+    expect(c.events.find((e) => e.type === 'toast')?.text).toMatch(/because of the crunch/);
+    for (let i = 0; i < 5 && p.mood !== 'away'; i++) { s.week = s.flags.vacationDue[p.id]; vacationSystem(makeCtx(s)); }
+    expect(p.mood).toBe('away');
+    expect(p.strain).toBe(B.vacationMaxPostpones * B.vacationPostponeStrain);
+  });
+
   it('a crunch-built company burns people out; careful players do not', () => {
     const count = (bot, seed) => runBot(bot, seed, 780).resignations;
     const reckless = [1, 3, 4, 7].map((seed) => count('recklessHumans', seed));

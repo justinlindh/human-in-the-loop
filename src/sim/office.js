@@ -125,13 +125,20 @@ export function purchaseProblem(state, itemId) {
   if (it.era && !eraAtLeast(state, it.era)) return 'Arrives with the Agents era';
   if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';
   if (it.kind === 'shop' && state.office.placed.filter((p) => p.itemId === itemId).length >= 2) return 'You already have two';
-  if (it.id === 'desk' && state.officeStage === OFFICE_STAGES.length - 1 && desksOf(state.office.placed).length >= deskCap(state)) return 'Desk limit reached';
+  if (it.id === 'desk' && state.officeStage >= 1 && desksOf(state.office.placed).length >= deskCap(state)) return 'Desk limit reached';
   if (state.cash < it.costs[0]) return 'Not enough cash';
   return null;
 }
 
-// Most desks the HQ holds: a base cap plus a few per expansion step.
+// Most desks the Office Floor and the HQ hold: a base cap, plus a few per HQ expansion step. Moving up a
+// stage never brings more desks than the new stage allows.
 export const deskCap = (state) => B.hqDeskCap + B.expansionDeskStep * (state.office.expansion ?? 0);
+
+// The next HQ expansion step ({ step, name, upgradeCost, rent, gate, ... }), or null before the HQ or after the last step.
+export function nextExpansion(state) {
+  if (state.officeStage !== OFFICE_STAGES.length - 1) return null;
+  return OFFICE_STAGES[state.officeStage].expansions?.[state.office.expansion ?? 0] ?? null;
+}
 
 // The same check placeItem and moveItem run. Pass id to check a move of an already placed item (moves are free).
 export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {

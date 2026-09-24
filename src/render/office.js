@@ -599,10 +599,35 @@ function inward(L) {
 }
 
 // A point in front of a placed item, `dist` meters past its front edge.
+// How far an item's model reaches toward its front (+z in its own frame) from its footprint center.
+// Models often stop short of their footprint (an espresso machine against the wall), and a use spot
+// measured from the footprint would leave people standing a tile away. Measured once per entry.
+export function frontEdge(e) {
+  return localBox(e).max.z;
+}
+
+// The model's bounds in its own frame (x across, z toward its front), at full size. Measured once.
+export function localBox(e) {
+  if (e.box) return e.box;
+  const o = e.obj;
+  // Measured at full size: a newly placed item may still be popping in.
+  const saved = { x: o.position.x, z: o.position.z, r: o.rotation.y, s: o.scale.clone() };
+  o.position.set(0, o.position.y, 0); o.rotation.y = 0; o.scale.set(1, 1, 1);
+  o.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(o);
+  o.position.set(saved.x, o.position.y, saved.z); o.rotation.y = saved.r; o.scale.copy(saved.s);
+  o.updateMatrixWorld(true);
+  if (b.isEmpty()) {
+    const f = footprint(e.itemId, 0);
+    b.set(new THREE.Vector3(-f.w / 2, 0, -f.h / 2), new THREE.Vector3(f.w / 2, 1, f.h / 2));
+  }
+  e.box = b;
+  return b;
+}
+
 function frontOf(e, dist = 0.45) {
-  const f = footprint(e.itemId, 0);
   const r = e.target.rotY;
-  const k = f.h / 2 + dist;
+  const k = frontEdge(e) + dist;
   return { x: e.target.x + Math.sin(r) * k, z: e.target.z + Math.cos(r) * k, yaw: r + Math.PI };
 }
 
@@ -622,6 +647,7 @@ export function createOffice({ parent, screens, lighting }) {
   const lampMat = paletteMaterial('pal_lamp');
   const growMat = paletteMaterial('pal_grow');
 
+  let navVersion = 0;
   function nav() {
     if (!cur.nav) {
       const rects = [];
@@ -643,12 +669,17 @@ export function createOffice({ parent, screens, lighting }) {
       return { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z) };
     };
     const f = footprint(e.itemId, 0);
-    if (kind === 'desk') return [rect(-0.75, DESK_Z - 0.35, 0.75, DESK_Z + 0.35)];
+    // A desk blocks its top and its chair: only the sitter goes in, from behind the chair.
+    if (kind === 'desk') return [rect(-0.75, DESK_Z - 0.35, 0.75, DESK_Z + 0.35), rect(-0.3, SEAT_Z - 0.15, 0.3, SEAT_Z + 0.42)];
     if (kind === 'meeting') {
       const tb = e.obj.userData.table;
       return [rect(-tb.L / 2, -tb.D / 2, tb.L / 2, tb.D / 2)];
     }
-    return [rect(-f.w / 2 + 0.08, -f.h / 2, f.w / 2 - 0.08, f.h / 2 - 0.1)];
+    // Blocked where the model actually stands (a little past its footprint at most), so people walk
+    // round what they can see and a use spot just in front stays walkable.
+    const b = localBox(e);
+    const cl = (v, lim) => Math.max(-lim, Math.min(lim, v));
+    return [rect(cl(b.min.x, f.w / 2 + 0.1), cl(b.min.z, f.h / 2), cl(b.max.x, f.w / 2 + 0.1), cl(b.max.z, f.h / 2))];
   }
 
   // A few free spots spread over the room for idle wandering.
@@ -797,6 +828,7 @@ export function createOffice({ parent, screens, lighting }) {
     cur.desks = desks;
     cur.zones = { ...cur.zones, ...Z };
     cur.nav = null;
+    navVersion++;
     ledCache = null;
     nav();
   }
@@ -1016,6 +1048,8 @@ export function createOffice({ parent, screens, lighting }) {
     get current() { return cur; },
     get placed() { return placed; },
     get bounds() { return cur?.bounds; },
+    // Bumps whenever the walkable grid is rebuilt (furniture placed, moved or removed).
+    get navVersion() { return navVersion; },
   };
 }
 
