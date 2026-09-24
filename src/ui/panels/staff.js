@@ -39,7 +39,7 @@ export function openTraining(ctx, staffId) {
     if (t.knowledge) lines.push(`+${t.knowledge} know-how`);
     if (t.brand) lines.push('a little brand');
     const focusSel = t.skill ? picker({
-      value: focus, title: 'Which skill the workshop trains',
+      key: `focus:${p.id}:${t.id}`, value: focus, title: 'Which skill the workshop trains',
       options: STATS.map((st) => ({ value: st.id, label: `Focus: ${st.skill}`, icon: st.icon, stat: String(Math.round(p.skills[st.id] ?? 0)) })),
       onChange: (v) => { focus = v; },
     }).el : null;
@@ -89,6 +89,7 @@ function assignSelect(ctx, s, p) {
   const groups = {};
   for (const o of opts) (groups[o.group] ??= []).push(o);
   const pk = picker({
+    key: `assign:${p.id}`,
     className: 'assign',
     title: 'What they work on',
     value: `${p.assignment.type}:${p.assignment.targetId ?? ''}`,
@@ -246,7 +247,7 @@ export function staffPanel(ctx, arg) {
       const m = mentorOf(s, p);
       const mentors = s.staff.filter((x) => x.seniority !== 'junior' && isAvailable(x) && x.id !== p.id);
       const sel = picker({
-        placeholder: m ? `Mentor: ${m.name}` : 'Pick a mentor...', keepValue: false, title: 'Who mentors them',
+        key: `mentor:${p.id}`, placeholder: m ? `Mentor: ${m.name}` : 'Pick a mentor...', keepValue: false, title: 'Who mentors them',
         options: mentors.filter((x) => x !== m).map((x) => personOption(x, { sub: `${x.seniority[0].toUpperCase()}${x.seniority.slice(1)} ${roleName(x.role).toLowerCase()}` })),
         onChange: (id) => ctx.act({ type: 'assign', staffId: id, assignment: { type: 'mentor', targetId: p.id } }),
       }).el;
@@ -255,7 +256,7 @@ export function staffPanel(ctx, arg) {
       const juniors = s.staff.filter((x) => x.seniority === 'junior');
       const sel = picker({
         placeholder: p.assignment.type === 'mentor' ? `Mentoring ${s.staff.find((x) => x.id === p.assignment.targetId)?.name ?? ''}` : juniors.length ? 'Mentor a junior...' : 'No juniors to mentor',
-        keepValue: false, disabled: away || !juniors.length, title: 'Mentor a junior',
+        key: `mentee:${p.id}`, keepValue: false, disabled: away || !juniors.length, title: 'Mentor a junior',
         options: juniors.map((x) => personOption(x, { busy: mentorOf(s, x) ? `Has ${mentorOf(s, x).name.split(' ')[0]}` : null, free: !mentorOf(s, x) ? true : false })),
         onChange: (id) => assign('mentor', id),
       }).el;

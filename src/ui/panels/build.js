@@ -271,7 +271,7 @@ export function buildPanel(ctx, arg) {
       });
       const people = s.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
       const addSel = picker({
-        className: 'addsel', placeholder: '+ Add person', keepValue: false, title: 'Put someone on this project',
+        key: `add:${j.id}`, className: 'addsel', placeholder: '+ Add person', keepValue: false, title: 'Put someone on this project',
         options: s.staff.filter((p) => isAvailable(p) && !(p.assignment.type === 'project' && p.assignment.targetId === j.id))
           .map((p) => {
             const best = STATS.reduce((a, x) => ((p.skills?.[x.id] ?? 0) > (p.skills?.[a.id] ?? 0) ? x : a), STATS[0]);
@@ -306,7 +306,7 @@ export function buildPanel(ctx, arg) {
     // Other kinds of work
     const live = s.products.filter((p) => !p.killed);
     const updSel = picker({
-      value: live[0]?.id ?? '', title: 'Which product to update',
+      key: 'update-product', value: live[0]?.id ?? '', title: 'Which product to update',
       options: live.map((p) => ({ value: p.id, label: `${p.name} v${p.version}`, stat: `score ${p.score.toFixed(1)}`, icon: 'update' })),
     });
     const migr = live.filter((p) => p.migrationDueWeek !== null && p.migrationDueWeek !== undefined);

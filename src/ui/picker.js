@@ -18,8 +18,12 @@ import { portrait, roleChip } from './widgets.js';
 
 let openOne = null; // only one list is open at a time
 let seq = 0;
+// A keyboard pick usually rebuilds the panel, which replaces the picker's button. The picker made
+// for the same key right after takes the focus back, so keyboard play can go on.
+let refocus = null; // { key, until }
+const REFOCUS_MS = 1500;
 
-export function picker({ options = [], value = '', placeholder = 'Choose...', onChange, keepValue = true, disabled = false, title = '', className = '' } = {}) {
+export function picker({ options = [], value = '', placeholder = 'Choose...', onChange, keepValue = true, disabled = false, title = '', className = '', key = null } = {}) {
   const id = `pk${++seq}`;
   let opts = options;
   let cur = value ?? '';
@@ -117,7 +121,7 @@ export function picker({ options = [], value = '', placeholder = 'Choose...', on
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(step(active < 0 ? n : active, -1)); }
     else if (e.key === 'Home') { e.preventDefault(); setActive(step(-1, 1)); }
     else if (e.key === 'End') { e.preventDefault(); setActive(step(n, -1)); }
-    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (pickable(active)) choose(active); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (pickable(active)) choose(active, true); }
     else if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'Tab') close(false);
     else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -165,9 +169,10 @@ export function picker({ options = [], value = '', placeholder = 'Choose...', on
     if (refocus && btn.isConnected) btn.focus({ preventScroll: true });
   }
 
-  function choose(i) {
+  function choose(i, byKey = false) {
     const o = opts[i];
     close();
+    if (byKey && key) refocus = { key, until: performance.now() + REFOCUS_MS };
     const prev = cur;
     if (keepValue) { cur = o.value; drawFace(); }
     const res = onChange?.(o.value, o);
@@ -184,6 +189,13 @@ export function picker({ options = [], value = '', placeholder = 'Choose...', on
     close,
   };
   drawFace();
+  // Take the focus back after a keyboard pick rebuilt the panel (see refocus).
+  if (key && refocus?.key === key && performance.now() < refocus.until) {
+    refocus = null;
+    // A microtask runs after the rebuild has attached the new button; a frame is the fallback.
+    const take = () => { if (btn.isConnected && document.activeElement !== btn) btn.focus({ preventScroll: true }); return btn.isConnected; };
+    queueMicrotask(() => { if (!take()) requestAnimationFrame(take); });
+  }
   return api;
 }
 
