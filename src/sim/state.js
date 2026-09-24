@@ -40,6 +40,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
       trend: 'steady', trendWeeksLeft: TRENDS.steady.weeks,
       unlockedCategories: Object.values(CATEGORIES).filter((c) => c.unlockYear <= START_YEAR).map((c) => c.id),
       unlockedAngles: Object.values(ANGLES).filter((a) => a.era === 'classic').map((a) => a.id),
+      forSale: [],
     },
     models: Object.fromEntries(Object.values(MODELS).map((m) => [m.id, {
       version: 1, capability: m.capability, costMult: 1, available: false, deprecated: false,
@@ -48,7 +49,8 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     eraSchedule: {},
     unlocks: {},
     goals: Object.fromEntries(GOALS.map((g) => [g.id, { done: false, week: null }])),
-    office: { stage: 0, placed: [] },
+    office: { stage: 0, placed: [], expansion: 0 },
+    fame: 0,
     lockdown: null, workPolicy: null, pets: [], rival: null, purpose: null,
     founding: { founders: pair, funding: fundingId, logoColor: String(logoColor), tagline: String(tagline).slice(0, 80) },
     research: { done: [] },

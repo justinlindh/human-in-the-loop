@@ -174,10 +174,27 @@ export function officeGateReason(state, stage) {
   return null;
 }
 
+// At the last stage, upgradeOffice buys the next expansion step instead: more room, more desks, more rent.
+function expandOffice(ctx) {
+  const { state } = ctx;
+  const st = OFFICE_STAGES[state.officeStage];
+  const step = st.expansions?.[state.office.expansion ?? 0];
+  if (!step) return { ok: false, reason: 'Already at the biggest office' };
+  const blocked = officeGateReason(state, step);
+  if (blocked) return { ok: false, reason: blocked };
+  if (state.cash < step.upgradeCost) return { ok: false, reason: 'Not enough cash' };
+  state.cash -= step.upgradeCost;
+  state.office.expansion = step.step;
+  state.flags.officeMovedWeek = state.week;
+  ctx.emit({ type: 'officeUpgrade', stage: state.officeStage, expansion: step.step });
+  ctx.emit({ type: 'toast', text: `The ${step.name} is open. Room for ${B.expansionDeskStep} more desks.`, tone: 'good' });
+  return { ok: true };
+}
+
 registerAction('upgradeOffice', (ctx) => {
   const { state } = ctx;
   const next = OFFICE_STAGES[state.officeStage + 1];
-  if (!next) return { ok: false, reason: 'Already at the biggest office' };
+  if (!next) return expandOffice(ctx);
   const blocked = officeGateReason(state, next);
   if (blocked) return { ok: false, reason: blocked };
   if (state.cash < next.upgradeCost) return { ok: false, reason: 'Not enough cash' };
@@ -186,7 +203,7 @@ registerAction('upgradeOffice', (ctx) => {
   // The movers put everything somewhere sensible; anything that does not fit is refunded in full.
   const { placed, left } = autoArrange(state.officeStage, state.office.placed);
   for (const p of left) state.cash += spentOn(p);
-  state.office = { stage: state.officeStage, placed };
+  state.office = { stage: state.officeStage, placed, expansion: 0 };
   state.flags.officeMovedWeek = state.week;
   ctx.emit({ type: 'officeUpgrade', stage: state.officeStage });
   ctx.emit({ type: 'toast', text: `Welcome to the ${next.name}! The movers put everything somewhere. Rearrange as you like.`, tone: 'good' });
