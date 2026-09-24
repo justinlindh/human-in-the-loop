@@ -40,7 +40,8 @@ const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${la
 // DOM clicks, not mouse input: on a software-GL runner a frame can take seconds (menus draw 3D
 // portraits), and real input waits behind rendering long enough to time out. These checks are
 // about behavior, not pointer handling.
-const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 60000 }); await loc.evaluate((el) => el.click()); };
+// Long limits: opening the founders step blocks the main thread for seconds on a slow CPU (portraits).
+const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 120000 }); await loc.evaluate((el) => el.click(), undefined, { timeout: 120000 }); };
 const clickText = (re) => click(page.locator('button:visible', { hasText: re }).first());
 
 try {
