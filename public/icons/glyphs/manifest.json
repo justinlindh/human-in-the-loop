@@ -423,6 +423,18 @@
  "react.upside": {
   "file": "glyphs/react.upside.svg"
  },
+ "item.couch": {
+  "file": "glyphs/item.couch.svg",
+  "size": 30
+ },
+ "item.foosball": {
+  "file": "glyphs/item.foosball.svg",
+  "size": 30
+ },
+ "item.ping_pong_table": {
+  "file": "glyphs/item.ping_pong_table.svg",
+  "size": 30
+ },
  "battery.low": {
   "file": "glyphs/battery.low.svg",
   "size": 14
