@@ -4,8 +4,8 @@ bone, so the bones' rest orientation does not matter; they all point up with no 
 a pose bone's local axes the game's (x right, y up, z front) and its ZYX Euler the game's XYZ.
 
 Bones: body (root, the only one with location keys), hips, legL, legR, torso, head, armL, armR.
-L is the -x side, as in character.js. Actions: typing (sit and type), slumped and tired (the
-coasting and low-stamina desk poses), nap (lying on a couch).
+L is the -x side, as in character.js. Actions: typing (sit and type), slumped, tired and burnout
+(the mood desk poses), nap (lying on a couch), idle (standing) and walk (one stride).
 """
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -179,7 +179,65 @@ def tired(t):
     }
 
 
+def burnout(t):
+    # A 6 s loop, burned out: head down on arms folded on the desk, slow breathing, one long sigh
+    # that lifts the shoulders, and a hand that fidgets and settles again.
+    breath = (1 - math.cos(TAU * t / 3)) / 2
+    sigh = max(0.0, s(math.pi * (t - 1.2) / 1.6)) if 1.2 <= t <= 2.8 else 0.0
+    fidget = max(0.0, s(math.pi * (t - 4.2) / 0.9)) if 4.2 <= t <= 5.1 else 0.0
+    lean = 0.52 - sigh * 0.16 + breath * 0.02
+    return {
+        'body': ((0, 0, 0), (0, SEAT_HIP_Y - HIP_Y - 0.02 + sigh * 0.025 + breath * 0.004, -0.12)),
+        'legL': ((-1.45, 0, 0.05), None),
+        'legR': ((-1.42, 0, -0.03), None),
+        'torso': ((lean, 0, 0), None),
+        'head': ((0.45 - sigh * 0.08, s(TAU * t / 6) * 0.05, 0.35 + s(TAU * t / 6) * 0.04), None),
+        'armL': ((-2.6 + sigh * 0.05, 0, 0.55), None),
+        'armR': ((-2.6 + fidget * 0.12, 0, -0.55 - fidget * 0.08), None),
+    }
+
+
+def idle(t):
+    # A 4 s loop, standing: breathing, a weight shift from foot to foot, and a look around.
+    breath = (1 - math.cos(TAU * t / 2)) / 2
+    shift = s(TAU * t / 4)
+    look = smooth(0.6, 1.0, t) - smooth(1.5, 1.9, t)
+    look2 = smooth(2.4, 2.8, t) - smooth(3.3, 3.7, t)
+    return {
+        'body': ((0, 0, shift * 0.025), (shift * 0.012, breath * 0.006, 0)),
+        'legL': ((0, 0, -shift * 0.025), None),
+        'legR': ((0, 0, -shift * 0.025), None),
+        'torso': ((0.02 - breath * 0.015, 0, -shift * 0.02), None),
+        'head': ((0.02 - look2 * 0.08, (look - look2) * 0.35, s(TAU * t / 4) * 0.04), None),
+        'armL': ((s(TAU * t / 4) * 0.04, 0, 0.12 + breath * 0.02), None),
+        'armR': ((-s(TAU * t / 4) * 0.04, 0, -0.12 - breath * 0.02), None),
+    }
+
+
+STRIDE = 0.8
+
+
+def walk(t):
+    # One 0.8 s stride: legs and arms swing opposite, the body bobs on each step and rolls over
+    # the planted foot, the torso counter-twists, and the head stays level.
+    p = TAU * t / STRIDE
+    swing = s(p)
+    bob = abs(s(p))
+    return {
+        'body': ((0, 0, swing * 0.03), (0, bob * 0.03, 0)),
+        'legL': ((swing * 0.5, 0, 0), None),
+        'legR': ((-swing * 0.5, 0, 0), None),
+        'torso': ((0.06, swing * 0.1, 0), None),
+        'head': ((-0.02 + bob * 0.03, -swing * 0.06, -swing * 0.03), None),
+        'armL': ((-swing * 0.45, 0, 0.1), None),
+        'armR': ((swing * 0.45, 0, -0.1), None),
+    }
+
+
 key_action('typing', 4.0, typing)
+key_action('burnout', 6.0, burnout)
+key_action('idle', 4.0, idle)
+key_action('walk', STRIDE, walk)
 key_action('slumped', 6.0, slumped)
 key_action('tired', 6.0, tired)
 key_action('nap', 4.0, nap)
