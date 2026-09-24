@@ -1,6 +1,7 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
 import { icon } from './icons.js';
+import { projectLabel } from './panels/common.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -134,7 +135,7 @@ export function createHud({ root, controls, ui }) {
     for (const j of s.projects.slice(0, 4)) {
       const fill = h('i');
       const k = h('span.k.num');
-      const label = j.kind === 'new' ? j.name : `${j.kind === 'update' ? 'Update' : j.kind === 'migration' ? 'Migrate' : j.kind === 'refactor' ? 'Refactor' : 'Craft'}${j.name ? `: ${j.name}` : ''}`;
+      const label = projectLabel(s, j);
       tray.append(h('div.tray-card', { onclick: () => ui.open('build'), title: 'Open Build' },
         h('div.t', null, h('span', null, icon('tray.project'), ` ${label}`), k),
         h('div.bar', null, fill)));
