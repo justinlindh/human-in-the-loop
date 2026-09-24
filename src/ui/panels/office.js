@@ -187,19 +187,22 @@ function buildPalette(ctx) {
       } else if (Number.isFinite(s.office?.expansion)) {
         // At the HQ: expansion steps raise the desk cap. Cost and gate come from the sim when it exports them.
         const step = s.office.expansion;
-        if (step >= MAX_EXPANSION) right = h('span.small.muted', { text: 'The biggest office in town, fully expanded.' });
+        const steps = stage.expansions ?? null;
+        const nextStep = steps?.[step] ?? null;
+        const maxSteps = steps?.length ?? MAX_EXPANSION;
+        if (step >= maxSteps) right = h('span.small.muted', { text: 'The biggest office in town, fully expanded.' });
         else {
-          const cost = call('expansionCost', s);
+          const cost = nextStep?.upgradeCost ?? call('expansionCost', s);
           const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
-            icon('office'), ` Expand the HQ${Number.isFinite(cost) ? ` · ${fmtMoney(cost)}` : ''}`);
+            icon('office'), ` ${nextStep?.name ? `Build the ${nextStep.name}` : 'Expand the HQ'}${Number.isFinite(cost) ? ` · ${fmtMoney(cost)}` : ''}`);
           const why = h('span.why.small');
           bind((st) => {
-            const gate = call('officeGateReason', st, stageIx);
+            const gate = nextStep ? call('officeGateReason', st, nextStep) : call('officeGateReason', st, stageIx);
             const r = gate ?? (Number.isFinite(cost) && st.cash < cost ? 'Not enough cash' : '');
             btn.disabled = !!r; setText(why, r ?? ''); btn.title = r ?? '';
           });
           right = h('div.col.right', null,
-            h('div.small.muted', { text: `Step ${step + 1} of ${MAX_EXPANSION}: room for ${EXPANSION_DESKS} more desks.` }), btn, why);
+            h('div.small.muted', { text: `Step ${step + 1} of ${maxSteps}: room for ${EXPANSION_DESKS} more desks${Number.isFinite(nextStep?.rent) ? `, ${fmtMoney(nextStep.rent)}/wk more rent` : ''}.` }), btn, why);
         }
       } else right = h('span.small.muted', { text: 'The biggest office in town.' });
       const policyTip = s.workPolicy && WORK_POLICY[s.workPolicy]?.tip ? h('div.small.muted.policytip', { text: WORK_POLICY[s.workPolicy].tip }) : null;

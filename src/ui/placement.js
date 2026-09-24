@@ -36,7 +36,7 @@ export function checkPlace(s, { itemId, x, y, rot = 0, moveId = null }) {
   const it = CATALOG[itemId];
   if (!it) return { ok: false, reason: 'Unknown item' };
   if (!moveId && (s.cash ?? 0) < (it.costs?.[0] ?? 0)) return { ok: false, reason: 'Not enough cash' };
-  const g = stageGrid(stageOf(s));
+  const g = stageGrid(stageOf(s), s.office?.expansion ?? 0);
   const r = { x, y, ...footprint(itemId, rot) };
   if (x < 0 || y < 0 || x + r.w > g.w || y + r.h > g.h) return { ok: false, reason: 'Out of bounds' };
   const occ = new Uint8Array(g.w * g.h);
@@ -115,7 +115,7 @@ export function firstFit(s, itemId, rot = 0) {
       if (spot && checkPlace(s, { itemId, ...spot }).ok) return spot;
     } catch { /* scan instead */ }
   }
-  const g = stageGrid(stageOf(s));
+  const g = stageGrid(stageOf(s), s.office?.expansion ?? 0);
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (checkPlace(s, { itemId, x, y, rot }).ok) return { x, y, rot };
   }
