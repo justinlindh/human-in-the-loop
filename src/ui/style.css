@@ -71,6 +71,8 @@
 .hitl .btn.blue:hover:not(:disabled) { background: #6b9fff; }
 .hitl .btn.small { padding: 0.25em 0.6em; font-size: 0.88em; border-radius: 0.55em; }
 .hitl .btn.on { background: var(--ink); color: var(--cream); }
+/* An active button stays dark when hovered, so its cream content stays visible. */
+.hitl .btn.on:hover:not(:disabled) { background: #3d3845; }
 .hitl .btn .key { font-size: 0.72em; opacity: 0.65; font-family: 'JetBrains Mono', monospace; }
 
 /* ---------- top bar ---------- */
