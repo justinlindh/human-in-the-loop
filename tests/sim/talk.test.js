@@ -140,3 +140,25 @@ describe('office talk', () => {
     expect(run()).toBe(run());
   });
 });
+
+describe('the @channel running joke', () => {
+  it('one over-notifier per run, a few times a run, with the no_at_channel reaction; warranted during an outage', () => {
+    const s = busy(11);
+    const pings = [];
+    for (let w = 0; w < 600; w++) for (const e of week(s)) if (e.type === 'chat' && e.text.startsWith('@channel')) pings.push(e);
+    expect(pings.length).toBeGreaterThanOrEqual(2);
+    expect(pings.length).toBeLessThanOrEqual(12);
+    expect(new Set(pings.map((e) => e.fromId)).size).toBe(1);
+    for (const e of pings) expect(e.reactions.no_at_channel).toBeGreaterThanOrEqual(2);
+    const t = busy(12);
+    const p = t.products[0];
+    t.outage = { productId: p.id, kind: 'ransomware', severity: 4, weeks: 0, unrecoverable: false };
+    let warranted = null;
+    for (let i = 0; i < 40 && !warranted; i++) {
+      t.flags.talk && (t.flags.talk.atChannelNext = 0);
+      t.outage.weeks = 0;
+      warranted = week(t).find((e) => e.type === 'chat' && e.text.startsWith('@channel') && e.text.includes(p.name));
+    }
+    expect(warranted).toBeTruthy();
+  });
+});

@@ -5,7 +5,7 @@ import { emitChat } from './chat.js';
 import { automationExposure } from './automation.js';
 import { eraAllowsText, currentEra, eraIndex } from './eras.js';
 import { seatOf } from './office.js';
-import { TALK, SAY_SOLO, RUNNING_JOKES, CAST_SPECS, SITUATIONS } from '../data/talk.js';
+import { TALK, SAY_SOLO, RUNNING_JOKES, CAST_SPECS, SITUATIONS, AT_CHANNEL, AT_CHANNEL_WARRANTED } from '../data/talk.js';
 import { CATEGORIES } from '../data/categories.js';
 import { MODELS } from '../data/models.js';
 import { ITEMS } from '../data/items.js';
@@ -281,6 +281,38 @@ export function helpersFor(state, beats) {
   };
 }
 
+// The over-notifier @channels the whole company, a few times a run. During a fresh outage the ping is
+// warranted and people take back their reaction.
+function atChannel(ctx, talk) {
+  const { state, rng } = ctx;
+  if ((talk.atChannelNext ?? 0) > state.week) return;
+  const people = around(state);
+  let offender = people.find((p) => p.id === talk.overNotifier);
+  if (!offender) {
+    const pool = people.filter((p) => !p.founder);
+    if (pool.length < 3) return;
+    offender = pick(rng, pool);
+    talk.overNotifier = offender.id;
+  }
+  const outage = state.outage && state.outage.weeks <= 1 ? state.products.find((p) => p.id === state.outage.productId) : null;
+  const warranted = outage && chance(rng, B.atChannelWarrantedChance);
+  if (!warranted && !chance(rng, B.atChannelChance)) return;
+  const beat = warranted ? AT_CHANNEL_WARRANTED : pick(rng, AT_CHANNEL);
+  const values = { a: first(offender), product: outage?.name ?? '' };
+  const text = (t) => t.replace(/\{(a|product)\}/g, (_, k) => values[k]);
+  const root = emitChat(ctx, { channel: 'general', person: offender, text: text(pick(rng, beat.post)),
+    reactions: { no_at_channel: int(rng, 2, 6), ...(warranted ? {} : { '😂': 1 }) } });
+  const others = shuffle(rng, people.filter((p) => p.id !== offender.id));
+  const replies = shuffle(rng, beat.replies).slice(0, int(rng, 1, 2));
+  replies.forEach((r, i) => { if (others[i]) emitChat(ctx, { channel: 'general', person: others[i], text: text(r), replyTo: root.id }); });
+  const sigher = state.staff.find((p) => p.id !== offender.id && p.seniority === 'senior' && inOffice(p));
+  if (!warranted && sigher && chance(rng, B.atChannelSighChance)) {
+    const lines = ['Someone @channeled again.', 'We need to talk about @channel. Again.', 'My phone just told me about a yogurt.'];
+    ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: sigher.id, text: pick(rng, lines), toId: null, replyTo: null });
+  }
+  talk.atChannelNext = state.week + B.atChannelGapWeeks;
+}
+
 // One week of office talk: spoken lines (say events) and Slackk threads, at a modest rate, with this
 // week's situations first, then running jokes, then everyday exchanges and solo lines.
 export function talkSystem(ctx, happened) {
@@ -310,6 +342,7 @@ export function talkSystem(ctx, happened) {
   }
   if (!posted) posted = runJoke(ctx, 'chat', talk, h);
   if (!posted && chance(rng, B.threadChance * factor)) posted = !!runOne(ctx, eligible(state, talk, h, { stream: 'chat' }), beats, talk);
+  atChannel(ctx, talk);
   return posted;
 }
 
