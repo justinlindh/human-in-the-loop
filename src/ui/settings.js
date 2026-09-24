@@ -32,6 +32,8 @@ export function applySettings(controls, s) {
   controls.setBus?.('master', s.volume);
   for (const b of BUSES) controls.setBus?.(b.id, s.bus?.[b.id] ?? 1);
   (controls.setMuted ?? controls.setMute)?.(!!s.muted);
+  // The audio engine also listens directly, so the mix follows Settings however main.js is wired.
+  window.dispatchEvent(new CustomEvent('hitl:audioSettings', { detail: { master: s.volume, muted: !!s.muted, bus: { ...s.bus } } }));
   controls.setQuality?.(s.quality);
   controls.setTiltShift?.(s.tiltShift);
   (controls.setAutoPause ?? controls.setPauseOnBlur)?.(s.autoPause !== false);
