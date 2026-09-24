@@ -208,3 +208,35 @@ export function buildCharTurnaround(group) {
   });
   return new THREE.Box3(new THREE.Vector3(-2.4, 0, -0.9), new THREE.Vector3(2.4, 1.2, 0.9));
 }
+
+// Object icon board: every icon in public/icons/objects at 16, 24, and 48 px on cream and ink.
+export function buildIconBoard(group, overlayEl) {
+  group.userData.windowMaterials = [];
+  const box = document.createElement('div');
+  box.style.cssText = `position:absolute;inset:0;z-index:50;overflow:auto;padding:16px;background:${PALETTE.wall_cream};
+    display:grid;grid-template-columns:repeat(4,max-content);gap:10px 26px;align-content:start;
+    font:600 13px Fredoka,sans-serif;color:${PALETTE.ink}`;
+  overlayEl?.appendChild(box);
+  fetch(`${import.meta.env.BASE_URL}icons/objects/manifest.json`).then((r) => r.json()).then((m) => {
+    for (const [name, e] of Object.entries(m)) {
+      const cell = document.createElement('div');
+      cell.style.cssText = 'display:flex;gap:6px;align-items:center;width:max-content';
+      for (const [bg, fg] of [[PALETTE.paper, PALETTE.ink], [PALETTE.ink, PALETTE.paper]]) {
+        const p = document.createElement('div');
+        p.style.cssText = `display:flex;gap:5px;align-items:center;padding:5px 7px;border-radius:9px;background:${bg};color:${fg}`;
+        for (const s of [16, 24, 48]) {
+          const img = document.createElement('img');
+          img.src = `${import.meta.env.BASE_URL}icons/${e.file}`;
+          img.width = img.height = s;
+          p.appendChild(img);
+        }
+        cell.appendChild(p);
+      }
+      const t = document.createElement('span');
+      t.textContent = name;
+      cell.appendChild(t);
+      box.appendChild(cell);
+    }
+  });
+  return new THREE.Box3(new THREE.Vector3(-1, 0, -1), new THREE.Vector3(1, 1, 1));
+}

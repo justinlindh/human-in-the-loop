@@ -4,7 +4,7 @@ import { createSceneGraph } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
-import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround } from './debug.js';
+import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
 import { setGlowScale } from './materials.js';
 import { loadModels } from './models.js';
 import { createScreens } from './screens.js';
@@ -18,9 +18,13 @@ const DEBUG_VIEWS = {
   props: { '1': buildPropLineup },
   items: { '1': buildItemLineup },
   chars: { '1': buildCharLineup, '2': buildCharTurnaround },
+  icons: { objects: (g) => buildIconBoard(g, labelsElRef) },
 };
 
+let labelsElRef = null;
+
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
+  labelsElRef = labelsEl;
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
