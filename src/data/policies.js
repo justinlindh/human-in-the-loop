@@ -44,6 +44,16 @@ export const POLICIES = {
     unlock: (s) => s.stats.launches >= 1,
     desc: 'Nights and weekends until it ships. More output now. Everyone is tired later.',
   },
+  top_pay: {
+    id: 'top_pay', lockText: 'Needs the HQ Building', name: 'Top-of-Market Pay', weeklyCost: 0, costPayrollShare: 0.15,
+    unlock: (s) => s.officeStage >= 2,
+    desc: 'Everyone is paid a little more than anyone else would pay them. Recruiters stop calling, mostly. Costs 15% of payroll.',
+  },
+  office_upkeep: {
+    id: 'office_upkeep', lockText: 'Needs the HQ Building', name: 'Office Upkeep', weeklyCost: 0, costPerHead: 150,
+    unlock: (s) => s.officeStage >= 2,
+    desc: 'Fresh flowers, a real barista, chairs that do not squeak. People recover faster and stay longer. $150 a head each week.',
+  },
   incentives: {
     id: 'incentives', lockText: 'Unlocks with a team of 8 and three launches', name: 'Incentives Program', weeklyCost: 300,
     unlock: (s) => s.staff.length >= 8 && s.stats.launches >= 3,

@@ -31,7 +31,7 @@ Combo compatibility is data-driven: some Category × Angle pairs are great (Agen
 
 - **Categories** (initial set, unlocked progressively): Notes, Email, CRM, Project Management, Support Desk, HR, Analytics, Design Tools, Accounting, Legal, Recruiting, Dev Tools, Video Editing, Security.
 - **AI Angles:** Copilot, Autonomous Agent, AI-native Rebuild, Voice-first, Summarizer, Workflow Automation, Vertical Fine-tune.
-- **Incumbents** (parody): Salesfarce (CRM), Jirra (PM), Slackk (chat), Notian (notes), Zendisk (support), Figmo (design), Quickbucks (accounting), Workdai (HR), and others. Each holds market share and customer lock-in per category.
+- **Incumbents** (parody): Salesfarce (CRM), Jirra (PM), Yak (chat), Notian (notes), Zendisk (support), Figmo (design), Quickbucks (accounting), Workdai (HR), and others. Each holds market share and customer lock-in per category.
 - **Incumbent behavior:** incumbents copy popular AI features 6 to 12 months after you ship them, eroding your Novelty advantage. They sometimes acquire competitors (including you, as an exit).
 - **Competitor companies:** clones spawn in hot categories. Clone spawn rate rises each year (everyone has AI too). This is the saturation clock: build advantages decay; brand, trust, and taste persist.
 - **Trends:** periodic trend shifts (e.g. "Agents are hot", "AI fatigue", "Compliance crackdown") modify demand per angle and category.
@@ -258,9 +258,9 @@ Engineering time spent on tools with permanent effects, run as projects of kind 
 | Onboarding Kit | new hires start with +15 knowledge | Docs Culture |
 | Red Team Suite | security posture +10 | |
 
-## Slackk (team chat)
+## Yak (team chat)
 
-The #general feed becomes a small Slack-like panel, branded Slackk, and a storytelling surface: morale shows up in chat before it shows up in the meters.
+The #general feed becomes a small Slack-like panel, branded Yak, and a storytelling surface: morale shows up in chat before it shows up in the meters.
 
 - **Channels:** `#general` (staff chatter), `#incidents` (pagerbot and the scramble), `#wins` (launches, promotions, awards), `#random` (coffee machine drama, office dog).
 - **Contextual lines:** templates that reference real products, coworkers, models, and incumbents ("Claudius refused to drop the users table again").
@@ -284,14 +284,14 @@ Random events regularly put a decision in front of the player (roughly one every
 
 ## Icons
 
-No stock emoji anywhere in the shipped game. Every icon (menu buttons, categories, toasts, meters, Slackk reactions, emotes above characters, event art) comes from one custom set in the diorama's art direction: the same palette, chunky rounded forms, and thick outlines as the UI. The art director chooses the technique (for example, small renders of the game's own 3D models for object icons, and hand-drawn SVG for small glyphs) as long as the set reads as one family at 16 to 48 px.
+No stock emoji anywhere in the shipped game. Every icon (menu buttons, categories, toasts, meters, Yak reactions, emotes above characters, event art) comes from one custom set in the diorama's art direction: the same palette, chunky rounded forms, and thick outlines as the UI. The art director chooses the technique (for example, small renders of the game's own 3D models for object icons, and hand-drawn SVG for small glyphs) as long as the set reads as one family at 16 to 48 px.
 
 ## Standups
 
 A weekly ritual that shows morale in person.
 
 - **Daily Standups policy:** once per in-game week the team walks to the whiteboard (or the meeting room once there is one), stands in a loose circle, and 3 to 5 speech bubbles play out in turn; then everyone returns to work. Lines come from real state: project progress, mentoring, blockers, outages. Coasting people give flat answers ("Same as yesterday."), and burnt-out people say nothing. Cost: a small output loss. Benefit: better knowledge sharing (institutional knowledge) and a small meaning lift.
-- **Async Standups policy:** the same updates are posted to a Slackk `#standup` channel instead. No output cost, a weaker benefit, and people who are checked out stop posting, so a quiet channel is a warning sign.
+- **Async Standups policy:** the same updates are posted to a Yak `#standup` channel instead. No output cost, a weaker benefit, and people who are checked out stop posting, so a quiet channel is a warning sign.
 - The two policies are mutually exclusive. At 2x speed and above, the in-person gathering is shortened and the bubbles are skipped, so it never drags.
 
 ## Structure v2: eras, unlocks, founding, placement (supersedes the run shape above)
@@ -340,5 +340,5 @@ The first product is then started from the normal Build panel (guided by the fir
 
 ### Guidance
 - A **Goals** card in the tray (for example "Getting started: place 2 desks, start a product, launch it"), updated as goals complete.
-- The founders nudge in speech bubbles and Slackk ("We should probably get desks in here first").
+- The founders nudge in speech bubbles and Yak ("We should probably get desks in here first").
 - Unlock explainer cards. No front-loaded tutorial beyond the HUD and speed basics.

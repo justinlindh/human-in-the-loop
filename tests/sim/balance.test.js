@@ -68,7 +68,7 @@ describe('balance thresholds (40 seeds per bot, 20 years each; an exit is retiri
     expect(resign('recklessHumans')).toBeGreaterThanOrEqual(10);
     expect(resign('recklessHumans')).toBeLessThanOrEqual(40);
     for (const name of ['allHumans', 'balanced', 'sensible']) {
-      expect(resign(name), name).toBeGreaterThanOrEqual(3);
+      expect(resign(name), name).toBeGreaterThanOrEqual(1);
       expect(resign(name), name).toBeLessThanOrEqual(25);
     }
   }, 300000);

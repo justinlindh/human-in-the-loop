@@ -6,7 +6,7 @@ import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK } from './manif
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
   const out = new Set();
-  const re = /#+ (SimEvent shapes|Events|Content ladder events|Speech vs Slackk)[^\n]*\n([\s\S]*?)(?=\n#+ )/g;
+  const re = /#+ (SimEvent shapes|Events|Content ladder events|Speech vs (?:Yak|Slackk))[^\n]*\n([\s\S]*?)(?=\n#+ )/g;
   for (const m of contract.matchAll(re)) for (const t of m[2].matchAll(/type: '([a-zA-Z]+)'/g)) out.add(t[1]);
   return [...out];
 };
@@ -61,12 +61,12 @@ describe('audio director', () => {
     expect(sfx).toBeLessThanOrEqual(BUSES.sfx.limit);
   });
 
-  it('cheers a launch with up to six present people, staggered, under a cheer duck', () => {
+  it('cheers a launch with up to four present people, staggered, under a cheer duck', () => {
     const d = createDirector();
     const cmds = d.events([{ type: 'launch', productId: 'p1' }], state(), 5);
     const barks = cmds.filter((c) => c.cue === 'voice.bark');
-    expect(barks.length).toBe(6);
-    expect(new Set(barks.map((b) => b.voiceKey)).size).toBe(6);
+    expect(barks.length).toBe(GROUP_CUES.launch.maxVoices);
+    expect(new Set(barks.map((b) => b.voiceKey)).size).toBe(GROUP_CUES.launch.maxVoices);
     for (let i = 1; i < barks.length; i++) expect(barks[i].at).toBeGreaterThan(barks[i - 1].at);
     expect(cmds.some((c) => c.op === 'duck' && c.key === 'cheer' && c.on)).toBe(true);
     const low = createDirector({ quality: 'low' }).events([{ type: 'launch' }], state(), 5).filter((c) => c.cue === 'voice.bark');
@@ -110,7 +110,7 @@ describe('audio director', () => {
     expect(barks).toBeLessThanOrEqual(20);
   });
 
-  it('never barks on speech bubbles or Slackk lines', () => {
+  it('never barks on speech bubbles or Yak lines', () => {
     const d = createDirector();
     const cmds = d.events([{ type: 'say', staffId: 's1', text: 'hi' }, { type: 'chat', from: 'x', text: 'y' }], state(), 1);
     expect(cmds.filter((c) => c.cue === 'voice.bark')).toHaveLength(0);
@@ -287,5 +287,20 @@ describe('audio director', () => {
     const other = createDirector();
     expect(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}).some((c) => c.op === 'preload')).toBe(false);
   });
-});
 
+  it('spaces cheer voices apart, deals emotions without repeats, and alternates takes', () => {
+    const d = createDirector({ seed: 3 });
+    const s = state({ products: [{ id: 'p1', version: 1 }] });
+    const barks = d.events([{ type: 'launch', productId: 'p1' }], s, 100).filter((c) => c.cue === 'voice.bark');
+    expect(barks.length).toBe(GROUP_CUES.launch.maxVoices);
+    expect(barks.length).toBeLessThanOrEqual(4);
+    for (let i = 1; i < barks.length; i++) expect(barks[i].at - barks[i - 1].at).toBeGreaterThanOrEqual(GROUP_CUES.launch.stagger[0] - 1e-9);
+    const n = GROUP_CUES.launch.emotions.length;
+    // The first n voices use n different emotions.
+    expect(new Set(barks.slice(0, n).map((b) => b.emotion)).size).toBe(n);
+    // Voices sharing an emotion get consecutive take indexes, so a two-take bank alternates.
+    const byEmotion = {};
+    for (const b of barks) (byEmotion[b.emotion] ??= []).push(b.take);
+    for (const takes of Object.values(byEmotion)) for (let i = 1; i < takes.length; i++) expect(takes[i] % 2).not.toBe(takes[i - 1] % 2);
+  });
+});

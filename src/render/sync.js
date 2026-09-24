@@ -41,6 +41,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const hired = new Set();
   const leaving = new Map();    // staff id -> { fired }
   let stageSeen = -1;
+  let lastL = null;
+  let lastStage = -1;
   let firstSync = true;
   let lastState = null;
   const ledMats = {
@@ -166,8 +168,20 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     lastState = state;
     const cur = office.current;
     if (!cur) return;
-    const stageChanged = cur.stage !== stageSeen;
-    stageSeen = cur.stage;
+    const key = cur.key ?? cur.stage;
+    const stageChanged = key !== stageSeen;
+    // An HQ expansion grows the floor, so its centre (the world origin) moves: everyone keeps their
+    // tile by shifting with it.
+    if (stageChanged && lastL && cur.stage === lastStage) {
+      const dx = (lastL.W - cur.L.W) / 2, dz = (lastL.D - cur.L.D) / 2;
+      for (const r of [...recs.values(), ...leavers]) {
+        r.pos.x += dx; r.pos.z += dz;
+        for (const q of r.path) { q.x += dx; q.z += dz; }
+      }
+    }
+    stageSeen = key;
+    lastL = cur.L;
+    lastStage = cur.stage;
     const list = state.staff ?? [];
     const ids = new Set(list.map((s) => s.id));
 
@@ -582,10 +596,65 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Where a standup gathers: around the meeting table, else in front of the whiteboard, else on
   // open floor. Everyone faces the middle of the group.
+  // The most open patch of floor: the walkable cell farthest from anything blocked.
+  function clearing() {
+    const nav = office.nav();
+    const L = office.current.L;
+    const { nx, nz, cell, blocked } = nav;
+    let best = null, bestD = -1;
+    for (let i = 1; i < nx - 1; i++) for (let k = 1; k < nz - 1; k++) {
+      if (blocked[i + k * nx]) continue;
+      let d = 99;
+      for (let r = 1; r < 12 && d === 99; r++) {
+        for (let di = -r; di <= r && d === 99; di++) for (let dk = -r; dk <= r; dk++) {
+          if (Math.max(Math.abs(di), Math.abs(dk)) !== r) continue;
+          const a = i + di, b = k + dk;
+          if (a < 0 || b < 0 || a >= nx || b >= nz || blocked[a + b * nx]) { d = r; break; }
+        }
+      }
+      if (d > bestD) { bestD = d; best = { x: -L.W / 2 + (i + 0.5) * cell, z: -L.D / 2 + (k + 0.5) * cell }; }
+    }
+    return best ?? { x: 0, z: 0 };
+  }
+
+  // Keeps a gathering indoors: the ring's center moves inward until every spot is inside the walls
+  // with a margin. onFloor then moves each spot to the nearest walkable point.
+  function indoors(spots) {
+    const L = office.current.L;
+    const M = 0.6;
+    for (let pass = 0; pass < 20; pass++) {
+      let dx = 0, dz = 0;
+      for (const p of spots) {
+        if (p.x < -L.W / 2 + M) dx = Math.max(dx, -L.W / 2 + M - p.x);
+        if (p.x > L.W / 2 - M) dx = Math.min(dx, L.W / 2 - M - p.x);
+        if (p.z < -L.D / 2 + M) dz = Math.max(dz, -L.D / 2 + M - p.z);
+        if (p.z > L.D / 2 - M) dz = Math.min(dz, L.D / 2 - M - p.z);
+      }
+      if (!dx && !dz) break;
+      for (const p of spots) { p.x += dx; p.z += dz; p.cx += dx; p.cz += dz; }
+    }
+    return spots;
+  }
+  function onFloor(spots) {
+    const nav = office.nav();
+    for (const p of spots) Object.assign(p, nav.freePoint(p.x, p.z));
+    return spots;
+  }
+
+  // Where a standup gathers. A ring whose spots mostly land on furniture (a board with desks in
+  // front of it) moves to the most open floor instead.
   function ringSpots(n) {
+    const nav = office.nav();
+    const crowded = (spots) => spots.filter((p) => nav.isBlocked(p.x, p.z, 0.2)).length > spots.length * 0.25;
+    let spots = ringSpotsRaw(n);
+    if (crowded(indoors(spots))) spots = indoors(ringSpotsRaw(n, clearing()));
+    return onFloor(spots);
+  }
+
+  function ringSpotsRaw(n, at = null) {
     const Z = office.current.zones;
     const spots = [];
-    if (Z.meeting) {
+    if (Z.meeting && !at) {
       const M = Z.meeting;
       const a = M.L / 2 + 0.5, b = M.D / 2 + 0.5;
       const c = Math.cos(M.rotY), sn = Math.sin(M.rotY);
@@ -597,8 +666,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       return spots;
     }
-    const w = Z.whiteboard;
-    const base = w ?? openSpot();
+    const w = at ? null : Z.whiteboard;
+    const base = at ?? w ?? clearing();
     const yaw = w?.yaw ?? Math.PI;
     // The ring sits in front of the board so faces and the board stay visible.
     const r = Math.max(0.6, n * 0.17);

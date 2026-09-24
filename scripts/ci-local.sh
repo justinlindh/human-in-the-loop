@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Runs locally everything the CI workflow runs, gated on exit codes, and prints a summary table.
 # Usage: scripts/ci-local.sh [--base <ref>] [--title "<pr title>"] [--summary <file>]
-#   --base     ref the commit check compares against (default origin/feat/one-shot)
+#   --base     ref the commit check compares against (default origin/main)
 #   --title    PR title for the commit check (skipped when empty)
 #   --summary  also write the summary table (markdown) to this file
 # The balance suite runs alongside the other steps; the rest run in order. Exit 0 only if all pass.
 set -uo pipefail
 
-BASE="origin/feat/one-shot"; TITLE=""; SUMMARY=""
+BASE="origin/main"; TITLE=""; SUMMARY=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) BASE="$2"; shift 2 ;;

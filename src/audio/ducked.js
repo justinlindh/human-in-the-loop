@@ -30,6 +30,7 @@ export function createDucked(ctx, loader, { mix, out, run, later = setTimeout })
     pb.end = at + pb.buffer.duration - pb.offset;
     mix.endHold(pb.holdId, pb.end);
     if (pb.c.after?.length) queue.push({ at: pb.end, cmds: pb.c.after, owner: pb });
+    if (!pb.started) { pb.started = true; pb.onStart?.(src); }
     return src;
   }
 
@@ -41,13 +42,11 @@ export function createDucked(ctx, loader, { mix, out, run, later = setTimeout })
       return null;
     }
     try {
-      const pb = { c, holdId: id, buffer: loader.get(c.file), offset: 0, paused: false, pausable };
+      const pb = { c, holdId: id, buffer: loader.get(c.file), offset: 0, paused: false, pausable, onStart, started: false };
       if (pausable) active.add(pb);
       const at = Math.max(ctx.currentTime, c.at + waited / 1000);
       if (pausable && paused) { pb.paused = true; pb.startAt = at; mix.endHold(id, Infinity); return null; }
-      const src = startSource(pb, at);
-      onStart?.(src);
-      return src;
+      return startSource(pb, at);
     } catch {
       mix.endHold(id, ctx.currentTime);
       return null;

@@ -5,7 +5,7 @@ import { B } from '../../src/sim/balance.js';
 const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'fame', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
   'era', 'eraSchedule', 'unlocks', 'goals', 'lockdown', 'workPolicy', 'pets', 'rival', 'purpose',
 ];
@@ -39,7 +39,7 @@ describe('game state', () => {
     expect(s.unlocks).toEqual({});
     expect(Object.values(s.goals).every((g) => g.done === false && g.week === null)).toBe(true);
     expect(s.market.categories.crm.incumbentStrength).toBe(650);
-    expect(s.office).toEqual({ stage: 0, placed: [] });
+    expect(s.office).toEqual({ stage: 0, placed: [], expansion: 0 });
     expect(s.founding).toEqual({ founders: ['engineer', 'designer'], funding: 'bootstrapped', logoColor: '#ffb020', tagline: '' });
     expect(s.research).toEqual({ done: [] });
     expect(s.modifiers).toEqual([]);

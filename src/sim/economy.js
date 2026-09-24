@@ -20,6 +20,19 @@ export function automationWeeklyCost(state, fn) {
   return MODELS[a.model].autoCost * B.autoCostMult * state.models[a.model].costMult * a.level * gpuMult;
 }
 
+// What a policy costs this week: a flat cost, plus a share of payroll or a cost per head for the upkeep dials.
+export function policyCost(state, id) {
+  const pol = POLICIES[id];
+  if (!pol) return 0;
+  return pol.weeklyCost + (pol.costPayrollShare ?? 0) * sum(state.staff, (p) => p.salary) + (pol.costPerHead ?? 0) * state.staff.length;
+}
+
+// The stage's rent plus the rent of every HQ expansion step taken.
+export function officeRent(state) {
+  const st = OFFICE_STAGES[state.officeStage];
+  return st.rent + (st.expansions ?? []).slice(0, state.office.expansion ?? 0).reduce((a, e) => a + e.rent, 0);
+}
+
 // Weekly spend broken out by line item; the UI can show it as a burn breakdown.
 export function weeklyCosts(state) {
   const live = liveProducts(state);
@@ -28,11 +41,11 @@ export function weeklyCosts(state) {
   const selfHosted = live.some((p) => p.model && MODELS[p.model].selfHosted) || autos.some((a) => MODELS[a.model].selfHosted);
   return {
     salaries: sum(state.staff, (p) => p.salary),
-    rent: OFFICE_STAGES[state.officeStage].rent * (state.workPolicy === 'remote' ? B.remoteRentMult : 1),
+    rent: officeRent(state) * (state.workPolicy === 'remote' ? B.remoteRentMult : 1),
     models: sum(live, (p) => modelCostPerCustomer(state, p.model) * p.customers * 12 / 52),
     automation: sum(Object.keys(state.automation), (fn) => automationWeeklyCost(state, fn)),
     gpu: selfHosted ? B.gpuWeeklySelfHost : 0,
-    policies: sum(Object.keys(state.policies).filter((id) => state.policies[id] && POLICIES[id]), (id) => POLICIES[id].weeklyCost),
+    policies: sum(Object.keys(state.policies).filter((id) => state.policies[id] && POLICIES[id]), (id) => policyCost(state, id)),
     tooling: state.security.tooling ? B.toolingWeekly : 0,
     overhead: Math.max(0, state.staff.length - B.overheadFreeHeadcount) * B.overheadPerHead,
   };

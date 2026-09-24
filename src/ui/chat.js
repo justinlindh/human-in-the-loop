@@ -11,7 +11,7 @@ const BOT_ICON = {
   '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackerspewsbot': 'bot.hn', '@newsbot': 'bot.news', '@buildbot': 'bot.build',
 };
 
-// Slackk: the office's team chat. Channels with unread badges, threads, reactions, and names you
+// Yak: the office's team chat. Channels with unread badges, threads, reactions, and names you
 // can click to find the person. Messages stay bounded per channel in memory and in the DOM.
 export function createChat(root, { getState, onName } = {}) {
   const store = Object.fromEntries(CHANNELS.map((c) => [c, []]));
@@ -22,8 +22,8 @@ export function createChat(root, { getState, onName } = {}) {
 
   const totalBadge = h('span.count');
   const caret = h('span.caret', null, icon('caret.down'));
-  const head = h('div.chat-head', { title: 'Slackk (C)', onclick: () => toggle() },
-    h('span.slogo', { text: '#' }), h('b.sbrand', { text: 'Slackk' }), totalBadge, caret);
+  const head = h('div.chat-head', { title: 'Yak (C)', onclick: () => toggle() },
+    h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), totalBadge, caret);
 
   const tabBtns = {};
   const tabBadges = {};
@@ -34,7 +34,7 @@ export function createChat(root, { getState, onName } = {}) {
   }));
   const quiet = h('div.chat-quiet.banner');
   const list = h('div.chat-body');
-  const el = h('div.chat.slackk', null, head, tabsEl, quiet, list);
+  const el = h('div.chat.yak', null, head, tabsEl, quiet, list);
   root.append(el);
 
   function avatar(m) {
@@ -146,7 +146,7 @@ export function createChat(root, { getState, onName } = {}) {
     for (const c of CHANNELS) { store[c] = []; unread[c] = 0; }
     lastGeneralWeek = null;
     renderChannel();
-    // Spoken 'say' lines are office bubbles, never Slackk messages.
+    // Spoken 'say' lines are office bubbles, never Yak messages.
     for (const e of s?.chatLog ?? []) if (e.type !== 'say') add(e, Number.isFinite(e.week) ? e.week : null, { quiet: true });
     refreshBadges();
   }

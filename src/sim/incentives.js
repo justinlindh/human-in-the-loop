@@ -116,7 +116,7 @@ const ordinal = (n) => {
   return words[n] ?? `${n}th`;
 };
 
-// Onlookers whisper, the winner says something awkward, and Slackk speculates.
+// Onlookers whisper, the winner says something awkward, and Yak speculates.
 function stageTalk(ctx, winner, reward) {
   const { state, rng } = ctx;
   const name = winner.name.split(' ')[0];
@@ -138,8 +138,8 @@ function stageTalk(ctx, winner, reward) {
   if (inOffice(winner)) say(winner, pick(rng, reward.winner), null, null);
   const posters = shuffle(rng, state.staff.filter((p) => p !== winner && p.mood !== 'away'));
   if (posters.length) {
-    const root = emitChat(ctx, { channel: 'random', person: posters[0], text: fill(pick(rng, reward.slack.post)), kind: 'win' });
-    if (posters[1]) emitChat(ctx, { channel: 'random', person: posters[1], text: fill(pick(rng, reward.slack.replies)), replyTo: root.id });
+    const root = emitChat(ctx, { channel: 'random', person: posters[0], text: fill(pick(rng, reward.chat.post)), kind: 'win' });
+    if (posters[1]) emitChat(ctx, { channel: 'random', person: posters[1], text: fill(pick(rng, reward.chat.replies)), replyTo: root.id });
   }
 }
 
