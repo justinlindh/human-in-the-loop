@@ -14,6 +14,22 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 - `npm run snap -- --scenario floor --out shots/floor.png`: headless screenshot, exits non-zero on console errors.
 - `npm run models`: rebuild `public/models/*.glb` from `blender/` scripts (Blender 5.2, headless).
 
+## Team
+
+Message teammates by name with SendMessage. Other sessions that ListAgents shows (other projects, cloud sessions, older gamedev sessions) are not on the team; never message them.
+
+| Name | Lane | Worktree | Owns |
+|---|---|---|---|
+| team-lead | integration | `/home/justin/src/gamedev` | contract, `main.js`, `src/dev/`, snap tool, merges |
+| sim | simulation | `/home/justin/src/gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
+| art | render and art | `/home/justin/src/gamedev-art` | `src/render/`, `blender/`, `public/models/` |
+| ui | UI and audio | `/home/justin/src/gamedev-ui` | `src/ui/`, `src/audio/` |
+| reviewer | review and playtest | any (read-only) | nothing |
+
+- Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
+- Go through team-lead for contract changes, disagreements between lanes, and blockers.
+- Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
+
 ## Rules
 
 - `src/sim/` is pure and deterministic: no `three`, no DOM, no `localStorage`, no `Math.random` or `Date.now`. Randomness goes through `src/sim/rng.js` with its state in game state.
