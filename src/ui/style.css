@@ -1151,4 +1151,10 @@
 @media (max-width: 480px) {
   .hitl .chip.company { flex: 1 1 100%; }
   .hitl .chip.speed { order: 1; flex: 1 1 100%; justify-content: space-between; }
+  /* The bottom row stacks: Yak above, then the menu across the full width in two rows. */
+  .hitl .bottom { grid-template-columns: minmax(0, 1fr); }
+  .hitl .bottom > .chat { max-width: 17em; }
+  .hitl .bottom > .chat .chat-body { height: 6.5em; }
+  .hitl .menu { justify-self: stretch; flex-wrap: wrap; justify-content: center; row-gap: 0.35em; }
+  .hitl .mbtn { width: calc(25% - 0.3em); min-width: 3.9em; height: 4em; }
 }

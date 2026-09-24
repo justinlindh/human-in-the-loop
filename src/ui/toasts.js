@@ -26,7 +26,7 @@ export function createToasts(root) {
   const toneOf = (t) => (LIFE[t] ? t : 'info');
 
   function node(t, cls, more = 0) {
-    return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}`, { onclick: () => { t.action?.(); remove(t); } },
+    return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}`, { dataset: { occludes: '' }, onclick: () => { t.action?.(); remove(t); } },
       h('span.ico', null, icon(t.glyph ?? `toast.${t.tone}`)), h('span.tt', { text: t.text }),
       more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
   }
