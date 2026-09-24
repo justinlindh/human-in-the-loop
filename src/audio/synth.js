@@ -2,7 +2,7 @@
 // SFX sounds, stingers, one looping bed per era in its key and tempo, gibberish voice barks per
 // bank and emotion, and a crowd murmur. Every generator is deterministic.
 
-import { MUSIC, MUSIC_BARS } from './manifest.js';
+import { MUSIC, MUSIC_BARS, MUSIC_NIGHT, MUSIC_NIGHT_SECONDS } from './manifest.js';
 
 const RATE = 22050;
 const TAU = Math.PI * 2;
@@ -79,10 +79,10 @@ const SFX = {
 };
 
 // One looping bed: a four-chord progression on electric piano, a round bass, and a marimba line.
-function bed(ctx, eraId) {
-  const m = MUSIC[eraId] ?? MUSIC.classic;
+function bed(ctx, eraId, config = null) {
+  const m = config ?? MUSIC[eraId] ?? MUSIC.classic;
   const beat = 60 / m.bpm;
-  const bars = MUSIC_BARS;
+  const bars = config ? Math.max(4, Math.round(MUSIC_NIGHT_SECONDS / (4 * beat))) : MUSIC_BARS;
   const root = 48 + (NOTE[m.key] ?? 5);
   const major = m.mode !== 'minor';
   // Scale degrees for I-vi-IV-V (major) or i-VI-III-VII (minor), as semitone offsets of the root.
@@ -186,6 +186,7 @@ function crowd(ctx) {
 export function synthesize(ctx, id) {
   if (SFX[id]) return tones(ctx, SFX[id]);
   if (id.startsWith('music/')) return bed(ctx, id.slice(6).split('/')[0]);
+  if (id.startsWith('musicNight/')) return bed(ctx, null, MUSIC_NIGHT[id.slice(11)] ?? MUSIC_NIGHT.corporate_synthwave);
   if (id === 'voice/crowd') return crowd(ctx);
   if (id === 'ambience/typing') return typingBed(ctx);
   if (id.startsWith('voice/')) { const [bank, emotion] = id.slice(6).split('#'); return bark(ctx, bank, emotion); }

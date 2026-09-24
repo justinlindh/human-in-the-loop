@@ -225,5 +225,24 @@ describe('audio director', () => {
     expect(d.prop('foosball', 5)).toHaveLength(0);
     expect(d.prop('desk', 50)).toHaveLength(0);
   });
+
+  it('plays a music night: the genre track over a ducked era bed, then a small cheer from the dancers', () => {
+    const d = createDirector();
+    const s = state();
+    const cmds = d.events([{ type: 'incentive', staffId: 's1', reward: 'music_night', genre: 'motivational_polka', dancers: ['s2', 's3'] }], s, 10);
+    const track = cmds.find((c) => c.cue === 'music.night');
+    expect(track.file).toBe('musicNight/motivational_polka');
+    const on = cmds.find((c) => c.op === 'duck' && c.key === 'dance' && c.on);
+    const off = cmds.find((c) => c.op === 'duck' && c.key === 'dance' && !c.on);
+    expect(on.at).toBeLessThan(track.at);
+    expect(off.at).toBeGreaterThan(track.at + 5);
+    const barks = cmds.filter((c) => c.cue === 'voice.bark');
+    expect(barks.length).toBeGreaterThan(0);
+    expect(barks.length).toBeLessThanOrEqual(3);
+    for (const b of barks) { expect(['s1', 's2', 's3']).toContain(b.voiceKey); expect(b.at).toBeGreaterThan(off.at - 1); }
+    expect(cmds.some((c) => c.cue === 'sfx.reward')).toBe(false);
+    // An unknown genre still plays a track.
+    expect(createDirector().events([{ type: 'incentive', reward: 'music_night', genre: 'yodel' }], s, 1).some((c) => c.cue === 'music.night')).toBe(true);
+  });
 });
 
