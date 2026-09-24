@@ -47,7 +47,9 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
     gameOver: null,
   };
   for (const [role, seniority] of [['engineer', 'senior'], ['designer', 'mid']]) {
-    const p = generateStaff(state, { role, seniority });
+    let p = generateStaff(state, { role, seniority });
+    const taken = state.staff.map((f) => f.name.split(' ')[0]);
+    while (taken.includes(p.name.split(' ')[0])) p = generateStaff(state, { role, seniority });
     Object.assign(p, { knowledge: 70, meaning: 85, founder: true, hiredWeek: 0, assignment: { type: 'idle', targetId: null } });
     state.staff.push(p);
   }

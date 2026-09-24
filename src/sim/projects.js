@@ -20,21 +20,25 @@ export const isLive = (p) => !p.killed;
 export const liveProducts = (state) => state.products.filter(isLive);
 export const findProduct = (state, id) => state.products.find((p) => p.id === id);
 
-// Scores a finished project against the year's expectations. Uses rng for per-outlet noise.
+// Scores a finished project. Quality is stat points per point of effort (the team's skill mix),
+// judged against a bar that rises each year; combo fit and trends add or subtract a flat amount.
+// Uses rng for per-outlet noise.
 export function reviewScore(state, project) {
   const stats = project.stats;
   const total = sum(STATS, (st) => stats[st]);
   const { yearIndex } = dateOf(state.week);
-  const E = B.sizes[project.size].points * (1 + B.expectationGrowth * yearIndex);
+  const effort = project.pointsNeeded ?? B.sizes[project.size].points;
+  const quality = effort > 0 ? total / effort : 0;
+  const bar = 1 + B.expectationGrowth * yearIndex;
   const fit = comboFit(project.category, project.angle) * trendMods(state, project.category, project.angle);
   const imbalance = total > 0 ? ['features', 'polish', 'reliability'].filter((st) => stats[st] / total < B.balancePenaltyBelow).length : 3;
-  const base = clamp(B.reviewScale * (total / E) * fit - 0.8 * imbalance, 1, 10);
+  const base = clamp(B.reviewBase + B.reviewScale * (quality / bar - 1) + B.fitScoreScale * (fit - 1) - 0.8 * imbalance, 1, 10);
   const reviews = PRESS.map((outlet) => {
     const score = Math.round(clamp(base + range(state.rng, -B.reviewNoise, B.reviewNoise), 1, 10) * 2) / 2;
     const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
     return { outlet: outlet.name, score, quote: pick(state.rng, REVIEW_QUOTES[band]) };
   });
-  return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit };
+  return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit, quality };
 }
 
 const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer'));
@@ -97,7 +101,7 @@ registerAction('startProject', (ctx, a) => {
   }
   state.projects.push(project);
   ctx.emit({ type: 'toast', text: `Started: ${project.name}`, tone: 'info' });
-  return { ok: true };
+  return { ok: true, projectId: project.id };
 });
 
 const shares = (stats) => {
@@ -140,8 +144,9 @@ function complete(ctx, j) {
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'update' && pr && !pr.killed) {
     for (const st of STATS) pr.stats[st] = pr.stats[st] * 0.6 + j.stats[st];
-    const review = reviewScore(state, { ...j, stats: pr.stats, size: pr.size });
-    Object.assign(pr, { score: review.score, reviews: review.reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
+    const review = reviewScore(state, j);
+    const score = round(B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * review.score, 1);
+    Object.assign(pr, { score, reviews: review.reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
     ctx.emit({ type: 'toast', text: `${pr.name} v${pr.version} shipped. Reviews average ${pr.score}.`, tone: 'good' });
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
@@ -168,11 +173,19 @@ function complete(ctx, j) {
 
 export function projectsSystem(ctx) {
   const { state } = ctx;
-  const speed = state.policies.comprehension_reviews ? B.comprehensionReviewSpeed : 1;
+  const reviews = !!state.policies.comprehension_reviews;
+  const speed = reviews ? B.comprehensionReviewSpeed : 1;
   for (const j of [...state.projects]) {
-    const pts = ctx.weekPoints?.[j.id] ?? zeroPoints();
-    for (const st of STATS) j.stats[st] += pts[st];
-    j.progress += sum(STATS, (st) => pts[st]) * speed;
+    const effort = ctx.weekEffort?.[j.id] ?? zeroPoints();
+    const gained = ctx.weekStats?.[j.id] ?? zeroPoints();
+    const step = sum(STATS, (st) => effort[st]) * speed;
+    // The final week only counts the effort needed to finish, so overshoot cannot inflate quality.
+    const f = step > 0 ? Math.min(1, (j.pointsNeeded - j.progress) / step) : 0;
+    for (const st of STATS) {
+      const bonus = reviews && st === 'reliability' ? 1 + B.reviewsReliabilityBonus : 1;
+      j.stats[st] += gained[st] * speed * f * bonus;
+    }
+    j.progress = Math.min(j.pointsNeeded, j.progress + step * f);
     const top = [...(ctx.contributors?.[j.id] ?? [])]
       .sort((a, b) => sum(STATS, (st) => b.pts[st]) - sum(STATS, (st) => a.pts[st])).slice(0, 3);
     for (const c of top) {

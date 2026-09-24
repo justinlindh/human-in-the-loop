@@ -8,5 +8,6 @@ export function dispatch(state, action) {
   const ctx = makeCtx(state);
   const res = handler(ctx, action) ?? { ok: true };
   if (!res.ok) return { ok: false, reason: res.reason ?? 'Not allowed', events: [] };
-  return { ok: true, events: ctx.events };
+  const { ok, reason, events, ...extra } = res;
+  return { ...extra, ok: true, events: ctx.events };
 }

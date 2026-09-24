@@ -40,6 +40,20 @@ describe('game state', () => {
     expect(s.scheduled).toEqual([]);
   });
 
+  it('founders never share a first name', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const [a, b] = game(seed).staff;
+      expect(a.name.split(' ')[0], `seed ${seed}`).not.toBe(b.name.split(' ')[0]);
+    }
+  });
+
+  it('only the economy counts down the GPU shortage', () => {
+    const s = game();
+    s.flags.gpuShortageWeeks = 5;
+    tick(s);
+    expect(s.flags.gpuShortageWeeks).toBe(4);
+  });
+
   it('is JSON-safe', () => {
     const s = game();
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);

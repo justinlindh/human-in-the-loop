@@ -39,7 +39,11 @@ export function marketingSystem(ctx) {
     const ch = CHANNELS[c.channel];
     const product = c.productId ? findProduct(state, c.productId) : null;
     const project = c.projectId ? state.projects.find((j) => j.id === c.projectId) : null;
-    if ((product && product.killed) || (!product && !project)) { c.weeksLeft = 0; continue; }
+    if ((product && product.killed) || (!product && !project)) {
+      c.weeksLeft = 0;
+      ctx.emit({ type: 'toast', text: `${ch.name} stopped: ${product ? `${product.name} was sunset` : 'its project is gone'}.`, tone: 'info' });
+      continue;
+    }
     const gain = ch.hype * marketerMult * autoMult;
     if (product) product.hype += gain;
     else project.bankedHype = Math.min(100, project.bankedHype + gain);
