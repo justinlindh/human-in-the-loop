@@ -912,3 +912,21 @@ Approved by the user after the lanes started. Specs: the spec's **Progression** 
 - A3: item props with three visible tiers (espresso, plant_wall, nap_pod, arcade, standing_desk, trophy_case, server_rack, library, monitoring_wall, whiteboard_wall).
 - A5: per-stage item slots in `layout.js` (3, 8, 16), placed where items read clearly and do not block walking paths.
 - A6: `sync` places `state.items` by array index into slots with the right tier model; a buy or upgrade plays a short pop-in with a sparkle.
+
+### S11 amendments: delayed consequences and new event kinds (sim)
+
+Spec: the spec's **Decision events** section. Applies to Task S11; everything else in S11 stands.
+
+- **New effect keys:** `later: [{ inWeeks, effects }]` pushes onto `state.scheduled`; `modifier: { key, value, weeks, label }` pushes onto `state.modifiers` with `untilWeek = week + weeks`; `followUp: { eventId, inWeeks }` schedules a follow-up event. A `calendar-start` step (order 10) applies due `scheduled` entries (effects now, or raise the event's decision) and drops expired modifiers with an info toast ("Four-day week trial has ended").
+- **Modifier keys** map onto one helper, `modifierBonus(state, key)`, that the systems read alongside `itemBonus` and `researchBonus`: `output`, `meaningRecovery`, `meaningDrain`, `hype`, `brandPerWeek`, `churn`, `acquisition`, `staminaDrain`, `xp`, `oversight`, `rogueRisk`. Keep individual modifiers within the Progression guideline (plus or minus 50% at most).
+- **New events (at least 12 more, bringing the total to 58+):**
+  - People: `no_show` (someone stops showing up; they go `away` for 2 to 4 weeks; choices: check in kindly [their meaning up later, team +], dock pay [cash saved, their meaning down, team meaning down], ignore [nothing now; a follow-up if it repeats]), `quiet_quitter`, `public_complaint` (a staffer vents on LinkedOut; brand risk), `pay_equity_question`, `junior_overwhelmed`.
+  - Leadership ideas (`kind: 'leadership'`, subject the founders): `ceo_replace_support` (a founder read a blog post and wants support fully automated; a tempting choice that sets support automation to 100% and schedules a follow-up), `four_day_week` (8-week trial modifier plus a `four_day_week_review` follow-up to keep or drop it), `ai_first_mandate` (all dials +25% now; meaning drain modifier; follow-up in 12 weeks), `rebrand` (cash now, brand effect `later` in 6 weeks, can flop), `pivot_pitch` (switch focus: kill a product, get a free medium project on a hot combo), `open_plan_office` (cheap now, meaning drain modifier, output modifier), `hackathon_week`, `founder_burnout` (even founders get tired: sabbatical or push through).
+  - Every follow-up event is `random: false` and only raised by its scheduler.
+- **Hints:** choices with `later`, `modifier`, or `followUp` include "effects later" in their hint unless the hint already explains the delay.
+- **Tests:** a `later` effect applies exactly at `week + inWeeks`; a modifier changes its system while active and stops after `untilWeek`; a follow-up event raises its decision at the scheduled week; state stays JSON-safe with scheduled items outstanding; the no-show person is away and returns.
+
+### UI additions for decision events (ui)
+
+- U1 tray: an "Active effects" list of `state.modifiers` (label, weeks left, a small up or down arrow colored by sign).
+- U5 decision popup: show each choice's hint; if it mentions effects later, add a small hourglass icon. Leadership-idea events show the founder's portrait and a speech-bubble framing.
