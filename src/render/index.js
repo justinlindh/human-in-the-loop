@@ -275,6 +275,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const paused = speedZero || menuPaused;
       const simDt = paused ? 0 : dt;
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
+      if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
       screens.update(simDt, lighting.env);
       staff?.update(dt, { paused });
       floating.update(simDt);

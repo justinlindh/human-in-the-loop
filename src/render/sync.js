@@ -542,6 +542,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       c.root.position.y = r.temp.lift * k * k * (3 - 2 * k);
     }
     c.root.rotation.y = r.yaw;
+    // While a new office lowers in, its people come with it (and are hidden before it appears).
+    const sy = office.shellY;
+    if (sy === null) c.root.visible = false;
+    else if (!r.hidden) { c.root.visible = true; c.root.position.y += sy; }
     c.update(dt);
   }
 
@@ -883,6 +887,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   return {
+    // Floor positions of everyone visible, for effects that react to where people are.
+    positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.
