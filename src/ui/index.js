@@ -13,6 +13,7 @@ import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
 import { createAnnouncer } from './announce.js';
+import { openRecap } from './recap.js';
 import { GOALS, GOAL, goalReward } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
@@ -175,6 +176,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       const speed = settings.values.speed ?? 1;
       // A first game waits, paused, while the coach marks are up.
       if (fresh && !tutorialDone()) { controls.setSpeed(0); setTimeout(() => tutorial.start(false, speed), 600); }
+      else if (!fresh) setTimeout(() => openRecap(ctx), 400);
       else controls.setSpeed(speed);
     },
   });
@@ -329,6 +331,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     startTutorial: () => tutorial.start(true),
     build: buildMode,
     openGoals: () => goalsModal(),
+    openRecap: () => openRecap(ctx),
   };
   // Test hooks: ?title=1 shows the title screen and ?tutorial=1 runs the coach marks.
   const q = new URLSearchParams(location.search);

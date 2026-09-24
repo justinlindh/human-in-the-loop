@@ -903,3 +903,26 @@
 .hitl .announce.multi .ulist { display: flex; flex-direction: column; gap: 0.45em; max-height: 50vh; overflow-y: auto; }
 .hitl .announce.multi .uitem { display: flex; gap: 0.55em; align-items: flex-start; background: var(--cream-2); border-radius: 0.7em; padding: 0.4em 0.55em; }
 .hitl .announce.multi .uico { flex: none; width: 2em; height: 2em; display: grid; place-items: center; background: #fff4dc; border: 0.13em solid var(--ink); border-radius: 0.55em; }
+
+/* ---------- welcome back recap and save slots ---------- */
+.hitl .modal.recapm { width: min(34em, 100%); }
+.hitl .recap { display: flex; flex-direction: column; gap: 0.8em; }
+.hitl .recap .rhead { display: flex; align-items: center; gap: 0.7em; }
+.hitl .recap .rlogo, .hitl .tl-slot .slogo { flex: none; width: 2.6em; height: 2.6em; border-radius: 0.7em; border: var(--bw) solid var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 1.1em; color: #fff; text-shadow: 0 0.08em 0 var(--ink); background: var(--yellow); }
+.hitl .recap .rname { font-size: 1.25em; }
+.hitl .rtiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5em; }
+.hitl .rtile { background: var(--cream-2); border: 0.14em solid var(--ink); border-radius: 0.8em; padding: 0.45em 0.6em; min-width: 0; }
+.hitl .rtile .rl { font-size: 0.7em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.hitl .rtile .rv { font-size: 1.35em; font-weight: 700; line-height: 1.15; }
+.hitl .rtile .rs { font-size: 0.75em; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .rtile.bad .rv { color: var(--bad); }
+.hitl .rsec h3 { margin: 0 0 0.35em; font-size: 0.95em; }
+.hitl .rlist { display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .ritem { display: flex; gap: 0.45em; align-items: center; background: var(--cream-2); border-radius: 0.6em; padding: 0.3em 0.55em; font-size: 0.92em; }
+.hitl .ritem.warn { background: #fff4dc; }
+.hitl .ritem .rwhen { margin-left: auto; white-space: nowrap; font-size: 0.8em; color: var(--ink-soft); }
+.hitl .tl-slots { display: flex; flex-direction: column; gap: 0.4em; }
+.hitl .tl-slot { gap: 0.55em; }
+.hitl .tl-slot .slogo { width: 1.8em; height: 1.8em; font-size: 0.85em; border-width: 0.14em; }
+.hitl .tl-slot .sinfo { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+@media (max-width: 1100px) { .hitl .rtiles { grid-template-columns: repeat(2, 1fr); } }

@@ -1,4 +1,4 @@
-import { h, setText, fmtMoney } from './dom.js';
+import { h, setText, fmtMoney, dateOf } from './dom.js';
 import { portrait, roleChip } from './widgets.js';
 import { traitInfo } from './content.js';
 import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, strengthChips, archetypeBlurb } from './v2content.js';
@@ -25,24 +25,37 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-sub', { text: 'Build software. Keep the humans.' }));
   }
 
+  // Saves: controls.listSaves() -> [{ id, ok, reason, meta: { companyName, week, logoColor } }] when
+  // slots exist; otherwise the single save from loadStatus(). Each becomes one row in the slot list.
+  function saveSlots() {
+    const list = controls.listSaves?.();
+    if (Array.isArray(list) && list.length) return list;
+    const st = controls.loadStatus?.() ?? { ok: false, reason: 'No save found' };
+    return [{ id: null, ...st }];
+  }
+
+  function slotRow(slot) {
+    const m = slot.meta;
+    const d = m && Number.isFinite(m.week) ? dateOf(m.week) : null;
+    const load = () => {
+      const res = controls.continueGame?.(slot.id ?? undefined);
+      if (res && res.ok === false) { toast(res.reason ?? 'Could not load the save', 'warn'); return; }
+      if (res?.notice) toast(res.notice, 'info');
+      sfx('confirm');
+      onStart({ fresh: false });
+    };
+    const btn = h('button.btn.big.tl-btn.tl-slot', { disabled: !slot.ok, title: slot.ok ? 'Continue this company' : slot.reason, onclick: load },
+      m ? h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }) : icon('continue'),
+      h('span.sinfo', null, h('b', { text: m?.companyName ? `Continue ${m.companyName}` : 'Continue' }),
+        d ? h('span.small.muted', { text: `${d.year} · Q${d.quarter} · Week ${d.week}` }) : null));
+    return [btn, !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
+  }
+
   function menuView() {
-    const status = controls.loadStatus?.() ?? { ok: false, reason: 'No save found' };
-    const cont = h('button.btn.big.tl-btn', {
-      disabled: !status.ok,
-      title: status.ok ? 'Continue your saved company' : status.reason,
-      onclick: () => {
-        const res = controls.continueGame?.();
-        if (res && res.ok === false) { toast(res.reason ?? 'Could not load the save', 'warn'); return; }
-        if (res?.notice) toast(res.notice, 'info');
-        sfx('confirm');
-        onStart({ fresh: false });
-      },
-    }, icon('continue'), ' Continue');
     root.replaceChildren(h('div.tl-card', null, lockup(),
       h('div.tl-menu', null,
         h('button.btn.go.big.tl-btn', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' New Game'),
-        cont,
-        !status.ok ? h('div.small.tl-why', { text: status.reason ?? '' }) : null,
+        h('div.tl-slots', null, ...saveSlots().flatMap(slotRow)),
         h('button.btn.big.tl-btn', { onclick: () => openSettings() }, icon('settings'), ' Settings'))));
   }
 
