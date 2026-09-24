@@ -17,8 +17,8 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap'];
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read']);
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap'];
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
 const ink = new THREE.Color(PALETTE.ink);
 const inkL = ink.r * 0.2126 + ink.g * 0.7152 + ink.b * 0.0722;
@@ -240,6 +240,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let emoteT = 0;
   let tint = 0;
   let mood = 'ok';
+  let tired = false;
   const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = Math.random() * Math.PI * 2;
@@ -291,14 +292,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       case 'walk':
       case 'run': {
         const run = anim === 'run';
-        const f = run ? 13 : 8;
+        const f = run ? 13 : tired ? 6 : 8;
         const a = run ? 0.75 : 0.45;
         tgt.legL = s(t * f) * a;
         tgt.legR = -s(t * f) * a;
         tgt.armLX = -s(t * f) * a * 0.9;
         tgt.armRX = s(t * f) * a * 0.9;
         tgt.bodyY = Math.abs(s(t * f)) * (run ? 0.05 : 0.025);
-        tgt.lean = run ? 0.22 : 0.04;
+        tgt.lean = run ? 0.22 : tired ? 0.2 : 0.04;
+        if (tired && !run) { tgt.headX = 0.25; tgt.armLZ = 0.05; tgt.armRZ = -0.05; }
         tgt.twist = s(t * f) * 0.08;
         break;
       }
@@ -337,6 +339,27 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = 0.1 + s(t * 1.2 + phase) * 0.008;
         tgt.armLZ = 0.25; tgt.armRZ = -0.25;
         tgt.headZ = 0.25;
+        break;
+      }
+      case 'tired': {
+        // Exhausted but working: chin propped on one hand, the other hand typing slowly.
+        const nod = Math.max(0, s(t * 0.9 + phase)) ** 8;
+        tgt.lean = 0.3;
+        tgt.headX = 0.22 + nod * 0.25;
+        tgt.headZ = 0.22;
+        tgt.armRX = -2.0; tgt.armRZ = -0.55;
+        tgt.armLX = -1.1 + s(t * 6) * 0.06; tgt.armLZ = 0.3;
+        tgt.bodyY -= 0.02;
+        break;
+      }
+      case 'desknap': {
+        // A short nap on folded arms, gently breathing.
+        tgt.lean = 0.8;
+        tgt.headX = 0.35;
+        tgt.headZ = 0.45;
+        tgt.armLX = tgt.armRX = -1.55;
+        tgt.armLZ = 0.7; tgt.armRZ = -0.7;
+        tgt.bodyY -= 0.04 - s(t * 1.1 + phase) * 0.006;
         break;
       }
       case 'nap':
@@ -425,6 +448,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
     }
     if (mood === 'coasting' && !seated && anim === 'idle') { tgt.headX += 0.25; tgt.lean += 0.12; }
+    if (tired && !seated && anim === 'idle') { tgt.headX += 0.3; tgt.lean += 0.15; tgt.bodyY -= 0.015; }
     const k = 1 - Math.exp(-dt * 16);
     for (const key in cur) cur[key] += (tgt[key] - cur[key]) * k;
 
@@ -472,6 +496,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
   setMood('ok');
 
+  // Low stamina: slower, slouched walk and a drooping idle (the seated pose is chosen by sync).
+  function setTired(on) { tired = !!on; }
+
   function setLegend(on) {
     if (on && !halo) {
       haloMat ??= new THREE.MeshStandardMaterial({ color: color('gold'), emissive: color('gold'), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.4 });
@@ -517,7 +544,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   update(0);
   return {
-    root, setAnim, update, setEmote, setTint, setMood, setLegend, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setAnim, update, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

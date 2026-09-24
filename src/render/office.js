@@ -927,7 +927,7 @@ export function createOffice({ parent, screens, lighting }) {
 }
 
 // The widest stretch of a back wall between openings, as [from, to] along the wall.
-function wallGap(L, wall) {
+export function wallGap(L, wall) {
   const len = wall === 'x' ? L.D : L.W;
   const ops = L.openings.filter((o) => o.wall === wall).map((o) => [o.at - o.width / 2, o.at + o.width / 2]).sort((a, b) => a[0] - b[0]);
   let best = null, cursor = -len / 2 + 0.4;

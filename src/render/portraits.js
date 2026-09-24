@@ -60,8 +60,13 @@ export function createPortraits({ ready, lowQuality = () => false }) {
     return true;
   }
 
-  function build(person) {
+  function build(person, caricature = false) {
     const c = createCharacter(person.appearance ?? {}, ROLE_COLORS[person.role], { role: person.role });
+    if (caricature) {
+      // Big head, small body: the party-favour caricature look.
+      c.head.scale.setScalar(1.45);
+      c.root.scale.set(0.92, 0.82, 0.92);
+    }
     c.setRingScale(0.0001);
     c.pickProxy.visible = false;
     c.setMood(person.mood && person.mood !== 'away' ? person.mood : 'ok');
@@ -160,8 +165,24 @@ export function createPortraits({ ready, lowQuality = () => false }) {
     }
   }
 
+  // A one-off caricature canvas (big head, beaming) for a framed picture in the office.
+  function caricature(person, px = 256) {
+    if (!ready() || !init()) return null;
+    const c = build({ ...person, mood: 'ok' }, true);
+    c.setAnim('celebrate');
+    c.update(0.25);
+    const out = document.createElement('canvas');
+    out.width = out.height = px;
+    camera.position.y += 0.08;
+    draw(px);
+    camera.position.y -= 0.08;
+    out.getContext('2d').drawImage(gl.domElement, 0, 0, px, px);
+    c.dispose();
+    return out;
+  }
+
   return {
-    portrait, portraitLive, update,
+    portrait, portraitLive, update, caricature,
     get stats() { return { cached: cache.size, queued: queue.size, live: live.size }; },
   };
 }

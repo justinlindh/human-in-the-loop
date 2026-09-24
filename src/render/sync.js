@@ -4,6 +4,7 @@ import { ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
+import { createIncentives } from './incentives.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -11,6 +12,8 @@ import { createPets } from './pets.js';
 const WALK = 1.25;
 const RUN = 2.8;
 const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
+const TIRED_STAMINA = 25;           // below this a person shows the exhaustion warning signs
+const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const MAX_SPEECH = 6;
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
@@ -24,7 +27,7 @@ function angleLerp(a, b, k) {
   return a + d * k;
 }
 
-export function createStaffSync({ office, parent, labels, fx, rig }) {
+export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {} }) {
   const group = new THREE.Group();
   group.name = 'staff';
   parent.add(group);
@@ -81,7 +84,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const type = s.assignment?.type ?? 'idle';
     if (s.mood === 'away' || s.remote || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
     const desk = r.seat !== null ? office.deskById(r.seat) : null;
-    const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: SEATED_ANIM[s.mood] ?? 'typing', seated: true });
+    const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: isTired(s) ? 'tired' : SEATED_ANIM[s.mood] ?? 'typing', seated: true });
     if (type === 'oversight') {
       const wall = [...office.placed.values()].find((it) => it.itemId === 'monitoring_wall');
       if (wall) {
@@ -116,7 +119,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         return { x: md.seat.x - rx * 0.55 - Math.sin(f) * 0.15, z: md.seat.z - rz * 0.55 - Math.cos(f) * 0.15, yaw: f + 0.7, anim: 'idle', key: `mentor-${mentee.id}-${md.seat.x.toFixed(2)},${md.seat.z.toFixed(2)}`, mentoring: true };
       }
     }
-    if (desk) return { ...seated(desk), key: `desk-${desk.seat.x.toFixed(2)},${desk.seat.z.toFixed(2)},${desk.seat.rotY.toFixed(2)}-${s.mood}` };
+    if (desk) return { ...seated(desk), key: `desk-${desk.seat.x.toFixed(2)},${desk.seat.z.toFixed(2)},${desk.seat.rotY.toFixed(2)}-${s.mood}-${isTired(s) ? 't' : ''}` };
     const W = Z.wander?.length ? Z.wander : [Z.door];
     const w = W[r.id.length % W.length];
     return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
@@ -126,7 +129,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const nav = office.nav();
     r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: goal.x, z: goal.z });
     r.path.shift();
-    r.speed = run ? RUN : WALK;
+    r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
   }
 
@@ -175,7 +178,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -187,6 +190,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       if (s.assignment?.type === 'hardProblem') roleIndex.hard++;
       const g = goalFor(s, r, idx);
       if (r.char.mood !== s.mood && s.mood !== 'away') r.char.setMood(s.mood);
+      r.char.setTired(isTired(s));
       r.char.setLegend(!!s.legend);
       if (r.seat !== null) occupied.set(r.seat, s);
 
@@ -291,6 +295,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         }
         case 'incident': incident(e); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
+        case 'incentive': incentives.handle(e); break;
         default: break;
       }
     }
@@ -405,6 +410,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
   const pets = createPets({ office, recs, emote, parent: group });
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -435,6 +441,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       const m = r.staff.mood;
       if (!c.emote) {
         if (m === 'burnout') emote(r, 'zzz', 3);
+        else if (isTired(r.staff)) {
+          emote(r, 'tired', 2.6);
+          // Now and then a tired person nods off at the desk for a few seconds.
+          if (r.goal?.seated && !r.temp && !r.path.length && Math.random() < 0.35) r.temp = { anim: 'desknap', t: rnd(3, 5), keepPos: true };
+        }
         else if (m === 'coasting' && Math.random() < 0.6) emote(r, 'sweat', 2.5);
         else if (r.goal?.thinking && Math.random() < 0.7) emote(r, 'lightbulb', 2.5);
         else if (r.goal?.mentoring && Math.random() < 0.5) emote(r, 'heart', 2);
@@ -657,6 +668,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     updateFast(dt);
     perks.update(dt, lastState);
     pets.update(dt);
+    incentives.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
@@ -696,7 +708,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   }
 
   return {
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives,
     get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },

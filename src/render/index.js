@@ -103,7 +103,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
     office = createOffice({ parent: scene, screens, lighting });
-    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig });
+    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i) => lighting.setAccent(p, i) });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     loadModels().then(() => { ready = true; });
   }
@@ -151,6 +151,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let pendingUpgrade = false;
   let stageJustBuilt = false;
   let buildSig = '';
+  let partyDim = 0;
   let firstSync = true;
 
   function sync(state) {
@@ -180,7 +181,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     screens.setAutomation(state.automation);
     // Lockdown: the office empties, plants wilt over time and recover after, the lights dim.
     const lk = lockdownLevel(state);
-    lighting.setSkeleton(lk.dim);
+    lighting.setSkeleton(Math.max(lk.dim, partyDim));
     setWilt(lk.wilt);
     staff.sync(state);
   }

@@ -28,6 +28,15 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     interior.push(l);
   }
   let interiorSpots = [];
+  // One extra warm light that scenes can borrow (the waffle party lamp). It always exists, so
+  // using it never changes the light count and never recompiles shaders.
+  const accent = new THREE.PointLight(C('lamp_warm'), 0, 5, 1.6);
+  accent.position.set(0, -50, 0);
+  scene.add(accent);
+  function setAccent(p, intensity = 0) {
+    if (p) accent.position.set(p.x, p.y ?? 1.7, p.z);
+    accent.intensity = p ? intensity : 0;
+  }
 
   const center = new THREE.Vector3();
   const size = new THREE.Vector3(10, 3, 10);
@@ -142,7 +151,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.shadow.map = null;
   }
 
-  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone, setSkeleton };
+  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone, setSkeleton, setAccent };
 }
 
 export function createBackdrop() {
