@@ -217,7 +217,11 @@ const LOUNGE = new Set(['couch', 'nap_pod', 'arcade', 'library', 'plant_wall', '
 
 // Desk sets face -Z at rot 0: desk in the back tile row, chair and sitter in the front row.
 const DESK_Z = -0.35;
-const SEAT_Z = 0.2;
+const KEYS_Z = -0.09;            // keyboard centre, just behind the desk's front edge
+const SEAT_Z = 0.18;
+// Desk sets are a little lower than the desk model so seated chibi hands reach the keys.
+const TOP = 0.57;
+const DY = TOP - 0.62;           // everything modelled on a 0.62 m top moves down by this
 
 const STICKY = ['fabric_mustard', 'marker_orange', 'fabric_teal'];
 
@@ -228,7 +232,7 @@ function deskEra(g, i, era, laptop) {
     for (let k = 0; k < 2 + (i % 3 ? 0 : 1); k++) {
       const n = mesh(roundedBox(0.07, 0.07, 0.006, 0.002, 1), mat(STICKY[(i + k) % 3]), (k - 1) * 0.1, laptop ? 0.64 : 0.95 + k * 0.03, DESK_Z - 0.1, { cast: false });
       n.rotation.z = (k - 1) * 0.2;
-      if (laptop) { n.rotation.x = -Math.PI / 2; n.position.z = DESK_Z + 0.22 + k * 0.02; n.position.x = 0.3 + k * 0.08; }
+      if (laptop) { n.rotation.x = -Math.PI / 2; n.position.z = DESK_Z + 0.05 + k * 0.02; n.position.x = 0.36 + k * 0.035; }
       g.add(n);
     }
   }
@@ -243,13 +247,13 @@ function deskEra(g, i, era, laptop) {
     // Analog notebooks and handmade things: people, taste, and craft are the edge now.
     const side = i % 2 ? -1 : 1;
     const cover = ['fabric_terracotta', 'fabric_teal', 'fabric_mustard', 'fabric_sage'][i % 4];
-    const nb = mesh(roundedBox(0.15, 0.022, 0.21, 0.008), mat(cover), side * 0.3, 0.632, DESK_Z + 0.12);
+    const nb = mesh(roundedBox(0.15, 0.022, 0.21, 0.008), mat(cover), side * 0.37, 0.632, DESK_Z + 0.12);
     nb.rotation.y = side * 0.25;
     g.add(nb);
-    const pg = mesh(roundedBox(0.135, 0.008, 0.195, 0.003, 1), mat('paper'), side * 0.3, 0.646, DESK_Z + 0.12, { cast: false });
+    const pg = mesh(roundedBox(0.135, 0.008, 0.195, 0.003, 1), mat('paper'), side * 0.37, 0.646, DESK_Z + 0.12, { cast: false });
     pg.rotation.y = side * 0.25;
     g.add(pg);
-    const pen = mesh(roundedCylinder(0.007, 0.007, 0.15, 0.002, 6), mat('wood_honey'), side * 0.4, 0.66, DESK_Z + 0.1);
+    const pen = mesh(roundedCylinder(0.007, 0.007, 0.15, 0.002, 6), mat('wood_honey'), side * 0.42, 0.66, DESK_Z + 0.1);
     pen.rotation.z = Math.PI / 2;
     pen.rotation.y = 0.5;
     g.add(pen);
@@ -276,15 +280,25 @@ function deskSet(i, stageIdx, screens, era) {
   const g = new THREE.Group();
   // Desk sets are one tile wide, so neighbours butt together into a bench.
   const desk = getModel('desk');
-  desk.scale.x = 0.96 / 1.3;
+  desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
   g.add(place(desk, 0, 0, DESK_Z));
+  const onTop = new THREE.Group();
+  onTop.position.y = DY;
+  g.add(onTop);
   const chair = place(getModel('chair'), 0, 0, SEAT_Z + 0.05, Math.PI);
   g.add(chair);
   const laptop = stageIdx === 0;
-  const mon = place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? DESK_Z + 0.02 : DESK_Z - 0.14);
+  // The keys sit about 0.3 m in front of the sitter, where chibi arms reach: a laptop is pulled
+  // to the front of the desk; a monitor stays at the back with a keyboard and mouse in front.
+  const mon = place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? KEYS_Z + 0.02 : DESK_Z - 0.14);
+  if (!laptop) {
+    onTop.add(mesh(roundedBox(0.36, 0.018, 0.13, 0.006), mat('plastic_charcoal'), 0, 0.629, KEYS_Z));
+    onTop.add(mesh(roundedBox(0.33, 0.006, 0.1, 0.002, 1), mat('metal_soft'), 0, 0.64, KEYS_Z, { cast: false }));
+    onTop.add(mesh(roundedBox(0.055, 0.02, 0.085, 0.02), mat('plastic_charcoal'), 0.27, 0.63, KEYS_Z + 0.01));
+  }
   if (era === 'classic' && !laptop) oldMonitor(mon);
-  g.add(mon);
-  deskEra(g, i, era, laptop);
+  onTop.add(mon);
+  deskEra(onTop, i, era, laptop);
   // Team mat under the whole set, tinted by whoever sits here (hidden until someone does).
   const rug = mesh(roundedBox(0.92, 0.012, 1.9, 0.006, 1), mat('laminate'), 0, 0.008, 0, { cast: false });
   rug.userData.dynamic = true;
@@ -302,16 +316,16 @@ function deskSet(i, stageIdx, screens, era) {
     }
   });
   const side = i % 2 ? 1 : -1;
-  if (i % 3 === 0) g.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
+  if (i % 3 === 0) onTop.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
   if (i % 4 === 1 && era !== 'plateau') {
-    const p = mesh(roundedBox(0.18, 0.02, 0.24, 0.006), mat('paper_sheet'), -side * 0.3, 0.63, DESK_Z + 0.12);
+    const p = mesh(roundedBox(0.16, 0.02, 0.22, 0.006), mat('paper_sheet'), -side * 0.38, 0.63, DESK_Z + 0.08);
     p.rotation.y = 0.2;
-    g.add(p);
+    onTop.add(p);
   }
   if (i % 5 === 2) {
     const pl = getModel('plant_small');
     pl.scale.setScalar(0.45);
-    g.add(place(pl, side * 0.36, 0.62, DESK_Z - 0.16));
+    onTop.add(place(pl, side * 0.36, 0.62, DESK_Z - 0.16));
   }
   g.userData.screen = screen;
   return g;
@@ -745,7 +759,7 @@ export function createOffice({ parent, screens, lighting }) {
     if (!d) return;
     if (on && !d.sign) {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.2), new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.8, side: THREE.DoubleSide }));
-      m.position.set(0, 0.74, DESK_Z + 0.2);
+      m.position.set(0, 0.74 + DY, DESK_Z + 0.2);
       m.rotation.x = -0.25;
       m.castShadow = true;
       m.userData.dynamic = true;
