@@ -4,7 +4,7 @@ import { runBot } from '../../src/sim/bots.js';
 import { game, addStaff, addProduct, expectFail } from './helpers.js';
 
 describe('cancelProject', () => {
-  it('removes an unfinished project, idles its people, ends its campaigns, and says so in Slackk', () => {
+  it('removes an unfinished project, idles its people, ends its campaigns, and says so in Yak', () => {
     const s = game(3);
     s.cash = 1e6;
     const a = addStaff(s, 'engineer', 'senior');

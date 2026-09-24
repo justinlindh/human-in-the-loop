@@ -39,7 +39,7 @@ export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(st
   return out;
 }
 
-// Emits a Slackk chat event in the contract shape. `person` may be a staff object or null for bots.
+// Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
 export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null }) {
   const msg = {
     type: 'chat', id: newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
@@ -135,7 +135,7 @@ function founderNudge(state) {
   return null;
 }
 
-// Weekly Slackk: launch announcements, a thread about this week's news, an occasional everyday
+// Weekly Yak: launch announcements, a thread about this week's news, an occasional everyday
 // thread, and mood chatter. The number of everyday lines falls as the team's meaning falls.
 export function chatSystem(ctx) {
   const { state } = ctx;
@@ -155,7 +155,7 @@ export function chatSystem(ctx) {
     ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: f.id, text: nudge, toId: null, replyTo: null });
   }
 
-  // Conversations, spoken and in Slackk; then, if nobody posted, an occasional mood line in #general.
+  // Conversations, spoken and in Yak; then, if nobody posted, an occasional mood line in #general.
   const posted = talkSystem(ctx, happenings(ctx));
   if (posted || !chance(ctx.rng, B.chatSoloChance * clamp(meaning / 70, 0.3, 1.2))) return;
   const recent = state.flags.recentChat ?? [];
