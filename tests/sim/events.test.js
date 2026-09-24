@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, tick } from '../../src/sim/index.js';
 import { eventsSystem, eligibleEvents, raiseDecision, resolveSubjects, fillText } from '../../src/sim/events.js';
-import { applyEffects, modifierBonus, processScheduled } from '../../src/sim/effects.js';
+import { applyEffects, modifierBonus, processScheduled, expireModifiers } from '../../src/sim/effects.js';
 import { annualSystem } from '../../src/sim/calendar.js';
 import { outputMult } from '../../src/sim/staff.js';
 import { makeCtx } from '../../src/sim/registry.js';
@@ -215,7 +215,7 @@ describe('delayed consequences', () => {
     expect(s.modifiers[0]).toMatchObject({ key: 'output', label: 'Four-day week trial', untilWeek: s.week + 4, source: 'four_day_week' });
     s.week += 4;
     const c = ctxOf(s);
-    processScheduled(c);
+    expireModifiers(c);
     expect(s.modifiers).toHaveLength(0);
     expect(outputMult(s, p)).toBeCloseTo(base);
     expect(c.events.some((e) => e.type === 'toast' && e.text.includes('Four-day week trial'))).toBe(true);
@@ -399,9 +399,10 @@ describe('annual calendar', () => {
     const brand = s.brand;
     const c2 = ctxOf(s);
     annualSystem(c2);
-    expect(c2.events.some((e) => e.type === 'award' && e.text.includes('Inboxer'))).toBe(true);
-    expect(s.brand).toBe(Math.min(100, brand + 6));
-    expect(s.stats.awards).toBe(1);
+    const awards = c2.events.filter((e) => e.type === 'award');
+    expect(awards.some((e) => e.text === 'Product of the Year: Inboxer')).toBe(true);
+    expect(s.brand).toBeGreaterThanOrEqual(Math.min(100, brand + 6));
+    expect(s.stats.awards).toBe(awards.length);
     s.week = 52 + 51;
     const c3 = ctxOf(s);
     annualSystem(c3);

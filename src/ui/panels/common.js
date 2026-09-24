@@ -16,6 +16,13 @@ export function mentorOf(state, junior) {
   return state.staff.find((p) => p.assignment?.type === 'mentor' && p.assignment.targetId === junior.id) ?? null;
 }
 
+// Engineering automation moves new, update and migration projects along with nobody assigned.
+const AUTOMATED_KINDS = new Set(['new', 'update', 'migration']);
+export const automatedProject = (state, j) => (state.automation?.engineering?.level ?? 0) > 0 && AUTOMATED_KINDS.has(j.kind);
+// A project with nobody on it that automation does not carry either.
+export const stalledProject = (state, j) => !automatedProject(state, j)
+  && !state.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id);
+
 export function assignmentText(state, p) {
   const a = p.assignment ?? { type: 'idle' };
   if (a.type === 'project') {

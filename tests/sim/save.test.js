@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { tick, dispatch } from '../../src/sim/index.js';
-import { saveGame, loadGame, hasSave, clearSave, SAVE_KEY } from '../../src/save/save.js';
+import { saveGame, loadGame, hasSave, clearSave, exportSave, listSaves, SAVE_KEY } from '../../src/save/save.js';
+import { SAVE_VERSION } from '../../src/sim/index.js';
 import { game, advance } from './helpers.js';
 
 const fakeStorage = () => {
@@ -56,12 +57,26 @@ describe('save and load', () => {
     }
   });
 
-  it('reports an incompatible version', () => {
+  it('reports a save from an older or newer build as stale, and keeps it for export', () => {
     const store = fakeStorage();
-    store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 999 }));
-    expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an incompatible version' });
     store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 1 }));
-    expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an incompatible version' });
+    expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from an older build', stale: true, version: 1 });
+    expect(JSON.parse(exportSave(store)).version).toBe(1);
+    store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 999 }));
+    expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is from a newer build', stale: true, version: 999 });
+    expect(hasSave(store)).toBe(true);
+  });
+
+  it('a same-version save that no longer runs is stale, not a crash', () => {
+    const store = fakeStorage();
+    const s = advance(game(5), 10, tick, dispatch);
+    s.automation.engineering = null;
+    saveGame(s, store);
+    let res;
+    expect(() => { res = loadGame(store); }).not.toThrow();
+    expect(res).toMatchObject({ ok: false, reason: 'Save is from an older build', stale: true, id: s.flags.saveSlot });
+    expect(exportSave(store, s.flags.saveSlot)).toContain(s.companyName);
+    expect(listSaves(store)[0].version).toBe(SAVE_VERSION);
   });
 
   it('fills missing staff defaults on load', () => {

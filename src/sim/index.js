@@ -5,7 +5,7 @@ export { createGame, FUNCTIONS, SAVE_VERSION } from './state.js';
 export { tick } from './tick.js';
 export { dispatch } from './actions.js';
 export { dateOf } from './util.js';
-export { productAppeal, totalMrr } from './products.js';
+export { productAppeal, totalMrr, officeGateReason } from './products.js';
 export { oversightRequired, oversightProvided } from './automation.js';
 export { categoryLeaders } from './market.js';
 export { securityPosture } from './incidents.js';

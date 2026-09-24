@@ -89,6 +89,8 @@ const WAFFLE_ACTIONS = (seconds) => [
   ...Array.from({ length: Math.floor(seconds) }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
   ...DISMISS_EVERY(seconds).filter((a) => a.at % 4 === 0),
 ];
+// Follows one person with the camera as close as it zooms.
+const CLOSE_UP = (id) => `(() => { window.__HITL.controls.focusStaff(${id}); document.getElementById('scene').dispatchEvent(new WheelEvent('wheel', { deltaY: -400, cancelable: true })); })()`;
 
 export const ITEMS = [
   // 1. First contact
@@ -182,11 +184,21 @@ export const ITEMS = [
     actions: [{ at: 0.5, js: KEY('s', 'KeyS') }, { at: 3.5, js: `window.__HITL_UI.openStaff(window.__HITL.state.staff[1].id)` }],
     screenshots: [3, 6],
   },
-  {
-    id: '3-3-poses', title: '3.3 Poses: typing, tired, burnout, napping', query: 'mock=floor&speed=1', seconds: 14,
-    setup: `(() => { const s = window.__HITL.state; s.staff[1].mood = 'burnout'; s.staff[2].mood = 'coasting'; s.staff[3].stamina = 5; })()`,
-    actions: [{ at: 0.2, js: `window.__HITL.controls.focusStaff(window.__HITL.state.staff[1].id)` }], screenshots: [6],
-  },
+  // The procedural poses and the authored rig (?rig=1), same scene, for comparison. The camera
+  // follows a typist, then cuts to someone napping on a couch placed for the shot: the two poses
+  // the rig authors.
+  ...[['', 'Poses', ''], ['-rig', 'Poses (authored rig)', '&rig=1']].map(([suffix, name, rig]) => ({
+    id: `3-3-poses${suffix}`, title: `3.3 ${name}: typing, then a couch nap`, query: `mock=floor&speed=1${rig}`, seconds: 16,
+    setup: `(() => { const H = window.__HITL; const s = H.state; s.staff[1].mood = 'burnout'; s.staff[2].mood = 'coasting'; s.staff[3].stamina = 5; window.__couch = H.dispatch({ type: 'placeItem', itemId: 'couch', x: 1, y: 9, rot: 0 })?.id; })()`,
+    // Focus is repeated each second: people have no position until the first sync, and the napper
+    // walks. A wheel step after each focus takes the camera from the focus zoom to the closest one.
+    actions: [
+      { at: 1, js: `window.__HITL.controls.renderer.perks.send([window.__HITL.state.staff[5].id], window.__couch, { nap: true, dur: 40 })` },
+      ...[1.5, 2.5, 3.5, 4.5, 5.5, 6.5].map((at) => ({ at, js: CLOSE_UP('window.__HITL.state.staff[0].id') })),
+      ...[8, 9, 10, 11, 12, 13, 14, 15].map((at) => ({ at, js: CLOSE_UP('window.__HITL.state.staff[5].id') })),
+    ],
+    screenshots: [6, 14],
+  })),
   ...[1, 2].map((speed) => ({
     id: `3-4-conversations-${speed}x`, title: `3.4 Conversations at ${speed}x`, query: `seed=25&speed=${speed}`, seconds: 40,
     setup: PLAY({ weeks: 140, after: IN_OFFICE }), actions: DISMISS_EVERY(40), screenshots: [15, 30],

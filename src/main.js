@@ -1,5 +1,6 @@
 import { createMockSim } from './dev/mockSim.js';
 import { createPacer, MAX_STEP } from './pacing.js';
+import { autoQuality, glRendererName } from './quality.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
 const renderMods = import.meta.glob('./render/index.js');
@@ -48,9 +49,11 @@ async function boot() {
 
   let speed = Number(params.get('speed') ?? (isSnap ? 0 : 1));
   // An explicit ?quality= wins for the whole session (tools and tests rely on it); otherwise the
-  // saved setting, which ui applies through controls.setQuality at startup.
+  // saved setting, which ui applies through controls.setQuality at startup. 'auto' (and the boot
+  // value) is Low on software GL, High otherwise.
   const urlQuality = params.get('quality');
-  const quality = urlQuality ?? 'high';
+  const detectedQuality = autoQuality(glRendererName());
+  const quality = urlQuality ?? detectedQuality;
   let activeQuality = quality;
   const forcedTime = params.get('time') ?? (sim.state.flags?.mockTime ?? null);
 
@@ -122,15 +125,19 @@ async function boot() {
       if (!canSave()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame(undefined, id);
       if (res.ok) startPlaying(res.state);
-      return { ok: res.ok, reason: res.reason, notice: res.notice };
+      // Everything the save module reports (reason, notice, any failure code) except the state.
+      const { state: _state, ...result } = res;
+      return result;
     },
+    // The raw text of a save slot, even one this build cannot load; null without storage.
+    exportSave: (id) => (canSave() && saveMod.exportSave ? saveMod.exportSave(undefined, id) ?? null : null),
     // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
     // will not load is listed with its reason instead of dropped.
     listSaves: () => {
       if (!canSave() || !saveMod.listSaves) return [];
       return saveMod.listSaves().map((m) => {
-        const res = saveMod.loadGame(undefined, m.id);
-        return { ...m, ok: res.ok, reason: res.reason };
+        const { state: _state, ...res } = saveMod.loadGame(undefined, m.id);
+        return { ...m, ...res };
       });
     },
     deleteSave: (id) => {
@@ -148,11 +155,12 @@ async function boot() {
     save,
     setQuality: (q) => {
       if (urlQuality) return;
-      activeQuality = q;
-      renderer?.setQuality(q);
-      audio?.setQuality?.(q);
+      activeQuality = q === 'auto' ? detectedQuality : q;
+      renderer?.setQuality(activeQuality);
+      audio?.setQuality?.(activeQuality);
     },
     getQuality: () => activeQuality,
+    autoQuality: detectedQuality,
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     // Per-bus volume (music, ambience, sfx, ui, voice) and mute, from the Settings panel.
@@ -177,6 +185,7 @@ async function boot() {
   }
 
   window.__HITL = {
+    version: __HITL_VERSION__,
     get state() { return sim.state; },
     get playing() { return playing; },
     get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null, dayClock, frozen }; },

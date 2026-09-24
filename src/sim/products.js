@@ -157,14 +157,20 @@ registerAction('setOwner', (ctx, { productId, staffId }) => {
 });
 
 // Why the company cannot move into a stage yet, or null. Stage gates spread the office across the run.
+// stage is an office stage index or one of OFFICE_STAGES.
 export function officeGateReason(state, stage) {
-  const g = stage.gate ?? {};
+  const g = (typeof stage === 'number' ? OFFICE_STAGES[stage] : stage)?.gate ?? {};
   if (g.week && state.week < g.week) return `Available from ${dateOf(g.week).year}`;
   if (g.launches && state.stats.launches < g.launches) return `Needs ${g.launches} launches`;
   if (g.liveProducts && liveProducts(state).length < g.liveProducts) return `Needs ${g.liveProducts} live products`;
   if (g.staff && state.staff.length < g.staff) return `Needs ${g.staff} people`;
   if (g.brand && state.brand < g.brand) return `Needs brand ${g.brand}`;
-  if (g.mrr && totalMrr(state) < g.mrr) return `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
+  // Revenue, or from orCashWeek on, enough savings to carry the move instead.
+  const savings = g.orCash && state.week >= (g.orCashWeek ?? 0) && state.cash >= g.orCash;
+  if (g.mrr && totalMrr(state) < g.mrr && !savings) {
+    const need = `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
+    return g.orCash ? `${need}, or $${g.orCash.toLocaleString('en-US')} in the bank from ${dateOf(g.orCashWeek ?? 0).year}` : need;
+  }
   return null;
 }
 

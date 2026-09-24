@@ -76,7 +76,7 @@ export const PALETTE = {
   role_designer: '#ff7eb6',
   role_marketer: '#ffb020',
   role_support: '#34c38f',
-  role_security: '#e5484d',
+  role_security: '#4d6285',
   role_sales: '#9b6bff',
 
   // Emissives

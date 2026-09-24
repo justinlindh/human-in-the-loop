@@ -94,7 +94,7 @@ describe('fire', () => {
     const s = game();
     const p = addStaff(s, 'engineer', 'mid');
     const res = dispatch(s, { type: 'fire', staffId: p.id });
-    expect(res.events).toContainEqual({ type: 'resign', staffId: p.id, name: p.name, fired: true });
+    expect(res.events).toContainEqual({ type: 'resign', staffId: p.id, name: p.name, fired: true, reason: 'fired' });
   });
 
   it('refuses founders and unknown ids', () => {

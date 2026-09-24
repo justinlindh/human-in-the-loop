@@ -248,3 +248,28 @@ function openingBeats(ctx, j) {
 }
 
 registerSystem('projects', projectsSystem, 30);
+
+const CANCEL_LINES = [
+  'We are shelving {project}. It was a good idea at the time. The time has passed.',
+  'Calling it: {project} is cancelled. I will miss the kickoff doc. It had nice fonts.',
+  '{project} is no more. If anyone needs me, I will be deleting a branch with feeling.',
+  'Pulling the plug on {project}. Everyone who worked on it, thank you. Sorry. Both.',
+];
+
+// Cancels an unfinished project: progress is lost, nothing is refunded, its people go idle, and campaigns
+// aimed at it end. Someone who worked on it (or a founder) says so in Slackk.
+registerAction('cancelProject', (ctx, { projectId }) => {
+  const { state } = ctx;
+  const j = state.projects.find((x) => x.id === projectId);
+  if (!j) return { ok: false, reason: 'No such project' };
+  const crew = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
+  const rank = { senior: 0, mid: 1, junior: 2 };
+  const voice = [...crew].sort((a, b) => (rank[a.seniority] ?? 3) - (rank[b.seniority] ?? 3))[0]
+    ?? state.staff.find((p) => p.founder && p.mood !== 'away') ?? state.staff.find((p) => p.founder);
+  for (const p of crew) p.assignment = { type: 'idle', targetId: null };
+  for (const k of Object.keys(state.flags)) if (k.startsWith('returnTo_') && state.flags[k] === j.id) delete state.flags[k];
+  state.campaigns = state.campaigns.filter((c) => c.projectId !== j.id);
+  state.projects = state.projects.filter((x) => x.id !== j.id);
+  if (voice) emitChat(ctx, { person: voice, text: pick(ctx.rng, CANCEL_LINES).replaceAll('{project}', j.name) });
+  return { ok: true };
+});
