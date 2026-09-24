@@ -302,7 +302,9 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
 
     const workers = state.staff.filter((p) => p.assignment.type === 'project');
     const tones = ['features', 'polish', 'reliability', 'novelty'];
-    workers.slice(0, 3).forEach((p, i) => events.push({ type: 'bubble', staffId: p.id, text: `+${int(2, 9)} ${tones[(ticks + i) % 4][0].toUpperCase()}${tones[(ticks + i) % 4].slice(1)}`, tone: tones[(ticks + i) % 4] }));
+    // Player-facing stat names, as the real sim labels them.
+    const LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
+    workers.slice(0, 3).forEach((p, i) => events.push({ type: 'bubble', staffId: p.id, text: `+${int(2, 9)} ${LABEL[tones[(ticks + i) % 4]]}`, tone: tones[(ticks + i) % 4] }));
     const talker = pick(state.staff);
     const post = chat('general', talker, pick(CHATTER[talker.mood] ?? CHATTER.ok));
     events.push(post);
