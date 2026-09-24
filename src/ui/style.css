@@ -1036,3 +1036,6 @@
   .hitl .tray-card.trend { min-height: 44px; }
   .hitl table tr { height: 46px; }
 }
+/* Speed glyphs take an explicit fill per state rather than inheriting currentColor. */
+.hitl .chip.speed .btn.spd .ic svg * { fill: var(--ink); }
+.hitl .chip.speed .btn.spd.on .ic svg * { fill: var(--cream); }
