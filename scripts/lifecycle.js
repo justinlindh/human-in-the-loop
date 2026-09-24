@@ -26,7 +26,8 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || '').split('\n').slice(1, 4).join(' / ')}`));
 const ready = () => page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
-const clickText = (re) => page.locator('button', { hasText: re }).first().click({ timeout: 10000 });
+// Generous: CI runners render with software GL and can take many seconds per frame.
+const clickText = (re) => page.locator('button', { hasText: re }).first().click({ timeout: 30000 });
 
 try {
   await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base); await ready(); await page.waitForTimeout(1000);
