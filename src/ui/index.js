@@ -12,6 +12,7 @@ import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
+import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
 import { GOALS, GOAL, goalReward } from './v2content.js';
@@ -26,6 +27,7 @@ const PANEL_REFRESH_MS = 150;
 export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
+  setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;

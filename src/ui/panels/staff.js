@@ -1,6 +1,6 @@
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
-import { portrait, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
+import { portrait, portraitLive, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
 import { assignmentOptions, assignmentText, mentorOf, isAvailable } from './common.js';
 import { icon } from '../icons.js';
 import { STAT_INFO } from './build.js';
@@ -233,7 +233,7 @@ export function staffPanel(ctx, arg) {
       h('div.row', null, back, h('span.spacer'), h('span.faint.small', { text: 'Tip: click people in the office to open this.' })),
       h('div.detail', null,
         h('div.dleft', null,
-          h('div.bigportrait', null, portrait(p, 112)),
+          h('div.bigportrait', null, portraitLive(p, 112)),
           h('h2.dname', { text: p.name }),
           h('div.row.wrap', null, roleChip(p.role), seniorityChip(p.seniority), p.founder ? h('span.pill.ink', { text: 'Founder' }) : null),
           h('div.row', null, h('b.num', { text: `Lv ${p.level}` }), h('div.bar', { style: { flex: 1 } }, xpFill), xpText),
