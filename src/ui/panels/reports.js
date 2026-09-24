@@ -6,6 +6,7 @@ import { lineChart, stackedChart, sample } from '../charts.js';
 import { wrapperRisk } from './marketing.js';
 import { retireOptions, retireBanner } from '../retire.js';
 import { PURPOSE_INFO } from '../v2content.js';
+import { call } from '../simapi.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -272,7 +273,9 @@ function acquisitionsView(ctx, s, bind) {
     });
     const why = h('span.why.small');
     bind((st) => {
-      const r = st.cash < c.price ? 'Not enough cash' : '';
+      const need = c.staff ?? 0;
+      const free = Math.max(0, (call('deskCapacity', st) ?? Infinity) - st.staff.length);
+      const r = st.cash < c.price ? 'Not enough cash' : free < need ? `Needs ${need} free desk${need === 1 ? '' : 's'} (${free} free)` : '';
       acq.disabled = !!r;
       setText(why, r);
     });

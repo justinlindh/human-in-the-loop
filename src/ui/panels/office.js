@@ -7,7 +7,7 @@ import { CATALOG, isDesk, beforeEra } from '../v2content.js';
 import { placedOf, stageOf } from '../placement.js';
 import { EVENTS } from '../../data/events.js';
 import { weeklyCosts } from '../../sim/economy.js';
-import { call } from '../simapi.js';
+import { call, SIMX } from '../simapi.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
@@ -185,12 +185,12 @@ function buildPalette(ctx) {
         right = h('div.col.right', null,
           h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
       } else if (Number.isFinite(s.office?.expansion)) {
-        // At the HQ: expansion steps raise the desk cap. Cost and gate come from the sim when it exports them.
+        // At the HQ: expansion steps raise the desk cap. The next step comes from the sim, else the stage data.
         const step = s.office.expansion;
         const steps = stage.expansions ?? null;
-        const nextStep = steps?.[step] ?? null;
+        const nextStep = call('nextExpansion', s) ?? steps?.[step] ?? null;
         const maxSteps = steps?.length ?? MAX_EXPANSION;
-        if (step >= maxSteps) right = h('span.small.muted', { text: 'The biggest office in town, fully expanded.' });
+        if (step >= maxSteps || (SIMX.nextExpansion && !nextStep)) right = h('span.small.muted', { text: 'The biggest office in town, fully expanded.' });
         else {
           const cost = nextStep?.upgradeCost ?? call('expansionCost', s);
           const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
