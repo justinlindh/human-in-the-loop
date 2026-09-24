@@ -6,6 +6,7 @@
 //                 [--player batch|eager|both] [--milestones] [--timeline] [--json] [--frame 0.0333]
 //
 // --milestones prints only the one-line milestone timeline; --player both runs each player.
+// --check tests the milestone line against PACING_TARGETS and exits non-zero on a miss.
 //
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
@@ -127,6 +128,28 @@ const STAGE_NAMES = ['garage', 'floor', 'hq'];
 
 // One line: minute and label of each milestone in order, unlocks marked with +.
 const milestoneLine = (m) => (m.milestones.length ? m.milestones.map((x) => `${x.minute} ${x.label}`).join(' | ') : 'none');
+
+// Where the milestones should land at 1x, in real minutes.
+const PACING_TARGETS = { floor: [7, 10], hq: [20, 30], maxUnlocksPerMinute: 2 };
+
+// Pass or fail per target. Unlocks that arrive with an era do not count toward the per-minute cap.
+function checkTargets(m) {
+  const at = (label) => m.milestones.find((x) => x.label === label)?.minute ?? null;
+  const within = (v, [lo, hi]) => v !== null && v >= lo && v <= hi;
+  const eraMinutes = new Set(m.milestones.filter((x) => x.label.startsWith('era ')).map((x) => x.minute));
+  const perMinute = new Map();
+  for (const x of m.milestones) {
+    if (!x.label.startsWith('+') || eraMinutes.has(x.minute)) continue;
+    const k = Math.floor(x.minute);
+    perMinute.set(k, (perMinute.get(k) ?? 0) + 1);
+  }
+  const worst = [...perMinute.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
+  return [
+    { target: `floor at ${PACING_TARGETS.floor.join(' to ')} min`, ok: within(at('floor'), PACING_TARGETS.floor), got: at('floor') },
+    { target: `hq at ${PACING_TARGETS.hq.join(' to ')} min`, ok: within(at('hq'), PACING_TARGETS.hq), got: at('hq') },
+    { target: `at most ${PACING_TARGETS.maxUnlocksPerMinute} unlocks in any minute outside eras`, ok: worst[1] <= PACING_TARGETS.maxUnlocksPerMinute, got: worst[0] === null ? 0 : `${worst[1]} in minute ${worst[0]}` },
+  ];
+}
 
 const mmss = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const pct = (arr, p) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(p * arr.length))] : null);
@@ -451,7 +474,18 @@ if (isMain) {
     seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player,
     minutes: num('minutes'), weeks: num('weeks'), frame: num('frame') ?? 1 / 30,
   }));
-  if (a.json) {
+  if (a.check) {
+    let failed = false;
+    for (const { metrics: m } of runs) {
+      console.log(`${m.bot} ${m.player} ${m.speed}x seed ${m.seed}: ${milestoneLine(m)}`);
+      for (const c of checkTargets(m)) {
+        failed ||= !c.ok;
+        console.log(`  ${c.ok ? 'ok  ' : 'MISS'} ${c.target}: ${c.got ?? 'never'}`);
+      }
+    }
+    if (runs[0].metrics.speed !== 1) console.log('note: the targets are for 1x');
+    process.exitCode = failed ? 1 : 0;
+  } else if (a.json) {
     const out = runs.map((res) => ({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }));
     console.log(JSON.stringify(out.length === 1 ? out[0] : out, null, 2));
   } else if (a.milestones) {
