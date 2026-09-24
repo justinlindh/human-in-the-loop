@@ -6,6 +6,10 @@ import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
+import { createSettings } from './settings.js';
+import { createTitle } from './title.js';
+import { createGameOver } from './gameover.js';
+import { createTutorial } from './tutorial.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -74,7 +78,30 @@ export function createUI({ root, getState, dispatch, controls }) {
   bottom.append(h('div'));
 
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
-  ui.modalKey = (e) => popups.onKey(e);
+  const gameover = createGameOver({ layer, controls, sfx });
+  const tutorial = createTutorial({ layer, sfx });
+  const settings = createSettings({ layer, controls, sfx });
+  ui.openSettings = () => settings.open();
+  const title = createTitle({
+    layer, controls, sfx,
+    toast: (text, tone) => toasts.push(text, tone),
+    openSettings: () => settings.open(),
+    onStart: ({ fresh }) => {
+      title.hide();
+      controls.setSpeed(settings.values.speed ?? 1);
+      if (fresh) setTimeout(() => tutorial.start(), 600);
+    },
+  });
+
+  // Overlays take keys in stacking order: settings, title, tutorial, popups, game over.
+  ui.modalKey = (e) => {
+    if (settings.isOpen) { if (e.key === 'Escape') settings.close(); e.preventDefault(); return true; }
+    if (title.isOpen) return true;
+    if (tutorial.onKey(e)) return true;
+    if (popups.onKey(e)) return true;
+    if (gameover.open) { e.preventDefault(); return true; }
+    return false;
+  };
 
   // Toasts paint above panels and the modal backdrop.
   layer.append(toasts.el);
@@ -122,6 +149,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   let lastPanelAt = 0;
   function update(state) {
     hud.update(state);
+    gameover.update(state);
     popups.update(state);
     logMeaning(state);
     const now = performance.now();
@@ -150,18 +178,26 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'award': toasts.push(e.text, 'good'); break;
+        case 'launch': popups.queueLaunch(e.productId); break;
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }
     }
   }
 
-  return {
+  const api = {
     update,
     handleEvents,
-    showTitle() {},
-    hideTitle() {},
+    showTitle() { menu.close(); title.show(); },
+    hideTitle() { title.hide(); },
     openStaff: (id) => menu.open('staff', { staffId: id }),
-    _ui: ui,
+    openSettings: () => settings.open(),
+    startTutorial: () => tutorial.start(true),
   };
+  // Test hooks: ?title=1 shows the title screen and ?tutorial=1 runs the coach marks.
+  const q = new URLSearchParams(location.search);
+  if (q.has('title')) api.showTitle();
+  if (q.has('tutorial')) setTimeout(() => tutorial.start(true), 300);
+  if (import.meta.env?.DEV) window.__HITL_UI = api;
+  return api;
 }

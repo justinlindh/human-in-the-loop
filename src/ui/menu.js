@@ -20,7 +20,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
   for (const m of MENU) {
     const badge = h('span.badge');
     badges[m.id] = badge;
-    buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, onclick: () => toggle(m.id) },
+    buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
       badge, h('span.key', { text: m.key }), h('span.ico', null, icon(`menu.${m.id}`)), h('span.lbl', { text: m.label }));
     menu.append(buttons[m.id]);
   }
