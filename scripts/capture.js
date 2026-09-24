@@ -3,6 +3,7 @@
 // follow it), so clips are smooth and repeatable however slowly the machine renders.
 //
 // npm run capture -- --only waffle-party            one item from the manifest
+// npm run capture -- --group readme                  the README stills and loop
 // npm run capture -- --manifest scripts/capture-manifest.js --out shots/capture
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
 //   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
@@ -37,11 +38,13 @@ const manifestPath = resolve(String(args.manifest ?? 'scripts/capture-manifest.j
 const { ITEMS } = await import(pathToFileURL(manifestPath).href);
 
 if (args.list) {
-  for (const it of ITEMS) console.log(`${it.id.padEnd(22)} ${String(it.seconds).padStart(4)}s  ${it.title}`);
+  for (const it of ITEMS) console.log(`${it.id.padEnd(22)} ${(it.still ? "still" : `${it.seconds}s`).padStart(5)}  ${it.group ? `[${it.group}] ` : ""}${it.title}`);
   process.exit(0);
 }
 const only = typeof args.only === 'string' ? new Set(args.only.split(',')) : null;
-const items = ITEMS.filter((it) => !only || only.has(it.id));
+// --group readme picks items tagged with that group; untagged items are the review set.
+const group = typeof args.group === 'string' ? args.group : null;
+const items = ITEMS.filter((it) => (only ? only.has(it.id) : group ? it.group === group : !it.group));
 if (!items.length) { console.error(`capture: nothing matches --only ${args.only}`); process.exit(1); }
 
 // Installed before any page script runs. Time only moves when the capture script says so.

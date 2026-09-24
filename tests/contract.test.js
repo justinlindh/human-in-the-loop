@@ -74,6 +74,13 @@ describe('mock sim honors the contract', () => {
     expect(m.tick()).toEqual([]);
   });
 
+  it('no two mock staff share a first name', () => {
+    for (const scenario of MOCK_SCENARIOS) {
+      const first = createMockSim({ scenario }).state.staff.map((p) => p.name.split(' ')[0]);
+      expect(first.length - new Set(first).size, scenario).toBe(0);
+    }
+  });
+
   it('hq scenario fits HQ capacity', () => {
     expect(createMockSim({ scenario: 'hq' }).state.staff.length).toBeLessThanOrEqual(30);
   });
