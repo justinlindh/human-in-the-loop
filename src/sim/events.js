@@ -12,13 +12,21 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra } from './eras.js';
 
+// What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
+// more than a share of the cash in hand, so paying hurts without ending a careful company.
+export function ransomFor(state) {
+  const ask = B.ransomCashShare * Math.max(0, state.cash) + B.ransomMrrMonths * totalMrr(state);
+  const affordable = Math.max(B.ransomFloor, B.ransomMaxCashShare * Math.max(0, state.cash));
+  return Math.round(Math.min(B.ransomCap, affordable, Math.max(B.ransomFloor, ask)) / 1000) * 1000;
+}
+
 // Placeholder values chosen once per event, so every string in a decision names the same incumbent.
 export function decisionVars(state, rng, subjectId) {
   const product = state.products.find((p) => p.id === subjectId);
   const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
   const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
-  return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder' };
+  return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state) };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -33,7 +41,8 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{incumbent}', v.incumbent)
     .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks))
     .replaceAll('{rivalFounder}', v.rivalFounder ?? 'Their founder')
-    .replaceAll('{rival}', v.rival ?? 'A rival');
+    .replaceAll('{rival}', v.rival ?? 'A rival')
+    .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 
 // Emergencies always interrupt; everything else respects the gap between decisions.

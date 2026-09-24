@@ -13,6 +13,7 @@ import { staffMods } from './staff.js';
 import { currentEra, eraAtLeast } from './eras.js';
 import { autoArrange, spentOn } from './office.js';
 import { rivalPressure } from './ladder.js';
+import { purposeLift } from './purpose.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -32,7 +33,8 @@ export function productAppeal(state, product) {
   // In the Plateau everyone has the same AI, so polish and a trusted brand are what set a product apart.
   if (eraAtLeast(state, 'plateau')) {
     const total = product.stats.features + product.stats.polish + product.stats.reliability + product.stats.novelty;
-    appeal *= 1 + B.plateauPolishAppeal * (total > 0 ? product.stats.polish / total : 0) + B.plateauBrandAppeal * state.brand / 100;
+    appeal *= 1 + B.plateauPolishAppeal * (total > 0 ? product.stats.polish / total : 0) + B.plateauBrandAppeal * state.brand / 100
+      + B.purposeAppeal * purposeLift(state);
   }
   return appeal;
 }

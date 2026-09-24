@@ -34,4 +34,14 @@ export const POLICIES = {
     id: 'sabbatical', lockText: 'Needs the Office Floor', name: 'Sabbatical Program', weeklyCost: 500, unlock: (s) => s.officeStage >= 1,
     desc: 'Lets tired people step away for a month and come back whole. They are paid while gone.',
   },
+  no_crunch: {
+    id: 'no_crunch', lockText: 'Unlocks when someone is running on empty', name: 'No Crunch', weeklyCost: 0,
+    unlock: (s) => s.staff.some((p) => (p.strain ?? 0) >= 60),
+    desc: 'Nobody works nights to hit a date. Exhaustion builds half as fast; a little less output.',
+  },
+  incentives: {
+    id: 'incentives', lockText: 'Unlocks with a team of 8 and three launches', name: 'Incentives Program', weeklyCost: 300,
+    unlock: (s) => s.staff.length >= 8 && s.stats.launches >= 3,
+    desc: 'Every couple of months the top performer gets a reward. More output for a while, a happy winner, a slightly envious team. It wears thin.',
+  },
 };
