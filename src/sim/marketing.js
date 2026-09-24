@@ -4,6 +4,7 @@ import { registerAction, registerSystem } from './registry.js';
 import { outputMult, staffMods } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
 import { CHANNELS } from '../data/channels.js';
+import { modifierBonus } from './modifiers.js';
 
 const marketers = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'marketing');
 
@@ -33,7 +34,7 @@ export function marketingSystem(ctx) {
   const team = marketers(state);
   const marketerMult = Math.min(2.5, 1 + 0.25 * sum(team, (p) => outputMult(state, p) * staffMods(p).hype));
   const autoLevel = state.automation.marketing.level;
-  const autoMult = 1 + B.autoMarketingHype * autoLevel;
+  const autoMult = (1 + B.autoMarketingHype * autoLevel) * Math.max(0, 1 + modifierBonus(state, 'hype'));
 
   for (const c of state.campaigns) {
     const ch = CHANNELS[c.channel];
@@ -58,7 +59,7 @@ export function marketingSystem(ctx) {
   const target = [...live].reverse().find((p) => !covered.has(p.id));
   if (target) target.hype += sum(team, (p) => B.marketerHypePerWeek * outputMult(state, p) * staffMods(p).hype);
 
-  state.brand = clamp(state.brand - B.brandDecay, 0, 100);
+  state.brand = clamp(state.brand - B.brandDecay + modifierBonus(state, 'brandPerWeek'), 0, 100);
   for (const p of live) {
     p.hype = clamp(p.hype * (1 - B.hypeDecay), 0, 100);
     if (!p.wrapperHit && p.hype / 10 > p.score + B.wrapperGap) {

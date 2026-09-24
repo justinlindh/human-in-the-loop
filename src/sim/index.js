@@ -10,6 +10,8 @@ import './meaning.js';
 import './knowledge.js';
 import './market.js';
 import './incidents.js';
+import './events.js';
+import './calendar.js';
 import './economy.js';
 
 export { createGame, FUNCTIONS, SAVE_VERSION } from './state.js';

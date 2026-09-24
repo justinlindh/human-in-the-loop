@@ -9,6 +9,7 @@ import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
 import { emitChat } from './chat.js';
+import { modifierBonus } from './modifiers.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -99,7 +100,8 @@ export function outputMult(state, person) {
   const moodMult = typeof m === 'function' ? m() : (m ?? 1);
   const staminaMult = person.stamina < B.staminaLowBelow ? 0.7 : 1;
   const craft = state.policies.craft_fridays ? B.craftFridaysOutput : 1;
-  return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * staffMods(person).output * craft;
+  return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * staffMods(person).output * craft
+    * Math.max(0, 1 + modifierBonus(state, 'output'));
 }
 
 export const capacity = (state) => OFFICE_STAGES[state.officeStage].capacity;
@@ -246,7 +248,7 @@ export function staffUpkeep(ctx) {
     const working = isWorking(p);
     const mentor = p.seniority === 'junior' ? mentorOf(state, p) : null;
     if (working) {
-      let gain = B.xpPerWeekWorking * mods.xp;
+      let gain = B.xpPerWeekWorking * mods.xp * Math.max(0, 1 + modifierBonus(state, 'xp'));
       if (p.seniority === 'junior') {
         gain *= mentor ? B.mentorXpMult * staffMods(mentor).mentorBonus : 1 - B.juniorXpAutomationPenalty * engLevel;
       }
@@ -254,7 +256,7 @@ export function staffUpkeep(ctx) {
       levelUp(ctx, p);
     }
     if (p.mood === 'away') p.stamina += B.staminaRecovery * 0.5;
-    else if (working) p.stamina -= B.staminaDrainWorking * mods.stamina;
+    else if (working) p.stamina -= B.staminaDrainWorking * mods.stamina * Math.max(0, 1 + modifierBonus(state, 'staminaDrain'));
     else p.stamina += B.staminaRecovery * 2;
     p.stamina = clamp(p.stamina, 0, 100);
     if (p.mood === 'away' && p.sabbaticalWeeksLeft > 0) {

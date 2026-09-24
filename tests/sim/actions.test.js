@@ -81,6 +81,6 @@ describe('system order', () => {
     const got = getSystems().map((x) => [x.name, x.order]);
     for (const [name, order] of got) expect(plan[name], name).toBe(order);
     expect(got.map(([, o]) => o)).toEqual([...got.map(([, o]) => o)].sort((a, b) => a - b));
-    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'work', 'projects', 'products', 'marketing', 'meaning', 'knowledge', 'market', 'incidents', 'economy', 'staff-upkeep']);
+    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'work', 'projects', 'products', 'marketing', 'meaning', 'knowledge', 'market', 'incidents', 'events', 'annual', 'economy', 'staff-upkeep']);
   });
 });

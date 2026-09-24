@@ -7,6 +7,7 @@ import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
 import { MODELS } from '../data/models.js';
 import { OFFICE_STAGES } from '../data/office.js';
+import { modifierBonus } from './modifiers.js';
 
 export function productAppeal(state, product) {
   const cat = CATEGORIES[product.category];
@@ -64,14 +65,15 @@ export function productsSystem(ctx) {
     const tam = CATEGORIES[p.category].tam;
     const target = targets[i];
     if (p.customers < target) {
-      const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200);
+      const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
+        * Math.max(0, 1 + modifierBonus(state, 'acquisition'));
       p.customers = Math.min(tam, p.customers + (target - p.customers) * Math.min(1, rate));
     }
     const inOutage = state.outage?.productId === p.id;
     const churn = Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
       + (p.hype / 10 > p.score + B.wrapperGap ? B.wrapperChurn : 0)
       + state.ops.supportShortfall * B.supportShortfallChurn
-      + (inOutage ? B.outageChurn : 0));
+      + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn'));
     p.customers = Math.max(0, Math.floor(p.customers * (1 - churn)));
 
     if (shortfall > 0) p.health -= B.healthDecay * shortfall;

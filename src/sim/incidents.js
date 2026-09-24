@@ -12,6 +12,7 @@ import { FUNCTIONS } from './state.js';
 import { MODELS } from '../data/models.js';
 import { CHATTER } from '../data/chatter.js';
 import { INCIDENT_EVENT } from '../data/events.js';
+import { modifierBonus } from './modifiers.js';
 
 const ROGUE_KINDS = {
   engineering: ['db_wipe', 'runaway_spend'], support: ['refund_hallucination'], sales: ['pricing_rewrite'],
@@ -42,7 +43,7 @@ export function rogueRisk(state, fn) {
   const a = state.automation[fn];
   if (a.level <= 0) return 0;
   return B.rogueBase * a.level * (1 - MODELS[a.model].guardrails) * (B.rogueShortfallFloor + shortfall(state))
-    * (1 + state.comprehensionDebt / 50);
+    * (1 + state.comprehensionDebt / 50) * Math.max(0, 1 + modifierBonus(state, 'rogueRisk'));
 }
 
 export function catchChance(state) {
@@ -67,6 +68,7 @@ export function startOutage(ctx, { productId, kind, severity }) {
   const { state } = ctx;
   state.outage = { productId, kind, severity, weeks: 0, unrecoverable: isUnrecoverable(state, severity) };
   const p = state.products.find((x) => x.id === productId);
+  noteWorstOutage(state, p);
   ctx.emit({ type: 'toast', text: `${p?.name ?? 'A product'} is down.${state.outage.unrecoverable ? ' Nobody knows how to fix it.' : ''}`, tone: 'bad' });
 }
 
@@ -80,6 +82,12 @@ function clearOutage(ctx, how) {
   ctx.emit({ type: 'toast', text: `${p?.name ?? 'The product'} is back up${how}.`, tone: 'good' });
 }
 
+function noteWorstOutage(state, product) {
+  if (!state.outage?.unrecoverable) return;
+  state.flags.worstOutageYear = dateOf(state.week).yearIndex;
+  state.flags.worstOutageProduct = product?.name ?? null;
+}
+
 function outageStep(ctx) {
   const { state } = ctx;
   const o = state.outage;
@@ -87,6 +95,7 @@ function outageStep(ctx) {
   if (!state.products.some((p) => p.id === o.productId && !p.killed)) { state.outage = null; return; }
   o.weeks++;
   o.unrecoverable = isUnrecoverable(state, o.severity);
+  noteWorstOutage(state, state.products.find((p) => p.id === o.productId));
   if (!o.unrecoverable && o.weeks >= Math.max(1, Math.ceil(o.severity / Math.max(fixCapacity(state), 0.1)))) clearOutage(ctx, '');
 }
 

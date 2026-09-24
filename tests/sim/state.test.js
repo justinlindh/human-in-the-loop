@@ -10,7 +10,9 @@ const STATE_KEYS = [
 ];
 
 const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });
-const run = (s, n) => { for (let i = 0; i < n; i++) tick(s); return s; };
+import { advance } from './helpers.js';
+
+const run = (s, n) => advance(s, n, tick, dispatch);
 
 describe('game state', () => {
   it('a fresh game has the starting shape', () => {
