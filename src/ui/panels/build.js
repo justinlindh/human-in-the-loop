@@ -7,7 +7,7 @@ import { ERA } from '../v2content.js';
 import { STATS, STAT } from '../stats.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
-import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
+import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject } from './common.js';
 
 // Product stats as the player sees them (Freshness is stored as novelty).
 export const STAT_INFO = STATS.map((s) => ({ id: s.id, name: s.product, color: s.color, icon: s.icon }));
@@ -281,7 +281,7 @@ export function buildPanel(ctx, arg) {
       const crew = h('div.crew', null, ...people.map((p) => h('span.crewmate', { title: `${p.name}: click to take off this project` },
         portrait(p, 26), h('span', { text: p.name.split(' ')[0] }),
         h('button.x', { onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }, icon('close', { size: 12 })))),
-      people.length ? null : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel);
+      people.length ? null : automatedProject(s, j) ? h('span.small.muted', { text: 'Agents are building this.' }) : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel);
       const meta = j.kind === 'research' ? 'Internal tool' : j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle} · ${MODEL[j.model]?.name ?? j.model}` : KIND_LABEL[j.kind];
       out.push(h('div.card.proj', { dataset: { project: j.id } },
         h('div.row', null, h('span.pill.ink', { text: KIND_LABEL[j.kind] ?? j.kind }), h('b.ptitle', { text: projectLabel(s, j) }), h('span.faint.small', { text: meta }), h('span.spacer'), pct),

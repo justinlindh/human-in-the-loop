@@ -1,7 +1,7 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
 import { icon } from './icons.js';
-import { projectLabel } from './panels/common.js';
+import { projectLabel, stalledProject } from './panels/common.js';
 import { GOALS, strainOf, STRAIN_WARN } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
@@ -73,7 +73,7 @@ export function needsYou(s) {
   }
   if (s.cash < 0) out.push({ key: 'cash', icon: 'money', text: 'Cash is in the red', go: ['reports'] });
   // Several unstaffed projects fold into one line that opens the Projects tab.
-  const empty = s.projects.filter((j) => !s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));
+  const empty = s.projects.filter((j) => stalledProject(s, j));
   if (empty.length === 1) {
     const j = empty[0];
     out.push({ key: `proj:${j.id}`, icon: 'tray.project', text: `Nobody is working on ${projectLabel(s, j)}`, go: ['build', { projectId: j.id }] });

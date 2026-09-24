@@ -14,7 +14,7 @@ export const BUILD_VERSION = (typeof __HITL_VERSION__ !== 'undefined' && __HITL_
 const versionLabel = () => (/^\d/.test(BUILD_VERSION) ? `v${BUILD_VERSION}` : BUILD_VERSION);
 
 // A save the current build cannot read (older or newer): the loader says so with a flag or its reason text.
-const isOldSave = (r) => !!r && r.ok === false && (r.incompatible === true || r.code === 'incompatible' || /incompatible|older build|older version/i.test(r.reason ?? ''));
+const isOldSave = (r) => !!r && r.ok === false && (r.stale === true || r.incompatible === true || r.code === 'incompatible' || /incompatible|(older|newer) build|older version/i.test(r.reason ?? ''));
 
 function suggestCompany() {
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
