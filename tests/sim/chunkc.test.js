@@ -34,6 +34,43 @@ describe('the AI Summit', () => {
     expect(s.pendingDecision?.eventId).toBe('ai_summit');
     expect(EVENTS.ai_summit.choices.find((x) => x.requires)?.requires).toBe('stage1');
   });
+
+  it('rotates three formats, costs more in later eras, and pauses after two declines until a new AI product ships', () => {
+    const s = aiCompany(2);
+    const seen = [];
+    const skip = () => {
+      const i = EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.effects.summit === 'skip');
+      expect(dispatch(s, { type: 'resolveDecision', choice: i }).ok).toBe(true);
+    };
+    const attend = () => {
+      const i = EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.effects.summit === 'small');
+      const cash = s.cash;
+      expect(dispatch(s, { type: 'resolveDecision', choice: i }).ok).toBe(true);
+      return cash - s.cash;
+    };
+    for (let y = 6; y < 9; y++) {
+      atWeekOfYear(s, y, B.aiSummitWeek);
+      run(s);
+      seen.push(s.pendingDecision.eventId);
+      attend();
+    }
+    expect(new Set(seen).size).toBe(3);
+    s.era = { id: 'plateau', since: 0 };
+    atWeekOfYear(s, 9, B.aiSummitWeek);
+    run(s);
+    expect(s.pendingDecision.choices[1].hint).toContain(`$${Math.round(B.summitCost.small * B.summitEraMult[4] / 1000)}k`);
+    skip();
+    atWeekOfYear(s, 10, B.aiSummitWeek);
+    run(s);
+    skip();
+    atWeekOfYear(s, 11, B.aiSummitWeek);
+    run(s);
+    expect(s.pendingDecision).toBeNull();
+    addProduct(s, { name: 'Newbot', launchedWeek: s.week });
+    atWeekOfYear(s, 12, B.aiSummitWeek);
+    run(s);
+    expect(s.pendingDecision?.eventId).toMatch(/^ai_summit/);
+  });
 });
 
 describe('the new Saasies', () => {
@@ -50,8 +87,8 @@ describe('the new Saasies', () => {
   it('Best Place to Work needs a happy team and nobody quitting this year', () => {
     const make = (quits) => {
       const s = aiCompany(3);
-      for (const role of ['engineer', 'designer', 'marketer', 'support', 'sales', 'engineer']) addStaff(s, role, 'mid', { meaning: 85 });
-      for (const p of s.staff) p.meaning = 85;
+      for (const role of ['engineer', 'designer', 'marketer', 'support', 'sales', 'engineer', 'engineer', 'designer', 'support', 'sales']) addStaff(s, role, 'mid', { meaning: 90 });
+      for (const p of s.staff) { p.meaning = 90; p.mood = 'ok'; p.strain = 0; }
       atWeekOfYear(s, 6, 1);
       run(s);
       s.stats.resignations += quits;
@@ -101,6 +138,29 @@ describe('the hearing', () => {
     addProduct(s, { angle: 'web', model: null });
     run(s);
     expect(s.pendingDecision?.eventId).not.toBe('hearing_summons');
+  });
+});
+
+describe('moving on', () => {
+  it('long-tenured people sometimes leave on good terms, join the alumni, and it is not a resignation', async () => {
+    const { moveOnSystem } = await import('../../src/sim/alumni.js');
+    const s = aiCompany(9);
+    for (let i = 0; i < 8; i++) addStaff(s, 'engineer', 'mid', { hiredWeek: s.week - 400 });
+    const before = s.staff.length;
+    const founders = s.staff.filter((p) => p.founder).length;
+    for (const p of s.staff) if (p.founder) p.hiredWeek = s.week - 400;
+    let left = 0;
+    for (let w = 0; w < 520 && s.staff.length > B.moveOnMinStaff; w++) {
+      const c = makeCtx(s);
+      moveOnSystem(c);
+      left += c.events.filter((e) => e.type === 'resign' && !e.fired).length;
+      s.week++;
+    }
+    expect(left).toBeGreaterThan(0);
+    expect(s.flags.alumni.length).toBe(left);
+    expect(s.staff.length).toBe(before - left);
+    expect(s.stats.resignations).toBe(0);
+    expect(s.staff.filter((p) => p.founder)).toHaveLength(founders);
   });
 });
 

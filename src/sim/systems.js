@@ -25,3 +25,4 @@ import './ladder.js';
 import './strain.js';
 import './purpose.js';
 import './incentives.js';
+import './alumni.js';

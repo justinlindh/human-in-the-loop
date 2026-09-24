@@ -10,10 +10,15 @@ import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
-import { eraOnlyAllowsText, eraAtLeast, currentEra } from './eras.js';
+import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
 // more than a share of the cash in hand, so paying hurts without ending a careful company.
+// What a side-room talk ('small') or a main-stage turn ('big') at the AI Summit costs in this era.
+export function summitCost(state, size) {
+  return Math.round(B.summitCost[size] * B.summitEraMult[eraIndex(state)]);
+}
+
 export function ransomFor(state) {
   const ask = B.ransomCashShare * Math.max(0, state.cash) + B.ransomMrrMonths * totalMrr(state);
   const affordable = Math.max(B.ransomFloor, B.ransomMaxCashShare * Math.max(0, state.cash));
@@ -44,6 +49,8 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{rivalFounder}', v.rivalFounder ?? 'Their founder')
     .replaceAll('{rival}', v.rival ?? 'A rival')
     .replaceAll('{alum}', v.alum ?? 'A former colleague')
+    .replaceAll('{summitSmall}', `$${Math.round(summitCost(state, 'small') / 1000)}k`)
+    .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 

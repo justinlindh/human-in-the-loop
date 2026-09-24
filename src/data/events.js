@@ -14,7 +14,7 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
-  'cash', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
+  'cash', 'summit', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
@@ -800,16 +800,38 @@ const list = [
       { label: 'Wait until it is right', hint: 'Hype down a little; Purpose up if this is who you are', effects: { hype: -5, purpose: { craft: 5, trust: 4 } }, outcome: 'Marketing mourns the slide. The feature ships three weeks later and works.' },
     ],
   },
-  // Ladder chunk (c): the AI Summit, the hearing, and the alumni network
+  // The AI Summit, one of three formats a year in rotation. Costs scale with the era ({summitSmall}, {summitBig}).
   {
-    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, eras: ['chatgbt', 'agents', 'consolidation', 'plateau'],
+    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'The AI Summit',
     text: 'The AI Summit is next month. Every company will announce something. Some of them will announce the same thing, in the same font. {incumbent} has booked the main stage.',
     choices: [
-      { label: 'Skip it', hint: 'Nothing happens', effects: {}, outcome: 'You watch the keynotes at 2x speed. They are better that way.' },
-      { label: 'A talk in a side room', hint: '-$20k, brand +2, hype +10 on your newest product', effects: { cash: -20000, brand: 2, hype: 10 }, outcome: 'Forty people come. Thirty-eight stay. Two of them become customers.' },
-      { label: 'A live demo on the main stage', hint: '-$80k and a gamble: a big brand and hype win, or a very public crash. Needs the Office Floor', requires: 'stage1', effects: { cash: -80000, gamble: { p: 0.6, effects: { brand: 6, hype: 30 }, else: { brand: -3, hype: 10 } } }, outcome: 'The lights go down. Someone in the front row is already filming.' },
+      { label: 'Skip it', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'You watch the keynotes at 2x speed. They are better that way.' },
+      { label: 'A talk in a side room', hint: '-{summitSmall}, brand +2, hype +10 on your newest product', effects: { summit: 'small', brand: 2, hype: 10 }, outcome: 'Forty people come. Thirty-eight stay. Two of them become customers.' },
+      { label: 'A live demo on the main stage', hint: '-{summitBig} and a gamble: a big brand and hype win, or a very public crash. Needs the Office Floor', requires: 'stage1', effects: { summit: 'big', gamble: { p: 0.6, effects: { brand: 6, hype: 30 }, else: { brand: -3, hype: 10 } } }, outcome: 'The lights go down. Someone in the front row is already filming.' },
+    ],
+  },
+  {
+    id: 'ai_summit_panel', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The AI Summit: the big panel',
+    text: 'This year the AI Summit wants {company} on its headline panel: "Will AI Replace Us?" The other panelists are {incumbent} and a man who only speaks in predictions.',
+    choices: [
+      { label: 'Decline the panel', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'The panel goes ahead without you. The answer, apparently, is "yes, but in a good way".' },
+      { label: 'Send someone thoughtful', hint: '-{summitSmall}; brand +3 and Purpose up if you promised trust', effects: { summit: 'small', brand: 3, purpose: { trust: 3 } }, outcome: 'You say something careful and true. It gets clipped to four words. They are good words.' },
+      { label: 'Go for the viral moment', hint: '-{summitBig} and a gamble: the clip everyone shares, or the clip everyone shares for the wrong reasons', effects: { summit: 'big', gamble: { p: 0.5, effects: { brand: 8, hype: 20 }, else: { brand: -4 } } }, outcome: 'You lean into the microphone. The moderator looks worried. So does your comms person.' },
+    ],
+  },
+  {
+    id: 'ai_summit_hackathon', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The AI Summit: the hackathon',
+    text: 'The AI Summit is running a 36-hour hackathon and wants a sponsor. The prize is a giant cheque. The real prize is whatever the teams build on top of your product.',
+    choices: [
+      { label: 'Pass', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'Someone else sponsors it. The giant cheque has their logo. It is very large.' },
+      { label: 'Sponsor a prize', hint: '-{summitSmall}; hype +15 on your newest product and a few junior candidates', effects: { summit: 'small', hype: 15, candidates: 'juniorBatch' }, outcome: 'The winning team built a thing that orders pizza by feel. You hire two of them.' },
+      { label: 'Put your whole API on the table', hint: '-{summitBig} and a gamble: the teams build you an ecosystem, or one of them builds a better version of you', effects: { summit: 'big', gamble: { p: 0.55, effects: { brand: 5, hype: 25, ik: 2 }, else: { brand: -2, clones: 1 } } }, outcome: 'Thirty teams, one API key each. The Wi-Fi gives up at hour four. The teams do not.' },
     ],
   },
   {
@@ -834,8 +856,8 @@ const list = [
     ],
   },
   {
-    id: 'alumni_referral', kind: 'staff', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => (s.flags.alumni?.length ?? 0) >= s.flags.alumniNeeded,
+    id: 'alumni_referral', kind: 'staff', weight: 1, cooldownWeeks: 104, random: true, subject: null,
+    when: (s) => (s.flags.alumni?.length ?? 0) >= 1,
     title: 'A note from {alum}',
     text: '{alum}, who left a while ago, writes: "My old team is looking around. I told them you were the good kind of chaos."',
     choices: [
@@ -845,21 +867,21 @@ const list = [
   },
   {
     id: 'alumni_competitor', kind: 'market', weight: 1, cooldownWeeks: 104, random: true, subject: 'randomProduct',
-    when: (s, h) => (s.flags.alumni?.length ?? 0) >= s.flags.alumniNeeded && h.live.length > 0,
+    when: (s, h) => (s.flags.alumni?.length ?? 0) >= 2 && h.live.length > 0,
     title: '{alum} started something',
     text: '{alum}, who used to work here, just launched a company that competes with {product}. Their launch post thanks you for "everything I learned about what not to do".',
     choices: [
-      { label: 'Congratulate them publicly', hint: 'Brand up; a new clone in the market', effects: { brand: 2, clones: 1 }, outcome: 'Your reply is gracious. Their reply is more gracious. It becomes a whole thing.' },
+      { label: 'Congratulate them publicly', hint: 'Brand up a little; a new clone in the market', effects: { brand: 1, clones: 1 }, outcome: 'Your reply is gracious. Their reply is more gracious. It becomes a whole thing.' },
       { label: 'Offer to acquire them', hint: '-$120k; no new competitor, and a few hires come home', effects: { cash: -120000, candidates: 'seniorBatch' }, outcome: '{alum} signs. Their first week back, they sit at their old desk out of habit.' },
     ],
   },
   {
     id: 'alumni_reunion', kind: 'staff', weight: 1, cooldownWeeks: 156, random: true, subject: null,
-    when: (s) => (s.flags.alumni?.length ?? 0) >= s.flags.alumniNeeded * 2,
+    when: (s) => (s.flags.alumni?.length ?? 0) >= 3,
     title: 'The alumni reunion',
     text: 'The #alumni group chat wants a reunion. It has more members than the company. {alum} volunteered to bring the old office sign.',
     choices: [
-      { label: 'Host it', hint: '-$8k; brand and team meaning up, knowledge up a little', effects: { cash: -8000, brand: 2, teamMeaning: 3, ik: 2 }, outcome: 'Old and new people swap war stories. Several bugs are finally explained.' },
+      { label: 'Host it', hint: '-$8k; team meaning up, brand and knowledge up a little', effects: { cash: -8000, brand: 1, teamMeaning: 3, ik: 2 }, outcome: 'Old and new people swap war stories. Several bugs are finally explained.' },
       { label: 'Let them organise it', hint: 'Nothing happens', effects: {}, outcome: 'You hear it was great. There are photos. You are in none of them.' },
     ],
   },

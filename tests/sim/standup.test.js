@@ -140,7 +140,7 @@ describe('standup variety', () => {
       runBot('sensible', seed, 400, { onWeek: (s, ev) => { for (const e of ev) if (e.type === 'chat' && e.channel === 'standup') posts.push(e.text); } });
       expect(posts.length).toBeGreaterThan(50);
       const repeats = posts.filter((t, i) => posts.slice(Math.max(0, i - 30), i).includes(t));
-      expect(repeats.length / posts.length, `seed ${seed}: ${repeats.length} of ${posts.length}`).toBeLessThanOrEqual(0.12);
+      expect(repeats.length / posts.length, `seed ${seed}: ${repeats.length} of ${posts.length}`).toBeLessThanOrEqual(0.1);
     }
   }, 120000);
 });
