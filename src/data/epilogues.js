@@ -3,7 +3,8 @@
 //   officeStage, office, eraCount, launches, people, alumni, veteran, veteranYears }.
 // Placeholders: {company}, {acquirer}, {office}, {eras}, {launches}, {people}, {alumni}, {veteran}, {veteranYears}.
 // group: 'outcome' lines say how the run ended and come first; then one 'recap' line and one 'people' line
-// retell the run; everything else (the consequences) follows.
+// retell the run. Consequence lines (with a weight: how strongly the run earned them) come next, strongest
+// first; flavour lines (no weight) fill whatever room is left.
 
 export const EPILOGUES = [
   { id: 'story_hq', group: 'recap', when: (s, x) => x.won && x.officeStage >= 2 && x.launches > 0,
@@ -38,31 +39,31 @@ export const EPILOGUES = [
     text: 'The outage never ended. Nobody left knew how the system worked, and the system did not know either.' },
   { id: 'long_haul', when: (s, x) => x.won && x.years >= 15 && x.peakMrr > 0,
     text: '{company} lasted longer than most of its competitors, two of its vendors, and one entire era of computing.' },
-  { id: 'juniors_grew', when: (s, x) => x.juniorsHired >= 5 && s.week >= 156,
+  { id: 'juniors_grew', weight: (s, x) => 20 + x.juniorsHired, when: (s, x) => x.juniorsHired >= 5 && s.week >= 156,
     text: 'Three of your former juniors now run teams of their own. They still use your code review checklist.' },
-  { id: 'no_juniors', when: (s, x) => x.juniorsHired === 0 && s.week >= 156,
+  { id: 'no_juniors', weight: () => 40, when: (s, x) => x.juniorsHired === 0 && s.week >= 156,
     text: 'You never hired a junior. Ten years later, the industry wonders where all the seniors went.' },
-  { id: 'billing_service', when: (s, x) => x.debt >= 60,
+  { id: 'billing_service', weight: (s, x) => x.debt, when: (s, x) => x.debt >= 60,
     text: 'Nobody remembers who wrote the billing service. It still works. Nobody touches it.' },
-  { id: 'clean_code', when: (s, x) => x.debt < 15 && s.products.length >= 3,
+  { id: 'clean_code', weight: (s, x) => 30 - x.debt, when: (s, x) => x.debt < 15 && s.products.length >= 3,
     text: 'Your codebase became a teaching example. New hires read it for fun, which is a sentence that has never been true before.' },
-  { id: 'agents_support', when: (s) => s.automation.support.level >= 0.75,
+  { id: 'agents_support', weight: () => 25, when: (s) => s.automation.support.level >= 0.75,
     text: 'Your agents still run the support desk. Customers say it is fine. Nobody asks what fine means.' },
   { id: 'humans_everywhere', when: (s) => s.week >= 104 && Object.values(s.automation).every((a) => a.level === 0),
     text: 'You never automated a thing. A documentary called it "charming". The documentary was underfunded.' },
-  { id: 'overseers', when: (s, x) => x.caught >= 5,
+  { id: 'overseers', weight: (s, x) => 20 + 3 * x.caught, when: (s, x) => x.caught >= 5,
     text: 'Your overseers caught agent disasters before anyone noticed. None of them got a press release. All of them got a raise.' },
-  { id: 'breaches', when: (s, x) => x.breaches >= 3,
+  { id: 'breaches', weight: (s, x) => 50 + 5 * x.breaches, when: (s, x) => x.breaches >= 3,
     text: 'Your customer data now lives in several places. Some of them are forums. One of them is a museum exhibit on bad security.' },
-  { id: 'resignations', when: (s, x) => x.resignations >= 8,
+  { id: 'resignations', weight: (s, x) => 20 + 2 * x.resignations, when: (s, x) => x.resignations >= 8,
     text: 'The #alumni channel is bigger than #general. They meet for drinks. Your name comes up.' },
-  { id: 'happy_team', when: (s, x) => x.avgMeaning >= 70 && s.week >= 52,
+  { id: 'happy_team', weight: (s, x) => x.avgMeaning - 30, when: (s, x) => x.avgMeaning >= 70 && s.week >= 52,
     text: 'People still describe their years at {company} as "the good ones". It is the best review you ever got.' },
-  { id: 'miserable_team', when: (s, x) => x.avgMeaning < 30 && s.staff.length > 0,
+  { id: 'miserable_team', weight: (s, x) => 90 - x.avgMeaning, when: (s, x) => x.avgMeaning < 30 && s.staff.length > 0,
     text: 'The office is full of people approving pull requests they do not read. The lights are on. Nobody is home.' },
   { id: 'seniors_many', when: (s, x) => x.seniors >= 6,
     text: 'Your senior bench is famous. Recruiters send them flowers. They stay anyway.' },
-  { id: 'no_seniors', when: (s, x) => x.seniors === 0 && s.products.some((p) => !p.killed),
+  { id: 'no_seniors', weight: () => 60, when: (s, x) => x.seniors === 0 && s.products.some((p) => !p.killed),
     text: 'By the end there were no seniors left. The agents kept shipping. Nobody could say what.' },
   { id: 'big_mrr', when: (s, x) => x.peakMrr >= 1000000,
     text: 'At its peak, {company} made more in a month than the garage cost in a lifetime.' },

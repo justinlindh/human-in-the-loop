@@ -62,7 +62,8 @@ const fill = (state, text, x = {}) => text.replaceAll('{company}', state.company
   .replaceAll('{people}', String(x.people ?? 0)).replaceAll('{alumni}', String(x.alumni ?? 0))
   .replaceAll('{veteran}', x.veteran ?? 'Someone').replaceAll('{veteranYears}', String(x.veteranYears ?? 0));
 
-// The ending in order: how it ended, a recap of the run, one line about its people, then the consequences;
+// The ending in order: how it ended, a recap of the run, one line about its people, the consequences
+// (strongest first), then flavour;
 // capped at epilogueLines and topped up to 3 with generic lines.
 export function buildEpilogue(state, outcome) {
   const x = summary(state, outcome);
@@ -71,7 +72,8 @@ export function buildEpilogue(state, outcome) {
     ...fits.filter((e) => e.group === 'outcome').slice(0, B.epilogueOutcomeLines),
     ...fits.filter((e) => e.group === 'recap').slice(0, 1),
     ...fits.filter((e) => e.group === 'people').slice(0, 1),
-    ...fits.filter((e) => !e.group),
+    ...fits.filter((e) => !e.group && e.weight).sort((a, b) => b.weight(state, x) - a.weight(state, x)),
+    ...fits.filter((e) => !e.group && !e.weight),
   ].slice(0, B.epilogueLines);
   const lines = picked.map((e) => fill(state, e.text, x));
   for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
