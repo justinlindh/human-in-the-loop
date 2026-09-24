@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, tick } from '../../src/sim/index.js';
-import { generateStaff, refreshCandidates, outputMult, capacity, staffUpkeep, staffMods } from '../../src/sim/staff.js';
+import { generateStaff, refreshCandidates, outputMult, capacity, staffUpkeep, staffMods, topStats } from '../../src/sim/staff.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { ASSIGNMENT_TYPES } from '../../src/contract/events.js';
@@ -38,6 +38,7 @@ describe('generateStaff', () => {
           expect(ASSIGNMENT_TYPES).toContain(p.assignment.type);
           expect(p.mood).toBe('ok');
           expect(p.founder).toBe(false);
+          expect(p).toMatchObject({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 } });
           expect(p.appearance.hairColor).toMatch(/^#[0-9a-f]{6}$/);
           expect(['none', 'glasses', 'headphones', 'beanie', 'cap']).toContain(p.appearance.accessory);
         }
@@ -60,6 +61,9 @@ describe('hire', () => {
     expect(s.candidates.find((x) => x.id === c.id)).toBeUndefined();
     expect(s.staff.find((x) => x.id === c.id).hiredWeek).toBe(s.week);
     expect(res.events.map((e) => e.type)).toEqual(expect.arrayContaining(['hire', 'chat']));
+    const chat = res.events.find((e) => e.type === 'chat');
+    expect(chat).toMatchObject({ channel: 'general', from: c.name, fromId: c.id, replyTo: null, reactions: {} });
+    expect(chat.id).toMatch(/^m\d+$/);
   });
 
   it('fails without cash, when the office is full, or with a bad id', () => {
@@ -75,7 +79,22 @@ describe('hire', () => {
   });
 });
 
+describe('topStats', () => {
+  it('only boosts stats the role actually uses', () => {
+    expect(topStats('security')).toEqual(['reliability']);
+    expect(topStats('engineer').sort()).toEqual(['features', 'reliability']);
+    expect(topStats('designer').sort()).toEqual(['novelty', 'polish']);
+  });
+});
+
 describe('fire', () => {
+  it('emits a resign event flagged as fired', () => {
+    const s = game();
+    const p = addStaff(s, 'engineer', 'mid');
+    const res = dispatch(s, { type: 'fire', staffId: p.id });
+    expect(res.events).toContainEqual({ type: 'resign', staffId: p.id, name: p.name, fired: true });
+  });
+
   it('refuses founders and unknown ids', () => {
     const s = game();
     expectFail(expect, dispatch, s, { type: 'fire', staffId: s.staff[0].id }, 'Founders cannot be fired');
@@ -111,6 +130,29 @@ describe('assign', () => {
     expect(dispatch(s, as(senior.id, 'mentor', j.id)).ok).toBe(true);
     expect(dispatch(s, as(senior.id, 'hardProblem')).ok).toBe(true);
     expect(senior.assignment).toEqual({ type: 'hardProblem', targetId: null });
+  });
+
+  it('rejects a second mentor for the same junior', () => {
+    const s = game();
+    const j = addStaff(s, 'engineer', 'junior');
+    const m2 = addStaff(s, 'engineer', 'mid');
+    const as = (staffId) => ({ type: 'assign', staffId, assignment: { type: 'mentor', targetId: j.id } });
+    expect(dispatch(s, as(s.staff[0].id)).ok).toBe(true);
+    expectFail(expect, dispatch, s, as(m2.id), 'Already has a mentor');
+    expect(dispatch(s, as(s.staff[0].id)).ok).toBe(true);
+  });
+
+  it('a mentee going on sabbatical ends the mentorship and gains no xp while away', () => {
+    const s = game();
+    s.policies.sabbatical = true;
+    const j = addStaff(s, 'engineer', 'junior', { traits: [] });
+    const m = s.staff[0];
+    dispatch(s, { type: 'assign', staffId: m.id, assignment: { type: 'mentor', targetId: j.id } });
+    expect(dispatch(s, { type: 'assign', staffId: j.id, assignment: { type: 'sabbatical', targetId: null } }).ok).toBe(true);
+    expect(m.assignment.type).not.toBe('mentor');
+    m.assignment = { type: 'mentor', targetId: j.id };
+    upkeep(s, 2);
+    expect(j.xp).toBe(0);
   });
 
   it('sabbatical sends the person away', () => {
@@ -221,8 +263,9 @@ describe('staff upkeep', () => {
     refreshCandidates(a);
     refreshCandidates(b);
     const juniors = (s) => s.candidates.filter((c) => c.seniority === 'junior');
+    expect(juniors(a).length).toBeGreaterThan(0);
     for (let i = 0; i < juniors(a).length; i++) {
-      expect(juniors(b)[i].skills.features).toBeGreaterThanOrEqual(juniors(a)[i].skills.features);
+      for (const k of Object.keys(juniors(a)[i].skills)) expect(juniors(b)[i].skills[k]).toBe(juniors(a)[i].skills[k] + 10);
     }
   });
 

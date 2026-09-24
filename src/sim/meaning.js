@@ -6,6 +6,7 @@ import { staffMods, mentorOf, removeStaff } from './staff.js';
 import { automationExposure, oversightRequired, oversightProvided } from './automation.js';
 import { liveProducts } from './projects.js';
 import { CHATTER } from '../data/chatter.js';
+import { emitChat } from './chat.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -70,7 +71,7 @@ export function meaningSystem(ctx) {
     return false;
   });
   for (const p of leavers) {
-    ctx.emit({ type: 'chat', from: p.name, text: pick(ctx.rng, CHATTER.farewell) });
+    emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER.farewell) });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name });
     ctx.emit({ type: 'toast', text: `${p.name} resigned.`, tone: 'bad' });
     removeStaff(state, p);
@@ -79,7 +80,7 @@ export function meaningSystem(ctx) {
 
   const present = state.staff.filter((p) => p.mood !== 'away');
   for (const p of shuffle(ctx.rng, present).slice(0, 2)) {
-    if (chance(ctx.rng, 0.5)) ctx.emit({ type: 'chat', from: p.name, text: pick(ctx.rng, CHATTER[chatterKey(state, p)]) });
+    if (chance(ctx.rng, 0.5)) emitChat(ctx, { person: p, text: pick(ctx.rng, CHATTER[chatterKey(state, p)]) });
   }
   const glum = present.filter((p) => p.mood === 'coasting' || p.mood === 'burnout');
   if (glum.length) ctx.emit({ type: 'bubble', staffId: pick(ctx.rng, glum).id, text: pick(ctx.rng, SIGHS), tone: 'bad' });

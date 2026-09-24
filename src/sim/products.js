@@ -1,7 +1,7 @@
 import { B } from './balance.js';
 import { clamp, sum, dateOf } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
-import { outputMult, findStaff } from './staff.js';
+import { outputMult, findStaff, defaultAssignment } from './staff.js';
 import { trendMods, liveProducts, findProduct } from './projects.js';
 import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -98,7 +98,15 @@ registerAction('killProduct', (ctx, { productId }) => {
     if (builder || s.id === p.ownerId) s.meaning = Math.max(0, s.meaning - 10);
   }
   if (state.outage?.productId === p.id) state.outage = null;
+  p.ownerId = null;
+  const cancelled = state.projects.filter((j) => j.productId === p.id);
+  if (cancelled.length) {
+    const ids = new Set(cancelled.map((j) => j.id));
+    for (const s of state.staff) if (s.assignment.type === 'project' && ids.has(s.assignment.targetId)) s.assignment = defaultAssignment(s);
+    state.projects = state.projects.filter((j) => !ids.has(j.id));
+  }
   ctx.emit({ type: 'toast', text: `${p.name} has been sunset. A moment of silence in #general.`, tone: 'info' });
+  if (cancelled.length) ctx.emit({ type: 'toast', text: `Cancelled work on ${p.name}: ${cancelled.map((j) => j.name).join(', ')}.`, tone: 'info' });
   return { ok: true };
 });
 

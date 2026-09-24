@@ -6,6 +6,7 @@ import './products.js';
 import './marketing.js';
 import './automation.js';
 import './meaning.js';
+import './knowledge.js';
 import './economy.js';
 
 export { createGame, FUNCTIONS, SAVE_VERSION } from './state.js';

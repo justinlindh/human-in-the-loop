@@ -130,7 +130,9 @@ describe('moods and resignations', () => {
     expect(resigns.length).toBeGreaterThan(0);
     expect(s.staff.filter((p) => p.founder)).toHaveLength(2);
     expect(s.stats.resignations).toBe(resigns.length);
-    expect(ev.some((e) => e.type === 'chat' && resigns.some((r) => r.name === e.from))).toBe(true);
+    const bye = ev.find((e) => e.type === 'chat' && resigns.some((r) => r.name === e.from));
+    expect(bye).toMatchObject({ channel: 'general', replyTo: null });
+    expect(resigns.some((r) => r.staffId === bye.fromId)).toBe(true);
   });
 
   it('a resignation clears mentor links to the leaver', () => {
@@ -149,7 +151,12 @@ describe('moods and resignations', () => {
     for (let i = 0; i < 2; i++) plain(s, 'engineer', 'mid');
     for (let w = 0; w < 30; w++) {
       const ev = runMeaning(s, 1);
-      expect(ev.filter((e) => e.type === 'chat' && !e.from.startsWith('@')).length).toBeLessThanOrEqual(2);
+      const chats = ev.filter((e) => e.type === 'chat' && !e.from.startsWith('@'));
+      expect(chats.length).toBeLessThanOrEqual(2);
+      for (const c of chats) {
+        expect(c).toMatchObject({ channel: 'general', replyTo: null, reactions: {} });
+        expect(s.staff.some((p) => p.id === c.fromId)).toBe(true);
+      }
     }
   });
 });
