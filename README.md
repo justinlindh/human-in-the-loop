@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/readme/logo-dark-theme.png">
-    <img src="docs/readme/logo.png" alt="Human in the Loop: an AI-era company sim" width="600">
+    <img src="docs/readme/logo.png" alt="Human in the Loop: an AI-era company sim" width="520">
   </picture>
 </p>
 
@@ -24,14 +24,14 @@ A run is a 20-year career, from a garage in 2019 through the AI boom and whateve
 
 ## Running it
 
-It runs in the browser. You need Node.js and npm.
+It runs in the browser. You need Node.js 22 or newer, with npm.
 
 ```sh
 npm install
 npm run dev
 ```
 
-Then open http://localhost:5173. Add `?seed=N` for a reproducible game.
+Then open the local URL Vite prints (usually http://localhost:5173). Add `?seed=N` for a reproducible game.
 
 `npm test` runs the simulation and balance tests.
 
