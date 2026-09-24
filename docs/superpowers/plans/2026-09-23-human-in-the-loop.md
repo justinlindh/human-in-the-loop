@@ -1022,3 +1022,7 @@ From the user's playtest: speech bubbles need reasonable timing; employees shoul
 
 ### Task A12: Conversational staging (art)
 - When a chat event's speaker and its root's speaker are both in the office, stage it as a conversation: the replier turns toward (or walks a few tiles toward) the other speaker, bubbles alternate with the pacer's timing, and a small "..." typing indicator bridges turns. Solo lines stay as single bubbles. Keep the 40-label cap; at 4x, show only the last line of an exchange.
+
+### Phase 5 amendment: speech is not Slackk
+
+User direction: chat bubbles should not simply mirror Slackk messages. The contract's "Speech vs Slackk" section adds a `say` event. S18 now writes two pools: spoken lines and exchanges (short, in-person, reactive to the room and the moment, between nearby people) and Slackk posts (written, longer, channels, threads, bots). They may echo each other occasionally, but they are written separately. The volume target applies to each stream (speech: about 1 bubble line per week at 1x plus occasional exchanges; Slackk: its own modest rate). A12 stages `say` exchanges (turning toward `toId`) and shows only a typing emote for `chat`. The pacer's bubble timing applies to `say`; `chat` goes to the feed on its own pacing.

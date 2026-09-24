@@ -59,11 +59,12 @@ function stage0() {
       { box: 'cardboard', x: -3.15, z: -3.05, w: 0.5, h: 0.4, d: 0.45, rotY: 0.2 },
       { box: 'cardboard', x: -3.2, z: -3.0, w: 0.4, h: 0.3, d: 0.38, y: 0.4, rotY: -0.3 },
       { box: 'cardboard', x: 2.2, z: 3.0, w: 0.55, h: 0.42, d: 0.5, rotY: 0.5 },
-      { shelf: true, x: 4.05, z: 0.2, rotY: -PI / 2 },
+      { shelf: true, x: 4.05, z: 0.5, rotY: -PI / 2 },
+      { model: 'kitchenette', x: 4.05, z: -2.15, rotY: -PI / 2, zone: 'coffee' },
     ],
     zones: {
       door: { x: -3.4, z: -1.0 },
-      coffee: { x: 3.6, z: -1.6 },
+      coffee: { x: 3.25, z: -2.3 },
       whiteboard: { x: -1.9, z: -1.9 },
       oversight: [{ x: -3.2, z: -2.1 }],
       wander: [{ x: 2.8, z: -1.0 }, { x: 2.8, z: 2.6 }, { x: -2.2, z: 2.6 }],
@@ -106,6 +107,8 @@ function stage1() {
       { model: 'plant_small', x: -2.9, z: 5.3, rotY: 0 },
       { model: 'plant_tall', x: 7.0, z: 0.3, rotY: 1.2 },
       { model: 'plant_small', x: -3.9, z: -2.6, rotY: 0 },
+      { island: true, x: 1.0, z: 4.6, len: 2.4 },
+      { rug: 'rug_teal', x: 1.0, z: 4.6, w: 3.6, d: 1.9 },
     ],
     zones: {
       door: { x: -6.6, z: 5.0 },
@@ -114,7 +117,7 @@ function stage1() {
       oversight: [{ x: -3.1, z: -4.4 }, { x: -2.4, z: -4.4 }],
       meeting: [{ x: -6.3, z: -4.9 }, { x: -5.3, z: -4.9 }, { x: -6.3, z: -4.0 }, { x: -5.3, z: -4.0 }],
       lounge: [{ x: -5.1, z: 4.45 }, { x: -4.1, z: 4.45 }],
-      wander: [{ x: 5.0, z: -3.8 }, { x: 0.0, z: 4.8 }, { x: -1.0, z: 3.4 }, { x: 3.0, z: 3.6 }],
+      wander: [{ x: 5.0, z: -3.8 }, { x: -1.0, z: 5.2 }, { x: -1.0, z: 3.4 }, { x: 3.0, z: 3.4 }],
     },
     lights: [{ x: -1.2, z: -0.3 }, { x: 2.6, z: -0.3 }, { x: 2.6, z: 2.6 }, { x: -5.8, z: -4.5 }, { x: -4.6, z: 3.8 }, { x: 5.4, z: 4.4 }],
   };
@@ -160,6 +163,8 @@ function stage2() {
       { model: 'plant_tall', x: 9.9, z: -7.4, rotY: 1.0 },
       { model: 'plant_small', x: -8.7, z: 7.3, rotY: 0 },
       { trophyShelf: true, x: -9.95, z: 0.55, rotY: PI / 2 },
+      { island: true, x: -0.9, z: 5.2, len: 2.8 },
+      { rug: 'rug_mustard', x: -0.9, z: 5.2, w: 4.2, d: 2.2 },
     ],
     zones: {
       door: { x: -9.6, z: 6.9 },
@@ -168,7 +173,7 @@ function stage2() {
       oversight: [{ x: -2.3, z: -6.1 }, { x: -1.5, z: -6.1 }, { x: -0.7, z: -6.1 }, { x: -4.9, z: -6.5 }],
       meeting: [{ x: -9.2, z: -6.6 }, { x: -8.0, z: -6.6 }, { x: -9.2, z: -5.6 }, { x: -8.0, z: -5.6 }],
       lounge: [{ x: -7.8, z: 2.4 }, { x: -7.8, z: 3.4 }, { x: -6.9, z: 4.9 }, { x: -5.9, z: 4.9 }],
-      wander: [{ x: 8.0, z: -5.5 }, { x: 1.0, z: 2.6 }, { x: -2.0, z: 5.5 }, { x: 6.5, z: 2.0 }],
+      wander: [{ x: 8.0, z: -5.5 }, { x: 1.0, z: 2.6 }, { x: -2.0, z: 6.9 }, { x: 6.5, z: 2.0 }],
     },
     lights: [{ x: -2.8, z: -2.2 }, { x: 0.8, z: -2.2 }, { x: 4.5, z: -2.2 }, { x: -7.2, z: 3.6 }, { x: 7.4, z: 5.5 }, { x: -8.4, z: -6.1 }],
   };

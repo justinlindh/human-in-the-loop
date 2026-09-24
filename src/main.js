@@ -119,6 +119,8 @@ async function boot() {
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     focusStaff: (id) => renderer?.focusStaff(id),
+    // Build mode and other renderer hooks (setBuildMode, pickTile) for the UI; null without a renderer.
+    renderer,
   };
   const ui = uiMod?.createUI({ root: document.getElementById('ui'), getState: () => sim.state, dispatch, controls }) ?? null;
 
@@ -161,8 +163,7 @@ async function boot() {
     const running = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
     if (pacer.step(dt, { speed, running })) {
       route(pacer.schedule(sim.tick()), sim.state);
-      const quiet = pacer.takeQuiet();
-      if (quiet.length) { ui?.handleEvents(quiet, sim.state); audio?.onEvents(quiet); }
+      pacer.takeDropped();
       if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
     }
     if (!menuPause) route(pacer.due(), sim.state);

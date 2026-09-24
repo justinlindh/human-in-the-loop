@@ -32,6 +32,14 @@ function characterColor(hex, mute = 0.15) {
   return c.lerp(gray, mute);
 }
 
+// A shirt close to the role color would swallow the role garment; push it toward pale cream.
+function shirtColor(hex, roleHex) {
+  const c = characterColor(hex);
+  const r = new THREE.Color(roleHex);
+  const d = Math.hypot(c.r - r.r, c.g - r.g, c.b - r.b);
+  return d < 0.35 ? c.lerp(new THREE.Color(PALETTE.paper), 0.6) : c;
+}
+
 const roleMats = new Map();
 function roleMaterial(role, hex) {
   const key = role ?? hex;
@@ -76,7 +84,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const own = {
     skin: new THREE.MeshStandardMaterial({ color: new THREE.Color(SKINS[appearance.skin ?? 1] ?? SKINS[1]), roughness: 0.75 }),
     hair: new THREE.MeshStandardMaterial({ color: characterColor(appearance.hairColor ?? '#4a3222', 0.05), roughness: 0.6 }),
-    shirt: new THREE.MeshStandardMaterial({ color: characterColor(appearance.shirt ?? '#4f8cff'), roughness: 0.85 }),
+    shirt: new THREE.MeshStandardMaterial({ color: shirtColor(appearance.shirt ?? '#4f8cff', roleColor), roughness: 0.85 }),
     pants: new THREE.MeshStandardMaterial({ color: characterColor(appearance.pants ?? '#2e3440', 0.1), roughness: 0.85 }),
   };
   const base = Object.fromEntries(Object.entries(own).map(([k, m]) => [k, m.color.clone()]));

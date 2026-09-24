@@ -19,7 +19,7 @@ import icon_props
 RENDER = 256
 OUT = 96
 OUTLINE = 9            # px at render size
-PAD = 0.1              # share of the frame left around the object
+PAD = 0.05              # share of the frame left around the object
 
 ITEMS = ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'whiteboard_wall', 'library',
          'monitoring_wall', 'server_rack', 'trophy_case']

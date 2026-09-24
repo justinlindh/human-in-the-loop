@@ -5,7 +5,7 @@ assembles and animates them with plain transforms:
   mouth_frown, blush, hair_0..7, acc_glasses, acc_headphones, acc_beanie, acc_cap
   torso_0..2 (waist pivot), lanyard, badge
   role_engineer (hood), role_designer (scarf), role_marketer (blazer), role_support (headset),
-  role_security (vest), role_sales (tie)
+  role_security (vest), role_sales (jacket and gold tie)
   arm (shoulder pivot), hand (wrist pivot), leg (hip pivot), shoe (ankle pivot), mug
 
 Height is about 1.0 m and the head is about 45% of it. Front faces -Y.
@@ -162,7 +162,7 @@ for ring, (elev, n) in enumerate([(80, 1), (48, 5), (18, 7)]):
         x, y, z = cr * math.cos(el) * math.sin(az) * 1.05, -cr * math.cos(el) * math.cos(az), cr * math.sin(el)
         if y < -0.1 and z < 0.12:
             continue
-        c = uvsphere(f'h6c{k}', 0.085 if ring else 0.1, (x, y, z), None, seg=9, rings=6, scale=(1, 1, 0.9))
+        c = uvsphere(f'h6c{k}', 0.085 if ring else 0.1, (x, y, z), None, seg=8, rings=5, scale=(1, 1, 0.9))
         curls.append(use(c, 'hair'))
         k += 1
 join(at_head(curls), 'hair_6')                                     # curly
@@ -191,7 +191,7 @@ b[0].data.materials.clear(); b[0].data.materials.append(mat('fabric_terracotta')
 CR, Z0, Z1 = BN_R + 0.009, BN_Z - 0.008, BN_Z + 0.065
 arc = [(math.sqrt(max(0.0, CR ** 2 - (z / BN_S[2]) ** 2)), z) for z in [Z0 + (Z1 - Z0) * i / 5 for i in range(6)]]
 inner = [(r - 0.014, z) for r, z in reversed(arc)]
-cuff = lathe('bnrim', arc + inner + [arc[0]], (0, 0, 0), 'fabric_mustard', steps=24)
+cuff = lathe('bnrim', arc + inner + [arc[0]], (0, 0, 0), 'fabric_mustard', steps=18)
 cuff.scale = (BN_S[0], BN_S[1], 1.0)
 for sel in bpy.context.selected_objects:
     sel.select_set(False)
@@ -233,42 +233,56 @@ box('shoe', (0.1, 0.15, 0.06), (0, -0.025, -0.03), 'plastic_charcoal', bevel=0.0
 lathe('mug', [(0.001, 0), (0.035, 0), (0.04, 0.01), (0.042, 0.08), (0.037, 0.08), (0.034, 0.015), (0.001, 0.015)], (0, 0, 0), 'mug', steps=12)
 
 # Role accents (waist pivot like the torso; the game scales x to the build width)
-hood = lump('hood', 0.13, (0, 0.12, TORSO_H + 0.01), (1.2, 0.6, 0.5), key='role')
-strings = [box(f'hs{sx}', (0.012, 0.012, 0.09), (sx * 0.04, -0.115, TORSO_H - 0.07), None, bevel=0) for sx in (-1, 1)]
+# Role garments cover a lot of the torso in the role color so teams read at gameplay zoom.
+# Engineer: a hoodie hood bunched at the neck, drawstrings, and a front pouch pocket.
+hood = lump('hood', 0.16, (0, 0.11, TORSO_H + 0.0), (1.25, 0.65, 0.55), key='role', subdiv=1)
+strings = [box(f'hs{sx}', (0.014, 0.014, 0.1), (sx * 0.045, -0.118, TORSO_H - 0.075), None, bevel=0) for sx in (-1, 1)]
 for o in strings:
     use(o, 'role')
-collar = torus('hood_collar', 0.1, 0.022, (0, -0.005, TORSO_H - 0.005), None, major_seg=16, minor_seg=5)
+collar = torus('hood_collar', 0.105, 0.028, (0, -0.005, TORSO_H - 0.005), None, major_seg=14, minor_seg=5)
 use(collar, 'role')
-join([hood, collar] + strings, 'role_engineer')
-sc = [torus('scarf_ring', 0.09, 0.03, (0, -0.01, TORSO_H - 0.01), None, major_seg=14, minor_seg=5),
-      box('scarf_tail', (0.06, 0.03, 0.14), (0.05, -0.12, TORSO_H - 0.1), None, bevel=0.012, rot=(math.radians(8), 0, math.radians(-10)))]
+pouch = box('pouch', (0.2, 0.02, 0.09), (0, -0.112, 0.08), None, bevel=0.012, segments=1)
+use(pouch, 'role')
+join([hood, collar, pouch] + strings, 'role_engineer')
+# Designer: a chunky scarf with two long tails.
+sc = [torus('scarf_ring', 0.095, 0.042, (0, -0.01, TORSO_H - 0.015), None, major_seg=14, minor_seg=5),
+      box('scarf_tail', (0.07, 0.035, 0.2), (0.05, -0.125, TORSO_H - 0.13), None, bevel=0.014, segments=1, rot=(math.radians(8), 0, math.radians(-8))),
+      box('scarf_tail2', (0.065, 0.035, 0.15), (-0.02, -0.13, TORSO_H - 0.1), None, bevel=0.014, segments=1, rot=(math.radians(8), 0, math.radians(10)))]
 for o in sc:
     use(o, 'role')
 join(sc, 'role_designer')
-# Marketer blazer: a shell a little bigger than the regular torso, open in a V at the front so
-# the shirt shows, with folded lapels along the opening.
-JW, JD, JH = 0.3 * 1.07, 0.21 * 1.12, TORSO_H * 0.97
-jacket = box('jacket', (JW, JD, JH), (0, 0, JH / 2 - 0.004), None, bevel=0)
-soften(jacket, min(JW, JD) * 0.45, 3, hard=False)
-apply_mods(jacket)
-bm = bmesh.new(); bm.from_mesh(jacket.data)
-def in_v(c):
-    if c.y > -JD * 0.25:
-        return False
-    t = (c.z - JH * 0.42) / (JH * 0.58)
-    return t > 0 and abs(c.x) < 0.01 + 0.075 * t
-bmesh.ops.delete(bm, geom=[f for f in bm.faces if in_v(f.calc_center_median())], context='FACES')
-bm.to_mesh(jacket.data); bm.free()
-use(jacket, 'role')
-jacket.data.shade_smooth()
-lapels = []
-for sx in (-1, 1):
-    lp = box(f'lapel{sx}', (0.035, 0.012, JH * 0.5), (sx * 0.05, -JD / 2 - 0.004, JH * 0.7), None, bevel=0.005, segments=1,
-             rot=(math.radians(-8), 0, sx * math.radians(-18)))
-    use(lp, 'role')
-    lapels.append(lp)
-pocket = box('pocket', (0.05, 0.01, 0.02), (0.09, -JD / 2 - 0.002, JH * 0.62), 'paper', bevel=0.003, segments=1)
-join([jacket, *lapels, pocket], 'role_marketer')
+
+
+def jacket(name, extras):
+    """An open jacket shell a bit bigger than the torso, with a V opening that shows the shirt."""
+    JW, JD, JH = 0.3 * 1.07, 0.21 * 1.12, TORSO_H * 0.97
+    j = box(f'{name}_shell', (JW, JD, JH), (0, 0, JH / 2 - 0.004), None, bevel=0)
+    soften(j, min(JW, JD) * 0.45, 2, hard=False)
+    apply_mods(j)
+    bm = bmesh.new(); bm.from_mesh(j.data)
+    def in_v(c):
+        if c.y > -JD * 0.25:
+            return False
+        t = (c.z - JH * 0.42) / (JH * 0.58)
+        return t > 0 and abs(c.x) < 0.01 + 0.075 * t
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if in_v(f.calc_center_median())], context='FACES')
+    bm.to_mesh(j.data); bm.free()
+    use(j, 'role')
+    j.data.shade_smooth()
+    parts = [j]
+    for sx in (-1, 1):
+        lp = box(f'{name}_lapel{sx}', (0.035, 0.012, JH * 0.5), (sx * 0.05, -JD / 2 - 0.004, JH * 0.7), None, bevel=0.005, segments=1,
+                 rot=(math.radians(-8), 0, sx * math.radians(-18)))
+        use(lp, 'role')
+        parts.append(lp)
+    join(parts + extras(JD, JH), name)
+
+
+# Marketer: jacket with a pocket square. Sales: jacket with a gold tie in the V.
+jacket('role_marketer', lambda JD, JH: [box('pocket', (0.05, 0.01, 0.02), (0.09, -JD / 2 - 0.002, JH * 0.62), 'paper', bevel=0.003, segments=1)])
+jacket('role_sales', lambda JD, JH: [
+    box('tie_knot', (0.035, 0.02, 0.03), (0, -JD / 2 + 0.02, JH - 0.035), 'gold', bevel=0.008, segments=1),
+    box('tie_blade', (0.05, 0.015, 0.15), (0, -JD / 2 + 0.018, JH - 0.13), 'gold', bevel=0.01, segments=1)])
 hs = [torus('hs_band', HEAD_R + 0.03, 0.012, (0, 0, HEAD_C), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=16, minor_seg=4),
       cyl('hs_cup', 0.055, 0.045, (-(HEAD_R + 0.025), 0, HEAD_C - 0.01), None, verts=12, bevel=0.01, rot=(0, math.pi / 2, 0)),
       cyl('hs_cup2', 0.055, 0.045, (HEAD_R + 0.025, 0, HEAD_C - 0.01), None, verts=12, bevel=0.01, rot=(0, math.pi / 2, 0)),
@@ -284,14 +298,13 @@ vs.scale = (0.3, 0.215, TORSO_H * 0.78)
 bpy.ops.object.transform_apply(scale=True)
 soften(vs, 0.05, 3)
 vs.data.materials.append(mat('plastic_charcoal'))
-stripe = box('vest_stripe', (0.31, 0.225, 0.035), (0, 0, TORSO_H * 0.5), None, bevel=0.01)
+stripe = box('vest_stripe', (0.31, 0.225, 0.06), (0, 0, TORSO_H * 0.5), None, bevel=0.012)
 use(stripe, 'role')
-join([vs, stripe], 'role_security')
-tie = [box('tie_knot', (0.035, 0.02, 0.03), (0, -0.108, TORSO_H - 0.03), None, bevel=0.008),
-       box('tie_blade', (0.05, 0.015, 0.16), (0, -0.112, TORSO_H - 0.13), None, bevel=0.01)]
-for o in tie:
-    use(o, 'role')
-join(tie, 'role_sales')
+stripe2 = box('vest_stripe2', (0.31, 0.225, 0.03), (0, 0, TORSO_H * 0.3), None, bevel=0.008, segments=1)
+use(stripe2, 'role')
+shield = cyl('vest_badge', 0.035, 0.012, (0.07, -0.115, TORSO_H * 0.68), 'gold', verts=5, bevel=0.004, rot=(math.pi / 2, 0, 0))
+join([vs, stripe, stripe2, shield], 'role_security')
+
 
 REQUIRED = ['head', 'eyes', 'eye_shine', 'mouth_smile', 'mouth_flat', 'mouth_frown', 'blush',
             *[f'hair_{i}' for i in range(8)], 'acc_glasses', 'acc_headphones', 'acc_beanie', 'acc_cap',

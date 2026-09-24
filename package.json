@@ -12,6 +12,7 @@
     "balance": "node scripts/balance.js",
     "snap": "node scripts/snap.js",
     "pace": "node scripts/pace.js",
+    "lifecycle": "node scripts/lifecycle.js",
     "models": "bash scripts/build-models.sh"
   },
   "type": "module",
