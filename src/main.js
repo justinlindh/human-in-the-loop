@@ -1,5 +1,6 @@
 import { createMockSim } from './dev/mockSim.js';
 import { createPacer, MAX_STEP } from './pacing.js';
+import { autoQuality, glRendererName } from './quality.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
 const renderMods = import.meta.glob('./render/index.js');
@@ -48,9 +49,11 @@ async function boot() {
 
   let speed = Number(params.get('speed') ?? (isSnap ? 0 : 1));
   // An explicit ?quality= wins for the whole session (tools and tests rely on it); otherwise the
-  // saved setting, which ui applies through controls.setQuality at startup.
+  // saved setting, which ui applies through controls.setQuality at startup. 'auto' (and the boot
+  // value) is Low on software GL, High otherwise.
   const urlQuality = params.get('quality');
-  const quality = urlQuality ?? 'high';
+  const detectedQuality = autoQuality(glRendererName());
+  const quality = urlQuality ?? detectedQuality;
   let activeQuality = quality;
   const forcedTime = params.get('time') ?? (sim.state.flags?.mockTime ?? null);
 
@@ -148,11 +151,12 @@ async function boot() {
     save,
     setQuality: (q) => {
       if (urlQuality) return;
-      activeQuality = q;
-      renderer?.setQuality(q);
-      audio?.setQuality?.(q);
+      activeQuality = q === 'auto' ? detectedQuality : q;
+      renderer?.setQuality(activeQuality);
+      audio?.setQuality?.(activeQuality);
     },
     getQuality: () => activeQuality,
+    autoQuality: detectedQuality,
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     // Per-bus volume (music, ambience, sfx, ui, voice) and mute, from the Settings panel.
