@@ -90,7 +90,7 @@ Product = {
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
-{ type: 'resign', staffId, name }
+{ type: 'resign', staffId, name, fired }    // fired: true when the player fired them
 { type: 'hire', staffId }
 { type: 'decision' }
 { type: 'officeUpgrade', stage }
