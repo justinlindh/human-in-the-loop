@@ -10,6 +10,8 @@ export function createChat(root, { onToggle } = {}) {
   const body = h('div.chat-body');
   const head = h('div.chat-head', { title: 'Office chat (C)', onclick: () => toggle() },
     h('span.hash', { text: '#' }), h('span', { text: 'general' }), count, caret);
+  const quiet = h('div.chat-quiet', { text: 'Quiet in here. Chatter shows up once the week gets going.' });
+  body.append(quiet);
   const el = h('div.chat', null, head, body);
   root.append(el);
   count.style.display = 'none';
@@ -23,6 +25,7 @@ export function createChat(root, { onToggle } = {}) {
   }
 
   function add(from, text, week) {
+    if (quiet.isConnected) quiet.remove();
     const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
     const bot = String(from).startsWith('@');
     const d = Number.isFinite(week) ? dateOf(week) : null;

@@ -58,6 +58,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     close: () => menu.close(),
     controls,
     sfx,
+    meaningLog: new Map(),
   };
 
   const hud = createHud({ root: layer, controls, ui });
@@ -67,7 +68,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom);
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => sfx(id ? 'open' : 'close'),
+    // Toasts ride inside the open panel so they never straddle its edge; otherwise they sit top-right.
+    onChange: (id) => { sfx(id ? 'open' : 'close'); (id ? menu.panelEl : layer).append(toasts.el); },
   });
   bottom.append(h('div'));
 
@@ -75,7 +77,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   layer.append(toasts.el);
 
   function onKey(e) {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
       if (e.key === 'Escape') t.blur();
@@ -93,15 +95,35 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   addEventListener('keydown', onKey);
 
+  // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
+  let loggedWeek = -1;
+  function logMeaning(state) {
+    if (state.week === loggedWeek) return;
+    loggedWeek = state.week;
+    const log = ctx.meaningLog;
+    for (const p of state.staff) {
+      let arr = log.get(p.id);
+      if (!arr) log.set(p.id, (arr = []));
+      arr.push(p.meaning);
+      if (arr.length > 52) arr.shift();
+    }
+    if (log.size > state.staff.length + 20) {
+      const ids = new Set(state.staff.map((p) => p.id));
+      for (const id of log.keys()) if (!ids.has(id)) log.delete(id);
+    }
+  }
+
   let lastPanelAt = 0;
   function update(state) {
     hud.update(state);
+    logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
       lastPanelAt = now;
       menu.update(state);
       menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout').length);
       menu.setBadge('ops', state.outage ? 1 : 0);
+      menu.setAlarm('ops', !!state.outage);
     }
   }
 
