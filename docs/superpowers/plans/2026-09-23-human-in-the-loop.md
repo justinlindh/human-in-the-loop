@@ -946,3 +946,20 @@ Spec: the spec's **Icons** section.
 ### U6 scope change: placeholder sound only
 
 U6 ships placeholder sound effects (click, panel open and close, launch, alarm, hire, resign, notification blip) with volume and mute. No music and no typing ambience. Real audio is deferred to a later phase with its own design (see the spec's Audio section).
+
+## Phase 3 addition: Standups
+
+Spec: the spec's **Standups** section. Contract: the `standup` event and the `standup` chat channel.
+
+### Task S14: Standups (sim)
+- Policies `daily_standups` and `async_standups` in `src/data/policies.js` (mutually exclusive: turning one on turns the other off; unlock at week 0).
+- A weekly system at the start of the in-game week (order 12, after calendar-start): when a standup policy is on, pick 3 to 5 present staff (not away), generate one line each from state (their project and its progress, mentoring, hard problem, oversight, an active outage, a pending migration), with mood overriding (coasting: flat lines; burnout: an empty string, meaning silence). Emit `{ type: 'standup', mode, lines }`; in async mode also emit each non-empty line as a `standup` chat event. Lines live in `src/data/standup.js` (templates, 40+, in the game's voice).
+- Effects (balance.js): daily costs output (a modifier of about -3%) and gives institutional knowledge a small boost plus meaning +0.3/week for attendees; async has no output cost, half the knowledge boost, and no meaning lift. Keep the balance thresholds.
+- Tests: lines reference real state, silent burnout, mutual exclusivity, async chat routing, no standup without a policy.
+
+### Task A9: Standup staging (art)
+- On a `daily` standup event: attendees walk to the whiteboard (or the meeting room on the Office Floor and HQ), form a loose circle, then each line plays as a speech bubble in turn (empty lines: a silent beat with a sweat or zzz emote), then everyone returns to their seats. A `renderer.setSpeed(k)` hook (main.js calls it) lets the renderer shorten it at 2x and skip the bubbles at 4x.
+- Verify with snaps mid-circle on the garage and floor stages.
+
+### Task U9: Standup UI (ui)
+- A `#standup` Slackk channel. Policies appear automatically from POLICIES; show that the two are mutually exclusive in the Policies tab.

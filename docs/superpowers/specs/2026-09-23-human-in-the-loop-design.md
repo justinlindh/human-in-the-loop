@@ -274,3 +274,11 @@ Random events regularly put a decision in front of the player (roughly one every
 ## Icons
 
 No stock emoji anywhere in the shipped game. Every icon (menu buttons, categories, toasts, meters, Slackk reactions, emotes above characters, event art) comes from one custom set in the diorama's art direction: the same palette, chunky rounded forms, and thick outlines as the UI. The art director chooses the technique (for example, small renders of the game's own 3D models for object icons, and hand-drawn SVG for small glyphs) as long as the set reads as one family at 16 to 48 px.
+
+## Standups
+
+A weekly ritual that shows morale in person.
+
+- **Daily Standups policy:** once per in-game week the team walks to the whiteboard (or the meeting room once there is one), stands in a loose circle, and 3 to 5 speech bubbles play out in turn; then everyone returns to work. Lines come from real state: project progress, mentoring, blockers, outages. Coasting people give flat answers ("Same as yesterday."), and burnt-out people say nothing. Cost: a small output loss. Benefit: better knowledge sharing (institutional knowledge) and a small meaning lift.
+- **Async Standups policy:** the same updates are posted to a Slackk `#standup` channel instead. No output cost, a weaker benefit, and people who are checked out stop posting, so a quiet channel is a warning sign.
+- The two policies are mutually exclusive. At 2x speed and above, the in-person gathering is shortened and the bubbles are skipped, so it never drags.
