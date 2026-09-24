@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Refuses to push to a branch whose pull request is already merged or closed: those commits would
 # never reach feat/one-shot. Put them on a new branch and open a new PR instead.
-# Installed by `npm run hooks` (core.hooksPath). Skip once with `git push --no-verify`.
+# Installed by `npm run hooks` (core.hooksPath scripts/hooks: each worktree runs its own copy).
+# Skip once with `git push --no-verify`.
 set -u
 command -v gh >/dev/null 2>&1 || { echo "pre-push: gh not found; merged-PR check skipped" >&2; exit 0; }
 status=0

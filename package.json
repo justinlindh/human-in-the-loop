@@ -19,7 +19,7 @@
     "soak": "node scripts/soak.js",
     "capture": "node scripts/capture.js",
     "models": "bash scripts/build-models.sh",
-    "hooks": "git config core.hooksPath \"$(git rev-parse --path-format=absolute --git-common-dir)/../scripts/hooks\""
+    "hooks": "git config core.hooksPath scripts/hooks"
   },
   "type": "module",
   "dependencies": {
