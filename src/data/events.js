@@ -26,7 +26,7 @@ export const EFFECT_KEYS = [
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [
   'subjectCompliant', 'trustedVendor', 'blameless', 'ik40', 'bestScore7', 'sabbaticalPolicy', 'stage1', 'mentorAvailable',
-  'affordConsultants', 'noCraftRunning', 'canBuyEspresso', 'canUpgradeEspresso',
+  'affordConsultants', 'noCraftRunning', 'canBuyEspresso', 'canUpgradeEspresso', 'dealTakeable', 'expansionReady',
 ];
 
 const ONCE = 100000;
@@ -807,7 +807,7 @@ const list = [
     title: 'The floor next door is empty',
     text: 'The company next door moved out. Someone has already measured the wall between you twice. "It is only drywall," they say. They are not a builder.',
     choices: [
-      { label: 'Knock through', hint: 'Buy the first HQ expansion now', effects: { expandNow: true }, outcome: 'A contractor arrives with a hammer and a lot of confidence. By Friday there is a lot more office.' },
+      { label: 'Knock through', hint: 'Buy the first HQ expansion now', requires: 'expansionReady', effects: { expandNow: true }, outcome: 'A contractor arrives with a hammer and a lot of confidence. By Friday there is a lot more office.' },
       { label: 'Not yet', hint: 'The expansion stays in the office menu', effects: {}, outcome: 'You put a plant against the wall. It feels symbolic.' },
     ],
   },
@@ -817,7 +817,7 @@ const list = [
     title: 'Small companies are for sale',
     text: 'Consolidation has started. Small companies want a soft landing, and {deal} is the best of the bunch. Their founders are very tired and very reasonable.',
     choices: [
-      { label: 'Make an offer on {deal}', hint: 'Buy it now, if you have the cash and a desk for each of their people', effects: { acquireBest: true }, outcome: 'The term sheet is two pages. One of them is a thank-you note.' },
+      { label: 'Make an offer on {deal}', hint: 'Buy it now: needs the cash and a free desk for each of their people', requires: 'dealTakeable', effects: { acquireBest: true }, outcome: 'The term sheet is two pages. One of them is a thank-you note.' },
       { label: 'Just looking', hint: 'The listings stay open in the market panel', effects: {}, outcome: 'You bookmark all of them. Then you bookmark the bookmarks.' },
     ],
   },

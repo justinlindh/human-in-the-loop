@@ -9,7 +9,7 @@ import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, addDesks, passOfficeGates } from './helpers.js';
+import { game, addStaff, addProduct, addDesks, passOfficeGates, expectFail } from './helpers.js';
 
 const run = (s) => { const c = makeCtx(s); beatsSystem(c); return c.events; };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
@@ -111,6 +111,28 @@ describe('the floor next door and the first deals', () => {
     expect(s.pendingDecision.choices[0].label).toBe('Make an offer on Tidybox');
     dispatch(s, { type: 'resolveDecision', choice: 0 });
     expect(s.products.some((p) => p.name === 'Tidybox')).toBe(true);
+  });
+
+  it('an offer you cannot make is shown unavailable with the reason, never a fake success', () => {
+    const s = game(7);
+    s.cash = 1e8;
+    s.era = { id: 'consolidation', since: s.week };
+    s.office.placed = s.office.placed.filter((p) => p.itemId !== 'desk');
+    s.market.forSale = [{ id: 'fs1', name: 'Brisket', categoryId: 'crm', arr: 120000, price: 900000, staff: 2, expiresWeek: s.week + 10 }];
+    s.flags.beats = { agent_bill: 0, rival_megaround: 0, floor_next_door: 0 };
+    run(s);
+    const offer = s.pendingDecision.choices[0];
+    expect(offer).toMatchObject({ available: false, reason: 'No desks for their team' });
+    expectFail(expect, dispatch, s, { type: 'resolveDecision', choice: 0 }, 'No desks for their team');
+    s.cash = 10;
+    delete s.flags.lastDecisionWeek;
+    s.pendingDecision = null;
+    raiseDecision(makeCtx(s), 'deals_open', null);
+    expect(s.pendingDecision.choices[0].reason).toBe('Not enough cash');
+    s.pendingDecision = null;
+    delete s.flags.lastDecisionWeek;
+    raiseDecision(makeCtx(s), 'floor_next_door', null);
+    expect(s.pendingDecision.choices[0]).toMatchObject({ available: false });
   });
 
   it('a merger with a stronger rival costs more', () => {

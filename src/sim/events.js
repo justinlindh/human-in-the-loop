@@ -6,6 +6,7 @@ import { mentorOf } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { agentSpend, rivalMergePrice } from './economy.js';
+import { featuredDeal } from './acquire.js';
 import { automationExposure } from './automation.js';
 import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
@@ -36,7 +37,7 @@ export function decisionVars(state, rng, subjectId) {
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
   return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
     alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague',
-    deal: [...(state.market.forSale ?? [])].sort((a, b) => b.arr / b.price - a.arr / a.price)[0]?.name ?? 'A small company' };
+    deal: featuredDeal(state)?.name ?? 'A small company' };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).

@@ -43,6 +43,28 @@ registerSystem('for-sale', forSaleSystem, 62);
 
 registerAction('acquire', (ctx, { targetId }) => acquireCompany(ctx, targetId));
 
+const liveListings = (state) => (state.market.forSale ?? []).filter((c) => c.expiresWeek > state.week);
+const byValue = (a, b) => b.arr / b.price - a.arr / a.price;
+
+// The best-value listing the company can take right now (cash for the price, a free desk for each
+// person), or null.
+export function bestDeal(state) {
+  const free = deskCapacity(state) - state.staff.length;
+  return liveListings(state).filter((c) => state.cash >= c.price && free >= c.staff).sort(byValue)[0] ?? null;
+}
+
+// The listing to talk about: the best one the company can take, else the best one there is.
+export const featuredDeal = (state) => bestDeal(state) ?? [...liveListings(state)].sort(byValue)[0] ?? null;
+
+// Why no listing can be taken right now, or null when one can.
+export function dealBlocker(state) {
+  if (bestDeal(state)) return null;
+  const live = liveListings(state);
+  if (!live.length) return 'The listings have closed';
+  if (!live.some((c) => state.cash >= c.price)) return 'Not enough cash';
+  return 'No desks for their team';
+}
+
 // Buys a listed company: its product, its customers, and its team (one free desk each).
 export function acquireCompany(ctx, targetId) {
   const { state, rng } = ctx;
