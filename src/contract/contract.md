@@ -191,3 +191,17 @@ Speech bubbles in the office and Slackk messages are separate streams.
 - The renderer shows speech bubbles for `say` events only. A `chat` event is Slackk only; the renderer may show a small typing emote on the author's character, never a bubble.
 - `say` events are never added to `chatLog` and never appear in Slackk.
 - Spoken exchanges are between people in the office (not away); `toId` lets the renderer turn speakers toward each other.
+
+## Content ladder state (Phase 6)
+
+```js
+lockdown: null | { since /* week */, until /* week */, stayerId /* staff id of the one person who never left, or null */ },
+workPolicy: null | 'office' | 'hybrid' | 'remote',     // chosen when the lockdown ends; null before
+pets: [{ id, species /* 'dog'|'cat' */, name, ownerId /* staff id, or null once the owner leaves */, arrivedWeek }],
+rival: null | { name, founderName, logoColor, categoryId, strength /* 0..100 */, status /* 'rising'|'stalled'|'acquired'|'dead'|'merged' */ },
+// Staff gains:
+remote /* bool: working from home this week; the renderer hides them like 'away', ui marks them remote */,
+```
+- During a lockdown every staff member except `stayerId` has `remote: true`. The office stays placed but empty; ui may show a video-call grid of the remote staff using portraits.
+- Under `workPolicy: 'hybrid'` the sim sets `remote` per person per week; under `'remote'` most staff are remote most weeks; under `'office'` nobody is.
+- Pets are rendered in the office whenever their owner is present (or always, once `ownerId` is null and the pet has stayed as the office pet).
