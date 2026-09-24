@@ -52,7 +52,6 @@ export function marketingSystem(ctx) {
     else project.bankedHype = Math.min(100, project.bankedHype + gain);
     state.brand += ch.brand * (1 - B.autoMarketingBrandPenalty * autoLevel) * brandGain;
     c.weeksLeft--;
-    if (c.weeksLeft <= 0) ctx.emit({ type: 'toast', text: `${ch.name} wrapped up.`, tone: 'info' });
   }
   state.campaigns = state.campaigns.filter((c) => c.weeksLeft > 0);
 

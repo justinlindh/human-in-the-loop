@@ -650,8 +650,9 @@ const list = [
 
   // Misc
   {
-    id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 40, random: true, subject: null,
+    id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null,
     when: () => true,
+    chat: 'Coffee machine status: deceased. Please grieve responsibly.',
     title: 'The coffee machine is dead',
     text: 'The coffee machine made a noise like a sad robot and stopped. Productivity is in freefall.',
     choices: [
@@ -662,6 +663,7 @@ const list = [
   {
     id: 'office_dog', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.staff.length >= 3,
+    chat: 'A very good dog has joined the office. All meetings are now dog meetings.',
     title: 'Office dog',
     text: 'Someone brought their dog to work. The dog has attended every meeting and approved every PR.',
     auto: { teamMeaning: 4 },

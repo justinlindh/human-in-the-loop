@@ -1,6 +1,9 @@
 // Office chat lines for #general. Keep each under 60 characters.
 export const CHATTER = {
   happy: [
+    'Paired with {coworker} and we fixed it in an hour.',
+    'Someone wrote docs. Real docs. With diagrams.',
+    'The on-call week was boring. Best week ever.',
     '{product} got a five-star review. Framing it.',
     '{coworker} fixed my bug before I saw it. Hero.',
     "Our {category} app is nicer than {incumbent}'s. Fact.",
@@ -71,7 +74,7 @@ export const CHATTER = {
     'Who touched {product}? Nobody? Great.',
     '{model} did something. {model} will not say what.',
     'Who touched prod? Nobody? Great.',
-    'Has anyone seen the runbook? Does it exist?',
+    'Rolling back. Nobody breathe on anything.',
     'I am rolling back. Do not stop me.',
     'The dashboard is all red. Is red good?',
     'Coffee. Then fixing. Then more coffee.',
@@ -89,6 +92,11 @@ export const CHATTER = {
     'Waiting for the next project like a golden retriever.',
   ],
   overseer: [
+    'The agent wrote a poem instead of a migration. Nice.',
+    'Approved 30 agent PRs. Rejected 2. Framed 1.',
+    'The agent tried to sudo. We had a talk.',
+    'Caught {model} inventing a customer. Again.',
+    'Oversight tip: never trust a diff that says "minor".',
     '{model} tried to drop a table again. Denied.',
     'Watching {model} closely. It knows.',
     'Agent tried to email every customer. Stopped it.',

@@ -19,6 +19,7 @@ const REACTIONS = {
 };
 
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
+const liveProducts = (state) => state.products.filter((p) => !p.killed);
 export const teamMeaning = (state) => avg(present(state), (p) => p.meaning);
 
 // Reaction pills for a message: more of them, and more varied, when the team is doing well.
@@ -94,7 +95,7 @@ function happenings(ctx) {
   const { state } = ctx;
   const ev = ctx.events;
   const productOf = (e) => state.products.find((p) => p.id === e?.productId) ?? null;
-  const launch = ev.find((e) => e.type === 'launch');
+  const launch = ev.find((e) => e.type === 'launch' && productOf(e)?.version === 1);
   const incident = ev.find((e) => e.type === 'incident' && !e.caught);
   const caught = ev.find((e) => e.type === 'incident' && e.caught);
   const promotedId = ctx.happenings?.promoted?.[0];
@@ -108,7 +109,8 @@ function happenings(ctx) {
     award: ev.some((e) => e.type === 'award' && e.text.startsWith('Product of the Year')) ? {} : null,
     item: lastItem && state.flags.lastItemWeek >= state.week - 1 ? { item: ITEMS[lastItem.itemId]?.name } : null,
     priceHike: ev.some((e) => e.type === 'toast' && /raised prices/.test(e.text)) ? {} : null,
-    clone: ev.some((e) => e.type === 'chat' && e.from === '@hackernewsbot') ? {} : null,
+    clone: ev.some((e) => e.type === 'chat' && e.from === '@hackernewsbot')
+      ? { product: liveProducts(state).find((p) => p.category === state.flags.lastCloneCategory) ?? null } : null,
     copied: ev.some((e) => e.type === 'toast' && /Sounds familiar/.test(e.text)) ? {} : null,
   };
 }

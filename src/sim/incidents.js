@@ -21,6 +21,9 @@ const ROGUE_KINDS = {
   marketing: ['mass_email'], qa: ['prompt_injection_leak'], ops: ['prompt_injection_leak'],
 };
 const CYBER_KINDS = ['credential_stuffing', 'ransomware', 'supply_chain', 'data_exfiltration', 'phishing'];
+
+// Incident kinds that can take a product down; stolen data and phished money hurt cash and trust instead.
+export const OUTAGE_KINDS = new Set(['db_wipe', 'runaway_spend', 'refund_hallucination', 'pricing_rewrite', 'mass_email', 'prompt_injection_leak', 'ransomware', 'supply_chain']);
 const KIND_LABEL = {
   db_wipe: 'agent wiped a database', runaway_spend: 'agent runaway cloud spend', refund_hallucination: 'support bot promised refunds',
   pricing_rewrite: 'agent rewrote pricing', mass_email: 'agent emailed every customer', prompt_injection_leak: 'agent leaked config via prompt injection',
@@ -176,7 +179,7 @@ function incident(ctx, { kind, severity, caught, model }) {
     emitChat(ctx, { channel: 'incidents', person: who, text: filledLine(ctx, CHATTER.incident, who, product) });
   }
   if (severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
-  if (severity >= B.outageMinSeverity && !state.outage && product) startOutage(ctx, { productId, kind, severity });
+  if (severity >= B.outageMinSeverity && OUTAGE_KINDS.has(kind) && !state.outage && product) startOutage(ctx, { productId, kind, severity });
 }
 
 export function incidentsSystem(ctx) {

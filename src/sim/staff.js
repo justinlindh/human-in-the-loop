@@ -135,7 +135,7 @@ export const mentorOf = (state, junior) => state.staff.find((p) => p.assignment.
 
 export const defaultAssignment = (p) => ({ type: ROLES[p.role].defaultAssignment, targetId: null });
 
-export const roleName = (role) => ROLES[role].name;
+export const roleName = (role) => ROLES[role].title ?? ROLES[role].name;
 
 const ASSIGNMENT_TYPES = ['project', 'maintenance', 'oversight', 'mentor', 'hardProblem', 'support', 'sales', 'security', 'marketing', 'idle', 'sabbatical'];
 
