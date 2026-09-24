@@ -1111,6 +1111,12 @@
 .hitl .record .recstat b.num { font-size: 1.12em; font-weight: 700; }
 .hitl .record .recmore { margin-top: 0.3em; line-height: 1.35; }
 
+/* Locked office items stay hidden; one line says more are coming. An item opened from its unlock
+   card flashes once. */
+.hitl .laterline { margin-top: 0.5em; }
+.hitl .card.item.flash { animation: itemflash 0.6s ease-in-out 3; }
+@keyframes itemflash { 50% { box-shadow: 0 0 0 0.3em var(--yellow); } }
+@media (prefers-reduced-motion: reduce) { .hitl .card.item.flash { animation: none; box-shadow: 0 0 0 0.3em var(--yellow); } }
 /* First-project guide in the New Product form. */
 .hitl .pickguide { background: #fff8e6; margin-bottom: 0.7em; }
 .hitl .pickguide ul { margin: 0.4em 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 0.3em; font-size: 0.88em; line-height: 1.35; }

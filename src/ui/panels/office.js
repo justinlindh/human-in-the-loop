@@ -31,10 +31,26 @@ function pips(level) {
   return h('span.lvpips', { title: `Level ${level} of 3` }, ...[1, 2, 3].map((i) => h(`i${i <= level ? '.on' : ''}`)));
 }
 
-export function officePanel(ctx) {
+export function officePanel(ctx, arg) {
   if (!ctx.getState().office?.placed) return legacyOfficePanel(ctx);
-  return buildPalette(ctx);
+  return buildPalette(ctx, arg);
 }
+
+// Why an item cannot be bought or placed yet (a bigger office, a first award), or null.
+export function itemLock(s, it) {
+  const stageIx = stageOf(s);
+  if (stageIx < (it.minStage ?? 0)) return `Needs ${OFFICE_STAGES[it.minStage]?.name ?? 'a bigger office'}`;
+  if (it.requires === 'award' && (s.stats?.awards ?? 0) < 1) return 'Needs an award first';
+  return null;
+}
+
+// Item ids the player can place right now: in era, and not locked.
+export function availableItems(s) {
+  return Object.values(CATALOG).filter((it) => !beforeEra(s, it.era) && !itemLock(s, it)).map((it) => it.id);
+}
+
+// "3 more items unlock later", or null when nothing is hidden.
+const laterLine = (n) => (n ? h('div.small.muted.laterline', null, icon('lock', { size: 12 }), ` ${n} more ${n === 1 ? 'item unlocks' : 'items unlock'} as the company grows.`) : null);
 
 // The fixed-slot shop, for a state without office.placed.
 function legacyOfficePanel(ctx) {
@@ -74,10 +90,11 @@ function legacyOfficePanel(ctx) {
 
       // Shop
       const grid = h('div.shop');
+      let hiddenCount = 0;
       for (const it of Object.values(ITEMS)) {
         const owned = s.items.filter((i) => i.itemId === it.id);
-        const locked = s.officeStage < it.minStage ? `Needs ${OFFICE_STAGES[it.minStage]?.name ?? 'a bigger office'}`
-          : it.requires === 'award' && (s.stats?.awards ?? 0) < 1 ? 'Needs an award first' : null;
+        const locked = itemLock(s, it);
+        if (locked && !owned.length) { hiddenCount++; continue; }
         const buy = h('button.btn.small.primary', { onclick: () => { if (ctx.act({ type: 'buyItem', itemId: it.id }).ok) ctx.sfx('coin'); } },
           `${owned.length ? 'Buy another' : 'Buy'} ${fmtMoney(it.costs[0])}`);
         const why = h('span.why.small');
@@ -109,7 +126,7 @@ function legacyOfficePanel(ctx) {
         grid.append(card);
       }
       return [upgrade,
-        h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Items show up in the office. Sell for half of what you paid.' })), grid)];
+        h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Items show up in the office. Sell for half of what you paid.' })), grid, laterLine(hiddenCount))];
     });
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
@@ -151,12 +168,14 @@ function adjacencyLine(it) {
   const a = it.adjacency;
   if (!a) return null;
   const val = a.key === 'uptimeFloor' ? `+${Math.round(a.value * 100)} pts` : `+${Math.round(a.value * 100)}%`;
-  const to = a.to ? `${CATALOG[a.to]?.name ?? a.to}s` : 'desks';
+  const name = a.to ? CATALOG[a.to]?.name ?? a.to : null;
+  const to = name ? (/s$/i.test(name) ? name : `${name}s`) : 'desks';
   return `Nearby ${to} (within ${a.radius} tile${a.radius === 1 ? '' : 's'}): ${val} ${ADJ_WORDS[a.key] ?? a.key}`;
 }
 
 // The Office panel as a build palette: the stage card, then furniture and shop items to place.
-function buildPalette(ctx) {
+function buildPalette(ctx, arg) {
+  let focus = arg?.focus ?? null;
   const view = liveView(
     (s) => `${s.era?.id}|${s.workPolicy}|${stageOf(s)}|${s.office?.expansion}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
     (s, bind) => {
@@ -212,8 +231,7 @@ function buildPalette(ctx) {
       const card = (it) => {
         const mine = placed.filter((p) => p.itemId === it.id);
         const price = it.costs?.[0] ?? 0;
-        const locked = stageIx < (it.minStage ?? 0) ? `Needs ${OFFICE_STAGES[it.minStage]?.name ?? 'a bigger office'}`
-          : it.requires === 'award' && (s.stats?.awards ?? 0) < 1 ? 'Needs an award first' : null;
+        const locked = itemLock(s, it);
         const f = it.footprint ?? { w: 1, h: 1 };
         const btn = h('button.btn.small.primary', { onclick: () => { ctx.sfx('click'); ctx.build?.enter(it.id); } }, icon('menu.build', { size: 14 }), ` Place · ${fmtMoney(price)}`);
         const why = h('span.why.small');
@@ -224,7 +242,7 @@ function buildPalette(ctx) {
         });
         const eff = it.effects?.[0] && Object.keys(it.effects[0]).length ? effectWords(it.effects[0]) : null;
         const adj = adjacencyLine(it);
-        const c = h('div.card.item.pal', null,
+        const c = h('div.card.item.pal', { dataset: { item: it.id } },
           h('div.row', null, h('span.iico', null, icon(`item.${it.id}`, { size: 30 })),
             h('div', { style: { minWidth: 0, flex: 1 } },
               h('div.row', null, h('b.iname', { text: it.name }), h('span.spacer'), h('span.pill.num', { title: 'Footprint in tiles', text: `${f.w}x${f.h}` })),
@@ -240,15 +258,28 @@ function buildPalette(ctx) {
         return c;
       };
 
-      // Items about AI work (era-tagged) stay hidden until their era.
-      const all = Object.values(CATALOG).filter((it) => !beforeEra(s, it.era));
+      // Items about AI work (era-tagged) stay hidden until their era; locked items stay hidden
+      // until they unlock (the ones already placed still show).
+      const inEra = Object.values(CATALOG).filter((it) => !beforeEra(s, it.era));
+      const all = inEra.filter((it) => !itemLock(s, it) || placed.some((p) => p.itemId === it.id));
+      const later = inEra.length - all.length;
       const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));
       const shop = all.filter((it) => it.kind !== 'furniture');
       return [stageCard, hint,
         h('div.section', null, h('h3', null, 'Furniture', h('span.aside', { text: 'Click a spot on the floor to place. Click anything placed to move or sell it.' })),
           h('div.shop', null, ...furniture.map(card))),
         h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Upgradeable. Sell for half of what you paid.' })),
-          h('div.shop', null, ...shop.map(card)))];
+          h('div.shop', null, ...shop.map(card)), laterLine(later))];
     });
-  return { el: view.el, update: (st, f) => view.update(st, f) };
+  // Opened from an unlock card: scroll to the new item and flash it once.
+  const showFocus = () => {
+    if (!focus) return;
+    const el = view.el.querySelector(`[data-item="${focus}"]`);
+    focus = null;
+    if (!el) return;
+    el.scrollIntoView({ block: 'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1800);
+  };
+  return { el: view.el, update: (st, f) => { view.update(st, f); if (focus) requestAnimationFrame(showFocus); } };
 }
