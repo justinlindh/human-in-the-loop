@@ -3,7 +3,11 @@
 // stepped as fast as the machine allows.
 //
 // node scripts/pace.js [--seed 1] [--speed 1] [--bot sensible] [--minutes 30 | --weeks 200]
-//                 [--timeline] [--json] [--frame 0.0333]
+//                 [--player batch|eager] [--timeline] [--json] [--frame 0.0333]
+//
+// Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
+// decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
+// 'eager' acts every week exactly like the balance harness, so the game matches runBot.
 import { createGame, tick, dispatch } from '../src/sim/index.js';
 import { BOTS, CHOOSERS } from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
@@ -14,6 +18,7 @@ const HUMAN = {
   decision: [6, 12],       // read a decision popup and pick (the sim waits)
   menuBase: [3, 5],        // open menus for the week's actions (the UI auto-pauses)
   menuPerAction: [1.5, 2.5],
+  batchWeeks: [3, 6],      // weeks between menu sessions for a batching player
   launch: [4, 6],          // read the launch results popup
   eraCard: [5, 8],         // the era announcement card
   unlockCard: [2, 4],      // the first-time explainer for a newly unlocked system
@@ -102,12 +107,24 @@ function countActions(a, b) {
   return { n, newStaff };
 }
 
+function sessionCount(timeline) {
+  const out = { total: 0 };
+  for (const e of timeline) {
+    if (e.kind !== 'menu') continue;
+    out.total++;
+    const why = e.text.split(', ')[2] ?? 'weekly';
+    out[why] = (out[why] ?? 0) + 1;
+  }
+  return out;
+}
+
 const mmss = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const pct = (arr, p) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(p * arr.length))] : null);
 const r1 = (x) => (x === null || x === undefined ? null : Math.round(x * 10) / 10);
 const r2 = (x) => (x === null || x === undefined ? null : Math.round(x * 100) / 100);
 
-export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes = null, weeks = null, frame = 1 / 30 } = {}) {
+export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player = 'batch', minutes = null, weeks = null, frame = 1 / 30 } = {}) {
+  if (!['batch', 'eager'].includes(player)) throw new Error(`Unknown player "${player}". Players: batch, eager`);
   if (!BOTS[bot]) throw new Error(`Unknown bot "${bot}". Bots: ${Object.keys(BOTS).join(', ')}`);
   const limitSeconds = minutes !== null ? minutes * 60 : weeks === null ? 30 * 60 : Infinity;
   const limitWeeks = weeks ?? Infinity;
@@ -129,6 +146,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
   const launchQueue = [];
   const launchScores = new Map();
   let botDue = true;
+  let nextSession = 0; // batch player: the week of the next routine menu session
+  let attention = null; // batch player: why the next session comes early
 
   // Toasts as the UI shows them.
   let toastWeek = null, shownThisWeek = 0, lastToast = { text: '', t: -1e9 };
@@ -208,6 +227,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
           if (p?.version === 1 && firsts.launch === null) firsts.launch = t;
           log('launch', `${p?.name ?? e.productId} v${p?.version ?? '?'} score ${p ? r1(p.score) : '?'}${popup ? '' : ' (no popup)'}`);
           if (popup) launchQueue.push(p?.name ?? e.productId);
+          attention ??= 'launch';
           break;
         }
         case 'decision': {
@@ -217,7 +237,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
           break;
         }
         case 'era': firsts.era[e.eraId] ??= t; log('era', e.eraId); cards.push({ kind: 'era', seconds: draw(HUMAN.eraCard), text: e.eraId }); break;
-        case 'unlock': firsts.unlock[e.key] ??= t; log('unlock', e.key); cards.push({ kind: 'unlock', seconds: draw(HUMAN.unlockCard), text: e.key }); break;
+        case 'unlock': attention ??= 'unlock'; firsts.unlock[e.key] ??= t; log('unlock', e.key); cards.push({ kind: 'unlock', seconds: draw(HUMAN.unlockCard), text: e.key }); break;
         case 'goal': firsts.goal[e.goalId] ??= t; log('goal', e.goalId); break;
         case 'chat': {
           counts.chat++;
@@ -248,7 +268,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
     }
   }
 
-  let paused = { decision: 0, menu: 0 };
+  const paused = { decision: 0, menu: 0, sessions: 0 };
   let lastEra = state.era?.id ?? null;
 
   while (t < limitSeconds && state.week < limitWeeks && !state.gameOver) {
@@ -256,6 +276,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
     if (!menu && state.pendingDecision) {
       if (!reading) reading = { until: t + draw(HUMAN.decision) };
       else if (t >= reading.until) {
+        attention ??= 'decision';
         const choice = pickDecision(state, chooser);
         const title = state.pendingDecision.title;
         const res = dispatch(state, { type: 'resolveDecision', choice });
@@ -271,8 +292,10 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
       launchQueue.shift();
       counts.launchPopups++;
       menu = { until: t + draw(HUMAN.launch), kind: 'launch' };
-    } else if (!menu && botDue && !state.pendingDecision) {
+    } else if (!menu && botDue && !state.pendingDecision && (player === 'eager' || attention || state.week >= nextSession)) {
       botDue = false;
+      const why = player === 'eager' ? '' : attention ? `, ${attention}` : ', routine';
+      if (player === 'batch') { nextSession = state.week + Math.round(draw(HUMAN.batchWeeks)); attention = null; }
       const before = fingerprint(state);
       for (const a of botFn(state) ?? []) dispatch(state, a);
       const { n, newStaff } = countActions(before, fingerprint(state));
@@ -280,7 +303,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
       if (n > 0) {
         const seconds = draw(HUMAN.menuBase) + n * draw(HUMAN.menuPerAction);
         menu = { until: t + seconds, kind: 'menu' };
-        log('menu', `${n} action${n === 1 ? '' : 's'}, ${r1(seconds)}s`);
+        log('menu', `${n} action${n === 1 ? '' : 's'}, ${r1(seconds)}s${why}`);
       }
     }
     if (menu && t >= menu.until) menu = null;
@@ -288,12 +311,13 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
     // One frame of main.js.
     const menuPause = !!menu;
     const running = !menuPause && !state.pendingDecision && !state.gameOver;
-    if (menuPause) paused.menu += frame;
+    if (menuPause) { paused.menu += frame; if (menu.kind === 'menu') paused.sessions += frame; }
     else if (state.pendingDecision) paused.decision += frame;
     if (pacer.step(frame, { speed, running })) {
       route(pacer.schedule(tick(state)));
       route(pacer.takeQuiet().map((e) => ({ ...e, quiet: true })));
       botDue = true;
+      if (state.cash < 0) attention ??= 'cash';
       if (state.era && state.era.id !== lastEra) { lastEra = state.era.id; firsts.era[lastEra] ??= t; }
     }
     if (!menuPause) route(pacer.due());
@@ -315,9 +339,10 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
   const toMin = (obj) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, r1(v / 60)]));
 
   const metrics = {
-    seed, speed, bot, weekSeconds: WEEK_SECONDS / speed,
+    seed, speed, bot, player, weekSeconds: WEEK_SECONDS / speed,
     realMinutes: r1(minutesPlayed), weeks: state.week, gameOver: state.gameOver ? { won: state.gameOver.won, reason: state.gameOver.reason } : null,
-    pausedShare: { decision: r2(paused.decision / t), menu: r2(paused.menu / t) },
+    pausedShare: { decision: r2(paused.decision / t), menu: r2(paused.menu / t), menuSessions: r2(paused.sessions / t) },
+    menuSessions: sessionCount(timeline),
     popupsPerMinute: perMin(popups),
     decisions: {
       count: decisions.length, perMinute: perMin(decisions.length),
@@ -341,9 +366,10 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', minutes 
 
 function printSummary(m, overlaps) {
   const L = (k, v) => console.log(`${k.padEnd(26)}${v}`);
-  console.log(`pacing: seed ${m.seed}, bot ${m.bot}, ${m.speed}x (${m.weekSeconds}s per week)`);
+  console.log(`pacing: seed ${m.seed}, bot ${m.bot}, ${m.player} player, ${m.speed}x (${m.weekSeconds}s per week)`);
   L('played', `${m.realMinutes} real min, ${m.weeks} weeks${m.gameOver ? `, game over (${m.gameOver.won ? 'won' : 'lost'}: ${m.gameOver.reason})` : ''}`);
-  L('time paused', `decisions ${Math.round(m.pausedShare.decision * 100)}%, menus and popups ${Math.round(m.pausedShare.menu * 100)}%`);
+  L('time paused', `decisions ${Math.round(m.pausedShare.decision * 100)}%, menus and popups ${Math.round(m.pausedShare.menu * 100)}% (menu sessions alone ${Math.round(m.pausedShare.menuSessions * 100)}%)`);
+  L('menu sessions (w/ changes)', Object.entries(m.menuSessions).map(([k, v]) => `${k} ${v}`).join('  '));
   L('popups per minute', m.popupsPerMinute);
   L('decisions', `${m.decisions.count} (${m.decisions.perMinute}/min)`);
   if (m.decisions.gapSeconds) {
@@ -370,7 +396,7 @@ if (isMain) {
   const a = parseArgs(process.argv.slice(2));
   const num = (k) => (a[k] === undefined || a[k] === true ? null : Number(a[k]));
   const res = simulatePacing({
-    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible',
+    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player: typeof a.player === 'string' ? a.player : 'batch',
     minutes: num('minutes'), weeks: num('weeks'), frame: num('frame') ?? 1 / 30,
   });
   if (a.json) console.log(JSON.stringify({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }, null, 2));
