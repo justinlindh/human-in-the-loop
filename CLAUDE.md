@@ -48,6 +48,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Changes reach `main` only through pull requests, one per batch, each from a fresh branch named `<lane>/<topic>` cut from `origin/main` (`gh pr create --base main --head <lane>/<topic>`). The pre-push hook (`npm run hooks` installs it) refuses pushes to a branch whose PR has merged or closed.
   - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines. A visual change always has a screenshot, and a change to motion or timing has a clip.
   - Turn on auto-merge when you open the PR: `gh pr merge <n> --auto --merge`. GitHub merges it once every required check passes.
+  - A PR that depends on a decision the user hasn't made yet is opened as a draft (`--draft`), without auto-merge, until team-lead confirms the answer.
   - `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. `npm run ci` runs the same checks in any worktree.
   - Branch protection requires, on the PR's current head: the GitHub checks, `local-ci` (posted by `scripts/ci-pr.sh`), and `review` (posted by the reviewer's verdict).
   - The reviewer posts each verdict with `scripts/review-verdict.sh`. It writes the PR review and sets the `review` status on the head. A verdict judged from the code alone says so; visual PRs are judged from a screenshot, and motion from a clip.
