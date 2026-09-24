@@ -157,7 +157,7 @@ office: {
   placed: [{ id, itemId, level /*1..3*/, x, y, rot /*0..3*/ }],   // tile coordinates on the stage grid
 },
 // REMOVED: items[] (the fixed-slot shop list); shop items are now entries in office.placed.
-// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired'); 'timeout' and the fixed run end are gone.
+// gameOver.reason gains 'retired' (won: true, with retiredVia: 'ipo'|'acquired') and 'anniversary' (won: true; set at the end of week 1039, so state.week reads 1040); 'timeout' is gone.
 ```
 Seats: each Staff has `deskId` (the id of a placed desk, or null while they have no desk). A person keeps their desk until that desk is sold or they leave; only then is a free desk assigned (the lowest free desk in placed order). Moving a desk keeps its sitter. The renderer and adjacency `paid` read `deskId`; nobody else changes seat when one person leaves.
 
@@ -170,6 +170,7 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 { type: 'upgradeItem', id }
 { type: 'sellItem', id }                      // half refund of total spent
 { type: 'retire' }                            // valid when an IPO is available or an acquisition offer is open
+{ type: 'keepPlaying' }                       // valid only after the anniversary ending; clears gameOver, keeps flags.anniversaryScore, play continues
 // REMOVED: buyItem (placement replaces it)
 // hire gains the reason 'No free desk'
 ```
