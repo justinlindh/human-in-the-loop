@@ -7,7 +7,7 @@ import { postureParts } from '../../src/sim/incidents.js';
 import { itemBonus } from '../../src/sim/bonus.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { THREADS } from '../../src/data/threads.js';
-import { game, addStaff, addProduct } from './helpers.js';
+import { game, addStaff, addProduct, setItems } from './helpers.js';
 
 describe('every chat line players see is filled and grammatical', () => {
   it('no braces and no "a" before a vowel sound in any chat event over full bot runs', () => {
@@ -95,9 +95,9 @@ describe('small rules', () => {
 
   it('stacked item copies never move one key more than 50%', () => {
     const s = game();
-    s.items = [{ id: 'a', itemId: 'nap_pod', level: 3 }, { id: 'b', itemId: 'nap_pod', level: 3 }];
+    setItems(s, [{ id: 'a', itemId: 'nap_pod', level: 3 }, { id: 'b', itemId: 'nap_pod', level: 3 }]);
     expect(itemBonus(s, 'burnoutResign')).toBeCloseTo(-0.5);
-    s.items = [{ id: 'a', itemId: 'espresso', level: 3 }, { id: 'b', itemId: 'espresso', level: 3 }];
+    setItems(s, [{ id: 'a', itemId: 'espresso', level: 3 }, { id: 'b', itemId: 'espresso', level: 3 }]);
     expect(itemBonus(s, 'staminaRecovery')).toBeCloseTo(0.5);
   });
 });

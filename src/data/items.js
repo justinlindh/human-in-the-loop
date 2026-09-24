@@ -1,5 +1,28 @@
-// Office shop. effects[level - 1] maps a bonus key to its value; systems read them through itemBonus(state, key).
-// Percent keys are fractions (0.15 = +15%); flat keys are added as-is.
+// Everything placed in the office. effects[level - 1] maps a bonus key to its value; systems read them
+// through itemBonus(state, key). Percent keys are fractions (0.15 = +15%); flat keys are added as-is.
+// kind: 'furniture' (one level, bought once per copy) or 'shop' (three upgrade levels).
+// footprint: tiles at rot 0. adjacency: { radius, key, value } adds value to every desk whose seat is within
+// radius tiles of the item; with `to`, it adds value for each item of that id within radius instead.
+const FURNITURE = [
+  ['desk', 'Desk Set', 'A desk, a chair, and a screen. One person each. No desk, no hire.', [800], { w: 1, h: 2 }, null],
+  ['meeting_table', 'Meeting Table', 'Standups and arguments happen here. Mostly arguments.', [3000], { w: 3, h: 2 }, null],
+  ['whiteboard', 'Whiteboard', 'Nearby desks get a little more inventive. The markers are always dry.', [400], { w: 2, h: 1 },
+    { radius: 2, key: 'novelty', value: 0.04 }],
+  ['coffee_corner', 'Coffee Corner', 'A kettle, a drip machine, and a mug that says World\'s Okayest Dev. Nearby desks keep their energy.', [1200], { w: 2, h: 1 },
+    { radius: 3, key: 'staminaRecovery', value: 0.08 }],
+  ['plant', 'Potted Plant', 'Green and quietly judgmental. People nearby recover a little faster.', [150], { w: 1, h: 1 },
+    { radius: 2, key: 'meaningRecovery', value: 0.04 }],
+  ['bookshelf', 'Bookshelf', 'Old manuals, one good novel. People nearby learn the systems faster.', [500], { w: 2, h: 1 },
+    { radius: 2, key: 'knowledgeGain', value: 0.05 }],
+];
+
+const SHOP_SHAPE = {
+  espresso: [{ w: 2, h: 1 }, null], plant_wall: [{ w: 2, h: 1 }, null], nap_pod: [{ w: 1, h: 2 }, null], arcade: [{ w: 1, h: 1 }, null],
+  standing_desk: [{ w: 2, h: 1 }, null], whiteboard_wall: [{ w: 3, h: 1 }, null], library: [{ w: 2, h: 2 }, null],
+  monitoring_wall: [{ w: 3, h: 1 }, null], server_rack: [{ w: 2, h: 1 }, { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'server_rack' }],
+  trophy_case: [{ w: 2, h: 1 }, null],
+};
+
 const rows = [
   ['espresso', 'Espresso Machine', 'Proper coffee. Stamina comes back faster.', 0, [3000, 9000, 27000],
     [{ staminaRecovery: 0.15 }, { staminaRecovery: 0.3 }, { staminaRecovery: 0.45 }], null],
@@ -23,6 +46,11 @@ const rows = [
     [{ brandDecay: -0.15 }, { brandDecay: -0.3 }, { brandDecay: -0.45 }], 'award'],
 ];
 
-export const ITEMS = Object.fromEntries(rows.map(([id, name, desc, minStage, costs, effects, requires]) => [
-  id, { id, name, desc, minStage, costs, effects, requires },
-]));
+export const ITEMS = Object.fromEntries([
+  ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency]) => [
+    id, { id, name, desc, kind: 'furniture', minStage: 0, costs, effects: [{}], requires: null, footprint, adjacency },
+  ]),
+  ...rows.map(([id, name, desc, minStage, costs, effects, requires]) => [
+    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1] },
+  ]),
+]);

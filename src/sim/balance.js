@@ -1,6 +1,6 @@
 // Every tunable number in the simulation. Tune here, nowhere else.
 export const B = {
-  runWeeks: 780, startCash: 120000, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
+  runWeeks: 1040, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
   xpPerLevel: 60, xpPerWeekWorking: 8, promoteMidLevel: 5, promoteSeniorLevel: 10, maxLevel: 20,
@@ -66,5 +66,17 @@ export const B = {
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 52, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
+  funding: {
+    bootstrapped: { cash: 110000, scoreMult: 1, brand: 0, seniorCandidates: 0 },
+    family: { cash: 150000, scoreMult: 0.97, brand: 0, seniorCandidates: 0 },
+    preseed: { cash: 300000, scoreMult: 0.93, brand: 8, seniorCandidates: 2 },
+  },
+  founderStrengthBonus: 3, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
+  botBuildersPerProject: 6,
+  eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3 },
+  unlockGapWeeks: 6,
+  eraJitterWeeks: 13, chatgbtAutomationCap: 0.5, chatgbtAutomationFns: ['support', 'marketing'], noModelTrust: 0.85,
+  eraCompetition: { classic: 1, chatgbt: 1.12, agents: 1.25, consolidation: 1.4 }, consolidationVendorEveryWeeks: 13, consolidationDeprecateChance: 0.8,
+  acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.95,
   ipoMrr: 2800000, ipoBrand: 60, acquisitionOfferMrr: 2500000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };

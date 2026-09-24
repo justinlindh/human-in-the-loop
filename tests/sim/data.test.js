@@ -37,20 +37,20 @@ describe('content data', () => {
 
   it('pins rows against the plan tables', () => {
     const pick = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k]]));
-    expect(pick(CATEGORIES.notes, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 180000, price: 12, unlockYear: 2026, compliance: false });
-    expect(pick(CATEGORIES.legal, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 20000, price: 250, unlockYear: 2031, compliance: true });
-    expect(pick(CATEGORIES.video, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 110000, price: 28, unlockYear: 2030, compliance: false });
+    expect(pick(CATEGORIES.notes, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 180000, price: 12, unlockYear: 2019, compliance: false });
+    expect(pick(CATEGORIES.legal, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 20000, price: 250, unlockYear: 2026, compliance: true });
+    expect(pick(CATEGORIES.video, ['tam', 'price', 'unlockYear', 'compliance'])).toEqual({ tam: 110000, price: 28, unlockYear: 2024, compliance: false });
     expect(Object.fromEntries(INCUMBENTS.map((i) => [i.name, i.strength]))).toMatchObject({ Salesfarce: 650, Zendisk: 360, GitHug: 620, LexisNaxis: 460 });
     const m = (id) => pick(MODELS[id], ['capability', 'productCost', 'autoCost', 'guardrails', 'trust', 'complianceOk', 'selfHosted', 'releaseYear']);
-    expect(m('claudius')).toEqual({ capability: 80, productCost: 2.4, autoCost: 1500, guardrails: 0.9, trust: 0.8, complianceOk: true, selfHosted: false, releaseYear: 2026 });
-    expect(m('grokk')).toEqual({ capability: 70, productCost: 1.0, autoCost: 700, guardrails: 0.25, trust: 0.35, complianceOk: false, selfHosted: false, releaseYear: 2026 });
-    expect(m('llamarama')).toEqual({ capability: 66, productCost: 0.6, autoCost: 600, guardrails: 0.45, trust: 0.55, complianceOk: true, selfHosted: true, releaseYear: 2026 });
-    expect(m('mistrale').releaseYear).toBe(2027);
+    expect(m('claudius')).toEqual({ capability: 80, productCost: 2.4, autoCost: 1500, guardrails: 0.9, trust: 0.8, complianceOk: true, selfHosted: false, releaseYear: 2023 });
+    expect(m('grokk')).toEqual({ capability: 70, productCost: 1.0, autoCost: 700, guardrails: 0.25, trust: 0.35, complianceOk: false, selfHosted: false, releaseYear: 2024 });
+    expect(m('llamarama')).toEqual({ capability: 66, productCost: 0.6, autoCost: 600, guardrails: 0.45, trust: 0.55, complianceOk: true, selfHosted: true, releaseYear: 2023 });
+    expect(m('mistrale').releaseYear).toBe(2024);
     const ch = (id) => pick(CHANNELS[id], ['cost', 'weeks', 'hype', 'brand', 'minStage']);
     expect(ch('launch')).toEqual({ cost: 5000, weeks: 3, hype: 9, brand: 0.4, minStage: 0 });
     expect(ch('producthunt')).toEqual({ cost: 1500, weeks: 1, hype: 22, brand: 0.6, minStage: 0 });
     expect(ch('conference')).toEqual({ cost: 35000, weeks: 2, hype: 14, brand: 1.5, minStage: 1 });
-    expect(OFFICE_STAGES.map((o) => [o.capacity, o.rent, o.upgradeCost])).toEqual([[4, 300, 0], [12, 3500, 60000], [30, 14000, 400000]]);
+    expect(OFFICE_STAGES.map((o) => [o.grid.w, o.grid.h, o.rent, o.upgradeCost])).toEqual([[9, 7, 300, 0], [15, 12, 3500, 60000], [21, 16, 14000, 400000]]);
     expect(TRAITS.craftsperson.mods).toEqual({ polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 });
     expect(TRAITS.red_teamer.mods).toEqual({ catch: 0.2, oversight: 1.2 });
     expect(ROLES.engineer.automatedBy).toEqual({ engineering: 1, qa: 0.5, ops: 0.4 });
@@ -84,10 +84,12 @@ describe('content data', () => {
     for (const inc of INCUMBENTS) expect(CATEGORIES[inc.category]).toBeDefined();
   });
 
-  it('unlocks enough to play in 2026', () => {
-    expect(Object.values(CATEGORIES).filter((c) => c.unlockYear <= 2026).length).toBeGreaterThanOrEqual(4);
-    expect(Object.values(ANGLES).filter((a) => a.unlockYear <= 2026).length).toBeGreaterThanOrEqual(3);
-    expect(Object.values(MODELS).filter((m) => m.releaseYear <= 2026).length).toBeGreaterThanOrEqual(5);
+  it('unlocks enough to play in 2019, and each AI era brings models and angles', () => {
+    expect(Object.values(CATEGORIES).filter((c) => c.unlockYear <= 2019).length).toBeGreaterThanOrEqual(4);
+    expect(Object.values(ANGLES).filter((a) => a.era === 'classic').length).toBeGreaterThanOrEqual(5);
+    expect(Object.values(ANGLES).filter((a) => a.era === 'chatgbt').length).toBeGreaterThanOrEqual(2);
+    expect(Object.values(ANGLES).filter((a) => a.era === 'agents').length).toBeGreaterThanOrEqual(3);
+    expect(Object.values(MODELS).filter((m) => m.releaseYear <= 2023).length).toBeGreaterThanOrEqual(4);
   });
 
   it('comboFit stays within [0.6, 1.5] and overrides reference real ids', () => {

@@ -25,7 +25,7 @@ export function newId(state, prefix) {
 }
 
 export const WEEKS_PER_YEAR = 52;
-export const START_YEAR = 2026;
+export const START_YEAR = 2019;
 
 export function dateOf(week) {
   const yearIndex = Math.floor(week / WEEKS_PER_YEAR);

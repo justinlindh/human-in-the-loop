@@ -5,7 +5,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { THREADS, THREAD_WHO, THREAD_CONTEXTS } from '../../src/data/threads.js';
 import { CHAT_CHANNELS } from '../../src/contract/events.js';
-import { game, addStaff, addProduct, advance } from './helpers.js';
+import { game, addStaff, addProduct, advance, placeAction } from './helpers.js';
 
 function team(seed = 1, meaning = 70) {
   const s = game(seed);
@@ -76,7 +76,7 @@ describe('chat content', () => {
     expect(launch.some((m) => m.channel === 'wins')).toBe(true);
     const inc = chatWeek(s, [{ type: 'incident', kind: 'db_wipe', productId: p.id, caught: false, severity: 4 }]);
     expect(inc.some((m) => m.channel === 'incidents')).toBe(true);
-    const buy = dispatch(s, { type: 'buyItem', itemId: 'espresso' });
+    const buy = dispatch(s, placeAction(s, 'espresso'));
     expect(buy.events.some((e) => e.type === 'chat' && e.channel === 'random')).toBe(true);
     const general = [];
     for (let w = 0; w < 30; w++) general.push(...chatWeek(s));

@@ -5,16 +5,18 @@ import { sunsetProduct } from './products.js';
 import { findStaff, tryAssign, removeStaff, makeCandidate, staffMods, endMentorshipsOf } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
 import { priceHike } from './vendors.js';
-import { endGame } from './endgame.js';
+import { retire } from './endgame.js';
 import { FUNCTIONS } from './state.js';
 import { comboFit } from '../data/combos.js';
 import { TRENDS } from '../data/trends.js';
+import { ANGLES } from '../data/angles.js';
 import { MODELS } from '../data/models.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision } from './events.js';
 import { clearOutage } from './incidents.js';
+import { automationCap } from './automation.js';
 import { buyItemBlocker, upgradeItemBlocker, ownedCopy, buyItemNow, upgradeItemNow } from './progression.js';
 
 export { modifierBonus } from './modifiers.js';
@@ -38,7 +40,7 @@ export function checkCondition(state, id, subjectId) {
   switch (id) {
     case 'subjectCompliant': {
       const pool = product ? [product] : liveProducts(state);
-      return pool.some((p) => MODELS[p.model].complianceOk);
+      return pool.some((p) => !p.model || MODELS[p.model].complianceOk);
     }
     case 'trustedVendor': return ['claudius', 'chatgbt'].includes(state.flags.lastIncidentModel);
     case 'blameless': return !!state.policies.blameless;
@@ -93,7 +95,7 @@ function pivot(ctx) {
       if (!best || f > best.f) best = { c, a, f };
     }
   }
-  const model = Object.keys(state.models).find((m) => state.models[m].available && !state.models[m].deprecated) ?? weakest.model;
+  const model = ANGLES[best.a].ai ? Object.keys(state.models).find((m) => state.models[m].available && !state.models[m].deprecated) ?? weakest.model : null;
   state.projects.push({
     id: newId(state, 'j'), kind: 'new', name: `${weakest.name} 2`, category: best.c, angle: best.a, model, size: 'medium', researchId: null,
     pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
@@ -148,11 +150,11 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.market.categories[cat].clones += fx.clones;
   }
   if (fx.priceHike) {
-    const used = [...new Set(liveProducts(state).map((p) => p.model))];
+    const used = [...new Set(liveProducts(state).map((p) => p.model).filter(Boolean))];
     priceHike(ctx, used.length ? pick(ctx.rng, used) : null);
   }
   if (fx.vendorOutage) {
-    const used = [...new Set(liveProducts(state).map((p) => p.model))];
+    const used = [...new Set(liveProducts(state).map((p) => p.model).filter(Boolean))];
     if (used.length) {
       const m = pick(ctx.rng, used);
       for (const p of liveProducts(state)) if (p.model === m) p.health = clamp(p.health - fx.vendorOutage, 0, 100);
@@ -172,9 +174,9 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     const m = state.models[fx.modelBoost.model];
     if (m) m.capability = Math.min(100, m.capability + fx.modelBoost.capability);
   }
-  if (fx.setAutomation) for (const [fn, level] of Object.entries(fx.setAutomation)) state.automation[fn].level = level;
+  if (fx.setAutomation) for (const [fn, level] of Object.entries(fx.setAutomation)) state.automation[fn].level = clamp(level, 0, automationCap(state, fn));
   if (fx.automationBump) {
-    for (const fn of FUNCTIONS) state.automation[fn].level = clamp(state.automation[fn].level + fx.automationBump, 0, 1);
+    for (const fn of FUNCTIONS) state.automation[fn].level = clamp(state.automation[fn].level + fx.automationBump, 0, automationCap(state, fn));
   }
   if (fx.startCraft && !state.projects.some((j) => j.kind === 'craft')) {
     const id = newId(state, 'j');
@@ -211,10 +213,14 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.stats.resignations++;
     ctx.emit({ type: 'resign', staffId: person.id, name: person.name });
   }
-  if (fx.win === 'acquired') {
+  if (fx.win === 'acquired' || fx.openOffer) {
     const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
-    state.flags.acquirer = vars?.incumbent ?? incumbentFor(top?.category ?? 'crm').name;
-    endGame(ctx, { won: true, reason: 'acquired' });
+    state.flags.acquisitionOfferFrom = vars?.incumbent ?? incumbentFor(top?.category ?? 'crm').name;
+    if (fx.openOffer) state.flags.acquisitionOfferUntil = state.week + B.acquisitionOfferOpenWeeks;
+    else {
+      state.flags.acquirer = state.flags.acquisitionOfferFrom;
+      retire(ctx, 'acquired');
+    }
   }
 }
 

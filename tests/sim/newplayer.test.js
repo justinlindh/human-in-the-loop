@@ -15,10 +15,10 @@ import { game, addStaff, addProduct } from './helpers.js';
 
 describe('a new player gets a fair opening', () => {
   it('two founders on a small project launch by about week 14 with 8+ weeks of runway', () => {
-    for (const [category, angle] of [['notes', 'copilot'], ['email', 'copilot'], ['pm', 'workflow']]) {
+    for (const [category, angle] of [['notes', 'freemium'], ['email', 'web'], ['pm', 'web']]) {
       for (let seed = 1; seed <= 10; seed++) {
         const s = createGame({ seed });
-        const pid = dispatch(s, { type: 'startProject', kind: 'new', name: 'Loopo', category, angle, model: 'chatgbt', size: 'small' }).projectId;
+        const pid = dispatch(s, { type: 'startProject', kind: 'new', name: 'Loopo', category, angle, size: 'small' }).projectId;
         for (const p of s.staff) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: pid } });
         while (!s.products.length && s.week < 30) {
           for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });

@@ -6,6 +6,7 @@ import { liveProducts, findProduct } from './projects.js';
 import { CHANNELS } from '../data/channels.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
+import { lockedReason } from './unlocks.js';
 
 const marketers = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'marketing');
 
@@ -13,6 +14,8 @@ registerAction('runCampaign', (ctx, { channel, productId, projectId }) => {
   const { state } = ctx;
   const ch = CHANNELS[channel];
   if (!ch) return { ok: false, reason: 'Unknown channel' };
+  const locked = lockedReason(state, 'marketing');
+  if (locked) return { ok: false, reason: locked };
   if (state.officeStage < ch.minStage) return { ok: false, reason: 'Needs a bigger office' };
   const hasProduct = productId !== null && productId !== undefined;
   const hasProject = projectId !== null && projectId !== undefined;

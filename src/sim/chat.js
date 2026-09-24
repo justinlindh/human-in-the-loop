@@ -9,6 +9,7 @@ import { MODELS } from '../data/models.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ITEMS } from '../data/items.js';
 import { incumbentFor } from '../data/incumbents.js';
+import { eraAllowsText, eraLines } from './eras.js';
 
 const REACTIONS = {
   win: ['🎉', '🚀', '👏', '🔥', '💯'],
@@ -65,7 +66,7 @@ export function fillChat(state, rng, text, { speaker = null, product = null, pos
     category: prod ? CATEGORIES[prod.category].name : null,
     incumbent: incumbentFor(prod?.category ?? pick(rng, state.market.unlockedCategories)).name,
     coworker: others.length ? pick(rng, others).name.split(' ')[0] : null,
-    model: prod ? MODELS[prod.model].name : auto.level > 0 ? MODELS[auto.model].name : null,
+    model: prod?.model ? MODELS[prod.model].name : auto.level > 0 ? MODELS[auto.model].name : null,
     item,
     poster: poster ? poster.name.split(' ')[0] : null,
   };
@@ -104,7 +105,7 @@ function happenings(ctx) {
   const incident = ev.find((e) => e.type === 'incident' && !e.caught);
   const caught = ev.find((e) => e.type === 'incident' && e.caught);
   const promotedId = ctx.happenings?.promoted?.[0];
-  const lastItem = state.items.at(-1);
+  const lastItem = state.office.placed.find((p) => p.itemId === state.flags.lastItemId && ITEMS[p.itemId].kind === 'shop');
   return {
     launch: launch ? { product: productOf(launch) } : null,
     incident: incident ? { product: productOf(incident) } : null,
@@ -173,6 +174,20 @@ function postThread(ctx, t, lines) {
   ctx.state.flags[`cdThread_${t.id}`] = ctx.state.week + (t.cooldown ?? B.threadCooldownWeeks);
 }
 
+const NUDGES = {
+  desks: ['We should probably get desks in here first.', 'I have been sitting on a paint can for a week. Desks?', 'Standing is fine. Standing for a year is not. Desks.'],
+  product: ['Desks: done. Now we just need, you know, a product.', 'Should we build something? I feel like we should build something.'],
+};
+
+// A founder's nudge toward the first goals in the opening weeks, or null.
+function founderNudge(state) {
+  if (![1, 4, 9].includes(state.week)) return null;
+  const desks = state.office.placed.filter((p) => p.itemId === 'desk').length;
+  if (desks < 2) return NUDGES.desks[[1, 4, 9].indexOf(state.week)];
+  if (!state.projects.length && !state.products.length) return NUDGES.product[state.week === 1 ? 0 : 1];
+  return null;
+}
+
 // Weekly Slackk: launch announcements, a thread about this week's news, an occasional everyday
 // thread, and mood chatter. The number of everyday lines falls as the team's meaning falls.
 export function chatSystem(ctx) {
@@ -190,7 +205,14 @@ export function chatSystem(ctx) {
   }
   if (!team.length) return;
 
-  const cooled = (t) => (state.flags[`cdThread_${t.id}`] ?? -1) <= state.week;
+  const nudge = founderNudge(state);
+  if (nudge) {
+    const f = pick(ctx.rng, team.filter((p) => p.founder).length ? team.filter((p) => p.founder) : team);
+    emitChat(ctx, { person: f, text: nudge });
+    ctx.emit({ type: 'bubble', staffId: f.id, text: nudge, tone: 'good' });
+  }
+
+  const cooled = (t) => (state.flags[`cdThread_${t.id}`] ?? -1) <= state.week && eraAllowsText(state, [t.post.text, ...t.replies.map((r) => r.text)].join(' '));
   const happened = happenings(ctx);
   for (const t of shuffle(ctx.rng, THREADS.filter((x) => x.context && happened[x.context] && cooled(x)))) {
     const lines = planThread(state, ctx.rng, t, happened[t.context]);
@@ -208,7 +230,7 @@ export function chatSystem(ctx) {
   const recent = state.flags.recentChat ?? [];
   for (let i = 0; i < budget; i++) {
     const p = pick(ctx.rng, team);
-    const pool = CHATTER[chatterKey(state, p)].filter((line) => !recent.includes(line));
+    const pool = eraLines(state, CHATTER[chatterKey(state, p)]).filter((line) => !recent.includes(line));
     for (let tries = 0; tries < 4 && pool.length; tries++) {
       const line = pick(ctx.rng, pool);
       const text = fillChat(state, ctx.rng, line, { speaker: p });
