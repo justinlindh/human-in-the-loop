@@ -22,7 +22,7 @@ export function productAppeal(state, product) {
   const model = MODELS[product.model];
   let appeal = Math.max(0, product.score) ** B.appealExp
     * comboFit(product.category, product.angle) * trendMods(state, product.category, product.angle)
-    * (1 + state.brand / 100) * (1 + product.novelty / 20) * (0.7 + 0.3 * model.trust) * product.uptime
+    * (1 + state.brand / 100) * (1 + product.novelty * B.noveltyAppealPer) * (0.7 + 0.3 * model.trust) * product.uptime
     * B.appealScale * (B.sizeAppeal[product.size] ?? 1);
   if (cat.compliance && !model.complianceOk) appeal *= B.enterpriseComplianceMult;
   return appeal;
