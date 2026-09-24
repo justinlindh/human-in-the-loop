@@ -49,3 +49,29 @@ describe('issue #151: the epilogue retells the run', () => {
     expect(lines.join(' ')).toContain(`${B.alumniKept + 15} people have worked at`);
   });
 });
+
+describe('consequences outrank flavour', () => {
+  it('the reviewer case: sensible seed 1 with 14 breaches always gets the breach line', () => {
+    let st = null;
+    runBot('sensible', 1, 1040, { setup: (s) => { st = s; }, onWeek: (s) => { st = s; } });
+    expect(st.stats.breaches).toBeGreaterThanOrEqual(3);
+    const lines = st.gameOver.epilogue;
+    const breach = lines.findIndex((l) => l.startsWith('Your customer data now lives in several places'));
+    expect(breach).toBeGreaterThan(-1);
+    const flavour = lines.findIndex((l) => /leads its categories|lasted longer than most/.test(l));
+    if (flavour > -1) expect(breach).toBeLessThan(flavour);
+  }, 120000);
+
+  it('the more a run earned a consequence, the higher it ranks', () => {
+    const s = game(9);
+    s.week = 1040;
+    s.stats.launches = 5;
+    s.stats.breaches = 20;
+    s.stats.juniorsHired = 6;
+    s.comprehensionDebt = 70;
+    const lines = buildEpilogue(s, { won: true, reason: 'anniversary' });
+    const at = (re) => lines.findIndex((l) => re.test(l));
+    expect(at(/customer data now lives/)).toBeLessThan(at(/billing service/));
+    expect(at(/billing service/)).toBeLessThan(at(/former juniors/));
+  });
+});
