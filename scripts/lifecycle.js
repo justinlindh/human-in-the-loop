@@ -100,6 +100,32 @@ try {
   const onPagehide = await savedWeek();
   check('saves on pagehide', finalWeek === WEEKS + 3 && onPagehide === finalWeek, `week ${finalWeek}, saved week ${onPagehide}`);
 
+  // Pause holds the world: the clock, the week, the day, and queued events all wait.
+  const hold = await page.evaluate(async () => {
+    const H = window.__HITL;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    let routed = 0;
+    const api = window.__HITL_UI;
+    const orig = api.handleEvents;
+    api.handleEvents = (ev, st) => { routed += ev.length; return orig(ev, st); };
+    H.controls.setSpeed(1);
+    const day0 = H.clock.dayClock;
+    await wait(1500);
+    const dayMoved = H.clock.dayClock !== day0;
+    H.controls.setSpeed(0);
+    await wait(300);
+    const a = { ...H.clock, week: H.state.week };
+    routed = 0;
+    await wait(3000);
+    const b = { ...H.clock, week: H.state.week };
+    api.handleEvents = orig;
+    return { dayMoved, a, b, routed, rendererPaused: H.controls.renderer?.paused ?? 'n/a' };
+  });
+  const same = (k) => hold.a[k] === hold.b[k];
+  check('pause holds the clock, the week, the day, and events',
+    hold.dayMoved && hold.b.frozen && same('acc') && same('week') && same('dayClock') && same('queued') && hold.routed === 0 && hold.rendererPaused !== false,
+    JSON.stringify({ dayMoved: hold.dayMoved, acc: hold.b.acc, week: hold.b.week, day: hold.b.dayClock, queued: hold.b.queued, routed: hold.routed, rendererPaused: hold.rendererPaused }));
+
   // Auto-pause: focus leaving the page pauses and saves; coming back does not resume.
   const away = await page.evaluate(async () => {
     const H = window.__HITL;

@@ -166,7 +166,7 @@ async function boot() {
   window.__HITL = {
     get state() { return sim.state; },
     get playing() { return playing; },
-    get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null }; },
+    get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null, dayClock, frozen }; },
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
@@ -197,6 +197,7 @@ async function boot() {
   let dayClock = 0.35;
   let firstFrame = true;
   let frameCount = 0;
+  let frozen = false;
   function frame(now) {
     frameCount++;
     // Capped so a stalled or hidden tab resumes smoothly instead of jumping.
@@ -210,8 +211,12 @@ async function boot() {
       pacer.takeDropped();
       if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
     }
-    if (!menuPause) route(pacer.due(), sim.state);
-    dayClock = (dayClock + dt / DAY_SECONDS) % 1;
+    // Paused in any way (the pause button, a menu, a decision, the title): the office holds still.
+    // The renderer freezes, the day does not turn, and queued events wait for play to resume.
+    frozen = speed === 0 || menuPause || !!sim.state.pendingDecision || !playing;
+    if (running) route(pacer.due(), sim.state);
+    if (!frozen) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
+    renderer?.setPaused?.(frozen);
     if (renderer) {
       renderer.setTimeOfDay(forcedTime === 'night' ? 0.95 : forcedTime === 'day' ? 0.45 : dayClock);
       renderer.sync(sim.state);
