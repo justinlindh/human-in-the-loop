@@ -165,10 +165,11 @@ export function officeGateReason(state, stage) {
   if (g.liveProducts && liveProducts(state).length < g.liveProducts) return `Needs ${g.liveProducts} live products`;
   if (g.staff && state.staff.length < g.staff) return `Needs ${g.staff} people`;
   if (g.brand && state.brand < g.brand) return `Needs brand ${g.brand}`;
-  if (g.mrr && totalMrr(state) < g.mrr) return `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
-  // Worth: cash in the bank plus a year of revenue, so savings can stand in for income and the reverse.
-  if (g.worth && Math.max(0, state.cash) + 12 * totalMrr(state) < g.worth) {
-    return `Needs $${g.worth.toLocaleString('en-US')} in cash plus a year of revenue`;
+  // Revenue, or from orCashWeek on, enough savings to carry the move instead.
+  const savings = g.orCash && state.week >= (g.orCashWeek ?? 0) && state.cash >= g.orCash;
+  if (g.mrr && totalMrr(state) < g.mrr && !savings) {
+    const need = `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
+    return g.orCash ? `${need}, or $${g.orCash.toLocaleString('en-US')} in the bank from ${dateOf(g.orCashWeek ?? 0).year}` : need;
   }
   return null;
 }
