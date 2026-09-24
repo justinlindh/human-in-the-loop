@@ -37,6 +37,8 @@ State = {
     trend /*trend id*/, trendWeeksLeft, unlockedCategories: [ids], unlockedAngles: [ids],
   },
   models: { [modelId]: { version, capability, costMult, available, deprecated } },
+  items: [{ id, itemId, level /*1..3*/ }],     // office shop items; array index is the slot; max slots per stage in OFFICE_STAGES[stage].itemSlots
+  research: { done: [researchIds] },
   discoveredCombos: { ['cat:angle']: fitNumber },
   outage: null | { productId, kind, severity, weeks, unrecoverable },
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
@@ -57,11 +59,13 @@ Staff = {
   // type: project|maintenance|oversight|mentor|hardProblem|support|sales|security|marketing|idle|sabbatical
   mood /*ok|coasting|burnout|away*/, burnoutWeeks, sabbaticalWeeksLeft,
   salary, hiredWeek, founder /*bool*/,
+  path /*career path id or null*/, pathPending /*bool: promoted to senior, path not chosen yet*/, legend /*bool*/,
+  record: { mentorWeeks, catches, hardProblemWeeks },   // counters for earned traits
   appearance: { skin /*0..5*/, hair /*0..7*/, hairColor /*hex*/, shirt /*hex*/, pants /*hex*/, accessory /*none|glasses|headphones|beanie|cap*/, build /*0..2*/ },
 }
 
 Project = {
-  id, kind /*new|update|migration|refactor|craft*/, name, category, angle, model, size /*small|medium|large*/,
+  id, kind /*new|update|migration|refactor|craft|research*/, name, category, angle, model, size /*small|medium|large*/, researchId /*research kind only, else null*/,
   pointsNeeded, progress, stats: { features, polish, reliability, novelty }, productId /*or null*/, startedWeek, bankedHype,
 }
 
@@ -79,7 +83,9 @@ Product = {
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
 { type: 'toast', text, tone }             // tone: info|good|warn|bad
-{ type: 'chat', from, text }              // from: staff name or a bot handle like '@pagerbot'
+{ type: 'chat', id, channel, from, fromId, text, replyTo, reactions }
+                                          // channel: general|incidents|wins|random; from: staff name or a bot handle like '@pagerbot'
+                                          // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
 { type: 'resign', staffId, name }
@@ -97,10 +103,15 @@ Product = {
 { type: 'hire', candidateId }
 { type: 'fire', staffId }
 { type: 'assign', staffId, assignment: { type, targetId } }
-{ type: 'train', staffId }
+{ type: 'train', staffId, program /*workshop|conference|course*/, focus /*skill name, workshop only*/ }
+{ type: 'choosePath', staffId, pathId }
+{ type: 'buyItem', itemId }
+{ type: 'upgradeItem', id }
+{ type: 'sellItem', id }
 { type: 'startProject', kind: 'new', name, category, angle, model, size }
 { type: 'startProject', kind: 'update'|'migration', productId }
 { type: 'startProject', kind: 'refactor'|'craft' }
+{ type: 'startProject', kind: 'research', researchId }
 { type: 'setAutomation', fn, level, model }
 { type: 'setPolicy', id, on }
 { type: 'runCampaign', channel, productId, projectId }   // exactly one of productId / projectId

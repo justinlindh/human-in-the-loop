@@ -43,6 +43,12 @@ const PRODUCT_DEFS = [
   ['Dealflow', 'crm', 'agent', 'claudius'], ['Chartwise', 'analytics', 'copilot', 'gemenai'],
   ['Pixelpal', 'design', 'copilot', 'deepsleep'], ['Shipyard', 'devtools', 'agent', 'claudius'],
 ];
+const MOCK_ITEMS = [
+  [['espresso', 1], ['plant_wall', 1]],
+  [['espresso', 2], ['plant_wall', 2], ['whiteboard_wall', 1], ['server_rack', 2], ['nap_pod', 1], ['monitoring_wall', 1]],
+  [['espresso', 3], ['plant_wall', 3], ['whiteboard_wall', 2], ['server_rack', 3], ['nap_pod', 2], ['monitoring_wall', 3], ['arcade', 2], ['library', 2], ['standing_desk', 3], ['trophy_case', 2], ['arcade', 1], ['plant_wall', 1]],
+];
+const REACTIONS = ['🎉', '😂', '💀', '🫡', '🔥', '👀', '🙏'];
 const PRICES = { email: 10, support: 60, pm: 25, notes: 12, crm: 70, analytics: 55, design: 30, devtools: 35 };
 
 export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
@@ -66,6 +72,8 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
       assignment: { type: DEFAULT_ASSIGNMENT[role], targetId: null },
       mood, burnoutWeeks: mood === 'burnout' ? int(1, 3) : 0, sabbaticalWeeksLeft: 0,
       salary: { junior: 900, mid: 1600, senior: 2600 }[seniority], hiredWeek: 0, founder,
+      path: null, pathPending: false, legend: false,
+      record: { mentorWeeks: int(0, 30), catches: int(0, 4), hardProblemWeeks: int(0, 25) },
       appearance: {
         skin: int(0, 5), hair: int(0, 7), hairColor: pick(HAIR), shirt: pick(SHIRTS), pants: pick(PANTS),
         accessory: pick(ACCESSORIES), build: int(0, 2),
@@ -112,6 +120,10 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
   if (spare[0] && cfg.auto > 0) spare[0].assignment = { type: 'oversight', targetId: null };
   const senior = staff.find((p) => p.seniority === 'senior' && !p.founder);
   if (senior) senior.assignment = { type: 'hardProblem', targetId: null };
+  const seniors = staff.filter((p) => p.seniority === 'senior');
+  const PATHS = { engineer: 'ai_wrangler', designer: 'ux_lead', marketer: 'growth_lead', support: 'support_lead', security: 'red_team_lead', sales: 'enterprise_ae' };
+  seniors.forEach((p, i) => { if (i % 3 === 2) p.pathPending = true; else p.path = PATHS[p.role]; });
+  if (seniors[0] && cfg.stage === 2) { seniors[0].legend = true; seniors[0].level = 20; }
   if (spare[1] && cfg.stage >= 1) { spare[1].assignment = { type: 'sabbatical', targetId: null }; spare[1].mood = 'away'; spare[1].sabbaticalWeeksLeft = 3; }
 
   const week = { garage: 3, floor: 110, hq: 420, incident: 150, night: 110, ending: 779 }[scenario] ?? 110;
@@ -147,6 +159,8 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     },
     models: Object.fromEntries(['claudius', 'chatgbt', 'gemenai', 'grokk', 'llamarama', 'deepsleep', 'mistrale'].map((m, i) => [m, { version: 1 + (i % 3), capability: 70 + i, costMult: 1, available: true, deprecated: false }])),
     discoveredCombos: { 'email:summarizer': 1.45, 'support:agent': 1.5 },
+    items: MOCK_ITEMS[cfg.stage].map(([itemId, level], i) => ({ id: `i${i + 1}`, itemId, level })),
+    research: { done: cfg.stage === 0 ? [] : cfg.stage === 1 ? ['eval_harness', 'ci_cd'] : ['eval_harness', 'agent_sandbox', 'ci_cd', 'observability', 'docs_culture'] },
     outage: cfg.incident && products[0] ? { productId: products[0].id, kind: 'db_wipe', severity: 4, weeks: 2, unrecoverable: true } : null,
     incidentLog: cfg.incident ? [{ week: week - 2, kind: 'db_wipe', productId: products[0].id, caught: false, severity: 4 }] : [],
     lowCashWeeks: 0,
@@ -164,6 +178,15 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
       epilogue: ['Three of your former juniors now run teams of their own.', 'Nobody remembers who wrote the billing service. It still works. Nobody touches it.', 'Loopworks is still hiring.'],
     } : null,
   };
+
+  let chatSeq = 0;
+  function chat(channel, person, text, replyTo = null, bot = null) {
+    const avg = state.staff.reduce((a, p) => a + p.meaning, 0) / Math.max(1, state.staff.length);
+    const reactions = {};
+    const n = Math.floor((avg / 100) * 4 * r());
+    for (let i = 0; i < n; i++) { const e = pick(REACTIONS); reactions[e] = (reactions[e] ?? 0) + int(1, 4); }
+    return { type: 'chat', id: `m${++chatSeq}`, channel, from: bot ?? person.name, fromId: bot ? null : person.id, text, replyTo, reactions };
+  }
 
   let ticks = 0;
   let gameOverEmitted = false;
@@ -193,7 +216,13 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     const tones = ['features', 'polish', 'reliability', 'novelty'];
     workers.slice(0, 3).forEach((p, i) => events.push({ type: 'bubble', staffId: p.id, text: `+${int(2, 9)} ${tones[(ticks + i) % 4][0].toUpperCase()}${tones[(ticks + i) % 4].slice(1)}`, tone: tones[(ticks + i) % 4] }));
     const talker = pick(state.staff);
-    events.push({ type: 'chat', from: talker.name, text: pick(CHATTER[talker.mood] ?? CHATTER.ok) });
+    const post = chat('general', talker, pick(CHATTER[talker.mood] ?? CHATTER.ok));
+    events.push(post);
+    if (ticks % 2 === 0) {
+      const replier = pick(state.staff.filter((p) => p !== talker)) ?? talker;
+      events.push(chat('general', replier, pick(['same', 'this is fine', 'you taught me everything I know', 'lunch?', '+1']), post.id));
+    }
+    if (ticks % 4 === 0) events.push(chat('random', pick(state.staff), pick(['who took the good mug', 'the office dog is in the server room again', 'coffee machine is making the noise again'])));
 
     const any = () => pick(state.staff);
     if (ticks % 3 === 0) events.push({ type: 'toast', text: pick(['Trend: Agents Are Hot', 'Content campaign finished', 'New candidates available']), tone: pick(['info', 'good', 'warn']) });
@@ -202,11 +231,11 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
       const pr = pick(state.products);
       const caught = ticks % 14 === 0;
       events.push({ type: 'incident', kind: pick(['db_wipe', 'runaway_spend', 'credential_stuffing', 'mass_email']), productId: pr.id, caught, severity: int(1, 5) });
-      events.push({ type: 'chat', from: '@pagerbot', text: `SEV${int(1, 3)}: ${pr.name} is having a moment` });
+      events.push(chat('incidents', null, `SEV${int(1, 3)}: ${pr.name} is having a moment`, null, '@pagerbot'));
     }
     if (ticks % 10 === 0) {
       const pr = state.products[0];
-      if (pr) events.push({ type: 'launch', productId: pr.id });
+      if (pr) { events.push({ type: 'launch', productId: pr.id }); events.push(chat('wins', null, `${pr.name} v${pr.version} is live!`, null, '@shipbot')); }
     }
     if (ticks % 11 === 0) {
       const c = state.candidates.shift();

@@ -853,3 +853,62 @@ everything -> L2
 ```
 
 The lead merges each lane task after the reviewer passes it, keeps `feat/one-shot` green, and rebases lane branches when the contract changes.
+
+---
+
+## Phase 2 additions: Progression and Slackk
+
+Approved by the user after the lanes started. Specs: the spec's **Progression** and **Slackk (team chat)** sections. The canonical contract is `src/contract/contract.md` (it now includes `items`, `research`, staff `path`/`pathPending`/`legend`/`record`, project kind `research`, the extended `chat` event, and the `train`/`choosePath`/`buyItem`/`upgradeItem`/`sellItem` actions); the contract copy earlier in this plan is historical. Order: sim does S12b and S12c after S12 and before S13, so balance tunes everything together. ui does U7 and U8 after U6. art folds item props into A3 and item placement into A5 and A6.
+
+### Task S12b: Progression (sim)
+
+**Files:** `src/data/items.js`, `src/data/research.js`, `src/data/paths.js`, `src/data/training.js`, `src/sim/progression.js`, updates to `staff.js`, `work.js`, `meaning.js`, `knowledge.js`, `incidents.js`, `products.js`, `state.js`, `balance.js`; tests `tests/sim/progression.test.js`.
+
+- `OFFICE_STAGES` gains `itemSlots`: 3, 8, 16.
+- `ITEMS` keyed by id: `{ id, name, desc, minStage, costs: [l1, l2, l3], effects: [e1, e2, e3], requires }`. Values exactly as the spec's Office shop table; costs start around $3k (Garage-affordable) and roughly triple per level; Trophy Case requires `stats.awards >= 1`. `buyItem` (reasons: "No free item slots", "Needs a bigger office", "Not enough cash", "Needs an award first"), `upgradeItem` ("Already max level", "Not enough cash"), `sellItem` (refunds half of total spent). Effects are read through one helper, `itemBonus(state, key)`, summing active levels, so systems never switch on item ids.
+- `RESEARCH` keyed by id: `{ id, name, desc, points, requires, effect }`, effects exactly as the spec's Internal tools table, points 300 to 800. `startProject` kind `research` validates prerequisites and not-already-done ("Already researched", "Requires <name>"); completion appends to `research.done` with a toast and a `#wins` chat line. `researchBonus(state, key)` helper.
+- `PATHS` keyed by id with `role` and `mods` (same mod vocabulary as traits, plus path-specific keys such as `debtPaydown`, `menteeXp`, `outageFix`, `brandPerWeek`, `supportHours`). Promotion to senior sets `pathPending: true` and emits a toast ("<name> is ready to choose a career path"). `choosePath` validates role match and `pathPending`. `staffMods(person)` merges traits plus path mods (Legend multiplies the path's deviation from 1 by 1.25).
+- Level 20 sets `legend: true` (toast, `celebrate`, `#wins` line).
+- `record` counters increment weekly (mentor, hardProblem) and on catches; thresholds award earned traits (max 3 traits), with a toast.
+- `TRAINING` programs `workshop`, `conference`, `course` with cost, xp, effects, and away weeks as in the spec. `train` gains `program` and `focus` (reasons: "Unknown program", "Pick a skill to focus", "They are away").
+- **Tests:** each item effect changes its system by the table amount at each level; slot limits per stage; sell refunds half; research prerequisites; each research effect applies; path mods apply and Legend boosts them; pathPending set on promotion and cleared by choosePath; earned traits at thresholds and cap at 3; training programs cost and effects; everything JSON-safe and finite.
+- [ ] TDD cycle; commit `Add office items, internal tools research, career paths, and training programs`.
+
+### Task S12c: Slackk chat content (sim)
+
+**Files:** `src/data/chatter.js` (extended), `src/data/threads.js`, `src/sim/chat.js` (replaces the chatter emission in `meaning.js`), tests `tests/sim/chat.test.js`.
+
+- Every `chat` event uses the contract shape: `id` from `newId(state, 'm')`, `channel`, `from`, `fromId`, `text`, `replyTo`, `reactions`.
+- **Templates** with placeholders `{product}`, `{coworker}`, `{model}`, `{incumbent}`, `{category}`, filled from real state; skip a template whose placeholder cannot be filled.
+- **Threads** (`THREADS`, 30+): `{ id, when(state, h), channel, post: { who, text }, replies: [{ who, text }] }` where `who` selects a role or relation (`poster`, `coasting senior`, `their mentee`, `any junior`, `founder`, `random`). Examples: a coasting senior posts and a junior they mentored replies; an agent incident and the overseer who caught it; a launch and a designer's pride; a price hike and a sales rep's panic.
+- **Channels:** mood chatter to `general`; incidents, outages, pagerbot, and breach lines to `incidents`; launches, promotions, awards, Legends, research done to `wins`; office, coffee, dog, and item purchases to `random`.
+- **Reactions:** count and variety scale with average meaning; wins get celebration emoji; incidents get 💀 and 👀; farewells get 🫡.
+- **Volume:** chat lines per week `= round(B.chatBase + B.chatPerMeaning * avgMeaning)`, so a burnt-out team goes quiet. Cap 6 per week.
+- **Tests:** placeholders always filled (no `{` left in text); replies reference an existing id; channel routing per source; reaction totals higher at high meaning than low; volume falls with meaning; deterministic.
+- [ ] TDD cycle; commit `Add Slackk chat: channels, contextual templates, threads, reactions`.
+
+### Task U7: Progression UI (ui)
+
+**Files:** `src/ui/panels/office.js` (becomes the Office Shop), `src/ui/panels/research.js` (a tab in Build or its own panel), `src/ui/panels/staff.js` (career path picker and training programs), `src/ui/widgets.js`.
+
+- Office Shop: stage and slot usage ("5/8 slots"), item cards with level pips, current and next-level effect in plain words, Buy / Upgrade / Sell with disabled reasons; the office upgrade card stays here.
+- Research: a small tree (cards with prerequisite arrows or indentation), done / available / locked states, points and a Start button that creates a research project and opens its team picker.
+- Career path picker: a modal that opens from the staff detail (and from the "ready to choose a career path" toast) showing the role's paths with perks; a badge on staff rows with `pathPending`; path name and Legend badge shown in the staff table and detail.
+- Training: program picker (Workshop needs a skill focus) with cost, effects, and away time.
+- [ ] Commit `Add office shop, research, career paths, and training UI`.
+
+### Task U8: Slackk panel (ui)
+
+**Files:** `src/ui/chat.js` (rewrite), `src/ui/style.css`.
+
+- Branded Slackk panel (bottom-left, collapsible): channel list with unread badges; messages with avatar (from portrait widget), name, week, text; replies indented under their parent with a thread line; reaction pills; bot messages styled differently.
+- Clicking a name calls `controls.focusStaff(id)` and `openStaff(id)`.
+- Bounded: last 60 messages per channel in memory and DOM.
+- A healthy team's feed looks busy and colorful; a quiet feed is visibly quiet (show "It's been quiet in #general for a while" after 6 silent weeks).
+- [ ] Commit `Add Slackk team chat panel`.
+
+### Art additions (art)
+
+- A3: item props with three visible tiers (espresso, plant_wall, nap_pod, arcade, standing_desk, trophy_case, server_rack, library, monitoring_wall, whiteboard_wall).
+- A5: per-stage item slots in `layout.js` (3, 8, 16), placed where items read clearly and do not block walking paths.
+- A6: `sync` places `state.items` by array index into slots with the right tier model; a buy or upgrade plays a short pop-in with a sparkle.
