@@ -3,6 +3,7 @@
 // follow it), so clips are smooth and repeatable however slowly the machine renders.
 //
 // npm run capture -- --only waffle-party            one item from the manifest
+// npm run capture -- --group readme                  the README stills and loop
 // npm run capture -- --manifest scripts/capture-manifest.js --out ~/src/gamedev-reel/review-2026-09-24
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
 //   [--gif] [--no-webm] [--seconds N] [--list]
@@ -37,11 +38,13 @@ const manifestPath = resolve(String(args.manifest ?? 'scripts/capture-manifest.j
 const { ITEMS } = await import(pathToFileURL(manifestPath).href);
 
 if (args.list) {
-  for (const it of ITEMS) console.log(`${it.id.padEnd(22)} ${String(it.seconds).padStart(4)}s  ${it.title}`);
+  for (const it of ITEMS) console.log(`${it.id.padEnd(22)} ${(it.still ? "still" : `${it.seconds}s`).padStart(5)}  ${it.group ? `[${it.group}] ` : ""}${it.title}`);
   process.exit(0);
 }
 const only = typeof args.only === 'string' ? new Set(args.only.split(',')) : null;
-const items = ITEMS.filter((it) => !only || only.has(it.id));
+// --group readme picks items tagged with that group; untagged items are the review set.
+const group = typeof args.group === 'string' ? args.group : null;
+const items = ITEMS.filter((it) => (only ? only.has(it.id) : group ? it.group === group : !it.group));
 if (!items.length) { console.error(`capture: nothing matches --only ${args.only}`); process.exit(1); }
 
 // Installed before any page script runs. Time only moves when the capture script says so.
@@ -140,7 +143,8 @@ let failed = false;
 try {
   for (const it of items) {
     const t0 = Date.now();
-    const seconds = Number(args.seconds ?? it.seconds);
+    // A still item records only until its last screenshot and writes no video.
+    const seconds = it.still ? Math.max(...(it.screenshots ?? [1])) + 1 / FPS : Number(args.seconds ?? it.seconds);
     const frames = Math.round(seconds * FPS);
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     await ctx.addInitScript(shim, { fps: FPS, seed: it.seed ?? 1 });
@@ -165,7 +169,7 @@ try {
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());
 
     const mp4 = join(OUT, `${it.id}.mp4`);
-    const enc = ffmpeg(mp4);
+    const enc = it.still ? { write: async () => {}, end: async () => {} } : ffmpeg(mp4);
     const actions = [...(it.actions ?? [])].sort((a, b) => a.at - b.at);
     const shots = new Set((it.screenshots ?? []).map((s) => Math.round(s * FPS)));
     const pngs = [];
@@ -173,8 +177,7 @@ try {
       const t = f / FPS;
       while (actions.length && actions[0].at <= t) await page.evaluate(actions.shift().js);
       await page.evaluate(() => window.__capture.frame());
-      const jpg = await page.screenshot({ type: 'jpeg', quality: 95 });
-      await enc.write(jpg);
+      if (!it.still) await enc.write(await page.screenshot({ type: 'jpeg', quality: 95 }));
       if (shots.has(f)) {
         const png = join(OUT, `${it.id}-${t.toFixed(1)}s.png`);
         await page.screenshot({ path: png });
@@ -184,15 +187,15 @@ try {
     }
     await enc.end();
     const webmFile = join(OUT, `${it.id}.webm`);
-    if (!args['no-webm']) await webm(mp4, webmFile);
+    if (!it.still && !args['no-webm']) await webm(mp4, webmFile);
     let gifFile = null;
-    if (args.gif || it.gif) { gifFile = join(OUT, `${it.id}.gif`); await gif(mp4, gifFile); }
+    if (!it.still && (args.gif || it.gif)) { gifFile = join(OUT, `${it.id}.gif`); await gif(mp4, gifFile); }
     const took = ((Date.now() - t0) / 1000).toFixed(0);
-    console.log(`\r${errors.length ? 'FAIL' : 'ok  '} ${it.id}: ${mp4} (${seconds}s at ${FPS} fps, ${W}x${H}, ${QUALITY}; rendered in ${took}s on ${renderer})`);
+    console.log(`\r${errors.length ? 'FAIL' : 'ok  '} ${it.id}: ${it.still ? `${pngs.length} still(s)` : mp4} (${seconds}s at ${FPS} fps, ${W}x${H}, ${QUALITY}; rendered in ${took}s on ${renderer})`);
     for (const e of errors.slice(0, 5)) console.log(`     ${e}`);
     failed ||= errors.length > 0;
     index.items[it.id] = {
-      title: it.title, file: `${it.id}.mp4`, webm: args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
+      title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
       seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, url: base, renderer, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);

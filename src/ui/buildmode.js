@@ -167,7 +167,16 @@ export function createBuildMode({ layer, ctx, controls }) {
     if (!d || !onScene(e) || Math.hypot(e.clientX - d.x, e.clientY - d.y) > CLICK_PX) return;
     if (mode) {
       const at = anchorAt(e.clientX, e.clientY);
-      if (at) place(at.x, at.y);
+      if (!at) return;
+      // Touch has no hover: the first tap aims (ghost, reason, adjacency), a second tap on the same spot places.
+      if (e.pointerType !== 'mouse' && (at.x !== hover?.x || at.y !== hover?.y)) {
+        hover = at;
+        tip.style.left = `${e.clientX - layer.getBoundingClientRect().left + 16}px`;
+        tip.style.top = `${e.clientY - layer.getBoundingClientRect().top + 18}px`;
+        refresh();
+        return;
+      }
+      place(at.x, at.y);
     } else inspect(e.clientX, e.clientY);
   }, true);
   addEventListener('pointermove', (e) => {
