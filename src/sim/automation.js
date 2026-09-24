@@ -50,6 +50,7 @@ registerAction('setPolicy', (ctx, { id, on }) => {
   if (on) {
     if (!state.policies[id] && !pol.unlock(state)) return { ok: false, reason: pol.lockText };
     state.policies[id] = true;
+    if (pol.excludes) delete state.policies[pol.excludes];
     ctx.emit({ type: 'toast', text: `Policy on: ${pol.name}`, tone: 'info' });
   } else {
     delete state.policies[id];

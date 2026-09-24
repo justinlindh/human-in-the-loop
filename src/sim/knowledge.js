@@ -23,7 +23,8 @@ export function institutionalKnowledge(state) {
   const live = state.products.filter((p) => !p.killed).length;
   const holders = state.staff.filter((p) => p.role === 'engineer' || p.role === 'security');
   const held = sum(holders, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
-  return clamp(((100 * held) / (B.ikBaseline + B.ikPerProduct * live)) * (1 + researchBonus(state, 'ik')), 0, 100);
+  const standup = state.policies.daily_standups ? B.standupIkBonus : state.policies.async_standups ? B.standupIkBonus / 2 : 0;
+  return clamp(((100 * held) / (B.ikBaseline + B.ikPerProduct * live)) * (1 + researchBonus(state, 'ik') + standup), 0, 100);
 }
 
 export function knowledgeSystem(ctx) {

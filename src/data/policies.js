@@ -1,4 +1,12 @@
 export const POLICIES = {
+  daily_standups: {
+    id: 'daily_standups', lockText: 'Always available', name: 'Daily Standups', weeklyCost: 0, unlock: () => true, excludes: 'async_standups',
+    desc: 'Everyone gathers at the whiteboard for quick updates. A little less output, better knowledge sharing, and a small meaning lift.',
+  },
+  async_standups: {
+    id: 'async_standups', lockText: 'Always available', name: 'Async Standups', weeklyCost: 0, unlock: () => true, excludes: 'daily_standups',
+    desc: 'Updates go to the #standup channel instead. No output cost, a smaller knowledge boost, and the quiet ones stop posting.',
+  },
   pair: {
     id: 'pair', lockText: 'Always available', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: () => true,
     desc: 'Automation works alongside people, not in place of them. Much less meaning drain, smaller automation output.',

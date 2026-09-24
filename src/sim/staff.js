@@ -122,7 +122,7 @@ export function outputMult(state, person) {
   const staminaMult = person.stamina < B.staminaLowBelow ? 0.7 : 1;
   const craft = state.policies.craft_fridays ? B.craftFridaysOutput : 1;
   return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * staffMods(person).output * craft
-    * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output'));
+    * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0));
 }
 
 export const capacity = (state) => OFFICE_STAGES[state.officeStage].capacity;
