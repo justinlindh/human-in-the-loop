@@ -1,4 +1,4 @@
-import { h, setText, setWidth, toggleClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
+import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, INCIDENT_LABEL, capacityOf, MOOD_INFO } from './content.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -119,16 +119,16 @@ export function createHud({ root, controls, ui }) {
     if (neg) {
       const left = Math.max(0, (B.runwayLoseWeeks ?? 8) - (s.lowCashWeeks ?? 0));
       setText(cashSub, `Broke! ${left} wk to fold`);
-      cashSub.className = 'sub bad';
+      setClass(cashSub, 'sub bad');
     } else {
       const net = weeklyNet(s);
       if (net !== null && net < 0) {
         const wk = Math.floor(s.cash / -net);
         setText(cashSub, wk > 99 ? `${fmtMoney(net)}/wk` : `${wk} wk runway`);
-        cashSub.className = wk <= 12 ? 'sub bad' : wk <= 30 ? 'sub warn' : 'sub';
+        setClass(cashSub, wk <= 12 ? 'sub bad' : wk <= 30 ? 'sub warn' : 'sub');
       } else {
         setText(cashSub, net === null ? 'Runway: fine' : `${fmtMoney(net, { sign: true })}/wk`);
-        cashSub.className = 'sub';
+        setClass(cashSub, 'sub');
       }
     }
 
@@ -143,7 +143,7 @@ export function createHud({ root, controls, ui }) {
     }
     if (dir !== last.dir) {
       last.dir = dir;
-      mrrTrend.className = `trend ${dir}`;
+      setClass(mrrTrend, `trend ${dir}`);
       setText(mrrTrend, dir === 'up' ? '▲' : dir === 'down' ? '▼' : '•');
     }
     setText(mrrSub, `${fmtNum(totalCustomers(s))} customers`);

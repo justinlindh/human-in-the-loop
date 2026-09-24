@@ -50,6 +50,10 @@ export function setWidth(el, frac) {
   if (el.style.width !== w) el.style.width = w;
 }
 
+export function setClass(el, cls) {
+  if (el.className !== cls) el.className = cls;
+}
+
 export function toggleClass(el, cls, on) {
   if (el.classList.contains(cls) !== !!on) el.classList.toggle(cls, !!on);
 }
@@ -84,12 +88,7 @@ function trim(v, dp) {
   return v.toFixed(dp).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 }
 
-export function dateOf(week) {
-  const w = Math.max(0, Math.floor(safe(week)));
-  const yearIndex = Math.floor(w / 52);
-  const wk = (w % 52) + 1;
-  return { year: 2026 + yearIndex, yearIndex, week: wk, quarter: Math.min(4, Math.floor((w % 52) / 13) + 1) };
-}
+export { dateOf } from '../sim/util.js';
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, safe(v)));
 

@@ -68,7 +68,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom);
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { sfx(id ? 'open' : 'close'); layer.classList.toggle('panel-open', !!id); },
+    // Toasts ride inside the open panel so they never straddle its edge; otherwise they sit top-right.
+    onChange: (id) => { sfx(id ? 'open' : 'close'); (id ? menu.panelEl : layer).append(toasts.el); },
   });
   bottom.append(h('div'));
 
@@ -76,7 +77,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   layer.append(toasts.el);
 
   function onKey(e) {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
       if (e.key === 'Escape') t.blur();
@@ -122,6 +123,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       menu.update(state);
       menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout').length);
       menu.setBadge('ops', state.outage ? 1 : 0);
+      menu.setAlarm('ops', !!state.outage);
     }
   }
 
