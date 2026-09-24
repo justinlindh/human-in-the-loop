@@ -67,6 +67,7 @@ Staff = {
   path /*career path id or null*/, pathPending /*bool: promoted to senior, path not chosen yet*/, legend /*bool*/,
   record: { mentorWeeks, catches, hardProblemWeeks },   // counters for earned traits
   appearance: { skin /*0..5*/, hair /*0..7*/, hairColor /*hex*/, shirt /*hex*/, pants /*hex*/, accessory /*none|glasses|headphones|beanie|cap*/, build /*0..2*/ },
+  voice: { set /*'fem'|'masc'|'neutral'*/, variant /*0..n-1 within the set*/, pitch /*-1..1 per-person offset*/ },   // chosen with the first name so name and voice agree; staff text refers to people by name or they/them
 }
 
 Project = {
