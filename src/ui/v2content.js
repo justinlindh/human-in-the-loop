@@ -87,6 +87,15 @@ const STAT_NAME = { features: 'Features', polish: 'Polish', reliability: 'Reliab
 export const strengthChips = (a) => (Array.isArray(a.strengths) ? a.strengths.map((k) => STAT_NAME[k] ?? k) : []);
 export const archetypeBlurb = (a) => a.blurb ?? (typeof a.strengths === 'string' ? a.strengths : '');
 
+// A short name for lists: "Marketing", "Policy: Craft Fridays".
+export function unlockShort(key) {
+  if (key.startsWith('policy.')) {
+    const p = DATA.POLICIES?.[key.slice(7)];
+    return `Policy: ${p?.name ?? key.slice(7)}`;
+  }
+  return unlockInfo(key).title;
+}
+
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
 export const fundingMult = (f) => f.scoreMult ?? B.funding?.[f.id]?.scoreMult ?? 1;
 

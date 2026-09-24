@@ -124,12 +124,22 @@ export function createUI({ root, getState, dispatch, controls }) {
     menu.setVisible('automation', !u || u.automation != null || policiesIn, { animate });
     menu.setLabel('automation', !u || u.automation != null ? 'Automation' : 'Policies');
   }
-  function onUnlock(key, state) {
-    syncMenus(state, true);
-    const host = hostOf(key);
-    if (host && menu.current !== host) { newMenus.add(host); menu.setNew(host, true); }
-    const label = host ? (MENU.find((m) => m.id === host)?.label ?? host) : null;
-    announcer.unlock(key, host, host === 'automation' && !state.unlocks?.automation ? 'Policies' : label);
+  // One tick's unlocks and era arrive together (both are immediate events). An era card lists the
+  // unlocks that came with it; several unlocks without an era share one card; a lone one gets its own.
+  function onUnlocksAndEra(keys, era, state) {
+    if (keys.length) syncMenus(state, true);
+    const items = keys.map((key) => {
+      const host = hostOf(key);
+      if (host && menu.current !== host) { newMenus.add(host); menu.setNew(host, true); }
+      const label = host ? (MENU.find((m) => m.id === host)?.label ?? host) : null;
+      return { key, menuId: host, menuLabel: host === 'automation' && !state.unlocks?.automation ? 'Policies' : label };
+    });
+    if (era) {
+      const d = state.pendingDecision;
+      const own = d && d.eventId === `era_${era.eraId}` ? d.title : null;
+      announcer.era(era.eraId, state.week, own, keys);
+    } else if (items.length === 1) announcer.unlock(items[0].key, items[0].menuId, items[0].menuLabel);
+    else if (items.length > 1) announcer.unlocks(items);
   }
 
   function goalsModal() {
@@ -255,6 +265,9 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
 
   function handleEvents(events, state) {
+    const unlockKeys = events.filter((e) => e.type === 'unlock').map((e) => e.key);
+    const era = events.find((e) => e.type === 'era') ?? null;
+    if (unlockKeys.length || era) onUnlocksAndEra(unlockKeys, era, state);
     for (const e of events) {
       switch (e.type) {
         case 'toast': {
@@ -283,8 +296,6 @@ export function createUI({ root, getState, dispatch, controls }) {
           if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) popups.queueLaunch(e.productId);
           break;
         }
-        case 'unlock': onUnlock(e.key, state); break;
-        case 'era': announcer.era(e.eraId, state.week, state.pendingDecision?.title ?? null); break;
         case 'goal': {
           const g = GOAL[e.goalId];
           const reward = goalReward(g);

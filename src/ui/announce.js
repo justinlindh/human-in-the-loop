@@ -2,7 +2,7 @@
 // Era cards jump the queue. Esc, the backdrop, or the button dismisses; the game waits while one is up.
 import { h, dateOf } from './dom.js';
 import { icon } from './icons.js';
-import { ERA, unlockInfo } from './v2content.js';
+import { ERA, unlockInfo, unlockShort } from './v2content.js';
 
 const MAX_QUEUE = 8;
 
@@ -16,14 +16,14 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
     const back = h(`div.announce-back${item.kind === 'era' ? '.docked' : ''}`);
     const done = () => { if (cur?.back !== back) return; back.remove(); cur = null; layer.classList.remove('announcing'); sfx('close'); show(); };
     back.addEventListener('pointerdown', (e) => { if (e.target === back) done(); });
-    back.append(item.kind === 'era' ? eraCard(item, done) : unlockCard(item, done));
+    back.append(item.kind === 'era' ? eraCard(item, done) : item.kind === 'unlocks' ? unlocksCard(item, done) : unlockCard(item, done));
     layer.append(back);
     layer.classList.add('announcing');
     cur = { back, item, done };
     sfx(item.kind === 'era' ? 'confirm' : 'open');
   }
 
-  function eraCard({ eraId, week, decision }, done) {
+  function eraCard({ eraId, week, decision, keys = [] }, done) {
     const e = ERA[eraId] ?? { name: eraId, blurb: '', changes: [] };
     const d = dateOf(week ?? 0);
     const go = h('button.btn.go.big', { onclick: done }, decision ? 'See the decision' : 'Onward');
@@ -37,8 +37,22 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
         e.blurb ? h('div.ablurb', { text: e.blurb }) : null,
         e.changes?.length ? h('div', null, h('b', { text: 'What changes' })) : null,
         e.changes?.length ? h('ul.changes', null, ...e.changes.map((c) => h('li', { text: c }))) : null,
+        keys.length ? h('div.eranew', null, icon('new', { size: 16 }), h('b', { text: ' New: ' }), keys.map(unlockShort).join(', ')) : null,
         decision ? h('div.eranote', null, icon('decision', { size: 16 }), ` A decision is waiting: ${decision}`) : null,
         h('div.row.acts', null, go)));
+  }
+
+  function unlocksCard({ items }, done) {
+    const ok = h('button.btn.go', { onclick: done }, 'Got it');
+    setTimeout(() => ok.focus(), 0);
+    return h('div.announce.unlock.multi', null,
+      h('div', null, h('div.kicker', null, icon('new', { size: 14 }), ' New!'), h('h2', { text: `${items.length} new things to try` })),
+      h('div.ulist', null, ...items.map((it) => {
+        const u = unlockInfo(it.key);
+        return h('div.uitem', null, h('span.uico', null, icon(it.menuId ? `menu.${it.menuId}` : 'new', { size: 20 })),
+          h('div', null, h('b', { text: u.title }), u.why ? h('div.small.muted', { text: u.why }) : null));
+      })),
+      h('div.row.acts', null, ok));
   }
 
   function unlockCard({ key, menuId, menuLabel }, done) {
@@ -56,15 +70,20 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
 
   return {
     get open() { return !!cur; },
-    era(eraId, week, decision) {
+    era(eraId, week, decision, keys = []) {
       // Era cards go ahead of unlock explainers.
       const at = queue.findIndex((q) => q.kind !== 'era');
-      queue.splice(at < 0 ? queue.length : at, 0, { kind: 'era', eraId, week, decision });
+      queue.splice(at < 0 ? queue.length : at, 0, { kind: 'era', eraId, week, decision, keys });
       show();
     },
     unlock(key, menuId, menuLabel) {
       if (queue.length >= MAX_QUEUE || queue.some((q) => q.key === key)) return;
       queue.push({ kind: 'unlock', key, menuId, menuLabel });
+      show();
+    },
+    unlocks(items) {
+      if (queue.length >= MAX_QUEUE) return;
+      queue.push({ kind: 'unlocks', items });
       show();
     },
     onKey(e) {

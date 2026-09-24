@@ -61,7 +61,7 @@ export function openRetire(ctx) {
       h('div.small.muted', { text: 'Projected score' }),
       h('div.scorebig.num', { text: fmtNum(proj.score) }),
       h('div.breakdown', null, ...Object.entries(proj.breakdown ?? {}).flatMap(([k, v]) => [
-        h('span', { text: PARTS[k] ?? k }), h(`span.num${v < 0 ? '.neg' : ''}`, { text: `${v < 0 ? '' : '+'}${fmtNum(Math.round(v))}` })])),
+        h('span', { text: PARTS[k] ?? k }), ...[Math.round(v) || 0].map((n) => h(`span.num${n < 0 ? '.neg' : ''}`, { text: n === 0 ? '0' : `${n < 0 ? '' : '+'}${fmtNum(n)}` }))])),
       mult < 1 ? h('div.small.muted', { text: `${f.name} funding: score x${mult}.` }) : null) : null,
     h('div.small.muted', { text: 'Or keep playing: the company keeps going, and so can you.' }),
     h('div.row', null,
