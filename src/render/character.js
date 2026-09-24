@@ -18,6 +18,8 @@ const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap'];
+// Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
+const TYPE_REACH = -1.32;
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
 const ink = new THREE.Color(PALETTE.ink);
@@ -261,12 +263,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armRX = -s(t * 1.1) * 0.05;
         break;
       case 'typing': {
-        tgt.lean = 0.12;
+        tgt.lean = 0.18;
         tgt.headX = 0.12 + s(t * 1.3 + phase) * 0.04;
-        tgt.armLX = tgt.armRX = -1.15;
-        tgt.armLZ = 0.28; tgt.armRZ = -0.28;
-        tgt.armLX += s(t * 22) * 0.08;
-        tgt.armRX += s(t * 22 + 2) * 0.08;
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.18;
+        tgt.armLZ = 0.18; tgt.armRZ = -0.18;
+        // Fingers tap: the hands lift off the keys and come back down, never below them.
+        tgt.armLX -= Math.abs(s(t * 22)) * 0.06;
+        tgt.armRX -= Math.abs(s(t * 22 + 2)) * 0.06;
         tgt.bodyY += Math.abs(s(t * 11)) * 0.004;
         break;
       }
@@ -274,9 +277,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.42;
         tgt.headX = 0.5 + s(t * 0.6 + phase) * 0.05;
         tgt.headZ = 0.12;
-        tgt.armLX = tgt.armRX = -0.95;
+        // Arm angles are relative to the leaning torso: hands rest on the keys, typing slowly.
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.42 - 0.22;
         tgt.armLZ = 0.22; tgt.armRZ = -0.22;
-        tgt.armLX += s(t * 5) * 0.05;
+        tgt.armLX -= Math.abs(s(t * 5)) * 0.05;
         tgt.bodyY -= 0.03;
         break;
       case 'burnout': {
@@ -284,7 +288,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.95 - sigh * 0.25;
         tgt.headX = 0.55;
         tgt.headZ = 0.35;
-        tgt.armLX = tgt.armRX = -1.7;
+        // Head down on folded arms that lie on the desk.
+        tgt.armLX = tgt.armRX = -2.98;
         tgt.armLZ = 0.55; tgt.armRZ = -0.55;
         tgt.bodyY -= 0.05 - sigh * 0.03;
         break;
@@ -348,7 +353,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headX = 0.22 + nod * 0.25;
         tgt.headZ = 0.22;
         tgt.armRX = -2.0; tgt.armRZ = -0.55;
-        tgt.armLX = -1.1 + s(t * 6) * 0.06; tgt.armLZ = 0.3;
+        tgt.armLX = TYPE_REACH - 0.3 - 0.12 - Math.abs(s(t * 6)) * 0.05; tgt.armLZ = 0.3;
         tgt.bodyY -= 0.02;
         break;
       }

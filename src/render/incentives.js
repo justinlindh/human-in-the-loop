@@ -131,7 +131,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (!d) { balloons = null; return; }
     const obj = getModel('balloons');
     // Back corner of the desk top, in the desk set's own frame.
-    obj.position.set(0.34, 0.62, -0.5);
+    obj.position.set(0.34, 0.57, -0.5);
     d.obj.add(obj);
     balloons = { obj, deskId: d.id };
   }
