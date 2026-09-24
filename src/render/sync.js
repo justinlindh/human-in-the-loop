@@ -451,6 +451,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   // Standups: attendees gather in a loose ring (meeting room when the stage has one, otherwise
   // the whiteboard), speak their lines in turn, then return. Timings scale with game speed; at 4x
   // there is no gathering, only a quick emote at the desk.
+  const GATHER = 2.2;
   let speed = 1;
   let standup = null;
   function setSpeed(k) { speed = k; }
@@ -487,7 +488,18 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   }
 
   function startStandup(e) {
-    if (standup || !office.current) return;
+    if (!office.current) return;
+    // A new week's standup takes over from one still running; attendees not in it head back.
+    if (standup) {
+      const next = new Set((e.lines ?? []).map((l) => l.staffId));
+      for (const { r } of standup.people) {
+        if (next.has(r.id) || !recs.has(r.id) || !r.temp?.standup) continue;
+        r.temp = null;
+        if (r.goal && !r.goal.hidden) walkTo(r, r.goal);
+      }
+      for (const { r } of standup.people) if (next.has(r.id)) { r.temp = null; labels.clearFor(r.char.root); }
+      standup = null;
+    }
     const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed'; });
     if (!lines.length) return;
     if (speed >= 4) {
@@ -502,6 +514,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       r.temp = { anim: 'idle', t: Infinity, goal: spot, standup: true };
       labels.clearFor(r.char.root);
       walkTo(r, spot);
+      // Everyone arrives within GATHER seconds (weeks are short); far walkers jog.
+      let len = 0, px = r.pos.x, pz = r.pos.z;
+      for (const q of r.path) { len += Math.hypot(q.x - px, q.z - pz); px = q.x; pz = q.z; }
+      const need = len / (GATHER / (speed >= 2 ? 2 : 1));
+      if (need > r.speed) { r.speed = need; r.walkAnim = need > 2 ? 'run' : 'walk'; }
       return { r, text: l.text };
     });
     standup = { people, phase: 'gather', t: 0, i: 0 };
@@ -526,11 +543,11 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     if (speed >= 4) { endStandup(); return; }
     if (st.phase === 'gather') {
       const arrived = live.every((p) => !p.r.path.length);
-      if (arrived || st.t > 14) { st.phase = 'talk'; st.t = 0.4; st.i = -1; }
+      if (arrived || st.t > GATHER + 0.6) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
       return;
     }
     if (st.phase === 'talk') {
-      const beat = (p) => (p.text ? 1.6 + Math.min(1.6, p.text.length * 0.035) : 1.1);
+      const beat = (p) => (p.text ? 0.9 + Math.min(0.6, p.text.length * 0.018) : 0.6);
       const cur = st.i >= 0 ? st.people[st.i] : null;
       if (st.i < 0 || st.t >= beat(cur)) {
         st.i++;
@@ -543,7 +560,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
       return;
     }
-    if (st.phase === 'close' && st.t > 0.6) endStandup();
+    if (st.phase === 'close' && st.t > 0.3) endStandup();
   }
 
   function update(dt) {
