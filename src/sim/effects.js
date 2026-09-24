@@ -14,10 +14,11 @@ import { MODELS } from '../data/models.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
-import { raiseDecision } from './events.js';
+import { raiseDecision, ransomFor } from './events.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
 import { adoptPet } from './ladder.js';
+import { setMission, testPurpose } from './purpose.js';
 import { buyItemBlocker, upgradeItemBlocker, ownedCopy, buyItemNow, upgradeItemNow } from './progression.js';
 
 export { modifierBonus } from './modifiers.js';
@@ -214,7 +215,10 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.stats.resignations++;
     ctx.emit({ type: 'resign', staffId: person.id, name: person.name });
   }
+  if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);
   if (fx.workPolicy) state.workPolicy = fx.workPolicy;
+  if (fx.mission) setMission(state, fx.mission);
+  if (fx.purpose) testPurpose(state, fx.purpose, EVENTS[source]?.title ?? 'A decision');
   if (fx.adoptPet) {
     const owner = person ?? state.staff.find((p) => !p.founder) ?? state.staff[0];
     if (owner) {

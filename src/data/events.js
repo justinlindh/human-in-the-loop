@@ -2,7 +2,8 @@
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way.
-// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder}.
+// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
+// {ransom} (what a ransom would cost this company).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
 export const SUBJECTS = [
@@ -18,6 +19,7 @@ export const EFFECT_KEYS = [
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
+  'mission', 'purpose', 'ransom',
 ];
 
 
@@ -232,7 +234,7 @@ const list = [
     title: '{name} has an idea',
     text: '{name} read a blog post called "Support Teams Are Dead". They want support fully automated by Monday. "Think of the savings!"',
     choices: [
-      { label: 'Do it', hint: 'Support automation to 100% now (adds a weekly model bill); how customers feel shows up later', effects: { setAutomation: { support: 1 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
+      { label: 'Do it', hint: 'Support automation to 100% now (adds a weekly model bill); how customers feel shows up later', effects: { setAutomation: { support: 1 }, purpose: { people: -8, trust: -5, growth: 4 }, followUp: { eventId: 'ceo_support_fallout', inWeeks: 10 } }, outcome: 'The support bot goes live. It says "Great question!" to everyone.' },
       { label: 'Trial it on half the tickets', hint: 'Support automation to 50%', effects: { setAutomation: { support: 0.5 } }, outcome: 'A careful rollout. {name} calls it "timid". You call it Tuesday.' },
       { label: 'Talk them down', hint: '{name} sulks a little', effects: { meaning: -3 }, outcome: '{name} reads a different blog post. It is about sourdough.' },
     ],
@@ -273,7 +275,7 @@ const list = [
     title: '"We are an AI-first company now"',
     text: '{name} wants to announce that {company} is AI-first. Every team must use agents for everything. There is a slide with a rocket on it.',
     choices: [
-      { label: 'Announce it', hint: 'Every automation dial +25% and a hype bump now; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, hype: 10, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'AI-first mandate' }, followUp: { eventId: 'ai_first_review', inWeeks: 12 } }, outcome: 'The press release goes out. Engineers read it on their phones, silently.' },
+      { label: 'Announce it', hint: 'Every automation dial +25% and a hype bump now; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, hype: 10, purpose: { craft: -8, people: -8, trust: -3, growth: 6 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'AI-first mandate' }, followUp: { eventId: 'ai_first_review', inWeeks: 12 } }, outcome: 'The press release goes out. Engineers read it on their phones, silently.' },
       { label: 'Make agents optional', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: 'People use the agents where they help. It is almost boring.' },
       { label: 'Kill the slide', hint: '{name} is a bit deflated', effects: { meaning: -3 }, outcome: 'The rocket slide lives on in a folder called "someday".' },
     ],
@@ -431,7 +433,7 @@ const list = [
     id: 'product_hunt_top', kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.score >= 6),
     title: 'Product of the Day',
-    text: '{product} hit #1 on Product Hunt. Your mom upvoted it twice from two accounts.',
+    text: '{product} hit #1 on Product Hunch. Your mom upvoted it twice from two accounts.',
     auto: { hype: 15, brand: 2 },
   },
   {
@@ -589,7 +591,7 @@ const list = [
     title: 'Ransomware',
     text: 'Every server now displays a skull and a crypto wallet address. The skull is animated.',
     choices: [
-      { label: 'Pay the ransom', hint: 'Huge cash hit', effects: { cash: -60000 }, outcome: 'The keys work. You feel dirty.' },
+      { label: 'Pay the ransom', hint: 'Pay {ransom}: it hurts, and it is sized to what you can pay', effects: { ransom: true }, outcome: 'The keys work. You feel dirty.' },
       { label: 'Restore from backups', hint: 'Needs institutional knowledge 40+, else heavy churn', effects: { cond: { test: 'ik40', then: { ik: 2 }, else: { customersPct: -20, brand: -4 } } }, outcome: 'Someone has to remember where the backups are.' },
     ],
   },
@@ -664,9 +666,9 @@ const list = [
     title: 'The Plateau',
     text: 'Every company has the same agents now. {incumbent} runs its whole support desk with three people and a very tired dashboard. Customers have started asking a new question: "Who actually made this?"',
     choices: [
-      { label: 'Lean into craft', hint: 'Brand up; people recover faster for 52 weeks', effects: { brand: 3, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 52, label: 'The craft turn' } }, outcome: 'You rewrite the About page. It now has photos of actual people. Some of them are even smiling.' },
-      { label: 'Automate to the floor', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Automate to the floor' } }, outcome: 'Margins go up. The office gets quieter. Someone starts a support group in the kitchen.' },
-      { label: 'Become the trusted one', hint: '-$20k; customers churn less for 52 weeks', effects: { cash: -20000, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Trust program' } }, outcome: 'You publish your incident history, your model choices, and a phone number that a human answers.' },
+      { label: 'Lean into craft', hint: 'Brand up; people recover faster for 52 weeks', effects: { brand: 3, purpose: { craft: 8, people: 4 }, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 52, label: 'The craft turn' } }, outcome: 'You rewrite the About page. It now has photos of actual people. Some of them are even smiling.' },
+      { label: 'Automate to the floor', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, purpose: { craft: -8, people: -8, growth: 6 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Automate to the floor' } }, outcome: 'Margins go up. The office gets quieter. Someone starts a support group in the kitchen.' },
+      { label: 'Become the trusted one', hint: '-$20k; customers churn less for 52 weeks', effects: { cash: -20000, purpose: { trust: 10, craft: 2 }, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Trust program' } }, outcome: 'You publish your incident history, your model choices, and a phone number that a human answers.' },
     ],
   },
   // The first product's user test (raised halfway through the first build)
@@ -763,6 +765,39 @@ const list = [
     choices: [
       { label: 'Merge', hint: '-$150k; their customers join your product in that market; {rival} is gone', effects: { cash: -150000, rivalFate: 'merged' }, outcome: '{rivalFounder} gets a nice title and a nicer chair. Their customers get your product. Most of them are fine with it.' },
       { label: 'Let them fall', hint: '{rival} shuts down', effects: { rivalFate: 'dead' }, outcome: 'Their last blog post is titled "What we learned". It is very long.' },
+    ],
+  },
+  // Purpose: the mission, and the decisions that test it
+  {
+    id: 'mission_statement', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'What are we for?',
+    text: 'The agents can do most of the work now. The team keeps asking the same question in different words: what is {company} actually for? Pick one answer and mean it.',
+    choices: [
+      { label: 'Make software people love', hint: 'Purpose from craft and care; automating the craft away will cost it later', effects: { mission: 'craft', teamMeaning: 3 }, outcome: 'Someone prints it on a mug. The mug has a typo. You keep it.' },
+      { label: 'A place where people grow', hint: 'Purpose from mentoring and juniors; replacing people will cost it later', effects: { mission: 'people', teamMeaning: 4 }, outcome: 'The juniors read it twice. One of them cries a little, quietly, in a good way.' },
+      { label: 'The company customers trust', hint: 'Purpose from reliability and honesty; hype and shortcuts will cost it later', effects: { mission: 'trust', brand: 2 }, outcome: 'You write it at the top of the incident runbook. It is the only line anyone reads.' },
+      { label: 'Grow as fast as the tools allow', hint: 'Purpose starts lower; automation keeps faith with it later', effects: { mission: 'growth', hype: 10 }, outcome: 'The all-hands claps. Some of the clapping is real.' },
+    ],
+  },
+  {
+    id: 'mission_test_support', kind: 'leadership', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['agents', 'consolidation', 'plateau'],
+    when: (s) => !!s.purpose && s.staff.some((p) => p.role === 'support'),
+    title: 'Humans on the phones?',
+    text: 'The board has a spreadsheet showing support run entirely by agents. The support team has seen the spreadsheet. The spreadsheet is very convincing.',
+    choices: [
+      { label: 'Keep humans on support', hint: '-$20k; Purpose up if this is who you are', effects: { cash: -20000, teamMeaning: 2, purpose: { people: 6, trust: 6, craft: 3 } }, outcome: 'The support team sends you a photo of their very old headsets, raised in salute.' },
+      { label: 'Hand support to the agents', hint: 'Support automation up; Purpose down unless you are here to grow', effects: { setAutomation: { support: 1 }, purpose: { people: -10, trust: -6, craft: -3, growth: 5 } }, outcome: 'The agents are polite, fast, and very sure about refunds.' },
+    ],
+  },
+  {
+    id: 'mission_test_demo', kind: 'market', weight: 2, cooldownWeeks: 78, random: true, subject: 'randomProduct', eras: ['agents', 'consolidation', 'plateau'],
+    when: (s) => !!s.purpose,
+    title: 'Ship it for the demo?',
+    text: 'There is a big conference next week. The new {product} feature is half finished. Marketing has already made the slide.',
+    choices: [
+      { label: 'Ship it for the demo', hint: 'Hype +15; Purpose down if you promised care or trust', effects: { hype: 15, purpose: { craft: -6, trust: -6, growth: 4 } }, outcome: 'The demo goes perfectly, as long as nobody clicks anywhere.' },
+      { label: 'Wait until it is right', hint: 'Hype down a little; Purpose up if this is who you are', effects: { hype: -5, purpose: { craft: 5, trust: 4 } }, outcome: 'Marketing mourns the slide. The feature ships three weeks later and works.' },
     ],
   },
   // Classic era flavor
@@ -873,8 +908,8 @@ const list = [
     title: 'Why so many humans?',
     text: 'Your investor read a thread about a company with three employees and fifty million in revenue. They would like to discuss your headcount.',
     choices: [
-      { label: 'Automate harder', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Headcount pressure' } }, outcome: 'The agents get more work. The humans get more dashboards about the agents.' },
-      { label: 'Defend the team', hint: 'Team meaning up; fewer signups for 13 weeks while the investor sulks', effects: { teamMeaning: 4, modifier: { key: 'acquisition', value: -0.1, weeks: 13, label: 'Investor sulking' } }, outcome: '"Those three employees have not slept since 2027," you say. The call ends early.' },
+      { label: 'Automate harder', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, purpose: { craft: -5, people: -8, growth: 5 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Headcount pressure' } }, outcome: 'The agents get more work. The humans get more dashboards about the agents.' },
+      { label: 'Defend the team', hint: 'Team meaning up; fewer signups for 13 weeks while the investor sulks', effects: { teamMeaning: 4, purpose: { people: 8, craft: 3 }, modifier: { key: 'acquisition', value: -0.1, weeks: 13, label: 'Investor sulking' } }, outcome: '"Those three employees have not slept since 2027," you say. The call ends early.' },
     ],
   },
   // Annual calendar (raised by the annual system)

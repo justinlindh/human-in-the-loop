@@ -28,6 +28,11 @@ export const UNLOCKS = [
     when: (s, h) => h.eraIndex >= 1,
   },
   {
+    key: 'meaning', name: 'Meaning', reason: 'Arrives with the ChatGBT moment', era: 'chatgbt',
+    explainer: 'Your people are asking what their job is now. Meaning is how much their work still feels like theirs. Automation drains it; mentoring, hard problems and craft bring it back.',
+    when: (s, h) => h.eraIndex >= 1,
+  },
+  {
     key: 'paths', name: 'Career Paths', reason: 'Unlocks when someone is promoted to senior',
     explainer: 'Seniors choose where to grow: deeper craft, leading people, or watching the machines. Each path changes what they are best at.',
     when: (s) => s.flags.firstSeniorWeek !== undefined,

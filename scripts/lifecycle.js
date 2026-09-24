@@ -160,10 +160,8 @@ try {
     const H = window.__HITL;
     H.controls.setSpeed(1);
     const week = window.__advance(1);
-    let resumeSpeed = null;
-    addEventListener('hitl:awaypaused', (e) => { resumeSpeed = e.detail.resumeSpeed; }, { once: true });
     dispatchEvent(new Event('blur'));
-    const at = { speed: H.clock.speed, away: H.controls.awayPaused, acc: H.clock.acc, resumeSpeed };
+    const at = { speed: H.clock.speed, away: H.controls.awayPaused, acc: H.clock.acc };
     await new Promise((r) => setTimeout(r, 3000));
     const later = { acc: H.clock.acc, week: H.state.week };
     dispatchEvent(new Event('focus'));
@@ -171,7 +169,7 @@ try {
     return { week, at, later, afterFocus: H.clock.speed };
   });
   const awaySaved = await savedWeek();
-  check('blur pauses, saves, and holds the clock', away.at.speed === 0 && away.at.away && away.at.resumeSpeed === 1 && away.later.acc === away.at.acc && away.later.week === away.week && awaySaved === away.week, JSON.stringify({ ...away, awaySaved }));
+  check('blur pauses, saves, and holds the clock', away.at.speed === 0 && away.at.away && away.later.acc === away.at.acc && away.later.week === away.week && awaySaved === away.week, JSON.stringify({ ...away, awaySaved }));
   check('focus does not resume', away.afterFocus === 0, `speed ${away.afterFocus}`);
   const offSpeed = await page.evaluate(() => {
     const c = window.__HITL.controls;

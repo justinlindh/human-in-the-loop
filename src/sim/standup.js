@@ -18,8 +18,9 @@ function lineFor(ctx, p) {
   const recent = (state.flags.standupRecent ??= []);
   // Each person also remembers their own last few lines, so nobody posts the same update twice running.
   const mine = ((state.flags.standupRecentBy ??= {})[p.id] ??= []);
-  const choose = (key, product) => {
-    const pool = lines(key).filter((l) => product !== null || !l.includes('{product}'));
+  // `product: null` drops lines that need a product; `progressOnly` keeps only lines that show the percent.
+  const choose = (key, product, progressOnly = false) => {
+    const pool = lines(key).filter((l) => (product !== null || !l.includes('{product}')) && (!progressOnly || l.includes('{pct}')));
     const fresh = pool.filter((l) => !recent.includes(l) && !mine.includes(l));
     // With nothing fresh left, take the line anyone used longest ago.
     const t = fresh.length ? pick(rng, fresh) : pool.reduce((x, y) => (recent.lastIndexOf(y) < recent.lastIndexOf(x) ? y : x));
@@ -43,14 +44,16 @@ function lineFor(ctx, p) {
     if (j) {
       const pct = Math.floor((100 * j.progress) / j.pointsNeeded);
       const key = pct < 25 ? 'projectEarly' : pct < 80 ? 'projectMid' : 'projectLate';
-      return fill(choose(key), { project: j.name, pct });
+      // After the first week, updates show the percent, so the same project never reads the same twice.
+      return fill(choose(key, undefined, pct >= 5), { project: j.name, pct });
     }
   }
   if (a.type === 'mentor') {
     const m = state.staff.find((x) => x.id === a.targetId);
     if (m) return fill(choose('mentor'), { mentee: first(m) });
   }
-  if (p.seniority === 'junior' && mentorOf(state, p)) return fill(choose('mentee'));
+  // A mentee talks about learning about half the time, and about their actual work the rest.
+  if (p.seniority === 'junior' && mentorOf(state, p) && chance(rng, 0.5)) return fill(choose('mentee'));
   if (a.type === 'hardProblem') return fill(choose('hardProblem'));
   if (a.type === 'oversight') return fill(choose('oversight'));
   if (a.type === 'maintenance') {

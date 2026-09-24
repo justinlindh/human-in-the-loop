@@ -252,7 +252,8 @@ function careTeam(s) {
       const pick = { engineer: 'architect', designer: 'ux_lead', marketer: 'growth_lead', support: 'support_lead', security: 'red_team_lead', sales: 'enterprise_ae' }[p.role];
       dispatch(s, { type: 'choosePath', staffId: p.id, pathId: pick });
     }
-    if (p.mood === 'burnout' && s.policies.sabbatical) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'sabbatical', targetId: null } });
+    if ((p.strain ?? 0) >= B.botTimeOffStrain && p.mood !== 'away') dispatch(s, { type: 'timeOff', staffId: p.id });
+    else if (p.mood === 'burnout' && s.policies.sabbatical) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'sabbatical', targetId: null } });
     else if (p.mood === 'coasting' && p.seniority === 'senior' && s.staff.length >= 6 && p.assignment.type !== 'project' && p.assignment.type !== 'mentor') {
       dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'hardProblem', targetId: null } });
     } else if (p.assignment.type === 'hardProblem' && p.meaning > 60) {

@@ -5,8 +5,14 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://justinlindh.github.io/human-in-the-loop/"><b>Play in your browser</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/justinlindh/human-in-the-loop/releases/latest"><img src="https://img.shields.io/github/v/release/justinlindh/human-in-the-loop?include_prereleases&amp;label=build" alt="Latest build"></a>
+</p>
+
 > [!WARNING]
-> **Pre-alpha.** This is an experimental side project, not a product. It is incomplete, unbalanced and full of placeholder content. It may change completely, stall, or be abandoned at any point. There are no releases, no roadmap and no support, and saves can break between commits.
+> **Pre-alpha.** This is an experimental side project, not a product. It is incomplete, unbalanced and full of placeholder content. It may change completely, stall, or be abandoned at any point. Builds are tagged automatically, but none of them is stable: there is no roadmap and no support, and saves can break between builds.
 
 **Human in the Loop** is a management sim about running a software company through the AI era, in the spirit of Kairosoft's Game Dev Story. You hire people, ship products, survive outages and launch parties, and decide how much of the work the machines should do. You are the human in the loop.
 
@@ -24,7 +30,9 @@ A run is a 20-year career, from a garage in 2019 through the AI boom and whateve
 
 ## Running it
 
-It runs in the browser. You need Node.js 22 or newer, with npm.
+The latest tagged build is playable at https://justinlindh.github.io/human-in-the-loop/. Each release deploys there automatically.
+
+To run it locally you need Node.js 22 or newer, with npm.
 
 ```sh
 npm install
