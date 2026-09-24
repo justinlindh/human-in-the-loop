@@ -43,7 +43,7 @@ Simulation tasks are specified to the formula and carry their test cases: the si
 - Office stages: Garage, Office Floor, HQ Building.
 - Content minimums: 14 categories, 7 angles, 7 models, 14 incumbents, 40+ events, 20+ traits, 6 policies.
 - Zero console errors in playtest. Target 60 fps at 1920x1080 on High quality with 30 staff; Low quality disables GTAO, bloom, and tilt-shift.
-- Never commit to `main`. Integration branch is `main`.
+- Never commit directly to `main`: every change reaches it through a pull request from a topic branch.
 
 ## Review Focus
 
