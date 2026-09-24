@@ -28,11 +28,17 @@ function injectStyle() {
   .hitl-say .in::after { content: ''; position: absolute; left: 50%; bottom: -9px; width: 12px; height: 12px;
     margin-left: -6px; background: ${P.paper}; border-right: 2.5px solid ${P.ink}; border-bottom: 2.5px solid ${P.ink};
     transform: rotate(45deg); }
+  .hitl-leads { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .hitl-leads i { position: absolute; width: 2.5px; margin-left: -1.25px; background: ${P.ink}; border-radius: 2px; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
   `;
   document.head.appendChild(css);
 }
+
+const GAP = 6;
+const TAIL = 9;                 // the speech bubble's pointer below its box
+const LEAD_MIN = 10;            // lifted further than this (px), a bubble draws its leader line
 
 export function createLabels(parent) {
   injectStyle();
@@ -76,6 +82,7 @@ export function createLabels(parent) {
     if (same) {
       same.num.n += Number(m[2]);
       same.inner.textContent = `${same.num.sign || '+'}${same.num.n} ${same.num.label}`;
+      same.w = null;
       same.t = Math.min(same.t, 0.12);
       return same;
     }
@@ -86,6 +93,7 @@ export function createLabels(parent) {
     l.kind = 'stat';
     l.el.className = 'hitl-lbl hitl-stat';
     l.inner.textContent = text;
+    l.w = null;
     l.inner.style.background = TONE[tone] ?? P.role_engineer;
     l.t = 0; l.life = 1.7; l.rise = 0.5; l.follow = follow; l.offsetY = offsetY;
     // Spread bubbles that land near each other at the same moment: stack them and nudge sideways.
@@ -106,6 +114,7 @@ export function createLabels(parent) {
     l.kind = 'say';
     l.el.className = 'hitl-lbl hitl-say';
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
+    l.w = null;
     l.inner.style.background = '';
     l.t = 0; l.life = seconds; l.rise = 0; l.follow = follow; l.offsetY = offsetY;
     l.jit.set(0, 0, 0);
@@ -145,11 +154,41 @@ export function createLabels(parent) {
 
   // Screen-space pass, run after the CSS2D render: speech bubbles draw over stat labels, bubbles
   // that overlap stack upward (the older one keeps its place), and stat labels slide sideways off
-  // any bubble. Offsets live on the inner span and ease toward their targets, so nothing jumps.
-  const GAP = 6;
-  const TAIL = 9;               // the bubble's pointer below its box
+  // any bubble. Positions are projected like the CSS2D renderer does and sizes are measured only
+  // when a label's text changes, so a frame does no layout reads. Offsets live on the inner span
+  // and ease toward their targets, so nothing jumps.
+
   const hits = (a, b) => a.left < b.right + GAP && a.right > b.left - GAP && a.top < b.bottom + GAP && a.bottom > b.top - GAP;
-  function layout(dt) {
+  const proj = new THREE.Vector3();
+  function rectOf(l, camera, w, h) {
+    proj.setFromMatrixPosition(l.obj.matrixWorld).project(camera);
+    const x = (proj.x * 0.5 + 0.5) * w, y = (-proj.y * 0.5 + 0.5) * h;
+    return { left: x - l.w / 2, right: x + l.w / 2, top: y - l.h / 2, bottom: y + l.h / 2 };
+  }
+  // Leader lines for lifted bubbles, in a layer under every label so they never cross text.
+  let leadLayer = null;
+  const leads = [];
+  function drawLeads(segs, overlay) {
+    if (!leadLayer && overlay) {
+      leadLayer = document.createElement('div');
+      leadLayer.className = 'hitl-leads';
+      overlay.prepend(leadLayer);
+    }
+    if (!leadLayer) return;
+    while (leads.length < segs.length) { const i = document.createElement('i'); leadLayer.appendChild(i); leads.push(i); }
+    leads.forEach((i, n) => {
+      const g = segs[n];
+      if (!g) { if (i.style.display !== 'none') i.style.display = 'none'; return; }
+      i.style.display = '';
+      i.style.left = `${g.x.toFixed(1)}px`;
+      i.style.top = `${g.y1.toFixed(1)}px`;
+      i.style.height = `${(g.y2 - g.y1).toFixed(1)}px`;
+      i.style.opacity = g.o.toFixed(2);
+    });
+  }
+
+  function layout(dt, camera, w, h, overlay) {
+    const segs = [];
     const says = [];
     const stats = [];
     for (const l of live) {
@@ -160,14 +199,16 @@ export function createLabels(parent) {
     const k = 1 - Math.exp(-dt * 14);
     if (!says.length) {
       for (const l of stats) l.dx += (0 - l.dx) * k;
+      drawLeads(segs, overlay);
       return;
     }
+    for (const l of [...says, ...stats]) if (l.w == null) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
     says.sort((a, b) => b.t - a.t);
     const placed = [];
     for (const l of says) {
       l.el.style.zIndex = String(Number(l.el.style.zIndex || 0) + 1000);
-      const r = l.el.getBoundingClientRect();
-      const box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom + TAIL };
+      const box = rectOf(l, camera, w, h);
+      box.bottom += TAIL;
       let dy = 0;
       for (let pass = 0; pass < 6; pass++) {
         const at = { ...box, top: box.top + dy, bottom: box.bottom + dy };
@@ -177,9 +218,11 @@ export function createLabels(parent) {
       }
       l.dy += (dy - l.dy) * k;
       placed.push({ ...box, top: box.top + dy, bottom: box.bottom + dy });
+      // From the lifted tail tip down to where the tail would point: the speaker.
+      if (-l.dy > LEAD_MIN) segs.push({ x: (box.left + box.right) / 2, y1: box.bottom + l.dy - 2, y2: box.bottom, o: Number(l.el.style.opacity || 1) });
     }
     for (const l of stats) {
-      const r = l.el.getBoundingClientRect();
+      const r = rectOf(l, camera, w, h);
       let dx = 0;
       for (let pass = 0; pass < 4; pass++) {
         const at = { left: r.left + dx, right: r.right + dx, top: r.top, bottom: r.bottom };
@@ -190,6 +233,7 @@ export function createLabels(parent) {
       }
       l.dx += (dx - l.dx) * k;
     }
+    drawLeads(segs, overlay);
   }
 
   function clearFor(follow) {
