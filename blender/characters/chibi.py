@@ -372,7 +372,7 @@ vs = box('role_security', (1.0, 1.0, 1.0), (0, 0, TORSO_H * 0.47), None, bevel=0
 vs.scale = (0.3, 0.215, TORSO_H * 0.78)
 bpy.ops.object.transform_apply(scale=True)
 soften(vs, 0.05, 3)
-vs.data.materials.append(mat('plastic_charcoal'))
+vs.data.materials.append(mat('laminate'))         # light body so the slate stripes read at gameplay zoom
 stripe = box('vest_stripe', (0.31, 0.225, 0.06), (0, 0, TORSO_H * 0.5), None, bevel=0.012)
 use(stripe, 'role')
 stripe2 = box('vest_stripe2', (0.31, 0.225, 0.03), (0, 0, TORSO_H * 0.3), None, bevel=0.008, segments=1)
