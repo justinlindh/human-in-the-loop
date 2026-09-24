@@ -56,10 +56,16 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     r.char.dispose();
   }
 
-  // Seats follow the sim: staff[i] sits at the i-th desk in office.placed.
+  // Seats follow the sim's staff.deskId (null: no desk). Without the field, staff[i] takes the
+  // i-th desk in office.placed.
   function assignSeats(list, state) {
     const deskIds = (state.office?.placed ?? []).filter((p) => office.deskById(p.id)).map((p) => p.id);
-    list.forEach((s, i) => { recs.get(s.id).seat = deskIds[i] ?? null; });
+    let k = 0;
+    for (const s of list) {
+      const r = recs.get(s.id);
+      if ('deskId' in s) r.seat = s.deskId && office.deskById(s.deskId) ? s.deskId : null;
+      else r.seat = deskIds[k++] ?? null;
+    }
   }
 
   function openSpot() {

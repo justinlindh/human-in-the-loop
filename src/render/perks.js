@@ -226,7 +226,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     update, reset,
     get visiting() { return [...recs.values()].filter((r) => r.temp?.perkKey).length; },
     get sessions() { return sessions.length; },
-    peek(id) { const r = recs.get(id); return r && { yaw: r.yaw, face: r.face ?? null, path: r.path.length, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
+    peek(id) { const r = recs.get(id); return r && { seat: r.seat, yaw: r.yaw, face: r.face ?? null, path: r.path.length, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
     get phases() { return sessions.map((x) => `${x.phase}:${x.t.toFixed(1)}/${x.dur.toFixed(1)}`); },
     // Test hook: send a person (or a pair) to a specific placed item now.
     send(ids, placedId, { dur } = {}) {
