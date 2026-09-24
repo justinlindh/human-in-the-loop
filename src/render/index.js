@@ -14,6 +14,7 @@ import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
 import { createBuild } from './build.js';
 import { createPortraits } from './portraits.js';
+import { createRival } from './rival.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
 
@@ -88,6 +89,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let office = null;
   let staff = null;
   let build = null;
+  let rival = null;
   const labelLayer = new THREE.Group();
   labelLayer.name = 'labels';
   scene.add(labelLayer);
@@ -105,6 +107,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     office = createOffice({ parent: scene, screens, lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i) => lighting.setAccent(p, i), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
+    rival = createRival({ office });
     loadModels().then(() => { ready = true; });
   }
   const applyDebugCamera = () => {
@@ -184,6 +187,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setSkeleton(Math.max(lk.dim, partyDim));
     setWilt(lk.wilt);
     staff.sync(state);
+    rival?.sync(state);
   }
 
   function handleEvents(events, state) {
