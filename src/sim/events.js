@@ -26,7 +26,8 @@ export function decisionVars(state, rng, subjectId) {
   const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
   const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
-  return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state) };
+  return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
+    alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague' };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -42,6 +43,7 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks))
     .replaceAll('{rivalFounder}', v.rivalFounder ?? 'Their founder')
     .replaceAll('{rival}', v.rival ?? 'A rival')
+    .replaceAll('{alum}', v.alum ?? 'A former colleague')
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 

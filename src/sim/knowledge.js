@@ -10,6 +10,11 @@ const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 
 
 // Called whenever someone leaves (fired, resigned, event). The person must already be removed from staff.
 export function onDeparture(state, person) {
+  // Everyone who leaves joins the alumni network.
+  const alumni = (state.flags.alumni ??= []);
+  alumni.push({ name: person.name, role: person.role, week: state.week });
+  if (alumni.length > B.alumniKept) alumni.splice(0, alumni.length - B.alumniKept);
+  state.flags.alumniNeeded ??= B.alumniNeeded;
   state.comprehensionDebt = Math.min(100, state.comprehensionDebt
     + person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
   for (const p of state.staff) {

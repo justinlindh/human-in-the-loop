@@ -3,7 +3,7 @@
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
-// {ransom} (what a ransom would cost this company).
+// {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
 export const SUBJECTS = [
@@ -798,6 +798,69 @@ const list = [
     choices: [
       { label: 'Ship it for the demo', hint: 'Hype +15; Purpose down if you promised care or trust', effects: { hype: 15, purpose: { craft: -6, trust: -6, growth: 4 } }, outcome: 'The demo goes perfectly, as long as nobody clicks anywhere.' },
       { label: 'Wait until it is right', hint: 'Hype down a little; Purpose up if this is who you are', effects: { hype: -5, purpose: { craft: 5, trust: 4 } }, outcome: 'Marketing mourns the slide. The feature ships three weeks later and works.' },
+    ],
+  },
+  // Ladder chunk (c): the AI Summit, the hearing, and the alumni network
+  {
+    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, eras: ['chatgbt', 'agents', 'consolidation', 'plateau'],
+    when: () => true,
+    title: 'The AI Summit',
+    text: 'The AI Summit is next month. Every company will announce something. Some of them will announce the same thing, in the same font. {incumbent} has booked the main stage.',
+    choices: [
+      { label: 'Skip it', hint: 'Nothing happens', effects: {}, outcome: 'You watch the keynotes at 2x speed. They are better that way.' },
+      { label: 'A talk in a side room', hint: '-$20k, brand +2, hype +10 on your newest product', effects: { cash: -20000, brand: 2, hype: 10 }, outcome: 'Forty people come. Thirty-eight stay. Two of them become customers.' },
+      { label: 'A live demo on the main stage', hint: '-$80k and a gamble: a big brand and hype win, or a very public crash. Needs the Office Floor', requires: 'stage1', effects: { cash: -80000, gamble: { p: 0.6, effects: { brand: 6, hype: 30 }, else: { brand: -3, hype: 10 } } }, outcome: 'The lights go down. Someone in the front row is already filming.' },
+    ],
+  },
+  {
+    id: 'hearing_summons', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Invited to testify',
+    text: 'A committee on AI in the workplace would like {company} to testify. The invitation is on very thick paper. The hearing will be on television.',
+    choices: [
+      { label: 'Send a founder', hint: 'A gamble: they come across well, or a clip goes viral for the wrong reasons. The report lands 13 weeks later', effects: { gamble: { p: 0.55, effects: { brand: 6 }, else: { brand: -5 } }, followUp: { eventId: 'hearing_report', inWeeks: 13 } }, outcome: 'Your founder practises in the mirror. The mirror has questions.' },
+      { label: 'Send the lawyers', hint: '-$30k; safe and very boring. The report lands 13 weeks later', effects: { cash: -30000, followUp: { eventId: 'hearing_report', inWeeks: 13 } }, outcome: 'The lawyers say "we would have to get back to you" eleven times. It is a masterpiece.' },
+      { label: 'Decline politely', hint: 'Brand down a little; the report lands 13 weeks later', effects: { brand: -3, followUp: { eventId: 'hearing_report', inWeeks: 13 } }, outcome: 'Your empty chair is on the news. It looks very dignified. It does not help.' },
+    ],
+  },
+  {
+    id: 'hearing_report', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The committee report',
+    text: 'The committee has published its report. Page 212 mentions {company}. Nobody has read pages 1 to 211.',
+    choices: [
+      { label: 'Comply early', hint: '-$40k; customers churn less for 52 weeks, and Purpose up if you promised trust', effects: { cash: -40000, purpose: { trust: 6, people: 3 }, modifier: { key: 'churn', value: -0.1, weeks: 52, label: 'Early compliance' } }, outcome: 'You are the first company to comply. There is a small ceremony. Nobody attends.' },
+      { label: 'Wait for the final rules', hint: 'Nothing now; signups slow a little for 26 weeks while customers wait to see', effects: { modifier: { key: 'acquisition', value: -0.08, weeks: 26, label: 'Regulatory fog' } }, outcome: 'You wait. Everyone waits. The rules are still being written. By an agent, allegedly.' },
+    ],
+  },
+  {
+    id: 'alumni_referral', kind: 'staff', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    when: (s) => (s.flags.alumni?.length ?? 0) >= s.flags.alumniNeeded,
+    title: 'A note from {alum}',
+    text: '{alum}, who left a while ago, writes: "My old team is looking around. I told them you were the good kind of chaos."',
+    choices: [
+      { label: 'Take the introductions', hint: 'Three senior candidates appear', effects: { candidates: 'seniorBatch', teamMeaning: 1 }, outcome: 'Three very good résumés arrive, each with a nice note about {alum}.' },
+      { label: 'Invite {alum} to lunch', hint: '-$500; knowledge flows back a little', effects: { cash: -500, ik: 3 }, outcome: '{alum} explains how the billing service really works. Someone takes notes this time.' },
+    ],
+  },
+  {
+    id: 'alumni_competitor', kind: 'market', weight: 1, cooldownWeeks: 104, random: true, subject: 'randomProduct',
+    when: (s, h) => (s.flags.alumni?.length ?? 0) >= s.flags.alumniNeeded && h.live.length > 0,
+    title: '{alum} started something',
+    text: '{alum}, who used to work here, just launched a company that competes with {product}. Their launch post thanks you for "everything I learned about what not to do".',
+    choices: [
+      { label: 'Congratulate them publicly', hint: 'Brand up; a new clone in the market', effects: { brand: 2, clones: 1 }, outcome: 'Your reply is gracious. Their reply is more gracious. It becomes a whole thing.' },
+      { label: 'Offer to acquire them', hint: '-$120k; no new competitor, and a few hires come home', effects: { cash: -120000, candidates: 'seniorBatch' }, outcome: '{alum} signs. Their first week back, they sit at their old desk out of habit.' },
+    ],
+  },
+  {
+    id: 'alumni_reunion', kind: 'staff', weight: 1, cooldownWeeks: 156, random: true, subject: null,
+    when: (s) => (s.flags.alumni?.length ?? 0) >= s.flags.alumniNeeded * 2,
+    title: 'The alumni reunion',
+    text: 'The #alumni group chat wants a reunion. It has more members than the company. {alum} volunteered to bring the old office sign.',
+    choices: [
+      { label: 'Host it', hint: '-$8k; brand and team meaning up, knowledge up a little', effects: { cash: -8000, brand: 2, teamMeaning: 3, ik: 2 }, outcome: 'Old and new people swap war stories. Several bugs are finally explained.' },
+      { label: 'Let them organise it', hint: 'Nothing happens', effects: {}, outcome: 'You hear it was great. There are photos. You are in none of them.' },
     ],
   },
   // Classic era flavor
