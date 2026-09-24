@@ -17,7 +17,6 @@ function stage0() {
       { wall: 'x', at: -1.0, width: 2.6, bottom: 0, top: 2.1, kind: 'garage' },
       { wall: 'z', at: 1.5, width: 1.6, bottom: 1.05, top: 2.35, kind: 'window' },
       { wall: 'px', at: 0.5, width: 1.6, bottom: 1.05, top: 2.35, kind: 'window' },
-      { wall: 'pz', at: 0, width: 1.1, bottom: 0, top: 2.05, kind: 'door' },
     ],
     door: { x: 4, y: 6 },
     blocked: [[8, 0]],
@@ -31,7 +30,6 @@ function stage1() {
     name: 'Office Floor', W, D, wallH: 2.6,
     floor: 'carpet', wall: 'cream',
     openings: [
-      { wall: 'pz', at: 0, width: 1.3, bottom: 0, top: 2.1, kind: 'door' },
       { wall: 'z', at: -5.0, width: 1.6, bottom: 1.0, top: 2.3, kind: 'window' },
       { wall: 'z', at: 0.0, width: 1.6, bottom: 1.25, top: 2.45, kind: 'window' },
       { wall: 'z', at: 4.5, width: 1.6, bottom: 1.25, top: 2.45, kind: 'window' },
@@ -54,7 +52,6 @@ function stage2() {
     name: 'HQ Building', W, D, wallH: 2.8,
     floor: 'twotone', wall: 'sage', split: -4.5,
     openings: [
-      { wall: 'pz', at: 0, width: 1.4, bottom: 0, top: 2.2, kind: 'door' },
       { wall: 'z', at: -7.5, width: 2.4, bottom: 1.0, top: 2.5, kind: 'window', wide: true },
       { wall: 'z', at: -1.5, width: 2.4, bottom: 1.3, top: 2.6, kind: 'window', wide: true },
       { wall: 'z', at: 4.5, width: 2.4, bottom: 1.3, top: 2.6, kind: 'window', wide: true },
@@ -79,7 +76,20 @@ export function stageLayout(stage) {
   const data = OFFICE_STAGES[stage]?.grid;
   const grid = { w: data?.w ?? L.W, h: data?.h ?? L.D };
   const door = OFFICE_STAGES[stage]?.door ?? L.door;
-  return { ...L, grid, door, doorWorld: tileCenter(L, door.x, door.y), blocked: OFFICE_STAGES[stage]?.blocked ?? L.blocked ?? [] };
+  return {
+    ...L, grid, door, doorWorld: tileCenter(L, door.x, door.y), openings: withDoor(L, grid, door),
+    blocked: OFFICE_STAGES[stage]?.blocked ?? L.blocked ?? [],
+  };
+}
+
+// The door opening goes in whichever wall the door tile touches; windows it would overlap are dropped.
+function withDoor(L, grid, door) {
+  const c = tileCenter(L, door.x, door.y);
+  const wall = door.y >= grid.h - 1 ? 'pz' : door.y <= 0 ? 'z' : door.x <= 0 ? 'x' : 'px';
+  const at = wall === 'pz' || wall === 'z' ? c.x : c.z;
+  const d = { wall, at, width: 1.2, bottom: 0, top: 2.1, kind: 'door' };
+  const keep = L.openings.filter((o) => o.wall !== wall || Math.abs(o.at - at) > (o.width + d.width) / 2 + 0.1);
+  return [...keep, d];
 }
 
 // Footprints the renderer falls back on when ITEMS has none.

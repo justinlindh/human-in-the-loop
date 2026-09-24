@@ -263,7 +263,14 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
           break;
         }
         case 'chat': {
+          // Slackk messages are typed, not spoken: a short typing emote, never a bubble.
           const r = (e.fromId && recs.get(e.fromId)) || recByName(e.from);
+          if (!r || r.hidden || r.char.emote) break;
+          emote(r, 'typing', 1.6);
+          break;
+        }
+        case 'say': {
+          const r = recs.get(e.staffId);
           if (!r || r.hidden || !e.text) break;
           if (labels.speechCount?.() >= MAX_SPEECH) break;
           labels.say(e.text, r.char.root, 3.2);
