@@ -1039,3 +1039,4 @@
 /* Speed glyphs take an explicit fill per state rather than inheriting currentColor. */
 .hitl .chip.speed .btn.spd .ic svg * { fill: var(--ink); }
 .hitl .chip.speed .btn.spd.on .ic svg * { fill: var(--cream); }
+.hitl .proj .pcancel { margin-left: 0.4em; }

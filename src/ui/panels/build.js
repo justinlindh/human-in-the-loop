@@ -1,6 +1,6 @@
 import { h, setText, setWidth, setClass, fmtMoney, fmtNum, dateOf, toggleClass } from '../dom.js';
 import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../content.js';
-import { portrait, liveView, stars, tabs } from '../widgets.js';
+import { portrait, liveView, stars, tabs, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { researchView } from './research.js';
 import { ERA } from '../v2content.js';
@@ -284,7 +284,9 @@ export function buildPanel(ctx, arg) {
       people.length ? null : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel);
       const meta = j.kind === 'research' ? 'Internal tool' : j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle} · ${MODEL[j.model]?.name ?? j.model}` : KIND_LABEL[j.kind];
       out.push(h('div.card.proj', { dataset: { project: j.id } },
-        h('div.row', null, h('span.pill.ink', { text: KIND_LABEL[j.kind] ?? j.kind }), h('b.ptitle', { text: projectLabel(s, j) }), h('span.faint.small', { text: meta }), h('span.spacer'), pct),
+        h('div.row', null, h('span.pill.ink', { text: KIND_LABEL[j.kind] ?? j.kind }), h('b.ptitle', { text: projectLabel(s, j) }), h('span.faint.small', { text: meta }), h('span.spacer'), pct,
+          // Cancelling loses the progress, so it takes a second tap to confirm.
+          confirmButton('Cancel', 'Lose progress?', 'small.danger.pcancel', () => { if (ctx.act({ type: 'cancelProject', projectId: j.id }).ok) ctx.sfx('close'); })),
         h('div.bar.thick', null, fill),
         j.kind === 'new' || j.kind === 'update' ? h('div.pstats', null, ...statEls.map((x) => x.el)) : null,
         crew));
