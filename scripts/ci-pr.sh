@@ -7,13 +7,19 @@ set -uo pipefail
 pr="${1:?usage: scripts/ci-pr.sh <pr-number> [--no-comment]}"
 comment=1; [ "${2:-}" = "--no-comment" ] && comment=0
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-WT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/pr-$pr"
+ROOT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
+mkdir -p "$ROOT"
+# One run per PR at a time, each in its own worktree: overlapping runs sharing a path deleted
+# each other's trees mid-run.
+exec 9>"$ROOT/pr-$pr.lock"
+flock -n 9 || { echo "ci-pr: another run for #$pr is in progress; not starting a second one" >&2; exit 3; }
+WT="$ROOT/pr-$pr-$$"
 
 read -r head base title < <(gh pr view "$pr" --json headRefOid,baseRefName,title --jq '[.headRefOid, .baseRefName, .title] | @tsv' | tr '\t' '\037' | awk -F'\037' '{ printf "%s %s %s\n", $1, $2, $3 }')
 [ -n "$head" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
 
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
-rm -rf "$WT"; git -C "$REPO" worktree prune
+git -C "$REPO" worktree prune
 cleanup() { git -C "$REPO" worktree remove --force "$WT" 2>/dev/null; }
 trap cleanup EXIT
 if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null; then
