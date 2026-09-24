@@ -72,10 +72,14 @@ export function needsYou(s) {
     out.push({ key: 'outage', icon: 'tray.outage', text: `Nobody can fix ${p?.name ?? 'the outage'}`, go: ['ops'] });
   }
   if (s.cash < 0) out.push({ key: 'cash', icon: 'money', text: 'Cash is in the red', go: ['reports'] });
-  for (const j of s.projects) {
-    if (!s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) {
-      out.push({ key: `proj:${j.id}`, icon: 'tray.project', text: `Nobody is working on ${projectLabel(s, j)}`, go: ['build', { projectId: j.id }] });
-    }
+  // Several unstaffed projects fold into one line that opens the Projects tab.
+  const empty = s.projects.filter((j) => !s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));
+  if (empty.length === 1) {
+    const j = empty[0];
+    out.push({ key: `proj:${j.id}`, icon: 'tray.project', text: `Nobody is working on ${projectLabel(s, j)}`, go: ['build', { projectId: j.id }] });
+  } else if (empty.length > 1) {
+    const updates = empty.every((j) => j.kind === 'update');
+    out.push({ key: `proj:${empty.length}`, icon: 'tray.project', text: `${empty.length} ${updates ? 'product updates' : 'projects'} have nobody on them`, go: ['build', { projectId: empty[0].id }] });
   }
   for (const p of s.staff) {
     if (p.pathPending) out.push({ key: `path:${p.id}`, icon: 'path', text: `${p.name.split(' ')[0]} can pick a career path`, go: ['staff', { staffId: p.id, pickPath: true }] });
