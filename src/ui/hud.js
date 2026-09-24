@@ -190,7 +190,7 @@ export function createHud({ root, controls, ui }) {
       const done = all.filter((g) => s.goals[g.id].done).length;
       const next = all.filter((g) => !s.goals[g.id].done).slice(0, 2);
       if (next.length) {
-        tray.append(h('div.tray-card.goals', { title: 'Milestones. Each one pays a small reward.' },
+        tray.append(h('div.tray-card.goals', { title: 'Milestones. Each one pays a small reward. Click for the full list.', onclick: () => ui.openGoals?.() },
           h('div.t', null, h('span', null, icon('star', { size: 14 }), ' Goals'), h('span.k.num', { text: `${done}/${all.length}` })),
           ...next.map((g) => h('div.goal', null, h('span.gbox'), h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc }))))));
       }

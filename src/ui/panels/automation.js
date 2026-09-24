@@ -60,8 +60,12 @@ function affected(s, fn) {
 }
 
 export function automationPanel(ctx) {
-  let tab = 'dials';
+  // Before automation unlocks, this menu holds only the policies that have arrived.
+  const s0 = ctx.getState();
+  const dialsLocked = !!s0.unlocks && !s0.unlocks.automation;
+  let tab = dialsLocked ? 'policies' : 'dials';
   const t = tabs([{ id: 'dials', icon: 'menu.automation', label: 'Automation' }, { id: 'policies', icon: 'policy', label: 'Policies' }], tab, (id) => { tab = id; t.set(id); render(); });
+  t.setHidden('dials', dialsLocked);
   const host = h('div');
 
   const dials = liveView(
@@ -147,7 +151,8 @@ export function automationPanel(ctx) {
 
   const pol = liveView(
     (s) => [Object.keys(s.policies).sort().join(), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
-    (s) => h('div.policies', null, ...POLICIES.map((p) => {
+    // With progressive unlocks, a policy appears only once it has arrived.
+    (s) => h('div.policies', null, ...POLICIES.filter((p) => !s.unlocks || s.policies[p.id] || policyUnlocked(s, p)).map((p) => {
       const on = !!s.policies[p.id];
       const rivals = exclusiveWith(p).filter((id) => POLICY[id]);
       const rivalOn = rivals.find((id) => s.policies[id]);
@@ -181,6 +186,7 @@ export function automationPanel(ctx) {
     el: host,
     tabs: t.el,
     update(s) {
+      this.setTitle?.(s.unlocks && !s.unlocks.automation ? 'Policies' : 'Automation');
       t.setLabel('policies', `Policies (${Object.keys(s.policies).length} on)`);
       (tab === 'dials' ? dials : pol).update(s);
     },

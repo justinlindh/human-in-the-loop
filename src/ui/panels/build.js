@@ -32,6 +32,8 @@ export function buildPanel(ctx, arg) {
   }
 
   const t = tabs([{ id: 'new', icon: 'new', label: 'New Product' }, { id: 'projects', icon: 'project', label: 'Projects' }, { id: 'research', icon: 'research', label: 'Internal tools' }], tab, (id) => { tab = id; t.set(id); render(); });
+  const u0 = ctx.getState().unlocks;
+  if (u0 && !u0.research) { t.setHidden('research', true); if (tab === 'research') { tab = 'new'; t.set(tab); } }
   let focusProject = arg?.projectId ?? null;
   const host = h('div');
 

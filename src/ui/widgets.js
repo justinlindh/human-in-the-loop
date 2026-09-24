@@ -275,7 +275,8 @@ export function tabs(list, current, onPick) {
   const set = (id) => btns.forEach((b, i) => toggleClass(b, 'on', list[i].id === id));
   set(current);
   const setLabel = (id, text) => { const i = list.findIndex((t) => t.id === id); if (i >= 0) setText(labels[i], text); };
-  return { el, set, setLabel };
+  const setHidden = (id, hide) => { const i = list.findIndex((t) => t.id === id); if (i >= 0) btns[i].style.display = hide ? 'none' : ''; };
+  return { el, set, setLabel, setHidden };
 }
 
 export function sparkline(values, { w = 160, hgt = 36, color = '#34c38f', min = 0, max = 100 } = {}) {

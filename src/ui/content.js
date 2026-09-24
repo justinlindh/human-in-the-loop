@@ -44,6 +44,7 @@ export function trendText(id) {
 }
 
 export function policyUnlocked(state, p) {
+  if (state.unlocks) return state.unlocks[`policy.${p.id}`] != null;
   try { return !!p.unlock?.(state); } catch { return false; }
 }
 export function policyLockText(p) {

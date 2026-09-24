@@ -1,5 +1,5 @@
 import './style.css';
-import { h } from './dom.js';
+import { h, dateOf } from './dom.js';
 import { createHud } from './hud.js';
 import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
@@ -12,6 +12,8 @@ import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
+import { createAnnouncer } from './announce.js';
+import { GOALS, GOAL } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -100,11 +102,49 @@ export function createUI({ root, getState, dispatch, controls }) {
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
+    onChange: (id) => { if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
   const buildMode = createBuildMode({ layer, ctx, controls });
+  const announcer = createAnnouncer({ layer, sfx, openMenu: (id) => menu.open(id) });
+
+  // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
+  const UNLOCK_HOST = { marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'automation' };
+  const hostOf = (key) => UNLOCK_HOST[key] ?? (key.startsWith('policy.') ? 'automation' : null);
+  const newMenus = new Set();
+  let menuSig = null;
+  function syncMenus(state, animate = false) {
+    const u = state.unlocks;
+    const policiesIn = !!u && Object.keys(u).some((k) => k.startsWith('policy.') || k === 'standups');
+    const sig = u ? Object.keys(u).sort().join() : 'all';
+    if (sig === menuSig) return;
+    menuSig = sig;
+    for (const id of ['marketing', 'ops', 'models']) menu.setVisible(id, !u || u[id] != null, { animate });
+    menu.setVisible('automation', !u || u.automation != null || policiesIn, { animate });
+    menu.setLabel('automation', !u || u.automation != null ? 'Automation' : 'Policies');
+  }
+  function onUnlock(key, state) {
+    syncMenus(state, true);
+    const host = hostOf(key);
+    if (host && menu.current !== host) { newMenus.add(host); menu.setNew(host, true); }
+    const label = host ? (MENU.find((m) => m.id === host)?.label ?? host) : null;
+    announcer.unlock(key, host, host === 'automation' && !state.unlocks?.automation ? 'Policies' : label);
+  }
+
+  function goalsModal() {
+    const s = getState();
+    const list = GOALS.filter((g) => s.goals?.[g.id]);
+    const body = h('div.goallist', null, ...list.map((g) => {
+      const st = s.goals[g.id];
+      const wk = st.done && st.week != null ? dateOf(st.week) : null;
+      return h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
+        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), g.reward ? h('div.small', { text: `Reward: ${g.reward}` }) : null),
+        wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null);
+    }));
+    ctx.openModal({ title: `Goals (${list.filter((g) => s.goals[g.id].done).length}/${list.length})`, iconName: 'star', body, cls: 'small' });
+  }
+  ui.openGoals = goalsModal;
   ctx.build = buildMode;
   ctx.isBusy = () => isBusy();
 
@@ -147,6 +187,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       if (e.key === 'Escape') t.blur();
       return;
     }
+    if (announcer.onKey(e)) return;
     if (ui.modalKey?.(e)) return;
     if (buildMode.onKey(e)) return;
     if (e.key === 'Escape') { if (menu.close()) e.preventDefault(); return; }
@@ -169,6 +210,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
+      announcer.reset(); buildMode.exit(); menuSig = null;
+      for (const id of newMenus) menu.setNew(id, false);
+      newMenus.clear();
       launchScores.clear();
       for (const p of state.products) launchScores.set(p.id, p.score);
     }
@@ -194,6 +238,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     gameover.update(state);
     popups.update(state);
     buildMode.update(state);
+    syncMenus(state);
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
@@ -235,6 +280,14 @@ export function createUI({ root, getState, dispatch, controls }) {
           if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) popups.queueLaunch(e.productId);
           break;
         }
+        case 'unlock': onUnlock(e.key, state); break;
+        case 'era': announcer.era(e.eraId, state.week, state.pendingDecision?.title ?? null); break;
+        case 'goal': {
+          const g = GOAL[e.goalId];
+          toasts.push(`Goal complete: ${g?.name ?? e.goalId}${g?.reward ? ` (${g.reward})` : ''}`, 'good', { action: () => goalsModal() });
+          sfx('coin');
+          break;
+        }
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }
@@ -245,7 +298,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // not the decision popup (the sim already waits for decisions).
   function isBusy() {
     if (settings.values.pauseMenus === false) return false;
-    return !!(menu.current || ctx.modal || buildMode.on || popups.launchOpen || settings.isOpen || tutorial.open);
+    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || settings.isOpen || tutorial.open);
   }
   ui.isBusy = isBusy;
 
@@ -259,6 +312,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     openSettings: () => settings.open(),
     startTutorial: () => tutorial.start(true),
     build: buildMode,
+    openGoals: () => goalsModal(),
   };
   // Test hooks: ?title=1 shows the title screen and ?tutorial=1 runs the coach marks.
   const q = new URLSearchParams(location.search);
