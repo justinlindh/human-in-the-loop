@@ -40,3 +40,4 @@ export const UNLOCKS = [
 ];
 
 export const UNLOCK_KEYS = UNLOCKS.map((u) => u.key);
+export const UNLOCKS_BY_KEY = Object.fromEntries(UNLOCKS.map((u) => [u.key, u]));

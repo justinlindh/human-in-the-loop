@@ -1,5 +1,6 @@
 // Milestones shown in the Goals card. done(state, h) is checked every week and after every action;
-// h = { mrr, customers, leaders, ipoReady, desks }. reward: { cash, brand } applied once; trophy: shown on the shelf.
+// h = { mrr, customers, leaders, ipoReady, desks, treeDone }. reward: { cash, brand } applied once; rewardText: the
+// same in short words ("+$5K, +2 brand"); trophy: shown on the shelf.
 export const GOALS = [
   {
     id: 'place_desks', group: 'Getting started', name: 'Place two desks', trophy: false,
@@ -92,5 +93,10 @@ export const GOALS = [
     reward: { cash: 25000, brand: 3 }, done: (s) => s.week >= 520,
   },
 ];
+
+const money = (n) => (n >= 1000 ? `$${n / 1000}K` : `$${n}`);
+for (const g of GOALS) {
+  g.rewardText = [g.reward.cash ? `+${money(g.reward.cash)}` : null, g.reward.brand ? `+${g.reward.brand} brand` : null].filter(Boolean).join(', ');
+}
 
 export const GOAL_IDS = GOALS.map((g) => g.id);

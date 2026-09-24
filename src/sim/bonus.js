@@ -8,28 +8,45 @@ const ADJACENCY_KEYS = new Set(Object.values(ITEMS).filter((it) => it.adjacency)
 
 const near = (cells, [x, y], radius) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - x), Math.abs(cy - y)) <= radius);
 
-// Adjacency for a key: desk bonuses (each occupied desk gets every nearby item's value) averaged over staff,
-// plus item-to-item bonuses (each item gets value per neighbour of the named kind).
-function adjacencyBonus(state, key) {
-  const placed = state.office.placed;
-  const sources = placed.filter((p) => ITEMS[p.itemId]?.adjacency?.key === key);
-  if (!sources.length) return 0;
-  let total = 0;
-  const seats = desksOf(placed).slice(0, state.staff.length).map(seatTile);
-  let perDesk = 0;
-  for (const src of sources) {
-    const adj = ITEMS[src.itemId].adjacency;
+// Every adjacency bonus in a layout: { sourceId, targetId, target: 'desk'|'item', key, value, paid }.
+// A desk link pays only when someone sits at that desk (staff take desks in order). Distance is
+// Chebyshev, from any tile of the source to the desk's seat tile, or to any tile of the other item.
+export function adjacencyLinks(placed, staffCount) {
+  const links = [];
+  const desks = desksOf(placed);
+  for (const src of placed) {
+    const adj = ITEMS[src.itemId]?.adjacency;
+    if (!adj) continue;
     const cells = footprintCells(src.itemId, src.x, src.y, src.rot);
     if (adj.to) {
       for (const other of placed) {
-        if (other !== src && other.itemId === adj.to && near(cells, [other.x, other.y], adj.radius)) total += adj.value;
+        if (other === src || other.itemId !== adj.to) continue;
+        const otherCells = footprintCells(other.itemId, other.x, other.y, other.rot);
+        if (otherCells.some((c) => near(cells, c, adj.radius))) {
+          links.push({ sourceId: src.id, targetId: other.id, target: 'item', key: adj.key, value: adj.value, paid: true });
+        }
       }
     } else {
-      for (const seat of seats) if (near(cells, seat, adj.radius)) perDesk += adj.value;
+      desks.forEach((d, i) => {
+        if (near(cells, seatTile(d), adj.radius)) {
+          links.push({ sourceId: src.id, targetId: d.id, target: 'desk', key: adj.key, value: adj.value, paid: i < staffCount });
+        }
+      });
     }
   }
-  if (state.staff.length) total += perDesk / state.staff.length;
-  return total;
+  return links;
+}
+
+// Adjacency for a key: paid desk links averaged over staff, plus item-to-item links.
+function adjacencyBonus(state, key) {
+  let desk = 0;
+  let item = 0;
+  for (const l of adjacencyLinks(state.office.placed, state.staff.length)) {
+    if (l.key !== key || !l.paid) continue;
+    if (l.target === 'desk') desk += l.value;
+    else item += l.value;
+  }
+  return item + (state.staff.length ? desk / state.staff.length : 0);
 }
 
 // Placed items' effects for a key at their current levels, plus adjacency. The best copy of an item

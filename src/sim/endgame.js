@@ -100,6 +100,16 @@ export const acquisitionOpen = (state) => (state.flags.acquisitionOfferUntil ?? 
 // How the player can retire right now: 'ipo', 'acquired', or null.
 export const retireVia = (state) => (!ipoBlocker(state) ? 'ipo' : acquisitionOpen(state) ? 'acquired' : null);
 
+// Both ways to retire, each with whether it is open now and why not; the UI's Retire flow reads this.
+export function retireOptions(state) {
+  const ipo = ipoBlocker(state);
+  const open = acquisitionOpen(state);
+  return {
+    ipo: { ok: !ipo, reason: ipo },
+    acquired: { ok: open, reason: open ? null : 'No acquisition offer on the table', by: open ? state.flags.acquisitionOfferFrom ?? null : null },
+  };
+}
+
 export function retire(ctx, via) {
   const { state } = ctx;
   if (via === 'acquired') state.flags.acquirer ??= state.flags.acquisitionOfferFrom ?? 'a much bigger company';

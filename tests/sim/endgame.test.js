@@ -244,3 +244,14 @@ describe('history', () => {
     expect(s.history.at(-1).week).toBe(s.week);
   });
 });
+
+describe('retire options', () => {
+  it('reports both routes with reasons', async () => {
+    const { retireOptions } = await import('../../src/sim/endgame.js');
+    const s = game();
+    expect(retireOptions(s)).toEqual({ ipo: { ok: false, reason: expect.any(String) }, acquired: { ok: false, reason: 'No acquisition offer on the table', by: null } });
+    s.flags.acquisitionOfferUntil = s.week + 3;
+    s.flags.acquisitionOfferFrom = 'Jirra';
+    expect(retireOptions(s).acquired).toEqual({ ok: true, reason: null, by: 'Jirra' });
+  });
+});

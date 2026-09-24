@@ -9,5 +9,5 @@ export { productAppeal, totalMrr } from './products.js';
 export { oversightRequired, oversightProvided } from './automation.js';
 export { categoryLeaders } from './market.js';
 export { securityPosture } from './incidents.js';
-export { scoreRun, retireVia, ipoBlocker } from './endgame.js';
-export { placementCheck, footprintCells, seatTile, seatOf, deskCapacity } from './office.js';
+export { scoreRun, retireVia, retireOptions, ipoBlocker } from './endgame.js';
+export { placementCheck, adjacencyPreview, footprintCells, seatTile, seatOf, deskCapacity } from './office.js';

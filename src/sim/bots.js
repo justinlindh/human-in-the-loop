@@ -4,7 +4,7 @@ import { B } from './balance.js';
 import { dateOf, sum } from './util.js';
 import { createGame } from './state.js';
 import { tick } from './tick.js';
-import { dispatch } from './actions.js';
+import { dispatch as rawDispatch } from './actions.js';
 import { FUNCTIONS } from './state.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
@@ -21,6 +21,14 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { POLICIES } from '../data/policies.js';
 import { EVENTS } from '../data/events.js';
 import { ROLES } from '../data/roles.js';
+
+// Where the events of the bots' own dispatches go while botTurn or botDecide runs (null: dropped).
+let sink = null;
+const dispatch = (s, action) => {
+  const res = rawDispatch(s, action);
+  if (sink && res.events.length) sink(res.events, action);
+  return res;
+};
 
 // Throws with the path of the first non-finite number found in state.
 export function assertFinite(value, path = 'state') {
@@ -358,24 +366,50 @@ export const BOTS = { automateAll, allHumans, balanced, sensible, recklessHumans
 export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChooser, balanced: balancedChooser, sensible: balancedChooser, recklessHumans: firstChooser };
 
 // Plays one full run headless. Returns the outcome plus a few numbers for the balance table.
-export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
+// Resolves pending decisions the way the named bot would. Returns how many bridge loans it took.
+// onEvents(events, action) receives the events of every dispatch.
+export function botDecide(name, s, { onEvents = null } = {}) {
+  const prev = sink;
+  sink = onEvents;
+  let bridges = 0;
+  try {
+    for (let guard = 0; s.pendingDecision && guard < 5; guard++) {
+      const pickIdx = pickDecision(s, CHOOSERS[name]);
+      if (s.pendingDecision.eventId === 'bridge_loan' && pickIdx === 0) bridges++;
+      const res = dispatch(s, { type: 'resolveDecision', choice: pickIdx });
+      if (!res.ok) for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
+    }
+  } finally {
+    sink = prev;
+  }
+  return bridges;
+}
+
+// One week of the named bot's play before tick: furnishing, then every action it takes.
+// onEvents(events, action) receives the events of every dispatch, including the bot's internal ones.
+export function botTurn(name, s, { onEvents = null } = {}) {
+  const prev = sink;
+  sink = onEvents;
+  try {
+    furnish(s);
+    for (const a of BOTS[name](s)) dispatch(s, a);
+  } finally {
+    sink = prev;
+  }
+}
+
+// Plays one full run headless. Returns the outcome plus a few numbers for the balance table.
+// onWeek(state, tickEvents) after each tick; onEvents(events, action) for every dispatch.
+export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null } = {}) {
   const s = createGame({ seed, companyName: `Bot ${name}` });
-  const bot = BOTS[name];
-  const chooser = CHOOSERS[name];
   let maxStage = 0;
   let firstLaunch = null;
   let crises = 0;
   let wasUnrecoverable = false;
   while (!s.gameOver && s.week < maxWeeks) {
-    for (let guard = 0; s.pendingDecision && guard < 5; guard++) {
-      const pickIdx = pickDecision(s, chooser);
-      if (s.pendingDecision.eventId === 'bridge_loan' && pickIdx === 0) crises++;
-      const res = dispatch(s, { type: 'resolveDecision', choice: pickIdx });
-      if (!res.ok) for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
-    }
+    crises += botDecide(name, s, { onEvents });
     if (s.gameOver) break;
-    furnish(s);
-    for (const a of bot(s)) dispatch(s, a);
+    botTurn(name, s, { onEvents });
     const events = tick(s);
     maxStage = Math.max(maxStage, s.officeStage);
     const unrecoverable = !!s.outage?.unrecoverable;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, dispatch, scoreRun } from '../../src/sim/index.js';
-import { placementCheck, footprintCells, seatTile, pathsClear, autoArrange, findSpot, deskCapacity, seatOf } from '../../src/sim/office.js';
+import { placementCheck, adjacencyPreview, footprintCells, seatTile, pathsClear, autoArrange, findSpot, deskCapacity, seatOf } from '../../src/sim/office.js';
 import { itemBonus } from '../../src/sim/bonus.js';
 import { eligibleEvents } from '../../src/sim/events.js';
 import { createRng, int, pick } from '../../src/sim/rng.js';
@@ -188,9 +188,33 @@ describe('adjacency', () => {
     expect(place(s, 'server_rack', 0, 0).ok).toBe(true);
     const alone = itemBonus(s, 'uptimeFloor');
     expect(alone).toBeCloseTo(ITEMS.server_rack.effects[0].uptimeFloor);
-    expect(place(s, 'server_rack', 1, 0).ok).toBe(true);
+    expect(place(s, 'server_rack', 2, 0).ok).toBe(true);
     const pair = ITEMS.server_rack.effects[0].uptimeFloor * 1.5 + 2 * ITEMS.server_rack.adjacency.value;
     expect(itemBonus(s, 'uptimeFloor')).toBeCloseTo(pair);
+  });
+
+  it('the preview reports exactly the links itemBonus pays', () => {
+    const s = fresh();
+    for (const x of [0, 1, 6, 7]) expect(place(s, 'desk', x, 0).ok).toBe(true);
+    const occupied = s.office.placed.slice(0, 2).map((d) => d.id);
+    const empty = s.office.placed.slice(2).map((d) => d.id);
+    const near01 = adjacencyPreview(s, { itemId: 'plant', x: 1, y: 3, rot: 0 });
+    expect(near01.map((l) => [l.targetId, l.paid]).sort()).toEqual(occupied.map((id) => [id, true]).sort());
+    const near67 = adjacencyPreview(s, { itemId: 'plant', x: 7, y: 3, rot: 0 });
+    expect(near67.every((l) => !l.paid && empty.includes(l.targetId))).toBe(true);
+    const before = itemBonus(s, 'meaningRecovery');
+    expect(place(s, 'plant', 1, 3).ok).toBe(true);
+    const paid = near01.filter((l) => l.paid).reduce((a, l) => a + l.value, 0);
+    expect(itemBonus(s, 'meaningRecovery') - before).toBeCloseTo(paid / s.staff.length);
+    // A desk placed next to the plant sees the link from its side; it is unpaid until someone sits there.
+    const deskLinks = adjacencyPreview(s, { itemId: 'desk', x: 3, y: 2, rot: 0 });
+    expect(deskLinks).toEqual([expect.objectContaining({ target: 'desk', key: 'meaningRecovery', paid: false })]);
+    // Moving the plant away shows no links.
+    const plantId = s.office.placed.at(-1).id;
+    expect(adjacencyPreview(s, { id: plantId, x: 4, y: 5, rot: 0 })).toEqual([]);
+    const r = place(s, 'server_rack', 5, 2);
+    expect(adjacencyPreview(s, { itemId: 'server_rack', x: 5, y: 3, rot: 0 }).map((l) => l.target)).toEqual(['item', 'item']);
+    expect(r.ok).toBe(true);
   });
 
   it('adjacency stacks with global effects and stays under the 50% cap', () => {

@@ -3,6 +3,7 @@ import { registerAction } from './registry.js';
 import { emitChat } from './chat.js';
 import { ITEMS } from '../data/items.js';
 import { OFFICE_STAGES } from '../data/office.js';
+import { adjacencyLinks } from './bonus.js';
 
 const key = (x, y) => `${x},${y}`;
 
@@ -141,6 +142,17 @@ export function autoArrange(stageIdx, placed) {
   // Keep the original order so desk seating does not reshuffle people.
   const byId = new Map(out.map((p) => [p.id, p]));
   return { placed: placed.filter((p) => byId.has(p.id)).map((p) => byId.get(p.id)), left };
+}
+
+// What placing (or moving, with id) an item at (x, y, rot) would change in adjacency: every link that
+// involves the item, measured exactly as itemBonus measures it. paid false means the desk is empty for now.
+export function adjacencyPreview(state, { itemId, x, y, rot = 0, id = null }) {
+  const moving = id ? state.office.placed.find((p) => p.id === id) : null;
+  const item = moving ? moving.itemId : itemId;
+  if (!ITEMS[item]) return [];
+  const candidate = { id: moving?.id ?? 'preview', itemId: item, level: moving?.level ?? 1, x, y, rot };
+  const layout = [...state.office.placed.filter((p) => p !== moving), candidate];
+  return adjacencyLinks(layout, state.staff.length).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
 }
 
 export const spentOn = (p) => ITEMS[p.itemId].costs.slice(0, p.level).reduce((a, b) => a + b, 0);

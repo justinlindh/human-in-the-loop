@@ -17,10 +17,10 @@ const FURNITURE = [
 ];
 
 const SHOP_SHAPE = {
-  espresso: [{ w: 1, h: 1 }, null], plant_wall: [{ w: 2, h: 1 }, null], nap_pod: [{ w: 1, h: 2 }, null], arcade: [{ w: 1, h: 1 }, null],
-  standing_desk: [{ w: 1, h: 1 }, null], whiteboard_wall: [{ w: 3, h: 1 }, null], library: [{ w: 2, h: 2 }, null],
-  monitoring_wall: [{ w: 3, h: 1 }, null], server_rack: [{ w: 1, h: 1 }, { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'server_rack' }],
-  trophy_case: [{ w: 1, h: 1 }, null],
+  espresso: [{ w: 2, h: 1 }, null], plant_wall: [{ w: 2, h: 1 }, null], nap_pod: [{ w: 1, h: 2 }, null], arcade: [{ w: 1, h: 1 }, null],
+  standing_desk: [{ w: 2, h: 1 }, null], whiteboard_wall: [{ w: 3, h: 1 }, null], library: [{ w: 2, h: 2 }, null],
+  monitoring_wall: [{ w: 3, h: 1 }, null], server_rack: [{ w: 2, h: 1 }, { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'server_rack' }],
+  trophy_case: [{ w: 2, h: 1 }, null],
 };
 
 const rows = [
