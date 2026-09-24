@@ -756,3 +756,9 @@
 .hitl .ib-icons .ic { font-size: calc(var(--is) * 16px); }
 .hitl .ib-name { font-size: 0.7em; font-family: 'JetBrains Mono', monospace; color: var(--ink-soft); word-break: break-all; }
 .hitl .ib-cell.dark .ib-name { color: #cfc6d6; }
+.hitl .tray-card.needs { background: #fff4dc; border-color: var(--ink); cursor: default; display: flex; flex-direction: column; gap: 0.2em; }
+.hitl .tray-card.needs .t span:first-child { color: var(--warn); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8em; font-weight: 700; }
+.hitl .need { pointer-events: auto; display: grid; grid-template-columns: auto 1fr auto; gap: 0.4em; align-items: center; text-align: left; border: none; background: #fffaf1; border-radius: 0.5em; padding: 0.2em 0.4em; font-size: 0.82em; font-weight: 600; }
+.hitl .need:hover { background: #fff; box-shadow: 0 0 0 0.12em var(--ink); }
+.hitl .need .go { color: var(--ink-faint); font-weight: 700; }
+.hitl .starterhint { display: flex; gap: 0.5em; align-items: center; background: #fff4dc; border: 0.14em solid var(--yellow); border-radius: 0.7em; padding: 0.45em 0.7em; margin-bottom: 0.8em; font-weight: 600; font-size: 0.9em; }

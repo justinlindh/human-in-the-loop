@@ -63,6 +63,33 @@ function groupEffects(s) {
   return [...out.values()].slice(0, 4);
 }
 
+// Things waiting on the player, most urgent first. Each has a click-to-fix target.
+export function needsYou(s) {
+  const out = [];
+  if (s.outage?.unrecoverable) {
+    const p = s.products.find((x) => x.id === s.outage.productId);
+    out.push({ key: 'outage', icon: 'tray.outage', text: `Nobody can fix ${p?.name ?? 'the outage'}`, go: ['ops'] });
+  }
+  if (s.cash < 0) out.push({ key: 'cash', icon: 'money', text: 'Cash is in the red', go: ['reports'] });
+  for (const j of s.projects) {
+    if (!s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) {
+      out.push({ key: `proj:${j.id}`, icon: 'tray.project', text: `Nobody is working on ${projectLabel(s, j)}`, go: ['build', { projectId: j.id }] });
+    }
+  }
+  for (const p of s.staff) {
+    if (p.pathPending) out.push({ key: `path:${p.id}`, icon: 'path', text: `${p.name.split(' ')[0]} can pick a career path`, go: ['staff', { staffId: p.id, pickPath: true }] });
+  }
+  for (const p of s.products) {
+    if (!p.killed && p.migrationDueWeek != null && !s.projects.some((j) => j.kind === 'migration' && j.productId === p.id)) {
+      const w = p.migrationDueWeek - s.week;
+      out.push({ key: `mig:${p.id}`, icon: 'migrate', text: `Migrate ${p.name} ${w <= 0 ? 'now' : `within ${w}w`}`, go: ['models'] });
+    }
+  }
+  const idle = s.staff.filter((p) => p.assignment?.type === 'idle' && p.mood !== 'away').length;
+  if (idle) out.push({ key: 'idle', icon: 'team', text: `${idle} ${idle === 1 ? 'person is' : 'people are'} idle`, go: ['staff'] });
+  return out;
+}
+
 const SPEEDS = [
   { k: 0, ico: 'speed.pause', title: 'Pause (Space)' },
   { k: 1, ico: 'speed.play', title: 'Normal speed (1)' },
@@ -123,6 +150,14 @@ export function createHud({ root, controls, ui }) {
   function buildTray(s) {
     clear(tray);
     trayBinds = [];
+    const needs = needsYou(s);
+    if (needs.length) {
+      const shown = needs.slice(0, 4);
+      tray.append(h('div.tray-card.needs', null,
+        h('div.t', null, h('span', { text: 'Needs you' }), h('span.k', { text: needs.length > 4 ? `+${needs.length - 4}` : '' })),
+        ...shown.map((n) => h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
+          icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })))));
+    }
     if (s.outage) {
       const o = s.outage;
       const p = s.products.find((x) => x.id === o.productId);
@@ -243,7 +278,10 @@ export function createHud({ root, controls, ui }) {
       pausedTag.style.display = sp === 0 ? '' : 'none';
     }
 
-    const sig = `${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
+    const now2 = performance.now();
+    if (now2 - (last.trayAt ?? 0) < 200) { for (const b of trayBinds) b(s); return; }
+    last.trayAt = now2;
+    const sig = `${needsYou(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
     if (sig !== traySig) { traySig = sig; buildTray(s); }
     for (const b of trayBinds) b(s);
   }
