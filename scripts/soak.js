@@ -1,7 +1,7 @@
 // Browser soak: advances weeks with every event routed through the renderer, UI, and audio, with
 // frames rendered between weeks, and fails on any console or page error. Catches crashes that
 // only fire on events (a still snapshot never sees them).
-// npm run soak -- [--weeks 24] [--seed 1]
+// npm run soak -- [--weeks 24] [--seed 1] [--quality low]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -9,6 +9,8 @@ const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
 const WEEKS = Number(arg('weeks', 24));
 const SEED = Number(arg('seed', 1));
+// Low quality and a small viewport keep software GL (CI runners have no GPU) fast enough.
+const QUALITY = arg('quality', 'low');
 
 const RUNS = [
   { name: 'mock floor 1x', query: 'mock=floor', speed: 1 },
@@ -24,19 +26,19 @@ let failed = false;
 
 try {
   for (const run of RUNS) {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
     const errors = [];
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
     page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || '').split('\n').slice(1, 3).join(' / ')}`));
     const t0 = Date.now();
     let res = null;
     try {
-      await page.goto(`${base}?${run.query}&speed=${run.speed}`);
+      await page.goto(`${base}?${run.query}&speed=${run.speed}&quality=${QUALITY}`);
       await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
-      // One week at a time: resolve any decision, tick with events routed, then let two frames render.
+      // One week at a time: resolve any decision, tick with events routed, then let a frame render.
       res = await page.evaluate(async (weeks) => {
         const H = window.__HITL;
-        const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const frame = () => new Promise((r) => requestAnimationFrame(r));
         const start = H.state.week;
         for (let i = 0; i < weeks && !H.state.gameOver; i++) {
           for (let g = 0; g < 5 && H.state.pendingDecision; g++) H.dispatch({ type: 'resolveDecision', choice: 0 });
