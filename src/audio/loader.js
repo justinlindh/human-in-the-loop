@@ -1,12 +1,38 @@
-// Buffers by asset id. Real assets come from src/audio/assets.json (written by the audio build step):
-//   { "files": { "<id>": { "url": "audio/...", "loop": [startSample, endSample]?,
-//                          "sprite": { "<emotion>": [[offsetS, durationS], ...] }? } } }
-// Anything missing there, or failing to load, is synthesized (synth.js), so the game always has sound.
+// Buffers by asset id. Real assets come from src/audio/assets.json, written by the audio build:
+//   { sampleRate, music: { <era>: { bpm, beds: [{ id, bars, stems: { full: { file, duration, loopStart, loopEnd } } }] } },
+//     stingers: { <name>: { file, duration } }, ui: { <name>: { file } }, sfx: { <name>: { file } },
+//     voice: { <bank>: { file, set, emotions: { <emotion>: [[offset s, duration s], ...] } } },
+//     voiceVariants: { fem: [bankIds], masc: [bankIds] }, crowd: { file, loopStart, loopEnd } }
+// Files are Ogg Opus with an .m4a twin for browsers that cannot play Opus. Asset ids used by the
+// manifest ('ui/click', 'music/classic/a', 'voice/<bank>', 'voice/crowd', 'stingers/era') map onto
+// that tree; anything missing, or failing to load, is synthesized (synth.js).
 
 import { synthesize } from './synth.js';
 
-const ASSETS = Object.values(import.meta.glob('./assets.json', { eager: true, import: 'default' }))[0]?.files ?? {};
+export const ASSETS = Object.values(import.meta.glob('./assets.json', { eager: true, import: 'default' }))[0] ?? {};
 const BASE = import.meta.env?.BASE_URL ?? '/';
+
+// The asset entry for a manifest id, or null.
+export function entryFor(id) {
+  const [kind, a, b] = id.split('/');
+  if (kind === 'music') {
+    const bed = ASSETS.music?.[a]?.beds?.find((x) => x.id === b) ?? ASSETS.music?.[a]?.beds?.[0];
+    return bed?.stems?.full ?? null;
+  }
+  if (kind === 'voice') return a === 'crowd' ? ASSETS.crowd ?? null : ASSETS.voice?.[a] ?? null;
+  if (kind === 'stingers') return ASSETS.stingers?.[a] ?? null;
+  if (kind === 'ui') return ASSETS.ui?.[a] ?? null;
+  if (kind === 'sfx') return ASSETS.sfx?.[a] ?? null;
+  return null;
+}
+
+let opusOk = null;
+function url(file) {
+  if (opusOk === null) {
+    try { opusOk = !!document.createElement('audio').canPlayType('audio/ogg; codecs="opus"'); } catch { opusOk = true; }
+  }
+  return `${BASE}audio/${opusOk ? file : file.replace(/\.ogg$/, '.m4a')}`;
+}
 
 export function createLoader(ctx) {
   const cache = new Map();   // id -> AudioBuffer
@@ -14,24 +40,26 @@ export function createLoader(ctx) {
 
   function load(id) {
     if (cache.has(id) || pending.has(id)) return;
-    const a = ASSETS[id];
-    if (!a?.url) return;
-    pending.set(id, fetch(`${BASE}${a.url}`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
+    const e = entryFor(id);
+    if (!e?.file) return;
+    pending.set(id, fetch(url(e.file)).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
       .then((ab) => ctx.decodeAudioData(ab)).then((buf) => { cache.set(id, buf); })
       .catch(() => { cache.set(id, synthesize(ctx, id)); }).finally(() => pending.delete(id)));
   }
 
   return {
-    meta: (id) => ASSETS[id] ?? null,
+    meta: (id) => entryFor(id),
+    sampleRate: () => ASSETS.sampleRate ?? 48000,
     // A buffer now: the real one if decoded, else a placeholder (and the real one starts loading).
     get(id) {
       if (cache.has(id)) return cache.get(id);
-      if (ASSETS[id]?.url) { load(id); }
+      load(id);
       const key = `synth:${id}`;
       if (!cache.has(key)) cache.set(key, synthesize(ctx, id));
       return cache.get(key);
     },
+    // True once the real file for id is decoded (not a placeholder).
+    ready: (id) => cache.has(id) && !!entryFor(id)?.file,
     preload(ids) { for (const id of ids) load(id); },
-    hasReal: (id) => !!ASSETS[id]?.url,
   };
 }

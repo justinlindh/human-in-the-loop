@@ -109,10 +109,11 @@ export const VOICE = {
 
 // Group cheers: up to `voices` people present, staggered onsets, per-voice gain spread, a crowd bed,
 // and the cheer duck. gainDb is the group level relative to a single bark.
+// groupGain 0.7 is about 3 dB under a single bark; crowdBed is the crowd loop's gain (0 = none).
 export const GROUP_CUES = {
-  launch: { voices: 6, lowVoices: 2, emotions: ['excited', 'laughing'], stagger: [0.05, 0.25], spreadDb: 4, gainDb: -3, duck: 'cheer', crowd: 'voice/crowd' },
-  waffle_party: { voices: 6, lowVoices: 2, emotions: ['laughing', 'happy'], stagger: [0.05, 0.25], spreadDb: 4, gainDb: -3, duck: 'cheer', crowd: 'voice/crowd' },
-  era: { voices: 3, lowVoices: 2, emotions: ['questioning', 'excited'], stagger: [0.12, 0.35], spreadDb: 3, gainDb: -3, duck: 'cheer', crowd: null },
+  launch: { duck: 'cheer', groupGain: 0.7, maxVoices: 6, lowMaxVoices: 2, stagger: [0.05, 0.25], gainSpreadDb: [-4, 0], crowdBed: 0.25, emotions: ['excited', 'laughing', 'happy'] },
+  waffleParty: { duck: 'cheer', groupGain: 0.7, maxVoices: 6, lowMaxVoices: 2, stagger: [0.05, 0.25], gainSpreadDb: [-4, 0], crowdBed: 0.3, emotions: ['laughing', 'happy', 'excited'] },
+  era: { duck: 'cheer', groupGain: 0.6, maxVoices: 3, lowMaxVoices: 1, stagger: [0.2, 0.5], gainSpreadDb: [-3, 0], crowdBed: 0, emotions: ['questioning', 'excited'] },
 };
 
 // Crunch: the share of present staff running low on stamina while on a project.

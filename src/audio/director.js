@@ -9,6 +9,7 @@
 //   { op: 'duck', key, on }                          hold or release a music duck
 //   { op: 'stopAll', bus }
 
+import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES } from './manifest.js';
 
@@ -26,7 +27,8 @@ function mulberry32(seed) {
 export function voiceBank(person) {
   const v = person?.voice;
   const set = v?.set === 'masc' ? 'masc' : 'fem';
-  const list = VOICE_VARIANTS[set];
+  // The delivered cast (assets.json voiceVariants) wins over the placeholder list.
+  const list = ASSETS.voiceVariants?.[set]?.length ? ASSETS.voiceVariants[set] : VOICE_VARIANTS[set];
   const i = Number.isFinite(v?.variant) ? Math.abs(Math.floor(v.variant)) % list.length : 0;
   return `${set}_${list[i]}`;
 }
@@ -94,20 +96,21 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     if (!g) return [];
     const here = present(s);
     if (!here.length) return [];
-    const n = Math.min(q === 'low' ? g.lowVoices : g.voices, here.length);
+    const n = Math.min(q === 'low' ? g.lowMaxVoices : g.maxVoices, here.length);
     const lead = here.find((p) => p.id === leadId);
     const rest = here.filter((p) => p !== lead);
     for (let i = rest.length - 1; i > 0; i--) { const k = Math.floor(rng() * (i + 1)); [rest[i], rest[k]] = [rest[k], rest[i]]; }
     const who = (lead ? [lead, ...rest] : rest).slice(0, n);
-    const base = 10 ** (g.gainDb / 20);
+    const base = g.groupGain;
     const out = [{ op: 'duck', key: g.duck, on: true, at: t }];
     let at = t;
     who.forEach((p, i) => {
       if (i > 0) at += g.stagger[0] + rng() * (g.stagger[1] - g.stagger[0]);
-      const spread = 10 ** (-(rng() * g.spreadDb) / 20);
+      const [lo, hi] = g.gainSpreadDb;
+      const spread = 10 ** ((lo + rng() * (hi - lo)) / 20);
       out.push(...bark(p, pick(g.emotions), at, { gain: base * spread, priority: 8, key: 'cheer' }));
     });
-    if (g.crowd) out.push({ op: 'play', cue: 'voice.crowd', file: g.crowd, bus: 'ambience', gain: 0.35, at: t, priority: 4 });
+    if (g.crowdBed > 0) out.push({ op: 'play', cue: 'voice.crowd', file: 'voice/crowd', bus: 'ambience', gain: g.crowdBed, at: t, priority: 4 });
     out.push({ op: 'duck', key: g.duck, on: false, at: at + 1.5 });
     lastVoiceMoment.t = at;
     return out;
@@ -128,7 +131,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         if (id && !seen.has(id)) { seen.add(id); out.push(...playCue(id, t, { speed })); }
         // Voice moments.
         if (e.type === 'launch') out.push(...cheer('launch', state, t + 0.15));
-        else if (e.type === 'incentive' && e.reward === 'waffle_party') out.push(...cheer('waffle_party', state, t + 0.2, e.staffId));
+        else if (e.type === 'incentive' && e.reward === 'waffle_party') out.push(...cheer('waffleParty', state, t + 0.2, e.staffId));
         else if (e.type === 'era') music.pendingEra = e.eraId;
         else if (voiceMomentOk(t)) {
           const who = (id2) => state?.staff?.find((p) => p.id === id2);

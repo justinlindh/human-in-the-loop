@@ -35,6 +35,8 @@ export function createAudio({ quality = 'high' } = {}) {
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
       if (q === 'low') mix.setUser('ambience', 0);
+      // Small sounds decode up front; music and voice banks load on first use.
+      loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd']);
       // iOS wants a sound started inside the gesture.
       const s = ctx.createBufferSource();
       s.buffer = ctx.createBuffer(1, 1, 22050);
@@ -73,14 +75,20 @@ export function createAudio({ quality = 'high' } = {}) {
     return src;
   }
 
-  function startMusic(cmd) {
+  function startMusic(cmd, waited = 0) {
     const id = `music/${cmd.bed}`;
+    // A delivered bed that is still decoding: wait for it (up to 3 s) rather than start the placeholder.
+    if (loader.meta(id)?.file && !loader.ready(id) && waited < 3000) {
+      loader.preload([id]);
+      setTimeout(() => { if (director.musicState.bed === cmd.bed) startMusic(cmd, waited + 250); }, 250);
+      return;
+    }
     const buf = loader.get(id);
-    const meta = loader.meta(id);
+    const meta = loader.ready(id) ? loader.meta(id) : null;
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.loop = true;
-    if (meta?.loop) { src.loopStart = meta.loop[0] / buf.sampleRate; src.loopEnd = meta.loop[1] / buf.sampleRate; }
+    if (meta?.loopEnd) { const sr = loader.sampleRate(); src.loopStart = (meta.loopStart ?? 0) / sr; src.loopEnd = meta.loopEnd / sr; }
     const g = ctx.createGain();
     g.gain.value = 0.0001;
     src.connect(g).connect(mix.musicIn);
@@ -104,9 +112,10 @@ export function createAudio({ quality = 'high' } = {}) {
         if (c.op === 'play') {
           if (c.cue === 'voice.bark') {
             const meta = loader.meta(c.file);
-            const takes = meta?.sprite?.[c.emotion];
+            const takes = meta?.emotions?.[c.emotion] ?? meta?.emotions?.happy;
+            if (meta?.file && !loader.ready(c.file)) loader.preload([c.file]);
             let dur;
-            if (loader.hasReal(c.file) && takes?.length) {
+            if (loader.ready(c.file) && takes?.length) {
               const [off, d] = takes[Math.floor(Math.random() * takes.length)];
               playBuffer(loader.get(c.file), 'voice', c.gain, c.at, { offset: off, duration: d });
               dur = d;
