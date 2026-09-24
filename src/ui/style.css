@@ -764,3 +764,5 @@
 .hitl .need:hover { background: #fff; box-shadow: 0 0 0 0.12em var(--ink); }
 .hitl .need .go { color: var(--ink-faint); font-weight: 700; }
 .hitl .starterhint { display: flex; gap: 0.5em; align-items: center; background: #fff4dc; border: 0.14em solid var(--yellow); border-radius: 0.7em; padding: 0.45em 0.7em; margin-bottom: 0.8em; font-weight: 600; font-size: 0.9em; }
+.hitl .speed .paused-tag.menu { display: none; color: var(--ink); background: #fff4dc; border: 0.12em solid var(--warn); border-radius: 1em; padding: 0.1em 0.55em; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.hitl .toast-more { pointer-events: auto; align-self: flex-end; border: 0.14em solid var(--ink); border-radius: 1em; background: var(--cream); padding: 0.15em 0.7em; font-size: 0.82em; font-weight: 700; box-shadow: 0 0.14em 0 var(--ink); }

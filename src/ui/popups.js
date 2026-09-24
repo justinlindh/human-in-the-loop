@@ -152,5 +152,5 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     return false;
   }
 
-  return { update, onKey, queueLaunch, get open() { return !!shown || !!launch; } };
+  return { update, onKey, queueLaunch, get open() { return !!shown || !!launch; }, get launchOpen() { return !!launch; } };
 }

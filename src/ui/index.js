@@ -183,6 +183,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   let lastPanelAt = 0;
   function update(state) {
+    toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);
     popups.update(state);
@@ -233,7 +234,16 @@ export function createUI({ root, getState, dispatch, controls }) {
     }
   }
 
+  // True while the player is busy in a menu, so main.js holds time. Not the title screen, and
+  // not the decision popup (the sim already waits for decisions).
+  function isBusy() {
+    if (settings.values.pauseMenus === false) return false;
+    return !!(menu.current || ctx.modal || popups.launchOpen || settings.isOpen || tutorial.open);
+  }
+  ui.isBusy = isBusy;
+
   const api = {
+    isBusy,
     update,
     handleEvents,
     showTitle() { menu.close(); title.show(); },
