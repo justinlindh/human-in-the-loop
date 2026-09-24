@@ -168,11 +168,12 @@ export const ITEMS = [
     actions: [{ at: 0.5, js: KEY('s', 'KeyS') }, { at: 3.5, js: `window.__HITL_UI.openStaff(window.__HITL.state.staff[1].id)` }],
     screenshots: [3, 6],
   },
-  {
-    id: '3-3-poses', title: '3.3 Poses: typing, tired, burnout, napping', query: 'mock=floor&speed=1', seconds: 14,
+  // The procedural poses and the authored rig (?rig=1), same scene, for comparison.
+  ...[['', 'Poses', ''], ['-rig', 'Poses (authored rig)', '&rig=1']].map(([suffix, name, rig]) => ({
+    id: `3-3-poses${suffix}`, title: `3.3 ${name}: typing, tired, burnout, napping`, query: `mock=floor&speed=1${rig}`, seconds: 14,
     setup: `(() => { const s = window.__HITL.state; s.staff[1].mood = 'burnout'; s.staff[2].mood = 'coasting'; s.staff[3].stamina = 5; })()`,
     actions: [{ at: 0.2, js: `window.__HITL.controls.focusStaff(window.__HITL.state.staff[1].id)` }], screenshots: [6],
-  },
+  })),
   ...[1, 2].map((speed) => ({
     id: `3-4-conversations-${speed}x`, title: `3.4 Conversations at ${speed}x`, query: `seed=25&speed=${speed}`, seconds: 40,
     setup: PLAY({ weeks: 140, after: IN_OFFICE }), actions: DISMISS_EVERY(40), screenshots: [15, 30],
