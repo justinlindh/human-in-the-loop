@@ -86,6 +86,7 @@ try {
   await page.reload(); await ready(); await page.waitForTimeout(1000);
   const t2 = await page.evaluate(() => ({ playing: window.__HITL.playing, status: window.__HITL.controls.loadStatus() }));
   check('reload shows the title with a save', !t2.playing && t2.status.ok, JSON.stringify(t2.status));
+  check('loadStatus carries the save meta', t2.status.meta?.companyName === 'Testco' && t2.status.meta?.week === WEEKS + 3 && 'logoColor' in (t2.status.meta ?? {}), JSON.stringify(t2.status.meta));
   await clickText(/Continue/);
   await page.waitForTimeout(800);
   const t3 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, week: window.__HITL.state.week }));

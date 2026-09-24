@@ -112,7 +112,9 @@ async function boot() {
     loadStatus: () => {
       if (!canSave()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame();
-      return { ok: res.ok, reason: res.reason };
+      // meta labels the title's Continue row.
+      const meta = res.ok ? { companyName: res.state.companyName, week: res.state.week, logoColor: res.state.founding?.logoColor ?? null } : null;
+      return { ok: res.ok, reason: res.reason, meta };
     },
     save,
     setQuality: (q) => renderer?.setQuality(q),

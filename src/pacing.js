@@ -2,7 +2,7 @@
 // so the pacing simulator measures exactly what players experience.
 
 // Real seconds per in-game week at 1x.
-export const WEEK_SECONDS = 5.0;
+export const WEEK_SECONDS = 8.0;
 // Paced events are released across this fraction of the week, leaving a quiet beat before the next tick.
 export const SPREAD = 0.85;
 // Events that land the moment they happen; everything else trickles out across the week.

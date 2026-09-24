@@ -6,7 +6,8 @@
 //                 [--week-seconds 5] [--player batch|eager|both] [--milestones] [--timeline] [--json] [--frame 0.0333]
 //
 // --milestones prints only the one-line milestone timeline; --player both runs each player.
-// --check tests the milestone line against PACING_TARGETS and exits non-zero on a miss.
+// --check tests the milestone line against PACING_TARGETS and exits non-zero on a miss; run it
+// with --weeks 400 or more so the HQ window can be reached.
 //
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
@@ -132,12 +133,12 @@ const STAGE_NAMES = ['garage', 'floor', 'hq'];
 // One line: minute and label of each milestone in order, unlocks marked with +.
 const milestoneLine = (m) => (m.milestones.length ? m.milestones.map((x) => `${x.minute} ${x.label}`).join(' | ') : 'none');
 
-// Where the milestones should land at 1x, in real minutes.
-const PACING_TARGETS = { floor: [7, 10], hq: [20, 30], maxUnlocksPerMinute: 2 };
+// Office stages are timed in game weeks; the spacing and quiet rules are in real time at 1x.
+const PACING_TARGETS = { floorWeeks: [104, 156], hqWeeks: [260, 364], maxUnlocksPerMinute: 2, maxQuietAfterTenMinutes: 45 };
 
 // Pass or fail per target. Unlocks that arrive with an era do not count toward the per-minute cap.
 function checkTargets(m) {
-  const at = (label) => m.milestones.find((x) => x.label === label)?.minute ?? null;
+  const weekOf = (label) => m.milestones.find((x) => x.label === label)?.week ?? null;
   const within = (v, [lo, hi]) => v !== null && v >= lo && v <= hi;
   const eraMinutes = new Set(m.milestones.filter((x) => x.label.startsWith('era ')).map((x) => x.minute));
   const perMinute = new Map();
@@ -148,9 +149,12 @@ function checkTargets(m) {
   }
   const worst = [...perMinute.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
   return [
-    { target: `floor at ${PACING_TARGETS.floor.join(' to ')} min`, ok: within(at('floor'), PACING_TARGETS.floor), got: at('floor') },
-    { target: `hq at ${PACING_TARGETS.hq.join(' to ')} min`, ok: within(at('hq'), PACING_TARGETS.hq), got: at('hq') },
+    { target: `floor in weeks ${PACING_TARGETS.floorWeeks.join(' to ')}`, ok: within(weekOf('floor'), PACING_TARGETS.floorWeeks), got: weekOf('floor') === null ? null : `week ${weekOf('floor')}` },
+    { target: `hq in weeks ${PACING_TARGETS.hqWeeks.join(' to ')}`, ok: within(weekOf('hq'), PACING_TARGETS.hqWeeks), got: weekOf('hq') === null ? null : `week ${weekOf('hq')}` },
     { target: `at most ${PACING_TARGETS.maxUnlocksPerMinute} unlocks in any minute outside eras`, ok: worst[1] <= PACING_TARGETS.maxUnlocksPerMinute, got: worst[0] === null ? 0 : `${worst[1]} in minute ${worst[0]}` },
+    { target: `no quiet stretch over ${PACING_TARGETS.maxQuietAfterTenMinutes}s after minute 10`, ok: m.longestQuiet.afterTenMinutes <= PACING_TARGETS.maxQuietAfterTenMinutes, got: `${m.longestQuiet.afterTenMinutes}s` },
+    // The opening is reported, not checked: it is content work, not clock work.
+    { target: 'longest quiet stretch overall (report only)', ok: true, info: true, got: `${m.longestQuiet.seconds}s from minute ${m.longestQuiet.fromMinute}` },
   ];
 }
 
@@ -505,10 +509,10 @@ if (isMain) {
       console.log(`${m.bot} ${m.player} ${m.speed}x seed ${m.seed}: ${milestoneLine(m)}`);
       for (const c of checkTargets(m)) {
         failed ||= !c.ok;
-        console.log(`  ${c.ok ? 'ok  ' : 'MISS'} ${c.target}: ${c.got ?? 'never'}`);
+        console.log(`  ${c.info ? 'info' : c.ok ? 'ok  ' : 'MISS'} ${c.target}: ${c.got ?? 'never'}`);
       }
     }
-    if (runs[0].metrics.speed !== 1) console.log('note: the targets are for 1x');
+    if (runs[0].metrics.speed !== 1) console.log('note: the real-time targets are for 1x');
     process.exitCode = failed ? 1 : 0;
   } else if (a.json) {
     const out = runs.map((res) => ({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }));
