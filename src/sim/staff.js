@@ -16,6 +16,7 @@ import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
 import { eraLines, eraOnlyAllowsText } from './eras.js';
 import { remoteLearning } from './ladder.js';
+import { purposeLift } from './purpose.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -81,7 +82,8 @@ export function generateStaff(state, { role, seniority }) {
   const [lo, hi] = SKILL_RANGE[seniority];
   const skills = {};
   // The talent pool improves over the years as people grow up with the tools.
-  const growth = B.candidateSkillPerYear * Math.floor(state.week / 52);
+  // A company with real Purpose draws better people once AI is everywhere.
+  const growth = B.candidateSkillPerYear * Math.floor(state.week / 52) + (state.era?.id === 'plateau' ? B.purposeHiring * purposeLift(state) : 0);
   for (const st of STATS) {
     const base = (int(r, lo, hi) + growth) * (top.includes(st) ? 1.3 : 1);
     skills[st] = Math.round(clamp(base, 1, 100));
@@ -97,7 +99,7 @@ export function generateStaff(state, { role, seniority }) {
     meaning: int(r, 70, 90), stamina: 100, knowledge: B.newHireKnowledge, traits,
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
-    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false, call: null,
+    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false, call: null, strain: 0,
     path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
@@ -138,8 +140,9 @@ export function outputMult(state, person) {
   const m = MOOD_MULT[person.mood];
   const moodMult = typeof m === 'function' ? m() : (m ?? 1);
   const staminaMult = person.stamina < B.staminaLowBelow ? 0.7 : 1;
-  const craft = state.policies.craft_fridays ? B.craftFridaysOutput : 1;
-  return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * staffMods(person).output * craft
+  const strained = Math.max(0.6, 1 - B.strainOutputPenalty * Math.max(0, (person.strain ?? 0) - B.strainWarn) / (100 - B.strainWarn));
+  const craft = (state.policies.craft_fridays ? B.craftFridaysOutput : 1) * (state.policies.no_crunch ? 1 + B.noCrunchOutput : 1);
+  return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * strained * staffMods(person).output * craft
     * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0));
 }
 

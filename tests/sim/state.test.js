@@ -7,7 +7,7 @@ const STATE_KEYS = [
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
   'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
-  'era', 'eraSchedule', 'unlocks', 'goals', 'lockdown', 'workPolicy', 'pets', 'rival',
+  'era', 'eraSchedule', 'unlocks', 'goals', 'lockdown', 'workPolicy', 'pets', 'rival', 'purpose',
 ];
 
 const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });

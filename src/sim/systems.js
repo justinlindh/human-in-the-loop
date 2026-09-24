@@ -22,3 +22,6 @@ import './unlocks.js';
 import './goals.js';
 import './office.js';
 import './ladder.js';
+import './strain.js';
+import './purpose.js';
+import './incentives.js';
