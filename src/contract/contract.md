@@ -215,6 +215,7 @@ call /* null, or during a video-call week { muted, frozen, badCamera } (booleans
 ### Content ladder events
 ```js
 { type: 'incentive', staffId, reward /* 'finger_traps'|'balloons'|'caricature'|'melon_bar'|'music_night'|'waffle_party' */ }   // the Incentives Program rewards a top performer; the renderer stages it
+{ type: 'incentive', staffId, reward: 'music_night', genre /* 'corporate_synthwave'|'motivational_polka'|'aggressive_bossa_nova'|'sad_lofi' */, dancers /* staff ids joining in */ }   // a staged dance break: the winner picks a genre through a decision, the room dims, the dancers dance to that genre's track, then everyone goes back to work
 ```
 
 ### Content ladder chunk (b): Meaning, Purpose, strain, incentives
