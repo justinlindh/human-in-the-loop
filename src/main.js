@@ -170,6 +170,8 @@ async function boot() {
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
+    // Presents events as if the sim had emitted them (capture scenarios, playtests).
+    emit: (events) => route(events, sim.state),
     controls,
   };
 
