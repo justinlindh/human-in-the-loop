@@ -20,14 +20,15 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 
 | Name | Lane | Worktree | Owns |
 |---|---|---|---|
-| team-lead | integration | `/home/justin/src/gamedev` | contract, `main.js`, `src/dev/`, snap tool, merges |
+| team-lead | coordination | `/home/justin/src/gamedev` | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
+| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, merges into `feat/one-shot` when team-lead approves |
 | sim | simulation | `/home/justin/src/gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
 | art | render and art | `/home/justin/src/gamedev-art` | `src/render/`, `blender/`, `public/models/` |
 | ui | UI and audio | `/home/justin/src/gamedev-ui` | `src/ui/`, `src/audio/` |
 | reviewer | review and playtest | any (read-only) | nothing |
 
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
-- Go through team-lead for contract changes, disagreements between lanes, and blockers.
+- Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
 - Team mailbox messages only arrive between turns. After each task: send your report to team-lead, then end your turn. team-lead replies with cross-lane news and the go-ahead for the next task.
 
