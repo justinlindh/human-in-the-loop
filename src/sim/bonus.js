@@ -49,9 +49,27 @@ function adjacencyBonus(state, key) {
   return item + (state.staff.length ? desk / state.staff.length : 0);
 }
 
+// itemBonus depends only on the layout, item levels, who sits where, and headcount; results are reused
+// until any of those change.
+const bonusCache = new WeakMap();
+function layoutSignature(state) {
+  let sig = `${state.staff.length}|`;
+  for (const it of state.office.placed) sig += `${it.id}:${it.level}:${it.x}:${it.y}:${it.rot};`;
+  for (const p of state.staff) sig += `${p.deskId ?? '-'},`;
+  return sig;
+}
+
 // Placed items' effects for a key at their current levels, plus adjacency. The best copy of an item
 // counts in full and a second copy at half. No stack of items moves a single effect by more than half.
 export function itemBonus(state, key) {
+  const sig = layoutSignature(state);
+  let entry = bonusCache.get(state);
+  if (!entry || entry.sig !== sig) { entry = { sig, values: new Map() }; bonusCache.set(state, entry); }
+  if (!entry.values.has(key)) entry.values.set(key, computeItemBonus(state, key));
+  return entry.values.get(key);
+}
+
+function computeItemBonus(state, key) {
   const byItem = {};
   for (const it of state.office.placed) (byItem[it.itemId] ??= []).push(it.level);
   let total = 0;

@@ -81,6 +81,8 @@ export function attritionRisk(state, p) {
   const perks = itemBonus(state, 'meaningRecovery') + itemBonus(state, 'staminaRecovery') - itemBonus(state, 'burnoutResign');
   risk *= Math.max(B.attritionPerkFloor, 1 - B.attritionPerkRelief * perks);
   for (const id of GOOD_POLICIES) if (state.policies[id]) risk *= B.attritionGoodPolicy;
+  if (state.policies.top_pay) risk *= B.topPayAttrition;
+  if (state.policies.office_upkeep) risk *= B.upkeepAttrition;
   risk *= Math.max(0, 1 - B.purposeRetention * purposeLift(state));
   return risk;
 }
