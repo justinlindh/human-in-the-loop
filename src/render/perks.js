@@ -58,8 +58,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     return { x: t.x + Math.cos(t.rotY) * lx + Math.sin(t.rotY) * lz, z: t.z - Math.sin(t.rotY) * lx + Math.cos(t.rotY) * lz };
   }
 
-  // Napping along a couch: centred on the seat depth, lying along its length with the head
-  // propped on the far armrest. Works for any couch length and rotation.
+  // Napping along a couch: centred on the seat depth, lying along its length with the head on the
+  // throw pillow's end (-x in the couch's frame, see kit.couch). Works for any couch length and rotation.
   function couchNap(e) {
     const b = new THREE.Box3().setFromObject(e.obj);
     const len = e.target.rotY % Math.PI === 0 ? b.max.x - b.min.x : b.max.z - b.min.z;
@@ -67,8 +67,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     // the figure's origin sits 0.34 m from the head centre along its length.
     const armIn = len / 2 - 0.18;
     const along = armIn - 0.24 - 0.34 + 0.05;
-    const p = toWorld(e.target, along, 0.16);
-    return { x: p.x, z: p.z, yaw: e.target.rotY - Math.PI / 2, anim: 'idle', lift: 0.3 };
+    const p = toWorld(e.target, -along, 0.16);
+    return { x: p.x, z: p.z, yaw: e.target.rotY + Math.PI / 2, anim: 'idle', lift: 0.3 };
   }
 
   function modelSpots(e) {
@@ -292,10 +292,13 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     }
   }
 
+  // Test hook: while held, nobody starts a new visit (visits sent with send() still run).
+  let held = false;
+
   function update(dt, state) {
     cleanSlots();
     updatePairs(dt);
-    if (isBusy()) return;
+    if (isBusy() || held) return;
     clock -= dt;
     if (clock > 0) return;
     clock = state?.lockdown && (state.week ?? 0) < state.lockdown.until ? rnd(1, 2) : rnd(2.5, 5);
@@ -312,6 +315,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     update, reset,
     get visiting() { return [...recs.values()].filter((r) => r.temp?.perkKey).length; },
     get sessions() { return sessions.length; },
+    set hold(on) { held = !!on; },
     peek(id) { const r = recs.get(id); return r && { seat: r.seat, yaw: r.yaw, face: r.face ?? null, path: r.path.length, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
     get phases() { return sessions.map((x) => `${x.phase}:${x.t.toFixed(1)}/${x.dur.toFixed(1)}`); },
     // Test hook: send a person (or a pair) to a specific placed item now.

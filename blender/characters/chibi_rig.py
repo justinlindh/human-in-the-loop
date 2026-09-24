@@ -4,7 +4,8 @@ bone, so the bones' rest orientation does not matter; they all point up with no 
 a pose bone's local axes the game's (x right, y up, z front) and its ZYX Euler the game's XYZ.
 
 Bones: body (root, the only one with location keys), hips, legL, legR, torso, head, armL, armR.
-L is the -x side, as in character.js. Actions: typing (sit and type), nap (lying on a couch).
+L is the -x side, as in character.js. Actions: typing (sit and type), slumped and tired (the
+coasting and low-stamina desk poses), nap (lying on a couch).
 """
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -134,11 +135,53 @@ def nap(t):
         'torso': ((-breath * 0.025, 0, 0), None),
         'head': ((0.3 + breath * 0.02, 0, 0.16), None),
         'armL': ((-0.25, 0, 0.3), None),
-        'armR': ((-1.05 - breath * 0.04, 0, 0.55), None),
+        'armR': ((-0.62 - breath * 0.04, 0, -0.5), None),
+    }
+
+
+def slumped(t):
+    # A 6 s loop, coasting: slow patchy typing, the head sinking over the loop, then a sigh
+    # that pulls it back up.
+    sink = smooth(0, 4.6, t) - smooth(4.6, 5.4, t)
+    sigh = max(0.0, s(math.pi * (t - 4.6) / 1.0)) if 4.6 <= t <= 5.6 else 0.0
+    lean = 0.38 + sink * 0.05 - sigh * 0.1
+    typing_on = 1 - (smooth(1.9, 2.3, t) - smooth(3.0, 3.4, t)) - sigh
+    tapL = abs(s(TAU * 2.5 * t)) * 0.05 * max(0.0, typing_on)
+    tapR = (max(0.0, s(TAU * t / 3)) ** 6) * 0.04
+    arm = TYPE_REACH - lean - 0.22
+    return {
+        'body': ((0, 0, 0), (0, SEAT_HIP_Y - HIP_Y - 0.03 + sigh * 0.012, -0.06)),
+        'legL': ((-1.45, 0, 0.04), None),
+        'legR': ((-1.4, 0, -0.06), None),
+        'torso': ((lean, s(TAU * t / 6) * 0.03, 0), None),
+        'head': ((0.42 + sink * 0.12 - sigh * 0.22, 0, 0.12 + s(TAU * t / 6) * 0.04), None),
+        'armL': ((arm - tapL, 0, 0.22 + sigh * 0.1), None),
+        'armR': ((arm - tapR, 0, -0.22 - sigh * 0.1), None),
+    }
+
+
+def tired(t):
+    # A 6 s loop, low stamina: chin propped on the right hand, the left pecking at the keys, a slow
+    # nod off and a jolt awake.
+    nod = smooth(1.5, 3.2, t) - smooth(3.2, 3.45, t)
+    jolt = max(0.0, s(math.pi * (t - 3.2) / 0.5)) if 3.2 <= t <= 3.7 else 0.0
+    lean = 0.3 + nod * 0.06 - jolt * 0.06
+    typing_on = max(0.0, 1 - nod * 1.5 - jolt)
+    tapL = abs(s(TAU * 1.5 * t)) * 0.05 * typing_on
+    return {
+        'body': ((0, 0, 0), (0, SEAT_HIP_Y - HIP_Y - 0.02 + jolt * 0.015, -0.05)),
+        'legL': ((-1.45, 0, 0), None),
+        'legR': ((-1.45, 0, 0), None),
+        'torso': ((lean, 0, 0), None),
+        'head': ((0.2 + nod * 0.32 - jolt * 0.12, 0, 0.22 - nod * 0.1), None),
+        'armL': ((TYPE_REACH - lean - 0.12 - tapL, 0, 0.3), None),
+        'armR': ((-2.0 + nod * 0.12, 0, -0.55), None),
     }
 
 
 key_action('typing', 4.0, typing)
+key_action('slumped', 6.0, slumped)
+key_action('tired', 6.0, tired)
 key_action('nap', 4.0, nap)
 
 path = out_path()
@@ -148,4 +191,4 @@ bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_yup=True, e
                           export_animation_mode='NLA_TRACKS', export_force_sampling=True,
                           export_frame_step=1, export_cameras=False, export_lights=False,
                           export_def_bones=False)
-print(f'MODEL chibi_rig: 0 tris (rig, {len(BONES)} bones, 2 clips)')
+print(f'MODEL chibi_rig: 0 tris (rig, {len(BONES)} bones, {len(bpy.data.actions)} clips)')

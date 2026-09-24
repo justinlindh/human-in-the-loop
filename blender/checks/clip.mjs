@@ -19,7 +19,9 @@ const out = await page.evaluate(async () => {
     { id: 'k_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }, { id: 'k_bean', itemId: 'nap_pod', level: 1, x: 3, y: 9, rot: 0 },
     { id: 'k_pod', itemId: 'nap_pod', level: 2, x: 4, y: 9, rot: 0 }, { id: 'k_arc', itemId: 'arcade', level: 2, x: 11, y: 10, rot: 0 },
     { id: 'k_lib', itemId: 'library', level: 2, x: 12, y: 8, rot: 3 });
-  // Everyone walks to their seat and settles; the clock only moves with these steps.
+  // Everyone walks to their seat and settles, with no perk visits starting, so every desk is
+  // checked; the clock only moves with these steps.
+  R.perks.hold = true;
   for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
   const a = await C.runClipChecks(R, S);
   const b = await C.runPerkChecks(R, S, [

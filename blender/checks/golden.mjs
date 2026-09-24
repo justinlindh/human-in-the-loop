@@ -32,6 +32,7 @@ const SCENES = [
   { name: 'couch-nap', query: 'mock=floor', setup: `__HITL.state.office.placed.push({ id: 'g_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }); __nap = 'g_couch';`, steps: 60, zoom: 4.2 },
   { name: 'nap-pod', query: 'mock=floor', setup: `__HITL.state.office.placed.push({ id: 'g_pod', itemId: 'nap_pod', level: 2, x: 3, y: 9, rot: 0 }); __nap = 'g_pod';`, steps: 60, zoom: 4.2 },
   { name: 'desk-typing-rig', query: 'mock=floor&rig=1', setup: `(${MOODS})(['ok']); __focus = 0;`, steps: 45, zoom: 4.2 },
+  { name: 'desk-moods-rig', query: 'mock=floor&rig=1', setup: `(${MOODS})(['coasting', 'burnout', 'tired']); __focus = 1;`, steps: 45, zoom: 3.2 },
   { name: 'couch-nap-rig', query: 'mock=floor&rig=1', setup: `__HITL.state.office.placed.push({ id: 'g_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }); __nap = 'g_couch';`, steps: 60, zoom: 4.2 },
 ];
 

@@ -24,6 +24,7 @@ const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate
 const TYPE_REACH = -1.32;
 const BLEND_S = 0.3;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
+const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
 const ink = new THREE.Color(PALETTE.ink);
@@ -512,13 +513,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       }
       case 'desknap': {
-        // A short nap on folded arms, gently breathing.
-        tgt.lean = 0.8;
-        tgt.headX = 0.35;
+        // A short nap on folded arms, gently breathing: sat back like burnout so the head rests on
+        // the arms on the desk rather than in it.
+        tgt.bodyZ = -0.12;
+        tgt.lean = 0.55;
+        tgt.headX = 0.42;
         tgt.headZ = 0.45;
-        tgt.armLX = tgt.armRX = -1.55;
-        tgt.armLZ = 0.7; tgt.armRZ = -0.7;
-        tgt.bodyY -= 0.04 - s(t * 1.1 + phase) * 0.006;
+        tgt.armLX = tgt.armRX = -2.6;
+        tgt.armLZ = 0.6; tgt.armRZ = -0.6;
+        tgt.bodyY -= 0.02 - s(t * 1.1 + phase) * 0.006;
         break;
       }
       case 'point':
@@ -703,7 +706,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     pose(dt);
     blinkIn -= dt;
     if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + Math.random() * 3.5; }
-    const closed = blinkT > 0 || anim === 'burnout' || (mood === 'burnout' && anim !== 'celebrate');
+    const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || (mood === 'burnout' && anim !== 'celebrate');
     if (blinkT > 0) blinkT -= dt;
     eyes.scale.y = closed ? 0.15 : 1;
     shine.visible = !closed;
