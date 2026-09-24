@@ -25,8 +25,7 @@ A run is a 20-year career, from a garage in 2019 through the AI boom and whateve
 | | |
 |---|---|
 | ![Two founders at their first desks in a garage](docs/readme/garage.png) | ![The office empty during lockdown, with everyone on a video call](docs/readme/lockdown.png) |
-
-![A busy headquarters with bookcases, plant walls and an office cat](docs/readme/hq.png)
+| ![A busy headquarters with bookcases, plant walls and an office cat](docs/readme/hq.png) | ![The Waffle Party: the incentive winner at a spotlit waffle table while the team watches](docs/readme/waffle.png) |
 
 ## Running it
 
