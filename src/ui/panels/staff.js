@@ -7,7 +7,7 @@ import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
-import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN } from '../v2content.js';
+import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN, agentsHere } from '../v2content.js';
 
 // Career path picker for a senior with pathPending.
 export function openPathPicker(ctx, staffId) {
@@ -227,7 +227,7 @@ export function staffPanel(ctx, arg) {
       acts.append(h('div.act', null, h('b', null, icon('hardProblem'), ' Hard problem'), h('span.small.muted', { text: 'Something gnarly only a human can crack. Ideas and meaning.' }),
         h('button.btn.small', { disabled: away || p.assignment.type === 'hardProblem', onclick: () => assign('hardProblem') }, p.assignment.type === 'hardProblem' ? 'On it' : 'Assign')));
     }
-    acts.append(h('div.act', null, h('b', null, icon('oversight'), ' Oversight'), h('span.small.muted', { text: 'Watches the agents. Catching incidents feels great.' }),
+    acts.append(h('div.act', null, h('b', null, icon('oversight'), ' Oversight'), h('span.small.muted', { text: agentsHere(s) ? 'Watches the agents. Catching incidents feels great.' : "Reviews the team's work. Catching problems early feels great." }),
       h('button.btn.small', { disabled: away || p.assignment.type === 'oversight', onclick: () => assign('oversight') }, p.assignment.type === 'oversight' ? 'On duty' : 'Assign')));
     acts.append(h('div.act', null, h('b', null, icon('sabbatical'), ' Sabbatical'), h('span.small.muted', { text: s.policies?.sabbatical ? `${B.sabbaticalWeeks ?? 4} weeks off. Comes back refreshed.` : 'Needs the Sabbatical Program policy.' }),
       h('button.btn.small', { disabled: away, onclick: () => assign('sabbatical') }, away ? 'Away' : 'Send')));

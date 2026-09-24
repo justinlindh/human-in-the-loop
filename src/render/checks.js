@@ -86,8 +86,11 @@ export async function runClipChecks(R, S, { frames = 24, dt = 0.07 } = {}) {
     if (!s) continue;
     const root = charOf(scene, s.id);
     if (!root) continue;
-    // Only people actually sitting at their desk (not off at a perk or a standup).
-    if (Math.hypot(root.position.x - d.seat.x, root.position.z - d.seat.z) > 0.2 || R.perks.peek(s.id)?.temp) continue;
+    // Measure only while they sit at the desk: someone off on a break is waited for, and a person
+    // who never comes back is a failed check rather than a silently skipped one.
+    const away = () => Math.hypot(root.position.x - d.seat.x, root.position.z - d.seat.z) > 0.2 || R.perks.peek(s.id)?.temp;
+    for (let i = 0; i < 400 && away(); i++) step(1);
+    if (away()) { results.push({ name: `desk:${d.id}`, pass: false, reason: 'never back at the desk' }); continue; }
     const furniture = meshes(d.obj);
     let lowGap = Infinity, highGap = -Infinity, inside = 0, total = 0;
     const byPart = {};
@@ -141,22 +144,60 @@ export async function runClipChecks(R, S, { frames = 24, dt = 0.07 } = {}) {
   return { pass: results.every((r) => r.pass), results };
 }
 
+// Float gap: how far the body hangs above the furniture under it. Any sampled point inside the
+// furniture is contact (0); otherwise the smallest drop from a point to the surface below it.
+function floatGap(points, targets) {
+  const saved = targets.map((m) => m.material.side);
+  for (const m of targets) m.material.side = THREE.DoubleSide;
+  let gap = Infinity;
+  for (const p of points) {
+    ray.set(p, UP);
+    const up = ray.intersectObjects(targets, false).length;
+    ray.set(p, DOWN);
+    const down = ray.intersectObjects(targets, false);
+    if (up % 2 === 1 && down.length % 2 === 1) { gap = 0; break; }
+    if (down.length) gap = Math.min(gap, down[0].distance);
+  }
+  targets.forEach((m, i) => { m.material.side = saved[i]; });
+  return gap;
+}
+
+const FLOAT_MAX = 0.03;           // resting on furniture: the body comes within 3 cm of it
+const SOFT_SINK = 0.35;           // soft furniture (a beanbag): the body sinks this far below its top
+
 // Furniture poses: send one person to each item and measure how much of them sinks into it.
+// Items with soft: true may swallow the body; only the head must stay clear, and the body must sink.
 export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt = 0.1 } = {}) {
   const results = [];
   const staff = S.staff.filter((p) => p.mood !== 'away').map((p) => p.id);
   let k = 0;
-  for (const { id, slot = 0, nap = false, label } of items) {
+  for (const { id, slot = 0, nap = false, soft = false, label } of items) {
     const who = staff[k++ % staff.length];
     if (!R.perks.send([who], id, { dur: 60, slot, nap })) { results.push({ name: label, pass: false, reason: 'not sent' }); continue; }
-    for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) R.advance(0.1);
-    for (let i = 0; i < settle; i++) R.advance(dt);
     const e = R.office.placed.get(id);
     const root = charOf(R.scene, who);
     const furniture = meshes(e.obj);
-    let inside = 0, total = 0, headIn = 0, headTotal = 0;
+    // The approach: nothing of the body goes through the item on the walk there, and getting onto
+    // it (the slide from its front) keeps the upper body out of it.
+    let walkIn = 0, enterIn = 0;
+    for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) {
+      R.advance(0.1);
+      const pts = vertices(root, 6);
+      walkIn = Math.max(walkIn, insideCount(pts, furniture) / pts.length);
+    }
+    for (let i = 0; i < 10; i++) {
+      R.advance(0.08);
+      const pts = vertices(root, 6, isUpper);
+      enterIn = Math.max(enterIn, insideCount(pts, furniture) / pts.length);
+    }
+    for (let i = 0; i < settle; i++) R.advance(dt);
+    let inside = 0, total = 0, headIn = 0, headTotal = 0, gap = 0, low = Infinity;
+    const top = new THREE.Box3().setFromObject(e.obj).max.y;
     for (let f = 0; f < frames; f++) {
       R.advance(dt);
+      const body = vertices(root, 4);
+      gap = Math.max(gap, floatGap(body, furniture));
+      for (const p of body) low = Math.min(low, p.y);
       const pts = vertices(root, 4, isUpper);
       inside += insideCount(pts, furniture);
       total += pts.length;
@@ -169,7 +210,48 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     }
     const pct = total ? (100 * inside) / total : 0;
     const headPct = headTotal ? (100 * headIn) / headTotal : 0;
-    results.push({ name: label, anim: R.perks.peek(who)?.temp?.anim, pass: pct < 2 && headPct < 1, insidePct: +pct.toFixed(2), headInsidePct: +headPct.toFixed(2) });
+    const sunk = top - low;
+    const pass = headPct < 1 && gap < FLOAT_MAX && (soft ? sunk > SOFT_SINK : pct < 2) && walkIn === 0 && (soft || enterIn < 0.05);
+    results.push({ name: label, anim: R.perks.peek(who)?.temp?.anim, pass, insidePct: +pct.toFixed(2), headInsidePct: +headPct.toFixed(2),
+      floatGap: +gap.toFixed(3), walkInsidePct: +(100 * walkIn).toFixed(2), enterUpperInsidePct: +(100 * enterIn).toFixed(2), ...(soft ? { sunkBelowTop: +sunk.toFixed(2) } : {}) });
   }
   return { pass: results.every((r) => r.pass), results };
+}
+
+// Music night: during the dance no dancer's body is inside any furniture or another dancer's space,
+// and once the break ends everyone is back at their desk.
+export async function runDanceCheck(R, S, genre, { dt = 1 / 30 } = {}) {
+  const ids = S.staff.map((p) => p.id);
+  R.handleEvents([{ type: 'incentive', staffId: ids[0], reward: 'music_night', genre, dancers: ids.slice(1, 4) }], S);
+  const d = R.incentives?.dance;
+  const dancers = (d?.dancers ?? ids.slice(0, 4)).map((id) => charOf(R.scene, id)).filter(Boolean);
+  const furniture = [];
+  for (const e of R.office.placed.values()) furniture.push(...meshes(e.obj));
+  let inside = 0, total = 0, minGap = Infinity;
+  for (let f = 0; f < 18 * 30; f++) {
+    R.advance(dt);
+    if (f < 120 || f > 440 || f % 15) continue;
+    for (const root of dancers) {
+      const pts = vertices(root, 8);
+      inside += insideCount(pts, furniture);
+      total += pts.length;
+    }
+    for (let i = 0; i < dancers.length; i++) for (let j = i + 1; j < dancers.length; j++) {
+      minGap = Math.min(minGap, Math.hypot(dancers[i].position.x - dancers[j].position.x, dancers[i].position.z - dancers[j].position.z));
+    }
+  }
+  const desks = R.office.current.desks;
+  const involved = new Set([...(d?.dancers ?? []), ...(d?.crowd ?? [])]);
+  const notBack = () => S.staff.filter((p) => involved.has(p.id)).filter((p) => {
+    const seat = R.perks.peek(p.id)?.seat;
+    const desk = desks.find((x) => x.id === seat);
+    const root = charOf(R.scene, p.id);
+    return desk && root && Math.hypot(root.position.x - desk.seat.x, root.position.z - desk.seat.z) > 0.2;
+  }).map((p) => p.id);
+  // Give the walk home up to 30 s (a water break on the way back is allowed).
+  for (let i = 0; i < 900 && notBack().length; i++) R.advance(dt);
+  const away = notBack();
+  const insidePct = total ? (100 * inside) / total : 0;
+  return { name: `dance:${genre}`, pass: dancers.length >= 4 && insidePct < 0.5 && minGap > 0.55 && away.length === 0,
+    dancers: dancers.length, insidePct: +insidePct.toFixed(2), minGap: +minGap.toFixed(2), notBackAtDesk: away };
 }

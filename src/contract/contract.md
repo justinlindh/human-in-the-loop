@@ -215,6 +215,7 @@ call /* null, or during a video-call week { muted, frozen, badCamera } (booleans
 ### Content ladder events
 ```js
 { type: 'incentive', staffId, reward /* 'finger_traps'|'balloons'|'caricature'|'melon_bar'|'music_night'|'waffle_party' */ }   // the Incentives Program rewards a top performer; the renderer stages it
+{ type: 'incentive', staffId, reward: 'music_night', genre /* 'corporate_synthwave'|'motivational_polka'|'aggressive_bossa_nova'|'sad_lofi' */, dancers /* staff ids joining in */ }   // a staged dance break: the winner picks a genre through a decision, the room dims, the dancers dance to that genre's track, then everyone goes back to work
 ```
 
 ### Content ladder chunk (b): Meaning, Purpose, strain, incentives
@@ -243,3 +244,30 @@ state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ s
 ```
 - An acquisition adds the company's product (with its customers) and staff to the player's company, and emits `chat` lines announcing it.
 - HQ expansion steps each raise the staff cap; the renderer keeps the whole office within the Low quality budget at the maximum cap.
+- `upgradeOffice` at the HQ buys the next expansion step: `office.expansion` +1 and an `officeUpgrade` event with `{ stage: 2, expansion }`. Gate reasons come from `officeGateReason`; past step 3 the reason is 'Already at the biggest office'.
+- Desks at the HQ are capped at 30 + 5 per expansion step (45 at most). `buyItem` and placement refuse more with 'Desk limit reached'.
+- `acquire` also needs a free desk for each incoming person; otherwise it refuses with 'No desks for their team'. Every staff member always has a desk.
+- policies: 'top_pay' (Top-of-Market Pay) and 'office_upkeep' (Office Upkeep), unlocking at the HQ, with a weekly cost that scales with the company. ui reads the current cost from `policyCost(state, id)`.
+
+### The Waffle Party is earned by a personal milestone
+```js
+{ type: 'incentive', staffId, reward: 'waffle_party', milestone /* 'launches'|'level' */, count /* the number reached */ }
+```
+- While the Incentives Program is on, a person earns the Waffle Party by crossing a big personal milestone: a set number of shipped launches they worked on, or a top level. Each person can win it at most once, and the company holds one at most every couple of in-game years, so a good run sees one to three. The thresholds live in `balance.js`.
+- The timed reward ladder keeps its other rewards and no longer ends in the Waffle Party.
+- Items carry an `outdoor` flag; the HQ roof terrace takes only outdoor items, and placement refuses others with 'Only outdoor items go on the terrace'.
+
+### Per-person track record
+```js
+staff.record: {
+  launches,        // shipped launches this person worked on (also drives the Waffle Party milestone)
+  features,        // features built (engineering and design output, in whole features)
+  prsMerged,       // flavour count derived from engineering output
+  salesMrr,        // new MRR attributed to this person's sales work, in dollars
+  deals,           // deals closed
+  tickets,         // support tickets handled
+  incidentsCaught, // incidents and rogue agents this person caught
+  mentored,        // people this person mentored to a level-up
+}
+```
+- Lifetime totals, starting at 0 on hire and kept when someone becomes an alum. Each counter only moves for work the person actually did, so a role's own numbers are the meaningful ones; ui shows the ones that fit the role.

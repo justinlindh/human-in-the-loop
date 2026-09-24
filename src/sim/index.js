@@ -12,3 +12,4 @@ export { categoryLeaders } from './market.js';
 export { securityPosture } from './incidents.js';
 export { scoreRun, retireVia, retireOptions, ipoBlocker } from './endgame.js';
 export { placementCheck, suggestPlacement, adjacencyPreview, footprintCells, seatTile, seatOf, deskCapacity, deskCap, nextExpansion } from './office.js';
+export { stageIncentive } from './incentives.js';

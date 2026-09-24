@@ -91,7 +91,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     const action = m.moveId ? { type: 'moveItem', id: m.moveId, x, y, rot: m.rot } : { type: 'placeItem', itemId: m.itemId, x, y, rot: m.rot };
     const res = ctx.act(action);
     if (!res.ok) return;
-    ctx.sfx(m.moveId ? 'confirm' : 'coin');
+    ctx.sfx(m.moveId ? 'move' : 'coin');
     if (m.moveId) exit();
     else { lastSig = ''; syncRenderer(); refresh(); }
   }

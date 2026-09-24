@@ -6,6 +6,8 @@
 import { createDirector } from './director.js';
 import { createMixer } from './mixer.js';
 import { createLoader } from './loader.js';
+import { createLoops } from './loops.js';
+import { createDucked } from './ducked.js';
 
 const KEEP_COMMANDS = 60;
 
@@ -23,6 +25,11 @@ export function createAudio({ quality = 'high' } = {}) {
   const busUser = {};
   const log = [];
   let music = null; // { src, gain, era }
+  let loops = null;
+  let danceBus = null; // the music night track's level node, into the sfx bus
+  let ducked = null;
+  let lastDance = null;
+  const openHolds = {}; // duck key -> hold ids opened by 'duck' commands, oldest first
 
   function unlock() {
     if (!AC) return;
@@ -31,11 +38,15 @@ export function createAudio({ quality = 'high' } = {}) {
       ctx = new AC();
       mix = createMixer(ctx);
       loader = createLoader(ctx);
+      loops = createLoops(ctx, loader, (b) => mix.bus[b] ?? mix.bus.ambience);
+      danceBus = ctx.createGain();
+      danceBus.connect(mix.bus.sfx);
+      ducked = createDucked(ctx, loader, { mix, out: (c) => (c.op === 'dance' ? danceBus : mix.bus[c.bus] ?? mix.bus.sfx), run: (cmds) => run(cmds) });
       mix.setUser('master', user.master);
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
       // Small sounds decode up front; music and voice banks load on first use.
-      loader.preload(['ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd']);
+      loader.preload(['stingers/launch', 'stingers/era', 'stingers/office', 'stingers/waffle', 'stingers/win', 'stingers/gameover', 'sfx/award', 'ui/click', 'ui/open', 'ui/close', 'ui/confirm', 'ui/error', 'ui/coin', 'ui/blip', 'voice/crowd', 'ambience/typing', 'sfx/door']);
       // iOS wants a sound started inside the gesture.
       const s = ctx.createBufferSource();
       s.buffer = ctx.createBuffer(1, 1, 22050);
@@ -128,18 +139,23 @@ export function createAudio({ quality = 'high' } = {}) {
               dur = buf.duration;
             }
             // A single bark ducks the music while it sounds.
-            if (c.duckKey === 'voice') {
-              mix.duck('voice', true);
-              setTimeout(() => mix.duck('voice', false), Math.max(0, c.at - ctx.currentTime + dur) * 1000);
-            }
+            if (c.duckKey === 'voice') mix.hold('voice', Math.max(ctx.currentTime, c.at), Math.max(ctx.currentTime, c.at) + dur);
+          } else if (c.duck) {
+            ducked.play(c);
           } else {
             playBuffer(loader.get(c.file), c.bus, c.gain, c.at);
           }
         } else if (c.op === 'music') startMusic(c);
+        else if (c.op === 'loop') loops.set(c);
+        else if (c.op === 'dance') ducked.play(c, { wait: true, pausable: true, onStart: (src) => { lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt }; } });
+        else if (c.op === 'dancePause') { if (c.paused) ducked.pause(); else ducked.resume(); }
+        else if (c.op === 'preload') loader.preload(c.ids);
         else if (c.op === 'musicMix') mix.musicMix(c);
         else if (c.op === 'duck') {
-          const delay = Math.max(0, ((c.at ?? ctx.currentTime) - ctx.currentTime) * 1000);
-          if (delay < 5) mix.duck(c.key, c.on); else setTimeout(() => mix.duck(c.key, c.on), delay);
+          // An 'on' opens a hold at its time; the matching 'off' closes the oldest open hold of that key.
+          const at = Math.max(ctx.currentTime, c.at ?? ctx.currentTime);
+          if (c.on) (openHolds[c.key] ??= []).push(mix.hold(c.key, at));
+          else { const id = openHolds[c.key]?.shift(); if (id) mix.endHold(id, at); }
         }
       } catch { /* a failed sound never breaks the game */ }
     }
@@ -148,6 +164,7 @@ export function createAudio({ quality = 'high' } = {}) {
   // UI cues and character clicks arrive as window events, so the UI needs no reference to audio.
   if (typeof window !== 'undefined') {
     addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
+    addEventListener('hitl:propUse', (e) => run(director.prop(e.detail?.itemId, now())));
     addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
@@ -168,6 +185,7 @@ export function createAudio({ quality = 'high' } = {}) {
   if (typeof window !== 'undefined' && typeof requestAnimationFrame === 'function') {
     const tick = () => {
       const s = stateNow();
+      if (ready()) ducked?.pump();
       if (ready() && s && performance.now() - lastUpdateAt > 500) run(director.update(s, now(), { ...lastCtx, ...hostCtx() }));
       requestAnimationFrame(tick);
     };
@@ -195,6 +213,10 @@ export function createAudio({ quality = 'high' } = {}) {
     setQuality(v) { q = v === 'low' ? 'low' : 'high'; director.setQuality(q); },
     setMusic() {},
     get commands() { return log.slice(); },
+    loopState: (id) => loops?.state(id) ?? null,
+    // The last music night track started: whether it was the delivered file, its length and start time.
+    get lastDance() { return lastDance; },
+    get musicDuck() { return mix?.duckLevel ?? 1; },
     // A MediaStream of the final mix, for capture tools.
     tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); mix.output.connect(d); return d.stream; },
     get state() { return { unlocked: !!ctx, running: !!ready(), music: director.musicState }; },

@@ -23,11 +23,25 @@ const out = await page.evaluate(async () => {
   // checked; the clock only moves with these steps.
   R.perks.hold = true;
   for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
+  // Then until every person with a desk sits at it (someone may be on a water break), so the
+  // desk checks always cover every desk.
+  const away = () => R.office.current.desks.filter((d) => {
+    const who = S.staff.find((p) => R.perks.peek(p.id)?.seat === d.id);
+    if (!who) return false;
+    let root = null; R.scene.traverse((o) => { if (o.userData.staffId === who.id) root = o.parent; });
+    return !root || Math.hypot(root.position.x - d.seat.x, root.position.z - d.seat.z) > 0.2;
+  });
+  for (let i = 0; i < 900 && away().length; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
+  const unseated = away().map((d) => d.id);
   const a = await C.runClipChecks(R, S);
   const b = await C.runPerkChecks(R, S, [
-    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
+    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', soft: true, label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
     { id: 'k_arc', label: 'arcade:stool' }, { id: 'k_lib', slot: 1, label: 'library:armchair' }]);
-  return [...a.results, ...b.results];
+  const seatCheck = { name: 'desks:all-seated', pass: unseated.length === 0, unseated };
+  await (await import('/src/render/rig.js')).loadRig();
+  const dance = [];
+  for (const g of ['motivational_polka', 'corporate_synthwave', 'aggressive_bossa_nova', 'sad_lofi']) dance.push(await C.runDanceCheck(R, S, g));
+  return [seatCheck, ...a.results, ...b.results, ...dance];
 });
 await H.close();
 let failed = 0;

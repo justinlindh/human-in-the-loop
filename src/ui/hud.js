@@ -1,8 +1,8 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
-import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
+import { B, trendName, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel, stalledProject } from './panels/common.js';
-import { GOALS, strainOf, STRAIN_WARN } from './v2content.js';
+import { GOALS, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -138,7 +138,10 @@ export function createHud({ root, controls, ui }) {
   const mBrand = meter('Brand', 'brand', 'Brand: multiplies signups and reduces churn. Slow to build.');
   const mIk = meter('Know-how', 'ik', 'Institutional Knowledge: how well your people understand your own systems.');
   const mDebt = meter('Debt', 'debt', 'Comprehension Debt: shipped behavior nobody on staff understands. Raises incidents.');
-  const meters = h('div.chip.meters', null, mBrand.el, mIk.el, mDebt.el);
+  // Fame joins the meters once it is above zero (late game).
+  const mFame = meter('Fame', 'fame', 'Fame: softens churn and hiring costs. Raised by fame campaigns; fades slowly.');
+  mFame.el.style.display = 'none';
+  const meters = h('div.chip.meters', null, mBrand.el, mIk.el, mDebt.el, mFame.el);
 
   const pausedTag = h('span.paused-tag', { text: 'Paused' });
   const menuTag = h('span.paused-tag.menu', { text: 'Paused: menu open', title: 'Time waits while a menu is open. Change this in Settings.' });
@@ -178,7 +181,7 @@ export function createHud({ root, controls, ui }) {
       const k = h('span.k');
       tray.append(h('div.tray-card.alert', { onclick: () => ui.open('ops') },
         h('div.t', null, h('span', null, icon('tray.outage'), ` ${p?.name ?? 'Product'} is down`), k),
-        h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : (INCIDENT_LABEL[o.kind] ?? 'Outage') })));
+        h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : incidentLabel(s, o.kind, 'Outage') })));
       trayBinds.push((st) => st.outage && setText(k, `SEV${6 - st.outage.severity} · ${st.outage.weeks}w`));
     }
     for (const j of s.projects.slice(0, 4)) {
@@ -303,6 +306,10 @@ export function createHud({ root, controls, ui }) {
     setWidth(mDebt.fill, s.comprehensionDebt / 100);
     setText(mDebt.v, Math.round(s.comprehensionDebt));
     toggleClass(mDebt.bar, 'hot', s.comprehensionDebt >= 60);
+    const fame = Number.isFinite(s.fame) ? s.fame : 0;
+    const showFame = fame > 0;
+    if (showFame !== last.fame) { last.fame = showFame; mFame.el.style.display = showFame ? '' : 'none'; }
+    if (showFame) { setWidth(mFame.fill, fame / 100); setText(mFame.v, Math.round(fame)); }
 
     const sp = controls.getSpeed?.() ?? 1;
     if (sp !== last.speed) {

@@ -2,7 +2,7 @@
 // SFX sounds, stingers, one looping bed per era in its key and tempo, gibberish voice barks per
 // bank and emotion, and a crowd murmur. Every generator is deterministic.
 
-import { MUSIC, MUSIC_BARS } from './manifest.js';
+import { MUSIC, MUSIC_BARS, MUSIC_NIGHT, MUSIC_NIGHT_SECONDS } from './manifest.js';
 
 const RATE = 22050;
 const TAU = Math.PI * 2;
@@ -59,6 +59,16 @@ const SFX = {
   'sfx/award': [[0, 784, 0.1, 'tri', 0.4], [0.1, 988, 0.1, 'tri', 0.4], [0.2, 1175, 0.1, 'tri', 0.4], [0.3, 1568, 0.35, 'tri', 0.4]],
   'sfx/reward': [[0, 880, 0.08, 'tri', 0.4], [0.08, 1109, 0.08, 'tri', 0.4], [0.16, 1319, 0.25, 'sine', 0.4]],
   'sfx/bad': [[0, 330, 0.12, 'tri', 0.35, 300], [0.12, 262, 0.2, 'tri', 0.35, 247]],
+  'sfx/outage': [[0, 330, 0.25, 'saw', 0.2, 220], [0.3, 262, 0.35, 'saw', 0.2, 175]],
+  'sfx/fixed': [[0, 523, 0.1, 'tri', 0.4], [0.1, 784, 0.25, 'tri', 0.4]],
+  'sfx/door': [[0, 180, 0.08, 'square', 0.18, 120], [0.12, 140, 0.06, 'square', 0.15, 110]],
+  'sfx/move': [[0, 300, 0.06, 'tri', 0.3, 420]],
+  'sfx/foosball': [[0, 900, 0.03, 'square', 0.2], [0.12, 850, 0.03, 'square', 0.2], [0.2, 950, 0.03, 'square', 0.2]],
+  'sfx/arcade': [[0, 660, 0.06, 'square', 0.18], [0.07, 880, 0.06, 'square', 0.18], [0.14, 1320, 0.1, 'square', 0.18]],
+  'sfx/pingpong': [[0, 1400, 0.03, 'sine', 0.3], [0.35, 1300, 0.03, 'sine', 0.3], [0.7, 1450, 0.03, 'sine', 0.3]],
+  'sfx/coffee': [[0, 200, 0.6, 'saw', 0.06, 180]],
+  'sfx/dog': [[0, 420, 0.12, 'saw', 0.25, 300], [0.2, 440, 0.12, 'saw', 0.25, 310]],
+  'sfx/cat': [[0, 600, 0.4, 'tri', 0.25, 800]],
   'sfx/pop': [[0, 600, 0.05, 'sine', 0.35, 1100]],
   'stingers/launch': [[0, 523, 0.12, 'square', 0.28], [0.12, 659, 0.12, 'square', 0.28], [0.24, 784, 0.12, 'square', 0.28], [0.36, 1047, 0.5, 'square', 0.3], [0.36, 523, 0.5, 'tri', 0.35]],
   'stingers/era': [[0, 392, 0.3, 'tri', 0.35], [0.25, 523, 0.3, 'tri', 0.35], [0.5, 659, 0.3, 'tri', 0.35], [0.75, 784, 0.7, 'sine', 0.4], [0.75, 392, 0.7, 'tri', 0.3]],
@@ -69,10 +79,10 @@ const SFX = {
 };
 
 // One looping bed: a four-chord progression on electric piano, a round bass, and a marimba line.
-function bed(ctx, eraId) {
-  const m = MUSIC[eraId] ?? MUSIC.classic;
+function bed(ctx, eraId, config = null) {
+  const m = config ?? MUSIC[eraId] ?? MUSIC.classic;
   const beat = 60 / m.bpm;
-  const bars = MUSIC_BARS;
+  const bars = config ? Math.max(4, Math.round(MUSIC_NIGHT_SECONDS / (4 * beat))) : MUSIC_BARS;
   const root = 48 + (NOTE[m.key] ?? 5);
   const major = m.mode !== 'minor';
   // Scale degrees for I-vi-IV-V (major) or i-VI-III-VII (minor), as semitone offsets of the root.
@@ -145,6 +155,19 @@ function bark(ctx, bankId, emotion) {
   });
 }
 
+// Soft key clicks at an irregular typing rhythm, 4 s, for a quiet loop.
+function typingBed(ctx) {
+  return buffer(ctx, 4, (d, r) => {
+    let seed = 7;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    for (let t = 0.05; t < 3.9; t += 0.06 + rnd() * 0.18) {
+      const s0 = Math.floor(t * r);
+      for (let i = 0; i < 0.012 * r && s0 + i < d.length; i++) d[s0 + i] += (rnd() * 2 - 1) * 0.25 * Math.exp(-i / (0.002 * r));
+      if (rnd() < 0.08) t += 0.4;
+    }
+  });
+}
+
 function crowd(ctx) {
   return buffer(ctx, 3, (d, r) => {
     let y = 0, z = 0;
@@ -163,7 +186,9 @@ function crowd(ctx) {
 export function synthesize(ctx, id) {
   if (SFX[id]) return tones(ctx, SFX[id]);
   if (id.startsWith('music/')) return bed(ctx, id.slice(6).split('/')[0]);
+  if (id.startsWith('musicNight/')) return bed(ctx, null, MUSIC_NIGHT[id.slice(11)] ?? MUSIC_NIGHT.corporate_synthwave);
   if (id === 'voice/crowd') return crowd(ctx);
+  if (id === 'ambience/typing') return typingBed(ctx);
   if (id.startsWith('voice/')) { const [bank, emotion] = id.slice(6).split('#'); return bark(ctx, bank, emotion); }
   return tones(ctx, SFX['ui/blip']);
 }

@@ -121,6 +121,15 @@ function moveBlocker(s, next) {
   return s.cash < next.upgradeCost ? 'Not enough cash' : '';
 }
 
+const MAX_EXPANSION = 3;
+const EXPANSION_DESKS = 5;
+// The HQ desk cap (30 + 5 per expansion step), or null outside the HQ or before the sim has expansions.
+function deskCapOf(s) {
+  const c = call('deskCap', s);
+  if (Number.isFinite(c)) return c;
+  return stageOf(s) === 2 && Number.isFinite(s.office?.expansion) ? 30 + EXPANSION_DESKS * s.office.expansion : null;
+}
+
 // Rent as the sim charges it (the work policy can discount it).
 function rentOf(s, stage) {
   try { const r = weeklyCosts(s).rent; if (Number.isFinite(r)) return r; } catch { /* fall back to the list price */ }
@@ -149,7 +158,7 @@ function adjacencyLine(it) {
 // The Office panel as a build palette: the stage card, then furniture and shop items to place.
 function buildPalette(ctx) {
   const view = liveView(
-    (s) => `${s.era?.id}|${s.workPolicy}|${stageOf(s)}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
+    (s) => `${s.era?.id}|${s.workPolicy}|${stageOf(s)}|${s.office?.expansion}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
     (s, bind) => {
       const stageIx = stageOf(s);
       const stage = OFFICE_STAGES[stageIx];
@@ -157,6 +166,7 @@ function buildPalette(ctx) {
       const placed = placedOf(s);
       const desks = placed.filter((p) => isDesk(p.itemId)).length;
       const full = s.staff.length >= desks;
+      const cap = deskCapOf(s);
 
       const pills = h('div.row.wrap', null,
         h('span', { class: full ? 'pill warn' : 'pill good', title: 'Each desk set seats one person. Hiring needs a free desk.' },
@@ -164,6 +174,7 @@ function buildPalette(ctx) {
             ? ` ${desks} desk${desks === 1 ? '' : 's'} for ${s.staff.length} ${s.staff.length === 1 ? 'person' : 'people'}`
             : ` ${s.staff.length}/${desks} desks used`),
         h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(rentOf(s, stage))}/wk rent`),
+        cap !== null ? h('span', { class: desks >= cap ? 'pill warn' : 'pill', title: 'The most desks this office can hold' }, icon('office', { size: 12 }), desks >= cap ? ' Desk limit reached' : ` Desk limit ${cap}`) : null,
         s.workPolicy ? h('span.pill.policy', null, icon('home', { size: 12 }), ` ${WORK_POLICY[s.workPolicy]?.name ?? s.workPolicy}`) : null);
       let right;
       if (next) {
@@ -173,6 +184,23 @@ function buildPalette(ctx) {
         bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
         right = h('div.col.right', null,
           h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
+      } else if (Number.isFinite(s.office?.expansion)) {
+        // At the HQ: expansion steps raise the desk cap. Cost and gate come from the sim when it exports them.
+        const step = s.office.expansion;
+        if (step >= MAX_EXPANSION) right = h('span.small.muted', { text: 'The biggest office in town, fully expanded.' });
+        else {
+          const cost = call('expansionCost', s);
+          const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
+            icon('office'), ` Expand the HQ${Number.isFinite(cost) ? ` · ${fmtMoney(cost)}` : ''}`);
+          const why = h('span.why.small');
+          bind((st) => {
+            const gate = call('officeGateReason', st, stageIx);
+            const r = gate ?? (Number.isFinite(cost) && st.cash < cost ? 'Not enough cash' : '');
+            btn.disabled = !!r; setText(why, r ?? ''); btn.title = r ?? '';
+          });
+          right = h('div.col.right', null,
+            h('div.small.muted', { text: `Step ${step + 1} of ${MAX_EXPANSION}: room for ${EXPANSION_DESKS} more desks.` }), btn, why);
+        }
       } else right = h('span.small.muted', { text: 'The biggest office in town.' });
       const policyTip = s.workPolicy && WORK_POLICY[s.workPolicy]?.tip ? h('div.small.muted.policytip', { text: WORK_POLICY[s.workPolicy].tip }) : null;
       const stageCard = h('div.card.stagecard', null,
@@ -189,7 +217,11 @@ function buildPalette(ctx) {
         const f = it.footprint ?? { w: 1, h: 1 };
         const btn = h('button.btn.small.primary', { onclick: () => { ctx.sfx('click'); ctx.build?.enter(it.id); } }, icon('menu.build', { size: 14 }), ` Place · ${fmtMoney(price)}`);
         const why = h('span.why.small');
-        if (!locked) bind((st) => { const r = st.cash < price ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
+        if (!locked) bind((st) => {
+          const atCap = isDesk(it.id) && deskCapOf(st) !== null && placedOf(st).filter((p) => isDesk(p.itemId)).length >= deskCapOf(st);
+          const r = atCap ? 'Desk limit reached' : st.cash < price ? 'Not enough cash' : '';
+          btn.disabled = !!r; setText(why, r);
+        });
         const eff = it.effects?.[0] && Object.keys(it.effects[0]).length ? effectWords(it.effects[0]) : null;
         const adj = adjacencyLine(it);
         const c = h('div.card.item.pal', null,

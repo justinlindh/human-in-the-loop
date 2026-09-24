@@ -76,6 +76,23 @@ const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
 
+// Unstaffed product updates the bot started are dropped, as for readme-hq, so Needs You shows the game.
+const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
+// Idle people go onto the projects nobody is on, as a player would.
+const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
+// A real game played to week 176, then the sim's own staging: the next live week awards the reward.
+const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, '${reward}');` });
+const WAFFLE_SETUP = STAGED('waffle_party');
+// Music night comes naturally: the Incentives Program on from its unlock, played until the fifth
+// reward is due next week, so the live week raises the genre decision.
+const MUSIC_DUE = "((s.policies.incentives || sim.dispatch(s, { type: 'setPolicy', id: 'incentives', on: true })), s.flags.incentiveCount === 4 && s.week - s.flags.incentiveWeek >= (await import('/src/sim/balance.js')).B.incentiveEveryWeeks - 1)";
+const MUSIC_SETUP = PLAY({ weeks: 400, until: MUSIC_DUE, after: IN_OFFICE + CHAT_HISTORY + DROP_UNSTAFFED + STAFF_IDLE });
+// Clicks through the incentive card each second, so the party plays as soon as it is awarded;
+// decisions get the first choice.
+const WAFFLE_ACTIONS = (seconds) => [
+  ...Array.from({ length: Math.floor(seconds) }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
+  ...DISMISS_EVERY(seconds).filter((a) => a.at % 4 === 0),
+];
 // Follows one person with the camera as close as it zooms.
 const CLOSE_UP = (id) => `(() => { window.__HITL.controls.focusStaff(${id}); document.getElementById('scene').dispatchEvent(new WheelEvent('wheel', { deltaY: -400, cancelable: true })); })()`;
 
@@ -252,6 +269,33 @@ export const ITEMS = [
     screenshots: [1.5, 10],
   },
   {
+    // Music night as a staged dance break: the winner, a genre, and four dancers from the office.
+    id: '5-4b-music-night', title: '5.4b Music night: a dance break', query: 'mock=floor&speed=1', seconds: 22, warmup: 1.5,
+    actions: [
+      { at: 0.5, js: `(() => { const s = window.__HITL.state; const here = s.staff.filter((p) => p.mood !== 'away' && !p.remote); window.__HITL.emit([{ type: 'incentive', staffId: here[0].id, reward: 'music_night', genre: 'corporate_synthwave', dancers: here.slice(1, 5).map((p) => p.id) }]); })()` },
+      ...Array.from({ length: 21 }, (_, i) => ({ at: i + 1, js: CLICK('Onward') })),
+    ],
+    screenshots: [6, 12, 18],
+  },
+  {
+    // The real sim's music night: the genre decision stays on screen a moment, then the first genre
+    // (Corporate Synthwave) is picked and the dance break plays.
+    id: '5-4b-music-night-real', title: '5.4b Music night in a real game', query: 'seed=1&speed=1', seconds: 34,
+    setup: MUSIC_SETUP,
+    actions: [
+      ...Array.from({ length: 34 }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
+      ...Array.from({ length: 30 }, (_, i) => ({ at: i + 1, js: `(() => { const H = window.__HITL; const d = H.state.pendingDecision; if (!d) return; window.__decisionSeen ??= performance.now(); if (performance.now() - window.__decisionSeen > 3000) { H.dispatch({ type: 'resolveDecision', choice: 0 }); window.__decisionSeen = undefined; } })()` })),
+    ],
+    screenshots: [10, 16, 22, 28],
+  },
+  {
+    // The real sim's Waffle Party, staged by the sim so the next live week awards it.
+    id: '5-4-waffle-party-real', title: '5.4 Waffle Party in a real game', query: 'seed=1&speed=1', seconds: 30,
+    setup: WAFFLE_SETUP,
+    actions: WAFFLE_ACTIONS(30),
+    screenshots: [13, 15, 20],
+  },
+  {
     id: '5-5-burnout-resign', title: '5.5 Burnout and a resignation', query: 'mock=floor&speed=1', seconds: 16,
     setup: `(() => { const p = window.__HITL.state.staff[3]; p.mood = 'burnout'; p.meaning = 8; window.__HITL.controls.focusStaff(p.id); })()`,
     actions: [{ at: 7, js: `(() => { const p = window.__HITL.state.staff[3]; window.__HITL.emit([{ type: 'resign', staffId: p.id, name: p.name, fired: false }]); })()` }],
@@ -322,6 +366,10 @@ export const ITEMS = [
     id: 'readme-lockdown', group: 'readme', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', still: true,
     setup: PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY }), warmup: 3,
     actions: DISMISS_EVERY(6), screenshots: [6],
+  },
+  {
+    id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(15), screenshots: [14],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,

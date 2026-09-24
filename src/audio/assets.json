@@ -1928,5 +1928,27 @@
   "loopStart": 0,
   "loopEnd": 192000,
   "candidate": true
+ },
+ "musicNight": {
+  "corporate_synthwave": {
+   "file": "music_night/corporate_synthwave.ogg",
+   "duration": 15.6,
+   "candidate": true
+  },
+  "motivational_polka": {
+   "file": "music_night/motivational_polka.ogg",
+   "duration": 18.85,
+   "candidate": true
+  },
+  "aggressive_bossa_nova": {
+   "file": "music_night/aggressive_bossa_nova.ogg",
+   "duration": 16.42,
+   "candidate": true
+  },
+  "sad_lofi": {
+   "file": "music_night/sad_lofi.ogg",
+   "duration": 17.78,
+   "candidate": true
+  }
  }
 }

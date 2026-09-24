@@ -139,6 +139,9 @@ describe('the Incentives Program (issue #11)', () => {
     const boosts = [];
     for (let w = 0; w < B.incentiveEveryWeeks * 7; w++) {
       const ev = run(s, incentivesSystem);
+      // Music night waits for the winner to pick a genre.
+      if (s.pendingDecision?.eventId === 'music_night_genre') ev.push(...dispatch(s, { type: 'resolveDecision', choice: 1 }).events);
+      s.pendingDecision = null;
       const inc = ev.find((e) => e.type === 'incentive');
       if (inc) {
         rewards.push(inc.reward);
@@ -152,7 +155,8 @@ describe('the Incentives Program (issue #11)', () => {
       }
       s.week++;
     }
-    expect(rewards).toEqual(INCENTIVES.map((r) => r.id).concat('waffle_party'));
+    // The timed ladder tops out at music night; the Waffle Party is earned by a milestone instead.
+    expect(rewards).toEqual(['finger_traps', 'balloons', 'caricature', 'melon_bar', 'music_night', 'music_night', 'music_night']);
     for (let i = 1; i < boosts.length; i++) expect(boosts[i]).toBeLessThanOrEqual(boosts[i - 1]);
     expect(s.purpose.value).toBeLessThan(60);
   });

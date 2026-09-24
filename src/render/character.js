@@ -19,7 +19,11 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake'];
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
+// Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
+// for the moment before the rig model has loaded.
+const ALWAYS_CLIP = /^dance_/;
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
 const BLEND_S = 0.3;
@@ -27,6 +31,9 @@ const BLEND_S = 0.3;
 // the walker's speed so feet do not slide.
 const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
+// Mood (and ':closed') -> face geometry shared by every character. Shared geometry bakes its
+// colours in, so face parts must use fixed palette colours only, never a per-person colour.
+const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
@@ -181,6 +188,8 @@ function timingRandom(seed) {
 
 export function createCharacter(appearance = {}, roleColor = PALETTE.role_engineer, opts = {}) {
   const rand = timingRandom(opts.seed);
+  // Parts shown only now and then are detached while hidden, so the per-frame matrix pass skips them.
+  const attach = (o, parent, on) => { if (on && o.parent !== parent) parent.add(o); else if (!on && o.parent) o.removeFromParent(); };
   const tpl = getTemplate('chibi');
   const role = opts.role ?? null;
   const build = Math.max(0, Math.min(2, appearance.build ?? 1));
@@ -279,7 +288,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const mouths = { ok: P('mouth_smile'), coasting: P('mouth_flat'), burnout: P('mouth_frown') };
   headGroup.add(eyes, shine, mouths.ok, mouths.coasting, mouths.burnout);
   const cheeks = makeCheeks(tpl, own.skin.color);
-  headGroup.add(cheeks.group);
+  if (CHEEK_FLUSH) headGroup.add(cheeks.group);
   // A hat replaces the hair; drawing both makes them fight through each other.
   if (!hat) { const h = P(hairPart); headGroup.add(h); headParts.push(h); }
   if (acc !== 'none') {
@@ -311,14 +320,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   });
   const mug = P('mug');
   mug.position.set(0, -0.06, 0.04);
-  mug.visible = false;
-  arms[1].wrist.add(mug);
+  const mugParent = arms[1].wrist;
 
   const box = new THREE.Mesh(boxGeo, mat('cardboard'));
   box.position.set(0, TORSO_H * 0.35, 0.24);
   box.castShadow = true;
-  box.visible = false;
-  torso.add(box);
+  const boxParent = torso;
 
   // The pivots authored clips drive (rig.js bone names).
   const pivots = { body, hips, legL: legs[0], legR: legs[1], torso, head: headGroup, armL: arms[0].shoulder, armR: arms[1].shoulder };
@@ -334,14 +341,41 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   baked.push(bakeParts(headParts, headGroup, bm, tintable));
   for (const a of arms) baked.push(bakeParts(a.parts, a.shoulder, bm, tintable));
   ['legL', 'legR', 'torso', 'head', 'armL', 'armR'].forEach((n, i) => { if (baked[i]) baked[i].userData.part = n; });
-  // Face variants per mood, one mesh each; setMood shows the matching one.
+  // Faces: eyes, eye shine and mouth baked into one mesh per mood, with the eyes open or closed.
+  // Only the face in use is attached; the mood picks the set and a blink swaps open for closed.
+  // Face geometry is the same for everyone, so it is baked once and shared (the per-person tint
+  // lives on the material).
   const faces = {};
   for (const k of ['ok', 'coasting', 'burnout']) {
-    const f = bakeParts([mouths[k]], headGroup, bm, tintable);
-    f.visible = false;
-    faces[k] = f;
-    baked.push(f);
+    for (const closed of [false, true]) {
+      const key = `${k}${closed ? ':closed' : ''}`;
+      let geo = FACE_GEOS.get(key);
+      if (!geo) {
+        const e = eyes.clone();
+        e.scale.y = closed ? 0.15 : 1;
+        const parts = [e, mouths[k].clone()];
+        if (!closed) parts.push(shine.clone());
+        headGroup.add(...parts);
+        const once = bakeParts(parts, headGroup, bm, tintable);
+        once.removeFromParent();
+        geo = once.geometry;
+        geo.userData.shared = true;
+        FACE_GEOS.set(key, geo);
+      }
+      const f = new THREE.Mesh(geo, bm);
+      f.name = 'baked';
+      f.receiveShadow = true;
+      f.userData.noAO = true;
+      faces[key] = f;
+      baked.push(f);
+    }
   }
+  for (const o of [eyes, shine, ...Object.values(mouths)]) o.removeFromParent();
+  let faceMood = 'ok';
+  let faceClosed = false;
+  const showFace = () => { for (const [k, o] of Object.entries(faces)) attach(o, headGroup, k === `${faceMood}${faceClosed ? ':closed' : ''}`); };
+  // Wrists hold nothing once the hands are baked into the arms; only the right one carries the mug.
+  arms[0].wrist.removeFromParent();
 
   // Invisible hit proxy for picking (raycasts ignore visibility, rendering skips it).
   const pickProxy = new THREE.Mesh(pickGeo, new THREE.MeshBasicMaterial());
@@ -359,7 +393,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   emote.center.set(0.5, 0.1);
   emote.visible = false;
   emote.renderOrder = 10;
-  root.add(emote);
 
   let halo = null;
 
@@ -396,7 +429,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   // Variants the clips do not cover stay procedural: the drooping idle and the tired walk.
   const RIG_PROCEDURAL = { idle: () => tired || mood === 'coasting', walk: () => tired };
   function rigPose(dt) {
-    const clip = rigEnabled() && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
+    const clip = (rigEnabled() || ALWAYS_CLIP.test(anim)) && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
     if (clip !== rigClip) {
       pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
       blendT = 0;
@@ -415,7 +448,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       }
     }
     if (!clip) return false;
-    rigAction.timeScale = anim === 'walk' ? Math.min(2.5, Math.max(0.5, moveSpeed / WALK_CLIP_SPEED)) : 1;
+    rigAction.timeScale = anim === 'walk' ? Math.min(2.5, Math.max(0.5, moveSpeed / WALK_CLIP_SPEED)) : animRate;
     mixer.update(dt);
     proxy.children.forEach((g, i) => { pivotList[i].quaternion.copy(g.quaternion); });
     body.position.copy(proxy.children[0].position);
@@ -657,6 +690,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headZ = s(t * 1.5) * 0.12;
         tgt.armLZ = 0.05; tgt.armRZ = -0.05;
         break;
+      case 'dance_polka': case 'dance_robot': case 'dance_bossa': case 'dance_lofi': case 'dance_bob': case 'dance_stiff':
+        tgt.bodyY = Math.abs(s(t * 6 + phase)) * 0.03;
+        tgt.headX = Math.abs(s(t * 6 + phase)) * 0.08;
+        tgt.armLZ = -0.3; tgt.armRZ = 0.3;
+        break;
       case 'wave':
         tgt.armRZ = 2.5 + s(t * 10) * 0.35;
         tgt.headZ = -0.1;
@@ -688,10 +726,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     if (!ANIMS.includes(name) || name === anim) return;
     anim = name;
     animT = 0;
-    mug.visible = name === 'sip' || name === 'water';
+    attach(mug, mugParent, name === 'sip' || name === 'water');
     // Lying people are lifted onto furniture with their root, and the floor ring would float with them.
     ring.visible = !LYING.has(name);
-    box.visible = name === 'carry';
+    attach(box, boxParent, name === 'carry');
   }
 
   function setEmote(kind) {
@@ -701,6 +739,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     emoteT = 0;
     if (kind) emote.material = emoteMaterial(kind);
     emote.visible = !!kind;
+    attach(emote, root, !!kind);
   }
 
   function setTint(g) {
@@ -711,7 +750,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function setMood(m) {
     mood = m;
     const face = m === 'burnout' ? 'burnout' : m === 'coasting' ? 'coasting' : 'ok';
-    for (const [k, o] of Object.entries(faces)) o.visible = k === face;
+    faceMood = face;
+    showFace();
     setTint(m === 'burnout' ? 0.7 : m === 'coasting' ? 0.4 : 0);
   }
   setMood('ok');
@@ -743,8 +783,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + rand() * 3.5; }
     const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || (mood === 'burnout' && anim !== 'celebrate');
     if (blinkT > 0) blinkT -= dt;
-    eyes.scale.y = closed ? 0.15 : 1;
-    shine.visible = !closed;
+    if (closed !== faceClosed) { faceClosed = closed; showFace(); }
     if (emote.visible) {
       emoteT += dt;
       const p = Math.min(1, emoteT / 0.2);
@@ -774,20 +813,34 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function dispose() {
     if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(proxy); }
     for (const m of Object.values(own)) m.dispose();
-    for (const b of baked) b?.geometry.dispose();
+    for (const b of baked) if (b && !b.geometry.userData.shared) b.geometry.dispose();
     bm.dispose();
     cheeks.dispose();
     pickProxy.material.dispose();
     root.removeFromParent();
   }
 
-  function setRingScale(s) { ring.scale.set(s, 1, s); }
+  function setRingScale(s) {
+    if (ring.scale.x === s) return;
+    ring.scale.set(s, 1, s);
+    ring.updateMatrix();
+  }
   // Walking speed in m/s, for the walk clip's playback rate.
   function setMoveSpeed(v) { moveSpeed = v; }
+  // Playback rate for clips other than the walk (a dance at the music's tempo).
+  let animRate = 1;
+  function setAnimRate(k) { animRate = k; }
 
+  // Parts that never move relative to their pivot keep their local matrix instead of recomposing
+  // it every frame (the ring recomposes itself when its scale changes).
+  for (const o of [...baked, ring, pickProxy, headGroup.parent]) {
+    if (!o) continue;
+    o.updateMatrix();
+    o.matrixAutoUpdate = false;
+  }
   update(0);
   return {
-    root, head: headGroup, setShadows, setAnim, setMoveSpeed, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setShadows, setAnim, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

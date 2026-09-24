@@ -13,6 +13,7 @@ import * as SIM from '../../sim/index.js';
 import { automationWeeklyCost } from '../../sim/economy.js';
 import { icon } from '../icons.js';
 import { call } from '../simapi.js';
+import { agentsHere } from '../v2content.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
@@ -91,8 +92,9 @@ export function automationPanel(ctx) {
         ovFill.style.background = short ? '#e5484d' : '#34c38f';
         setClass(provEl, short ? 'num bad-t' : 'num good-t');
         const overseers = st.staff.filter((p) => p.assignment.type === 'oversight').length;
-        setText(ovNote, req <= 0 ? 'No agents running, nothing to oversee.'
-          : short ? `Short ${Math.round(req - prov)}h. Unwatched agents go rogue more often, and nobody catches them. ${overseers} on duty.`
+        const what = agentsHere(st) ? 'agents' : 'automation';
+        setText(ovNote, req <= 0 ? `No ${what} running, nothing to oversee.`
+          : short ? `Short ${Math.round(req - prov)}h. ${agentsHere(st) ? 'Unwatched agents go rogue more often, and nobody catches them.' : 'Unchecked automation slips up more often, and nobody catches it.'} ${overseers} on duty.`
             : `Covered. ${overseers} overseer${overseers === 1 ? '' : 's'} on duty, ready to catch mistakes.`);
         setClass(ovNote, short ? 'small bad-t' : 'small muted');
         setText(costEl, `${fmtMoney(FUNCTIONS.reduce((a, f) => a + fnCost(st, f), 0))}/wk`);
@@ -157,7 +159,7 @@ export function automationPanel(ctx) {
     });
 
   const pol = liveView(
-    (s) => [Object.keys(s.policies).sort().join(), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
+    (s) => [Object.keys(s.policies).sort().join(), s.staff.length, Math.floor(s.week / 13), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
     // With progressive unlocks, a policy appears only once it has arrived.
     (s) => h('div.policies', null, ...POLICIES.filter((p) => !s.unlocks || s.policies[p.id] || policyUnlocked(s, p)).map((p) => {
       const on = !!s.policies[p.id];
@@ -174,7 +176,7 @@ export function automationPanel(ctx) {
         h('div.row', null, h('b.pname', { text: p.name }), h('span.spacer'), sw),
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,
-          h('span.pill', null, icon('money'), p.weeklyCost ? ` ${fmtMoney(p.weeklyCost)}/wk` : ' Free'),
+          (() => { const c = call('policyCost', s, p.id) ?? p.weeklyCost; return h('span.pill', { title: call('policyCost', s, p.id) != null ? 'Grows with the company' : '' }, icon('money'), c ? ` ${fmtMoney(c)}/wk` : ' Free'); })(),
           !unlocked && !on ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${policyLockText(p)}`) : on ? h('span.pill.good', null, icon('check'), ' Active') : null,
           rivals.length ? h('span', { class: rivalOn && !on ? 'pill warn' : 'pill', title: 'Only one of these can be on at a time' },
             icon('migrate', { size: 12 }), rivalOn && !on ? ` Turns off ${POLICY[rivalOn].name}` : ` Either this or ${rivals.map((id) => POLICY[id].name).join(', ')}`) : null));

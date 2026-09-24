@@ -178,5 +178,114 @@ describe('audio director', () => {
     }
     expect(play({ fired: true, reason: 'fired' }).filter((x) => x.op === 'play')).toHaveLength(0);
   });
+
+  it('marks an outage starting and ending, and a door under hires and departures', () => {
+    const d = createDirector();
+    const s = state();
+    d.update(s, 0, { speed: 1 });
+    expect(d.update({ ...s, outage: { productId: 'p1' } }, 1, { speed: 1 }).some((c) => c.cue === 'sfx.outage')).toBe(true);
+    expect(d.update(s, 20, { speed: 1 }).some((c) => c.cue === 'sfx.fixed')).toBe(true);
+    expect(d.events([{ type: 'hire', staffId: 's1' }], s, 30).some((c) => c.cue === 'sfx.door')).toBe(true);
+    expect(createDirector().events([{ type: 'resign', staffId: 's1', fired: true }], s, 30).some((c) => c.cue === 'sfx.door')).toBe(false);
+  });
+
+  it('plays pets and coffee rarely, only with a pet or a coffee machine', () => {
+    const d = createDirector();
+    const s = state({ pets: [{ id: 'pet1', species: 'dog', ownerId: 's1' }], office: { placed: [{ itemId: 'espresso' }] } });
+    let dog = 0, coffee = 0;
+    for (let t = 0; t < 600; t += 0.5) {
+      const c = d.update(s, t, { speed: 1, running: true });
+      dog += c.filter((x) => x.cue === 'sfx.dog').length;
+      coffee += c.filter((x) => x.cue === 'sfx.coffee').length;
+    }
+    expect(dog).toBeGreaterThanOrEqual(2);
+    expect(dog).toBeLessThanOrEqual(7);
+    expect(coffee).toBeGreaterThanOrEqual(1);
+    expect(coffee).toBeLessThanOrEqual(5);
+    const bare = createDirector();
+    let none = 0;
+    for (let t = 0; t < 600; t += 0.5) none += bare.update(state(), t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.dog' || x.cue === 'sfx.coffee').length;
+    expect(none).toBe(0);
+  });
+
+  it('keeps the typing bed quiet, scaled by who is working, and off when paused or in lockdown', () => {
+    const d = createDirector();
+    const working = state({ staff: staff(4).map((p) => ({ ...p, assignment: { type: 'project' } })) });
+    const loop = (cmds) => cmds.find((c) => c.op === 'loop');
+    expect(loop(d.update(working, 0, { speed: 1 })).gain).toBeGreaterThan(0);
+    expect(loop(d.update(working, 1, { speed: 0 })).gain).toBe(0);
+    expect(loop(d.update(working, 2, { speed: 1 })).gain).toBeGreaterThan(0);
+    expect(loop(d.update({ ...working, lockdown: { until: 99 }, week: 10 }, 3, { speed: 1 })).gain).toBe(0);
+    expect(createDirector({ quality: 'low' }).update(working, 0, { speed: 1 }).find((c) => c.op === 'loop')).toBeUndefined();
+  });
+
+  it('plays a perk sound when a prop is in use, rate-limited', () => {
+    const d = createDirector();
+    expect(d.prop('foosball', 1).some((c) => c.cue === 'sfx.foosball')).toBe(true);
+    expect(d.prop('foosball', 5)).toHaveLength(0);
+    expect(d.prop('desk', 50)).toHaveLength(0);
+  });
+
+  it('plays a music night: one dance command with the genre track and a small cheer from the dancers after it', () => {
+    const d = createDirector();
+    const s = state();
+    const cmds = d.events([{ type: 'incentive', staffId: 's1', reward: 'music_night', genre: 'motivational_polka', dancers: ['s2', 's3'] }], s, 10);
+    const dance = cmds.find((c) => c.op === 'dance');
+    expect(dance.file).toBe('musicNight/motivational_polka');
+    expect(dance.duck).toBe('dance');
+    expect(dance.at).toBeCloseTo(10.4);
+    // The cheer is timed from the end of whatever buffer plays, so its offsets are small and positive.
+    const barks = dance.after.filter((c) => c.cue === 'voice.bark');
+    expect(barks.length).toBeGreaterThan(0);
+    expect(barks.length).toBeLessThanOrEqual(3);
+    for (const b of barks) { expect(['s1', 's2', 's3']).toContain(b.voiceKey); expect(b.at).toBeGreaterThan(0); expect(b.at).toBeLessThan(3); }
+    expect(dance.after.some((c) => c.op === 'duck' && c.key === 'cheer' && !c.on)).toBe(true);
+    // Nothing else plays alongside: no fixed-time duck release and no reward sting.
+    expect(cmds.filter((c) => c.op !== 'dance')).toHaveLength(0);
+    // An unknown genre still plays a track.
+    expect(createDirector().events([{ type: 'incentive', reward: 'music_night', genre: 'yodel' }], s, 1).some((c) => c.op === 'dance')).toBe(true);
+  });
+
+  it('ducks the music under every stinger for the buffer, not a fixed time', () => {
+    const d = createDirector();
+    const s = state({ products: [{ id: 'p1', version: 1 }] });
+    const evs = [{ type: 'launch', productId: 'p1' }, { type: 'era', era: 'agents' }, { type: 'officeUpgrade' }, { type: 'award' }];
+    for (const [i, e] of evs.entries()) {
+      const cmds = d.events([e], s, 100 + i * 10);
+      const sting = cmds.find((c) => c.op === 'play' && (c.cue.startsWith('stinger.') || c.cue === 'sfx.award'));
+      expect(sting?.duck, e.type).toBe('stinger');
+      expect(cmds.some((c) => c.op === 'duck' && c.key === 'stinger'), e.type).toBe(false);
+    }
+    const over = d.events([{ type: 'gameOver' }], { ...s, gameOver: { won: true } }, 200).find((c) => c.cue === 'stinger.win');
+    expect(over.duck).toBe('stinger');
+    expect(DUCK.stinger.music).toBeCloseTo(0.25);
+    expect(DUCK.stinger.attack).toBeCloseTo(0.3);
+    expect(DUCK.stinger.release).toBeCloseTo(1);
+  });
+
+  it('pauses the dance track while the game is paused and resumes it after', () => {
+    const d = createDirector();
+    const s = state();
+    d.update(s, 0, { speed: 1, running: true });
+    const dp = (cmds) => cmds.find((c) => c.op === 'dancePause');
+    expect(dp(d.update(s, 1, { speed: 1, running: true, menuPause: true })).paused).toBe(true);
+    expect(dp(d.update(s, 2, { speed: 1, running: true, menuPause: true }))).toBeUndefined();
+    expect(dp(d.update(s, 3, { speed: 1, running: true })).paused).toBe(false);
+    expect(dp(d.update(s, 4, { speed: 0, running: false })).paused).toBe(true);
+  });
+
+  it('preloads the genre tracks once when the genre pick appears', () => {
+    const d = createDirector();
+    const s = state();
+    expect(d.update(s, 0, {}).some((c) => c.op === 'preload')).toBe(false);
+    const pick = { ...s, pendingDecision: { id: 'music_night_genre', options: [{ id: 'sad_lofi' }, { id: 'motivational_polka' }] } };
+    const pre = d.update(pick, 1, { decision: true }).find((c) => c.op === 'preload');
+    expect(pre.ids).toContain('musicNight/sad_lofi');
+    expect(pre.ids).toHaveLength(4);
+    expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload')).toBe(false);
+    // Other decisions do not.
+    const other = createDirector();
+    expect(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}).some((c) => c.op === 'preload')).toBe(false);
+  });
 });
 

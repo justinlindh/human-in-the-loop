@@ -14,10 +14,11 @@ export const BUS_IDS = Object.keys(BUSES);
 
 // Target multiplier on the music bus while a duck is held; attack and release in seconds.
 export const DUCK = {
+  dance: { music: 0.12, attack: 0.6, release: 2 },
   voice: { music: 0.7, attack: 0.08, release: 0.6 },
   cheer: { music: 0.6, attack: 0.05, release: 1.5 },
   decision: { music: 0.45, attack: 0.3, release: 1.2 },
-  stinger: { music: 0.3, attack: 0.05, release: 1.5 },
+  stinger: { music: 0.25, attack: 0.3, release: 1 },
 };
 
 // priority 1..10 (higher steals lower on a full bus); cooldown in s per cue; files: variants picked by rng.
@@ -37,10 +38,20 @@ export const CUES = {
   'sfx.farewell': { bus: 'sfx', files: ['sfx/farewell'], cooldown: 2, priority: 5 },
   'sfx.incident': { bus: 'sfx', files: ['sfx/alarm'], cooldown: 4, priority: 8 },
   'sfx.caught': { bus: 'sfx', files: ['sfx/save'], cooldown: 2, priority: 6 },
-  'sfx.award': { bus: 'sfx', files: ['sfx/award'], cooldown: 0.6, priority: 6 },
+  'sfx.award': { bus: 'sfx', files: ['sfx/award'], cooldown: 0.6, priority: 6, duck: 'stinger' },
   'sfx.reward': { bus: 'sfx', files: ['sfx/reward'], cooldown: 1, priority: 5 },
   'sfx.bad': { bus: 'sfx', files: ['sfx/bad'], cooldown: 0.8, priority: 4 },
   'sfx.warn': { bus: 'sfx', files: ['ui/blip'], cooldown: 0.8, priority: 2 },
+  'sfx.outage': { bus: 'sfx', files: ['sfx/outage'], cooldown: 10, priority: 8 },
+  'sfx.fixed': { bus: 'sfx', files: ['sfx/fixed'], cooldown: 5, priority: 6 },
+  'sfx.door': { bus: 'sfx', files: ['sfx/door'], cooldown: 3, priority: 3, gain: 0.7 },
+  'sfx.move': { bus: 'sfx', files: ['sfx/move'], cooldown: 0.2, priority: 3 },
+  'sfx.foosball': { bus: 'sfx', files: ['sfx/foosball'], cooldown: 25, priority: 2, gain: 0.6 },
+  'sfx.arcade': { bus: 'sfx', files: ['sfx/arcade'], cooldown: 25, priority: 2, gain: 0.6 },
+  'sfx.pingpong': { bus: 'sfx', files: ['sfx/pingpong'], cooldown: 25, priority: 2, gain: 0.6 },
+  'sfx.coffee': { bus: 'sfx', files: ['sfx/coffee'], cooldown: 60, priority: 2, gain: 0.6 },
+  'sfx.dog': { bus: 'sfx', files: ['sfx/dog'], cooldown: 60, priority: 2, gain: 0.6 },
+  'sfx.cat': { bus: 'sfx', files: ['sfx/cat'], cooldown: 60, priority: 2, gain: 0.6 },
   'sfx.bubble': { bus: 'sfx', files: ['sfx/pop'], cooldown: 0.25, priority: 1, scaleWithSpeed: true, jitter: { gain: 0.1 } },
   'stinger.launch': { bus: 'sfx', files: ['stingers/launch'], cooldown: 2, priority: 9, duck: 'stinger' },
   'stinger.era': { bus: 'sfx', files: ['stingers/era'], cooldown: 5, priority: 10, duck: 'stinger' },
@@ -70,12 +81,13 @@ export const ON_EVENT = {
   era: 'stinger.era',
   unlock: 'ui.unlock',
   goal: 'ui.goal',
-  incentive: (e) => (e.reward === 'waffle_party' ? 'stinger.waffle' : 'sfx.reward'),
+  // A music night plays its genre's track (in the director); the other rewards get their sting.
+  incentive: (e) => (e.reward === 'waffle_party' ? 'stinger.waffle' : e.reward === 'music_night' ? null : 'sfx.reward'),
 };
 
 // UI 'hitl:sfx' names -> cue ids.
 export const UI_CUES = {
-  click: 'ui.click', open: 'ui.open', close: 'ui.close', confirm: 'ui.confirm', error: 'ui.error', coin: 'ui.coin',
+  move: 'sfx.move', click: 'ui.click', open: 'ui.open', close: 'ui.close', confirm: 'ui.confirm', error: 'ui.error', coin: 'ui.coin',
   blip: 'ui.blip', decision: 'ui.decision', fanfare: 'stinger.win', gameover: 'stinger.gameover', award: 'sfx.award',
 };
 
@@ -88,6 +100,21 @@ export const MUSIC = {
   consolidation: { bpm: 90, key: 'A', mode: 'minor', beds: ['consolidation/a'] },
   plateau: { bpm: 84, key: 'Eb', mode: 'major', beds: ['plateau/a'] },
 };
+// Music night: each genre's dance track (assets.json musicNight.<genre>); the placeholder is a
+// short piece in the genre's tempo and key. The era bed ducks under it; a small cheer ends it.
+export const MUSIC_NIGHT = {
+  corporate_synthwave: { bpm: 110, key: 'E', mode: 'minor' },
+  motivational_polka: { bpm: 126, key: 'Bb', mode: 'major' },
+  aggressive_bossa_nova: { bpm: 142, key: 'D', mode: 'minor' },
+  sad_lofi: { bpm: 72, key: 'Eb', mode: 'major' },
+};
+export const MUSIC_NIGHT_SECONDS = 16;
+// A pending decision that picks a music night genre: it names the reward or offers the genres.
+export function isMusicNightDecision(d) {
+  if (!d) return false;
+  const text = JSON.stringify(d);
+  return text.includes('music_night') || Object.keys(MUSIC_NIGHT).some((g) => text.includes(g));
+}   // placeholder length, and the fallback when assets.json gives none
 export const MUSIC_BARS = 8;          // placeholder bed length in bars
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
@@ -112,6 +139,15 @@ export function isFirstLaunch(e, s) {
   return !p || (p.version ?? 1) <= 1;
 }
 
+// Rare world sounds: a pet or the coffee machine now and then, and the typing bed while people work.
+export const WORLD = {
+  petMinGap: 90, petSpread: 90,         // s between pet sounds
+  coffeeMinGap: 120, coffeeSpread: 120, // s between coffee sounds
+  typingMax: 0.5,                       // typing loop gain with everyone at their desk
+};
+// A placed perk item -> its in-use sound.
+export const PROP_CUES = { foosball: 'sfx.foosball', arcade: 'sfx.arcade', ping_pong_table: 'sfx.pingpong' };
+
 export const VOICE = {
   cheerCooldown: 180,   // real s between group cheers (multiplied by game speed)
   pokeCooldown: 1.5,    // s per person for clicks
@@ -127,6 +163,7 @@ export const VOICE = {
 export const GROUP_CUES = {
   launch: { duck: 'cheer', groupGain: 0.7, maxVoices: 6, lowMaxVoices: 2, stagger: [0.05, 0.25], gainSpreadDb: [-4, 0], crowdBed: 0.25, emotions: ['excited', 'laughing', 'happy'] },
   waffleParty: { duck: 'cheer', groupGain: 0.7, maxVoices: 6, lowMaxVoices: 2, stagger: [0.05, 0.25], gainSpreadDb: [-4, 0], crowdBed: 0.3, emotions: ['laughing', 'happy', 'excited'] },
+  musicNight: { duck: 'cheer', groupGain: 0.6, maxVoices: 3, lowMaxVoices: 1, stagger: [0.1, 0.3], gainSpreadDb: [-4, 0], crowdBed: 0.2, emotions: ['laughing', 'excited', 'happy'] },
   era: { duck: 'cheer', groupGain: 0.6, maxVoices: 3, lowMaxVoices: 1, stagger: [0.2, 0.5], gainSpreadDb: [-3, 0], crowdBed: 0, emotions: ['questioning', 'excited'] },
 };
 
