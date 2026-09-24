@@ -2,6 +2,7 @@ import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, 
 import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel } from './panels/common.js';
+import { GOALS } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -183,6 +184,17 @@ export function createHud({ root, controls, ui }) {
         setText(k, `${Math.floor(Math.min(1, f) * 100)}%`);
       });
     }
+    // Goals: the next couple of milestones, from state.goals in the data's order.
+    if (s.goals) {
+      const all = GOALS.filter((g) => s.goals[g.id]);
+      const done = all.filter((g) => s.goals[g.id].done).length;
+      const next = all.filter((g) => !s.goals[g.id].done).slice(0, 2);
+      if (next.length) {
+        tray.append(h('div.tray-card.goals', { title: 'Milestones. Each one pays a small reward.' },
+          h('div.t', null, h('span', null, icon('star', { size: 14 }), ' Goals'), h('span.k.num', { text: `${done}/${all.length}` })),
+          ...next.map((g) => h('div.goal', null, h('span.gbox'), h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc }))))));
+      }
+    }
     const effects = groupEffects(s);
     if (effects.length) {
       const list = h('div.effects');
@@ -211,7 +223,11 @@ export function createHud({ root, controls, ui }) {
   function update(s) {
     const d = dateOf(s.week);
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
+    const lc = s.founding?.logoColor;
+    if (lc && logo.style.background !== lc) logo.style.background = lc;
     setText(name, s.companyName || 'Your Lab');
+    const tag = s.founding?.tagline ?? '';
+    if (name.title !== tag) name.title = tag;
     setText(dateVal, `${d.year} · Q${d.quarter} · Wk ${d.week}`);
 
     setText(cashVal, fmtMoney(s.cash));
@@ -284,7 +300,7 @@ export function createHud({ root, controls, ui }) {
     const now2 = performance.now();
     if (now2 - (last.trayAt ?? 0) < 200) { for (const b of trayBinds) b(s); return; }
     last.trayAt = now2;
-    const sig = `${needsYou(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
+    const sig = `${Object.entries(s.goals ?? {}).map(([k, v]) => `${k}${v.done}`).join()}|${needsYou(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
     if (sig !== traySig) { traySig = sig; buildTray(s); }
     for (const b of trayBinds) b(s);
   }

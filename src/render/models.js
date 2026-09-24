@@ -4,7 +4,7 @@ import { paletteMaterial } from './materials.js';
 
 export const PROP_NAMES = [
   'desk', 'chair', 'monitor', 'laptop', 'server_rack', 'plant_tall', 'plant_small', 'coffee_machine',
-  'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy',
+  'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy', 'kitchenette',
 ];
 
 export const ITEM_IDS = [

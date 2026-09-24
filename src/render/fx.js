@@ -90,14 +90,16 @@ export function createFx({ scene, overlayEl }) {
     alarmDur = seconds;
   }
 
+  let alarmLevel = 0;
   function updateAlarm(dt) {
-    if (alarmT >= alarmDur) { spot.intensity = 0; vignette.style.opacity = '0'; return; }
+    if (alarmT >= alarmDur) { spot.intensity = 0; vignette.style.opacity = '0'; alarmLevel = 0; return; }
     alarmT += dt;
     const env = Math.min(1, alarmT / 0.2) * Math.min(1, (alarmDur - alarmT) / 0.5);
     const a = alarmT * 4.5;
     spot.position.set(alarmCenter.x, 6.5, alarmCenter.z);
     spot.target.position.set(alarmCenter.x + Math.cos(a) * alarmR, 0, alarmCenter.z + Math.sin(a) * alarmR);
-    spot.intensity = 90 * env;
+    spot.intensity = 160 * env;
+    alarmLevel = env * (0.55 + 0.45 * Math.max(0, Math.sin(alarmT * 9)));
     vignette.style.opacity = String((0.3 + 0.25 * Math.sin(alarmT * 9)) * env);
   }
 
@@ -128,6 +130,7 @@ export function createFx({ scene, overlayEl }) {
 
   return {
     group, confetti, alarm, pop, update,
+    get alarmLevel() { return alarmLevel; },
     get liveConfetti() { return systems.filter((s) => s.active).length; },
   };
 }

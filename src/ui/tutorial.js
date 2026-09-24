@@ -5,14 +5,6 @@ const KEY = 'hitl.tutorialDone';
 const STEPS = [
   { target: '.topbar', place: 'below', title: 'Your company at a glance',
     text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Comprehension Debt. Hover anything for details.' },
-  { target: '.buildside .summary', place: 'left', title: 'Build a product',
-    text: 'Pick a category, an AI angle, a model vendor, and a team. We picked a solid starter. Great combos score higher; start small.',
-    enter: (ui) => ui.open('build', { preset: { category: 'email', angle: 'summarizer', model: 'chatgbt', size: 'small' } }),
-    leave: (ui) => ui.close() },
-  { target: '.mbtn[data-menu="staff"]', place: 'above', title: 'Look after your people',
-    text: 'Hire, pair juniors with mentors, and give seniors hard problems. People who lose their sense of meaning burn out and leave.' },
-  { target: '.mbtn[data-menu="automation"]', place: 'above', title: 'Automation is a trade',
-    text: 'Agents are cheap output, but they drain meaning, pile up code nobody understands, and need humans watching them.' },
   { target: '.chip.speed', place: 'below-left', title: 'Time',
     text: 'Space pauses. 1, 2, and 3 set the speed. The game waits for you whenever there is a decision to make.' },
 ];
@@ -41,6 +33,7 @@ export function createTutorial({ layer, sfx, controls, ui }) {
   let i = -1;
 
   function place() {
+    if (i < 0) return;
     const step = STEPS[i];
     const t = layer.querySelector(step.target);
     const box = layer.getBoundingClientRect();

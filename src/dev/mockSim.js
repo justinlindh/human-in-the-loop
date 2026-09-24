@@ -49,19 +49,83 @@ const MOCK_ITEMS = [
   [['espresso', 3], ['plant_wall', 3], ['whiteboard_wall', 2], ['server_rack', 3], ['nap_pod', 2], ['monitoring_wall', 3], ['arcade', 2], ['library', 2], ['standing_desk', 3], ['trophy_case', 2], ['arcade', 1], ['plant_wall', 1]],
 ];
 const GRIDS = [{ w: 9, h: 7 }, { w: 15, h: 12 }, { w: 21, h: 16 }];
+// A valid layout: desk columns with aisles, then shop items along the back and left walls.
 function mockPlaced(stage, staffCount) {
   const g = GRIDS[stage];
   const placed = [];
   let n = 1;
-  // Desk sets in facing pairs (2x1 each), rows from the middle of the room.
-  for (let i = 0; i < Math.max(2, staffCount); i++) {
-    const col = i % 4, row = Math.floor(i / 4);
-    placed.push({ id: `f${n++}`, itemId: 'desk', level: 1, x: 2 + col * 2, y: 2 + row * 2, rot: row % 2 ? 2 : 0 });
-  }
-  // Shop items along the back walls.
-  MOCK_ITEMS[stage].forEach(([itemId, level], i) => placed.push({ id: `f${n++}`, itemId, level, x: Math.min(g.w - 1, i * 2), y: 0, rot: 0 }));
+  const tryPlace = (itemId, level, spots) => {
+    for (const [x, y, rot] of spots) {
+      const item = { itemId, x, y, rot };
+      if (!placementProblem(stage, item, placed)) { placed.push({ id: `f${n++}`, level, ...item }); return true; }
+    }
+    return false;
+  };
+  const deskSpots = [];
+  for (let y = 2; y + 1 < g.h - 1; y += 3) for (let x = 2; x < g.w - 1; x += 2) deskSpots.push([x, y, 0]);
+  for (let i = 0; i < Math.max(2, staffCount); i++) if (!tryPlace('desk', 1, deskSpots)) break;
+  const wallSpots = [];
+  for (let x = 0; x < g.w; x++) wallSpots.push([x, 0, 0]);
+  for (let y = 1; y < g.h; y++) wallSpots.push([0, y, 1]);
+  for (let y = 1; y < g.h; y++) for (let x = 1; x < g.w; x++) wallSpots.push([x, y, 0]);
+  for (const [itemId, level] of MOCK_ITEMS[stage]) tryPlace(itemId, level, wallSpots);
   return placed;
 }
+// Placement rules for the mock's build mode: footprints at rot 0, level-1 prices, doors, blocked tiles.
+const MOCK_SHAPES = {
+  desk: { w: 1, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, coffee_corner: { w: 2, h: 1 }, plant: { w: 1, h: 1 },
+  bookshelf: { w: 2, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, whiteboard_wall: { w: 3, h: 1 }, library: { w: 2, h: 2 },
+  monitoring_wall: { w: 3, h: 1 }, espresso: { w: 2, h: 1 }, standing_desk: { w: 2, h: 1 }, server_rack: { w: 2, h: 1 }, trophy_case: { w: 2, h: 1 },
+};
+const MOCK_PRICES = { desk: 800, meeting_table: 3000, whiteboard: 400, coffee_corner: 1200, plant: 150, bookshelf: 500 };
+const DOORS = [{ x: 4, y: 6 }, { x: 7, y: 11 }, { x: 10, y: 15 }];
+const BLOCKED = [[[8, 0]], [[5, 4], [9, 4], [5, 8], [9, 8]], [[6, 5], [14, 5], [6, 10], [14, 10]]];
+const priceOf = (itemId, level = 1) => (MOCK_PRICES[itemId] ?? 3000) * 3 ** (level - 1);
+function tilesOf({ itemId, x, y, rot }) {
+  const f = MOCK_SHAPES[itemId] ?? { w: 1, h: 1 };
+  const [w, h] = rot % 2 ? [f.h, f.w] : [f.w, f.h];
+  const out = [];
+  for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) out.push([x + i, y + j]);
+  return out;
+}
+
+// Returns a reason string if `item` cannot sit at its tiles among `others`, else null.
+function placementProblem(stage, item, others) {
+  const g = GRIDS[stage];
+  const key = ([x, y]) => `${x},${y}`;
+  const mine = tilesOf(item);
+  if (mine.some(([x, y]) => x < 0 || y < 0 || x >= g.w || y >= g.h)) return 'Out of bounds';
+  const taken = new Set([...BLOCKED[stage].map(key), key([DOORS[stage].x, DOORS[stage].y])]);
+  for (const o of others) for (const t of tilesOf(o)) taken.add(key(t));
+  if (mine.some((t) => taken.has(key(t)))) return 'Blocked';
+  for (const t of mine) taken.add(key(t));
+  // Every desk needs a free tile beside it that can be reached from the door.
+  const seen = new Set([key([DOORS[stage].x, DOORS[stage].y])]);
+  const queue = [[DOORS[stage].x, DOORS[stage].y]];
+  while (queue.length) {
+    const [x, y] = queue.shift();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const n = [x + dx, y + dy];
+      if (n[0] < 0 || n[1] < 0 || n[0] >= g.w || n[1] >= g.h || seen.has(key(n)) || taken.has(key(n))) continue;
+      seen.add(key(n));
+      queue.push(n);
+    }
+  }
+  for (const d of [...others, item].filter((o) => o.itemId === 'desk')) {
+    const beside = tilesOf(d).flatMap(([x, y]) => [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]);
+    if (!beside.some((t) => seen.has(key(t)))) return 'Would block the path to a desk';
+  }
+  return null;
+}
+
+const SAID = {
+  aside: ['Okay. Okay okay okay.', 'Who moved my mug?', 'That build was fast. Suspicious.', 'Coffee. Now.', 'Huh. It works.'],
+  exchanges: [
+    ['Got a sec to look at this diff?', 'Sure. Oh. Oh no.', 'Yeah. That is why I asked.'],
+    ['Lunch?', 'Tacos?', 'Tacos.'],
+    ['Did the agent write this?', 'Parts of it. The weird parts.', 'I can tell.'],
+  ],
+};
 const REACTIONS = ['🎉', '😂', '💀', '🫡', '🔥', '👀', '🙏'];
 const PRICES = { email: 10, support: 60, pm: 25, notes: 12, crm: 70, analytics: 55, design: 30, devtools: 35 };
 
@@ -209,6 +273,9 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     return { type: 'chat', id: `m${++chatSeq}`, channel, from: bot ?? person.name, fromId: bot ? null : person.id, text, replyTo, reactions };
   }
 
+  let saySeq = 0;
+  const say = (person, text, to = null, replyTo = null) => ({ type: 'say', id: `v${++saySeq}`, week: state.week, staffId: person.id, text, toId: to?.id ?? null, replyTo });
+
   let ticks = 0;
   let gameOverEmitted = false;
 
@@ -242,6 +309,17 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     if (ticks % 2 === 0) {
       const replier = pick(state.staff.filter((p) => p !== talker)) ?? talker;
       events.push(chat('general', replier, pick(['same', 'this is fine', 'you taught me everything I know', 'lunch?', '+1']), post.id));
+    }
+    // Spoken lines: one aside a week, and a short exchange between two people every third week.
+    const here = state.staff.filter((p) => p.mood !== 'away' && p.assignment.type !== 'sabbatical');
+    if (here.length) events.push(say(pick(here), pick(SAID.aside)));
+    if (ticks % 3 === 0 && here.length >= 2) {
+      const a = pick(here);
+      const b = pick(here.filter((p) => p !== a));
+      const [open, reply, close] = pick(SAID.exchanges);
+      const first = say(a, open, b);
+      const second = say(b, reply, a, first.id);
+      events.push(first, second, say(a, close, b, second.id));
     }
     if (ticks % 4 === 0) events.push(chat('random', pick(state.staff), pick(['who took the good mug', 'the office dog is in the server room again', 'coffee machine is making the noise again'])));
 
@@ -321,6 +399,41 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     }
     if (action.type === 'setPolicy') {
       if (action.on) state.policies[action.id] = true; else delete state.policies[action.id];
+      return { ok: true, events: [] };
+    }
+    if (action.type === 'placeItem' || action.type === 'moveItem') {
+      const placed = state.office.placed;
+      const cur = action.type === 'moveItem' ? placed.find((o) => o.id === action.id) : null;
+      if (action.type === 'moveItem' && !cur) return { ok: false, reason: 'No such item', events: [] };
+      const item = { itemId: cur?.itemId ?? action.itemId, x: action.x, y: action.y, rot: ((action.rot ?? 0) % 4 + 4) % 4 };
+      const problem = placementProblem(state.officeStage, item, placed.filter((o) => o !== cur));
+      if (problem) return { ok: false, reason: problem, events: [] };
+      if (cur) { Object.assign(cur, item); return { ok: true, events: [] }; }
+      const cost = priceOf(item.itemId);
+      if (state.cash < cost) return { ok: false, reason: 'Not enough cash', events: [] };
+      state.cash -= cost;
+      const n = Math.max(0, ...placed.map((o) => Number(o.id.slice(1)) || 0)) + 1;
+      const newItem = { id: `f${n}`, level: 1, ...item };
+      placed.push(newItem);
+      return { ok: true, id: newItem.id, events: [] };
+    }
+    if (action.type === 'upgradeItem') {
+      const it = state.office.placed.find((o) => o.id === action.id);
+      if (!it) return { ok: false, reason: 'No such item', events: [] };
+      if (MOCK_PRICES[it.itemId] !== undefined || it.level >= 3) return { ok: false, reason: 'Already max level', events: [] };
+      const cost = priceOf(it.itemId, it.level + 1);
+      if (state.cash < cost) return { ok: false, reason: 'Not enough cash', events: [] };
+      state.cash -= cost;
+      it.level++;
+      return { ok: true, events: [] };
+    }
+    if (action.type === 'sellItem') {
+      const i = state.office.placed.findIndex((o) => o.id === action.id);
+      if (i < 0) return { ok: false, reason: 'No such item', events: [] };
+      const [it] = state.office.placed.splice(i, 1);
+      let spent = 0;
+      for (let l = 1; l <= it.level; l++) spent += priceOf(it.itemId, l);
+      state.cash += Math.round(spent / 2);
       return { ok: true, events: [] };
     }
     return { ok: false, reason: `The mock sim does not implement ${action.type}`, events: [] };

@@ -766,3 +766,78 @@
 .hitl .starterhint { display: flex; gap: 0.5em; align-items: center; background: #fff4dc; border: 0.14em solid var(--yellow); border-radius: 0.7em; padding: 0.45em 0.7em; margin-bottom: 0.8em; font-weight: 600; font-size: 0.9em; }
 .hitl .speed .paused-tag.menu { display: none; color: var(--ink); background: #fff4dc; border: 0.12em solid var(--warn); border-radius: 1em; padding: 0.1em 0.55em; white-space: nowrap; text-transform: none; letter-spacing: 0; }
 .hitl .toast-more { pointer-events: auto; align-self: flex-end; border: 0.14em solid var(--ink); border-radius: 1em; background: var(--cream); padding: 0.15em 0.7em; font-size: 0.82em; font-weight: 700; box-shadow: 0 0.14em 0 var(--ink); }
+
+/* ---------- founding (New Game steps) ---------- */
+.hitl .tl-card.founding { width: min(34em, 94vw); gap: 0.7em; }
+.hitl .tl-card.founding.f1, .hitl .tl-card.founding.f2 { width: min(46em, 94vw); }
+.hitl .founding .lockup .tl-kicker, .hitl .founding .lockup .tl-sub { display: none; }
+.hitl .founding .tl-name { flex-direction: row; align-items: baseline; gap: 0.25em; font-size: 2.4em; }
+.hitl .founding .tl-name .w2 { font-size: 0.55em; margin: 0; }
+.hitl .founding .tl-form { max-height: calc(100vh - 7em); overflow-y: auto; }
+.hitl .fsteps { display: flex; gap: 0.4em; flex-wrap: wrap; }
+.hitl .fstep { display: inline-flex; align-items: center; gap: 0.35em; padding: 0.15em 0.7em 0.15em 0.2em; border-radius: 1em; border: 0.14em solid var(--line); color: var(--ink-faint); font-weight: 600; font-size: 0.88em; }
+.hitl .fstep b { display: grid; place-items: center; width: 1.5em; height: 1.5em; border-radius: 50%; background: var(--cream-3); color: var(--ink-soft); font-size: 0.85em; }
+.hitl .fstep.on { border-color: var(--ink); color: var(--ink); background: #fff4dc; }
+.hitl .fstep.on b { background: var(--yellow); color: var(--ink); }
+.hitl .fstep.done { color: var(--ink-soft); }
+.hitl .fstep.done b { background: var(--green); color: #fff; }
+.hitl .fbody { display: flex; flex-direction: column; gap: 0.6em; }
+.hitl .fbody > .row { align-items: center; gap: 0.7em; }
+.hitl .flogo { flex: none; width: 3.4em; height: 3.4em; border-radius: 0.8em; border: var(--bw) solid var(--ink); box-shadow: 0 0.2em 0 var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 1.5em; color: #fff; text-shadow: 0 0.08em 0 var(--ink); }
+.hitl .swatches { display: flex; gap: 0.45em; flex-wrap: wrap; }
+.hitl .swatch { width: 2em; height: 2em; border-radius: 50%; border: 0.16em solid var(--ink); cursor: pointer; padding: 0; transition: transform 120ms; }
+.hitl .swatch:hover { transform: translateY(-0.1em); }
+.hitl .swatch.on { box-shadow: 0 0 0 0.18em var(--cream), 0 0 0 0.36em var(--ink); transform: scale(1.08); }
+.hitl .fcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55em; }
+.hitl .fcard, .hitl .fund {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3em; text-align: center;
+  background: var(--cream-2); border: var(--bw) solid var(--ink); border-radius: 0.9em; box-shadow: 0 0.2em 0 var(--ink);
+  padding: 0.6em 0.5em 0.7em; font: inherit; color: inherit; cursor: pointer; transition: transform 120ms, background 120ms;
+}
+.hitl .fcard:hover, .hitl .fund:hover { transform: translateY(-0.12em); }
+.hitl .fcard.on, .hitl .fund.on { background: #fff4dc; box-shadow: 0 0.2em 0 var(--ink), 0 0 0 0.2em var(--yellow); }
+.hitl .fcard.on::after, .hitl .fund.on::after { content: '\2713'; position: absolute; top: -0.5em; right: -0.5em; width: 1.5em; height: 1.5em; border-radius: 50%; background: var(--green); color: #fff; border: 0.14em solid var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 0.9em; }
+.hitl .fcard .portrait { border-radius: 50%; background: var(--cream); border: 0.14em solid var(--ink); }
+.hitl .fname { font-size: 1.1em; }
+.hitl .fcard .small, .hitl .fund .small { line-height: 1.25; color: var(--ink-soft); }
+.hitl .funds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; }
+.hitl .fund { justify-content: flex-start; padding: 0.8em 0.7em; gap: 0.45em; }
+.hitl .fcash { font-size: 1.6em; font-weight: 700; }
+.hitl .tray-card.goals { cursor: default; }
+.hitl .tray-card.goals .t span:first-child { display: inline-flex; align-items: center; gap: 0.3em; }
+.hitl .goal { display: flex; gap: 0.45em; align-items: flex-start; margin-top: 0.3em; font-size: 0.9em; line-height: 1.2; }
+.hitl .goal .gbox { flex: none; width: 0.95em; height: 0.95em; margin-top: 0.1em; border-radius: 0.25em; border: 0.14em solid var(--ink); background: var(--cream); }
+@media (max-height: 700px) {
+  .hitl .fcard .portrait { width: 2.6em !important; height: 2.6em !important; }
+  .hitl .fcard { padding: 0.4em 0.45em 0.5em; gap: 0.2em; }
+}
+
+/* ---------- build mode ---------- */
+.hitl.building .bottom .menu, .hitl.building .tray, .hitl.building .chat { visibility: hidden; }
+.hitl .buildbar {
+  position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 0.8em; width: min(52em, calc(100% - 1.2em)); box-sizing: border-box;
+  pointer-events: auto; display: flex; align-items: center; gap: 0.6em; padding: 0.55em 0.7em;
+  background: var(--cream); border: 0.22em solid var(--ink); border-radius: 1em; box-shadow: 0 0.3em 0 var(--ink), var(--soft);
+  animation: hitl-modal-in 260ms cubic-bezier(.2,1.4,.4,1) both; z-index: 12;
+}
+.hitl .buildbar .iico { flex: none; width: 2.6em; height: 2.6em; display: grid; place-items: center; background: var(--cream-2); border: 0.13em solid var(--ink); border-radius: 0.7em; }
+.hitl .buildbar .binfo { min-width: 0; display: flex; flex-direction: column; gap: 0.2em; }
+.hitl .buildbar .binfo .row { gap: 0.4em; align-items: center; }
+.hitl .buildbar .bname { font-size: 1.1em; white-space: nowrap; }
+.hitl .bstatus { font-size: 0.88em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .bstatus.bad { color: var(--bad); }
+.hitl .bstatus.good { color: var(--good); }
+.hitl .buildbar .btn { white-space: nowrap; }
+.hitl .buildtip {
+  position: absolute; pointer-events: none; z-index: 13; max-width: 18em; padding: 0.25em 0.6em; border-radius: 0.6em;
+  background: var(--ink); color: var(--cream); font-weight: 600; font-size: 0.85em; box-shadow: var(--soft);
+}
+.hitl .buildtip.bad { background: var(--bad); color: #fff; }
+.hitl .item.pal .adj { display: flex; align-items: center; gap: 0.2em; color: var(--ink-soft); background: #eef4ff; border-radius: 0.5em; padding: 0.15em 0.45em; }
+.hitl .item.pal .placedrow { gap: 0.3em; align-items: center; }
+.hitl .item.pal.locked { opacity: 0.7; }
+.hitl .itemcard { gap: 0.55em; min-width: 20em; }
+@media (max-width: 1200px) {
+  .hitl .buildbar .key { display: none; }
+}
+.hitl .modal.small { width: min(28em, 100%); }

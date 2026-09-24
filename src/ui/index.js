@@ -11,6 +11,7 @@ import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
+import { createBuildMode } from './buildmode.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -103,6 +104,10 @@ export function createUI({ root, getState, dispatch, controls }) {
   });
   bottom.append(h('div'));
 
+  const buildMode = createBuildMode({ layer, ctx, controls });
+  ctx.build = buildMode;
+  ctx.isBusy = () => isBusy();
+
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
   const gameover = createGameOver({ layer, controls, sfx });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
@@ -143,6 +148,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       return;
     }
     if (ui.modalKey?.(e)) return;
+    if (buildMode.onKey(e)) return;
     if (e.key === 'Escape') { if (menu.close()) e.preventDefault(); return; }
     if (e.code === 'Space') { e.preventDefault(); ui.togglePause(); return; }
     if (e.key === '1') return ui.setSpeed(1);
@@ -150,7 +156,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (e.key === '3') return ui.setSpeed(4);
     if (e.key === 'c' || e.key === 'C') return chat.toggle();
     const m = MENU.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
-    if (m) { e.preventDefault(); menu.toggle(m.id); }
+    if (m) { e.preventDefault(); buildMode.exit(); menu.toggle(m.id); }
   }
   addEventListener('keydown', onKey);
 
@@ -187,6 +193,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     hud.update(state);
     gameover.update(state);
     popups.update(state);
+    buildMode.update(state);
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
@@ -238,7 +245,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // not the decision popup (the sim already waits for decisions).
   function isBusy() {
     if (settings.values.pauseMenus === false) return false;
-    return !!(menu.current || ctx.modal || popups.launchOpen || settings.isOpen || tutorial.open);
+    return !!(menu.current || ctx.modal || buildMode.on || popups.launchOpen || settings.isOpen || tutorial.open);
   }
   ui.isBusy = isBusy;
 
@@ -251,6 +258,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     openStaff: (id) => menu.open('staff', { staffId: id }),
     openSettings: () => settings.open(),
     startTutorial: () => tutorial.start(true),
+    build: buildMode,
   };
   // Test hooks: ?title=1 shows the title screen and ?tutorial=1 runs the coach marks.
   const q = new URLSearchParams(location.search);

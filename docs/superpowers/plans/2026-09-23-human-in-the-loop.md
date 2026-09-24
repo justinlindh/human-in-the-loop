@@ -1022,3 +1022,24 @@ From the user's playtest: speech bubbles need reasonable timing; employees shoul
 
 ### Task A12: Conversational staging (art)
 - When a chat event's speaker and its root's speaker are both in the office, stage it as a conversation: the replier turns toward (or walks a few tiles toward) the other speaker, bubbles alternate with the pacer's timing, and a small "..." typing indicator bridges turns. Solo lines stay as single bubbles. Keep the 40-label cap; at 4x, show only the last line of an exchange.
+
+### Phase 5 amendment: speech is not Slackk
+
+User direction: chat bubbles should not simply mirror Slackk messages. The contract's "Speech vs Slackk" section adds a `say` event. S18 now writes two pools: spoken lines and exchanges (short, in-person, reactive to the room and the moment, between nearby people) and Slackk posts (written, longer, channels, threads, bots). They may echo each other occasionally, but they are written separately. The volume target applies to each stream (speech: about 1 bubble line per week at 1x plus occasional exchanges; Slackk: its own modest rate). A12 stages `say` exchanges (turning toward `toId`) and shows only a typing emote for `chat`. The pacer's bubble timing applies to `say`; `chat` goes to the feed on its own pacing.
+
+## Phase 6: The long run (4 to 5 hours)
+
+The spec's run shape is a 20-year career (2019 to 2039) with a first full run of about 4 to 5 hours at 1x, played across sessions. Balance stays in weeks; real time comes from the clock and the content ladder. Order: the v2 merge, then L4 and S19 together, then S18, then the ladder content tasks.
+
+### Task L4: Clock sweep and multi-session plumbing (integrator)
+- pace.js: sweep WEEK_SECONDS over 5, 6, 7, 8 and 10 on a full 20-year bot run (sensible and balanced, 1x and 2x). For each, report real minutes per game year, total real hours, popups and toasts per minute, and the longest stretch with nothing presented. Recommend a value; the target is about 4 to 5 hours at 1x with no dead stretches over about 45 s.
+- A `--check` target for the chosen shape: total run length at 1x within 4 to 5 hours, and the unlock spacing rule.
+- main.js: save when the tab is hidden or closed; wire save slots (`listSaves`, `continueGame(id)`) once S19 provides them; the Welcome back recap on real Continue, covered by the lifecycle test.
+
+### Task S19: 20-year run shape, save slots, content ladder proposal (sim)
+- The Plateau era (about 2034 on) with its data, trends and era decision. Consolidation ends about 2033.
+- The 20th anniversary ending: epilogue and score at week 1040, then optional play. IPO or acquisition eligibility from about year 10.
+- Office stages timed in weeks across the run (Floor around years 2 to 3, HQ around years 5 to 7); propose whether a fourth stage (Campus) belongs in the 2030s.
+- Save slots in `src/save` (list, load by id, delete), plus save metadata (company, week, logo color).
+- Bots and `balance.js` run the full 20 years; the thresholds are restated per era.
+- A content ladder proposal in `docs/superpowers/specs/` (a table: what arrives, when in weeks, its trigger, which lane builds it) covering 20 years with something new every 10 to 20 real minutes. The lead reviews it with the user before any ladder content is built.

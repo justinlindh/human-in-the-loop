@@ -414,5 +414,33 @@
  },
  "react.upside": {
   "file": "glyphs/react.upside.svg"
+ },
+ "item.desk": {
+  "file": "glyphs/item.desk.svg",
+  "size": 30
+ },
+ "item.meeting_table": {
+  "file": "glyphs/item.meeting_table.svg",
+  "size": 30
+ },
+ "item.whiteboard": {
+  "file": "glyphs/item.whiteboard.svg",
+  "size": 30
+ },
+ "item.coffee_corner": {
+  "file": "glyphs/item.coffee_corner.svg",
+  "size": 30
+ },
+ "item.rack": {
+  "file": "glyphs/item.rack.svg",
+  "size": 30
+ },
+ "item.plant": {
+  "file": "glyphs/item.plant.svg",
+  "size": 30
+ },
+ "item.bookshelf": {
+  "file": "glyphs/item.bookshelf.svg",
+  "size": 30
  }
 }

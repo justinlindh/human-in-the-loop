@@ -1,4 +1,5 @@
 import { createMockSim } from './dev/mockSim.js';
+import { createPacer, MAX_STEP } from './pacing.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
 const renderMods = import.meta.glob('./render/index.js');
@@ -12,12 +13,6 @@ const mockScenario = params.get('mock');
 const isSnap = params.has('snap');
 // ?seed or ?weeks skips the title and plays immediately (tests, snapshots, reproducible runs).
 const directPlay = !!mockScenario || params.has('seed') || params.has('weeks');
-// Real seconds per in-game week at 1x; a full 15-year run is about an hour.
-const WEEK_SECONDS = 5.0;
-// Events that must land the moment they happen; everything else is spread across the week.
-const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 'officeUpgrade', 'standup']);
-// Paced events are released across this fraction of the week, leaving a quiet beat before the next tick.
-const SPREAD = 0.85;
 // Ambient day/night runs on real time so higher game speeds never strobe the scene.
 const DAY_SECONDS = 120;
 const AUTOSAVE_WEEKS = 4;
@@ -69,27 +64,7 @@ async function boot() {
   };
 
   // A tick's non-urgent events trickle out over the week instead of arriving in one frame.
-  let paced = [];
-  function schedule(events) {
-    releaseAll();
-    const now = [];
-    const later = [];
-    for (const e of events) (IMMEDIATE.has(e.type) ? now : later).push(e);
-    route(now, sim.state);
-    later.forEach((e, i) => paced.push({ at: later.length === 1 ? 0 : (i / later.length) * SPREAD, e }));
-  }
-  function releaseDue(progress) {
-    if (!paced.length) return;
-    const due = [];
-    while (paced.length && paced[0].at <= progress) due.push(paced.shift().e);
-    route(due, sim.state);
-  }
-  function releaseAll() {
-    if (!paced.length) return;
-    const all = paced.map((x) => x.e);
-    paced = [];
-    route(all, sim.state);
-  }
+  const pacer = createPacer();
   const dispatch = (action) => {
     const res = sim.dispatch(action);
     route(res.events, sim.state);
@@ -104,15 +79,14 @@ async function boot() {
   }
 
   function startPlaying(state) {
-    paced = [];
+    pacer.reset();
     if (realSim) useState(state);
     playing = true;
-    acc = 0;
   }
 
   function showTitle() {
     playing = false;
-    paced = [];
+    pacer.reset();
     if (realSim) useState(simMod.createGame({ seed: randomSeed() }));
     ui?.showTitle();
   }
@@ -124,7 +98,9 @@ async function boot() {
     newGame: (opts) => {
       if (!opts) { showTitle(); return; }
       const seed = Number.isFinite(opts.seed) ? opts.seed : randomSeed();
-      startPlaying(realSim ? simMod.createGame({ seed, companyName: opts.companyName || 'Loopworks' }) : sim.state);
+      // Founding options (logoColor, tagline, founders, funding) pass straight through to the sim.
+      const founding = { ...opts, seed, companyName: opts.companyName || 'Loopworks' };
+      startPlaying(realSim ? simMod.createGame(founding) : sim.state);
       if (canSave()) saveMod.clearSave();
     },
     continueGame: () => {
@@ -136,13 +112,17 @@ async function boot() {
     loadStatus: () => {
       if (!canSave()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame();
-      return { ok: res.ok, reason: res.reason };
+      // meta labels the title's Continue row.
+      const meta = res.ok ? { companyName: res.state.companyName, week: res.state.week, logoColor: res.state.founding?.logoColor ?? null } : null;
+      return { ok: res.ok, reason: res.reason, meta };
     },
     save,
     setQuality: (q) => renderer?.setQuality(q),
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     focusStaff: (id) => renderer?.focusStaff(id),
+    // Build mode and other renderer hooks (setBuildMode, pickTile) for the UI; null without a renderer.
+    renderer,
   };
   const ui = uiMod?.createUI({ root: document.getElementById('ui'), getState: () => sim.state, dispatch, controls }) ?? null;
 
@@ -161,7 +141,7 @@ async function boot() {
   window.__HITL = {
     get state() { return sim.state; },
     get playing() { return playing; },
-    get clock() { return { acc, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null }; },
+    get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null }; },
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
@@ -169,30 +149,30 @@ async function boot() {
   };
 
   if (renderer) addEventListener('resize', () => renderer.resize());
+  // Save whenever the page may be going away: tab hidden (mobile browsers often kill it after this),
+  // navigation or close, and the bfcache.
   addEventListener('beforeunload', () => { save(); });
-  document.addEventListener('visibilitychange', () => { acc = 0; });
+  addEventListener('pagehide', () => { save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
-  let acc = 0;
   let last = performance.now();
   let dayClock = 0.35;
   let firstFrame = true;
   let frameCount = 0;
   function frame(now) {
     frameCount++;
-    // Capped so a stalled tab cannot jump weeks, but high enough that slow machines keep real time.
-    const dt = Math.min(0.25, (now - last) / 1000);
+    // Capped so a stalled or hidden tab resumes smoothly instead of jumping.
+    const dt = Math.min(MAX_STEP, (now - last) / 1000);
     last = now;
     // The UI reports busy while a panel or modal is open (auto-pause for menus).
     const menuPause = ui?.isBusy?.() === true;
-    if (playing && speed > 0 && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver) {
-      acc += dt * speed;
-      if (acc >= WEEK_SECONDS) {
-        acc -= WEEK_SECONDS;
-        schedule(sim.tick());
-        if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
-      }
+    const running = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
+    if (pacer.step(dt, { speed, running })) {
+      route(pacer.schedule(sim.tick()), sim.state);
+      pacer.takeDropped();
+      if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
     }
-    if (!menuPause) releaseDue(acc / WEEK_SECONDS);
+    if (!menuPause) route(pacer.due(), sim.state);
     dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     if (renderer) {
       renderer.setTimeOfDay(forcedTime === 'night' ? 0.95 : forcedTime === 'day' ? 0.45 : dayClock);
