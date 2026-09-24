@@ -182,6 +182,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       const body = new Set([mat('fabric_teal'), mat('fabric_terracotta')]);
       a.traverse((m) => { if (m.isMesh && body.has(m.material)) m.material = mat(pickHat); });
     }
+    // Most caps face forward; about one person in four wears theirs backwards.
+    if (acc === 'cap' && (appearance.capBack ?? hashLook(appearance) % 4 === 1)) a.rotateY(Math.PI);
     headGroup.add(a);
   }
   if (role === 'support') headGroup.add(P('role_support'));
