@@ -4,7 +4,8 @@ import { createSceneGraph, buildTestDiorama } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop, windowUpdater } from './lighting.js';
 import { createPost } from './post.js';
-import { buildKitBoard, buildPropLineup } from './debug.js';
+import { buildKitBoard, buildPropLineup, buildItemLineup } from './debug.js';
+import { setGlowScale } from './materials.js';
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
@@ -32,6 +33,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const params = new URLSearchParams(location.search);
   const bounds = params.get('kit') === '1' ? buildKitBoard(office)
     : params.get('props') === '1' ? buildPropLineup(office)
+    : params.get('items') === '1' ? buildItemLineup(office)
     : buildTestDiorama(office);
   rig.setBounds(bounds);
   if (params.get('zoom')) rig.setZoom(Number(params.get('zoom')));
@@ -55,6 +57,12 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const s0 = size();
   renderer.setSize(s0.w, s0.h, false);
   const post = createPost(renderer, scene, rig.camera, q);
+
+  function applyQuality() {
+    lighting.setShadowSize(q === 'low' ? 1024 : 2048);
+    setGlowScale(q === 'low' ? 0.45 : 1);
+  }
+  applyQuality();
 
   function resize() {
     const { w, h } = size();
@@ -82,6 +90,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     setQuality(nq) {
       if (!['low', 'medium', 'high'].includes(nq)) return;
       q = nq;
+      applyQuality();
       post.setQuality(q);
       resize();
     },

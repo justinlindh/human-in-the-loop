@@ -12,14 +12,14 @@ import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 // linearly from a single line, which softens the center of the office too).
 function tiltShader(horizontal) {
   return {
-    uniforms: { tDiffuse: { value: null }, step: { value: 1 / 512 }, focus: { value: 0.5 }, band: { value: 0.3 }, amount: { value: 1 } },
+    uniforms: { tDiffuse: { value: null }, texel: { value: 1 / 512 }, focus: { value: 0.5 }, band: { value: 0.3 }, amount: { value: 1 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: `
-      uniform sampler2D tDiffuse; uniform float step; uniform float focus; uniform float band; uniform float amount;
+      uniform sampler2D tDiffuse; uniform float texel; uniform float focus; uniform float band; uniform float amount;
       varying vec2 vUv;
       void main(){
         float d = abs(vUv.y - focus);
-        float k = smoothstep(band, 0.5, d) * amount * step * 2.2;
+        float k = smoothstep(band, 0.5, d) * amount * texel * 2.2;
         vec2 dir = ${horizontal ? 'vec2(k, 0.0)' : 'vec2(0.0, k)'};
         vec4 s = texture2D(tDiffuse, vUv) * 0.1633;
         s += (texture2D(tDiffuse, vUv - dir) + texture2D(tDiffuse, vUv + dir)) * 0.1531;
@@ -78,8 +78,8 @@ export function createPost(renderer, scene, camera, quality) {
     composer.setPixelRatio(renderer.getPixelRatio());
     composer.setSize(w, h);
     const W = w * renderer.getPixelRatio(), H = h * renderer.getPixelRatio();
-    tiltH.uniforms.step.value = 1 / W;
-    tiltV.uniforms.step.value = 1 / H;
+    tiltH.uniforms.texel.value = 1 / W;
+    tiltV.uniforms.texel.value = 1 / H;
     bloom.setSize(W / 2, H / 2);
   }
 

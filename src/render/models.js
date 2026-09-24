@@ -7,6 +7,13 @@ export const PROP_NAMES = [
   'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy',
 ];
 
+export const ITEM_IDS = [
+  'espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'trophy_case', 'server_rack', 'library',
+  'monitoring_wall', 'whiteboard_wall',
+];
+export const itemModelName = (itemId, level) => `${itemId}_l${Math.max(1, Math.min(3, level | 0))}`;
+const ITEM_MODELS = ITEM_IDS.flatMap((id) => [1, 2, 3].map((l) => itemModelName(id, l)));
+
 const loader = new GLTFLoader();
 const templates = new Map();
 let pending = null;
@@ -32,7 +39,7 @@ function loadOne(name) {
 }
 
 // Loads every model once; later calls return the same promise.
-export function loadModels(names = [...PROP_NAMES, 'chibi']) {
+export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi']) {
   if (!pending) pending = Promise.all(names.map(loadOne)).then(() => templates);
   return pending;
 }
