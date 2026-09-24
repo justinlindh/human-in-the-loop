@@ -139,7 +139,7 @@
 .hitl .speed .paused-tag { font-size: 0.72em; font-weight: 700; color: var(--warn); padding: 0 0.3em; text-transform: uppercase; letter-spacing: 0.05em; }
 
 /* ---------- work tray (left under top bar) ---------- */
-.hitl .tray { position: absolute; left: 0.6em; top: 5.2em; width: 17em; display: flex; flex-direction: column; gap: 0.45em; }
+.hitl .tray { position: absolute; left: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.6em); width: 17em; display: flex; flex-direction: column; gap: 0.45em; }
 .hitl .tray-card {
   pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 0.75em;
   box-shadow: 0 0.2em 0 var(--ink); padding: 0.4em 0.6em; cursor: pointer;
@@ -154,7 +154,7 @@
 @keyframes hitl-shake { 0%, 90%, 100% { transform: none; } 92% { transform: translateX(-0.15em) rotate(-0.5deg); } 96% { transform: translateX(0.15em) rotate(0.5deg); } }
 
 /* ---------- toasts ---------- */
-.hitl .toasts { position: absolute; right: 0.6em; top: 5.2em; width: 21em; display: flex; flex-direction: column; gap: 0.45em; align-items: stretch; }
+.hitl .toasts { position: absolute; right: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.6em); width: 21em; display: flex; flex-direction: column; gap: 0.45em; align-items: stretch; }
 .hitl .toast {
   pointer-events: auto;
   display: flex; gap: 0.55em; align-items: flex-start;
@@ -1130,3 +1130,25 @@
 /* First-project guide in the New Product form. */
 .hitl .pickguide { background: #fff8e6; margin-bottom: 0.7em; }
 .hitl .pickguide ul { margin: 0.4em 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 0.3em; font-size: 0.88em; line-height: 1.35; }
+
+/* Narrow screens: the top bar wraps. The company and the speed controls share the first row,
+   cash, MRR and team the second, and the three meters take a row of their own. */
+@media (max-width: 880px) {
+  .hitl .topbar { flex-wrap: wrap; row-gap: 0.4em; }
+  .hitl .chip.company { order: 0; flex: 1 1 0; min-width: 0; justify-content: flex-start; }
+  .hitl .chip.company > div { min-width: 0; }
+  .hitl .chip.company .name { max-width: 100%; }
+  .hitl .chip.speed { order: 1; flex: none; }
+  /* The spacer becomes a line break after the first row. */
+  .hitl .topbar > .spacer { order: 2; flex: 0 0 100%; height: 0; }
+  .hitl .chip.cash, .hitl .chip.mrr, .hitl .chip.team { order: 3; flex: 1 1 0; }
+  .hitl .chip.meters { order: 4; flex: 1 1 100%; justify-content: space-between; }
+  .hitl .chip.meters .hmeter { min-width: 0; flex: 1; }
+  .hitl .tray { width: min(17em, calc(100% - 1.2em)); }
+}
+/* Phones: the company chip takes the whole first row, so the date is never cut; the speed
+   controls follow on a row of their own. */
+@media (max-width: 480px) {
+  .hitl .chip.company { flex: 1 1 100%; }
+  .hitl .chip.speed { order: 1; flex: 1 1 100%; justify-content: space-between; }
+}

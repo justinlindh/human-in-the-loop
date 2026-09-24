@@ -10,14 +10,16 @@ export const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 
 // Longest frame step honoured, so a stalled tab cannot jump weeks but slow machines keep real time.
 export const MAX_STEP = 0.25;
 // How long a speech bubble stays up, in real seconds: long enough to read at a relaxed pace. Faster
-// game speeds shorten it only a little, since reading speed does not change with the game's.
+// game speeds shorten it a little, but never below the time it takes to read the line
+// (floorBase + chars / charsPerSecond), since reading speed does not change with the game's.
 // The renderer, the pacer, and the pacing simulator all use this.
-export const READ = { base: 1.8, perChar: 0.06, min: 2.5, max: 7 };
+export const READ = { base: 1.8, perChar: 0.06, min: 2.5, max: 7, floorBase: 1, charsPerSecond: 15 };
 const READ_SPEED_FACTOR = (speed) => (speed >= 4 ? 0.6 : speed >= 2 ? 0.75 : 1);
 export function readSeconds(text, speed = 1) {
   const n = typeof text === 'string' ? text.length : 0;
   const at1x = Math.min(READ.max, Math.max(READ.min, READ.base + READ.perChar * n));
-  return at1x * READ_SPEED_FACTOR(speed);
+  const reading = Math.min(READ.max, READ.floorBase + n / READ.charsPerSecond);
+  return Math.max(at1x * READ_SPEED_FACTOR(speed), reading);
 }
 
 // Spoken lines (`say`) are paced as conversation; everything else is spread across the week.
