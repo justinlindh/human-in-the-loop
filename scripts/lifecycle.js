@@ -77,7 +77,14 @@ try {
   check('started as Testco with seed 42', t1.playing && t1.name === 'Testco' && t1.seed === 42, JSON.stringify({ playing: t1.playing, name: t1.name, seed: t1.seed }));
   check('newGame got the founding options', o.companyName === 'Testco' && o.founders?.length === 2 && !!o.funding && !!o.logoColor && typeof o.tagline === 'string', JSON.stringify(o));
 
-  for (let i = 0; i < 6; i++) await page.keyboard.press('Escape');
+  // Close the tutorial or any panel: Escape until the UI reports nothing open. Dispatched in the page,
+  // since DOM clicks do not give the page keyboard focus.
+  const closeAll = () => page.evaluate(() => {
+    for (let i = 0; i < 10 && window.__HITL.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    return window.__HITL.clock.busy;
+  });
+  await page.waitForTimeout(1000);
+  await closeAll();
   // Advances n weeks, resolving any decision first (tick does nothing while one is pending).
   const defineAdvance = () => page.evaluate(() => {
     window.__advance = (n) => {
@@ -124,6 +131,7 @@ try {
     api.handleEvents = (ev, st) => { routed += ev.length; return orig(ev, st); };
     // Play first (a pending decision or an open panel would already hold everything).
     for (let g = 0; g < 5 && H.state.pendingDecision; g++) H.dispatch({ type: 'resolveDecision', choice: 0 });
+    for (let i = 0; i < 10 && H.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
     H.controls.setSpeed(1);
     const day0 = H.clock.dayClock;
     await wait(1500);
