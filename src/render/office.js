@@ -239,6 +239,26 @@ function deskEra(g, i, era, laptop) {
     g.add(led);
     g.add(mesh(roundedCylinder(0.035, 0.04, 0.02, 0.005, 12), mat('plastic_charcoal'), 0.38, 0.62, DESK_Z - 0.22));
   }
+  if (era === 'plateau') {
+    // Analog notebooks and handmade things: people, taste, and craft are the edge now.
+    const side = i % 2 ? -1 : 1;
+    const cover = ['fabric_terracotta', 'fabric_teal', 'fabric_mustard', 'fabric_sage'][i % 4];
+    const nb = mesh(roundedBox(0.15, 0.022, 0.21, 0.008), mat(cover), side * 0.3, 0.632, DESK_Z + 0.12);
+    nb.rotation.y = side * 0.25;
+    g.add(nb);
+    const pg = mesh(roundedBox(0.135, 0.008, 0.195, 0.003, 1), mat('paper'), side * 0.3, 0.646, DESK_Z + 0.12, { cast: false });
+    pg.rotation.y = side * 0.25;
+    g.add(pg);
+    const pen = mesh(roundedCylinder(0.007, 0.007, 0.15, 0.002, 6), mat('wood_honey'), side * 0.4, 0.66, DESK_Z + 0.1);
+    pen.rotation.z = Math.PI / 2;
+    pen.rotation.y = 0.5;
+    g.add(pen);
+    if (i % 3 === 1) {
+      // A lumpy hand-thrown cup.
+      g.add(mesh(roundedCylinder(0.042, 0.036, 0.085, 0.015, 9), mat('pot_cream'), -side * 0.38, 0.62, DESK_Z + 0.16));
+      g.add(mesh(roundedCylinder(0.043, 0.043, 0.02, 0.006, 9), mat('pot_terracotta'), -side * 0.38, 0.69, DESK_Z + 0.16));
+    }
+  }
   if (era === 'consolidation' && i % 3 === 0) {
     const b = mesh(roundedBox(0.07, 0.28, 0.22, 0.012), mat('fabric_slate'), -0.36, 0.76, DESK_Z - 0.14);
     g.add(b);
@@ -283,7 +303,7 @@ function deskSet(i, stageIdx, screens, era) {
   });
   const side = i % 2 ? 1 : -1;
   if (i % 3 === 0) g.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
-  if (i % 4 === 1) {
+  if (i % 4 === 1 && era !== 'plateau') {
     const p = mesh(roundedBox(0.18, 0.02, 0.24, 0.006), mat('paper_sheet'), -side * 0.3, 0.63, DESK_Z + 0.12);
     p.rotation.y = 0.2;
     g.add(p);
@@ -765,8 +785,9 @@ export function createOffice({ parent, screens, lighting }) {
 
   function updatePoster() {
     if (poster) { poster.removeFromParent(); poster = null; }
-    if (!cur || era !== 'chatgbt') return;
-    poster = makePoster(cur.L);
+    if (!cur) return;
+    if (era === 'chatgbt') poster = makePoster(cur.L);
+    if (era === 'plateau') poster = makeCraftWall(cur.L);
     if (poster) cur.root.add(poster);
   }
 
@@ -905,15 +926,78 @@ export function createOffice({ parent, screens, lighting }) {
   };
 }
 
-// "Try AI" poster on the left back wall, in the widest gap between openings.
-function makePoster(L) {
-  const len = L.D;
-  const ops = L.openings.filter((o) => o.wall === 'x').map((o) => [o.at - o.width / 2, o.at + o.width / 2]).sort((a, b) => a[0] - b[0]);
+// The widest stretch of a back wall between openings, as [from, to] along the wall.
+function wallGap(L, wall) {
+  const len = wall === 'x' ? L.D : L.W;
+  const ops = L.openings.filter((o) => o.wall === wall).map((o) => [o.at - o.width / 2, o.at + o.width / 2]).sort((a, b) => a[0] - b[0]);
   let best = null, cursor = -len / 2 + 0.4;
   for (const [a, b] of [...ops, [len / 2 - 0.4, len / 2]]) {
     if (a - cursor > (best ? best[1] - best[0] : 0)) best = [cursor, a];
     cursor = Math.max(cursor, b);
   }
+  return best;
+}
+
+function pinboardTexture() {
+  const c = document.createElement('canvas');
+  c.width = 384; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c99a63'; ctx.fillRect(0, 0, 384, 256);
+  let k = 7;
+  const rnd = () => ((k = (k * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 900; i++) { ctx.fillStyle = rnd() < 0.5 ? '#b8874f' : '#d9ad75'; ctx.fillRect(rnd() * 384, rnd() * 256, 2, 2); }
+  // Sketches, index cards, and a photo, joined by yarn.
+  const cards = [[30, 30, 90, 70, P.paper], [150, 22, 80, 100, P.paper_sheet], [260, 40, 95, 70, P.fabric_mustard], [60, 140, 100, 80, P.paper_sheet], [200, 150, 70, 70, P.pot_cream], [290, 140, 70, 90, P.paper]];
+  const pins = [];
+  for (const [x, y, w, h, col] of cards) {
+    ctx.save(); ctx.translate(x + w / 2, y + h / 2); ctx.rotate((rnd() - 0.5) * 0.18);
+    ctx.fillStyle = col; ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.strokeStyle = P.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = 2;
+    for (let l = 0; l < 3; l++) { ctx.beginPath(); ctx.moveTo(-w / 2 + 8, -h / 2 + 16 + l * 14); ctx.lineTo(w / 2 - 10 - rnd() * 20, -h / 2 + 16 + l * 14); ctx.stroke(); }
+    ctx.globalAlpha = 1; ctx.restore();
+    pins.push([x + w / 2, y + 6]);
+  }
+  ctx.strokeStyle = P.fabric_terracotta; ctx.lineWidth = 2.5;
+  ctx.beginPath(); pins.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+  for (const [x, y] of pins) { ctx.fillStyle = P.fabric_teal; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Plateau craft wall: a pinboard of sketches on the left back wall, and a shelf of handmade
+// pottery on the right one.
+function makeCraftWall(L) {
+  const g = new THREE.Group();
+  const gx = wallGap(L, 'x');
+  if (gx && gx[1] - gx[0] >= 1.3) {
+    const z = (gx[0] + gx[1]) / 2;
+    g.add(mesh(roundedBox(0.04, 0.82, 1.2, 0.012), mat('wood_dark'), -L.W / 2 + 0.02, 1.5, z));
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.72), new THREE.MeshStandardMaterial({ map: pinboardTexture(), roughness: 0.95 }));
+    face.position.set(-L.W / 2 + 0.045, 1.5, z);
+    face.rotation.y = Math.PI / 2;
+    g.add(face);
+  }
+  const gz = wallGap(L, 'z');
+  if (gz && gz[1] - gz[0] >= 1.3) {
+    const x = (gz[0] + gz[1]) / 2, zw = -L.D / 2;
+    for (const y of [1.25, 1.75]) {
+      g.add(mesh(roundedBox(1.1, 0.04, 0.24, 0.012), mat('wood_honey'), x, y, zw + 0.13));
+      for (const sx of [-0.45, 0.45]) g.add(mesh(roundedBox(0.03, 0.12, 0.2, 0.008), mat('metal_dark'), x + sx, y - 0.07, zw + 0.11));
+    }
+    const pots = [[-0.35, 1.27, 0.07, 0.16, 'pot_terracotta'], [-0.08, 1.27, 0.05, 0.1, 'pot_cream'], [0.2, 1.27, 0.08, 0.13, 'fabric_teal'], [0.4, 1.27, 0.04, 0.18, 'pot_cream'],
+      [-0.3, 1.77, 0.06, 0.12, 'pot_cream'], [0.05, 1.77, 0.07, 0.09, 'fabric_mustard'], [0.33, 1.77, 0.05, 0.14, 'pot_terracotta']];
+    for (const [dx, y, r, h, m] of pots) g.add(mesh(roundedCylinder(r * 0.8, r, h, Math.min(0.02, r * 0.3), 10), mat(m), x + dx, y + 0.02, zw + 0.13));
+    const pl = getModel('plant_small');
+    pl.scale.setScalar(0.5);
+    g.add(place(pl, x - 0.1, 1.79, zw + 0.13));
+  }
+  return g.children.length ? g : null;
+}
+
+// "Try AI" poster on the left back wall, in the widest gap between openings.
+function makePoster(L) {
+  const best = wallGap(L, 'x');
   if (!best || best[1] - best[0] < 0.9) return null;
   const c = document.createElement('canvas');
   c.width = 256; c.height = 340;

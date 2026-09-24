@@ -138,7 +138,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       pendingUpgrade = false;
     }
     // Era dressing; a change after the first build gets the window-light swell.
-    if (office.setEra(state.era?.id ?? 'classic')) screens.setEra(office.era, !stageJustBuilt && !firstSync);
+    if (office.setEra(state.era?.id ?? 'classic')) {
+      screens.setEra(office.era, !stageJustBuilt && !firstSync);
+      lighting.setEraTone(office.era);
+    }
     firstSync = false;
     const changed = office.setPlaced(state.office?.placed ?? []);
     if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);

@@ -300,7 +300,7 @@ export function createScreens() {
   }
 
   // Era tint on the skyline, with a brief swell of window light when an era arrives.
-  const ERA_TINT = { classic: '#f3c9a0', chatgbt: '#9fe0d0', agents: '#b8a8f0', consolidation: '#a9b0bb' };
+  const ERA_TINT = { classic: '#f3c9a0', chatgbt: '#9fe0d0', agents: '#b8a8f0', consolidation: '#a9b0bb', plateau: '#f2b98a' };
   const eraTint = new THREE.Color(ERA_TINT.classic);
   const eraFrom = new THREE.Color(), eraTo = new THREE.Color(ERA_TINT.classic);
   let eraT = 1, swell = 0, lastDaylight = 1;
@@ -310,7 +310,7 @@ export function createScreens() {
     eraT = flourish ? 0 : 1;
     if (!flourish) eraTint.copy(eraTo);
     swell = flourish ? 1 : 0;
-    wallMat.userData.eraGlow = id === 'agents' ? 1.35 : 1;
+    wallMat.userData.eraGlow = id === 'agents' ? 1.35 : id === 'plateau' ? 0.75 : 1;
     wallMat.color.setScalar(brightness * wallMat.userData.eraGlow);
     winKey = -1;
   }
