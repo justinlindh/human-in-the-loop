@@ -37,7 +37,7 @@ const fill = (state, text) => text.replaceAll('{company}', state.companyName).re
 export function buildEpilogue(state, outcome) {
   const x = summary(state, outcome);
   const lines = EPILOGUES.filter((e) => e.when(state, x)).slice(0, 5).map((e) => fill(state, e.text));
-  for (const g of shuffle(state.rng, GENERIC_EPILOGUES)) {
+  for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x)))) {
     if (lines.length >= 3) break;
     lines.push(fill(state, g.text));
   }

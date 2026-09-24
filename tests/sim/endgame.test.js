@@ -150,6 +150,28 @@ describe('score and epilogue', () => {
     expect(lines).toMatch(/money ran out/);
   });
 
+  it('losses never get alive-only generic lines', () => {
+    for (const reason of ['runway', 'collapse']) {
+      for (let seed = 1; seed <= 10; seed++) {
+        const s = game(seed);
+        s.week = 17;
+        const lines = buildEpilogue(s, { won: false, reason }).join(' ');
+        expect(lines, `${reason} ${seed}`).not.toMatch(/still hiring|still alive|stayed in the loop/i);
+      }
+    }
+  });
+
+  it('a product nobody paid for gets the free-tier line, not the holiday card', () => {
+    const s = game();
+    s.week = 200;
+    s.stats.peakMrr = 0;
+    const lines = buildEpilogue(s, { won: false, reason: 'timeout' }).join(' ');
+    expect(lines).not.toMatch(/holiday card/);
+    expect(lines).toMatch(/free tier/);
+    s.stats.peakMrr = 5000;
+    expect(buildEpilogue(s, { won: false, reason: 'timeout' }).join(' ')).toMatch(/holiday card/);
+  });
+
   it('endGame fills score and epilogue and fires once', () => {
     const s = game();
     const c = makeCtx(s);
