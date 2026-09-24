@@ -98,6 +98,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     baseHemi.copy(hemi.color);
     baseGround.copy(hemi.groundColor);
     baseSun = sun.intensity;
+    baseHemiI = hemi.intensity;
     applyAlarm();
     for (const fn of env.listeners) fn(env);
   }
@@ -106,6 +107,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
   const baseHemi = new THREE.Color(), baseGround = new THREE.Color();
   const alarmRed = C('alarm_red');
   let baseSun = 3.4;
+  let baseHemiI = 1;
   let alarmK = 0;
   // Era tone: the Plateau fill is a little warmer and the sun a little softer.
   const eraWarm = C('lamp_warm');
@@ -114,10 +116,18 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     warmK = id === 'plateau' ? 1 : 0;
     applyAlarm();
   }
+  // Lockdown skeleton crew: the fill and sun drop a little while the office is empty.
+  let dimK = 0;
+  function setSkeleton(k) {
+    if (Math.abs(k - dimK) < 0.01) return;
+    dimK = k;
+    applyAlarm();
+  }
   function applyAlarm() {
+    hemi.intensity = baseHemiI * (1 - 0.45 * dimK);
     hemi.color.copy(baseHemi).lerp(eraWarm, 0.16 * warmK).lerp(alarmRed, 0.55 * alarmK);
     hemi.groundColor.copy(baseGround).lerp(eraWarm, 0.12 * warmK).lerp(alarmRed, 0.35 * alarmK);
-    sun.intensity = baseSun * (1 - 0.1 * warmK) * (1 - 0.45 * alarmK);
+    sun.intensity = baseSun * (1 - 0.1 * warmK) * (1 - 0.45 * alarmK) * (1 - 0.4 * dimK);
   }
   function setAlarm(k) {
     if (Math.abs(k - alarmK) < 0.005 && k !== 0) return;
@@ -132,7 +142,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.shadow.map = null;
   }
 
-  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone };
+  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone, setSkeleton };
 }
 
 export function createBackdrop() {

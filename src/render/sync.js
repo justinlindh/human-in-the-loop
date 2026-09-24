@@ -3,6 +3,7 @@ import { createCharacter } from './character.js';
 import { ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
 import { createPerks } from './perks.js';
+import { createPets } from './pets.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -78,7 +79,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const cur = office.current;
     const Z = cur.zones;
     const type = s.assignment?.type ?? 'idle';
-    if (s.mood === 'away' || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
+    if (s.mood === 'away' || s.remote || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
     const desk = r.seat !== null ? office.deskById(r.seat) : null;
     const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: SEATED_ANIM[s.mood] ?? 'typing', seated: true });
     if (type === 'oversight') {
@@ -174,7 +175,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -232,6 +233,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
     }
     firstSync = false;
+    pets.sync(state);
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
@@ -402,6 +404,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
+  const pets = createPets({ office, recs, emote, parent: group });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -653,6 +656,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     updateStandup(dt);
     updateFast(dt);
     perks.update(dt, lastState);
+    pets.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
@@ -692,7 +696,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   }
 
   return {
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets,
     get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },

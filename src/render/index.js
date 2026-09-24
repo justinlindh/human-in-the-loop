@@ -5,7 +5,7 @@ import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
-import { setGlowScale } from './materials.js';
+import { setGlowScale, mat } from './materials.js';
 import { loadModels } from './models.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
@@ -16,6 +16,32 @@ import { createBuild } from './build.js';
 import { createPortraits } from './portraits.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
+
+const WILT_WEEKS = 16;
+const RECOVER_WEEKS = 6;
+function lockdownLevel(state) {
+  const L = state.lockdown;
+  if (!L) return { dim: 0, wilt: 0 };
+  const w = state.week ?? 0;
+  if (w < L.until) return { dim: 1, wilt: Math.min(1, Math.max(0, (w - L.since) / WILT_WEEKS)) };
+  const peak = Math.min(1, Math.max(0, (L.until - L.since) / WILT_WEEKS));
+  return { dim: 0, wilt: peak * Math.max(0, 1 - (w - L.until) / RECOVER_WEEKS) };
+}
+
+// Wilting tints the shared leaf materials toward dry brown (every plant uses them).
+const LEAVES = ['leaf', 'leaf_dark', 'leaf_light'];
+const WILT_TO = new THREE.Color('#a08a5a');
+let wiltSeen = -1;
+const leafBase = new Map();
+function setWilt(k) {
+  if (Math.abs(k - wiltSeen) < 0.01) return;
+  wiltSeen = k;
+  for (const n of LEAVES) {
+    const m = mat(n);
+    if (!leafBase.has(n)) leafBase.set(n, m.color.clone());
+    m.color.copy(leafBase.get(n)).lerp(WILT_TO, 0.7 * k);
+  }
+}
 
 const DEBUG_VIEWS = {
   kit: { '1': buildKitBoard },
@@ -152,6 +178,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     if (sig !== buildSig) { buildSig = sig; build?.invalidate(); }
     stageJustBuilt = false;
     screens.setAutomation(state.automation);
+    // Lockdown: the office empties, plants wilt over time and recover after, the lights dim.
+    const lk = lockdownLevel(state);
+    lighting.setSkeleton(lk.dim);
+    setWilt(lk.wilt);
     staff.sync(state);
   }
 
@@ -208,6 +238,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const id = build?.pickPlaced(x, y);
       return id ? { kind: 'item', id } : r;
     },
+    // Ease the camera to a world point (dev and snap use).
+    focusAt(x, z, zoom = 2.5) { rig.focus({ x, y: 0.4, z }, zoom); rig.update(10); },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
@@ -250,6 +282,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     // Dev and snap hook: perk visits (send people to a placed item, counts).
     get perks() { return staff?.perks ?? null; },
+    get pets() { return staff?.pets ?? null; },
     get stats() { return { perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).

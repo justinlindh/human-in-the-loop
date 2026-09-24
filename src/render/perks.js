@@ -221,6 +221,17 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
 
   function maybeStart(state) {
     const people = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && r.staff.mood !== 'away');
+    // Alone in a lockdown office, the stayer wanders more and naps on the couch.
+    const L = state?.lockdown;
+    const stayer = L && (state.week ?? 0) < L.until && L.stayerId ? recs.get(L.stayerId) : null;
+    if (stayer && eligible(stayer)) {
+      const free = freeSlots();
+      const couch = free.find((s) => s.kind === 'couch');
+      const solo = free.filter((s) => !s.def.pair);
+      const slot = couch && Math.random() < 0.5 ? couch : solo[Math.floor(Math.random() * solo.length)];
+      if (slot) { visit(stayer, slot); if (slot === couch) { stayer.temp.anim = 'lie'; stayer.temp.lift = 0.44; } }
+      return;
+    }
     const max = Math.max(1, Math.round(people.length / 7));
     const visiting = people.filter((r) => r.temp?.perkKey).length;
     if (visiting >= max) return;
@@ -249,7 +260,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     if (isBusy()) return;
     clock -= dt;
     if (clock > 0) return;
-    clock = rnd(2.5, 5);
+    clock = state?.lockdown && (state.week ?? 0) < state.lockdown.until ? rnd(1, 2) : rnd(2.5, 5);
     maybeStart(state);
   }
 

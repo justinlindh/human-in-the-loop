@@ -44,7 +44,7 @@ function loadOne(name) {
 }
 
 // Loads each named model once (cached per name) and resolves when all of them are ready.
-export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi']) {
+export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi', 'pets']) {
   return Promise.all(names.map(loadOne)).then(() => templates);
 }
 
