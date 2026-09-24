@@ -10,7 +10,7 @@ import { emitChat } from './chat.js';
 export function annualSystem(ctx) {
   const { state } = ctx;
   const { week, year, yearIndex } = dateOf(state.week);
-  if (week === 40) raiseDecision(ctx, 'conference_expo');
+  if (week === 40) raiseDecision(ctx, 'conference_expo', null, { queue: true });
   if (week === 50) {
     const best = liveProducts(state).filter((p) => p.score >= 8).sort((a, b) => b.score - a.score || b.mrr - a.mrr)[0];
     if (best) {

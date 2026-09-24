@@ -1,0 +1,154 @@
+{
+ "cat.accounting": {
+  "file": "objects/cat.accounting.png",
+  "size": 22
+ },
+ "cat.analytics": {
+  "file": "objects/cat.analytics.png",
+  "size": 22
+ },
+ "cat.crm": {
+  "file": "objects/cat.crm.png",
+  "size": 22
+ },
+ "cat.design": {
+  "file": "objects/cat.design.png",
+  "size": 22
+ },
+ "cat.devtools": {
+  "file": "objects/cat.devtools.png",
+  "size": 22
+ },
+ "cat.email": {
+  "file": "objects/cat.email.png",
+  "size": 22
+ },
+ "cat.hr": {
+  "file": "objects/cat.hr.png",
+  "size": 22
+ },
+ "cat.legal": {
+  "file": "objects/cat.legal.png",
+  "size": 22
+ },
+ "cat.notes": {
+  "file": "objects/cat.notes.png",
+  "size": 22
+ },
+ "cat.pm": {
+  "file": "objects/cat.pm.png",
+  "size": 22
+ },
+ "cat.recruiting": {
+  "file": "objects/cat.recruiting.png",
+  "size": 22
+ },
+ "cat.security": {
+  "file": "objects/cat.security.png",
+  "size": 22
+ },
+ "cat.support": {
+  "file": "objects/cat.support.png",
+  "size": 22
+ },
+ "cat.video": {
+  "file": "objects/cat.video.png",
+  "size": 22
+ },
+ "item.arcade": {
+  "file": "objects/item.arcade.png",
+  "size": 30
+ },
+ "item.espresso": {
+  "file": "objects/item.espresso.png",
+  "size": 30
+ },
+ "item.library": {
+  "file": "objects/item.library.png",
+  "size": 30
+ },
+ "item.monitoring_wall": {
+  "file": "objects/item.monitoring_wall.png",
+  "size": 30
+ },
+ "item.nap_pod": {
+  "file": "objects/item.nap_pod.png",
+  "size": 30
+ },
+ "item.plant_wall": {
+  "file": "objects/item.plant_wall.png",
+  "size": 30
+ },
+ "item.server_rack": {
+  "file": "objects/item.server_rack.png",
+  "size": 30
+ },
+ "item.standing_desk": {
+  "file": "objects/item.standing_desk.png",
+  "size": 30
+ },
+ "item.trophy_case": {
+  "file": "objects/item.trophy_case.png",
+  "size": 30
+ },
+ "item.whiteboard_wall": {
+  "file": "objects/item.whiteboard_wall.png",
+  "size": 30
+ },
+ "research.agent_sandbox": {
+  "file": "objects/research.agent_sandbox.png",
+  "size": 26
+ },
+ "research.ci_cd": {
+  "file": "objects/research.ci_cd.png",
+  "size": 26
+ },
+ "research.design_system": {
+  "file": "objects/research.design_system.png",
+  "size": 26
+ },
+ "research.docs_culture": {
+  "file": "objects/research.docs_culture.png",
+  "size": 26
+ },
+ "research.eval_harness": {
+  "file": "objects/research.eval_harness.png",
+  "size": 26
+ },
+ "research.observability": {
+  "file": "objects/research.observability.png",
+  "size": 26
+ },
+ "research.onboarding_kit": {
+  "file": "objects/research.onboarding_kit.png",
+  "size": 26
+ },
+ "research.red_team_suite": {
+  "file": "objects/research.red_team_suite.png",
+  "size": 26
+ },
+ "size.large": {
+  "file": "objects/size.large.png",
+  "size": 20
+ },
+ "size.medium": {
+  "file": "objects/size.medium.png",
+  "size": 20
+ },
+ "size.small": {
+  "file": "objects/size.small.png",
+  "size": 20
+ },
+ "train.conference": {
+  "file": "objects/train.conference.png",
+  "size": 22
+ },
+ "train.course": {
+  "file": "objects/train.course.png",
+  "size": 22
+ },
+ "train.workshop": {
+  "file": "objects/train.workshop.png",
+  "size": 22
+ }
+}

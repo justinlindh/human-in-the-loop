@@ -10,35 +10,58 @@ import { ROLES } from '../data/roles.js';
 
 const ownedItem = (state, id) => state.items.find((i) => i.id === id);
 
+// Why an item cannot be bought right now, or null if it can.
+export function buyItemBlocker(state, itemId) {
+  const it = ITEMS[itemId];
+  if (!it) return 'Unknown item';
+  if (state.items.filter((i) => i.itemId === itemId).length >= 2) return 'You already have two';
+  if (state.officeStage < it.minStage) return 'Needs a bigger office';
+  if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';
+  if (state.items.length >= OFFICE_STAGES[state.officeStage].itemSlots) return 'No free item slots';
+  if (state.cash < it.costs[0]) return 'Not enough cash';
+  return null;
+}
+
+// Why an owned item cannot be upgraded right now, or null if it can.
+export function upgradeItemBlocker(state, owned) {
+  if (!owned) return 'No such item';
+  if (owned.level >= 3) return 'Already max level';
+  if (state.cash < ITEMS[owned.itemId].costs[owned.level]) return 'Not enough cash';
+  return null;
+}
+
+// The lowest-level owned copy of an item, the one worth upgrading.
+export const ownedCopy = (state, itemId) => state.items.filter((i) => i.itemId === itemId).sort((a, b) => a.level - b.level)[0] ?? null;
+
 registerAction('buyItem', (ctx, { itemId }) => {
+  const reason = buyItemBlocker(ctx.state, itemId);
+  return reason ? { ok: false, reason } : { ok: true, id: buyItemNow(ctx, itemId) };
+});
+
+export function buyItemNow(ctx, itemId) {
   const { state } = ctx;
   const it = ITEMS[itemId];
-  if (!it) return { ok: false, reason: 'Unknown item' };
-  if (state.items.filter((i) => i.itemId === itemId).length >= 2) return { ok: false, reason: 'You already have two' };
-  if (state.officeStage < it.minStage) return { ok: false, reason: 'Needs a bigger office' };
-  if (it.requires === 'award' && state.stats.awards < 1) return { ok: false, reason: 'Needs an award first' };
-  if (state.items.length >= OFFICE_STAGES[state.officeStage].itemSlots) return { ok: false, reason: 'No free item slots' };
-  if (state.cash < it.costs[0]) return { ok: false, reason: 'Not enough cash' };
   state.cash -= it.costs[0];
   const id = newId(state, 'i');
   state.items.push({ id, itemId, level: 1 });
   state.flags.lastItemWeek = state.week;
   ctx.emit({ type: 'toast', text: `New in the office: ${it.name}.`, tone: 'good' });
   emitChat(ctx, { channel: 'random', from: '@officebot', text: `The new ${it.name} has arrived. Please be nice to it.` });
-  return { ok: true, id };
-});
+  return id;
+}
 
-registerAction('upgradeItem', (ctx, { id }) => {
-  const { state } = ctx;
-  const owned = ownedItem(state, id);
-  if (!owned) return { ok: false, reason: 'No such item' };
+export function upgradeItemNow(ctx, owned) {
   const it = ITEMS[owned.itemId];
-  if (owned.level >= 3) return { ok: false, reason: 'Already max level' };
-  const cost = it.costs[owned.level];
-  if (state.cash < cost) return { ok: false, reason: 'Not enough cash' };
-  state.cash -= cost;
+  ctx.state.cash -= it.costs[owned.level];
   owned.level++;
   ctx.emit({ type: 'toast', text: `${it.name} upgraded to level ${owned.level}.`, tone: 'good' });
+}
+
+registerAction('upgradeItem', (ctx, { id }) => {
+  const owned = ownedItem(ctx.state, id);
+  const reason = upgradeItemBlocker(ctx.state, owned);
+  if (reason) return { ok: false, reason };
+  upgradeItemNow(ctx, owned);
   return { ok: true };
 });
 

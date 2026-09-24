@@ -36,6 +36,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
     research: { done: [] },
     modifiers: [],
     scheduled: [],
+    chatLog: [],
     discoveredCombos: {},
     outage: null,
     incidentLog: [],

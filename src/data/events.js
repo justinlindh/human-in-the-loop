@@ -15,14 +15,14 @@ export const EFFECT_KEYS = [
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
-  'consultants', 'clearOutage',
+  'consultants', 'clearOutage', 'buyItem', 'upgradeItem',
 ];
 
 
 // Named tests usable in `cond` effects and in a choice's `requires`.
 export const CONDITION_IDS = [
   'subjectCompliant', 'trustedVendor', 'blameless', 'ik40', 'bestScore7', 'sabbaticalPolicy', 'stage1', 'mentorAvailable',
-  'affordConsultants',
+  'affordConsultants', 'noCraftRunning', 'canBuyEspresso', 'canUpgradeEspresso',
 ];
 
 const ONCE = 100000;
@@ -33,7 +33,7 @@ const list = [
     id: 'senior_grumble', kind: 'staff', weight: 3, cooldownWeeks: 20, random: true, subject: 'automatedSenior',
     when: (s) => s.automation.engineering.level >= 0.5,
     title: 'A senior has concerns',
-    text: '{name} corners you by the coffee machine: "Is my job just reviewing robot PRs now?"',
+    text: '{name} corners you in the kitchen: "Is my job just reviewing robot PRs now?"',
     choices: [
       { label: 'Give them a hard problem', hint: 'Meaning up, off regular work', effects: { assign: { type: 'hardProblem' }, meaning: 6 }, outcome: '{name} is already sketching on the whiteboard.' },
       { label: 'Talk it through over lunch', hint: 'Small cost, meaning up', effects: { cash: -500, meaning: 8 }, outcome: 'Good tacos. Better conversation.' },
@@ -91,7 +91,7 @@ const list = [
     title: 'A little side project',
     text: '{name} has been rebuilding the admin panel on weekends "just to see". It is beautiful.',
     choices: [
-      { label: 'Greenlight a craft project', hint: 'Starts a craft project for you to staff; meaning up', effects: { startCraft: true, meaning: 5 }, outcome: 'The craft project begins. Fonts will be discussed.' },
+      { label: 'Greenlight a craft project', hint: 'Starts a craft project for you to staff; meaning up', requires: 'noCraftRunning', effects: { startCraft: true, meaning: 5 }, outcome: 'The craft project begins. Fonts will be discussed.' },
       { label: 'Not now', hint: 'Meaning down a little', effects: { meaning: -3 }, outcome: 'Back to the backlog.' },
     ],
   },
@@ -334,7 +334,7 @@ const list = [
     text: '{name} answered an email at 3am, then another at 4am, then stared at a wall until 6. They say they are fine.',
     choices: [
       { label: 'Take a real break', hint: '{name} is away four weeks and comes back restored', effects: { awayWeeks: 4, meaning: 10 }, outcome: '{name} goes somewhere with no Wi-Fi and one very patient dog.' },
-      { label: 'Push through', hint: 'A burst of output now; the crash comes later', effects: { modifier: { key: 'output', value: 0.1, weeks: 8, label: 'Founder hustle' }, later: [{ inWeeks: 8, effects: { meaning: -20, teamMeaning: -3 } }] }, outcome: '{name} buys a standing desk and a second espresso machine.' },
+      { label: 'Push through', hint: 'A burst of output now; the crash comes later', effects: { modifier: { key: 'output', value: 0.1, weeks: 8, label: 'Founder hustle' }, later: [{ inWeeks: 8, effects: { meaning: -20, teamMeaning: -3 } }] }, outcome: '{name} buys a treadmill desk and a mug the size of a bucket.' },
     ],
   },
 
@@ -650,14 +650,26 @@ const list = [
 
   // Misc
   {
-    id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null,
-    when: () => true,
+    id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
+    when: (s) => s.items.some((i) => i.itemId === 'espresso'),
     chat: 'Coffee machine status: deceased. Please grieve responsibly.',
     title: 'The coffee machine is dead',
-    text: 'The coffee machine made a noise like a sad robot and stopped. Productivity is in freefall.',
+    text: 'The espresso machine made a noise like a sad robot and stopped. Productivity is in freefall.',
     choices: [
-      { label: 'Buy the fancy one', hint: 'Costs cash, team meaning up', effects: { cash: -2500, teamMeaning: 3 }, outcome: 'It has a touchscreen. Nobody knows how to make a normal coffee.' },
+      { label: 'Buy the fancy one', hint: 'Upgrades your espresso machine one level at shop price; team meaning up', requires: 'canUpgradeEspresso', effects: { upgradeItem: 'espresso', teamMeaning: 3 }, outcome: 'It has a touchscreen. Nobody knows how to make a normal coffee.' },
+      { label: 'Get it repaired', hint: '$800 and it works again', effects: { cash: -800 }, outcome: 'A technician named Gary fixes it with a single, confident tap.' },
       { label: 'Live with it', hint: 'Team meaning down', effects: { teamMeaning: -2 }, outcome: 'The instant coffee comes out. Morale goes in.' },
+    ],
+  },
+  {
+    id: 'coffee_wanted', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    when: (s) => s.week >= 8 && !s.items.some((i) => i.itemId === 'espresso'),
+    chat: 'The office kettle is doing its best. Its best is not enough.',
+    title: 'The team wants a coffee machine',
+    text: 'Someone has started bringing a thermos to meetings. Someone else brought a French press and guards it like a dragon.',
+    choices: [
+      { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
+      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The French press stays on its throne.' },
     ],
   },
   {

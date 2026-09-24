@@ -257,7 +257,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         case 'celebrate': {
           if (e.staffId) {
             const r = recs.get(e.staffId);
-            if (r && !r.hidden) celebrate(r, 2.4, true);
+            if (r && !r.hidden && !r.temp?.standup) celebrate(r, 2.4, true);
           } else {
             companyParty();
           }
@@ -271,6 +271,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
           break;
         }
         case 'incident': incident(e); break;
+        case 'standup': if (e.mode === 'daily') startStandup(e); break;
         default: break;
       }
     }
@@ -294,7 +295,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
     for (const r of recs.values()) {
-      if (r.hidden || r.mode !== 'placed') continue;
+      if (r.hidden || r.mode !== 'placed' || r.temp?.standup) continue;
       r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08 };
     }
   }
@@ -308,7 +309,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     fx.alarm(new THREE.Vector3(0, 0, 0), Math.min(L.W, L.D) * 0.3, e.caught ? 1.6 : 3.2);
     if (!e.caught) rig?.shake(0.22, 0.4);
     // The nearest few people run to the servers, then go back.
-    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed')
+    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.standup)
       .sort((a, b) => a.pos.distanceToSquared(hot) - b.pos.distanceToSquared(hot))
       .slice(0, e.caught ? 1 : 4);
     near.forEach((r, i) => {
@@ -327,6 +328,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     const cur = office.current;
     const busy = [...recs.values()].filter((r) => r.temp?.wander).length;
     if (busy >= MAX_WANDERERS) return;
+    if (standup) return;
     const pool = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && !r.temp && !r.path.length
       && r.staff.mood !== 'burnout' && ['idle', 'project', 'maintenance', 'marketing', 'sales', 'support', 'security'].includes(r.staff.assignment?.type));
     if (!pool.length) return;
@@ -446,8 +448,124 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     }
   }
 
+  // Standups: attendees gather in a loose ring (meeting room when the stage has one, otherwise
+  // the whiteboard), speak their lines in turn, then return. Timings scale with game speed; at 4x
+  // there is no gathering, only a quick emote at the desk.
+  const GATHER = 2.2;
+  let speed = 1;
+  let standup = null;
+  function setSpeed(k) { speed = k; }
+
+  function ringSpots(n) {
+    const L = office.current.L;
+    const spots = [];
+    if (L.meeting) {
+      const M = L.meeting;
+      const cx = (M.x0 + M.x1) / 2, cz = (M.z0 + M.z1) / 2;
+      const a = (M.x1 - M.x0) / 2 - 0.4, b = (M.z1 - M.z0) / 2 - 0.4;
+      const inside = Math.min(n, 10);
+      for (let i = 0; i < inside; i++) {
+        const t = (i / inside) * Math.PI * 2 + 0.3;
+        spots.push({ x: cx + Math.cos(t) * a, z: cz + Math.sin(t) * b, cx, cz });
+      }
+      // Overflow stands in an arc just outside the glass, on the open (door) side.
+      for (let i = inside; i < n; i++) {
+        const k = i - inside;
+        const row = Math.floor(k / 7), col = k % 7;
+        spots.push({ x: M.x1 + 0.55 + row * 0.6, z: M.z0 + 0.3 + col * ((M.z1 - M.z0 - 0.6) / 6), cx, cz });
+      }
+    } else {
+      const w = L.zones.whiteboard;
+      // A loose ring in front of the whiteboard, facing its own center so faces stay visible.
+      const cx = w.x + 0.4, cz = w.z + 0.35;
+      const r = Math.max(0.6, n * 0.17);
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2 + 2.2;
+        spots.push({ x: cx + Math.cos(t) * r, z: cz + Math.sin(t) * r, cx, cz });
+      }
+    }
+    return spots;
+  }
+
+  function startStandup(e) {
+    if (!office.current) return;
+    // A new week's standup takes over from one still running; attendees not in it head back.
+    if (standup) {
+      const next = new Set((e.lines ?? []).map((l) => l.staffId));
+      for (const { r } of standup.people) {
+        if (next.has(r.id) || !recs.has(r.id) || !r.temp?.standup) continue;
+        r.temp = null;
+        if (r.goal && !r.goal.hidden) walkTo(r, r.goal);
+      }
+      for (const { r } of standup.people) if (next.has(r.id)) { r.temp = null; labels.clearFor(r.char.root); }
+      standup = null;
+    }
+    const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed'; });
+    if (!lines.length) return;
+    if (speed >= 4) {
+      for (const l of lines) emote(recs.get(l.staffId), l.text ? 'lightbulb' : 'zzz', 1.2);
+      return;
+    }
+    const spots = ringSpots(lines.length);
+    const people = lines.map((l, i) => {
+      const r = recs.get(l.staffId);
+      const sp = spots[i];
+      const spot = { x: sp.x, z: sp.z, yaw: Math.atan2(sp.cx - sp.x, sp.cz - sp.z), anim: 'idle' };
+      r.temp = { anim: 'idle', t: Infinity, goal: spot, standup: true };
+      labels.clearFor(r.char.root);
+      walkTo(r, spot);
+      // Everyone arrives within GATHER seconds (weeks are short); far walkers jog.
+      let len = 0, px = r.pos.x, pz = r.pos.z;
+      for (const q of r.path) { len += Math.hypot(q.x - px, q.z - pz); px = q.x; pz = q.z; }
+      const need = len / (GATHER / (speed >= 2 ? 2 : 1));
+      if (need > r.speed) { r.speed = need; r.walkAnim = need > 2 ? 'run' : 'walk'; }
+      return { r, text: l.text };
+    });
+    standup = { people, phase: 'gather', t: 0, i: 0 };
+  }
+
+  function endStandup() {
+    for (const { r } of standup.people) {
+      if (!recs.has(r.id) || r.temp?.standup !== true) continue;
+      r.temp = null;
+      if (r.goal && !r.goal.hidden) walkTo(r, r.goal);
+    }
+    standup = null;
+  }
+
+  function updateStandup(dt) {
+    if (!standup) return;
+    const k = speed >= 2 ? 2 : 1;
+    const st = standup;
+    st.t += dt * k;
+    const live = st.people.filter((p) => recs.has(p.r.id) && p.r.temp?.standup);
+    if (!live.length) { standup = null; return; }
+    if (speed >= 4) { endStandup(); return; }
+    if (st.phase === 'gather') {
+      const arrived = live.every((p) => !p.r.path.length);
+      if (arrived || st.t > GATHER + 0.6) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
+      return;
+    }
+    if (st.phase === 'talk') {
+      const beat = (p) => (p.text ? 0.9 + Math.min(0.6, p.text.length * 0.018) : 0.6);
+      const cur = st.i >= 0 ? st.people[st.i] : null;
+      if (st.i < 0 || st.t >= beat(cur)) {
+        st.i++;
+        st.t = 0;
+        if (st.i >= st.people.length) { st.phase = 'close'; st.t = 0; return; }
+        const p = st.people[st.i];
+        if (!recs.has(p.r.id)) return;
+        if (p.text) labels.say(p.text, p.r.char.root, Math.max(0.6, beat(p) / k - 0.1));
+        else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p) / k);
+      }
+      return;
+    }
+    if (st.phase === 'close' && st.t > 0.3) endStandup();
+  }
+
   function update(dt) {
     if (!office.current) return;
+    updateStandup(dt);
     maybeWander(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
@@ -488,7 +606,8 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   }
 
   return {
-    sync, handleEvents, update, pick, positionOf, dispose,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed,
+    get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },
   };

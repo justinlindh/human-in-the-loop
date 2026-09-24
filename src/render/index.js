@@ -4,7 +4,7 @@ import { createSceneGraph } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
-import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround } from './debug.js';
+import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
 import { setGlowScale } from './materials.js';
 import { loadModels } from './models.js';
 import { createScreens } from './screens.js';
@@ -18,9 +18,13 @@ const DEBUG_VIEWS = {
   props: { '1': buildPropLineup },
   items: { '1': buildItemLineup },
   chars: { '1': buildCharLineup, '2': buildCharTurnaround },
+  icons: { objects: (g) => buildIconBoard(g, labelsElRef) },
 };
 
+let labelsElRef = null;
+
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
+  labelsElRef = labelsEl;
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -154,6 +158,11 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       resize();
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
+    setSpeed(k) { staff?.setSpeed(k); },
+    // Steps characters, labels, and effects without drawing (for headless verification).
+    advance(seconds, step = 1 / 30) {
+      for (let t = 0; t < seconds; t += step) { staff?.update(step); floating.update(step); fx.update(step); }
+    },
     pick(x, y) { return staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null }; },
     focusStaff(id) {
       const p = staff?.positionOf(id);
@@ -180,7 +189,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
-    get stats() { return { labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
+    get stats() { return { standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).
   if (import.meta.env?.DEV) window.__hitlRender = api;

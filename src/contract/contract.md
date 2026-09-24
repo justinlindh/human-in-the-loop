@@ -88,7 +88,7 @@ Product = {
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
 { type: 'toast', text, tone }             // tone: info|good|warn|bad
-{ type: 'chat', id, channel, from, fromId, text, replyTo, reactions }
+{ type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
 { type: 'launch', productId }

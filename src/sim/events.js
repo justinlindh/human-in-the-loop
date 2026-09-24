@@ -6,7 +6,7 @@ import { mentorOf } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { automationExposure } from './automation.js';
-import { applyEffects, checkCondition, REQUIRE_REASON } from './effects.js';
+import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
@@ -33,6 +33,9 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks));
 }
 
+// Emergencies always interrupt; everything else respects the gap between decisions.
+const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
+
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
 // { queue: true } schedules this one to be raised as soon as the popup is clear.
 export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } = {}) {
@@ -43,6 +46,14 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
   }
+  // Decisions that are not emergencies wait for a breather after the last one.
+  const spaced = !IMMEDIATE_KINDS.has(ev.kind);
+  const last = state.flags.lastDecisionWeek;
+  if (spaced && last !== undefined && state.week - last < B.decisionGapWeeks) {
+    if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: last + B.decisionGapWeeks, kind: 'event', payload: { eventId, subjectId } });
+    return false;
+  }
+  if (spaced) state.flags.lastDecisionWeek = state.week;
   const vars = decisionVars(state, ctx.rng, subjectId);
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
@@ -51,7 +62,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     text: fill(ev.text),
     choices: ev.choices.map((c) => {
       const available = !c.requires || checkCondition(state, c.requires, subjectId);
-      return { label: fill(c.label), hint: fill(c.hint), available, reason: available ? null : (REQUIRE_REASON[c.requires] ?? 'Not possible right now') };
+      return { label: fill(c.label), hint: fill(c.hint), available, reason: available ? null : requireReason(state, c.requires) };
     }),
   };
   ctx.emit({ type: 'decision' });
@@ -91,7 +102,10 @@ export function helpers(state) {
 
 export function eligibleEvents(state) {
   const h = helpers(state);
-  return Object.values(EVENTS).filter((ev) => ev.random
+  // A new company gets a quiet start: no decisions until its first launch or a few weeks in.
+  const grace = (state.stats.launches === 0 && state.week < B.eventGraceWeeks)
+    || (state.flags.lastDecisionWeek !== undefined && state.week - state.flags.lastDecisionWeek < B.decisionGapWeeks);
+  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && ev.when(state, h)
     && (ev.subject === null || resolveSubjects(state, ev).length > 0));
@@ -127,7 +141,7 @@ registerAction('resolveDecision', (ctx, { choice }) => {
   const ev = EVENTS[d.eventId];
   if (!Number.isInteger(choice) || !ev?.choices || choice < 0 || choice >= ev.choices.length) return { ok: false, reason: 'Invalid choice' };
   const c = ev.choices[choice];
-  if (c.requires && !checkCondition(state, c.requires, d.subjectId)) return { ok: false, reason: REQUIRE_REASON[c.requires] ?? 'Not possible right now' };
+  if (c.requires && !checkCondition(state, c.requires, d.subjectId)) return { ok: false, reason: requireReason(state, c.requires) };
   state.pendingDecision = null;
   if (c.outcome) ctx.emit({ type: 'toast', text: fillText(state, ctx.rng, c.outcome, d.subjectId, d.vars), tone: 'info' });
   applyEffects(ctx, c.effects, d.subjectId, d.eventId, d.vars);

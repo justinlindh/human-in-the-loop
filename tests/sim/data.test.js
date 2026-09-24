@@ -146,7 +146,7 @@ describe('content data', () => {
       expect(p.weeklyCost).toBeGreaterThanOrEqual(0);
       expect(typeof p.lockText).toBe('string');
     }
-    expect(Object.keys(POLICIES).sort()).toEqual(['apprenticeship', 'blameless', 'comprehension_reviews', 'craft_fridays', 'pair', 'sabbatical']);
+    expect(Object.keys(POLICIES).sort()).toEqual(['apprenticeship', 'async_standups', 'blameless', 'comprehension_reviews', 'craft_fridays', 'daily_standups', 'pair', 'sabbatical']);
   });
 
   it('trends reference real angles and categories', () => {
