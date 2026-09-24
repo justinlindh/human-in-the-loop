@@ -45,7 +45,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Commit on a topic branch in your worktree. Never commit to `main`.
 - Changes reach `main` only through pull requests, one per batch, each from a fresh branch named `<lane>/<topic>` cut from `origin/main` (`gh pr create --base main --head <lane>/<topic>`). The pre-push hook (`npm run hooks` installs it) refuses pushes to a branch whose PR has merged or closed.
   - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines.
-  - CI runs locally (GitHub Actions minutes are used up): `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. A PASS comment for the PR's current head is required before merging. `npm run ci` runs the same checks in any worktree.
+  - `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. `npm run ci` runs the same checks in any worktree.
+  - Before merging, both gates must be green on the PR's current head: a Local CI PASS comment, and every GitHub check (`gh pr checks <pr>` shows no pending or failing check).
   - The reviewer posts findings as a PR review (`gh pr review`).
   - team-lead approves.
   - The integrator merges with a merge commit (never squash) and resolves cross-lane conflicts on the PR.
