@@ -271,7 +271,9 @@ def tri_count():
     return n
 
 
-UV_PARTS = ('screen', 'window_glass')
+# Parts that keep UVs: canvas-textured quads. Names end in _screen, or are exactly window_glass.
+UV_SUFFIX = '_screen'
+UV_EXACT = ('window_glass',)
 
 
 def _canonical_order(o):
@@ -300,7 +302,7 @@ def _strip_uvs():
     for o in bpy.context.scene.objects:
         if o.type != 'MESH':
             continue
-        if any(k in o.name for k in UV_PARTS):
+        if o.name.endswith(UV_SUFFIX) or o.name in UV_EXACT:
             for layer in o.data.uv_layers:
                 for d in layer.data:
                     d.uv = (round(d.uv[0], 4), round(d.uv[1], 4))

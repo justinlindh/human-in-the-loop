@@ -28,7 +28,7 @@ def l2():
 def l3():
     parts = kit.monitor_wall('mw_', 0, 0.25, W=2.6, H=1.5, Z=1.3, tiles=(3, 2), leds=5)
     for sx in (-1, 1):
-        parts += kit.monitor('m%d' % sx, sx * 0.62, -0.25, 0.64, rz=sx * math.radians(-12), W=0.48, H=0.3, screen=f'wall_side_screen_{(sx + 1) // 2}')
+        parts += kit.monitor('m%d' % sx, sx * 0.62, -0.25, 0.64, rz=sx * math.radians(-12), W=0.48, H=0.3, screen=f'wall_side{(sx + 1) // 2}_screen')
     parts.append(box('beacon_post', (0.04, 0.04, 0.3), (1.28, 0.3, 2.2), 'metal_dark', bevel=0.008))
     return parts
 

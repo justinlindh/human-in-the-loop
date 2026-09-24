@@ -22,7 +22,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
 
   const interior = [];
   for (let i = 0; i < INTERIOR_COUNT; i++) {
-    const l = new THREE.PointLight(C('lamp_warm'), 0, 9, 1.6);
+    const l = new THREE.PointLight(C('lamp_warm'), 0, 11, 1.25);
     l.position.set(0, -50, 0);
     scene.add(l);
     interior.push(l);
@@ -49,6 +49,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
       if (p) l.position.set(p.x, p.y ?? 2.4, p.z);
       else l.position.set(0, -50, 0);
     });
+    setTimeOfDay(lastT);
   }
 
   const skyDay = C('hemi_sky_day'), skyNight = C('hemi_sky_night');
@@ -91,7 +92,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.position.set(center.x + Math.sin(az) * Math.cos(el) * d, center.y + Math.sin(el) * d, center.z + Math.cos(az) * Math.cos(el) * d);
     sun.target.position.copy(center);
 
-    const lamp = THREE.MathUtils.lerp(0, 14, THREE.MathUtils.smoothstep(env.night, 0.2, 0.9));
+    const lamp = THREE.MathUtils.lerp(0, 7.5, THREE.MathUtils.smoothstep(env.night, 0.2, 0.9));
     interior.forEach((l, i) => { l.intensity = interiorSpots[i] ? lamp * (interiorSpots[i].power ?? 1) : 0; });
 
     for (const fn of env.listeners) fn(env);
