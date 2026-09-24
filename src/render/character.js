@@ -76,6 +76,73 @@ function hashLook(a) {
 }
 
 let haloMat = null;
+
+// Cheeks: soft radial-gradient discs on the blush part's two cheek positions, tinted a warmer,
+// deeper shade of the person's own skin. Lighter skin shows a light flush; darker skin a faint one.
+// Cheeks never flush for now; set true to bring back the flush as an expression.
+const CHEEK_FLUSH = false;
+const WARM_EMOTES = new Set(['heart', 'sparkle']);
+let cheekTex = null;
+function cheekTexture() {
+  if (cheekTex) return cheekTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  cheekTex = new THREE.CanvasTexture(c);
+  return cheekTex;
+}
+function flushColor(skin) {
+  const hsl = {};
+  skin.getHSL(hsl);
+  const c = new THREE.Color().setHSL((hsl.h + 0.98) % 1, Math.min(0.7, hsl.s * 1.15 + 0.08), hsl.l * 0.72);
+  return c;
+}
+function makeCheeks(tpl, skin) {
+  const group = new THREE.Group();
+  const src = tpl?.getObjectByName('blush');
+  const l = skin.r * 0.2126 + skin.g * 0.7152 + skin.b * 0.0722;
+  const peak = THREE.MathUtils.clamp(0.1 + l * 0.9, 0.12, 0.5);   // linear luminance: dark skin ~0.12
+  const m = new THREE.MeshBasicMaterial({ map: cheekTexture(), color: flushColor(skin), transparent: true, opacity: 0, depthWrite: false, toneMapped: true });
+  if (src) {
+    // Two cheek centres from the blush part's vertices, split by side; each disc faces outward.
+    let geo = null;
+    src.traverse((o) => { if (!geo && o.isMesh) geo = o; });
+    const pos = geo.geometry.attributes.position;
+    const sides = [[0, 0, 0, 0], [0, 0, 0, 0]];
+    const v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(geo.matrix);
+      const k = v.x < 0 ? 0 : 1;
+      sides[k][0] += v.x; sides[k][1] += v.y; sides[k][2] += v.z; sides[k][3]++;
+    }
+    const centre = new THREE.Box3().setFromBufferAttribute(pos).getCenter(new THREE.Vector3()).applyMatrix4(geo.matrix);
+    for (const [x, y, z, n] of sides) {
+      if (!n) continue;
+      const p = new THREE.Vector3(x / n, y / n, z / n);
+      const d = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.075), m);
+      d.position.copy(p);
+      const out = p.clone().sub(new THREE.Vector3(0, centre.y, centre.z - 0.1)).normalize();
+      d.lookAt(p.clone().add(out));
+      d.position.addScaledVector(out, 0.004);
+      d.renderOrder = 2;
+      d.userData.noAO = true;
+      d.castShadow = false;
+      group.add(d);
+    }
+  }
+  group.visible = false;
+  return {
+    group,
+    set(k) { m.opacity = peak * k; group.visible = k > 0.01; },
+    dispose() { m.dispose(); },
+  };
+}
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
 
 // Parts are modeled in their pivot's space, so the node transform from the file is kept as is.
@@ -176,9 +243,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   headGroup.add(headParts[0]);
   const eyes = P('eyes');
   const shine = P('eye_shine');
-  const blush = P('blush');
   const mouths = { ok: P('mouth_smile'), coasting: P('mouth_flat'), burnout: P('mouth_frown') };
-  headGroup.add(eyes, shine, blush, mouths.ok, mouths.coasting, mouths.burnout);
+  headGroup.add(eyes, shine, mouths.ok, mouths.coasting, mouths.burnout);
+  const cheeks = makeCheeks(tpl, own.skin.color);
+  headGroup.add(cheeks.group);
   // A hat replaces the hair; drawing both makes them fight through each other.
   if (!hat) { const h = P(`hair_${hairIdx}`); headGroup.add(h); headParts.push(h); }
   if (acc !== 'none') {
@@ -228,10 +296,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   baked.push(bakeParts(torsoParts, torso, bm, tintable));
   baked.push(bakeParts(headParts, headGroup, bm, tintable));
   for (const a of arms) baked.push(bakeParts(a.parts, a.shoulder, bm, tintable));
-  // Face variants per mood: mouth plus blush, one mesh each; setMood shows the matching one.
+  // Face variants per mood, one mesh each; setMood shows the matching one.
   const faces = {};
   for (const k of ['ok', 'coasting', 'burnout']) {
-    const f = bakeParts(k === 'ok' ? [mouths.ok, blush] : [mouths[k]], headGroup, bm, tintable);
+    const f = bakeParts([mouths[k]], headGroup, bm, tintable);
     f.visible = false;
     faces[k] = f;
     baked.push(f);
@@ -268,6 +336,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let tint = 0;
   let mood = 'ok';
   let tired = false;
+  let flush = 0;
+  let flushFor = 0;
   const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = Math.random() * Math.PI * 2;
@@ -503,6 +573,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function setEmote(kind) {
     if (kind === emoteKind) return;
+    flushFor = WARM_EMOTES.has(kind) ? 2.2 : flushFor;
     emoteKind = kind;
     emoteT = 0;
     if (kind) emote.material = emoteMaterial(kind);
@@ -538,6 +609,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function update(dt) {
     t += dt;
+    // Cheeks flush only as an expression (celebrating, a warm emote), fading in and out.
+    flushFor = Math.max(0, flushFor - dt);
+    const want = CHEEK_FLUSH && (anim === 'celebrate' || flushFor > 0) ? 1 : 0;
+    flush += (want - flush) * (1 - Math.exp(-dt * 6));
+    cheeks.set(flush);
     animT += dt;
     pose(dt);
     blinkIn -= dt;
@@ -574,6 +650,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     for (const m of Object.values(own)) m.dispose();
     for (const b of baked) b?.geometry.dispose();
     bm.dispose();
+    cheeks.dispose();
     pickProxy.material.dispose();
     root.removeFromParent();
   }

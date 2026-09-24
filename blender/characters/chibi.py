@@ -169,11 +169,11 @@ join(at_head(curls), 'hair_6')                                     # curly
 h = at_head([hair_cap('h7cap', 0.1, -0.08), lump('h7swoop', 0.12, (-0.07, -0.13, 0.14), (1.3, 0.7, 0.5))])
 join(h, 'hair_7')                                                   # side swoop
 
-# Accessories (head-centered)
+# Accessories (head-centered). Glasses are the frame front only: temple arms read as antennae or
+# floating bars on a round chibi head from every angle.
 g = []
 for sx in (-1, 1):
     g.append(torus(f'gl{sx}', 0.044, 0.008, (sx * EX, surf_y(EX, EZ, 0.014), EZ), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=12, minor_seg=4))
-    g.append(box(f'glarm{sx}', (0.008, 0.2, 0.01), (sx * 0.2, -0.1, 0.01), 'plastic_charcoal', bevel=0))
 g.append(box('glbridge', (0.05, 0.008, 0.008), (0, face_y - 0.014, EZ + 0.01), 'plastic_charcoal', bevel=0))
 join(at_head(g), 'acc_glasses')
 hp = [torus('hpband', HEAD_R + 0.04, 0.018, (0, 0, 0), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=18, minor_seg=5)]
