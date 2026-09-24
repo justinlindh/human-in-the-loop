@@ -91,3 +91,30 @@ describe('stageIncentive (dev and capture)', () => {
     expect(ev.find((e) => e.type === 'incentive')).toMatchObject({ staffId: id, reward: 'waffle_party', milestone: 'launches' });
   });
 });
+
+describe('capture findings', () => {
+  it('music night grants its glow only once the genre is picked', () => {
+    const s = program(12);
+    s.flags.incentiveCount = 4;
+    s.flags.incentiveWeek = s.week - B.incentiveEveryWeeks;
+    run(s);
+    expect(s.pendingDecision?.eventId).toBe('music_night_genre');
+    expect(s.modifiers.some((m) => m.source === 'incentives')).toBe(false);
+    dispatch(s, { type: 'resolveDecision', choice: 0 });
+    expect(s.modifiers.some((m) => m.source === 'incentives' && /music night/.test(m.label))).toBe(true);
+  });
+
+  it('after a Waffle Party, staged or earned, the ladder waits a full round', async () => {
+    const { tick } = await import('../../src/sim/index.js');
+    const s = program(13);
+    s.policies = {};
+    stageIncentive(s, 'waffle_party');
+    const rewards = [];
+    for (let w = 0; w <= B.incentiveEveryWeeks; w++) {
+      for (const e of tick(s)) if (e.type === 'incentive') rewards.push([w, e.reward]);
+      s.pendingDecision = null;
+    }
+    expect(rewards[0]).toEqual([0, 'waffle_party']);
+    expect(rewards.slice(1).every(([w]) => w >= B.incentiveEveryWeeks)).toBe(true);
+  });
+});

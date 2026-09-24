@@ -37,4 +37,7 @@ export const EARNED_TRAITS = [
   { trait: 'visionary', counter: 'hardProblemWeeks', threshold: 20 },
 ];
 
-export const TRAITS = Object.fromEntries(rows.map(([id, name, desc, mods]) => [id, { id, name, desc, mods }]));
+// Traits about agents only turn up on hires once agents exist.
+const TRAIT_ERA = { paranoid: 'agents', red_teamer: 'agents' };
+
+export const TRAITS = Object.fromEntries(rows.map(([id, name, desc, mods]) => [id, { id, name, desc, mods, era: TRAIT_ERA[id] ?? null }]));

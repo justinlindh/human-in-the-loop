@@ -1,0 +1,24 @@
+import { describe, it, expect } from 'vitest';
+import { TRENDS } from '../../src/data/trends.js';
+import { TRAITS } from '../../src/data/traits.js';
+
+describe('issue #131: no agent copy before agents exist', () => {
+  it('AI-themed trends carry their era', () => {
+    for (const id of ['agents_hot', 'compliance']) expect(TRENDS[id].eras).toEqual(['agents', 'consolidation', 'plateau']);
+    expect(TRENDS.ai_fatigue.eras).not.toContain('classic');
+  });
+
+  it('traits about agents only appear on hires from the Agents era', async () => {
+    const { generateStaff } = await import('../../src/sim/staff.js');
+    const { classicGame } = await import('./helpers.js');
+    for (const t of Object.values(TRAITS)) if (/\bagents?\b/i.test(t.desc)) expect(t.era, t.id).toBe('agents');
+    const s = classicGame(3);
+    s.era = { id: 'chatgbt', since: 0 };
+    const seen = new Set();
+    for (let i = 0; i < 400; i++) for (const t of generateStaff(s, { role: 'security', seniority: 'mid' }).traits) seen.add(t);
+    expect(seen.has('paranoid') || seen.has('red_teamer')).toBe(false);
+    s.era = { id: 'agents', since: 0 };
+    for (let i = 0; i < 400; i++) for (const t of generateStaff(s, { role: 'security', seniority: 'mid' }).traits) seen.add(t);
+    expect(seen.has('paranoid') || seen.has('red_teamer')).toBe(true);
+  });
+});
