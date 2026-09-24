@@ -5,6 +5,6 @@ export const ROLES = {
   designer: { id: 'designer', name: 'Designer', title: 'Designer', color: '#ff7eb6', automatedBy: { engineering: 0.35 }, defaultAssignment: 'idle' },
   marketer: { id: 'marketer', name: 'Marketer', title: 'Marketer', color: '#ffb020', automatedBy: { marketing: 1 }, defaultAssignment: 'marketing' },
   support: { id: 'support', name: 'Support', title: 'Support Specialist', color: '#34c38f', automatedBy: { support: 1 }, defaultAssignment: 'support' },
-  security: { id: 'security', name: 'Security', title: 'Security Engineer', color: '#e5484d', automatedBy: { ops: 0.6 }, defaultAssignment: 'security' },
+  security: { id: 'security', name: 'Security', title: 'Security Engineer', color: '#4d6285', automatedBy: { ops: 0.6 }, defaultAssignment: 'security' },
   sales: { id: 'sales', name: 'Sales', title: 'Account Executive', color: '#9b6bff', automatedBy: { sales: 1 }, defaultAssignment: 'sales' },
 };

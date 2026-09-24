@@ -21,6 +21,7 @@ export function strainDelta(state, p, burntOut) {
   // On-call pressure lasts the first weeks of an outage; after that people stop pulling all-nighters.
   if (state.outage && state.outage.weeks < B.strainOnCallWeeks && (p.role === 'engineer' || p.founder)) gain += B.strainOnCall;
   gain += Math.min(B.strainSlackMax, burntOut * B.strainSlack);
+  if (state.policies.crunch && (a === 'project' || a === 'maintenance')) gain += B.crunchStrain;
   if (state.policies.no_crunch) gain *= B.noCrunchStrainMult;
   const recover = p.stamina >= B.strainRestedAbove ? B.strainRecoverWorking : 0;
   return gain - recover;

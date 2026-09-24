@@ -31,14 +31,16 @@ function weeklyMeaning(state, p) {
 
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
   // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
-  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state) + B.purposeMeaning * purposeLift(state));
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state) + B.purposeMeaning * purposeLift(state)
+    + (state.policies.office_upkeep ? B.upkeepMeaningRecovery : 0));
   // Recovery slows near the top, so even well-cared-for people settle below 100.
   const ceiling = clamp((100 - p.meaning) / B.meaningCeilingBand, 0, 1);
   const recovery = ((B.meaningBaseRecovery * (1 - exposure) + bonus) * mods.meaningRecovery * comfort
     + (state.policies.craft_fridays ? B.meaningRecovery.craftFridays : 0)) * ceiling;
   // Everyday grind, heavier as the company grows past the size where everyone knows everyone.
   const grind = B.meaningGrind + B.meaningGrindPerHead * Math.max(0, state.staff.length - B.overheadFreeHeadcount) + (p.remote ? B.remoteMeaningGrind : 0);
-  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain')) - grind;
+  const crunch = state.policies.crunch && (p.assignment.type === 'project' || p.assignment.type === 'maintenance') ? B.crunchMeaningDrain : 0;
+  return recovery - drain * Math.max(0, 1 + modifierBonus(state, 'meaningDrain')) - grind - crunch;
 }
 
 export function meaningSystem(ctx) {
