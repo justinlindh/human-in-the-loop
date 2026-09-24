@@ -48,6 +48,20 @@ const MOCK_ITEMS = [
   [['espresso', 2], ['plant_wall', 2], ['whiteboard_wall', 1], ['server_rack', 2], ['nap_pod', 1], ['monitoring_wall', 1]],
   [['espresso', 3], ['plant_wall', 3], ['whiteboard_wall', 2], ['server_rack', 3], ['nap_pod', 2], ['monitoring_wall', 3], ['arcade', 2], ['library', 2], ['standing_desk', 3], ['trophy_case', 2], ['arcade', 1], ['plant_wall', 1]],
 ];
+const GRIDS = [{ w: 9, h: 7 }, { w: 15, h: 12 }, { w: 21, h: 16 }];
+function mockPlaced(stage, staffCount) {
+  const g = GRIDS[stage];
+  const placed = [];
+  let n = 1;
+  // Desk sets in facing pairs (2x1 each), rows from the middle of the room.
+  for (let i = 0; i < Math.max(2, staffCount); i++) {
+    const col = i % 4, row = Math.floor(i / 4);
+    placed.push({ id: `f${n++}`, itemId: 'desk', level: 1, x: 2 + col * 2, y: 2 + row * 2, rot: row % 2 ? 2 : 0 });
+  }
+  // Shop items along the back walls.
+  MOCK_ITEMS[stage].forEach(([itemId, level], i) => placed.push({ id: `f${n++}`, itemId, level, x: Math.min(g.w - 1, i * 2), y: 0, rot: 0 }));
+  return placed;
+}
 const REACTIONS = ['🎉', '😂', '💀', '🫡', '🔥', '👀', '🙏'];
 const PRICES = { email: 10, support: 60, pm: 25, notes: 12, crm: 70, analytics: 55, design: 30, devtools: 35 };
 
@@ -159,7 +173,12 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     },
     models: Object.fromEntries(['claudius', 'chatgbt', 'gemenai', 'grokk', 'llamarama', 'deepsleep', 'mistrale'].map((m, i) => [m, { version: 1 + (i % 3), capability: 70 + i, costMult: 1, available: true, deprecated: false }])),
     discoveredCombos: { 'email:summarizer': 1.45, 'support:agent': 1.5 },
-    items: MOCK_ITEMS[cfg.stage].map(([itemId, level], i) => ({ id: `i${i + 1}`, itemId, level })),
+    office: { stage: cfg.stage, placed: mockPlaced(cfg.stage, staff.length) },
+    era: { id: ['classic', 'chatgbt', 'agents', 'agents', 'chatgbt', 'consolidation'][Object.keys(SCENARIOS).indexOf(scenario)] ?? 'chatgbt', since: Math.max(0, week - 20) },
+    eraSchedule: { chatgbt: 170, agents: 320, consolidation: 530 },
+    unlocks: cfg.stage === 0 ? {} : { marketing: 20, ops: 40, research: 60, models: 170, automation: 170, paths: 80, standups: 90 },
+    goals: { place_desks: { done: true, week: 0 }, first_launch: { done: cfg.stage > 0, week: cfg.stage > 0 ? 12 : null }, office_floor: { done: cfg.stage > 0, week: cfg.stage > 0 ? 60 : null }, hq: { done: cfg.stage > 1, week: cfg.stage > 1 ? 300 : null }, ipo: { done: false, week: null } },
+    founding: { founders: ['engineer', 'designer'], funding: 'bootstrapped', logoColor: '#ffb020', tagline: 'Build software. Keep the humans.' },
     modifiers: cfg.stage >= 1 ? [{ id: 'x1', key: 'output', value: -0.1, label: 'Four-day week trial', untilWeek: week + 5, source: 'four_day_week' }, { id: 'x2', key: 'meaningRecovery', value: 0.5, label: 'Four-day week trial', untilWeek: week + 5, source: 'four_day_week' }] : [],
     scheduled: cfg.stage >= 1 ? [{ id: 'q1', week: week + 5, kind: 'event', payload: { eventId: 'four_day_week_review' } }] : [],
     research: { done: cfg.stage === 0 ? [] : cfg.stage === 1 ? ['eval_harness', 'ci_cd'] : ['eval_harness', 'agent_sandbox', 'ci_cd', 'observability', 'docs_culture'] },
@@ -266,6 +285,9 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
       events.push({ type: 'standup', mode, lines });
       if (mode === 'async') for (const l of lines.filter((x) => x.text)) events.push(chat('standup', state.staff.find((x) => x.id === l.staffId), l.text));
     }
+    if (ticks % 19 === 0) events.push({ type: 'unlock', key: pick(['marketing', 'ops', 'research', 'standups']) });
+    if (ticks % 21 === 0) events.push({ type: 'goal', goalId: 'first_launch' });
+    if (ticks % 31 === 0) events.push({ type: 'era', eraId: 'agents' });
     if (ticks % 23 === 0) events.push({ type: 'award', text: 'Product of the Year: Deskbot' });
     if (ticks % 29 === 0) events.push({ type: 'officeUpgrade', stage: state.officeStage });
     state.history.push({ ...state.history[state.history.length - 1] ?? {}, week: state.week });
