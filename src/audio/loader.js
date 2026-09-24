@@ -39,14 +39,16 @@ export function createLoader(ctx) {
   const cache = new Map();   // id -> AudioBuffer
   const pending = new Map(); // id -> Promise
   const failed = new Set();  // ids whose delivered file failed; they stay on the placeholder
+  const waiters = new Map(); // id -> [callback(ok)]
+  const settle = (id, ok) => { for (const cb of waiters.get(id) ?? []) cb(ok); waiters.delete(id); };
 
   function load(id) {
     if (cache.has(id) || pending.has(id) || failed.has(id)) return;
     const e = entryFor(id);
     if (!e?.file) return;
     pending.set(id, fetch(url(e.file)).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
-      .then((ab) => ctx.decodeAudioData(ab)).then((buf) => { cache.set(id, buf); })
-      .catch(() => { failed.add(id); }).finally(() => pending.delete(id)));
+      .then((ab) => ctx.decodeAudioData(ab)).then((buf) => { cache.set(id, buf); pending.delete(id); settle(id, true); })
+      .catch(() => { failed.add(id); pending.delete(id); settle(id, false); }));
   }
 
   return {
@@ -63,5 +65,12 @@ export function createLoader(ctx) {
     // True once the real file for id is decoded (not a placeholder).
     ready: (id) => cache.has(id) && !!entryFor(id)?.file,
     preload(ids) { for (const id of ids) load(id); },
+    // Calls cb(true) once the delivered file for id is decoded, cb(false) if it failed or there is none.
+    whenReady(id, cb) {
+      if (cache.has(id) && entryFor(id)?.file) { cb(true); return; }
+      if (!entryFor(id)?.file || failed.has(id)) { cb(false); return; }
+      (waiters.get(id) ?? waiters.set(id, []).get(id)).push(cb);
+      load(id);
+    },
   };
 }
