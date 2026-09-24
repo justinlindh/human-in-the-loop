@@ -97,13 +97,13 @@
    "beds": [
     {
      "id": "a",
-     "bars": 8,
+     "bars": 32,
      "stems": {
       "full": {
        "file": "music/title/a_full.ogg",
-       "duration": 18.453,
+       "duration": 73.845,
        "loopStart": 0,
-       "loopEnd": 885760
+       "loopEnd": 3544576
       }
      }
     }
