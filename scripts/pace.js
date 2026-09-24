@@ -3,7 +3,9 @@
 // stepped as fast as the machine allows.
 //
 // node scripts/pace.js [--seed 1] [--speed 1] [--bot sensible] [--minutes 30 | --weeks 200]
-//                 [--player batch|eager] [--timeline] [--json] [--frame 0.0333]
+//                 [--player batch|eager|both] [--milestones] [--timeline] [--json] [--frame 0.0333]
+//
+// --milestones prints only the one-line milestone timeline; --player both runs each player.
 //
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
@@ -121,6 +123,11 @@ function sessionCount(timeline) {
   return out;
 }
 
+const STAGE_NAMES = ['garage', 'floor', 'hq'];
+
+// One line: minute and label of each milestone in order, unlocks marked with +.
+const milestoneLine = (m) => (m.milestones.length ? m.milestones.map((x) => `${x.minute} ${x.label}`).join(' | ') : 'none');
+
 const mmss = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const pct = (arr, p) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(p * arr.length))] : null);
 const r1 = (x) => (x === null || x === undefined ? null : Math.round(x * 10) / 10);
@@ -202,6 +209,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   };
 
   const firsts = { launch: null, era: {}, goal: {}, unlock: {} };
+  const milestones = []; // { minute, week, label } for first launch, office stages, eras, unlocks
+  const milestone = (label) => milestones.push({ minute: r1(t / 60), week: state.week, label });
   const decisions = [];
   let lastStaged = -Infinity;
   const counts = { chat: 0, chatBot: 0, sayDropped: 0, says: 0, standupsStaged: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
@@ -218,7 +227,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           break;
         }
         case 'award': toast(e.text, 'good'); break;
-        case 'officeUpgrade': toast('Moved into a bigger office!', 'good'); break;
+        case 'officeUpgrade': milestone(STAGE_NAMES[e.stage] ?? `stage ${e.stage}`); toast('Moved into a bigger office!', 'good'); break;
         case 'incident': {
           counts.incidents++;
           const p = state.products.find((x) => x.id === e.productId);
@@ -232,7 +241,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           const prev = launchScores.get(e.productId);
           if (p) launchScores.set(e.productId, p.score);
           const popup = !p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5;
-          if (p?.version === 1 && firsts.launch === null) firsts.launch = t;
+          if (p?.version === 1 && firsts.launch === null) { firsts.launch = t; milestone('first launch'); }
           log('launch', `${p?.name ?? e.productId} v${p?.version ?? '?'} score ${p ? r1(p.score) : '?'}${popup ? '' : ' (no popup)'}`);
           if (popup) launchQueue.push(p?.name ?? e.productId);
           attention ??= 'launch';
@@ -244,8 +253,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           decisions.push(t);
           break;
         }
-        case 'era': firsts.era[e.eraId] ??= t; log('era', e.eraId); cards.push({ kind: 'era', seconds: draw(HUMAN.eraCard), text: e.eraId }); break;
-        case 'unlock': attention ??= 'unlock'; firsts.unlock[e.key] ??= t; log('unlock', e.key); cards.push({ kind: 'unlock', seconds: draw(HUMAN.unlockCard), text: e.key }); break;
+        case 'era': if (firsts.era[e.eraId] === undefined) milestone(`era ${e.eraId}`); firsts.era[e.eraId] ??= t; log('era', e.eraId); cards.push({ kind: 'era', seconds: draw(HUMAN.eraCard), text: e.eraId }); break;
+        case 'unlock': attention ??= 'unlock'; if (firsts.unlock[e.key] === undefined) milestone(`+${e.key}`); firsts.unlock[e.key] ??= t; log('unlock', e.key); cards.push({ kind: 'unlock', seconds: draw(HUMAN.unlockCard), text: e.key }); break;
         case 'goal': firsts.goal[e.goalId] ??= t; log('goal', e.goalId); break;
         case 'chat': {
           counts.chat++;
@@ -350,7 +359,11 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       route(pacer.takeDropped().map((e) => ({ ...e, dropped: true })));
       botDue = true;
       if (state.cash < 0) attention ??= 'cash';
-      if (state.era && state.era.id !== lastEra) { lastEra = state.era.id; firsts.era[lastEra] ??= t; }
+      if (state.era && state.era.id !== lastEra) {
+        lastEra = state.era.id;
+        if (firsts.era[lastEra] === undefined) milestone(`era ${lastEra}`);
+        firsts.era[lastEra] ??= t;
+      }
     }
     if (!menuPause) route(pacer.due());
     t += frame;
@@ -394,6 +407,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       firstLaunch: firsts.launch === null ? null : r1(firsts.launch / 60),
       era: toMin(firsts.era), goal: toMin(firsts.goal), unlock: toMin(firsts.unlock),
     },
+    milestones,
   };
   return { metrics, timeline, overlaps: bubbleStats.overlaps, state };
 }
@@ -420,6 +434,7 @@ function printSummary(m, overlaps) {
   L('  same-speaker overlaps', m.bubbles.overlaps);
   for (const o of overlaps.slice(0, 5)) console.log(`    ${mmss(o.t)} w${o.week} ${o.source} ${o.who} cut the last bubble ${o.cutShort}s short: ${o.text.slice(0, 60)}`);
   L('launches and updates', `${m.launches.count} (${m.launches.popups} popups), incidents ${m.incidents}`);
+  L('milestones (real min)', milestoneLine(m));
   L('minutes to first launch', m.minutesTo.firstLaunch ?? 'never');
   for (const kind of ['era', 'unlock', 'goal']) {
     const e = Object.entries(m.minutesTo[kind]);
@@ -431,16 +446,24 @@ const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const a = parseArgs(process.argv.slice(2));
   const num = (k) => (a[k] === undefined || a[k] === true ? null : Number(a[k]));
-  const res = simulatePacing({
-    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player: typeof a.player === 'string' ? a.player : 'batch',
+  const players = a.player === 'both' ? ['batch', 'eager'] : [typeof a.player === 'string' ? a.player : 'batch'];
+  const runs = players.map((player) => simulatePacing({
+    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player,
     minutes: num('minutes'), weeks: num('weeks'), frame: num('frame') ?? 1 / 30,
-  });
-  if (a.json) console.log(JSON.stringify({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }, null, 2));
-  else {
-    if (a.timeline) {
-      for (const e of res.timeline) console.log(`${mmss(e.t)}  w${String(e.week).padStart(3)}  ${e.kind.padEnd(10)} ${e.text}`);
-      console.log('');
-    }
-    printSummary(res.metrics, res.overlaps);
+  }));
+  if (a.json) {
+    const out = runs.map((res) => ({ metrics: res.metrics, overlaps: res.overlaps, ...(a.timeline ? { timeline: res.timeline } : {}) }));
+    console.log(JSON.stringify(out.length === 1 ? out[0] : out, null, 2));
+  } else if (a.milestones) {
+    for (const { metrics: m } of runs) console.log(`${m.bot} ${m.player} ${m.speed}x seed ${m.seed} (${m.realMinutes} min, ${m.weeks} wk): ${milestoneLine(m)}`);
+  } else {
+    runs.forEach((res, i) => {
+      if (i) console.log('');
+      if (a.timeline) {
+        for (const e of res.timeline) console.log(`${mmss(e.t)}  w${String(e.week).padStart(3)}  ${e.kind.padEnd(10)} ${e.text}`);
+        console.log('');
+      }
+      printSummary(res.metrics, res.overlaps);
+    });
   }
 }
