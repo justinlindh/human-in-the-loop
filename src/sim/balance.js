@@ -58,6 +58,7 @@ export const B = {
   vendorReleaseEveryWeeks: 26, vendorCapabilityStep: 7, deprecateChance: 0.5, priceHikeChance: 0.08,
   migrationDeadlineWeeks: 26, missedMigrationHealth: 3, priceHikeMult: 1.3,
   rogueBase: 0.015, rogueShortfallFloor: 0.08, catchBase: 0.75, catchMax: 0.95, caughtDamageMult: 0.2,
+  ransomFloor: 10000, ransomCap: 400000, ransomCashShare: 0.2, ransomMrrMonths: 0.5, ransomMaxCashShare: 0.6,
   cyberGraceWeeks: 26, cyberBase: 0.006, cyberPerMrr: 0.00000004, cyberMax: 0.12,
   incidentCashPerSeverity: 4000, incidentCashYearGrowth: 0.3, outageMinSeverity: 3,
   postureSecurityPerSkill: 3.2, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,

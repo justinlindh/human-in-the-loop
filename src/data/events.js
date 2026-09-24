@@ -2,7 +2,8 @@
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way.
-// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder}.
+// Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
+// {ransom} (what a ransom would cost this company).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
 export const SUBJECTS = [
@@ -18,7 +19,7 @@ export const EFFECT_KEYS = [
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
-  'mission', 'purpose',
+  'mission', 'purpose', 'ransom',
 ];
 
 
@@ -590,7 +591,7 @@ const list = [
     title: 'Ransomware',
     text: 'Every server now displays a skull and a crypto wallet address. The skull is animated.',
     choices: [
-      { label: 'Pay the ransom', hint: 'Huge cash hit', effects: { cash: -60000 }, outcome: 'The keys work. You feel dirty.' },
+      { label: 'Pay the ransom', hint: 'Pay {ransom}: it hurts, and it is sized to what you can pay', effects: { ransom: true }, outcome: 'The keys work. You feel dirty.' },
       { label: 'Restore from backups', hint: 'Needs institutional knowledge 40+, else heavy churn', effects: { cond: { test: 'ik40', then: { ik: 2 }, else: { customersPct: -20, brand: -4 } } }, outcome: 'Someone has to remember where the backups are.' },
     ],
   },

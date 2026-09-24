@@ -14,7 +14,7 @@ import { MODELS } from '../data/models.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
-import { raiseDecision } from './events.js';
+import { raiseDecision, ransomFor } from './events.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
 import { adoptPet } from './ladder.js';
@@ -215,6 +215,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.stats.resignations++;
     ctx.emit({ type: 'resign', staffId: person.id, name: person.name });
   }
+  if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);
   if (fx.workPolicy) state.workPolicy = fx.workPolicy;
   if (fx.mission) setMission(state, fx.mission);
   if (fx.purpose) testPurpose(state, fx.purpose, EVENTS[source]?.title ?? 'A decision');

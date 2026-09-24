@@ -295,3 +295,26 @@ describe('outages', () => {
     expect(s.cash).toBe(1e6 - B.consultantCost);
   });
 });
+
+describe('ransoms scale with the company', () => {
+  it('a small company can pay and survive; a big one pays more, up to a cap', async () => {
+    const { ransomFor, raiseDecision: raise } = await import('../../src/sim/events.js');
+    const { makeCtx: mk } = await import('../../src/sim/registry.js');
+    const small = game();
+    small.cash = 32000;
+    addProduct(small, { mrr: 30000 });
+    const r = ransomFor(small);
+    expect(r).toBeGreaterThanOrEqual(B.ransomFloor);
+    expect(r).toBeLessThanOrEqual(small.cash * B.ransomMaxCashShare);
+    const big = game();
+    big.cash = 5e7;
+    addProduct(big, { mrr: 2e6 });
+    expect(ransomFor(big)).toBe(B.ransomCap);
+    raise(mk(small), 'ransomware');
+    expect(small.pendingDecision.choices[0].hint).toContain(`$${r.toLocaleString('en-US')}`);
+    const before = small.cash;
+    expect(dispatch(small, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
+    expect(small.cash).toBe(before - r);
+    expect(small.cash).toBeGreaterThan(0);
+  });
+});
