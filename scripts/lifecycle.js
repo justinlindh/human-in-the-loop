@@ -94,14 +94,41 @@ try {
   const onPagehide = await savedWeek();
   check('saves on pagehide', finalWeek === WEEKS + 3 && onPagehide === finalWeek, `week ${finalWeek}, saved week ${onPagehide}`);
 
+  // Auto-pause: focus leaving the page pauses and saves; coming back does not resume.
+  const away = await page.evaluate(async () => {
+    const H = window.__HITL;
+    H.controls.setSpeed(1);
+    const week = window.__advance(1);
+    dispatchEvent(new Event('blur'));
+    const at = { speed: H.clock.speed, away: H.controls.awayPaused, acc: H.clock.acc };
+    await new Promise((r) => setTimeout(r, 3000));
+    const later = { acc: H.clock.acc, week: H.state.week };
+    dispatchEvent(new Event('focus'));
+    await new Promise((r) => setTimeout(r, 1000));
+    return { week, at, later, afterFocus: H.clock.speed };
+  });
+  const awaySaved = await savedWeek();
+  check('blur pauses, saves, and holds the clock', away.at.speed === 0 && away.at.away && away.later.acc === away.at.acc && away.later.week === away.week && awaySaved === away.week, JSON.stringify({ ...away, awaySaved }));
+  check('focus does not resume', away.afterFocus === 0, `speed ${away.afterFocus}`);
+  const offSpeed = await page.evaluate(() => {
+    const c = window.__HITL.controls;
+    c.setAutoPause(false); c.setSpeed(1);
+    dispatchEvent(new Event('blur'));
+    const sp = window.__HITL.clock.speed;
+    c.setAutoPause(true); c.setSpeed(0);
+    return sp;
+  });
+  check('with auto-pause off, blur leaves the game running', offSpeed === 1, `speed ${offSpeed}`);
+  const lastWeek = away.week;
+
   await page.reload(); await ready(); await page.waitForTimeout(1000);
   const t2 = await page.evaluate(() => ({ playing: window.__HITL.playing, status: window.__HITL.controls.loadStatus() }));
   check('reload shows the title with a save', !t2.playing && t2.status.ok, JSON.stringify(t2.status));
-  check('loadStatus carries the save meta', t2.status.meta?.companyName === 'Testco' && t2.status.meta?.week === WEEKS + 3 && 'logoColor' in (t2.status.meta ?? {}), JSON.stringify(t2.status.meta));
+  check('loadStatus carries the save meta', t2.status.meta?.companyName === 'Testco' && t2.status.meta?.week === lastWeek && 'logoColor' in (t2.status.meta ?? {}), JSON.stringify(t2.status.meta));
   await clickText(/Continue/);
   await page.waitForTimeout(800);
   const t3 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, week: window.__HITL.state.week }));
-  check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === WEEKS + 3, JSON.stringify(t3));
+  check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === lastWeek, JSON.stringify(t3));
   await shot('6-continued.png');
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);
