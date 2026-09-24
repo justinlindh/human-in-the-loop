@@ -133,7 +133,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     menuSig = sig;
     for (const id of ['marketing', 'ops', 'models']) menu.setVisible(id, !u || u[id] != null, { animate });
     menu.setVisible('automation', !u || u.automation != null || policiesIn, { animate });
-    menu.setLabel('automation', !u || u.automation != null ? 'Automation' : 'Policies');
+    const auto = !u || u.automation != null;
+    menu.setLabel('automation', auto ? 'Automation' : 'Policies');
+    menu.setIcon('automation', auto ? 'menu.automation' : 'menu.policies');
   }
   // One tick's unlocks and era arrive together (both are immediate events). An era card lists the
   // unlocks that came with it; several unlocks without an era share one card; a lone one gets its own.

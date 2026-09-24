@@ -18,7 +18,7 @@ export const DUCK = {
   voice: { music: 0.7, attack: 0.08, release: 0.6 },
   cheer: { music: 0.6, attack: 0.05, release: 1.5 },
   decision: { music: 0.45, attack: 0.3, release: 1.2 },
-  stinger: { music: 0.3, attack: 0.05, release: 1.5 },
+  stinger: { music: 0.25, attack: 0.3, release: 1 },
 };
 
 // priority 1..10 (higher steals lower on a full bus); cooldown in s per cue; files: variants picked by rng.
@@ -38,7 +38,7 @@ export const CUES = {
   'sfx.farewell': { bus: 'sfx', files: ['sfx/farewell'], cooldown: 2, priority: 5 },
   'sfx.incident': { bus: 'sfx', files: ['sfx/alarm'], cooldown: 4, priority: 8 },
   'sfx.caught': { bus: 'sfx', files: ['sfx/save'], cooldown: 2, priority: 6 },
-  'sfx.award': { bus: 'sfx', files: ['sfx/award'], cooldown: 0.6, priority: 6 },
+  'sfx.award': { bus: 'sfx', files: ['sfx/award'], cooldown: 0.6, priority: 6, duck: 'stinger' },
   'sfx.reward': { bus: 'sfx', files: ['sfx/reward'], cooldown: 1, priority: 5 },
   'sfx.bad': { bus: 'sfx', files: ['sfx/bad'], cooldown: 0.8, priority: 4 },
   'sfx.warn': { bus: 'sfx', files: ['ui/blip'], cooldown: 0.8, priority: 2 },
@@ -109,7 +109,6 @@ export const MUSIC_NIGHT = {
   sad_lofi: { bpm: 72, key: 'Eb', mode: 'major' },
 };
 export const MUSIC_NIGHT_SECONDS = 16;
-export const DANCE_PAUSE_LEVEL = 0.08;  // the dance track's level while the game is paused
 // A pending decision that picks a music night genre: it names the reward or offers the genres.
 export function isMusicNightDecision(d) {
   if (!d) return false;
