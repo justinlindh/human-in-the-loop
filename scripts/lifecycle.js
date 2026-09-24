@@ -222,6 +222,13 @@ try {
     return { ok: res.ok, stateLeaked: 'state' in res, name: window.__HITL.state.companyName, week: window.__HITL.state.week };
   });
   check('continueGame(id) loads that company', t5.ok && !t5.stateLeaked && t5.name === 'Testco' && t5.week === lastWeek, JSON.stringify(t5));
+  const exported = await page.evaluate(() => {
+    const c = window.__HITL.controls;
+    const first = c.listSaves().find((x) => x.companyName === 'Testco');
+    const raw = c.exportSave(first.id);
+    try { return { name: JSON.parse(raw)?.companyName ?? null, missing: c.exportSave('no-such-slot') }; } catch { return { raw: String(raw).slice(0, 40) }; }
+  });
+  check('exportSave(id) returns that slot as text', exported.name === 'Testco' && exported.missing === null, JSON.stringify(exported));
   const version = await page.evaluate(() => window.__HITL.version);
   check('the build carries a version', typeof version === 'string' && version.length > 0, version);
 } catch (e) {
