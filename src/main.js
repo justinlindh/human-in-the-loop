@@ -74,9 +74,10 @@ async function boot() {
   };
 
   const canSave = () => realSim && !!saveMod && !isSnap;
+  // Each company writes its own save slot. A finished run is saved too, so it stays listed (as over)
+  // and its ending can be revisited or, for the anniversary, played on.
   function save() {
     if (!canSave() || !playing) return false;
-    if (sim.state.gameOver) { saveMod.clearSave(); return false; }
     return saveMod.saveGame(sim.state);
   }
 
@@ -107,14 +108,29 @@ async function boot() {
       const seed = Number.isFinite(opts.seed) ? opts.seed : randomSeed();
       // Founding options (logoColor, tagline, founders, funding) pass straight through to the sim.
       const founding = { ...opts, seed, companyName: opts.companyName || 'Loopworks' };
+      // A fresh state has no slot yet; its first save takes a new one, so earlier companies stay.
       startPlaying(realSim ? simMod.createGame(founding) : sim.state);
-      if (canSave()) saveMod.clearSave();
     },
-    continueGame: () => {
+    // Loads a slot by id (default: the last one written).
+    continueGame: (id) => {
       if (!canSave()) return { ok: false, reason: 'No save found' };
-      const res = saveMod.loadGame();
+      const res = saveMod.loadGame(undefined, id);
       if (res.ok) startPlaying(res.state);
       return { ok: res.ok, reason: res.reason, notice: res.notice };
+    },
+    // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
+    // will not load is listed with its reason instead of dropped.
+    listSaves: () => {
+      if (!canSave() || !saveMod.listSaves) return [];
+      return saveMod.listSaves().map((m) => {
+        const res = saveMod.loadGame(undefined, m.id);
+        return { ...m, ok: res.ok, reason: res.reason };
+      });
+    },
+    deleteSave: (id) => {
+      if (!canSave() || !saveMod.deleteSave) return { ok: false, reason: 'No save found' };
+      saveMod.deleteSave(undefined, id);
+      return { ok: true };
     },
     loadStatus: () => {
       if (!canSave()) return { ok: false, reason: 'No save found' };

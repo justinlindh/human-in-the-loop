@@ -41,19 +41,23 @@ try {
     const orig = c.newGame;
     c.newGame = (o) => { window.__newGameOpts = o; return orig(o); };
   });
-  await clickText(/New Game/);
-  await page.locator('input.text').first().fill('Testco');
-  await page.locator('input.seed').fill('42');
-  await shot('2-company.png');
-  await clickText(/Next: founders/);
-  const cards = page.locator('button.fcard');
-  await cards.nth(0).click(); await cards.nth(1).click();
-  await shot('3-founders.png');
-  await clickText(/Next: funding/);
-  await page.locator('button.fund').last().click();
-  await shot('4-funding.png');
-  await clickText(/Start the company/);
-  await page.waitForTimeout(800);
+  // From the title: New Game, then the three founding steps.
+  const found = async (name, seed, shots = false) => {
+    await clickText(/New Game/);
+    await page.locator('input.text').first().fill(name);
+    await page.locator('input.seed').fill(String(seed));
+    if (shots) await shot('2-company.png');
+    await clickText(/Next: founders/);
+    const cards = page.locator('button.fcard');
+    await cards.nth(0).click(); await cards.nth(1).click();
+    if (shots) await shot('3-founders.png');
+    await clickText(/Next: funding/);
+    await page.locator('button.fund').last().click();
+    if (shots) await shot('4-funding.png');
+    await clickText(/Start the company/);
+    await page.waitForTimeout(800);
+  };
+  await found('Testco', 42, true);
   const t1 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, seed: window.__HITL.state.seed, opts: window.__newGameOpts }));
   const o = t1.opts ?? {};
   check('started as Testco with seed 42', t1.playing && t1.name === 'Testco' && t1.seed === 42, JSON.stringify({ playing: t1.playing, name: t1.name, seed: t1.seed }));
@@ -61,7 +65,7 @@ try {
 
   for (let i = 0; i < 6; i++) await page.keyboard.press('Escape');
   // Advances n weeks, resolving any decision first (tick does nothing while one is pending).
-  await page.evaluate(() => {
+  const defineAdvance = () => page.evaluate(() => {
     window.__advance = (n) => {
       const H = window.__HITL;
       for (let i = 0; i < n; i++) {
@@ -71,6 +75,7 @@ try {
       return H.state.week;
     };
   });
+  await defineAdvance();
   await page.evaluate((n) => { window.__advance(n); window.__HITL.controls.save(); }, WEEKS);
   const saved = await page.evaluate(() => ({ week: window.__HITL.state.week, has: Object.keys(localStorage).some((k) => k.startsWith('hitl.save')) }));
   check(`played ${WEEKS} weeks and saved`, saved.week === WEEKS && saved.has, JSON.stringify(saved));
@@ -78,8 +83,9 @@ try {
 
   // Saves without an explicit save: the tab going hidden, then the page being hidden (pagehide).
   const savedWeek = () => page.evaluate(() => {
-    const k = Object.keys(localStorage).find((x) => x.startsWith('hitl.save'));
-    try { return JSON.parse(localStorage.getItem(k)).week ?? JSON.parse(localStorage.getItem(k)).state?.week; } catch { return null; }
+    const slots = window.__HITL.controls.listSaves?.() ?? [];
+    if (slots.length) return slots.find((x) => x.companyName === window.__HITL.state.companyName)?.week ?? null;
+    try { return JSON.parse(localStorage.getItem('hitl.save.v1')).week; } catch { return null; }
   });
   const hiddenWeek = await page.evaluate(() => {
     const week = window.__advance(2);
@@ -133,6 +139,25 @@ try {
   const t3 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, week: window.__HITL.state.week }));
   check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === lastWeek, JSON.stringify(t3));
   await shot('6-continued.png');
+  await defineAdvance();
+
+  // A second company, then back to the title: New Game must not delete either earlier save.
+  await page.evaluate(() => window.__HITL.controls.newGame());
+  await page.waitForTimeout(500);
+  await found('Secondco', 7);
+  await page.evaluate(() => { window.__advance(3); window.__HITL.controls.save(); window.__HITL.controls.newGame(); });
+  await page.waitForTimeout(800);
+  const t4 = await page.evaluate(() => ({
+    slots: (window.__HITL.controls.listSaves?.() ?? []).map((x) => `${x.companyName}@${x.week}${x.ok ? '' : ` (${x.reason})`}`),
+    rows: document.querySelectorAll('.tl-slot').length,
+  }));
+  check('both companies stay listed after another New Game', ['Testco', 'Secondco'].every((n) => t4.slots.some((x) => x.startsWith(`${n}@`))) && t4.rows >= 2, JSON.stringify(t4));
+  const t5 = await page.evaluate(() => {
+    const first = window.__HITL.controls.listSaves().find((x) => x.companyName === 'Testco');
+    const res = window.__HITL.controls.continueGame(first.id);
+    return { ok: res.ok, name: window.__HITL.state.companyName, week: window.__HITL.state.week };
+  });
+  check('continueGame(id) loads that company', t5.ok && t5.name === 'Testco' && t5.week === lastWeek, JSON.stringify(t5));
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);
   // The first lines of Playwright's call log say what the click was waiting on.
