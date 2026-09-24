@@ -283,7 +283,7 @@ export function helpersFor(state, beats) {
 
 // The over-notifier @channels the whole company, a few times a run. During a fresh outage the ping is
 // warranted and people take back their reaction.
-function atChannel(ctx, talk) {
+function atChannel(ctx, talk, factor) {
   const { state, rng } = ctx;
   if ((talk.atChannelNext ?? 0) > state.week) return;
   const people = around(state);
@@ -296,7 +296,7 @@ function atChannel(ctx, talk) {
   }
   const outage = state.outage && state.outage.weeks <= 1 ? state.products.find((p) => p.id === state.outage.productId) : null;
   const warranted = outage && chance(rng, B.atChannelWarrantedChance);
-  if (!warranted && !chance(rng, B.atChannelChance)) return;
+  if (!warranted && !chance(rng, B.atChannelChance * factor)) return;
   const beat = warranted ? AT_CHANNEL_WARRANTED : pick(rng, AT_CHANNEL);
   const values = { a: first(offender), product: outage?.name ?? '' };
   const text = (t) => t.replace(/\{(a|product)\}/g, (_, k) => values[k]);
@@ -342,7 +342,7 @@ export function talkSystem(ctx, happened) {
   }
   if (!posted) posted = runJoke(ctx, 'chat', talk, h);
   if (!posted && chance(rng, B.threadChance * factor)) posted = !!runOne(ctx, eligible(state, talk, h, { stream: 'chat' }), beats, talk);
-  atChannel(ctx, talk);
+  atChannel(ctx, talk, factor);
   return posted;
 }
 
