@@ -374,8 +374,9 @@ export const ITEMS = [
     actions: DISMISS_EVERY(6), screenshots: [6],
   },
   {
+    // Shot as the winner speaks, before the watchers behind the glass start their envy emotes.
     id: 'readme-waffle', group: 'readme', title: 'The Waffle Party in a real game', query: 'seed=1&speed=1', still: true,
-    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(15), screenshots: [14],
+    setup: WAFFLE_SETUP, actions: WAFFLE_ACTIONS(13), screenshots: [12.75],
   },
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
