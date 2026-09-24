@@ -3,3 +3,6 @@ dist/
 shots/
 *.log
 .DS_Store
+
+# vite dependency cache (per worktree)
+.vite/
