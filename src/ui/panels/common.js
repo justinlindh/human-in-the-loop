@@ -1,4 +1,4 @@
-import { ASSIGNMENT_LABEL } from '../content.js';
+import { ASSIGNMENT_LABEL, B } from '../content.js';
 
 export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project', research: 'Internal tool' };
 
@@ -77,7 +77,8 @@ const SILLY = ['Synergy.ai', 'Clippy Returns', 'Yet Another Copilot', 'Prompt an
 const CAT_WORD = { notes: 'Note', email: 'Inbox', pm: 'Plan', support: 'Desk', crm: 'Deal', analytics: 'Chart', design: 'Pixel', devtools: 'Ship', hr: 'People', recruiting: 'Hire', accounting: 'Ledger', video: 'Clip', legal: 'Brief', security: 'Vault' };
 
 let suggestN = 0;
-export const NAME_MAX = 20;
+// The product name cap is the sim's (B.productNameMax), so the two cannot drift.
+export const NAME_MAX = B.productNameMax ?? 20;
 
 export function suggestName(category) {
   suggestN++;
