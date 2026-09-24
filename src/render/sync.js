@@ -11,6 +11,8 @@ import { holdSeconds } from './reading.js';
 // Characters are keyed by staff id; removed staff walk out and are disposed.
 
 const WALK = 1.25;
+const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
+const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
 const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
 const TIRED_STAMINA = 25;           // below this a person shows the exhaustion warning signs
@@ -468,7 +470,17 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     } else if (r.temp) {
       const tp = r.temp;
       if (tp.delay > 0) { tp.delay -= dt; }
-      else {
+      else if (tp.enter && tp.enter.t < ENTER_S && tp.goal) {
+        // Getting onto the furniture from its side: slide onto the spot seated, turning to the
+        // spot's heading; a lying pose lies down once the slide ends, at full height.
+        const en = tp.enter;
+        en.from ??= { x: r.pos.x, z: r.pos.z };
+        en.t = Math.min(ENTER_S, en.t + dt);
+        const k = en.t / ENTER_S, e = k * k * (3 - 2 * k);
+        r.pos.set(en.from.x + (tp.goal.x - en.from.x) * e, 0, en.from.z + (tp.goal.z - en.from.z) * e);
+        r.yaw = angleLerp(r.yaw, tp.goal.yaw, 1 - Math.exp(-dt * 10));
+        c.setAnim(LIE_ANIMS.has(tp.anim) ? 'sit' : tp.anim);
+      } else {
         if (tp.sayText) { labels.say(tp.sayText, c.root, holdSeconds(tp.sayText, speed)); tp.sayText = null; }
         tp.t -= dt;
         if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
@@ -492,7 +504,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     c.setRingScale(c.seated ? 1.4 : 1);
     c.root.position.copy(r.pos);
     // Lying on a nap pod lifts the whole character onto it once they have arrived.
-    if (r.temp?.lift && !r.path.length) c.root.position.y = r.temp.lift;
+    if (r.temp?.lift && !r.path.length) {
+      const en = r.temp.enter;
+      // Up onto the item during the first half of the slide.
+      const k = en ? Math.min(1, (2 * en.t) / ENTER_S) : 1;
+      c.root.position.y = r.temp.lift * k * k * (3 - 2 * k);
+    }
     c.root.rotation.y = r.yaw;
     c.update(dt);
   }
