@@ -93,7 +93,38 @@
    ]
   }
  },
- "stingers": {},
+ "stingers": {
+  "era": {
+   "file": "stingers/era.ogg",
+   "duration": 5.58,
+   "candidate": true
+  },
+  "launch": {
+   "file": "stingers/launch.ogg",
+   "duration": 3.96,
+   "candidate": true
+  },
+  "office": {
+   "file": "stingers/office.ogg",
+   "duration": 4.06,
+   "candidate": true
+  },
+  "waffle": {
+   "file": "stingers/waffle.ogg",
+   "duration": 9.59,
+   "candidate": true
+  },
+  "win": {
+   "file": "stingers/win.ogg",
+   "duration": 8.38,
+   "candidate": true
+  },
+  "gameover": {
+   "file": "stingers/gameover.ogg",
+   "duration": 7.47,
+   "candidate": true
+  }
+ },
  "ui": {
   "click": {
    "file": "ui/click.ogg",

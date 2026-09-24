@@ -14,6 +14,19 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
 | `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
 
+## Stingers (candidates)
+
+Generated with ACE-Step 1.5 using the same model and settings as the music (XL-sft 4B plus the 4B planner, 60 steps, 48 kHz) and the shared instrument core. Each was rendered at 12 s, then cut at a quiet point near its target length, faded out and mastered to -18 LUFS.
+
+| File | Cue | Length |
+|---|---|---|
+| `stingers/era.ogg` | era arrival | 5.6 s |
+| `stingers/launch.ogg` | product launch | 4.0 s |
+| `stingers/office.ogg` | office upgrade | 4.1 s |
+| `stingers/waffle.ogg` | Waffle Party | 9.6 s |
+| `stingers/win.ogg` | win | 8.4 s |
+| `stingers/gameover.ogg` | game over | 7.5 s |
+
 ## UI sounds (candidates)
 
 From Kenney's "Interface Sounds" pack, CC0 1.0 (public domain; credit to Kenney, kenney.nl, is optional and appreciated). Each is trimmed, mono and peak-normalized to -3 dBFS.
