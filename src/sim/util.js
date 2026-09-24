@@ -9,9 +9,14 @@ export function round(v, dp = 0) {
   return Math.round(v * f) / f;
 }
 
-// "an Architect", "a UX Lead", "a Tech Lead". Acronyms starting with U take "a".
+// "an Architect", "a UX Lead", "an HR", "a CRM", "a user", "an hour": by sound, not spelling.
 export function article(word) {
-  const an = /^[aeio]/i.test(word) || (/^u/i.test(word) && !/^U[A-Z]/.test(word));
+  const first = word.split(/[\s-]/)[0];
+  let an;
+  if (/^[A-Z]{2,}$/.test(first)) an = 'AEFHILMNORSX'.includes(first[0]);
+  else if (/^(hour|honest|honor|heir)/i.test(first)) an = true;
+  else if (/^(u[bcdfghjklmnpqrstvwxyz][aeiou]|uni|use|eu|one)/i.test(first)) an = false;
+  else an = /^[aeiou]/i.test(first);
   return `${an ? 'an' : 'a'} ${word}`;
 }
 

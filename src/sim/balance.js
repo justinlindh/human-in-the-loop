@@ -61,6 +61,6 @@ export const B = {
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
-  chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 20, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
+  chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 52, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
   ipoMrr: 2500000, ipoBrand: 60, acquisitionOfferMrr: 1800000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };

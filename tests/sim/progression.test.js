@@ -71,9 +71,9 @@ describe('office shop', () => {
   });
 
   it('a second copy of an item gives half its effect', () => {
-    const s = withItem(withItem(game(), 'library', 3), 'library', 1);
-    expect(itemBonus(s, 'knowledgeGain')).toBeCloseTo(ITEMS.library.effects[2].knowledgeGain + 0.5 * ITEMS.library.effects[0].knowledgeGain);
-    const t = withItem(withItem(game(), 'library', 1), 'library', 3);
+    const s = withItem(withItem(game(), 'library', 2), 'library', 1);
+    expect(itemBonus(s, 'knowledgeGain')).toBeCloseTo(ITEMS.library.effects[1].knowledgeGain + 0.5 * ITEMS.library.effects[0].knowledgeGain);
+    const t = withItem(withItem(game(), 'library', 1), 'library', 2);
     expect(itemBonus(t, 'knowledgeGain')).toBeCloseTo(itemBonus(s, 'knowledgeGain'));
   });
 

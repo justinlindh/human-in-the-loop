@@ -338,10 +338,10 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
     }
     if (s.gameOver) break;
     for (const a of bot(s)) dispatch(s, a);
-    tick(s);
+    const events = tick(s);
     maxStage = Math.max(maxStage, s.officeStage);
     if (firstLaunch === null && s.stats.launches > 0) firstLaunch = s.week;
-    onWeek?.(s);
+    onWeek?.(s, events);
   }
   return {
     won: !!s.gameOver?.won, reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,
