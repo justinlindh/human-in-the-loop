@@ -6,6 +6,7 @@ import { totalMrr } from './products.js';
 import { MODELS } from '../data/models.js';
 import { POLICIES } from '../data/policies.js';
 import { OFFICE_STAGES } from '../data/office.js';
+import { raiseDecision } from './events.js';
 
 // Weekly spend broken out by line item; the UI can show it as a burn breakdown.
 export function weeklyCosts(state) {
@@ -28,16 +29,23 @@ export const weeklyRevenue = (state) => totalMrr(state) * 12 / 52;
 
 export function economySystem(ctx) {
   const { state } = ctx;
-  const costs = sum(Object.values(weeklyCosts(state)));
-  state.cash += weeklyRevenue(state) - costs;
+  const net = weeklyRevenue(state) - sum(Object.values(weeklyCosts(state)));
+  const wasSolvent = state.cash >= 0;
+  state.cash += net;
   if (state.flags.gpuShortageWeeks > 0) state.flags.gpuShortageWeeks--;
-  if (state.cash < 0) {
-    if (state.lowCashWeeks === 0) {
-      ctx.emit({ type: 'toast', text: `Cash is negative. ${B.runwayLoseWeeks} weeks in the red and it is over.`, tone: 'warn' });
-    }
-    state.lowCashWeeks++;
-  } else {
+  if (state.cash >= 0) {
     state.lowCashWeeks = 0;
+    return;
+  }
+  // Only weeks that lose money count toward bankruptcy; a profitable week in the red holds the count.
+  if (net <= 0) state.lowCashWeeks++;
+  if (wasSolvent) {
+    ctx.emit({ type: 'toast', text: `Cash is negative. ${B.runwayLoseWeeks} losing weeks in the red and it is over.`, tone: 'warn' });
+    const last = state.flags.bridgeOfferWeek;
+    if (last === undefined || state.week - last >= B.bridgeOfferCooldownWeeks) {
+      state.flags.bridgeOfferWeek = state.week;
+      raiseDecision(ctx, 'bridge_loan', null, { queue: true });
+    }
   }
 }
 

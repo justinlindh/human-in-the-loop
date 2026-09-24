@@ -57,7 +57,7 @@ export const B = {
   cyberBase: 0.006, cyberPerMrr: 0.00000004, cyberMax: 0.12,
   incidentCashPerSeverity: 4000, incidentCashYearGrowth: 0.3, outageMinSeverity: 3,
   postureSecurityPerSkill: 0.6, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
-  auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5,
+  auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageCollapseWeeks: 6, collapseMrrShare: 0.5,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.33,
   chatBase: 0.5, chatPerMeaning: 0.035, chatMax: 6, threadChance: 0.3, threadCooldownWeeks: 20, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,

@@ -91,7 +91,7 @@ const list = [
     title: 'A little side project',
     text: '{name} has been rebuilding the admin panel on weekends "just to see". It is beautiful.',
     choices: [
-      { label: 'Greenlight a craft project', hint: 'Starts a craft project, meaning up', effects: { startCraft: true, meaning: 5 }, outcome: 'The craft project begins. Fonts will be discussed.' },
+      { label: 'Greenlight a craft project', hint: 'Starts a craft project for you to staff; meaning up', effects: { startCraft: true, meaning: 5 }, outcome: 'The craft project begins. Fonts will be discussed.' },
       { label: 'Not now', hint: 'Meaning down a little', effects: { meaning: -3 }, outcome: 'Back to the backlog.' },
     ],
   },
@@ -404,8 +404,19 @@ const list = [
     ],
   },
   {
+    id: 'bridge_loan', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The bank account is red',
+    text: 'The balance has a minus sign in front of it. Your accountant has started using the word "concerning" in every sentence.',
+    choices: [
+      { label: 'Take a bridge loan', hint: '+$60k now; repay $72k in 26 weeks, effects later; a small brand hit', effects: { cash: 60000, brand: -1, later: [{ inWeeks: 26, effects: { cash: -72000 } }] }, outcome: 'The bank agrees. The interest rate has a lot of confidence in it.' },
+      { label: 'Cut costs', hint: '+$10k now; less output and slower recovery for 12 weeks', effects: { cash: 10000, modifier: [{ key: 'output', value: -0.1, weeks: 12, label: 'Cost cutting' }, { key: 'meaningRecovery', value: -0.3, weeks: 12, label: 'Cost cutting' }] }, outcome: 'No more fancy oat milk. The team notices. The team notices everything.' },
+      { label: 'Ride it out', hint: 'Eight losing weeks in the red and the company is done', effects: {}, outcome: 'You stare at the revenue chart and will it upward.' },
+    ],
+  },
+  {
     id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null,
-    when: (s) => s.week >= 26 && !s.flags.diluted,
+    when: (s) => !s.flags.diluted && (s.week >= 26 || s.cash < 20000),
     title: 'A venture capitalist calls',
     text: 'A VC in a vest wants to give {company} half a million dollars. They say "AI-native" four times.',
     choices: [

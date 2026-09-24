@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { newId } from './util.js';
+import { newId, article } from './util.js';
 import { registerAction } from './registry.js';
 import { emitChat } from './chat.js';
 import { ITEMS } from '../data/items.js';
@@ -64,7 +64,7 @@ registerAction('choosePath', (ctx, { staffId, pathId }) => {
   if (path.role !== p.role) return { ok: false, reason: `That path is for ${ROLES[path.role].name.toLowerCase()}s` };
   p.path = pathId;
   p.pathPending = false;
-  ctx.emit({ type: 'toast', text: `${p.name} is now a ${path.name}.`, tone: 'good' });
+  ctx.emit({ type: 'toast', text: `${p.name} is now ${article(path.name)}.`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
   return { ok: true };
 });
