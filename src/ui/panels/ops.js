@@ -7,7 +7,8 @@ import { oversightNeeded, oversightHave } from './automation.js';
 
 // The sim's own breakdown, so the rows add up to the posture bar. Debt is a positive penalty.
 export function postureParts(s) {
-  const p = simPostureParts(s);
+  // A placement-era state has no items list; older sim helpers still iterate it.
+  const p = simPostureParts(s.items ? s : { ...s, items: [] });
   const people = p.people ?? s.staff.filter((x) => x.assignment?.type === 'security' && x.mood !== 'away').length;
   return { ...p, people };
 }

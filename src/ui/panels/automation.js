@@ -12,6 +12,7 @@ import { liveView, tabs } from '../widgets.js';
 import * as SIM from '../../sim/index.js';
 import { automationWeeklyCost } from '../../sim/economy.js';
 import { icon } from '../icons.js';
+import { call } from '../simapi.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
@@ -25,11 +26,12 @@ export function fnOversight(s, fn) {
 
 // Oversight totals come from the sim when it exports them, so the UI and the sim agree.
 export function oversightNeeded(s) {
-  if (typeof SIM.oversightRequired === 'function') return SIM.oversightRequired(s);
+  if (typeof SIM.oversightRequired === 'function') return SIM.oversightRequired(s.items ? s : { ...s, items: [] });
   return FUNCTIONS.reduce((a, f) => a + fnOversight(s, f), 0);
 }
 export function oversightHave(s) {
-  if (typeof SIM.oversightProvided === 'function') return SIM.oversightProvided(s);
+  // A placement-era state has no items list; older sim helpers still iterate it.
+  if (typeof SIM.oversightProvided === 'function') return SIM.oversightProvided(s.items ? s : { ...s, items: [] });
   return s.ops?.oversightProvided ?? 0;
 }
 
@@ -60,12 +62,16 @@ function affected(s, fn) {
 }
 
 export function automationPanel(ctx) {
-  let tab = 'dials';
+  // Before automation unlocks, this menu holds only the policies that have arrived.
+  const s0 = ctx.getState();
+  const dialsLocked = !!s0.unlocks && !s0.unlocks.automation;
+  let tab = dialsLocked ? 'policies' : 'dials';
   const t = tabs([{ id: 'dials', icon: 'menu.automation', label: 'Automation' }, { id: 'policies', icon: 'policy', label: 'Policies' }], tab, (id) => { tab = id; t.set(id); render(); });
+  t.setHidden('dials', dialsLocked);
   const host = h('div');
 
   const dials = liveView(
-    (s) => [FUNCTIONS.map((f) => `${s.automation[f]?.level}${s.automation[f]?.model}`).join(), s.policies.pair ? 1 : 0,
+    (s) => [FUNCTIONS.map((f) => `${s.automation[f]?.level}${s.automation[f]?.model}`).join(), s.policies.pair ? 1 : 0, s.era?.id,
       MODELS.map((m) => `${s.models[m.id]?.available}${s.models[m.id]?.deprecated}`).join()].join('|'),
     (s, bind) => {
       // Oversight summary
@@ -106,8 +112,12 @@ export function automationPanel(ctx) {
       const rows = h('div.autorows');
       for (const fn of FUNCTIONS) {
         const a = s.automation[fn] ?? { level: 0, model: 'chatgbt' };
+        // The era caps each function; levels above the cap stay visible but locked.
+        const cap = call('automationCap', s, fn) ?? 1;
+        const capWhy = cap <= 0 ? (s.era?.id === 'chatgbt' ? 'Arrives with Agents' : 'Arrives with the ChatGBT moment') : `Capped at ${Math.round(cap * 100)}% until Agents`;
         const seg = h('div.seg', null, ...LEVELS.map((lv) => {
-          const b = h('button.segb', { onclick: () => { if (ctx.act({ type: 'setAutomation', fn, level: lv, model: a.model }).ok) ctx.sfx('click'); } }, `${lv * 100}%`);
+          const over = lv > cap + 1e-6;
+          const b = h('button.segb', { disabled: over, title: over ? capWhy : '', onclick: () => { if (ctx.act({ type: 'setAutomation', fn, level: lv, model: a.model }).ok) ctx.sfx('click'); } }, `${lv * 100}%`);
           toggleClass(b, 'on', Math.abs(a.level - lv) < 0.01);
           toggleClass(b, 'hot', lv >= 0.75);
           return b;
@@ -130,12 +140,13 @@ export function automationPanel(ctx) {
         });
         const ov = fnOversight(s, fn);
         const debt = (DEBT[fn] ?? 0) * a.level;
-        rows.append(h('div.autorow', { class: a.level > 0 ? 'lit' : '' },
+        rows.append(h('div.autorow', { class: `${a.level > 0 ? 'lit' : ''}${cap <= 0 ? ' capped' : ''}` },
           h('div.fname', null, h('span.fico', null, icon(`fn.${fn}`)), h('b', { text: FUNCTION_INFO[fn].name })),
           seg,
           modelSel,
           h('div.readouts', null,
-            h('span.ro.good-t', { text: outputText(s, fn) }),
+            cap < 1 ? h('span.ro.warn-t', null, icon('lock', { size: 12 }), ` ${capWhy}`) : null,
+            cap > 0 ? h('span.ro.good-t', { text: outputText(s, fn) }) : null,
             h('span.ro', { text: a.level > 0 ? `${fmtMoney(fnCost(s, fn))}/wk` : '' }),
             ov > 0 ? h('span.ro.warn-t', null, icon('oversight', { size: 12 }), ` ${ov.toFixed(1)}h oversight`) : null,
             debt > 0 ? h('span.ro.bad-t', null, icon('debt', { size: 12 }), ` +${debt.toFixed(2)} debt/wk`) : null),
@@ -147,7 +158,8 @@ export function automationPanel(ctx) {
 
   const pol = liveView(
     (s) => [Object.keys(s.policies).sort().join(), POLICIES.map((p) => policyUnlocked(s, p) ? 1 : 0).join('')].join('|'),
-    (s) => h('div.policies', null, ...POLICIES.map((p) => {
+    // With progressive unlocks, a policy appears only once it has arrived.
+    (s) => h('div.policies', null, ...POLICIES.filter((p) => !s.unlocks || s.policies[p.id] || policyUnlocked(s, p)).map((p) => {
       const on = !!s.policies[p.id];
       const rivals = exclusiveWith(p).filter((id) => POLICY[id]);
       const rivalOn = rivals.find((id) => s.policies[id]);
@@ -181,6 +193,7 @@ export function automationPanel(ctx) {
     el: host,
     tabs: t.el,
     update(s) {
+      this.setTitle?.(s.unlocks && !s.unlocks.automation ? 'Policies' : 'Automation');
       t.setLabel('policies', `Policies (${Object.keys(s.policies).length} on)`);
       (tab === 'dials' ? dials : pol).update(s);
     },

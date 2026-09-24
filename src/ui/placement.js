@@ -2,9 +2,9 @@
 // The sim's own check wins when src/sim exports one; the local check mirrors the contract's rules
 // so the ghost preview works before it does. The sim still has the final say on dispatch.
 import { CATALOG, stageGrid, isDesk } from './v2content.js';
+import { SIMX } from './simapi.js';
 
-const SIM = Object.values(import.meta.glob('../sim/*.js', { eager: true }));
-const simCheck = SIM.map((m) => m.placementCheck ?? m.canPlace).find((f) => typeof f === 'function') ?? null;
+const simCheck = SIMX.placementCheck;
 
 export const placedOf = (s) => s.office?.placed ?? [];
 export const stageOf = (s) => s.office?.stage ?? s.officeStage ?? 0;
@@ -75,7 +75,21 @@ export function checkPlace(s, { itemId, x, y, rot = 0, moveId = null }) {
 }
 
 // Which placed things an item at (x, y, rot) would boost, and which boosts a new desk there would receive.
+// { gives: { key, value, count, empty, to, ids, radius } | null, receives: [{ itemId, key, value }] }.
+// The sim's link list is the source of truth; the local measure is only a fallback.
 export function adjacencyPreview(s, { itemId, x, y, rot = 0, moveId = null }) {
+  if (SIMX.adjacencyPreview) {
+    try {
+      const r = SIMX.adjacencyPreview(s, { itemId, x, y, rot, id: moveId ?? undefined });
+      // Either a bare link list, or { links, effects, text } where text is the real payout.
+      if (Array.isArray(r)) return fromLinks(s, itemId, r, moveId ?? 'preview');
+      if (r && Array.isArray(r.links)) {
+        const out = fromLinks(s, itemId, r.links, moveId ?? 'preview');
+        if (typeof r.text === 'string') out.texts = r.text ? [r.text] : [];
+        return out;
+      }
+    } catch { /* fall back to the local measure */ }
+  }
   const r = { x, y, ...footprint(itemId, rot) };
   const others = placedOf(s).filter((p) => p.id !== moveId);
   const out = { gives: null, receives: [] };
@@ -93,11 +107,41 @@ export function adjacencyPreview(s, { itemId, x, y, rot = 0, moveId = null }) {
   return out;
 }
 
-// The first valid spot scanning from the back corner, for "Place for me" and tests.
+// The first valid spot: the sim's layout suggestion when it has one, else a scan from the back corner.
 export function firstFit(s, itemId, rot = 0) {
+  if (SIMX.suggestPlacement) {
+    try {
+      const spot = SIMX.suggestPlacement(s, itemId);
+      if (spot && checkPlace(s, { itemId, ...spot }).ok) return spot;
+    } catch { /* scan instead */ }
+  }
   const g = stageGrid(stageOf(s));
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (checkPlace(s, { itemId, x, y, rot }).ok) return { x, y, rot };
   }
   return null;
+}
+
+function fromLinks(s, itemId, links, candId) {
+  const byId = new Map(placedOf(s).map((p) => [p.id, p]));
+  const adj = CATALOG[itemId]?.adjacency;
+  const out = { gives: null, receives: [], texts: [] };
+  // When the sim supplies display text for a link (the real, clamped delta), it is shown verbatim.
+  for (const l of links) if (typeof l.text === 'string' && l.text && !out.texts.includes(l.text)) out.texts.push(l.text);
+  const given = links.filter((l) => l.sourceId === candId);
+  if (adj || given.length) {
+    const ids = [...new Set(given.map((l) => l.targetId))];
+    const first = given[0];
+    const toItem = first?.target === 'item' ? byId.get(first.targetId)?.itemId : adj?.to;
+    out.gives = {
+      key: first?.key ?? adj?.key, value: first?.value ?? adj?.value, count: ids.length,
+      empty: new Set(given.filter((l) => l.paid === false).map((l) => l.targetId)).size,
+      to: toItem ? CATALOG[toItem]?.name ?? toItem : 'desk', ids, radius: adj?.radius ?? 1,
+    };
+  }
+  for (const l of links) {
+    if (l.targetId !== candId) continue;
+    out.receives.push({ itemId: byId.get(l.sourceId)?.itemId ?? null, key: l.key, value: l.value });
+  }
+  return out;
 }

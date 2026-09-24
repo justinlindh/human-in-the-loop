@@ -135,7 +135,9 @@ function buildPalette(ctx) {
 
       const pills = h('div.row.wrap', null,
         h('span', { class: full ? 'pill warn' : 'pill good', title: 'Each desk set seats one person. Hiring needs a free desk.' },
-          icon('seat', { size: 12 }), ` ${s.staff.length}/${desks} desks used`),
+          icon('seat', { size: 12 }), s.staff.length > desks
+            ? ` ${desks} desk${desks === 1 ? '' : 's'} for ${s.staff.length} ${s.staff.length === 1 ? 'person' : 'people'}`
+            : ` ${s.staff.length}/${desks} desks used`),
         h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(stage.rent)}/wk rent`));
       let right;
       if (next) {
