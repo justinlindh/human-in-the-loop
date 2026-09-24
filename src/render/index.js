@@ -282,6 +282,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       build?.update(dt, scene);
       portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);
+      scene.updateMatrixWorld();
       post.render(dt);
       labels.render(scene, rig.camera);
       const ls = labels.getSize();
