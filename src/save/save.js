@@ -2,6 +2,9 @@
 // tests pass any object with getItem/setItem/removeItem.
 import { SAVE_VERSION } from '../sim/state.js';
 import { EVENTS } from '../data/events.js';
+import { MODELS } from '../data/models.js';
+import { INCUMBENTS } from '../data/incumbents.js';
+import { GOALS } from '../data/goals.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
 
@@ -60,6 +63,12 @@ function normalize(state) {
     for (const p of list) for (const [k, v] of Object.entries(STAFF_DEFAULTS())) if (!(k in p)) p[k] = v;
   }
   for (const j of state.projects) if (!('researchId' in j)) j.researchId = null;
+  // Per-id maps gain an entry for every id the data knows, so lookups by id never miss.
+  for (const m of Object.values(MODELS)) {
+    state.models[m.id] ??= { version: 1, capability: m.capability, costMult: 1, available: false, deprecated: false };
+  }
+  for (const i of INCUMBENTS) state.market.categories[i.category] ??= { incumbentStrength: i.strength, clones: 0 };
+  for (const g of GOALS) state.goals[g.id] ??= { done: false, week: null };
   return state;
 }
 

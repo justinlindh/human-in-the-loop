@@ -99,3 +99,23 @@ describe('save and load', () => {
     expect(() => clearSave(broken)).not.toThrow();
   });
 });
+
+describe('per-id maps are backfilled on load', () => {
+  it('a save missing a model, a category, or a goal gets default entries', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const { modelCostPerCustomer } = await import('../../src/sim/economy.js');
+    const mem = {};
+    const store = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; }, removeItem: (k) => { delete mem[k]; } };
+    const s = createGame({ seed: 3 });
+    delete s.models.mistrale;
+    delete s.market.categories.legal;
+    delete s.goals.hq;
+    store.setItem(SAVE_KEY, JSON.stringify(s));
+    const res = loadGame(store);
+    expect(res.ok).toBe(true);
+    expect(res.state.models.mistrale).toMatchObject({ costMult: 1, available: false });
+    expect(Number.isFinite(modelCostPerCustomer(res.state, 'mistrale'))).toBe(true);
+    expect(res.state.market.categories.legal.clones).toBe(0);
+    expect(res.state.goals.hq).toEqual({ done: false, week: null });
+  });
+});
