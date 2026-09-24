@@ -165,7 +165,7 @@ Target look: a **polished miniature diorama**, like a high-end isometric toy set
 
 ## Audio
 
-Audio is its own engine subsystem (`src/audio`): a pure director that reads the same paced events and state as the renderer and outputs play commands, a small WebAudio backend with buses (music, ambience, SFX, UI, voice), and a data manifest. Game code holds no sounds. The tools, licences and engine design are in `docs/superpowers/specs/2026-09-24-audio-tools-report.md`.
+Audio is its own engine subsystem (`src/audio`): a pure director that reads the same paced events and state as the renderer and outputs play commands, a small WebAudio backend with buses (music, ambience, SFX, UI, voice), and a data manifest. Game code holds no sounds. The stack, cast and engine design are in `docs/superpowers/specs/audio-design.md`.
 
 - **Music:** ACE-Step (the latest XL checkpoint with its planner, at full quality), curated by ear into loops. 2 to 3 beds per era with a shared instrument core, plus short stingers.
 - **SFX:** curated CC0 (Kenney first).

@@ -20,11 +20,11 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 
 | Name | Lane | Worktree | Owns |
 |---|---|---|---|
-| team-lead | coordination | `/home/justin/src/gamedev` | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
-| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `feat/one-shot` |
-| sim | simulation | `/home/justin/src/gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
-| art | render and art | `/home/justin/src/gamedev-art` | `src/render/`, `blender/`, `public/models/` |
-| ui | UI and audio | `/home/justin/src/gamedev-ui` | `src/ui/`, `src/audio/` |
+| team-lead | coordination | the main checkout | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
+| integrator | integration | the main checkout (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `feat/one-shot` |
+| sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
+| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
+| ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
 | reviewer | review and playtest | any (read-only) | nothing |
 
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
