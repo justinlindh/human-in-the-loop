@@ -267,6 +267,11 @@
    "file": "sfx/cat.ogg",
    "duration": 1.696,
    "candidate": true
+  },
+  "farewell": {
+   "file": "sfx/farewell.ogg",
+   "duration": 1.387,
+   "candidate": true
   }
  },
  "voice": {
