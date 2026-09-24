@@ -10,7 +10,7 @@ import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
-import { createTutorial } from './tutorial.js';
+import { createTutorial, tutorialDone } from './tutorial.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -105,7 +105,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
   const gameover = createGameOver({ layer, controls, sfx });
-  const tutorial = createTutorial({ layer, sfx });
+  const tutorial = createTutorial({ layer, sfx, controls });
   const settings = createSettings({ layer, controls, sfx });
   ui.openSettings = () => settings.open();
   const title = createTitle({
@@ -114,8 +114,10 @@ export function createUI({ root, getState, dispatch, controls }) {
     openSettings: () => settings.open(),
     onStart: ({ fresh }) => {
       title.hide();
-      controls.setSpeed(settings.values.speed ?? 1);
-      if (fresh) setTimeout(() => tutorial.start(), 600);
+      const speed = settings.values.speed ?? 1;
+      // A first game waits, paused, while the coach marks are up.
+      if (fresh && !tutorialDone()) { controls.setSpeed(0); setTimeout(() => tutorial.start(false, speed), 600); }
+      else controls.setSpeed(speed);
     },
   });
 
@@ -152,12 +154,18 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   addEventListener('keydown', onKey);
 
+  const launchScores = new Map(); // last seen review score per product, to spot notable updates
+
   // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
   let loggedWeek = -1;
   let loggedState = null;
   function logMeaning(state) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
-    if (state !== loggedState) { loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(); }
+    if (state !== loggedState) {
+      loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset();
+      launchScores.clear();
+      for (const p of state.products) launchScores.set(p.id, p.score);
+    }
     if (state.week === loggedWeek) return;
     loggedWeek = state.week;
     const log = ctx.meaningLog;
@@ -211,7 +219,14 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'award': toasts.push(e.text, 'good'); break;
-        case 'launch': popups.queueLaunch(e.productId); break;
+        case 'launch': {
+          // New products always get the launch popup; updates only when the score moved noticeably.
+          const p = state.products.find((x) => x.id === e.productId);
+          const prev = launchScores.get(e.productId);
+          if (p) launchScores.set(e.productId, p.score);
+          if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) popups.queueLaunch(e.productId);
+          break;
+        }
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }

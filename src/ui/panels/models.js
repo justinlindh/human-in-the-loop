@@ -1,5 +1,5 @@
 import { h, fmtMoney, toggleClass } from '../dom.js';
-import { MODELS, FUNCTIONS, FUNCTION_INFO, CATEGORY } from '../content.js';
+import { MODELS, FUNCTIONS, FUNCTION_INFO, CATEGORY, B } from '../content.js';
 import { liveView } from '../widgets.js';
 import { icon } from '../icons.js';
 
@@ -36,7 +36,7 @@ export function modelsPanel(ctx) {
         const ms = s.models[m.id] ?? {};
         const prods = live.filter((p) => p.model === m.id);
         const fns = FUNCTIONS.filter((f) => s.automation[f]?.model === m.id && s.automation[f]?.level > 0);
-        const cost = m.productCost * (ms.costMult ?? 1);
+        const cost = m.productCost * (B.modelCostMult ?? 1) * (ms.costMult ?? 1);
         const status = !ms.available ? `Arrives ${m.releaseYear}` : null;
         const card = h('div.vendor', { style: { '--mc': m.color } },
           h('div.vhead', null,
@@ -50,7 +50,7 @@ export function modelsPanel(ctx) {
             statRow('Brand trust', m.trust, '#9b6bff', `${Math.round(m.trust * 100)}%`),
             h('div.row.wrap.vcost', null,
               h('span.pill', { title: 'Model cost per customer per month', }, icon('money'), ` $${cost.toFixed(2)}/customer`),
-              h('span.pill', { title: 'Weekly cost of one automation function at 100%', }, icon('agentic'), ` ${fmtMoney(m.autoCost * (ms.costMult ?? 1))}/wk`)),
+              h('span.pill', { title: 'Weekly cost of one automation function at 100%', }, icon('agentic'), ` ${fmtMoney(m.autoCost * (B.autoCostMult ?? 1) * (ms.costMult ?? 1))}/wk`)),
             h('div.row.wrap', null,
               h('span', { class: m.complianceOk ? 'pill good' : 'pill bad' }, icon(m.complianceOk ? 'check' : 'cross'), m.complianceOk ? ' Enterprise compliant' : ' Fails compliance'),
               m.selfHosted ? h('span.pill.warn', { title: 'You run the GPUs: a flat weekly bill once anything uses it', }, icon('selfhost'), ' Self-hosted') : null),
