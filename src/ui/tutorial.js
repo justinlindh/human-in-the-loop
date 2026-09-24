@@ -33,6 +33,7 @@ export function createTutorial({ layer, sfx, controls, ui }) {
   let i = -1;
 
   function place() {
+    if (i < 0) return;
     const step = STEPS[i];
     const t = layer.querySelector(step.target);
     const box = layer.getBoundingClientRect();
