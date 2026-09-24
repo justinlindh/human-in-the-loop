@@ -51,6 +51,13 @@ try {
   // The saved setting is applied at startup, but an explicit ?quality= wins for the session.
   const q0 = await page.evaluate(() => window.__HITL.controls.getQuality?.());
   check('graphics quality follows ?quality, else the saved setting', q0 === (QUALITY ?? 'high'), `active ${q0}`);
+  // 'auto' resolves to the detected quality unless ?quality= pins the session.
+  const qa = await page.evaluate(() => {
+    const c = window.__HITL.controls; const before = c.getQuality();
+    c.setQuality('auto'); const auto = c.getQuality(); c.setQuality(before);
+    return { detected: c.autoQuality, auto };
+  });
+  check('quality auto resolves to the detected setting', ['low', 'high'].includes(qa.detected) && qa.auto === (QUALITY ?? qa.detected), JSON.stringify(qa));
   await shot('1-title.png');
 
   // Record what the UI hands to controls.newGame.
