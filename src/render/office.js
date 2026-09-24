@@ -562,6 +562,18 @@ function frontOf(e, dist = 0.45) {
   return { x: e.target.x + Math.sin(r) * k, z: e.target.z + Math.cos(r) * k, yaw: r + Math.PI };
 }
 
+// Where a group gathers at a whiteboard: 0.9 m out from its front, or from its back when the front
+// faces a wall (a free-standing board reads from either side). The side kept is the one farther
+// inside the room.
+function boardSide(e, L = e.L) {
+  const f = frontOf(e, 0.9);
+  const r = e.target.rotY;
+  const k = -localBox(e).min.z + 0.9;
+  const b = { x: e.target.x - Math.sin(r) * k, z: e.target.z - Math.cos(r) * k, yaw: r };
+  const room = (p) => Math.min(L.W / 2 - Math.abs(p.x), L.D / 2 - Math.abs(p.z));
+  return e.itemId === 'whiteboard_wall' || room(f) >= room(b) ? f : b;
+}
+
 // The office: current stage shell, placed furniture, cutaway, night lamps, and stage transitions.
 export function createOffice({ parent, screens, lighting }) {
   const holder = new THREE.Group();
@@ -746,7 +758,7 @@ export function createOffice({ parent, screens, lighting }) {
       } else if (kind === 'coffee' || e.itemId === 'espresso') {
         Z.coffee ??= frontOf(e, 0.5);
       } else if (kind === 'whiteboard' || e.itemId === 'whiteboard_wall') {
-        Z.whiteboard ??= frontOf(e, 0.9);
+        Z.whiteboard ??= boardSide(e, cur.L);
       }
       if (LOUNGE.has(kind)) Z.lounge.push(frontOf(e, 0.45));
     }
