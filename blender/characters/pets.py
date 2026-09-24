@@ -83,4 +83,4 @@ join([uvsphere('cnose', 0.014, (0, -0.15, 0.07), 'fabric_terracotta', seg=8, rin
 
 require_parts(['dog_body', 'dog_head', 'dog_ear', 'dog_tail', 'dog_leg', 'dog_eyes', 'dog_nose', 'dog_collar',
                'cat_body', 'cat_head', 'cat_ear', 'cat_tail', 'cat_leg', 'cat_eyes', 'cat_nose'])
-export(budget=6000)
+export(budget=6000, zfight_kit=True)

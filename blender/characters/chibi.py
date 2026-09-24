@@ -203,15 +203,42 @@ b.append(cuff)
 b.append(uvsphere('bnpom', 0.05, (0, 0.01, BN_R * BN_S[2] + 0.028), 'paper', seg=8, rings=5))
 join(at_head(b), 'acc_beanie')
 CP_R, CP_S = HEAD_R + 0.016, (1.07, 1.06, 1.0)
-CP_FRONT, CP_BACK = 0.05, -0.05        # the dome comes down to the brow and low at the back
-cp = [hair_cap('cpdome', CP_FRONT, CP_BACK, r=CP_R, scale=CP_S, seg=20, rings=18)]
-# Worn backwards (from the high camera a forward brim hides the eyes). The brim starts inside the
-# dome's back rim and sweeps out and slightly down, so it reads as one piece with the crown.
-rim_y = CP_R * CP_S[1] * math.sqrt(max(0.0, 1 - (CP_BACK / (CP_R * CP_S[2])) ** 2))
-BL = 0.15
-# The dome's cut edge is coarse, so the brim starts well inside the crown above that edge and
-# tilts down out of it; its root is always buried in the dome.
-cp.append(box('cpbrim', (0.25, BL, 0.024), (0, rim_y - 0.04 + BL / 2, CP_BACK + 0.04), 'fabric_teal', bevel=0.01, rot=(math.radians(-22), 0, 0)))
+CP_FRONT, CP_BACK = 0.06, -0.1        # the crown comes down to the brow and low at the back
+cp = [hair_cap('cpdome', CP_FRONT, CP_BACK, r=CP_R, scale=CP_S, seg=18, rings=14)]
+
+
+def cap_brim(name, z, reach=0.1, spread=math.radians(68), up=math.radians(16), thick=0.018, steps=14):
+    """A curved crescent brim: the inner edge follows the crown's rim at height z, the outer edge
+    reaches forward (-Y) and tips up a little so it frames the face instead of hiding it."""
+    rx = CP_R * CP_S[0] * math.sqrt(max(0.0, 1 - (z / (CP_R * CP_S[2])) ** 2)) - 0.012
+    ry = CP_R * CP_S[1] * math.sqrt(max(0.0, 1 - (z / (CP_R * CP_S[2])) ** 2)) - 0.012
+    verts, faces = [], []
+    for i in range(steps + 1):
+        a = -spread + 2 * spread * i / steps
+        edge = math.cos(a * math.pi / (2 * spread)) ** 0.7       # full reach at the front, zero at the ends
+        ix, iy = rx * math.sin(a), -ry * math.cos(a)
+        r = reach * edge
+        ox, oy = ix + math.sin(a) * r, iy - math.cos(a) * r
+        oz = z + r * math.tan(up)
+        for (x, y, zz) in ((ix, iy, z), (ox, oy, oz)):
+            verts.append((x, y, zz + thick / 2))
+            verts.append((x, y, zz - thick / 2))
+    for i in range(steps):
+        a0, a1 = i * 4, (i + 1) * 4
+        faces += [(a0, a0 + 2, a1 + 2, a1), (a0 + 1, a1 + 1, a1 + 3, a0 + 3),
+                  (a0 + 2, a0 + 3, a1 + 3, a1 + 2), (a0, a1, a1 + 1, a0 + 1)]
+    faces += [(0, 1, 3, 2), (steps * 4, steps * 4 + 2, steps * 4 + 3, steps * 4 + 1)]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    o.data.materials.append(mat('fabric_teal'))
+    soften(o, 0.006, 2, hard=False)
+    return o
+
+
+cp.append(cap_brim('cpbrim', CP_FRONT - 0.004))
 cp.append(uvsphere('cpbutton', 0.022, (0, 0, CP_R * CP_S[2] + 0.004), 'fabric_teal', seg=8, rings=5))
 cp[0].data.materials.clear(); cp[0].data.materials.append(mat('fabric_teal'))
 join(at_head(cp), 'acc_cap')
@@ -315,4 +342,4 @@ REQUIRED = ['head', 'eyes', 'eye_shine', 'mouth_smile', 'mouth_flat', 'mouth_fro
             'torso_0', 'torso_1', 'torso_2', 'lanyard', 'badge', 'arm', 'hand', 'leg', 'shoe', 'mug',
             *[f'role_{r}' for r in ('engineer', 'designer', 'marketer', 'support', 'security', 'sales')]]
 require_parts(REQUIRED)
-export(budget=8000)
+export(budget=8000, zfight_kit=True)
