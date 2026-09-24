@@ -10,7 +10,7 @@ import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
-import { eraAllowsText, eraAtLeast, currentEra } from './eras.js';
+import { eraOnlyAllowsText, eraAtLeast, currentEra } from './eras.js';
 
 // Placeholder values chosen once per event, so every string in a decision names the same incumbent.
 export function decisionVars(state, rng, subjectId) {
@@ -113,7 +113,7 @@ export function helpers(state) {
 const eventText = (ev) => JSON.stringify([ev.title, ev.text, ev.chat ?? '', (ev.choices ?? []).map((c) => [c.label, c.hint, c.outcome ?? ''])]);
 
 // An event fits the era if it names the era explicitly, or names none and its text fits.
-export const eventFitsEra = (state, ev) => (ev.eras ? ev.eras.includes(currentEra(state).id) : eraAllowsText(state, eventText(ev)));
+export const eventFitsEra = (state, ev) => (ev.eras ? ev.eras.includes(currentEra(state).id) : eraOnlyAllowsText(state, eventText(ev)));
 
 export function eligibleEvents(state) {
   const h = helpers(state);

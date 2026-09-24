@@ -125,7 +125,22 @@ describe('an async standup', () => {
     expect(st.mode).toBe('async');
     const chats = ev.filter((e) => e.type === 'chat');
     expect(chats.every((c) => c.channel === 'standup' && c.fromId)).toBe(true);
-    expect(chats.length).toBe(st.lines.filter((l) => l.text).length);
+    // About a third of the speakers bother to post; every post is one of their lines.
+    expect(chats.length).toBeLessThanOrEqual(st.lines.filter((l) => l.text).length);
+    for (const c of chats) expect(st.lines.some((l) => l.text === c.text && l.staffId === c.fromId)).toBe(true);
     s.staff.forEach((x, i) => expect(x.meaning).toBe(meanings[i]));
   });
+});
+
+describe('standup variety', () => {
+  it('async updates almost never repeat a line within 30 posts over a long run', async () => {
+    const { runBot } = await import('../../src/sim/bots.js');
+    for (const seed of [1, 2]) {
+      const posts = [];
+      runBot('sensible', seed, 400, { onWeek: (s, ev) => { for (const e of ev) if (e.type === 'chat' && e.channel === 'standup') posts.push(e.text); } });
+      expect(posts.length).toBeGreaterThan(50);
+      const repeats = posts.filter((t, i) => posts.slice(Math.max(0, i - 30), i).includes(t));
+      expect(repeats.length / posts.length, `seed ${seed}: ${repeats.length} of ${posts.length}`).toBeLessThanOrEqual(0.1);
+    }
+  }, 120000);
 });

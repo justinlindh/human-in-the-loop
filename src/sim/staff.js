@@ -3,7 +3,7 @@ import { int, range, pick, shuffle, weighted } from './rng.js';
 import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
-import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
+import { FIRST_NAMES, LAST_NAMES, NAME_VOICE } from '../data/names.js';
 import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -14,7 +14,7 @@ import { itemBonus, researchBonus } from './bonus.js';
 import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
-import { eraLines, eraAllowsText } from './eras.js';
+import { eraLines, eraOnlyAllowsText } from './eras.js';
 import { remoteLearning } from './ladder.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
@@ -63,6 +63,18 @@ export function staffMods(person) {
 
 const RANDOM_TRAITS = Object.keys(TRAITS).filter((id) => id !== 'natural_mentor');
 
+// A person's voice for the audio barks, chosen from their first name and id without touching the rng:
+// the set follows the name (neutral names take either), the variant (0..7) and pitch spread by id.
+export function voiceFor(person) {
+  const n = Number(String(person.id).replace(/\D/g, '')) || 0;
+  const named = NAME_VOICE[person.name.split(' ')[0]];
+  return {
+    set: named ?? (n % 2 ? 'fem' : 'masc'),
+    variant: (n * 5) % 8,
+    pitch: Math.round((((n * 37) % 21) - 10) / 10 * 100) / 100,
+  };
+}
+
 export function generateStaff(state, { role, seniority }) {
   const r = state.rng;
   const top = topStats(role);
@@ -75,7 +87,7 @@ export function generateStaff(state, { role, seniority }) {
     skills[st] = Math.round(clamp(base, 1, 100));
   }
   // AI-flavoured traits (an AI Enthusiast, a Vibe Coder) wait for the AI eras.
-  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraAllowsText(state, `${TRAITS[id].name} ${TRAITS[id].desc}`))).slice(0, int(r, 0, 2));
+  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraOnlyAllowsText(state, `${TRAITS[id].name} ${TRAITS[id].desc}`))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
     name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,
@@ -85,7 +97,7 @@ export function generateStaff(state, { role, seniority }) {
     meaning: int(r, 70, 90), stamina: 100, knowledge: B.newHireKnowledge, traits,
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
-    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false,
+    salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false, call: null,
     path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
@@ -93,6 +105,7 @@ export function generateStaff(state, { role, seniority }) {
     },
   };
   person.salary = Math.round((B.salary[seniority] * staffMods(person).salary * range(r, 0.9, 1.1)) / 10) * 10;
+  person.voice = voiceFor(person);
   return person;
 }
 
@@ -173,7 +186,11 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
-  emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
+  // One hello per week: when several people start together, the first one speaks for the group.
+  if (state.flags.helloWeek !== state.week) {
+    state.flags.helloWeek = state.week;
+    emitChat(ctx, { person: c, text: pick(ctx.rng, eraLines(state, CHATTER.hello)) });
+  }
   return { ok: true };
 });
 

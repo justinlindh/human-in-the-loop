@@ -86,7 +86,7 @@ export const ICONS = {
   'bot.hr': I('🎉', 'Slackk avatar for @hr-bot', 13),
   'bot.awards': I('🏆', 'Slackk avatar for @saasies', 13),
   'bot.office': I('🏢', 'Slackk avatar for @officebot', 13),
-  'bot.hn': I('🟧', 'Slackk avatar for @hackernewsbot', 13),
+  'bot.hn': I('🟧', 'Slackk avatar for @hackerspewsbot', 13),
   'bot.generic': I('🤖', 'Slackk avatar for other bots', 13),
   hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
   warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),

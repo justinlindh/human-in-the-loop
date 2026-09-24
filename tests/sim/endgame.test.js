@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dispatch, tick, scoreRun } from '../../src/sim/index.js';
+import { dispatch, tick, scoreRun, createGame } from '../../src/sim/index.js';
 import { endgameSystem, historySystem, endGame, buildEpilogue } from '../../src/sim/endgame.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { makeCtx } from '../../src/sim/registry.js';
@@ -226,10 +226,11 @@ describe('score and epilogue', () => {
     }
   });
 
-  it('a product nobody paid for gets the free-tier line, not the holiday card', () => {
+  it('a launched product nobody paid for gets the free-tier line, not the holiday card', () => {
     const s = game();
     s.week = 200;
     s.stats.peakMrr = 0;
+    s.stats.launches = 1;
     const lines = buildEpilogue(s, { won: false, reason: 'timeout' }).join(' ');
     expect(lines).not.toMatch(/holiday card/);
     expect(lines).toMatch(/free tier/);
@@ -270,5 +271,30 @@ describe('retire options', () => {
     s.flags.acquisitionOfferUntil = s.week + 3;
     s.flags.acquisitionOfferFrom = 'Jirra';
     expect(retireOptions(s).acquired).toEqual({ ok: true, reason: null, by: 'Jirra' });
+  });
+});
+
+describe('a company that never shipped', () => {
+  it('goes broke within a year when it just waits', () => {
+    const s = createGame({ seed: 3 });
+    while (!s.gameOver && s.week < 1100) {
+      for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
+      tick(s);
+    }
+    expect(s.gameOver.reason).toBe('runway');
+    expect(s.week).toBeLessThan(52);
+  });
+
+  it('if it somehow reaches the anniversary, the epilogue and score say so', () => {
+    const s = game();
+    s.stats.launches = 0;
+    s.brand = 80;
+    s.week = B.anniversaryWeek - 1;
+    check(s);
+    expect(s.gameOver.reason).toBe('anniversary');
+    expect(s.gameOver.epilogue.some((l) => l.includes('without ever shipping'))).toBe(true);
+    expect(s.gameOver.epilogue.some((l) => /lasted longer|loyal customers/.test(l))).toBe(false);
+    expect(scoreRun(s).breakdown.brand).toBe(0);
+    expect(scoreRun(s).breakdown.wellbeing).toBe(0);
   });
 });

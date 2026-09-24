@@ -43,7 +43,7 @@ const burn = (s) => Math.max(1, sum(Object.values(weeklyCosts(s))) - weeklyReven
 const costs = (s) => sum(Object.values(weeklyCosts(s)));
 const net = (s) => weeklyRevenue(s) - costs(s);
 // A hire is affordable if the company stays cash-positive with the new salary, or has a long runway.
-const canAffordHire = (s, salary = 2000) => net(s) - salary > 0 ? s.cash > 8 * costs(s) : s.cash > 40 * (costs(s) + salary - weeklyRevenue(s));
+const canAffordHire = (s, salary = 2000) => net(s) - salary > 0 ? s.cash > 12 * (costs(s) + salary) : s.cash > 40 * (costs(s) + salary - weeklyRevenue(s));
 const weeksOfBurn = (s) => s.cash / burn(s);
 const present = (s) => s.staff.filter((p) => p.mood !== 'away');
 const builders = (s) => present(s).filter((p) => p.role === 'engineer' || p.role === 'designer' || p.founder);
@@ -101,6 +101,8 @@ function sensibleValue(s, fx, depth = 0) {
   if (!fx || depth > 3) return 0;
   let v = 0;
   v += (fx.cash ?? 0) / Math.max(20000, s.cash * 0.15);
+  // A careful player never spends money they do not have.
+  if (fx.cash < 0 && s.cash + fx.cash < 0) v -= 20;
   v += (fx.brand ?? 0) * 0.8 + (fx.teamMeaning ?? 0) * 0.6 + (fx.meaning ?? 0) * 0.15 + (fx.ik ?? 0) * 0.3;
   v -= (fx.debt ?? 0) * 0.3;
   v += (fx.customersPct ?? 0) * 0.3 + (fx.hype ?? 0) * 0.05;
