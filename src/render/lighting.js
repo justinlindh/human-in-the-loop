@@ -95,7 +95,27 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     const lamp = THREE.MathUtils.lerp(0, 7.5, THREE.MathUtils.smoothstep(env.night, 0.2, 0.9));
     interior.forEach((l, i) => { l.intensity = interiorSpots[i] ? lamp * (interiorSpots[i].power ?? 1) : 0; });
 
+    baseHemi.copy(hemi.color);
+    baseGround.copy(hemi.groundColor);
+    baseSun = sun.intensity;
+    applyAlarm();
     for (const fn of env.listeners) fn(env);
+  }
+
+  // Incident alarm: pulls the fill toward red and dims the sun so it reads even in daylight.
+  const baseHemi = new THREE.Color(), baseGround = new THREE.Color();
+  const alarmRed = C('alarm_red');
+  let baseSun = 3.4;
+  let alarmK = 0;
+  function applyAlarm() {
+    hemi.color.copy(baseHemi).lerp(alarmRed, 0.55 * alarmK);
+    hemi.groundColor.copy(baseGround).lerp(alarmRed, 0.35 * alarmK);
+    sun.intensity = baseSun * (1 - 0.45 * alarmK);
+  }
+  function setAlarm(k) {
+    if (Math.abs(k - alarmK) < 0.005 && k !== 0) return;
+    alarmK = k;
+    applyAlarm();
   }
 
   function setShadowSize(n) {
@@ -105,7 +125,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.shadow.map = null;
   }
 
-  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize };
+  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm };
 }
 
 export function createBackdrop() {

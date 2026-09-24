@@ -167,12 +167,15 @@ def agent_sandbox():
 
 
 def observability():
-    for a in (0, 2.1, 4.2):
-        cyl(f'leg{a}', 0.03, 0.8, (math.cos(a) * 0.18, math.sin(a) * 0.18, 0.38), 'wood_dark', verts=8, bevel=0,
+    for a in (0.3, 2.4, 4.5):
+        cyl(f'leg{a}', 0.055, 0.8, (math.cos(a) * 0.2, math.sin(a) * 0.2, 0.38), 'wood_dark', verts=8, bevel=0.01,
             rot=(math.sin(a) * 0.35, -math.cos(a) * 0.35, 0))
-    cyl('tube', 0.13, 1.0, (0, 0, 0.95), 'role_sales', verts=20, bevel=0.03, r2=0.1, rot=(0, math.radians(60), 0))
-    cyl('lens', 0.15, 0.08, (0.43, 0, 1.2), 'gold', verts=20, bevel=0.02, rot=(0, math.radians(60), 0))
-    cyl('eyep', 0.06, 0.12, (-0.44, 0, 0.7), 'plastic_charcoal', verts=12, bevel=0.02, rot=(0, math.radians(60), 0))
+    cyl('hub', 0.12, 0.12, (0, 0, 0.78), 'metal_dark', verts=12, bevel=0.03)
+    cyl('tube', 0.22, 1.05, (0, 0, 1.0), 'role_sales', verts=24, bevel=0.04, r2=0.16, rot=(0, math.radians(60), 0))
+    cyl('band', 0.235, 0.08, (0.15, 0, 1.09), 'gold', verts=24, bevel=0.02, rot=(0, math.radians(60), 0))
+    cyl('lens', 0.25, 0.12, (0.46, 0, 1.27), 'gold', verts=24, bevel=0.03, rot=(0, math.radians(60), 0))
+    cyl('glass', 0.19, 0.02, (0.52, 0, 1.3), 'glass', verts=24, bevel=0, rot=(0, math.radians(60), 0))
+    cyl('eyep', 0.1, 0.16, (-0.48, 0, 0.72), 'plastic_charcoal', verts=12, bevel=0.03, rot=(0, math.radians(60), 0))
 
 
 def _gear(p, x, z, r, teeth, mat, y=0):
@@ -237,13 +240,13 @@ def workshop():
 
 
 def conference():
-    cyl('base', 0.3, 0.06, (0, 0, 0.03), 'plastic_charcoal', verts=24, bevel=0.02)
-    cyl('pole', 0.03, 0.9, (0, 0, 0.5), 'metal_soft', verts=8, bevel=0)
-    cyl('neck', 0.05, 0.14, (0, 0, 0.98), 'plastic_charcoal', verts=12, bevel=0.01)
-    uvsphere('head', 0.2, (0, 0, 1.2), 'metal_soft', seg=16, rings=10, scale=(1, 1, 1.15))
-    torus('grille', 0.19, 0.02, (0, 0, 1.18), 'plastic_charcoal', major_seg=20, minor_seg=5)
-    box('badge', (0.3, 0.02, 0.38), (0.36, -0.2, 0.5), 'paper_sheet', bevel=0.02, rot=(0, 0, math.radians(-20)))
-    box('badgetop', (0.3, 0.025, 0.1), (0.36, -0.205, 0.64), 'role_sales', bevel=0.01, rot=(0, 0, math.radians(-20)))
+    cyl('base', 0.36, 0.1, (0, 0, 0.05), 'plastic_charcoal', verts=24, bevel=0.03)
+    cyl('pole', 0.06, 0.7, (0, 0, 0.45), 'metal_soft', verts=10, bevel=0.01)
+    cyl('neck', 0.09, 0.18, (0, 0, 0.86), 'plastic_charcoal', verts=12, bevel=0.02)
+    lathe('head', [(0.001, 0.92), (0.18, 0.95), (0.27, 1.08), (0.28, 1.28), (0.2, 1.44), (0.001, 1.48)], (0, 0, 0), 'metal_soft', steps=20)
+    torus('grille', 0.28, 0.035, (0, 0, 1.18), 'role_sales', major_seg=20, minor_seg=6)
+    box('badge', (0.34, 0.03, 0.44), (0.42, -0.25, 0.5), 'paper_sheet', bevel=0.03, rot=(0, 0, math.radians(-20)))
+    box('badgetop', (0.34, 0.035, 0.12), (0.42, -0.255, 0.66), 'role_sales', bevel=0.02, rot=(0, 0, math.radians(-20)))
 
 
 def course():
