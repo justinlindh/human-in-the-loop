@@ -4,7 +4,7 @@ import { dateOf } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { liveProducts } from './projects.js';
-import { competition } from './products.js';
+import { competition, marketSize } from './products.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
 import { incumbentFor } from '../data/incumbents.js';
@@ -23,6 +23,10 @@ export function marketSystem(ctx) {
       c.clones++;
       emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${CATEGORIES[catId].name} but with AI` });
     }
+  }
+  // Incumbents are slow: holding a great product in their category for a year wears them down.
+  for (const [catId, c] of Object.entries(state.market.categories)) {
+    if (live.some((pr) => pr.category === catId && pr.score >= B.erosionScore && state.week - pr.launchedWeek >= 52)) c.incumbentStrength *= 1 - B.incumbentErosion;
   }
   for (const pr of live) {
     if (pr.copied || state.week < pr.copyAtWeek || pr.score < 6) continue;
@@ -43,7 +47,7 @@ export function categoryLeaders(state) {
     if (!mine.length) continue;
     const best = mine.reduce((a, b) => (b.customers > a.customers ? b : a));
     const c = competition(state, best);
-    if (c.total > 0 && best.customers / CATEGORIES[catId].tam > c.incumbent / c.total) out.push(catId);
+    if (c.total > 0 && best.customers / marketSize(state, catId) > c.incumbent / c.total) out.push(catId);
   }
   return out;
 }

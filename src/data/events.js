@@ -394,8 +394,8 @@ const list = [
     auto: { hype: 20 },
   },
   {
-    id: 'acquisition_offer', kind: 'market', weight: 6, cooldownWeeks: ONCE, random: true, subject: null,
-    when: (s, h) => h.mrr >= h.B.acquisitionOfferMrr,
+    id: 'acquisition_offer', kind: 'market', weight: 6, cooldownWeeks: 104, random: true, subject: null,
+    when: (s, h) => h.mrr >= h.B.acquisitionOfferMrr && s.brand >= h.B.acquisitionOfferBrand,
     title: 'An acquisition offer',
     text: '{incumbent} wants to buy {company}. The number has a lot of zeros. The integration plan has a lot of question marks.',
     choices: [
@@ -565,7 +565,7 @@ const list = [
     choices: [
       { label: 'Call in consultants', hint: '$45k, and it is fixed this week', requires: 'affordConsultants', effects: { consultants: true }, outcome: 'Three people in vests arrive, say "interesting" a lot, and fix it by Thursday.' },
       { label: 'Hire an emergency contractor', hint: '$15k; fixed in about 2 weeks, effects later; adds some debt nobody will understand', effects: { cash: -15000, debt: 3, later: [{ inWeeks: 2, effects: { clearOutage: true } }] }, outcome: 'A contractor named Dmitri logs in from an airport. He seems calm. That is something.' },
-      { label: 'Keep trying ourselves', hint: 'If {product} stays down {collapseWeeks} more weeks and it is your main product, the company collapses', effects: {}, outcome: 'Someone orders pizza. Someone else opens the oldest file in the repo.' },
+      { label: 'Keep trying ourselves', hint: 'If {product} stays down {collapseWeeks} more weeks and it is your main product, or nobody understands the systems anymore, the company collapses', effects: {}, outcome: 'Someone orders pizza. Someone else opens the oldest file in the repo.' },
     ],
   },
 
