@@ -77,16 +77,18 @@ def _finish(o, name, material, bevel, segments=3):
     return o
 
 
-def soften(o, width=0.02, segments=3, angle=35):
+def soften(o, width=0.02, segments=3, angle=35, hard=True):
+    """Bevel edges. hard=True keeps flat faces crisp (furniture); False shades soft (cloth, bodies)."""
     b = o.modifiers.new('bevel', 'BEVEL')
     b.width = width
     b.segments = segments
     b.limit_method = 'ANGLE'
     b.angle_limit = math.radians(angle)
-    b.harden_normals = True
+    b.harden_normals = hard
     o.data.shade_smooth()
-    wn = o.modifiers.new('wn', 'WEIGHTED_NORMAL')
-    wn.keep_sharp = True
+    if hard:
+        wn = o.modifiers.new('wn', 'WEIGHTED_NORMAL')
+        wn.keep_sharp = True
     return o
 
 
@@ -331,6 +333,13 @@ def export(path=None, budget=3000, clear=False):
     _strip_uvs()
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tris = tri_count()
+    if os.environ.get('HITL_TRIS'):
+        dg = bpy.context.evaluated_depsgraph_get()
+        for o in sorted(bpy.context.scene.objects, key=lambda x: x.name):
+            if o.type == 'MESH':
+                me = o.evaluated_get(dg).to_mesh()
+                me.calc_loop_triangles()
+                print(f'  {o.name}: {len(me.loop_triangles)}')
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_apply=True, export_yup=True,
                               export_materials='EXPORT', export_normals=True, export_texcoords=True,

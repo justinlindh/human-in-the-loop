@@ -3,6 +3,9 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE } from './palette.js';
 import { mat, glow, glass } from './materials.js';
 import { loadModels, getModel, PROP_NAMES, ITEM_IDS, itemModelName } from './models.js';
+import { createCharacter, ANIMS } from './character.js';
+import { EMOTES } from './emotes.js';
+import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, pill, lathe, blob, mesh, mergeStatic } from './prims.js';
 
 // Debug lineups selected by URL params (kit=1). Each builder fills a group and returns bounds.
@@ -125,4 +128,82 @@ export function buildItemLineup(group) {
     });
   });
   return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 2.2, d / 2));
+}
+
+const HAIRC = ['#2b1d16', '#4a3222', '#7a4b2a', '#c68b4e', '#e8c170', '#b8b8b8', '#1c1c24', '#a3442f'];
+const SHIRTS = ['#4f8cff', '#ff7eb6', '#ffb020', '#34c38f', '#e5484d', '#9b6bff', '#f2efe6', '#2f3a4a', '#7fc8c0', '#d98c5f'];
+const PANTS = ['#2e3440', '#4b5563', '#6b4f3a', '#1f3b5c', '#8a7f6a', '#3b3b46'];
+const ROLES = Object.keys(ROLE_COLORS);
+
+// Character lineup: hair, accessories and builds, skins, roles, animations, emotes and Legend.
+export function buildCharLineup(group) {
+  const step = 1.1, rowStep = 1.9;
+  const rows = 6, cols = 9;
+  const w = cols * step + 1, d = rows * rowStep;
+  group.add(mesh(roundedBox(w + 0.6, 0.3, d + 0.6, 0.08), mat('slab_side'), 0, -0.15, 0));
+  group.add(mesh(roundedBox(w + 0.4, 0.04, d + 0.4, 0.02), mat('floor_wood'), 0, 0.02, 0));
+  group.userData.windowMaterials = [];
+  const chars = [];
+  group.userData.update = (dt) => { for (const c of chars) c.update(dt); };
+  const at = (col, row) => [(col - (cols - 1) / 2) * step, (row - (rows - 1) / 2) * rowStep];
+  const add = (col, row, app, role, setup) => {
+    const c = createCharacter({ skin: 1, hair: 0, hairColor: HAIRC[1], shirt: SHIRTS[0], pants: PANTS[0], accessory: 'none', build: 1, ...app }, ROLE_COLORS[role], { role });
+    const [x, z] = at(col, row);
+    c.root.position.set(x, 0.04, z);
+    c.root.rotation.y = Math.PI / 4;
+    group.add(c.root);
+    setup?.(c, x, z);
+    chars.push(c);
+    return c;
+  };
+  loadModels(['chibi', 'desk', 'chair', 'monitor']).then(() => {
+    for (let i = 0; i < 8; i++) add(i, 0, { hair: i, hairColor: HAIRC[i], skin: i % 6, shirt: SHIRTS[i] }, ROLES[i % 6]);
+    const accs = ['none', 'glasses', 'headphones', 'beanie', 'cap'];
+    accs.forEach((a, i) => add(i, 1, { accessory: a, hair: [0, 2, 3, 1, 7][i], hairColor: HAIRC[(i + 3) % 8], shirt: SHIRTS[(i + 5) % 10], build: 1 }, 'engineer'));
+    for (let b = 0; b < 3; b++) add(5 + b, 1, { build: b, hair: 5, hairColor: HAIRC[2], shirt: SHIRTS[8], pants: PANTS[b + 1] }, 'sales');
+    for (let k = 0; k < 6; k++) add(k, 2, { skin: k, hair: (k * 3) % 8, hairColor: HAIRC[(k * 5) % 8], shirt: SHIRTS[(k + 2) % 10] }, ROLES[(k + 2) % 6]);
+    ROLES.forEach((r, i) => add(i, 3, { hair: (i * 2 + 1) % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[(i * 3) % 10], skin: (i + 2) % 6, build: i % 3 }, r));
+    ANIMS.forEach((a, i) => add(i, 4, { hair: i % 8, hairColor: HAIRC[(i + 1) % 8], shirt: SHIRTS[(i + 4) % 10], skin: (i * 2) % 6 }, ROLES[i % 6], (c, x, z) => {
+      if (a === 'typing' || a === 'slumped' || a === 'burnout') {
+        // Seated at a desk that faces the camera side, so the face stays visible.
+        c.root.rotation.y = Math.PI / 2;
+        const chair = getModel('chair');
+        chair.position.set(x, 0.04, z);
+        chair.rotation.y = Math.PI / 2;
+        const desk = getModel('desk');
+        desk.position.set(x + 0.5, 0.04, z);
+        desk.rotation.y = Math.PI / 2;
+        const mon = getModel('monitor');
+        mon.position.set(x + 0.62, 0.66, z);
+        mon.rotation.y = -Math.PI / 2;
+        group.add(chair, desk, mon);
+        c.root.position.x -= 0.02;
+      }
+      c.setAnim(a);
+      if (a === 'slumped') c.setMood('coasting');
+      if (a === 'burnout') c.setMood('burnout');
+    }));
+    EMOTES.forEach((e, i) => add(i, 5, { hair: (i + 4) % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[(i + 7) % 10], skin: (i + 1) % 6 }, ROLES[i % 6], (c) => c.setEmote(e)));
+    add(8, 5, { hair: 7, hairColor: HAIRC[4], shirt: SHIRTS[5], skin: 3, accessory: 'glasses' }, 'engineer', (c) => { c.setLegend(true); c.setAnim('celebrate'); });
+  });
+  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 1.4, d / 2));
+}
+
+// One character at four headings, for checking the face and silhouette up close.
+export function buildCharTurnaround(group) {
+  group.add(mesh(roundedBox(5, 0.3, 2, 0.08), mat('slab_side'), 0, -0.15, 0));
+  group.add(mesh(roundedBox(4.8, 0.04, 1.8, 0.02), mat('floor_wood'), 0, 0.02, 0));
+  group.userData.windowMaterials = [];
+  const chars = [];
+  group.userData.update = (dt) => { for (const c of chars) c.update(dt); };
+  loadModels(['chibi']).then(() => {
+    [0, 1, 2, 3].forEach((i) => {
+      const c = createCharacter({ skin: 1, hair: 1, hairColor: HAIRC[3], shirt: SHIRTS[3], pants: PANTS[0], accessory: 'none', build: 1 }, ROLE_COLORS.designer, { role: 'designer' });
+      c.root.position.set((i - 1.5) * 1.1, 0.04, 0);
+      c.root.rotation.y = Math.PI / 4 + i * Math.PI / 2;
+      group.add(c.root);
+      chars.push(c);
+    });
+  });
+  return new THREE.Box3(new THREE.Vector3(-2.4, 0, -0.9), new THREE.Vector3(2.4, 1.2, 0.9));
 }
