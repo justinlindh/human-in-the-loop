@@ -96,8 +96,8 @@ function withDoor(L, grid, door) {
 const FOOTPRINTS = {
   desk: { w: 1, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, coffee_corner: { w: 2, h: 1 },
   plant: { w: 1, h: 1 }, bookshelf: { w: 2, h: 1 },
-  espresso: { w: 1, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, arcade: { w: 1, h: 1 },
-  standing_desk: { w: 1, h: 1 }, trophy_case: { w: 1, h: 1 }, server_rack: { w: 1, h: 1 }, library: { w: 2, h: 2 },
+  espresso: { w: 2, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, arcade: { w: 1, h: 1 },
+  standing_desk: { w: 2, h: 1 }, trophy_case: { w: 2, h: 1 }, server_rack: { w: 2, h: 1 }, library: { w: 2, h: 2 },
   monitoring_wall: { w: 3, h: 1 }, whiteboard_wall: { w: 3, h: 1 },
 };
 

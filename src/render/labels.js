@@ -61,9 +61,26 @@ export function createLabels(parent) {
     pool.push(l);
   }
 
-  // Rising stat bubble over a world position (or an Object3D to follow).
+  // Rising stat bubble over a world position (or an Object3D to follow). Per person, a same-stat
+  // bubble within MERGE_S folds into the live one ("+6 Polish" + "+8 Polish" = "+14 Polish"), and
+  // at most PER_PERSON show at once; extras are dropped, not queued.
+  const MERGE_S = 1.0;
+  const PER_PERSON = 2;
+  const NUM = /^([+-]?)(\d+)\s*(.*)$/;
   function stat(text, tone, follow, offsetY = 1.25) {
+    const mine = live.filter((o) => o.kind === 'stat' && o.follow === follow && o.t < o.life - 0.5);
+    const m = NUM.exec(text);
+    const same = m && mine.find((o) => o.tone === tone && o.t < MERGE_S && o.num && o.num.label === m[3] && o.num.sign === m[1]);
+    if (same) {
+      same.num.n += Number(m[2]);
+      same.inner.textContent = `${same.num.sign || '+'}${same.num.n} ${same.num.label}`;
+      same.t = Math.min(same.t, 0.12);
+      return same;
+    }
+    if (mine.length >= PER_PERSON) return null;
     const l = acquire();
+    l.tone = tone;
+    l.num = m ? { sign: m[1], n: Number(m[2]), label: m[3] } : null;
     l.kind = 'stat';
     l.el.className = 'hitl-lbl hitl-stat';
     l.inner.textContent = text;

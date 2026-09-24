@@ -54,18 +54,10 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
     r.char.dispose();
   }
 
-  // Seats: each staff member keeps their desk (by placed id) while it exists.
-  function assignSeats(list) {
-    const cur = office.current;
-    const taken = new Set();
-    for (const r of recs.values()) if (r.seat !== null && office.deskById(r.seat)) taken.add(r.seat);
-    for (const s of list) {
-      const r = recs.get(s.id);
-      if (r.seat !== null && office.deskById(r.seat)) continue;
-      r.seat = null;
-      const free = cur.desks.find((d) => !taken.has(d.id));
-      if (free) { r.seat = free.id; taken.add(free.id); }
-    }
+  // Seats follow the sim: staff[i] sits at the i-th desk in office.placed.
+  function assignSeats(list, state) {
+    const deskIds = (state.office?.placed ?? []).filter((p) => office.deskById(p.id)).map((p) => p.id);
+    list.forEach((s, i) => { recs.get(s.id).seat = deskIds[i] ?? null; });
   }
 
   function openSpot() {
@@ -175,7 +167,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       r.staff = s;
     }
     if (stageChanged) for (const r of recs.values()) r.seat = null;
-    assignSeats(list);
+    assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
     const occupied = new Map();
