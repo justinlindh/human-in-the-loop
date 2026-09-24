@@ -49,6 +49,7 @@ const FB_UNLOCKS = {
   research: { title: 'Internal tools', why: 'Engineers can build tools with permanent effects, from the Build panel.' },
   models: { title: 'Model vendors', why: 'AI models are here. Pick vendors for products and automation, and watch for deprecations.' },
   automation: { title: 'Automation', why: 'Agents can take on work. Cheap output, but it drains meaning and needs oversight.' },
+  meaning: { title: 'Meaning', why: 'Your people are asking what their job is now. Meaning is how much their work still feels like theirs: it drains when machines take it over, and it decides who stays.' },
   paths: { title: 'Career paths', why: 'A senior can pick a path with one strong perk.' },
   standups: { title: 'Standups', why: 'With a team of five, a standup policy keeps everyone in sync.' },
 };
@@ -111,6 +112,20 @@ export function beforeEra(s, eraId) {
   const need = ERAS.findIndex((e) => e.id === eraId);
   return at >= 0 && need >= 0 && at < need;
 }
+
+// Meaning is revealed at the ChatGBT moment (the 'meaning' unlock). A sim without that unlock
+// key shows it from the ChatGBT era on; a sim without eras always shows it.
+export const SIM_HAS_MEANING_UNLOCK = Array.isArray(DATA.UNLOCKS) ? DATA.UNLOCKS.some((u) => u.key === 'meaning') : !!DATA.UNLOCKS?.meaning;
+export function meaningShown(s) {
+  if (!s?.era) return true;
+  if (s.unlocks?.meaning != null) return true;
+  return !SIM_HAS_MEANING_UNLOCK && s.era.id !== 'classic';
+}
+
+export const TIRED_STAMINA = 25;
+export const EMPTY_WARN_WEEKS = 3;
+// Weeks someone has run on empty: the sim's counter when it has one, else the stamina floor as a hint.
+export const emptyWeeks = (p) => (Number.isFinite(p.emptyWeeks) ? p.emptyWeeks : (p.stamina ?? 100) < 12 ? EMPTY_WARN_WEEKS : 0);
 
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
 export const fundingMult = (f) => f.scoreMult ?? B.funding?.[f.id]?.scoreMult ?? 1;

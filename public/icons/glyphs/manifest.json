@@ -462,5 +462,9 @@
  "mic.off": {
   "file": "glyphs/mic.off.svg",
   "size": 14
+ },
+ "battery.low": {
+  "file": "glyphs/battery.low.svg",
+  "size": 14
  }
 }

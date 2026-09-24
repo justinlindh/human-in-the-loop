@@ -1001,3 +1001,10 @@
 .hitl .rivalcard .rlogo { flex: none; width: 2.2em; height: 2.2em; border-radius: 0.6em; border: 0.14em solid var(--ink); display: grid; place-items: center; font-weight: 700; color: #fff; text-shadow: 0 0.08em 0 var(--ink); }
 .hitl .rivalcard .row { gap: 0.4em; align-items: center; }
 .hitl .policytip { max-width: 34em; margin-top: 0.25em; }
+.hitl .tired { display: inline-flex; margin-left: 0.2em; }
+.hitl .emptywarn { display: flex; align-items: center; gap: 0.7em; flex-wrap: wrap; background: #fff4dc; border-color: var(--warn); margin-bottom: 0.7em; }
+.hitl .emptywarn .btn { min-height: 2.5em; }
+.hitl .purposecard { display: flex; flex-direction: column; gap: 0.35em; margin-bottom: 0.8em; }
+.hitl .purposecard > .row { gap: 0.4em; align-items: center; }
+.hitl .ptests { display: flex; flex-direction: column; gap: 0.2em; }
+.hitl .ptest { display: grid; grid-template-columns: 2.5em 1fr auto; gap: 0.5em; font-size: 0.88em; align-items: baseline; }
