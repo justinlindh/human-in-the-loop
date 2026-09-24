@@ -1,4 +1,5 @@
 import { getAction, makeCtx } from './registry.js';
+import './systems.js';
 
 // Handlers validate first and return { ok: false, reason } before mutating anything.
 export function dispatch(state, action) {

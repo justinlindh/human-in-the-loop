@@ -1,4 +1,5 @@
 import { getSystems, makeCtx } from './registry.js';
+import './systems.js';
 
 export function tick(state) {
   if (state.gameOver || state.pendingDecision) return [];

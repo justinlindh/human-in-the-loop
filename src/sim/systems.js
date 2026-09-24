@@ -1,0 +1,19 @@
+// Every module that registers a weekly system or a player action. tick.js and actions.js import
+// this, so any way of running the sim gets the complete game.
+import './vendors.js';
+import './staff.js';
+import './progression.js';
+import './work.js';
+import './projects.js';
+import './products.js';
+import './marketing.js';
+import './automation.js';
+import './meaning.js';
+import './knowledge.js';
+import './market.js';
+import './incidents.js';
+import './events.js';
+import './calendar.js';
+import './economy.js';
+import './endgame.js';
+import './chat.js';

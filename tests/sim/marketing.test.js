@@ -106,6 +106,18 @@ describe('hype and brand', () => {
     expect(s.brand).toBeGreaterThanOrEqual(0);
   });
 
+  it('brand settles instead of pinning at 100 under steady marketing', () => {
+    const s = game();
+    const p = addProduct(s);
+    s.cash = 1e7;
+    for (let w = 0; w < 520; w++) {
+      if (!s.campaigns.length) dispatch(s, { type: 'runCampaign', channel: 'community', productId: p.id });
+      runMarketing(s, 1);
+    }
+    expect(s.brand).toBeGreaterThan(30);
+    expect(s.brand).toBeLessThan(75);
+  });
+
   it('the wrapper hit fires once', () => {
     const s = game();
     s.brand = 30;

@@ -8,15 +8,16 @@ import { game, addStaff } from './helpers.js';
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 // Builds one small product with the given team and returns { score, weeks }.
-function ship(seed, team, { category = 'notes', angle = 'copilot', founders = true, year = 0, reviews = false } = {}) {
+function ship(seed, team, { category = 'notes', angle = 'copilot', founders = true, year = 0, reviews = false, autoOnly = false, capability = null } = {}) {
   const s = game(seed);
   s.cash = 1e6;
   s.week = year * 52;
+  if (autoOnly) { s.automation.engineering.level = 1; if (capability) s.models.chatgbt.capability = capability; for (const p of s.staff) p.assignment = { type: 'idle', targetId: null }; }
   if (reviews) s.policies.comprehension_reviews = true;
   if (!founders) s.staff = [];
   for (const [role, seniority] of team) addStaff(s, role, seniority);
   const res = dispatch(s, { type: 'startProject', kind: 'new', name: 'Probe', category, angle, model: 'chatgbt', size: 'small' });
-  for (const p of s.staff) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: res.projectId } });
+  if (!autoOnly) for (const p of s.staff) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: res.projectId } });
   let weeks = 0;
   while (s.projects.length && weeks < 200) {
     const ctx = makeCtx(s);
@@ -103,5 +104,17 @@ describe('review score guards', () => {
     const res = dispatch(s, { type: 'startProject', kind: 'refactor' });
     expect(res.ok).toBe(true);
     expect(res.projectId).toBe(s.projects[0].id);
+  });
+});
+
+describe('humans win on taste', () => {
+  it('pure automation reviews 5 to 6.5 on a good combo and below a strong human team, early and late', () => {
+    for (const [year, capability] of [[0, null], [10, 100]]) {
+      const auto = band([], { autoOnly: true, year, capability, category: 'email', angle: 'summarizer' });
+      const humans = band([['engineer', 'senior'], ['designer', 'senior'], ['engineer', 'senior']], { year, category: 'email', angle: 'summarizer', founders: false });
+      expect(auto.score, `year ${year} automation`).toBeGreaterThanOrEqual(5);
+      expect(auto.score, `year ${year} automation`).toBeLessThanOrEqual(6.5);
+      expect(humans.score, `year ${year} humans`).toBeGreaterThan(auto.score + 1);
+    }
   });
 });

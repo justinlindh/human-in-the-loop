@@ -11,12 +11,19 @@ import { modifierBonus } from './modifiers.js';
 import { perk } from './bonus.js';
 import { staffMods } from './staff.js';
 
+// Addressable customers in a category right now: the AI market grows toward full size over the early years.
+export function marketSize(state, category) {
+  const adoption = Math.min(1, B.adoptionStart + B.adoptionPerYear * state.week / 52);
+  return CATEGORIES[category].tam * B.marketScale * adoption;
+}
+
 export function productAppeal(state, product) {
   const cat = CATEGORIES[product.category];
   const model = MODELS[product.model];
   let appeal = Math.max(0, product.score) ** B.appealExp
     * comboFit(product.category, product.angle) * trendMods(state, product.category, product.angle)
-    * (1 + state.brand / 100) * (1 + product.novelty / 20) * (0.7 + 0.3 * model.trust) * product.uptime;
+    * (1 + state.brand / 100) * (1 + product.novelty / 20) * (0.7 + 0.3 * model.trust) * product.uptime
+    * B.appealScale * (B.sizeAppeal[product.size] ?? 1);
   if (cat.compliance && !model.complianceOk) appeal *= B.enterpriseComplianceMult;
   return appeal;
 }
@@ -65,11 +72,11 @@ export function productsSystem(ctx) {
   // Targets use this week's appeal for every product before any customers move.
   const targets = live.map((p) => {
     const c = competition(state, p);
-    return c.total > 0 ? CATEGORIES[p.category].tam * c.appeal / c.total : 0;
+    return c.total > 0 ? marketSize(state, p.category) * c.appeal / c.total : 0;
   });
 
   live.forEach((p, i) => {
-    const tam = CATEGORIES[p.category].tam;
+    const tam = marketSize(state, p.category);
     const target = targets[i];
     if (p.customers < target) {
       const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)

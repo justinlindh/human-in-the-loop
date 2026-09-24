@@ -66,8 +66,10 @@ export function generateStaff(state, { role, seniority }) {
   const top = topStats(role);
   const [lo, hi] = SKILL_RANGE[seniority];
   const skills = {};
+  // The talent pool improves over the years as people grow up with the tools.
+  const growth = B.candidateSkillPerYear * Math.floor(state.week / 52);
   for (const st of STATS) {
-    const base = int(r, lo, hi) * (top.includes(st) ? 1.3 : 1);
+    const base = (int(r, lo, hi) + growth) * (top.includes(st) ? 1.3 : 1);
     skills[st] = Math.round(clamp(base, 1, 100));
   }
   const traits = shuffle(r, RANDOM_TRAITS).slice(0, int(r, 0, 2));

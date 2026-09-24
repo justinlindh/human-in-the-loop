@@ -35,6 +35,17 @@ describe('losing', () => {
     expect(ev).toContainEqual({ type: 'gameOver' });
   });
 
+  it('collapse: a lab nobody understands dies on any long unfixable outage', () => {
+    const s = game();
+    const small = addProduct(s, { mrr: 1000 });
+    addProduct(s, { mrr: 9000 });
+    addStaff(s, 'engineer', 'mid');
+    s.institutionalKnowledge = B.collapseIkBelow - 1;
+    s.outage = { productId: small.id, kind: 'db_wipe', severity: 5, weeks: B.outageCollapseWeeks, unrecoverable: true };
+    check(s);
+    expect(s.gameOver?.reason).toBe('collapse');
+  });
+
   it('collapse does not trigger on a minor product', () => {
     const s = game();
     const small = addProduct(s, { mrr: 1000 });
