@@ -8,7 +8,8 @@ The interface between the simulation and everything that reads it. Only the lead
 // src/sim/index.js public surface
 createGame({ seed, companyName }) -> State
 tick(state) -> SimEvent[]              // advances one week, mutates state; returns [] if gameOver or pendingDecision
-dispatch(state, action) -> { ok, reason?, events: SimEvent[] }   // immediate, works while paused
+dispatch(state, action) -> { ok, reason?, events: SimEvent[], ...extra }   // immediate, works while paused
+                                   // extra: startProject returns projectId; buyItem returns id
 dateOf(week) -> { year, yearIndex, week, quarter }
 productAppeal(state, product) -> number
 oversightRequired(state) -> hours; oversightProvided(state) -> hours
@@ -90,7 +91,7 @@ Product = {
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
-{ type: 'resign', staffId, name }
+{ type: 'resign', staffId, name, fired }    // fired: true when the player fired them
 { type: 'hire', staffId }
 { type: 'decision' }
 { type: 'officeUpgrade', stage }

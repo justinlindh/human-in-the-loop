@@ -50,7 +50,6 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const title = h('h2', { text: def.title ?? meta.label });
     const head = h('div.panel-head', null,
       h('span.ico', { text: def.icon ?? meta.icon ?? '' }), title,
-      meta.key ? h('span.hint', null, h('span.kbd', { text: meta.key }), ' ', h('span.kbd', { text: 'Esc' })) : null,
       h('button.btn.x', { title: 'Close (Esc)', onclick: () => close(), text: '✕' }));
     const body = h('div.panel-body', null, inst.el);
     const el = h(`div.panel${def.wide ? '.wide' : ''}`, { style: { '--accent': def.accent ?? meta.accent ?? '#4f8cff' } },
@@ -80,5 +79,9 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     setText(b, n > 9 ? '9+' : n);
   }
 
-  return { open, close, toggle, update, setBadge, get current() { return current?.id ?? null; }, clearAll: () => { close(); clear(wrap); } };
+  function setAlarm(id, on) {
+    if (buttons[id]) toggleClass(buttons[id], 'alarm', on);
+  }
+
+  return { open, close, toggle, update, setBadge, setAlarm, get current() { return current?.id ?? null; }, get panelEl() { return current?.el ?? null; }, clearAll: () => { close(); clear(wrap); } };
 }
