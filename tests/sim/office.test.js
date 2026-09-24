@@ -268,6 +268,18 @@ describe('adjacency', () => {
     expect(move.text).toMatch(/^\+\d+(\.\d)?% meaning recovery for the team \(1 desk nearby\)$/);
   });
 
+  it('a move that loses a bonus reports the loss, and shop effects read in words', () => {
+    const s = fresh();
+    for (const x of [0, 1]) expect(place(s, 'desk', x, 0).ok).toBe(true);
+    const plant = place(s, 'plant', 1, 3);
+    const before = itemBonus(s, 'meaningRecovery');
+    expect(before).toBeGreaterThan(0);
+    const away = adjacencyPreview(s, { id: plant.id, x: 8, y: 5, rot: 0 });
+    expect(away.effects).toEqual([expect.objectContaining({ key: 'meaningRecovery', delta: expect.closeTo(-before, 6) })]);
+    expect(away.text).toMatch(/^-\d+(\.\d)?% meaning recovery$/);
+    expect(adjacencyPreview(s, { itemId: 'standing_desk', x: 4, y: 4, rot: 0 }).text).toBe('-10% stamina drain');
+  });
+
   it('preview effects respect the cap', () => {
     const s = fresh();
     addDesks(s, 2);

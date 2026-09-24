@@ -22,7 +22,7 @@ export const SENIORITIES = ['junior', 'mid', 'senior'];
 const SHIRTS = ['#4f8cff', '#ff7eb6', '#ffb020', '#34c38f', '#e5484d', '#9b6bff', '#f2efe6', '#2f3a4a', '#7fc8c0', '#d98c5f'];
 const HAIR = ['#2b1d16', '#4a3222', '#7a4b2a', '#c68b4e', '#e8c170', '#b8b8b8', '#1c1c24', '#a3442f'];
 const PANTS = ['#2e3440', '#4b5563', '#6b4f3a', '#1f3b5c', '#8a7f6a', '#3b3b46'];
-const ACCESSORIES = ['none', 'none', 'none', 'glasses', 'headphones', 'beanie', 'cap'];
+const ACCESSORIES = ['none', 'none', 'none', 'none', 'none', 'glasses', 'glasses', 'headphones', 'beanie', 'cap'];
 
 const SKILL_RANGE = { junior: [15, 35], mid: [35, 60], senior: [60, 85] };
 const LEVEL_RANGE = { junior: [1, 2], mid: [5, 7], senior: [10, 13] };

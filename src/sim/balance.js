@@ -69,7 +69,7 @@ export const B = {
   funding: {
     bootstrapped: { cash: 110000, scoreMult: 1, brand: 0, seniorCandidates: 0 },
     family: { cash: 150000, scoreMult: 0.97, brand: 0, seniorCandidates: 0 },
-    preseed: { cash: 300000, scoreMult: 0.93, brand: 8, seniorCandidates: 2 },
+    preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
   founderStrengthBonus: 3, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6,

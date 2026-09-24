@@ -228,7 +228,8 @@ export function autoArrange(stageIdx, placed) {
 
 const EFFECT_LABEL = {
   meaningRecovery: 'meaning recovery', novelty: 'novelty', staminaRecovery: 'stamina recovery',
-  knowledgeGain: 'learning speed', uptimeFloor: 'uptime floor',
+  knowledgeGain: 'learning speed', uptimeFloor: 'uptime floor', staminaDrain: 'stamina drain', output: 'output',
+  burnoutResign: 'burnout resignations', oversight: 'oversight', maintenanceNeed: 'maintenance load', brandDecay: 'brand decay',
 };
 
 // What placing (or moving, with id) an item at (x, y, rot) would do, measured exactly as itemBonus pays:
@@ -244,7 +245,10 @@ export function adjacencyPreview(state, { itemId, x, y, rot = 0, id = null }) {
   // A new desk is taken at once if someone is waiting for a seat.
   const occupied = occupiedDesks(state);
   if (!moving && item === 'desk' && state.staff.some((p) => !p.deskId)) occupied.add(candidate.id);
-  const links = adjacencyLinks(layout, occupied).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
+  const involves = (id) => (l) => l.sourceId === id || l.targetId === id;
+  const links = adjacencyLinks(layout, occupied).filter(involves(candidate.id));
+  // A move can also lose links the item has now.
+  const lost = moving ? adjacencyLinks(state.office.placed, occupiedDesks(state)).filter(involves(moving.id)) : [];
   for (const l of links) {
     const each = `+${Math.round(l.value * 1000) / 10}% ${EFFECT_LABEL[l.key] ?? l.key}`;
     l.text = l.target === 'item' ? `${each} per neighbour` : l.paid ? `${each} at this desk, averaged over the team` : `${each} once someone sits at this desk`;
@@ -252,7 +256,7 @@ export function adjacencyPreview(state, { itemId, x, y, rot = 0, id = null }) {
   const waiting = !moving && item === 'desk' ? state.staff.find((p) => !p.deskId) : null;
   const staff = waiting ? state.staff.map((p) => (p === waiting ? { ...p, deskId: candidate.id } : p)) : state.staff;
   const after = { ...state, staff, office: { ...state.office, placed: layout } };
-  const keys = new Set([...links.map((l) => l.key), ...Object.keys(ITEMS[item].effects[candidate.level - 1] ?? {})]);
+  const keys = new Set([...links.map((l) => l.key), ...lost.map((l) => l.key), ...Object.keys(ITEMS[item].effects[candidate.level - 1] ?? {})]);
   const effects = [];
   for (const key of keys) {
     const delta = itemBonus(after, key) - itemBonus(state, key);

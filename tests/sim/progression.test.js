@@ -36,7 +36,7 @@ describe('office shop', () => {
       expect(it.costs[1]).toBeGreaterThan(it.costs[0] * 2);
     }
     const furniture = Object.values(ITEMS).filter((i) => i.kind === 'furniture');
-    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'coffee_corner', 'desk', 'meeting_table', 'plant', 'whiteboard']);
+    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'coffee_corner', 'couch', 'desk', 'foosball', 'meeting_table', 'ping_pong_table', 'plant', 'whiteboard']);
     for (const it of furniture) expect(it.costs).toHaveLength(1);
   });
 

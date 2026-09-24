@@ -1,6 +1,7 @@
 // Everything placed in the office. effects[level - 1] maps a bonus key to its value; systems read them
 // through itemBonus(state, key). Percent keys are fractions (0.15 = +15%); flat keys are added as-is.
-// kind: 'furniture' (one level, bought once per copy) or 'shop' (three upgrade levels).
+// kind: 'furniture' (one level, bought once per copy; effects[0] is a small global effect, often empty) or
+// 'shop' (three upgrade levels).
 // footprint: tiles at rot 0. adjacency: { radius, key, value } adds value to every desk whose seat is within
 // radius tiles of the item; with `to`, it adds value for each item of that id within radius instead.
 const FURNITURE = [
@@ -14,6 +15,12 @@ const FURNITURE = [
     { radius: 2, key: 'meaningRecovery', value: 0.04 }],
   ['bookshelf', 'Bookshelf', 'Old manuals, one good novel. People nearby learn the systems faster.', [500], { w: 2, h: 1 },
     { radius: 2, key: 'knowledgeGain', value: 0.05 }],
+  ['couch', 'Couch', 'Somewhere to collapse that is not the floor. A little faster recovery for everyone.', [600], { w: 2, h: 1 },
+    null, { meaningRecovery: 0.03, staminaRecovery: 0.05 }],
+  ['foosball', 'Foosball Table', 'Two minutes of spinning rods and yelling. Morale up, output barely down.', [900], { w: 1, h: 1 },
+    null, { meaningRecovery: 0.04, output: -0.01 }],
+  ['ping_pong_table', 'Ping Pong Table', 'The official conflict resolution tool of the software industry.', [1500], { w: 2, h: 1 },
+    null, { meaningRecovery: 0.06, output: -0.015 }, 1],
 ];
 
 const SHOP_SHAPE = {
@@ -50,8 +57,8 @@ const rows = [
 ];
 
 export const ITEMS = Object.fromEntries([
-  ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency]) => [
-    id, { id, name, desc, kind: 'furniture', minStage: 0, costs, effects: [{}], requires: null, footprint, adjacency },
+  ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency, effect = {}, minStage = 0]) => [
+    id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null },
   ]),
   ...rows.map(([id, name, desc, minStage, costs, effects, requires]) => [
     id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null },
