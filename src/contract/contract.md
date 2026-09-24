@@ -117,7 +117,7 @@ Product = {
 { type: 'buyItem', itemId }
 { type: 'upgradeItem', id }
 { type: 'sellItem', id }
-{ type: 'startProject', kind: 'new', name, category, angle, model, size }
+{ type: 'startProject', kind: 'new', name, category, angle, model, size }   // name: trimmed, 1 to 20 characters
 { type: 'startProject', kind: 'update'|'migration', productId }
 { type: 'startProject', kind: 'refactor'|'craft' }
 { type: 'startProject', kind: 'research', researchId }
