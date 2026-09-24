@@ -177,7 +177,98 @@
    "candidate": true
   }
  },
- "sfx": {},
+ "sfx": {
+  "hire": {
+   "file": "sfx/hire.ogg",
+   "duration": 1.002,
+   "candidate": true
+  },
+  "resign": {
+   "file": "sfx/resign.ogg",
+   "duration": 0.459,
+   "candidate": true
+  },
+  "alarm": {
+   "file": "sfx/alarm.ogg",
+   "duration": 0.885,
+   "candidate": true
+  },
+  "save": {
+   "file": "sfx/save.ogg",
+   "duration": 0.523,
+   "candidate": true
+  },
+  "award": {
+   "file": "sfx/award.ogg",
+   "duration": 0.933,
+   "candidate": true
+  },
+  "reward": {
+   "file": "sfx/reward.ogg",
+   "duration": 0.736,
+   "candidate": true
+  },
+  "bad": {
+   "file": "sfx/bad.ogg",
+   "duration": 0.64,
+   "candidate": true
+  },
+  "pop": {
+   "file": "sfx/pop.ogg",
+   "duration": 0.102,
+   "candidate": true
+  },
+  "outage": {
+   "file": "sfx/outage.ogg",
+   "duration": 0.374,
+   "candidate": true
+  },
+  "fixed": {
+   "file": "sfx/fixed.ogg",
+   "duration": 0.213,
+   "candidate": true
+  },
+  "door": {
+   "file": "sfx/door.ogg",
+   "duration": 0.917,
+   "candidate": true
+  },
+  "move": {
+   "file": "sfx/move.ogg",
+   "duration": 0.572,
+   "candidate": true
+  },
+  "foosball": {
+   "file": "sfx/foosball.ogg",
+   "duration": 0.266,
+   "candidate": true
+  },
+  "arcade": {
+   "file": "sfx/arcade.ogg",
+   "duration": 0.341,
+   "candidate": true
+  },
+  "pingpong": {
+   "file": "sfx/pingpong.ogg",
+   "duration": 2.5,
+   "candidate": true
+  },
+  "coffee": {
+   "file": "sfx/coffee.ogg",
+   "duration": 3.5,
+   "candidate": true
+  },
+  "dog": {
+   "file": "sfx/dog.ogg",
+   "duration": 0.619,
+   "candidate": true
+  },
+  "cat": {
+   "file": "sfx/cat.ogg",
+   "duration": 1.696,
+   "candidate": true
+  }
+ },
  "voice": {
   "fem_serena": {
    "file": "voice/fem_serena.ogg",
@@ -1816,6 +1907,15 @@
    "laidback",
    "sixty"
   ]
+ },
+ "ambience": {
+  "typing": {
+   "file": "ambience/typing.ogg",
+   "duration": 8.0,
+   "loopStart": 0,
+   "loopEnd": 384000,
+   "candidate": true
+  }
  },
  "crowd": {
   "file": "voice/crowd.ogg",

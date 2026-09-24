@@ -7,6 +7,7 @@ BLENDER="${BLENDER:-blender}"
 mkdir -p public/models
 scripts=(blender/props/*.py blender/items/*.py)
 [ -f blender/characters/chibi.py ] && scripts+=(blender/characters/chibi.py)
+[ -f blender/characters/chibi_rig.py ] && scripts+=(blender/characters/chibi_rig.py)
 [ -f blender/characters/pets.py ] && scripts+=(blender/characters/pets.py)
 models=0
 # Coplanar overlapping faces (z-fighting) found by common.zfight_report, collected for review.
@@ -23,6 +24,13 @@ done
 echo "built ${models} models from ${#scripts[@]} scripts"
 if [ -s "$zlog" ]; then echo "z-fighting report ($(wc -l <"$zlog") pairs):"; sed 's/^/  /' "$zlog"; else echo "z-fighting report: clean"; fi
 rm -f "$zlog"
+
+# Contact sheets: every model from five views (front, 3/4, side, back, top) with level variants
+# as rows, rendered on the GPU into shots/sheets/ for review before committing. SHEETS=0 skips them.
+if [ "${SHEETS:-1}" != 0 ]; then
+  log="$("$BLENDER" -b --factory-startup -P blender/sheets/contact_sheets.py -- --models public/models --out shots/sheets 2>&1)" || { echo "$log" | tail -n 30; echo "FAILED: contact sheets"; exit 1; }
+  echo "contact sheets: $(grep -c '^SHEET ' <<<"$log") in shots/sheets"
+fi
 
 # Object icons are renders of the models above, so they rebuild after them.
 log="$("$BLENDER" -b --factory-startup -P blender/icons/render_icons.py -- --out public/icons/objects 2>&1)" || { echo "$log" | tail -n 30; echo "FAILED: icons"; exit 1; }
