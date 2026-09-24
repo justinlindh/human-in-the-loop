@@ -44,6 +44,35 @@ From Kenney's "Interface Sounds" pack, CC0 1.0 (public domain; credit to Kenney,
 | `ui/goal.ogg` | confirmation_004 |
 | `ui/unlock.ogg` | maximize_008 |
 
+## Sound effects and ambience (candidates)
+
+All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freesound.org. Credit isn't required; it's recorded here anyway. Each sound is made to one soft, cozy feel:
+- trimmed, mono 48 kHz, with a gentle high-shelf cut above 7 kHz
+- loudness-matched: the loudest 400 ms window at -20 dBFS RMS, peaks at or below -3 dBFS
+- the ambience loop is quieter (-32 dBFS RMS) and crossfaded into a seamless loop
+
+| File | Source |
+|---|---|
+| `sfx/hire.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles PIZZI01 |
+| `sfx/resign.ogg` | Kenney (kenney.nl), CC0 1.0: rpg-audio doorClose_1 |
+| `sfx/alarm.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio lowThreeTone |
+| `sfx/save.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio threeTone1 |
+| `sfx/award.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles STEEL00 |
+| `sfx/reward.ogg` | Kenney (kenney.nl), CC0 1.0: rpg-audio handleCoins |
+| `sfx/bad.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio lowDown |
+| `sfx/pop.ogg` | Kenney (kenney.nl), CC0 1.0: interface-sounds pluck_001 |
+| `sfx/outage.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio phaserDown1 |
+| `sfx/fixed.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio powerUp2 |
+| `sfx/door.ogg` | Kenney (kenney.nl), CC0 1.0: rpg-audio doorOpen_1 |
+| `sfx/move.ogg` | Kenney (kenney.nl), CC0 1.0: impact-sounds impactSoft_heavy_001 |
+| `sfx/foosball.ogg` | Kenney (kenney.nl), CC0 1.0: impact-sounds impactWood_light_001 |
+| `sfx/arcade.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio pepSound1 |
+| `sfx/pingpong.ogg` | freesound.org 'ping pong ball.WAV' by cj_ascoli, CC0 1.0 (https://freesound.org/people/cj_ascoli/sounds/444372/) |
+| `sfx/coffee.ogg` | freesound.org 'Coffee Machine - Select Pod.wav' by SpaceJoe, CC0 1.0 (https://freesound.org/people/SpaceJoe/sounds/344458/) |
+| `sfx/dog.ogg` | freesound.org 'single bark - small to medium dog' by haulaway, CC0 1.0 (https://freesound.org/people/haulaway/sounds/630648/) |
+| `sfx/cat.ogg` | freesound.org 'cat meow short' by skymary, CC0 1.0 (https://freesound.org/people/skymary/sounds/412017/) |
+| `ambience/typing.ogg` | freesound.org 'Keyboard typing.WAV' by beansqueso31, CC0 1.0 (https://freesound.org/people/beansqueso31/sounds/223101/) |
+
 ## Voices (candidates)
 
 **Barks.** Gibberish in the game's own invented lexicon, which is not Simlish and not any real language. There are 7 emotions (happy, annoyed, tired, questioning, excited, laughing, sighing), up to 2 takes each, in one sprite per bank. Offsets are in `src/audio/assets.json`.
