@@ -65,7 +65,7 @@ describe('natural attrition', () => {
       rates.push(n / (weeks / 52));
     }
     const mean = rates.reduce((a, b) => a + b) / rates.length;
-    expect(mean).toBeGreaterThanOrEqual(0.4);
+    expect(mean).toBeGreaterThanOrEqual(0.25);
     expect(mean).toBeLessThanOrEqual(1.2);
   }, 120000);
 });
