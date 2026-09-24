@@ -180,7 +180,7 @@
 @media (max-width: 1400px) { .hitl .bottom { grid-template-columns: 17em 1fr 0; } }
 
 
-.hitl .menu { justify-self: center; display: flex; gap: 0.4em; pointer-events: auto; padding: 0.4em; background: var(--ink); border-radius: 1.1em; box-shadow: var(--soft); }
+.hitl .menu { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4em; max-width: 100%; min-width: 0; pointer-events: auto; padding: 0.4em; background: var(--ink); border-radius: 1.1em; box-shadow: var(--soft); }
 .hitl .mbtn {
   position: relative; width: 4.6em; height: 4.4em; border-radius: 0.8em; border: var(--bw) solid var(--ink);
   background: var(--cream); box-shadow: inset 0 -0.3em 0 var(--cream-3);
@@ -1155,6 +1155,6 @@
   .hitl .bottom { grid-template-columns: minmax(0, 1fr); }
   .hitl .bottom > .chat { max-width: 17em; }
   .hitl .bottom > .chat .chat-body { height: 6.5em; }
-  .hitl .menu { justify-self: stretch; flex-wrap: wrap; justify-content: center; row-gap: 0.35em; }
+  .hitl .menu { justify-self: stretch; row-gap: 0.35em; }
   .hitl .mbtn { width: calc(25% - 0.3em); min-width: 3.9em; height: 4em; }
 }
