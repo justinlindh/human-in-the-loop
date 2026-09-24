@@ -47,7 +47,11 @@ async function boot() {
   }
 
   let speed = Number(params.get('speed') ?? (isSnap ? 0 : 1));
-  const quality = params.get('quality') ?? 'high';
+  // An explicit ?quality= wins for the whole session (tools and tests rely on it); otherwise the
+  // saved setting, which ui applies through controls.setQuality at startup.
+  const urlQuality = params.get('quality');
+  const quality = urlQuality ?? 'high';
+  let activeQuality = quality;
   const forcedTime = params.get('time') ?? (sim.state.flags?.mockTime ?? null);
 
   const renderer = renderMod?.createRenderer({
@@ -142,7 +146,12 @@ async function boot() {
       return { ok: res.ok, reason: res.reason, meta };
     },
     save,
-    setQuality: (q) => renderer?.setQuality(q),
+    setQuality: (q) => {
+      if (urlQuality) return;
+      activeQuality = q;
+      renderer?.setQuality(q);
+    },
+    getQuality: () => activeQuality,
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     focusStaff: (id) => renderer?.focusStaff(id),
