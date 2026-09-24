@@ -427,7 +427,6 @@ export function createOffice({ parent, screens, lighting }) {
   let cur = null;
   let leaving = null;
   let items = new Map();       // item id -> { obj, itemId, level, slot }
-  let outage = false;
   let dust = null;
   const lampMat = paletteMaterial('pal_lamp');
   const growMat = paletteMaterial('pal_grow');
@@ -450,6 +449,7 @@ export function createOffice({ parent, screens, lighting }) {
     }
     cur = next;
     items.clear();
+    ledCache = null;
     holder.add(cur.root);
     lighting?.fitShadow(cur.bounds);
     lighting?.setInteriorLights(cur.L.lights.map((l) => ({ ...l, y: cur.L.wallH - 0.3 })));
@@ -515,17 +515,50 @@ export function createOffice({ parent, screens, lighting }) {
       items.set(it.id, { obj, itemId: it.itemId, level: it.level, slot });
       changed.push({ id: it.id, obj, isNew: !prev });
       cur.nav = null;
+      ledCache = null;
     });
     for (const [id, it] of items) {
-      if (!seen.has(id)) { cur.root.remove(it.obj); items.delete(id); cur.nav = null; }
+      if (!seen.has(id)) { cur.root.remove(it.obj); items.delete(id); cur.nav = null; ledCache = null; }
     }
     return changed;
   }
 
-  function setOutage(on) {
-    if (on === outage || !cur) return;
-    outage = on;
-    cur.desks.forEach((d, i) => { if (d.screen) d.screen.material = on ? screens.material('red') : screens.deskMaterial(i); });
+  // kind: 'work' (the desk's own variant) | 'gray' | 'red' | 'off'. Swaps only on change.
+  function setDeskScreen(i, kind) {
+    const d = cur?.desks[i];
+    if (!d?.screen || d.screenKind === kind) return;
+    d.screenKind = kind;
+    d.screen.material = kind === 'work' ? screens.deskMaterial(i) : screens.material(kind);
+  }
+
+  // LED meshes on fixed racks and rack items, rebuilt when items change.
+  let ledCache = null;
+  function leds() {
+    if (!ledCache) {
+      ledCache = [];
+      const collect = (root, rack) => root.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) ledCache.push({ mesh: c, rack, phase: ledCache.length * 1.7 }); });
+      cur.dyn.racks.forEach((r, i) => collect(r, i));
+      for (const it of items.values()) if (it.itemId === 'server_rack' || it.itemId === 'monitoring_wall') collect(it.obj, -1);
+    }
+    return ledCache;
+  }
+
+  // "On sabbatical" sign on a desk, created on first use.
+  const signTex = sabbaticalTexture();
+  function setDeskSign(i, on) {
+    const d = cur?.desks[i];
+    if (!d) return;
+    if (on && !d.sign) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.2), new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.8, side: THREE.DoubleSide }));
+      const dt = deskTransforms(d);
+      m.position.set(dt.desk.x - Math.sin(d.face) * 0.12, 0.74, dt.desk.z - Math.cos(d.face) * 0.12);
+      m.rotation.y = d.face + Math.PI;
+      m.rotation.x = -0.25;
+      m.castShadow = true;
+      cur.root.add(m);
+      d.sign = m;
+    }
+    if (d.sign) d.sign.visible = on;
   }
 
   const camDir = new THREE.Vector2();
@@ -571,7 +604,7 @@ export function createOffice({ parent, screens, lighting }) {
   }
 
   return {
-    setStage, setItems, setOutage, update, nav,
+    setStage, setItems, setDeskScreen, setDeskSign, leds, update, nav,
     get current() { return cur; },
     get items() { return items; },
     get bounds() { return cur?.bounds; },
@@ -593,3 +626,25 @@ function dustTexture() {
   return dustTex;
 }
 
+
+function sabbaticalTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 150;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = P.paper;
+  ctx.fillRect(0, 0, 256, 150);
+  ctx.strokeStyle = P.ink;
+  ctx.lineWidth = 10;
+  ctx.strokeRect(5, 5, 246, 140);
+  ctx.fillStyle = P.ink;
+  ctx.textAlign = 'center';
+  ctx.font = '700 40px Fredoka, sans-serif';
+  ctx.fillText('ON', 128, 62);
+  ctx.font = '700 34px Fredoka, sans-serif';
+  ctx.fillText('SABBATICAL', 128, 108);
+  ctx.fillStyle = P.leaf;
+  ctx.beginPath(); ctx.arc(128, 130, 7, 0, Math.PI * 2); ctx.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}

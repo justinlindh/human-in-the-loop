@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
 import { SKINS, ROLE_COLORS, PALETTE } from './palette.js';
@@ -15,7 +16,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave'];
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry'];
 const SEATED = new Set(['typing', 'slumped', 'burnout']);
 
 const ink = new THREE.Color(PALETTE.ink);
@@ -52,6 +53,8 @@ function ringMaterial(role, hex) {
   return m;
 }
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
+const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
+const pickGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.15, 8).translate(0, 0.58, 0);
 let haloMat = null;
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
 
@@ -167,6 +170,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   mug.visible = false;
   arms[1].wrist.add(mug);
 
+  const box = new THREE.Mesh(boxGeo, mat('cardboard'));
+  box.position.set(0, TORSO_H * 0.35, 0.24);
+  box.castShadow = true;
+  box.visible = false;
+  torso.add(box);
+
+  // Invisible hit proxy for picking (raycasts ignore visibility, rendering skips it).
+  const pickProxy = new THREE.Mesh(pickGeo, new THREE.MeshBasicMaterial());
+  pickProxy.visible = false;
+  pickProxy.userData.noAO = true;
+  root.add(pickProxy);
+
   const ring = new THREE.Mesh(ringGeo, ringMaterial(role, roleColor));
   ring.position.y = 0.012;
   ring.renderOrder = 1;
@@ -271,6 +286,16 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       }
+      case 'carry': {
+        const f = 7;
+        tgt.legL = Math.sin(t * f) * 0.4;
+        tgt.legR = -Math.sin(t * f) * 0.4;
+        tgt.armLX = tgt.armRX = -1.05;
+        tgt.armLZ = 0.35; tgt.armRZ = -0.35;
+        tgt.bodyY = Math.abs(Math.sin(t * f)) * 0.02;
+        tgt.lean = 0.06;
+        break;
+      }
       case 'wave':
         tgt.armRZ = 2.5 + s(t * 10) * 0.35;
         tgt.headZ = -0.1;
@@ -298,6 +323,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     anim = name;
     animT = 0;
     mug.visible = name === 'sip';
+    box.visible = name === 'carry';
   }
 
   function setEmote(kind) {
@@ -362,13 +388,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function dispose() {
     for (const m of Object.values(own)) m.dispose();
+    pickProxy.material.dispose();
     root.removeFromParent();
   }
 
+  function setRingScale(s) { ring.scale.set(s, 1, s); }
+
   update(0);
   return {
-    root, setAnim, update, setEmote, setTint, setMood, setLegend, dispose,
+    root, setAnim, update, setEmote, setTint, setMood, setLegend, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
+    get emote() { return emoteKind; },
+    get mood() { return mood; },
     get seated() { return SEATED.has(anim); },
   };
 }

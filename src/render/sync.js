@@ -1,0 +1,495 @@
+import * as THREE from 'three';
+import { createCharacter } from './character.js';
+import { ROLE_COLORS } from './palette.js';
+import { glow } from './materials.js';
+
+// Keeps one character per staff member in step with state, and plays event effects.
+// Characters are keyed by staff id; removed staff walk out and are disposed.
+
+const WALK = 1.25;
+const RUN = 2.8;
+const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
+const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
+const MAX_WANDERERS = 2;
+const MAX_SPEECH = 4;
+
+function rnd(a, b) { return a + Math.random() * (b - a); }
+function angleLerp(a, b, k) {
+  let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return a + d * k;
+}
+
+export function createStaffSync({ office, parent, labels, fx, rig }) {
+  const group = new THREE.Group();
+  group.name = 'staff';
+  parent.add(group);
+  const recs = new Map();       // staff id -> record
+  const leavers = [];
+  const hired = new Set();
+  const leaving = new Map();    // staff id -> { fired }
+  let stageSeen = -1;
+  let firstSync = true;
+  let lastState = null;
+  let wanderClock = rnd(4, 8);
+  const ledMats = {
+    green: glow('led_green', 4), dim: glow('led_green', 0.5, 'dim'), amber: glow('led_amber', 4),
+    red: glow('led_red', 5), redDim: glow('led_red', 1.2, 'dim'),
+  };
+  let ledClock = 0;
+
+  function makeRec(s) {
+    const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role });
+    char.pickProxy.userData.staffId = s.id;
+    group.add(char.root);
+    return {
+      id: s.id, char, pos: new THREE.Vector3(), yaw: 0, path: [], speed: WALK,
+      goal: null, goalKey: '', seat: null, mode: 'placed', hidden: false,
+      temp: null, emoteT: 0, moodEmoteT: rnd(6, 14), staff: s, walkAnim: 'walk',
+    };
+  }
+
+  function disposeRec(r) {
+    labels.clearFor(r.char.root);
+    r.char.dispose();
+  }
+
+  // Seats: each staff member keeps a desk while the stage stays the same.
+  function assignSeats(list) {
+    const cur = office.current;
+    const taken = new Set();
+    for (const r of recs.values()) if (r.seat !== null && r.seat < cur.desks.length) taken.add(r.seat);
+    for (const s of list) {
+      const r = recs.get(s.id);
+      if (r.seat !== null && r.seat < cur.desks.length) continue;
+      r.seat = null;
+      for (let i = 0; i < cur.desks.length; i++) if (!taken.has(i)) { r.seat = i; taken.add(i); break; }
+    }
+  }
+
+  // Where someone should be and what they should be doing, from assignment and mood.
+  function goalFor(s, r, roleIndex) {
+    const L = office.current.L;
+    const Z = L.zones;
+    const type = s.assignment?.type ?? 'idle';
+    if (s.mood === 'away' || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
+    const desk = r.seat !== null ? office.current.desks[r.seat] : null;
+    const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: SEATED_ANIM[s.mood] ?? 'typing', seated: true });
+    if (type === 'oversight') {
+      const wall = [...office.items.values()].find((it) => it.itemId === 'monitoring_wall');
+      if (wall) {
+        const o = wall.obj.position, ry = wall.obj.rotation.y;
+        const off = (roleIndex.oversight % 3 - 1) * 0.6;
+        return { x: o.x + Math.sin(ry) * 1.1 + Math.cos(ry) * off, z: o.z + Math.cos(ry) * 1.1 - Math.sin(ry) * off, yaw: ry + Math.PI, anim: 'idle', key: `ov-item-${off}` };
+      }
+      const spots = Z.oversight;
+      const p = spots[roleIndex.oversight % spots.length];
+      const lap = Math.floor(roleIndex.oversight / spots.length);
+      return { x: p.x + lap * 0.5, z: p.z + lap * 0.4, yaw: Math.PI, anim: 'idle', key: `ov-${roleIndex.oversight}` };
+    }
+    if (type === 'hardProblem') {
+      const w = Z.whiteboard;
+      const k = roleIndex.hard;
+      return { x: w.x + (k % 3 - 1) * 0.6, z: w.z + Math.floor(k / 3) * 0.5, yaw: Math.PI, anim: 'idle', key: `hp-${k}`, thinking: true };
+    }
+    if (type === 'mentor' && s.assignment.targetId) {
+      const mentee = recs.get(s.assignment.targetId);
+      const md = mentee?.seat != null ? office.current.desks[mentee.seat] : null;
+      if (md && mentee.staff.mood !== 'away') {
+        const f = md.seat.rotY;
+        const rx = Math.cos(f), rz = -Math.sin(f);
+        return { x: md.seat.x - rx * 0.55 - Math.sin(f) * 0.15, z: md.seat.z - rz * 0.55 - Math.cos(f) * 0.15, yaw: f + 0.7, anim: 'idle', key: `mentor-${mentee.id}-${md.index}`, mentoring: true };
+      }
+    }
+    if (desk) return { ...seated(desk), key: `desk-${desk.index}-${s.mood}` };
+    const w = Z.wander[r.id.length % Z.wander.length];
+    return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
+  }
+
+  function walkTo(r, goal, run = false) {
+    const nav = office.nav();
+    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: goal.x, z: goal.z });
+    r.path.shift();
+    r.speed = run ? RUN : WALK;
+    r.walkAnim = run ? 'run' : 'walk';
+  }
+
+  function teleport(r, goal) {
+    r.pos.set(goal.x, 0, goal.z);
+    r.yaw = goal.yaw;
+    r.path = [];
+  }
+
+  function emote(r, kind, seconds = 2.5) {
+    r.char.setEmote(kind);
+    r.emoteT = seconds;
+  }
+
+  function sync(state) {
+    lastState = state;
+    const cur = office.current;
+    if (!cur) return;
+    const stageChanged = cur.stage !== stageSeen;
+    stageSeen = cur.stage;
+    const list = state.staff ?? [];
+    const ids = new Set(list.map((s) => s.id));
+
+    // Removed staff walk out (or vanish quietly on a stage rebuild).
+    for (const [id, r] of recs) {
+      if (ids.has(id)) continue;
+      recs.delete(id);
+      const info = leaving.get(id);
+      leaving.delete(id);
+      if (r.hidden || stageChanged) { disposeRec(r); continue; }
+      r.mode = 'leave';
+      r.leaveT = 0;
+      r.fired = !!info?.fired;
+      r.char.setAnim('wave');
+      emote(r, r.fired ? 'storm' : 'heart', 2.2);
+      r.char.setRingScale(1);
+      leavers.push(r);
+    }
+
+    for (const s of list) {
+      let r = recs.get(s.id);
+      if (!r) {
+        r = makeRec(s);
+        recs.set(s.id, r);
+        r.isNew = true;
+      }
+      r.staff = s;
+    }
+    if (stageChanged) for (const r of recs.values()) r.seat = null;
+    assignSeats(list);
+
+    const roleIndex = { oversight: 0, hard: 0 };
+    const occupied = new Array(cur.desks.length).fill(null);
+    for (const s of list) {
+      const r = recs.get(s.id);
+      const idx = { oversight: roleIndex.oversight, hard: roleIndex.hard };
+      if (s.assignment?.type === 'oversight') roleIndex.oversight++;
+      if (s.assignment?.type === 'hardProblem') roleIndex.hard++;
+      const g = goalFor(s, r, idx);
+      if (r.char.mood !== s.mood && s.mood !== 'away') r.char.setMood(s.mood);
+      r.char.setLegend(!!s.legend);
+      if (r.seat !== null) occupied[r.seat] = s;
+
+      if (r.isNew) {
+        r.isNew = false;
+        r.goal = g; r.goalKey = g.key;
+        if (hired.has(s.id) && !firstSync && !g.hidden) {
+          hired.delete(s.id);
+          const d = cur.L.zones.door;
+          r.pos.set(d.x, 0, d.z);
+          r.yaw = Math.PI / 2;
+          r.mode = 'enter';
+          emote(r, 'sparkle', 2.5);
+          walkTo(r, g);
+        } else {
+          teleport(r, g);
+          r.hidden = !!g.hidden;
+          r.char.root.visible = !r.hidden;
+        }
+        continue;
+      }
+      if (stageChanged) {
+        r.goal = g; r.goalKey = g.key; r.temp = null;
+        teleport(r, g);
+        r.hidden = !!g.hidden;
+        r.char.root.visible = !r.hidden;
+        continue;
+      }
+      if (g.key !== r.goalKey) {
+        r.goalKey = g.key;
+        r.goal = g;
+        if (g.hidden && !r.hidden) {
+          walkTo(r, g);           // head for the door, then disappear
+        } else if (!g.hidden && r.hidden) {
+          const d = cur.L.zones.door;
+          r.pos.set(d.x, 0, d.z);
+          r.hidden = false;
+          r.char.root.visible = true;
+          walkTo(r, g);
+        } else if (!r.temp) {
+          // Mood-only changes at the same desk need no walk.
+          if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g);
+        }
+      }
+    }
+    firstSync = false;
+
+    // Desk screens and sabbatical signs.
+    const outage = !!state.outage;
+    for (let i = 0; i < cur.desks.length; i++) {
+      const s = occupied[i];
+      const away = s && (s.mood === 'away' || s.assignment?.type === 'sabbatical');
+      office.setDeskSign(i, !!away);
+      const kind = outage ? 'red' : !s || away ? 'off' : s.mood === 'coasting' || s.mood === 'burnout' ? 'gray' : 'work';
+      office.setDeskScreen(i, kind);
+    }
+  }
+
+  function recByName(name) {
+    for (const r of recs.values()) if (r.staff.name === name) return r;
+    return null;
+  }
+
+  function handleEvents(events, state) {
+    const cur = office.current;
+    for (const e of events ?? []) {
+      switch (e.type) {
+        case 'hire': if (e.staffId) hired.add(e.staffId); break;
+        case 'resign': leaving.set(e.staffId, { fired: !!e.fired }); break;
+        case 'bubble': {
+          const r = recs.get(e.staffId);
+          if (!r || r.hidden) break;
+          if (STAT_TONES.has(e.tone) || e.tone === 'good') labels.stat(e.text, e.tone, r.char.root);
+          else if (e.tone === 'bad') emote(r, /z/i.test(e.text) ? 'zzz' : 'storm', 3);
+          break;
+        }
+        case 'chat': {
+          const r = (e.fromId && recs.get(e.fromId)) || recByName(e.from);
+          if (!r || r.hidden || !e.text) break;
+          if (labels.speechCount?.() >= MAX_SPEECH) break;
+          labels.say(e.text, r.char.root, 3.2);
+          break;
+        }
+        case 'celebrate': {
+          if (e.staffId) {
+            const r = recs.get(e.staffId);
+            if (r && !r.hidden) celebrate(r, 2.4, true);
+          } else {
+            companyParty();
+          }
+          break;
+        }
+        case 'launch': companyParty(); break;
+        case 'award': {
+          const L = cur?.L;
+          if (L) fx.confetti(0, 1.2, 0, { spread: 2.2, power: 1.25 });
+          companyParty();
+          break;
+        }
+        case 'incident': incident(e); break;
+        default: break;
+      }
+    }
+    void state;
+  }
+
+  function celebrate(r, seconds, sparkle) {
+    r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
+    if (sparkle) emote(r, 'sparkle', seconds);
+  }
+
+  let lastParty = -1e9;
+  function companyParty() {
+    const cur = office.current;
+    if (!cur) return;
+    // A launch arrives with celebrate(null) in the same batch; throw one party, not two.
+    const now = performance.now();
+    if (now - lastParty < 1500) return;
+    lastParty = now;
+    const L = cur.L;
+    for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
+    let k = 0;
+    for (const r of recs.values()) {
+      if (r.hidden || r.mode !== 'placed') continue;
+      r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08 };
+    }
+  }
+
+  function incident(e) {
+    const cur = office.current;
+    if (!cur) return;
+    const L = cur.L;
+    const racks = cur.dyn.racks;
+    const hot = racks.length ? racks[0].position : new THREE.Vector3(0, 0, 0);
+    fx.alarm(new THREE.Vector3(0, 0, 0), Math.min(L.W, L.D) * 0.3, e.caught ? 1.6 : 3.2);
+    if (!e.caught) rig?.shake(0.22, 0.4);
+    // The nearest few people run to the servers, then go back.
+    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed')
+      .sort((a, b) => a.pos.distanceToSquared(hot) - b.pos.distanceToSquared(hot))
+      .slice(0, e.caught ? 1 : 4);
+    near.forEach((r, i) => {
+      emote(r, 'exclamation', 3);
+      const spot = { x: hot.x + 0.6 + (i % 2) * 0.7, z: hot.z + 1.0 + Math.floor(i / 2) * 0.6, yaw: Math.PI, anim: 'idle' };
+      r.temp = { anim: 'idle', t: 5.5, goal: spot, back: true, run: true };
+      walkTo(r, spot, true);
+    });
+  }
+
+  // Idle wandering: a few people at a time fetch coffee or stretch in the lounge.
+  function maybeWander(dt) {
+    wanderClock -= dt;
+    if (wanderClock > 0) return;
+    wanderClock = rnd(5, 11);
+    const cur = office.current;
+    const busy = [...recs.values()].filter((r) => r.temp?.wander).length;
+    if (busy >= MAX_WANDERERS) return;
+    const pool = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && !r.temp && !r.path.length
+      && r.staff.mood !== 'burnout' && ['idle', 'project', 'maintenance', 'marketing', 'sales', 'support', 'security'].includes(r.staff.assignment?.type));
+    if (!pool.length) return;
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    const Z = cur.L.zones;
+    const coffee = Math.random() < 0.65;
+    const base = coffee ? Z.coffee : (Z.lounge ?? Z.wander)[Math.floor(Math.random() * (Z.lounge ?? Z.wander).length)];
+    const spot = { x: base.x + rnd(-0.4, 0.4), z: base.z + rnd(-0.3, 0.3), yaw: rnd(0, Math.PI * 2), anim: coffee ? 'sip' : 'idle' };
+    r.temp = { anim: spot.anim, t: rnd(5, 8), goal: spot, back: true, wander: true };
+    walkTo(r, spot);
+  }
+
+  const dir = new THREE.Vector3();
+  function stepWalker(r, dt, anim) {
+    const target = r.path[0];
+    dir.set(target.x - r.pos.x, 0, target.z - r.pos.z);
+    const d = dir.length();
+    const step = r.speed * dt;
+    if (d <= step) {
+      r.pos.set(target.x, 0, target.z);
+      r.path.shift();
+    } else {
+      dir.multiplyScalar(1 / d);
+      r.pos.addScaledVector(dir, step);
+      r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
+    }
+    r.char.setAnim(anim);
+  }
+
+  function updateRec(r, dt) {
+    const c = r.char;
+    if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
+
+    // Mood emotes now and then, so state reads without UI.
+    r.moodEmoteT -= dt;
+    if (r.moodEmoteT <= 0 && !r.hidden) {
+      r.moodEmoteT = rnd(9, 18);
+      const m = r.staff.mood;
+      if (!c.emote) {
+        if (m === 'burnout') emote(r, 'zzz', 3);
+        else if (m === 'coasting' && Math.random() < 0.6) emote(r, 'sweat', 2.5);
+        else if (r.goal?.thinking && Math.random() < 0.7) emote(r, 'lightbulb', 2.5);
+        else if (r.goal?.mentoring && Math.random() < 0.5) emote(r, 'heart', 2);
+        else if (m === 'ok' && Math.random() < 0.12) emote(r, 'music', 2.2);
+      }
+    }
+
+    if (r.path.length) {
+      stepWalker(r, dt, r.walkAnim);
+    } else if (r.temp) {
+      const tp = r.temp;
+      if (tp.delay > 0) { tp.delay -= dt; }
+      else {
+        tp.t -= dt;
+        c.setAnim(tp.anim);
+        if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, tp.goal.yaw, 1 - Math.exp(-dt * 6));
+        if (tp.t <= 0) {
+          r.temp = null;
+          if (tp.back && r.goal) walkTo(r, r.goal);
+        }
+      }
+    } else if (r.goal) {
+      if (r.goal.hidden) {
+        if (!r.hidden) { r.hidden = true; c.root.visible = false; }
+      } else {
+        if (r.mode === 'enter') r.mode = 'placed';
+        const g = r.goal;
+        if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.05) { r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8)); }
+        r.yaw = angleLerp(r.yaw, g.yaw, 1 - Math.exp(-dt * 8));
+        c.setAnim(g.anim);
+      }
+    }
+    c.setRingScale(c.seated ? 1.4 : 1);
+    c.root.position.copy(r.pos);
+    c.root.rotation.y = r.yaw;
+    c.update(dt);
+  }
+
+  function updateLeaver(r, dt) {
+    r.leaveT += dt;
+    const c = r.char;
+    if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
+    if (r.leaveT > 1.1 && !r.exitPath) {
+      const d = office.current.L.zones.door;
+      r.exitPath = true;
+      walkTo(r, { x: d.x, z: d.z });
+      r.speed = 1.0;
+    }
+    if (r.exitPath && r.path.length) stepWalker(r, dt, 'carry');
+    else if (r.exitPath) {
+      r.fade = (r.fade ?? 1) - dt * 2.5;
+      const s = Math.max(0.001, r.fade);
+      c.root.scale.setScalar(s);
+      if (r.fade <= 0) return false;
+    }
+    c.root.position.copy(r.pos);
+    c.root.rotation.y = r.yaw;
+    c.update(dt);
+    return true;
+  }
+
+  function updateLeds(dt) {
+    ledClock += dt;
+    if (ledClock < 0.125) return;
+    const t = performance.now() / 1000;
+    ledClock = 0;
+    const leds = office.leds();
+    const outage = !!lastState?.outage;
+    const products = (lastState?.products ?? []).filter((p) => !p.killed).length;
+    const rate = 0.6 + products * 0.45;
+    for (const l of leds) {
+      if (outage) l.mesh.material = Math.sin(t * 7 + l.phase * 0.2) > 0 ? ledMats.red : ledMats.redDim;
+      else {
+        const v = Math.sin(t * rate * (1 + (l.phase % 3) * 0.37) + l.phase);
+        l.mesh.material = v > 0.55 ? ledMats.dim : v < -0.93 ? ledMats.amber : ledMats.green;
+      }
+    }
+  }
+
+  function update(dt) {
+    if (!office.current) return;
+    maybeWander(dt);
+    for (const r of recs.values()) updateRec(r, dt);
+    for (let i = leavers.length - 1; i >= 0; i--) {
+      if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
+    }
+    updateLeds(dt);
+  }
+
+  // Picking: character proxies first, then racks.
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  function pick(clientX, clientY, camera, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    const proxies = [...recs.values()].filter((r) => !r.hidden).map((r) => r.char.pickProxy);
+    const hit = raycaster.intersectObjects(proxies, false)[0];
+    if (hit) return { kind: 'staff', id: hit.object.userData.staffId };
+    const racks = office.current?.dyn.racks ?? [];
+    const rh = raycaster.intersectObjects(racks, true)[0];
+    if (rh) {
+      let o = rh.object;
+      while (o && !racks.includes(o)) o = o.parent;
+      return { kind: 'rack', id: racks.indexOf(o) };
+    }
+    return { kind: null, id: null };
+  }
+
+  function positionOf(id) {
+    return recs.get(id)?.pos ?? null;
+  }
+
+  function dispose() {
+    for (const r of recs.values()) disposeRec(r);
+    for (const r of leavers) disposeRec(r);
+    recs.clear();
+    leavers.length = 0;
+  }
+
+  return {
+    sync, handleEvents, update, pick, positionOf, dispose,
+    get count() { return recs.size; },
+    get leaverCount() { return leavers.length; },
+  };
+}
