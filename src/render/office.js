@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
-import { mat, color, glow, paletteMaterial, setGlowBase } from './materials.js';
+import { mat, color, glow, glass, paletteMaterial, setGlowBase } from './materials.js';
 import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
@@ -77,6 +77,19 @@ const FLOORS = {
     for (let i = 0; i <= n; i++) { ctx.beginPath(); ctx.moveTo(0, (i * s) / n); ctx.lineTo(s, (i * s) / n); ctx.stroke(); }
   }, 2.4),
 };
+
+// Outdoor decking for the roof terrace: warm planks with dark gaps.
+FLOORS.deck = () => canvasTex('deck', 256, (ctx, s) => {
+  const n = 6;
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = i % 2 ? P.wood_light : P.floor_wood;
+    ctx.fillRect(0, (i * s) / n, s, s / n);
+    ctx.fillStyle = P.wood_dark;
+    ctx.fillRect(((i * 131) % s), (i * s) / n, 3, s / n);
+  }
+  ctx.fillStyle = P.wood_walnut;
+  for (let i = 0; i <= n; i++) ctx.fillRect(0, (i * s) / n - 2, s, 4);
+}, 1.5);
 
 const WALLS = {
   block: () => canvasTex('block', 256, (ctx, s) => {
@@ -185,6 +198,20 @@ function openingModel(L, o, screens) {
     place(m, wx, o.bottom, wz, rot);
     m.traverse((c) => { if (c.isMesh && c.name.startsWith('window_glass')) { c.material = screens.windowMaterial(); c.castShadow = false; } });
     return m;
+  }
+  if (o.kind === 'rail') {
+    // Glass balustrade: posts every ~1.5 m, a handrail on top, a glass panel between.
+    const g = new THREE.Group();
+    const w = o.width, H = 1.05;
+    const n = Math.max(2, Math.round(w / 1.5) + 1);
+    for (let i = 0; i < n; i++) g.add(mesh(roundedBox(0.06, H, 0.06, 0.015), mat('metal_dark'), -w / 2 + (w * i) / (n - 1), H / 2, 0));
+    g.add(mesh(roundedBox(w, 0.05, 0.09, 0.02), mat('metal_dark'), 0, H, 0));
+    g.add(mesh(roundedBox(w, 0.04, 0.12, 0.015), mat('metal_dark'), 0, 0.02, 0, { cast: false }));
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.1, H - 0.2), glass());
+    pane.position.set(0, H / 2, 0);
+    pane.userData.noAO = true;
+    g.add(pane);
+    return place(g, wx, 0, wz, rot);
   }
   if (o.kind === 'garage') {
     const m = getModel('garage_door');
@@ -453,9 +480,50 @@ function wallMatFor(L) {
   return L.wall === 'block' ? surfaceMat('block', null, WALLS.block()) : mat(L.wall === 'sage' ? 'wall_sage' : 'wall_cream');
 }
 
+// HQ expansion dressing (layout.js extras): the annex's carpet, the terrace deck with string lights,
+// metal thresholds where old walls stood, and pilasters left at their ends.
+function addExpansion(L, statics) {
+  const ex = L.extras ?? {};
+  if (ex.annex) {
+    const a = ex.annex;
+    statics.add(floorPlane(a.x1 - a.x0, a.z1 - a.z0, surfaceMat('carpet', null, FLOORS.carpet()), 0.003).translateX((a.x0 + a.x1) / 2).translateZ((a.z0 + a.z1) / 2));
+  }
+  for (const d of ex.decks ?? []) {
+    statics.add(floorPlane(d.x1 - d.x0, d.z1 - d.z0, surfaceMat('deck', null, FLOORS.deck()), 0.004).translateX((d.x0 + d.x1) / 2).translateZ((d.z0 + d.z1) / 2));
+    // String lights: poles at the deck's inner corners and midpoints, bulbs sagging between them.
+    const poles = [[d.x0 + 0.2, d.z0 + 0.2], [d.x0 + 0.2, (d.z0 + d.z1) / 2], [d.x0 + 0.2, d.z1 - 0.2], [d.x1 - 0.2, d.z1 - 0.2], [d.x1 - 0.2, (d.z0 + d.z1) / 2], [d.x1 - 0.2, d.z0 + 0.2]];
+    for (const [x, z] of poles) {
+      statics.add(mesh(roundedCylinder(0.03, 0.03, 2.4, 0.01, 8), mat('metal_dark'), x, 0, z));
+      statics.add(mesh(roundedCylinder(0.12, 0.14, 0.06, 0.02, 12), mat('metal_dark'), x, 0, z));
+    }
+    const bulb = new THREE.SphereGeometry(0.045, 8, 6);
+    const lit = glow('lamp_warm', 1.6, 'terrace');
+    const strings = [[0, 5], [1, 4], [2, 3], [0, 1], [1, 2], [5, 4], [4, 3]];
+    for (const [a, b] of strings) {
+      const [x0, z0] = poles[a], [x1, z1] = poles[b];
+      const n = Math.max(4, Math.round(Math.hypot(x1 - x0, z1 - z0) / 0.5));
+      for (let i = 1; i < n; i++) {
+        const u = i / n;
+        statics.add(mesh(bulb, lit, x0 + (x1 - x0) * u, 2.3 - Math.sin(Math.PI * u) * 0.35, z0 + (z1 - z0) * u, { cast: false }));
+      }
+    }
+  }
+  for (const sm of ex.seams ?? []) {
+    const len = sm.to - sm.from, mid = (sm.from + sm.to) / 2;
+    const w = sm.axis === 'x' ? 0.08 : len, d = sm.axis === 'x' ? len : 0.08;
+    statics.add(mesh(roundedBox(w, 0.014, d, 0.005, 1), mat('metal_soft'), sm.axis === 'x' ? sm.at : mid, 0.006, sm.axis === 'x' ? mid : sm.at, { cast: false }));
+  }
+  for (const c of ex.columns ?? []) {
+    const H = 1.15;
+    statics.add(mesh(roundedBox(0.4, H, 0.4, 0.04), wallMatFor(L), c.x, H / 2, c.z));
+    statics.add(mesh(roundedBox(0.44, 0.1, 0.44, 0.02), mat('baseboard'), c.x, 0.05, c.z));
+    statics.add(mesh(roundedBox(0.42, 0.04, 0.42, 0.01), mat('slab_edge'), c.x, H + 0.02, c.z));
+  }
+}
+
 // Builds one stage shell: slab, floor, walls, windows, and the door. Furniture is placed separately.
-function buildStage(stageIdx, screens) {
-  const L = stageLayout(stageIdx);
+function buildStage(stageIdx, screens, expansion = 0) {
+  const L = stageLayout(stageIdx, expansion);
   const root = new THREE.Group();
   root.name = `stage_${stageIdx}`;
   const statics = new THREE.Group();
@@ -499,6 +567,7 @@ function buildStage(stageIdx, screens) {
       statics.add(mesh(roundedBox(0.52, 0.04, 0.52, 0.01), mat('slab_edge'), c.x, H + 0.02, c.z));
     }
   }
+  addExpansion(L, statics);
   const dm = tileCenter(L, L.door.x, L.door.y);
   statics.add(mesh(roundedBox(0.9, 0.02, 0.6, 0.01), mat('rug_teal'), dm.x, 0.011, dm.z + 0.1, { cast: false }));
 
@@ -515,7 +584,7 @@ function buildStage(stageIdx, screens) {
   root.add(furniture);
 
   return {
-    stage: stageIdx, L, root, walls, furniture,
+    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture,
     desks: [], zones: { door: inward(L) }, dyn: { screens: [], racks: [], wallScreens: [], meetingChairs: [] },
     bounds: new THREE.Box3(new THREE.Vector3(-L.W / 2 - T, 0, -L.D / 2 - T), new THREE.Vector3(L.W / 2 + T, L.wallH, L.D / 2 + T)),
     nav: null,
@@ -560,6 +629,18 @@ function frontOf(e, dist = 0.45) {
   const r = e.target.rotY;
   const k = frontEdge(e) + dist;
   return { x: e.target.x + Math.sin(r) * k, z: e.target.z + Math.cos(r) * k, yaw: r + Math.PI };
+}
+
+// Where a group gathers at a whiteboard: 0.9 m out from its front, or from its back when the front
+// faces a wall (a free-standing board reads from either side). The side kept is the one farther
+// inside the room.
+function boardSide(e, L = e.L) {
+  const f = frontOf(e, 0.9);
+  const r = e.target.rotY;
+  const k = -localBox(e).min.z + 0.9;
+  const b = { x: e.target.x - Math.sin(r) * k, z: e.target.z - Math.cos(r) * k, yaw: r };
+  const room = (p) => Math.min(L.W / 2 - Math.abs(p.x), L.D / 2 - Math.abs(p.z));
+  return e.itemId === 'whiteboard_wall' || room(f) >= room(b) ? f : b;
 }
 
 // The office: current stage shell, placed furniture, cutaway, night lamps, and stage transitions.
@@ -625,9 +706,13 @@ export function createOffice({ parent, screens, lighting }) {
     return out;
   }
 
-  function setStage(stage, { animate = false } = {}) {
-    if (cur && cur.stage === stage) return false;
-    const next = buildStage(stage, screens);
+  function setStage(stage, { animate = false, expansion = 0 } = {}) {
+    const ex = stage === 2 ? expansion : 0;
+    if (cur && cur.key === `${stage}:${ex}`) return false;
+    const next = buildStage(stage, screens, ex);
+    // An expansion keeps the building: the shell swaps in place (a dust puff instead of the drop).
+    const grow = !!cur && cur.stage === stage;
+    if (grow) animate = false;
     if (cur && animate) {
       leaving = { s: cur, t: 0 };
     } else if (cur) {
@@ -646,6 +731,8 @@ export function createOffice({ parent, screens, lighting }) {
     if (animate) {
       cur.root.position.y = -4;
       cur.enterT = 0;
+      spawnDust(cur.L);
+    } else if (grow) {
       spawnDust(cur.L);
     }
     return true;
@@ -746,7 +833,7 @@ export function createOffice({ parent, screens, lighting }) {
       } else if (kind === 'coffee' || e.itemId === 'espresso') {
         Z.coffee ??= frontOf(e, 0.5);
       } else if (kind === 'whiteboard' || e.itemId === 'whiteboard_wall') {
-        Z.whiteboard ??= frontOf(e, 0.9);
+        Z.whiteboard ??= boardSide(e, cur.L);
       }
       if (LOUNGE.has(kind)) Z.lounge.push(frontOf(e, 0.45));
     }

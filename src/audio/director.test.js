@@ -6,7 +6,7 @@ import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK } from './manif
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
   const out = new Set();
-  const re = /#+ (SimEvent shapes|Events|Content ladder events|Speech vs Slackk)[^\n]*\n([\s\S]*?)(?=\n#+ )/g;
+  const re = /#+ (SimEvent shapes|Events|Content ladder events|Speech vs (?:Yak|Slackk))[^\n]*\n([\s\S]*?)(?=\n#+ )/g;
   for (const m of contract.matchAll(re)) for (const t of m[2].matchAll(/type: '([a-zA-Z]+)'/g)) out.add(t[1]);
   return [...out];
 };
@@ -110,7 +110,7 @@ describe('audio director', () => {
     expect(barks).toBeLessThanOrEqual(20);
   });
 
-  it('never barks on speech bubbles or Slackk lines', () => {
+  it('never barks on speech bubbles or Yak lines', () => {
     const d = createDirector();
     const cmds = d.events([{ type: 'say', staffId: 's1', text: 'hi' }, { type: 'chat', from: 'x', text: 'y' }], state(), 1);
     expect(cmds.filter((c) => c.cue === 'voice.bark')).toHaveLength(0);

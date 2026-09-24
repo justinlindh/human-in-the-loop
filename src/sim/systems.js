@@ -26,3 +26,4 @@ import './strain.js';
 import './purpose.js';
 import './incentives.js';
 import './alumni.js';
+import './acquire.js';

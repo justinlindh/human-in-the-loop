@@ -71,7 +71,7 @@ const THREE_SAVES = `(async () => {
 // Everyone in the office: no lockdown, and an office work policy (the sim keeps nobody remote).
 const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
 
-// Presents the recent Slackk history the sim kept, since a fast-forward shows nothing as it goes.
+// Presents the recent Yak history the sim kept, since a fast-forward shows nothing as it goes.
 const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
@@ -219,9 +219,9 @@ export const ITEMS = [
     setup: PLAY({ weeks: 110, after: `${IN_OFFICE} window.__HITL.dispatch({ type: 'setPolicy', id: 'async_standups', on: false }); window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });` }),
     actions: DISMISS_EVERY(30), screenshots: [12],
   },
-  // The fast-forward sends Slackk nothing, so the recent history the sim kept is presented first.
+  // The fast-forward sends Yak nothing, so the recent history the sim kept is presented first.
   ...[['early', 20], ['mid', 300], ['late', 700]].map(([when, weeks]) => ({
-    id: `3-6-slackk-${when}`, title: `3.6 Slackk, ${when} game`, query: 'seed=27&speed=0', still: true, setup: PLAY({ weeks, after: CHAT_HISTORY }), screenshots: [2],
+    id: `3-6-yak-${when}`, title: `3.6 Yak, ${when} game`, query: 'seed=27&speed=0', still: true, setup: PLAY({ weeks, after: CHAT_HISTORY }), screenshots: [2],
   })),
 
   // 4. Screens and decisions
@@ -359,7 +359,7 @@ export const ITEMS = [
   {
     id: 'readme-garage', group: 'readme', title: 'The garage opening: founders and the first desks', query: 'seed=1&speed=1', still: true,
     setup: PLAY({ weeks: 1 }), warmup: 3,
-    // Nothing has been said in Slackk yet this early, so the panel is folded away.
+    // Nothing has been said in Yak yet this early, so the panel is folded away.
     actions: [...DISMISS_AT([0.1, 0.5]), { at: 0.3, js: KEY('c', 'KeyC') }], screenshots: [3],
   },
   {

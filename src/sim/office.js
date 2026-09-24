@@ -2,7 +2,8 @@ import { newId } from './util.js';
 import { registerAction } from './registry.js';
 import { emitChat } from './chat.js';
 import { ITEMS } from '../data/items.js';
-import { OFFICE_STAGES } from '../data/office.js';
+import { OFFICE_STAGES, officeShape } from '../data/office.js';
+import { B } from './balance.js';
 import { adjacencyLinks, itemBonus } from './bonus.js';
 import { eraAtLeast } from './eras.js';
 
@@ -70,9 +71,13 @@ export function seatOf(state, staffId) {
   return desk ? seatTile(desk) : null;
 }
 
+// A layout is a stage index, or { stage, expansion } for an expanded HQ.
+const shapeOf = (layout) => (typeof layout === 'number' ? officeShape(layout) : officeShape(layout.stage, layout.expansion));
+export const layoutOf = (state) => ({ stage: state.officeStage, expansion: state.office.expansion ?? 0 });
+
 // Whether every desk's chair has a free tile beside it that can be walked to from the door.
 export function pathsClear(stageIdx, placed) {
-  const st = OFFICE_STAGES[stageIdx];
+  const st = shapeOf(stageIdx);
   const { w, h } = st.grid;
   const solid = new Set(st.blocked.map(([x, y]) => key(x, y)));
   for (const p of placed) for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) solid.add(key(x, y));
@@ -96,13 +101,15 @@ export function pathsClear(stageIdx, placed) {
 
 // Why an item cannot go at (x, y, rot) on a stage given the other placed items, or null. Layout only.
 function layoutProblem(stageIdx, others, { itemId, x, y, rot }) {
-  const st = OFFICE_STAGES[stageIdx];
+  const st = shapeOf(stageIdx);
   if (![x, y, rot].every(Number.isInteger) || rot < 0 || rot > 3) return 'Out of bounds';
   const cells = footprintCells(itemId, x, y, rot);
   if (cells.some(([cx, cy]) => cx < 0 || cy < 0 || cx >= st.grid.w || cy >= st.grid.h)) return 'Out of bounds';
   const blocked = new Set(st.blocked.map(([bx, by]) => key(bx, by)));
   if (cells.some(([cx, cy]) => blocked.has(key(cx, cy)))) return 'Blocked';
   if (cells.some(([cx, cy]) => cx === st.door.x && cy === st.door.y)) return 'Keep the door clear';
+  const inTerrace = (cx, cy) => st.zones.some((z) => z.id === 'terrace' && cx >= z.x0 && cx <= z.x1 && cy >= z.y0 && cy <= z.y1);
+  if (!ITEMS[itemId]?.outdoor && cells.some(([cx, cy]) => inTerrace(cx, cy))) return 'Only outdoor items go on the terrace';
   const taken = new Set();
   for (const p of others) for (const [ox, oy] of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(key(ox, oy));
   if (cells.some(([cx, cy]) => taken.has(key(cx, cy)))) return 'Overlaps something';
@@ -118,8 +125,19 @@ export function purchaseProblem(state, itemId) {
   if (it.era && !eraAtLeast(state, it.era)) return 'Arrives with the Agents era';
   if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';
   if (it.kind === 'shop' && state.office.placed.filter((p) => p.itemId === itemId).length >= 2) return 'You already have two';
+  if (it.id === 'desk' && state.officeStage >= 1 && desksOf(state.office.placed).length >= deskCap(state)) return 'Desk limit reached';
   if (state.cash < it.costs[0]) return 'Not enough cash';
   return null;
+}
+
+// Most desks the Office Floor and the HQ hold: a base cap, plus a few per HQ expansion step. Moving up a
+// stage never brings more desks than the new stage allows.
+export const deskCap = (state) => B.hqDeskCap + B.expansionDeskStep * (state.office.expansion ?? 0);
+
+// The next HQ expansion step ({ step, name, upgradeCost, rent, gate, ... }), or null before the HQ or after the last step.
+export function nextExpansion(state) {
+  if (state.officeStage !== OFFICE_STAGES.length - 1) return null;
+  return OFFICE_STAGES[state.officeStage].expansions?.[state.office.expansion ?? 0] ?? null;
 }
 
 // The same check placeItem and moveItem run. Pass id to check a move of an already placed item (moves are free).
@@ -130,7 +148,7 @@ export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
   if (!ITEMS[item]) return { ok: false, reason: 'Unknown item' };
   if (state.officeStage < ITEMS[item].minStage) return { ok: false, reason: 'Needs a bigger office' };
   const others = state.office.placed.filter((p) => p !== moving);
-  const problem = layoutProblem(state.officeStage, others, { itemId: item, x, y, rot });
+  const problem = layoutProblem(layoutOf(state), others, { itemId: item, x, y, rot });
   if (problem) return { ok: false, reason: problem };
   if (!moving) {
     const reason = purchaseProblem(state, item);
@@ -141,7 +159,7 @@ export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
 
 // The first free spot for an item, scanning rows from the back corner, or null.
 export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3]) {
-  const { w, h } = OFFICE_STAGES[stageIdx].grid;
+  const { w, h } = shapeOf(stageIdx).grid;
   for (const rot of rots) {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -158,7 +176,7 @@ export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3]) {
 const ISLAND_W = 3;
 
 export function islandSlots(stageIdx) {
-  const { w, h } = OFFICE_STAGES[stageIdx].grid;
+  const { w, h } = shapeOf(stageIdx).grid;
   const slots = [];
   for (let y0 = 1; y0 + 3 < h - 1; y0 += 5) {
     for (let x0 = 1; x0 < w - 1; x0 += ISLAND_W + 1) {
@@ -175,7 +193,7 @@ export function islandSlots(stageIdx) {
 // Returns { x, y, rot } or null when nothing fits. Layout only: cash is not checked.
 export function suggestPlacement(state, itemId) {
   if (!ITEMS[itemId]) return null;
-  const stage = state.officeStage;
+  const stage = layoutOf(state);
   const placed = state.office.placed;
   if (itemId === 'desk') {
     const slot = islandSlots(stage).find((sl) => !layoutProblem(stage, placed, { itemId, ...sl }));

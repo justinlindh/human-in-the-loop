@@ -1,5 +1,5 @@
 {
-  "branches": ["main", "feat/one-shot"],
+  "branches": ["main"],
   "tagFormat": "v${version}",
   "plugins": [
     [

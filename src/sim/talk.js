@@ -313,7 +313,7 @@ function atChannel(ctx, talk, factor) {
   talk.atChannelNext = state.week + B.atChannelGapWeeks;
 }
 
-// One week of office talk: spoken lines (say events) and Slackk threads, at a modest rate, with this
+// One week of office talk: spoken lines (say events) and Yak threads, at a modest rate, with this
 // week's situations first, then running jokes, then everyday exchanges and solo lines.
 export function talkSystem(ctx, happened) {
   const { state, rng } = ctx;
@@ -335,7 +335,7 @@ export function talkSystem(ctx, happened) {
   if (!spoke && chance(rng, B.sayExchangeChance * factor)) spoke = !!runOne(ctx, eligible(state, talk, h, { stream: 'say' }), beats, talk);
   if (!spoke && chance(rng, B.saySoloChance * factor)) soloLine(ctx, talk, h);
 
-  // Slackk.
+  // Yak.
   let posted = false;
   // A new person's own hello already greets the channel; no second welcome thread in the same stretch.
   const greeted = state.flags.helloWeek !== undefined && state.week - state.flags.helloWeek <= 1;

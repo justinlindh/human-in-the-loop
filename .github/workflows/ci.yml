@@ -4,7 +4,7 @@ name: ci
 # comment from scripts/ci-pr.sh (see CLAUDE.md).
 on:
   push:
-    branches: [main, feat/one-shot]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
