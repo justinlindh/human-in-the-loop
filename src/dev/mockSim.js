@@ -49,24 +49,33 @@ const MOCK_ITEMS = [
   [['espresso', 3], ['plant_wall', 3], ['whiteboard_wall', 2], ['server_rack', 3], ['nap_pod', 2], ['monitoring_wall', 3], ['arcade', 2], ['library', 2], ['standing_desk', 3], ['trophy_case', 2], ['arcade', 1], ['plant_wall', 1]],
 ];
 const GRIDS = [{ w: 9, h: 7 }, { w: 15, h: 12 }, { w: 21, h: 16 }];
+// A valid layout: desk columns with aisles, then shop items along the back and left walls.
 function mockPlaced(stage, staffCount) {
   const g = GRIDS[stage];
   const placed = [];
   let n = 1;
-  // Desk sets in facing pairs (2x1 each), rows from the middle of the room.
-  for (let i = 0; i < Math.max(2, staffCount); i++) {
-    const col = i % 4, row = Math.floor(i / 4);
-    placed.push({ id: `f${n++}`, itemId: 'desk', level: 1, x: 2 + col * 2, y: 2 + row * 2, rot: row % 2 ? 2 : 0 });
-  }
-  // Shop items along the back walls.
-  MOCK_ITEMS[stage].forEach(([itemId, level], i) => placed.push({ id: `f${n++}`, itemId, level, x: Math.min(g.w - 1, i * 2), y: 0, rot: 0 }));
+  const tryPlace = (itemId, level, spots) => {
+    for (const [x, y, rot] of spots) {
+      const item = { itemId, x, y, rot };
+      if (!placementProblem(stage, item, placed)) { placed.push({ id: `f${n++}`, level, ...item }); return true; }
+    }
+    return false;
+  };
+  const deskSpots = [];
+  for (let y = 2; y + 1 < g.h - 1; y += 3) for (let x = 2; x < g.w - 1; x += 2) deskSpots.push([x, y, 0]);
+  for (let i = 0; i < Math.max(2, staffCount); i++) if (!tryPlace('desk', 1, deskSpots)) break;
+  const wallSpots = [];
+  for (let x = 0; x < g.w; x++) wallSpots.push([x, 0, 0]);
+  for (let y = 1; y < g.h; y++) wallSpots.push([0, y, 1]);
+  for (let y = 1; y < g.h; y++) for (let x = 1; x < g.w; x++) wallSpots.push([x, y, 0]);
+  for (const [itemId, level] of MOCK_ITEMS[stage]) tryPlace(itemId, level, wallSpots);
   return placed;
 }
 // Placement rules for the mock's build mode: footprints at rot 0, level-1 prices, doors, blocked tiles.
 const MOCK_SHAPES = {
   desk: { w: 1, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, coffee_corner: { w: 2, h: 1 }, plant: { w: 1, h: 1 },
   bookshelf: { w: 2, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, whiteboard_wall: { w: 3, h: 1 }, library: { w: 2, h: 2 },
-  monitoring_wall: { w: 3, h: 1 },
+  monitoring_wall: { w: 3, h: 1 }, espresso: { w: 2, h: 1 }, standing_desk: { w: 2, h: 1 }, server_rack: { w: 2, h: 1 }, trophy_case: { w: 2, h: 1 },
 };
 const MOCK_PRICES = { desk: 800, meeting_table: 3000, whiteboard: 400, coffee_corner: 1200, plant: 150, bookshelf: 500 };
 const DOORS = [{ x: 4, y: 6 }, { x: 7, y: 11 }, { x: 10, y: 15 }];
