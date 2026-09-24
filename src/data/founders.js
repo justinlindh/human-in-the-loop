@@ -1,4 +1,4 @@
-// Founder archetypes offered at founding. strengths: the two skills that start a few points higher (B.founderStrengthBonus).
+// Founder archetypes offered at founding. builder: engineer or designer; warning: a plain line for the card, or null. strengths: the two skills that start a few points higher (B.founderStrengthBonus).
 const rows = [
   ['engineer', 'The Engineer', 'engineer', 'senior', 'pragmatist', ['features', 'reliability'],
     'Has opinions about databases and a side project from 2011 that still runs. Builds things that work.'],
@@ -19,3 +19,16 @@ export const ARCHETYPES = Object.fromEntries(rows.map(([id, name, role, seniorit
 ]));
 
 export const DEFAULT_FOUNDERS = ['engineer', 'designer'];
+
+const BUILDERS = new Set(['engineer', 'designer']);
+for (const a of Object.values(ARCHETYPES)) {
+  a.builder = BUILDERS.has(a.role);
+  a.warning = a.builder ? null : 'Not a builder: works on products slowly, as a generalist.';
+}
+
+// A plain warning for a founder pair, or null when the pair can build normally.
+export function foundingWarning(ids) {
+  const pair = ids.map((id) => ARCHETYPES[id]).filter(Boolean);
+  if (pair.some((a) => a.builder)) return null;
+  return 'No builder: the first product will be slow. Plan to hire an engineer early.';
+}

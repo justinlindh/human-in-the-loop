@@ -1,6 +1,7 @@
 import { createGame } from '../../src/sim/index.js';
 import { generateStaff } from '../../src/sim/staff.js';
 import { findSpot } from '../../src/sim/office.js';
+import { offerPaths } from '../../src/sim/progression.js';
 import { ANGLES } from '../../src/data/angles.js';
 import { UNLOCK_KEYS } from '../../src/data/unlocks.js';
 
@@ -13,6 +14,7 @@ export const classicGame = (seed = 1) => createGame({ seed, companyName: 'Loopwo
 export function openEverything(s) {
   s.era = { id: 'agents', since: 0 };
   for (const k of UNLOCK_KEYS) s.unlocks[k] = 0;
+  offerPaths(s);
   for (const id of ['daily_standups', 'async_standups', 'pair', 'craft_fridays']) s.unlocks[`policy.${id}`] = 0;
   // Mistrale stays unreleased so tests can reach for a model that is not out yet.
   for (const [id, m] of Object.entries(s.models)) m.available = id !== 'mistrale';

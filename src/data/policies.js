@@ -1,14 +1,16 @@
+// unlock(state): the trigger. with: opens alongside that unlock key, without a card of its own.
+// era: arrives with that era. Otherwise policies unlock one at a time (see checkUnlocks).
 export const POLICIES = {
   daily_standups: {
-    id: 'daily_standups', lockText: 'Unlocks at 5 people', name: 'Daily Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'async_standups',
+    id: 'daily_standups', with: 'standups', lockText: 'Unlocks at 5 people', name: 'Daily Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'async_standups',
     desc: 'Everyone gathers at the whiteboard for quick updates. A little less output, better knowledge sharing, and a small meaning lift.',
   },
   async_standups: {
-    id: 'async_standups', lockText: 'Unlocks at 5 people', name: 'Async Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'daily_standups',
+    id: 'async_standups', with: 'standups', lockText: 'Unlocks at 5 people', name: 'Async Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'daily_standups',
     desc: 'Updates go to the #standup channel instead. No output cost, a smaller knowledge boost, and the quiet ones stop posting.',
   },
   pair: {
-    id: 'pair', lockText: 'Arrives with the ChatGBT moment', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: (s) => s.era.id !== 'classic',
+    id: 'pair', era: 'chatgbt', lockText: 'Arrives with the ChatGBT moment', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: (s) => s.era.id !== 'classic',
     desc: 'Automation works alongside people, not in place of them. Much less meaning drain, smaller automation output.',
   },
   craft_fridays: {

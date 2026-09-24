@@ -212,6 +212,8 @@ describe('setAutomation and setPolicy', () => {
     expect(dispatch(s, { type: 'setPolicy', id: 'pair', on: false }).ok).toBe(true);
     expect(s.policies.pair).toBeUndefined();
     s.officeStage = 1;
+    expectFail(expect, dispatch, s, { type: 'setPolicy', id: 'apprenticeship', on: true }, 'Needs the Office Floor');
+    s.unlocks['policy.apprenticeship'] = s.week;
     expect(dispatch(s, { type: 'setPolicy', id: 'apprenticeship', on: true }).ok).toBe(true);
   });
 });

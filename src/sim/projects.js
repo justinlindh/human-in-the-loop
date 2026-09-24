@@ -46,7 +46,8 @@ export function reviewScore(state, project) {
   return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit, quality };
 }
 
-const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer'));
+// Founders built the company, so any founder can build, whatever their role.
+const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder));
 
 function baseProject(state, fields) {
   return {

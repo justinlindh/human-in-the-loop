@@ -1,6 +1,6 @@
 // Systems that appear as the company grows. reason: the refusal text while locked.
 // explainer: the one-card "New!" text (what it is, why it matters now).
-// when(state, h): h = { eraIndex }.
+// when(state, h): h = { eraIndex }. era: arrives with that era (shown on the era card, not spaced out).
 export const UNLOCKS = [
   {
     key: 'marketing', name: 'Marketing', reason: 'Unlocks with your first launch',
@@ -18,19 +18,19 @@ export const UNLOCKS = [
     when: (s) => s.stats.launches >= 3,
   },
   {
-    key: 'models', name: 'Models', reason: 'Arrives with the ChatGBT moment',
+    key: 'models', name: 'Models', reason: 'Arrives with the ChatGBT moment', era: 'chatgbt',
     explainer: 'Model vendors will rent you a brain by the token. Each has a price, a personality, and a policy on deleting production.',
     when: (s, h) => h.eraIndex >= 1,
   },
   {
-    key: 'automation', name: 'Automation', reason: 'Arrives with the ChatGBT moment',
+    key: 'automation', name: 'Automation', reason: 'Arrives with the ChatGBT moment', era: 'chatgbt',
     explainer: 'Let a model answer support tickets and write marketing copy. It is cheap and tireless. People whose work it does may feel less needed.',
     when: (s, h) => h.eraIndex >= 1,
   },
   {
-    key: 'paths', name: 'Career Paths', reason: 'Unlocks when someone becomes a senior',
+    key: 'paths', name: 'Career Paths', reason: 'Unlocks when someone is promoted to senior',
     explainer: 'Seniors choose where to grow: deeper craft, leading people, or watching the machines. Each path changes what they are best at.',
-    when: (s) => !!s.flags.firstSeniorWeek || s.staff.some((p) => !p.founder && p.seniority === 'senior'),
+    when: (s) => s.flags.firstSeniorWeek !== undefined,
   },
   {
     key: 'standups', name: 'Standups', reason: 'Unlocks at 5 people',

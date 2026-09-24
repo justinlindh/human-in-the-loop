@@ -62,7 +62,7 @@ registerAction('setPolicy', (ctx, { id, on }) => {
   const pol = POLICIES[id];
   if (!pol) return { ok: false, reason: 'Unknown policy' };
   if (on) {
-    if (!state.policies[id] && !isUnlocked(state, `policy.${id}`) && !pol.unlock(state)) return { ok: false, reason: pol.lockText };
+    if (!state.policies[id] && !isUnlocked(state, `policy.${id}`)) return { ok: false, reason: pol.lockText };
     state.policies[id] = true;
     if (pol.excludes) delete state.policies[pol.excludes];
     ctx.emit({ type: 'toast', text: `Policy on: ${pol.name}`, tone: 'info' });

@@ -3,7 +3,7 @@ import { registerAction } from './registry.js';
 import { emitChat } from './chat.js';
 import { ITEMS } from '../data/items.js';
 import { OFFICE_STAGES } from '../data/office.js';
-import { adjacencyLinks } from './bonus.js';
+import { adjacencyLinks, itemBonus } from './bonus.js';
 
 const key = (x, y) => `${x},${y}`;
 
@@ -128,14 +128,71 @@ export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3]) {
   return null;
 }
 
-// Packs existing furniture into a stage: desks first, then bigger items. Returns what did not fit.
+// Desk slots in islands: bands four tiles tall (chair, desk, desk, chair, so each pair faces across the
+// island), ISLAND_W desks wide, with a one-tile aisle between islands and between bands. The back-wall
+// row stays free for walking and wall items. Slots fill column by column, top then bottom.
+const ISLAND_W = 3;
+
+export function islandSlots(stageIdx) {
+  const { w, h } = OFFICE_STAGES[stageIdx].grid;
+  const slots = [];
+  for (let y0 = 1; y0 + 3 < h - 1; y0 += 5) {
+    for (let x0 = 1; x0 < w - 1; x0 += ISLAND_W + 1) {
+      for (let x = x0; x < Math.min(x0 + ISLAND_W, w - 1); x++) {
+        slots.push({ x, y: y0, rot: 2 }, { x, y: y0 + 2, rot: 0 });
+      }
+    }
+  }
+  return slots;
+}
+
+// Where an item should go: desks take the next free island slot; other items go where they are near
+// the most occupied desks (the adjacency rule), else the first free spot along the back wall.
+// Returns { x, y, rot } or null when nothing fits. Layout only: cash is not checked.
+export function suggestPlacement(state, itemId) {
+  if (!ITEMS[itemId]) return null;
+  const stage = state.officeStage;
+  const placed = state.office.placed;
+  if (itemId === 'desk') {
+    const slot = islandSlots(stage).find((sl) => !layoutProblem(stage, placed, { itemId, ...sl }));
+    return slot ?? findSpot(stage, placed, itemId, [0, 2, 1, 3]);
+  }
+  const adj = ITEMS[itemId].adjacency;
+  if (adj && !adj.to) {
+    const { w, h } = ITEMS[itemId].footprint;
+    const reach = adj.radius + Math.max(w, h);
+    const seats = desksOf(placed).slice(0, state.staff.length).map(seatTile);
+    const tried = new Set();
+    let best = null;
+    for (const [sx, sy] of seats) {
+      for (let y = sy - reach; y <= sy + reach; y++) {
+        for (let x = sx - reach; x <= sx + reach; x++) {
+          for (const rot of [0, 1]) {
+            const k = `${x},${y},${rot}`;
+            if (tried.has(k)) continue;
+            tried.add(k);
+            const cells = footprintCells(itemId, x, y, rot);
+            const v = seats.filter(([ax, ay]) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - ax), Math.abs(cy - ay)) <= adj.radius)).length;
+            if (v && (!best || v > best.v) && !layoutProblem(stage, placed, { itemId, x, y, rot })) best = { x, y, rot, v };
+          }
+        }
+      }
+    }
+    if (best) return { x: best.x, y: best.y, rot: best.rot };
+  }
+  return findSpot(stage, placed, itemId);
+}
+
+// Packs existing furniture into a stage: desks first (into islands), then bigger items. Returns what did not fit.
 export function autoArrange(stageIdx, placed) {
   const area = (p) => ITEMS[p.itemId].footprint.w * ITEMS[p.itemId].footprint.h;
   const order = [...placed].sort((a, b) => (b.itemId === 'desk') - (a.itemId === 'desk') || area(b) - area(a));
   const out = [];
   const left = [];
+  const islands = islandSlots(stageIdx);
   for (const p of order) {
-    const spot = findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3]);
+    const slot = p.itemId === 'desk' ? islands.find((sl) => !layoutProblem(stageIdx, out, { itemId: 'desk', ...sl })) : null;
+    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3]);
     if (spot) out.push({ ...p, ...spot });
     else left.push(p);
   }
@@ -144,15 +201,45 @@ export function autoArrange(stageIdx, placed) {
   return { placed: placed.filter((p) => byId.has(p.id)).map((p) => byId.get(p.id)), left };
 }
 
-// What placing (or moving, with id) an item at (x, y, rot) would change in adjacency: every link that
-// involves the item, measured exactly as itemBonus measures it. paid false means the desk is empty for now.
+const EFFECT_LABEL = {
+  meaningRecovery: 'meaning recovery', novelty: 'novelty', staminaRecovery: 'stamina recovery',
+  knowledgeGain: 'learning speed', uptimeFloor: 'uptime floor',
+};
+
+// What placing (or moving, with id) an item at (x, y, rot) would do, measured exactly as itemBonus pays:
+// links: every adjacency link involving the item ({ sourceId, targetId, target, key, value, paid, text });
+// effects: [{ key, delta, text }], the change in itemBonus per key after averaging and the 50% cap;
+// text: those texts joined, ready to show. A moved item keeps its place in desk order.
 export function adjacencyPreview(state, { itemId, x, y, rot = 0, id = null }) {
   const moving = id ? state.office.placed.find((p) => p.id === id) : null;
   const item = moving ? moving.itemId : itemId;
-  if (!ITEMS[item]) return [];
+  if (!ITEMS[item]) return { links: [], effects: [], text: '' };
   const candidate = { id: moving?.id ?? 'preview', itemId: item, level: moving?.level ?? 1, x, y, rot };
-  const layout = [...state.office.placed.filter((p) => p !== moving), candidate];
-  return adjacencyLinks(layout, state.staff.length).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
+  const layout = moving ? state.office.placed.map((p) => (p === moving ? candidate : p)) : [...state.office.placed, candidate];
+  const links = adjacencyLinks(layout, state.staff.length).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
+  for (const l of links) {
+    const each = `+${Math.round(l.value * 1000) / 10}% ${EFFECT_LABEL[l.key] ?? l.key}`;
+    l.text = l.target === 'item' ? `${each} per neighbour` : l.paid ? `${each} at this desk, averaged over the team` : `${each} once someone sits at this desk`;
+  }
+  const after = { ...state, office: { ...state.office, placed: layout } };
+  const keys = new Set([...links.map((l) => l.key), ...Object.keys(ITEMS[item].effects[candidate.level - 1] ?? {})]);
+  const effects = [];
+  for (const key of keys) {
+    const delta = itemBonus(after, key) - itemBonus(state, key);
+    const paid = links.filter((l) => l.key === key && l.target === 'desk' && l.paid).length;
+    const empty = links.filter((l) => l.key === key && l.target === 'desk' && !l.paid).length;
+    const racks = links.filter((l) => l.key === key && l.target === 'item').length;
+    if (Math.abs(delta) < 1e-9 && !empty) continue;
+    const pct = Math.round(delta * 1000) / 10;
+    const bits = [];
+    if (paid) bits.push(`${paid} ${paid === 1 ? 'desk' : 'desks'} nearby`);
+    if (empty) bits.push(`${empty} empty ${empty === 1 ? 'desk' : 'desks'}`);
+    if (racks) bits.push(`${racks} neighbouring ${racks === 1 ? 'link' : 'links'}`);
+    const label = EFFECT_LABEL[key] ?? key;
+    const text = `${pct >= 0 ? '+' : ''}${pct}% ${label}${paid ? ' for the team' : ''}${bits.length ? ` (${bits.join(', ')})` : ''}`;
+    effects.push({ key, delta, text });
+  }
+  return { links, effects, text: effects.map((e) => e.text).join('; ') };
 }
 
 export const spentOn = (p) => ITEMS[p.itemId].costs.slice(0, p.level).reduce((a, b) => a + b, 0);

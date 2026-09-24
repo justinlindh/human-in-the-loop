@@ -3,14 +3,22 @@ import { sum } from './util.js';
 import { outputMult, staffMods, STATS } from './staff.js';
 import { registerSystem } from './registry.js';
 import { perk } from './bonus.js';
+import { currentEra } from './eras.js';
 
 export const zeroPoints = () => ({ features: 0, polish: 0, reliability: 0, novelty: 0 });
+
+// A founder whose role does not build still builds on projects, as a slow generalist.
+function buildWeights(person) {
+  const builds = person.role === 'engineer' || person.role === 'designer';
+  if (builds || !person.founder || person.assignment.type !== 'project') return B.roleWeights[person.role];
+  return B.founderGeneralistWeights;
+}
 
 // Raw weekly effort per stat: drives project progress. Skill does not speed work up.
 export function personEffort(state, person) {
   const base = (B.basePoints + B.pointsPerLevel * person.level) * outputMult(state, person)
     * (person.assignment.type === 'mentor' ? B.mentorOutputMult : 1);
-  const w = B.roleWeights[person.role];
+  const w = buildWeights(person);
   const out = zeroPoints();
   for (const st of STATS) out[st] = base * w[st];
   return out;
@@ -42,7 +50,8 @@ export function automationPoints(state) {
   const out = zeroPoints();
   if (a.level <= 0) return out;
   const cap = state.models[a.model].capability / 100;
-  const total = B.autoEngPoints * a.level * cap * (state.policies.pair ? B.pairAutoMult : 1);
+  const era = B.eraAutoEngMult[currentEra(state).id] ?? 1;
+  const total = B.autoEngPoints * era * a.level * cap * (state.policies.pair ? B.pairAutoMult : 1);
   for (const st of STATS) out[st] = total * B.autoEngWeights[st];
   return out;
 }

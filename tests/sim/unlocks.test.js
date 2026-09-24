@@ -37,7 +37,7 @@ describe('a fresh company starts with the basics only', () => {
     expectFail(expect, dispatch, s, { type: 'setPolicy', id: 'pair', on: true }, 'Arrives with the ChatGBT moment');
     const senior = s.staff.find((p) => p.seniority === 'senior');
     senior.pathPending = true;
-    expectFail(expect, dispatch, s, { type: 'choosePath', staffId: senior.id, pathId: 'architect' }, 'Unlocks when someone becomes a senior');
+    expectFail(expect, dispatch, s, { type: 'choosePath', staffId: senior.id, pathId: 'architect' }, 'Unlocks when someone is promoted to senior');
     expect(dispatch(s, { type: 'setTooling', on: false }).ok).toBe(true);
   });
 
@@ -57,6 +57,7 @@ describe('triggers', () => {
     expect(s.unlocks.marketing).toBe(s.week);
     expect(unlocksOf(check(s))).toEqual([]);
     s.stats.launches = 3;
+    s.week += B.unlockGapWeeks;
     expect(unlocksOf(check(s))).toEqual(['research']);
     expect(lockedReason(s, 'research')).toBe(null);
     expect(dispatch(s, { type: 'startProject', kind: 'research', researchId: 'ci_cd' }).ok).toBe(true);
@@ -77,30 +78,60 @@ describe('triggers', () => {
     expect(dispatch(s, { type: 'buyAudit' }).ok).toBe(true);
   });
 
-  it('standups and their policies open at 5 people, the moment the fifth is hired', () => {
+  it('standups and both standup policies open together, as one card, the moment the fifth person is hired', () => {
     const s = classicGame();
     s.cash = 1e6;
+    s.unlocks['policy.craft_fridays'] = 0;
     addDesks(s, 5);
     for (let i = 0; i < 2; i++) addStaff(s, 'engineer', 'mid');
     const res = dispatch(s, { type: 'hire', candidateId: s.candidates[0].id });
     expect(res.ok).toBe(true);
-    expect(unlocksOf(res.events)).toEqual(expect.arrayContaining(['standups', 'policy.daily_standups', 'policy.async_standups', 'policy.craft_fridays']));
+    expect(unlocksOf(res.events)).toEqual(['standups']);
+    expect(s.unlocks['policy.daily_standups']).toBe(0);
     expect(dispatch(s, { type: 'setPolicy', id: 'daily_standups', on: true }).ok).toBe(true);
+  });
+
+  it('non-era unlocks arrive one at a time, at least the gap apart', () => {
+    const s = classicGame();
+    s.stats.launches = 3;
+    s.stats.incidents = 1;
+    addDesks(s, 4);
+    for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'senior');
+    s.flags.firstSeniorWeek = 0;
+    s.officeStage = 1;
+    const seen = [];
+    for (let w = 0; w < 80; w++) {
+      s.week = w;
+      for (const k of unlocksOf(check(s))) seen.push([k, w]);
+    }
+    expect(seen.length).toBeGreaterThanOrEqual(6);
+    for (let i = 1; i < seen.length; i++) expect(seen[i][1] - seen[i - 1][1]).toBeGreaterThanOrEqual(B.unlockGapWeeks);
+    expect(seen.map(([k]) => k).slice(0, 4)).toEqual(['marketing', 'ops', 'research', 'paths']);
+  });
+
+  it('era unlocks skip the spacing', () => {
+    const s = classicGame();
+    s.stats.launches = 1;
+    check(s);
+    s.era = { id: 'chatgbt', since: 1 };
+    s.week = 1;
+    expect(unlocksOf(check(s))).toEqual(['models', 'automation', 'policy.pair']);
   });
 
   it('a policy stays usable once unlocked even if its trigger lapses', () => {
     const s = classicGame();
     for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'mid');
     check(s);
+    expect(s.unlocks.standups).toBe(0);
     s.staff.splice(2);
     expect(dispatch(s, { type: 'setPolicy', id: 'daily_standups', on: true }).ok).toBe(true);
   });
 
-  it('career paths open at the first promotion to senior or the first senior hire', () => {
+  it('career paths open at the first promotion to senior, not at a senior hire', () => {
     const s = classicGame();
     expect(unlocksOf(check(s))).not.toContain('paths');
     addStaff(s, 'engineer', 'senior');
-    expect(unlocksOf(check(s))).toContain('paths');
+    expect(unlocksOf(check(s))).not.toContain('paths');
     const t = classicGame();
     t.flags.firstSeniorWeek = 3;
     expect(unlocksOf(check(t))).toContain('paths');
@@ -124,14 +155,14 @@ describe('triggers', () => {
     const keys = [];
     for (let w = 0; w < 400; w++) {
       if (s.staff.length < 6) keys.push(...unlocksOf(dispatch(s, { type: 'hire', candidateId: s.candidates[0]?.id }).events));
-      for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
+      for (let c = 0; c < 4 && s.pendingDecision; c++) keys.push(...unlocksOf(dispatch(s, { type: 'resolveDecision', choice: c }).events));
       keys.push(...unlocksOf(tick(s)));
       s.cash = Math.max(s.cash, 1e7);
     }
     const allowed = new Set([...UNLOCK_KEYS, ...Object.keys(POLICIES).map((id) => `policy.${id}`)]);
     for (const k of keys) expect(allowed.has(k), k).toBe(true);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toEqual(expect.arrayContaining(['standups', 'models', 'automation']));
+    expect(keys, keys.join()).toEqual(expect.arrayContaining(['standups', 'models', 'automation']));
   });
 });
 
@@ -187,4 +218,38 @@ describe('determinism', () => {
     };
     expect(play()).toBe(play());
   });
+});
+
+describe('career paths wait for the unlock', () => {
+  it('nobody has a path pending until paths unlock; then every senior does, founders included', () => {
+    const s = classicGame();
+    s.cash = 1e6;
+    addDesks(s, 4);
+    expect(s.staff.concat(s.candidates).some((p) => p.pathPending)).toBe(false);
+    const senior = addStaff(s, 'engineer', 'senior');
+    expect(senior.pathPending).toBe(false);
+    s.flags.firstSeniorWeek = s.week;
+    const ev = check(s);
+    expect(unlocksOf(ev)).toContain('paths');
+    const founder = s.staff.find((p) => p.founder && p.seniority === 'senior');
+    expect(founder.pathPending).toBe(true);
+    expect(senior.pathPending).toBe(true);
+    expect(dispatch(s, { type: 'choosePath', staffId: founder.id, pathId: 'architect' }).ok).toBe(true);
+    expect(founder.pathPending).toBe(false);
+  });
+});
+
+describe('founders and career paths', () => {
+  for (const founders of [['engineer', 'designer'], ['researcher', 'engineer']]) {
+    it(`${founders.join(' + ')}: no path is pending at the start, and choosePath refuses with the lock reason`, () => {
+      const s = createGame({ seed: 2, founders });
+      for (const p of s.staff) {
+        expect(p.pathPending, p.name).toBe(false);
+        expectFail(expect, dispatch, s, { type: 'choosePath', staffId: p.id, pathId: 'architect' }, 'Unlocks when someone is promoted to senior');
+      }
+      s.flags.firstSeniorWeek = 0;
+      check(s);
+      for (const p of s.staff) expect(p.pathPending, p.name).toBe(p.seniority === 'senior');
+    });
+  }
 });

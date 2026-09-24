@@ -12,7 +12,7 @@ import { weeklyCosts, weeklyRevenue } from './economy.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
-import { deskCapacity, findSpot } from './office.js';
+import { deskCapacity, suggestPlacement } from './office.js';
 import { scoreRun } from './endgame.js';
 import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -46,7 +46,7 @@ const net = (s) => weeklyRevenue(s) - costs(s);
 const canAffordHire = (s, salary = 2000) => net(s) - salary > 0 ? s.cash > 8 * costs(s) : s.cash > 40 * (costs(s) + salary - weeklyRevenue(s));
 const weeksOfBurn = (s) => s.cash / burn(s);
 const present = (s) => s.staff.filter((p) => p.mood !== 'away');
-const builders = (s) => present(s).filter((p) => p.role === 'engineer' || p.role === 'designer');
+const builders = (s) => present(s).filter((p) => p.role === 'engineer' || p.role === 'designer' || p.founder);
 
 function bestCombo(s) {
   let best = null;
@@ -167,8 +167,23 @@ const STAGE_DESKS = [4, 12, 30];
 function furnish(s) {
   const want = Math.min(STAGE_DESKS[s.officeStage], s.staff.length + 1);
   for (let n = deskCapacity(s); n < want; n++) {
-    const spot = findSpot(s.officeStage, s.office.placed, 'desk', [0, 2, 1, 3]);
+    const spot = suggestPlacement(s, 'desk');
     if (!spot || !dispatch(s, { type: 'placeItem', itemId: 'desk', ...spot }).ok) break;
+  }
+}
+
+// A simple layout heuristic: at most one piece of furniture a week, placed by suggestPlacement.
+const DECOR = [['plant', 3], ['coffee_corner', 6], ['whiteboard', 6], ['bookshelf', 8]];
+
+function decorate(s) {
+  const desks = deskCapacity(s);
+  if (desks < 2 || s.cash < 50000 || s.flags.botDecorFull === s.officeStage) return;
+  for (const [itemId, per] of DECOR) {
+    const have = s.office.placed.filter((p) => p.itemId === itemId).length;
+    if (have >= Math.floor(desks / per)) continue;
+    const spot = suggestPlacement(s, itemId);
+    if (!spot || !dispatch(s, { type: 'placeItem', itemId, x: spot.x, y: spot.y, rot: spot.rot }).ok) s.flags.botDecorFull = s.officeStage;
+    return;
   }
 }
 
@@ -218,7 +233,8 @@ function recklessHumans(s) {
   if (pj) act(s, assignAll(s, builders(s).filter((p) => p.assignment.type === 'idle' || p.assignment.type === 'maintenance' && builders(s).filter((q) => q.assignment.type === 'maintenance').length > 1), pj.id));
   for (const p of launchedThisWeek(s)) act(s, [{ type: 'runCampaign', channel: 'content', productId: p.id }]);
   for (const p of liveProducts(s)) if (p.migrationDueWeek !== null && !s.projects.some((j) => j.productId === p.id)) act(s, [{ type: 'startProject', kind: 'migration', productId: p.id }]);
-  act(s, upgradeIfRich(s, 1.5));
+  // Even the reckless wait for a first launch before moving out of the garage.
+  if (s.stats.launches > 0) act(s, upgradeIfRich(s, 1.5));
   if (s.outage?.unrecoverable && s.cash > B.consultantCost * 2) act(s, [{ type: 'callConsultants' }]);
   return [];
 }
@@ -308,7 +324,9 @@ function balanced(s) {
   act(s, pairMentors(s));
   careTeam(s);
 
-  if (!s.projects.some((j) => j.kind === 'new') && s.cash > 15000) {
+  // A bigger team runs more than one new product at a time.
+  const parallel = Math.max(1, Math.floor(builders(s).length / B.botBuildersPerProject));
+  if (s.projects.filter((j) => j.kind === 'new').length < parallel && s.cash > 15000) {
     const size = s.officeStage >= 1 && s.cash > 200000 ? 'large' : s.cash > 60000 && builders(s).length >= 3 ? 'medium' : 'small';
     dispatch(s, startNew(s, size, model, fixedName(s)));
   }
@@ -365,7 +383,8 @@ export const BOTS = { automateAll, allHumans, balanced, sensible, recklessHumans
 
 export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChooser, balanced: balancedChooser, sensible: balancedChooser, recklessHumans: firstChooser };
 
-// Plays one full run headless. Returns the outcome plus a few numbers for the balance table.
+// Plays one full run headless (by default 20 years). Returns the outcome plus a few numbers for the balance
+// table; eras holds { week, cash, staff, mrr } at each era's arrival.
 // Resolves pending decisions the way the named bot would. Returns how many bridge loans it took.
 // onEvents(events, action) receives the events of every dispatch.
 export function botDecide(name, s, { onEvents = null } = {}) {
@@ -392,25 +411,32 @@ export function botTurn(name, s, { onEvents = null } = {}) {
   sink = onEvents;
   try {
     furnish(s);
+    if (name !== 'recklessHumans') decorate(s);
     for (const a of BOTS[name](s)) dispatch(s, a);
   } finally {
     sink = prev;
   }
 }
 
-// Plays one full run headless. Returns the outcome plus a few numbers for the balance table.
-// onWeek(state, tickEvents) after each tick; onEvents(events, action) for every dispatch.
-export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null } = {}) {
-  const s = createGame({ seed, companyName: `Bot ${name}` });
+// Plays one full run headless (by default 20 years). Returns the outcome plus a few numbers for the balance
+// table; eras holds { week, cash, staff, mrr } at each era's arrival.
+// onWeek(state, tickEvents) after each tick; onEvents(events, action) for every dispatch; setup(state) once at the start;
+// founding: { founders, funding } passed to createGame.
+export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null, setup, founding = {} } = {}) {
+  const s = createGame({ seed, companyName: `Bot ${name}`, ...founding });
+  setup?.(s);
   let maxStage = 0;
   let firstLaunch = null;
   let crises = 0;
   let wasUnrecoverable = false;
+  const eras = {};
   while (!s.gameOver && s.week < maxWeeks) {
     crises += botDecide(name, s, { onEvents });
     if (s.gameOver) break;
     botTurn(name, s, { onEvents });
+    const era = s.era.id;
     const events = tick(s);
+    if (s.era.id !== era) eras[s.era.id] = { week: s.week, cash: s.cash, staff: s.staff.length, mrr: totalMrr(s) };
     maxStage = Math.max(maxStage, s.officeStage);
     const unrecoverable = !!s.outage?.unrecoverable;
     if (unrecoverable && !wasUnrecoverable) crises++;
@@ -421,6 +447,7 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = n
   return {
     won: !!s.gameOver?.won, reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,
     peakMrr: s.stats.peakMrr, score: s.gameOver?.score ?? scoreRun(s).score, maxStage, firstLaunch, state: s,
-    resignations: s.stats.resignations, incidents: s.stats.incidents, crises,
+    resignations: s.stats.resignations, incidents: s.stats.incidents, crises, eras,
+    lostAfterAgents: !s.gameOver?.won && !!s.gameOver && s.week >= s.eraSchedule.agents,
   };
 }

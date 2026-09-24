@@ -79,5 +79,9 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
   // A side stream, so the era jitter does not shift every other roll in the run.
   state.eraSchedule = rollEraSchedule(createRng(seed * 7919 + 13), B.eraJitterWeeks);
   refreshCandidates(state);
+  // Investor intros: a little press and a couple of senior candidates who would not look at a garage otherwise.
+  const perks = B.funding[fundingId];
+  state.brand += perks.brand;
+  for (let i = 0; i < perks.seniorCandidates; i++) state.candidates.push(generateStaff(state, { role: i % 2 ? 'designer' : 'engineer', seniority: 'senior' }));
   return state;
 }

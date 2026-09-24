@@ -10,4 +10,4 @@ export { oversightRequired, oversightProvided } from './automation.js';
 export { categoryLeaders } from './market.js';
 export { securityPosture } from './incidents.js';
 export { scoreRun, retireVia, retireOptions, ipoBlocker } from './endgame.js';
-export { placementCheck, adjacencyPreview, footprintCells, seatTile, seatOf, deskCapacity } from './office.js';
+export { placementCheck, suggestPlacement, adjacencyPreview, footprintCells, seatTile, seatOf, deskCapacity } from './office.js';

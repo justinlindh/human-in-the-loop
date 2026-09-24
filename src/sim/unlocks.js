@@ -1,7 +1,9 @@
 import { registerSystem } from './registry.js';
+import { B } from './balance.js';
 import { eraIndex } from './eras.js';
 import { UNLOCKS } from '../data/unlocks.js';
 import { POLICIES } from '../data/policies.js';
+import { offerPaths } from './progression.js';
 
 const BY_KEY = Object.fromEntries(UNLOCKS.map((u) => [u.key, u]));
 
@@ -14,19 +16,31 @@ export function lockedReason(state, key) {
   return BY_KEY[key]?.reason ?? 'Not available yet';
 }
 
-// Opens every system whose trigger is now true and emits an unlock event for each.
+// Everything that can unlock, in priority order: { key, ready(state, h), era, with }.
+// era: arrives with an era and skips the spacing. with: opens silently alongside that key.
+const CANDIDATES = [
+  ...UNLOCKS.map((u) => ({ key: u.key, ready: u.when, era: !!u.era, with: null })),
+  ...Object.values(POLICIES).map((p) => ({ key: `policy.${p.id}`, ready: (s) => p.unlock(s), era: !!p.era, with: p.with ? p.with : null })),
+];
+
+// Opens systems whose triggers are true. Era-bound ones open at once; the rest arrive one at a time,
+// at least B.unlockGapWeeks apart, so the opening introduces one new thing at a time.
 export function checkUnlocks(ctx) {
   const { state } = ctx;
   const h = { eraIndex: eraIndex(state) };
-  const open = (key) => {
+  const open = (key, quiet = false) => {
     state.unlocks[key] = state.week;
-    ctx.emit({ type: 'unlock', key });
+    if (key === 'paths') offerPaths(state);
+    for (const c of CANDIDATES) if (c.with === key && !isUnlocked(state, c.key)) open(c.key, true);
+    if (!quiet) ctx.emit({ type: 'unlock', key });
   };
-  for (const u of UNLOCKS) if (!isUnlocked(state, u.key) && u.when(state, h)) open(u.key);
-  for (const p of Object.values(POLICIES)) {
-    const key = `policy.${p.id}`;
-    if (!isUnlocked(state, key) && p.unlock(state)) open(key);
-  }
+  for (const c of CANDIDATES) if (c.era && !isUnlocked(state, c.key) && c.ready(state, h)) open(c.key);
+  const last = state.flags.lastUnlockWeek;
+  if (last !== undefined && state.week - last < B.unlockGapWeeks) return;
+  const next = CANDIDATES.find((c) => !c.era && !c.with && !isUnlocked(state, c.key) && c.ready(state, h));
+  if (!next) return;
+  state.flags.lastUnlockWeek = state.week;
+  open(next.key);
 }
 
 registerSystem('unlocks', checkUnlocks, 86);
