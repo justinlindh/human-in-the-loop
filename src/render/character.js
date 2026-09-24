@@ -79,6 +79,8 @@ let haloMat = null;
 
 // Cheeks: soft radial-gradient discs on the blush part's two cheek positions, tinted a warmer,
 // deeper shade of the person's own skin. Lighter skin shows a light flush; darker skin a faint one.
+// Cheeks never flush for now; set true to bring back the flush as an expression.
+const CHEEK_FLUSH = false;
 const WARM_EMOTES = new Set(['heart', 'sparkle']);
 let cheekTex = null;
 function cheekTexture() {
@@ -609,7 +611,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     t += dt;
     // Cheeks flush only as an expression (celebrating, a warm emote), fading in and out.
     flushFor = Math.max(0, flushFor - dt);
-    const want = anim === 'celebrate' || flushFor > 0 ? 1 : 0;
+    const want = CHEEK_FLUSH && (anim === 'celebrate' || flushFor > 0) ? 1 : 0;
     flush += (want - flush) * (1 - Math.exp(-dt * 6));
     cheeks.set(flush);
     animT += dt;
