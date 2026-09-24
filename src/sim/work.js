@@ -1,3 +1,4 @@
+import { recordProjectWork, recordMaintenance } from './record.js';
 import { B } from './balance.js';
 import { sum } from './util.js';
 import { outputMult, staffMods, STATS } from './staff.js';
@@ -81,6 +82,7 @@ export function workSystem(ctx) {
       addInto(weekEffort[id], personEffort(state, p));
       addInto(weekStats[id], pts);
       contributors[id].push({ staffId: p.id, pts });
+      recordProjectWork(state, p, pts);
     } else if (t === 'hardProblem' && creative.length) {
       const nov = B.hardProblemNovelty * outputMult(state, p) * staffMods(p).hardProblemNovelty / creative.length;
       for (const j of creative) {
@@ -90,6 +92,7 @@ export function workSystem(ctx) {
     } else if (p.role === 'engineer' && (t === 'maintenance' || t === 'mentor')) {
       const pts = personPoints(state, p);
       maintenance += pts.features + pts.reliability;
+      if (t === 'maintenance') recordMaintenance(state, p, pts);
     }
   }
 

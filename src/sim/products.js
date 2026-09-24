@@ -1,3 +1,4 @@
+import { addToRecord } from './record.js';
 import { B } from './balance.js';
 import { clamp, sum, dateOf } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -66,8 +67,12 @@ export function productsSystem(ctx) {
 
   const customers = sum(live, (p) => p.customers);
   const supportNeed = customers * B.supportHoursPerCustomer;
-  const supportHave = sum(onAssignment(state, 'support'), (p) => B.supportHoursPerPerson * outputMult(state, p) * staffMods(p).supportHours)
-    + state.automation.support.level * B.autoSupportHours;
+  const supporters = onAssignment(state, 'support').map((p) => [p, B.supportHoursPerPerson * outputMult(state, p) * staffMods(p).supportHours]);
+  const peopleHours = sum(supporters, ([, h]) => h);
+  const supportHave = peopleHours + state.automation.support.level * B.autoSupportHours;
+  // Tickets people handled this week, shared by the hours each put in.
+  const handled = Math.min(supportNeed, supportHave) * (supportHave > 0 ? peopleHours / supportHave : 0);
+  for (const [p, h] of supporters) if (peopleHours > 0) addToRecord(state, p, 'tickets', (handled * h / peopleHours) / B.recordTicketHours);
   state.ops.supportShortfall = supportNeed > 0 ? clamp(1 - supportHave / supportNeed, 0, 1) : 0;
 
   const maintNeed = sum(live, (p) => B.maintenancePerProduct + p.customers * B.maintenancePerCustomer) * Math.max(0, 1 + perk(state, 'maintenanceNeed'));
@@ -75,8 +80,10 @@ export function productsSystem(ctx) {
   state.ops.maintenanceShortfall = shortfall;
 
   const sellers = onAssignment(state, 'sales');
-  const salesBoost = B.salesCloseBoostPerPerson * Math.min(sum(sellers, (p) => staffMods(p).salesBoost), 5)
-    + B.autoSalesBoost * state.automation.sales.level;
+  const peopleBoost = B.salesCloseBoostPerPerson * Math.min(sum(sellers, (p) => staffMods(p).salesBoost), 5);
+  const salesBoost = peopleBoost + B.autoSalesBoost * state.automation.sales.level;
+  let soldCustomers = 0;
+  let soldMrr = 0;
   const pathAcquisition = Math.max(1, ...sellers.map((p) => staffMods(p).acquisition));
   const pathChurn = Math.min(1, ...onAssignment(state, 'support').map((p) => staffMods(p).churn));
   const uptimeFloor = Math.min(0.9, B.uptimeFloor + perk(state, 'uptimeFloor'));
@@ -94,7 +101,13 @@ export function productsSystem(ctx) {
     if (p.customers < target) {
       const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
         * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition;
+      const before = p.customers;
       p.customers = Math.min(tam, p.customers + (target - p.customers) * Math.min(1, rate));
+      // The salespeople's share of this week's new customers.
+      const share = rate > 0 ? (peopleBoost * (1 + state.brand / 200)) / ((B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)) : 0;
+      const won = (p.customers - before) * share;
+      soldCustomers += won;
+      soldMrr += won * CATEGORIES[p.category].price;
     }
     const inOutage = state.outage?.productId === p.id;
     const churn = Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
@@ -113,6 +126,13 @@ export function productsSystem(ctx) {
     p.novelty = Math.max(0, p.novelty - B.noveltyDecay);
     p.mrr = p.customers * CATEGORIES[p.category].price;
   });
+  const weight = sum(sellers, (p) => staffMods(p).salesBoost);
+  for (const p of sellers) {
+    if (weight <= 0) break;
+    const part = staffMods(p).salesBoost / weight;
+    addToRecord(state, p, 'salesMrr', soldMrr * part);
+    addToRecord(state, p, 'deals', (soldCustomers * part) / B.recordCustomersPerDeal);
+  }
   state.stats.peakMrr = Math.max(state.stats.peakMrr, totalMrr(state));
 }
 

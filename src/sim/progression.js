@@ -1,3 +1,4 @@
+import { ensureRecord } from './record.js';
 import { B } from './balance.js';
 import { article } from './util.js';
 import { registerAction } from './registry.js';
@@ -65,7 +66,7 @@ export function onLevelUp(ctx, p) {
 
 // Weekly record counters and the traits people earn from them.
 export function progressRecords(ctx, p) {
-  p.record ??= { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 };
+  ensureRecord(p);
   if (p.mood !== 'away') {
     if (p.assignment.type === 'mentor') p.record.mentorWeeks++;
     if (p.assignment.type === 'hardProblem') p.record.hardProblemWeeks++;

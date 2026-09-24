@@ -1,3 +1,4 @@
+import { emptyRecord } from '../../src/sim/record.js';
 import { describe, it, expect } from 'vitest';
 import { tick, dispatch } from '../../src/sim/index.js';
 import { saveGame, loadGame, hasSave, clearSave, exportSave, listSaves, SAVE_KEY } from '../../src/save/save.js';
@@ -87,7 +88,7 @@ describe('save and load', () => {
     store.setItem(SAVE_KEY, JSON.stringify(s));
     const res = loadGame(store);
     expect(res.ok).toBe(true);
-    expect(res.state.staff[0].record).toEqual({ mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 });
+    expect(res.state.staff[0].record).toEqual(emptyRecord());
     expect(res.state.staff[0].path).toBe(null);
   });
 

@@ -1,0 +1,46 @@
+import { describe, it, expect } from 'vitest';
+import { runBot } from '../../src/sim/bots.js';
+import { emptyRecord, ensureRecord } from '../../src/sim/record.js';
+import { saveGame, loadGame } from '../../src/save/save.js';
+import { game, addStaff } from './helpers.js';
+
+const fakeStorage = () => {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+};
+
+describe('issue #132: per-person track record', () => {
+  it('fills from real work: each role moves its own counters, in whole numbers, and alumni keep theirs', () => {
+    let st = null;
+    runBot('sensible', 5, 520, { setup: (s) => { st = s; }, onWeek: (s) => { st = s; } });
+    const by = (role) => st.staff.filter((p) => p.role === role && st.week - p.hiredWeek > 104);
+    const total = (list, key) => list.reduce((a, p) => a + p.record[key], 0);
+    expect(total(by('engineer'), 'features')).toBeGreaterThan(0);
+    expect(total(by('engineer'), 'prsMerged')).toBeGreaterThan(0);
+    expect(total(by('engineer'), 'launches')).toBeGreaterThan(0);
+    expect(total(by('support'), 'tickets')).toBeGreaterThan(0);
+    expect(total(by('sales'), 'salesMrr')).toBeGreaterThan(0);
+    expect(total(by('sales'), 'deals')).toBeGreaterThan(0);
+    expect(total(st.staff, 'mentored')).toBeGreaterThan(0);
+    for (const p of st.staff) {
+      for (const [k, v] of Object.entries(p.record)) expect(Number.isInteger(v) && v >= 0, `${p.role} ${k}`).toBe(true);
+      if (p.role !== 'engineer' && p.role !== 'designer') expect(p.record.features).toBe(0);
+      if (p.role !== 'support') expect(p.record.tickets).toBe(0);
+      if (p.role !== 'sales') expect(p.record.salesMrr).toBe(0);
+    }
+    expect(st.flags.alumni.length).toBeGreaterThan(0);
+    for (const a of st.flags.alumni) expect(Object.keys(a.record)).toEqual(expect.arrayContaining(Object.keys(emptyRecord())));
+  }, 120000);
+
+  it('new hires start at zero, and older saves gain the missing counters', () => {
+    const s = game(3);
+    const p = addStaff(s, 'engineer', 'mid');
+    expect(ensureRecord(p)).toEqual(emptyRecord());
+    s.staff[0].record = { mentorWeeks: 4, catches: 1, hardProblemWeeks: 0 };
+    const store = fakeStorage();
+    saveGame(s, store);
+    const res = loadGame(store);
+    expect(res.ok).toBe(true);
+    expect(res.state.staff[0].record).toEqual({ ...emptyRecord(), mentorWeeks: 4, catches: 1 });
+  });
+});

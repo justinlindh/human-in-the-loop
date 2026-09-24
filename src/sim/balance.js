@@ -92,6 +92,7 @@ export const B = {
   vacationPostponeStrain: 6, vacationStamina: 60,
   incentiveEveryWeeks: 8, musicNightDancers: [3, 5], waffleLaunches: 20, waffleLevel: 20, waffleCooldownWeeks: 156, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
   awardAiScore: 8.5, awardWorkplaceStaff: 10, awardWorkplaceMeaning: 78, awardWorkplaceStreak: 2, awardTrustedIncidents: 0, awardAiHype: 15, awardWorkplacePride: 1, awardTrustedBrand: 2,
+  recordEngPointsPerFeature: 8, recordDesignPointsPerFeature: 120, recordPointsPerPr: 30, recordTicketHours: 2, recordCustomersPerDeal: 25,
   alumniKept: 40, aiSummitWeek: 20, summitCost: { small: 20000, big: 80000 }, summitEraMult: [1, 1, 1.5, 2, 2.5], summitPauseAfter: 2,
   moveOnPerYear: 0.025, moveOnTenureWeeks: 156, moveOnMinStaff: 5,
   attritionPerYear: 0.025, attritionAfterWeeks: 26, attritionMinStaff: 5, attritionMeaningBelow: 60, attritionMeaningSpan: 20,

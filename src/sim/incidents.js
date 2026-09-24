@@ -1,3 +1,4 @@
+import { ensureRecord } from './record.js';
 import { B } from './balance.js';
 import { chance, int, next, pick } from './rng.js';
 import { avg, clamp, dateOf, sum } from './util.js';
@@ -172,7 +173,8 @@ function incident(ctx, { kind, severity, caught, model }) {
     const eyes = overseers(state);
     for (const p of eyes) {
       p.meaning = Math.min(100, p.meaning + B.meaningCatchBonus);
-      p.record ??= { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 };
+      ensureRecord(p);
+      p.record.incidentsCaught++;
       p.record.catches++;
     }
     const best = eyes.reduce((a, b) => (staffMods(b).catch + b.skills.reliability > staffMods(a).catch + a.skills.reliability ? b : a));

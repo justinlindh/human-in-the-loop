@@ -1,3 +1,4 @@
+import { ensureRecord } from './record.js';
 import { B } from './balance.js';
 import { pick, shuffle, int } from './rng.js';
 import { newId } from './util.js';
@@ -87,10 +88,9 @@ function waffleMilestone(ctx) {
   const { state, rng } = ctx;
   const won = (state.flags.waffleWinners ??= []);
   if (state.flags.waffleWeek !== undefined && state.week - state.flags.waffleWeek < B.waffleCooldownWeeks) return;
-  const shipped = state.flags.shippedBy ?? {};
   for (const p of state.staff) {
     if (p.founder || p.mood === 'away' || won.includes(p.id)) continue;
-    const launches = shipped[p.id] ?? 0;
+    const launches = p.record?.launches ?? 0;
     const milestone = launches >= B.waffleLaunches ? 'launches' : p.level >= B.waffleLevel ? 'level' : null;
     if (!milestone) continue;
     const count = milestone === 'launches' ? launches : p.level;
@@ -158,7 +158,10 @@ export function stageIncentive(state, reward) {
     state.flags.incentiveCount = LADDER.findIndex((r) => r.id === 'music_night');
     state.flags.incentiveWeek = state.week - B.incentiveEveryWeeks;
   } else if (reward === 'waffle_party') {
-    (state.flags.shippedBy ??= {})[who.id] = B.waffleLaunches;
+    ensureRecord(who).launches = Math.max(who.record.launches, B.waffleLaunches);
+    // Nobody is sent on vacation the week their party is staged.
+    const due = (state.flags.vacationDue ??= {});
+    due[who.id] = Math.max(due[who.id] ?? 0, state.week + B.vacationPostponeWeeks);
     state.flags.incentiveWeek = state.week;
     state.flags.waffleWinners = (state.flags.waffleWinners ?? []).filter((id) => id !== who.id);
     delete state.flags.waffleWeek;
