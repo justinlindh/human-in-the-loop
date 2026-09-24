@@ -126,7 +126,7 @@ export function automationPanel(ctx) {
           return b;
         }));
         const modelSel = picker({
-          value: a.model, title: 'Which model runs it',
+          key: `model:${fn}`, value: a.model, title: 'Which model runs it',
           options: MODELS.filter((m) => (s.models[m.id]?.available && !s.models[m.id]?.deprecated) || m.id === a.model)
             .map((m) => ({ value: m.id, label: m.name, stat: `${Math.round(m.guardrails * 100)}% guard`, icon: 'agentic' })),
           onChange: (m) => ctx.act({ type: 'setAutomation', fn, level: a.level, model: m }),

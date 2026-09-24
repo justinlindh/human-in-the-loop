@@ -150,7 +150,7 @@ export function reportsPanel(ctx) {
           s.outage?.productId === p.id ? h('span.pill.bad', null, icon('tray.outage', { size: 12 }), ' DOWN') : null,
         );
         const ownerSel = picker({
-          className: 'ownersel', value: p.ownerId ?? '', title: 'Who owns this product',
+          key: `owner:${p.id}`, className: 'ownersel', value: p.ownerId ?? '', title: 'Who owns this product',
           options: [{ value: '', label: 'No owner', sub: 'Nobody answers for it' }, ...s.staff.map((x) => personOption(x, { busy: null, free: false }))],
           onChange: (v) => ctx.act({ type: 'setOwner', productId: p.id, staffId: v || null }),
         }).el;
