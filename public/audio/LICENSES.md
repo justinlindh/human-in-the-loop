@@ -71,6 +71,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/coffee.ogg` | freesound.org 'Coffee Machine - Select Pod.wav' by SpaceJoe, CC0 1.0 (https://freesound.org/people/SpaceJoe/sounds/344458/) |
 | `sfx/dog.ogg` | freesound.org 'single bark - small to medium dog' by haulaway, CC0 1.0 (https://freesound.org/people/haulaway/sounds/630648/) |
 | `sfx/cat.ogg` | freesound.org 'cat meow short' by skymary, CC0 1.0 (https://freesound.org/people/skymary/sounds/412017/) |
+| `sfx/farewell.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles STEEL02 |
 | `ambience/typing.ogg` | freesound.org 'Keyboard typing.WAV' by beansqueso31, CC0 1.0 (https://freesound.org/people/beansqueso31/sounds/223101/) |
 
 ## Voices (candidates)
