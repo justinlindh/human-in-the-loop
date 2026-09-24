@@ -26,6 +26,8 @@ function makeCanvas(w = W, h = H) {
   c.width = w; c.height = h;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  // Screen and window quads come from glTF, whose V axis runs top-down, so the canvas is not flipped.
+  tex.flipY = false;
   tex.generateMipmaps = false;
   tex.minFilter = THREE.LinearFilter;
   return { c, ctx: c.getContext('2d'), tex };

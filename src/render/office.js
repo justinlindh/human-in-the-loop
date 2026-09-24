@@ -353,7 +353,11 @@ function statusTv(screens) {
   g.add(mesh(roundedBox(0.7, 0.04, 0.45, 0.015), mat('metal_dark'), 0, 0.12, 0));
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(mesh(roundedCylinder(0.015, 0.015, 0.7, 0.004, 8), mat('metal_soft'), sx * 0.32, 0.05, sz * 0.2));
   g.add(mesh(roundedBox(0.62, 0.46, 0.4, 0.05), mat('plastic_charcoal'), 0, 1.0, -0.02));
-  const scr = mesh(new THREE.PlaneGeometry(0.5, 0.36), screens ? screens.material('chart', 2) : mat('screen_bg'), 0, 1.0, 0.185, { cast: false });
+  // Screen canvases follow glTF's top-down V, so this plane's UVs are flipped to match.
+  const tvGeo = new THREE.PlaneGeometry(0.5, 0.36);
+  const tvUv = tvGeo.attributes.uv;
+  for (let i = 0; i < tvUv.count; i++) tvUv.setY(i, 1 - tvUv.getY(i));
+  const scr = mesh(tvGeo, screens ? screens.material('chart', 2) : mat('screen_bg'), 0, 1.0, 0.185, { cast: false });
   scr.name = 'tv_screen';
   scr.userData.dynamic = true;
   g.add(scr);
