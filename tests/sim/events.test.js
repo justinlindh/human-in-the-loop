@@ -95,6 +95,7 @@ describe('decisions', () => {
     expectFail(expect, dispatch, s, { type: 'resolveDecision', choice: 'x' }, 'Invalid choice');
     s.pendingDecision = null;
     s.officeStage = 0;
+    s.week += B.decisionGapWeeks;
     raise(s, 'conference_expo');
     expectFail(expect, dispatch, s, { type: 'resolveDecision', choice: 2 }, 'Needs the Office Floor');
   });

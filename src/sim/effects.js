@@ -15,6 +15,7 @@ import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision } from './events.js';
 import { clearOutage } from './incidents.js';
+import { buyItemBlocker, upgradeItemBlocker, ownedCopy, buyItemNow, upgradeItemNow } from './progression.js';
 
 export { modifierBonus } from './modifiers.js';
 
@@ -47,10 +48,22 @@ export function checkCondition(state, id, subjectId) {
     case 'stage1': return state.officeStage >= 1;
     case 'affordConsultants': return state.cash >= B.consultantCost;
     case 'noCraftRunning': return !state.projects.some((j) => j.kind === 'craft');
+    case 'canBuyEspresso': return !buyItemBlocker(state, 'espresso');
+    case 'canUpgradeEspresso': return !upgradeItemBlocker(state, ownedCopy(state, 'espresso'));
     case 'mentorAvailable': return !!person && person.seniority === 'junior' && !!freeMentor(state, person)
       && !state.staff.some((m) => m.assignment.type === 'mentor' && m.assignment.targetId === person.id);
     default: return false;
   }
+}
+
+// The reason shown when a choice's requirement is unmet; item requirements say exactly why.
+export function requireReason(state, id) {
+  if (id === 'canBuyEspresso') return buyItemBlocker(state, 'espresso') ?? 'Not possible right now';
+  if (id === 'canUpgradeEspresso') {
+    const r = upgradeItemBlocker(state, ownedCopy(state, 'espresso'));
+    return r === 'Already max level' ? 'Already the fanciest one' : r ?? 'Not possible right now';
+  }
+  return REQUIRE_REASON[id] ?? 'Not possible right now';
 }
 
 export const REQUIRE_REASON = {
@@ -172,6 +185,11 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     });
   }
   if (fx.pivot) pivot(ctx);
+  if (fx.buyItem && !buyItemBlocker(state, fx.buyItem)) buyItemNow(ctx, fx.buyItem);
+  if (fx.upgradeItem) {
+    const owned = ownedCopy(state, fx.upgradeItem);
+    if (!upgradeItemBlocker(state, owned)) upgradeItemNow(ctx, owned);
+  }
   if (fx.consultants && state.outage) {
     state.cash -= B.consultantCost;
     clearOutage(ctx, ' thanks to very expensive consultants');
@@ -210,7 +228,7 @@ export function processScheduled(ctx) {
       applyEffects(ctx, x.payload.effects, x.payload.subjectId, x.payload.source);
     } else if (x.kind === 'event' && !state.pendingDecision && EVENTS[x.payload.eventId]) {
       state.scheduled = state.scheduled.filter((y) => y !== x);
-      raiseDecision(ctx, x.payload.eventId, x.payload.subjectId);
+      raiseDecision(ctx, x.payload.eventId, x.payload.subjectId, { queue: true });
     }
   }
   const expired = state.modifiers.filter((m) => m.untilWeek <= state.week);
