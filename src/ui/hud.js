@@ -108,7 +108,8 @@ export function createHud({ root, controls, ui }) {
     title: sp.title,
     onclick: () => ui.setSpeed(sp.k),
   }, icon(sp.ico)));
-  const speed = h('div.chip.speed', null, pausedTag, ...speedBtns);
+  const gear = h('button.btn.small.gear', { title: 'Settings', onclick: () => ui.openSettings?.() }, icon('settings'));
+  const speed = h('div.chip.speed', null, pausedTag, ...speedBtns, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
 
