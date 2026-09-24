@@ -39,6 +39,23 @@ describe('save and load', () => {
     expect(loadGame(store)).toEqual({ ok: false, reason: 'Save is corrupted' });
   });
 
+  it('reports malformed shapes as corrupted instead of throwing', () => {
+    const store = fakeStorage();
+    const shapes = [
+      (s) => { s.candidates = null; }, (s) => { s.projects = null; }, (s) => { s.projects = {}; }, (s) => { s.staff = [null]; },
+      (s) => { s.products = [3]; }, (s) => { s.campaigns = 'x'; }, (s) => { s.incidentLog = {}; }, (s) => { s.items = null; },
+      (s) => { s.modifiers = {}; }, (s) => { s.scheduled = 5; }, (s) => { s.staff[0].assignment = null; }, (s) => { s.history = [1]; },
+    ];
+    for (const [i, mutate] of shapes.entries()) {
+      const s = game();
+      mutate(s);
+      store.setItem(SAVE_KEY, JSON.stringify(s));
+      let res;
+      expect(() => { res = loadGame(store); }, `shape ${i}`).not.toThrow();
+      expect(res, `shape ${i}`).toEqual({ ok: false, reason: 'Save is corrupted' });
+    }
+  });
+
   it('reports an incompatible version', () => {
     const store = fakeStorage();
     store.setItem(SAVE_KEY, JSON.stringify({ ...game(), version: 999 }));

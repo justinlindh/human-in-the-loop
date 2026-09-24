@@ -47,15 +47,23 @@ export const EPILOGUES = [
     text: 'By the end there were no seniors left. The agents kept shipping. Nobody could say what.' },
   { id: 'big_mrr', when: (s, x) => x.peakMrr >= 1000000,
     text: 'At its peak, {company} made more in a month than the garage cost in a lifetime.' },
-  { id: 'tiny_mrr', when: (s, x) => x.peakMrr < 20000,
+  { id: 'no_revenue', when: (s, x) => x.peakMrr === 0,
+    text: 'Nobody ever paid for it. Your mom still uses the free tier.' },
+  { id: 'tiny_mrr', when: (s, x) => x.peakMrr > 0 && x.peakMrr < 20000,
     text: 'It never got big. The customers it had were loyal, and one of them still sends a holiday card every year.' },
   { id: 'diluted', when: (s) => !!s.flags.diluted,
     text: 'The VC who wrote the first check tells the story at dinner parties. You come off fine in it. Mostly.' },
 ];
 
+const stillRunning = (s, x) => x.won || x.reason === 'timeout';
+const wentUnder = (s, x) => !stillRunning(s, x);
+
 export const GENERIC_EPILOGUES = [
-  { id: 'generic_plant', when: () => true, text: 'The office plant from the garage is still alive. Nobody knows who waters it.' },
-  { id: 'generic_hiring', when: () => true, text: '{company} is still hiring. The job post says "fast-paced". It is.' },
+  { id: 'generic_plant', when: stillRunning, text: 'The office plant from the garage is still alive. Nobody knows who waters it.' },
+  { id: 'generic_hiring', when: stillRunning, text: '{company} is still hiring. The job post says "fast-paced". It is.' },
+  { id: 'generic_loop', when: stillRunning, text: 'The humans stayed in the loop. Some weeks, the loop stayed in them.' },
   { id: 'generic_whiteboard', when: () => true, text: 'Somewhere, a whiteboard still has the first architecture diagram on it. Do not erase it.' },
-  { id: 'generic_loop', when: () => true, text: 'The humans stayed in the loop. Some weeks, the loop stayed in them.' },
+  { id: 'generic_group_chat', when: wentUnder, text: 'The old team still has a group chat. It is mostly memes about the codebase.' },
+  { id: 'generic_domain', when: wentUnder, text: 'Someone bought the domain at auction. It redirects to a very aggressive mattress store now.' },
+  { id: 'generic_pottery', when: wentUnder, text: 'The old office is a pottery studio now. The server closet holds the kiln.' },
 ];

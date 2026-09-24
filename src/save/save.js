@@ -42,6 +42,17 @@ export function clearSave(storage) {
   }
 }
 
+const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+const arrayOfObjects = (v) => Array.isArray(v) && v.every(isObj);
+
+function wellFormed(state) {
+  const lists = ['staff', 'candidates', 'projects', 'products', 'campaigns', 'incidentLog', 'history'];
+  if (!lists.every((k) => arrayOfObjects(state[k]))) return false;
+  if (['items', 'modifiers', 'scheduled'].some((k) => k in state && !arrayOfObjects(state[k]))) return false;
+  if (![...state.staff, ...state.candidates].every((p) => isObj(p.assignment) && isObj(p.skills) && Array.isArray(p.traits))) return false;
+  return ['rng', 'automation', 'market', 'models', 'stats', 'flags', 'ops', 'security', 'policies'].every((k) => isObj(state[k]));
+}
+
 // Fills fields added after a save was written, so older saves of the same version keep loading.
 function normalize(state) {
   for (const [k, v] of Object.entries(STATE_DEFAULTS())) if (!(k in state)) state[k] = v;
@@ -68,10 +79,12 @@ export function loadGame(storage) {
   }
   if (!state || typeof state !== 'object' || Array.isArray(state)) return { ok: false, reason: 'Save is corrupted' };
   if ('version' in state && state.version !== SAVE_VERSION) return { ok: false, reason: 'Save is from an incompatible version' };
-  if (REQUIRED_KEYS.some((k) => !(k in state)) || !Array.isArray(state.staff) || !Array.isArray(state.products)) {
+  if (REQUIRED_KEYS.some((k) => !(k in state)) || !wellFormed(state)) return { ok: false, reason: 'Save is corrupted' };
+  try {
+    normalize(state);
+  } catch {
     return { ok: false, reason: 'Save is corrupted' };
   }
-  normalize(state);
   if (state.pendingDecision && !EVENTS[state.pendingDecision.eventId]) {
     state.pendingDecision = null;
     return { ok: true, state, notice: 'A decision from this save no longer exists and was skipped.' };
