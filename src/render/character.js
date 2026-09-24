@@ -23,6 +23,9 @@ const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
 const BLEND_S = 0.3;
+// Ground speed of the walk clip at its authored rate (chibi_rig.py): playback scales from it with
+// the walker's speed so feet do not slide.
+const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
@@ -374,6 +377,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let mixer = null;
   let proxy = null;
   let rigClip = null;
+  let rigAction = null;
+  let moveSpeed = WALK_CLIP_SPEED;
   let blendT = BLEND_S;
   const snap = pivotList.map(() => ({ q: new THREE.Quaternion(), p: new THREE.Vector3() }));
   const tmpQ = new THREE.Quaternion();
@@ -393,11 +398,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
           mixer = new THREE.AnimationMixer(proxy);
         }
         const a = mixer.clipAction(clip);
+        rigAction = a;
         a.play();
         a.time = (phase / (Math.PI * 2)) * clip.duration;
       }
     }
     if (!clip) return false;
+    rigAction.timeScale = anim === 'walk' ? Math.min(2.5, Math.max(0.5, moveSpeed / WALK_CLIP_SPEED)) : 1;
     mixer.update(dt);
     proxy.children.forEach((g, i) => { pivotList[i].quaternion.copy(g.quaternion); });
     body.position.copy(proxy.children[0].position);
@@ -764,10 +771,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
 
   function setRingScale(s) { ring.scale.set(s, 1, s); }
+  // Walking speed in m/s, for the walk clip's playback rate.
+  function setMoveSpeed(v) { moveSpeed = v; }
 
   update(0);
   return {
-    root, head: headGroup, setShadows, setAnim, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setShadows, setAnim, setMoveSpeed, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { getTemplate } from './models.js';
+import { getTemplate, loadModels } from './models.js';
 
 // Authored character clips from chibi_rig.glb (blender/characters/chibi_rig.py), converted once
 // into tracks for the pivot groups character.js builds, so an AnimationMixer per character plays
 // them directly. A bone's motion becomes the change from its rest pose, expressed in its parent's
 // frame, so the bones' own rest orientation never matters.
 //
-// rigClips() -> Map(name -> AnimationClip) | null   null until the model has loaded
+// rigClips() -> Map(name -> AnimationClip) | null   null until the model has loaded (setRigEnabled)
 // Pivots are named `rig_<bone>`: body (the only one that moves), hips, legL, legR, torso, head, armL, armR.
 
 export const RIG_BONES = ['body', 'hips', 'legL', 'legR', 'torso', 'head', 'armL', 'armR'];
@@ -15,7 +15,11 @@ const FPS = 30;
 let clips = null;
 let enabled = false;
 
-export function setRigEnabled(on) { enabled = !!on; }
+// The rig model downloads only once the rig is turned on. Resolves when its clips can play.
+export function setRigEnabled(on) {
+  enabled = !!on;
+  return enabled ? loadModels(['chibi_rig']) : Promise.resolve();
+}
 export function rigEnabled() { return enabled; }
 
 function worldRest(root) {
