@@ -105,7 +105,7 @@ function happenings(ctx) {
   const incident = ev.find((e) => e.type === 'incident' && !e.caught);
   const caught = ev.find((e) => e.type === 'incident' && e.caught);
   const promotedId = ctx.happenings?.promoted?.[0];
-  const lastItem = state.items.at(-1);
+  const lastItem = state.office.placed.find((p) => p.itemId === state.flags.lastItemId && ITEMS[p.itemId].kind === 'shop');
   return {
     launch: launch ? { product: productOf(launch) } : null,
     incident: incident ? { product: productOf(incident) } : null,
@@ -174,6 +174,20 @@ function postThread(ctx, t, lines) {
   ctx.state.flags[`cdThread_${t.id}`] = ctx.state.week + (t.cooldown ?? B.threadCooldownWeeks);
 }
 
+const NUDGES = {
+  desks: ['We should probably get desks in here first.', 'I have been sitting on a paint can for a week. Desks?', 'Standing is fine. Standing for a year is not. Desks.'],
+  product: ['Desks: done. Now we just need, you know, a product.', 'Should we build something? I feel like we should build something.'],
+};
+
+// A founder's nudge toward the first goals in the opening weeks, or null.
+function founderNudge(state) {
+  if (![1, 4, 9].includes(state.week)) return null;
+  const desks = state.office.placed.filter((p) => p.itemId === 'desk').length;
+  if (desks < 2) return NUDGES.desks[[1, 4, 9].indexOf(state.week)];
+  if (!state.projects.length && !state.products.length) return NUDGES.product[state.week === 1 ? 0 : 1];
+  return null;
+}
+
 // Weekly Slackk: launch announcements, a thread about this week's news, an occasional everyday
 // thread, and mood chatter. The number of everyday lines falls as the team's meaning falls.
 export function chatSystem(ctx) {
@@ -190,6 +204,13 @@ export function chatSystem(ctx) {
     if (p) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: `${p.name} v${p.version} is live. Reviews average ${p.score}.`, kind: 'win' });
   }
   if (!team.length) return;
+
+  const nudge = founderNudge(state);
+  if (nudge) {
+    const f = pick(ctx.rng, team.filter((p) => p.founder).length ? team.filter((p) => p.founder) : team);
+    emitChat(ctx, { person: f, text: nudge });
+    ctx.emit({ type: 'bubble', staffId: f.id, text: nudge, tone: 'good' });
+  }
 
   const cooled = (t) => (state.flags[`cdThread_${t.id}`] ?? -1) <= state.week && eraAllowsText(state, [t.post.text, ...t.replies.map((r) => r.text)].join(' '));
   const happened = happenings(ctx);

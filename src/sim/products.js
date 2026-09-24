@@ -11,6 +11,7 @@ import { modifierBonus } from './modifiers.js';
 import { perk } from './bonus.js';
 import { staffMods } from './staff.js';
 import { currentEra } from './eras.js';
+import { autoArrange, spentOn } from './office.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -154,7 +155,11 @@ registerAction('upgradeOffice', (ctx) => {
   if (state.cash < next.upgradeCost) return { ok: false, reason: 'Not enough cash' };
   state.cash -= next.upgradeCost;
   state.officeStage++;
+  // The movers put everything somewhere sensible; anything that does not fit is refunded in full.
+  const { placed, left } = autoArrange(state.officeStage, state.office.placed);
+  for (const p of left) state.cash += spentOn(p);
+  state.office = { stage: state.officeStage, placed };
   ctx.emit({ type: 'officeUpgrade', stage: state.officeStage });
-  ctx.emit({ type: 'toast', text: `Welcome to the ${next.name}! Room for ${next.capacity} people.`, tone: 'good' });
+  ctx.emit({ type: 'toast', text: `Welcome to the ${next.name}! The movers put everything somewhere. Rearrange as you like.`, tone: 'good' });
   return { ok: true };
 });

@@ -1,6 +1,7 @@
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
+// funding: only for companies funded that way.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}.
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
 
@@ -417,7 +418,7 @@ const list = [
     ],
   },
   {
-    id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null,
+    id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null, funding: 'bootstrapped',
     when: (s) => !s.flags.diluted && (s.week >= 26 || s.cash < 20000),
     title: 'A venture capitalist calls',
     text: 'A VC in a vest wants to give {company} half a million dollars. They say "AI-native" four times.',
@@ -708,6 +709,67 @@ const list = [
       { label: 'Not yet', hint: 'Nothing happens', effects: {}, outcome: 'The picture stays up. Someone draws a tiny ball on it.' },
     ],
   },
+  // Funding pressure (only for companies funded that way)
+  {
+    id: 'family_dinner', kind: 'leadership', weight: 2, cooldownWeeks: 52, random: true, subject: 'founder', funding: 'family',
+    when: (s) => s.week >= 20,
+    title: 'Dinner, with questions',
+    text: 'At a family dinner, {name}\'s uncle asks when {company} will "go public, like the Facebook". Everyone turns to look.',
+    choices: [
+      { label: 'Show them the dashboard', hint: '{name} feels seen; brand up a little', effects: { meaning: 5, brand: 1 }, outcome: 'Grandma asks what churn is. {name} explains for forty minutes. Grandma is now an investor.' },
+      { label: 'Promise big news next year', hint: 'More output for 12 weeks; people burn out faster for 12 weeks', effects: { modifier: [{ key: 'output', value: 0.06, weeks: 12, label: 'Family expectations' }, { key: 'meaningDrain', value: 0.3, weeks: 12, label: 'Family expectations' }] }, outcome: 'The uncle raises a glass. The pressure is now a houseguest.' },
+    ],
+  },
+  {
+    id: 'family_checkin', kind: 'leadership', weight: 2, cooldownWeeks: 52, random: true, subject: null, funding: 'family',
+    when: (s) => s.week >= 30,
+    title: 'Your cousin would like an update',
+    text: 'Your cousin put in ten thousand dollars and would like to "just check in" about the burn rate. Every Sunday. By voicemail.',
+    choices: [
+      { label: 'Start a monthly newsletter', hint: 'A little less output for 8 weeks; brand up a little', effects: { brand: 1, modifier: { key: 'output', value: -0.03, weeks: 8, label: 'Investor newsletter' } }, outcome: 'The newsletter has a mascot now. Nobody asked for the mascot.' },
+      { label: 'Pay them back early', hint: '-$10k; the team exhales', effects: { cash: -10000, teamMeaning: 2 }, outcome: 'The cousin is thrilled, and very slightly offended.' },
+    ],
+  },
+  {
+    id: 'family_intern', kind: 'staff', weight: 2, cooldownWeeks: 78, random: true, subject: 'founder', funding: 'family',
+    when: (s) => s.week >= 26,
+    title: 'An internship for the nephew',
+    text: '{name}\'s aunt has a kid who is "very good with computers". The kid would like a summer internship. The aunt would like it more.',
+    choices: [
+      { label: 'Sure, one summer', hint: 'Three junior candidates appear; the family is happy', effects: { candidates: 'juniorBatch', teamMeaning: 1 }, outcome: 'The nephew brings two friends. One of them is actually brilliant.' },
+      { label: 'Politely decline', hint: '{name} dreads the holidays', effects: { meaning: -4 }, outcome: 'The aunt says it is fine. It is not fine.' },
+    ],
+  },
+  {
+    id: 'investor_growth_push', kind: 'leadership', weight: 3, cooldownWeeks: 39, random: true, subject: null, funding: 'preseed',
+    when: (s, h) => h.live.length > 0,
+    title: 'The board wants growth',
+    text: 'Your investor forwards a chart where every line goes up and to the right. The subject line is "Q3?"',
+    choices: [
+      { label: 'Push for growth', hint: 'Signups up for 13 weeks; people burn out faster for 13 weeks', effects: { modifier: [{ key: 'acquisition', value: 0.2, weeks: 13, label: 'Growth push' }, { key: 'meaningDrain', value: 0.3, weeks: 13, label: 'Growth push' }] }, outcome: 'Everyone gets a growth target. The growth targets get growth targets.' },
+      { label: 'Push back', hint: 'Brand dips a little; the team respects it', effects: { brand: -1, teamMeaning: 3 }, outcome: 'You say "sustainable" in a board meeting and live to tell the tale.' },
+    ],
+  },
+  {
+    id: 'investor_demo_day', kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: null, funding: 'preseed',
+    when: (s, h) => h.live.length > 0,
+    title: 'Demo day',
+    text: 'Your fund\'s demo day is next week. Two minutes on stage, three hundred investors, and one very loud smoothie blender.',
+    choices: [
+      { label: 'Pitch the newest product', hint: 'Hype +20 on your newest product, brand up a little', effects: { hype: 20, brand: 1 }, outcome: 'The blender goes off mid-sentence. You pause, perfectly. People clap.' },
+      { label: 'Skip it', hint: 'Nothing happens', effects: {}, outcome: 'You watch the livestream. Someone else pitches the same idea, worse.' },
+    ],
+  },
+  {
+    id: 'investor_automation_push', kind: 'leadership', weight: 3, cooldownWeeks: 52, random: true, subject: null, funding: 'preseed', eras: ['agents', 'consolidation'],
+    when: (s) => s.staff.length >= 6,
+    title: 'Why so many humans?',
+    text: 'Your investor read a thread about a company with three employees and fifty million in revenue. They would like to discuss your headcount.',
+    choices: [
+      { label: 'Automate harder', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Headcount pressure' } }, outcome: 'The agents get more work. The humans get more dashboards about the agents.' },
+      { label: 'Defend the team', hint: 'Team meaning up; fewer signups for 13 weeks while the investor sulks', effects: { teamMeaning: 4, modifier: { key: 'acquisition', value: -0.1, weeks: 13, label: 'Investor sulking' } }, outcome: '"Those three employees have not slept since 2027," you say. The call ends early.' },
+    ],
+  },
   // Annual calendar (raised by the annual system)
   {
     id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
@@ -738,7 +800,7 @@ const list = [
   // Misc
   {
     id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
-    when: (s) => s.items.some((i) => i.itemId === 'espresso'),
+    when: (s) => s.office.placed.some((i) => i.itemId === 'espresso'),
     chat: 'Coffee machine status: deceased. Please grieve responsibly.',
     title: 'The coffee machine is dead',
     text: 'The espresso machine made a noise like a sad robot and stopped. Productivity is in freefall.',
@@ -750,7 +812,7 @@ const list = [
   },
   {
     id: 'coffee_wanted', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.week >= 8 && !s.items.some((i) => i.itemId === 'espresso'),
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso'),
     chat: 'The office kettle is doing its best. Its best is not enough.',
     title: 'The team wants a coffee machine',
     text: 'Someone has started bringing a thermos to meetings. Someone else brought a French press and guards it like a dragon.',

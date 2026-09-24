@@ -7,7 +7,8 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { ITEMS } from '../../src/data/items.js';
-import { game, addProduct } from './helpers.js';
+import { game, addProduct, placeAction, setItems } from './helpers.js';
+import { OFFICE_STAGES } from '../../src/data/office.js';
 
 const eventText = (e) => [e.title, e.text, e.chat ?? '', ...(e.choices ?? []).flatMap((c) => [c.label, c.hint, c.outcome ?? ''])].join(' ');
 const raise = (s, id, subject = null) => { raiseDecision(makeCtx(s), id, subject); return s.pendingDecision; };
@@ -21,13 +22,13 @@ describe('events follow the real office', () => {
     expect(eligibleEvents(s).map((e) => e.id)).not.toContain('coffee_machine_broke');
     expect(eligibleEvents(s).map((e) => e.id)).toContain('coffee_wanted');
     s.cash = 1e6;
-    dispatch(s, { type: 'buyItem', itemId: 'espresso' });
+    expect(dispatch(s, placeAction(s, 'espresso')).ok).toBe(true);
     expect(eligibleEvents(s).map((e) => e.id)).toContain('coffee_machine_broke');
     expect(eligibleEvents(s).map((e) => e.id)).not.toContain('coffee_wanted');
     raise(s, 'coffee_machine_broke');
     const cash = s.cash;
     expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
-    expect(s.items.find((i) => i.itemId === 'espresso').level).toBe(2);
+    expect(s.office.placed.find((i) => i.itemId === 'espresso').level).toBe(2);
     expect(s.cash).toBe(cash - ITEMS.espresso.costs[1]);
   });
 
@@ -36,22 +37,26 @@ describe('events follow the real office', () => {
     s.cash = 1e6;
     raise(s, 'coffee_wanted');
     dispatch(s, { type: 'resolveDecision', choice: 0 });
-    expect(s.items).toEqual([expect.objectContaining({ itemId: 'espresso', level: 1 })]);
+    expect(s.office.placed.filter((i) => i.itemId !== 'desk')).toEqual([expect.objectContaining({ itemId: 'espresso', level: 1 })]);
     expect(s.cash).toBe(1e6 - ITEMS.espresso.costs[0]);
   });
 
   it('upgrade and purchase choices are unavailable when they cannot happen', () => {
     const s = game();
-    s.items = [{ id: 'x', itemId: 'espresso', level: 3 }];
+    setItems(s, [{ itemId: 'espresso', level: 3 }]);
     expect(raise(s, 'coffee_machine_broke').choices[0]).toMatchObject({ available: false });
     s.pendingDecision = null;
     s.week += B.decisionGapWeeks;
-    s.items = [{ id: 'a', itemId: 'plant_wall', level: 1 }, { id: 'b', itemId: 'arcade', level: 1 }, { id: 'c', itemId: 'library', level: 1 }];
-    expect(raise(s, 'coffee_wanted').choices[0]).toMatchObject({ available: false, reason: 'No free item slots' });
+    setItems(s, []);
+    // Fill every free tile of the garage with plants: nowhere left for an espresso machine.
+    const { w, h } = OFFICE_STAGES[0].grid;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) dispatch(s, { type: 'placeItem', itemId: 'plant', x, y, rot: 0 });
+    s.cash = 1e6;
+    expect(raise(s, 'coffee_wanted').choices[0]).toMatchObject({ available: false, reason: 'No room for it' });
   });
 
   it('any event that names a shop item is gated on owning it or acts on it', () => {
-    const names = Object.values(ITEMS).flatMap((i) => [i.name.toLowerCase(), i.id.replace('_', ' ')]);
+    const names = Object.values(ITEMS).filter((i) => i.kind === 'shop').flatMap((i) => [i.name.toLowerCase(), i.id.replace('_', ' ')]);
     names.push('coffee machine', 'espresso');
     const bare = game();
     for (const e of Object.values(EVENTS)) {

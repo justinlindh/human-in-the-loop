@@ -121,6 +121,7 @@ export function eligibleEvents(state) {
   return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && eventFitsEra(state, ev)
+    && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
     && ev.when(state, h)
     && (ev.subject === null || resolveSubjects(state, ev).length > 0));
 }

@@ -43,7 +43,7 @@ describe('save and load', () => {
     const store = fakeStorage();
     const shapes = [
       (s) => { s.candidates = null; }, (s) => { s.projects = null; }, (s) => { s.projects = {}; }, (s) => { s.staff = [null]; },
-      (s) => { s.products = [3]; }, (s) => { s.campaigns = 'x'; }, (s) => { s.incidentLog = {}; }, (s) => { s.items = null; },
+      (s) => { s.products = [3]; }, (s) => { s.campaigns = 'x'; }, (s) => { s.incidentLog = {}; }, (s) => { s.office = null; }, (s) => { s.office.placed = 'x'; },
       (s) => { s.modifiers = {}; }, (s) => { s.scheduled = 5; }, (s) => { s.staff[0].assignment = null; }, (s) => { s.history = [1]; },
     ];
     for (const [i, mutate] of shapes.entries()) {

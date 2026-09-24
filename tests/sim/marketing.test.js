@@ -15,7 +15,7 @@ describe('runCampaign', () => {
     const p = addProduct(s);
     const res = dispatch(s, { type: 'runCampaign', channel: 'content', productId: p.id });
     expect(res.ok).toBe(true);
-    expect(s.cash).toBe(B.startCash - CHANNELS.content.cost);
+    expect(s.cash).toBe(B.funding.bootstrapped.cash - CHANNELS.content.cost);
     expect(s.campaigns).toHaveLength(1);
     expect(s.campaigns[0]).toMatchObject({ channel: 'content', productId: p.id, projectId: null, weeksLeft: CHANNELS.content.weeks });
     runMarketing(s, CHANNELS.content.weeks - 1);

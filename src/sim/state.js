@@ -8,15 +8,25 @@ import { MODELS } from '../data/models.js';
 import { INCUMBENTS } from '../data/incumbents.js';
 import { TRENDS } from '../data/trends.js';
 import { GOALS } from '../data/goals.js';
+import { ARCHETYPES, DEFAULT_FOUNDERS } from '../data/founders.js';
+import { FUNDING } from '../data/funding.js';
 import { rollEraSchedule } from './eras.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
 export const SAVE_VERSION = 2;
 
-export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
+// The two founders asked for, or the default pair when the request is missing or invalid.
+function founderPair(founders) {
+  const ok = Array.isArray(founders) && founders.length === 2 && founders[0] !== founders[1] && founders.every((id) => ARCHETYPES[id]);
+  return ok ? [...founders] : [...DEFAULT_FOUNDERS];
+}
+
+export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#ffb020', tagline = '', founders, funding = 'bootstrapped' } = {}) {
+  const fundingId = FUNDING[funding] ? funding : 'bootstrapped';
+  const pair = founderPair(founders);
   const state = {
     version: SAVE_VERSION, seed, rng: createRng(seed), companyName, week: 0, nextId: 1,
-    cash: B.startCash, brand: B.startBrand, institutionalKnowledge: 60, comprehensionDebt: 0,
+    cash: B.funding[fundingId].cash, brand: B.startBrand, institutionalKnowledge: 60, comprehensionDebt: 0,
     officeStage: 0,
     staff: [], candidates: [], candidatesWeek: 0,
     projects: [], products: [],
@@ -38,7 +48,8 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
     eraSchedule: {},
     unlocks: {},
     goals: Object.fromEntries(GOALS.map((g) => [g.id, { done: false, week: null }])),
-    items: [],
+    office: { stage: 0, placed: [] },
+    founding: { founders: pair, funding: fundingId, logoColor: String(logoColor), tagline: String(tagline).slice(0, 80) },
     research: { done: [] },
     modifiers: [],
     scheduled: [],
@@ -53,11 +64,16 @@ export function createGame({ seed = 1, companyName = 'Loopworks' } = {}) {
     history: [],
     gameOver: null,
   };
-  for (const [role, seniority] of [['engineer', 'senior'], ['designer', 'mid']]) {
-    let p = generateStaff(state, { role, seniority });
+  for (const id of pair) {
+    const arch = ARCHETYPES[id];
+    let p = generateStaff(state, { role: arch.role, seniority: arch.seniority });
     const taken = state.staff.map((f) => f.name.split(' ')[0]);
-    while (taken.includes(p.name.split(' ')[0])) p = generateStaff(state, { role, seniority });
-    Object.assign(p, { knowledge: 70, meaning: 85, founder: true, hiredWeek: 0, assignment: { type: 'idle', targetId: null } });
+    while (taken.includes(p.name.split(' ')[0])) p = generateStaff(state, { role: arch.role, seniority: arch.seniority });
+    for (const st of arch.strengths) p.skills[st] = Math.min(100, p.skills[st] + B.founderStrengthBonus);
+    Object.assign(p, {
+      knowledge: 70, meaning: 85, founder: true, archetype: id, traits: [arch.trait],
+      hiredWeek: 0, assignment: { type: 'idle', targetId: null },
+    });
     state.staff.push(p);
   }
   // A side stream, so the era jitter does not shift every other roll in the run.

@@ -50,7 +50,7 @@ describe('content data', () => {
     expect(ch('launch')).toEqual({ cost: 5000, weeks: 3, hype: 9, brand: 0.4, minStage: 0 });
     expect(ch('producthunt')).toEqual({ cost: 1500, weeks: 1, hype: 22, brand: 0.6, minStage: 0 });
     expect(ch('conference')).toEqual({ cost: 35000, weeks: 2, hype: 14, brand: 1.5, minStage: 1 });
-    expect(OFFICE_STAGES.map((o) => [o.capacity, o.rent, o.upgradeCost])).toEqual([[4, 300, 0], [12, 3500, 60000], [30, 14000, 400000]]);
+    expect(OFFICE_STAGES.map((o) => [o.grid.w, o.grid.h, o.rent, o.upgradeCost])).toEqual([[9, 7, 300, 0], [15, 12, 3500, 60000], [21, 16, 14000, 400000]]);
     expect(TRAITS.craftsperson.mods).toEqual({ polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 });
     expect(TRAITS.red_teamer.mods).toEqual({ catch: 0.2, oversight: 1.2 });
     expect(ROLES.engineer.automatedBy).toEqual({ engineering: 1, qa: 0.5, ops: 0.4 });

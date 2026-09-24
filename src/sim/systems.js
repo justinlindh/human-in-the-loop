@@ -20,3 +20,4 @@ import './endgame.js';
 import './chat.js';
 import './unlocks.js';
 import './goals.js';
+import './office.js';

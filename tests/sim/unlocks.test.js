@@ -8,7 +8,7 @@ import { competition } from '../../src/sim/products.js';
 import { UNLOCKS, UNLOCK_KEYS } from '../../src/data/unlocks.js';
 import { POLICIES } from '../../src/data/policies.js';
 import { B } from '../../src/sim/balance.js';
-import { classicGame, addStaff, addProduct, expectFail, advance } from './helpers.js';
+import { classicGame, addStaff, addProduct, expectFail, advance, addDesks } from './helpers.js';
 
 const unlocksOf = (events) => events.filter((e) => e.type === 'unlock').map((e) => e.key);
 const check = (s) => { const c = makeCtx(s); checkUnlocks(c); return c.events; };
@@ -80,7 +80,7 @@ describe('triggers', () => {
   it('standups and their policies open at 5 people, the moment the fifth is hired', () => {
     const s = classicGame();
     s.cash = 1e6;
-    s.officeStage = 1;
+    addDesks(s, 5);
     for (let i = 0; i < 2; i++) addStaff(s, 'engineer', 'mid');
     const res = dispatch(s, { type: 'hire', candidateId: s.candidates[0].id });
     expect(res.ok).toBe(true);
@@ -120,6 +120,7 @@ describe('triggers', () => {
     const s = classicGame(3);
     s.cash = 1e7;
     s.officeStage = 1;
+    addDesks(s, 6);
     const keys = [];
     for (let w = 0; w < 400; w++) {
       if (s.staff.length < 6) keys.push(...unlocksOf(dispatch(s, { type: 'hire', candidateId: s.candidates[0]?.id }).events));

@@ -17,7 +17,8 @@ export function scoreRun(state) {
   };
   const raw = sum(Object.values(breakdown));
   const won = !!state.gameOver?.won;
-  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1));
+  const funding = B.funding[state.founding?.funding]?.scoreMult ?? 1;
+  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding);
   return { score, valuation, breakdown };
 }
 

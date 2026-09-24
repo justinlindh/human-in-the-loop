@@ -12,6 +12,7 @@ import { weeklyCosts, weeklyRevenue } from './economy.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
+import { deskCapacity, findSpot } from './office.js';
 import { scoreRun } from './endgame.js';
 import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -151,12 +152,24 @@ function pairMentors(s) {
   return out;
 }
 
+// How many desks a bot is willing to fit on each stage.
+const STAGE_DESKS = [4, 12, 30];
+
+// Keeps one free desk ready for the next hire, up to the stage's desk count.
+function furnish(s) {
+  const want = Math.min(STAGE_DESKS[s.officeStage], s.staff.length + 1);
+  for (let n = deskCapacity(s); n < want; n++) {
+    const spot = findSpot(s.officeStage, s.office.placed, 'desk', [0, 2, 1, 3]);
+    if (!spot || !dispatch(s, { type: 'placeItem', itemId: 'desk', ...spot }).ok) break;
+  }
+}
+
 function upgradeIfRich(s, cushion, careful = false) {
   const next = OFFICE_STAGES[s.officeStage + 1];
   if (!next || s.cash < next.upgradeCost * cushion) return [];
   const rentJump = next.rent - OFFICE_STAGES[s.officeStage].rent;
   if (careful && net(s) - rentJump < 0) return [];
-  if (careful && s.staff.length < OFFICE_STAGES[s.officeStage].capacity) return [];
+  if (careful && s.staff.length < STAGE_DESKS[s.officeStage]) return [];
   return [{ type: 'upgradeOffice' }];
 }
 
@@ -361,6 +374,7 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
       if (!res.ok) for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
     }
     if (s.gameOver) break;
+    furnish(s);
     for (const a of bot(s)) dispatch(s, a);
     const events = tick(s);
     maxStage = Math.max(maxStage, s.officeStage);

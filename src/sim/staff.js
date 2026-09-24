@@ -4,7 +4,7 @@ import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
-import { OFFICE_STAGES } from '../data/office.js';
+import { deskCapacity } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
@@ -126,7 +126,7 @@ export function outputMult(state, person) {
     * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0));
 }
 
-export const capacity = (state) => OFFICE_STAGES[state.officeStage].capacity;
+export const capacity = (state) => deskCapacity(state);
 
 export const findStaff = (state, id) => state.staff.find((p) => p.id === id);
 
@@ -157,7 +157,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   const { state } = ctx;
   const c = state.candidates.find((x) => x.id === candidateId);
   if (!c) return { ok: false, reason: 'No such candidate' };
-  if (state.staff.length >= capacity(state)) return { ok: false, reason: 'Office is full' };
+  if (state.staff.length >= deskCapacity(state)) return { ok: false, reason: 'No free desk' };
   const fee = c.salary * B.hireFeeWeeks;
   if (state.cash < fee) return { ok: false, reason: 'Not enough cash' };
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
