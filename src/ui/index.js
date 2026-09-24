@@ -5,6 +5,7 @@ import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
+import { createPopups } from './popups.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -68,11 +69,14 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom);
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { sfx(id ? 'open' : 'close'); toasts.setDock(id ? menu.dockEl : null); },
+    onChange: (id) => { sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
-  // Panel wrap sits under toasts in paint order so toasts stay visible over panels.
+  const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
+  ui.modalKey = (e) => popups.onKey(e);
+
+  // Toasts paint above panels and the modal backdrop.
   layer.append(toasts.el);
 
   function onKey(e) {
@@ -118,6 +122,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   let lastPanelAt = 0;
   function update(state) {
     hud.update(state);
+    popups.update(state);
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {

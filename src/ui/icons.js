@@ -34,6 +34,8 @@ export const ICONS = {
   cross: I('✖', 'Non-compliant badge', 12),
   star: I('★', 'Combo fit stars (Build)', 14),
   lock: I('🔒', 'Locked category/angle/size/channel/model/policy', 18),
+  idea: I('💡', 'Decision popup header, leadership ideas', 24),
+  decision: I('🗳️', 'Decision popup header', 24),
   hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
   warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),
   // toasts
