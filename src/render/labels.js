@@ -62,6 +62,7 @@ export function createLabels(parent) {
       l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0, dx: 0, dy: 0 };
     }
     l.dx = l.dy = 0;
+    l.px = 0; l.hideK = 1;
     return l;
   }
 
@@ -189,7 +190,37 @@ export function createLabels(parent) {
     });
   }
 
+  // UI panels that sit over the scene (the HUD's cards) mark themselves with a data-occludes
+  // attribute. Their rectangles, relative to the labels overlay, are re-read a couple of times a
+  // second; a speech bubble under one slides clear of it toward its speaker, or hides when its
+  // speaker is under the panel or off screen too.
+  let occluders = [];
+  let occT = Infinity;
+  function readOccluders(overlay) {
+    const base = overlay?.getBoundingClientRect?.();
+    if (!base || typeof document === 'undefined') { occluders = []; return; }
+    occluders = [...document.querySelectorAll('[data-occludes]')].map((el) => el.getBoundingClientRect())
+      .filter((r) => r.width > 0 && r.height > 0)
+      .map((r) => ({ left: r.left - base.left, right: r.right - base.left, top: r.top - base.top, bottom: r.bottom - base.top }));
+  }
+  const inRect = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  function clearOfPanels(l, box, anchor, w, h, k) {
+    const off = anchor.x < 0 || anchor.y < 0 || anchor.x > w || anchor.y > h;
+    let dx = 0, hidden = false;
+    for (let pass = 0; pass < 3; pass++) {
+      const at = { left: box.left + dx, right: box.right + dx, top: box.top, bottom: box.bottom };
+      const o = occluders.find((r) => hits(at, r));
+      if (!o) break;
+      if (off || inRect(anchor.x, anchor.y, o)) { hidden = true; break; }
+      dx += anchor.x < (o.left + o.right) / 2 ? o.left - GAP - at.right : o.right + GAP - at.left;
+    }
+    l.px = (l.px ?? 0) + (dx - (l.px ?? 0)) * k;
+    l.hideK = (l.hideK ?? 1) + ((hidden ? 0 : 1) - (l.hideK ?? 1)) * k;
+  }
+
   function layout(dt, camera, w, h, overlay) {
+    occT += dt;
+    if (occT > 0.5) { occT = 0; readOccluders(overlay); }
     const segs = [];
     const says = [];
     const stats = [];
@@ -220,6 +251,10 @@ export function createLabels(parent) {
       }
       l.dy += (dy - l.dy) * k;
       placed.push({ ...box, top: box.top + dy, bottom: box.bottom + dy });
+      const anchor = { x: (box.left + box.right) / 2, y: box.bottom + TAIL };
+      clearOfPanels(l, { ...box, top: box.top + dy, bottom: box.bottom + dy }, anchor, w, h, k);
+      l.dx = l.px;
+      if (l.hideK < 0.999) l.el.style.opacity = String(Number(l.el.style.opacity || 1) * l.hideK);
       // From the lifted tail tip down to where the tail would point: the speaker.
       if (-l.dy > LEAD_MIN) segs.push({ x: (box.left + box.right) / 2, y1: box.bottom + l.dy - 2, y2: box.bottom, o: Number(l.el.style.opacity || 1) });
     }
