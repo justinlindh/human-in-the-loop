@@ -1,6 +1,7 @@
 // Clipping checks on real furniture (src/render/checks.js), run headless against the mock office.
 //
-//   node blender/checks/clip.mjs      prints one line per check; exits 1 if any fails
+//   node blender/checks/clip.mjs          prints one line per check; exits 1 if any fails
+//   node blender/checks/clip.mjs --rig    the same with authored clips on (?rig=1)
 //
 // Seated desk poses in every mood, head bounds, and resting perk poses (couch, beanbag, nap pod,
 // arcade stool, library armchair).
@@ -14,7 +15,8 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 800, height: 500 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
-await page.goto(`${base}?snap=1&quality=low&mock=floor`, { waitUntil: 'load' });
+const rig = process.argv.includes('--rig') ? '&rig=1' : '';
+await page.goto(`${base}?snap=1&quality=low&mock=floor${rig}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 120000 });
 const out = await page.evaluate(async () => {
   const R = window.__hitlRender, S = window.__HITL.state;
@@ -29,7 +31,7 @@ const out = await page.evaluate(async () => {
   R.advance(2);
   const a = await C.runClipChecks(R, S);
   const b = await C.runPerkChecks(R, S, [
-    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_bean', label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
+    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
     { id: 'k_arc', label: 'arcade:stool' }, { id: 'k_lib', slot: 1, label: 'library:armchair' }]);
   return [...a.results, ...b.results];
 });

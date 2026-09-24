@@ -5,6 +5,7 @@ import { mat, color, paletteMaterial } from './materials.js';
 import { SKINS, ROLE_COLORS, PALETTE } from './palette.js';
 import { emoteMaterial } from './emotes.js';
 import { bakedMaterial, bakeParts } from './bake.js';
+import { rigClips, rigEnabled } from './rig.js';
 
 // Chibi assembly from the named parts in chibi.glb, animated with plain transforms.
 // Pivots: neck (head parts), waist (torso parts), shoulder (arm), wrist (hand), hip (leg), ankle (shoe).
@@ -21,6 +22,8 @@ const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake'];
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
+const BLEND_S = 0.3;
+const LYING = new Set(['lie', 'nap', 'sprawl']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
 const ink = new THREE.Color(PALETTE.ink);
@@ -287,6 +290,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   box.visible = false;
   torso.add(box);
 
+  // The pivots authored clips drive (rig.js bone names).
+  const pivots = { body, hips, legL: legs[0], legR: legs[1], torso, head: headGroup, armL: arms[0].shoulder, armR: arms[1].shoulder };
+  const pivotList = Object.values(pivots);
+
   // Bake the rigid parts under each pivot into one mesh (about 10 draws a person, not 20).
   const bm = bakedMaterial();
   const ownSet = new Set(Object.values(own));
@@ -342,6 +349,53 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = Math.random() * Math.PI * 2;
+
+  // Authored clips: when the rig is on and has a clip for this pose, a mixer plays it. The mixer
+  // animates a bare proxy of the pivots that is copied onto them each frame (it skips writing
+  // values that have not changed since its last write, so it must own what it animates).
+  // Switching between a clip and the procedural pose, either way, blends over BLEND_S from the
+  // pivots' last transforms, so nothing pops.
+  let mixer = null;
+  let proxy = null;
+  let rigClip = null;
+  let blendT = BLEND_S;
+  const snap = pivotList.map(() => ({ q: new THREE.Quaternion(), p: new THREE.Vector3() }));
+  const tmpQ = new THREE.Quaternion();
+  function rigPose(dt) {
+    const clip = rigEnabled() ? rigClips()?.get(anim) ?? null : null;
+    if (clip !== rigClip) {
+      pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
+      blendT = 0;
+      mixer?.stopAllAction();
+      rigClip = clip;
+      if (clip) {
+        if (!proxy) {
+          proxy = new THREE.Group();
+          for (const k of Object.keys(pivots)) { const g = new THREE.Group(); g.name = `rig_${k}`; proxy.add(g); }
+          mixer = new THREE.AnimationMixer(proxy);
+        }
+        const a = mixer.clipAction(clip);
+        a.play();
+        a.time = (phase / (Math.PI * 2)) * clip.duration;
+      }
+    }
+    if (!clip) return false;
+    mixer.update(dt);
+    proxy.children.forEach((g, i) => { pivotList[i].quaternion.copy(g.quaternion); });
+    body.position.copy(proxy.children[0].position);
+    return true;
+  }
+  function blendIn(dt) {
+    if (blendT >= BLEND_S) return;
+    blendT += dt;
+    const k = Math.min(1, blendT / BLEND_S);
+    const e = k * k * (3 - 2 * k);
+    pivotList.forEach((o, i) => {
+      tmpQ.copy(o.quaternion);
+      o.quaternion.slerpQuaternions(snap[i].q, tmpQ, e);
+      o.position.lerpVectors(snap[i].p, o.position.clone(), e);
+    });
+  }
 
   function pose(dt) {
     const s = Math.sin;
@@ -578,15 +632,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const k = 1 - Math.exp(-dt * 16);
     for (const key in cur) cur[key] += (tgt[key] - cur[key]) * k;
 
-    body.position.set(0, cur.bodyY, cur.bodyZ);
-    body.rotation.x = cur.pitch;
     body.scale.set(1 / Math.sqrt(cur.squash), cur.squash, 1 / Math.sqrt(cur.squash));
-    torso.rotation.set(cur.lean, cur.twist, 0);
-    headGroup.rotation.set(cur.headX, 0, cur.headZ);
-    legs[0].rotation.x = cur.legL;
-    legs[1].rotation.x = cur.legR;
-    arms[0].shoulder.rotation.set(cur.armLX, 0, cur.armLZ);
-    arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
+    if (!rigPose(dt)) {
+      body.position.set(0, cur.bodyY, cur.bodyZ);
+      body.rotation.set(cur.pitch, 0, 0);
+      torso.rotation.set(cur.lean, cur.twist, 0);
+      headGroup.rotation.set(cur.headX, 0, cur.headZ);
+      legs[0].rotation.set(cur.legL, 0, 0);
+      legs[1].rotation.set(cur.legR, 0, 0);
+      arms[0].shoulder.rotation.set(cur.armLX, 0, cur.armLZ);
+      arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
+    }
+    blendIn(dt);
   }
 
   function setAnim(name) {
@@ -594,6 +651,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     anim = name;
     animT = 0;
     mug.visible = name === 'sip' || name === 'water';
+    // Lying people are lifted onto furniture with their root, and the floor ring would float with them.
+    ring.visible = !LYING.has(name);
     box.visible = name === 'carry';
   }
 
@@ -666,6 +725,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let breathT = Math.random() * 6;
   function breathe(dt) {
     breathT += dt;
+    // A playing clip holds its own frame; the offset below is for procedural poses.
+    if (rigClip) return;
     body.position.y = cur.bodyY + Math.sin(breathT * 1.8 + phase) * 0.004;
   }
 
@@ -673,6 +734,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function setShadows(on) { for (const b of baked) if (b) b.castShadow = on && b.userData.cast; }
 
   function dispose() {
+    if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(proxy); }
     for (const m of Object.values(own)) m.dispose();
     for (const b of baked) b?.geometry.dispose();
     bm.dispose();

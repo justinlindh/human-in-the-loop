@@ -146,9 +146,9 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
   const results = [];
   const staff = S.staff.filter((p) => p.mood !== 'away').map((p) => p.id);
   let k = 0;
-  for (const { id, slot = 0, label } of items) {
+  for (const { id, slot = 0, nap = false, label } of items) {
     const who = staff[k++ % staff.length];
-    if (!R.perks.send([who], id, { dur: 60, slot })) { results.push({ name: label, pass: false, reason: 'not sent' }); continue; }
+    if (!R.perks.send([who], id, { dur: 60, slot, nap })) { results.push({ name: label, pass: false, reason: 'not sent' }); continue; }
     for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) R.advance(0.1);
     for (let i = 0; i < settle; i++) R.advance(dt);
     const e = R.office.placed.get(id);

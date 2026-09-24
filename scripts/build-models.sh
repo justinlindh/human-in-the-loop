@@ -7,6 +7,7 @@ BLENDER="${BLENDER:-blender}"
 mkdir -p public/models
 scripts=(blender/props/*.py blender/items/*.py)
 [ -f blender/characters/chibi.py ] && scripts+=(blender/characters/chibi.py)
+[ -f blender/characters/chibi_rig.py ] && scripts+=(blender/characters/chibi_rig.py)
 [ -f blender/characters/pets.py ] && scripts+=(blender/characters/pets.py)
 models=0
 # Coplanar overlapping faces (z-fighting) found by common.zfight_report, collected for review.
