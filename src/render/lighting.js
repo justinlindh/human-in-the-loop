@@ -18,7 +18,6 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.025;
   sun.shadow.radius = 6;
-  sun.shadow.blurSamples = 12;
   scene.add(sun, sun.target);
 
   const interior = [];
@@ -98,7 +97,14 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     for (const fn of env.listeners) fn(env);
   }
 
-  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw };
+  function setShadowSize(n) {
+    if (sun.shadow.mapSize.x === n) return;
+    sun.shadow.mapSize.set(n, n);
+    sun.shadow.map?.dispose();
+    sun.shadow.map = null;
+  }
+
+  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize };
 }
 
 export function createBackdrop() {
@@ -115,13 +121,18 @@ export function createBackdrop() {
   const nT = C('sky_night_top'), nB = C('sky_night_bottom');
   const top = new THREE.Color(), bottom = new THREE.Color();
   let lastKey = '';
+  let lastDraw = -1e9;
 
+  // Redrawn at most a few times per second.
   function update(env) {
+    const now = performance.now();
+    if (now - lastDraw < 250 && lastKey) return;
     top.copy(nT).lerp(dT, env.daylight).lerp(kT, env.dusk * 0.6);
     bottom.copy(nB).lerp(dB, env.daylight).lerp(kB, env.dusk * 0.6);
     const key = top.getHexString() + bottom.getHexString();
     if (key === lastKey) return;
     lastKey = key;
+    lastDraw = now;
     const g = ctx.createLinearGradient(0, 0, 0, 256);
     g.addColorStop(0, `#${top.getHexString(THREE.SRGBColorSpace)}`);
     g.addColorStop(1, `#${bottom.getHexString(THREE.SRGBColorSpace)}`);

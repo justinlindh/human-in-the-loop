@@ -5,6 +5,9 @@ const PITCH = Math.atan(1 / Math.SQRT2);
 const DISTANCE = 60;
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 3.2;
+// Screen space the HUD covers, in CSS px; the office is fitted into what is left.
+const INSET = { top: 90, bottom: 100, left: 120, right: 150 };
+const PAN_KEYS = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
 
 export function createCameraRig(canvas) {
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
@@ -18,47 +21,63 @@ export function createCameraRig(canvas) {
   let zoomGoal = 1;
   let fitHeight = 12;
   let aspect = 1;
+  let viewW = 1, viewH = 1;
   let shakeTime = 0;
   let shakeDur = 0;
   let shakeAmp = 0;
   const keys = new Set();
 
   const tmp = new THREE.Vector3();
-  const right = new THREE.Vector3();
+  const dirV = new THREE.Vector3();
+  const rightV = new THREE.Vector3();
+  const upV = new THREE.Vector3();
   const fwd = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-  function viewDir(y) {
-    return new THREE.Vector3(Math.sin(y) * Math.cos(PITCH), Math.sin(PITCH), Math.cos(y) * Math.cos(PITCH));
+  function viewDir(y, out = dirV) {
+    return out.set(Math.sin(y) * Math.cos(PITCH), Math.sin(PITCH), Math.cos(y) * Math.cos(PITCH));
   }
 
-  // Fit the bounds box into the view at the current yaw.
+  function insets() {
+    // Small windows shrink the reserved bands proportionally.
+    const k = Math.min(1, viewH / 1080);
+    return { top: INSET.top * k, bottom: INSET.bottom * k, left: INSET.left * k, right: INSET.right * k };
+  }
+
+  // Fit the bounds box into the HUD-free part of the view at the goal yaw.
   function refit() {
     const dir = viewDir(yawGoal);
-    const up = new THREE.Vector3(0, 1, 0);
-    const r = new THREE.Vector3().crossVectors(up, dir).normalize();
-    const u = new THREE.Vector3().crossVectors(dir, r).normalize();
+    rightV.crossVectors(WORLD_UP, dir).normalize();
+    upV.crossVectors(dir, rightV).normalize();
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    const c = bounds.getCenter(new THREE.Vector3());
+    bounds.getCenter(center);
     for (let i = 0; i < 8; i++) {
-      tmp.set(i & 1 ? bounds.max.x : bounds.min.x, i & 2 ? bounds.max.y : bounds.min.y, i & 4 ? bounds.max.z : bounds.min.z).sub(c);
-      const x = tmp.dot(r), y = tmp.dot(u);
+      tmp.set(i & 1 ? bounds.max.x : bounds.min.x, i & 2 ? bounds.max.y : bounds.min.y, i & 4 ? bounds.max.z : bounds.min.z).sub(center);
+      const x = tmp.dot(rightV), y = tmp.dot(upV);
       minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
     }
-    fitHeight = Math.max(maxY - minY, (maxX - minX) / aspect) * 1.12;
+    const ins = insets();
+    const innerH = Math.max(80, viewH - ins.top - ins.bottom);
+    const innerW = Math.max(80, viewW - ins.left - ins.right);
+    const needH = (maxY - minY) * 1.04;
+    const needW = (maxX - minX) * 1.04;
+    fitHeight = Math.max(needH * viewH / innerH, needW * viewH / innerW);
   }
 
   function setBounds(box, recenter = true) {
     bounds.copy(box);
     refit();
     if (recenter) {
-      const c = box.getCenter(new THREE.Vector3());
-      goal.set(c.x, c.y, c.z);
+      box.getCenter(center);
+      goal.copy(center);
       target.copy(goal);
     }
   }
 
   function resize(w, h) {
-    aspect = w / Math.max(1, h);
+    viewW = Math.max(1, w); viewH = Math.max(1, h);
+    aspect = viewW / viewH;
     refit();
   }
 
@@ -68,15 +87,18 @@ export function createCameraRig(canvas) {
     goal.z = THREE.MathUtils.clamp(goal.z, bounds.min.z - pad, bounds.max.z + pad);
   }
 
+  function worldPerPx() {
+    return fitHeight / zoom / viewH;
+  }
+
   function panScreen(dxPx, dyPx) {
-    const h = canvas.clientHeight || 1;
-    const worldPerPx = fitHeight / zoom / h;
+    const wpp = worldPerPx();
     const dir = viewDir(yaw);
-    right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+    rightV.set(Math.cos(yaw), 0, -Math.sin(yaw));
     fwd.set(-dir.x, 0, -dir.z).normalize();
     // Screen up maps to ground forward scaled by 1/sin(pitch) because the ground is foreshortened.
-    goal.addScaledVector(right, -dxPx * worldPerPx);
-    goal.addScaledVector(fwd, (dyPx * worldPerPx) / Math.sin(PITCH));
+    goal.addScaledVector(rightV, -dxPx * wpp);
+    goal.addScaledVector(fwd, (dyPx * wpp) / Math.sin(PITCH));
     clampGoal();
   }
 
@@ -84,7 +106,6 @@ export function createCameraRig(canvas) {
   let dragging = false;
   let lastX = 0, lastY = 0;
   const onDown = (e) => {
-    if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
     dragging = true; lastX = e.clientX; lastY = e.clientY;
     canvas.setPointerCapture?.(e.pointerId);
   };
@@ -98,17 +119,18 @@ export function createCameraRig(canvas) {
     e.preventDefault();
     zoomGoal = THREE.MathUtils.clamp(zoomGoal * Math.exp(-e.deltaY * 0.0015), ZOOM_MIN, ZOOM_MAX);
   };
-  const typing = (e) => {
+  const ignore = (e) => {
     const t = e.target;
-    return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+    return e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey
+      || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
   };
   const onKeyDown = (e) => {
-    if (typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (ignore(e)) return;
     const k = e.key.toLowerCase();
-    if (k === 'q') yawGoal -= Math.PI / 2;
-    else if (k === 'e') yawGoal += Math.PI / 2;
-    else if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) keys.add(k);
-    if (k === 'q' || k === 'e') refit();
+    if (k === 'q' || k === 'e') {
+      yawGoal += (k === 'q' ? -1 : 1) * Math.PI / 2;
+      refit();
+    } else if (PAN_KEYS.has(k)) keys.add(k);
   };
   const onKeyUp = (e) => keys.delete(e.key.toLowerCase());
   const onBlur = () => keys.clear();
@@ -129,7 +151,7 @@ export function createCameraRig(canvas) {
   }
 
   function focus(point, zoomTo = null) {
-    goal.set(point.x, 0.6, point.z);
+    goal.set(point.x, point.y ?? center.y, point.z);
     clampGoal();
     if (zoomTo) zoomGoal = THREE.MathUtils.clamp(zoomTo, ZOOM_MIN, ZOOM_MAX);
   }
@@ -137,10 +159,10 @@ export function createCameraRig(canvas) {
   function update(dt) {
     const speed = 900 * dt;
     let kx = 0, ky = 0;
-    if (keys.has('a') || keys.has('arrowleft')) kx += speed;
-    if (keys.has('d') || keys.has('arrowright')) kx -= speed;
-    if (keys.has('w') || keys.has('arrowup')) ky += speed;
-    if (keys.has('s') || keys.has('arrowdown')) ky -= speed;
+    if (keys.has('arrowleft')) kx += speed;
+    if (keys.has('arrowright')) kx -= speed;
+    if (keys.has('arrowup')) ky += speed;
+    if (keys.has('arrowdown')) ky -= speed;
     if (kx || ky) panScreen(kx, ky);
 
     const k = 1 - Math.exp(-dt * 10);
@@ -156,10 +178,18 @@ export function createCameraRig(canvas) {
       shakeOffset.set(Math.sin(t * 1.7) * a, Math.sin(t * 2.3) * a * 0.5, Math.cos(t * 1.9) * a);
     }
 
+    // Shift the view so the target lands in the center of the HUD-free area.
     const dir = viewDir(yaw);
-    camera.position.copy(target).addScaledVector(dir, DISTANCE).add(shakeOffset);
+    rightV.crossVectors(WORLD_UP, dir).normalize();
+    upV.crossVectors(dir, rightV).normalize();
+    const ins = insets();
+    const wpp = worldPerPx();
+    const ox = (ins.right - ins.left) / 2 * wpp;
+    const oy = (ins.bottom - ins.top) / 2 * wpp;
+    tmp.copy(target).add(shakeOffset).addScaledVector(rightV, ox).addScaledVector(upV, oy);
+    camera.position.copy(tmp).addScaledVector(dir, DISTANCE);
     camera.up.set(0, 1, 0);
-    camera.lookAt(tmp.copy(target).add(shakeOffset));
+    camera.lookAt(tmp);
     const hh = fitHeight / zoom / 2;
     camera.left = -hh * aspect; camera.right = hh * aspect;
     camera.top = hh; camera.bottom = -hh;

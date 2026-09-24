@@ -68,7 +68,24 @@ export function glow(name, intensity = 2, key = '') {
     color: color('screen_bg'), emissive: color(name), emissiveIntensity: intensity, roughness: 0.35, metalness: 0,
   });
   m.name = `glow_${name}`;
+  m.userData.baseEmissive = intensity;
+  m.emissiveIntensity = intensity * glowScale;
+  glows.add(m);
   cache.set(k, m);
+  return m;
+}
+
+// Low quality has no bloom, so emissives are pulled under 1 to keep their hue instead of clipping.
+const glows = new Set();
+let glowScale = 1;
+export function setGlowScale(k) {
+  glowScale = k;
+  for (const m of glows) m.emissiveIntensity = m.userData.baseEmissive * k;
+}
+export function registerGlow(m) {
+  m.userData.baseEmissive ??= m.emissiveIntensity;
+  m.emissiveIntensity = m.userData.baseEmissive * glowScale;
+  glows.add(m);
   return m;
 }
 
@@ -97,14 +114,17 @@ const SLOTS = {
   lamp: () => glow('lamp_warm', 2.5),
   glass: () => glass(),
   window: () => glow('window_day', 0.4, 'window'),
+  neon_pink: () => glow('screen_pink', 3),
+  neon_cyan: () => glow('screen_cyan', 3),
+  grow: () => glow('lamp_warm', 2.2),
 };
 
 // Resolve a glTF material name `pal_<name>` (Blender may append `.001`) to a shared material.
 // Returns null for names that are not palette slots so the caller can keep the original.
 export function paletteMaterial(gltfName) {
-  const m = /^pal_([a-z0-9_]+?)(?:\.\d+)?$/.exec(gltfName ?? '');
+  const m = /^pal_([a-z0-9_]+?)(?:\.\d+)*$/i.exec(gltfName ?? '');
   if (!m) return null;
-  const name = m[1];
+  const name = m[1].toLowerCase();
   if (SLOTS[name]) return SLOTS[name]();
   if (PALETTE[name]) return mat(name);
   return null;
