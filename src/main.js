@@ -119,6 +119,8 @@ async function boot() {
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     focusStaff: (id) => renderer?.focusStaff(id),
+    // Build mode and other renderer hooks (setBuildMode, pickTile) for the UI; null without a renderer.
+    renderer,
   };
   const ui = uiMod?.createUI({ root: document.getElementById('ui'), getState: () => sim.state, dispatch, controls }) ?? null;
 
