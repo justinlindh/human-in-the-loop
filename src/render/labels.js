@@ -146,5 +146,6 @@ export function createLabels(parent) {
   }
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
-  return { stat, say, update, clearFor, speechCount, get count() { return live.length; } };
+  const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
+  return { stat, say, update, clearFor, speechCount, speaking, get count() { return live.length; } };
 }

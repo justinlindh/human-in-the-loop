@@ -11,7 +11,9 @@ const RUN = 2.8;
 const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const MAX_WANDERERS = 2;
-const MAX_SPEECH = 4;
+const MAX_SPEECH = 6;
+const APPROACH_M = 3.2;        // conversations farther apart than this: the speaker walks over
+const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function angleLerp(a, b, k) {
@@ -262,13 +264,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
           emote(r, 'typing', 1.6);
           break;
         }
-        case 'say': {
-          const r = recs.get(e.staffId);
-          if (!r || r.hidden || !e.text) break;
-          if (labels.speechCount?.() >= MAX_SPEECH) break;
-          labels.say(e.text, r.char.root, 3.2);
-          break;
-        }
+        case 'say': sayLine(e); break;
         case 'celebrate': {
           if (e.staffId) {
             const r = recs.get(e.staffId);
@@ -291,6 +287,68 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       }
     }
     void state;
+  }
+
+  // Conversations: a say that answers or addresses someone in the office is staged between the
+  // two of them. They turn to each other (a speaker far away walks over), the listener shows a
+  // typing "..." until their reply, and at 4x only the last line of an exchange is shown.
+  const sayIds = new Map();     // say id -> { root, staffId }
+  const fastQ = new Map();      // root id -> { e, t } lines held at 4x
+  function sayLine(e) {
+    const r = recs.get(e.staffId);
+    if (!r || r.hidden || !e.text) return;
+    const parent = e.replyTo ? sayIds.get(e.replyTo) : null;
+    const root = parent?.root ?? e.id;
+    sayIds.set(e.id, { root, staffId: e.staffId });
+    if (sayIds.size > 300) sayIds.delete(sayIds.keys().next().value);
+    const exchange = !!(e.toId || e.replyTo);
+    if (speed >= 4 && exchange) { fastQ.set(root, { e, t: FAST_HOLD }); return; }
+    showLine(e, parent);
+  }
+
+  function showLine(e, parent = e.replyTo ? sayIds.get(e.replyTo) : null) {
+    const r = recs.get(e.staffId);
+    if (!r || r.hidden) return;
+    const otherId = e.toId ?? parent?.staffId ?? null;
+    const other = otherId && otherId !== e.staffId ? recs.get(otherId) : null;
+    const staged = other && !other.hidden && other.mode === 'placed';
+    if (!staged && labels.speechCount?.() >= MAX_SPEECH) return;
+    if (r.char.emote === 'typing') { r.char.setEmote(null); r.emoteT = 0; }
+    labels.say(e.text, r.char.root, 3.2);
+    if (!staged) return;
+    faceToward(r, other);
+    faceToward(other, r);
+    // Only the opening line walks over; replies answer from where they are.
+    if (!e.replyTo && !other.temp?.talk) approach(r, other);
+    if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
+  }
+
+  // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
+  function faceToward(a, b) {
+    let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
+    if (a.goal?.seated && !a.path.length && !a.temp) {
+      let d = ((yaw - a.goal.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
+      if (d < -Math.PI) d += Math.PI * 2;
+      yaw = a.goal.yaw + Math.max(-0.9, Math.min(0.9, d));
+    }
+    a.face = { yaw, t: 3.6 };
+  }
+
+  function approach(r, other) {
+    if (r.temp || r.path.length || r.mode !== 'placed' || r.staff.mood === 'burnout') return;
+    const dx = r.pos.x - other.pos.x, dz = r.pos.z - other.pos.z;
+    const d = Math.hypot(dx, dz);
+    if (d < APPROACH_M) return;
+    const spot = { x: other.pos.x + (dx / d) * 1.0, z: other.pos.z + (dz / d) * 1.0, yaw: Math.atan2(-dx, -dz), anim: 'idle' };
+    r.temp = { anim: 'idle', t: 5, goal: spot, back: true, talk: true };
+    walkTo(r, spot);
+  }
+
+  function updateFast(dt) {
+    for (const [root, q] of fastQ) {
+      q.t -= dt;
+      if (q.t <= 0) { fastQ.delete(root); showLine(q.e); }
+    }
   }
 
   function celebrate(r, seconds, sparkle) {
@@ -377,6 +435,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
 
   function updateRec(r, dt) {
     const c = r.char;
+    if (r.face) { r.face.t -= dt; if (r.face.t <= 0) r.face = null; }
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
 
     // Mood emotes now and then, so state reads without UI.
@@ -401,7 +460,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
       else {
         tp.t -= dt;
         c.setAnim(tp.anim);
-        if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, tp.goal.yaw, 1 - Math.exp(-dt * 6));
+        if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
         if (tp.t <= 0) {
           r.temp = null;
           if (tp.back && r.goal) walkTo(r, r.goal);
@@ -414,7 +473,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
         if (r.mode === 'enter') r.mode = 'placed';
         const g = r.goal;
         if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.05) { r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8)); }
-        r.yaw = angleLerp(r.yaw, g.yaw, 1 - Math.exp(-dt * 8));
+        r.yaw = angleLerp(r.yaw, r.face?.yaw ?? g.yaw, 1 - Math.exp(-dt * 8));
         c.setAnim(g.anim);
       }
     }
@@ -601,6 +660,7 @@ export function createStaffSync({ office, parent, labels, fx, rig }) {
   function update(dt) {
     if (!office.current) return;
     updateStandup(dt);
+    updateFast(dt);
     maybeWander(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
