@@ -115,4 +115,16 @@ describe('ducked playback', () => {
     expect(t.ctx.sources[0].stopped).toBe(false);
     expect(t.holds()[0].to).toBe(16);
   });
+
+  it('reports the start once, even when a pause delays it', () => {
+    const t = setup({ delivered: false });
+    const starts = [];
+    t.ducked.pause();
+    t.ducked.play(cmd, { pausable: true, onStart: (src) => starts.push(src.buffer.duration) });
+    expect(starts).toEqual([]);
+    t.ducked.resume();
+    t.ducked.pause();
+    t.ducked.resume();
+    expect(starts).toEqual([16]);
+  });
 });

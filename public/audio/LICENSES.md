@@ -64,7 +64,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 
 | File | Source |
 |---|---|
-| `sfx/hire.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles PIZZI01 |
+| `sfx/hire.ogg` | Kenney (kenney.nl), CC0 1.0: music-jingles PIZZI02 |
 | `sfx/resign.ogg` | Kenney (kenney.nl), CC0 1.0: rpg-audio doorClose_1 |
 | `sfx/alarm.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio lowThreeTone |
 | `sfx/save.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio threeTone1 |
@@ -90,7 +90,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 **Barks.** Gibberish in the game's own invented lexicon, which is not Simlish and not any real language. There are 7 emotions (happy, annoyed, tired, questioning, excited, laughing, sighing), up to 2 takes each, in one sprite per bank. Offsets are in `src/audio/assets.json`.
 - **Generation:** each voice was cloned from a neutral reference clip of the listed voice.
 - **Selection:** every kept take passed a speaker-gender classifier check (p >= 0.98; 0.99 for designed male voices) and a 0.4 to 2.2 s length window, then was picked by timbre match to the reference.
-- **Mastering:** -20 LUFS, limiter at -2 dBFS, and no pitch processing.
+- **Mastering:** -20 LUFS, limiter at -2 dBFS, and no pitch processing. Each bark ends 40 ms after its level falls 30 dB below its peak (a short fade), so no room-like tail rings into a group cheer.
 
 **Models and licences:**
 - Chatterbox-Turbo, Resemble AI: MIT code and weights. Its outputs carry an inaudible Perth watermark that marks them as AI-generated.

@@ -5,6 +5,7 @@ import { icon } from '../icons.js';
 import { researchView } from './research.js';
 import { ERA, agentsHere } from '../v2content.js';
 import { STATS, STAT } from '../stats.js';
+import { picker, personOption } from '../picker.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject } from './common.js';
@@ -208,6 +209,7 @@ export function buildPanel(ctx, arg) {
 
     return h('div.buildgrid', null,
       h('div.buildmain', null,
+        pickGuide(s),
         preset ? h('div.starterhint', null, icon('idea', { size: 18 }), h('span', { text: 'A good first product is picked for you: Email × Summarizer on ChatGBT, small, with both founders. Great combos earn stars once they launch. Press Start building, or change anything.' })) : null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
@@ -268,16 +270,16 @@ export function buildPanel(ctx, arg) {
         return { st, v, f, el: h('div.pstat.named', { title: st.name }, h('span.skname', null, icon(st.icon, { size: 13 }), ` ${st.name}`), h('div.bar', null, f), v) };
       });
       const people = s.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
-      const addSel = h('select.addsel', {
-        onchange: (e) => {
-          const id = e.target.value;
-          e.target.value = '';
-          if (id) ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: j.id } });
-          e.target.blur();
-        },
-      }, h('option', { value: '', text: '+ Add person' }),
-      ...s.staff.filter((p) => isAvailable(p) && !(p.assignment.type === 'project' && p.assignment.targetId === j.id))
-        .map((p) => h('option', { value: p.id, text: `${p.name} (${ROLES[p.role]?.name ?? p.role} Lv${p.level})` })));
+      const addSel = picker({
+        className: 'addsel', placeholder: '+ Add person', keepValue: false, title: 'Put someone on this project',
+        options: s.staff.filter((p) => isAvailable(p) && !(p.assignment.type === 'project' && p.assignment.targetId === j.id))
+          .map((p) => {
+            const best = STATS.reduce((a, x) => ((p.skills?.[x.id] ?? 0) > (p.skills?.[a.id] ?? 0) ? x : a), STATS[0]);
+            const idle = p.assignment.type === 'idle';
+            return personOption(p, { sub: idle ? `Best at ${best.skill}` : assignmentText(s, p), stat: `${best.skill.slice(0, 5)} ${Math.round(p.skills?.[best.id] ?? 0)}` });
+          }),
+        onChange: (id) => ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: j.id } }),
+      }).el;
       const crew = h('div.crew', null, ...people.map((p) => h('span.crewmate', { title: `${p.name}: click to take off this project` },
         portrait(p, 26), h('span', { text: p.name.split(' ')[0] }),
         h('button.x', { onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }, icon('close', { size: 12 })))),
@@ -303,13 +305,16 @@ export function buildPanel(ctx, arg) {
 
     // Other kinds of work
     const live = s.products.filter((p) => !p.killed);
-    const updSel = h('select', null, ...live.map((p) => h('option', { value: p.id, text: `${p.name} v${p.version} (score ${p.score.toFixed(1)})` })));
+    const updSel = picker({
+      value: live[0]?.id ?? '', title: 'Which product to update',
+      options: live.map((p) => ({ value: p.id, label: `${p.name} v${p.version}`, stat: `score ${p.score.toFixed(1)}`, icon: 'update' })),
+    });
     const migr = live.filter((p) => p.migrationDueWeek !== null && p.migrationDueWeek !== undefined);
     const other = h('div.grid.others', null,
       h('div.card.other', null,
         h('b', null, icon('update'), ' Update a product'),
         h('span.small.muted', { text: 'Makes it fresh again and gets new reviews.' }),
-        live.length ? h('div.row', null, updSel, h('button.btn.small.blue', { onclick: () => startKind({ kind: 'update', productId: updSel.value }) }, 'Start')) : h('span.faint.small', { text: 'No live products yet.' })),
+        live.length ? h('div.row', null, updSel.el, h('button.btn.small.blue', { onclick: () => startKind({ kind: 'update', productId: updSel.value }) }, 'Start')) : h('span.faint.small', { text: 'No live products yet.' })),
       h('div.card.other', null,
         h('b', null, icon('migrate'), ' Model migration'),
         h('span.small.muted', { text: 'Vendors deprecate old versions. Skipping a migration hurts health.' }),
@@ -345,3 +350,20 @@ export function buildPanel(ctx, arg) {
   };
 }
 
+// A short guide on the first project: what each choice trades off. It shows until the first
+// product ships or the player closes it.
+const GUIDE_KEY = 'hitl.pickGuideDone';
+function pickGuide(s) {
+  let done = false;
+  try { done = localStorage.getItem(GUIDE_KEY) === '1'; } catch { /* storage unavailable: show it */ }
+  if (done || (s.products?.length ?? 0) > 0) return null;
+  const el = h('div.card.pickguide', null,
+    h('div.row', null, icon('idea', { size: 18 }), h('b', { text: ' How to pick your first product' }), h('span.spacer'),
+      h('button.btn.small', { onclick: () => { try { localStorage.setItem(GUIDE_KEY, '1'); } catch { /* shows again next time */ } el.remove(); } }, 'Got it')),
+    h('ul', null,
+      h('li', null, h('b', { text: 'Category' }), ' sets the price and the crowd. Cheap ones like Notes have lots of customers at a few dollars; pricey ones like CRM have fewer customers who pay more and expect more.'),
+      h('li', null, h('b', { text: 'Angle' }), ' is your pitch. Some fit a category far better than others. Ship a combo and it earns stars, so next time you know.'),
+      h('li', null, h('b', { text: 'Size' }), ' is speed against reach. Small ships fast and cheap; bigger takes longer and draws more customers.'),
+      h('li', null, h('b', { text: 'Team' }), ' decides the reviews. Building makes Features, Craft makes Polish, Rigor makes Reliability, Ideas make Freshness. Reviewers punish a product missing any of the first three, so mix skills.')));
+  return el;
+}

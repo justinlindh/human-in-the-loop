@@ -398,3 +398,47 @@ export async function runUseChecks(R, S, itemIds, { dt = 1 / 30 } = {}) {
   }
   return results;
 }
+
+// Music night follows the track (audio's hitl:musicTrack { genre, seconds, startsIn }): the dance
+// lasts until the music ends, and 15 s without an announcement.
+export async function runDanceLengthCheck(R, S, { dt = 1 / 30 } = {}) {
+  const ids = S.staff.map((p) => p.id);
+  const run = (announce) => {
+    R.handleEvents([{ type: 'incentive', staffId: ids[0], reward: 'music_night', genre: 'sad_lofi', dancers: ids.slice(1, 4) }], S);
+    if (announce) dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: 'sad_lofi', ...announce } }));
+    let t = 0;
+    while (R.incentives?.dance && t < 40) { R.sync(S); R.advance(dt); t += dt; }
+    for (let i = 0; i < 400; i++) { R.sync(S); R.advance(dt); }
+    return t;
+  };
+  const plain = run(null);
+  const long = run({ seconds: 18.85, startsIn: 0.4 });
+  // The break ends a second after the music (the lights come up over that second).
+  const ok = (t, want) => Math.abs(t - want) < 0.2;
+  return { name: 'dance:trackLength', pass: ok(plain, 16) && ok(long, 18.85 + 0.4 + 1), noTrackS: +plain.toFixed(2), withTrackS: +long.toFixed(2) };
+}
+
+// A staged standup (issue #149): once everyone has gathered, nobody stands outside the walls, inside
+// furniture, or on top of someone else.
+export async function runStandupCheck(R, S, { dt = 1 / 30 } = {}) {
+  const lines = S.staff.filter((p) => !p.remote && p.mood !== 'away').slice(0, 8).map((p, i) => ({ staffId: p.id, text: i < 2 ? 'Shipping it today.' : null }));
+  R.handleEvents([{ type: 'standup', mode: 'daily', lines }], S);
+  for (let i = 0; i < 8 * 30; i++) { R.sync(S); R.advance(dt); }
+  const L = R.office.current.L;
+  const all = [];
+  for (const e of R.office.placed.values()) all.push(...meshes(e.obj));
+  let outside = 0, inside = 0, gathered = 0, minGap = Infinity;
+  const at = [];
+  for (const l of lines) {
+    const root = charOf(R.scene, l.staffId);
+    if (!root) continue;
+    gathered++;
+    const p = root.position;
+    for (const q of at) minGap = Math.min(minGap, Math.hypot(p.x - q.x, p.z - q.z));
+    at.push(p.clone());
+    if (Math.abs(p.x) > L.W / 2 - 0.2 || Math.abs(p.z) > L.D / 2 - 0.2) outside++;
+    if (bodyInside(root, all, false) > 0.01) inside++;
+  }
+  // Nobody piles onto one spot: people in a ring stand at least 0.4 m apart.
+  return { pass: gathered === lines.length && outside === 0 && inside === 0 && minGap > 0.4, people: gathered, outside, insideFurniture: inside, minGap: +minGap.toFixed(2) };
+}

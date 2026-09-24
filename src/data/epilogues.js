@@ -1,27 +1,40 @@
 // End-of-run lines. `when(state, summary)` where summary =
-// { won, reason /* for a retirement, how: 'ipo'|'acquired' */, leaders, years, avgMeaning, juniorsHired, caught, breaches, debt, resignations, seniors, peakMrr }.
-// Placeholders: {company}, {acquirer}.
+// { won, reason /* for a retirement, how: 'ipo'|'acquired' */, leaders, years, avgMeaning, juniorsHired, caught, breaches, debt, resignations, seniors, peakMrr,
+//   officeStage, office, eraCount, launches, people, alumni, veteran, veteranYears }.
+// Placeholders: {company}, {acquirer}, {office}, {eras}, {launches}, {people}, {alumni}, {veteran}, {veteranYears}.
+// group: 'outcome' lines say how the run ended and come first; then one 'recap' line and one 'people' line
+// retell the run; everything else (the consequences) follows.
 
 export const EPILOGUES = [
-  { id: 'acquired_seniors_left', when: (s, x) => x.reason === 'acquired' && x.avgMeaning < 50,
+  { id: 'story_hq', group: 'recap', when: (s, x) => x.won && x.officeStage >= 2 && x.launches > 0,
+    text: '{company} started in a garage and ended up in {office}. {launches} launches, {eras}, and {people} people along the way.' },
+  { id: 'story_floor', group: 'recap', when: (s, x) => x.won && x.officeStage === 1 && x.launches > 0,
+    text: '{company} never outgrew the Office Floor, and never really wanted to. {launches} launches, {eras}, {people} people.' },
+  { id: 'story_garage', group: 'recap', when: (s, x) => x.won && x.officeStage === 0 && x.launches > 0,
+    text: '{company} never left the garage. {launches} launches from one room, a folding table, and a very tired router.' },
+  { id: 'story_veteran', group: 'people', when: (s, x) => x.won && x.veteran && x.veteranYears >= 10,
+    text: '{veteran} has been at {company} for {veteranYears} years. They have survived every reorg and still keep the first mug.' },
+  { id: 'story_alumni', group: 'people', when: (s, x) => x.alumni >= 10,
+    text: '{alumni} people have worked at {company} and moved on. Most of them still read the company blog. Some of them write for it.' },
+  { id: 'acquired_seniors_left', group: 'outcome', when: (s, x) => x.reason === 'acquired' && x.avgMeaning < 50,
     text: 'Acquired by {acquirer}. Your seniors left within the year. The product was sunset in 18 months.' },
-  { id: 'acquired_happy', when: (s, x) => x.reason === 'acquired' && x.avgMeaning >= 50,
+  { id: 'acquired_happy', group: 'outcome', when: (s, x) => x.reason === 'acquired' && x.avgMeaning >= 50,
     text: 'Acquired by {acquirer}. Your team kept its name on the door and its Friday demos. For a while, anyway.' },
-  { id: 'ipo_bell', when: (s, x) => x.reason === 'ipo',
+  { id: 'ipo_bell', group: 'outcome', when: (s, x) => x.reason === 'ipo',
     text: '{company} rang the opening bell. Someone from the garage days cried on the livestream.' },
   { id: 'ipo_ticker', when: (s, x) => x.reason === 'ipo' && x.debt > 50,
     text: 'The stock did great for two quarters. Then an analyst asked what the billing service actually does.' },
   { id: 'leader', when: (s, x) => x.leaders >= 3,
     text: '{company} leads its categories. The incumbents now copy you, 6 to 12 months late.' },
-  { id: 'anniversary_big', when: (s, x) => x.reason === 'anniversary' && x.peakMrr >= 1000000,
+  { id: 'anniversary_big', group: 'outcome', when: (s, x) => x.reason === 'anniversary' && x.peakMrr >= 1000000,
     text: '{company} turned twenty. The party had a live band, a cake shaped like the first server, and three generations of engineers arguing about tabs.' },
-  { id: 'anniversary_nothing', when: (s, x) => x.reason === 'anniversary' && s.stats.launches === 0,
+  { id: 'anniversary_nothing', group: 'outcome', when: (s, x) => x.reason === 'anniversary' && s.stats.launches === 0,
     text: '{company} turned twenty without ever shipping. The founders still meet on Thursdays to talk about the roadmap.' },
-  { id: 'anniversary_small', when: (s, x) => x.reason === 'anniversary' && x.peakMrr > 0 && x.peakMrr < 1000000,
+  { id: 'anniversary_small', group: 'outcome', when: (s, x) => x.reason === 'anniversary' && x.peakMrr > 0 && x.peakMrr < 1000000,
     text: '{company} turned twenty. Not famous, not dead: a medium-sized lab with loyal customers and a very good snack drawer.' },
-  { id: 'runway', when: (s, x) => x.reason === 'runway',
-    text: 'The money ran out on a Tuesday. The last Slackk message was a gif of a burning dumpster, captioned "we tried".' },
-  { id: 'collapse', when: (s, x) => x.reason === 'collapse',
+  { id: 'runway', group: 'outcome', when: (s, x) => x.reason === 'runway',
+    text: 'The money ran out on a Tuesday. The last Yak message was a gif of a burning dumpster, captioned "we tried".' },
+  { id: 'collapse', group: 'outcome', when: (s, x) => x.reason === 'collapse',
     text: 'The outage never ended. Nobody left knew how the system worked, and the system did not know either.' },
   { id: 'long_haul', when: (s, x) => x.won && x.years >= 15 && x.peakMrr > 0,
     text: '{company} lasted longer than most of its competitors, two of its vendors, and one entire era of computing.' },

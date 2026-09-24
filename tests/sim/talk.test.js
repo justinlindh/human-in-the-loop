@@ -32,7 +32,7 @@ const week = (s, prior = []) => {
 };
 
 describe('office talk', () => {
-  it('spoken lines have the say shape, come from people in the office, and never reach Slackk', () => {
+  it('spoken lines have the say shape, come from people in the office, and never reach Yak', () => {
     const s = busy(2);
     s.staff[3].remote = true;
     const ids = new Set();
@@ -55,7 +55,7 @@ describe('office talk', () => {
     expect(s.chatLog.some((m) => ids.has(m.id))).toBe(false);
   });
 
-  it('keeps a modest rate: about one spoken line a week and less in Slackk', () => {
+  it('keeps a modest rate: about one spoken line a week and less in Yak', () => {
     const s = busy(3);
     let say = 0;
     let chat = 0;
