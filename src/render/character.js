@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
-import { SKINS, ROLE_COLORS, PALETTE } from './palette.js';
+import { ROLE_COLORS, PALETTE } from './palette.js';
+import { characterLook } from './look.js';
 import { emoteMaterial } from './emotes.js';
 import { bakedMaterial, bakeParts } from './bake.js';
 import { rigClips, rigEnabled } from './rig.js';
@@ -37,34 +38,6 @@ const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
 
-const ink = new THREE.Color(PALETTE.ink);
-const inkL = ink.r * 0.2126 + ink.g * 0.7152 + ink.b * 0.0722;
-
-// Appearance colors come from sim data: keep them off pure black and slightly muted so the
-// palette's saturated accents stay special.
-function characterColor(hex, mute = 0.15) {
-  const c = new THREE.Color(hex);
-  const l = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
-  if (l < inkL) c.lerp(ink, 1 - l / Math.max(inkL, 1e-4));
-  const gray = new THREE.Color(l, l, l);
-  return c.lerp(gray, mute);
-}
-
-// A shirt close to the role color would swallow the role garment, so it is swapped for another
-// palette fabric far from that color; the pick follows the original shirt, so a person keeps theirs.
-const SHIRT_SWAPS = ['fabric_teal', 'fabric_mustard', 'fabric_terracotta', 'fabric_sage', 'wood_light'];
-const CLASH = 0.35;
-const dist = (a, b) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
-function shirtColor(hex, roleHex) {
-  const c = characterColor(hex);
-  const r = new THREE.Color(roleHex);
-  if (dist(c, r) >= CLASH) return c;
-  const ok = SHIRT_SWAPS.map((k) => characterColor(PALETTE[k])).filter((s) => dist(s, r) >= CLASH);
-  let h = 0;
-  for (const ch of String(hex)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return ok.length ? ok[h % ok.length] : c;
-}
-
 const roleMats = new Map();
 function roleMaterial(role, hex) {
   const key = role ?? hex;
@@ -88,14 +61,6 @@ function ringMaterial(role, hex) {
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 const pickGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.15, 8).translate(0, 0.58, 0);
-const HAT_COLORS = ['fabric_teal', 'fabric_terracotta', 'fabric_mustard', 'fabric_slate', 'fabric_sage', 'wood_walnut'];
-function hashLook(a) {
-  const s = `${a.hairColor}|${a.shirt}|${a.pants}|${a.skin}|${a.hair}`;
-  let h = 7;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-
 let haloMat = null;
 
 // Cheeks: soft radial-gradient discs on the blush part's two cheek positions, tinted a warmer,
@@ -192,21 +157,21 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const attach = (o, parent, on) => { if (on && o.parent !== parent) parent.add(o); else if (!on && o.parent) o.removeFromParent(); };
   const tpl = getTemplate('chibi');
   const role = opts.role ?? null;
-  const build = Math.max(0, Math.min(2, appearance.build ?? 1));
+  const look = characterLook(appearance, role, roleColor);
+  const build = look.build;
   // Support's headset is its headwear: no hat or headphones over it (glasses are fine).
-  const acc = role === 'support' && appearance.accessory !== 'glasses' ? 'none' : appearance.accessory ?? 'none';
-  const hairIdx = Math.max(0, Math.min(7, appearance.hair ?? 0));
+  const acc = look.accessory;
+  const hairIdx = look.hair;
   // Headphones press curly hair flat under the band; long hair covers the hood of a hoodie.
   const hairPart = hairIdx === 6 && acc === 'headphones' ? 'hair_6_hp' : `hair_${hairIdx}`;
-  const LONG_HAIR = 2;
   const hat = acc === 'beanie' || acc === 'cap';
 
   // Per-character materials (tintable); everything else is shared.
   const own = {
-    skin: new THREE.MeshStandardMaterial({ color: new THREE.Color(SKINS[appearance.skin ?? 1] ?? SKINS[1]), roughness: 0.75 }),
-    hair: new THREE.MeshStandardMaterial({ color: characterColor(appearance.hairColor ?? '#4a3222', 0.05), roughness: 0.6 }),
-    shirt: new THREE.MeshStandardMaterial({ color: shirtColor(appearance.shirt ?? '#4f8cff', roleColor), roughness: 0.85 }),
-    pants: new THREE.MeshStandardMaterial({ color: characterColor(appearance.pants ?? '#2e3440', 0.1), roughness: 0.85 }),
+    skin: new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...look.linear.skin), roughness: 0.75 }),
+    hair: new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...look.linear.hairColor), roughness: 0.6 }),
+    shirt: new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...look.linear.shirt), roughness: 0.85 }),
+    pants: new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...look.linear.pants), roughness: 0.85 }),
   };
   const base = Object.fromEntries(Object.entries(own).map(([k, m]) => [k, m.color.clone()]));
   const roleMat = roleMaterial(role, roleColor);
@@ -270,7 +235,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   torso.add(lanyard, badge);
   const torsoParts = [torsoMesh, lanyard, badge];
   if (role && role !== 'support') {
-    const g = P(role === 'engineer' && hairIdx === LONG_HAIR && !hat ? 'role_engineer_tucked' : `role_${role}`);
+    const g = P(look.garment === 'hood_tucked' ? 'role_engineer_tucked' : `role_${role}`);
     g.scale.set(wScale, 1, bdepth);
     torso.add(g);
     torsoParts.push(g);
@@ -295,12 +260,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const a = P(`acc_${acc}`);
     // Hats take a colour picked from the person's look, so a row of cap wearers are not clones.
     if (hat) {
-      const pickHat = HAT_COLORS[hashLook(appearance) % HAT_COLORS.length];
+      const pickHat = look.hatName;
       const body = new Set([mat('fabric_teal'), mat('fabric_terracotta')]);
       a.traverse((m) => { if (m.isMesh && body.has(m.material)) m.material = mat(pickHat); });
     }
     // Most caps face forward; about one person in four wears theirs backwards.
-    if (acc === 'cap' && (appearance.capBack ?? hashLook(appearance) % 4 === 1)) a.rotateY(Math.PI);
+    if (look.capBack) a.rotateY(Math.PI);
     headGroup.add(a);
     headParts.push(a);
   }
