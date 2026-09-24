@@ -133,7 +133,7 @@ const STAGE_NAMES = ['garage', 'floor', 'hq'];
 const milestoneLine = (m) => (m.milestones.length ? m.milestones.map((x) => `${x.minute} ${x.label}`).join(' | ') : 'none');
 
 // Where the milestones should land at 1x, in real minutes.
-const PACING_TARGETS = { floor: [7, 10], hq: [20, 30], maxUnlocksPerMinute: 2 };
+const PACING_TARGETS = { floor: [7, 10], hq: [20, 30], maxUnlocksPerMinute: 2, maxQuietAfterTenMinutes: 45 };
 
 // Pass or fail per target. Unlocks that arrive with an era do not count toward the per-minute cap.
 function checkTargets(m) {
@@ -151,6 +151,9 @@ function checkTargets(m) {
     { target: `floor at ${PACING_TARGETS.floor.join(' to ')} min`, ok: within(at('floor'), PACING_TARGETS.floor), got: at('floor') },
     { target: `hq at ${PACING_TARGETS.hq.join(' to ')} min`, ok: within(at('hq'), PACING_TARGETS.hq), got: at('hq') },
     { target: `at most ${PACING_TARGETS.maxUnlocksPerMinute} unlocks in any minute outside eras`, ok: worst[1] <= PACING_TARGETS.maxUnlocksPerMinute, got: worst[0] === null ? 0 : `${worst[1]} in minute ${worst[0]}` },
+    { target: `no quiet stretch over ${PACING_TARGETS.maxQuietAfterTenMinutes}s after minute 10`, ok: m.longestQuiet.afterTenMinutes <= PACING_TARGETS.maxQuietAfterTenMinutes, got: `${m.longestQuiet.afterTenMinutes}s` },
+    // The opening is reported, not checked: it is content work, not clock work.
+    { target: 'longest quiet stretch overall (report only)', ok: true, info: true, got: `${m.longestQuiet.seconds}s from minute ${m.longestQuiet.fromMinute}` },
   ];
 }
 
@@ -505,7 +508,7 @@ if (isMain) {
       console.log(`${m.bot} ${m.player} ${m.speed}x seed ${m.seed}: ${milestoneLine(m)}`);
       for (const c of checkTargets(m)) {
         failed ||= !c.ok;
-        console.log(`  ${c.ok ? 'ok  ' : 'MISS'} ${c.target}: ${c.got ?? 'never'}`);
+        console.log(`  ${c.info ? 'info' : c.ok ? 'ok  ' : 'MISS'} ${c.target}: ${c.got ?? 'never'}`);
       }
     }
     if (runs[0].metrics.speed !== 1) console.log('note: the targets are for 1x');
