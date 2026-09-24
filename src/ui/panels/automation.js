@@ -4,7 +4,7 @@ import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, po
 // Policies that cannot be on together. Data can declare it with excludes: [ids]; the standup pair is known here too.
 const EXCLUSIVE = [['daily_standups', 'async_standups']];
 function exclusiveWith(p) {
-  const ids = new Set(p.excludes ?? []);
+  const ids = new Set([].concat(p.excludes ?? []));
   for (const group of EXCLUSIVE) if (group.includes(p.id)) group.filter((x) => x !== p.id).forEach((x) => ids.add(x));
   return [...ids];
 }
