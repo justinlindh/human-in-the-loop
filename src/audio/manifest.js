@@ -14,6 +14,7 @@ export const BUS_IDS = Object.keys(BUSES);
 
 // Target multiplier on the music bus while a duck is held; attack and release in seconds.
 export const DUCK = {
+  dance: { music: 0.12, attack: 0.6, release: 2 },
   voice: { music: 0.7, attack: 0.08, release: 0.6 },
   cheer: { music: 0.6, attack: 0.05, release: 1.5 },
   decision: { music: 0.45, attack: 0.3, release: 1.2 },
@@ -80,7 +81,8 @@ export const ON_EVENT = {
   era: 'stinger.era',
   unlock: 'ui.unlock',
   goal: 'ui.goal',
-  incentive: (e) => (e.reward === 'waffle_party' ? 'stinger.waffle' : 'sfx.reward'),
+  // A music night plays its genre's track (in the director); the other rewards get their sting.
+  incentive: (e) => (e.reward === 'waffle_party' ? 'stinger.waffle' : e.reward === 'music_night' ? null : 'sfx.reward'),
 };
 
 // UI 'hitl:sfx' names -> cue ids.
@@ -98,6 +100,22 @@ export const MUSIC = {
   consolidation: { bpm: 90, key: 'A', mode: 'minor', beds: ['consolidation/a'] },
   plateau: { bpm: 84, key: 'Eb', mode: 'major', beds: ['plateau/a'] },
 };
+// Music night: each genre's dance track (assets.json musicNight.<genre>); the placeholder is a
+// short piece in the genre's tempo and key. The era bed ducks under it; a small cheer ends it.
+export const MUSIC_NIGHT = {
+  corporate_synthwave: { bpm: 110, key: 'E', mode: 'minor' },
+  motivational_polka: { bpm: 126, key: 'Bb', mode: 'major' },
+  aggressive_bossa_nova: { bpm: 142, key: 'D', mode: 'minor' },
+  sad_lofi: { bpm: 72, key: 'Eb', mode: 'major' },
+};
+export const MUSIC_NIGHT_SECONDS = 16;
+export const DANCE_PAUSE_LEVEL = 0.08;  // the dance track's level while the game is paused
+// A pending decision that picks a music night genre: it names the reward or offers the genres.
+export function isMusicNightDecision(d) {
+  if (!d) return false;
+  const text = JSON.stringify(d);
+  return text.includes('music_night') || Object.keys(MUSIC_NIGHT).some((g) => text.includes(g));
+}   // placeholder length, and the fallback when assets.json gives none
 export const MUSIC_BARS = 8;          // placeholder bed length in bars
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
@@ -146,6 +164,7 @@ export const VOICE = {
 export const GROUP_CUES = {
   launch: { duck: 'cheer', groupGain: 0.7, maxVoices: 6, lowMaxVoices: 2, stagger: [0.05, 0.25], gainSpreadDb: [-4, 0], crowdBed: 0.25, emotions: ['excited', 'laughing', 'happy'] },
   waffleParty: { duck: 'cheer', groupGain: 0.7, maxVoices: 6, lowMaxVoices: 2, stagger: [0.05, 0.25], gainSpreadDb: [-4, 0], crowdBed: 0.3, emotions: ['laughing', 'happy', 'excited'] },
+  musicNight: { duck: 'cheer', groupGain: 0.6, maxVoices: 3, lowMaxVoices: 1, stagger: [0.1, 0.3], gainSpreadDb: [-4, 0], crowdBed: 0.2, emotions: ['laughing', 'excited', 'happy'] },
   era: { duck: 'cheer', groupGain: 0.6, maxVoices: 3, lowMaxVoices: 1, stagger: [0.2, 0.5], gainSpreadDb: [-3, 0], crowdBed: 0, emotions: ['questioning', 'excited'] },
 };
 
