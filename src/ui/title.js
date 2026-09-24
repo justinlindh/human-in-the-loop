@@ -91,12 +91,13 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-form', null,
         h('b', { text: 'This save is from a different build' }),
         h('div', { text: `${name ? `${name} was` : 'It was'} saved by another version of the game, and this build cannot read it. That comes with pre-alpha, sorry.${text ? ' You can export it to keep a copy.' : ''}` }),
+        // The main action gets its own full-width row, so it never wraps alone.
+        h('button.btn.go.big.tl-wide', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' Start fresh'),
         h('div.row', null,
           h('button.btn.big', { onclick: () => { sfx('click'); menuView(); } }, icon('arrow.back'), ' Back'),
           h('span.spacer'),
           exportBtn,
-          slot.id && controls.deleteSave ? confirmButton('Delete it', 'Delete? Tap again', 'big', () => { controls.deleteSave(slot.id); sfx('close'); menuView(); }) : null,
-          h('button.btn.go.big', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' Start fresh')),
+          slot.id && controls.deleteSave ? confirmButton('Delete it', 'Delete? Tap again', 'big', () => { controls.deleteSave(slot.id); sfx('close'); menuView(); }) : null),
         prealpha())));
   }
 
