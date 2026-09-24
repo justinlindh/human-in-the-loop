@@ -75,7 +75,7 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
     const show = h('button.btn.go', { onclick: () => { done(); openMenu('office', { focus: its[0]?.id }); } }, icon('menu.office', { size: 16 }), ' Show me');
     const ok = h('button.btn', { onclick: done }, 'Later');
     setTimeout(() => show.focus(), 0);
-    return h('div.announce.unlock.items', null,
+    return h(`div.announce.unlock.items${its.length > 1 ? '.multi' : ''}`, null,
       h('div.row', { style: { gap: '0.8em', alignItems: 'center' } },
         h('div.uico', null, icon(`item.${its[0]?.id}`, { size: 30 })),
         h('div', null, h('div.kicker', null, icon('new', { size: 14 }), ' New in the Office'),
