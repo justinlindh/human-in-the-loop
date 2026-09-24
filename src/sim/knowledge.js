@@ -18,6 +18,9 @@ export function onDeparture(state, person) {
     }
   }
   for (const pr of state.products) if (pr.ownerId === person.id) pr.ownerId = null;
+  // A dog goes home with its owner; the office cat stays, owned by nobody.
+  for (const pet of state.pets ?? []) if (pet.ownerId === person.id) pet.ownerId = null;
+  if (state.pets) state.pets = state.pets.filter((pet) => pet.ownerId || pet.species === 'cat');
 }
 
 export function institutionalKnowledge(state) {
@@ -43,7 +46,7 @@ export function knowledgeSystem(ctx) {
       gain += B.knowledgeGainWorking * (dulled ? 1 - 0.7 * engLevel : 1);
     }
     if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee * remoteLearning(state, p);
-    p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')));
+    p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')) * (p.remote ? B.remoteKnowledgeMult : 1));
   }
 
   state.institutionalKnowledge = institutionalKnowledge(state);

@@ -10,24 +10,34 @@ import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
 import { RIVAL_NAMES, PET_NAMES } from '../data/ladder.js';
 
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
+const hasPlants = (state) => state.office.placed.some((p) => p.itemId === 'plant' || p.itemId === 'plant_wall');
 
 // How much of a week's mentoring and learning survives working from home.
 export function remoteLearning(state, person) {
   return person?.remote ? B.remoteLearningMult : 1;
 }
 
-// Who works from home this week: everyone but the stayer during the lockdown, then per the work policy.
+// Who works from home: everyone but the stayer during the lockdown, then per the work policy. Patterns are
+// sticky: each person keeps their in or out pattern for a couple of months before it is rolled again.
+// Under remote-first the founders keep a visible core in the office.
 function setRemote(ctx) {
   const { state } = ctx;
   const lock = state.lockdown && state.week < state.lockdown.until;
+  const until = (state.flags.remoteUntil ??= {});
   for (const p of state.staff) {
     if (p.mood === 'away') { p.remote = false; continue; }
-    if (lock) p.remote = p.id !== state.lockdown.stayerId;
-    else if (state.workPolicy === 'hybrid') p.remote = chance(ctx.rng, B.hybridRemoteShare);
-    else if (state.workPolicy === 'remote') p.remote = chance(ctx.rng, B.remoteFirstShare);
-    else p.remote = false;
+    if (lock) { p.remote = p.id !== state.lockdown.stayerId; continue; }
+    const share = state.workPolicy === 'hybrid' ? B.hybridRemoteShare : state.workPolicy === 'remote' && !p.founder ? B.remoteFirstShare : 0;
+    if (!share) { p.remote = false; delete until[p.id]; continue; }
+    if ((until[p.id] ?? -1) > state.week) continue;
+    p.remote = chance(ctx.rng, share);
+    until[p.id] = state.week + int(ctx.rng, ...B.remotePatternWeeks);
   }
+  for (const id of Object.keys(until)) if (!state.staff.some((p) => p.id === id)) delete until[id];
 }
+
+// The share of the team working from home this week.
+export const remoteShare = (state) => (state.staff.length ? state.staff.filter((p) => p.remote).length / state.staff.length : 0);
 
 function lockdownStep(ctx) {
   const { state } = ctx;
@@ -36,13 +46,13 @@ function lockdownStep(ctx) {
     state.lockdown = { since: state.week, until: state.week + B.lockdownWeeks, stayerId: stayer.id };
     state.flags.lockdownWeek = state.week;
     raiseDecision(ctx, 'lockdown_start', stayer.id, { queue: true });
-    emitChat(ctx, { from: '@officebot', text: 'The office is closed until further notice. Please take your plants home.' });
+    emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is closed until further notice. Please take your plants home.' : 'The office is closed until further notice. Please take your chair home. Only your chair.' });
     return;
   }
   if (state.lockdown && state.week >= state.lockdown.until && state.flags.workPolicyAsked === undefined) {
     state.flags.workPolicyAsked = state.week;
     raiseDecision(ctx, 'work_policy', null, { queue: true });
-    emitChat(ctx, { from: '@officebot', text: 'The office is open again. The plants did not make it. We are not talking about it.' });
+    emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is open again. The plants did not make it. We are not talking about it.' : 'The office is open again. It smells like a closed office. Windows are open. Please be patient.' });
   }
 }
 
@@ -57,7 +67,7 @@ function rivalStep(ctx) {
       strength: B.rivalStartStrength, status: 'rising',
     };
     raiseDecision(ctx, 'rival_appears', null, { queue: true });
-    emitChat(ctx, { channel: 'random', from: '@hackernewsbot', text: `Show HN: ${state.rival.name}, like the thing you already use, but ours` });
+    emitChat(ctx, { channel: 'random', from: '@newsbot', text: `Just launched: ${state.rival.name}, "like the thing you already use, but ours".` });
     return;
   }
   const r = state.rival;
@@ -117,7 +127,7 @@ export function ladderSystem(ctx) {
   petsStep(state);
   if (present(state).length && state.lockdown && state.week === state.lockdown.since + 1 && state.lockdown.stayerId) {
     const stayer = state.staff.find((p) => p.id === state.lockdown.stayerId);
-    if (stayer) ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: stayer.id, text: 'Somebody has to water the plants.', toId: null, replyTo: null });
+    if (stayer) ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: stayer.id, text: hasPlants(state) ? 'Somebody has to water the plants.' : 'Somebody has to keep the lights on. Literally, the switch is sticky.', toId: null, replyTo: null });
   }
 }
 

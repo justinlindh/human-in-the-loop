@@ -686,7 +686,7 @@ const list = [
     id: 'lockdown_start', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'The office closes',
-    text: 'The whole world is working from home for a while. Everyone takes a laptop and a monitor from the office, except {name}, who says somebody has to water the plants.',
+    text: 'The whole world is working from home for a while. Everyone takes a laptop and a monitor from the office, except {name}, who says somebody has to keep the place running.',
     choices: [
       { label: 'Laptops and a stipend for everyone', hint: '-$5k; people take it better', effects: { cash: -5000, teamMeaning: 3 }, outcome: 'Someone buys a chair that costs more than their first car. It is a very good chair.' },
       { label: 'Keep calm and ship', hint: 'More output for 10 weeks; people burn out faster for 10 weeks', effects: { modifier: [{ key: 'output', value: 0.05, weeks: 10, label: 'Lockdown sprint' }, { key: 'meaningDrain', value: 0.3, weeks: 10, label: 'Lockdown sprint' }] }, outcome: 'The commit graph goes up. So does the number of people who have not been outside.' },
@@ -699,9 +699,9 @@ const list = [
     title: 'How do we work now?',
     text: 'The office is open again. Some people missed it. Some people have discovered they like working next to their dog. {company} needs a policy.',
     choices: [
-      { label: 'Back to the office', hint: 'Mentoring works best; the team grumbles', effects: { workPolicy: 'office', teamMeaning: -3 }, outcome: 'The kitchen is thrilled to see everyone. Nobody else says anything.' },
-      { label: 'Hybrid', hint: 'Some days in, some at home; mentoring and learning a little slower', effects: { workPolicy: 'hybrid', teamMeaning: 1 }, outcome: 'Tuesdays and Thursdays are office days. Everyone comes in on Wednesday by mistake.' },
-      { label: 'Remote-first', hint: 'Half the rent and more candidates; juniors learn slowly and it gets a bit lonely', effects: { workPolicy: 'remote', teamMeaning: 2 }, outcome: 'The office becomes a place people visit, like a museum of your own company.' },
+      { label: 'Back to the office', hint: 'Mentoring works best; the team grumbles', effects: { workPolicy: 'office', teamMeaning: -2 }, outcome: 'The kitchen is thrilled to see everyone. Nobody else says anything.' },
+      { label: 'Hybrid', hint: 'Some weeks in, some at home; mentoring and learning a little slower', effects: { workPolicy: 'hybrid', teamMeaning: 1 }, outcome: 'Tuesdays and Thursdays are office days. Everyone comes in on Wednesday by mistake.' },
+      { label: 'Remote-first', hint: 'Lower rent and a wider hiring pool; slower learning, fewer fresh ideas, slower fixes, and it gets lonely', effects: { workPolicy: 'remote', teamMeaning: 1 }, outcome: 'The office becomes a place people visit, like a museum of your own company.' },
     ],
   },
   {
@@ -927,14 +927,6 @@ const list = [
       { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
       { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The French press stays on its throne.' },
     ],
-  },
-  {
-    id: 'office_dog', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.staff.length >= 3,
-    chat: 'A very good dog has joined the office. All meetings are now dog meetings.',
-    title: 'Office dog',
-    text: 'Someone brought their dog to work. The dog has attended every meeting and approved every PR.',
-    auto: { teamMeaning: 4 },
   },
 ];
 

@@ -47,6 +47,7 @@ describe('lockdown and the work policy', () => {
 
   it('remote-first halves the rent, widens hiring, keeps most people home, and slows mentoring', () => {
     const s = classicGame(5);
+    s.flags.lockdownWeek = -1;
     addDesks(s, 4);
     for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'mid');
     const rent = weeklyCosts(s).rent;
@@ -55,8 +56,21 @@ describe('lockdown and the work policy', () => {
     expect(s.workPolicy).toBe('remote');
     expect(weeklyCosts(s).rent).toBe(rent * B.remoteRentMult);
     let remoteWeeks = 0;
-    for (let w = 0; w < 50; w++) { step(s); remoteWeeks += s.staff.filter((p) => p.remote).length; }
-    expect(remoteWeeks / (50 * s.staff.length)).toBeGreaterThan(0.6);
+    let changes = 0;
+    const hires = s.staff.filter((p) => !p.founder);
+    let last = hires.map((p) => p.remote);
+    for (let w = 0; w < 104; w++) {
+      s.week++;
+      step(s);
+      remoteWeeks += hires.filter((p) => p.remote).length;
+      for (const p of s.staff) if (p.founder) expect(p.remote).toBe(false);
+      const now = hires.map((p) => p.remote);
+      changes += now.filter((r, i) => r !== last[i]).length;
+      last = now;
+    }
+    expect(remoteWeeks / (104 * hires.length)).toBeGreaterThan(0.6);
+    // Patterns are sticky: at most one change per person every 8 weeks.
+    expect(changes).toBeLessThanOrEqual(hires.length * Math.ceil(104 / 8));
     s.week = 200;
     tick(s);
     expect(s.candidates.length).toBe(B.candidateCount + B.remoteExtraCandidates);
@@ -121,7 +135,7 @@ describe('the rival', () => {
     s.week = B.rivalFromWeek;
     const ev = step(s);
     expect(s.rival).toMatchObject({ name: expect.any(String), founderName: expect.any(String), categoryId: 'notes', strength: B.rivalStartStrength, status: 'rising' });
-    expect(ev.some((e) => e.type === 'chat' && e.text.includes(s.rival.name))).toBe(true);
+    expect(ev.some((e) => e.type === 'chat' && e.from === '@newsbot' && e.text.includes(s.rival.name))).toBe(true);
     expect(s.pendingDecision.eventId).toBe('rival_appears');
     expect(s.pendingDecision.text).toContain(s.rival.name);
     expect(s.pendingDecision.text).toContain(s.rival.founderName);
@@ -183,5 +197,36 @@ describe('a whole run with the ladder is deterministic and JSON-safe', () => {
     expect(JSON.parse(JSON.stringify(a))).toEqual(a);
     expect(a.workPolicy).not.toBe(null);
     expect(a.flags.lockdownWeek).toBe(B.lockdownWeek);
+  });
+});
+
+describe('chunk (a) fixes', () => {
+  it('the legacy office dog event is gone; pets only come through adoption', async () => {
+    const { EVENTS: E } = await import('../../src/data/events.js');
+    expect(E.office_dog).toBeUndefined();
+  });
+
+  it('lockdown lines only talk about plants when the office has some', () => {
+    const lines = (withPlant) => {
+      const s = classicGame(3);
+      if (withPlant) s.office.placed.push({ id: 'pl', itemId: 'plant', level: 1, x: 0, y: 0, rot: 0 });
+      s.week = B.lockdownWeek;
+      const out = [...step(s)];
+      s.pendingDecision = null;
+      s.week++;
+      out.push(...step(s));
+      return out.filter((e) => e.text).map((e) => e.text).join(' ');
+    };
+    expect(lines(false)).not.toMatch(/plant/i);
+    expect(lines(true)).toMatch(/plant/i);
+  });
+
+  it('a departing owner takes the dog home in the same tick', async () => {
+    const { removeStaff } = await import('../../src/sim/staff.js');
+    const s = classicGame(2);
+    const owner = addStaff(s, 'engineer', 'mid');
+    s.pets.push({ id: 'd', species: 'dog', name: 'Biscuit', ownerId: owner.id, arrivedWeek: 0 }, { id: 'c', species: 'cat', name: 'Null', ownerId: owner.id, arrivedWeek: 0 });
+    removeStaff(s, owner);
+    expect(s.pets).toEqual([expect.objectContaining({ species: 'cat', ownerId: null })]);
   });
 });

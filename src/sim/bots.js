@@ -133,12 +133,17 @@ function balancedChooser(s, d, fx) {
     return fx.win ? (yearIndex >= 6 || (yearIndex >= 4 && flat) ? 100 : -100) : 0;
   }
   if (d.eventId === 'bridge_loan') return fx.later ? 10 : fx.modifier ? 2 : 0;
+  if (d.eventId === 'work_policy') {
+    // Juniors learn in the office; a mid-size team splits the difference; a small, tight team saves the rent.
+    const want = s.staff.some((p) => p.seniority === 'junior') ? 'office' : s.staff.length >= 6 ? 'hybrid' : 'remote';
+    return fx.workPolicy === want ? 10 : 0;
+  }
   if (d.eventId === 'outage_unfixable') return fx.consultants ? 10 : fx.clearOutage || fx.later ? 8 : 0;
   return sensibleValue(s, fx);
 }
 
 // Cheapest choice: the one that spends the least cash now.
-const cheapestChooser = (s, d, fx) => (fx.cash ?? 0) + (fx.consultants ? -B.consultantCost : 0) - (fx.win ? 1e9 : 0);
+const cheapestChooser = (s, d, fx) => (fx.cash ?? 0) + (fx.consultants ? -B.consultantCost : 0) - (fx.win ? 1e9 : 0) + (fx.workPolicy === 'remote' ? 1 : 0);
 
 const firstChooser = (s, d, fx, i) => -i;
 
