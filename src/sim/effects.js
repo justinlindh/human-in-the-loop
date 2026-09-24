@@ -17,6 +17,7 @@ import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision } from './events.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
+import { adoptPet } from './ladder.js';
 import { buyItemBlocker, upgradeItemBlocker, ownedCopy, buyItemNow, upgradeItemNow } from './progression.js';
 
 export { modifierBonus } from './modifiers.js';
@@ -212,6 +213,22 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     removeStaff(state, person);
     state.stats.resignations++;
     ctx.emit({ type: 'resign', staffId: person.id, name: person.name });
+  }
+  if (fx.workPolicy) state.workPolicy = fx.workPolicy;
+  if (fx.adoptPet) {
+    const owner = person ?? state.staff.find((p) => !p.founder) ?? state.staff[0];
+    if (owner) {
+      const pet = adoptPet(state, fx.adoptPet, owner.id, ctx.rng);
+      ctx.emit({ type: 'toast', text: `${pet.name} the ${pet.species} has joined ${state.companyName}.`, tone: 'good' });
+    }
+  }
+  if (fx.rivalHit && state.rival) state.rival.strength = clamp(state.rival.strength - fx.rivalHit, 0, 100);
+  if (fx.rivalFate && state.rival) {
+    state.rival.status = fx.rivalFate;
+    if (fx.rivalFate === 'merged') {
+      const mine = liveProducts(state).filter((p) => p.category === state.rival.categoryId).sort((a, b) => b.customers - a.customers)[0];
+      if (mine) mine.customers = Math.floor(mine.customers * (1 + B.rivalMergeCustomers));
+    }
   }
   if (fx.win === 'acquired' || fx.openOffer) {
     const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);

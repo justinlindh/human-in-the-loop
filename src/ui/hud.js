@@ -2,7 +2,7 @@ import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, 
 import { B, trendName, INCIDENT_LABEL, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel } from './panels/common.js';
-import { GOALS } from './v2content.js';
+import { GOALS, strainOf, STRAIN_WARN } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 export const liveProducts = (s) => s.products.filter((p) => !p.killed);
@@ -90,6 +90,10 @@ export function needsYou(s) {
       out.push({ key: `mig:${p.id}`, icon: 'migrate', text: `Migrate ${p.name} ${w <= 0 ? 'now' : `within ${w}w`}`, go: ['models'] });
     }
   }
+  // Several weeks at empty stamina is the warning sign before burnout.
+  const drained = s.staff.filter((p) => p.mood !== 'away' && p.mood !== 'burnout' && strainOf(p) >= STRAIN_WARN).sort((a, b) => strainOf(b) - strainOf(a));
+  if (drained.length === 1) out.push({ key: `strain:${drained[0].id}`, icon: 'battery.low', text: `${drained[0].name.split(' ')[0]} looks exhausted`, go: ['staff', { staffId: drained[0].id }], quick: { label: 'Time off', action: { type: 'timeOff', staffId: drained[0].id } } });
+  else if (drained.length > 1) out.push({ key: `strain:${drained.length}`, icon: 'battery.low', text: `${drained.length} people look exhausted`, go: ['staff', { staffId: drained[0].id }] });
   const idle = s.staff.filter((p) => p.assignment?.type === 'idle' && p.mood !== 'away').length;
   if (idle) out.push({ key: 'idle', icon: 'team', text: `${idle} ${idle === 1 ? 'person is' : 'people are'} idle`, go: ['staff'] });
   return out;
@@ -161,8 +165,12 @@ export function createHud({ root, controls, ui }) {
       const shown = needs.slice(0, 4);
       tray.append(h('div.tray-card.needs', null,
         h('div.t', null, h('span', { text: 'Needs you' }), h('span.k', { text: needs.length > 4 ? `+${needs.length - 4}` : '' })),
-        ...shown.map((n) => h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
-          icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })))));
+        ...shown.map((n) => {
+          // An item can carry a one-tap fix next to it (e.g. time off for someone exhausted).
+          const quick = n.quick ? h('button.btn.small.go.nquick', { onclick: (e) => { e.stopPropagation(); ui.act?.(n.quick.action); } }, n.quick.label) : null;
+          return h('div.needrow', null, h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
+            icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick);
+        })));
     }
     if (s.outage) {
       const o = s.outage;
@@ -301,6 +309,13 @@ export function createHud({ root, controls, ui }) {
       last.speed = sp;
       speedBtns.forEach((b, i) => toggleClass(b, 'on', SPEEDS[i].k === sp));
       pausedTag.style.display = sp === 0 ? '' : 'none';
+    }
+    // After an auto-pause on blur, the paused tag says why until the player resumes.
+    const away = sp === 0 && !!controls.awayPaused;
+    if (away !== last.away) {
+      last.away = away;
+      setText(pausedTag, away ? 'Paused while you were away' : 'Paused');
+      pausedTag.title = away ? 'The game paused when the window lost focus. Press play or Space to resume. Change this in Settings.' : '';
     }
     const busy = sp > 0 && !!ui.isBusy?.();
     if (busy !== last.busy) { last.busy = busy; menuTag.style.display = busy ? 'inline' : 'none'; }

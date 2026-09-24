@@ -10,7 +10,7 @@ import { ANGLES } from '../data/angles.js';
 import { MODELS } from '../data/models.js';
 import { TRENDS } from '../data/trends.js';
 import { ERAS } from '../data/eras.js';
-import { eraIndex, eraAtLeast, eraAllowsText, currentEra } from './eras.js';
+import { eraIndex, eraAtLeast, eraOnlyAllowsText, currentEra } from './eras.js';
 import { raiseDecision } from './events.js';
 
 const VENDOR_LINES = [
@@ -58,7 +58,7 @@ function eraStep(ctx) {
   }
 }
 
-const trendFits = (state, t) => (t.eras ? t.eras.includes(currentEra(state).id) : eraAllowsText(state, `${t.name} ${t.text}`));
+const trendFits = (state, t) => (t.eras ? t.eras.includes(currentEra(state).id) : eraOnlyAllowsText(state, `${t.name} ${t.text}`));
 
 function trendStep(ctx) {
   const m = ctx.state.market;

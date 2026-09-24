@@ -4,6 +4,7 @@ import { registerSystem } from './registry.js';
 import { ROLES } from '../data/roles.js';
 import { itemBonus, researchBonus } from './bonus.js';
 import { staffMods } from './staff.js';
+import { remoteLearning } from './ladder.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
@@ -17,12 +18,16 @@ export function onDeparture(state, person) {
     }
   }
   for (const pr of state.products) if (pr.ownerId === person.id) pr.ownerId = null;
+  // A dog goes home with its owner; the office cat stays, owned by nobody.
+  for (const pet of state.pets ?? []) if (pet.ownerId === person.id) pet.ownerId = null;
+  if (state.pets) state.pets = state.pets.filter((pet) => pet.ownerId || pet.species === 'cat');
 }
 
 export function institutionalKnowledge(state) {
   const live = state.products.filter((p) => !p.killed).length;
-  const holders = state.staff.filter((p) => p.role === 'engineer' || p.role === 'security');
-  const held = sum(holders, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
+  // Engineers and security hold the systems in their heads; founders built them, whatever their role.
+  const weight = (p) => (p.role === 'engineer' || p.role === 'security' ? 1 : p.founder ? B.founderIkWeight : 0);
+  const held = sum(state.staff, (p) => weight(p) * (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
   const standup = state.policies.daily_standups ? B.standupIkBonus : state.policies.async_standups ? B.standupIkBonus / 2 : 0;
   return clamp(((100 * held) / (B.ikBaseline + B.ikPerProduct * live)) * (1 + researchBonus(state, 'ik') + standup), 0, 100);
 }
@@ -40,8 +45,8 @@ export function knowledgeSystem(ctx) {
       const dulled = p.role === 'engineer' && a !== 'hardProblem';
       gain += B.knowledgeGainWorking * (dulled ? 1 - 0.7 * engLevel : 1);
     }
-    if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee;
-    p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')));
+    if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee * remoteLearning(state, p);
+    p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')) * (p.remote ? B.remoteKnowledgeMult : 1));
   }
 
   state.institutionalKnowledge = institutionalKnowledge(state);

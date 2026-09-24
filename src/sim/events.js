@@ -10,7 +10,7 @@ import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
-import { eraAllowsText, eraAtLeast, currentEra } from './eras.js';
+import { eraOnlyAllowsText, eraAtLeast, currentEra } from './eras.js';
 
 // Placeholder values chosen once per event, so every string in a decision names the same incumbent.
 export function decisionVars(state, rng, subjectId) {
@@ -18,7 +18,7 @@ export function decisionVars(state, rng, subjectId) {
   const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
   const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
-  return { incumbent: incumbentFor(category).name, collapseWeeks };
+  return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder' };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -31,7 +31,9 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{product}', product?.name ?? liveProducts(state).at(-1)?.name ?? 'production')
     .replaceAll('{company}', state.companyName)
     .replaceAll('{incumbent}', v.incumbent)
-    .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks));
+    .replaceAll('{collapseWeeks}', String(v.collapseWeeks ?? B.outageCollapseWeeks))
+    .replaceAll('{rivalFounder}', v.rivalFounder ?? 'Their founder')
+    .replaceAll('{rival}', v.rival ?? 'A rival');
 }
 
 // Emergencies always interrupt; everything else respects the gap between decisions.
@@ -103,7 +105,7 @@ export function helpers(state) {
   const offerMult = eraAtLeast(state, 'consolidation') ? B.consolidationOfferMult : 1;
   return {
     B, mrr, live, bestScore: Math.max(0, ...live.map((p) => p.score)), usesModel: (id) => used.has(id),
-    offerReady: mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
+    offerReady: state.week >= B.retireFromWeek && mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
   };
 }
 
@@ -111,7 +113,7 @@ export function helpers(state) {
 const eventText = (ev) => JSON.stringify([ev.title, ev.text, ev.chat ?? '', (ev.choices ?? []).map((c) => [c.label, c.hint, c.outcome ?? ''])]);
 
 // An event fits the era if it names the era explicitly, or names none and its text fits.
-export const eventFitsEra = (state, ev) => (ev.eras ? ev.eras.includes(currentEra(state).id) : eraAllowsText(state, eventText(ev)));
+export const eventFitsEra = (state, ev) => (ev.eras ? ev.eras.includes(currentEra(state).id) : eraOnlyAllowsText(state, eventText(ev)));
 
 export function eligibleEvents(state) {
   const h = helpers(state);

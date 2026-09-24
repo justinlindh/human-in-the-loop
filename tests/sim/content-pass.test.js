@@ -32,7 +32,7 @@ describe('content pass', () => {
   });
 
   it('misc events post their own short bot line, not the popup text', () => {
-    for (const id of ['coffee_machine_broke', 'office_dog']) {
+    for (const id of ['coffee_machine_broke']) {
       expect(EVENTS[id].chat, id).toBeTruthy();
       expect(EVENTS[id].chat).not.toBe(EVENTS[id].text);
     }
@@ -48,8 +48,9 @@ describe('content pass', () => {
       const c = makeCtx(s);
       marketSystem(c);
       chatSystem(c);
-      const thread = c.events.find((e) => e.type === 'chat' && /clone with our exact tagline/.test(e.text));
-      if (thread) { expect(thread.text).toContain('a Notes clone'); return; }
+      const cloned = c.events.some((e) => e.from === '@hackerspewsbot');
+      const talk = c.events.filter((e) => (e.type === 'chat' && e.fromId) || e.type === 'say').map((e) => e.text).join(' ');
+      if (cloned && /Notes/.test(talk)) { expect(talk).not.toMatch(/Email/); return; }
       s.week++;
     }
     throw new Error('clone thread never fired');
@@ -77,7 +78,7 @@ describe('content pass', () => {
     let last = -99;
     const r = runBot('balanced', 3, 520, {
       onWeek: (s, ev) => {
-        const posts = ev.filter((e) => e.type === 'chat' && e.from === '@hackernewsbot').length;
+        const posts = ev.filter((e) => e.type === 'chat' && e.from === '@hackerspewsbot').length;
         expect(posts).toBeLessThanOrEqual(1);
         if (posts) { expect(s.week - last).toBeGreaterThanOrEqual(6); last = s.week; }
       },

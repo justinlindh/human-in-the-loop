@@ -43,7 +43,7 @@ const burn = (s) => Math.max(1, sum(Object.values(weeklyCosts(s))) - weeklyReven
 const costs = (s) => sum(Object.values(weeklyCosts(s)));
 const net = (s) => weeklyRevenue(s) - costs(s);
 // A hire is affordable if the company stays cash-positive with the new salary, or has a long runway.
-const canAffordHire = (s, salary = 2000) => net(s) - salary > 0 ? s.cash > 8 * costs(s) : s.cash > 40 * (costs(s) + salary - weeklyRevenue(s));
+const canAffordHire = (s, salary = 2000) => net(s) - salary > 0 ? s.cash > 12 * (costs(s) + salary) : s.cash > 40 * (costs(s) + salary - weeklyRevenue(s));
 const weeksOfBurn = (s) => s.cash / burn(s);
 const present = (s) => s.staff.filter((p) => p.mood !== 'away');
 const builders = (s) => present(s).filter((p) => p.role === 'engineer' || p.role === 'designer' || p.founder);
@@ -101,6 +101,8 @@ function sensibleValue(s, fx, depth = 0) {
   if (!fx || depth > 3) return 0;
   let v = 0;
   v += (fx.cash ?? 0) / Math.max(20000, s.cash * 0.15);
+  // A careful player never spends money they do not have.
+  if (fx.cash < 0 && s.cash + fx.cash < 0) v -= 20;
   v += (fx.brand ?? 0) * 0.8 + (fx.teamMeaning ?? 0) * 0.6 + (fx.meaning ?? 0) * 0.15 + (fx.ik ?? 0) * 0.3;
   v -= (fx.debt ?? 0) * 0.3;
   v += (fx.customersPct ?? 0) * 0.3 + (fx.hype ?? 0) * 0.05;
@@ -133,12 +135,17 @@ function balancedChooser(s, d, fx) {
     return fx.win ? (yearIndex >= 6 || (yearIndex >= 4 && flat) ? 100 : -100) : 0;
   }
   if (d.eventId === 'bridge_loan') return fx.later ? 10 : fx.modifier ? 2 : 0;
+  if (d.eventId === 'work_policy') {
+    // Juniors learn in the office; a mid-size team splits the difference; a small, tight team saves the rent.
+    const want = s.staff.some((p) => p.seniority === 'junior') ? 'office' : s.staff.length >= 6 ? 'hybrid' : 'remote';
+    return fx.workPolicy === want ? 10 : 0;
+  }
   if (d.eventId === 'outage_unfixable') return fx.consultants ? 10 : fx.clearOutage || fx.later ? 8 : 0;
   return sensibleValue(s, fx);
 }
 
 // Cheapest choice: the one that spends the least cash now.
-const cheapestChooser = (s, d, fx) => (fx.cash ?? 0) + (fx.consultants ? -B.consultantCost : 0) - (fx.win ? 1e9 : 0);
+const cheapestChooser = (s, d, fx) => (fx.cash ?? 0) + (fx.consultants ? -B.consultantCost : 0) - (fx.win ? 1e9 : 0) + (fx.workPolicy === 'remote' ? 1 : 0);
 
 const firstChooser = (s, d, fx, i) => -i;
 
@@ -161,7 +168,7 @@ function pairMentors(s) {
 }
 
 // How many desks a bot is willing to fit on each stage.
-const STAGE_DESKS = [4, 12, 30];
+const STAGE_DESKS = [6, 14, 30];
 
 // Keeps one free desk ready for the next hire, up to the stage's desk count.
 function furnish(s) {
@@ -383,8 +390,6 @@ export const BOTS = { automateAll, allHumans, balanced, sensible, recklessHumans
 
 export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChooser, balanced: balancedChooser, sensible: balancedChooser, recklessHumans: firstChooser };
 
-// Plays one full run headless (by default 20 years). Returns the outcome plus a few numbers for the balance
-// table; eras holds { week, cash, staff, mrr } at each era's arrival.
 // Resolves pending decisions the way the named bot would. Returns how many bridge loans it took.
 // onEvents(events, action) receives the events of every dispatch.
 export function botDecide(name, s, { onEvents = null } = {}) {
@@ -419,7 +424,8 @@ export function botTurn(name, s, { onEvents = null } = {}) {
 }
 
 // Plays one full run headless (by default 20 years). Returns the outcome plus a few numbers for the balance
-// table; eras holds { week, cash, staff, mrr } at each era's arrival.
+// table; eras holds { week, cash, staff, mrr } at each era's arrival, stageWeeks the week each office
+// stage was reached; exited is true for a retirement (IPO or acquisition).
 // onWeek(state, tickEvents) after each tick; onEvents(events, action) for every dispatch; setup(state) once at the start;
 // founding: { founders, funding } passed to createGame.
 export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null, setup, founding = {} } = {}) {
@@ -430,6 +436,7 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = n
   let crises = 0;
   let wasUnrecoverable = false;
   const eras = {};
+  const stageWeeks = { 0: 0 };
   while (!s.gameOver && s.week < maxWeeks) {
     crises += botDecide(name, s, { onEvents });
     if (s.gameOver) break;
@@ -437,6 +444,7 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = n
     const era = s.era.id;
     const events = tick(s);
     if (s.era.id !== era) eras[s.era.id] = { week: s.week, cash: s.cash, staff: s.staff.length, mrr: totalMrr(s) };
+    if (stageWeeks[s.officeStage] === undefined) stageWeeks[s.officeStage] = s.week;
     maxStage = Math.max(maxStage, s.officeStage);
     const unrecoverable = !!s.outage?.unrecoverable;
     if (unrecoverable && !wasUnrecoverable) crises++;
@@ -445,9 +453,9 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = n
     onWeek?.(s, events);
   }
   return {
-    won: !!s.gameOver?.won, reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,
+    won: !!s.gameOver?.won, exited: s.gameOver?.reason === 'retired', reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,
     peakMrr: s.stats.peakMrr, score: s.gameOver?.score ?? scoreRun(s).score, maxStage, firstLaunch, state: s,
-    resignations: s.stats.resignations, incidents: s.stats.incidents, crises, eras,
+    resignations: s.stats.resignations, incidents: s.stats.incidents, crises, eras, stageWeeks,
     lostAfterAgents: !s.gameOver?.won && !!s.gameOver && s.week >= s.eraSchedule.agents,
   };
 }

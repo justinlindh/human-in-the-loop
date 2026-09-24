@@ -6,11 +6,11 @@ const rows = [
     'Notices the one pixel. Will not ship the ugly version, which is annoying and usually right.'],
   ['hustler', 'The Hustler', 'marketer', 'mid', 'hype_machine', ['novelty', 'polish'],
     'Can sell a login page as a movement. Knows a guy at every conference.'],
-  ['operator', 'The Operator', 'security', 'mid', 'steady', ['reliability', 'features'],
+  ['operator', 'The Operator', 'security', 'mid', 'steady', ['reliability', 'polish'],
     'Owns the checklists, the backups, and the calm voice during outages.'],
   ['researcher', 'The Researcher', 'engineer', 'senior', 'tinkerer', ['novelty', 'features'],
     'Left a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.'],
-  ['seller', 'The Seller', 'sales', 'mid', 'people_person', ['features', 'novelty'],
+  ['seller', 'The Seller', 'sales', 'mid', 'people_person', ['novelty', 'polish'],
     'Closed a deal at a wedding. Remembers every customer\'s dog\'s name.'],
 ];
 

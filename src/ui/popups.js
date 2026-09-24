@@ -1,7 +1,7 @@
 import { h } from './dom.js';
 import { EVENTS } from '../data/events.js';
 import { icon } from './icons.js';
-import { portrait, roleChip } from './widgets.js';
+import { portrait, portraitLive, roleChip } from './widgets.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
   'hackathon_week', 'founder_burnout', 'ceo_support_fallout', 'four_day_week_review', 'ai_first_review']);
@@ -50,7 +50,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     });
     const body = leader && subject
       ? h('div.leader', null,
-        h('div.lport', null, portrait(subject, 88), h('b.small', { text: subject.name.split(' ')[0] }), roleChip(subject.role)),
+        h('div.lport', null, portraitLive(subject, 88), h('b.small', { text: subject.name.split(' ')[0] }), roleChip(subject.role)),
         h('div.bubble', null, h('p', { text: d.text })))
       : h('div.dtext', null,
         subject ? h('div.subj', null, portrait(subject, 44), h('div', null, h('b', { text: subject.name }), h('div', null, roleChip(subject.role)))) : null,

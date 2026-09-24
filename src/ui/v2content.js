@@ -49,6 +49,7 @@ const FB_UNLOCKS = {
   research: { title: 'Internal tools', why: 'Engineers can build tools with permanent effects, from the Build panel.' },
   models: { title: 'Model vendors', why: 'AI models are here. Pick vendors for products and automation, and watch for deprecations.' },
   automation: { title: 'Automation', why: 'Agents can take on work. Cheap output, but it drains meaning and needs oversight.' },
+  meaning: { title: 'Meaning', why: 'Your people are asking what their job is now. Meaning is how much their work still feels like theirs: it drains when machines take it over, and it decides who stays.' },
   paths: { title: 'Career paths', why: 'A senior can pick a path with one strong perk.' },
   standups: { title: 'Standups', why: 'With a team of five, a standup policy keeps everyone in sync.' },
 };
@@ -82,9 +83,6 @@ export function goalReward(g) {
   return [r.cash ? `+${FMT_K(r.cash)}` : null, r.brand ? `+${r.brand} brand` : null, g.trophy ? 'a trophy' : null].filter(Boolean).join(', ');
 }
 
-const STAT_NAME = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty', hype: 'Hype', sales: 'Sales', support: 'Support', security: 'Security', oversight: 'Oversight' };
-// Founder strengths come as stat ids from the data or as a sentence from the fallback.
-export const strengthChips = (a) => (Array.isArray(a.strengths) ? a.strengths.map((k) => STAT_NAME[k] ?? k) : []);
 export const archetypeBlurb = (a) => a.blurb ?? (typeof a.strengths === 'string' ? a.strengths : '');
 
 // A short name for lists: "Marketing", "Policy: Craft Fridays".
@@ -106,6 +104,29 @@ export function foundingWarning(ids) {
   if (picked.some(builds)) return null;
   return DATA.NO_BUILDER_WARNING ?? 'Neither founder builds software. Your first product will crawl until you hire an engineer.';
 }
+
+// True while the run has not yet reached eraId (AI-era content stays hidden until then).
+export function beforeEra(s, eraId) {
+  if (!s?.era || !eraId) return false;
+  const at = ERAS.findIndex((e) => e.id === s.era.id);
+  const need = ERAS.findIndex((e) => e.id === eraId);
+  return at >= 0 && need >= 0 && at < need;
+}
+
+// Meaning is revealed at the ChatGBT moment (the 'meaning' unlock). A sim without that unlock
+// key shows it from the ChatGBT era on; a sim without eras always shows it.
+export const SIM_HAS_MEANING_UNLOCK = Array.isArray(DATA.UNLOCKS) ? DATA.UNLOCKS.some((u) => u.key === 'meaning') : !!DATA.UNLOCKS?.meaning;
+export function meaningShown(s) {
+  if (!s?.era) return true;
+  if (s.unlocks?.meaning != null) return true;
+  return !SIM_HAS_MEANING_UNLOCK && s.era.id !== 'classic';
+}
+
+export const TIRED_STAMINA = 25;
+// Strain (0..100) builds under sustained load; past B.strainWarn it is a warning sign.
+export const STRAIN_WARN = B.strainWarn ?? 60;
+export const strainOf = (p) => (Number.isFinite(p.strain) ? p.strain : 0);
+export const PURPOSE_INFO = DATA.PURPOSE_INFO ?? null;
 
 export const fundingCash = (f) => f.cash ?? B.funding?.[f.id]?.cash ?? 0;
 export const fundingMult = (f) => f.scoreMult ?? B.funding?.[f.id]?.scoreMult ?? 1;
