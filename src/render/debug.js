@@ -191,6 +191,7 @@ export function buildCharLineup(group) {
 }
 
 // One character at four headings, for checking the face and silhouette up close.
+// Query: hair, acc, back (cap backwards), skin, hc (hair color), shirt, build, role.
 export function buildCharTurnaround(group) {
   group.add(mesh(roundedBox(5, 0.3, 2, 0.08), mat('slab_side'), 0, -0.15, 0));
   group.add(mesh(roundedBox(4.8, 0.04, 1.8, 0.02), mat('floor_wood'), 0, 0.02, 0));
@@ -201,7 +202,8 @@ export function buildCharTurnaround(group) {
     [0, 1, 2, 3].forEach((i) => {
       const acc = new URLSearchParams(location.search).get('acc') ?? 'none';
       const qp = new URLSearchParams(location.search);
-      const c = createCharacter({ skin: Number(qp.get('skin') ?? 1), hair: Number(qp.get('hair') ?? 1), hairColor: HAIRC[3], shirt: SHIRTS[3], pants: PANTS[0], accessory: acc, build: 1, capBack: new URLSearchParams(location.search).get('back') === '1' }, ROLE_COLORS.designer, { role: 'designer' });
+      const role = qp.get('role') ?? 'designer';
+      const c = createCharacter({ skin: Number(qp.get('skin') ?? 1), hair: Number(qp.get('hair') ?? 1), hairColor: HAIRC[Number(qp.get('hc') ?? 3)], shirt: SHIRTS[Number(qp.get('shirt') ?? 3)], pants: PANTS[0], accessory: acc, build: Number(qp.get('build') ?? 1), capBack: qp.get('back') === '1' }, ROLE_COLORS[role], { role });
       c.root.position.set((i - 1.5) * 1.1, 0.04, 0);
       c.root.rotation.y = Math.PI / 4 + i * Math.PI / 2;
       group.add(c.root);
