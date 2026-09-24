@@ -12,7 +12,7 @@
 // optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
 import { chromium } from 'playwright';
 import { spawn, execSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -33,6 +33,8 @@ const args = parseArgs(process.argv.slice(2));
 const FPS = Number(args.fps ?? 60);
 const [W, H] = String(args.size ?? '1920x1080').split('x').map(Number);
 const QUALITY = args.quality ?? 'high';
+// --audio records the game's sound into each clip (AAC in the MP4, Opus in the WebM).
+const AUDIO = !!args.audio;
 const OUT = resolve(String(args.out ?? 'shots/capture').replace(/^~/, homedir()));
 const manifestPath = resolve(String(args.manifest ?? 'scripts/capture-manifest.js'));
 const { ITEMS } = await import(pathToFileURL(manifestPath).href);
@@ -48,7 +50,7 @@ const items = ITEMS.filter((it) => (only ? only.has(it.id) : group ? it.group ==
 if (!items.length) { console.error(`capture: nothing matches --only ${args.only}`); process.exit(1); }
 
 // Installed before any page script runs. Time only moves when the capture script says so.
-function shim({ fps, seed }) {
+function shim({ fps, seed, audioSeconds }) {
   let now = 0;
   const epoch = Date.parse('2026-01-01T09:00:00Z');
   const timers = new Map();
@@ -70,7 +72,55 @@ function shim({ fps, seed }) {
   window.requestAnimationFrame = (cb) => { const id = seq++; rafs.push({ id, cb }); return id; };
   window.cancelAnimationFrame = (id) => { rafs = rafs.filter((r) => r.id !== id); };
   const run = (fn, a) => { try { if (typeof fn === 'function') fn(...a); } catch (e) { console.error(e); } };
+  // Sound on the virtual clock: the page's AudioContext is an offline one whose currentTime follows
+  // virtual time, so everything scheduled lands where its frames are; it is rendered after the clip.
+  let audioCtx = null;
+  let audioT0 = 0;
+  if (audioSeconds && window.OfflineAudioContext) {
+    const RATE = 48000;
+    class CaptureAudioContext extends window.OfflineAudioContext {
+      constructor() {
+        super(2, Math.ceil(RATE * audioSeconds), RATE);
+        audioCtx = this;
+        audioT0 = now;
+      }
+      get currentTime() { return (now - audioT0) / 1000; }
+      get state() { return 'running'; }
+      resume() { return Promise.resolve(); }
+      suspend() { return Promise.resolve(); }
+      close() { return Promise.resolve(); }
+    }
+    window.AudioContext = CaptureAudioContext;
+    window.webkitAudioContext = CaptureAudioContext;
+  }
   window.__capture = {
+    // Renders the page's sound and returns [fromMs, fromMs + ms) of virtual time as a 16-bit stereo
+    // WAV in base64, with its peak and RMS; null when the page never made an AudioContext.
+    async audio(fromMs, ms) {
+      if (!audioCtx) return null;
+      const buf = await audioCtx.startRendering();
+      const rate = buf.sampleRate;
+      const start = Math.max(0, Math.round(((fromMs - audioT0) / 1000) * rate));
+      const n = Math.max(0, Math.min(buf.length - start, Math.round((ms / 1000) * rate)));
+      const ch = [buf.getChannelData(0), buf.getChannelData(buf.numberOfChannels > 1 ? 1 : 0)];
+      const bytes = new Uint8Array(44 + n * 4);
+      const v = new DataView(bytes.buffer);
+      const str = (o, t) => { for (let i = 0; i < t.length; i++) bytes[o + i] = t.charCodeAt(i); };
+      str(0, 'RIFF'); v.setUint32(4, 36 + n * 4, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+      v.setUint16(22, 2, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true);
+      str(36, 'data'); v.setUint32(40, n * 4, true);
+      let peak = 0, sum = 0;
+      for (let i = 0; i < n; i++) {
+        for (let c = 0; c < 2; c++) {
+          const x = Math.max(-1, Math.min(1, ch[c][start + i]));
+          peak = Math.max(peak, Math.abs(x)); sum += x * x;
+          v.setInt16(44 + (i * 2 + c) * 2, x * 32767, true);
+        }
+      }
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return { wav: btoa(bin), peak, rms: Math.sqrt(sum / Math.max(1, n * 2)) };
+    },
     fps,
     get now() { return now; },
     // One frame: fire due timers in time order, run this frame's rAF callbacks, step CSS animations.
@@ -128,12 +178,21 @@ function webm(mp4, file) {
     const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, ...scale, '-c:v', 'libvpx-vp9', '-row-mt', '1', '-pix_fmt', 'yuv420p', ...argv], { stdio: 'inherit' });
     p.on('close', (code) => (code === 0 ? ok() : fail(new Error(`webm ffmpeg exited ${code}`))));
   });
-  if (!WEBM_RATE) return run(['-crf', '30', '-b:v', '0', file]);
+  if (!WEBM_RATE) return run(['-crf', '30', '-b:v', '0', '-c:a', 'libopus', '-b:a', '96k', file]);
   // Two-pass VBR hits the bitrate (and so the file size) far more closely than one pass.
   const log = `${file}.pass`;
   return run(['-b:v', WEBM_RATE, '-pass', '1', '-passlogfile', log, '-an', '-f', 'null', '/dev/null'])
-    .then(() => run(['-b:v', WEBM_RATE, '-pass', '2', '-passlogfile', log, '-deadline', 'good', '-cpu-used', '2', file]))
+    .then(() => run(['-b:v', WEBM_RATE, '-pass', '2', '-passlogfile', log, '-deadline', 'good', '-cpu-used', '2', '-c:a', 'libopus', '-b:a', '96k', file]))
     .finally(() => rmSync(`${log}-0.log`, { force: true }));
+}
+
+// Replaces the MP4 with one that carries the WAV as AAC, video stream copied.
+function muxAudio(mp4, wav) {
+  const tmp = `${mp4}.tmp.mp4`;
+  return new Promise((ok, fail) => {
+    const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', tmp], { stdio: 'inherit' });
+    p.on('close', (code) => { if (code !== 0) return fail(new Error(`mux ffmpeg exited ${code}`)); renameSync(tmp, mp4); ok(); });
+  });
 }
 
 function gif(mp4, file) {
@@ -162,7 +221,9 @@ try {
     const seconds = it.still ? Math.max(...(it.screenshots ?? [1])) + 1 / FPS : Number(args.seconds ?? it.seconds);
     const frames = Math.round(seconds * FPS);
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
-    await ctx.addInitScript(shim, { fps: FPS, seed: it.seed ?? 1 });
+    // Enough offline audio for boot, warmup, and the clip.
+    const audioSeconds = AUDIO && !it.still ? 30 + (it.warmup ?? 1) + seconds : 0;
+    await ctx.addInitScript(shim, { fps: FPS, seed: it.seed ?? 1, audioSeconds });
     const page = await ctx.newPage();
     const errors = [];
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -180,6 +241,7 @@ try {
       return ext ? c.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unknown';
     });
     if (it.hideUi) await page.addStyleTag({ content: '#ui { display: none !important; }' });
+    if (audioSeconds) await page.evaluate(() => dispatchEvent(new Event('pointerdown')));   // the engine starts sound on a first input
     if (it.setup) await page.evaluate(it.setup);
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());
 
@@ -188,6 +250,7 @@ try {
     const actions = [...(it.actions ?? [])].sort((a, b) => a.at - b.at);
     const shots = new Set((it.screenshots ?? []).map((s) => Math.round(s * FPS)));
     const pngs = [];
+    const recFrom = await page.evaluate(() => window.__capture.now);
     for (let f = 0; f < frames; f++) {
       const t = f / FPS;
       while (actions.length && actions[0].at <= t) await page.evaluate(actions.shift().js);
@@ -201,6 +264,17 @@ try {
       if (f % (FPS * 2) === 0) process.stdout.write(`\r${it.id}: ${t.toFixed(0)}/${seconds}s`);
     }
     await enc.end();
+    let audio = null;
+    if (audioSeconds) {
+      const a = await page.evaluate(({ from, ms }) => window.__capture.audio(from, ms), { from: recFrom, ms: (frames / FPS) * 1000 });
+      if (a) {
+        const wav = join(OUT, `${it.id}.wav`);
+        writeFileSync(wav, Buffer.from(a.wav, 'base64'));
+        await muxAudio(mp4, wav);
+        rmSync(wav);
+        audio = { peak: Math.round(a.peak * 1000) / 1000, rms: Math.round(a.rms * 10000) / 10000 };
+      }
+    }
     const webmFile = join(OUT, `${it.id}.webm`);
     if (!it.still && !args['no-webm']) await webm(mp4, webmFile);
     let gifFile = null;
@@ -211,7 +285,7 @@ try {
     failed ||= errors.length > 0;
     index.items[it.id] = {
       title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
-      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, build: BUILD, renderer, errors: errors.length, capturedAt: new Date().toISOString(),
+      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, build: BUILD, renderer, audio, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
     await ctx.close();
