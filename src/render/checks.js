@@ -399,6 +399,28 @@ export async function runUseChecks(R, S, itemIds, { dt = 1 / 30 } = {}) {
   return results;
 }
 
+// Waffle party (issue #150): the watchers crowd in on the camera side of the table, outside furniture.
+export async function runPartyCheck(R, S, { dt = 1 / 30 } = {}) {
+  R.handleEvents([{ type: 'incentive', staffId: S.staff[0].id, reward: 'waffle_party' }], S);
+  for (let i = 0; i < 8 * 30; i++) { R.sync(S); R.advance(dt); }
+  const p = R.incentives?.party;
+  if (!p) return { name: 'waffle:crowd', pass: false, reason: 'no party' };
+  // On the camera side: at least 0.3 m nearer the camera than the table, along the camera's heading.
+  const cam = { x: Math.sin(p.yaw), z: Math.cos(p.yaw) };
+  const all = [];
+  for (const e of R.office.placed.values()) all.push(...meshes(e.obj));
+  let behind = 0, inside = 0;
+  for (const id of p.watchers) {
+    const root = charOf(R.scene, id);
+    const toward = (root.position.x - p.center.x) * cam.x + (root.position.z - p.center.z) * cam.z;
+    if (toward < 0.3) behind++;
+    const pts = vertices(root, 8, (o) => !isArm(o));
+    if (insideCount(pts, all) / pts.length > 0.01) inside++;
+  }
+  for (let i = 0; i < 12 * 30; i++) { R.sync(S); R.advance(dt); }
+  return { name: 'waffle:crowd', pass: p.watchers.length === 3 && behind === 0 && inside === 0, watchers: p.watchers.length, behindTable: behind, insideFurniture: inside };
+}
+
 // Music night follows the track (audio's hitl:musicTrack { genre, seconds, startsIn }): the dance
 // lasts until the music ends, and 15 s without an announcement.
 export async function runDanceLengthCheck(R, S, { dt = 1 / 30 } = {}) {
