@@ -454,5 +454,9 @@
  "stat.novelty": {
   "file": "glyphs/stat.novelty.svg",
   "size": 16
+ },
+ "home": {
+  "file": "glyphs/home.svg",
+  "size": 14
  }
 }

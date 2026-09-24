@@ -109,7 +109,7 @@ export function staffPanel(ctx, arg) {
 
   const table = liveView(
     (s) => [sort.col, sort.dir, s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0,
-      s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}`).join()].join('|'),
+      s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}${p.remote ? 'r' : ''}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
   const detail = liveView(
     (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week].join('|') : 'gone'; },
@@ -141,7 +141,8 @@ export function staffPanel(ctx, arg) {
       const kFill = h('i', { style: { background: '#3fb6b0' } });
       const kVal = h('span.num');
       const tr = h('tr', { onclick: () => { detailId = p.id; render(); }, title: 'Click for details' },
-        h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null, pathBadge(p)))),
+        h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null,
+          p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p)))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
         h('td.bestcol', null, bestChip(p)),

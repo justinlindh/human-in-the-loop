@@ -8,6 +8,7 @@ const HEADLINE = {
   leader: ['Category leader', 'You own the categories that matter.'],
   runway: ['Out of runway', 'The cash ran out and stayed out.'],
   collapse: ['The lab collapsed', 'Nobody left could keep the lights on.'],
+  anniversary: ['Twenty years!', 'Two decades of software, people, and one very old server. Happy anniversary.'],
 };
 
 // Retiring reuses the IPO or acquisition headline with a nod to the choice.
@@ -22,7 +23,7 @@ const BREAKDOWN = [
 ];
 
 // End-of-run screen: headline, score breakdown, epilogue lines revealed one at a time.
-export function createGameOver({ layer, controls, sfx }) {
+export function createGameOver({ layer, controls, sfx, act }) {
   const root = h('div.gameover');
   root.style.display = 'none';
   layer.append(root);
@@ -51,7 +52,9 @@ export function createGameOver({ layer, controls, sfx }) {
       if (s.flags?.diluted) rows.push(h('div.kv', null, h('span', { text: 'VC dilution' }), h('b.num.bad-t', { text: 'x0.8' })));
       rows.push(h('div.kv.sum', null, h('span', { text: 'Score' }), h('b.num', { text: fmtNum(g.score ?? run.score) })));
     }
-    root.replaceChildren(h(`div.go-card${g.won ? '.won' : '.lost'}`, null,
+    const anniversary = g.reason === 'anniversary';
+    const keep = anniversary && act ? h('button.btn.big', { onclick: () => { if (act({ type: 'keepPlaying' }).ok) sfx('confirm'); } }, icon('speed.play'), ' Keep playing') : null;
+    root.replaceChildren(h(`div.go-card${g.won ? '.won' : '.lost'}${anniversary ? '.anniv' : ''}`, null,
       h('div.go-head', null,
         icon(g.won ? 'award' : 'gameover', { size: 44 }),
         h('div', null, h('h1', { text: title }), h('div.go-sub', { text: sub })),
@@ -67,7 +70,9 @@ export function createGameOver({ layer, controls, sfx }) {
             h('div.kv', null, h('span', { text: 'People hired' }), h('b.num', { text: String(s.stats?.hires ?? 0) }))),
           rows.length ? h('div.go-break', null, h('b', { text: 'Score breakdown' }), ...rows) : null),
         h('div.go-epi', null, h('b', { text: 'What happened next' }), ...lines)),
-      h('div.go-foot', null, h('span.spacer'),
+      h('div.go-foot', null,
+        anniversary ? h('span.small.muted', { text: 'Keep playing to carry on with this company. Your anniversary score is kept.' }) : null,
+        h('span.spacer'), keep,
         h('button.btn.go.big', { onclick: () => { sfx('confirm'); controls.newGame?.(); } }, icon('launch'), ' New Game'))));
     root.style.display = '';
     layer.classList.add('ended');

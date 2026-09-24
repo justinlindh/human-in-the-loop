@@ -34,10 +34,13 @@ export function reportsPanel(ctx) {
   let retireSig = null;
   const syncBanner = (s) => {
     const o = retireOptions(s);
-    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}`;
+    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}|${s.flags?.anniversaryScore}`;
     if (sig === retireSig) return;
     retireSig = sig;
-    bannerHost.replaceChildren(...[retireBanner(ctx, s)].filter(Boolean));
+    const anniv = s.flags?.anniversaryScore;
+    bannerHost.replaceChildren(...[
+      Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: 'Locked in at 20 years. You kept going.' })) : null,
+      retireBanner(ctx, s)].filter(Boolean));
   };
 
   const chartW = () => {

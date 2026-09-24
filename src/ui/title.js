@@ -1,7 +1,7 @@
 import { h, setText, fmtMoney, dateOf } from './dom.js';
 import { portrait, roleChip } from './widgets.js';
 import { traitInfo } from './content.js';
-import { ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
+import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
 import { STAT } from './stats.js';
 
@@ -26,18 +26,24 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-sub', { text: 'Build software. Keep the humans.' }));
   }
 
-  // Saves: controls.listSaves() -> [{ id, ok, reason, meta: { companyName, week, logoColor } }] when
-  // slots exist; otherwise the single save from loadStatus(). Each becomes one row in the slot list.
+  // Saves: controls.listSaves() -> [{ id, companyName, logoColor, week, year, eraId, over, savedAt }], most
+  // recent first. Without it, the single save from loadStatus(). Each becomes one row in the slot list.
   function saveSlots() {
     const list = controls.listSaves?.();
-    if (Array.isArray(list) && list.length) return list;
+    if (Array.isArray(list)) return list.length ? list.map((m) => ({ id: m.id, ok: true, meta: m })) : [{ id: null, ok: false, reason: 'No saved companies yet' }];
     const st = controls.loadStatus?.() ?? { ok: false, reason: 'No save found' };
     return [{ id: null, ...st }];
   }
 
+  const ago = (t) => {
+    if (!Number.isFinite(t)) return '';
+    const m = Math.round((Date.now() - t) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+  };
+
   function slotRow(slot) {
     const m = slot.meta;
-    const d = m && Number.isFinite(m.week) ? dateOf(m.week) : null;
+    const week = m && Number.isFinite(m.week) ? dateOf(m.week) : null;
     const load = () => {
       const res = controls.continueGame?.(slot.id ?? undefined);
       if (res && res.ok === false) { toast(res.reason ?? 'Could not load the save', 'warn'); return; }
@@ -45,11 +51,31 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       sfx('confirm');
       onStart({ fresh: false });
     };
-    const btn = h('button.btn.big.tl-btn.tl-slot', { disabled: !slot.ok, title: slot.ok ? 'Continue this company' : slot.reason, onclick: load },
+    const when = [m?.year ?? week?.year, ERA[m?.eraId]?.name, m?.over ? 'finished' : null, ago(m?.savedAt)].filter(Boolean).join(' · ');
+    const btn = h('button.btn.big.tl-btn.tl-slot', { disabled: !slot.ok, title: slot.ok ? `Continue ${m?.companyName ?? 'your company'}` : slot.reason, onclick: load },
       m ? h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }) : icon('continue'),
       h('span.sinfo', null, h('b', { text: m?.companyName ? `Continue ${m.companyName}` : 'Continue' }),
-        d ? h('span.small.muted', { text: `${d.year} · Q${d.quarter} · Week ${d.week}` }) : null));
-    return [btn, !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
+        when ? h('span.small.muted', { text: when }) : null));
+    // Delete asks inside the row: the first tap arms it, a second tap within a few seconds deletes.
+    const del = slot.id && controls.deleteSave ? deleteButton(() => {
+      const res = controls.deleteSave(slot.id);
+      if (res && res.ok === false) { toast(res.reason ?? 'Could not delete the save', 'warn'); return; }
+      sfx('close');
+      menuView();
+    }, m?.companyName) : null;
+    return [h('div.tl-slotrow', null, btn, del), !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
+  }
+
+  function deleteButton(onConfirm, name) {
+    let armed = null;
+    const b = h('button.btn.tl-del', { title: `Delete ${name ?? 'this save'}`, 'aria-label': `Delete ${name ?? 'this save'}` }, icon('close'));
+    b.addEventListener('click', () => {
+      if (armed) { clearTimeout(armed); armed = null; onConfirm(); return; }
+      b.classList.add('armed');
+      b.replaceChildren(h('span', { text: 'Delete?' }));
+      armed = setTimeout(() => { armed = null; b.classList.remove('armed'); b.replaceChildren(icon('close')); }, 3000);
+    });
+    return b;
   }
 
   function menuView() {
