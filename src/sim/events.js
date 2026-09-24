@@ -103,7 +103,7 @@ export function helpers(state) {
   const offerMult = eraAtLeast(state, 'consolidation') ? B.consolidationOfferMult : 1;
   return {
     B, mrr, live, bestScore: Math.max(0, ...live.map((p) => p.score)), usesModel: (id) => used.has(id),
-    offerReady: mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
+    offerReady: state.week >= B.retireFromWeek && mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
   };
 }
 

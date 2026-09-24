@@ -79,6 +79,7 @@ describe('losing', () => {
 describe('winning', () => {
   const ipoReady = () => {
     const s = game();
+    s.week = B.retireFromWeek;
     s.officeStage = 2;
     s.brand = B.ipoBrand;
     addProduct(s, { mrr: B.ipoMrr });
@@ -96,27 +97,43 @@ describe('winning', () => {
     s.officeStage = 1;
     expectFail(expect, dispatch, s, { type: 'ipo' }, 'Needs the HQ Building');
     s = ipoReady();
+    s.week = B.retireFromWeek - 1;
+    expectFail(expect, dispatch, s, { type: 'ipo' }, 'Opens in year 10');
+    s = ipoReady();
     const res = dispatch(s, { type: 'ipo' });
     expect(res.ok).toBe(true);
     expect(s.gameOver).toMatchObject({ won: true, reason: 'retired', retiredVia: 'ipo' });
     expect(res.events).toContainEqual({ type: 'gameOver' });
   });
 
-  it('the run is open-ended: leading categories for decades does not end it', () => {
+  it('leading categories does not end the run; the 20th anniversary does, once, and play can go on', () => {
     const lead = game();
     for (const cat of ['email', 'notes', 'pm']) {
       lead.market.categories[cat].incumbentStrength = 1;
-      addProduct(lead, { category: cat, customers: CATEGORIES[cat].tam * 0.9 });
+      addProduct(lead, { category: cat, customers: CATEGORIES[cat].tam * 0.9, mrr: 100000 });
     }
-    for (const w of [779, 1040, 2000]) {
+    lead.week = B.anniversaryWeek - 2;
+    check(lead);
+    expect(lead.gameOver).toBe(null);
+    lead.week = B.anniversaryWeek - 1;
+    expect(check(lead)).toContainEqual({ type: 'gameOver' });
+    expect(lead.gameOver).toMatchObject({ won: true, reason: 'anniversary' });
+    expect(lead.gameOver.score).toBeGreaterThan(0);
+    expect(lead.gameOver.epilogue.some((l) => l.includes('turned twenty'))).toBe(true);
+    expectFail(expect, dispatch, lead, { type: 'hire', candidateId: lead.candidates[0].id }, 'The run is over');
+    expect(dispatch(lead, { type: 'keepPlaying' }).ok).toBe(true);
+    expect(lead.gameOver).toBe(null);
+    for (const w of [B.anniversaryWeek, 2000]) {
       lead.week = w;
       check(lead);
       expect(lead.gameOver).toBe(null);
     }
+    expectFail(expect, dispatch, lead, { type: 'keepPlaying' }, 'Only after the 20th anniversary');
   });
 
   it('retire needs an IPO or an open offer, then ends the run as a win', () => {
     const s = game();
+    s.week = B.retireFromWeek;
     expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');
     s.flags.acquisitionOfferUntil = s.week - 1;
     expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');

@@ -70,7 +70,21 @@ export function endgameSystem(ctx) {
   const { state } = ctx;
   if (state.lowCashWeeks >= B.runwayLoseWeeks) return endGame(ctx, { won: false, reason: 'runway' });
   if (collapsed(state)) return endGame(ctx, { won: false, reason: 'collapse' });
+  // The 20th anniversary is the natural end of a career: epilogue and score, then the player may keep playing.
+  if (state.week >= B.anniversaryWeek - 1 && state.flags.anniversaryWeek === undefined) {
+    state.flags.anniversaryWeek = state.week;
+    endGame(ctx, { won: true, reason: 'anniversary' });
+  }
 }
+
+registerAction('keepPlaying', (ctx) => {
+  const { state } = ctx;
+  if (state.gameOver?.reason !== 'anniversary') return { ok: false, reason: 'Only after the 20th anniversary' };
+  state.flags.anniversaryScore = state.gameOver.score;
+  state.gameOver = null;
+  ctx.emit({ type: 'toast', text: `${state.companyName} keeps going. The anniversary cake is still in the fridge.`, tone: 'good' });
+  return { ok: true };
+});
 
 export function historySystem(ctx) {
   const { state } = ctx;
@@ -89,9 +103,10 @@ registerSystem('history', historySystem, 95);
 
 // Why an IPO is not available yet, or null when it is.
 export function ipoBlocker(state) {
+  if (state.week < B.retireFromWeek) return 'Opens in year 10';
   if (totalMrr(state) < B.ipoMrr) return `Needs $${B.ipoMrr.toLocaleString('en-US')} MRR`;
   if (state.brand < B.ipoBrand) return `Needs brand ${B.ipoBrand}`;
-  if (state.officeStage !== 2) return 'Needs the HQ Building';
+  if (state.officeStage < 2) return 'Needs the HQ Building';
   return null;
 }
 

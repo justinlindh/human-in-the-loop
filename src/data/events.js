@@ -658,6 +658,29 @@ const list = [
       { label: 'Keep your head down', hint: 'Nothing now; the price war slows signups for 26 weeks', effects: { modifier: { key: 'acquisition', value: -0.1, weeks: 26, label: 'Price war' } }, outcome: 'You ship features and ignore the news. The news does not ignore you.' },
     ],
   },
+  {
+    id: 'era_plateau', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The Plateau',
+    text: 'Every company has the same agents now. {incumbent} runs its whole support desk with three people and a very tired dashboard. Customers have started asking a new question: "Who actually made this?"',
+    choices: [
+      { label: 'Lean into craft', hint: 'Brand up; people recover faster for 52 weeks', effects: { brand: 3, modifier: { key: 'meaningRecovery', value: 0.3, weeks: 52, label: 'The craft turn' } }, outcome: 'You rewrite the About page. It now has photos of actual people. Some of them are even smiling.' },
+      { label: 'Automate to the floor', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Automate to the floor' } }, outcome: 'Margins go up. The office gets quieter. Someone starts a support group in the kitchen.' },
+      { label: 'Become the trusted one', hint: '-$20k; customers churn less for 52 weeks', effects: { cash: -20000, modifier: { key: 'churn', value: -0.15, weeks: 52, label: 'Trust program' } }, outcome: 'You publish your incident history, your model choices, and a phone number that a human answers.' },
+    ],
+  },
+  // The first product's user test (raised halfway through the first build)
+  {
+    id: 'first_user_test', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The first user test',
+    text: 'A real person, found through a friend of a friend, is about to try {company}\'s first product. The founders are hiding behind a door.',
+    choices: [
+      { label: 'Watch in silence', hint: 'It hurts. Everyone learns faster for 8 weeks', effects: { teamMeaning: -1, modifier: { key: 'xp', value: 0.15, weeks: 8, label: 'Lessons from the user test' } }, outcome: 'They look for the save button for four minutes. Nobody breathes. Nobody forgets it.' },
+      { label: 'Explain everything as they go', hint: 'Feels great; the team is happier, and learns nothing', effects: { teamMeaning: 3 }, outcome: 'They love it! They loved the explanation, anyway.' },
+      { label: 'Skip it and keep building', hint: 'A little more output for 4 weeks', effects: { modifier: { key: 'output', value: 0.05, weeks: 4, label: 'Heads down' } }, outcome: 'You will find out what users think at launch. Like everyone does.' },
+    ],
+  },
   // Classic era flavor
   {
     id: 'cloud_bill', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, eras: ['classic'],

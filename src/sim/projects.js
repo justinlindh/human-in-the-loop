@@ -13,6 +13,7 @@ import { ANGLES } from '../data/angles.js';
 import { lockedReason } from './unlocks.js';
 import { eraAtLeast } from './eras.js';
 import { emitChat } from './chat.js';
+import { raiseDecision } from './events.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Novelty' };
 
@@ -220,7 +221,29 @@ export function projectsSystem(ctx) {
       if (n > 0) ctx.emit({ type: 'bubble', staffId: c.staffId, text: `+${n} ${STAT_LABEL[best]}`, tone: best });
     }
     if (j.progress >= j.pointsNeeded) complete(ctx, j);
+    else openingBeats(ctx, j);
   }
+}
+
+const BEATS = [
+  { at: 0.25, toast: '{project}: the prototype runs. As long as nobody clicks the second button.', say: ['It works! Do not touch it.', 'Prototype is up. It is ugly and I love it.', 'First end-to-end run. Only one thing caught fire.'] },
+  { at: 0.5, decision: 'first_user_test' },
+  { at: 0.75, toast: '{project} is three-quarters done. Someone has started a launch playlist.', say: ['I can see the finish line. It is blurry, but I can see it.', 'We should pick a launch date. A real one.', 'I rewrote the landing page again. Last time. Probably.'] },
+];
+
+// Small moments during the very first product, so the opening build is never silent.
+function openingBeats(ctx, j) {
+  const { state } = ctx;
+  if (j.kind !== 'new' || state.stats.launches > 0) return;
+  const done = state.flags.openingBeats ?? 0;
+  const beat = BEATS[done];
+  if (!beat || j.progress / j.pointsNeeded < beat.at) return;
+  state.flags.openingBeats = done + 1;
+  if (beat.decision) { raiseDecision(ctx, beat.decision, null, { queue: true }); return; }
+  ctx.emit({ type: 'toast', text: beat.toast.replace('{project}', j.name), tone: 'good' });
+  const team = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
+  const speaker = team.find((p) => p.founder) ?? team[0];
+  if (speaker) ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: speaker.id, text: beat.say[state.week % beat.say.length], toId: null, replyTo: null });
 }
 
 registerSystem('projects', projectsSystem, 30);

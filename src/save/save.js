@@ -1,10 +1,12 @@
 // localStorage persistence for the sim state. storage defaults to globalThis.localStorage;
 // tests pass any object with getItem/setItem/removeItem.
 import { SAVE_VERSION } from '../sim/state.js';
+import { dateOf } from '../sim/util.js';
 import { EVENTS } from '../data/events.js';
 import { MODELS } from '../data/models.js';
 import { INCUMBENTS } from '../data/incumbents.js';
 import { GOALS } from '../data/goals.js';
+import { assignSeats } from '../sim/office.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
 
@@ -20,25 +22,82 @@ const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, r
 
 const store = (storage) => storage ?? globalThis.localStorage;
 
-export function saveGame(state, storage) {
+// Save slots: each company saves to its own slot (its id lives in state.flags.saveSlot). An index keeps
+// the slots' metadata for the title screen and remembers the last slot written. SAVE_KEY is the single
+// save older builds wrote; it still loads when there are no slots.
+export const INDEX_KEY = 'hitl.saves.v2';
+export const MAX_SLOTS = 6;
+const slotKey = (id) => `hitl.save.v2.${id}`;
+
+function readIndex(storage) {
   try {
-    store(storage).setItem(SAVE_KEY, JSON.stringify(state));
+    const idx = JSON.parse(store(storage).getItem(INDEX_KEY) ?? 'null');
+    return idx && typeof idx === 'object' && idx.slots && typeof idx.slots === 'object' ? idx : { last: null, slots: {} };
+  } catch {
+    return { last: null, slots: {} };
+  }
+}
+
+const writeIndex = (storage, idx) => store(storage).setItem(INDEX_KEY, JSON.stringify(idx));
+
+// What the title screen shows for a save.
+export function saveMeta(state, id) {
+  return {
+    id, companyName: state.companyName, logoColor: state.founding?.logoColor ?? null, week: state.week,
+    year: dateOf(state.week).year, eraId: state.era?.id ?? 'classic', over: !!state.gameOver, savedAt: Date.now(),
+  };
+}
+
+// A free slot id, or the oldest slot when all are taken.
+function allocate(idx) {
+  for (let i = 1; i <= MAX_SLOTS; i++) if (!idx.slots[`s${i}`]) return `s${i}`;
+  return Object.values(idx.slots).sort((a, b) => a.savedAt - b.savedAt)[0].id;
+}
+
+export function saveGame(state, storage, id = state.flags?.saveSlot) {
+  try {
+    const idx = readIndex(storage);
+    const slot = id ?? allocate(idx);
+    if (state.flags) state.flags.saveSlot = slot;
+    store(storage).setItem(slotKey(slot), JSON.stringify(state));
+    idx.slots[slot] = saveMeta(state, slot);
+    idx.last = slot;
+    writeIndex(storage, idx);
     return true;
   } catch {
     return false;
   }
 }
 
+// Every save slot's metadata, most recently saved first.
+export function listSaves(storage) {
+  return Object.values(readIndex(storage).slots).sort((a, b) => b.savedAt - a.savedAt);
+}
+
 export function hasSave(storage) {
   try {
-    return store(storage).getItem(SAVE_KEY) !== null;
+    return listSaves(storage).length > 0 || store(storage).getItem(SAVE_KEY) !== null;
   } catch {
     return false;
   }
 }
 
-export function clearSave(storage) {
+export function deleteSave(storage, id) {
   try {
+    const idx = readIndex(storage);
+    store(storage).removeItem(slotKey(id));
+    delete idx.slots[id];
+    if (idx.last === id) idx.last = listSaves(storage).find((m) => m.id !== id)?.id ?? null;
+    writeIndex(storage, idx);
+  } catch {
+    // Nothing to delete if storage is unavailable.
+  }
+}
+
+// Removes a slot (by default the last one written) and the old single save.
+export function clearSave(storage, id = readIndex(storage).last) {
+  try {
+    if (id) deleteSave(storage, id);
     store(storage).removeItem(SAVE_KEY);
   } catch {
     // Nothing to clear if storage is unavailable.
@@ -70,13 +129,19 @@ function normalize(state) {
   }
   for (const i of INCUMBENTS) state.market.categories[i.category] ??= { incumbentStrength: i.strength, clones: 0 };
   for (const g of GOALS) state.goals[g.id] ??= { done: false, week: null };
+  // Saves from before sticky seats: seat everyone in staff order.
+  if (state.staff.some((p) => !('deskId' in p))) {
+    for (const p of state.staff) p.deskId = null;
+    assignSeats(state);
+  }
   return state;
 }
 
-export function loadGame(storage) {
+// Loads a slot (by default the last one written, else the old single save). A successful result carries id.
+export function loadGame(storage, id = readIndex(storage).last) {
   let raw;
   try {
-    raw = store(storage).getItem(SAVE_KEY);
+    raw = store(storage).getItem(id ? slotKey(id) : SAVE_KEY);
   } catch {
     return { ok: false, reason: 'No save found' };
   }
@@ -97,7 +162,7 @@ export function loadGame(storage) {
   }
   if (state.pendingDecision && !EVENTS[state.pendingDecision.eventId]) {
     state.pendingDecision = null;
-    return { ok: true, state, notice: 'A decision from this save no longer exists and was skipped.' };
+    return { ok: true, id: id ?? null, state, notice: 'A decision from this save no longer exists and was skipped.' };
   }
-  return { ok: true, state };
+  return { ok: true, id: id ?? null, state };
 }

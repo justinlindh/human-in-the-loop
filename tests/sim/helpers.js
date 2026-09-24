@@ -1,6 +1,6 @@
 import { createGame } from '../../src/sim/index.js';
 import { generateStaff } from '../../src/sim/staff.js';
-import { findSpot } from '../../src/sim/office.js';
+import { findSpot, assignSeats } from '../../src/sim/office.js';
 import { offerPaths } from '../../src/sim/progression.js';
 import { ANGLES } from '../../src/data/angles.js';
 import { UNLOCK_KEYS } from '../../src/data/unlocks.js';
@@ -26,6 +26,17 @@ export function openEverything(s) {
 
 export const game = (seed = 1) => openEverything(classicGame(seed));
 
+// Meets every office-stage gate (week, launches, live products, people, brand) so upgradeOffice only
+// depends on cash.
+export function passOfficeGates(s) {
+  s.week = Math.max(s.week, 260);
+  s.stats.launches = Math.max(s.stats.launches, 3);
+  s.brand = Math.max(s.brand, 40);
+  while (s.products.filter((p) => !p.killed).length < 3) addProduct(s, { name: `Filler ${s.products.length}` });
+  while (s.staff.length < 12) addStaff(s, 'engineer', 'mid');
+  return s;
+}
+
 // Places n free desk sets wherever they fit on the current stage.
 export function addDesks(s, n) {
   for (let i = 0; i < n; i++) {
@@ -33,6 +44,7 @@ export function addDesks(s, n) {
     if (!spot) throw new Error('no room for a desk');
     s.office.placed.push({ id: `d${s.nextId++}`, itemId: 'desk', level: 1, ...spot });
   }
+  assignSeats(s);
   return s;
 }
 
@@ -57,6 +69,7 @@ export function addStaff(state, role, seniority, over = {}) {
   const p = generateStaff(state, { role, seniority });
   Object.assign(p, over);
   state.staff.push(p);
+  assignSeats(state);
   return p;
 }
 

@@ -40,10 +40,32 @@ export function seatTile(placed) {
 export const desksOf = (placed) => placed.filter((p) => p.itemId === 'desk');
 export const deskCapacity = (state) => desksOf(state.office.placed).length;
 
-// Staff sit at desks in order: the i-th person on staff takes the i-th desk set.
+// Desk ids someone sits at.
+export const occupiedDesks = (state) => new Set(state.staff.map((p) => p.deskId).filter(Boolean));
+
+// Sticky seats: everyone keeps their desk; anyone without one (new, or their desk was sold) takes the
+// lowest free desk in placed order.
+export function assignSeats(state) {
+  const desks = desksOf(state.office.placed);
+  const ids = new Set(desks.map((d) => d.id));
+  const taken = new Set();
+  for (const p of state.staff) {
+    if (p.deskId && ids.has(p.deskId) && !taken.has(p.deskId)) taken.add(p.deskId);
+    else p.deskId = null;
+  }
+  for (const p of state.staff) {
+    if (p.deskId) continue;
+    const free = desks.find((d) => !taken.has(d.id));
+    if (!free) break;
+    p.deskId = free.id;
+    taken.add(free.id);
+  }
+}
+
+// The tile a person sits on, or null without a desk.
 export function seatOf(state, staffId) {
-  const i = state.staff.findIndex((p) => p.id === staffId);
-  const desk = desksOf(state.office.placed)[i];
+  const p = state.staff.find((x) => x.id === staffId);
+  const desk = p?.deskId ? state.office.placed.find((d) => d.id === p.deskId) : null;
   return desk ? seatTile(desk) : null;
 }
 
@@ -161,7 +183,8 @@ export function suggestPlacement(state, itemId) {
   if (adj && !adj.to) {
     const { w, h } = ITEMS[itemId].footprint;
     const reach = adj.radius + Math.max(w, h);
-    const seats = desksOf(placed).slice(0, state.staff.length).map(seatTile);
+    const occupied = occupiedDesks(state);
+    const seats = desksOf(placed).filter((d) => occupied.has(d.id)).map(seatTile);
     const tried = new Set();
     let best = null;
     for (const [sx, sy] of seats) {
@@ -216,12 +239,17 @@ export function adjacencyPreview(state, { itemId, x, y, rot = 0, id = null }) {
   if (!ITEMS[item]) return { links: [], effects: [], text: '' };
   const candidate = { id: moving?.id ?? 'preview', itemId: item, level: moving?.level ?? 1, x, y, rot };
   const layout = moving ? state.office.placed.map((p) => (p === moving ? candidate : p)) : [...state.office.placed, candidate];
-  const links = adjacencyLinks(layout, state.staff.length).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
+  // A new desk is taken at once if someone is waiting for a seat.
+  const occupied = occupiedDesks(state);
+  if (!moving && item === 'desk' && state.staff.some((p) => !p.deskId)) occupied.add(candidate.id);
+  const links = adjacencyLinks(layout, occupied).filter((l) => l.sourceId === candidate.id || l.targetId === candidate.id);
   for (const l of links) {
     const each = `+${Math.round(l.value * 1000) / 10}% ${EFFECT_LABEL[l.key] ?? l.key}`;
     l.text = l.target === 'item' ? `${each} per neighbour` : l.paid ? `${each} at this desk, averaged over the team` : `${each} once someone sits at this desk`;
   }
-  const after = { ...state, office: { ...state.office, placed: layout } };
+  const waiting = !moving && item === 'desk' ? state.staff.find((p) => !p.deskId) : null;
+  const staff = waiting ? state.staff.map((p) => (p === waiting ? { ...p, deskId: candidate.id } : p)) : state.staff;
+  const after = { ...state, staff, office: { ...state.office, placed: layout } };
   const keys = new Set([...links.map((l) => l.key), ...Object.keys(ITEMS[item].effects[candidate.level - 1] ?? {})]);
   const effects = [];
   for (const key of keys) {
@@ -253,6 +281,7 @@ export function placeNow(ctx, itemId, spot) {
   state.office.placed.push({ id, itemId, level: 1, x: spot.x, y: spot.y, rot: spot.rot });
   state.flags.lastItemWeek = state.week;
   state.flags.lastItemId = itemId;
+  if (itemId === 'desk') assignSeats(state);
   if (it.kind === 'shop') {
     ctx.emit({ type: 'toast', text: `New in the office: ${it.name}.`, tone: 'good' });
     emitChat(ctx, { channel: 'random', from: '@officebot', text: `The new ${it.name} has arrived. Please be nice to it.` });
@@ -308,6 +337,7 @@ registerAction('sellItem', (ctx, { id }) => {
   const refund = spentOn(placed) / 2;
   state.cash += refund;
   state.office.placed = state.office.placed.filter((p) => p !== placed);
+  if (placed.itemId === 'desk') assignSeats(state);
   ctx.emit({ type: 'toast', text: `Sold the ${it.name} for $${refund.toLocaleString('en-US')}.`, tone: 'info' });
   return { ok: true };
 });

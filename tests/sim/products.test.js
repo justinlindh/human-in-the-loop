@@ -6,7 +6,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { CATEGORIES } from '../../src/data/categories.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, passOfficeGates } from './helpers.js';
 
 const runProducts = (s, n = 1) => { const ev = []; for (let i = 0; i < n; i++) { const c = makeCtx(s); productsSystem(c); ev.push(...c.events); s.week++; } return ev; };
 const runEconomy = (s, n = 1) => { const ev = []; for (let i = 0; i < n; i++) { const c = makeCtx(s); economySystem(c); ev.push(...c.events); } return ev; };
@@ -191,8 +191,17 @@ describe('economy', () => {
 });
 
 describe('actions', () => {
-  it('upgradeOffice fails without cash and succeeds with it', () => {
+  it('upgradeOffice waits for its gate, then needs cash', () => {
     const s = game();
+    s.cash = 1e7;
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Available from 2021');
+    s.week = 104;
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Needs 2 launches');
+    s.stats.launches = 2;
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Needs 6 people');
+    for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'mid');
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Needs brand 15');
+    passOfficeGates(s);
     s.cash = 100;
     expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Not enough cash');
     s.cash = 1e7;

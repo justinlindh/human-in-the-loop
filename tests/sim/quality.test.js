@@ -11,6 +11,8 @@ const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 function ship(seed, team, { category = 'notes', angle = 'copilot', founders = true, year = 0, reviews = false, autoOnly = false, capability = null, assist = false } = {}) {
   const s = game(seed);
   s.cash = 1e6;
+  // Skip the first-product beats: this measures review quality, and the beats' decision draws from the rng.
+  s.flags.openingBeats = 3;
   s.week = year * 52;
   if (assist) s.automation.engineering.level = 1;
   if (autoOnly) { s.automation.engineering.level = 1; if (capability) s.models.chatgbt.capability = capability; for (const p of s.staff) p.assignment = { type: 'idle', targetId: null }; }

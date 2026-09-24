@@ -4,7 +4,7 @@ import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
-import { deskCapacity } from './office.js';
+import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
@@ -83,7 +83,7 @@ export function generateStaff(state, { role, seniority }) {
     meaning: int(r, 70, 90), stamina: 100, knowledge: B.newHireKnowledge, traits,
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
-    salary: 0, hiredWeek: state.week, founder: false,
+    salary: 0, hiredWeek: state.week, founder: false, deskId: null,
     path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 },
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
@@ -164,6 +164,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   c.hiredWeek = state.week;
   c.knowledge = Math.min(100, c.knowledge + researchBonus(state, 'newHireKnowledge'));
   state.staff.push(c);
+  assignSeats(state);
   state.cash -= fee;
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
