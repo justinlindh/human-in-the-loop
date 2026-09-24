@@ -1,8 +1,8 @@
 import { h, clear, setText, setWidth, toggleClass } from './dom.js';
 import { roleColor, roleName, traitInfo, MOOD_INFO } from './content.js';
 import { icon } from './icons.js';
+import { characterLook } from '../render/look.js';
 
-const SKIN = ['#ffe0c7', '#f5c9a4', '#e0a67c', '#c68658', '#9a6440', '#6b4428'];
 
 // Portraits come from the renderer's 3D characters when it offers them (renderer.portrait returns a
 // cached URL, or null while queued); the drawn chibi is the fallback and the placeholder while queued.
@@ -115,7 +115,7 @@ export function portraitImg(person, size = 44, cls = 'av') {
 
 function drawnURL(person, size) {
   const a = person.appearance ?? {};
-  const key = `${person.id}|${person.mood}|${person.role}|${a.skin}|${a.hair}|${a.hairColor}|${a.shirt}|${a.accessory}|${size}`;
+  const key = `${person.id}|${person.mood}|${person.role}|${a.skin}|${a.hair}|${a.hairColor}|${a.shirt}|${a.pants}|${a.accessory}|${a.build}|${a.capBack}|${size}`;
   let url = urlCache.get(key);
   if (!url) {
     const c = document.createElement('canvas');
@@ -129,13 +129,17 @@ function drawnURL(person, size) {
   return url;
 }
 
+// A flat portrait of the office character: colours, hat, accessory and role garment all come from
+// the renderer's characterLook, so the portrait matches the person walking around the office.
 function drawPortrait(g, p) {
-  const a = p.appearance ?? {};
-  const role = roleColor(p.role);
-  const skin = SKIN[a.skin ?? 1] ?? SKIN[1];
-  const hair = a.hairColor ?? '#2b1d16';
-  const shirt = a.shirt ?? role;
+  const look = characterLook(p.appearance ?? {}, p.role);
+  const a = { hair: look.hair, build: look.build, accessory: look.accessory };
+  const role = look.roleColor ?? roleColor(p.role);
+  const skin = look.skin;
+  const hair = look.hairColor;
+  const shirt = look.shirt;
   const ink = '#2a2630';
+  const garment = look.garment;
 
   g.fillStyle = tint(role, 0.72);
   roundRect(g, 0, 0, 64, 64, 12);
@@ -143,18 +147,39 @@ function drawPortrait(g, p) {
 
   g.lineWidth = 2.2;
   g.strokeStyle = ink;
-  // shoulders
-  g.fillStyle = shirt;
-  g.beginPath();
-  g.ellipse(32, 66, 24 + (a.build ?? 1) * 2, 17, 0, Math.PI, 0);
-  g.fill();
-  g.stroke();
-  // collar in role color so the team reads at a glance
-  g.fillStyle = role;
-  g.beginPath();
-  g.moveTo(25, 50); g.lineTo(32, 57); g.lineTo(39, 50); g.closePath();
-  g.fill();
-  g.stroke();
+  // A hood sits behind the head.
+  if (garment === 'hood') {
+    g.fillStyle = role;
+    g.beginPath(); g.ellipse(32, 44, 21, 12, 0, Math.PI, 0); g.fill(); g.stroke();
+  }
+  // Shoulders: the role garment over the shirt, so the team reads at a glance.
+  const sw = 24 + (a.build ?? 1) * 2;
+  const shoulders = (fill) => { g.fillStyle = fill; g.beginPath(); g.ellipse(32, 66, sw, 17, 0, Math.PI, 0); g.fill(); g.stroke(); };
+  if (garment === 'hood' || garment === 'hood_tucked') {
+    // A hoodie: the shirt-coloured body with the role-coloured hood gathered at the neck.
+    shoulders(shirt);
+    g.fillStyle = role;
+    g.beginPath(); roundRect(g, 17, 45, 30, 9, 4.5); g.fill(); g.stroke();
+  } else if (garment === 'blazer' || garment === 'jacket') {
+    shoulders(role);
+    // The shirt shows in a V at the front; a blazer gets lapels.
+    g.fillStyle = shirt;
+    g.beginPath(); g.moveTo(26, 50); g.lineTo(32, 64); g.lineTo(38, 50); g.closePath(); g.fill(); g.stroke();
+    if (garment === 'blazer') { g.beginPath(); g.moveTo(26, 50); g.lineTo(29, 58); g.moveTo(38, 50); g.lineTo(35, 58); g.stroke(); }
+  } else if (garment === 'vest') {
+    shoulders(shirt);
+    g.fillStyle = '#f3ead8';
+    for (const [x0, x1] of [[12, 28], [36, 52]]) { g.beginPath(); g.moveTo(x0, 64); g.lineTo(x0 + 3, 52); g.lineTo(x1 - 3, 50); g.lineTo(x1, 64); g.closePath(); g.fill(); g.stroke(); }
+    g.strokeStyle = '#6c7589'; g.lineWidth = 2.4;
+    g.beginPath(); g.moveTo(15, 58); g.lineTo(26, 58); g.moveTo(38, 58); g.lineTo(49, 58); g.stroke();
+    g.strokeStyle = ink; g.lineWidth = 2.2;
+  } else {
+    shoulders(shirt);
+    // Designers wear a scarf; anyone else a collar in the role colour.
+    g.fillStyle = role;
+    if (garment === 'scarf') { g.beginPath(); roundRect(g, 19, 47, 26, 7, 3.5); g.fill(); g.stroke(); g.beginPath(); roundRect(g, 34, 50, 6, 12, 3); g.fill(); g.stroke(); }
+    else { g.beginPath(); g.moveTo(25, 50); g.lineTo(32, 57); g.lineTo(39, 50); g.closePath(); g.fill(); g.stroke(); }
+  }
 
   const hx = 32, hy = 30, r = 17;
   const style = a.hair ?? 0;
@@ -245,20 +270,30 @@ function drawPortrait(g, p) {
     case 'headphones':
       g.strokeStyle = ink; g.lineWidth = 3;
       g.beginPath(); g.arc(hx, hy - 1, r + 2, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
-      g.fillStyle = '#ff7eb6';
+      g.fillStyle = '#8a8f9c';
       for (const sx of [hx - r - 1, hx + r + 1]) { g.beginPath(); roundRect(g, sx - 4, hy - 4, 8, 12, 3); g.fill(); g.lineWidth = 2; g.stroke(); }
       break;
     case 'beanie':
-      g.fillStyle = a.shirt ?? '#e5484d';
+      g.fillStyle = look.hatColor ?? '#e5484d';
       g.beginPath(); g.moveTo(hx + r + 1, hy - 4); g.arc(hx, hy - 4, r + 1, 0, Math.PI, true); g.closePath(); g.fill(); g.stroke();
       g.beginPath(); g.arc(hx, hy - r - 5, 3.5, 0, Math.PI * 2); g.fill(); g.stroke();
       break;
     case 'cap':
-      g.fillStyle = role;
+      g.fillStyle = look.hatColor ?? role;
       g.beginPath(); g.moveTo(hx + r, hy - 5); g.arc(hx, hy - 5, r, 0, Math.PI, true); g.closePath(); g.fill(); g.stroke();
-      g.beginPath(); roundRect(g, hx - 2, hy - 8, r + 10, 5, 2.5); g.fill(); g.stroke();
+      // A backwards cap shows its brim behind the head.
+      g.beginPath(); roundRect(g, look.capBack ? hx - r - 8 : hx - 2, hy - 8, r + 10, 5, 2.5); g.fill(); g.stroke();
       break;
     default: break;
+  }
+  // Support's headset: a band over the head, an ear cup, and a mic toward the mouth.
+  if (garment === 'headset') {
+    g.strokeStyle = ink; g.lineWidth = 3;
+    g.beginPath(); g.arc(hx, hy - 1, r + 2, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+    g.fillStyle = role; g.lineWidth = 2;
+    g.beginPath(); roundRect(g, hx - r - 5, hy - 4, 8, 12, 3); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(hx - r + 1, hy + 6); g.quadraticCurveTo(hx - 10, hy + 15, hx - 3, hy + 13); g.stroke();
+    g.beginPath(); g.arc(hx - 3, hy + 13, 2.2, 0, Math.PI * 2); g.fill(); g.stroke();
   }
 }
 
