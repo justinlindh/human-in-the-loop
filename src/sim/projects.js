@@ -160,8 +160,11 @@ function complete(ctx, j) {
   const { state } = ctx;
   const team = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
   const pr = j.productId ? findProduct(state, j.productId) : null;
+  // Everyone on a new product's launch gets credit; the Waffle Party milestone counts these.
+  const credit = () => { const m = (state.flags.shippedBy ??= {}); for (const p of team) m[p.id] = (m[p.id] ?? 0) + 1; };
   if (j.kind === 'new') {
     launchNew(ctx, j);
+    credit();
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'update' && pr && !pr.killed) {
     for (const st of STATS) pr.stats[st] = pr.stats[st] * 0.6 + j.stats[st];
