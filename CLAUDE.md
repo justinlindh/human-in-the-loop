@@ -51,4 +51,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - The integrator merges with a merge commit (never squash) and resolves cross-lane conflicts on the PR.
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
+- PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
+- Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
+- Gate every commit and push on the test command's exit code (`npm test && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0.
 - Evidence before claims: when reporting a task done, include the commit hash, the test output, and screenshot paths for visual work.

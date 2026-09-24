@@ -18,7 +18,17 @@ const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await (await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } })).newPage();
+const context = await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } });
+// No CSS animation or transitions: on a slow runner an animating card never counts as stable, so
+// clicks on it time out. The checks here are about behavior, not motion.
+await context.addInitScript(() => {
+  addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
+    document.head.append(style);
+  });
+});
+const page = await context.newPage();
 const shot = (name) => (SHOTS ? page.screenshot({ path: `${OUT}/${name}` }) : null);
 const errors = [];
 const failures = [];
@@ -27,7 +37,11 @@ page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || 
 const ready = () => page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
 // Generous: CI runners render with software GL and can take many seconds per frame.
-const clickText = (re) => page.locator('button:visible', { hasText: re }).first().click({ timeout: 30000 });
+// DOM clicks, not mouse input: on a software-GL runner a frame can take seconds (menus draw 3D
+// portraits), and real input waits behind rendering long enough to time out. These checks are
+// about behavior, not pointer handling.
+const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 60000 }); await loc.evaluate((el) => el.click()); };
+const clickText = (re) => click(page.locator('button:visible', { hasText: re }).first());
 
 try {
   await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base, { waitUntil: 'domcontentloaded', timeout: 90000 }); await ready(); await page.waitForTimeout(1000);
@@ -49,10 +63,10 @@ try {
     if (shots) await shot('2-company.png');
     await clickText(/Next: founders/);
     const cards = page.locator('button.fcard');
-    await cards.nth(0).click(); await cards.nth(1).click();
+    await click(cards.nth(0)); await click(cards.nth(1));
     if (shots) await shot('3-founders.png');
     await clickText(/Next: funding/);
-    await page.locator('button.fund').last().click();
+    await click(page.locator('button.fund').last());
     if (shots) await shot('4-funding.png');
     await clickText(/Start the company/);
     await page.waitForTimeout(800);
@@ -63,7 +77,14 @@ try {
   check('started as Testco with seed 42', t1.playing && t1.name === 'Testco' && t1.seed === 42, JSON.stringify({ playing: t1.playing, name: t1.name, seed: t1.seed }));
   check('newGame got the founding options', o.companyName === 'Testco' && o.founders?.length === 2 && !!o.funding && !!o.logoColor && typeof o.tagline === 'string', JSON.stringify(o));
 
-  for (let i = 0; i < 6; i++) await page.keyboard.press('Escape');
+  // Close the tutorial or any panel: Escape until the UI reports nothing open. Dispatched in the page,
+  // since DOM clicks do not give the page keyboard focus.
+  const closeAll = () => page.evaluate(() => {
+    for (let i = 0; i < 10 && window.__HITL.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    return window.__HITL.clock.busy;
+  });
+  await page.waitForTimeout(1000);
+  await closeAll();
   // Advances n weeks, resolving any decision first (tick does nothing while one is pending).
   const defineAdvance = () => page.evaluate(() => {
     window.__advance = (n) => {
@@ -99,6 +120,36 @@ try {
   const finalWeek = await page.evaluate(() => { const week = window.__advance(1); dispatchEvent(new Event('pagehide')); return week; });
   const onPagehide = await savedWeek();
   check('saves on pagehide', finalWeek === WEEKS + 3 && onPagehide === finalWeek, `week ${finalWeek}, saved week ${onPagehide}`);
+
+  // Pause holds the world: the clock, the week, the day, and queued events all wait.
+  const hold = await page.evaluate(async () => {
+    const H = window.__HITL;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    let routed = 0;
+    const api = window.__HITL_UI;
+    const orig = api.handleEvents;
+    api.handleEvents = (ev, st) => { routed += ev.length; return orig(ev, st); };
+    // Play first (a pending decision or an open panel would already hold everything).
+    for (let g = 0; g < 5 && H.state.pendingDecision; g++) H.dispatch({ type: 'resolveDecision', choice: 0 });
+    for (let i = 0; i < 10 && H.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    H.controls.setSpeed(1);
+    const day0 = H.clock.dayClock;
+    await wait(1500);
+    const dayMoved = H.clock.dayClock !== day0;
+    const before = { busy: H.clock.busy, pending: !!H.state.pendingDecision };
+    H.controls.setSpeed(0);
+    await wait(300);
+    const a = { ...H.clock, week: H.state.week };
+    routed = 0;
+    await wait(3000);
+    const b = { ...H.clock, week: H.state.week };
+    api.handleEvents = orig;
+    return { dayMoved, before, a, b, routed, rendererPaused: H.controls.renderer?.paused ?? 'n/a' };
+  });
+  const same = (k) => hold.a[k] === hold.b[k];
+  check('pause holds the clock, the week, the day, and events',
+    hold.dayMoved && hold.b.frozen && same('acc') && same('week') && same('dayClock') && same('queued') && hold.routed === 0 && hold.rendererPaused !== false,
+    JSON.stringify({ dayMoved: hold.dayMoved, before: hold.before, acc: hold.b.acc, week: hold.b.week, day: hold.b.dayClock, queued: hold.b.queued, routed: hold.routed, rendererPaused: hold.rendererPaused }));
 
   // Auto-pause: focus leaving the page pauses and saves; coming back does not resume.
   const away = await page.evaluate(async () => {

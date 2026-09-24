@@ -212,5 +212,15 @@ call /* null, or during a video-call week { muted, frozen, badCamera } (booleans
 
 ### Content ladder events
 ```js
-{ type: 'incentive', staffId, reward /* 'balloons'|'caricature'|'waffle_party' */ }   // the Incentives Program rewards a top performer; the renderer stages it
+{ type: 'incentive', staffId, reward /* 'finger_traps'|'balloons'|'caricature'|'melon_bar'|'music_night'|'waffle_party' */ }   // the Incentives Program rewards a top performer; the renderer stages it
 ```
+
+### Content ladder chunk (b): Meaning, Purpose, strain, incentives
+```js
+unlocks: 'meaning'                 // opens with the ChatGBT era; before it, ui shows mood and energy, not Meaning
+purpose: null | { value /*0..100*/, mission /* mission id */, tests: [{ week, text, delta }] }   // set by the mission decision in Agents; moved by later test decisions
+{ type: 'timeOff', staffId }       // 2 weeks away, strain recovers fast; reasons: 'No such staff member', 'They are away'
+policies: 'no_crunch', 'incentives' // with unlock keys 'policy.no_crunch', 'policy.incentives'
+chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
+```
+- Rewards beyond balloons, caricature and waffle_party are toasts in ui; the renderer stages the three it has props for and treats the others as a small celebrate beat.
