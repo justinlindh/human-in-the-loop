@@ -7,6 +7,7 @@ export const SIMX = {
   placementCheck: find('placementCheck'),
   adjacencyPreview: find('adjacencyPreview'),
   retireOptions: find('retireOptions'),
+  suggestPlacement: find('suggestPlacement'),
   deskCapacity: find('deskCapacity'),
   isUnlocked: find('isUnlocked'),
   lockedReason: find('lockedReason'),

@@ -143,6 +143,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       roleChip(a.role),
       h('span.small', { text: archetypeBlurb(a) }),
       strengthChips(a).length ? h('span.fstr', null, ...strengthChips(a).map((n) => h('span.pill.good', { text: n }))) : null,
+      a.warning ? h('span.small.fcardwarn', null, icon('warn', { size: 11 }), ` ${a.warning}`) : null,
       a.trait ? h('span.pill.trait', { title: traitInfo(a.trait).desc, text: traitInfo(a.trait).name }) : null);
       if (draft.founders.includes(a.id)) card.classList.add('on');
       return card;

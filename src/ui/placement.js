@@ -80,8 +80,14 @@ export function checkPlace(s, { itemId, x, y, rot = 0, moveId = null }) {
 export function adjacencyPreview(s, { itemId, x, y, rot = 0, moveId = null }) {
   if (SIMX.adjacencyPreview) {
     try {
-      const links = SIMX.adjacencyPreview(s, { itemId, x, y, rot, id: moveId ?? undefined });
-      if (Array.isArray(links)) return fromLinks(s, itemId, links, moveId ?? 'preview');
+      const r = SIMX.adjacencyPreview(s, { itemId, x, y, rot, id: moveId ?? undefined });
+      // Either a bare link list, or { links, effects, text } where text is the real payout.
+      if (Array.isArray(r)) return fromLinks(s, itemId, r, moveId ?? 'preview');
+      if (r && Array.isArray(r.links)) {
+        const out = fromLinks(s, itemId, r.links, moveId ?? 'preview');
+        if (typeof r.text === 'string') out.texts = r.text ? [r.text] : [];
+        return out;
+      }
     } catch { /* fall back to the local measure */ }
   }
   const r = { x, y, ...footprint(itemId, rot) };
@@ -101,8 +107,14 @@ export function adjacencyPreview(s, { itemId, x, y, rot = 0, moveId = null }) {
   return out;
 }
 
-// The first valid spot scanning from the back corner, for "Place for me" and tests.
+// The first valid spot: the sim's layout suggestion when it has one, else a scan from the back corner.
 export function firstFit(s, itemId, rot = 0) {
+  if (SIMX.suggestPlacement) {
+    try {
+      const spot = SIMX.suggestPlacement(s, itemId);
+      if (spot && checkPlace(s, { itemId, ...spot }).ok) return spot;
+    } catch { /* scan instead */ }
+  }
   const g = stageGrid(stageOf(s));
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (checkPlace(s, { itemId, x, y, rot }).ok) return { x, y, rot };

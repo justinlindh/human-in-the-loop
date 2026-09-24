@@ -928,3 +928,4 @@
 @media (max-width: 1100px) { .hitl .rtiles { grid-template-columns: repeat(2, 1fr); } }
 .hitl .fwarn { display: flex; align-items: center; gap: 0.2em; background: #fff4dc; border: 0.14em solid var(--warn); border-radius: 0.7em; padding: 0.35em 0.6em; font-weight: 600; font-size: 0.9em; }
 .hitl.recapping > .modal-back:not(.generic), .hitl.recapping > .announce-back { visibility: hidden; }
+.hitl .fcard .fcardwarn { color: var(--warn); font-weight: 600; line-height: 1.2; }
