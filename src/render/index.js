@@ -7,6 +7,7 @@ import { createPost } from './post.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
 import { loadModels } from './models.js';
+import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createLabels } from './labels.js';
@@ -83,6 +84,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const screens = createScreens();
 
   const params = new URLSearchParams(location.search);
+  // Authored clips for the poses the rig covers (sit and type, couch nap); the rest stay procedural.
+  setRigEnabled(params.get('rig') === '1');
   let debugBuild = null;
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
@@ -100,6 +103,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);
+    // The view builds when its models load; ready follows a tick later, once it has built.
+    loadModels().then(() => Promise.resolve()).then(() => { ready = true; });
     rig.setBounds(b);
     lighting.fitShadow(b);
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
@@ -219,13 +224,18 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       resize();
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
+    setRig(on) { setRigEnabled(on); },
     // Speed 0 or a menu pause freezes the diorama (camera and build mode keep working).
     setSpeed(k) { speedZero = k === 0; if (k > 0) staff?.setSpeed(k); },
     setPaused(on) { menuPaused = !!on; },
     get paused() { return speedZero || menuPaused; },
+    // Models loaded: the office and people can be built (headless checks wait on this).
+    get ready() { return ready; },
     // Menu portraits from the office character builder (see portraits.js).
     portrait(person, opts) { return portraits.portrait(person, opts); },
     portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
+    // A celebrating big-head render (the framed caricature), as a canvas.
+    caricature(person, px) { return portraits.caricature(person, px); },
     get portraitStats() { return portraits.stats; },
     // Build mode (see build.js): null, { select: true }, or { itemId, rot, level?, moveId?, validate? }.
     setBuildMode(m) { build?.setMode(m); },
@@ -274,6 +284,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       lighting.setAlarm(fx.alarmLevel);
       post.render(dt);
       labels.render(scene, rig.camera);
+      const ls = labels.getSize();
+      floating.layout(dt, rig.camera, ls.width, ls.height, labels.domElement);
       perf.calls = renderer.info.render.calls;
       perf.triangles = renderer.info.render.triangles;
       perf.ms = perf.frames ? perf.ms * 0.9 + (performance.now() - t0) * 0.1 : performance.now() - t0;

@@ -20,11 +20,11 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 
 | Name | Lane | Worktree | Owns |
 |---|---|---|---|
-| team-lead | coordination | `/home/justin/src/gamedev` | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
-| integrator | integration | `/home/justin/src/gamedev` (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `feat/one-shot` |
-| sim | simulation | `/home/justin/src/gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
-| art | render and art | `/home/justin/src/gamedev-art` | `src/render/`, `blender/`, `public/models/` |
-| ui | UI and audio | `/home/justin/src/gamedev-ui` | `src/ui/`, `src/audio/` |
+| team-lead | coordination | the main checkout | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
+| integrator | integration | the main checkout (branch `feat/one-shot`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `feat/one-shot` |
+| sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
+| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
+| ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
 | reviewer | review and playtest | any (read-only) | nothing |
 
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
@@ -51,11 +51,14 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - The integrator merges with a merge commit (never squash) and resolves cross-lane conflicts on the PR.
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
+  - Never push to a PR's branch after it merges: those commits never reach `feat/one-shot`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/feat/one-shot` with its own PR.
 - PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`, imperative, lower case after the colon, no trailing period.
   - Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
   - Scopes: `sim`, `art`, `ui`, `audio`, `integ`, `contract`, `pacing`, `capture`, `docs`, or a feature name.
   - Breaking contract changes add `!` (`feat(contract)!: ...`).
+  - No `@name` in commit subjects or bodies (write `officebot`, not `@officebot`): release notes turn them into GitHub mentions that can ping real accounts.
+  - Merges to `feat/one-shot` cut releases automatically (semantic-release, 0.x while pre-alpha), and each release deploys to GitHub Pages, so the commit type decides the version bump: `feat` bumps minor, `fix` and `perf` bump patch.
 - PR descriptions follow `.github/pull_request_template.md`.
 - Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
 - Gate every commit and push on the test command's exit code (`npm test && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0.

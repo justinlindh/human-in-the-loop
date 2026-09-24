@@ -13,6 +13,10 @@ if [ "${1:-}" = "--comment" ]; then comment=1; shift; fi
 pr="${1:?usage: scripts/pr-media.sh [--comment] <pr-number> <file>...}"; shift
 [ "$#" -gt 0 ] || { echo "pr-media: no files given" >&2; exit 1; }
 case "$pr" in *[!0-9]*) echo "pr-media: PR number must be a number: $pr" >&2; exit 1 ;; esac
+# The script works inside its own worktree, so file arguments are resolved against the caller's directory first.
+files=()
+for f in "$@"; do files+=("$(realpath -m -- "$f")"); done
+set -- "${files[@]}"
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 SLUG="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"

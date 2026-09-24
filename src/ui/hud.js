@@ -142,7 +142,7 @@ export function createHud({ root, controls, ui }) {
 
   const pausedTag = h('span.paused-tag', { text: 'Paused' });
   const menuTag = h('span.paused-tag.menu', { text: 'Paused: menu open', title: 'Time waits while a menu is open. Change this in Settings.' });
-  const speedBtns = SPEEDS.map((sp) => h('button.btn.small', {
+  const speedBtns = SPEEDS.map((sp) => h('button.btn.small.spd', {
     title: sp.title,
     onclick: () => ui.setSpeed(sp.k),
   }, icon(sp.ico)));
@@ -307,7 +307,14 @@ export function createHud({ root, controls, ui }) {
     const sp = controls.getSpeed?.() ?? 1;
     if (sp !== last.speed) {
       last.speed = sp;
-      speedBtns.forEach((b, i) => toggleClass(b, 'on', SPEEDS[i].k === sp));
+      // A glyph whose colour flips can keep painting the old colour in Chrome (an empty square), so
+      // each button that changes state gets a fresh icon node.
+      speedBtns.forEach((b, i) => {
+        const on = SPEEDS[i].k === sp;
+        if (b.classList.contains('on') === on) return;
+        toggleClass(b, 'on', on);
+        b.replaceChildren(icon(SPEEDS[i].ico));
+      });
       pausedTag.style.display = sp === 0 ? '' : 'none';
     }
     // After an auto-pause on blur, the paused tag says why until the player resumes.

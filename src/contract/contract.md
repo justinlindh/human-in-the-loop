@@ -94,7 +94,7 @@ Product = {
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
-{ type: 'resign', staffId, name, fired }    // fired: true when the player fired them
+{ type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
 { type: 'hire', staffId }
 { type: 'decision' }
 { type: 'officeUpgrade', stage }
@@ -224,3 +224,10 @@ policies: 'no_crunch', 'incentives' // with unlock keys 'policy.no_crunch', 'pol
 chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 ```
 - Rewards beyond balloons, caricature and waffle_party are toasts in ui; the renderer stages the three it has props for and treats the others as a small celebrate beat.
+
+### Cancelling a project
+```js
+{ type: 'cancelProject', projectId }   // reasons: 'No such project'
+```
+- Removes an unfinished project of any kind. Its progress is lost and nothing is refunded; anyone assigned to it goes idle, and campaigns aimed at it end.
+- Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Slackk.

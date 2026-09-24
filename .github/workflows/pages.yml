@@ -1,0 +1,59 @@
+name: pages
+
+# Tagged builds only: every published release is tested, built for the Pages path, and deployed.
+on:
+  release:
+    types: [published]
+  workflow_call:
+    inputs:
+      ref:
+        description: Tag to build
+        type: string
+        required: true
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          # Tags, so a build from a branch can name itself after the nearest release.
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build for the Pages path
+        run: npm run build -- --base "/${{ github.event.repository.name }}/"
+        env:
+          # The release tag; a manual run from a branch leaves it empty and git describe names the build.
+          HITL_VERSION: ${{ inputs.ref || (github.ref_type == 'tag' && github.ref_name) || '' }}
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

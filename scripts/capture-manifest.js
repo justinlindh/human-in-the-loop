@@ -3,7 +3,8 @@
 //   id, title, query (URL params: mock=<scenario> or seed=N, speed, time, ...), seconds, seed (for
 //   the page's Math.random), warmup (seconds run before recording starts), hideUi, gif,
 //   still (screenshots only, no video), setup (page JS run once after boot, may be async),
-//   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG).
+//   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG), sound (an
+//   item made for --audio).
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
@@ -70,7 +71,13 @@ const THREE_SAVES = `(async () => {
 // Everyone in the office: no lockdown, and an office work policy (the sim keeps nobody remote).
 const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
 
+// Presents the recent Slackk history the sim kept, since a fast-forward shows nothing as it goes.
+const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
+
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
+
+// Follows one person with the camera as close as it zooms.
+const CLOSE_UP = (id) => `(() => { window.__HITL.controls.focusStaff(${id}); document.getElementById('scene').dispatchEvent(new WheelEvent('wheel', { deltaY: -400, cancelable: true })); })()`;
 
 export const ITEMS = [
   // 1. First contact
@@ -164,11 +171,21 @@ export const ITEMS = [
     actions: [{ at: 0.5, js: KEY('s', 'KeyS') }, { at: 3.5, js: `window.__HITL_UI.openStaff(window.__HITL.state.staff[1].id)` }],
     screenshots: [3, 6],
   },
-  {
-    id: '3-3-poses', title: '3.3 Poses: typing, tired, burnout, napping', query: 'mock=floor&speed=1', seconds: 14,
-    setup: `(() => { const s = window.__HITL.state; s.staff[1].mood = 'burnout'; s.staff[2].mood = 'coasting'; s.staff[3].stamina = 5; })()`,
-    actions: [{ at: 0.2, js: `window.__HITL.controls.focusStaff(window.__HITL.state.staff[1].id)` }], screenshots: [6],
-  },
+  // The procedural poses and the authored rig (?rig=1), same scene, for comparison. The camera
+  // follows a typist, then cuts to someone napping on a couch placed for the shot: the two poses
+  // the rig authors.
+  ...[['', 'Poses', ''], ['-rig', 'Poses (authored rig)', '&rig=1']].map(([suffix, name, rig]) => ({
+    id: `3-3-poses${suffix}`, title: `3.3 ${name}: typing, then a couch nap`, query: `mock=floor&speed=1${rig}`, seconds: 16,
+    setup: `(() => { const H = window.__HITL; const s = H.state; s.staff[1].mood = 'burnout'; s.staff[2].mood = 'coasting'; s.staff[3].stamina = 5; window.__couch = H.dispatch({ type: 'placeItem', itemId: 'couch', x: 1, y: 9, rot: 0 })?.id; })()`,
+    // Focus is repeated each second: people have no position until the first sync, and the napper
+    // walks. A wheel step after each focus takes the camera from the focus zoom to the closest one.
+    actions: [
+      { at: 1, js: `window.__HITL.controls.renderer.perks.send([window.__HITL.state.staff[5].id], window.__couch, { nap: true, dur: 40 })` },
+      ...[1.5, 2.5, 3.5, 4.5, 5.5, 6.5].map((at) => ({ at, js: CLOSE_UP('window.__HITL.state.staff[0].id') })),
+      ...[8, 9, 10, 11, 12, 13, 14, 15].map((at) => ({ at, js: CLOSE_UP('window.__HITL.state.staff[5].id') })),
+    ],
+    screenshots: [6, 14],
+  })),
   ...[1, 2].map((speed) => ({
     id: `3-4-conversations-${speed}x`, title: `3.4 Conversations at ${speed}x`, query: `seed=25&speed=${speed}`, seconds: 40,
     setup: PLAY({ weeks: 140, after: IN_OFFICE }), actions: DISMISS_EVERY(40), screenshots: [15, 30],
@@ -244,5 +261,70 @@ export const ITEMS = [
     id: '5-6-anniversary', title: '5.6 The 20th anniversary ending', query: 'seed=34&speed=1', seconds: 16, setup: PLAY({ weeks: 1030 }),
     actions: [{ at: 1, js: `(() => { const s = window.__HITL.state; s.gameOver = { won: true, reason: 'anniversary', score: 51240, epilogue: ['Twenty years. The garage is a museum now, which is to say a garage.'] }; window.__HITL.emit([{ type: 'gameOver' }]); })()` }],
     screenshots: [5],
+  },
+
+  // 6. Sound (record with --audio): one music bed per era and the title, stingers, effects, voices.
+  { id: '6-1-music-title', title: '6.1 Music: title', query: '', seconds: 20, sound: true },
+  ...['classic', 'chatgbt', 'agents', 'consolidation', 'plateau'].map((era) => ({
+    id: `6-1-music-${era}`, title: `6.1 Music: ${era}`, query: 'mock=floor&speed=1', seconds: 20, sound: true, setup: ERA(era),
+  })),
+  {
+    id: '6-1-stingers', title: '6.1 Stingers: launch, era, office, award', query: 'mock=floor&speed=1', seconds: 22, sound: true,
+    actions: [
+      { at: 1, js: `window.__HITL.emit([{ type: 'launch', productId: window.__HITL.state.products[0].id }])` },
+      { at: 4, js: CLICK('Nice!') },
+      { at: 7, js: `window.__HITL.emit([{ type: 'era', eraId: 'agents' }])` },
+      { at: 10, js: CLICK('Onward') },
+      { at: 13, js: `window.__HITL.emit([{ type: 'officeUpgrade', stage: 2 }])` },
+      { at: 17, js: `window.__HITL.emit([{ type: 'award', text: 'Saasie for Best Newcomer' }])` },
+    ],
+  },
+  {
+    id: '6-2-sfx', title: '6.2 UI and world effects', query: 'mock=floor&speed=1', seconds: 22, sound: true,
+    actions: [
+      { at: 1, js: KEY('s', 'KeyS') }, { at: 3, js: KEY('Escape') },
+      { at: 5, js: `window.__HITL.emit([{ type: 'hire', staffId: window.__HITL.state.staff[0].id }])` },
+      { at: 7, js: `window.__HITL.emit([{ type: 'incident', kind: 'bug', productId: window.__HITL.state.products[0].id, caught: true, severity: 2 }])` },
+      { at: 9, js: `window.__HITL.emit([{ type: 'incident', kind: 'outage', productId: window.__HITL.state.products[0].id, caught: false, severity: 3 }])` },
+      ...[12, 12.4, 12.8].map((at, i) => ({ at, js: `window.__HITL.emit([{ type: 'bubble', staffId: window.__HITL.state.staff[${i + 1}].id, text: '+4 Polish', tone: 'polish' }])` })),
+      { at: 15, js: `window.__HITL.emit([{ type: 'toast', text: 'Cash is getting thin', tone: 'warn' }])` },
+      { at: 17, js: `window.__HITL.emit([{ type: 'unlock', key: 'research' }])` },
+      { at: 20, js: `window.__HITL.emit([{ type: 'goal', goalId: 'first_launch' }])` },
+    ],
+  },
+  {
+    id: '6-3-voices', title: '6.3 Voices: spoken lines, a click, a group cheer', query: 'mock=floor&speed=1', seconds: 22, sound: true,
+    actions: [
+      ...[1, 3.5, 6].map((at, i) => ({ at, js: `(() => { const s = window.__HITL.state; const a = s.staff[${i}], b = s.staff[${i + 1}]; window.__HITL.emit([{ type: 'say', id: 'cap-say-${i}', week: s.week, staffId: a.id, text: ['Did the build pass?', 'It passed. I am suspicious.', 'Ship it before it changes its mind.'][${i}], toId: b.id, replyTo: null }]); })()` })),
+      { at: 9, js: `dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: window.__HITL.state.staff[2].id } }))` },
+      { at: 11, js: `dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: window.__HITL.state.staff[5].id } }))` },
+      { at: 14, js: `window.__HITL.emit([{ type: 'launch', productId: window.__HITL.state.products[1].id }])` },
+      { at: 19, js: CLICK('Nice!') },
+    ],
+  },
+
+  // README (group 'readme'): hero stills at 1920x1080 with the UI, from real seeded games so every
+  // shot is internally consistent (date, era, effects, goals), plus one short loop.
+  {
+    id: 'readme-garage', group: 'readme', title: 'The garage opening: founders and the first desks', query: 'seed=1&speed=1', still: true,
+    setup: PLAY({ weeks: 1 }), warmup: 3,
+    // Nothing has been said in Slackk yet this early, so the panel is folded away.
+    actions: [...DISMISS_AT([0.1, 0.5]), { at: 0.3, js: KEY('c', 'KeyC') }], screenshots: [3],
+  },
+  {
+    // The bot starts more product updates than it staffs; the setup drops the ones nobody is on, so
+    // the Needs You tray shows the game rather than the bot. Shot before the first live tick.
+    id: 'readme-hq', group: 'readme', title: 'A busy Agents-era HQ with pets and perks', query: 'seed=1&speed=1&time=day', still: true,
+    setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE + CHAT_HISTORY + "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));" }), warmup: 2,
+    actions: DISMISS_EVERY(4), screenshots: [4],
+  },
+  {
+    id: 'readme-lockdown', group: 'readme', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', still: true,
+    setup: PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY }), warmup: 3,
+    actions: DISMISS_EVERY(6), screenshots: [6],
+  },
+  {
+    id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
+    setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
   },
 ];

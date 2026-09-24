@@ -1,5 +1,6 @@
 import { createMockSim } from './dev/mockSim.js';
 import { createPacer, MAX_STEP } from './pacing.js';
+import { autoQuality, glRendererName } from './quality.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
 const renderMods = import.meta.glob('./render/index.js');
@@ -48,9 +49,11 @@ async function boot() {
 
   let speed = Number(params.get('speed') ?? (isSnap ? 0 : 1));
   // An explicit ?quality= wins for the whole session (tools and tests rely on it); otherwise the
-  // saved setting, which ui applies through controls.setQuality at startup.
+  // saved setting, which ui applies through controls.setQuality at startup. 'auto' (and the boot
+  // value) is Low on software GL, High otherwise.
   const urlQuality = params.get('quality');
-  const quality = urlQuality ?? 'high';
+  const detectedQuality = autoQuality(glRendererName());
+  const quality = urlQuality ?? detectedQuality;
   let activeQuality = quality;
   const forcedTime = params.get('time') ?? (sim.state.flags?.mockTime ?? null);
 
@@ -59,14 +62,14 @@ async function boot() {
     labelsEl: document.getElementById('labels'),
     quality,
   }) ?? null;
-  const audio = audioMod?.createAudio() ?? null;
+  const audio = audioMod?.createAudio({ quality, renderer }) ?? null;
   renderer?.setSpeed?.(speed);
 
   const route = (events, state) => {
     if (!events?.length) return;
     renderer?.handleEvents(events, state);
     ui?.handleEvents(events, state);
-    audio?.onEvents(events);
+    audio?.onEvents(events, state);
   };
 
   // A tick's non-urgent events trickle out over the week instead of arriving in one frame.
@@ -122,15 +125,17 @@ async function boot() {
       if (!canSave()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame(undefined, id);
       if (res.ok) startPlaying(res.state);
-      return { ok: res.ok, reason: res.reason, notice: res.notice };
+      // Everything the save module reports (reason, notice, any failure code) except the state.
+      const { state: _state, ...result } = res;
+      return result;
     },
     // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
     // will not load is listed with its reason instead of dropped.
     listSaves: () => {
       if (!canSave() || !saveMod.listSaves) return [];
       return saveMod.listSaves().map((m) => {
-        const res = saveMod.loadGame(undefined, m.id);
-        return { ...m, ok: res.ok, reason: res.reason };
+        const { state: _state, ...res } = saveMod.loadGame(undefined, m.id);
+        return { ...m, ...res };
       });
     },
     deleteSave: (id) => {
@@ -148,12 +153,17 @@ async function boot() {
     save,
     setQuality: (q) => {
       if (urlQuality) return;
-      activeQuality = q;
-      renderer?.setQuality(q);
+      activeQuality = q === 'auto' ? detectedQuality : q;
+      renderer?.setQuality(activeQuality);
+      audio?.setQuality?.(activeQuality);
     },
     getQuality: () => activeQuality,
+    autoQuality: detectedQuality,
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
+    // Per-bus volume (music, ambience, sfx, ui, voice) and mute, from the Settings panel.
+    setBus: (bus, v) => audio?.setBus?.(bus, v),
+    setMuted: (m) => audio?.setMuted?.(m),
     focusStaff: (id) => renderer?.focusStaff(id),
     // Build mode and other renderer hooks (setBuildMode, pickTile) for the UI; null without a renderer.
     renderer,
@@ -173,6 +183,7 @@ async function boot() {
   }
 
   window.__HITL = {
+    version: __HITL_VERSION__,
     get state() { return sim.state; },
     get playing() { return playing; },
     get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null, dayClock, frozen }; },
@@ -193,11 +204,8 @@ async function boot() {
   // resumes on return; the player does.
   function leftPage() {
     if (autoPause && playing && !isSnap && speed > 0 && !sim.state.gameOver) {
-      const resumeSpeed = speed;
       controls.setSpeed(0);
       awayPaused = true;
-      // ui shows a tap-to-resume hint when the player comes back.
-      dispatchEvent(new CustomEvent('hitl:awaypaused', { detail: { resumeSpeed } }));
     }
     save();
   }
@@ -234,6 +242,8 @@ async function boot() {
       renderer.render(dt);
     }
     ui?.update(sim.state);
+    // State-driven music and ambience; the same pause picture the renderer gets.
+    audio?.update?.(sim.state, dt, { speed, running, menuPause, decision: !!sim.state.pendingDecision, title: !playing, over: !!sim.state.gameOver });
     if (firstFrame) {
       firstFrame = false;
       requestAnimationFrame(() => { window.__HITL_READY = true; });
