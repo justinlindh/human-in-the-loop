@@ -16,7 +16,7 @@ const PARTY_S = 15;
 // Music night: a dance break. The winner fully commits to the genre's dance, the next two bob along,
 // the fourth shuffles stiffly (then bob and shuffle alternate); a speaker cart rolls in and the room
 // dims under a pool of the genre's colour that pulses on the beat. bar is the seconds per four beats.
-const DANCE_S = 15;
+const DANCE_S = 15;             // without a track length from audio (hitl:musicTrack)
 const GENRES = {
   motivational_polka: { lead: 'dance_polka', bar: 1.6, light: P.gold },
   corporate_synthwave: { lead: 'dance_robot', bar: 2.0, light: P.role_designer },
@@ -338,6 +338,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
   }
 
   function update(dt) {
+    if (track) track.age += dt;
     if (dance) updateDance(dt);
     if (!party) return;
     const p = party;
@@ -401,6 +402,30 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     return { group: g, lampMat };
   }
 
+  // Audio announces the track it plays for a music night: { genre, seconds, startsIn }. The dance
+  // then lasts until the track ends (startsIn + seconds from the announcement). The announcement
+  // may come just before or after the dance starts, so it is kept for a moment when early.
+  let track = null;
+  if (typeof addEventListener === 'function') {
+    addEventListener('hitl:musicTrack', (ev) => {
+      const t = ev.detail ?? {};
+      if (!(t.seconds > 0)) return;
+      track = { seconds: t.seconds, startsIn: Math.max(0, t.startsIn ?? 0), genre: t.genre, age: 0 };
+      if (dance) fitToTrack(dance);
+    });
+  }
+  // A dance with a track ends when the music does: its length is the time already danced plus
+  // what is left of the track.
+  function fitToTrack(d) {
+    if (!track || d.fitted || (track.genre && d.genreId && track.genre !== d.genreId)) return;
+    d.fitted = true;
+    d.dur = d.t + track.startsIn + track.seconds - track.age;
+    track = null;
+    const left = d.dur - d.t;
+    for (const r of d.dancers) if (r.temp?.party) r.temp.t = left;
+    for (const r of d.crowd) if (r.temp?.party) r.temp.t = Math.max(0.5, left - 1);
+  }
+
   let dance = null;
   function startDance(winner, ev) {
     if (!office.current || party || dance) return;
@@ -448,7 +473,8 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     props.add(cart.group);
     const cartAt = at(0, -1.7);
     easeIn({ center });
-    dance = { genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0 };
+    dance = { genre, genreId: ev.genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
+    if (track && track.age < 5) fitToTrack(dance);
   }
 
   function endDance() {
@@ -471,7 +497,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     d.cart.group.rotation.y = d.yaw;
     const beat = d.genre.bar / 4;
     const pulse = Math.max(0, Math.cos((TAU * d.t) / beat)) ** 4;
-    const fade = Math.min(1, d.t / 1.5) * Math.min(1, (DANCE_S + 1 - d.t) / 1.5);
+    const fade = Math.min(1, d.t / 1.5) * Math.min(1, (d.dur + 1 - d.t) / 1.5);
     setDim(DIM * fade);
     setAccent({ x: d.center.x, y: 2.1, z: d.center.z }, DANCE_POOL * fade * (0.75 + 0.25 * pulse), d.genre.light);
     d.cart.lampMat.emissiveIntensity = 0.8 + 1.4 * pulse;
@@ -488,7 +514,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       emote(d.dancers[0], 'music', 3);
       for (const w of d.crowd) if (recs.has(w.id)) emote(w, Math.random() < 0.5 ? 'sparkle' : 'heart', rnd(2, 3.5));
     }
-    if (d.t >= DANCE_S + 1) endDance();
+    if (d.t >= d.dur + 1) endDance();
   }
 
   // Minor rewards (finger traps, melon bar): a quick cheer, a sparkle, a puff of confetti.
@@ -517,5 +543,5 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (dance) { dance.props.removeFromParent(); for (const r of dance.dancers) r.char.setAnimRate(1); dance = null; setDim(0); setAccent(null); ease = null; }
   }
 
-  return { handle, update, reset, get party() { return party ? { t: party.t } : null; }, get dance() { return dance ? { t: dance.t, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id) } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
+  return { handle, update, reset, get party() { return party ? { t: party.t } : null; }, get dance() { return dance ? { t: dance.t, dur: dance.dur, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id) } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
 }
