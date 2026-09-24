@@ -263,13 +263,30 @@ function careTeam(s) {
   }
 }
 
+const crewOf = (s, j) => s.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
+// Engineering automation works on new products, updates, and migrations even with nobody assigned.
+const AUTOMATED_KINDS = new Set(['new', 'update', 'migration']);
+let humansOnly = false;
+const stalled = (s, j) => !crewOf(s, j).length && !(!humansOnly && s.automation.engineering.level > 0 && AUTOMATED_KINDS.has(j.kind));
+
+// Starts updates only when no stalled project is already waiting, and cancels optional projects that have
+// sat stalled (nobody on them and no automation) for botCancelUnstaffedWeeks.
 function maintainProducts(s) {
+  for (const j of [...s.projects]) {
+    if (['update', 'craft', 'refactor'].includes(j.kind) && stalled(s, j) && s.week - j.startedWeek >= B.botCancelUnstaffedWeeks) {
+      dispatch(s, { type: 'cancelProject', projectId: j.id });
+    }
+  }
+  // An optional project starts only if automation will work on it or someone is free to take it.
+  const waiting = () => s.projects.some((j) => stalled(s, j));
+  const free = () => builders(s).some((p) => p.assignment.type === 'idle');
+  const automated = !humansOnly && s.automation.engineering.level > 0;
   for (const p of liveProducts(s)) {
     const busy = s.projects.some((j) => j.productId === p.id);
     if (p.migrationDueWeek !== null && !busy) dispatch(s, { type: 'startProject', kind: 'migration', productId: p.id });
-    else if (p.novelty < 3 && !busy && s.cash > 50000) dispatch(s, { type: 'startProject', kind: 'update', productId: p.id });
+    else if (p.novelty < 3 && !busy && s.cash > 50000 && !waiting() && (automated || free())) dispatch(s, { type: 'startProject', kind: 'update', productId: p.id });
   }
-  if (s.comprehensionDebt > 40 && !s.projects.some((j) => j.kind === 'refactor')) dispatch(s, { type: 'startProject', kind: 'refactor' });
+  if (s.comprehensionDebt > 40 && !s.projects.some((j) => j.kind === 'refactor') && !waiting() && free()) dispatch(s, { type: 'startProject', kind: 'refactor' });
 }
 
 // Staffs every project: the first new project gets the most people; maintenance keeps one engineer.
@@ -287,9 +304,17 @@ function staffProjects(s) {
   const spare = free.filter((p) => p.assignment.type !== 'maintenance' || maint.indexOf(p) >= keep);
   let i = 0;
   for (const p of spare) {
-    const j = projects[i % projects.length];
+    // A project nobody is on comes first; otherwise spread people round the list.
+    const j = projects.find((x) => stalled(s, x)) ?? projects[i % projects.length];
     dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } });
     i++;
+  }
+  // A migration cannot wait: it borrows someone from whichever project has the biggest crew.
+  for (const j of s.projects.filter((x) => x.kind === 'migration')) {
+    if (crewOf(s, j).length) continue;
+    const donor = s.projects.map((x) => crewOf(s, x)).filter((c) => c.length > 1).sort((a, b) => b.length - a.length)[0];
+    const p = donor?.find((x) => !x.founder) ?? donor?.[0];
+    if (p) dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } });
   }
 }
 
@@ -364,7 +389,9 @@ function balanced(s) {
 
 // The balanced player's careful play with every automation dial at 0.
 function allHumans(s) {
+  humansOnly = true;
   const out = balanced(s);
+  humansOnly = false;
   for (const fn of FUNCTIONS) if (s.automation[fn].level !== 0) dispatch(s, { type: 'setAutomation', fn, level: 0 });
   return out;
 }
@@ -380,6 +407,7 @@ function sensible(s) {
     if (pj) act(s, assignAll(s, builders(s).filter((p) => p.assignment.type !== 'project' && (p.assignment.type !== 'maintenance' || !liveProducts(s).length || builders(s).filter((q) => q.assignment.type === 'maintenance').length > 1)), pj.id));
     for (const p of launchedThisWeek(s)) dispatch(s, { type: 'runCampaign', channel: 'launch', productId: p.id });
     maintainProducts(s);
+    staffProjects(s);
     careTeam(s);
     if (s.outage?.unrecoverable && s.cash > B.consultantCost * 1.5) dispatch(s, { type: 'callConsultants' });
     return [];
