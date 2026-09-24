@@ -1,7 +1,7 @@
 export const POLICIES = {
   pair: {
     id: 'pair', lockText: 'Always available', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: () => true,
-    desc: 'Automation works alongside people instead of instead of them. Much less meaning drain, smaller automation output.',
+    desc: 'Automation works alongside people, not in place of them. Much less meaning drain, smaller automation output.',
   },
   craft_fridays: {
     id: 'craft_fridays', lockText: 'Always available', name: 'Craft Fridays', weeklyCost: 0, unlock: () => true,

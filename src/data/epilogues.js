@@ -14,7 +14,7 @@ export const EPILOGUES = [
   { id: 'leader', when: (s, x) => x.reason === 'leader',
     text: '{company} leads its categories. The incumbents now copy you, 6 to 12 months late.' },
   { id: 'runway', when: (s, x) => x.reason === 'runway',
-    text: 'The money ran out on a Tuesday. The last Slack message was a gif of a burning dumpster, captioned "we tried".' },
+    text: 'The money ran out on a Tuesday. The last Slackk message was a gif of a burning dumpster, captioned "we tried".' },
   { id: 'collapse', when: (s, x) => x.reason === 'collapse',
     text: 'The outage never ended. Nobody left knew how the system worked, and the system did not know either.' },
   { id: 'timeout', when: (s, x) => x.reason === 'timeout',
@@ -48,7 +48,7 @@ export const EPILOGUES = [
   { id: 'big_mrr', when: (s, x) => x.peakMrr >= 1000000,
     text: 'At its peak, {company} made more in a month than the garage cost in a lifetime.' },
   { id: 'tiny_mrr', when: (s, x) => x.peakMrr < 20000,
-    text: 'The product had twelve loyal customers. One of them sends a holiday card every year.' },
+    text: 'It never got big. The customers it had were loyal, and one of them still sends a holiday card every year.' },
   { id: 'diluted', when: (s) => !!s.flags.diluted,
     text: 'The VC who wrote the first check tells the story at dinner parties. You come off fine in it. Mostly.' },
 ];

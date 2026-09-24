@@ -8,6 +8,13 @@ describe('rng', () => {
     expect(seq(createRng(42))).toEqual(seq(createRng(42)));
   });
 
+  it('matches the reference mulberry32 sequence for seed 1', () => {
+    const r = createRng(1);
+    expect(next(r)).toBe(0.6270739405881613);
+    expect(next(r)).toBe(0.002735721180215478);
+    expect(next(r)).toBe(0.5274470399599522);
+  });
+
   it('differs across seeds', () => {
     expect(seq(createRng(1))).not.toEqual(seq(createRng(2)));
   });

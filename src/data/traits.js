@@ -13,7 +13,7 @@ const rows = [
   ['vibe_coder', 'Vibe Coder', 'Ships fast, tests later, maybe. Unbothered by robots.', { features: 1.3, reliability: 0.7, meaningDrain: 0.5 }],
   ['burnout_prone', 'Burnout-prone', 'Brilliant sprints, empty tank.', { output: 1.15, stamina: 1.5 }],
   ['loyal', 'Loyal', 'Would stay through a fire. Has stayed through a fire.', { resign: 0.4 }],
-  ['job_hopper', 'Job Hopper', 'LinkedIn status permanently set to "open".', { resign: 1.8 }],
+  ['job_hopper', 'Job Hopper', 'LinkedOut status permanently set to "open".', { resign: 1.8 }],
   ['tinkerer', 'Tinkerer', 'Always has a weird prototype running somewhere.', { novelty: 1.3, xp: 1.2 }],
   ['pragmatist', 'Pragmatist', 'If it works, it works. Sleeps well.', { meaningDrain: 0.6, reliability: 1.1 }],
   ['perfectionist', 'Perfectionist', 'Slow, careful, and nothing they ship ever breaks.', { output: 0.85, reliability: 1.3, polish: 1.2 }],
