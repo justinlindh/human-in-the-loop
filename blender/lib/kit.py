@@ -85,7 +85,9 @@ def rack(p, x=0, y=0, rz=0, W=0.6, D=0.68, H=1.56, glass_door=False, led=None):
     for i in range(n):
         z = 0.25 + i * step
         for j in range(2):
-            leds.append(box(f'{led}_{i * 2 + j:02d}', (0.028, 0.012, 0.028), (-W / 2 + 0.1 + j * 0.05, face - 0.019, z + step * 0.2), 'led', bevel=0))
+            # Behind a glass door the LEDs sit on the body front, clear of both the body and the glass.
+            ly, ld = (-D / 2 - 0.004, 0.008) if glass_door else (face - 0.019, 0.012)
+            leds.append(box(f'{led}_{i * 2 + j:02d}', (0.028, ld, 0.028), (-W / 2 + 0.1 + j * 0.05, ly, z + step * 0.2), 'led', bevel=0))
     place(leds, x, y, rz)
     if glass_door:
         pane = plane(f'{p}glass', W - 0.08, H - 0.14, (0, -D / 2 - 0.012, 0.06 + (H - 0.06) / 2), 'glass')
@@ -96,7 +98,8 @@ def rack(p, x=0, y=0, rz=0, W=0.6, D=0.68, H=1.56, glass_door=False, led=None):
 def bookshelf(p, x=0, y=0, rz=0, W=0.95, D=0.34, H=1.6, seed=11, wood='wood_honey'):
     rnd = random.Random(seed)
     T = 0.035
-    parts = [box(f'{p}back', (W, 0.02, H), (0, D / 2 - 0.01, H / 2), 'wood_light', bevel=0.005)]
+    # The back panel sits between the sides and just inside their back edge, so no faces share a plane.
+    parts = [box(f'{p}back', (W - 2 * T + 0.004, 0.02, H - 0.004), (0, D / 2 - 0.012, H / 2), 'wood_light', bevel=0.005)]
     for sx in (-1, 1):
         parts.append(box(f'{p}side{sx}', (T, D, H), (sx * (W / 2 - T / 2), 0, H / 2), wood, bevel=0.012))
     n = max(3, round(H / 0.38))
@@ -267,6 +270,11 @@ def whiteboard_face(p, W, H, Z, fy, seed=4, density=1.0):
     """Marker diagrams and sticky notes on a board face at depth fy, centered at height Z."""
     rnd = random.Random(seed)
     parts = []
+    # Each stroke sits a hair further out than the last so crossing strokes never share a plane.
+    lift = [0.0]
+    def out():
+        lift[0] += 0.0008
+        return fy - lift[0]
     nbox = max(2, int(3 * density * W / 1.4))
     for i in range(nbox):
         bx = -W / 2 + 0.25 + rnd.uniform(0, W * 0.55)
@@ -274,14 +282,14 @@ def whiteboard_face(p, W, H, Z, fy, seed=4, density=1.0):
         w, h = rnd.uniform(0.2, 0.32), rnd.uniform(0.1, 0.16)
         c = rnd.choice(['marker_blue', 'marker_green', 'marker_blue'])
         for j, (dx, dz, sw, sh) in enumerate([(0, h / 2, w, 0.012), (0, -h / 2, w, 0.012), (-w / 2, 0, 0.012, h), (w / 2, 0, 0.012, h)]):
-            parts.append(box(f'{p}r{i}{j}', (sw, 0.004, sh), (bx + dx, fy, bz + dz), c, bevel=0))
+            parts.append(box(f'{p}r{i}{j}', (sw, 0.004, sh), (bx + dx, out(), bz + dz), c, bevel=0))
         if i:
-            parts.append(box(f'{p}a{i}', (0.012, 0.004, rnd.uniform(0.08, 0.16)), (bx - w / 2 - 0.02, fy, bz + 0.05), 'marker_orange', bevel=0, rot=(0, rnd.uniform(-1.2, 1.2), 0)))
+            parts.append(box(f'{p}a{i}', (0.012, 0.004, rnd.uniform(0.08, 0.16)), (bx - w / 2 - 0.02, out(), bz + 0.05), 'marker_orange', bevel=0, rot=(0, rnd.uniform(-1.2, 1.2), 0)))
     for i in range(int(4 * density)):
-        parts.append(box(f'{p}line{i}', (rnd.uniform(0.1, 0.26), 0.004, 0.01), (W / 2 - 0.28, fy, Z + H * 0.35 - i * 0.07), 'marker_orange' if i == 0 else 'marker_blue', bevel=0))
+        parts.append(box(f'{p}line{i}', (rnd.uniform(0.1, 0.26), 0.004, 0.01), (W / 2 - 0.28, out(), Z + H * 0.35 - i * 0.07), 'marker_orange' if i == 0 else 'marker_blue', bevel=0))
     notes = ['rug_mustard', 'fabric_sage', 'role_designer', 'screen_amber', 'fabric_mustard']
     for i in range(int(3 * density)):
-        parts.append(box(f'{p}note{i}', (0.09, 0.006, 0.09), (W / 2 - 0.35 + rnd.uniform(-0.1, 0.2), fy - 0.002, Z - H * 0.15 - rnd.uniform(0, H * 0.25)), notes[i % len(notes)], bevel=0, rot=(0, rnd.uniform(-0.15, 0.15), 0)))
+        parts.append(box(f'{p}note{i}', (0.09, 0.006, 0.09), (W / 2 - 0.35 + rnd.uniform(-0.1, 0.2), out() - 0.002, Z - H * 0.15 - rnd.uniform(0, H * 0.25)), notes[i % len(notes)], bevel=0, rot=(0, rnd.uniform(-0.15, 0.15), 0)))
     return parts
 
 
@@ -301,7 +309,7 @@ def mobile_whiteboard(p, x=0, y=0, rz=0, W=1.4, H=0.85, Z=1.0, seed=4):
             parts.append(uvsphere(f'{p}wheel{sx}{sy}', 0.035, (sx * (W / 2 + 0.03), 0.03 + sy * 0.22, 0.035), 'plastic_charcoal', seg=8, rings=5))
     parts += whiteboard_face(p, W, H, Z, -0.021, seed)
     for i, c in enumerate(['marker_blue', 'marker_green', 'marker_orange']):
-        parts.append(cyl(f'{p}marker{i}', 0.01, 0.12, (-0.12 + i * 0.07, -0.06, Z - H / 2 + 0.01), c, verts=8, bevel=0, rot=(0, math.pi / 2, 0)))
+        parts.append(cyl(f'{p}marker{i}', 0.01, 0.12, (-0.12 + i * 0.07, -0.04 - i * 0.021, Z - H / 2 + 0.01), c, verts=8, bevel=0, rot=(0, math.pi / 2, 0)))
     return place(parts, x, y, rz)
 
 

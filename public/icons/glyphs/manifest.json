@@ -358,6 +358,14 @@
  "bot.generic": {
   "file": "glyphs/bot.generic.svg"
  },
+ "bot.news": {
+  "file": "glyphs/bot.news.svg",
+  "size": 13
+ },
+ "bot.build": {
+  "file": "glyphs/bot.build.svg",
+  "size": 13
+ },
  "react.party": {
   "file": "glyphs/react.party.svg"
  },
@@ -415,6 +423,22 @@
  "react.upside": {
   "file": "glyphs/react.upside.svg"
  },
+ "battery.low": {
+  "file": "glyphs/battery.low.svg",
+  "size": 14
+ },
+ "home": {
+  "file": "glyphs/home.svg",
+  "size": 14
+ },
+ "item.bookshelf": {
+  "file": "glyphs/item.bookshelf.svg",
+  "size": 30
+ },
+ "item.coffee_corner": {
+  "file": "glyphs/item.coffee_corner.svg",
+  "size": 30
+ },
  "item.desk": {
   "file": "glyphs/item.desk.svg",
   "size": 30
@@ -423,20 +447,36 @@
   "file": "glyphs/item.meeting_table.svg",
   "size": 30
  },
- "item.whiteboard": {
-  "file": "glyphs/item.whiteboard.svg",
-  "size": 30
- },
- "item.coffee_corner": {
-  "file": "glyphs/item.coffee_corner.svg",
-  "size": 30
- },
  "item.plant": {
   "file": "glyphs/item.plant.svg",
   "size": 30
  },
- "item.bookshelf": {
-  "file": "glyphs/item.bookshelf.svg",
+ "item.whiteboard": {
+  "file": "glyphs/item.whiteboard.svg",
   "size": 30
+ },
+ "mic.off": {
+  "file": "glyphs/mic.off.svg",
+  "size": 14
+ },
+ "stat.features": {
+  "file": "glyphs/stat.features.svg",
+  "size": 16
+ },
+ "stat.novelty": {
+  "file": "glyphs/stat.novelty.svg",
+  "size": 16
+ },
+ "stat.polish": {
+  "file": "glyphs/stat.polish.svg",
+  "size": 16
+ },
+ "stat.reliability": {
+  "file": "glyphs/stat.reliability.svg",
+  "size": 16
+ },
+ "react.no_at_channel": {
+  "file": "glyphs/react.no_at_channel.svg",
+  "size": 12
  }
 }

@@ -76,8 +76,8 @@ def solidify(o, t=0.02):
     return o
 
 
-def hair_cap(name, front_z=0.06, back_z=-0.1, r=HEAD_R + 0.018, side_z=None, scale=(1.04, 1.0, 1.0)):
-    o = uvsphere(name, r, (0, 0, 0), None, seg=14, rings=9, scale=scale)
+def hair_cap(name, front_z=0.06, back_z=-0.1, r=HEAD_R + 0.018, side_z=None, scale=(1.04, 1.0, 1.0), seg=14, rings=9):
+    o = uvsphere(name, r, (0, 0, 0), None, seg=seg, rings=rings, scale=scale)
     cut_below(o, front_z, back_z, side_z)
     use(o, 'hair')
     return o
@@ -202,13 +202,61 @@ cuff.data.shade_smooth()
 b.append(cuff)
 b.append(uvsphere('bnpom', 0.05, (0, 0.01, BN_R * BN_S[2] + 0.028), 'paper', seg=8, rings=5))
 join(at_head(b), 'acc_beanie')
-CP_R, CP_S, CP_Z = HEAD_R + 0.02, (1.06, 1.05, 0.98), 0.085
-cp = [hair_cap('cpdome', CP_Z, CP_Z - 0.03, r=CP_R, scale=CP_S)]
-edge_y = -CP_R * CP_S[1] * math.cos(math.asin(min(0.99, CP_Z / (CP_R * CP_S[2]))))
-# Worn backwards: from the high camera a forward brim hides the eyes.
-cp.append(box('cpbrim', (0.22, 0.12, 0.02), (0, -edge_y + 0.04, CP_Z - 0.01), 'fabric_teal', bevel=0.01, rot=(math.radians(10), 0, 0)))
-cp.append(box('cpstrap', (0.07, 0.01, 0.03), (0, -edge_y - 0.004, CP_Z + 0.03), 'plastic_charcoal', bevel=0.004, segments=1))
-cp.append(uvsphere('cpbutton', 0.022, (0, 0, CP_R * CP_S[2] + 0.005), 'fabric_teal', seg=8, rings=5))
+CP_R, CP_S = HEAD_R + 0.016, (1.07, 1.06, 1.0)
+CP_FRONT, CP_BACK = 0.06, -0.1        # the crown comes down to the brow and low at the back
+cp = [hair_cap('cpdome', CP_FRONT, CP_BACK, r=CP_R, scale=CP_S, seg=18, rings=14)]
+
+
+def cap_brim(name, z, reach=0.11, spread=math.radians(56), down=math.radians(6), root=0.03, tip=0.009, steps=14, rows=4):
+    """A cap bill: the inner edge follows the crown's front band at height z; it reaches forward
+    (-Y), dips gently, curls down at the sides, and thins toward the tip."""
+    # The root starts well inside the crown so the coarse crown edge never leaves a gap above it.
+    rx = CP_R * CP_S[0] * math.sqrt(max(0.0, 1 - (z / (CP_R * CP_S[2])) ** 2)) - 0.035
+    ry = CP_R * CP_S[1] * math.sqrt(max(0.0, 1 - (z / (CP_R * CP_S[2])) ** 2)) - 0.035
+    verts, faces = [], []
+    cols = steps + 1
+    for i in range(cols):
+        a = -spread + 2 * spread * i / steps
+        edge = max(0.0, math.cos(a * math.pi / (2 * spread))) ** 0.6       # full reach at the front, none at the ends
+        ix, iy = rx * math.sin(a), -ry * math.cos(a)
+        for j in range(rows + 1):
+            t = j / rows
+            r = reach * edge * t
+            x, y = ix + math.sin(a) * r, iy - math.cos(a) * r
+            zc = z - r * math.tan(down) - 0.35 * r * (a / spread) ** 2   # dip forward, curl at the sides
+            th = root + (tip - root) * t
+            verts.append((x, y, zc + th / 2))
+            verts.append((x, y, zc - th / 2))
+    def v(i, j, lo):
+        return (i * (rows + 1) + j) * 2 + lo
+    for i in range(steps):
+        for j in range(rows):
+            faces.append((v(i, j, 0), v(i, j + 1, 0), v(i + 1, j + 1, 0), v(i + 1, j, 0)))
+            faces.append((v(i, j, 1), v(i + 1, j, 1), v(i + 1, j + 1, 1), v(i, j + 1, 1)))
+        faces.append((v(i, rows, 0), v(i, rows, 1), v(i + 1, rows, 1), v(i + 1, rows, 0)))
+        faces.append((v(i, 0, 0), v(i + 1, 0, 0), v(i + 1, 0, 1), v(i, 0, 1)))
+    for i in (0, steps):
+        for j in range(rows):
+            f = (v(i, j, 0), v(i, j, 1), v(i, j + 1, 1), v(i, j + 1, 0))
+            faces.append(f if i else tuple(reversed(f)))
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    o.data.materials.append(mat('fabric_teal'))
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    o.data.shade_smooth()
+    return o
+
+
+cp.append(cap_brim('cpbrim', CP_FRONT - 0.002))
+cp.append(uvsphere('cpbutton', 0.022, (0, 0, CP_R * CP_S[2] + 0.004), 'fabric_teal', seg=8, rings=5))
 cp[0].data.materials.clear(); cp[0].data.materials.append(mat('fabric_teal'))
 join(at_head(cp), 'acc_cap')
 
@@ -311,4 +359,4 @@ REQUIRED = ['head', 'eyes', 'eye_shine', 'mouth_smile', 'mouth_flat', 'mouth_fro
             'torso_0', 'torso_1', 'torso_2', 'lanyard', 'badge', 'arm', 'hand', 'leg', 'shoe', 'mug',
             *[f'role_{r}' for r in ('engineer', 'designer', 'marketer', 'support', 'security', 'sales')]]
 require_parts(REQUIRED)
-export(budget=8000)
+export(budget=8000, zfight_kit=True)

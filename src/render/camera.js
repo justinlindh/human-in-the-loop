@@ -105,7 +105,13 @@ export function createCameraRig(canvas) {
   // Input
   let dragging = false;
   let lastX = 0, lastY = 0;
+  // When the player last touched the camera (scripted eases stay out of their way), and how fast
+  // the view follows its goal (scripted eases use a slower rate; player input restores the default).
+  let lastInput = -1e9;
+  let followRate = 10;
+  const touched = () => { lastInput = performance.now(); followRate = 10; };
   const onDown = (e) => {
+    touched();
     dragging = true; lastX = e.clientX; lastY = e.clientY;
     canvas.setPointerCapture?.(e.pointerId);
   };
@@ -117,6 +123,7 @@ export function createCameraRig(canvas) {
   const onUp = (e) => { dragging = false; canvas.releasePointerCapture?.(e.pointerId); };
   const onWheel = (e) => {
     e.preventDefault();
+    touched();
     zoomGoal = THREE.MathUtils.clamp(zoomGoal * Math.exp(-e.deltaY * 0.0015), ZOOM_MIN, ZOOM_MAX);
   };
   const ignore = (e) => {
@@ -127,6 +134,7 @@ export function createCameraRig(canvas) {
   const onKeyDown = (e) => {
     if (ignore(e)) return;
     const k = e.key.toLowerCase();
+    if (k === 'q' || k === 'e' || PAN_KEYS.has(k)) touched();
     if (k === 'q' || k === 'e') {
       yawGoal += (k === 'q' ? -1 : 1) * Math.PI / 2;
       refit();
@@ -150,7 +158,8 @@ export function createCameraRig(canvas) {
     shakeAmp = amp; shakeDur = dur; shakeTime = dur;
   }
 
-  function focus(point, zoomTo = null) {
+  function focus(point, zoomTo = null, rate = 10) {
+    followRate = rate;
     goal.set(point.x, point.y ?? center.y, point.z);
     clampGoal();
     if (zoomTo) zoomGoal = THREE.MathUtils.clamp(zoomTo, ZOOM_MIN, ZOOM_MAX);
@@ -165,7 +174,7 @@ export function createCameraRig(canvas) {
     if (keys.has('arrowdown')) ky -= speed;
     if (kx || ky) panScreen(kx, ky);
 
-    const k = 1 - Math.exp(-dt * 10);
+    const k = 1 - Math.exp(-dt * followRate);
     target.lerp(goal, k);
     yaw += (yawGoal - yaw) * (1 - Math.exp(-dt * 8));
     zoom += (zoomGoal - zoom) * k;
@@ -214,5 +223,8 @@ export function createCameraRig(canvas) {
     get zoom() { return zoom; },
     setZoom(z) { zoomGoal = zoom = THREE.MathUtils.clamp(z, ZOOM_MIN, ZOOM_MAX); },
     get dragging() { return dragging; },
+    get lastInput() { return lastInput; },
+    get goal() { return goal.clone(); },
+    get zoomGoal() { return zoomGoal; },
   };
 }

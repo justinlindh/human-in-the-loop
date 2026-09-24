@@ -4,8 +4,83 @@ import { icon } from './icons.js';
 
 const SKIN = ['#ffe0c7', '#f5c9a4', '#e0a67c', '#c68658', '#9a6440', '#6b4428'];
 
-// Chibi head-and-shoulders portrait drawn from a staff member's appearance.
+// Portraits come from the renderer's 3D characters when it offers them (renderer.portrait returns a
+// cached URL, or null while queued); the drawn chibi is the fallback and the placeholder while queued.
+let source = null;
+const pending = new Set(); // { el, person, size, kind: 'el' | 'src' }
+const live = new Set(); // { el, handle }
+const MAX_PENDING = 400;
+
+export function setPortraitSource(getRenderer) {
+  source = getRenderer;
+  addEventListener('hitl:portraits', upgradePending);
+  // Live canvases are disposed once their element leaves the page.
+  setInterval(() => { for (const l of live) if (!l.el.isConnected) { l.handle.dispose?.(); live.delete(l); } }, 1000);
+  // A light poll as well, in case a finished batch arrives without the event.
+  setInterval(() => { if (pending.size) upgradePending(); }, 500);
+}
+
+function rendered(person, size) {
+  const r = source?.();
+  if (!r?.portrait) return undefined;
+  try { return r.portrait(person, { size }) ?? null; } catch { return undefined; }
+}
+
+function imgFor(url, person, size) {
+  const img = document.createElement('img');
+  img.className = 'portrait';
+  img.alt = '';
+  img.src = url;
+  img.style.width = img.style.height = `${size / 16}em`;
+  img.style.background = tint(roleColor(person.role), 0.72);
+  return img;
+}
+
+function track(entry) {
+  if (pending.size >= MAX_PENDING) for (const e of pending) if (!e.el.isConnected) pending.delete(e);
+  if (pending.size < MAX_PENDING) pending.add(entry);
+}
+
+function upgradePending() {
+  for (const e of pending) {
+    if (!e.el.isConnected) { pending.delete(e); continue; }
+    const url = rendered(e.person, e.size);
+    if (!url) continue;
+    pending.delete(e);
+    if (e.kind === 'src') e.el.src = url;
+    else e.el.replaceWith(imgFor(url, e.person, e.size));
+  }
+}
+
+// Head-and-shoulders portrait element for a person (staff, candidate, or founder archetype).
 export function portrait(person, size = 48) {
+  const url = rendered(person, size);
+  if (url) return imgFor(url, person, size);
+  const c = drawnPortrait(person, size);
+  // Queued (null) or the renderer not ready yet (undefined): swap in the rendered one when it arrives.
+  if (source) track({ el: c, person, size, kind: 'el' });
+  return c;
+}
+
+// An animated portrait for the one person in focus; falls back to a still one.
+export function portraitLive(person, size = 88) {
+  const r = source?.();
+  if (!r?.portraitLive) return portrait(person, size);
+  try {
+    const handle = r.portraitLive(person, { size });
+    const el = handle.el;
+    el.classList.add('portrait');
+    el.style.width = el.style.height = `${size / 16}em`;
+    el.style.background = tint(roleColor(person.role), 0.72);
+    live.add({ el, handle });
+    return el;
+  } catch {
+    return portrait(person, size);
+  }
+}
+
+// Chibi head-and-shoulders portrait drawn from a staff member's appearance.
+function drawnPortrait(person, size = 48) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const c = document.createElement('canvas');
   c.width = c.height = Math.round(size * dpr);
@@ -22,6 +97,23 @@ const urlCache = new Map();
 
 // Portrait as a cached data URL, for places that show many small copies (the chat feed).
 export function portraitURL(person, size = 44) {
+  const r = rendered(person, size);
+  if (r) return r;
+  return drawnURL(person, size);
+}
+
+// An <img> avatar that swaps to the rendered portrait when it arrives.
+export function portraitImg(person, size = 44, cls = 'av') {
+  const img = document.createElement('img');
+  img.className = cls;
+  img.alt = '';
+  const r = rendered(person, size);
+  img.src = r || drawnURL(person, size);
+  if (!r && source) track({ el: img, person, size, kind: 'src' });
+  return img;
+}
+
+function drawnURL(person, size) {
   const a = person.appearance ?? {};
   const key = `${person.id}|${person.mood}|${person.role}|${a.skin}|${a.hair}|${a.hairColor}|${a.shirt}|${a.accessory}|${size}`;
   let url = urlCache.get(key);

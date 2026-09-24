@@ -52,7 +52,7 @@ def l3():
     parts += [
         box('tread_frame', (0.8, 1.2, 0.12), (0, -0.55, 0.06), 'metal_soft', bevel=0.03),
         box('belt', (0.62, 1.1, 0.02), (0, -0.55, 0.125), 'plastic_charcoal', bevel=0.006),
-        box('motor', (0.8, 0.22, 0.16), (0, 0.02, 0.08), 'plastic_charcoal', bevel=0.03),
+        box('motor', (0.76, 0.22, 0.16), (0, 0.02, 0.08), 'plastic_charcoal', bevel=0.03),
     ]
     for sx in (-1, 1):
         parts.append(box(f'rail{sx}', (0.035, 0.8, 0.035), (sx * 0.36, -0.55, 0.2), 'metal_soft', bevel=0.01))
@@ -61,4 +61,4 @@ def l3():
 
 reset(); join(l1(), 'standing_desk_l1'); export(tier_path(1), budget=BUDGET[1])
 reset(); join(l2(), 'standing_desk_l2'); export(tier_path(2), budget=BUDGET[2])
-reset(); join(l3(), 'standing_desk_l3'); box('standing_desk_led', (0.08, 0.01, 0.03), (0, -0.01, 0.12), 'led', bevel=0); export(tier_path(3), budget=BUDGET[3])
+reset(); join(l3(), 'standing_desk_l3'); box('standing_desk_led', (0.08, 0.01, 0.03), (0, -0.096, 0.09), 'led', bevel=0); export(tier_path(3), budget=BUDGET[3])
