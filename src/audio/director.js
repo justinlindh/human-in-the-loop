@@ -3,15 +3,19 @@
 // gives the same commands (and it runs headless in Node).
 //
 // Commands:
-//   { op: 'play', cue, file, bus, gain, at, priority, voiceKey? }
+//   { op: 'play', cue, file, bus, gain, at, priority, voiceKey?, duck? }  duck: hold it while the buffer plays
 //   { op: 'music', era, bed, at, fade }              crossfade to a bed at time `at`
 //   { op: 'musicMix', level, lowpass, fade }         music level and filter
 //   { op: 'duck', key, on }                          hold or release a music duck
+//   { op: 'dance', file, gain, at, duck, expect, after }  a music night track (see musicNight)
+//   { op: 'dancePause', paused }                   stop or resume the dance track and its cheer
+//   { op: 'preload', ids }                         start loading assets that will be needed soon
 //   { op: 'stopAll', bus }
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
-  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES } from './manifest.js';
+  VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -56,7 +60,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   let hadOutage = null;
   let nextPet = null, nextCoffee = null;
   let typing = 0;
-  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null };
+  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
 
@@ -84,9 +88,10 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     if (!admit(c.bus, c.priority ?? 5, t, 1.2)) return [];
     lastCue.set(id, t);
     const j = c.jitter?.gain ? 1 - c.jitter.gain * rng() : 1;
-    const out = [{ op: 'play', cue: id, file: pick(c.files), bus: c.bus, gain: gain * j * (c.gain ?? 1), at: t, priority: c.priority ?? 5 }];
-    if (c.duck) out.push({ op: 'duck', key: c.duck, on: true, at: t }, { op: 'duck', key: c.duck, on: false, at: t + 1.2 });
-    return out;
+    // A ducking cue carries its duck key; the host holds it for the buffer's actual length.
+    const cmd = { op: 'play', cue: id, file: pick(c.files), bus: c.bus, gain: gain * j * (c.gain ?? 1), at: t, priority: c.priority ?? 5 };
+    if (c.duck) cmd.duck = c.duck;
+    return [cmd];
   }
 
   function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice' } = {}) {
@@ -99,11 +104,11 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   }
 
   // A group cheer: several present people, staggered, quieter each, over a crowd bed.
-  function cheer(kind, s, t, leadId = null) {
+  function cheer(kind, s, t, leadId = null, { force = false } = {}) {
     const g = GROUP_CUES[kind];
     if (!g) return [];
     // Cheers are rare: at most one per cooldown of real time, longer at higher game speed.
-    if (t - lastCheer < VOICE.cheerCooldown * Math.max(1, speedNow)) return [];
+    if (!force && t - lastCheer < VOICE.cheerCooldown * Math.max(1, speedNow)) return [];
     const here = present(s);
     if (!here.length) return [];
     const n = Math.min(q === 'low' ? g.lowMaxVoices : g.maxVoices, here.length);
@@ -127,6 +132,19 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     return out;
   }
 
+  // A dance break: one 'dance' command. The host holds the dance duck from now, starts the genre's
+  // track (waiting briefly for the real file), releases the duck when the buffer actually ends, and
+  // then plays `after` (a small cheer from the dancers) with each `at` measured from that end.
+  function musicNight(e, s, t) {
+    const genre = MUSIC_NIGHT[e.genre] ? e.genre : 'corporate_synthwave';
+    const len = ASSETS.musicNight?.[genre]?.duration ?? MUSIC_NIGHT_SECONDS;
+    const end = t + 0.4 + len;
+    const dancers = new Set([e.staffId, ...(e.dancers ?? [])].filter(Boolean));
+    const crowd = dancers.size ? { ...s, staff: (s?.staff ?? []).filter((p) => dancers.has(p.id)) } : s;
+    const after = cheer('musicNight', crowd, end + 0.2, e.staffId, { force: true }).map((c) => ({ ...c, at: c.at - end }));
+    return [{ op: 'dance', cue: 'music.night', genre, file: `musicNight/${genre}`, bus: 'sfx', gain: 0.75, at: t + 0.4, duck: 'dance', expect: len, after }];
+  }
+
   const voiceMomentOk = (t) => t - lastVoiceMoment.t >= VOICE.globalGap;
 
   return {
@@ -146,6 +164,7 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
         // Voice moments.
         if (e.type === 'launch') { if (isFirstLaunch(e, state)) out.push(...cheer('launch', state, t + 0.15)); }
         else if (e.type === 'incentive' && e.reward === 'waffle_party') out.push(...cheer('waffleParty', state, t + 0.2, e.staffId));
+        else if (e.type === 'incentive' && e.reward === 'music_night') out.push(...musicNight(e, state, t));
         else if (e.type === 'era') music.pendingEra = e.eraId;
         else if (voiceMomentOk(t)) {
           const who = (id2) => state?.staff?.find((p) => p.id === id2);
@@ -207,6 +226,14 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
       if (level !== music.level || lowpass !== music.lowpass) {
         music.level = level; music.lowpass = lowpass;
         out.push({ op: 'musicMix', level, lowpass, fade: 0.4 });
+      }
+      // A paused game pauses the dance track (and the dancers' cheer waits with it).
+      const dp = !!(hold || stopped);
+      if (dp !== music.dancePaused) { music.dancePaused = dp; out.push({ op: 'dancePause', paused: dp }); }
+      // The genre pick for a music night: start loading the tracks so the real one plays.
+      if (!music.preloaded && isMusicNightDecision(state?.pendingDecision)) {
+        music.preloaded = true;
+        out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
       }
       // The typing bed: quiet, scaled by how many people are at their desks working; off while
       // paused, in lockdown, on the title, and on Low.

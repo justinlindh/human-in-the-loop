@@ -5,7 +5,8 @@ a pose bone's local axes the game's (x right, y up, z front) and its ZYX Euler t
 
 Bones: body (root, the only one with location keys), hips, legL, legR, torso, head, armL, armR.
 L is the -x side, as in character.js. Actions: typing (sit and type), slumped, tired and burnout
-(the mood desk poses), nap (lying on a couch), idle (standing) and walk (one stride).
+(the mood desk poses), nap (lying on a couch), idle (standing), walk (one stride), and the dance
+loops for music night (dance_polka, dance_robot, dance_bossa, dance_lofi, dance_bob, dance_stiff).
 """
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -236,7 +237,133 @@ def walk(t):
     }
 
 
+# Dance loops for the music night break: one bar of four beats each at the genre's tempo, for the
+# person who fully commits, plus a generic bob-along and a stiff shuffle that the game plays at the
+# genre's tempo. Arm z rotation: outward is negative for the left arm and positive for the right.
+POLKA_BAR, ROBOT_BAR, BOSSA_BAR, LOFI_BAR, BOB_BAR, STIFF_BAR = 1.6, 2.0, 2.4, 2.8, 2.0, 4.0
+
+
+def dance_polka(t):
+    # Motivational polka: a hop on every beat, alternating kicks, arms pumping, a twist.
+    beat = POLKA_BAR / 4
+    hop = abs(s(math.pi * t / beat))
+    kick = s(TAU * t / (2 * beat))
+    return {
+        'body': ((0.04, 0, kick * 0.06), (0, hop * 0.07, 0)),
+        'legL': ((-0.55 * max(0.0, kick), 0, 0.05), None),
+        'legR': ((-0.55 * max(0.0, -kick), 0, -0.05), None),
+        'torso': ((0.05, kick * 0.25, 0), None),
+        'head': ((-0.05 + hop * 0.06, -kick * 0.15, kick * 0.1), None),
+        'armL': ((-0.3, 0, -0.6 - 0.9 * max(0.0, kick)), None),
+        'armR': ((-0.3, 0, 0.6 + 0.9 * max(0.0, -kick)), None),
+    }
+
+
+ROBOT_POSES = [
+    # (armLX, armLZ, armRX, armRZ, headY, twist, dip)
+    (-1.5, 0.1, 0.0, -0.1, 0.4, 0.25, 0.0),
+    (0.0, 0.1, -1.5, -0.1, -0.4, -0.25, 0.0),
+    (0.0, -1.5, 0.0, 1.5, 0.0, 0.0, -0.03),
+    (-1.5, 0.0, -1.5, 0.0, 0.2, 0.3, 0.0),
+]
+
+
+def dance_robot(t):
+    # Corporate synthwave: stiff poses that snap on each beat, like a very keen office robot.
+    beat = ROBOT_BAR / 4
+    k = int(t / beat) % 4
+    u = t - int(t / beat) * beat
+    w = smooth(0, 0.1, u)
+    a, b = ROBOT_POSES[(k + 3) % 4], ROBOT_POSES[k]
+    p = [x + (y - x) * w for x, y in zip(a, b)]
+    tick = max(0.0, 1 - u / 0.12) * 0.02
+    return {
+        'body': ((0, 0, 0), (0, p[6] - tick, 0)),
+        'legL': ((-0.12 if k % 2 else 0.0, 0, 0), None),
+        'legR': ((0.0 if k % 2 else -0.12, 0, 0), None),
+        'torso': ((0.02, p[5], 0), None),
+        'head': ((0.0, p[4], 0.0), None),
+        'armL': ((p[0], 0, p[1]), None),
+        'armR': ((p[2], 0, p[3]), None),
+    }
+
+
+def dance_bossa(t):
+    # Aggressive bossa nova: a smooth sway with a weight shift, arms low and loose.
+    ph = TAU * t / (BOSSA_BAR / 2)
+    sway = s(ph)
+    slow = s(TAU * t / BOSSA_BAR)
+    return {
+        'body': ((0, slow * 0.1, sway * 0.1), (sway * 0.04, abs(s(ph)) * -0.015, 0)),
+        'legL': ((-0.15 * max(0.0, sway), 0, 0.04), None),
+        'legR': ((-0.15 * max(0.0, -sway), 0, -0.04), None),
+        'torso': ((0.03, slow * 0.15, -sway * 0.06), None),
+        'head': ((0.02, -slow * 0.1, s(ph + 0.5) * 0.12), None),
+        'armL': ((-0.45 + sway * 0.12, 0, -0.5 - 0.15 * sway), None),
+        'armR': ((-0.45 - sway * 0.12, 0, 0.5 - 0.15 * sway), None),
+    }
+
+
+def dance_lofi(t):
+    # Sad lofi: deep head-nods on the beat, a slow sway, fully in the groove.
+    beat = LOFI_BAR / 4
+    nod = max(0.0, s(math.pi * (t % beat) / beat)) ** 1.5
+    sway = s(TAU * t / (LOFI_BAR / 2))
+    return {
+        'body': ((0, 0, sway * 0.05), (0, -nod * 0.02, 0)),
+        'legL': ((-0.06 * max(0.0, sway), 0, 0.02), None),
+        'legR': ((-0.06 * max(0.0, -sway), 0, -0.02), None),
+        'torso': ((0.08 + nod * 0.04, sway * 0.06, 0), None),
+        'head': ((0.05 + nod * 0.28, 0, -sway * 0.08), None),
+        'armL': ((-0.3 + nod * 0.08, 0, -0.18 + sway * 0.05), None),
+        'armR': ((-0.3 + nod * 0.08, 0, 0.18 + sway * 0.05), None),
+    }
+
+
+def dance_bob(t):
+    # Bobbing along: a light bounce, a nod, arms swinging a little.
+    beat = BOB_BAR / 4
+    bounce = abs(s(math.pi * t / beat))
+    swing = s(TAU * t / (2 * beat))
+    return {
+        'body': ((0, 0, swing * 0.03), (0, bounce * 0.025, 0)),
+        'legL': ((-0.1 * max(0.0, swing), 0, 0), None),
+        'legR': ((-0.1 * max(0.0, -swing), 0, 0), None),
+        'torso': ((0.03, swing * 0.08, 0), None),
+        'head': ((bounce * 0.1, 0, 0), None),
+        'armL': ((-0.2 - swing * 0.2, 0, -0.15), None),
+        'armR': ((-0.2 + swing * 0.2, 0, 0.15), None),
+    }
+
+
+def dance_stiff(t):
+    # The stiff shuffle: a slow side step each half bar, arms pinned, a bounce a little off the
+    # beat, and a nervous look around.
+    half = STIFF_BAR / 2
+    step = smooth(0.2, 0.9, t % half)
+    side = (1 - 2 * step) if t < half else (-1 + 2 * step)
+    lift = max(0.0, s(math.pi * ((t % half) - 0.2) / 0.7)) if 0.2 <= t % half <= 0.9 else 0.0
+    bounce = max(0.0, s(math.pi * ((t + 0.12) % (STIFF_BAR / 8)) / (STIFF_BAR / 8))) * 0.008
+    look = smooth(1.4, 1.7, t) - smooth(2.3, 2.6, t)
+    lead = 1 if t < half else -1
+    return {
+        'body': ((0, 0, 0), (side * 0.05, bounce, 0)),
+        'legL': ((0, 0, 0.08 * lift * (1 if lead > 0 else 0)), None),
+        'legR': ((0, 0, -0.08 * lift * (1 if lead < 0 else 0)), None),
+        'torso': ((0.0, 0, 0), None),
+        'head': ((0.03, look * 0.45, 0), None),
+        'armL': ((-0.08, 0, 0.04), None),
+        'armR': ((-0.08, 0, -0.04), None),
+    }
+
+
 key_action('typing', 4.0, typing)
+key_action('dance_polka', POLKA_BAR, dance_polka)
+key_action('dance_robot', ROBOT_BAR, dance_robot)
+key_action('dance_bossa', BOSSA_BAR, dance_bossa)
+key_action('dance_lofi', LOFI_BAR, dance_lofi)
+key_action('dance_bob', BOB_BAR, dance_bob)
+key_action('dance_stiff', STIFF_BAR, dance_stiff)
 key_action('burnout', 6.0, burnout)
 key_action('idle', 4.0, idle)
 key_action('walk', STRIDE, walk)

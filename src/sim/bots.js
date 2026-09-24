@@ -12,7 +12,7 @@ import { weeklyCosts, weeklyRevenue } from './economy.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
-import { deskCapacity, suggestPlacement } from './office.js';
+import { deskCapacity, suggestPlacement, deskCap } from './office.js';
 import { scoreRun } from './endgame.js';
 import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -170,9 +170,10 @@ function pairMentors(s) {
 // How many desks a bot is willing to fit on each stage.
 const STAGE_DESKS = [6, 14, 30];
 
-// Keeps one free desk ready for the next hire, up to the stage's desk count.
+// Keeps one free desk ready for the next hire, up to the stage's desk count (the HQ's grows with expansions).
 function furnish(s) {
-  const want = Math.min(STAGE_DESKS[s.officeStage], s.staff.length + 1);
+  const stageDesks = s.officeStage === OFFICE_STAGES.length - 1 ? deskCap(s) : STAGE_DESKS[s.officeStage];
+  const want = Math.min(stageDesks, s.staff.length + 1);
   for (let n = deskCapacity(s); n < want; n++) {
     const spot = suggestPlacement(s, 'desk');
     if (!spot || !dispatch(s, { type: 'placeItem', itemId: 'desk', ...spot }).ok) break;
@@ -203,6 +204,26 @@ function upgradeIfRich(s, cushion, careful = false) {
   return [{ type: 'upgradeOffice' }];
 }
 
+// Late money: at the HQ, expand when the desks are nearly full and the bank can take it twice over; turn on
+// the upkeep dials once rich; buy the best-value company for sale when it costs a small share of the bank.
+function spendLate(s) {
+  if (s.officeStage !== OFFICE_STAGES.length - 1) return;
+  const step = OFFICE_STAGES[s.officeStage].expansions?.[s.office.expansion ?? 0];
+  if (step && s.staff.length >= deskCap(s) - 2 - B.botAcquireDesks && s.cash > step.upgradeCost * B.botExpandCushion) dispatch(s, { type: 'upgradeOffice' });
+  if (s.cash > B.botDialCash && net(s) > 0) {
+    for (const id of ['office_upkeep', 'top_pay']) if (!s.policies[id]) dispatch(s, { type: 'setPolicy', id, on: true });
+  }
+  const deal = [...(s.market.forSale ?? [])].sort((a, b) => b.arr / b.price - a.arr / a.price)[0];
+  if (deal && s.cash > deal.price * B.botAcquireCushion) {
+    // Make room for the incoming team first.
+    for (let n = deskCapacity(s) - s.staff.length; n < deal.staff; n++) {
+      const spot = suggestPlacement(s, 'desk');
+      if (!spot || !dispatch(s, { type: 'placeItem', itemId: 'desk', ...spot }).ok) break;
+    }
+    dispatch(s, { type: 'acquire', targetId: deal.id });
+  }
+}
+
 function launchedThisWeek(s) {
   return liveProducts(s).filter((p) => p.launchedWeek === s.week - 1 && p.version === 1);
 }
@@ -231,6 +252,9 @@ function recklessHumans(s) {
   act(s, FUNCTIONS.filter((fn) => s.automation[fn].level !== 0).map((fn) => ({ type: 'setAutomation', fn, level: 0 })));
   if (canAffordHire(s) && s.staff.length < capacity(s)) act(s, hireBest(s, () => true, (a, b) => skillSum(b) - skillSum(a)));
   act(s, pairMentors(s));
+  // The impatient player crunches whenever something is in flight.
+  const crunch = s.projects.length > 0;
+  if (!!s.policies.crunch !== crunch) dispatch(s, { type: 'setPolicy', id: 'crunch', on: crunch });
   if (!s.projects.some((j) => j.kind === 'new')) {
     const size = s.officeStage >= 1 ? 'large' : 'medium';
     const res = dispatch(s, startNew(s, size, 'chatgbt', fixedName(s)));
@@ -343,7 +367,10 @@ function balanced(s) {
     dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'oversight', targetId: null } });
   }
 
-  if (s.staff.length < capacity(s) && canAffordHire(s)) {
+  // A rich HQ keeps a few desks free for the team of a company it might buy.
+  const atHq = s.officeStage === OFFICE_STAGES.length - 1;
+  const reserve = atHq && s.cash > B.botDialCash ? B.botAcquireDesks : 0;
+  if (s.staff.length < capacity(s) && (!atHq || s.staff.length < deskCap(s) - reserve) && canAffordHire(s)) {
     const seniors = s.staff.filter((p) => p.seniority === 'senior').length;
     const juniors = s.staff.filter((p) => p.seniority === 'junior').length;
     const needSecurity = s.officeStage >= 1 && !s.staff.some((p) => p.role === 'security');
@@ -365,6 +392,7 @@ function balanced(s) {
   }
   maintainProducts(s);
   staffProjects(s);
+  spendLate(s);
 
   for (const p of launchedThisWeek(s)) {
     dispatch(s, { type: 'runCampaign', channel: 'launch', productId: p.id });

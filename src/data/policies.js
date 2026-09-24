@@ -35,9 +35,24 @@ export const POLICIES = {
     desc: 'Lets tired people step away for a month and come back whole. They are paid while gone.',
   },
   no_crunch: {
-    id: 'no_crunch', lockText: 'Unlocks when someone is running on empty', name: 'No Crunch', weeklyCost: 0,
+    id: 'no_crunch', lockText: 'Unlocks when someone is running on empty', name: 'No Crunch', weeklyCost: 0, excludes: 'crunch',
     unlock: (s) => s.staff.some((p) => (p.strain ?? 0) >= 60),
     desc: 'Nobody works nights to hit a date. Exhaustion builds half as fast; a little less output.',
+  },
+  crunch: {
+    id: 'crunch', lockText: 'Unlocks after your first launch', name: 'Crunch Mode', weeklyCost: 0, excludes: 'no_crunch',
+    unlock: (s) => s.stats.launches >= 1,
+    desc: 'Nights and weekends until it ships. More output now. Everyone is tired later.',
+  },
+  top_pay: {
+    id: 'top_pay', lockText: 'Needs the HQ Building', name: 'Top-of-Market Pay', weeklyCost: 0, costPayrollShare: 0.15,
+    unlock: (s) => s.officeStage >= 2,
+    desc: 'Everyone is paid a little more than anyone else would pay them. Recruiters stop calling, mostly. Costs 15% of payroll.',
+  },
+  office_upkeep: {
+    id: 'office_upkeep', lockText: 'Needs the HQ Building', name: 'Office Upkeep', weeklyCost: 0, costPerHead: 150,
+    unlock: (s) => s.officeStage >= 2,
+    desc: 'Fresh flowers, a real barista, chairs that do not squeak. People recover faster and stay longer. $150 a head each week.',
   },
   incentives: {
     id: 'incentives', lockText: 'Unlocks with a team of 8 and three launches', name: 'Incentives Program', weeklyCost: 300,

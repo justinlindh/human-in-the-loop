@@ -148,7 +148,7 @@ describe('content data', () => {
       expect(p.weeklyCost).toBeGreaterThanOrEqual(0);
       expect(typeof p.lockText).toBe('string');
     }
-    expect(Object.keys(POLICIES).sort()).toEqual(['apprenticeship', 'async_standups', 'blameless', 'comprehension_reviews', 'craft_fridays', 'daily_standups', 'incentives', 'no_crunch', 'pair', 'sabbatical']);
+    expect(Object.keys(POLICIES).sort()).toEqual(['apprenticeship', 'async_standups', 'blameless', 'comprehension_reviews', 'craft_fridays', 'crunch', 'daily_standups', 'incentives', 'no_crunch', 'office_upkeep', 'pair', 'sabbatical', 'top_pay']);
   });
 
   it('trends reference real angles and categories', () => {

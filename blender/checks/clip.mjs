@@ -38,7 +38,34 @@ const out = await page.evaluate(async () => {
     { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', soft: true, label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
     { id: 'k_arc', label: 'arcade:stool' }, { id: 'k_lib', slot: 1, label: 'library:armchair' }]);
   const seatCheck = { name: 'desks:all-seated', pass: unseated.length === 0, unseated };
-  return [seatCheck, ...a.results, ...b.results];
+  await (await import('/src/render/rig.js')).loadRig();
+  const dance = [];
+  for (const g of ['motivational_polka', 'corporate_synthwave', 'aggressive_bossa_nova', 'sad_lofi']) dance.push(await C.runDanceCheck(R, S, g));
+  const w = await C.runWalkChecks(R, S);
+  // Counters and wall items, each on free tiles with a clear row in front (the perk items above go first).
+  S.office.placed = S.office.placed.filter((p) => !p.id.startsWith('k_'));
+  for (let i = 0; i < 60; i++) { R.sync(S); R.advance(1 / 30); }
+  const { footprint } = await import('/src/render/layout.js');
+  const L = R.office.current.L;
+  const used = new Set();
+  const mark = (p) => { const f = footprint(p.itemId, p.rot); for (let x = 0; x < f.w; x++) for (let y = 0; y < f.h; y++) used.add(`${p.x + x},${p.y + y}`); };
+  S.office.placed.forEach(mark);
+  for (const [x, y] of L.blocked) used.add(`${x},${y}`);
+  const free = (x, y, fw, fh) => { for (let i = -1; i <= fw; i++) for (let j = 0; j <= fh; j++) if (used.has(`${x + i},${y + j}`)) return false; return x > 0 && y + fh < L.grid.h - 1 && x + fw < L.grid.w; };
+  const USE = [['espresso', 1], ['espresso', 2], ['espresso', 3], ['coffee_corner', 1], ['plant_wall', 1], ['plant_wall', 3], ['bookshelf', 1]];
+  const useIds = [];
+  USE.forEach(([itemId, level], n) => {
+    const f = footprint(itemId, 0);
+    for (let y = 0; y < L.grid.h - 2; y++) for (let x = 1; x < L.grid.w - f.w; x++) {
+      if (useIds.length > n || !free(x, y, f.w, f.h)) continue;
+      const p = { id: `use${n}`, itemId, level, x, y, rot: 0 };
+      S.office.placed.push(p); mark(p); for (let i = 0; i < f.w; i++) used.add(`${x + i},${y + f.h}`);
+      useIds.push(p.id);
+    }
+  });
+  for (let i = 0; i < 10; i++) { R.sync(S); R.advance(1 / 30); }
+  const u = await C.runUseChecks(R, S, useIds);
+  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u];
 });
 await H.close();
 let failed = 0;

@@ -21,6 +21,7 @@ export function strainDelta(state, p, burntOut) {
   // On-call pressure lasts the first weeks of an outage; after that people stop pulling all-nighters.
   if (state.outage && state.outage.weeks < B.strainOnCallWeeks && (p.role === 'engineer' || p.founder)) gain += B.strainOnCall;
   gain += Math.min(B.strainSlackMax, burntOut * B.strainSlack);
+  if (state.policies.crunch && (a === 'project' || a === 'maintenance')) gain += B.crunchStrain;
   if (state.policies.no_crunch) gain *= B.noCrunchStrainMult;
   const recover = p.stamina >= B.strainRestedAbove ? B.strainRecoverWorking : 0;
   return gain - recover;
@@ -76,7 +77,7 @@ export function vacationSystem(ctx) {
   const away = state.staff.filter((p) => p.mood === 'away').length;
   let leaving = 0;
   const postponedCount = (state.flags.vacationPostponed ??= {});
-  const blockedBy = state.outage ? 'the outage' : modifierBonus(state, 'output') > 0 ? 'the crunch' : null;
+  const blockedBy = state.outage ? 'the outage' : modifierBonus(state, 'output') > 0 || state.policies.crunch ? 'the crunch' : null;
   const postponed = [];
   for (const p of state.staff) {
     // The first vacation falls somewhere in the person's first year, spread by id.

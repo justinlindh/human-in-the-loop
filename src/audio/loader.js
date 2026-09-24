@@ -24,6 +24,7 @@ export function entryFor(id) {
   if (kind === 'ui') return ASSETS.ui?.[a] ?? null;
   if (kind === 'sfx') return ASSETS.sfx?.[a] ?? null;
   if (kind === 'ambience') return ASSETS.ambience?.[a] ?? null;
+  if (kind === 'musicNight') return ASSETS.musicNight?.[a] ?? null;
   return null;
 }
 

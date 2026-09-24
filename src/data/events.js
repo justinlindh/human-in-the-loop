@@ -14,7 +14,7 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
-  'cash', 'summit', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
+  'cash', 'summit', 'musicNight', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
@@ -995,6 +995,19 @@ const list = [
     choices: [
       { label: 'Automate harder', hint: 'Every automation dial +25%; meaning drains faster for 26 weeks', effects: { automationBump: 0.25, purpose: { craft: -5, people: -8, growth: 5 }, modifier: { key: 'meaningDrain', value: 0.4, weeks: 26, label: 'Headcount pressure' } }, outcome: 'The agents get more work. The humans get more dashboards about the agents.' },
       { label: 'Defend the team', hint: 'Team meaning up; fewer signups for 13 weeks while the investor sulks', effects: { teamMeaning: 4, purpose: { people: 8, craft: 3 }, modifier: { key: 'acquisition', value: -0.1, weeks: 13, label: 'Investor sulking' } }, outcome: '"Those three employees have not slept since 2027," you say. The call ends early.' },
+    ],
+  },
+  // Music night: the Incentives Program winner picks the genre, then the dance break happens.
+  {
+    id: 'music_night_genre', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Pick the genre',
+    text: '{name}: "I won music night. Apparently I pick the genre. Nobody should have this much power."',
+    choices: [
+      { label: 'Corporate Synthwave', hint: 'Neon, arpeggios, a slide deck', effects: { musicNight: 'corporate_synthwave' }, outcome: 'The lights go purple. Someone brought a keytar. Nobody asked who.' },
+      { label: 'Motivational Polka', hint: 'Accordion. Relentless positivity', effects: { musicNight: 'motivational_polka' }, outcome: 'The accordion starts. Finance joins in first, which surprises everyone.' },
+      { label: 'Aggressive Bossa Nova', hint: 'Smooth, but with intent', effects: { musicNight: 'aggressive_bossa_nova' }, outcome: 'It is gentle. It is also somehow a threat. People sway carefully.' },
+      { label: 'Sad Lo-fi', hint: 'Beats to reflect on the roadmap to', effects: { musicNight: 'sad_lofi' }, outcome: 'Everyone nods slowly. One person dances like no one is watching. Everyone is watching.' },
     ],
   },
   // Annual calendar (raised by the annual system)

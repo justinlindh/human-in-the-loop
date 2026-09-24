@@ -1,7 +1,7 @@
 // Structure v2 display content: founder archetypes, funding, goals, eras, and unlock explainers.
 // Reads the sim lane's src/data exports when they exist; the fallbacks carry the spec's wording
 // so the founding flow and cards work before the data lands.
-import { B } from './content.js';
+import { B, INCIDENT_LABEL } from './content.js';
 import { ITEMS as DATA_ITEMS } from '../data/items.js';
 import { OFFICE_STAGES as DATA_STAGES } from '../data/office.js';
 
@@ -48,7 +48,7 @@ const FB_UNLOCKS = {
   ops: { title: 'Ops and Security', why: 'Something broke. Watch your security posture, incidents, and outages here.' },
   research: { title: 'Internal tools', why: 'Engineers can build tools with permanent effects, from the Build panel.' },
   models: { title: 'Model vendors', why: 'AI models are here. Pick vendors for products and automation, and watch for deprecations.' },
-  automation: { title: 'Automation', why: 'Agents can take on work. Cheap output, but it drains meaning and needs oversight.' },
+  automation: { title: 'Automation', why: 'Automation can take on work. Cheap output, but it drains meaning and needs oversight.' },
   meaning: { title: 'Meaning', why: 'Your people are asking what their job is now. Meaning is how much their work still feels like theirs: it drains when machines take it over, and it decides who stays.' },
   paths: { title: 'Career paths', why: 'A senior can pick a path with one strong perk.' },
   standups: { title: 'Standups', why: 'With a team of five, a standup policy keeps everyone in sync.' },
@@ -111,6 +111,13 @@ export function beforeEra(s, eraId) {
   const at = ERAS.findIndex((e) => e.id === s.era.id);
   const need = ERAS.findIndex((e) => e.id === eraId);
   return at >= 0 && need >= 0 && at < need;
+}
+
+// Before the Agents era nothing is an agent yet: automation is scripts and bots, so copy says so.
+export const agentsHere = (s) => !beforeEra(s, 'agents');
+const PRE_AGENT_INCIDENT = { db_wipe: 'Automation wiped a database', pricing_rewrite: 'Automation rewrote pricing', mass_email: 'Automation emailed everyone' };
+export function incidentLabel(s, kind, fallback = kind) {
+  return (!agentsHere(s) && PRE_AGENT_INCIDENT[kind]) || INCIDENT_LABEL[kind] || fallback;
 }
 
 // Meaning is revealed at the ChatGBT moment (the 'meaning' unlock). A sim without that unlock
