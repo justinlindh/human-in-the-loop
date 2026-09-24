@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, tick } from '../../src/sim/index.js';
 import { eventsSystem, eligibleEvents, raiseDecision, resolveSubjects, fillText } from '../../src/sim/events.js';
-import { applyEffects, modifierBonus, processScheduled } from '../../src/sim/effects.js';
+import { applyEffects, modifierBonus, processScheduled, expireModifiers } from '../../src/sim/effects.js';
 import { annualSystem } from '../../src/sim/calendar.js';
 import { outputMult } from '../../src/sim/staff.js';
 import { makeCtx } from '../../src/sim/registry.js';
@@ -215,7 +215,7 @@ describe('delayed consequences', () => {
     expect(s.modifiers[0]).toMatchObject({ key: 'output', label: 'Four-day week trial', untilWeek: s.week + 4, source: 'four_day_week' });
     s.week += 4;
     const c = ctxOf(s);
-    processScheduled(c);
+    expireModifiers(c);
     expect(s.modifiers).toHaveLength(0);
     expect(outputMult(s, p)).toBeCloseTo(base);
     expect(c.events.some((e) => e.type === 'toast' && e.text.includes('Four-day week trial'))).toBe(true);

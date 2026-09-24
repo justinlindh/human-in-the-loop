@@ -252,7 +252,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   }
 }
 
-// Weekly: applies due scheduled consequences, raises due follow-up events, and drops expired modifiers.
+// Weekly: applies due scheduled consequences and raises due follow-up events.
 export function processScheduled(ctx) {
   const { state } = ctx;
   const due = state.scheduled.filter((x) => x.week <= state.week);
@@ -265,10 +265,15 @@ export function processScheduled(ctx) {
       raiseDecision(ctx, x.payload.eventId, x.payload.subjectId, { queue: true });
     }
   }
+}
+
+// Drops modifiers whose last week has been played. tick() runs this after advancing the week, so a
+// modifier lasting N weeks applies to exactly N ticks and is gone from the state the player sees next.
+export function expireModifiers(ctx) {
+  const { state } = ctx;
   const expired = state.modifiers.filter((m) => m.untilWeek <= state.week);
-  if (expired.length) {
-    state.modifiers = state.modifiers.filter((m) => m.untilWeek > state.week);
-    for (const label of new Set(expired.map((m) => m.label))) ctx.emit({ type: 'toast', text: `${label} has ended.`, tone: 'info' });
-  }
+  if (!expired.length) return;
+  state.modifiers = state.modifiers.filter((m) => m.untilWeek > state.week);
+  for (const label of new Set(expired.map((m) => m.label))) ctx.emit({ type: 'toast', text: `${label} has ended.`, tone: 'info' });
 }
 
