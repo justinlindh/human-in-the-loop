@@ -269,8 +269,66 @@ def tri_count():
     return n
 
 
+UV_PARTS = ('screen', 'window_glass')
+
+
+def _canonical_order(o):
+    # Modifiers emit faces in a varying order; sort vertices and faces by position so exports are stable.
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    r = lambda v: (round(v[0], 5), round(v[1], 5), round(v[2], 5))
+    bm.verts.index_update()
+    vrank = [0] * len(bm.verts)
+    for i, v in enumerate(sorted(bm.verts, key=lambda v: r(v.co))):
+        vrank[v.index] = i
+    bm.verts.sort(key=lambda v: vrank[v.index])
+    bm.verts.index_update()
+    bm.faces.index_update()
+    frank = [0] * len(bm.faces)
+    fkey = lambda f: (f.material_index, r(f.calc_center_median()), tuple(sorted(v.index for v in f.verts)))
+    for i, f in enumerate(sorted(bm.faces, key=fkey)):
+        frank[f.index] = i
+    bm.faces.sort(key=lambda f: frank[f.index])
+    bm.to_mesh(o.data)
+    bm.free()
+
+
+def _strip_uvs():
+    # Solid-color parts need no UVs, and float noise in them makes rebuilt .glb files differ.
+    for o in bpy.context.scene.objects:
+        if o.type != 'MESH':
+            continue
+        if any(k in o.name for k in UV_PARTS):
+            for layer in o.data.uv_layers:
+                for d in layer.data:
+                    d.uv = (round(d.uv[0], 4), round(d.uv[1], 4))
+            continue
+        while o.data.uv_layers:
+            o.data.uv_layers.remove(o.data.uv_layers[0])
+
+
+def scale_all(k):
+    """Uniformly scale every object about the origin (for small props that need to read bigger)."""
+    for o in bpy.context.scene.objects:
+        o.location = (o.location[0] * k, o.location[1] * k, o.location[2] * k)
+        o.scale = (o.scale[0] * k, o.scale[1] * k, o.scale[2] * k)
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+
 def export(path=None, budget=3000, clear=False):
     path = path or out_path()
+    for o in list(bpy.context.scene.objects):
+        if o.type != 'MESH':
+            continue
+        # Triangulate here with fixed rules; the exporter's own triangulation order varies run to run.
+        t = o.modifiers.new('tri', 'TRIANGULATE')
+        t.quad_method = 'FIXED'
+        t.ngon_method = 'BEAUTY'
+        t.keep_custom_normals = True
+        apply_mods(o)
+        _canonical_order(o)
+    _strip_uvs()
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tris = tri_count()
     bpy.ops.object.select_all(action='SELECT')

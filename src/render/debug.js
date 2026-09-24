@@ -79,10 +79,15 @@ export function buildKitBoard(group) {
   return new THREE.Box3(new THREE.Vector3(-w / 2 - 0.5, 0, -z / 2 - 0.5), new THREE.Vector3(w / 2 + 0.5, 0.8, z / 2 + 0.5));
 }
 
-// Every Blender prop on a slab in two rows, labeled.
+// Every Blender prop on a slab, labeled, with the shop items and their tiers beside it.
 export function buildPropLineup(group) {
+  const items = new THREE.Group();
+  const ib = buildItemLineup(items);
   const perRow = 4, stepX = 3.0, stepZ = 3.0;
   const w = perRow * stepX, d = 4 * stepZ;
+  const ix = w / 2 + 1.5 + (ib.max.x - ib.min.x) / 2;
+  items.position.x = ix;
+  group.add(items);
   group.add(mesh(roundedBox(w + 0.6, 0.3, d + 0.6, 0.08), mat('slab_side'), 0, -0.15, 0));
   group.add(mesh(roundedBox(w + 0.4, 0.04, d + 0.4, 0.02), mat('floor_wood'), 0, 0.02, 0));
   group.userData.windowMaterials = [];
@@ -96,7 +101,7 @@ export function buildPropLineup(group) {
       group.add(label(name, x + 0.55, 0, z + 0.55));
     });
   });
-  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 2.4, d / 2));
+  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, ib.min.z), new THREE.Vector3(ix + ib.max.x, 2.4, ib.max.z));
 }
 
 // Every shop item: one row per item, tiers 1 to 3 left to right.

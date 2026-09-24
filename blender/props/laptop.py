@@ -6,4 +6,5 @@ import kit
 
 reset()
 join(kit.laptop('l_'), 'laptop')
+scale_all(1.3)
 export()

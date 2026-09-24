@@ -16,7 +16,7 @@ const ITEM_MODELS = ITEM_IDS.flatMap((id) => [1, 2, 3].map((l) => itemModelName(
 
 const loader = new GLTFLoader();
 const templates = new Map();
-let pending = null;
+const pending = new Map();
 
 function prepare(root) {
   root.traverse((o) => {
@@ -31,17 +31,21 @@ function prepare(root) {
 }
 
 function loadOne(name) {
-  const url = `${import.meta.env.BASE_URL}models/${name}.glb`;
-  return loader.loadAsync(url).then(
-    (gltf) => { templates.set(name, prepare(gltf.scene)); },
-    (err) => { console.warn(`models: could not load ${name}: ${err?.message ?? err}`); },
-  );
+  let p = pending.get(name);
+  if (!p) {
+    const url = `${import.meta.env.BASE_URL}models/${name}.glb`;
+    p = loader.loadAsync(url).then(
+      (gltf) => { templates.set(name, prepare(gltf.scene)); },
+      (err) => { console.warn(`models: could not load ${name}: ${err?.message ?? err}`); },
+    );
+    pending.set(name, p);
+  }
+  return p;
 }
 
-// Loads every model once; later calls return the same promise.
+// Loads each named model once (cached per name) and resolves when all of them are ready.
 export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi']) {
-  if (!pending) pending = Promise.all(names.map(loadOne)).then(() => templates);
-  return pending;
+  return Promise.all(names.map(loadOne)).then(() => templates);
 }
 
 export function hasModel(name) {
@@ -49,6 +53,8 @@ export function hasModel(name) {
 }
 
 // A clone sharing geometry and palette materials. Returns an empty Group if the model is missing.
+// Materials are shared across every clone (all LEDs share one, all screens share one): to drive
+// one instance, assign a new material to that clone's mesh; never mutate the shared material.
 export function getModel(name) {
   const t = templates.get(name);
   if (!t) {

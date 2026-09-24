@@ -6,4 +6,5 @@ import kit
 
 reset()
 join(kit.trophy('t_', 0, 0, 0, s=1.15), 'trophy')
+scale_all(1.25)
 export()
