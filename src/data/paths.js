@@ -4,7 +4,7 @@ const rows = [
   ['architect', 'Architect', 'engineer', 'Pays down comprehension debt faster and learns the systems quicker.', { debtPaydown: 1.4, knowledgeGain: 1.3 }],
   ['tech_lead', 'Tech Lead', 'engineer', 'Mentees grow much faster.', { mentorBonus: 1.4 }],
   ['ai_wrangler', 'AI Wrangler', 'engineer', 'A natural overseer: more oversight hours, better catches, and oversight feels meaningful.', { oversight: 1.4, catch: 0.15, oversightMeaning: 1.35 }],
-  ['staff_engineer', 'Staff Engineer', 'engineer', 'Hard problems yield more novelty, and features come out stronger.', { hardProblemNovelty: 1.4, features: 1.15 }],
+  ['staff_engineer', 'Staff Engineer', 'engineer', 'Hard problems yield fresher ideas, and features come out stronger.', { hardProblemNovelty: 1.4, features: 1.15 }],
   ['ux_lead', 'UX Lead', 'designer', 'Everything they touch gets more polish.', { polish: 1.3 }],
   ['brand_designer', 'Brand Designer', 'designer', 'A steady trickle of brand, every week.', { brandPerWeek: 0.03 }],
   ['growth_lead', 'Growth Lead', 'marketer', 'Campaigns and posts generate more hype.', { hype: 1.35 }],

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dispatch, tick, scoreRun } from '../../src/sim/index.js';
+import { dispatch, tick, scoreRun, createGame } from '../../src/sim/index.js';
 import { endgameSystem, historySystem, endGame, buildEpilogue } from '../../src/sim/endgame.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { makeCtx } from '../../src/sim/registry.js';
@@ -79,6 +79,7 @@ describe('losing', () => {
 describe('winning', () => {
   const ipoReady = () => {
     const s = game();
+    s.week = B.retireFromWeek;
     s.officeStage = 2;
     s.brand = B.ipoBrand;
     addProduct(s, { mrr: B.ipoMrr });
@@ -96,27 +97,43 @@ describe('winning', () => {
     s.officeStage = 1;
     expectFail(expect, dispatch, s, { type: 'ipo' }, 'Needs the HQ Building');
     s = ipoReady();
+    s.week = B.retireFromWeek - 1;
+    expectFail(expect, dispatch, s, { type: 'ipo' }, 'Opens in year 10');
+    s = ipoReady();
     const res = dispatch(s, { type: 'ipo' });
     expect(res.ok).toBe(true);
     expect(s.gameOver).toMatchObject({ won: true, reason: 'retired', retiredVia: 'ipo' });
     expect(res.events).toContainEqual({ type: 'gameOver' });
   });
 
-  it('the run is open-ended: leading categories for decades does not end it', () => {
+  it('leading categories does not end the run; the 20th anniversary does, once, and play can go on', () => {
     const lead = game();
     for (const cat of ['email', 'notes', 'pm']) {
       lead.market.categories[cat].incumbentStrength = 1;
-      addProduct(lead, { category: cat, customers: CATEGORIES[cat].tam * 0.9 });
+      addProduct(lead, { category: cat, customers: CATEGORIES[cat].tam * 0.9, mrr: 100000 });
     }
-    for (const w of [779, 1040, 2000]) {
+    lead.week = B.anniversaryWeek - 2;
+    check(lead);
+    expect(lead.gameOver).toBe(null);
+    lead.week = B.anniversaryWeek - 1;
+    expect(check(lead)).toContainEqual({ type: 'gameOver' });
+    expect(lead.gameOver).toMatchObject({ won: true, reason: 'anniversary' });
+    expect(lead.gameOver.score).toBeGreaterThan(0);
+    expect(lead.gameOver.epilogue.some((l) => l.includes('turned twenty'))).toBe(true);
+    expectFail(expect, dispatch, lead, { type: 'hire', candidateId: lead.candidates[0].id }, 'The run is over');
+    expect(dispatch(lead, { type: 'keepPlaying' }).ok).toBe(true);
+    expect(lead.gameOver).toBe(null);
+    for (const w of [B.anniversaryWeek, 2000]) {
       lead.week = w;
       check(lead);
       expect(lead.gameOver).toBe(null);
     }
+    expectFail(expect, dispatch, lead, { type: 'keepPlaying' }, 'Only after the 20th anniversary');
   });
 
   it('retire needs an IPO or an open offer, then ends the run as a win', () => {
     const s = game();
+    s.week = B.retireFromWeek;
     expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');
     s.flags.acquisitionOfferUntil = s.week - 1;
     expectFail(expect, dispatch, s, { type: 'retire' }, 'Needs an IPO or an open acquisition offer');
@@ -209,10 +226,11 @@ describe('score and epilogue', () => {
     }
   });
 
-  it('a product nobody paid for gets the free-tier line, not the holiday card', () => {
+  it('a launched product nobody paid for gets the free-tier line, not the holiday card', () => {
     const s = game();
     s.week = 200;
     s.stats.peakMrr = 0;
+    s.stats.launches = 1;
     const lines = buildEpilogue(s, { won: false, reason: 'timeout' }).join(' ');
     expect(lines).not.toMatch(/holiday card/);
     expect(lines).toMatch(/free tier/);
@@ -253,5 +271,30 @@ describe('retire options', () => {
     s.flags.acquisitionOfferUntil = s.week + 3;
     s.flags.acquisitionOfferFrom = 'Jirra';
     expect(retireOptions(s).acquired).toEqual({ ok: true, reason: null, by: 'Jirra' });
+  });
+});
+
+describe('a company that never shipped', () => {
+  it('goes broke within a year when it just waits', () => {
+    const s = createGame({ seed: 3 });
+    while (!s.gameOver && s.week < 1100) {
+      for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
+      tick(s);
+    }
+    expect(s.gameOver.reason).toBe('runway');
+    expect(s.week).toBeLessThan(52);
+  });
+
+  it('if it somehow reaches the anniversary, the epilogue and score say so', () => {
+    const s = game();
+    s.stats.launches = 0;
+    s.brand = 80;
+    s.week = B.anniversaryWeek - 1;
+    check(s);
+    expect(s.gameOver.reason).toBe('anniversary');
+    expect(s.gameOver.epilogue.some((l) => l.includes('without ever shipping'))).toBe(true);
+    expect(s.gameOver.epilogue.some((l) => /lasted longer|loyal customers/.test(l))).toBe(false);
+    expect(scoreRun(s).breakdown.brand).toBe(0);
+    expect(scoreRun(s).breakdown.wellbeing).toBe(0);
   });
 });

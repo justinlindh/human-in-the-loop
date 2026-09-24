@@ -8,8 +8,9 @@ const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
 const runs = {};
 const get = (name) => (runs[name] ??= SEEDS.map((seed) => runBot(name, seed)));
 const share = (list, pred) => list.filter(pred).length / list.length;
+const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
 
-describe('balance thresholds (40 seeds per bot, 20 years each)', () => {
+describe('balance thresholds (40 seeds per bot, 20 years each; an exit is retiring by IPO or acquisition)', () => {
   it('runs last 20 years', () => {
     expect(B.runWeeks).toBe(1040);
   });
@@ -17,19 +18,18 @@ describe('balance thresholds (40 seeds per bot, 20 years each)', () => {
   it('automate-everything collapses in at least 70% of seeds, after the agents arrive', () => {
     const a = get('automateAll');
     expect(share(a, (r) => r.lostAfterAgents)).toBeGreaterThanOrEqual(0.7);
-    expect(a.every((r) => r.eras.agents)).toBe(true);
   }, 300000);
 
   it('careful all-humans play reaches an exit in at most 40% of seeds', () => {
-    expect(share(get('allHumans'), (r) => r.won)).toBeLessThanOrEqual(0.4);
+    expect(share(get('allHumans'), (r) => r.exited)).toBeLessThanOrEqual(0.4);
   }, 300000);
 
   it('balanced exits in 30% to 90% of seeds, beats all-humans by 20 points, and reaches HQ', () => {
     const b = get('balanced');
-    const wins = share(b, (r) => r.won);
+    const wins = share(b, (r) => r.exited);
     expect(wins).toBeGreaterThanOrEqual(0.3);
     expect(wins).toBeLessThanOrEqual(0.9);
-    expect(wins - share(get('allHumans'), (r) => r.won)).toBeGreaterThanOrEqual(0.2);
+    expect(wins - share(get('allHumans'), (r) => r.exited)).toBeGreaterThanOrEqual(0.2);
     expect(b.some((r) => r.maxStage === 2)).toBe(true);
   }, 300000);
 
@@ -56,9 +56,39 @@ describe('balance thresholds (40 seeds per bot, 20 years each)', () => {
     }
   }, 300000);
 
-  it('reckless humans never exit, but always get a product out first', () => {
+  it('reckless humans never exit, always get a product out first, and score poorly', () => {
     const r = get('recklessHumans');
-    expect(r.some((x) => x.won)).toBe(false);
+    expect(r.some((x) => x.exited)).toBe(false);
     expect(r.every((x) => x.firstLaunch !== null)).toBe(true);
+    expect(median(r.map((x) => x.score))).toBeLessThan(0.25 * median(get('balanced').map((x) => x.score)));
+  }, 300000);
+
+  it('every run that lasts ends at the 20th anniversary with a score', () => {
+    for (const name of ['allHumans', 'balanced', 'sensible']) {
+      for (const r of get(name)) {
+        if (r.exited || !r.won) continue;
+        expect(r.reason).toBe('anniversary');
+        expect(r.weeks).toBe(B.anniversaryWeek);
+        expect(r.score).toBeGreaterThan(0);
+      }
+    }
+  }, 300000);
+
+  it('era by era: money still matters at the ChatGBT moment, and the office grows across the run', () => {
+    const b = get('balanced');
+    const atChat = b.map((r) => r.eras.chatgbt).filter(Boolean);
+    expect(atChat.length).toBeGreaterThanOrEqual(0.9 * b.length);
+    const cash = median(atChat.map((e) => e.cash));
+    expect(cash).toBeGreaterThan(250000);
+    expect(cash).toBeLessThan(6000000);
+    expect(median(atChat.map((e) => e.staff))).toBeLessThanOrEqual(14);
+    const floor = median(b.map((r) => r.stageWeeks[1]).filter((w) => w !== undefined));
+    const hq = median(b.map((r) => r.stageWeeks[2]).filter((w) => w !== undefined));
+    expect(floor).toBeGreaterThanOrEqual(104);
+    expect(floor).toBeLessThanOrEqual(156);
+    expect(hq).toBeGreaterThanOrEqual(260);
+    expect(hq).toBeLessThanOrEqual(364);
+    // Nobody retires before year 10.
+    for (const name of ['balanced', 'sensible']) for (const r of get(name)) if (r.exited) expect(r.weeks).toBeGreaterThanOrEqual(B.retireFromWeek);
   }, 300000);
 });

@@ -49,6 +49,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     unlocks: {},
     goals: Object.fromEntries(GOALS.map((g) => [g.id, { done: false, week: null }])),
     office: { stage: 0, placed: [] },
+    lockdown: null, workPolicy: null, pets: [], rival: null,
     founding: { founders: pair, funding: fundingId, logoColor: String(logoColor), tagline: String(tagline).slice(0, 80) },
     research: { done: [] },
     modifiers: [],

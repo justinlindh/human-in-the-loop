@@ -6,18 +6,18 @@ Research, samples, and a design. Nothing is wired into the game. Samples live in
 
 | Category | Recommendation | License (code / weights) | Status on this box |
 |---|---|---|---|
-| Music | **ACE-Step 1.5** (instrumental). Render many 90 s takes on the GPU, cut the most consistent 10-bar window with a wrap search, master, and encode | MIT / MIT; outputs usable commercially | Runs on the 5090: **1.3 s per 90 s take, 7.9 GB VRAM** (turbo, 8 steps) |
+| Music | **ACE-Step 1.5, repo tag v0.1.8, `acestep-v15-xl-sft` (4B DiT) plus the `acestep-5Hz-lm-4B` planner**, 60 steps, CFG 7, shift 3. Render many 90 s takes, cut the most consistent 10-bar window with a wrap search, master, and encode. Comparison model: HeartMuLa 3B | MIT / MIT; outputs usable commercially | Native install in `~/tools/audio/ace-step` on the 5090: about 22 s per 90 s take with the planner, 15 s without; XL-sft uses 12.1 GB VRAM |
 | SFX | **Curated Kenney CC0 packs**, plus freesound CC0 only. Generation only for rare one-offs | CC0 | Two Kenney packs downloaded, 9-sound UI set made |
-| Voice | **Simlish barks**: short acted-gibberish clips per voice type and emotion, pitch-shifted per character at runtime. Candidates: CosyVoice3 (reference timbre plus emotion instruction), Qwen3-TTS VoiceDesign, Chatterbox (not installed) | CosyVoice3 Apache-2.0; Qwen3-TTS Apache-2.0; Chatterbox MIT | Rounds 1 and 2 are made and waiting for the user's ear |
+| Voice | **Simlish barks**: design each voice with Qwen3-TTS VoiceDesign; emotions from Qwen (design or clone) or CosyVoice3 anchored to that voice, whichever holds timbre better per variant. 2 sets (fem, masc) × 8 variants, 7 emotions, 0.5 to 1.8 s. Used rarely (section 6) | Qwen3-TTS Apache-2.0; CosyVoice3 Apache-2.0 | Cast audition rendered (`voice4/`); full banks after the user's veto |
 | Engine | A small `src/audio` subsystem: a pure **director** (events and state in, commands out; testable headless like the pacer) and a thin WebAudio **backend** (buses, music stems, voices) | n/a | Designed in section 6 |
 
 Licenses:
-- **Clean**: ACE-Step 1.5, Qwen3-TTS, Fun-CosyVoice3, Chatterbox, Kenney, HeartMuLa, DiffRhythm, Dia.
+- **Clean**: ACE-Step 1.5 (code, XL checkpoints and LM all MIT), HeartMuLa 3B and HeartCodec (Apache-2.0), Qwen3-TTS, Fun-CosyVoice3, Chatterbox, Kenney, HeartMuLa, DiffRhythm, Dia.
 - **Conditional**:
   - Stable Audio 3: Community License. Commercial use needs registration, it is free only under USD 1M revenue, and the license ends above that.
   - Higgs Audio v2: under 100k annual users.
   - Orpheus: built on Llama, so the Llama license applies.
-- **Ruled out** (non-commercial weights): MusicGen/AudioGen, YuE, MMAudio, TangoFlux, Woosh, Fish Speech/OpenAudio.
+- **Ruled out** (non-commercial weights): MusicGen/AudioGen, YuE and YuE2 (CC BY-NC 4.0; companies must ask), MMAudio, TangoFlux, Woosh, Fish Speech/OpenAudio.
 
 ## 1. What is on the machine
 
@@ -28,13 +28,15 @@ Licenses:
 | Python / uv | Python 3.13 (`/opt/miniforge`, torch 2.11+cu128), uv 0.8.15 | yes |
 | Audio CLIs | ffmpeg 9 (libopus, libvorbis, loudnorm, ebur128, rubberband, atempo), sox, lame | yes |
 | Python audio libs (miniforge) | numpy, scipy, soundfile, librosa 0.11 | yes |
-| Docker | nvidia runtime plus CDI, nvidia-container-toolkit 1.20.0 | See "Docker GPU" below |
+| Docker | nvidia runtime plus CDI, nvidia-container-toolkit 1.20.0 | Yes, after the CDI spec fix (see "Docker GPU") |
 | Ollama | LLMs only | n/a |
 | GPU lazy proxy | `gpu-lazy-proxy@{ace-step,comfyui,docling,qwen3-tts-clone}`: starts a backend on the first request, stops it after 10 idle minutes | yes |
-| **ACE-Step 1.5** | Image `ghcr.io/dotnetautor/ace-step-1.5-docker`, volume `dockers_ace-step-checkpoints` (turbo DiT, LM 1.7B and 4B, VAE). Proxy :7860 goes to :7861 | Yes, on the GPU through the legacy runtime (see below) |
+| **ACE-Step 1.5, native** | `~/tools/audio/ace-step`: repo tag **v0.1.8** (commit dce6214, the latest tag), `uv sync`, torch 2.10.0+cu128. Checkpoints: `acestep-v15-xl-sft` and `acestep-v15-xl-base` (4B DiT), `acestep-v15-turbo`, `acestep-5Hz-lm-4B` and `lm-1.7B`, VAE, Qwen3-Embedding-0.6B (about 55 GB) | Yes, on the host GPU |
+| ACE-Step 1.5, homelab | Image `ghcr.io/dotnetautor/ace-step-1.5-docker` (built from an early-2026 tree), volume `dockers_ace-step-checkpoints` (turbo DiT only), proxy :7860 to :7861. Left untouched | Yes, once the CDI fix is in. It lacks the XL checkpoints and the newer samplers |
+| **HeartMuLa 3B** | `~/tools/audio/heartlib` (commit ba0a786), own uv venv (Python 3.11, torch 2.10.0+cu128). Checkpoints: HeartMuLa-oss-3B-happy-new-year, HeartCodec-oss-20260123 (21 GB) | Yes. `torchaudio.save` needs torchcodec, so `scripts/heartmula_gen.py` saves through soundfile |
 | **Qwen3-TTS 1.7B** | HF cache: Base (cloning), CustomVoice, VoiceDesign. Host servers `~/qwen-tts-server.py` (proxy :8880) and `~/qwen-tts-clone-server.py` (proxy :8882, `POST /clone`) | Yes on the host GPU. Load it from the snapshot path; loading by repo id calls the HF API and fails offline |
 | **Fun-CosyVoice3 0.5B** | Image `neosun/cosyvoice:v3.4.0` with its weights (7 GB) | CPU only (35 to 53 s per clip): the image's torch 2.3.1+cu121 has no sm_120 kernels. Needs `text_frontend=False` offline |
-| Qwen3-ASR 1.7B (STT) | `hermes-stt` on :8771; `hermes-tts` on :8770 | The containers are up, but CUDA fails in them (see Docker GPU) |
+| Qwen3-ASR 1.7B (STT) | `hermes-stt` on :8771; `hermes-tts` on :8770 | Yes, GPU healthy after the CDI fix |
 | Chatterbox | Removed from compose (`docker-compose.yml.bak-before-chatterbox-removal`); volume `dockers_chatterbox-cache` still holds about 3 GB of weights | Not runnable: no code or image. The prebuilt images ship torch older than 2.7, which Blackwell needs |
 | Fish Speech / OpenAudio S1-mini | Images and weights present | Not tested: CC-BY-NC-SA, not shippable |
 | Kokoro | `kokoro-fastapi-cpu` | Not tested: preset voices only, no emotion |
@@ -61,17 +63,15 @@ For this game, the reusable parts are the clone endpoint and the "fixed referenc
 - `nvidia-ctk cdi generate`, run unprivileged to a scratch file, produces 509
 - a test container on the legacy runtime (`--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all`) gets 509, and `torch.cuda.is_available()` is True
 
-**Fix** (needs sudo; no daemon restart):
+**Fix** (applied by the user):
 1. `sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml`
-2. Recreate the running GPU containers: `docker compose up -d --force-recreate hermes-tts hermes-stt` in `~/src/dockers`, and the same for `~/src/dockers/immich-machine-learning`.
+2. Recreate the running GPU containers (hermes-tts, hermes-stt, immich_machine_learning).
 
-The uvm major can change on any reboot, so the spec should be regenerated at boot (a root oneshot unit before `docker.service`).
-
-**Workaround in use:** throwaway containers on `--runtime=nvidia`. Nothing on the system was changed.
+**Keeping it fixed.** The uvm major can change on any reboot. `~/tools/audio/nvidia-cdi-refresh.service` is a root oneshot that runs `nvidia-modprobe -u` and then `nvidia-ctk cdi generate` before `docker.service`. Install instructions are in the file's header. It is not installed yet.
 
 ### Other blockers
 
-- The permission classifier blocks cloning or pip-installing new code (ACE-Step from GitHub, `chatterbox-tts` from PyPI). Anything new needs the user's approval. Everything above ran from images and installs that were already here.
+- Installing new code needs the user's approval. Approved and installed: ACE-Step v0.1.8 and HeartMuLa. Not installed: Chatterbox.
 - Stable Audio 3 Small SFX is gated on Hugging Face (accept the license on an account first).
 
 ## 2. Survey and licenses
@@ -154,6 +154,30 @@ GPU numbers (turbo, 8 steps, DiT only, legacy runtime):
 
 The raw takes (`raw_*.wav`, 48 kHz stereo) are kept next to the loops. The GPU batch's metrics are in `~/tools/audio/work/batch2_metrics.jsonl`.
 
+#### Max quality: ACE-Step v0.1.8 XL-sft (`music_hq/`)
+
+- **Settings**: `acestep-v15-xl-sft`, 60 steps (the recommendation is 50), CFG 7.0, shift 3.0, ODE Euler, DCW off (the UI default for SFT), 48 kHz WAV.
+- **Planner**: `acestep-5Hz-lm-4B` with thinking on (it plans the audio codes; the caption, BPM and key are kept, no CoT rewrite), or off for the A/B.
+- **Speed**: 20 to 24 s per 90 s take with the planner (15 s of that is diffusion), 14 to 24 s without. XL-sft peaks at 12.1 GB VRAM; with the planner the peak reads 26.8 GB, mostly vLLM's cache reservation. Model init: DiT 7 to 9 s, LM 43 s.
+
+| File | Prompt, seed | Planner | Loop | Wrap dev / typical p95 |
+|---|---|---|---|---|
+| `music_hq/hq_steady_think_s2202_loop_x3.ogg` (+ `_full.ogg`) | steady, 2202 | 4B | 25.3 s from 55.0 s | 0.67 / 0.64 dB |
+| `music_hq/hq_base_think_s2202_loop_x3.ogg` (+ `_full.ogg`) | s2202 caption, 2202 | 4B | 24.5 s from 33.1 s | 0.80 / 1.92 dB |
+| `music_hq/hq_steady_think_s3101_loop_x3.ogg` (+ `_full.ogg`) | steady, 3101 | 4B | 25.1 s from 26.4 s | 0.56 / 1.00 dB |
+| `music_hq/hq_steady_nolm_s2202_loop_x3.ogg` (+ `_full.ogg`) | steady, 2202 | none | 25.0 s from 55.8 s | 0.73 dB |
+
+Eight planner takes and four no-planner takes are kept as `raw_hq_*.wav`.
+
+#### Comparison model: HeartMuLa 3B (`music_hq/heartmula_*`)
+
+- **Model**: HeartMuLa-oss-3B "happy-new-year" plus HeartCodec-oss-20260123, both Apache-2.0.
+- **Settings**: topk 50, temperature 1.0, CFG 1.5 (the recommended defaults), bf16 MuLa, fp32 codec, 48 kHz stereo.
+- **Speed**: 45 to 48 s per 90 s take, 25 GB peak VRAM.
+- **Prompt**: the same brief as tags ("instrumental, electric piano, marimba, muted guitar, brushed drums, bass, cheerful, cozy, bouncy, retro video game, office, background music, 96 bpm"), with only `[Intro] [Inst] [Inst] [Inst] [Outro]` as lyrics.
+- **No tempo control**: takes landed at about 104 to 122 BPM.
+- **Files**: `heartmula_take1_full.ogg` and `heartmula_take1_loop_x3.ogg` (20.8 s loop, 0.75 / 2.0 dB), and `heartmula_take3_*` (23.1 s loop).
+
 ### SFX
 
 `sfx/ui_set_kenney_audition.ogg`: nine Kenney CC0 sounds in the order click, button, select, toggle, open, close, tick, confirm, error. Each is trimmed, mono 48 kHz, peak -3 dBFS, OGG, 3 to 7 KB. The individual files are `sfx/kenney/ui_*.ogg`. Integrated LUFS is meaningless under 400 ms, so short UI sounds are peak-matched.
@@ -170,11 +194,44 @@ The raw takes (`raw_*.wav`, 48 kHz stereo) are kept next to the loops. The GPU b
   - Emotion: happy and angry are native; tired is the slow instruction plus `[breath]`; questioning is the soft instruction plus a rising "?"; happy adds `[laughter]`.
   - CPU, 35 to 53 s per clip. 2.9 to 7.6 s long, -20 LUFS, OGG.
 
-Gibberish lines used:
-- happy: "Ooh, bibbala! Toomi toomi!"
-- annoyed: "Ugh. Nargo feshta. Blok!"
-- tired: "Mmh... sheloo... dorra mah."
-- questioning: "Hm? Deeba lonnie... sho?"
+- **Round 3, voice sets** (`voice3/`), Qwen3-TTS 1.7B, the user's pick of engine. For each variant, one anchor voice is designed with VoiceDesign (`anchor_<variant>.wav`). Then per emotion, two methods:
+  - **design**: VoiceDesign with the voice description plus an emotion description. 8 takes; keep the take in the 0.6 to 1.8 s window whose speaker embedding (Qwen3-TTS x-vector) is closest to the anchor.
+  - **clone**: the Base model in ICL clone mode from the anchor. Emotion comes only from the text and its punctuation (clone mode takes no instruction). 4 takes.
+  - Timbre similarity to the anchor is 0.94 to 0.98 for design and 0.97 to 0.98 for clone. 8.7 GB VRAM with both models loaded; about 9 to 15 s per design cell and 3 to 6 s per clone cell.
+  - Batch 1 (3 variants × 4 emotions) has audition sheets `sheet_{design,clone}_{variant}.ogg`. The full sets (8 variants × 7 emotions, both methods) are in `voice3/full/`.
+  - The user dropped the neutral set (it read as a young woman) and rejected the high fem_bright voice.
+- **Round 4, cast audition** (`voice4/`, `scripts/voice_cast.py`): 8 fem and 8 masc variants, adult voices described by age, register and texture (see the list below). Every description says "natural adult speaking register, not a cartoon, not a child, not anime".
+  - Per variant, the anchor is picked from up to 14 takes by median F0: window 150 to 215 Hz fem, 90 to 150 Hz masc. A calm anchor line ("Well, kolo mishi deeba lonnie, sho feshta...") gives lower pitch than an exclamatory one.
+  - One happy bark per variant is picked from 10 takes by length, pitch, and timbre match (0.95 to 0.97).
+  - Measured, the model leans high. Fem anchor takes mostly measure 280 to 480 Hz; masc takes from an exclamatory line measured 200 to 400 Hz.
+  - `scripts/normpitch.py` applies a formant-preserving shift (rubberband, formant=preserved, capped at -5 semitones) to reach a happy-bark median of about 230 Hz fem and 150 Hz masc. Sheets: `audition_{fem,masc}_{raw,pitchnorm}.ogg`.
+  - fem_warm A/B in `voice3/ab/`: the baseline (median 391 Hz), and -3 and -4 semitone formant-preserving shifts (355 and 309 Hz). The user keeps fem_warm as the baseline.
+  - Group cheer: `voice4/group_cheer_demo.ogg` (`scripts/group_cheer.py`); the design is in section 6.
+
+Cast (variant ids as used in the bank table):
+
+| fem | masc |
+|---|---|
+| alto40: forties, low alto, slightly husky, matter-of-fact | warm: late twenties, mellow baritone |
+| warm30: thirties, relaxed alto, kind coworker | gruff50: fifties, slightly raspy baritone, grumpy but lovable |
+| crisp: late thirties, clear mezzo, brisk | nerdy: mid-twenties, light tenor, slightly nasal, fast |
+| deadpan: late twenties, low, dry humour | crisp: thirties, articulate baritone, polished |
+| breathy: early thirties, soft, slightly breathy low mezzo | laidback: thirties, relaxed, slightly breathy low tenor |
+| raspy50: fifties, raspy contralto, wry | deadpan: forties, flat low-key baritone |
+| nasal: thirties, slightly nasal mezzo, chatty | sixty: around sixty, warm, slightly weathered |
+| sixty: around sixty, weathered alto | raspy: thirties, raspy energetic tenor |
+
+Gibberish lines (rounds 1 and 2 used the longer versions):
+
+| Emotion | Line |
+|---|---|
+| happy | "Ooh, bibbala!" |
+| annoyed | "Ugh, nargo blok!" |
+| tired | "Mmh... sheloo..." |
+| questioning | "Hm? Deeba sho?" |
+| excited | "Wah! Zippa zoo!" |
+| laughing | "Ha ha! Toomi ha!" |
+| sighing | "Haah... dorra mah." |
 
 These are invented, not the Sims' real Simlish lexicon.
 
@@ -182,22 +239,37 @@ These are invented, not the Sims' real Simlish lexicon.
 
 ### Music
 
-1. **Generate** on the GPU: turbo for breadth (dozens of 90 to 120 s takes per prompt), then `acestep-v15-xl-sft` for final quality (needs a download; 12 to 20 GB VRAM).
-2. **One palette per era, one core across eras**:
+**Locked recipe** (`~/tools/audio/scripts/music_recipe.py`, which records the captions, BPM, keys and seeds per cue):
+- ACE-Step v0.1.8 (commit dce6214), `acestep-v15-xl-sft` plus the `acestep-5Hz-lm-4B` planner.
+- 60 steps, CFG 7.0, shift 3.0, ODE Euler, DCW off, 48 kHz, 90 s takes, 6 or more seeds per cue.
+- Cut with `loopify2.py` (8 to 16 bars, wrap search plus a consistency score), master to -18 LUFS with TP -1.5, then a human picks.
 
-   | Era | Palette |
-   |---|---|
-   | Classic | warm electric piano, marimba, brushed drums |
-   | ChatGBT | the same core plus bright synth bells, a little faster |
-   | Agents | arpeggiated synths, tighter drums, a hint of unease |
-   | Consolidation | sparser, colder, corporate lounge |
-   | Plateau | calm, back to the warm core |
+**Per-era plan.** The shared core in every cue is warm electric piano, marimba and round bass, plus the same steady, loopable arrangement language. Each era adds one twist.
 
-   Aim for 2 to 3 beds per era, plus stingers (era arrival, launch, incident, award, win, game over) and a title theme.
-3. **Cut**: pick the most consistent 8 to 16 bars with `loopify2.py`, then a human listens. A bad wrap gets redone with ACE-Step **repaint** on the last bar.
-4. **Stems** for intensity layers (section 6): split the chosen take into 3 stems (bed: keys and pads; rhythm: drums and bass; top: lead and bells) with ACE-Step's extract feature, or with Demucs (MIT) if approved. All stems share the loop points.
-5. **Master**: -18 LUFS integrated per full mix, stems at their natural relative level, true peak at or below -1.5 dBTP, 48 kHz.
-6. **Encode**: Ogg Opus 64 to 80 kbps plus AAC `.m4a` 96 kbps for Safari older than 18.4 (choose with `canPlayType`).
+| Era | Tempo, key | Twist | Beds | Demo bed |
+|---|---|---|---|---|
+| Classic (2019) | 96, F major | soft muted guitar, light brushed drums; cozy and bouncy | 3: day, busy (plus rhythm stem), late (sparser) | `music_hq/hq_steady_think_s2202` |
+| ChatGBT | 102, Bb major | sparkling synth bells, plucky synth arp, crisp shaker; optimistic, a little giddy | 2 to 3 | `music_eras/chatgbt_s5104` |
+| Agents | 108, D minor | pulsing analog arps, tight electronic drums; driven, a hint of unease | 2 to 3 | `music_eras/agents_s6105` |
+| Consolidation | 90, A minor | muted core, vibraphone, soft brushes; cool corporate lounge | 2 | `music_eras/consolidation_s7105` |
+| Plateau | 84, Eb major | soft warm pads, lazy groove; calm, settled, back to the warm core | 2 | `music_eras/plateau_s8102` |
+
+Beds within an era share tempo and key, so the intensity layers and bed rotation (section 6) crossfade cleanly.
+
+**Stingers.** Each is rendered as a short cue (8 to 12 s) and trimmed to its first phrase, in the current era's key and palette, so it lands in tune over the bed:
+
+| Stinger | Length | Brief |
+|---|---|---|
+| Era arrival | 4 to 6 s | a rising fanfare in the new era's palette; bridges into the new bed |
+| Launch | 3 to 4 s | a bright, triumphant flourish; layered under the group cheer |
+| Incident | 2 to 3 s | a tense, dissonant pulse; the music ducks and then drops to the bed layer |
+| Waffle Party | 8 to 10 s | a festive, silly swing loop, played while the party is staged; carries the group cheer |
+| Win and game over | 6 to 10 s | resolved major and wistful minor versions of the Classic theme |
+| Title | loop | the Classic core at 90 bpm |
+
+Stems for intensity layers come from ACE-Step's extract task (or Demucs if approved). All stems share the loop points.
+
+**Master** at -18 LUFS integrated (stems at their natural relative level) and TP -1.5 dBTP. **Encode** as Ogg Opus 64 to 80 kbps plus AAC `.m4a` 96 kbps for Safari older than 18.4.
 
 ### SFX
 
@@ -205,7 +277,11 @@ Kenney CC0 first, then freesound CC0 only. Trim, mono 48 kHz, peak -3 dBFS, OGG/
 
 ### Voice barks
 
-4 to 6 voice types (for example bright, gruff, soft, nasal, deep, squeaky) × 6 emotions (happy, annoyed, tired, excited, questioning, laughing) × 2 to 3 takes, each 0.5 to 2 s. Mono 48 kHz, -20 LUFS, one Opus sprite per voice type at about 60 to 120 KB.
+- **Cast**: 2 sets (fem, masc) × 8 variants. Each variant has one anchor voice designed with Qwen3-TTS VoiceDesign, picked by measured median F0.
+- **Emotions**: happy, annoyed, tired, questioning, excited, laughing, sighing. They come from Qwen (VoiceDesign with a timbre match to the anchor, or Base clone) or from CosyVoice3 anchored to the same voice; per variant, whichever holds timbre steadier. Formant-preserving normalization is applied where the register runs high (`normpitch.py`).
+- **Fewer, better**: barks are rare in play (section 6), so each bank holds 7 emotions × 2 takes, 0.5 to 1.8 s each. That is about 20 s of audio per bank, about 80 KB at 32 kbps mono Opus, and about 1.3 MB for all 16.
+- **Master**: trim, mono 48 kHz, -20 LUFS, limiter -2 dBFS.
+- **Scripts**: `voice_cast.py` renders anchors and barks per variant and emotion, `normpitch.py` normalizes pitch, `bark_master.sh` masters, `group_cheer.py` prototypes the cheer mix.
 
 ### What a human must judge by ear
 
@@ -219,9 +295,11 @@ Kenney CC0 first, then freesound CC0 only. Trim, mono 48 kHz, peak -3 dBFS, OGG/
 
 ## 5. Listening queue
 
-1. `music/pre_ai_steady_s2210_loop_x3.ogg` and `music/pre_ai_steady_s2220_loop_x3.ogg`, against the pick `music/classic_office_s2202_seamfix_loop_x3.ogg`: is the "steady" prompt more cohesive?
-2. `voice2/qwen_*` against `voice2/cosy_*`: which sounds like acted Simlish, and does either keep one person recognizable across emotions?
-3. `sfx/ui_set_kenney_audition.ogg`: is this the right UI feel?
+1. **Cast veto.** `voice4/audition_{fem,masc}_raw.ogg` against `_pitchnorm.ogg`: which voices stay, and raw or normalized?
+2. **Group cheer.** `voice4/group_cheer_demo.ogg`.
+3. **Era beds.** `music_eras/{chatgbt_s5104,agents_s6105,consolidation_s7105,plateau_s8102}_loop_x3.ogg` and their `_full.ogg`: does each era read as the same game with its own twist?
+4. **fem_warm A/B.** `voice3/ab/`.
+5. **UI feel.** `sfx/ui_set_kenney_audition.ogg`.
 
 ## 6. Audio engine design (`src/audio`)
 
@@ -268,10 +346,11 @@ export const BUSES = {
   ambience: { gain: 0.35, limit: 3 },
   sfx:      { gain: 0.8,  limit: 6 },
   ui:       { gain: 0.6,  limit: 4 },
-  voice:    { gain: 0.85, limit: 2 },
+  voice:    { gain: 0.85, limit: 6 },   // 6 only for a group cheer; single barks are budgeted in VOICE_RULES
 };
 export const DUCK = {               // target gain multiplier on the music bus, attack/release in s
   voice:    { music: 0.7,  attack: 0.08, release: 0.6 },
+  cheer:    { music: 0.35, attack: 0.05, release: 1.5 },
   decision: { music: 0.45, attack: 0.3,  release: 1.2 },
   stinger:  { music: 0.3,  attack: 0.05, release: 1.5 },
 };
@@ -291,7 +370,8 @@ export const ON_EVENT = {
   incident: (e) => (e.caught ? 'sfx.caught' : 'sfx.incident'),
   resign: (e) => (e.fired ? 'sfx.fired' : 'sfx.resign'),
   bubble: 'sfx.bubble',
-  say: 'voice.bark',
+  say: null,                         // speech bubbles never bark; see VOICE_RULES
+  incentive: (e) => (e.reward === 'waffle_party' ? 'stinger.waffle' : 'sfx.reward'),
   chat: null,
   toast: (e) => ({ bad: 'sfx.bad', warn: 'sfx.warn' })[e.tone] ?? null,
   era: 'stinger.era',
@@ -361,18 +441,38 @@ music bus -> lowpass BiquadFilter (pause and lockdown) -> duck gain -> bus gain
 
 ### Voice barks
 
-- **Voice identity** comes from the contract's `Staff.voice = { set, variant, pitch }`:
-  - `set` and `variant` pick a voice type: a sprite of barks per emotion.
-  - `pitch` (-1..1) maps to `playbackRate` 2^(±3/12); ±3 semitones keeps the voice natural.
-  - Resampling pitch also changes duration, which is an acceptable character quirk.
-- **Emotion** for a `say` event, in order:
-  1. an explicit tone on the event, if the sim adds one (a proposed contract addition: optional `tone` on `say`),
-  2. text cues: "?" gives questioning, "!" gives excited, "haha" or "lol" gives laughing,
-  3. the speaker's state: `mood` burnout or low stamina gives tired, low meaning gives annoyed,
-  4. otherwise a neutral or happy default.
-- **Sync.** The bark starts when the pacer releases the `say` event, which is the moment the renderer shows the bubble. Bark length is picked to fit the text length, and never exceeds `BUBBLE_SECONDS`. The pacer already guarantees one bubble per speaker at a time; the voice bus limit (2) plus a per-speaker cooldown stops a busy HQ from sounding like a crowd.
-- **Priority**: the camera-focused person, then lines addressed to someone (`toId`), then the rest. Barks from off-screen speakers are skipped when spatial is on.
-- **Settings**: voices can be set to barks, blips (synth fallback, zero assets), or off.
+Barks are rare, and less is more. They are never tied to speech bubbles or Slackk lines (`say` and `chat` map to no voice).
+
+- **Bank.** `Staff.voice = { set: 'fem'|'masc', variant, pitch: -1..1 }` picks the bank: `${set}_${VOICE_VARIANTS[set][variant % n]}`, for example `fem_warm30`.
+  - `VOICE_VARIANTS` in the manifest lists the recorded variants per set (8 each), so adding one is a data edit.
+  - Each bank is one sprite holding 7 emotions × 2 takes. The manifest maps `{ bank: { emotion: [[offset, duration], ...] } }`.
+- **Per-person pitch.** `pitch` maps to `playbackRate = 2 ** (pitch * 2 / 12)`, about ±2 semitones, so two people on the same bank never sound identical. Each bark adds ±0.3 semitones of jitter from the director's seeded rng.
+- **Triggers** (`VOICE_RULES` in the manifest). Each rule gives who speaks and the emotion:
+
+| Trigger | Source | Who | Emotion | Plays |
+|---|---|---|---|---|
+| Player clicks a character | UI cue `voice.poke` with `staffId` (raised when the renderer's pick returns a person) | that person | from their state: burnout or strain gives tired or sighing; low meaning gives annoyed; otherwise happy or questioning | always; per-person cooldown of 1.5 s so a click spree doesn't stack |
+| Launch | `launch` | group cheer of those present | excited or laughing | always |
+| Incident not caught | `incident` with `caught: false` | 1 to 2 people nearest the product owner | annoyed or sighing | always; a caught incident gets one happy bark from the catcher |
+| Era arrival | `era` | group, 2 to 3 people | questioning, then excited | after the era card closes |
+| Waffle Party | `incentive` with `reward: 'waffle_party'` | group cheer, led by the rewarded person | laughing or happy | always |
+| Burnout | a staff `mood` change to `burnout` (the director keeps last week's moods) | that person | tired, then sighing | once per episode |
+| Quitting | `resign` with `fired: false` | the leaver | sighing | always |
+| Hire's first day | `hire` | the new person | happy | once |
+| Ambient | none (a timer in `update`) | a random present person on screen | from their state | only if the global voice budget allows |
+
+- **Global budget.** The director tracks the last voice time.
+  - An ambient bark needs at least 30 s since the last bark of any kind, and a random draw spread over 30 to 60 s. It skips while a decision, menu or card is open (`menuPause` or `decision`), while speed is 0, and during lockdown when the office is empty.
+  - Trigger barks ignore the ambient timer but still respect a 2 s global gap between separate moments.
+  - A tone on `say` (in the contract) is available if a future rule wants it.
+- **Group cheer** (launch, Waffle Party, era arrival):
+  - Up to 6 people present in the office, chosen by closeness to the camera focus and then at random. Each uses their own bank and pitch.
+  - Onsets are staggered 50 to 250 ms apart, with ±0.5 semitone jitter and 0 to -4 dB gain spread per voice.
+  - Under them, a light crowd bed: a small prerendered murmur and cheer loop from the cast, low-passed, playing on the ambience bus and fading around the cheer.
+  - The music bus uses the `cheer` duck (-9 dB, 50 ms attack, 1.5 s release after the last voice).
+  - At Low quality the cheer drops to 2 voices plus the crowd bed.
+  - Prototype: `~/tools/audio/scripts/group_cheer.py`; demo: `voice4/group_cheer_demo.ogg`.
+- **Settings**: voices on or off (a slider on the voice bus).
 
 ### Assets and loading
 
@@ -398,7 +498,7 @@ The manifest references the ids in that file, and a test fails on any missing fi
 | Title music | stream on unlock | under 1 MB |
 | Current era bed (3 stems) | decode, lazily | about 0.8 MB per stem, 2.5 MB per bed |
 | Next era | prefetch when close | the same |
-| Voice sprites | decode on the first `say` | about 100 KB × 6 types |
+| Voice sprites | decode the banks of present staff at load; others on first use | about 80 KB per bank at 32 kbps mono Opus (7 emotions × 2 takes); 16 banks about 1.3 MB; crowd bed about 60 KB |
 | **Total shipped** | | **under 20 MB; first play under 4 MB** |
 
 ### Quality levels
@@ -406,7 +506,7 @@ The manifest references the ids in that file, and a test fails on any missing fi
 | | High | Low (touch, low-end) |
 |---|---|---|
 | Music | stems with layers, decoded | one pre-mixed track per era, streamed through a `MediaElementAudioSourceNode` (no decode memory); intensity by filter only |
-| Voice limit | 2 | 1, barks shortened or blips |
+| Voice | cheer up to 6 voices | cheer 2 voices plus the crowd bed |
 | SFX limit | 6 | 3; priority-1 cues off |
 | Spatial | on | off |
 | Ambience | on | off |

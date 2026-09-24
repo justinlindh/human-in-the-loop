@@ -65,8 +65,10 @@ registerAction('setPolicy', (ctx, { id, on }) => {
     if (!state.policies[id] && !isUnlocked(state, `policy.${id}`)) return { ok: false, reason: pol.lockText };
     state.policies[id] = true;
     if (pol.excludes) delete state.policies[pol.excludes];
+    if (id.endsWith('standups')) state.flags.standupChangedWeek = state.week;
     ctx.emit({ type: 'toast', text: `Policy on: ${pol.name}`, tone: 'info' });
   } else {
+    if (state.policies[id] && id.endsWith('standups')) state.flags.standupChangedWeek = state.week;
     delete state.policies[id];
   }
   return { ok: true };

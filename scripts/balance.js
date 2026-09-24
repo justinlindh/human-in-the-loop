@@ -21,7 +21,9 @@ for (const name of bots) {
   for (const r of results) reasons[r.reason] = (reasons[r.reason] ?? 0) + 1;
   rows.push({
     bot: name,
-    win: `${Math.round((100 * results.filter((r) => r.won).length) / seeds)}%`,
+    exit: `${Math.round((100 * results.filter((r) => r.exited).length) / seeds)}%`,
+    floor: median(results.map((r) => r.stageWeeks[1] ?? 9999)),
+    hqWeek: median(results.map((r) => r.stageWeeks[2] ?? 9999)),
     reasons: Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '),
     weeks: median(results.map((r) => r.weeks)),
     firstLaunch: median(results.map((r) => r.firstLaunch ?? 999)),
@@ -39,7 +41,7 @@ console.table(rows);
 // Era by era: how many runs reached each era, and median cash, staff, and MRR on arrival.
 const eraRows = [];
 for (const name of bots) {
-  for (const era of ['chatgbt', 'agents', 'consolidation']) {
+  for (const era of ['chatgbt', 'agents', 'consolidation', 'plateau']) {
     const at = all[name].map((r) => r.eras[era]).filter(Boolean);
     eraRows.push({
       bot: name, era, reached: `${Math.round((100 * at.length) / seeds)}%`,

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { B } from '../../src/sim/balance.js';
 import { runBot } from '../../src/sim/bots.js';
 import { tick } from '../../src/sim/index.js';
 import { article } from '../../src/sim/util.js';
@@ -6,7 +7,7 @@ import { fillChat, chatSystem } from '../../src/sim/chat.js';
 import { postureParts } from '../../src/sim/incidents.js';
 import { itemBonus } from '../../src/sim/bonus.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { THREADS } from '../../src/data/threads.js';
+import { TALK } from '../../src/data/talk.js';
 import { game, addStaff, addProduct, setItems } from './helpers.js';
 
 describe('every chat line players see is filled and grammatical', () => {
@@ -56,9 +57,9 @@ describe('article', () => {
 describe('threads', () => {
   it('cool down for about a year, longer for final_v2', () => {
     const s = game();
-    const base = THREADS.find((t) => t.id === 'standup');
-    expect(base.cooldown ?? 52).toBeGreaterThanOrEqual(52);
-    expect(THREADS.find((t) => t.id === 'final_v2').cooldown).toBeGreaterThanOrEqual(104);
+    const base = TALK.find((t) => t.id === 'standup');
+    expect(base.cooldown ?? B.exchangeCooldownWeeks).toBeGreaterThanOrEqual(52);
+    expect(TALK.find((t) => t.id === 'final_v2').cooldown).toBeGreaterThanOrEqual(104);
     expect(s).toBeTruthy();
   });
 
@@ -67,13 +68,14 @@ describe('threads', () => {
     const j = addStaff(s, 'engineer', 'junior');
     const m = s.staff.find((p) => p.seniority === 'senior');
     m.assignment = { type: 'mentor', targetId: j.id };
-    const t = THREADS.find((x) => x.id === 'mentee_thanks');
+    const t = TALK.find((x) => x.id === 'mentee_thanks');
+    const opener = (text) => t.turns[0][1].some((v) => text.startsWith(v.split('{')[0].slice(0, 20)));
     let fired = false;
     for (let w = 0; w < 400 && !fired; w++) {
       const c = makeCtx(s);
-      for (const x of THREADS) if (x.id !== 'mentee_thanks') s.flags[`cdThread_${x.id}`] = 1e9;
       chatSystem(c);
-      const root = c.events.find((e) => e.type === 'chat' && e.fromId === j.id && e.replyTo === null && e.text.startsWith('Shipped my first thing'));
+      for (const x of TALK) if (x.id !== 'mentee_thanks') (s.flags.talk.cd[x.id] = 1e9);
+      const root = c.events.find((e) => e.type === 'chat' && e.fromId === j.id && e.replyTo === null && opener(e.text));
       if (root) {
         fired = true;
         expect(c.events.some((e) => e.replyTo === root.id && e.fromId === m.id)).toBe(true);
@@ -81,7 +83,7 @@ describe('threads', () => {
       s.week++;
     }
     expect(fired).toBe(true);
-    expect(t.post.who).not.toBe('their mentee');
+    expect(t.cast).toEqual({ a: 'junior', b: 'mentorOf' });
   });
 });
 

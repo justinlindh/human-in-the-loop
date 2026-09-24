@@ -80,6 +80,8 @@ describe('cyber attacks need something to attack', () => {
     const s = game();
     expect(cyberChance(s)).toBe(0);
     addProduct(s, { mrr: 1000 });
+    expect(cyberChance(s)).toBe(0);
+    s.week += B.cyberGraceWeeks;
     expect(cyberChance(s)).toBeGreaterThan(0);
   });
 
