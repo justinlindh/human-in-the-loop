@@ -132,12 +132,13 @@ export function createHud({ root, controls, ui }) {
   const meters = h('div.chip.meters', null, mBrand.el, mIk.el, mDebt.el);
 
   const pausedTag = h('span.paused-tag', { text: 'Paused' });
+  const menuTag = h('span.paused-tag.menu', { text: 'Paused: menu open', title: 'Time waits while a menu is open. Change this in Settings.' });
   const speedBtns = SPEEDS.map((sp) => h('button.btn.small', {
     title: sp.title,
     onclick: () => ui.setSpeed(sp.k),
   }, icon(sp.ico)));
   const gear = h('button.btn.small.gear', { title: 'Settings', onclick: () => ui.openSettings?.() }, icon('settings'));
-  const speed = h('div.chip.speed', null, pausedTag, ...speedBtns, gear);
+  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
 
@@ -277,6 +278,8 @@ export function createHud({ root, controls, ui }) {
       speedBtns.forEach((b, i) => toggleClass(b, 'on', SPEEDS[i].k === sp));
       pausedTag.style.display = sp === 0 ? '' : 'none';
     }
+    const busy = sp > 0 && !!ui.isBusy?.();
+    if (busy !== last.busy) { last.busy = busy; menuTag.style.display = busy ? 'inline' : 'none'; }
 
     const now2 = performance.now();
     if (now2 - (last.trayAt ?? 0) < 200) { for (const b of trayBinds) b(s); return; }
