@@ -1,26 +1,15 @@
-import { h, setText, setWidth, fmtMoney, toggleClass, setClass, dateOf, clamp } from '../dom.js';
+import { h, setText, setWidth, fmtMoney, toggleClass, setClass, dateOf } from '../dom.js';
 import { B, INCIDENT_LABEL } from '../content.js';
-import * as SIM from '../../sim/index.js';
+import { postureParts as simPostureParts } from '../../sim/incidents.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
 import { oversightNeeded, oversightHave } from './automation.js';
 
-const MOOD_MULT = { ok: 1, coasting: 0.6, burnout: 0.2, away: 0 };
-
-// Posture parts per the sim's formula; the total uses the sim's own function when it exists.
+// The sim's own breakdown, so the rows add up to the posture bar. Debt is a positive penalty.
 export function postureParts(s) {
-  const secStaff = s.staff.filter((p) => p.role === 'security' && p.mood !== 'away');
-  const staff = secStaff.reduce((a, p) => {
-    const avg = (p.skills.features + p.skills.polish + p.skills.reliability + p.skills.novelty) / 4;
-    const mult = (B.seniorityOutput?.[p.seniority] ?? 1) * (p.speed ?? 1) * (MOOD_MULT[p.mood] ?? 1);
-    return a + (avg * (B.postureSecurityPerSkill ?? 0.6) * mult) / 10;
-  }, 0);
-  const audit = s.security?.auditBoost ?? 0;
-  const tooling = s.security?.tooling ? (B.postureTooling ?? 12) : 0;
-  const debt = -(s.comprehensionDebt * (B.postureDebtPenalty ?? 0.5));
-  const est = clamp(staff + audit + tooling + debt, 0, 100);
-  const total = typeof SIM.securityPosture === 'function' ? SIM.securityPosture(s) : est;
-  return { staff, audit, tooling, debt, total, people: secStaff.length };
+  const p = simPostureParts(s);
+  const people = p.people ?? s.staff.filter((x) => x.assignment?.type === 'security' && x.mood !== 'away').length;
+  return { ...p, people };
 }
 
 function severityPips(n) {
@@ -58,7 +47,7 @@ export function opsPanel(ctx) {
       // Security posture
       const post = meter({ label: 'Posture', cls: 'thick', color: '#34c38f' });
       const parts = {
-        staff: h('b.num'), audit: h('b.num'), tooling: h('b.num'), debt: h('b.num'),
+        staff: h('b.num'), bonus: h('b.num'), audit: h('b.num'), tooling: h('b.num'), debt: h('b.num'),
       };
       const auditLeft = h('span.small.muted');
       bind((st) => {
@@ -67,7 +56,8 @@ export function opsPanel(ctx) {
         setText(parts.staff, `+${pp.staff.toFixed(1)}`);
         setText(parts.audit, `+${pp.audit.toFixed(1)}`);
         setText(parts.tooling, `+${pp.tooling.toFixed(0)}`);
-        setText(parts.debt, pp.debt.toFixed(1));
+        setText(parts.bonus, `+${pp.bonus.toFixed(1)}`);
+        setText(parts.debt, `-${pp.debt.toFixed(1)}`);
         setText(auditLeft, pp.audit > 0.5 ? 'Audit boost fades a little every week.' : 'No recent audit.');
       });
       const pp0 = postureParts(s);
@@ -78,6 +68,7 @@ export function opsPanel(ctx) {
         post.el,
         h('div.breakdown', null,
           h('div', null, h('span', { text: `Security staff (${pp0.people})` }), parts.staff),
+          h('div', null, h('span', { text: 'Tools and specialists' }), parts.bonus),
           h('div', null, h('span', { text: 'Audit' }), parts.audit),
           h('div', null, h('span', { text: 'Tooling' }), parts.tooling),
           h('div.neg', null, h('span', { text: 'Comprehension debt' }), parts.debt)),

@@ -4,7 +4,7 @@ import { createSceneGraph, buildTestDiorama } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop, windowUpdater } from './lighting.js';
 import { createPost } from './post.js';
-import { buildKitBoard, buildPropLineup, buildItemLineup } from './debug.js';
+import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround } from './debug.js';
 import { setGlowScale } from './materials.js';
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
@@ -34,6 +34,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const bounds = params.get('kit') === '1' ? buildKitBoard(office)
     : params.get('props') === '1' ? buildPropLineup(office)
     : params.get('items') === '1' ? buildItemLineup(office)
+    : params.get('chars') === '1' ? buildCharLineup(office)
+    : params.get('chars') === '2' ? buildCharTurnaround(office)
     : buildTestDiorama(office);
   rig.setBounds(bounds);
   if (params.get('zoom')) rig.setZoom(Number(params.get('zoom')));
@@ -101,6 +103,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     render(dt) {
       rig.update(dt);
       lighting.setViewYaw(rig.yaw);
+      office.userData.update?.(dt);
       post.render(dt);
       labels.render(scene, rig.camera);
     },

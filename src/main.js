@@ -5,31 +5,43 @@ const renderMods = import.meta.glob('./render/index.js');
 const uiMods = import.meta.glob('./ui/index.js');
 const audioMods = import.meta.glob('./audio/audio.js');
 const simMods = import.meta.glob('./sim/index.js');
+const saveMods = import.meta.glob('./save/save.js');
 
 const params = new URLSearchParams(location.search);
 const mockScenario = params.get('mock');
 const isSnap = params.has('snap');
+// ?seed or ?weeks skips the title and plays immediately (tests, snapshots, reproducible runs).
+const directPlay = !!mockScenario || params.has('seed') || params.has('weeks');
 const WEEK_SECONDS = 2.0;
 // Ambient day/night runs on real time so higher game speeds never strobe the scene.
 const DAY_SECONDS = 120;
+const AUTOSAVE_WEEKS = 4;
 
 async function loadOptional(mods) {
   const loader = Object.values(mods)[0];
   return loader ? loader() : null;
 }
 
+const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
+
 async function boot() {
-  const [renderMod, uiMod, audioMod, simMod] = await Promise.all([
-    loadOptional(renderMods), loadOptional(uiMods), loadOptional(audioMods), mockScenario ? null : loadOptional(simMods),
+  const [renderMod, uiMod, audioMod, simMod, saveMod] = await Promise.all([
+    loadOptional(renderMods), loadOptional(uiMods), loadOptional(audioMods),
+    mockScenario ? null : loadOptional(simMods), mockScenario ? null : loadOptional(saveMods),
   ]);
+  const realSim = !!simMod && !mockScenario;
 
   let sim;
-  if (mockScenario || !simMod) {
+  let playing = false;
+
+  function useState(state) {
+    sim = { state, tick: () => simMod.tick(state), dispatch: (a) => simMod.dispatch(state, a) };
+  }
+  if (!realSim) {
     const m = createMockSim({ scenario: mockScenario ?? 'floor', seed: Number(params.get('seed') ?? 7) });
     sim = { state: m.state, tick: () => m.tick(), dispatch: (a) => m.dispatch(a) };
   } else {
-    const state = simMod.createGame({ seed: Number(params.get('seed') ?? 1) });
-    sim = { state, tick: () => simMod.tick(state), dispatch: (a) => simMod.dispatch(state, a) };
+    useState(simMod.createGame({ seed: Number(params.get('seed') ?? randomSeed()) }));
   }
 
   let speed = Number(params.get('speed') ?? (isSnap ? 0 : 1));
@@ -55,13 +67,47 @@ async function boot() {
     return res;
   };
 
+  const canSave = () => realSim && !!saveMod && !isSnap;
+  function save() {
+    if (!canSave() || !playing) return false;
+    if (sim.state.gameOver) { saveMod.clearSave(); return false; }
+    return saveMod.saveGame(sim.state);
+  }
+
+  function startPlaying(state) {
+    if (realSim) useState(state);
+    playing = true;
+    acc = 0;
+  }
+
+  function showTitle() {
+    playing = false;
+    if (realSim) useState(simMod.createGame({ seed: randomSeed() }));
+    ui?.showTitle();
+  }
+
   const controls = {
     setSpeed: (k) => { speed = k; },
     getSpeed: () => speed,
-    newGame: () => location.assign(location.pathname),
-    continueGame: () => {},
-    loadStatus: () => ({ ok: false, reason: 'No save found' }),
-    save: () => {},
+    // No options means "back to the title" (the game-over screen's New Game).
+    newGame: (opts) => {
+      if (!opts) { showTitle(); return; }
+      const seed = Number.isFinite(opts.seed) ? opts.seed : randomSeed();
+      startPlaying(realSim ? simMod.createGame({ seed, companyName: opts.companyName || 'Loopworks' }) : sim.state);
+      if (canSave()) saveMod.clearSave();
+    },
+    continueGame: () => {
+      if (!canSave()) return { ok: false, reason: 'No save found' };
+      const res = saveMod.loadGame();
+      if (res.ok) startPlaying(res.state);
+      return { ok: res.ok, reason: res.reason, notice: res.notice };
+    },
+    loadStatus: () => {
+      if (!canSave()) return { ok: false, reason: 'No save found' };
+      const res = saveMod.loadGame();
+      return { ok: res.ok, reason: res.reason };
+    },
+    save,
     setQuality: (q) => renderer?.setQuality(q),
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
@@ -69,20 +115,29 @@ async function boot() {
   };
   const ui = uiMod?.createUI({ root: document.getElementById('ui'), getState: () => sim.state, dispatch, controls }) ?? null;
 
-  const weeks = Number(params.get('weeks') ?? 0);
-  for (let i = 0; i < weeks; i++) {
-    if (sim.state.pendingDecision) sim.dispatch({ type: 'resolveDecision', choice: 0 });
-    sim.tick();
+  if (directPlay || !ui) {
+    playing = true;
+    const weeks = Number(params.get('weeks') ?? 0);
+    for (let i = 0; i < weeks; i++) {
+      if (sim.state.pendingDecision) sim.dispatch({ type: 'resolveDecision', choice: 0 });
+      if (sim.state.gameOver) break;
+      sim.tick();
+    }
+  } else {
+    showTitle();
   }
 
   window.__HITL = {
     get state() { return sim.state; },
+    get playing() { return playing; },
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
+    controls,
   };
 
   if (renderer) addEventListener('resize', () => renderer.resize());
+  addEventListener('beforeunload', () => { save(); });
   document.addEventListener('visibilitychange', () => { acc = 0; });
 
   let acc = 0;
@@ -92,11 +147,12 @@ async function boot() {
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
-    if (speed > 0 && !sim.state.pendingDecision && !sim.state.gameOver) {
+    if (playing && speed > 0 && !sim.state.pendingDecision && !sim.state.gameOver) {
       acc += dt * speed;
       if (acc >= WEEK_SECONDS) {
         acc -= WEEK_SECONDS;
         route(sim.tick(), sim.state);
+        if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
       }
     }
     dayClock = (dayClock + dt / DAY_SECONDS) % 1;

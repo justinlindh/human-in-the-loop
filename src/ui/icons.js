@@ -36,6 +36,9 @@ export const ICONS = {
   lock: I('🔒', 'Locked category/angle/size/channel/model/policy', 18),
   idea: I('💡', 'Decision popup header, leadership ideas', 24),
   decision: I('🗳️', 'Decision popup header', 24),
+  settings: I('⚙️', 'Settings: top bar gear, title button, settings header', 16),
+  continue: I('💾', 'Title: Continue button', 18),
+  gameover: I('🪦', 'Game over header when lost', 44),
   hourglass: I('⏳', 'Decision choices with delayed effects, active effects list', 14),
   warn: I('⚠️', 'Warnings: compliance, hype ahead of quality', 14),
   // toasts

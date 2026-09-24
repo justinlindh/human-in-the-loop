@@ -16,18 +16,25 @@ export function createToasts(root) {
 
   const toneOf = (t) => (LIFE[t] ? t : 'info');
 
-  function node(t, cls) {
+  function node(t, cls, more = 0) {
     return h(`div.${cls}.${t.tone}`, { onclick: () => remove(t) },
-      h('span.ico', null, icon(`toast.${t.tone}`)), h('span.tt', { text: t.text }));
+      h('span.ico', null, icon(`toast.${t.tone}`)), h('span.tt', { text: t.text }),
+      more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
   }
 
+  // The dock shows the most severe live toast (newest among equals) and how many others wait.
+  const RANK = { bad: 3, warn: 2, good: 1, info: 0 };
   function renderDock() {
     if (!dock) return;
-    const newest = live[live.length - 1];
-    if (!newest) { dock.replaceChildren(h('span.dockidle')); return; }
-    if (dock.firstChild?.dataset?.tid === String(newest.id)) return;
-    const n = node(newest, 'dtoast');
-    n.dataset.tid = String(newest.id);
+    if (!live.length) { dock.replaceChildren(h('span.dockidle')); return; }
+    let top = live[0];
+    for (const t of live) if (RANK[t.tone] >= RANK[top.tone]) top = t;
+    const key = `${top.id}:${live.length}`;
+    if (dock.firstChild?.dataset?.key === key) return;
+    const n = node(top, 'dtoast', live.length - 1);
+    n.dataset.key = key;
+    if (dock.firstChild?.dataset?.tid === String(top.id)) n.classList.add('still');
+    n.dataset.tid = String(top.id);
     dock.replaceChildren(n);
   }
 
@@ -65,7 +72,7 @@ export function createToasts(root) {
     dock = d;
     for (const t of live) if (t.node) { t.node.remove(); t.node = null; }
     if (dock) renderDock();
-    else for (const t of live) { t.node = node(t, 'toast'); el.append(t.node); }
+    else for (const t of live) { t.node = node(t, 'toast'); t.node.classList.add('still'); el.append(t.node); }
   }
 
   return { push, setDock, el };
