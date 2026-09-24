@@ -9,11 +9,16 @@ export const SPREAD = 0.85;
 export const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 'officeUpgrade', 'standup', 'era', 'unlock', 'goal']);
 // Longest frame step honoured, so a stalled tab cannot jump weeks but slow machines keep real time.
 export const MAX_STEP = 0.25;
-// Real seconds a speech bubble stays up; matches the renderer's speech bubble.
-export const BUBBLE_SECONDS = 3.2;
-
-// Game seconds (real seconds at 1x) between a spoken line and the line that answers it.
-export const replyDelay = (prevText) => 1.2 + 0.04 * (prevText?.length ?? 0);
+// How long a speech bubble stays up, in real seconds: long enough to read at a relaxed pace. Faster
+// game speeds shorten it only a little, since reading speed does not change with the game's.
+// The renderer, the pacer, and the pacing simulator all use this.
+export const READ = { base: 1.8, perChar: 0.06, min: 2.5, max: 7 };
+const READ_SPEED_FACTOR = (speed) => (speed >= 4 ? 0.6 : speed >= 2 ? 0.75 : 1);
+export function readSeconds(text, speed = 1) {
+  const n = typeof text === 'string' ? text.length : 0;
+  const at1x = Math.min(READ.max, Math.max(READ.min, READ.base + READ.perChar * n));
+  return at1x * READ_SPEED_FACTOR(speed);
+}
 
 // Spoken lines (`say`) are paced as conversation; everything else is spread across the week.
 const isSay = (e) => e.type === 'say';
@@ -23,33 +28,36 @@ export function createPacer({ weekSeconds = WEEK_SECONDS } = {}) {
   let acc = 0;
   let gameT = 0; // game seconds since reset, only advancing while running
   let realT = 0; // real seconds since reset, always advancing
+  let liveT = 0; // real seconds since reset while running; bubbles and conversations hold while paused
+  let lastSpeed = 1;
   let paced = [];
   let dropped = []; // spoken lines that went stale waiting for their speaker
-  const said = new Map(); // say id -> { gameT, len } once released
-  const speakerFree = new Map(); // staff id -> realT when their bubble ends
+  const said = new Map(); // say id -> liveT when the line it answers may follow
+  const speakerFree = new Map(); // staff id -> liveT when their bubble ends
 
-  const busy = (e) => (speakerFree.get(e.staffId) ?? -Infinity) > realT;
+  const busy = (e) => (speakerFree.get(e.staffId) ?? -Infinity) > liveT;
 
   // A spoken line goes out once its speaker's last bubble is gone and, for a reply, once the line
-  // it answers has been up long enough to read.
+  // it answers has been up for its reading time.
   function sayReady(e) {
     if (busy(e)) return false;
     if (!isReply(e)) return true;
     if (paced.some((x) => x.e.id === e.replyTo)) return false;
-    const prev = said.get(e.replyTo);
-    return !prev || gameT >= prev.gameT + replyDelay({ length: prev.len });
+    const readBy = said.get(e.replyTo);
+    return readBy === undefined || liveT >= readBy;
   }
 
   function released(e) {
     if (!isSay(e)) return;
-    said.set(e.id, { gameT, len: e.text?.length ?? 0 });
-    if (e.text) speakerFree.set(e.staffId, realT + BUBBLE_SECONDS);
+    const until = liveT + readSeconds(e.text, lastSpeed);
+    said.set(e.id, until);
+    if (e.text) speakerFree.set(e.staffId, until);
   }
 
   function prune() {
-    const horizon = gameT - 2 * weekSeconds;
-    for (const [k, v] of said) if (v.gameT < horizon) said.delete(k);
-    for (const [k, v] of speakerFree) if (v < realT) speakerFree.delete(k);
+    const horizon = liveT - 2 * weekSeconds;
+    for (const [k, v] of said) if (v < horizon) said.delete(k);
+    for (const [k, v] of speakerFree) if (v < liveT) speakerFree.delete(k);
   }
 
   return {
@@ -58,14 +66,17 @@ export function createPacer({ weekSeconds = WEEK_SECONDS } = {}) {
     get queued() { return paced.length; },
     get realT() { return realT; },
     get gameT() { return gameT; },
+    get liveT() { return liveT; },
 
-    reset() { acc = 0; gameT = 0; realT = 0; paced = []; dropped = []; said.clear(); speakerFree.clear(); },
+    reset() { acc = 0; gameT = 0; realT = 0; liveT = 0; paced = []; dropped = []; said.clear(); speakerFree.clear(); },
 
     // Advances the clocks by one frame. Returns true when a week is due (at most one per call).
     step(dt, { speed, running }) {
       const d = Math.min(MAX_STEP, dt);
       realT += d;
       if (!running || speed <= 0) return false;
+      liveT += d;
+      lastSpeed = speed;
       acc += d * speed;
       gameT += d * speed;
       if (acc < weekSeconds) return false;
