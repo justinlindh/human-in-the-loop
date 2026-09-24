@@ -9,6 +9,9 @@ import { setGlowScale } from './materials.js';
 import { loadModels } from './models.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
+import { createLabels } from './labels.js';
+import { createFx } from './fx.js';
+import { createStaffSync } from './sync.js';
 
 const DEBUG_VIEWS = {
   kit: { '1': buildKitBoard },
@@ -46,6 +49,12 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
   let office = null;
+  let staff = null;
+  const labelLayer = new THREE.Group();
+  labelLayer.name = 'labels';
+  scene.add(labelLayer);
+  const floating = createLabels(labelLayer);
+  const fx = createFx({ scene, overlayEl: labelsEl });
   let ready = false;
   let firstStage = true;
   if (debugBuild) {
@@ -55,6 +64,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
     office = createOffice({ parent: scene, screens, lighting });
+    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig });
     loadModels().then(() => { ready = true; });
   }
   const applyDebugCamera = () => {
@@ -99,26 +109,31 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let timeOfDay = 0.45;
   let lastT = -1;
   let pendingUpgrade = false;
+  let stageJustBuilt = false;
 
   function sync(state) {
     if (!office || !ready || !state) return;
     const stage = state.officeStage ?? 0;
     if (office.setStage(stage, { animate: !firstStage && pendingUpgrade })) {
+      stageJustBuilt = true;
       rig.setBounds(office.bounds, true);
       if (firstStage) applyDebugCamera();
       firstStage = false;
       pendingUpgrade = false;
     }
-    office.setItems(state.items ?? []);
-    office.setOutage(!!state.outage);
+    const changed = office.setItems(state.items ?? []);
+    if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);
+    stageJustBuilt = false;
     screens.setAutomation(state.automation);
+    staff.sync(state);
   }
 
-  function handleEvents(events) {
+  function handleEvents(events, state) {
     for (const e of events ?? []) {
       if (e.type === 'officeUpgrade') pendingUpgrade = true;
       if (e.type === 'incident' && !e.caught) screens.alarm(3);
     }
+    staff?.handleEvents(events, state);
   }
 
   const api = {
@@ -139,8 +154,11 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       resize();
     },
     setTiltShift(on) { post.setTiltShift(!!on); },
-    pick() { return { kind: null, id: null }; },
-    focusStaff() {},
+    pick(x, y) { return staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null }; },
+    focusStaff(id) {
+      const p = staff?.positionOf(id);
+      if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
+    },
     resize,
     render(dt) {
       rig.update(dt);
@@ -148,6 +166,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       debugRoot.userData.update?.(dt);
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
       screens.update(dt, lighting.env);
+      staff?.update(dt);
+      floating.update(dt);
+      fx.update(dt);
       post.render(dt);
       labels.render(scene, rig.camera);
     },
@@ -159,6 +180,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
+    get stats() { return { labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).
   if (import.meta.env?.DEV) window.__hitlRender = api;

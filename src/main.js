@@ -54,6 +54,7 @@ async function boot() {
     quality,
   }) ?? null;
   const audio = audioMod?.createAudio() ?? null;
+  renderer?.setSpeed?.(speed);
 
   const route = (events, state) => {
     if (!events?.length) return;
@@ -87,7 +88,7 @@ async function boot() {
   }
 
   const controls = {
-    setSpeed: (k) => { speed = k; },
+    setSpeed: (k) => { speed = k; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
     // No options means "back to the title" (the game-over screen's New Game).
     newGame: (opts) => {

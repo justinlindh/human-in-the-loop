@@ -184,14 +184,23 @@ for sx in (-1, 1):
     hp.append(cyl(f'hpcup{sx}', 0.07, 0.05, (sx * (HEAD_R + 0.03), 0, -0.01), 'fabric_slate', verts=12, bevel=0.012, rot=(0, math.pi / 2, 0)))
 join(at_head(hp), 'acc_headphones')
 # Hats replace the hair (the game hides hair under them), so they cover the head down to the brow.
-BN_R, BN_S, BN_Z = HEAD_R + 0.022, (1.07, 1.04, 1.1), 0.055
+BN_R, BN_S, BN_Z = HEAD_R + 0.009, (1.06, 1.01, 1.14), 0.05
 b = [hair_cap('bnhat', BN_Z, BN_Z, r=BN_R, scale=BN_S)]
-cuff_r = math.sqrt(BN_R ** 2 - (BN_Z / BN_S[2]) ** 2)
-cuff = torus('bnrim', cuff_r - 0.004, 0.024, (0, 0, BN_Z + 0.012), 'fabric_mustard', major_seg=16, minor_seg=5)
-cuff.scale = (BN_S[0], BN_S[1], 1.0)
-b.append(cuff)
-b.append(uvsphere('bnpom', 0.05, (0, 0.02, BN_R * BN_S[2] + 0.025), 'paper', seg=8, rings=5))
 b[0].data.materials.clear(); b[0].data.materials.append(mat('fabric_terracotta'))
+# Cuff: a band that follows the dome's own ellipsoid, a touch proud of it, so it hugs the head.
+CR, Z0, Z1 = BN_R + 0.009, BN_Z - 0.008, BN_Z + 0.065
+arc = [(math.sqrt(max(0.0, CR ** 2 - (z / BN_S[2]) ** 2)), z) for z in [Z0 + (Z1 - Z0) * i / 5 for i in range(6)]]
+inner = [(r - 0.014, z) for r, z in reversed(arc)]
+cuff = lathe('bnrim', arc + inner + [arc[0]], (0, 0, 0), 'fabric_mustard', steps=24)
+cuff.scale = (BN_S[0], BN_S[1], 1.0)
+for sel in bpy.context.selected_objects:
+    sel.select_set(False)
+bpy.context.view_layer.objects.active = cuff
+cuff.select_set(True)
+bpy.ops.object.transform_apply(scale=True)
+cuff.data.shade_smooth()
+b.append(cuff)
+b.append(uvsphere('bnpom', 0.05, (0, 0.01, BN_R * BN_S[2] + 0.028), 'paper', seg=8, rings=5))
 join(at_head(b), 'acc_beanie')
 CP_R, CP_S, CP_Z = HEAD_R + 0.02, (1.06, 1.05, 0.98), 0.085
 cp = [hair_cap('cpdome', CP_Z, CP_Z - 0.03, r=CP_R, scale=CP_S)]
@@ -236,13 +245,30 @@ sc = [torus('scarf_ring', 0.09, 0.03, (0, -0.01, TORSO_H - 0.01), None, major_se
 for o in sc:
     use(o, 'role')
 join(sc, 'role_designer')
-bz = [box('blz_l', (0.1, 0.03, TORSO_H - 0.02), (-0.08, -0.105, TORSO_H / 2), None, bevel=0.012, segments=1, rot=(0, math.radians(-6), 0)),
-      box('blz_r', (0.1, 0.03, TORSO_H - 0.02), (0.08, -0.105, TORSO_H / 2), None, bevel=0.012, segments=1, rot=(0, math.radians(6), 0)),
-      box('blz_lap_l', (0.03, 0.02, 0.1), (-0.04, -0.12, TORSO_H - 0.06), None, bevel=0.006, segments=1, rot=(0, math.radians(25), 0)),
-      box('blz_lap_r', (0.03, 0.02, 0.1), (0.04, -0.12, TORSO_H - 0.06), None, bevel=0.006, segments=1, rot=(0, math.radians(-25), 0))]
-for o in bz:
-    use(o, 'role')
-join(bz, 'role_marketer')
+# Marketer blazer: a shell a little bigger than the regular torso, open in a V at the front so
+# the shirt shows, with folded lapels along the opening.
+JW, JD, JH = 0.3 * 1.07, 0.21 * 1.12, TORSO_H * 0.97
+jacket = box('jacket', (JW, JD, JH), (0, 0, JH / 2 - 0.004), None, bevel=0)
+soften(jacket, min(JW, JD) * 0.45, 3, hard=False)
+apply_mods(jacket)
+bm = bmesh.new(); bm.from_mesh(jacket.data)
+def in_v(c):
+    if c.y > -JD * 0.25:
+        return False
+    t = (c.z - JH * 0.42) / (JH * 0.58)
+    return t > 0 and abs(c.x) < 0.01 + 0.075 * t
+bmesh.ops.delete(bm, geom=[f for f in bm.faces if in_v(f.calc_center_median())], context='FACES')
+bm.to_mesh(jacket.data); bm.free()
+use(jacket, 'role')
+jacket.data.shade_smooth()
+lapels = []
+for sx in (-1, 1):
+    lp = box(f'lapel{sx}', (0.035, 0.012, JH * 0.5), (sx * 0.05, -JD / 2 - 0.004, JH * 0.7), None, bevel=0.005, segments=1,
+             rot=(math.radians(-8), 0, sx * math.radians(-18)))
+    use(lp, 'role')
+    lapels.append(lp)
+pocket = box('pocket', (0.05, 0.01, 0.02), (0.09, -JD / 2 - 0.002, JH * 0.62), 'paper', bevel=0.003, segments=1)
+join([jacket, *lapels, pocket], 'role_marketer')
 hs = [torus('hs_band', HEAD_R + 0.03, 0.012, (0, 0, HEAD_C), 'plastic_charcoal', rot=(math.pi / 2, 0, 0), major_seg=16, minor_seg=4),
       cyl('hs_cup', 0.055, 0.045, (-(HEAD_R + 0.025), 0, HEAD_C - 0.01), None, verts=12, bevel=0.01, rot=(0, math.pi / 2, 0)),
       cyl('hs_cup2', 0.055, 0.045, (HEAD_R + 0.025, 0, HEAD_C - 0.01), None, verts=12, bevel=0.01, rot=(0, math.pi / 2, 0)),
