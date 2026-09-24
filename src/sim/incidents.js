@@ -72,13 +72,17 @@ export function fixCapacity(state) {
   const present = state.staff.filter((p) => p.mood !== 'away');
   const commander = Math.max(1, ...present.map((p) => staffMods(p).outageFix));
   // Engineers can debug; founders built the thing and can debug it whatever their role, and do it better.
-  const fixers = present.filter((p) => p.role === 'engineer' || p.founder);
-  return sum(fixers, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
-    * commander * (1 + researchBonus(state, 'outageFix'));
+  // Debugging does not parallelize: only the few who best understand the systems count.
+  const fixers = present.filter((p) => p.role === 'engineer' || p.founder)
+    .map((p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority] * (p.founder ? B.founderFixMult : 1))
+    .sort((a, b) => b - a).slice(0, B.fixersCounted);
+  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix'));
 }
 
+// More live products means more tangled systems to understand when something breaks.
 const isUnrecoverable = (state, severity) => fixCapacity(state)
-  < severity * (0.4 + state.comprehensionDebt / 100) * Math.max(0, 1 + researchBonus(state, 'unrecoverableThreshold'));
+  < severity * (0.4 + state.comprehensionDebt / 100) * Math.max(0, 1 + researchBonus(state, 'unrecoverableThreshold'))
+    * (1 + B.outageComplexityPerProduct * liveProducts(state).length);
 
 export function startOutage(ctx, { productId, kind, severity }) {
   const { state } = ctx;

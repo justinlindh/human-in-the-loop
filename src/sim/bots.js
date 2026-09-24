@@ -331,20 +331,28 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek } = {}) {
   const chooser = CHOOSERS[name];
   let maxStage = 0;
   let firstLaunch = null;
+  let crises = 0;
+  let wasUnrecoverable = false;
   while (!s.gameOver && s.week < maxWeeks) {
     for (let guard = 0; s.pendingDecision && guard < 5; guard++) {
-      const res = dispatch(s, { type: 'resolveDecision', choice: pickDecision(s, chooser) });
+      const pickIdx = pickDecision(s, chooser);
+      if (s.pendingDecision.eventId === 'bridge_loan' && pickIdx === 0) crises++;
+      const res = dispatch(s, { type: 'resolveDecision', choice: pickIdx });
       if (!res.ok) for (let c = 0; c < 4 && s.pendingDecision; c++) dispatch(s, { type: 'resolveDecision', choice: c });
     }
     if (s.gameOver) break;
     for (const a of bot(s)) dispatch(s, a);
     const events = tick(s);
     maxStage = Math.max(maxStage, s.officeStage);
+    const unrecoverable = !!s.outage?.unrecoverable;
+    if (unrecoverable && !wasUnrecoverable) crises++;
+    wasUnrecoverable = unrecoverable;
     if (firstLaunch === null && s.stats.launches > 0) firstLaunch = s.week;
     onWeek?.(s, events);
   }
   return {
     won: !!s.gameOver?.won, reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,
     peakMrr: s.stats.peakMrr, score: s.gameOver?.score ?? scoreRun(s).score, maxStage, firstLaunch, state: s,
+    resignations: s.stats.resignations, incidents: s.stats.incidents, crises,
   };
 }
