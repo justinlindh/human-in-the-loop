@@ -85,7 +85,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   const params = new URLSearchParams(location.search);
   // Authored clips for the poses the rig covers (sit and type, couch nap); the rest stay procedural.
-  setRigEnabled(params.get('rig') === '1');
+  const rigLoaded = setRigEnabled(params.get('rig') === '1');
   let debugBuild = null;
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
@@ -104,7 +104,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   if (debugBuild) {
     const b = debugBuild(debugRoot);
     // The view builds when its models load; ready follows a tick later, once it has built.
-    loadModels().then(() => Promise.resolve()).then(() => { ready = true; });
+    Promise.all([loadModels(), rigLoaded]).then(() => Promise.resolve()).then(() => { ready = true; });
     rig.setBounds(b);
     lighting.fitShadow(b);
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
@@ -113,7 +113,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i) => lighting.setAccent(p, i), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
-    loadModels().then(() => { ready = true; });
+    Promise.all([loadModels(), rigLoaded]).then(() => { ready = true; });
   }
   const applyDebugCamera = () => {
     if (params.get('zoom')) rig.setZoom(Number(params.get('zoom')));

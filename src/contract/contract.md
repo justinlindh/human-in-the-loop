@@ -16,6 +16,8 @@ oversightRequired(state) -> hours; oversightProvided(state) -> hours
 securityPosture(state) -> 0..100
 scoreRun(state) -> { score, valuation, breakdown }
 loadGame(storage) -> { ok, state?, reason?, notice? }   // notice: a message to toast after a successful load (src/save/save.js)
+// A save the current build can't run returns { ok:false, stale:true, version, reason:'Save is from an older build'|'Save is from a newer build' }; ui offers Start fresh instead of failing.
+exportSave(storage, id) -> string   // the raw save text, for keeping a stale save; saveMeta carries `version`
 FUNCTIONS = ['engineering','support','sales','marketing','qa','ops']
 SAVE_VERSION = 1
 ```
@@ -220,7 +222,7 @@ call /* null, or during a video-call week { muted, frozen, badCamera } (booleans
 unlocks: 'meaning'                 // opens with the ChatGBT era; before it, ui shows mood and energy, not Meaning
 purpose: null | { value /*0..100*/, mission /* mission id */, tests: [{ week, text, delta }] }   // set by the mission decision in Agents; moved by later test decisions
 { type: 'timeOff', staffId }       // 2 weeks away, strain recovers fast; reasons: 'No such staff member', 'They are away'
-policies: 'no_crunch', 'incentives' // with unlock keys 'policy.no_crunch', 'policy.incentives'
+policies: 'no_crunch', 'incentives', 'crunch' // with unlock keys 'policy.no_crunch', 'policy.incentives', 'policy.crunch'; 'crunch' (Crunch Mode) opens at the first launch and excludes 'no_crunch': turning either on turns the other off
 chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 ```
 - Rewards beyond balloons, caricature and waffle_party are toasts in ui; the renderer stages the three it has props for and treats the others as a small celebrate beat.
@@ -231,3 +233,13 @@ chat reaction key: 'no_at_channel'  // the @channel faux-pas reaction
 ```
 - Removes an unfinished project of any kind. Its progress is lost and nothing is refunded; anyone assigned to it goes idle, and campaigns aimed at it end.
 - Returns `{ ok: true }`, plus a chat line in the owner's voice (or the founder's) so the cancellation is visible in Slackk.
+
+### Late-game money sinks
+```js
+{ type: 'acquire', targetId }   // buy a company from state.market.forSale; reasons: 'No such company', 'Not enough cash'
+state.market.forSale: [{ id, name, categoryId, arr, price, staff /* 1..3 */, expiresWeek }]
+state.fame /* 0..100: softens churn and hiring costs; raised by fame campaigns, decays slowly */
+state.office.expansion /* 0..3 HQ expansion steps; the renderer extends the HQ shell per step */
+```
+- An acquisition adds the company's product (with its customers) and staff to the player's company, and emits `chat` lines announcing it.
+- HQ expansion steps each raise the staff cap; the renderer keeps the whole office within the Low quality budget at the maximum cap.

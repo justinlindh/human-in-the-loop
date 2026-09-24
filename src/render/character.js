@@ -23,6 +23,9 @@ const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
 const BLEND_S = 0.3;
+// Ground speed of the walk clip at its authored rate (chibi_rig.py): playback scales from it with
+// the walker's speed so feet do not slide.
+const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
@@ -40,12 +43,19 @@ function characterColor(hex, mute = 0.15) {
   return c.lerp(gray, mute);
 }
 
-// A shirt close to the role color would swallow the role garment; push it toward pale cream.
+// A shirt close to the role color would swallow the role garment, so it is swapped for another
+// palette fabric far from that color; the pick follows the original shirt, so a person keeps theirs.
+const SHIRT_SWAPS = ['fabric_teal', 'fabric_mustard', 'fabric_terracotta', 'fabric_sage', 'wood_light'];
+const CLASH = 0.35;
+const dist = (a, b) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
 function shirtColor(hex, roleHex) {
   const c = characterColor(hex);
   const r = new THREE.Color(roleHex);
-  const d = Math.hypot(c.r - r.r, c.g - r.g, c.b - r.b);
-  return d < 0.35 ? c.lerp(new THREE.Color(PALETTE.paper), 0.6) : c;
+  if (dist(c, r) >= CLASH) return c;
+  const ok = SHIRT_SWAPS.map((k) => characterColor(PALETTE[k])).filter((s) => dist(s, r) >= CLASH);
+  let h = 0;
+  for (const ch of String(hex)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return ok.length ? ok[h % ok.length] : c;
 }
 
 const roleMats = new Map();
@@ -155,12 +165,31 @@ function part(tpl, name) {
   return o ? o.clone(true) : new THREE.Group();
 }
 
+// A small generator for one character's animation timing (phase, blinks, breaths). Seeded from the
+// staff id, a person moves the same way however much else was randomised before they appeared.
+function timingRandom(seed) {
+  if (seed == null) return Math.random;
+  let h = 2166136261;
+  for (const ch of String(seed)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let x = Math.imul(h ^ (h >>> 15), 1 | h);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function createCharacter(appearance = {}, roleColor = PALETTE.role_engineer, opts = {}) {
+  const rand = timingRandom(opts.seed);
   const tpl = getTemplate('chibi');
   const role = opts.role ?? null;
   const build = Math.max(0, Math.min(2, appearance.build ?? 1));
-  const acc = appearance.accessory ?? 'none';
+  // Support's headset is its headwear: no hat or headphones over it (glasses are fine).
+  const acc = role === 'support' && appearance.accessory !== 'glasses' ? 'none' : appearance.accessory ?? 'none';
   const hairIdx = Math.max(0, Math.min(7, appearance.hair ?? 0));
+  // Headphones press curly hair flat under the band; long hair covers the hood of a hoodie.
+  const hairPart = hairIdx === 6 && acc === 'headphones' ? 'hair_6_hp' : `hair_${hairIdx}`;
+  const LONG_HAIR = 2;
   const hat = acc === 'beanie' || acc === 'cap';
 
   // Per-character materials (tintable); everything else is shared.
@@ -232,7 +261,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   torso.add(lanyard, badge);
   const torsoParts = [torsoMesh, lanyard, badge];
   if (role && role !== 'support') {
-    const g = P(`role_${role}`);
+    const g = P(role === 'engineer' && hairIdx === LONG_HAIR && !hat ? 'role_engineer_tucked' : `role_${role}`);
     g.scale.set(wScale, 1, bdepth);
     torso.add(g);
     torsoParts.push(g);
@@ -252,7 +281,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const cheeks = makeCheeks(tpl, own.skin.color);
   headGroup.add(cheeks.group);
   // A hat replaces the hair; drawing both makes them fight through each other.
-  if (!hat) { const h = P(`hair_${hairIdx}`); headGroup.add(h); headParts.push(h); }
+  if (!hat) { const h = P(hairPart); headGroup.add(h); headParts.push(h); }
   if (acc !== 'none') {
     const a = P(`acc_${acc}`);
     // Hats take a colour picked from the person's look, so a row of cap wearers are not clones.
@@ -336,9 +365,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   // Animation state
   let anim = 'idle';
-  let t = Math.random() * 10;
+  let t = rand() * 10;
   let animT = 0;
-  let blinkIn = 2 + Math.random() * 3;
+  let blinkIn = 2 + rand() * 3;
   let blinkT = 0;
   let emoteKind = null;
   let emoteT = 0;
@@ -349,7 +378,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let flushFor = 0;
   const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
-  const phase = Math.random() * Math.PI * 2;
+  const phase = rand() * Math.PI * 2;
 
   // Authored clips: when the rig is on and has a clip for this pose, a mixer plays it. The mixer
   // animates a bare proxy of the pivots that is copied onto them each frame (it skips writing
@@ -359,11 +388,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let mixer = null;
   let proxy = null;
   let rigClip = null;
+  let rigAction = null;
+  let moveSpeed = WALK_CLIP_SPEED;
   let blendT = BLEND_S;
   const snap = pivotList.map(() => ({ q: new THREE.Quaternion(), p: new THREE.Vector3() }));
   const tmpQ = new THREE.Quaternion();
+  // Variants the clips do not cover stay procedural: the drooping idle and the tired walk.
+  const RIG_PROCEDURAL = { idle: () => tired || mood === 'coasting', walk: () => tired };
   function rigPose(dt) {
-    const clip = rigEnabled() ? rigClips()?.get(anim) ?? null : null;
+    const clip = rigEnabled() && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
     if (clip !== rigClip) {
       pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
       blendT = 0;
@@ -376,11 +409,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
           mixer = new THREE.AnimationMixer(proxy);
         }
         const a = mixer.clipAction(clip);
+        rigAction = a;
         a.play();
         a.time = (phase / (Math.PI * 2)) * clip.duration;
       }
     }
     if (!clip) return false;
+    rigAction.timeScale = anim === 'walk' ? Math.min(2.5, Math.max(0.5, moveSpeed / WALK_CLIP_SPEED)) : 1;
     mixer.update(dt);
     proxy.children.forEach((g, i) => { pivotList[i].quaternion.copy(g.quaternion); });
     body.position.copy(proxy.children[0].position);
@@ -705,7 +740,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     animT += dt;
     pose(dt);
     blinkIn -= dt;
-    if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + Math.random() * 3.5; }
+    if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + rand() * 3.5; }
     const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || (mood === 'burnout' && anim !== 'celebrate');
     if (blinkT > 0) blinkT -= dt;
     eyes.scale.y = closed ? 0.15 : 1;
@@ -725,7 +760,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
 
   // While the game is paused everything holds its pose; only a faint breath shows it is alive.
-  let breathT = Math.random() * 6;
+  let breathT = rand() * 6;
   function breathe(dt) {
     breathT += dt;
     // A playing clip holds its own frame; the offset below is for procedural poses.
@@ -747,10 +782,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
 
   function setRingScale(s) { ring.scale.set(s, 1, s); }
+  // Walking speed in m/s, for the walk clip's playback rate.
+  function setMoveSpeed(v) { moveSpeed = v; }
 
   update(0);
   return {
-    root, head: headGroup, setShadows, setAnim, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, setShadows, setAnim, setMoveSpeed, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

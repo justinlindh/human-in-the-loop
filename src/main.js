@@ -129,6 +129,8 @@ async function boot() {
       const { state: _state, ...result } = res;
       return result;
     },
+    // The raw text of a save slot, even one this build cannot load; null without storage.
+    exportSave: (id) => (canSave() && saveMod.exportSave ? saveMod.exportSave(undefined, id) ?? null : null),
     // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
     // will not load is listed with its reason instead of dropped.
     listSaves: () => {
