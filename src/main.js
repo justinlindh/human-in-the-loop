@@ -125,15 +125,17 @@ async function boot() {
       if (!canSave()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame(undefined, id);
       if (res.ok) startPlaying(res.state);
-      return { ok: res.ok, reason: res.reason, notice: res.notice };
+      // Everything the save module reports (reason, notice, any failure code) except the state.
+      const { state: _state, ...result } = res;
+      return result;
     },
     // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
     // will not load is listed with its reason instead of dropped.
     listSaves: () => {
       if (!canSave() || !saveMod.listSaves) return [];
       return saveMod.listSaves().map((m) => {
-        const res = saveMod.loadGame(undefined, m.id);
-        return { ...m, ok: res.ok, reason: res.reason };
+        const { state: _state, ...res } = saveMod.loadGame(undefined, m.id);
+        return { ...m, ...res };
       });
     },
     deleteSave: (id) => {
@@ -181,6 +183,7 @@ async function boot() {
   }
 
   window.__HITL = {
+    version: __HITL_VERSION__,
     get state() { return sim.state; },
     get playing() { return playing; },
     get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null, dayClock, frozen }; },
