@@ -131,3 +131,9 @@ export function paletteMaterial(gltfName) {
 }
 
 export const SLOT_NAMES = Object.keys(SLOTS);
+
+// Change a glow material's unscaled intensity (for lamps that brighten at night).
+export function setGlowBase(m, v) {
+  m.userData.baseEmissive = v;
+  m.emissiveIntensity = v * glowScale;
+}

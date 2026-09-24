@@ -1,11 +1,21 @@
 import * as THREE from 'three';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { createSceneGraph, buildTestDiorama } from './scene.js';
+import { createSceneGraph } from './scene.js';
 import { createCameraRig } from './camera.js';
-import { createLighting, createBackdrop, windowUpdater } from './lighting.js';
+import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround } from './debug.js';
 import { setGlowScale } from './materials.js';
+import { loadModels } from './models.js';
+import { createScreens } from './screens.js';
+import { createOffice } from './office.js';
+
+const DEBUG_VIEWS = {
+  kit: { '1': buildKitBoard },
+  props: { '1': buildPropLineup },
+  items: { '1': buildItemLineup },
+  chars: { '1': buildCharLineup, '2': buildCharTurnaround },
+};
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
@@ -23,30 +33,39 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   labels.domElement.style.pointerEvents = 'none';
   labelsEl?.appendChild(labels.domElement);
 
-  const { scene, office, actors, fx } = createSceneGraph();
+  const { scene, office: debugRoot } = createSceneGraph();
   const rig = createCameraRig(canvas);
   const lighting = createLighting(scene, { shadowSize: q === 'low' ? 1024 : 2048 });
   const backdrop = createBackdrop();
   scene.background = backdrop.texture;
   lighting.env.listeners.add(backdrop.update);
+  const screens = createScreens();
 
   const params = new URLSearchParams(location.search);
-  const bounds = params.get('kit') === '1' ? buildKitBoard(office)
-    : params.get('props') === '1' ? buildPropLineup(office)
-    : params.get('items') === '1' ? buildItemLineup(office)
-    : params.get('chars') === '1' ? buildCharLineup(office)
-    : params.get('chars') === '2' ? buildCharTurnaround(office)
-    : buildTestDiorama(office);
-  rig.setBounds(bounds);
-  if (params.get('zoom')) rig.setZoom(Number(params.get('zoom')));
-  if (params.get('at')) {
-    const [ax, az] = params.get('at').split(',').map(Number);
-    rig.focus({ x: ax, z: az });
-    rig.update(10);
+  let debugBuild = null;
+  for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
+
+  let office = null;
+  let ready = false;
+  let firstStage = true;
+  if (debugBuild) {
+    const b = debugBuild(debugRoot);
+    rig.setBounds(b);
+    lighting.fitShadow(b);
+    lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
+  } else {
+    office = createOffice({ parent: scene, screens, lighting });
+    loadModels().then(() => { ready = true; });
   }
-  lighting.env.listeners.add(windowUpdater(office.userData.windowMaterials ?? []));
-  lighting.fitShadow(bounds);
-  lighting.setInteriorLights([{ x: -1, y: 2.4, z: -1 }, { x: 2, y: 2.4, z: 1 }]);
+  const applyDebugCamera = () => {
+    if (params.get('zoom')) rig.setZoom(Number(params.get('zoom')));
+    if (params.get('at')) {
+      const [ax, az] = params.get('at').split(',').map(Number);
+      rig.focus({ x: ax, z: az });
+      rig.update(10);
+    }
+  };
+  if (debugBuild) applyDebugCamera();
 
   function size() {
     return { w: canvas.clientWidth || innerWidth, h: canvas.clientHeight || innerHeight };
@@ -63,6 +82,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function applyQuality() {
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
     setGlowScale(q === 'low' ? 0.45 : 1);
+    screens.setBrightness(q === 'low' ? 1.0 : 1.7);
   }
   applyQuality();
 
@@ -78,11 +98,33 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   let timeOfDay = 0.45;
   let lastT = -1;
+  let pendingUpgrade = false;
 
-  return {
+  function sync(state) {
+    if (!office || !ready || !state) return;
+    const stage = state.officeStage ?? 0;
+    if (office.setStage(stage, { animate: !firstStage && pendingUpgrade })) {
+      rig.setBounds(office.bounds, true);
+      if (firstStage) applyDebugCamera();
+      firstStage = false;
+      pendingUpgrade = false;
+    }
+    office.setItems(state.items ?? []);
+    office.setOutage(!!state.outage);
+    screens.setAutomation(state.automation);
+  }
+
+  function handleEvents(events) {
+    for (const e of events ?? []) {
+      if (e.type === 'officeUpgrade') pendingUpgrade = true;
+      if (e.type === 'incident' && !e.caught) screens.alarm(3);
+    }
+  }
+
+  const api = {
     scene, camera: rig.camera, env: lighting.env,
-    sync(state) { void state; },
-    handleEvents(events, state) { void events; void state; },
+    sync,
+    handleEvents,
     setTimeOfDay(t) {
       timeOfDay = t;
       if (Math.abs(t - lastT) < 0.0005) return;
@@ -103,7 +145,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     render(dt) {
       rig.update(dt);
       lighting.setViewYaw(rig.yaw);
-      office.userData.update?.(dt);
+      debugRoot.userData.update?.(dt);
+      office?.update(dt, { yaw: rig.yaw, env: lighting.env });
+      screens.update(dt, lighting.env);
       post.render(dt);
       labels.render(scene, rig.camera);
     },
@@ -114,5 +158,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       labels.domElement.remove();
     },
     get timeOfDay() { return timeOfDay; },
+    get office() { return office; },
   };
+  // Dev builds expose the renderer for snap-tool experiments (never read by game code).
+  if (import.meta.env?.DEV) window.__hitlRender = api;
+  return api;
 }

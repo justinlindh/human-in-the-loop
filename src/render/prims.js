@@ -121,6 +121,7 @@ export function mergeStatic(root) {
     const g = mergeGeometries(b.geos, false);
     for (const x of b.geos) x.dispose();
     if (!g) { console.warn(`mergeStatic: could not merge ${b.geos.length} geometries for ${b.material.name}`); continue; }
+    g.userData.merged = true;
     const m = new THREE.Mesh(g, b.material);
     m.castShadow = b.cast; m.receiveShadow = b.receive;
     out.add(m);
