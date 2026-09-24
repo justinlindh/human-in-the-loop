@@ -706,10 +706,10 @@
 .hitl .trcard .gpick { align-self: flex-start; }
 .hitl .toast.clickable, .hitl .dtoast.clickable { cursor: pointer; text-decoration: underline dotted; }
 
-/* ---------- Slackk ---------- */
+/* ---------- Yak ---------- */
 .hitl .chat { pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: var(--radius); box-shadow: var(--pop), var(--soft); overflow: hidden; display: flex; flex-direction: column; }
 .hitl .chat-head { display: flex; align-items: center; gap: 0.45em; padding: 0.3em 0.6em; background: #4a154b; color: #fff; cursor: pointer; }
-.hitl .chat-head .slogo { width: 1.4em; height: 1.4em; display: grid; place-items: center; border-radius: 0.35em; background: var(--yellow); color: #4a154b; font-weight: 700; }
+.hitl .chat-head .slogo { width: 1.5em; height: 1.5em; display: grid; place-items: center; border-radius: 0.4em; background: var(--yellow); }
 .hitl .chat-head .sbrand { letter-spacing: 0.01em; }
 .hitl .chat-head .count { margin-left: auto; display: none; min-width: 1.5em; text-align: center; font-size: 0.75em; font-weight: 700; background: var(--red); border-radius: 1em; padding: 0.05em 0.45em; }
 .hitl .chat-head .count.show { display: inline-block; }
@@ -1110,3 +1110,13 @@
 .hitl .record .recmain { display: flex; flex-wrap: wrap; gap: 0.1em 0.8em; }
 .hitl .record .recstat b.num { font-size: 1.12em; font-weight: 700; }
 .hitl .record .recmore { margin-top: 0.3em; line-height: 1.35; }
+
+/* Locked office items stay hidden; one line says more are coming. An item opened from its unlock
+   card flashes once. */
+.hitl .laterline { margin-top: 0.5em; }
+.hitl .card.item.flash { animation: itemflash 0.6s ease-in-out 3; }
+@keyframes itemflash { 50% { box-shadow: 0 0 0 0.3em var(--yellow); } }
+@media (prefers-reduced-motion: reduce) { .hitl .card.item.flash { animation: none; box-shadow: 0 0 0 0.3em var(--yellow); } }
+/* First-project guide in the New Product form. */
+.hitl .pickguide { background: #fff8e6; margin-bottom: 0.7em; }
+.hitl .pickguide ul { margin: 0.4em 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 0.3em; font-size: 0.88em; line-height: 1.35; }

@@ -11,6 +11,7 @@ export const SIMX = {
   officeGateReason: find('officeGateReason'),
   expansionCost: find('expansionCost'),
   deskCap: find('deskCap'),
+  nextExpansion: find('nextExpansion'),
   policyCost: find('policyCost'),
   deskCapacity: find('deskCapacity'),
   isUnlocked: find('isUnlocked'),

@@ -65,7 +65,9 @@ const out = await page.evaluate(async () => {
   });
   for (let i = 0; i < 10; i++) { R.sync(S); R.advance(1 / 30); }
   const u = await C.runUseChecks(R, S, useIds);
-  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u];
+  dance.push(await C.runDanceLengthCheck(R, S));
+  const party = await C.runPartyCheck(R, S);
+  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u, party];
 });
 await H.close();
 let failed = 0;

@@ -195,7 +195,7 @@ export function officeGateReason(state, stage) {
 }
 
 // At the last stage, upgradeOffice buys the next expansion step instead: more room, more desks, more rent.
-function expandOffice(ctx) {
+export function expandOffice(ctx) {
   const { state } = ctx;
   const st = OFFICE_STAGES[state.officeStage];
   const step = st.expansions?.[state.office.expansion ?? 0];

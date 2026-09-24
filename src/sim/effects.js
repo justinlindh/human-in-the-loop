@@ -15,6 +15,17 @@ import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision, ransomFor, summitCost } from './events.js';
+import { agentSpend, rivalMergePrice } from './economy.js';
+import { acquireCompany, bestDeal, dealBlocker } from './acquire.js';
+import { expandOffice, officeGateReason } from './products.js';
+import { nextExpansion } from './office.js';
+
+// Why the next HQ expansion cannot be bought right now, or null.
+function expansionBlocker(state) {
+  const step = nextExpansion(state);
+  if (!step) return 'Already at the biggest office';
+  return officeGateReason(state, step) ?? (state.cash < step.upgradeCost ? 'Not enough cash' : null);
+}
 import { danceBreak } from './incentives.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
@@ -55,6 +66,8 @@ export function checkCondition(state, id, subjectId) {
     case 'noCraftRunning': return !state.projects.some((j) => j.kind === 'craft');
     case 'canBuyEspresso': return !buyItemBlocker(state, 'espresso');
     case 'canUpgradeEspresso': return !upgradeItemBlocker(state, ownedCopy(state, 'espresso'));
+    case 'dealTakeable': return !dealBlocker(state);
+    case 'expansionReady': return !expansionBlocker(state);
     case 'mentorAvailable': return !!person && person.seniority === 'junior' && !!freeMentor(state, person)
       && !state.staff.some((m) => m.assignment.type === 'mentor' && m.assignment.targetId === person.id);
     default: return false;
@@ -64,6 +77,8 @@ export function checkCondition(state, id, subjectId) {
 // The reason shown when a choice's requirement is unmet; item requirements say exactly why.
 export function requireReason(state, id) {
   if (id === 'canBuyEspresso') return buyItemBlocker(state, 'espresso') ?? 'Not possible right now';
+  if (id === 'dealTakeable') return dealBlocker(state) ?? 'Not possible right now';
+  if (id === 'expansionReady') return expansionBlocker(state) ?? 'Not possible right now';
   if (id === 'canUpgradeEspresso') {
     const r = upgradeItemBlocker(state, ownedCopy(state, 'espresso'));
     return r === 'Already max level' ? 'Already the fanciest one' : r ?? 'Not possible right now';
@@ -75,6 +90,7 @@ export const REQUIRE_REASON = {
   sabbaticalPolicy: 'Needs the Sabbatical Program', stage1: 'Needs the Office Floor', mentorAvailable: 'No mentor is free',
   subjectCompliant: 'Needs a compliance-friendly model', trustedVendor: 'Needs a trusted model vendor', blameless: 'Needs Blameless Postmortems',
   ik40: 'Needs more institutional knowledge', bestScore7: 'Needs a product scoring 7+', affordConsultants: 'Not enough cash', noCraftRunning: 'A craft project is already running',
+  dealTakeable: 'No deal you can take right now', expansionReady: 'The expansion is not open yet',
 };
 
 function sendAway(state, p, weeks) {
@@ -237,6 +253,20 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     }
   }
   if (fx.rivalHit && state.rival) state.rival.strength = clamp(state.rival.strength - fx.rivalHit, 0, 100);
+  if (fx.agentAudit) {
+    state.cash -= agentSpend(state, B.agentAuditWeeks);
+    state.modifiers.push({ id: newId(state, 'mod'), key: 'rogueRisk', value: -B.agentAuditRogueRelief, label: 'The agent audit', untilWeek: state.week + 52, source });
+  }
+  if (fx.agentCap) {
+    for (const fn of Object.keys(state.automation)) state.automation[fn].level = Math.min(state.automation[fn].level, B.agentCapLevel);
+  }
+  if (fx.agentInvoice) state.cash -= agentSpend(state, B.agentInvoiceWeeks) * fx.agentInvoice;
+  if (fx.rivalMerge && state.rival) state.cash -= rivalMergePrice(state);
+  if (fx.acquireBest) {
+    const deal = bestDeal(state);
+    if (deal) acquireCompany(ctx, deal.id);
+  }
+  if (fx.expandNow) expandOffice(ctx);
   if (fx.rivalFate && state.rival) {
     state.rival.status = fx.rivalFate;
     if (fx.rivalFate === 'merged') {

@@ -5,6 +5,8 @@ import { newId } from './util.js';
 import { mentorOf } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
+import { agentSpend, rivalMergePrice } from './economy.js';
+import { featuredDeal } from './acquire.js';
 import { automationExposure } from './automation.js';
 import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
@@ -19,6 +21,8 @@ export function summitCost(state, size) {
   return Math.round(B.summitCost[size] * B.summitEraMult[eraIndex(state)]);
 }
 
+const money = (n) => (n >= 1e6 ? `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : `$${Math.round(n / 1000)}k`);
+
 export function ransomFor(state) {
   const ask = B.ransomCashShare * Math.max(0, state.cash) + B.ransomMrrMonths * totalMrr(state);
   const affordable = Math.max(B.ransomFloor, B.ransomMaxCashShare * Math.max(0, state.cash));
@@ -32,7 +36,8 @@ export function decisionVars(state, rng, subjectId) {
   const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
   return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
-    alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague' };
+    alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague',
+    deal: featuredDeal(state)?.name ?? 'A small company' };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -49,6 +54,10 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{rivalFounder}', v.rivalFounder ?? 'Their founder')
     .replaceAll('{rival}', v.rival ?? 'A rival')
     .replaceAll('{alum}', v.alum ?? 'A former colleague')
+    .replaceAll('{deal}', v.deal ?? 'A small company')
+    .replaceAll('{auditCost}', money(agentSpend(state, B.agentAuditWeeks)))
+    .replaceAll('{agentBill}', money(agentSpend(state, B.agentInvoiceWeeks)))
+    .replaceAll('{mergePrice}', money(rivalMergePrice(state)))
     .replaceAll('{summitSmall}', `$${Math.round(summitCost(state, 'small') / 1000)}k`)
     .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);

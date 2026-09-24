@@ -4,9 +4,19 @@ const KEY = 'hitl.tutorialDone';
 
 const STEPS = [
   { target: '.topbar', place: 'below', title: 'Your company at a glance',
-    text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Comprehension Debt. Hover anything for details.' },
+    text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Comprehension Debt. Tap or hover any of them for details.' },
+  { target: '.tray', place: 'right', title: 'What needs you',
+    text: 'Anything waiting on you shows up here first, then your goals. Tap a line to jump to it. Each goal pays a small reward.' },
+  { target: '.mbtn[data-menu="build"]', place: 'above', title: 'Build a product',
+    text: 'Start here. Pick a category and an angle, choose who builds it, and ship. Launches bring customers, and customers bring revenue.' },
+  { target: '.mbtn[data-menu="staff"]', place: 'above', title: 'Your people',
+    text: 'Hire, assign work, and watch how people feel. Tired people slow down, and burnt-out people leave.' },
+  { target: '.mbtn[data-menu="office"]', place: 'above', title: 'The office',
+    text: 'Everyone needs a desk. Place furniture here, and move somewhere bigger as the company grows.' },
+  { target: '.chat', place: 'right', title: 'Yak',
+    text: 'The team talks here. It is the quickest way to hear that something is going wrong.' },
   { target: '.chip.speed', place: 'below-left', title: 'Time',
-    text: 'Space pauses. 1, 2, and 3 set the speed. The game waits for you whenever there is a decision to make.' },
+    text: 'Pause and speed live here (Space, 1, 2, and 3 on a keyboard). The game waits for you whenever there is a decision to make.' },
 ];
 
 export function tutorialDone() {
@@ -26,7 +36,7 @@ export function createTutorial({ layer, sfx, controls, ui }) {
   const count = h('span.small.muted');
   const next = h('button.btn.go.small', { onclick: () => go(i + 1) }, 'Next');
   const bubble = h('div.coach', null, title, text, h('div.row', null, count, h('span.spacer'),
-    h('button.btn.small', { onclick: () => finish() }, 'Skip'), next));
+    h('button.btn.small', { onclick: () => finish() }, 'Skip tour'), next));
   const root = h('div.coach-layer', null, ring, bubble);
   root.style.display = 'none';
   layer.append(root);
@@ -49,13 +59,19 @@ export function createTutorial({ layer, sfx, controls, ui }) {
     let y = step.place.startsWith('below') ? r.bottom - box.top + 16 : r.top - box.top - bh - 16;
     if (step.place === 'below-left') x = r.right - box.left - bw;
     if (step.place === 'left') { x = r.left - box.left - bw - 16; y = r.top - box.top; }
+    if (step.place === 'right') { x = r.right - box.left + 16; y = r.top - box.top; }
+    if (step.place === 'above') y = r.top - box.top - bh - 16;
     x = Math.max(12, Math.min(box.width - bw - 12, x));
     y = Math.max(12, Math.min(box.height - bh - 12, y));
     Object.assign(bubble.style, { left: `${x}px`, top: `${y}px` });
   }
 
+  const visible = (sel) => { const t = layer.querySelector(sel); return !!t && t.getClientRects().length > 0; };
+
   function go(n) {
     if (i >= 0) STEPS[i].leave?.(ui);
+    // Steps whose target is not on screen yet (a menu still locked) are skipped.
+    while (n < STEPS.length && !visible(STEPS[n].target)) n++;
     if (n >= STEPS.length) { finish(); return; }
     if (i < 0 && resume === null) { resume = controls?.getSpeed?.() ?? 1; controls?.setSpeed?.(0); }
     i = n;

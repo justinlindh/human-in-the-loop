@@ -1,3 +1,4 @@
+import { availableItems } from './panels/office.js';
 import './style.css';
 import { h, dateOf } from './dom.js';
 import { createHud } from './hud.js';
@@ -118,7 +119,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const buildMode = createBuildMode({ layer, ctx, controls });
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
-  const announcer = createAnnouncer({ layer, sfx, openMenu: (id) => menu.open(id) });
+  const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg) });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
   const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'automation' };
@@ -271,8 +272,23 @@ export function createUI({ root, getState, dispatch, controls }) {
     }
   }
 
+  // New office items: when the stage, the first award, or the era opens items up, announce them.
+  // A different state object (a new game or a load) resets the baseline without announcing.
+  let itemsState = null, itemsSig = null, itemsSeen = null;
+  function checkNewItems(state) {
+    if (state !== itemsState) { itemsState = state; itemsSig = null; itemsSeen = null; }
+    const sig = `${state.office?.stage ?? state.officeStage ?? 0}|${(state.stats?.awards ?? 0) > 0}|${state.era?.id}`;
+    if (sig === itemsSig) return;
+    itemsSig = sig;
+    const now = availableItems(state);
+    const fresh = itemsSeen ? now.filter((id) => !itemsSeen.has(id)) : [];
+    itemsSeen = new Set(now);
+    if (fresh.length) announcer.items(fresh);
+  }
+
   let lastPanelAt = 0;
   function update(state) {
+    checkNewItems(state);
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);

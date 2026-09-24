@@ -277,14 +277,14 @@ describe('delayed consequences', () => {
   });
 
   it('the polarity table covers every modifierBonus key', () => {
-    expect(Object.keys(MODIFIER_KEYS).sort()).toEqual(['acquisition', 'brandPerWeek', 'churn', 'hype', 'meaningDrain', 'meaningRecovery', 'oversight', 'output', 'rogueRisk', 'staminaDrain', 'xp'].sort());
+    expect(Object.keys(MODIFIER_KEYS).sort()).toEqual(['acquisition', 'attrition', 'brandPerWeek', 'churn', 'hype', 'meaningDrain', 'meaningRecovery', 'oversight', 'output', 'rogueRisk', 'staminaDrain', 'xp'].sort());
     for (const [k, v] of Object.entries(MODIFIER_KEYS)) {
       expect(v.key).toBe(k);
       expect(['up', 'down']).toContain(v.goodWhen);
       expect(['pct', 'flat']).toContain(v.format);
       expect(v.label.length).toBeGreaterThan(2);
     }
-    for (const k of ['meaningDrain', 'churn', 'staminaDrain', 'rogueRisk']) expect(MODIFIER_KEYS[k].goodWhen).toBe('down');
+    for (const k of ['meaningDrain', 'churn', 'staminaDrain', 'rogueRisk', 'attrition']) expect(MODIFIER_KEYS[k].goodWhen).toBe('down');
   });
 
   it('modifier keys only use the supported set', () => {

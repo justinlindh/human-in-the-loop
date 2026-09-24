@@ -6,6 +6,7 @@ import { avg } from './util.js';
 import { emitChat } from './chat.js';
 import { itemBonus } from './bonus.js';
 import { purposeLift } from './purpose.js';
+import { modifierBonus } from './modifiers.js';
 import { incumbentFor } from '../data/incumbents.js';
 
 // Why a long-tenured person moves on for reasons that have nothing to do with the company.
@@ -84,6 +85,7 @@ export function attritionRisk(state, p) {
   if (state.policies.top_pay) risk *= B.topPayAttrition;
   if (state.policies.office_upkeep) risk *= B.upkeepAttrition;
   risk *= Math.max(0, 1 - B.purposeRetention * purposeLift(state));
+  risk *= Math.max(0, 1 + modifierBonus(state, 'attrition'));
   return risk;
 }
 
