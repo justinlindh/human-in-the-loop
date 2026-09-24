@@ -3,12 +3,14 @@ import { OFFICE_STAGES } from '../content.js';
 import { ITEMS } from '../../data/items.js';
 import { liveView, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
-import { CATALOG, isDesk } from '../v2content.js';
+import { CATALOG, isDesk, beforeEra } from '../v2content.js';
 import { placedOf, stageOf } from '../placement.js';
+import { EVENTS } from '../../data/events.js';
+import { weeklyCosts } from '../../sim/economy.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
-  output: 'output', staminaDrain: 'stamina drain', novelty: 'novelty', knowledgeGain: 'knowledge gain',
+  output: 'output', staminaDrain: 'stamina drain', novelty: 'freshness', knowledgeGain: 'knowledge gain',
   oversight: 'oversight per person', maintenanceNeed: 'maintenance need', uptimeFloor: 'minimum uptime', brandDecay: 'brand decay',
 };
 
@@ -111,7 +113,22 @@ function legacyOfficePanel(ctx) {
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
 
-const ADJ_WORDS = { novelty: 'novelty', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+// Rent as the sim charges it (the work policy can discount it).
+function rentOf(s, stage) {
+  try { const r = weeklyCosts(s).rent; if (Number.isFinite(r)) return r; } catch { /* fall back to the list price */ }
+  return stage.rent;
+}
+
+// The trade-offs come from the sim's work_policy decision choices; the card names the standing state.
+const POLICY_NAME = { office: 'Office-first', hybrid: 'Hybrid', remote: 'Remote-first' };
+const WORK_POLICY = (() => {
+  const ev = EVENTS.work_policy ?? Object.values(EVENTS).find((e) => e.id === 'work_policy');
+  const out = {};
+  for (const c of ev?.choices ?? []) if (c.effects?.workPolicy) out[c.effects.workPolicy] = { name: POLICY_NAME[c.effects.workPolicy] ?? c.label, tip: c.hint ?? '' };
+  return out;
+})();
+
+const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
 
 function adjacencyLine(it) {
   const a = it.adjacency;
@@ -124,7 +141,7 @@ function adjacencyLine(it) {
 // The Office panel as a build palette: the stage card, then furniture and shop items to place.
 function buildPalette(ctx) {
   const view = liveView(
-    (s) => `${stageOf(s)}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
+    (s) => `${s.era?.id}|${s.workPolicy}|${stageOf(s)}|${s.staff.length}|${placedOf(s).map((p) => `${p.id}${p.level}`).join()}|${s.stats?.awards ?? 0}`,
     (s, bind) => {
       const stageIx = stageOf(s);
       const stage = OFFICE_STAGES[stageIx];
@@ -138,7 +155,8 @@ function buildPalette(ctx) {
           icon('seat', { size: 12 }), s.staff.length > desks
             ? ` ${desks} desk${desks === 1 ? '' : 's'} for ${s.staff.length} ${s.staff.length === 1 ? 'person' : 'people'}`
             : ` ${s.staff.length}/${desks} desks used`),
-        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(stage.rent)}/wk rent`));
+        h('span.pill', null, icon('rent', { size: 12 }), ` ${fmtMoney(rentOf(s, stage))}/wk rent`),
+        s.workPolicy ? h('span.pill.policy', null, icon('home', { size: 12 }), ` ${WORK_POLICY[s.workPolicy]?.name ?? s.workPolicy}`) : null);
       let right;
       if (next) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
@@ -146,11 +164,12 @@ function buildPalette(ctx) {
         const why = h('span.why.small');
         bind((st) => { const r = st.cash < next.upgradeCost ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
         right = h('div.col.right', null,
-          h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(next.rent)}/wk rent. Your furniture comes along.` }), btn, why);
+          h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
       } else right = h('span.small.muted', { text: 'The biggest office in town.' });
+      const policyTip = s.workPolicy && WORK_POLICY[s.workPolicy]?.tip ? h('div.small.muted.policytip', { text: WORK_POLICY[s.workPolicy].tip }) : null;
       const stageCard = h('div.card.stagecard', null,
         h('div', null, h('div.small.muted', { text: 'Your office' }), h('h2.oname', { text: stage.name })),
-        pills, h('span.spacer'), right);
+        h('div.col', null, pills, policyTip), h('span.spacer'), right);
 
       const hint = !desks ? h('div.starterhint', null, icon('seat', { size: 18 }), 'Start with desks: nobody can work (or be hired) without one.') : null;
 
@@ -181,7 +200,8 @@ function buildPalette(ctx) {
         return c;
       };
 
-      const all = Object.values(CATALOG);
+      // Items about AI work (era-tagged) stay hidden until their era.
+      const all = Object.values(CATALOG).filter((it) => !beforeEra(s, it.era));
       const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));
       const shop = all.filter((it) => it.kind !== 'furniture');
       return [stageCard, hint,

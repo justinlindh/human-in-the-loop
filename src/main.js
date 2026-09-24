@@ -47,7 +47,11 @@ async function boot() {
   }
 
   let speed = Number(params.get('speed') ?? (isSnap ? 0 : 1));
-  const quality = params.get('quality') ?? 'high';
+  // An explicit ?quality= wins for the whole session (tools and tests rely on it); otherwise the
+  // saved setting, which ui applies through controls.setQuality at startup.
+  const urlQuality = params.get('quality');
+  const quality = urlQuality ?? 'high';
+  let activeQuality = quality;
   const forcedTime = params.get('time') ?? (sim.state.flags?.mockTime ?? null);
 
   const renderer = renderMod?.createRenderer({
@@ -74,9 +78,10 @@ async function boot() {
   };
 
   const canSave = () => realSim && !!saveMod && !isSnap;
+  // Each company writes its own save slot. A finished run is saved too, so it stays listed (as over)
+  // and its ending can be revisited or, for the anniversary, played on.
   function save() {
     if (!canSave() || !playing) return false;
-    if (sim.state.gameOver) { saveMod.clearSave(); return false; }
     return saveMod.saveGame(sim.state);
   }
 
@@ -96,7 +101,9 @@ async function boot() {
   const controls = {
     setSpeed: (k) => { speed = k; if (k > 0) awayPaused = false; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
-    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setPauseOnBlur).
+    // Auto-pause when focus leaves the page (a setting; ui stores it and calls setAutoPause).
+    setAutoPause: (on) => { autoPause = on !== false; },
+    getAutoPause: () => autoPause,
     setPauseOnBlur: (on) => { autoPause = on !== false; },
     getPauseOnBlur: () => autoPause,
     // True after an auto-pause until the player picks a speed again (for a "paused while away" hint).
@@ -107,14 +114,29 @@ async function boot() {
       const seed = Number.isFinite(opts.seed) ? opts.seed : randomSeed();
       // Founding options (logoColor, tagline, founders, funding) pass straight through to the sim.
       const founding = { ...opts, seed, companyName: opts.companyName || 'Loopworks' };
+      // A fresh state has no slot yet; its first save takes a new one, so earlier companies stay.
       startPlaying(realSim ? simMod.createGame(founding) : sim.state);
-      if (canSave()) saveMod.clearSave();
     },
-    continueGame: () => {
+    // Loads a slot by id (default: the last one written).
+    continueGame: (id) => {
       if (!canSave()) return { ok: false, reason: 'No save found' };
-      const res = saveMod.loadGame();
+      const res = saveMod.loadGame(undefined, id);
       if (res.ok) startPlaying(res.state);
       return { ok: res.ok, reason: res.reason, notice: res.notice };
+    },
+    // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
+    // will not load is listed with its reason instead of dropped.
+    listSaves: () => {
+      if (!canSave() || !saveMod.listSaves) return [];
+      return saveMod.listSaves().map((m) => {
+        const res = saveMod.loadGame(undefined, m.id);
+        return { ...m, ok: res.ok, reason: res.reason };
+      });
+    },
+    deleteSave: (id) => {
+      if (!canSave() || !saveMod.deleteSave) return { ok: false, reason: 'No save found' };
+      saveMod.deleteSave(undefined, id);
+      return { ok: true };
     },
     loadStatus: () => {
       if (!canSave()) return { ok: false, reason: 'No save found' };
@@ -124,7 +146,12 @@ async function boot() {
       return { ok: res.ok, reason: res.reason, meta };
     },
     save,
-    setQuality: (q) => renderer?.setQuality(q),
+    setQuality: (q) => {
+      if (urlQuality) return;
+      activeQuality = q;
+      renderer?.setQuality(q);
+    },
+    getQuality: () => activeQuality,
     setTiltShift: (on) => renderer?.setTiltShift(on),
     setVolume: (v) => audio?.setVolume(v),
     focusStaff: (id) => renderer?.focusStaff(id),
@@ -148,10 +175,12 @@ async function boot() {
   window.__HITL = {
     get state() { return sim.state; },
     get playing() { return playing; },
-    get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null }; },
+    get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null, dayClock, frozen }; },
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
+    // Presents events as if the sim had emitted them (capture scenarios, playtests).
+    emit: (events) => route(events, sim.state),
     controls,
   };
 
@@ -179,6 +208,7 @@ async function boot() {
   let dayClock = 0.35;
   let firstFrame = true;
   let frameCount = 0;
+  let frozen = false;
   function frame(now) {
     frameCount++;
     // Capped so a stalled or hidden tab resumes smoothly instead of jumping.
@@ -192,8 +222,12 @@ async function boot() {
       pacer.takeDropped();
       if (sim.state.gameOver || sim.state.week % AUTOSAVE_WEEKS === 0) save();
     }
-    if (!menuPause) route(pacer.due(), sim.state);
-    dayClock = (dayClock + dt / DAY_SECONDS) % 1;
+    // Paused in any way (the pause button, a menu, a decision, the title): the office holds still.
+    // The renderer freezes, the day does not turn, and queued events wait for play to resume.
+    frozen = speed === 0 || menuPause || !!sim.state.pendingDecision || !playing;
+    if (running) route(pacer.due(), sim.state);
+    if (!frozen) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
+    renderer?.setPaused?.(frozen);
     if (renderer) {
       renderer.setTimeOfDay(forcedTime === 'night' ? 0.95 : forcedTime === 'day' ? 0.45 : dayClock);
       renderer.sync(sim.state);

@@ -18,7 +18,17 @@ const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await (await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } })).newPage();
+const context = await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } });
+// No CSS animation or transitions: on a slow runner an animating card never counts as stable, so
+// clicks on it time out. The checks here are about behavior, not motion.
+await context.addInitScript(() => {
+  addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
+    document.head.append(style);
+  });
+});
+const page = await context.newPage();
 const shot = (name) => (SHOTS ? page.screenshot({ path: `${OUT}/${name}` }) : null);
 const errors = [];
 const failures = [];
@@ -27,12 +37,20 @@ page.on('pageerror', (e) => errors.push(`pageerror ${e.message} @ ${(e.stack || 
 const ready = () => page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
 // Generous: CI runners render with software GL and can take many seconds per frame.
-const clickText = (re) => page.locator('button:visible', { hasText: re }).first().click({ timeout: 30000 });
+// DOM clicks, not mouse input: on a software-GL runner a frame can take seconds (menus draw 3D
+// portraits), and real input waits behind rendering long enough to time out. These checks are
+// about behavior, not pointer handling.
+// Long limits: opening the founders step blocks the main thread for seconds on a slow CPU (portraits).
+const click = async (loc) => { await loc.waitFor({ state: 'attached', timeout: 120000 }); await loc.evaluate((el) => el.click(), undefined, { timeout: 120000 }); };
+const clickText = (re) => click(page.locator('button:visible', { hasText: re }).first());
 
 try {
   await page.goto(QUALITY ? `${base}?quality=${QUALITY}` : base, { waitUntil: 'domcontentloaded', timeout: 90000 }); await ready(); await page.waitForTimeout(1000);
   const t0 = await page.evaluate(() => ({ playing: window.__HITL.playing, text: document.body.innerText }));
   check('title shows, not playing', !t0.playing && /New Game/.test(t0.text));
+  // The saved setting is applied at startup, but an explicit ?quality= wins for the session.
+  const q0 = await page.evaluate(() => window.__HITL.controls.getQuality?.());
+  check('graphics quality follows ?quality, else the saved setting', q0 === (QUALITY ?? 'high'), `active ${q0}`);
   await shot('1-title.png');
 
   // Record what the UI hands to controls.newGame.
@@ -41,27 +59,38 @@ try {
     const orig = c.newGame;
     c.newGame = (o) => { window.__newGameOpts = o; return orig(o); };
   });
-  await clickText(/New Game/);
-  await page.locator('input.text').first().fill('Testco');
-  await page.locator('input.seed').fill('42');
-  await shot('2-company.png');
-  await clickText(/Next: founders/);
-  const cards = page.locator('button.fcard');
-  await cards.nth(0).click(); await cards.nth(1).click();
-  await shot('3-founders.png');
-  await clickText(/Next: funding/);
-  await page.locator('button.fund').last().click();
-  await shot('4-funding.png');
-  await clickText(/Start the company/);
-  await page.waitForTimeout(800);
+  // From the title: New Game, then the three founding steps.
+  const found = async (name, seed, shots = false) => {
+    await clickText(/New Game/);
+    await page.locator('input.text').first().fill(name);
+    await page.locator('input.seed').fill(String(seed));
+    if (shots) await shot('2-company.png');
+    await clickText(/Next: founders/);
+    const cards = page.locator('button.fcard');
+    await click(cards.nth(0)); await click(cards.nth(1));
+    if (shots) await shot('3-founders.png');
+    await clickText(/Next: funding/);
+    await click(page.locator('button.fund').last());
+    if (shots) await shot('4-funding.png');
+    await clickText(/Start the company/);
+    await page.waitForTimeout(800);
+  };
+  await found('Testco', 42, true);
   const t1 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, seed: window.__HITL.state.seed, opts: window.__newGameOpts }));
   const o = t1.opts ?? {};
   check('started as Testco with seed 42', t1.playing && t1.name === 'Testco' && t1.seed === 42, JSON.stringify({ playing: t1.playing, name: t1.name, seed: t1.seed }));
   check('newGame got the founding options', o.companyName === 'Testco' && o.founders?.length === 2 && !!o.funding && !!o.logoColor && typeof o.tagline === 'string', JSON.stringify(o));
 
-  for (let i = 0; i < 6; i++) await page.keyboard.press('Escape');
+  // Close the tutorial or any panel: Escape until the UI reports nothing open. Dispatched in the page,
+  // since DOM clicks do not give the page keyboard focus.
+  const closeAll = () => page.evaluate(() => {
+    for (let i = 0; i < 10 && window.__HITL.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    return window.__HITL.clock.busy;
+  });
+  await page.waitForTimeout(1000);
+  await closeAll();
   // Advances n weeks, resolving any decision first (tick does nothing while one is pending).
-  await page.evaluate(() => {
+  const defineAdvance = () => page.evaluate(() => {
     window.__advance = (n) => {
       const H = window.__HITL;
       for (let i = 0; i < n; i++) {
@@ -71,6 +100,7 @@ try {
       return H.state.week;
     };
   });
+  await defineAdvance();
   await page.evaluate((n) => { window.__advance(n); window.__HITL.controls.save(); }, WEEKS);
   const saved = await page.evaluate(() => ({ week: window.__HITL.state.week, has: Object.keys(localStorage).some((k) => k.startsWith('hitl.save')) }));
   check(`played ${WEEKS} weeks and saved`, saved.week === WEEKS && saved.has, JSON.stringify(saved));
@@ -78,8 +108,9 @@ try {
 
   // Saves without an explicit save: the tab going hidden, then the page being hidden (pagehide).
   const savedWeek = () => page.evaluate(() => {
-    const k = Object.keys(localStorage).find((x) => x.startsWith('hitl.save'));
-    try { return JSON.parse(localStorage.getItem(k)).week ?? JSON.parse(localStorage.getItem(k)).state?.week; } catch { return null; }
+    const slots = window.__HITL.controls.listSaves?.() ?? [];
+    if (slots.length) return slots.find((x) => x.companyName === window.__HITL.state.companyName)?.week ?? null;
+    try { return JSON.parse(localStorage.getItem('hitl.save.v1')).week; } catch { return null; }
   });
   const hiddenWeek = await page.evaluate(() => {
     const week = window.__advance(2);
@@ -93,6 +124,36 @@ try {
   const finalWeek = await page.evaluate(() => { const week = window.__advance(1); dispatchEvent(new Event('pagehide')); return week; });
   const onPagehide = await savedWeek();
   check('saves on pagehide', finalWeek === WEEKS + 3 && onPagehide === finalWeek, `week ${finalWeek}, saved week ${onPagehide}`);
+
+  // Pause holds the world: the clock, the week, the day, and queued events all wait.
+  const hold = await page.evaluate(async () => {
+    const H = window.__HITL;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    let routed = 0;
+    const api = window.__HITL_UI;
+    const orig = api.handleEvents;
+    api.handleEvents = (ev, st) => { routed += ev.length; return orig(ev, st); };
+    // Play first (a pending decision or an open panel would already hold everything).
+    for (let g = 0; g < 5 && H.state.pendingDecision; g++) H.dispatch({ type: 'resolveDecision', choice: 0 });
+    for (let i = 0; i < 10 && H.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    H.controls.setSpeed(1);
+    const day0 = H.clock.dayClock;
+    await wait(1500);
+    const dayMoved = H.clock.dayClock !== day0;
+    const before = { busy: H.clock.busy, pending: !!H.state.pendingDecision };
+    H.controls.setSpeed(0);
+    await wait(300);
+    const a = { ...H.clock, week: H.state.week };
+    routed = 0;
+    await wait(3000);
+    const b = { ...H.clock, week: H.state.week };
+    api.handleEvents = orig;
+    return { dayMoved, before, a, b, routed, rendererPaused: H.controls.renderer?.paused ?? 'n/a' };
+  });
+  const same = (k) => hold.a[k] === hold.b[k];
+  check('pause holds the clock, the week, the day, and events',
+    hold.dayMoved && hold.b.frozen && same('acc') && same('week') && same('dayClock') && same('queued') && hold.routed === 0 && hold.rendererPaused !== false,
+    JSON.stringify({ dayMoved: hold.dayMoved, before: hold.before, acc: hold.b.acc, week: hold.b.week, day: hold.b.dayClock, queued: hold.b.queued, routed: hold.routed, rendererPaused: hold.rendererPaused }));
 
   // Auto-pause: focus leaving the page pauses and saves; coming back does not resume.
   const away = await page.evaluate(async () => {
@@ -114,11 +175,15 @@ try {
   check('focus does not resume', away.afterFocus === 0, `speed ${away.afterFocus}`);
   const offSpeed = await page.evaluate(() => {
     const c = window.__HITL.controls;
+    // Both names ui has used for the setting must work.
     c.setPauseOnBlur(false); c.setSpeed(1);
     dispatchEvent(new Event('blur'));
-    const sp = window.__HITL.clock.speed;
-    c.setPauseOnBlur(true); c.setSpeed(0);
-    return sp;
+    const viaPauseOnBlur = window.__HITL.clock.speed;
+    c.setPauseOnBlur(true); c.setAutoPause(false); c.setSpeed(1);
+    dispatchEvent(new Event('blur'));
+    const viaAutoPause = window.__HITL.clock.speed;
+    c.setAutoPause(true); c.setSpeed(0);
+    return viaPauseOnBlur === 1 && viaAutoPause === 1 && c.getAutoPause() === true ? 1 : `${viaPauseOnBlur}/${viaAutoPause}`;
   });
   check('with auto-pause off, blur leaves the game running', offSpeed === 1, `speed ${offSpeed}`);
   const lastWeek = away.week;
@@ -133,6 +198,25 @@ try {
   const t3 = await page.evaluate(() => ({ playing: window.__HITL.playing, name: window.__HITL.state.companyName, week: window.__HITL.state.week }));
   check('Continue resumes the saved game', t3.playing && t3.name === 'Testco' && t3.week === lastWeek, JSON.stringify(t3));
   await shot('6-continued.png');
+  await defineAdvance();
+
+  // A second company, then back to the title: New Game must not delete either earlier save.
+  await page.evaluate(() => window.__HITL.controls.newGame());
+  await page.waitForTimeout(500);
+  await found('Secondco', 7);
+  await page.evaluate(() => { window.__advance(3); window.__HITL.controls.save(); window.__HITL.controls.newGame(); });
+  await page.waitForTimeout(800);
+  const t4 = await page.evaluate(() => ({
+    slots: (window.__HITL.controls.listSaves?.() ?? []).map((x) => `${x.companyName}@${x.week}${x.ok ? '' : ` (${x.reason})`}`),
+    rows: document.querySelectorAll('.tl-slot').length,
+  }));
+  check('both companies stay listed after another New Game', ['Testco', 'Secondco'].every((n) => t4.slots.some((x) => x.startsWith(`${n}@`))) && t4.rows >= 2, JSON.stringify(t4));
+  const t5 = await page.evaluate(() => {
+    const first = window.__HITL.controls.listSaves().find((x) => x.companyName === 'Testco');
+    const res = window.__HITL.controls.continueGame(first.id);
+    return { ok: res.ok, name: window.__HITL.state.companyName, week: window.__HITL.state.week };
+  });
+  check('continueGame(id) loads that company', t5.ok && t5.name === 'Testco' && t5.week === lastWeek, JSON.stringify(t5));
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);
   // The first lines of Playwright's call log say what the click was waiting on.

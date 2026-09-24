@@ -1,6 +1,6 @@
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
-import { portraitURL } from './widgets.js';
+import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
 
 const CHANNELS = CHAT_CHANNELS;
@@ -8,7 +8,7 @@ const MAX_PER_CHANNEL = 60;
 const QUIET_WEEKS = 6;
 const BOT_ICON = {
   '@pagerbot': 'bot.pager', '@vendorbot': 'bot.vendor', '@launchbot': 'bot.launch', '@shipbot': 'bot.launch', '@hr-bot': 'bot.hr',
-  '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackernewsbot': 'bot.hn',
+  '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackernewsbot': 'bot.hn', '@newsbot': 'bot.news', '@buildbot': 'bot.build',
 };
 
 // Slackk: the office's team chat. Channels with unread badges, threads, reactions, and names you
@@ -40,8 +40,14 @@ export function createChat(root, { getState, onName } = {}) {
   function avatar(m) {
     if (m.from?.startsWith('@')) return h('span.av.bot', null, icon(BOT_ICON[m.from] ?? 'bot.generic', { size: 13 }));
     const p = m.fromId ? getState?.().staff.find((x) => x.id === m.fromId) : null;
-    if (p) return h('img.av', { src: portraitURL(p, 44), alt: '' });
+    if (p) return portraitImg(p, 44);
     return h('span.av.gone', { text: (m.from ?? '?').slice(0, 1) });
+  }
+
+  // "@channel" and "@here" render as mention pills; the rest stays plain text.
+  function withMentions(text) {
+    const parts = String(text ?? '').split(/(@channel|@here)\b/);
+    return parts.map((t, i) => (i % 2 ? h('span.mention', { text: t }) : t)).filter((x) => x !== '');
   }
 
   function node(m) {
@@ -53,7 +59,7 @@ export function createChat(root, { getState, onName } = {}) {
       avatar(m),
       h('div.mcol', null,
         h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${dateOf(m.week).week}` })),
-        h('div.mtext', { text: m.text }),
+        h('div.mtext', null, ...withMentions(m.text)),
         reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
   }
 

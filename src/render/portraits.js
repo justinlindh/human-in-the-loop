@@ -22,7 +22,7 @@ function keyOf(p, px) {
   return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.legend ? 1 : 0}|${JSON.stringify(p.appearance ?? {})}|${px}`;
 }
 
-export function createPortraits({ ready }) {
+export function createPortraits({ ready, lowQuality = () => false }) {
   let gl = null;
   let scene, camera;
   const cache = new Map();     // key -> url (insertion order doubles as LRU)
@@ -53,14 +53,20 @@ export function createPortraits({ ready }) {
     scene.add(rim);
     // Three-quarter view, a little above eye level, framing head and shoulders.
     camera = new THREE.PerspectiveCamera(20, 1, 0.1, 20);
-    const yaw = 0.5, d = 1.85;
-    camera.position.set(Math.sin(yaw) * d, 1.03, Math.cos(yaw) * d);
-    camera.lookAt(0, 0.87, 0);
+    // Eyes a little above the middle, shoulders and the role garment in view, room for hats.
+    const yaw = 0.5, d = 2.1;
+    camera.position.set(Math.sin(yaw) * d, 1.02, Math.cos(yaw) * d);
+    camera.lookAt(0, 0.86, 0);
     return true;
   }
 
-  function build(person) {
+  function build(person, caricature = false) {
     const c = createCharacter(person.appearance ?? {}, ROLE_COLORS[person.role], { role: person.role });
+    if (caricature) {
+      // Big head, small body: the party-favour caricature look.
+      c.head.scale.setScalar(1.45);
+      c.root.scale.set(0.92, 0.82, 0.92);
+    }
     c.setRingScale(0.0001);
     c.pickProxy.visible = false;
     c.setMood(person.mood && person.mood !== 'away' ? person.mood : 'ok');
@@ -101,7 +107,8 @@ export function createPortraits({ ready }) {
     el.width = el.height = px;
     el.style.width = el.style.height = `${size}px`;
     const entry = { el, ctx: el.getContext('2d'), person: { ...person }, px, char: null, dead: false };
-    if (live.size >= MAX_LIVE) {
+    // Low quality keeps a single live portrait and redraws it at half rate.
+    if (live.size >= (lowQuality() ? 1 : MAX_LIVE)) {
       // Over the cap: a static image drawn once it exists.
       entry.staticOnly = true;
     }
@@ -139,22 +146,43 @@ export function createPortraits({ ready }) {
         }
         continue;
       }
+      e.acc = (e.acc ?? 0) + dt;
+      if (lowQuality() && e.char && (e.skip = !e.skip)) continue;
       if (!e.char) e.char = build(e.person);
       else scene.add(e.char.root);
-      e.char.update(dt);
+      e.char.update(e.acc);
+      e.acc = 0;
       draw(e.px);
       e.ctx.clearRect(0, 0, e.px, e.px);
       e.ctx.drawImage(gl.domElement, 0, 0, e.px, e.px);
       scene.remove(e.char.root);
     }
-    if (announce && !queue.size) {
+    // Announce after every frame that finished some portraits; waiting for an empty queue can
+    // starve when callers keep requesting new sizes or people.
+    if (announce) {
       announce = false;
       dispatchEvent(new Event('hitl:portraits'));
     }
   }
 
+  // A one-off caricature canvas (big head, beaming) for a framed picture in the office.
+  function caricature(person, px = 256) {
+    if (!ready() || !init()) return null;
+    const c = build({ ...person, mood: 'ok' }, true);
+    c.setAnim('celebrate');
+    c.update(0.25);
+    const out = document.createElement('canvas');
+    out.width = out.height = px;
+    camera.position.y += 0.08;
+    draw(px);
+    camera.position.y -= 0.08;
+    out.getContext('2d').drawImage(gl.domElement, 0, 0, px, px);
+    c.dispose();
+    return out;
+  }
+
   return {
-    portrait, portraitLive, update,
+    portrait, portraitLive, update, caricature,
     get stats() { return { cached: cache.size, queued: queue.size, live: live.size }; },
   };
 }

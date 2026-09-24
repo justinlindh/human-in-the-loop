@@ -1,10 +1,11 @@
-import { h, setText, setWidth, fmtMoney, fmtNum, setClass } from '../dom.js';
+import { h, setText, setWidth, fmtMoney, fmtNum, setClass, dateOf } from '../dom.js';
 import { categoryName, angleName, modelName, CATEGORY, ANGLE } from '../content.js';
 import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { lineChart, stackedChart, sample } from '../charts.js';
 import { wrapperRisk } from './marketing.js';
 import { retireOptions, retireBanner } from '../retire.js';
+import { PURPOSE_INFO } from '../v2content.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -34,10 +35,16 @@ export function reportsPanel(ctx) {
   let retireSig = null;
   const syncBanner = (s) => {
     const o = retireOptions(s);
-    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}`;
+    const r = s.rival;
+    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}|${s.flags?.anniversaryScore}|${r ? `${r.status}${Math.round((r.strength ?? 0) / 5)}` : ''}|${s.purpose ? `${s.purpose.mission}${Math.round(s.purpose.value ?? 0)}${s.purpose.tests?.length}` : ''}`;
     if (sig === retireSig) return;
     retireSig = sig;
-    bannerHost.replaceChildren(...[retireBanner(ctx, s)].filter(Boolean));
+    const anniv = s.flags?.anniversaryScore;
+    bannerHost.replaceChildren(...[
+      Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: 'Locked in at 20 years. You kept going.' })) : null,
+      purposeCard(s),
+      rivalCard(s),
+      retireBanner(ctx, s)].filter(Boolean));
   };
 
   const chartW = () => {
@@ -133,7 +140,7 @@ export function reportsPanel(ctx) {
         const risk = wrapperRisk(p);
         const tags = h('div.row.wrap.ptags', null,
           p.wrapperHit || risk === 'hit' ? h('span.pill.bad', null, icon('wrapper', { size: 12 }), ' "Just a wrapper"') : null,
-          p.copied ? h('span.pill.warn', { title: 'An incumbent copied your features; novelty halved' }, 'Copied by incumbent') : null,
+          p.copied ? h('span.pill.warn', { title: 'An incumbent copied your features; freshness halved' }, 'Copied by incumbent') : null,
           p.migrationDueWeek != null ? h('span.pill.warn', null, icon('migrate', { size: 12 }), ` Migrate by ${p.migrationDueWeek <= s.week ? 'NOW' : `${p.migrationDueWeek - s.week}w`}`) : null,
           s.outage?.productId === p.id ? h('span.pill.bad', null, icon('tray.outage', { size: 12 }), ' DOWN') : null,
         );
@@ -154,7 +161,7 @@ export function reportsPanel(ctx) {
             h('div', null, h('span.small.muted', { text: 'Uptime' }), up)),
           h('div.pbars', null,
             h('div.pstat', null, h('span', { text: 'Health' }), h('div.bar', null, healthF), healthV),
-            h('div.pstat', null, h('span', { text: 'Novelty' }), h('div.bar', null, novF), novV),
+            h('div.pstat', null, h('span.skname', null, icon('stat.novelty', { size: 13 }), ' Freshness'), h('div.bar', null, novF), novV),
             h('div.pstat', null, h('span', { text: 'Hype' }), h('div.bar', null, hypeF), hypeV)),
           tags,
           h('div.row.pacts', null,
@@ -209,3 +216,36 @@ export function reportsPanel(ctx) {
   };
 }
 
+
+const RIVAL_STATUS = { rising: ['Rising', 'warn'], stalled: ['Stalled', ''], acquired: ['Acquired', 'good'], dead: ['Shut down', 'good'], merged: ['Merged', ''] };
+
+// The rival company: who, where, how strong, and how it ended.
+function rivalCard(s) {
+  const r = s.rival;
+  if (!r) return null;
+  const [label, tone] = RIVAL_STATUS[r.status] ?? [r.status, ''];
+  const fill = h('i', { style: { width: `${Math.max(0, Math.min(100, r.strength ?? 0))}%`, background: 'var(--ink-soft)' } });
+  return h('div.card.rivalcard', null,
+    h('span.rlogo', { style: { background: r.logoColor ?? '' }, text: (r.name || '?').slice(0, 1).toUpperCase() }),
+    h('div', { style: { minWidth: 0, flex: 1 } },
+      h('div.row', null, h('b', { text: r.name }), h('span.small.muted', { text: ` Your rival, run by ${r.founderName ?? 'someone you used to know'}` })),
+      h('div.row', null, h('span.small', { text: `${categoryName(r.categoryId)} · strength` }), h('div.bar', { style: { flex: 1, maxWidth: '12em' } }, fill), h('b.num.small', { text: String(Math.round(r.strength ?? 0)) }))),
+    h(`span.pill${tone ? `.${tone}` : ''}`, { text: label }));
+}
+
+const PURPOSE_AFFECTS = 'Keeps meaning steady when the work changes. Choices that go against the mission test it; passing a test strengthens it.';
+
+// The company's mission and how well it is holding up.
+function purposeCard(s) {
+  const pu = s.purpose;
+  if (!pu) return null;
+  const v = Math.max(0, Math.min(100, pu.value ?? 0));
+  const tests = (pu.tests ?? []).slice(-3).reverse();
+  return h('div.card.purposecard', null,
+    h('div.row', null, icon('idea', { size: 20 }), h('b', { text: 'Purpose' }), h('span.small.muted', { text: pu.mission ? ` "${PURPOSE_INFO?.missions?.[pu.mission]?.name ?? pu.mission}"` : ' No mission yet' }), h('span.spacer'),
+      h('div.bar', { style: { width: '10em' } }, h('i', { style: { width: `${v}%`, background: 'var(--purple)' } })), h('b.num', { text: String(Math.round(v)) })),
+    h('div.small.muted', { text: PURPOSE_INFO?.affects ?? PURPOSE_AFFECTS }),
+    tests.length ? h('div.ptests', null, ...tests.map((t) => h('div.ptest', null,
+      h(`span.num.${(t.delta ?? 0) >= 0 ? 'good-t' : 'bad-t'}`, { text: `${(t.delta ?? 0) >= 0 ? '+' : ''}${Math.round(t.delta ?? 0)}` }),
+      h('span', { text: t.text ?? '' }), h('span.small.muted', { text: Number.isFinite(t.week) ? `${dateOf(t.week).year} Q${dateOf(t.week).quarter}` : '' })))) : null);
+}

@@ -199,7 +199,8 @@ export function buildCharTurnaround(group) {
   group.userData.update = (dt) => { for (const c of chars) c.update(dt); };
   loadModels(['chibi']).then(() => {
     [0, 1, 2, 3].forEach((i) => {
-      const c = createCharacter({ skin: 1, hair: 1, hairColor: HAIRC[3], shirt: SHIRTS[3], pants: PANTS[0], accessory: 'none', build: 1 }, ROLE_COLORS.designer, { role: 'designer' });
+      const acc = new URLSearchParams(location.search).get('acc') ?? 'none';
+      const c = createCharacter({ skin: 1, hair: 1, hairColor: HAIRC[3], shirt: SHIRTS[3], pants: PANTS[0], accessory: acc, build: 1, capBack: new URLSearchParams(location.search).get('back') === '1' }, ROLE_COLORS.designer, { role: 'designer' });
       c.root.position.set((i - 1.5) * 1.1, 0.04, 0);
       c.root.rotation.y = Math.PI / 4 + i * Math.PI / 2;
       group.add(c.root);

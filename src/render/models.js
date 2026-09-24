@@ -4,7 +4,7 @@ import { paletteMaterial } from './materials.js';
 
 export const PROP_NAMES = [
   'desk', 'chair', 'monitor', 'laptop', 'server_rack', 'plant_tall', 'plant_small', 'coffee_machine',
-  'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy', 'kitchenette', 'ping_pong_table', 'foosball',
+  'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy', 'kitchenette', 'ping_pong_table', 'foosball', 'balloons', 'waffle_station',
 ];
 
 export const ITEM_IDS = [
@@ -44,7 +44,7 @@ function loadOne(name) {
 }
 
 // Loads each named model once (cached per name) and resolves when all of them are ready.
-export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi']) {
+export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi', 'pets']) {
   return Promise.all(names.map(loadOne)).then(() => templates);
 }
 
