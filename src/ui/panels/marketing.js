@@ -75,7 +75,7 @@ export function marketingPanel(ctx) {
           onclick: () => {
             if (!target) return;
             const res = ctx.act({ type: 'runCampaign', channel: c.id, productId: target.kind === 'product' ? target.id : null, projectId: target.kind === 'project' ? target.id : null });
-            if (res.ok) { ctx.sfx('coin'); ctx.toast(`${c.name} running for ${target.name}`, 'good'); }
+            if (res.ok) ctx.sfx('coin');
           },
         }, 'Run');
         const why = h('span.why.small');
