@@ -54,9 +54,9 @@ export function createPortraits({ ready, lowQuality = () => false }) {
     // Three-quarter view, a little above eye level, framing head and shoulders.
     camera = new THREE.PerspectiveCamera(20, 1, 0.1, 20);
     // Eyes a little above the middle, shoulders and the role garment in view, room for hats.
-    const yaw = 0.5, d = 2.6;
-    camera.position.set(Math.sin(yaw) * d, 1.0, Math.cos(yaw) * d);
-    camera.lookAt(0, 0.8, 0);
+    const yaw = 0.5, d = 2.1;
+    camera.position.set(Math.sin(yaw) * d, 1.02, Math.cos(yaw) * d);
+    camera.lookAt(0, 0.86, 0);
     return true;
   }
 
