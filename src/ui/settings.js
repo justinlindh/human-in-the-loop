@@ -2,14 +2,21 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 
 const KEY = 'hitl.settings';
-const DEFAULTS = { volume: 0.7, muted: false, quality: 'high', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true };
+// Audio buses the engine mixes; 'volume' is the master level.
+export const BUSES = [
+  { id: 'music', label: 'Music' }, { id: 'ambience', label: 'Ambience' }, { id: 'sfx', label: 'Sound effects' },
+  { id: 'ui', label: 'Interface' }, { id: 'voice', label: 'Voices' },
+];
+const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'high', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true };
 
 export function loadSettings() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULTS };
     const v = JSON.parse(raw);
-    return { ...DEFAULTS, ...(v && typeof v === 'object' ? v : {}) };
+    const out = { ...DEFAULTS, ...(v && typeof v === 'object' ? v : {}) };
+    out.bus = { ...DEFAULTS.bus, ...(v?.bus && typeof v.bus === 'object' ? v.bus : {}) };
+    return out;
   } catch {
     return { ...DEFAULTS };
   }
@@ -22,9 +29,12 @@ function saveSettings(s) {
 // Pushes settings into the renderer and audio through the controls main.js provides.
 export function applySettings(controls, s) {
   controls.setVolume?.(s.muted ? 0 : s.volume);
+  controls.setBus?.('master', s.volume);
+  for (const b of BUSES) controls.setBus?.(b.id, s.bus?.[b.id] ?? 1);
+  (controls.setMuted ?? controls.setMute)?.(!!s.muted);
   controls.setQuality?.(s.quality);
   controls.setTiltShift?.(s.tiltShift);
-  controls.setAutoPause?.(s.autoPause !== false);
+  (controls.setAutoPause ?? controls.setPauseOnBlur)?.(s.autoPause !== false);
 }
 
 export function createSettings({ layer, controls, sfx }) {
@@ -48,13 +58,19 @@ export function createSettings({ layer, controls, sfx }) {
     return h('div.seg', null, ...btns);
   }
 
-  function render() {
-    const volVal = h('b.num', { text: `${Math.round(settings.volume * 100)}%` });
-    const slider = h('input.range', {
-      type: 'range', min: '0', max: '100', value: String(Math.round(settings.volume * 100)),
-      oninput: (e) => { set('volume', Number(e.target.value) / 100); setText(volVal, `${e.target.value}%`); },
+  // A labelled 0..100 slider; setValue receives 0..1.
+  function level(value, setValue) {
+    const val = h('b.num', { text: `${Math.round(value * 100)}%` });
+    const input = h('input.range', {
+      type: 'range', min: '0', max: '100', step: '5', value: String(Math.round(value * 100)),
+      oninput: (e) => { setValue(Number(e.target.value) / 100); setText(val, `${e.target.value}%`); },
       onchange: () => sfx('click'),
     });
+    return h('div.row.levelrow', null, input, val);
+  }
+
+  function render() {
+    const setBus = (id, v) => { settings.bus = { ...settings.bus, [id]: v }; saveSettings(settings); applySettings(controls, settings); };
     const mute = h('button.switch', { onclick: () => { set('muted', !settings.muted); toggleClass(mute, 'on', settings.muted); } }, h('span.knob'));
     toggleClass(mute, 'on', settings.muted);
     const tilt = h('button.switch', { onclick: () => { set('tiltShift', !settings.tiltShift); toggleClass(tilt, 'on', settings.tiltShift); } }, h('span.knob'));
@@ -64,8 +80,11 @@ export function createSettings({ layer, controls, sfx }) {
       h('div.mhead', null, icon('settings', { size: 24 }), h('h2', { text: 'Settings' }), h('span.spacer'),
         h('button.btn.x', { title: 'Close (Esc)', onclick: () => close() }, icon('close'))),
       h('div.mbody', null,
-        row('Volume', null, h('div.row', null, slider, volVal)),
-        row('Mute', null, mute),
+        h('h3.sethead', { text: 'Audio' }),
+        row('Master volume', null, level(settings.volume, (v) => set('volume', v))),
+        ...BUSES.map((b) => row(b.label, null, level(settings.bus?.[b.id] ?? 1, (v) => setBus(b.id, v)))),
+        row('Mute everything', null, mute),
+        h('h3.sethead', { text: 'Game' }),
         row('Graphics quality', 'Low turns off ambient occlusion, bloom, and tilt-shift.', seg([{ v: 'low', label: 'Low' }, { v: 'high', label: 'High' }], settings.quality, (v) => set('quality', v))),
         row('Tilt-shift blur', 'The miniature look.', tilt),
         (() => {

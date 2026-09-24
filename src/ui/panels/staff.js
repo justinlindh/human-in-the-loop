@@ -7,6 +7,7 @@ import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
+import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN } from '../v2content.js';
 
 // Career path picker for a senior with pathPending.
 export function openPathPicker(ctx, staffId) {
@@ -108,11 +109,11 @@ export function staffPanel(ctx, arg) {
   const host = h('div');
 
   const table = liveView(
-    (s) => [sort.col, sort.dir, s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0,
+    (s) => [sort.col, sort.dir, meaningShown(s), s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0,
       s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}${p.remote ? 'r' : ''}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
   const detail = liveView(
-    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week].join('|') : 'gone'; },
+    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week, Math.round(strainOf(p) / 5)].join('|') : 'gone'; },
     (s, bind) => renderDetail(s, bind));
   const hire = hireView(ctx);
 
@@ -123,19 +124,23 @@ export function staffPanel(ctx, arg) {
   }
 
   function renderTable(s, bind) {
-    const head = h('tr', null, ...COLS.map((c) => {
+    // Before Meaning is revealed, the column shows energy (stamina) with a tired marker.
+    const showM = meaningShown(s);
+    const cols = COLS.map((c) => (c.id === 'meaning' && !showM ? { ...c, label: 'Energy', key: (p) => p.stamina ?? 0 } : c));
+    const head = h('tr', null, ...cols.map((c) => {
       const th = h('th', { onclick: () => { sort = sort.col === c.id ? { col: c.id, dir: -sort.dir } : { col: c.id, dir: c.id === 'meaning' ? 1 : 1 }; table.update(ctx.getState(), true); } },
         c.label, sort.col === c.id ? h('span.sort', null, ' ', icon(sort.dir > 0 ? 'sort.up' : 'sort.down')) : null);
       toggleClass(th, 'on', sort.col === c.id);
       return th;
     }));
-    const col = COLS.find((c) => c.id === sort.col);
+    const col = cols.find((c) => c.id === sort.col);
     const rows = [...s.staff].sort((a, b) => {
       const ka = col.key(a), kb = col.key(b);
       return (ka < kb ? -1 : ka > kb ? 1 : 0) * sort.dir || a.name.localeCompare(b.name);
     });
     const body = h('tbody');
     for (const p of rows) {
+      const tired = h('span.tired', { title: 'Running low on energy' }, icon('battery.low', { size: 16 }));
       const mFill = h('i');
       const mVal = h('span.num');
       const kFill = h('i', { style: { background: '#3fb6b0' } });
@@ -146,7 +151,7 @@ export function staffPanel(ctx, arg) {
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
         h('td.bestcol', null, bestChip(p)),
-        h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`, { size: 19 })), h('div.bar', null, mFill), mVal)),
+        h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`, { size: 19 })), h('div.bar', null, mFill), mVal, tired)),
         h('td.kcol', null, h('div.row', null, h('div.bar', null, kFill), kVal)),
         h('td', null, assignSelect(ctx, s, p)),
         h('td.tr', null, ...traitChips(p.traits)));
@@ -155,10 +160,12 @@ export function staffPanel(ctx, arg) {
       bind((st) => {
         const cur = st.staff.find((x) => x.id === p.id);
         if (!cur) return;
-        setWidth(mFill, cur.meaning / 100);
-        const c = moodColor(cur);
+        const v = showM ? cur.meaning : cur.stamina ?? 0;
+        setWidth(mFill, v / 100);
+        const c = showM ? moodColor(cur) : '#ffb020';
         if (mFill.style.background !== c) mFill.style.background = c;
-        setText(mVal, Math.round(cur.meaning));
+        setText(mVal, Math.round(v));
+        tired.style.display = (cur.stamina ?? 100) < TIRED_STAMINA ? '' : 'none';
         setWidth(kFill, cur.knowledge / 100);
         setText(kVal, Math.round(cur.knowledge));
       });
@@ -232,8 +239,20 @@ export function staffPanel(ctx, arg) {
     acts.append(h('div.act', null, h('b', null, icon('letgo'), ' Let go'), h('span.small.muted', { text: 'Their knowledge walks out the door with them.' }), fire));
 
     const mood = MOOD_INFO[p.mood] ?? MOOD_INFO.ok;
+    const showM = meaningShown(s);
+    // Running on empty for a while: say so, with the two levers that help right now.
+    const strain = strainOf(p);
+    const onProject = p.assignment.type === 'project';
+    const emptyCard = strain >= STRAIN_WARN ? h('div.card.emptywarn', null,
+      icon('battery.low', { size: 22 }),
+      h('div', { style: { flex: 1, minWidth: 0 } }, h('b', { text: `Running on empty (strain ${Math.round(strain)})` }),
+        h('div.small', { text: 'Too much load for too long. Keep this up and burnout comes next, then a resignation letter.' })),
+      h('div.row.wrap', null,
+        h('button.btn.small', { disabled: p.assignment.type === 'idle', title: onProject ? 'Take them off their project for now' : '', onclick: () => { if (assign('idle').ok) ctx.sfx('click'); } }, 'Lighter load'),
+        h('button.btn.small.go', { disabled: away, title: 'Two weeks away. Strain drops fast.', onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, 'Time off'))) : null;
     return [
       h('div.row', null, back, h('span.spacer'), h('span.faint.small', { text: 'Tip: click people in the office to open this.' })),
+      emptyCard,
       h('div.detail', null,
         h('div.dleft', null,
           h('div.bigportrait', null, portraitLive(p, 112)),
@@ -251,11 +270,11 @@ export function staffPanel(ctx, arg) {
           h('div.section', null, h('h3', null, 'Skills', h('span.aside', null, strengthChip(p))),
             ...STATS.map((st) => statBar(h('span.skname', null, icon(st.icon, { size: 14 }), ` ${st.skill}`), (c) => c.skills[st.id], st.color, 100, (v) => Math.round(v), `drives ${st.product}`))),
           h('div.section', null, h('h3', null, 'Condition'),
-            statBar('Meaning', (c) => c.meaning, moodColor(p)),
+            showM ? statBar('Meaning', (c) => c.meaning, moodColor(p)) : null,
             statBar('Stamina', (c) => c.stamina, '#ffb020'),
             statBar('Know-how', (c) => c.knowledge, '#3fb6b0'),
             statBar('Speed', (c) => c.speed, '#9b6bff', 1.2, (v) => `${v.toFixed(2)}x`)),
-          h('div.section', null, h('h3', null, 'Meaning lately'), spark)),
+          showM ? h('div.section', null, h('h3', null, 'Meaning lately'), spark) : null),
         h('div.dright', null,
           h('div.section', null, h('h3', null, 'Traits'),
             p.traits.length ? h('div.grid', null, ...p.traits.map((id) => { const ti = traitInfo(id); return h('div.traitrow', null, h('span.pill.trait', { text: ti.name }), h('span.small.muted', { text: ti.desc })); }))

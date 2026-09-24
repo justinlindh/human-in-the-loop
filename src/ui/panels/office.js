@@ -119,11 +119,12 @@ function rentOf(s, stage) {
   return stage.rent;
 }
 
-// Work policy names and trade-offs come from the sim's work_policy decision choices.
+// The trade-offs come from the sim's work_policy decision choices; the card names the standing state.
+const POLICY_NAME = { office: 'Office-first', hybrid: 'Hybrid', remote: 'Remote-first' };
 const WORK_POLICY = (() => {
   const ev = EVENTS.work_policy ?? Object.values(EVENTS).find((e) => e.id === 'work_policy');
   const out = {};
-  for (const c of ev?.choices ?? []) if (c.effects?.workPolicy) out[c.effects.workPolicy] = { name: c.label, tip: c.hint ?? '' };
+  for (const c of ev?.choices ?? []) if (c.effects?.workPolicy) out[c.effects.workPolicy] = { name: POLICY_NAME[c.effects.workPolicy] ?? c.label, tip: c.hint ?? '' };
   return out;
 })();
 
@@ -163,7 +164,7 @@ function buildPalette(ctx) {
         const why = h('span.why.small');
         bind((st) => { const r = st.cash < next.upgradeCost ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
         right = h('div.col.right', null,
-          h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(next.rent)}/wk rent. Your furniture comes along.` }), btn, why);
+          h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
       } else right = h('span.small.muted', { text: 'The biggest office in town.' });
       const policyTip = s.workPolicy && WORK_POLICY[s.workPolicy]?.tip ? h('div.small.muted.policytip', { text: WORK_POLICY[s.workPolicy].tip }) : null;
       const stageCard = h('div.card.stagecard', null,

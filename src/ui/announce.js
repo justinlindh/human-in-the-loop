@@ -44,12 +44,12 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
   }
 
   // A big birthday: headline, a line of copy, and what it opens (e.g. retiring at ten years).
-  function milestoneCard({ title, text, lines = [], action }, done) {
+  function milestoneCard({ title, text, lines = [], action, kicker = 'Milestone' }, done) {
     const ok = h('button.btn', { onclick: done }, 'Onward');
     const act = action ? h('button.btn.go', { onclick: () => { done(); action.run(); } }, action.label) : null;
     setTimeout(() => (act ?? ok).focus(), 0);
     return h('div.announce.milestone', null,
-      h('div.kicker', null, icon('award', { size: 14 }), ' Milestone'),
+      h('div.kicker', null, icon('award', { size: 14 }), ` ${kicker}`),
       h('h2', { text: title }),
       text ? h('div.ablurb', { text }) : null,
       lines.length ? h('ul.changes', null, ...lines.map((l) => h('li', { text: l }))) : null,

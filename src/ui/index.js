@@ -17,7 +17,7 @@ import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
 import { createCallGrid } from './callgrid.js';
 import { retireOptions } from './retire.js';
-import { GOALS, GOAL, goalReward } from './v2content.js';
+import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -64,12 +64,14 @@ export function createUI({ root, getState, dispatch, controls }) {
     return res ?? { ok: false };
   }
 
+  ui.act = (a) => { const r = act(a); if (r.ok) sfx('confirm'); return r; };
   const ctx = {
     getState,
     act,
     toast: (text, tone) => toasts.push(text, tone),
     open: (id, arg) => menu.open(id, arg),
     close: () => menu.close(),
+    currentMenu: () => menu.current,
     controls,
     sfx,
     meaningLog: new Map(),
@@ -117,7 +119,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const announcer = createAnnouncer({ layer, sfx, openMenu: (id) => menu.open(id) });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
-  const UNLOCK_HOST = { marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'automation' };
+  const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'automation' };
   const hostOf = (key) => UNLOCK_HOST[key] ?? (key.startsWith('policy.') ? 'automation' : null);
   const newMenus = new Set();
   let menuSig = null;
@@ -141,13 +143,25 @@ export function createUI({ root, getState, dispatch, controls }) {
       const label = host ? (MENU.find((m) => m.id === host)?.label ?? host) : null;
       return { key, menuId: host, menuLabel: host === 'automation' && !state.unlocks?.automation ? 'Policies' : label };
     });
+    // Meaning always gets its own reveal card, after the era card when they arrive together.
+    const revealMeaning = keys.includes('meaning') || (era?.eraId === 'chatgbt' && !SIM_HAS_MEANING_UNLOCK);
     if (era) {
       const d = state.pendingDecision;
       const own = d && d.eventId === `era_${era.eraId}` ? d.title : null;
-      announcer.era(era.eraId, state.week, own, keys);
+      announcer.era(era.eraId, state.week, own, keys.filter((k) => k !== 'meaning'));
+      if (revealMeaning) { if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); } announcer.unlock('meaning', 'staff', 'Staff'); }
     } else if (items.length === 1) announcer.unlock(items[0].key, items[0].menuId, items[0].menuLabel);
     else if (items.length > 1) announcer.unlocks(items);
   }
+
+  const REWARD_TEXT = {
+    finger_traps: (n) => `${n} won a Chinese finger trap. It is still on their finger.`,
+    balloons: (n) => `${n} found balloons tied to their chair. Nobody will say who did it.`,
+    melon_bar: (n) => `${n} earned a melon bar. It is exactly what it sounds like.`,
+    music_night: (n, c) => `${c} had a music night. Someone brought a keytar.`,
+    caricature: (n) => `${n} got a framed caricature. The nose is generous.`,
+    waffle_party: (n, c) => `${c} threw a Waffle Party. Output dipped for an afternoon; nobody minded.`,
+  };
 
   function goalsModal() {
     const s = getState();
@@ -288,6 +302,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'chat': chat.add(e, state.week); break;
+        case 'say': callGrid.say(e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
@@ -321,6 +336,15 @@ export function createUI({ root, getState, dispatch, controls }) {
           }
           const reward = goalReward(g);
           toasts.push(`Goal complete: ${g?.name ?? e.goalId}${reward ? ` (${reward})` : ''}`, 'good', { action: () => goalsModal() });
+          sfx('coin');
+          break;
+        }
+        case 'incentive': {
+          // Incentives Program moments: the small rungs toast, the Waffle Party gets a card.
+          const who = state.staff.find((p) => p.id === e.staffId);
+          const text = REWARD_TEXT[e.reward]?.(who?.name?.split(' ')[0] ?? 'Someone', state.companyName) ?? 'A little reward went out.';
+          // The sim toasts each reward itself; only the top rung gets a card here.
+          if (e.reward === 'waffle_party') announcer.milestone({ title: 'The Waffle Party', text, lines: [], kicker: 'Incentives' });
           sfx('coin');
           break;
         }

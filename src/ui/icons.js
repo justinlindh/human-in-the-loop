@@ -51,6 +51,9 @@ export const ICONS = {
   'stat.polish': I('🖌️', 'Polish and Craft', 16),
   'stat.reliability': I('🛡️', 'Reliability and Rigor', 16),
   'stat.novelty': I('💡', 'Freshness and Ideas', 16),
+  'bot.news': I('📰', 'Slackk avatar for @newsbot', 13),
+  'bot.build': I('🔧', 'Slackk avatar for @buildbot', 13),
+  'battery.low': I('🪫', 'Tired marker (stamina under 25), running-on-empty warnings', 14),
   'mic.off': I('🔇', 'Muted marker in the lockdown call grid', 14),
   home: I('🏠', 'Remote staff marker, video call grid', 14),
   'item.desk': I('🪑', 'Office build palette', 30),
@@ -167,7 +170,7 @@ export const ICONS = {
 };
 
 // Slackk reactions: the sim sends emoji; each maps to a glyph name.
-for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(emo, 'Slackk reaction pill', 12);
+for (const [emo, name] of Object.entries(REACTION_GLYPH)) ICONS[name] = I(/^[a-z_]+$/.test(emo) ? '🚫' : emo, 'Slackk reaction pill', 12);
 export const reactionIcon = (emo) => REACTION_GLYPH[emo] ?? null;
 
 // Category icons come from the content data's stand-in emoji.
@@ -201,6 +204,22 @@ if (typeof window !== 'undefined' && typeof fetch === 'function') loadManifests(
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 
+// Inner markup of each glyph file, fetched once; icons drawn before it arrives are refilled.
+const svgText = new Map();
+const svgLoading = new Set();
+function loadSvg(file) {
+  if (svgLoading.has(file) || typeof fetch !== 'function') return;
+  svgLoading.add(file);
+  fetch(`${BASE}${file}`).then((r) => r.text()).then((txt) => {
+    const m = /<svg[^>]*>([\s\S]*)<\/svg>/.exec(txt);
+    if (!m) return;
+    svgText.set(file, m[1].replace(/\sid="g"/, ''));
+    for (const el of document.querySelectorAll('.ic[data-art]')) {
+      if (ART.get(el.dataset.icon)?.file === file && el.querySelector('use')) fill(el, el.dataset.icon);
+    }
+  }).catch(() => {});
+}
+
 function fill(el, name) {
   const art = ART.get(name);
   if (!art) {
@@ -210,12 +229,19 @@ function fill(el, name) {
   el.dataset.art = '1';
   el.textContent = '';
   if (art.file.endsWith('.svg')) {
+    // Glyphs are inlined: an external <use> whose currentColor changes (a speed button turning on
+    // or off) can stop repainting in Chrome and show an empty box.
     const svg = document.createElementNS(SVGNS, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('aria-hidden', 'true');
-    const use = document.createElementNS(SVGNS, 'use');
-    use.setAttribute('href', `${BASE}${art.file}#g`);
-    svg.append(use);
+    const markup = svgText.get(art.file);
+    if (markup) svg.innerHTML = markup;
+    else {
+      const use = document.createElementNS(SVGNS, 'use');
+      use.setAttribute('href', `${BASE}${art.file}#g`);
+      svg.append(use);
+      loadSvg(art.file);
+    }
     el.append(svg);
   } else {
     const img = document.createElement('img');
