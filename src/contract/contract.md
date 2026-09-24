@@ -47,7 +47,7 @@ State = {
   outage: null | { productId, kind, severity, weeks, unrecoverable },
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
   lowCashWeeks,
-  pendingDecision: null | { eventId, title, text, subjectId, choices: [{ label, hint }], vars },   // vars: placeholder values fixed when raised; UI may ignore
+  pendingDecision: null | { eventId, title, text, subjectId, choices: [{ label, hint, available, reason }], vars },   // available false: requirement unmet, reason says why   // vars: placeholder values fixed when raised; UI may ignore
   flags: {},
   stats: { hires, juniorsHired, resignations, incidents, caught, breaches, launches, awards, peakMrr },
   history: [{ week, cash, mrr, customers, brand, debt, ik, juniors, mids, seniors, avgMeaning, incidents }],
