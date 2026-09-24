@@ -1,4 +1,5 @@
 import { B } from './balance.js';
+import { sum } from './util.js';
 import { outputMult, staffMods, STATS } from './staff.js';
 import { registerSystem } from './registry.js';
 import { perk } from './bonus.js';
@@ -86,8 +87,13 @@ export function workSystem(ctx) {
   if (targets.length) {
     const n = targets.length;
     const share = (1 + 0.5 * (n - 1)) / n;
-    const q = automationQuality(state);
+    const autoQ = automationQuality(state);
     for (const j of targets) {
+      // Human in the loop: people on the project direct the automated work, so it carries most of
+      // their quality. Without anyone on the project it runs at the model's own quality.
+      const humanEffort = sum(STATS, (st) => weekEffort[j.id][st]);
+      const humanQ = humanEffort > 0 ? sum(STATS, (st) => weekStats[j.id][st]) / humanEffort : 0;
+      const q = Math.max(autoQ, B.autoAssistQuality * humanQ);
       addInto(weekEffort[j.id], auto, share);
       addInto(weekStats[j.id], auto, share * q);
     }
@@ -95,8 +101,13 @@ export function workSystem(ctx) {
     maintenance += auto.features + auto.polish + auto.reliability + auto.novelty;
   }
 
-  // Office items and internal tools add quality to specific stats, never to effort.
-  const statPerk = { features: 1, polish: 1 + perk(state, 'polish'), reliability: 1 + perk(state, 'reliability'), novelty: 1 + perk(state, 'novelty') };
+  // Automated ops watches production, so it carries part of the maintenance load.
+  const ops = state.automation.ops;
+  if (ops.level > 0) maintenance += B.autoOpsMaintenance * ops.level * state.models[ops.model].capability / 100;
+
+  // Office items, internal tools, and automated QA add quality to specific stats, never to effort.
+  const qaBoost = B.autoQaReliability * state.automation.qa.level;
+  const statPerk = { features: 1, polish: 1 + perk(state, 'polish'), reliability: 1 + perk(state, 'reliability') + qaBoost, novelty: 1 + perk(state, 'novelty') };
   for (const pts of Object.values(weekStats)) for (const st of STATS) pts[st] *= statPerk[st];
 
   state.ops.maintenanceCapacity = maintenance;

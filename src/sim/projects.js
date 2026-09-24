@@ -89,7 +89,7 @@ registerAction('startProject', (ctx, a) => {
     project = baseProject(state, {
       kind: a.kind, name: isUpdate ? `${pr.name} v${pr.version + 1}` : `${pr.name} migration`,
       category: pr.category, angle: pr.angle, model: isUpdate ? pr.model : (state.flags[`migrateTo_${pr.id}`] ?? pr.model), size: pr.size, productId: pr.id,
-      pointsNeeded: isUpdate ? B.sizes[pr.size].points * B.updatePointsMult : B.migrationPoints,
+      pointsNeeded: (isUpdate ? B.sizes[pr.size].points * B.updatePointsMult : B.migrationPoints) * (1 + B.pointsGrowthPerYear * yearIndex),
     });
   } else if (a.kind === 'refactor' || a.kind === 'craft') {
     if (state.projects.some((j) => j.kind === a.kind)) return { ok: false, reason: 'Already in progress' };
