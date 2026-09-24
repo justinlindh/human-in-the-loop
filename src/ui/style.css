@@ -738,3 +738,4 @@
 .hitl .msg.reply { grid-template-columns: 1.4em 1fr; }
 .hitl .reacts { display: flex; flex-wrap: wrap; gap: 0.2em; margin-top: 0.15em; }
 .hitl .react { font-size: 0.72em; background: #eef4ff; border: 0.1em solid #b9cff7; border-radius: 1em; padding: 0 0.4em; }
+.hitl .go-card .kv.sum { font-weight: 700; border-bottom: none; border-top: 0.13em solid var(--ink); margin-top: 0.2em; padding-top: 0.25em; }

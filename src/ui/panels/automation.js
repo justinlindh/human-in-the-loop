@@ -27,7 +27,7 @@ export function oversightHave(s) {
 export function fnCost(s, fn) {
   const a = s.automation[fn];
   if (!a) return 0;
-  return (MODEL[a.model]?.autoCost ?? 0) * (s.models[a.model]?.costMult ?? 1) * a.level;
+  return (MODEL[a.model]?.autoCost ?? 0) * (B.autoCostMult ?? 1) * (s.models[a.model]?.costMult ?? 1) * a.level;
 }
 
 function outputText(s, fn) {

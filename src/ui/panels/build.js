@@ -3,6 +3,7 @@ import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../conten
 import { portrait, liveView, stars, tabs } from '../widgets.js';
 import { icon } from '../icons.js';
 import { researchView } from './research.js';
+import { marketSize } from '../../sim/products.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
 
 export const STAT_INFO = [
@@ -69,7 +70,7 @@ export function buildPanel(ctx, arg) {
       const unlocked = s.market.unlockedCategories.includes(c.id);
       const tile = h('button.tile', {
         disabled: !unlocked,
-        title: unlocked ? `${c.name}: $${c.price}/customer/month, ${fmtNum(c.tam)} potential customers${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
+        title: unlocked ? `${c.name}: $${c.price}/customer/month, ${fmtNum(marketSize(s, c.id))} potential customers today${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
         onclick: () => { form.category = c.id; refreshNew(); },
       },
       h('span.ti', null, icon(unlocked ? `cat.${c.id}` : 'lock')),
@@ -119,7 +120,7 @@ export function buildPanel(ctx, arg) {
       bar('Guardrails', m.guardrails, '#34c38f'),
       bar('Trust', m.trust, '#9b6bff'),
       h('span.mfoot', null,
-        h('span.num', { text: `$${(m.productCost * (ms.costMult ?? 1)).toFixed(2)}/cust`, title: 'Model cost per customer per month' }),
+        h('span.num', { text: `$${(m.productCost * (B.modelCostMult ?? 1) * (ms.costMult ?? 1)).toFixed(2)}/cust`, title: 'Model cost per customer per month' }),
         h('span', { class: m.complianceOk ? 'pill good' : 'pill bad', title: m.complianceOk ? 'Passes enterprise compliance' : 'Enterprise buyers in compliance-heavy categories will balk' }, icon(m.complianceOk ? 'check' : 'cross'), m.complianceOk ? ' Compliant' : ' Compliance')),
       !ok ? h('span.lockover', null, ms.deprecated ? 'Deprecated' : icon('lock'), ms.deprecated ? null : ` ${m.releaseYear ?? ''}`) : null,
       warn ? h('span.warnover', null, icon('warn', { size: 12 }), ' Compliance penalty here') : null);

@@ -24,7 +24,8 @@ function markDone() {
 }
 
 // Five dismissible coach marks pointing at real parts of the HUD.
-export function createTutorial({ layer, sfx }) {
+export function createTutorial({ layer, sfx, controls }) {
+  let resume = null; // speed to restore when the tips close
   const ring = h('div.coach-ring');
   const title = h('b');
   const text = h('p');
@@ -56,6 +57,7 @@ export function createTutorial({ layer, sfx }) {
 
   function go(n) {
     if (n >= STEPS.length) { finish(); return; }
+    if (i < 0 && resume === null) { resume = controls?.getSpeed?.() ?? 1; controls?.setSpeed?.(0); }
     i = n;
     const step = STEPS[i];
     setText(title, step.title);
@@ -71,13 +73,19 @@ export function createTutorial({ layer, sfx }) {
   function finish() {
     root.style.display = 'none';
     i = -1;
+    if (resume !== null && (controls?.getSpeed?.() ?? 0) === 0) controls?.setSpeed?.(resume);
+    resume = null;
     markDone();
   }
 
   addEventListener('resize', () => { if (i >= 0) place(); });
 
   return {
-    start(force = false) { if (force || !tutorialDone()) go(0); },
+    start(force = false, resumeSpeed = null) {
+      if (!force && tutorialDone()) return;
+      if (resumeSpeed !== null && resume === null) resume = resumeSpeed;
+      go(0);
+    },
     get open() { return i >= 0; },
     onKey(e) {
       if (i < 0) return false;
