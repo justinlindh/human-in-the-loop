@@ -7,6 +7,7 @@ import { CATALOG, isDesk, beforeEra } from '../v2content.js';
 import { placedOf, stageOf } from '../placement.js';
 import { EVENTS } from '../../data/events.js';
 import { weeklyCosts } from '../../sim/economy.js';
+import { call } from '../simapi.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
@@ -51,7 +52,7 @@ function legacyOfficePanel(ctx) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
           icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
         const why = h('span.why.small');
-        bind((st) => { const r = st.cash < next.upgradeCost ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
+        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
         upgrade = h('div.card.stagecard', null,
           h('div', null, h('div.small.muted', { text: 'Your office' }), h('h2.oname', { text: stage.name })),
           h('div.row.wrap', null,
@@ -113,6 +114,13 @@ function legacyOfficePanel(ctx) {
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
 
+// Why the move to the next office is blocked (the sim's stage gate, then cash), or ''.
+function moveBlocker(s, next) {
+  const gate = call('officeGateReason', s, next);
+  if (gate) return gate;
+  return s.cash < next.upgradeCost ? 'Not enough cash' : '';
+}
+
 // Rent as the sim charges it (the work policy can discount it).
 function rentOf(s, stage) {
   try { const r = weeklyCosts(s).rent; if (Number.isFinite(r)) return r; } catch { /* fall back to the list price */ }
@@ -162,7 +170,7 @@ function buildPalette(ctx) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
           icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
         const why = h('span.why.small');
-        bind((st) => { const r = st.cash < next.upgradeCost ? 'Not enough cash' : ''; btn.disabled = !!r; setText(why, r); });
+        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
         right = h('div.col.right', null,
           h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
       } else right = h('span.small.muted', { text: 'The biggest office in town.' });

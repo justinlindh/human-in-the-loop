@@ -13,6 +13,7 @@ import { staffMods } from './staff.js';
 import { currentEra, eraAtLeast } from './eras.js';
 import { autoArrange, spentOn } from './office.js';
 import { rivalPressure } from './ladder.js';
+import { purposeLift } from './purpose.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -32,7 +33,8 @@ export function productAppeal(state, product) {
   // In the Plateau everyone has the same AI, so polish and a trusted brand are what set a product apart.
   if (eraAtLeast(state, 'plateau')) {
     const total = product.stats.features + product.stats.polish + product.stats.reliability + product.stats.novelty;
-    appeal *= 1 + B.plateauPolishAppeal * (total > 0 ? product.stats.polish / total : 0) + B.plateauBrandAppeal * state.brand / 100;
+    appeal *= 1 + B.plateauPolishAppeal * (total > 0 ? product.stats.polish / total : 0) + B.plateauBrandAppeal * state.brand / 100
+      + B.purposeAppeal * purposeLift(state);
   }
   return appeal;
 }
@@ -155,14 +157,20 @@ registerAction('setOwner', (ctx, { productId, staffId }) => {
 });
 
 // Why the company cannot move into a stage yet, or null. Stage gates spread the office across the run.
+// stage is an office stage index or one of OFFICE_STAGES.
 export function officeGateReason(state, stage) {
-  const g = stage.gate ?? {};
+  const g = (typeof stage === 'number' ? OFFICE_STAGES[stage] : stage)?.gate ?? {};
   if (g.week && state.week < g.week) return `Available from ${dateOf(g.week).year}`;
   if (g.launches && state.stats.launches < g.launches) return `Needs ${g.launches} launches`;
   if (g.liveProducts && liveProducts(state).length < g.liveProducts) return `Needs ${g.liveProducts} live products`;
   if (g.staff && state.staff.length < g.staff) return `Needs ${g.staff} people`;
   if (g.brand && state.brand < g.brand) return `Needs brand ${g.brand}`;
-  if (g.mrr && totalMrr(state) < g.mrr) return `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
+  // Revenue, or from orCashWeek on, enough savings to carry the move instead.
+  const savings = g.orCash && state.week >= (g.orCashWeek ?? 0) && state.cash >= g.orCash;
+  if (g.mrr && totalMrr(state) < g.mrr && !savings) {
+    const need = `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
+    return g.orCash ? `${need}, or $${g.orCash.toLocaleString('en-US')} in the bank from ${dateOf(g.orCashWeek ?? 0).year}` : need;
+  }
   return null;
 }
 

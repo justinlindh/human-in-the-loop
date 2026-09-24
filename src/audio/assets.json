@@ -1,0 +1,1932 @@
+{
+ "version": 1,
+ "sampleRate": 48000,
+ "music": {
+  "classic": {
+   "bpm": 96,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 10,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/classic/a_full.ogg",
+       "duration": 25.259,
+       "loopStart": 0,
+       "loopEnd": 1212416
+      }
+     }
+    }
+   ]
+  },
+  "chatgbt": {
+   "bpm": 102,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/chatgbt/a_full.ogg",
+       "duration": 18.827,
+       "loopStart": 0,
+       "loopEnd": 903680
+      }
+     }
+    }
+   ]
+  },
+  "agents": {
+   "bpm": 108,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/agents/a_full.ogg",
+       "duration": 17.771,
+       "loopStart": 0,
+       "loopEnd": 852992
+      }
+     }
+    }
+   ]
+  },
+  "consolidation": {
+   "bpm": 90,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/consolidation/a_full.ogg",
+       "duration": 21.333,
+       "loopStart": 0,
+       "loopEnd": 1024000
+      }
+     }
+    }
+   ]
+  },
+  "plateau": {
+   "bpm": 84,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "candidate": true,
+     "stems": {
+      "full": {
+       "file": "music/plateau/a_full.ogg",
+       "duration": 22.592,
+       "loopStart": 0,
+       "loopEnd": 1084416
+      }
+     }
+    }
+   ]
+  }
+ },
+ "stingers": {
+  "era": {
+   "file": "stingers/era.ogg",
+   "duration": 5.58,
+   "candidate": true
+  },
+  "launch": {
+   "file": "stingers/launch.ogg",
+   "duration": 3.96,
+   "candidate": true
+  },
+  "office": {
+   "file": "stingers/office.ogg",
+   "duration": 4.06,
+   "candidate": true
+  },
+  "waffle": {
+   "file": "stingers/waffle.ogg",
+   "duration": 9.59,
+   "candidate": true
+  },
+  "win": {
+   "file": "stingers/win.ogg",
+   "duration": 8.38,
+   "candidate": true
+  },
+  "gameover": {
+   "file": "stingers/gameover.ogg",
+   "duration": 7.47,
+   "candidate": true
+  }
+ },
+ "ui": {
+  "click": {
+   "file": "ui/click.ogg",
+   "duration": 0.012,
+   "candidate": true
+  },
+  "open": {
+   "file": "ui/open.ogg",
+   "duration": 0.38,
+   "candidate": true
+  },
+  "close": {
+   "file": "ui/close.ogg",
+   "duration": 0.364,
+   "candidate": true
+  },
+  "confirm": {
+   "file": "ui/confirm.ogg",
+   "duration": 0.539,
+   "candidate": true
+  },
+  "error": {
+   "file": "ui/error.ogg",
+   "duration": 0.104,
+   "candidate": true
+  },
+  "blip": {
+   "file": "ui/blip.ogg",
+   "duration": 0.04,
+   "candidate": true
+  },
+  "coin": {
+   "file": "ui/coin.ogg",
+   "duration": 0.122,
+   "candidate": true
+  },
+  "decision": {
+   "file": "ui/decision.ogg",
+   "duration": 0.489,
+   "candidate": true
+  },
+  "goal": {
+   "file": "ui/goal.ogg",
+   "duration": 0.489,
+   "candidate": true
+  },
+  "unlock": {
+   "file": "ui/unlock.ogg",
+   "duration": 0.225,
+   "candidate": true
+  }
+ },
+ "sfx": {
+  "hire": {
+   "file": "sfx/hire.ogg",
+   "duration": 1.002,
+   "candidate": true
+  },
+  "resign": {
+   "file": "sfx/resign.ogg",
+   "duration": 0.459,
+   "candidate": true
+  },
+  "alarm": {
+   "file": "sfx/alarm.ogg",
+   "duration": 0.885,
+   "candidate": true
+  },
+  "save": {
+   "file": "sfx/save.ogg",
+   "duration": 0.523,
+   "candidate": true
+  },
+  "award": {
+   "file": "sfx/award.ogg",
+   "duration": 0.933,
+   "candidate": true
+  },
+  "reward": {
+   "file": "sfx/reward.ogg",
+   "duration": 0.736,
+   "candidate": true
+  },
+  "bad": {
+   "file": "sfx/bad.ogg",
+   "duration": 0.64,
+   "candidate": true
+  },
+  "pop": {
+   "file": "sfx/pop.ogg",
+   "duration": 0.102,
+   "candidate": true
+  },
+  "outage": {
+   "file": "sfx/outage.ogg",
+   "duration": 0.374,
+   "candidate": true
+  },
+  "fixed": {
+   "file": "sfx/fixed.ogg",
+   "duration": 0.213,
+   "candidate": true
+  },
+  "door": {
+   "file": "sfx/door.ogg",
+   "duration": 0.917,
+   "candidate": true
+  },
+  "move": {
+   "file": "sfx/move.ogg",
+   "duration": 0.572,
+   "candidate": true
+  },
+  "foosball": {
+   "file": "sfx/foosball.ogg",
+   "duration": 0.266,
+   "candidate": true
+  },
+  "arcade": {
+   "file": "sfx/arcade.ogg",
+   "duration": 0.341,
+   "candidate": true
+  },
+  "pingpong": {
+   "file": "sfx/pingpong.ogg",
+   "duration": 2.5,
+   "candidate": true
+  },
+  "coffee": {
+   "file": "sfx/coffee.ogg",
+   "duration": 3.5,
+   "candidate": true
+  },
+  "dog": {
+   "file": "sfx/dog.ogg",
+   "duration": 0.619,
+   "candidate": true
+  },
+  "cat": {
+   "file": "sfx/cat.ogg",
+   "duration": 1.696,
+   "candidate": true
+  },
+  "farewell": {
+   "file": "sfx/farewell.ogg",
+   "duration": 1.387,
+   "candidate": true
+  }
+ },
+ "voice": {
+  "fem_serena": {
+   "file": "voice/fem_serena.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 27.207,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.536
+     ],
+     [
+      1.786,
+      1.696
+     ]
+    ],
+    "annoyed": [
+     [
+      3.7321,
+      1.7707
+     ],
+     [
+      5.7528,
+      1.728
+     ]
+    ],
+    "tired": [
+     [
+      7.7308,
+      1.895
+     ],
+     [
+      9.8758,
+      1.799
+     ]
+    ],
+    "questioning": [
+     [
+      11.9248,
+      1.3974
+     ],
+     [
+      13.5722,
+      1.2074
+     ]
+    ],
+    "excited": [
+     [
+      15.0296,
+      2.016
+     ],
+     [
+      17.2957,
+      2.0694
+     ]
+    ],
+    "laughing": [
+     [
+      19.6151,
+      1.7707
+     ],
+     [
+      21.6358,
+      1.9779
+     ]
+    ],
+    "sighing": [
+     [
+      23.8637,
+      1.4052
+     ],
+     [
+      25.5189,
+      1.438
+     ]
+    ]
+   }
+  },
+  "fem_vivian": {
+   "file": "voice/fem_vivian.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 25.222,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.4271
+     ],
+     [
+      1.6771,
+      1.5574
+     ]
+    ],
+    "annoyed": [
+     [
+      3.4845,
+      2.0665
+     ],
+     [
+      5.801,
+      1.3974
+     ]
+    ],
+    "tired": [
+     [
+      7.4484,
+      1.8667
+     ],
+     [
+      9.5651,
+      1.9094
+     ]
+    ],
+    "questioning": [
+     [
+      11.7245,
+      1.5894
+     ],
+     [
+      13.5639,
+      1.3643
+     ]
+    ],
+    "excited": [
+     [
+      15.1782,
+      1.472
+     ],
+     [
+      16.9002,
+      1.3654
+     ]
+    ],
+    "laughing": [
+     [
+      18.5156,
+      1.8826
+     ]
+    ],
+    "sighing": [
+     [
+      20.6482,
+      2.0694
+     ],
+     [
+      22.9676,
+      2.0042
+     ]
+    ]
+   }
+  },
+  "fem_ono_anna": {
+   "file": "voice/fem_ono_anna.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 27.292,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.4152
+     ],
+     [
+      1.6652,
+      1.9196
+     ]
+    ],
+    "annoyed": [
+     [
+      3.8348,
+      2.0694
+     ],
+     [
+      6.1542,
+      1.5574
+     ]
+    ],
+    "tired": [
+     [
+      7.9616,
+      1.4535
+     ],
+     [
+      9.6651,
+      1.1401
+     ]
+    ],
+    "questioning": [
+     [
+      11.0552,
+      1.4162
+     ],
+     [
+      12.7215,
+      1.3864
+     ]
+    ],
+    "excited": [
+     [
+      14.3579,
+      2.0267
+     ],
+     [
+      16.6346,
+      2.048
+     ]
+    ],
+    "laughing": [
+     [
+      18.9326,
+      1.9307
+     ],
+     [
+      21.1133,
+      2.1547
+     ]
+    ],
+    "sighing": [
+     [
+      23.518,
+      1.7058
+     ],
+     [
+      25.4738,
+      1.568
+     ]
+    ]
+   }
+  },
+  "fem_sohee": {
+   "file": "voice/fem_sohee.ogg",
+   "set": "fem",
+   "model": "zonos",
+   "duration": 21.232,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      0.768
+     ],
+     [
+      1.018,
+      1.2054
+     ]
+    ],
+    "annoyed": [
+     [
+      2.4734,
+      0.8854
+     ],
+     [
+      3.6088,
+      0.9387
+     ]
+    ],
+    "tired": [
+     [
+      4.7975,
+      1.9307
+     ],
+     [
+      6.9782,
+      1.9627
+     ]
+    ],
+    "questioning": [
+     [
+      9.1909,
+      1.28
+     ],
+     [
+      10.721,
+      1.6854
+     ]
+    ],
+    "excited": [
+     [
+      12.6563,
+      0.6614
+     ],
+     [
+      13.5677,
+      0.5334
+     ]
+    ],
+    "laughing": [
+     [
+      14.3511,
+      1.5147
+     ],
+     [
+      16.1158,
+      1.28
+     ]
+    ],
+    "sighing": [
+     [
+      17.6458,
+      1.472
+     ],
+     [
+      19.3679,
+      1.6138
+     ]
+    ]
+   }
+  },
+  "masc_ryan": {
+   "file": "voice/masc_ryan.ogg",
+   "set": "masc",
+   "model": "turbo",
+   "duration": 26.025,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.4507
+     ],
+     [
+      1.7007,
+      1.6214
+     ]
+    ],
+    "annoyed": [
+     [
+      3.5721,
+      1.398
+     ],
+     [
+      5.2201,
+      1.7151
+     ]
+    ],
+    "tired": [
+     [
+      7.1853,
+      1.6573
+     ],
+     [
+      9.0926,
+      2.0799
+     ]
+    ],
+    "questioning": [
+     [
+      11.4225,
+      1.4666
+     ],
+     [
+      13.1391,
+      1.3014
+     ]
+    ],
+    "excited": [
+     [
+      14.6905,
+      1.8454
+     ],
+     [
+      16.7859,
+      1.2587
+     ]
+    ],
+    "laughing": [
+     [
+      18.2946,
+      2.0267
+     ],
+     [
+      20.5713,
+      1.8595
+     ]
+    ],
+    "sighing": [
+     [
+      22.6808,
+      1.5431
+     ],
+     [
+      24.4739,
+      1.3014
+     ]
+    ]
+   }
+  },
+  "masc_aiden": {
+   "file": "voice/masc_aiden.ogg",
+   "set": "masc",
+   "model": "turbo",
+   "duration": 26.654,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.9175
+     ],
+     [
+      2.1675,
+      1.0454
+     ]
+    ],
+    "annoyed": [
+     [
+      3.4629,
+      1.7067
+     ],
+     [
+      5.4196,
+      1.6398
+     ]
+    ],
+    "tired": [
+     [
+      7.3094,
+      1.4934
+     ],
+     [
+      9.0528,
+      2.0587
+     ]
+    ],
+    "questioning": [
+     [
+      11.3615,
+      1.472
+     ],
+     [
+      13.0835,
+      1.4827
+     ]
+    ],
+    "excited": [
+     [
+      14.8163,
+      1.504
+     ],
+     [
+      16.5703,
+      1.7067
+     ]
+    ],
+    "laughing": [
+     [
+      18.527,
+      2.08
+     ],
+     [
+      20.857,
+      2.1227
+     ]
+    ],
+    "sighing": [
+     [
+      23.2297,
+      1.4788
+     ],
+     [
+      24.9585,
+      1.445
+     ]
+    ]
+   }
+  },
+  "masc_dylan": {
+   "file": "voice/masc_dylan.ogg",
+   "set": "masc",
+   "model": "turbo",
+   "duration": 27.117,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.9947
+     ],
+     [
+      2.2447,
+      1.728
+     ]
+    ],
+    "annoyed": [
+     [
+      4.2227,
+      1.408
+     ],
+     [
+      5.8808,
+      2.0244
+     ]
+    ],
+    "tired": [
+     [
+      8.1552,
+      1.632
+     ],
+     [
+      10.0372,
+      0.9707
+     ]
+    ],
+    "questioning": [
+     [
+      11.2579,
+      1.44
+     ],
+     [
+      12.948,
+      1.4036
+     ]
+    ],
+    "excited": [
+     [
+      14.6015,
+      1.5879
+     ],
+     [
+      16.4394,
+      2.1334
+     ]
+    ],
+    "laughing": [
+     [
+      18.8228,
+      2.0054
+     ],
+     [
+      21.0781,
+      2.0267
+     ]
+    ],
+    "sighing": [
+     [
+      23.3549,
+      1.6107
+     ],
+     [
+      25.2156,
+      1.6512
+     ]
+    ]
+   }
+  },
+  "masc_eric": {
+   "file": "voice/masc_eric.ogg",
+   "set": "masc",
+   "model": "turbo",
+   "duration": 26.881,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.6534
+     ],
+     [
+      1.9034,
+      1.6427
+     ]
+    ],
+    "annoyed": [
+     [
+      3.7961,
+      1.9164
+     ],
+     [
+      5.9625,
+      2.1547
+     ]
+    ],
+    "tired": [
+     [
+      8.3672,
+      1.792
+     ],
+     [
+      10.4092,
+      1.792
+     ]
+    ],
+    "questioning": [
+     [
+      12.4513,
+      1.3867
+     ],
+     [
+      14.088,
+      1.408
+     ]
+    ],
+    "excited": [
+     [
+      15.746,
+      1.3014
+     ],
+     [
+      17.2974,
+      1.7707
+     ]
+    ],
+    "laughing": [
+     [
+      19.3181,
+      2.0776
+     ],
+     [
+      21.6457,
+      1.8618
+     ]
+    ],
+    "sighing": [
+     [
+      23.7575,
+      1.2792
+     ],
+     [
+      25.2867,
+      1.344
+     ]
+    ]
+   }
+  },
+  "masc_uncle_fu": {
+   "file": "voice/masc_uncle_fu.ogg",
+   "set": "masc",
+   "model": "zonos",
+   "duration": 23.479,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.0774
+     ],
+     [
+      1.3274,
+      1.248
+     ]
+    ],
+    "annoyed": [
+     [
+      2.8254,
+      1.3014
+     ],
+     [
+      4.3768,
+      1.1414
+     ]
+    ],
+    "tired": [
+     [
+      5.7682,
+      1.7387
+     ],
+     [
+      7.7569,
+      2.0374
+     ]
+    ],
+    "questioning": [
+     [
+      10.0442,
+      1.408
+     ],
+     [
+      11.7023,
+      1.7067
+     ]
+    ],
+    "excited": [
+     [
+      13.659,
+      1.2907
+     ],
+     [
+      15.1997,
+      0.896
+     ]
+    ],
+    "laughing": [
+     [
+      16.3457,
+      1.5787
+     ],
+     [
+      18.1745,
+      1.4614
+     ]
+    ],
+    "sighing": [
+     [
+      19.8858,
+      1.4934
+     ],
+     [
+      21.6292,
+      1.6
+     ]
+    ]
+   }
+  },
+  "fem_alto40": {
+   "file": "voice/fem_alto40.ogg",
+   "set": "fem",
+   "model": "zonos",
+   "duration": 21.618,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      0.9387
+     ],
+     [
+      1.1887,
+      1.0347
+     ]
+    ],
+    "annoyed": [
+     [
+      2.4734,
+      1.0347
+     ],
+     [
+      3.7581,
+      1.1627
+     ]
+    ],
+    "tired": [
+     [
+      5.1708,
+      1.7067
+     ],
+     [
+      7.1275,
+      1.568
+     ]
+    ],
+    "questioning": [
+     [
+      8.9456,
+      1.5787
+     ],
+     [
+      10.7743,
+      1.4614
+     ]
+    ],
+    "excited": [
+     [
+      12.4857,
+      1.0027
+     ],
+     [
+      13.7384,
+      0.896
+     ]
+    ],
+    "laughing": [
+     [
+      14.8844,
+      1.4561
+     ],
+     [
+      16.5905,
+      1.4294
+     ]
+    ],
+    "sighing": [
+     [
+      18.2699,
+      1.3014
+     ],
+     [
+      19.8213,
+      1.5467
+     ]
+    ]
+   }
+  },
+  "fem_crisp": {
+   "file": "voice/fem_crisp.ogg",
+   "set": "fem",
+   "model": "zonos",
+   "duration": 23.017,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.0347
+     ],
+     [
+      1.2847,
+      0.9814
+     ]
+    ],
+    "annoyed": [
+     [
+      2.5161,
+      1.12
+     ],
+     [
+      3.8861,
+      1.088
+     ]
+    ],
+    "tired": [
+     [
+      5.2242,
+      2.0694
+     ],
+     [
+      7.5435,
+      2.08
+     ]
+    ],
+    "questioning": [
+     [
+      9.8736,
+      1.5254
+     ],
+     [
+      11.649,
+      1.2907
+     ]
+    ],
+    "excited": [
+     [
+      13.1897,
+      0.8534
+     ],
+     [
+      14.293,
+      1.1947
+     ]
+    ],
+    "laughing": [
+     [
+      15.7378,
+      1.952
+     ],
+     [
+      17.9398,
+      1.6427
+     ]
+    ],
+    "sighing": [
+     [
+      19.8325,
+      1.326
+     ],
+     [
+      21.4085,
+      1.3584
+     ]
+    ]
+   }
+  },
+  "fem_deadpan": {
+   "file": "voice/fem_deadpan.ogg",
+   "set": "fem",
+   "model": "zonos",
+   "duration": 22.421,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.1947
+     ],
+     [
+      1.4447,
+      1.216
+     ]
+    ],
+    "annoyed": [
+     [
+      2.9108,
+      1.2907
+     ],
+     [
+      4.4515,
+      1.2075
+     ]
+    ],
+    "tired": [
+     [
+      5.909,
+      2.1867
+     ]
+    ],
+    "questioning": [
+     [
+      8.3457,
+      1.504
+     ],
+     [
+      10.0997,
+      1.7387
+     ]
+    ],
+    "excited": [
+     [
+      12.0884,
+      1.3227
+     ],
+     [
+      13.6611,
+      0.7894
+     ]
+    ],
+    "laughing": [
+     [
+      14.7005,
+      1.76
+     ],
+     [
+      16.7105,
+      1.6214
+     ]
+    ],
+    "sighing": [
+     [
+      18.5819,
+      1.824
+     ],
+     [
+      20.656,
+      1.5147
+     ]
+    ]
+   }
+  },
+  "fem_breathy": {
+   "file": "voice/fem_breathy.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 26.662,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.7387
+     ],
+     [
+      1.9887,
+      1.76
+     ]
+    ],
+    "annoyed": [
+     [
+      3.9987,
+      1.995
+     ],
+     [
+      6.2438,
+      1.5147
+     ]
+    ],
+    "tired": [
+     [
+      8.0085,
+      1.2307
+     ],
+     [
+      9.4892,
+      1.932
+     ]
+    ],
+    "questioning": [
+     [
+      11.6712,
+      1.5254
+     ],
+     [
+      13.4466,
+      1.44
+     ]
+    ],
+    "excited": [
+     [
+      15.1366,
+      1.6534
+     ],
+     [
+      17.04,
+      1.6747
+     ]
+    ],
+    "laughing": [
+     [
+      18.9647,
+      2.1595
+     ],
+     [
+      21.3742,
+      2.1575
+     ]
+    ],
+    "sighing": [
+     [
+      23.7817,
+      1.01
+     ],
+     [
+      25.0417,
+      1.3702
+     ]
+    ]
+   }
+  },
+  "fem_raspy50": {
+   "file": "voice/fem_raspy50.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 23.546,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.5568
+     ],
+     [
+      1.8068,
+      1.9414
+     ]
+    ],
+    "annoyed": [
+     [
+      3.9982,
+      1.4827
+     ]
+    ],
+    "tired": [
+     [
+      5.7309,
+      1.9918
+     ],
+     [
+      7.9727,
+      1.326
+     ]
+    ],
+    "questioning": [
+     [
+      9.5487,
+      1.408
+     ],
+     [
+      11.2067,
+      1.632
+     ]
+    ],
+    "excited": [
+     [
+      13.0887,
+      1.952
+     ],
+     [
+      15.2908,
+      1.696
+     ]
+    ],
+    "laughing": [
+     [
+      17.2368,
+      2.0862
+     ]
+    ],
+    "sighing": [
+     [
+      19.573,
+      1.6
+     ],
+     [
+      21.423,
+      1.8725
+     ]
+    ]
+   }
+  },
+  "fem_nasal": {
+   "file": "voice/fem_nasal.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 28.28,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.7723
+     ],
+     [
+      2.0223,
+      1.6747
+     ]
+    ],
+    "annoyed": [
+     [
+      3.947,
+      1.8454
+     ],
+     [
+      6.0424,
+      1.4827
+     ]
+    ],
+    "tired": [
+     [
+      7.7751,
+      1.7165
+     ],
+     [
+      9.7416,
+      1.7988
+     ]
+    ],
+    "questioning": [
+     [
+      11.7904,
+      1.4187
+     ],
+     [
+      13.4591,
+      1.5467
+     ]
+    ],
+    "excited": [
+     [
+      15.2558,
+      1.9627
+     ],
+     [
+      17.4685,
+      1.8454
+     ]
+    ],
+    "laughing": [
+     [
+      19.5639,
+      2.0587
+     ],
+     [
+      21.8726,
+      1.7455
+     ]
+    ],
+    "sighing": [
+     [
+      23.868,
+      2.0267
+     ],
+     [
+      26.1447,
+      1.8853
+     ]
+    ]
+   }
+  },
+  "fem_sixty": {
+   "file": "voice/fem_sixty.ogg",
+   "set": "fem",
+   "model": "turbo",
+   "duration": 27.569,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.3974
+     ],
+     [
+      1.6474,
+      2.0054
+     ]
+    ],
+    "annoyed": [
+     [
+      3.9028,
+      1.5574
+     ],
+     [
+      5.7101,
+      1.824
+     ]
+    ],
+    "tired": [
+     [
+      7.7842,
+      1.3974
+     ],
+     [
+      9.4315,
+      2.0689
+     ]
+    ],
+    "questioning": [
+     [
+      11.7504,
+      1.248
+     ],
+     [
+      13.2485,
+      1.728
+     ]
+    ],
+    "excited": [
+     [
+      15.2265,
+      1.4187
+     ],
+     [
+      16.8952,
+      1.8987
+     ]
+    ],
+    "laughing": [
+     [
+      19.0439,
+      2.0904
+     ],
+     [
+      21.3844,
+      2.1029
+     ]
+    ],
+    "sighing": [
+     [
+      23.7372,
+      2.1654
+     ],
+     [
+      26.1526,
+      1.1659
+     ]
+    ]
+   }
+  },
+  "masc_crisp": {
+   "file": "voice/masc_crisp.ogg",
+   "set": "masc",
+   "model": "zonos",
+   "duration": 21.475,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.0027
+     ],
+     [
+      1.2527,
+      1.024
+     ]
+    ],
+    "annoyed": [
+     [
+      2.5267,
+      1.3334
+     ],
+     [
+      4.1101,
+      0.9067
+     ]
+    ],
+    "tired": [
+     [
+      5.2668,
+      2.1334
+     ]
+    ],
+    "questioning": [
+     [
+      7.6502,
+      1.472
+     ],
+     [
+      9.3722,
+      1.472
+     ]
+    ],
+    "excited": [
+     [
+      11.0943,
+      1.2587
+     ],
+     [
+      12.603,
+      1.2374
+     ]
+    ],
+    "laughing": [
+     [
+      14.0904,
+      1.568
+     ],
+     [
+      15.9084,
+      1.5787
+     ]
+    ],
+    "sighing": [
+     [
+      17.7371,
+      1.6214
+     ],
+     [
+      19.6085,
+      1.6165
+     ]
+    ]
+   }
+  },
+  "masc_deadpan": {
+   "file": "voice/masc_deadpan.ogg",
+   "set": "masc",
+   "model": "zonos",
+   "duration": 23.917,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.1094
+     ],
+     [
+      1.3594,
+      1.024
+     ]
+    ],
+    "annoyed": [
+     [
+      2.6334,
+      1.12
+     ],
+     [
+      4.0035,
+      1.2267
+     ]
+    ],
+    "tired": [
+     [
+      5.4802,
+      2.0587
+     ],
+     [
+      7.7889,
+      2.048
+     ]
+    ],
+    "questioning": [
+     [
+      10.0869,
+      1.7174
+     ],
+     [
+      12.0543,
+      1.536
+     ]
+    ],
+    "excited": [
+     [
+      13.8403,
+      1.0027
+     ],
+     [
+      15.093,
+      1.2374
+     ]
+    ],
+    "laughing": [
+     [
+      16.5804,
+      1.8987
+     ],
+     [
+      18.7291,
+      1.6854
+     ]
+    ],
+    "sighing": [
+     [
+      20.6645,
+      1.2267
+     ],
+     [
+      22.1412,
+      1.5254
+     ]
+    ]
+   }
+  },
+  "masc_gruff50": {
+   "file": "voice/masc_gruff50.ogg",
+   "set": "masc",
+   "model": "turbo",
+   "duration": 23.957,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.6534
+     ],
+     [
+      1.9034,
+      0.9494
+     ]
+    ],
+    "annoyed": [
+     [
+      3.1027,
+      1.5562
+     ],
+     [
+      4.9089,
+      1.664
+     ]
+    ],
+    "tired": [
+     [
+      6.823,
+      1.792
+     ],
+     [
+      8.865,
+      2.0228
+     ]
+    ],
+    "questioning": [
+     [
+      11.1379,
+      1.3334
+     ],
+     [
+      12.7212,
+      1.2639
+     ]
+    ],
+    "excited": [
+     [
+      14.2351,
+      1.3654
+     ],
+     [
+      15.8505,
+      1.888
+     ]
+    ],
+    "laughing": [
+     [
+      17.9885,
+      2.0979
+     ]
+    ],
+    "sighing": [
+     [
+      20.3364,
+      1.481
+     ],
+     [
+      22.0674,
+      1.6401
+     ]
+    ]
+   }
+  },
+  "masc_laidback": {
+   "file": "voice/masc_laidback.ogg",
+   "set": "masc",
+   "model": "turbo",
+   "duration": 23.888,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.4614
+     ],
+     [
+      1.7114,
+      1.792
+     ]
+    ],
+    "annoyed": [
+     [
+      3.7534,
+      1.4441
+     ]
+    ],
+    "tired": [
+     [
+      5.4475,
+      1.446
+     ],
+     [
+      7.1435,
+      1.573
+     ]
+    ],
+    "questioning": [
+     [
+      8.9665,
+      1.2907
+     ],
+     [
+      10.5072,
+      1.344
+     ]
+    ],
+    "excited": [
+     [
+      12.1013,
+      1.92
+     ],
+     [
+      14.2713,
+      1.5787
+     ]
+    ],
+    "laughing": [
+     [
+      16.1,
+      2.0114
+     ],
+     [
+      18.3614,
+      1.8454
+     ]
+    ],
+    "sighing": [
+     [
+      20.4567,
+      1.2213
+     ],
+     [
+      21.9281,
+      1.7099
+     ]
+    ]
+   }
+  },
+  "masc_sixty": {
+   "file": "voice/masc_sixty.ogg",
+   "set": "masc",
+   "model": "zonos",
+   "duration": 24.503,
+   "emotions": {
+    "happy": [
+     [
+      0.0,
+      1.152
+     ],
+     [
+      1.402,
+      0.9067
+     ]
+    ],
+    "annoyed": [
+     [
+      2.5587,
+      1.5567
+     ],
+     [
+      4.3655,
+      1.088
+     ]
+    ],
+    "tired": [
+     [
+      5.7035,
+      2.112
+     ],
+     [
+      8.0656,
+      2.1654
+     ]
+    ],
+    "questioning": [
+     [
+      10.4809,
+      1.5574
+     ],
+     [
+      12.2883,
+      1.5574
+     ]
+    ],
+    "excited": [
+     [
+      14.0957,
+      1.0027
+     ],
+     [
+      15.3484,
+      1.0347
+     ]
+    ],
+    "laughing": [
+     [
+      16.6331,
+      1.5254
+     ],
+     [
+      18.4085,
+      1.856
+     ]
+    ],
+    "sighing": [
+     [
+      20.5145,
+      1.6107
+     ],
+     [
+      22.3752,
+      1.8774
+     ]
+    ]
+   }
+  }
+ },
+ "voiceVariants": {
+  "fem": [
+   "serena",
+   "vivian",
+   "ono_anna",
+   "sohee",
+   "alto40",
+   "crisp",
+   "deadpan",
+   "breathy",
+   "raspy50",
+   "nasal",
+   "sixty"
+  ],
+  "masc": [
+   "ryan",
+   "aiden",
+   "dylan",
+   "eric",
+   "uncle_fu",
+   "crisp",
+   "deadpan",
+   "gruff50",
+   "laidback",
+   "sixty"
+  ]
+ },
+ "ambience": {
+  "typing": {
+   "file": "ambience/typing.ogg",
+   "duration": 8.0,
+   "loopStart": 0,
+   "loopEnd": 384000,
+   "candidate": true
+  }
+ },
+ "crowd": {
+  "file": "voice/crowd.ogg",
+  "duration": 4.0,
+  "loopStart": 0,
+  "loopEnd": 192000,
+  "candidate": true
+ }
+}

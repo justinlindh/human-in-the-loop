@@ -52,7 +52,8 @@ export function assignmentOptions(state, p) {
   }
   // Someone away for another reason shows that reason (the current option below), not "Sabbatical".
   const awayFor = p.assignment?.type === 'sabbatical' ? state.flags?.[`awayFor_${p.id}`] : null;
-  if (state.policies?.sabbatical || (p.assignment?.type === 'sabbatical' && !awayFor)) add('sabbatical', null, 'Sabbatical', 'Growth');
+  // While someone is away for another reason, "Sabbatical" is not offered: the current option shows the reason.
+  if (!awayFor && (state.policies?.sabbatical || p.assignment?.type === 'sabbatical')) add('sabbatical', null, 'Sabbatical', 'Growth');
   add('idle', null, 'Idle', 'Jobs');
   const cur = `${p.assignment?.type}:${p.assignment?.targetId ?? ''}`;
   if (!out.some((o) => o.value === cur)) add(p.assignment?.type ?? 'idle', p.assignment?.targetId, assignmentText(state, p), 'Current');

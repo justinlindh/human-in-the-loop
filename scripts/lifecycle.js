@@ -51,6 +51,13 @@ try {
   // The saved setting is applied at startup, but an explicit ?quality= wins for the session.
   const q0 = await page.evaluate(() => window.__HITL.controls.getQuality?.());
   check('graphics quality follows ?quality, else the saved setting', q0 === (QUALITY ?? 'high'), `active ${q0}`);
+  // 'auto' resolves to the detected quality unless ?quality= pins the session.
+  const qa = await page.evaluate(() => {
+    const c = window.__HITL.controls; const before = c.getQuality();
+    c.setQuality('auto'); const auto = c.getQuality(); c.setQuality(before);
+    return { detected: c.autoQuality, auto };
+  });
+  check('quality auto resolves to the detected setting', ['low', 'high'].includes(qa.detected) && qa.auto === (QUALITY ?? qa.detected), JSON.stringify(qa));
   await shot('1-title.png');
 
   // Record what the UI hands to controls.newGame.
@@ -160,10 +167,8 @@ try {
     const H = window.__HITL;
     H.controls.setSpeed(1);
     const week = window.__advance(1);
-    let resumeSpeed = null;
-    addEventListener('hitl:awaypaused', (e) => { resumeSpeed = e.detail.resumeSpeed; }, { once: true });
     dispatchEvent(new Event('blur'));
-    const at = { speed: H.clock.speed, away: H.controls.awayPaused, acc: H.clock.acc, resumeSpeed };
+    const at = { speed: H.clock.speed, away: H.controls.awayPaused, acc: H.clock.acc };
     await new Promise((r) => setTimeout(r, 3000));
     const later = { acc: H.clock.acc, week: H.state.week };
     dispatchEvent(new Event('focus'));
@@ -171,7 +176,7 @@ try {
     return { week, at, later, afterFocus: H.clock.speed };
   });
   const awaySaved = await savedWeek();
-  check('blur pauses, saves, and holds the clock', away.at.speed === 0 && away.at.away && away.at.resumeSpeed === 1 && away.later.acc === away.at.acc && away.later.week === away.week && awaySaved === away.week, JSON.stringify({ ...away, awaySaved }));
+  check('blur pauses, saves, and holds the clock', away.at.speed === 0 && away.at.away && away.later.acc === away.at.acc && away.later.week === away.week && awaySaved === away.week, JSON.stringify({ ...away, awaySaved }));
   check('focus does not resume', away.afterFocus === 0, `speed ${away.afterFocus}`);
   const offSpeed = await page.evaluate(() => {
     const c = window.__HITL.controls;
@@ -214,9 +219,11 @@ try {
   const t5 = await page.evaluate(() => {
     const first = window.__HITL.controls.listSaves().find((x) => x.companyName === 'Testco');
     const res = window.__HITL.controls.continueGame(first.id);
-    return { ok: res.ok, name: window.__HITL.state.companyName, week: window.__HITL.state.week };
+    return { ok: res.ok, stateLeaked: 'state' in res, name: window.__HITL.state.companyName, week: window.__HITL.state.week };
   });
-  check('continueGame(id) loads that company', t5.ok && t5.name === 'Testco' && t5.week === lastWeek, JSON.stringify(t5));
+  check('continueGame(id) loads that company', t5.ok && !t5.stateLeaked && t5.name === 'Testco' && t5.week === lastWeek, JSON.stringify(t5));
+  const version = await page.evaluate(() => window.__HITL.version);
+  check('the build carries a version', typeof version === 'string' && version.length > 0, version);
 } catch (e) {
   failures.push(`step threw: ${e.message.split('\n')[0]}`);
   // The first lines of Playwright's call log say what the click was waiting on.

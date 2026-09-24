@@ -71,6 +71,8 @@
 .hitl .btn.blue:hover:not(:disabled) { background: #6b9fff; }
 .hitl .btn.small { padding: 0.25em 0.6em; font-size: 0.88em; border-radius: 0.55em; }
 .hitl .btn.on { background: var(--ink); color: var(--cream); }
+/* An active button stays dark when hovered, so its cream content stays visible. */
+.hitl .btn.on:hover:not(:disabled) { background: #3d3845; }
 .hitl .btn .key { font-size: 0.72em; opacity: 0.65; font-family: 'JetBrains Mono', monospace; }
 
 /* ---------- top bar ---------- */
@@ -1040,3 +1042,4 @@
 .hitl .chip.speed .btn.spd .ic svg * { fill: var(--ink); }
 .hitl .chip.speed .btn.spd.on .ic svg * { fill: var(--cream); }
 .hitl .proj .pcancel { margin-left: 0.4em; }
+.hitl .tl-prealpha { background: #fff4dc; border: 0.14em solid var(--warn); border-radius: 0.8em; padding: 0.45em 0.7em; font-size: 0.88em; line-height: 1.3; color: var(--ink); box-shadow: 0 0.18em 0 var(--ink); }

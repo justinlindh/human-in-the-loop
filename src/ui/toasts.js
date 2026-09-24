@@ -27,7 +27,7 @@ export function createToasts(root) {
 
   function node(t, cls, more = 0) {
     return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}`, { onclick: () => { t.action?.(); remove(t); } },
-      h('span.ico', null, icon(`toast.${t.tone}`)), h('span.tt', { text: t.text }),
+      h('span.ico', null, icon(t.glyph ?? `toast.${t.tone}`)), h('span.tt', { text: t.text }),
       more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
   }
 
@@ -88,7 +88,8 @@ export function createToasts(root) {
   let seq = 0;
   function push(text, tone = 'info', opts = {}) {
     const t0 = toneOf(tone);
-    if (t0 !== 'warn' && t0 !== 'bad' && !opts.action && shownThisWeek >= WEEK_BUDGET) {
+    // opts.always: never held back by the weekly budget (awards night can bring four at once).
+    if (t0 !== 'warn' && t0 !== 'bad' && !opts.action && !opts.always && shownThisWeek >= WEEK_BUDGET) {
       if (text !== lastText) held.push({ text, tone, opts });
       if (held.length > 20) held.shift();
       lastText = text;
@@ -99,13 +100,13 @@ export function createToasts(root) {
     show(text, tone, opts);
   }
 
-  function show(text, tone = 'info', { action } = {}) {
+  function show(text, tone = 'info', { action, glyph } = {}) {
     if (!text) return;
     const now = performance.now();
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;
-    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action };
+    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph };
     live.push(t);
     t.timer = setTimeout(() => remove(t), LIFE[t.tone]);
     if (dock) renderDock();

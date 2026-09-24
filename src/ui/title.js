@@ -1,5 +1,5 @@
 import { h, setText, fmtMoney, dateOf } from './dom.js';
-import { portrait, roleChip } from './widgets.js';
+import { portrait, roleChip, confirmButton } from './widgets.js';
 import { traitInfo } from './content.js';
 import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
@@ -7,6 +7,14 @@ import { STAT } from './stats.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
 const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
+
+// The release version, injected at build time; 'dev' in a local build.
+/* global __HITL_VERSION__ */
+export const BUILD_VERSION = (typeof __HITL_VERSION__ !== 'undefined' && __HITL_VERSION__) || 'dev';
+const versionLabel = () => (/^\d/.test(BUILD_VERSION) ? `v${BUILD_VERSION}` : BUILD_VERSION);
+
+// A save the current build cannot read (older or newer): the loader says so with a flag or its reason text.
+const isOldSave = (r) => !!r && r.ok === false && (r.incompatible === true || r.code === 'incompatible' || /incompatible|older build|older version/i.test(r.reason ?? ''));
 
 function suggestCompany() {
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -24,6 +32,10 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-kicker', { text: 'A tiny company sim' }),
       h('h1.tl-name', null, h('span.w1', { text: 'Human' }), h('span.w2', { text: 'in the' }), h('span.w3', { text: 'Loop' })),
       h('div.tl-sub', { text: 'Build software. Keep the humans.' }));
+  }
+
+  function prealpha() {
+    return h('div.tl-prealpha', null, h('b', { text: `Pre-alpha build ${versionLabel()}.` }), ' Things will break, including your saves.');
   }
 
   // Saves: controls.listSaves() -> [{ id, companyName, logoColor, week, year, eraId, over, savedAt }], most
@@ -46,13 +58,15 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const week = m && Number.isFinite(m.week) ? dateOf(m.week) : null;
     const load = () => {
       const res = controls.continueGame?.(slot.id ?? undefined);
+      if (isOldSave(res)) { oldSaveView(slot); return; }
       if (res && res.ok === false) { toast(res.reason ?? 'Could not load the save', 'warn'); return; }
       if (res?.notice) toast(res.notice, 'info');
       sfx('confirm');
       onStart({ fresh: false });
     };
     const when = [m?.year ?? week?.year, ERA[m?.eraId]?.name, m?.over ? 'finished' : null, ago(m?.savedAt)].filter(Boolean).join(' · ');
-    const btn = h('button.btn.big.tl-btn.tl-slot', { disabled: !slot.ok, title: slot.ok ? `Continue ${m?.companyName ?? 'your company'}` : slot.reason, onclick: load },
+    const old = isOldSave(slot);
+    const btn = h('button.btn.big.tl-btn.tl-slot', { disabled: !slot.ok && !old, title: slot.ok ? `Continue ${m?.companyName ?? 'your company'}` : slot.reason, onclick: load },
       m ? h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }) : icon('continue'),
       h('span.sinfo', null, h('b', { text: m?.companyName ? `Continue ${m.companyName}` : 'Continue' }),
         when ? h('span.small.muted', { text: when }) : null));
@@ -63,7 +77,23 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       sfx('close');
       menuView();
     }, m?.companyName) : null;
-    return [h('div.tl-slotrow', null, btn, del), !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
+    return [h('div.tl-slotrow', null, btn, del), old ? h('div.small.tl-why', { text: 'From a different build. Tap to see your options.' }) : !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
+  }
+
+  // An old save the current build cannot load: say so plainly and offer a fresh start.
+  function oldSaveView(slot) {
+    sfx('error');
+    const name = slot.meta?.companyName;
+    root.replaceChildren(h('div.tl-card', null, lockup(),
+      h('div.tl-form', null,
+        h('b', { text: 'This save is from a different build' }),
+        h('div', { text: `${name ? `${name} was` : 'It was'} saved by another version of the game, and this build cannot read it. That comes with pre-alpha, sorry.` }),
+        h('div.row', null,
+          h('button.btn.big', { onclick: () => { sfx('click'); menuView(); } }, icon('arrow.back'), ' Back'),
+          h('span.spacer'),
+          slot.id && controls.deleteSave ? confirmButton('Delete it', 'Delete? Tap again', 'big', () => { controls.deleteSave(slot.id); sfx('close'); menuView(); }) : null,
+          h('button.btn.go.big', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' Start fresh')),
+        prealpha())));
   }
 
   function deleteButton(onConfirm, name) {
@@ -83,7 +113,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-menu', null,
         h('button.btn.go.big.tl-btn', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' New Game'),
         h('div.tl-slots', null, ...saveSlots().flatMap(slotRow)),
-        h('button.btn.big.tl-btn', { onclick: () => openSettings() }, icon('settings'), ' Settings'))));
+        h('button.btn.big.tl-btn', { onclick: () => openSettings() }, icon('settings'), ' Settings')),
+      prealpha()));
   }
 
   // Founding: identity, then two founders, then funding. Choices persist across steps.

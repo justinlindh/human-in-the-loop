@@ -34,8 +34,10 @@ step() {
 }
 
 # Dependencies: a clean install unless node_modules already matches the lockfile.
+# npm ci empties a symlinked node_modules's target, so a shared link is dropped first.
 deps() {
   if [ -d node_modules ] && npm ls --depth=0 >/dev/null 2>&1; then return 0; fi
+  if [ -L node_modules ]; then rm node_modules; fi
   npm ci
 }
 step deps deps

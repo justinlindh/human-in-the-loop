@@ -14,10 +14,11 @@ import { MODELS } from '../data/models.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
-import { raiseDecision } from './events.js';
+import { raiseDecision, ransomFor, summitCost } from './events.js';
 import { clearOutage } from './incidents.js';
 import { automationCap } from './automation.js';
 import { adoptPet } from './ladder.js';
+import { setMission, testPurpose } from './purpose.js';
 import { buyItemBlocker, upgradeItemBlocker, ownedCopy, buyItemNow, upgradeItemNow } from './progression.js';
 
 export { modifierBonus } from './modifiers.js';
@@ -212,9 +213,20 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (fx.resign && person && !person.founder) {
     removeStaff(state, person);
     state.stats.resignations++;
-    ctx.emit({ type: 'resign', staffId: person.id, name: person.name });
+    // resign: true for someone who has had enough, or a reason string such as 'poached'.
+    ctx.emit({ type: 'resign', staffId: person.id, name: person.name, fired: false, reason: typeof fx.resign === 'string' ? fx.resign : 'burnout' });
+  }
+  if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);
+  if (fx.summit === 'skip') {
+    state.flags.summitDeclines = (state.flags.summitDeclines ?? 0) + 1;
+    state.flags.summitSkipWeek = state.week;
+  } else if (fx.summit) {
+    state.flags.summitDeclines = 0;
+    state.cash -= summitCost(state, fx.summit);
   }
   if (fx.workPolicy) state.workPolicy = fx.workPolicy;
+  if (fx.mission) setMission(state, fx.mission);
+  if (fx.purpose) testPurpose(state, fx.purpose, EVENTS[source]?.title ?? 'A decision');
   if (fx.adoptPet) {
     const owner = person ?? state.staff.find((p) => !p.founder) ?? state.staff[0];
     if (owner) {
@@ -241,7 +253,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   }
 }
 
-// Weekly: applies due scheduled consequences, raises due follow-up events, and drops expired modifiers.
+// Weekly: applies due scheduled consequences and raises due follow-up events.
 export function processScheduled(ctx) {
   const { state } = ctx;
   const due = state.scheduled.filter((x) => x.week <= state.week);
@@ -254,10 +266,15 @@ export function processScheduled(ctx) {
       raiseDecision(ctx, x.payload.eventId, x.payload.subjectId, { queue: true });
     }
   }
+}
+
+// Drops modifiers whose last week has been played. tick() runs this after advancing the week, so a
+// modifier lasting N weeks applies to exactly N ticks and is gone from the state the player sees next.
+export function expireModifiers(ctx) {
+  const { state } = ctx;
   const expired = state.modifiers.filter((m) => m.untilWeek <= state.week);
-  if (expired.length) {
-    state.modifiers = state.modifiers.filter((m) => m.untilWeek > state.week);
-    for (const label of new Set(expired.map((m) => m.label))) ctx.emit({ type: 'toast', text: `${label} has ended.`, tone: 'info' });
-  }
+  if (!expired.length) return;
+  state.modifiers = state.modifiers.filter((m) => m.untilWeek > state.week);
+  for (const label of new Set(expired.map((m) => m.label))) ctx.emit({ type: 'toast', text: `${label} has ended.`, tone: 'info' });
 }
 

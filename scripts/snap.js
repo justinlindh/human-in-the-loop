@@ -34,7 +34,9 @@ if (args.real) {
 } else {
   q.set('mock', scenario);
 }
-for (const k of ['quality', 'time', 'speed']) if (args[k]) q.set(k, String(args[k]));
+// Shots render High unless asked, whatever GL the headless browser has.
+q.set('quality', String(args.quality ?? 'high'));
+for (const k of ['time', 'speed']) if (args[k]) q.set(k, String(args[k]));
 if (typeof args.query === 'string') for (const [k, v] of new URLSearchParams(args.query)) q.set(k, v);
 
 const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });

@@ -12,6 +12,7 @@ import { wallGap } from './office.js';
 // frosted partition; the caricature goes up afterwards).
 
 const PARTY_S = 15;
+const REACTIONS = ['whisper', 'point', 'press', 'shake'];
 const ROLL_S = 2.2;
 const DIM = 1.9;            // how far the room lights drop (see lighting.setSkeleton)
 const POOL = 5.5;             // warm light over the table
@@ -116,7 +117,7 @@ function partition(width) {
   return g;
 }
 
-export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null }) {
+export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
   let party = null;
@@ -336,6 +337,21 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setDim(DIM * fade);
     setAccent({ x: p.v.plate.x, y: 1.8, z: p.v.plate.z }, POOL * fade);
     if (p.t > ROLL_S + 0.8) p.stack.scale.setScalar(Math.min(1, (p.t - ROLL_S - 0.8) / 0.3));
+    // Watchers react while they look on, taking turns: a whisper to a neighbour, a point, hands
+    // on the glass, a slow shake of the head.
+    if (p.t > ROLL_S + 1) {
+      const slot = Math.floor((p.t - ROLL_S - 1) / 2.4);
+      p.watchers.forEach((w, i) => {
+        if (!recs.has(w.id) || w.path.length || !w.temp?.party) return;
+        // Every other beat is idle; the reaction beats cycle through the whole list.
+        const kind = REACTIONS[Math.floor((slot + i) / 2) % REACTIONS.length];
+        w.temp.anim = (slot + i) % 2 ? 'idle' : kind;
+        if (w.temp.anim === 'whisper') {
+          const n = p.watchers[i + 1] ?? p.watchers[i - 1];
+          if (n) w.face = { yaw: Math.atan2(n.pos.x - w.pos.x, n.pos.z - w.pos.z), t: 1.2 };
+        }
+      });
+    }
     if (p.t > ROLL_S + 2 && !p.cheered) {
       p.cheered = true;
       emote(p.r, 'sparkle', 3);
@@ -344,12 +360,21 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (p.t >= PARTY_S + 1) endParty();
   }
 
+  // Minor rewards (finger traps, melon bar, music night): a quick cheer, a sparkle, a puff of confetti.
+  const SMALL_REWARDS = new Set(['finger_traps', 'melon_bar', 'music_night']);
+  function smallBeat(r) {
+    if (!r.temp) r.temp = { anim: 'celebrate', t: 1.4, keepPos: true };
+    emote(r, 'sparkle', 1.8);
+    fx?.confetti(r.pos.x, 1.2, r.pos.z, { spread: 0.35, power: 0.45 });
+  }
+
   function handle(e) {
     const r = recs.get(e.staffId);
     if (!r || r.hidden) return;
     if (e.reward === 'balloons') putBalloons(r);
     else if (e.reward === 'caricature') hangCaricature(r);
     else if (e.reward === 'waffle_party') { putBalloons(r); startParty(r); }
+    else if (SMALL_REWARDS.has(e.reward)) smallBeat(r);
   }
 
   function reset() {
