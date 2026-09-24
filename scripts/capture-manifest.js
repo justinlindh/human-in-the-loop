@@ -258,8 +258,8 @@ export const ITEMS = [
     actions: [...DISMISS_AT([0.1, 0.5]), { at: 0.3, js: KEY('c', 'KeyC') }], screenshots: [3],
   },
   {
-    // The bot starts more product updates than it staffs; as a player would, cancel the ones nobody
-    // is on, so the Needs You tray shows the game rather than the bot. Shot before the first live tick.
+    // The bot starts more product updates than it staffs; the setup drops the ones nobody is on, so
+    // the Needs You tray shows the game rather than the bot. Shot before the first live tick.
     id: 'readme-hq', group: 'readme', title: 'A busy Agents-era HQ with pets and perks', query: 'seed=1&speed=1&time=day', still: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE + CHAT_HISTORY + "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));" }), warmup: 2,
     actions: DISMISS_EVERY(4), screenshots: [4],

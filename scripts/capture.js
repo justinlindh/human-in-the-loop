@@ -4,15 +4,15 @@
 //
 // npm run capture -- --only waffle-party            one item from the manifest
 // npm run capture -- --group readme                  the README stills and loop
-// npm run capture -- --manifest scripts/capture-manifest.js --out ~/src/gamedev-reel/review-2026-09-24
+// npm run capture -- --manifest scripts/capture-manifest.js --out shots/capture
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
-//   [--gif] [--no-webm] [--seconds N] [--list]
+//   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
 // Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
 // <id>.webm (VP9, CRF 30),
 // optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { spawn, execSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -33,7 +33,7 @@ const args = parseArgs(process.argv.slice(2));
 const FPS = Number(args.fps ?? 60);
 const [W, H] = String(args.size ?? '1920x1080').split('x').map(Number);
 const QUALITY = args.quality ?? 'high';
-const OUT = resolve(String(args.out ?? join(homedir(), 'src/gamedev-reel')).replace(/^~/, homedir()));
+const OUT = resolve(String(args.out ?? 'shots/capture').replace(/^~/, homedir()));
 const manifestPath = resolve(String(args.manifest ?? 'scripts/capture-manifest.js'));
 const { ITEMS } = await import(pathToFileURL(manifestPath).href);
 
@@ -118,12 +118,22 @@ function ffmpeg(file) {
   return { write: (buf) => new Promise((ok) => (p.stdin.write(buf) ? ok() : p.stdin.once('drain', ok))), end: async () => { p.stdin.end(); await done; } };
 }
 
-// VP9 WebM alongside every MP4: some desktop players will not open the H.264 file.
+// VP9 WebM alongside every MP4: some desktop players will not open the H.264 file. With
+// --webm-size and --webm-bitrate (for a web page) it is scaled and bitrate-capped instead of CRF.
+const WEBM_SIZE = typeof args['webm-size'] === 'string' ? args['webm-size'].split('x').map(Number) : null;
+const WEBM_RATE = typeof args['webm-bitrate'] === 'string' ? args['webm-bitrate'] : null;
 function webm(mp4, file) {
-  return new Promise((ok, fail) => {
-    const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-row-mt', '1', '-pix_fmt', 'yuv420p', file], { stdio: 'inherit' });
+  const scale = WEBM_SIZE ? ['-vf', `scale=${WEBM_SIZE[0]}:${WEBM_SIZE[1]}:flags=lanczos`] : [];
+  const run = (argv) => new Promise((ok, fail) => {
+    const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, ...scale, '-c:v', 'libvpx-vp9', '-row-mt', '1', '-pix_fmt', 'yuv420p', ...argv], { stdio: 'inherit' });
     p.on('close', (code) => (code === 0 ? ok() : fail(new Error(`webm ffmpeg exited ${code}`))));
   });
+  if (!WEBM_RATE) return run(['-crf', '30', '-b:v', '0', file]);
+  // Two-pass VBR hits the bitrate (and so the file size) far more closely than one pass.
+  const log = `${file}.pass`;
+  return run(['-b:v', WEBM_RATE, '-pass', '1', '-passlogfile', log, '-an', '-f', 'null', '/dev/null'])
+    .then(() => run(['-b:v', WEBM_RATE, '-pass', '2', '-passlogfile', log, '-deadline', 'good', '-cpu-used', '2', file]))
+    .finally(() => rmSync(`${log}-0.log`, { force: true }));
 }
 
 function gif(mp4, file) {
@@ -137,6 +147,11 @@ mkdirSync(OUT, { recursive: true });
 const indexFile = join(OUT, 'index.json');
 const index = existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')) : { items: {} };
 const { base, close } = await serve();
+// The build captured: the served tree's commit when capture serves it, else --build, else unknown.
+const BUILD = typeof args.build === 'string' ? args.build
+  : typeof args.url === 'string' ? 'unknown'
+  : (() => { try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { return 'unknown'; } })();
+index.build = BUILD;
 const browser = await chromium.launch({ args: gl });
 let failed = false;
 
@@ -196,7 +211,7 @@ try {
     failed ||= errors.length > 0;
     index.items[it.id] = {
       title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
-      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, url: base, renderer, errors: errors.length, capturedAt: new Date().toISOString(),
+      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, build: BUILD, renderer, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
     await ctx.close();
