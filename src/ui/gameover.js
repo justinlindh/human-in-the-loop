@@ -8,7 +8,6 @@ const HEADLINE = {
   leader: ['Category leader', 'You own the categories that matter.'],
   runway: ['Out of runway', 'The cash ran out and stayed out.'],
   collapse: ['The lab collapsed', 'Nobody left could keep the lights on.'],
-  timeout: ['Time is up', 'Fifteen years went by. The company is still here, mostly.'],
 };
 
 // Retiring reuses the IPO or acquisition headline with a nod to the choice.

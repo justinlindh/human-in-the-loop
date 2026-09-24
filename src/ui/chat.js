@@ -104,6 +104,7 @@ export function createChat(root, { getState, onName } = {}) {
   }
 
   function add(e, week, { quiet: silent = false } = {}) {
+    if (e.type === 'say') return;
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
     const m = { id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
     const msgs = store[channel];
@@ -139,7 +140,8 @@ export function createChat(root, { getState, onName } = {}) {
     for (const c of CHANNELS) { store[c] = []; unread[c] = 0; }
     lastGeneralWeek = null;
     renderChannel();
-    for (const e of s?.chatLog ?? []) add(e, Number.isFinite(e.week) ? e.week : null, { quiet: true });
+    // Spoken 'say' lines are office bubbles, never Slackk messages.
+    for (const e of s?.chatLog ?? []) if (e.type !== 'say') add(e, Number.isFinite(e.week) ? e.week : null, { quiet: true });
     refreshBadges();
   }
 

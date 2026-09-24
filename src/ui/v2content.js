@@ -75,6 +75,7 @@ const FMT_K = (n) => (Math.abs(n) >= 1000 ? `$${Math.round(n / 1000)}K` : `$${n}
 
 // "+$5K, +2 brand" for a goal's reward, or '' when there is none.
 export function goalReward(g) {
+  if (typeof g?.rewardText === 'string') return g.rewardText;
   const r = g?.reward;
   if (!r) return '';
   if (typeof r === 'string') return r;

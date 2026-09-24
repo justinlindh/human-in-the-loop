@@ -273,11 +273,14 @@ export function createHud({ root, controls, ui }) {
     setText(teamVal, `${s.staff.length}/${cap}`);
     let sad = 0;
     for (const p of s.staff) if (p.mood === 'burnout' || p.mood === 'coasting') sad++;
-    const teamKey = sad ? `s${sad}` : 'ok';
+    // With placed furniture, too few desks outranks mood: nobody can be hired and people lack a seat.
+    const short = s.office?.placed && cap < s.staff.length ? s.staff.length - cap : 0;
+    const teamKey = short ? `d${short}` : sad ? `s${sad}` : 'ok';
     if (teamKey !== last.team) {
       last.team = teamKey;
-      teamSub.replaceChildren(icon(sad ? 'mood.coasting' : 'mood.ok', { size: 12 }), sad ? ` ${sad} unhappy` : ' all good');
-      toggleClass(teamSub, 'warn-t', sad > 0);
+      if (short) teamSub.replaceChildren(icon('seat', { size: 12 }), ` ${short} need${short === 1 ? 's' : ''} a desk`);
+      else teamSub.replaceChildren(icon(sad ? 'mood.coasting' : 'mood.ok', { size: 12 }), sad ? ` ${sad} unhappy` : ' all good');
+      toggleClass(teamSub, 'warn-t', sad > 0 || short > 0);
     }
 
     setWidth(mBrand.fill, s.brand / 100);

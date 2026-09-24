@@ -15,6 +15,8 @@ const offerOf = (s) => s.acquisitionOffer ?? s.offers?.acquisition ?? (s.pending
 // { ipo: { ok, reason }, acquired: { ok, reason, by? }, any }
 export function retireOptions(s) {
   if (!s.unlocks && !s.era) return { ipo: { ok: false }, acquired: { ok: false }, any: false };
+  const r = call('retireOptions', s);
+  if (r?.ipo && r?.acquired) return { ...r, any: !!(r.ipo.ok || r.acquired.ok) };
   if (SIMX.ipoBlocker && SIMX.acquisitionOpen) {
     const why = call('ipoBlocker', s) ?? null;
     const open = !!call('acquisitionOpen', s);

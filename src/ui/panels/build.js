@@ -3,7 +3,7 @@ import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../conten
 import { portrait, liveView, stars, tabs } from '../widgets.js';
 import { icon } from '../icons.js';
 import { researchView } from './research.js';
-import { ERA, ERAS } from '../v2content.js';
+import { ERA } from '../v2content.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName } from './common.js';
@@ -98,13 +98,12 @@ export function buildPanel(ctx, arg) {
     }
 
     // Angle grid, with stars for combos you have already discovered in this category.
-    // With eras, locked angles show only for the next era, as a teaser.
-    const eraIx = ERAS.findIndex((e) => e.id === s.era?.id);
+    // With eras, an angle stays hidden until its era arrives.
     const lockText = (a) => (a.era ? `Arrives with ${ERA[a.era]?.name ?? a.era}` : `Unlocks in ${a.unlockYear}`);
     const angGrid = h('div.tiles.angles');
     for (const a of ANGLES) {
       const unlocked = s.market.unlockedAngles.includes(a.id);
-      if (!unlocked && a.era && eraIx >= 0 && ERAS.findIndex((e) => e.id === a.era) > eraIx + 1) continue;
+      if (!unlocked && a.era) continue;
       const fit = form.category ? s.discoveredCombos?.[`${form.category}:${a.id}`] : undefined;
       const tile = h('button.tile.wide', {
         disabled: !unlocked,
@@ -209,7 +208,7 @@ export function buildPanel(ctx, arg) {
         preset ? h('div.starterhint', null, icon('idea', { size: 18 }), h('span', { text: 'A good first product is picked for you: Email × Summarizer on ChatGBT, small, with both founders. Great combos earn stars once they launch. Press Start building, or change anything.' })) : null,
         h('div.section', null, h('h3', null, '1. Name'), nameRow),
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
-        h('div.section', null, h('h3', null, `3. ${hasEras ? 'Approach' : 'AI angle'}`, h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
+        h('div.section', null, h('h3', null, `3. ${!hasEras ? 'AI angle' : ANGLES.some((a) => a.ai && s.market.unlockedAngles.includes(a.id)) ? 'Angle' : 'Approach'}`, h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
         needsModel ? h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid) : null,
         h('div.section', null, h('h3', null, `${needsModel ? 5 : 4}. Size`), sizeRow)),
       h('div.buildside', null,

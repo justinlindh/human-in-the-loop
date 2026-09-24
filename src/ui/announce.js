@@ -37,7 +37,7 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
         e.blurb ? h('div.ablurb', { text: e.blurb }) : null,
         e.changes?.length ? h('div', null, h('b', { text: 'What changes' })) : null,
         e.changes?.length ? h('ul.changes', null, ...e.changes.map((c) => h('li', { text: c }))) : null,
-        decision ? h('div.eranote', null, icon('decision', { size: 16 }), ` First call: ${decision}`) : null,
+        decision ? h('div.eranote', null, icon('decision', { size: 16 }), ` A decision is waiting: ${decision}`) : null,
         h('div.row.acts', null, go)));
   }
 

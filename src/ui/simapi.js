@@ -5,6 +5,8 @@ const find = (name) => MODS.map((m) => m[name]).find((f) => typeof f === 'functi
 
 export const SIMX = {
   placementCheck: find('placementCheck'),
+  adjacencyPreview: find('adjacencyPreview'),
+  retireOptions: find('retireOptions'),
   deskCapacity: find('deskCapacity'),
   isUnlocked: find('isUnlocked'),
   lockedReason: find('lockedReason'),

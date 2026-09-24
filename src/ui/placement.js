@@ -75,7 +75,15 @@ export function checkPlace(s, { itemId, x, y, rot = 0, moveId = null }) {
 }
 
 // Which placed things an item at (x, y, rot) would boost, and which boosts a new desk there would receive.
+// { gives: { key, value, count, empty, to, ids, radius } | null, receives: [{ itemId, key, value }] }.
+// The sim's link list is the source of truth; the local measure is only a fallback.
 export function adjacencyPreview(s, { itemId, x, y, rot = 0, moveId = null }) {
+  if (SIMX.adjacencyPreview) {
+    try {
+      const links = SIMX.adjacencyPreview(s, { itemId, x, y, rot, id: moveId ?? undefined });
+      if (Array.isArray(links)) return fromLinks(s, itemId, links, moveId ?? 'preview');
+    } catch { /* fall back to the local measure */ }
+  }
   const r = { x, y, ...footprint(itemId, rot) };
   const others = placedOf(s).filter((p) => p.id !== moveId);
   const out = { gives: null, receives: [] };
@@ -100,4 +108,26 @@ export function firstFit(s, itemId, rot = 0) {
     if (checkPlace(s, { itemId, x, y, rot }).ok) return { x, y, rot };
   }
   return null;
+}
+
+function fromLinks(s, itemId, links, candId) {
+  const byId = new Map(placedOf(s).map((p) => [p.id, p]));
+  const adj = CATALOG[itemId]?.adjacency;
+  const out = { gives: null, receives: [] };
+  const given = links.filter((l) => l.sourceId === candId);
+  if (adj || given.length) {
+    const ids = [...new Set(given.map((l) => l.targetId))];
+    const first = given[0];
+    const toItem = first?.target === 'item' ? byId.get(first.targetId)?.itemId : adj?.to;
+    out.gives = {
+      key: first?.key ?? adj?.key, value: first?.value ?? adj?.value, count: ids.length,
+      empty: new Set(given.filter((l) => l.paid === false).map((l) => l.targetId)).size,
+      to: toItem ? CATALOG[toItem]?.name ?? toItem : 'desk', ids, radius: adj?.radius ?? 1,
+    };
+  }
+  for (const l of links) {
+    if (l.targetId !== candId) continue;
+    out.receives.push({ itemId: byId.get(l.sourceId)?.itemId ?? null, key: l.key, value: l.value });
+  }
+  return out;
 }
