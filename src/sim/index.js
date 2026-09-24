@@ -1,6 +1,7 @@
 // Public surface of the simulation. Importing a system module registers it.
 import './vendors.js';
 import './staff.js';
+import './progression.js';
 import './work.js';
 import './projects.js';
 import './products.js';

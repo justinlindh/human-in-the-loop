@@ -5,6 +5,7 @@ import { outputMult, staffMods } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
 import { CHANNELS } from '../data/channels.js';
 import { modifierBonus } from './modifiers.js';
+import { itemBonus } from './bonus.js';
 
 const marketers = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'marketing');
 
@@ -34,6 +35,7 @@ export function marketingSystem(ctx) {
   const team = marketers(state);
   const marketerMult = Math.min(2.5, 1 + 0.25 * sum(team, (p) => outputMult(state, p) * staffMods(p).hype));
   const autoLevel = state.automation.marketing.level;
+  const brandGain = Math.max(1, ...team.map((p) => staffMods(p).brandGain));
   const autoMult = (1 + B.autoMarketingHype * autoLevel) * Math.max(0, 1 + modifierBonus(state, 'hype'));
 
   for (const c of state.campaigns) {
@@ -48,7 +50,7 @@ export function marketingSystem(ctx) {
     const gain = ch.hype * marketerMult * autoMult;
     if (product) product.hype += gain;
     else project.bankedHype = Math.min(100, project.bankedHype + gain);
-    state.brand += ch.brand * (1 - B.autoMarketingBrandPenalty * autoLevel);
+    state.brand += ch.brand * (1 - B.autoMarketingBrandPenalty * autoLevel) * brandGain;
     c.weeksLeft--;
     if (c.weeksLeft <= 0) ctx.emit({ type: 'toast', text: `${ch.name} wrapped up.`, tone: 'info' });
   }
@@ -59,7 +61,8 @@ export function marketingSystem(ctx) {
   const target = [...live].reverse().find((p) => !covered.has(p.id));
   if (target) target.hype += sum(team, (p) => B.marketerHypePerWeek * outputMult(state, p) * staffMods(p).hype);
 
-  state.brand = clamp(state.brand - B.brandDecay + modifierBonus(state, 'brandPerWeek'), 0, 100);
+  const steady = sum(state.staff.filter((p) => p.mood !== 'away'), (p) => staffMods(p).brandPerWeek);
+  state.brand = clamp(state.brand - B.brandDecay + modifierBonus(state, 'brandPerWeek') + itemBonus(state, 'brandPerWeek') + steady, 0, 100);
   for (const p of live) {
     p.hype = clamp(p.hype * (1 - B.hypeDecay), 0, 100);
     if (!p.wrapperHit && p.hype / 10 > p.score + B.wrapperGap) {

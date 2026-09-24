@@ -3,6 +3,7 @@ import { dispatch, tick } from '../../src/sim/index.js';
 import { generateStaff, refreshCandidates, outputMult, capacity, staffUpkeep, staffMods, topStats } from '../../src/sim/staff.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
+import { TRAINING } from '../../src/data/training.js';
 import { ASSIGNMENT_TYPES } from '../../src/contract/events.js';
 import { game, addStaff, expectFail, advance } from './helpers.js';
 
@@ -38,7 +39,7 @@ describe('generateStaff', () => {
           expect(ASSIGNMENT_TYPES).toContain(p.assignment.type);
           expect(p.mood).toBe('ok');
           expect(p.founder).toBe(false);
-          expect(p).toMatchObject({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 } });
+          expect(p).toMatchObject({ path: null, pathPending: seniority === 'senior', legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 } });
           expect(p.appearance.hairColor).toMatch(/^#[0-9a-f]{6}$/);
           expect(['none', 'glasses', 'headphones', 'beanie', 'cap']).toContain(p.appearance.accessory);
         }
@@ -173,13 +174,13 @@ describe('train', () => {
   it('costs cash and adds xp', () => {
     const s = game();
     const p = s.staff[0];
-    const res = dispatch(s, { type: 'train', staffId: p.id });
+    const res = dispatch(s, { type: 'train', staffId: p.id, program: 'workshop', focus: 'features' });
     expect(res.ok).toBe(true);
-    expect(s.cash).toBe(B.startCash - B.trainingCost);
-    expect(p.xp).toBe(B.trainingXp * staffMods(p).xp);
+    expect(s.cash).toBe(B.startCash - TRAINING.workshop.cost);
+    expect(p.xp).toBe(TRAINING.workshop.xp * staffMods(p).xp);
     expect(res.events[0]).toMatchObject({ type: 'bubble', staffId: p.id, tone: 'good' });
     s.cash = 5;
-    expectFail(expect, dispatch, s, { type: 'train', staffId: p.id }, 'Not enough cash');
+    expectFail(expect, dispatch, s, { type: 'train', staffId: p.id, program: 'workshop', focus: 'features' }, 'Not enough cash');
   });
 });
 

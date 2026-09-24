@@ -27,6 +27,14 @@ const rows = [
   ['steady', 'Steady', 'Never too high, never too low. Quietly holds things together.', { stamina: 0.7, resign: 0.7 }],
   ['cynic', 'Cynic', 'Expects everything to break. Builds accordingly.', { meaningRecovery: 0.7, reliability: 1.15 }],
   ['red_teamer', 'Red Teamer', 'Tries to trick the agents for fun. Catches a lot.', { catch: 0.2, oversight: 1.2 }],
+  ['natural_mentor', 'Natural Mentor', 'Earned by mentoring for months. Teaching comes easily now.', { mentorBonus: 1.3, meaningRecovery: 1.1 }],
+];
+
+// Traits people earn from experience rather than arrive with.
+export const EARNED_TRAITS = [
+  { trait: 'natural_mentor', counter: 'mentorWeeks', threshold: 20 },
+  { trait: 'paranoid', counter: 'catches', threshold: 3 },
+  { trait: 'visionary', counter: 'hardProblemWeeks', threshold: 20 },
 ];
 
 export const TRAITS = Object.fromEntries(rows.map(([id, name, desc, mods]) => [id, { id, name, desc, mods }]));

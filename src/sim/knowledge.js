@@ -2,12 +2,15 @@ import { B } from './balance.js';
 import { clamp, sum } from './util.js';
 import { registerSystem } from './registry.js';
 import { ROLES } from '../data/roles.js';
+import { itemBonus, researchBonus } from './bonus.js';
+import { staffMods } from './staff.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
 // Called whenever someone leaves (fired, resigned, event). The person must already be removed from staff.
 export function onDeparture(state, person) {
-  state.comprehensionDebt = Math.min(100, state.comprehensionDebt + person.knowledge * B.debtFromDeparturePerKnowledge);
+  state.comprehensionDebt = Math.min(100, state.comprehensionDebt
+    + person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
   for (const p of state.staff) {
     if (p.assignment.targetId === person.id && p.assignment.type === 'mentor') {
       p.assignment = { type: ROLES[p.role].defaultAssignment, targetId: null };
@@ -20,7 +23,7 @@ export function institutionalKnowledge(state) {
   const live = state.products.filter((p) => !p.killed).length;
   const holders = state.staff.filter((p) => p.role === 'engineer' || p.role === 'security');
   const held = sum(holders, (p) => (p.knowledge / 100) * B.seniorityOutput[p.seniority]);
-  return clamp((100 * held) / (B.ikBaseline + B.ikPerProduct * live), 0, 100);
+  return clamp(((100 * held) / (B.ikBaseline + B.ikPerProduct * live)) * (1 + researchBonus(state, 'ik')), 0, 100);
 }
 
 export function knowledgeSystem(ctx) {
@@ -37,7 +40,7 @@ export function knowledgeSystem(ctx) {
       gain += B.knowledgeGainWorking * (dulled ? 1 - 0.7 * engLevel : 1);
     }
     if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee;
-    p.knowledge = Math.min(100, p.knowledge + gain);
+    p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')));
   }
 
   state.institutionalKnowledge = institutionalKnowledge(state);
@@ -51,7 +54,7 @@ export function knowledgeSystem(ctx) {
     + B.debtFromOpsAuto * ops.level
     + B.debtPerProduct * live
     + (ik < B.debtLowIkThreshold ? (B.debtLowIkThreshold - ik) * B.debtLowIkRate : 0)
-    - B.debtPaydownPerSeniorEng * sum(seniorEngs, (p) => p.knowledge / 100)
+    - B.debtPaydownPerSeniorEng * sum(seniorEngs, (p) => (p.knowledge / 100) * staffMods(p).debtPaydown)
     - (state.policies.comprehension_reviews ? B.debtPaydownReviews : 0);
   state.comprehensionDebt = clamp(state.comprehensionDebt + delta, 0, 100);
 }
