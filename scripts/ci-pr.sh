@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Local CI for a pull request, posted to the PR as the merge gate. Tests the PR merged into its base
 # (GitHub's merge ref) when there is one, else the PR head, in a throwaway worktree.
-# Usage: scripts/ci-pr.sh <pr-number> [--no-comment]
+# Besides the comment it sets the commit status "local-ci" on the PR head (pending while it runs,
+# then success or failure), which branch protection can require.
+# Usage: scripts/ci-pr.sh <pr-number> [--no-comment]   (--no-comment also skips the status)
 set -uo pipefail
 
 pr="${1:?usage: scripts/ci-pr.sh <pr-number> [--no-comment]}"
@@ -18,10 +20,23 @@ WT="$ROOT/pr-$pr-$$"
 read -r head base title < <(gh pr view "$pr" --json headRefOid,baseRefName,title --jq '[.headRefOid, .baseRefName, .title] | @tsv' | tr '\t' '\037' | awk -F'\037' '{ printf "%s %s %s\n", $1, $2, $3 }')
 [ -n "$head" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
 
+# Commit status "local-ci" on the PR head: status <state> <description> [target url].
+status_final=0
+status() {
+  [ "$comment" = 1 ] || return 0
+  gh api "repos/{owner}/{repo}/statuses/$head" -f state="$1" -f context=local-ci -f description="$2" \
+    ${3:+-f target_url="$3"} >/dev/null 2>&1 || echo "ci-pr: could not set the local-ci status" >&2
+}
+
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
 git -C "$REPO" worktree prune
-cleanup() { git -C "$REPO" worktree remove --force "$WT" 2>/dev/null; }
+cleanup() {
+  git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
+  # A run that stops before its verdict must not leave the status pending forever.
+  [ "$status_final" = 1 ] || status error "Local CI stopped before finishing; run scripts/ci-pr.sh $pr again"
+}
 trap cleanup EXIT
+status pending "Local CI running"
 if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null; then
   git -C "$REPO" worktree add -q --detach "$WT" "refs/ci/pr-$pr/merge"
   what="GitHub's merge into $base"
@@ -33,7 +48,8 @@ else
     body="$(mktemp)"
     printf '### Local CI: FAIL\n\nHead `%s` does not merge cleanly into `%s`. Conflicting files:\n\n%s\n' "${head:0:7}" "$base" "$files" >"$body"
     cat "$body"
-    [ "$comment" = 1 ] && gh pr comment "$pr" --body-file "$body" >/dev/null && echo "ci-pr: posted to #$pr"
+    url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
+    status failure "Head does not merge cleanly into $base" "$url"; status_final=1
     rm -f "$body"
     exit 1
   fi
@@ -64,6 +80,7 @@ body="$(mktemp)"
   cat "$summary"
 } >"$body"
 cat "$body"
-[ "$comment" = 1 ] && gh pr comment "$pr" --body-file "$body" >/dev/null && echo "ci-pr: posted to #$pr"
+url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
+status "$([ $rc -eq 0 ] && echo success || echo failure)" "Local CI $verdict in ${secs}s on ${sha} ($what)" "$url"; status_final=1
 rm -f "$summary" "$body"
 exit $rc
