@@ -1053,3 +1053,4 @@
 .hitl .acqstat { display: flex; flex-direction: column; line-height: 1.2; }
 .hitl .acqstat b { font-size: 1.1em; }
 .hitl .bar.fame > i { background: var(--yellow); }
+.hitl .pill.expiring { background: var(--yellow); color: var(--ink); font-weight: 700; }

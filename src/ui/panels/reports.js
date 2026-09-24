@@ -279,7 +279,7 @@ function acquisitionsView(ctx, s, bind) {
     return h('div.card.acq', null,
       h('div.row', null, h('span.iico', null, icon(`cat.${c.categoryId}`, { size: 26 })),
         h('div', { style: { minWidth: 0, flex: 1 } }, h('b.aname', { text: c.name }), h('div.small.muted', { text: categoryName(c.categoryId) })),
-        h('span', { class: left <= 4 ? 'pill warn' : 'pill', title: 'The offer ends then' }, icon('hourglass', { size: 12 }), ` ${left} wk left`)),
+        h('span', { class: left <= 4 ? 'pill expiring' : 'pill', title: 'The offer ends then' }, icon('hourglass', { size: 12 }), ` ${left} wk left`)),
       h('div.row.wrap.acqstats', null,
         h('div.acqstat', null, h('span.small.muted', { text: 'Revenue a year' }), h('b.num', { text: money(c.arr) })),
         h('div.acqstat', null, h('span.small.muted', { text: 'Price' }), h('b.num', { text: money(c.price) })),
