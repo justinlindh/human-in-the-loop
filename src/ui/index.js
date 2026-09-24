@@ -68,8 +68,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom);
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    // Toasts ride inside the open panel so they never straddle its edge; otherwise they sit top-right.
-    onChange: (id) => { sfx(id ? 'open' : 'close'); (id ? menu.panelEl : layer).append(toasts.el); },
+    onChange: (id) => { sfx(id ? 'open' : 'close'); toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
@@ -97,7 +96,10 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   // Per-person meaning samples, one per week, for the staff sparkline. UI-side only.
   let loggedWeek = -1;
+  let loggedState = null;
   function logMeaning(state) {
+    // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
+    if (state !== loggedState) { loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; }
     if (state.week === loggedWeek) return;
     loggedWeek = state.week;
     const log = ctx.meaningLog;
@@ -137,14 +139,9 @@ export function createUI({ root, getState, dispatch, controls }) {
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
           break;
         }
-        case 'launch': {
-          const p = state.products.find((x) => x.id === e.productId);
-          if (p) toasts.push(`${p.name} launched! Score ${p.score.toFixed(1)}`, 'good');
-          break;
-        }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
-          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${e.severity})`, e.caught ? 'good' : 'bad');
+          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
         case 'award': toasts.push(e.text, 'good'); break;

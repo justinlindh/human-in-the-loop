@@ -37,7 +37,7 @@ export function modelsPanel(ctx) {
         const prods = live.filter((p) => p.model === m.id);
         const fns = FUNCTIONS.filter((f) => s.automation[f]?.model === m.id && s.automation[f]?.level > 0);
         const cost = m.productCost * (ms.costMult ?? 1);
-        const status = !ms.available ? `Arrives ${m.releaseYear}` : ms.deprecated ? 'Deprecated' : null;
+        const status = !ms.available ? `Arrives ${m.releaseYear}` : null;
         const card = h('div.vendor', { style: { '--mc': m.color } },
           h('div.vhead', null,
             h('span.vname', { text: m.name }),
@@ -65,7 +65,7 @@ export function modelsPanel(ctx) {
                   }),
                   ...fns.map((f) => h('span.pill', null, icon(`fn.${f}`, { size: 12 }), ` ${FUNCTION_INFO[f].name} ${Math.round(s.automation[f].level * 100)}%`)))
                 : h('span.small.faint', { text: 'Nothing yet' }))),
-          status ? h('div.vstatus', null, icon(ms.available ? 'deprecated' : 'lock', { size: 14 }), ` ${status}`) : null);
+          status ? h('div.vstatus', null, icon('lock', { size: 14 }), ` ${status}`) : null);
         toggleClass(card, 'off', !!status);
         grid.append(card);
       }

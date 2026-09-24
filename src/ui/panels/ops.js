@@ -24,7 +24,7 @@ export function postureParts(s) {
 }
 
 function severityPips(n) {
-  return h('span.pips', { title: `Severity ${n} of 5` }, ...[1, 2, 3, 4, 5].map((i) => h(`i${i <= n ? '.on' : ''}`)));
+  return h('span.pips', { title: `SEV${6 - n}: SEV1 is the worst` }, h('b.sev.num', { text: `SEV${6 - n}` }), ...[1, 2, 3, 4, 5].map((i) => h(`i${i <= n ? '.on' : ''}`)));
 }
 
 export function opsPanel(ctx) {

@@ -1,4 +1,4 @@
-import { h, setText, setWidth, fmtMoney, fmtNum, dateOf, toggleClass } from '../dom.js';
+import { h, setText, setWidth, setClass, fmtMoney, fmtNum, dateOf, toggleClass } from '../dom.js';
 import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../content.js';
 import { portrait, liveView, stars, tabs } from '../widgets.js';
 import { icon } from '../icons.js';
@@ -48,7 +48,7 @@ export function buildPanel(ctx) {
     if (!s.models[form.model]?.available || s.models[form.model]?.deprecated) form.model = MODELS.find((m) => s.models[m.id]?.available && !s.models[m.id]?.deprecated)?.id ?? form.model;
 
     // Name
-    const nameInput = h('input.text', { value: form.name, maxlength: 28, placeholder: 'Product name', oninput: (e) => { form.name = e.target.value; } });
+    const nameInput = h('input.text', { value: form.name, maxlength: 28, placeholder: 'Product name', oninput: (e) => { form.name = e.target.value; newView.update(ctx.getState()); } });
     const nameRow = h('div.row', null, nameInput,
       h('button.btn.small', { onclick: () => { form.name = suggestName(form.category); nameInput.value = form.name; }, title: 'Suggest a name' }, icon('dice'), ' Suggest'));
 
@@ -154,14 +154,13 @@ export function buildPanel(ctx) {
 
     // Summary and start
     const size = B.sizes[form.size];
-    const missing = !form.category ? 'Pick a category' : !form.angle ? 'Pick an AI angle' : !form.name.trim() ? 'Name it' : null;
     const cashAfter = h('span.num');
     const startBtn = h('button.btn.go.big', { onclick: () => start() }, icon('launch'), ' Start building');
     const note = h('div.faint.small');
     bind((st) => {
       setText(cashAfter, fmtMoney(st.cash - size.cost));
-      cashAfter.className = `num ${st.cash - size.cost < 0 ? 'bad-t' : ''}`;
-      const reason = missing ?? (st.cash < size.cost ? 'Not enough cash' : form.team.size === 0 ? 'Pick at least one person' : null);
+      setClass(cashAfter, `num ${st.cash - size.cost < 0 ? 'bad-t' : ''}`);
+      const reason = blocker(st);
       startBtn.disabled = !!reason;
       setText(note, reason ?? `${CATEGORY[form.category]?.name} × ${ANGLES.find((a) => a.id === form.angle)?.name} on ${MODEL[form.model]?.name}`);
     });
@@ -180,19 +179,31 @@ export function buildPanel(ctx) {
         h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid),
         h('div.section', null, h('h3', null, '5. Size'), sizeRow)),
       h('div.buildside', null,
-        h('div.section', null, h('h3', null, '6. Team', countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' })),
+        h('div.section', null, h('h3', null, '6. Team', countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
+          h('div.small.muted.teamhint', { text: 'Stronger people make a better product. More people make it faster.' })),
         summary));
   }
 
+  // Checked live, so clearing the name or losing cash disables Start right away.
+  function blocker(s) {
+    if (!form.category) return 'Pick a category';
+    if (!form.angle) return 'Pick an AI angle';
+    if (!form.name.trim()) return 'Name it';
+    if (s.cash < (B.sizes[form.size]?.cost ?? 0)) return 'Not enough cash';
+    if (!form.team || form.team.size === 0) return 'Pick at least one person';
+    return null;
+  }
+
   function start() {
-    const before = new Set(ctx.getState().projects.map((j) => j.id));
+    const why = blocker(ctx.getState());
+    if (why) { ctx.toast(why, 'warn'); return; }
     const res = ctx.act({ type: 'startProject', kind: 'new', name: form.name.trim(), category: form.category, angle: form.angle, model: form.model, size: form.size });
     if (!res.ok) return;
     const s = ctx.getState();
-    const proj = s.projects.find((j) => !before.has(j.id));
+    const proj = s.projects.find((j) => j.id === res.projectId);
     let placed = 0;
     if (proj) for (const id of form.team) if (ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: proj.id } }).ok) placed++;
-    if (placed) ctx.toast(`${placed} ${placed === 1 ? 'person' : 'people'} on ${proj.name}`, 'info');
+    if (placed < form.team.size) ctx.toast(`Only ${placed} of ${form.team.size} picked people could join ${proj?.name ?? 'the project'}.`, 'warn');
     ctx.sfx('confirm');
     form.name = suggestName();
     form.team = null;

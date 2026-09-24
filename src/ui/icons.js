@@ -83,7 +83,6 @@ export const ICONS = {
   policy: I('📜', 'Automation: Policies tab', 16),
   product: I('📦', 'Models: products using a model', 12),
   selfhost: I('🖥️', 'Models: self-hosted badge', 14),
-  deprecated: I('⛔', 'Models: deprecated status', 14),
   hype: I('🔥', 'Marketing: hype per week', 12),
   brand: I('💜', 'Marketing: brand per week', 12),
   wrapper: I('🌯', 'Marketing: "just a wrapper" warning', 16),
@@ -119,8 +118,14 @@ export const ICONS = {
 // Category icons come from the content data's stand-in emoji.
 for (const c of CATEGORIES) ICONS[`cat.${c.id}`] = I(c.icon ?? '📦', 'Build category tile', 22);
 
+const warned = new Set();
+
 export function icon(name, { size, title } = {}) {
   const def = ICONS[name];
+  if (!def && !warned.has(name)) {
+    warned.add(name);
+    if (!location.search.includes('snap')) console.warn(`Unknown icon name: ${name}`);
+  }
   const px = size ?? def?.size ?? 16;
   const el = document.createElement('span');
   el.className = 'ic';
