@@ -245,4 +245,34 @@ export const ITEMS = [
     actions: [{ at: 1, js: `(() => { const s = window.__HITL.state; s.gameOver = { won: true, reason: 'anniversary', score: 51240, epilogue: ['Twenty years. The garage is a museum now, which is to say a garage.'] }; window.__HITL.emit([{ type: 'gameOver' }]); })()` }],
     screenshots: [5],
   },
+
+  // README (group 'readme'): hero stills at 1920x1080 with the UI, and one short loop.
+  {
+    id: 'readme-garage', group: 'readme', title: 'The garage opening: founders and the first desks', query: 'seed=21&speed=1', still: true,
+    setup: `(() => { const H = window.__HITL; H.dispatch({ type: 'placeItem', itemId: 'desk', x: 2, y: 2, rot: 0 }); H.dispatch({ type: 'placeItem', itemId: 'desk', x: 4, y: 2, rot: 0 }); H.dispatch({ type: 'placeItem', itemId: 'plant', x: 7, y: 1, rot: 0 }); })()`,
+    warmup: 4, screenshots: [3],
+  },
+  {
+    id: 'readme-hq', group: 'readme', title: 'A busy Agents-era HQ with pets and perks', query: 'mock=hq&speed=1&time=day', still: true,
+    setup: `(() => { ${ERA('agents')}; const s = window.__HITL.state; s.pets = [{ id: 'pet1', species: 'dog', name: 'Biscuit', ownerId: s.staff[0].id, arrivedWeek: s.week }, { id: 'pet2', species: 'cat', name: 'Mochi', ownerId: s.staff[4].id, arrivedWeek: s.week }]; })()`,
+    warmup: 6, screenshots: [4],
+  },
+  {
+    id: 'readme-waffle', group: 'readme', title: 'The Waffle Party', query: 'mock=floor&speed=1', still: true, warmup: 1.5,
+    actions: [
+      { at: 0.5, js: `window.__HITL.emit([{ type: 'incentive', staffId: ${PICK}.id, reward: 'waffle_party' }])` },
+      { at: 3.0, js: CLICK('Onward') },
+    ],
+    screenshots: [10],
+  },
+  {
+    id: 'readme-lockdown', group: 'readme', title: 'Lockdown: the video call over the empty office', query: 'mock=floor&speed=1', still: true,
+    setup: `(() => { const s = window.__HITL.state; const stayer = s.staff[0]; s.lockdown = { since: s.week, until: s.week + 20, stayerId: stayer.id }; for (const p of s.staff) { p.remote = p.id !== stayer.id; p.call = p.remote ? { muted: Math.random() < 0.3, frozen: Math.random() < 0.15, badCamera: Math.random() < 0.2 } : null; } })()`,
+    warmup: 3, screenshots: [6],
+  },
+  {
+    id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'mock=hq&speed=1&time=day', seconds: 7, warmup: 4,
+    setup: `(() => { ${ERA('agents')}; const s = window.__HITL.state; s.pets = [{ id: 'pet1', species: 'dog', name: 'Biscuit', ownerId: s.staff[0].id, arrivedWeek: s.week }]; })()`,
+    hideUi: true,
+  },
 ];
