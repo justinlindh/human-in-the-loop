@@ -175,20 +175,6 @@
 }
 @media (max-width: 1400px) { .hitl .bottom { grid-template-columns: 17em 1fr 0; } }
 
-.hitl .chat {
-  pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: var(--radius);
-  box-shadow: var(--pop), var(--soft); overflow: hidden; display: flex; flex-direction: column;
-}
-.hitl .chat-head { display: flex; align-items: center; gap: 0.4em; padding: 0.3em 0.6em; background: var(--purple); color: #fff; font-weight: 600; cursor: pointer; }
-.hitl .chat-head .hash { font-weight: 700; }
-.hitl .chat-head .count { margin-left: auto; font-size: 0.75em; background: rgba(255,255,255,0.25); border-radius: 1em; padding: 0.05em 0.5em; }
-.hitl .chat-head .caret { font-size: 0.8em; }
-.hitl .chat-body { height: 11.5em; overflow-y: auto; padding: 0.35em 0.55em; display: flex; flex-direction: column; gap: 0.2em; scrollbar-width: thin; }
-.hitl .chat.collapsed .chat-body { display: none; }
-.hitl .chat-line { font-size: 0.86em; line-height: 1.25; }
-.hitl .chat-line b { font-weight: 700; }
-.hitl .chat-line.bot b { color: var(--red); }
-.hitl .chat-line .w { color: var(--ink-faint); font-size: 0.85em; margin-right: 0.3em; }
 
 .hitl .menu { justify-self: center; display: flex; gap: 0.4em; pointer-events: auto; padding: 0.4em; background: var(--ink); border-radius: 1.1em; box-shadow: var(--soft); }
 .hitl .mbtn {
@@ -406,7 +392,6 @@
 .hitl .cand .why { color: var(--bad); font-weight: 600; min-height: 1em; }
 .hitl .cand .traits .pill { font-size: 0.75em; }
 
-.hitl .chat-quiet { color: var(--ink-faint); font-size: 0.85em; text-align: center; margin: auto 0; padding: 1em 0.5em; }
 .hitl .mbtn.alarm { animation: hitl-alarm 1.1s ease-in-out infinite; }
 .hitl .mbtn.alarm:not(.active) { background: #ffd9d7; }
 @keyframes hitl-alarm { 0%, 100% { box-shadow: inset 0 -0.3em 0 var(--cream-3), 0 0 0 0 rgba(229,72,77,0.7); } 50% { box-shadow: inset 0 -0.3em 0 var(--cream-3), 0 0 0 0.35em rgba(229,72,77,0); } }
@@ -716,3 +701,40 @@
 .hitl .trcard { display: flex; flex-direction: column; gap: 0.3em; }
 .hitl .trcard select { align-self: flex-start; }
 .hitl .toast.act, .hitl .dtoast.act { cursor: pointer; text-decoration: underline dotted; }
+
+/* ---------- Slackk ---------- */
+.hitl .chat { pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: var(--radius); box-shadow: var(--pop), var(--soft); overflow: hidden; display: flex; flex-direction: column; }
+.hitl .chat-head { display: flex; align-items: center; gap: 0.45em; padding: 0.3em 0.6em; background: #4a154b; color: #fff; cursor: pointer; }
+.hitl .chat-head .slogo { width: 1.4em; height: 1.4em; display: grid; place-items: center; border-radius: 0.35em; background: var(--yellow); color: #4a154b; font-weight: 700; }
+.hitl .chat-head .sbrand { letter-spacing: 0.01em; }
+.hitl .chat-head .count { margin-left: auto; display: none; min-width: 1.5em; text-align: center; font-size: 0.75em; font-weight: 700; background: var(--red); border-radius: 1em; padding: 0.05em 0.45em; }
+.hitl .chat-head .count.show { display: inline-block; }
+.hitl .chat-head .caret { margin-left: auto; font-size: 0.8em; }
+.hitl .chat-head .count.show + .caret { margin-left: 0.3em; }
+.hitl .chat-tabs { display: flex; gap: 0.2em; padding: 0.3em 0.35em; background: #f1e9f1; border-bottom: 0.13em solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.hitl .ctab { pointer-events: auto; border: none; background: none; padding: 0.15em 0.4em; border-radius: 0.45em; font-size: 0.78em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25em; }
+.hitl .ctab.on { background: #4a154b; color: #fff; }
+.hitl .ctab .cbadge { display: none; font-size: 0.85em; background: var(--red); color: #fff; border-radius: 1em; padding: 0 0.4em; }
+.hitl .ctab .cbadge.show { display: inline-block; }
+.hitl .chat-body { height: 12em; overflow-y: auto; padding: 0.3em 0.45em 0.4em; display: flex; flex-direction: column; gap: 0.3em; scrollbar-width: thin; }
+.hitl .chat.collapsed .chat-body, .hitl .chat.collapsed .chat-tabs, .hitl .chat.collapsed .chat-quiet.banner { display: none; }
+.hitl .chat-quiet { color: var(--ink-faint); font-size: 0.85em; text-align: center; margin: auto 0; padding: 1em 0.5em; }
+.hitl .chat-quiet.banner { display: none; margin: 0; padding: 0.25em 0.5em; font-size: 0.78em; background: #fff4dc; color: var(--warn); font-weight: 600; border-bottom: 0.12em solid var(--line); }
+.hitl .chat-quiet.banner.show { display: block; }
+.hitl .msg { display: grid; grid-template-columns: 1.7em 1fr; gap: 0.4em; align-items: start; }
+.hitl .msg .av { width: 1.7em; height: 1.7em; border-radius: 0.4em; border: 0.1em solid var(--ink); background: var(--cream-2); display: grid; place-items: center; font-weight: 700; font-size: 1em; }
+.hitl .msg .av.bot { background: #efe6ff; }
+.hitl .msg .av.gone { color: var(--ink-faint); font-size: 0.8em; }
+.hitl .msg .mline { display: flex; align-items: baseline; gap: 0.4em; font-size: 0.8em; }
+.hitl .msg .who { font-weight: 700; }
+.hitl .msg .who.link { cursor: pointer; pointer-events: auto; }
+.hitl .msg .who.link:hover { text-decoration: underline; color: var(--blue); }
+.hitl .msg.bot .who { color: #7a2f7b; }
+.hitl .msg .w { color: var(--ink-faint); font-size: 0.85em; }
+.hitl .msg .mtext { font-size: 0.84em; line-height: 1.25; }
+.hitl .msg.bot .mtext { color: var(--ink-soft); }
+.hitl .msg.reply { margin-left: 1.1em; padding-left: 0.5em; border-left: 0.16em solid #d5c4d6; }
+.hitl .msg.reply .av { width: 1.4em; height: 1.4em; }
+.hitl .msg.reply { grid-template-columns: 1.4em 1fr; }
+.hitl .reacts { display: flex; flex-wrap: wrap; gap: 0.2em; margin-top: 0.15em; }
+.hitl .react { font-size: 0.72em; background: #eef4ff; border: 0.1em solid #b9cff7; border-radius: 1em; padding: 0 0.4em; }

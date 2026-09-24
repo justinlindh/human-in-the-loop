@@ -93,7 +93,10 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const bottom = h('div.bottom');
   layer.append(bottom);
-  const chat = createChat(bottom);
+  const chat = createChat(bottom, {
+    getState,
+    onName: (id) => { controls.focusStaff?.(id); menu.open('staff', { staffId: id }); },
+  });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
     onChange: (id) => { sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
@@ -154,7 +157,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   let loggedState = null;
   function logMeaning(state) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
-    if (state !== loggedState) { loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; }
+    if (state !== loggedState) { loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(); }
     if (state.week === loggedWeek) return;
     loggedWeek = state.week;
     const log = ctx.meaningLog;
@@ -180,6 +183,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
       lastPanelAt = now;
       menu.update(state);
+      chat.update(state);
       menu.setBadge('staff', state.staff.filter((p) => p.mood === 'burnout' || p.pathPending).length);
       menu.setBadge('ops', state.outage ? 1 : 0);
       menu.setAlarm('ops', !!state.outage);
@@ -195,7 +199,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           toasts.push(e.text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
           break;
         }
-        case 'chat': chat.add(e.from, e.text, state.week); break;
+        case 'chat': chat.add(e, state.week); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
@@ -203,7 +207,7 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
-          toasts.push(e.caught ? `Overseer caught an incident on ${p?.name ?? 'a product'}!` : `Incident on ${p?.name ?? 'a product'} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
+          toasts.push(e.caught ? `An overseer caught an incident${p ? ` on ${p.name}` : ''}!` : `Incident${p ? ` on ${p.name}` : ''} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
         case 'award': toasts.push(e.text, 'good'); break;
