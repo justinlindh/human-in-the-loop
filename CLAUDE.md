@@ -36,6 +36,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Stop or wait on processes by PID (`$!`, `wait`, `tail --pid`, a lock), never with `pkill -f` or `pgrep -f` on text: the pattern also matches your own shell's command line, so it kills your own command or waits forever.
 - When your change alters something other lanes use (a tool or check, a harness, a shared helper, CI, the contract, or a convention), list the affected teammates in the PR's Affects section. When it merges, message each of them: what changed, and what they should do (merge `main`, switch commands, stop a workaround).
 - Before starting each new task, merge `origin/main` into your working branch, then skim what changed in the tooling since your last sync (`git log --oneline <last-sync>..origin/main -- scripts blender/checks docs/toolkit.md src/contract`). Reach for new tools before hand-rolled ones.
+- Every instruction or status message names the PR and head (or issue) it's about. An update restates the whole current ask rather than adding a delta. Before stopping another agent's job, or when you do, send it a one-line notice.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
 - Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with one short line. team-lead replies with cross-lane news and the go-ahead for the next task.
 - Before a report or an action that depends on a PR's state, check it live (`scripts/pr-status.sh`, or `gh pr view <n>`). Messages cross, so an instruction or a status you received may already be out of date. Report only what changed since your last report: new PRs, new results, and decisions you need.
@@ -44,7 +45,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 
 - `src/sim/` is pure and deterministic: no `three`, no DOM, no `localStorage`, no `Math.random` or `Date.now`. Randomness goes through `src/sim/rng.js` with its state in game state.
 - Render and UI never mutate game state. UI changes state only through `dispatch(state, action)`.
-- Every tunable number lives in `src/sim/balance.js`.
+- Every tunable number lives in `src/sim/balance.js`. A balance-test bound over seeded runs rests on evidence from 200 or more seeds, so it sits outside seed-to-seed noise.
 - Keep a path open to touch and low-end devices (issue #8): nothing hover-only or keyboard-only in new UI, and new render features must degrade under the Low quality setting.
 - Stay in your lane's paths (see the plan's lane table). Need something elsewhere: message its owner. Need a contract change: message the lead.
 - Game text says "company" or "lab", never "startup", except inside a parody joke.
@@ -54,7 +55,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Changes reach `main` only through pull requests, one per batch, each from a fresh branch named `<lane>/<topic>` cut from `origin/main` (`gh pr create --base main --head <lane>/<topic>`). The pre-push hook (`npm run hooks` installs it) refuses pushes to a branch whose PR has merged or closed.
   - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines. A visual change always has a screenshot, and a change to motion or timing has a clip.
   - Turn on auto-merge when you open the PR: `gh pr merge <n> --auto --merge`. GitHub merges it once every required check passes.
-  - A PR that depends on a decision the user hasn't made yet is opened as a draft (`--draft`), without auto-merge, until team-lead confirms the answer.
+  - A PR that depends on a decision the user hasn't made yet is opened as a draft (`--draft`) with the `awaiting-user` label, without auto-merge, until team-lead confirms the answer.
+  - Authors run the gates that fit their change before asking for review (the sweep and stage specs for render work, paired balance runs for sim work, a clip of the whole path for motion) and paste the output into the PR. Once review starts, push only after a verdict, unless the reviewer asks. Reviewers put every nit in the first review.
   - `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. `npm run ci` runs the same checks in any worktree.
   - Branch protection requires, on the PR's current head: the GitHub checks, `local-ci` (posted by `scripts/ci-pr.sh`), and `review` (posted by the reviewer's verdict).
   - The reviewer posts each verdict with `scripts/review-verdict.sh`. It writes the PR review and sets the `review` status on the head. A verdict judged from the code alone says so; visual PRs are judged from a screenshot, and motion from a clip.
