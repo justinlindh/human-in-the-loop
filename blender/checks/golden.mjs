@@ -61,7 +61,8 @@ if (before) {
   process.exit(0);
 }
 
-const H = await startHarness({ browsers: JOBS });
+// Golden images compare exact pixels, which only SwiftShader reproduces on every machine.
+const H = await startHarness({ gpu: false, browsers: JOBS });
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 

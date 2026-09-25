@@ -54,6 +54,7 @@ step ci-classify bash "$SELF/ci-classify.test.sh"
 step render-lock bash "$SELF/render-lock-held.test.sh"
 step with-render-lock bash "$SELF/with-render-lock.test.sh"
 step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
+step gl node "$SELF/lib/gl.test.mjs"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
@@ -78,45 +79,42 @@ fi
 
 step test:fast npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 step build npm run build
-step lifecycle npm run lifecycle -- --quality low --no-shots
-step soak npm run soak
-# Render checks (headless SwiftShader, deterministic): clipping with and without the rig,
-# standups indoors, and the golden images. Ten minutes at most per pass.
-# SwiftShader renders on the CPU with every core, so concurrent runs on one machine starve each
-# other into timeouts: a pass holds a machine-wide lock, and its ten minutes start once it has it.
+step lifecycle bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
+step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
+# Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
+# whose wait does not count against the ten minutes:
+#   render-checks  clipping with and without the rig, and standups, on the GPU (a GPU slot). They
+#                  check geometry and behaviour, not exact pixels.
+#   golden         the golden images, on SwiftShader under the software lock: only software GL draws
+#                  the same pixels on every machine. GOLDEN_JOBS browsers render at once.
 # A run can lose a page to vite reloading while it optimizes a dependency, so a failed pass is
-# retried once; a real failure fails both.
-# A retry is reported in the summary (and so in the PR comment) with the first pass's error.
+# retried once; a real failure fails both. A retry is reported in the summary (and so in the PR
+# comment) with the first pass's error.
 NOTES=()
-RENDER_LOCK="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/render-checks.lock"
-# Re-entrant: the holder exports its PID as HITL_RENDER_LOCK_HELD, and a nested taker whose
-# ancestor holds the lock (render-lock-held.sh) runs straight through instead of waiting on itself.
-render_pass() {
-  if bash "$SELF/render-lock-held.sh" "$RENDER_LOCK"; then timeout 600 bash -c "$1"; return; fi
-  mkdir -p "$(dirname "$RENDER_LOCK")"
-  local t0; t0=$(now)
-  flock -w "${RENDER_LOCK_WAIT:-1800}" -E 75 "$RENDER_LOCK" bash -c 'export HITL_RENDER_LOCK_HELD=$$; echo "render-checks: waited $(( $(date +%s) - '"$t0"' ))s for the render lock"; timeout 600 bash -c "$0"' "$1"
+GOLDEN_JOBS="${GOLDEN_JOBS:-4}"
+render_pass() { # <gpu|software> <command>
+  HITL_GL="$1" bash "$SELF/with-render-lock.sh" "--$1" timeout 600 bash -c "$2"
 }
-render_checks() {
-  local pass='node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
-  local first="$LOGS/render-checks.first.log"
-  render_pass "$pass" >"$first" 2>&1; local rc=$?
+render_step() { # <name> <gpu|software> <command>
+  local name="$1" mode="$2" pass="$3" first="$LOGS/$1.first.log"
+  render_pass "$mode" "$pass" >"$first" 2>&1; local rc=$?
   cat "$first"
   [ $rc -eq 0 ] && return 0
-  # flock exits 75 when the wait (30 minutes by default) runs out: nothing rendered, so there is nothing to retry.
-  if [ $rc -eq 75 ]; then NOTES+=("render-checks: timed out waiting for the render lock"); return 1; fi
-  echo "render-checks: first pass failed; retrying once"
+  # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
+  if [ $rc -eq 75 ]; then NOTES+=("$name: timed out waiting for the $mode render lock"); return 1; fi
+  echo "$name: first pass failed; retrying once"
   local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
-  render_pass "$pass"; rc=$?
-  if [ $rc -eq 75 ]; then NOTES+=("render-checks: timed out waiting for the render lock (on the retry)"); return 1; fi
+  render_pass "$mode" "$pass"; rc=$?
+  if [ $rc -eq 75 ]; then NOTES+=("$name: timed out waiting for the $mode render lock (on the retry)"); return 1; fi
   if [ $rc -eq 0 ]; then
-    NOTES+=("render-checks passed only on its retry. First pass: ${why:-exit without a message}")
+    NOTES+=("$name passed only on its retry. First pass: ${why:-exit without a message}")
     return 0
   fi
-  NOTES+=("render-checks failed twice. First pass: ${why:-exit without a message}")
+  NOTES+=("$name failed twice. First pass: ${why:-exit without a message}")
   return 1
 }
-step render-checks render_checks
+step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs'
+step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 

@@ -4,6 +4,7 @@
 //   [--real --seed 1 --weeks 20] [--eval "expr"]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
+import { launchChromium } from './lib/gl.js';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -44,9 +45,7 @@ await server.listen();
 const base = server.resolvedUrls.local[0];
 const url = `${base}?${q}`;
 
-const browser = await chromium.launch({
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
-});
+const { browser } = await launchChromium(chromium, { label: 'snap' });
 const errors = [];
 let exitCode = 0;
 try {
