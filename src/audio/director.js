@@ -219,7 +219,10 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       speedNow = speed;
       const out = [];
       const seen = new Set();
+      // A promotion follows the level-up that caused it in the same batch: that person gets the fanfare only.
+      const promotedIds = new Set((events ?? []).filter((e) => e.type === 'promoted').map((e) => e.staffId));
       for (const e of events ?? []) {
+        if (e.type === 'levelUp' && promotedIds.has(e.staffId)) continue;
         const rule = ON_EVENT[e.type];
         const id = typeof rule === 'function' ? rule(e, state) : rule;
         if (id && !seen.has(id)) { seen.add(id); out.push(...playCue(id, t, { speed })); }

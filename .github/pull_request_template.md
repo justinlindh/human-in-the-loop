@@ -28,6 +28,7 @@
 - [ ] Stays within the lane's paths (or the owning lane agreed)
 - [ ] Contract changes, if any, went through team-lead
 - [ ] Affected teammates are listed above and will be messaged on merge
+- [ ] A player-visible change updates its entry in `docs/features.md`
 
 ## Closes
 

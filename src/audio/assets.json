@@ -414,6 +414,18 @@
   "banner": {
    "file": "sfx/office/banner.ogg",
    "duration": 0.725
+  },
+  "level_up": {
+   "file": "sfx/growth/level_up.ogg",
+   "duration": 0.45
+  },
+  "promotion": {
+   "file": "sfx/growth/promotion.ogg",
+   "duration": 1.6
+  },
+  "trait": {
+   "file": "sfx/growth/trait.ogg",
+   "duration": 0.191
   }
  },
  "voice": {

@@ -375,3 +375,22 @@ postOptions(state)   // pure export from src/sim/index.js
 - Every number is in `B.posts`, and `B.postsEnabled` turns the feature off.
 - Copy follows the voice guide and the era gates.
 - Old saves have no `flags.posts` and load with every post available.
+
+## Growth events (#549)
+
+People's growth is announced as events, so render, ui and audio can make it visible. Speech bubbles and the existing toasts and #wins lines stay.
+
+### Events: Growth
+
+```js
+{ type: 'levelUp', staffId, level, gains }          // one per level gained; gains: { [skill]: n } added by that level
+{ type: 'promoted', staffId, seniority }            // seniority: 'mid' | 'senior'; follows the levelUp that caused it, same tick
+{ type: 'traitEarned', staffId, traitId, source }   // source: 'record' | 'training'
+{ type: 'skillTrained', staffId, skill, gain }      // from a finished training program
+```
+
+- Emitted by the tick (or the `train` action's result, for `skillTrained`) exactly where the change happens. They draw no randomness, so balance can't move.
+- Founders emit them too.
+- The sim emits every event. Throttling at high speed is the job of render, ui and audio.
+- The big tier uses state, not new events: `p.path` set by `choosePath`, and `p.legend`, which also keeps its existing `celebrate` event.
+- No state or action changes, and old saves are unaffected.

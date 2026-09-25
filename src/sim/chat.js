@@ -40,9 +40,9 @@ export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(st
 }
 
 // Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
-export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null }) {
+export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null }) {
   const msg = {
-    type: 'chat', id: newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
+    type: 'chat', id: id ?? newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
     reactions: reactions ?? reactionsFor(ctx.state, ctx.rng, channel, kind),
   };
   ctx.emit(msg);
@@ -126,6 +126,26 @@ const NUDGES = {
   product: ['Desks: done. Now we just need, you know, a product.', 'Should we build something? I feel like we should build something.'],
 };
 
+const GROWTH_LINES = [
+  'Growth week: {names} all levelled up. Someone get these people a bigger whiteboard.',
+  'Level-ups this week: {names}. The skill tree is looking bushy.',
+  '{names} levelled up this week. HR has run out of gold stars and is using yellow sticky notes.',
+];
+
+// A #wins line when several people levelled up this week. The wording follows the week and the reactions are
+// fixed, so it draws nothing from the game's random stream.
+export function growthDigest(ctx) {
+  const { state } = ctx;
+  const ids = [...new Set(ctx.happenings?.levelUps ?? [])];
+  if (ids.length < B.growthDigestMin) return;
+  const names = ids.map((id) => state.staff.find((p) => p.id === id)?.name.split(' ')[0]).filter(Boolean);
+  const list = names.length > 3 ? `${names.slice(0, 3).join(', ')} and ${names.length - 3} more` : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+  const text = GROWTH_LINES[state.week % GROWTH_LINES.length].replace('{names}', list);
+  // Its own id sequence, so the digest never shifts the ids of anything created after it.
+  state.flags.growthSeq = (state.flags.growthSeq ?? 0) + 1;
+  emitChat(ctx, { channel: 'wins', from: '@hr-bot', text, reactions: { '🎉': names.length, '👏': Math.max(1, names.length - 1) }, id: `mg${state.flags.growthSeq}` });
+}
+
 // A founder's nudge toward the first goals in the opening weeks, or null.
 function founderNudge(state) {
   if (![1, 4, 9].includes(state.week)) return null;
@@ -147,6 +167,8 @@ export function chatSystem(ctx) {
     if (p) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: `${p.name} v${p.version} is live. Reviews average ${p.score}.`, kind: 'win' });
   }
   if (!team.length) return;
+
+  growthDigest(ctx);
 
   const nudge = founderNudge(state);
   if (nudge) {

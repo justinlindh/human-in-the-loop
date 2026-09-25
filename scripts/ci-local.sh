@@ -158,6 +158,9 @@ syntax() {
   return $failed
 }
 step syntax syntax
+# docs/features.md against the data: every staged event, item, perk, moment kind, quick post, prompt,
+# music night genre and era has an entry, and every id the file names exists (scripts/features-ids.mjs).
+step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
@@ -168,6 +171,8 @@ tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
 tool_step main-guard bash "$SELF/main-guard.test.sh"
 tool_step gl node "$SELF/lib/gl.test.mjs"
 tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
+tool_step features-ids-test bash "$SELF/features-ids.test.sh"
+tool_step gates bash "$SELF/gates.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,

@@ -10,6 +10,7 @@ import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
+import { createSpacing } from './spacing.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
@@ -136,7 +137,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     isBlocked: () => buildMode.on || layer.classList.contains('title-mode'),
   });
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
-  const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg) });
+  const spacing = createSpacing();
+  ctx.spacing = spacing;
+  const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg), canShow: () => spacing.ready() && !popups?.open });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
   const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'policies' };
@@ -281,7 +284,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
-      announcer.reset(); buildMode.exit(); menuSig = null;
+      announcer.reset(); spacing.reset(); buildMode.exit(); menuSig = null;
       for (const id of newMenus) menu.setNew(id, false);
       newMenus.clear();
       launchScores.clear();
@@ -320,7 +323,14 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
 
   let lastPanelAt = 0;
+  let lastFrame = null;
   function update(state) {
+    const frameAt = performance.now();
+    const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
+    lastFrame = frameAt;
+    const running = (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
+    spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
+    announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
@@ -422,6 +432,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   ui.isBusy = isBusy;
 
   const api = {
+    get spacing() { return { wait: spacing.waitMs, play: spacing.playMs }; },
     isBusy,
     update,
     handleEvents,
