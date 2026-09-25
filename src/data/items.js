@@ -56,14 +56,18 @@ const rows = [
     [{ brandDecay: -0.15 }, { brandDecay: -0.3 }, { brandDecay: -0.45 }], 'award'],
 ];
 
+// Items with a front zone, keyed to the level it starts at: a use spot people stand at, or stools, a mat or a
+// grate in front. The tile row in front of the footprint stays clear of other items (see frontCells).
+const FRONT_FROM = { espresso: 1, coffee_corner: 1, plant_wall: 1, bookshelf: 1, library: 1, arcade: 1, standing_desk: 2, server_rack: 3 };
+
 // Items that can go on the roof terrace.
 const OUTDOOR = new Set(['plant', 'couch', 'coffee_corner', 'ping_pong_table', 'plant_wall']);
 
 export const ITEMS = Object.fromEntries([
   ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency, effect = {}, minStage = 0]) => [
-    id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null, outdoor: OUTDOOR.has(id) },
+    id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null },
   ]),
   ...rows.map(([id, name, desc, minStage, costs, effects, requires]) => [
-    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null, outdoor: OUTDOOR.has(id) },
+    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null },
   ]),
 ]);
