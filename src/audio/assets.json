@@ -77,14 +77,37 @@
    "beds": [
     {
      "id": "a",
-     "bars": 8,
-     "candidate": true,
+     "bars": 58,
      "stems": {
       "full": {
        "file": "music/agents/a_full.ogg",
-       "duration": 17.771,
+       "duration": 131.328,
        "loopStart": 0,
-       "loopEnd": 852992
+       "loopEnd": 6303744
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 58,
+     "stems": {
+      "full": {
+       "file": "music/agents/b_full.ogg",
+       "duration": 128.608,
+       "loopStart": 0,
+       "loopEnd": 6173184
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 58,
+     "stems": {
+      "full": {
+       "file": "music/agents/c_full.ogg",
+       "duration": 131.328,
+       "loopStart": 0,
+       "loopEnd": 6303744
       }
      }
     }
@@ -95,14 +118,37 @@
    "beds": [
     {
      "id": "a",
-     "bars": 8,
-     "candidate": true,
+     "bars": 54,
      "stems": {
       "full": {
        "file": "music/consolidation/a_full.ogg",
-       "duration": 21.333,
+       "duration": 144.0,
        "loopStart": 0,
-       "loopEnd": 1024000
+       "loopEnd": 6912000
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 54,
+     "stems": {
+      "full": {
+       "file": "music/consolidation/b_full.ogg",
+       "duration": 144.0,
+       "loopStart": 0,
+       "loopEnd": 6912000
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 54,
+     "stems": {
+      "full": {
+       "file": "music/consolidation/c_full.ogg",
+       "duration": 144.0,
+       "loopStart": 0,
+       "loopEnd": 6912000
       }
      }
     }
@@ -113,14 +159,37 @@
    "beds": [
     {
      "id": "a",
-     "bars": 8,
-     "candidate": true,
+     "bars": 50,
      "stems": {
       "full": {
        "file": "music/plateau/a_full.ogg",
-       "duration": 22.592,
+       "duration": 141.173,
        "loopStart": 0,
-       "loopEnd": 1084416
+       "loopEnd": 6776320
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 50,
+     "stems": {
+      "full": {
+       "file": "music/plateau/b_full.ogg",
+       "duration": 141.173,
+       "loopStart": 0,
+       "loopEnd": 6776320
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 50,
+     "stems": {
+      "full": {
+       "file": "music/plateau/c_full.ogg",
+       "duration": 141.173,
+       "loopStart": 0,
+       "loopEnd": 6776320
       }
      }
     }
@@ -1984,22 +2053,58 @@
   "corporate_synthwave": {
    "file": "music_night/corporate_synthwave.ogg",
    "duration": 15.6,
-   "candidate": true
+   "tracks": [
+    {
+     "file": "music_night/corporate_synthwave.ogg",
+     "duration": 15.6
+    },
+    {
+     "file": "music_night/corporate_synthwave_2.ogg",
+     "duration": 19.84
+    }
+   ]
   },
   "motivational_polka": {
    "file": "music_night/motivational_polka.ogg",
    "duration": 18.85,
-   "candidate": true
+   "tracks": [
+    {
+     "file": "music_night/motivational_polka.ogg",
+     "duration": 18.85
+    },
+    {
+     "file": "music_night/motivational_polka_2.ogg",
+     "duration": 15.3
+    }
+   ]
   },
   "aggressive_bossa_nova": {
    "file": "music_night/aggressive_bossa_nova.ogg",
    "duration": 16.42,
-   "candidate": true
+   "tracks": [
+    {
+     "file": "music_night/aggressive_bossa_nova.ogg",
+     "duration": 16.42
+    },
+    {
+     "file": "music_night/aggressive_bossa_nova_2.ogg",
+     "duration": 19.71
+    }
+   ]
   },
   "sad_lofi": {
    "file": "music_night/sad_lofi.ogg",
    "duration": 17.78,
-   "candidate": true
+   "tracks": [
+    {
+     "file": "music_night/sad_lofi.ogg",
+     "duration": 17.78
+    },
+    {
+     "file": "music_night/sad_lofi_2.ogg",
+     "duration": 17.78
+    }
+   ]
   }
  }
 }

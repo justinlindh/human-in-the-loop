@@ -2,11 +2,11 @@
 
 Every file under `public/audio/` is listed here. Files marked *candidate* are for review and may be replaced.
 
-Lossless FLAC masters of every shipped file, with a manifest of checksums and sources, are attached to the `audio-masters-1` pre-release on GitHub. Re-encode from those rather than from the lossy files here.
+Lossless FLAC masters of every shipped file, with a manifest of checksums and sources, are attached to the newest `audio-masters-<n>` pre-release on GitHub. Re-encode from those rather than from the lossy files here.
 
-## Music (candidate beds)
+## Music
 
-Seeds are listed to identify each take. ACE-Step renders that use its planner are not reproducible run to run (the same seed and settings give a different take), so the lossless masters in the `audio-masters-1` release are the only source copies; the files here are the shipped encodes made from them. Re-encode from the masters rather than re-rendering.
+Seeds are listed to identify each take. ACE-Step renders that use its planner are not reproducible run to run (the same seed and settings give a different take), so the lossless masters in the `audio-masters-<n>` releases are the only source copies; the files here are the shipped encodes made from them. Re-encode from the masters rather than re-rendering.
 
 Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commercial use of outputs). XL-sft 4B checkpoint with the 4B planner, 60 steps, 48 kHz. Each file is cut to a seamless loop and mastered to -18 LUFS.
 
@@ -17,16 +17,22 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/classic/c_full.ogg` | Classic (playlist piece C, seed 4105) | 96 bpm, F major | 58 bars, 2:23.5 |
 | `music/chatgbt/a_full.ogg` | ChatGBT (playlist piece A, seed 5201) | 102 bpm, Bb major | 58 bars, 2:17.8 |
 | `music/chatgbt/b_full.ogg` | ChatGBT (playlist piece B, seed 5204) | 102 bpm, Bb major | 58 bars, 2:12.6 |
-| `music/agents/a_full.ogg` | Agents | 108 bpm, D minor | 8 bars |
-| `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
-| `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
+| `music/agents/a_full.ogg` | Agents (playlist piece A, seed 6201) | 108 bpm, D minor | 58 bars, 2:11.3 |
+| `music/agents/b_full.ogg` | Agents (playlist piece B, seed 6203) | 108 bpm, D minor | 58 bars, 2:08.6 |
+| `music/agents/c_full.ogg` | Agents (playlist piece C, seed 6206) | 108 bpm, D minor | 58 bars, 2:11.3 |
+| `music/consolidation/a_full.ogg` | Consolidation (playlist piece A, seed 7201) | 90 bpm, A minor | 54 bars, 2:24.0 |
+| `music/consolidation/b_full.ogg` | Consolidation (playlist piece B, seed 7203) | 90 bpm, A minor | 54 bars, 2:24.0 |
+| `music/consolidation/c_full.ogg` | Consolidation (playlist piece C, seed 7206) | 90 bpm, A minor | 54 bars, 2:24.0 |
+| `music/plateau/a_full.ogg` | Plateau (playlist piece A, seed 8201) | 84 bpm, Eb major | 50 bars, 2:21.2 |
+| `music/plateau/b_full.ogg` | Plateau (playlist piece B, seed 8203) | 84 bpm, Eb major | 50 bars, 2:21.2 |
+| `music/plateau/c_full.ogg` | Plateau (playlist piece C, seed 8206) | 84 bpm, Eb major | 50 bars, 2:21.2 |
 | `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
 
-The Classic and ChatGBT playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
+The Classic, ChatGBT, Agents, Consolidation and Plateau playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
 
-## Music night dance breaks (candidates)
+## Music night dance breaks
 
-Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs permitted): the XL-sft 4B checkpoint plus the 4B planner, 60 steps, 48 kHz. Each is an original short piece: rendered at 24 s, cut at a natural ending between 15 and 20 s, faded, and mastered to about -18 LUFS, the same loudness as the stingers (Sad Lo-fi uses a gentle limiter to get there).
+Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs permitted): the XL-sft 4B checkpoint plus the 4B planner, 60 steps, 48 kHz. Each genre has two tracks, each with its own lead instrument. Each is an original short piece: rendered at 24 s, cut at a natural ending between 15 and 20 s, faded, and mastered to about -18 LUFS, the same loudness as the stingers (Sad Lo-fi uses a gentle limiter to get there).
 
 | File | Genre | Tempo, key | Length |
 |---|---|---|---|
@@ -34,6 +40,10 @@ Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs per
 | `music_night/motivational_polka.ogg` | Motivational Polka | 124 bpm, F major | 18.9 s |
 | `music_night/aggressive_bossa_nova.ogg` | Aggressive Bossa Nova | 132 bpm, D minor | 16.4 s |
 | `music_night/sad_lofi.ogg` | Sad Lo-fi | 80 bpm, Eb major | 17.8 s |
+| `music_night/corporate_synthwave_2.ogg` | Corporate Synthwave, saxophone lead (seed 9803) | 112 bpm, E minor | 19.8 s |
+| `music_night/motivational_polka_2.ogg` | Motivational Polka, clarinet and trumpet lead (seed 9813) | 132 bpm, Bb major | 15.3 s |
+| `music_night/aggressive_bossa_nova_2.ogg` | Aggressive Bossa Nova, flute lead (seed 9824) | 126 bpm, G minor | 19.7 s |
+| `music_night/sad_lofi_2.ogg` | Sad Lo-fi, muted jazz guitar lead (seed 9831) | 76 bpm, C minor | 17.8 s |
 
 ## Moments
 
