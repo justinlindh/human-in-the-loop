@@ -262,9 +262,11 @@ render_step() { # <name> <gpu|software> <command>
   note "$name failed twice. First pass: ${why:-exit without a message}"
   return 1
 }
-# The four render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
+# The render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
 # CI_SKIP_SWEEP=1 (the main guard, which runs its own strict sweep) leaves the sweep out.
 render_parts="'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs'"
+# loop: staged decision moments play through the real game loop while the game is frozen.
+[ -f blender/checks/loop.mjs ] && render_parts+=" 'loop=node blender/checks/loop.mjs'"
 [ "${CI_SKIP_SWEEP:-}" = 1 ] || render_parts+=" 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
 # Renderer counts (draw calls, triangles, programs, textures) against scripts/perf/budget.json: exact
 # on any machine, so they can gate; timing is never checked here. A production build per run, on a GPU slot.
