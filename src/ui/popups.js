@@ -200,7 +200,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
       return;
     }
     if (!d && shown) hide();
-    if (!shown && !launch && queue.length && !s.gameOver) {
+    if (!shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
       while (queue.length && !showLaunch(s, queue.shift()));
     }
   }
