@@ -7,8 +7,8 @@ import { ipoBlocker } from './endgame.js';
 import { GOALS } from '../data/goals.js';
 import { RESEARCH } from '../data/research.js';
 
-// Lazy helpers: the expensive ones are only computed when an open goal asks.
-function helpers(state) {
+// Lazy helpers for goals' done and progress tests: the expensive ones are only computed when asked.
+export function goalHelpers(state) {
   const h = {};
   const lazy = (k, fn) => Object.defineProperty(h, k, { get: () => fn(), enumerable: true });
   lazy('mrr', () => totalMrr(state));
@@ -24,7 +24,7 @@ function helpers(state) {
 export function checkGoals(ctx) {
   const { state } = ctx;
   if (!state.goals) return;
-  const h = helpers(state);
+  const h = goalHelpers(state);
   for (const g of GOALS) {
     const entry = state.goals[g.id] ??= { done: false, week: null };
     if (entry.done || !g.done(state, h)) continue;
