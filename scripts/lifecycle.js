@@ -136,8 +136,9 @@ try {
   const hold = await page.evaluate(async () => {
     const H = window.__HITL;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    // Pause takes effect on the next frame, and a slow machine can go seconds between frames, so the
-    // check counts frames rather than milliseconds: it waits for them, up to a limit.
+    // Pause takes effect on the next frame, and software rendering on a busy machine can go seconds
+    // between frames, so the check counts frames rather than milliseconds. The limit only catches a
+    // page that stopped rendering altogether.
     const frames = async (n, limitMs) => {
       const until = H.clock.frames + n; const t0 = performance.now();
       while (H.clock.frames < until && performance.now() - t0 < limitMs) await wait(50);
@@ -153,16 +154,16 @@ try {
     H.controls.setSpeed(1);
     const day0 = H.clock.dayClock; const f0 = H.clock.frames; const t0 = performance.now();
     await wait(1500);
-    await frames(2, 20000);
+    await frames(2, 60000);
     const dayMoved = H.clock.dayClock !== day0;
     const fps = Math.round(((H.clock.frames - f0) / ((performance.now() - t0) / 1000)) * 10) / 10;
     const before = { busy: H.clock.busy, pending: !!H.state.pendingDecision };
     H.controls.setSpeed(0);
-    const settled = await frames(1, 20000);
+    const settled = await frames(1, 60000);
     const a = { ...H.clock, week: H.state.week };
     routed = 0;
-    await wait(3000);
-    const held = await frames(2, 20000);
+    await wait(1000);
+    const held = await frames(3, 60000);
     const b = { ...H.clock, week: H.state.week };
     api.handleEvents = orig;
     return { dayMoved, fps, settled, held, before, a, b, routed, rendererPaused: H.controls.renderer?.paused ?? 'n/a' };
