@@ -59,6 +59,8 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
   function occluderOf(h) {
     for (let x = h.object; x; x = x.parent) {
       if (x.userData.staffId !== undefined) return String(x.userData.staffId);
+      // A character's baked parts sit under its root; the staff id is on a part below it.
+      if (x.name === 'character') { let id = null; x.traverse((c) => { if (c.userData.staffId !== undefined) id = c.userData.staffId; }); return id != null ? String(id) : 'visitor'; }
       if (x.userData.propId) return `prop ${x.userData.propId}`;
       if (x.userData.placedId) return `${x.userData.placedId} ${x.userData.itemId ?? ''}`.trim();
       if (x === office.current?.furniture) {
