@@ -187,14 +187,29 @@ if [ "$mode" = light ]; then
     rm -f "$tmp"
   done <<<"$changed"
   [ "$syntax" = pass ] || light_ok=0
-  table+=$'\n'"| syntax (touched .js/.mjs) | $syntax |"$'\n'"| tests, build, lifecycle, soak, render checks, balance | skipped: docs-only change |"
+  # A light change can't touch the data, so the PR's docs/features.md is checked against the base's.
+  features=""; fout=""
+  if grep -qx 'docs/features.md' <<<"$changed" && [ -f "$TOOLS/scripts/features-ids.mjs" ]; then
+    fdoc="$(mktemp --suffix=.md)"
+    if git -C "$REPO" show "refs/ci/pr-$pr/head:docs/features.md" >"$fdoc" 2>/dev/null; then
+      if fout="$(node "$TOOLS/scripts/features-ids.mjs" --root "$TOOLS" --doc "$fdoc" 2>&1)"; then features=pass
+      else features=FAIL; light_ok=0; fi
+      fout="${fout//$fdoc/docs\/features.md}"
+    fi
+    rm -f "$fdoc"
+  fi
+  table+=$'\n'"| syntax (touched .js/.mjs) | $syntax |"
+  [ -n "$features" ] && table+=$'\n'"| features-ids | $features |"
+  table+=$'\n'"| tests, build, lifecycle, soak, render checks, balance | skipped: docs-only change |"
   secs=$(( $(date +%s) - t0 )); verdict=$([ $light_ok = 1 ] && echo PASS || echo FAIL)
   body="$(mktemp)"
-  { echo "### Local CI: $verdict (light)"; echo; echo "Head \`${head:0:7}\`: every changed file is on scripts/ci-skip-paths, in ${secs}s."; echo; echo "$table"; } >"$body"
+  { echo "### Local CI: $verdict (light)"; echo; echo "Head \`${head:0:7}\`: every changed file is on scripts/ci-skip-paths, in ${secs}s."; echo; echo "$table"
+    [ "$features" = FAIL ] && { echo; echo '```'; echo "$fout"; echo '```'; }
+  } >"$body"
   cat "$body"
   url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
-  if [ $light_ok = 1 ]; then status success "skipped: docs-only change (commits and syntax checked)" "$url"
-  else status failure "Local CI $verdict (light): commits or syntax" "$url"; fi
+  if [ $light_ok = 1 ]; then status success "skipped: docs-only change (commits, syntax and features-ids checked)" "$url"
+  else status failure "Local CI $verdict (light): commits, syntax or features-ids" "$url"; fi
   status_final=1; rm -f "$body"
   [ "$comment" = 1 ] && bash "$TOOLS/scripts/review-carry.sh" "$pr" || true
   [ $light_ok = 1 ]; exit $?
