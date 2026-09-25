@@ -32,6 +32,19 @@ const BODY_R = 0.22;
 const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
 const VISITOR_SHIRT = ['#9aa3b5', '#d9a441', '#6f8fc0', '#9ab58a', '#c78a8a', '#e8e2d6'];
 const VISITOR_PANTS = ['#2e3440', '#3b4a6b', '#5b4a3a', '#6b6b6b'];
+
+// Dust knocked off a wall: a few soft puffs burst out from the point hit and fall away.
+let dustTex = null;
+function dustTexture() {
+  if (dustTex) return dustTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  dustTex = new THREE.CanvasTexture(c);
+  return dustTex;
+}
 const HANDLE_MAT = new THREE.MeshStandardMaterial({ color: P.wood_light, roughness: 0.8 });
 const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness: 0.5, metalness: 0.3 });
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
@@ -135,7 +148,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const knocked = resolved.get('open_plan_office') === 'Knock them down'
       || (state?.modifiers ?? []).some((mo) => mo.label === 'Open-plan buzz' && (mo.untilWeek ?? 0) > (state.week ?? 0) + 25);
     if (!hammer) {
-      if (!p || lite()) { if (p && !timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
+      if (!p) { timers.delete('hammer'); return; }
+      if (lite()) { if (!timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
       const subject = state?.pendingDecision?.subjectId;
       const r = (subject && recs.get(subject) && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1)[0];
       if (!r) return;
@@ -164,22 +178,55 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       h.wall = w;
     } else if (h.phase === 'carry' && !r.path.length) {
       h.phase = 'hold';
+      // On the shoulder: the handle across it and the head down behind the back.
+      h.held.rotation.set(2.7, 0, 0.45);
       emote(r, 'lightbulb', 2);
     }
     if (knocked && h.phase === 'hold') {
       h.phase = 'swing';
+      h.held.rotation.set(0, 0, 0);
       r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true };
       h.swingT = 0;
     }
     if (h.phase === 'swing') {
       h.swingT += 1 / 30;
       const hit = Math.floor((h.swingT - 0.6) / 1.1);
-      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; fx?.puff(h.wall.x, h.wall.z - 0.35, 1.1, 2.4); fx?.puff(h.wall.x, h.wall.z - 0.35, 0.6, 1.6); }
+      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; wallDust(h.wall.x + 0.35, 1.0, -office.current.L.D / 2 + 0.08); }
       if (!r.temp) { stopHammer(); return; }
     }
     // The decision went the other way: put it down and go back to work.
     if (!p && h.phase !== 'swing') { stopHammer(true); }
   }
+  // Wall dust bursts: pooled sprite sets, each puff flying out from the wall and settling.
+  const bursts = [];
+  function wallDust(x, y, z) {
+    if (!parent) return;
+    let b = bursts.find((q) => q.t >= 1);
+    if (!b) {
+      const m = new THREE.SpriteMaterial({ map: dustTexture(), color: new THREE.Color(P.floor_concrete_dark), transparent: true, depthWrite: false });
+      const parts = Array.from({ length: 7 }, () => { const s = new THREE.Sprite(m); s.userData.noAO = true; return s; });
+      b = { m, parts, t: 1, v: parts.map(() => new THREE.Vector3()), group: new THREE.Group() };
+      b.group.add(...parts);
+      parent.add(b.group);
+      bursts.push(b);
+    }
+    b.t = 0; b.at = new THREE.Vector3(x, y, z);
+    b.parts.forEach((s, i) => { const a = (i / 7) * Math.PI * 2; b.v[i].set(Math.cos(a) * 1.1 + 0.5, 0.5 + Math.sin(a) * 0.7, 0.7 + (i % 3) * 0.3); s.position.copy(b.at); });
+    b.group.visible = true;
+  }
+  function updateBursts(dt) {
+    for (const b of bursts) {
+      if (b.t >= 1) { b.group.visible = false; continue; }
+      b.t = Math.min(1, b.t + dt / 0.9);
+      const k = b.t;
+      b.parts.forEach((s, i) => {
+        s.position.set(b.at.x + b.v[i].x * k * 0.8, b.at.y + b.v[i].y * k * 0.7 - k * k * 0.6, b.at.z + b.v[i].z * k * 0.8);
+        s.scale.setScalar(0.3 + k * 0.6);
+      });
+      b.m.opacity = 0.95 * (1 - k * k);
+    }
+  }
+
   function stopHammer(walkBack = false) {
     if (!hammer) return;
     const r = hammer.r;
@@ -298,6 +345,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
 
   function update(dt, state) {
     for (const [k, t] of resolvedT) { if (t - dt <= 0) { resolvedT.delete(k); resolved.delete(k); } else resolvedT.set(k, t - dt); }
+    updateBursts(dt);
     const props = getProps();
     if (!props || !office.current) return;
     const cur = props.current();
@@ -307,6 +355,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     for (const p of cur) if (p.prop === 'pet_carrier') carrier(p, state, dt);
     for (const p of cur) if (p.prop === 'envelope' || p.prop === 'envelope_thick') letter(p, dt);
     for (const p of cur) if (p.prop === 'smoke_puff' || p.prop === 'rack_hot') fumes(p, dt);
+    // The carrier went (the pet came out, or the answer was no): nobody keeps peering at the floor.
+    if (!cur.some((p) => p.prop === 'pet_carrier')) {
+      for (const r of recs.values()) if (r.temp?.moment === 'carrier') { r.temp = null; if (r.goal) walkTo(r, r.goal); }
+    }
     for (const p of props.current()) if (p.prop === 'pizza_boxes') pizza(p, dt);
     if (props.overlay) screens(props.overlay, dt);
     else for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k);

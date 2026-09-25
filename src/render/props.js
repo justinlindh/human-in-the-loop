@@ -17,10 +17,10 @@ const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 
 export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }
-  const dropped = new Set();
-  let overlay = null;
+  const dropped = new Set(); // keys whose desk was sold: not rebuilt while the sim still lists them
+  let overlay = null;        // the screen takeover shown now ('red' | 'skull' | null)
   let clock = 0;
-  const gone = [];          // { prop, x, z, at }: props that just went, for a few seconds (a pet leaving its carrier) // keys whose desk was sold: not rebuilt while the sim still lists them
+  const gone = [];          // { prop, x, z, at }: props that just went, for a few seconds (a pet leaving its carrier)
   let root = null;
 
   function wanted(state) {
