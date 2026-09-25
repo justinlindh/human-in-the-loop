@@ -12,8 +12,9 @@
 # To stop a run, signal its process group: kill -TERM -<pgid> (the pgid is printed at start). The
 # run then stops its local CI, removes its worktree and sets local-ci to error.
 # Everything it runs besides this script comes from freshly fetched origin/<base>, never from the
-# checkout it was started in: the trust list and helper scripts from a worktree of the base, and
-# local CI from the tree under test (the PR merged into that base). A clean checkout on the base
+# checkout it was started in: the trust list, helper scripts and local CI itself come from a worktree
+# of the base, and local CI runs on the tree under test (the PR merged into that base). A PR that
+# changes local CI is also run through its own version. A clean checkout on the base
 # branch that is behind updates itself first and starts again.
 set -uo pipefail
 
@@ -218,15 +219,28 @@ if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_
   ln -s "$REPO/node_modules" "$WT/node_modules"
 fi
 
-summary="$(mktemp)"
+# The gate is main's local CI (from the base worktree) run on the tree under test, so a PR can never
+# loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it
+# runs, its path lists) is also run through its own version, and both must pass.
+run_ci() { # <ci-local.sh> <summary file>
+  CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
+  ci_pid=$!
+  wait "$ci_pid"; local r=$?
+  ci_pid=""
+  return $r
+}
+summary="$(mktemp)"; own_summary=""
 t0=$(date +%s)
-# Local CI from the tree under test, which is the current base plus this PR.
-# fd 9 (this PR's lock) is closed for local CI, so nothing it starts can keep the lock after this run ends.
-CI_DIR="$WT" setsid bash "$WT/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary" 9>&- &
-ci_pid=$!
-wait "$ci_pid"
+run_ci "$TOOLS/scripts/ci-local.sh" "$summary"
 rc=$?
-ci_pid=""
+ci_changes="$(printf '%s\n' "$changed" | grep -E '^scripts/([^/]+\.sh|lib/.+|ci-[a-z-]+-paths)$' || true)"
+if [ -n "$ci_changes" ]; then
+  echo "ci-pr: #$pr changes local CI itself; running its own version too"
+  own_summary="$(mktemp)"
+  run_ci "$WT/scripts/ci-local.sh" "$own_summary"
+  own_rc=$?
+  [ $rc -eq 0 ] && rc=$own_rc
+fi
 secs=$(( $(date +%s) - t0 ))
 verdict=$([ $rc -eq 0 ] && echo "PASS" || echo "FAIL")
 
@@ -236,12 +250,19 @@ body="$(mktemp)"
   echo
   echo "Head \`${head:0:7}\`, tested as \`$sha\` ($what), in ${secs}s."
   echo
+  [ -n "$own_summary" ] && { echo "**main's local CI** (the gate):"; echo; }
   cat "$summary"
+  if [ -n "$own_summary" ]; then
+    echo
+    echo "**This PR's own local CI**, since it changes $(printf '%s\n' "$ci_changes" | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g'):"
+    echo
+    cat "$own_summary"
+  fi
 } >"$body"
 cat "$body"
 url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
 status "$([ $rc -eq 0 ] && echo success || echo failure)" "Local CI $verdict in ${secs}s on ${sha} ($what)" "$url"; status_final=1
-rm -f "$summary" "$body"
+rm -f "$summary" "$body" ${own_summary:+"$own_summary"}
 # A head that only merged main keeps the review pass of the head before it.
 [ "$comment" = 1 ] && bash "$TOOLS/scripts/review-carry.sh" "$pr" || true
 exit $rc
