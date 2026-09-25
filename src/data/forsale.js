@@ -24,3 +24,6 @@ export const ACQUIRED_LINES = [
   'Say hi to the {target} folks. They have already found three bugs in our onboarding.',
   'We bought {target}. {product} keeps its name. Its logo gets a small, respectful makeover.',
 ];
+
+// Code names the moonshot team picks.
+export const MOONSHOT_NAMES = ['Skyhook', 'Lighthouse', 'Moonbeam', 'Tidepool', 'Kestrel', 'Longshot', 'Northstar'];

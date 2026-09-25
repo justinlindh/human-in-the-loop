@@ -14,7 +14,7 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
-  'cash', 'summit', 'musicNight', 'agentAudit', 'agentCap', 'agentInvoice', 'rivalMerge', 'acquireBest', 'expandNow', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
+  'cash', 'summit', 'musicNight', 'moonshot', 'lastBet', 'fame', 'agentAudit', 'agentCap', 'agentInvoice', 'rivalMerge', 'acquireBest', 'expandNow', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
@@ -1062,6 +1062,48 @@ const list = [
       { label: 'Motivational Polka', hint: 'Accordion. Relentless positivity', effects: { musicNight: 'motivational_polka' }, outcome: 'The accordion starts. Finance joins in first, which surprises everyone.' },
       { label: 'Aggressive Bossa Nova', hint: 'Smooth, but with intent', effects: { musicNight: 'aggressive_bossa_nova' }, outcome: 'It is gentle. It is also somehow a threat. People sway carefully.' },
       { label: 'Sad Lo-fi', hint: 'Beats to reflect on the roadmap to', effects: { musicNight: 'sad_lofi' }, outcome: 'Everyone nods slowly. One person dances like no one is watching. Everyone is watching.' },
+    ],
+  },
+  // The moonshot lab: funded from Consolidation, checked on every 26 weeks, and opened after two years.
+  {
+    id: 'moonshot_pitch', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Project {moonshot}',
+    text: 'Your best engineers have a pitch. It is ambitious, expensive, and slightly unhinged. They have named it Project {moonshot}. They made a logo before they made a plan.',
+    choices: [
+      { label: 'Fund the moonshot', hint: '-{moonshotWeekly} a week for up to two years; you can pull the plug every 26 weeks', effects: { moonshot: 'start', purpose: { craft: 4 } }, outcome: 'A corner of the office gets a curtain and a sign that says "do not ask". Everyone asks.' },
+      { label: 'Not now', hint: 'Nothing happens', effects: {}, outcome: 'The engineers say "fair enough" and start a smaller, secret version on Fridays.' },
+    ],
+  },
+  {
+    id: 'moonshot_checkin', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Project {moonshot}: the check-in',
+    text: 'The moonshot team presents. There is a demo. The demo works, mostly. They need more time and, it turns out, more money.',
+    choices: [
+      { label: 'Keep going', hint: '-{moonshotWeekly} a week for another 26 weeks', effects: { moonshot: 'continue' }, outcome: 'The curtain stays up. Someone adds a second curtain.' },
+      { label: 'Pull the plug', hint: 'The spending stops; a little fame for trying', effects: { moonshot: 'stop' }, outcome: 'The team takes it well. The logo is framed in the kitchen.' },
+    ],
+  },
+  {
+    id: 'moonshot_result', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'Project {moonshot}: the unveiling',
+    text: 'Two years, one curtain, and a lot of pizza later, the moonshot team is ready to show everyone. Nobody knows what is behind the curtain. Including, possibly, them.',
+    choices: [
+      { label: 'Pull back the curtain', hint: 'A gamble: a new product and a lot of fame, or a glorious failure', effects: { moonshot: 'resolve' }, outcome: 'The curtain comes down. The room goes quiet.' },
+      { label: 'Give them six more months', hint: '-{moonshotWeekly} a week for another 26 weeks, then the unveiling', effects: { moonshot: 'continue' }, outcome: '"Six months," they promise. Someone orders more curtain.' },
+    ],
+  },
+  {
+    id: 'last_bet', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The founders\' last big bet',
+    text: 'The founders take a long walk. They have built {company} for most of their adult lives. There is money in the bank and time left on the clock. What is the last big thing?',
+    choices: [
+      { label: 'One last moonshot', hint: '-{lastBetCost} now. A gamble: a legend, or a very expensive lesson', effects: { lastBet: 'moonshot' }, outcome: 'The founders clear their calendars and start sketching on the big whiteboard, like the garage days.' },
+      { label: 'Start a foundation', hint: '-{foundationCost}; fame and Purpose up; the team is proud', effects: { lastBet: 'foundation' }, outcome: 'The foundation funds free tools for people who cannot afford them. The team puts it in their bios.' },
+      { label: 'Hand over the keys', hint: 'Nothing to spend. The founders step back and the seniors step up', effects: { lastBet: 'keys' }, outcome: 'The founders move to a small desk by the window. They are allowed one opinion a week.' },
     ],
   },
   // Annual calendar (raised by the annual system)

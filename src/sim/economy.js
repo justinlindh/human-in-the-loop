@@ -48,10 +48,14 @@ export function weeklyCosts(state) {
     policies: sum(Object.keys(state.policies).filter((id) => state.policies[id] && POLICIES[id]), (id) => policyCost(state, id)),
     tooling: state.security.tooling ? B.toolingWeekly : 0,
     overhead: Math.max(0, state.staff.length - B.overheadFreeHeadcount) * B.overheadPerHead,
+    moonshot: state.flags.moonshot?.active ? state.flags.moonshot.weekly : 0,
   };
 }
 
 export const weeklyRevenue = (state) => totalMrr(state) * 12 / 52;
+
+// What the moonshot lab would cost each week if funded now: a share of weekly revenue, with a floor.
+export const moonshotWeekly = (state) => Math.round(Math.max(B.moonshotMinWeekly, B.moonshotRevenueShare * weeklyRevenue(state)) / 1000) * 1000;
 
 // A number of weeks of this company's agent spend, rounded to the thousand, with a floor so the agent bill
 // beats still bite for a company that barely automates.

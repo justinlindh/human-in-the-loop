@@ -157,7 +157,7 @@ describe('beats in real runs', () => {
     for (const seed of [1, 2, 3, 4]) {
       let st = null;
       runBot('balanced', seed, 800, { setup: (s) => { st = s; }, onWeek: (s) => { st = s; } });
-      for (const [id, w] of Object.entries(st.flags.beats ?? {})) weeks[id].push(w - st.eraSchedule.agents);
+      for (const [id, w] of Object.entries(st.flags.beats ?? {})) (weeks[id] ??= []).push(w - st.eraSchedule.agents);
     }
     expect(weeks.agent_bill.length).toBe(4);
     expect(weeks.deals_open.length).toBeGreaterThanOrEqual(3);

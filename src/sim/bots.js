@@ -8,7 +8,8 @@ import { dispatch as rawDispatch } from './actions.js';
 import { FUNCTIONS } from './state.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
-import { weeklyCosts, weeklyRevenue } from './economy.js';
+import { weeklyCosts, weeklyRevenue, moonshotWeekly } from './economy.js';
+import { campaignCost } from './marketing.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
@@ -141,6 +142,12 @@ function balancedChooser(s, d, fx) {
     return fx.workPolicy === want ? 10 : 0;
   }
   if (d.eventId === 'outage_unfixable') return fx.consultants ? 10 : fx.clearOutage || fx.later ? 8 : 0;
+  // Late money: fund the moonshot and keep it going while the bank can carry it; give it away at the end.
+  const weekly = s.flags.moonshot?.weekly ?? moonshotWeekly(s);
+  if (d.eventId === 'moonshot_pitch') return (fx.moonshot === 'start') === (s.cash > weekly * 104 * B.botMoonshotCushion) ? 10 : 0;
+  if (d.eventId === 'moonshot_checkin') return (fx.moonshot === 'continue') === (s.cash > weekly * 26 * B.botMoonshotCushion) ? 10 : 0;
+  if (d.eventId === 'moonshot_result') return fx.moonshot === 'resolve' ? 10 : 0;
+  if (d.eventId === 'last_bet') return fx.lastBet === (s.cash > B.botDialCash ? 'foundation' : 'keys') ? 10 : 0;
   return sensibleValue(s, fx);
 }
 
@@ -212,6 +219,12 @@ function spendLate(s) {
   if (step && s.staff.length >= deskCap(s) - 2 - B.botAcquireDesks && s.cash > step.upgradeCost * B.botExpandCushion) dispatch(s, { type: 'upgradeOffice' });
   if (s.cash > B.botDialCash && net(s) > 0) {
     for (const id of ['office_upkeep', 'top_pay']) if (!s.policies[id]) dispatch(s, { type: 'setPolicy', id, on: true });
+  }
+  // A famous company is cheaper to run; a rich one buys fame when it has faded.
+  const top = liveProducts(s).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
+  if (top && (s.fame ?? 0) < B.botFameBelow) {
+    const ch = ['documentary', 'big_game_ad', 'stadium'].find((id) => s.cash > campaignCost(s, id) * B.botFameCushion);
+    if (ch) dispatch(s, { type: 'runCampaign', channel: ch, productId: top.id });
   }
   const deal = [...(s.market.forSale ?? [])].sort((a, b) => b.arr / b.price - a.arr / a.price)[0];
   if (deal && s.cash > deal.price * B.botAcquireCushion) {
