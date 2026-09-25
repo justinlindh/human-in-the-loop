@@ -625,7 +625,8 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
   }
   // 6. The printer taken out back (printer_jam, choice 0): the carriers, the one with the bat and the
   // printer itself stay clear of furniture and props from the lift to the walk-off, and the printer is
-  // carried low, its top under each carrier's chin.
+  // carried low, its top under each carrier's chin. A week's events land mid-carry (a launch party, an
+  // incident, a standup) and must not call anyone away: the moment still plays to the end.
   {
     R.moments.full = true;
     S.pendingDecision = { eventId: 'printer_jam', subjectId: ids[0], stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } };
@@ -641,6 +642,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       const pm = R.moments.printerState;
       if (!pm) { if (phases.size) break; continue; }
       phases.add(pm.phase);
+      if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
+        pm.interrupted = true;
+        R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
+      }
       if (i % 2 || pm.phase === 'off') continue;
       samples++;
       pbox.setFromObject(pm.obj);
