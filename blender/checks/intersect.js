@@ -6,6 +6,8 @@
 //   held(R)              props in a hand: the gap from the wrist to the prop
 //   bounds(R, bodies)    things outside the room or below the floor
 //   carried(R)           what each person holds or carries, with their own head and torso
+//   screen(R)            on-screen rectangles (client px) of speech bubbles, stat labels, emotes
+//                        and faces, for the screen-space overlap check
 //   people(R)            every character as a body, with what they may touch (their own desk,
 //                        the item they are using or leaving, the desk of a moment they are in)
 //
@@ -160,6 +162,62 @@ function boxOf(meshes) {
   const b = new THREE.Box3();
   for (const m of meshes) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); }
   return b;
+}
+
+// Screen rectangles, in client pixels, of what is drawn over the scene now: speech bubbles and stat
+// labels (the CSS2D layer, as laid out by the last render), emotes (sprites over heads) and faces
+// (each person's head). Labels fading in or out (opacity under 0.6) are left out.
+export function screen(R) {
+  const canvas = document.querySelector('canvas');
+  const cr = canvas.getBoundingClientRect();
+  const out = { labels: [], emotes: [], faces: [] };
+  for (const el of document.querySelectorAll('.hitl-lbl')) {
+    if (el.style.display === 'none' || Number(el.style.opacity || 1) < 0.6 || !el.isConnected) continue;
+    const inner = el.querySelector('.in') ?? el;
+    const r = inner.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    out.labels.push({ kind: el.classList.contains('hitl-say') ? 'bubble' : el.classList.contains('hitl-stat') ? 'stat' : 'label', text: inner.textContent.slice(0, 40), r: { left: r.left, right: r.right, top: r.top, bottom: r.bottom } });
+  }
+  const cam = R.camera;
+  const toScreen = (v) => { const p = v.clone().project(cam); return { x: cr.left + ((p.x + 1) / 2) * cr.width, y: cr.top + ((1 - p.y) / 2) * cr.height, on: Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 }; };
+  const rectOfPoints = (pts) => ({ left: Math.min(...pts.map((p) => p.x)), right: Math.max(...pts.map((p) => p.x)), top: Math.min(...pts.map((p) => p.y)), bottom: Math.max(...pts.map((p) => p.y)) });
+  const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+  R.scene.traverse((o) => {
+    if (o.name !== 'character' || !o.visible) return;
+    let id = null, head = null, emote = null;
+    o.traverse((c) => {
+      if (c.userData.staffId !== undefined) id = c.userData.staffId;
+      if (c.userData.part === 'head') head = c;
+      if (c.isSprite && c.visible && c.renderOrder === 10) emote = c;
+    });
+    if (head) {
+      // The head as drawn: its projected vertices (a projected bounding box is far larger).
+      const pos = head.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 300));
+      const pts = [];
+      for (let i = 0; i < pos.count; i += step) pts.push(toScreen(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(head.matrixWorld)));
+      if (pts.some((p) => p.on)) out.faces.push({ id, r: rectOfPoints(pts) });
+    }
+    if (emote) {
+      const c = new THREE.Vector3().setFromMatrixPosition(emote.matrixWorld);
+      const s = new THREE.Vector3().setFromMatrixScale(emote.matrixWorld);
+      // A sprite's quad, with its centre point (emote.center) at its world position.
+      const x0 = -emote.center.x * s.x, x1 = (1 - emote.center.x) * s.x, y0 = -emote.center.y * s.y, y1 = (1 - emote.center.y) * s.y;
+      const pts = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([a, b2]) => toScreen(c.clone().addScaledVector(right, a).addScaledVector(up, b2)));
+      if (pts.some((p) => p.on)) out.emotes.push({ id, r: rectOfPoints(pts) });
+    }
+  });
+  return out;
+}
+
+// Overlap of two screen rectangles: the area, and that area as a share of the smaller one.
+export function rectOverlap(a, b) {
+  const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  if (w <= 0 || h <= 0) return { area: 0, share: 0 };
+  const area = w * h;
+  const small = Math.min((a.right - a.left) * (a.bottom - a.top), (b.right - b.left) * (b.bottom - b.top));
+  return { area, share: small > 0 ? area / small : 0 };
 }
 
 // World-space sample points of a mesh: its vertices, at most MAX_POINTS of them.
@@ -333,32 +391,88 @@ let cropGL = null;
 export function crop(R, at, size, zoom) {
   return tool(() => cropNow(R, at, size, zoom));
 }
+// A close-up around a screen point (client px) for a screen-space finding. The scene is drawn by
+// cropAt; the labels, which are page elements and not in the scene, are drawn over it from their
+// computed style (fill, border, corner radius, font and text) in page order, and then the finding's
+// rectangles. rects: [{ r, color, text }] in client px. Client px are scaled to canvas px by the
+// canvas's own ratio, so a device pixel ratio above 1 crops the same region.
+export function cropScreen(R, x, y, rects, size = 240, zoom = 2) {
+  return tool(() => {
+    const canvas = document.querySelector('canvas');
+    const cr = canvas.getBoundingClientRect();
+    const dpr = canvas.width / cr.width;
+    const img = cropAt(R, (x - cr.left) * dpr, (y - cr.top) * dpr, size * dpr, zoom / dpr);
+    const g = img.getContext('2d');
+    const x0 = x - size / 2, y0 = y - size / 2;
+    const map = (r) => ({ x: (r.left - x0) * zoom, y: (r.top - y0) * zoom, w: (r.right - r.left) * zoom, h: (r.bottom - r.top) * zoom });
+    const labels = [...document.querySelectorAll('.hitl-lbl')]
+      .filter((el) => el.style.display !== 'none' && el.isConnected)
+      .map((el) => ({ el, inner: el.querySelector('.in') ?? el, z: Number(el.style.zIndex || 0) }))
+      .sort((p, q) => p.z - q.z);
+    for (const { el, inner } of labels) {
+      const r = inner.getBoundingClientRect();
+      if (r.right < x0 || r.left > x0 + size || r.bottom < y0 || r.top > y0 + size || r.width < 1) continue;
+      const cs = getComputedStyle(inner), m = map(r);
+      g.save();
+      g.globalAlpha = Number(el.style.opacity || 1);
+      g.beginPath();
+      g.roundRect(m.x, m.y, m.w, m.h, (parseFloat(cs.borderTopLeftRadius) || 0) * zoom);
+      g.fillStyle = cs.backgroundColor; g.fill();
+      const bw = parseFloat(cs.borderTopWidth) || 0;
+      if (bw) { g.lineWidth = bw * zoom; g.strokeStyle = cs.borderTopColor; g.stroke(); }
+      g.fillStyle = cs.color;
+      g.font = `${cs.fontWeight} ${parseFloat(cs.fontSize) * zoom}px ${cs.fontFamily}`;
+      g.textBaseline = 'top';
+      const pad = (parseFloat(cs.paddingLeft) || 0) * zoom, lh = (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.25) * zoom;
+      let line = '', ly = m.y + (parseFloat(cs.paddingTop) || 0) * zoom;
+      for (const word of inner.textContent.split(/\s+/)) {
+        const next = line ? `${line} ${word}` : word;
+        if (g.measureText(next).width > m.w - 2 * pad && line) { g.fillText(line, m.x + pad, ly); ly += lh; line = word; } else line = next;
+      }
+      if (line) g.fillText(line, m.x + pad, ly);
+      g.restore();
+    }
+    g.lineWidth = 3; g.font = '600 13px sans-serif'; g.textBaseline = 'alphabetic';
+    for (const { r, color, text } of rects) {
+      const m = map(r);
+      g.strokeStyle = color; g.fillStyle = color;
+      g.strokeRect(m.x, m.y, m.w, m.h);
+      if (text) g.fillText(text.slice(0, 36), m.x + 4, m.y + 15);
+    }
+    return img.toDataURL('image/png');
+  });
+}
+
 function cropNow(R, at, size = 200, zoom = 2) {
+  const main = document.querySelector('canvas');
+  const v = at.clone().project(R.camera);
+  if (Math.abs(v.x) > 1 || Math.abs(v.y) > 1) return null;
+  const img = cropAt(R, ((v.x + 1) / 2) * main.width, ((1 - v.y) / 2) * main.height, size, zoom);
+  const g = img.getContext('2d');
+  g.strokeStyle = '#ff2d55'; g.lineWidth = 3;
+  g.beginPath(); g.arc(img.width / 2, img.height / 2, 22, 0, Math.PI * 2); g.stroke();
+  return img.toDataURL('image/png');
+}
+
+// The scene drawn around canvas pixel (px, py), size canvas pixels across, zoom times larger.
+function cropAt(R, px, py, size, zoom) {
   const main = document.querySelector('canvas');
   const px0 = size * zoom;
   if (!cropGL) {
     const c = document.createElement('canvas');
-    c.width = px0; c.height = px0;
     cropGL = new THREE.WebGLRenderer({ canvas: c, antialias: true, preserveDrawingBuffer: true });
-    cropGL.setSize(px0, px0, false);
     cropGL.outputColorSpace = THREE.SRGBColorSpace;
     cropGL.toneMapping = THREE.ACESFilmicToneMapping;
     cropGL.toneMappingExposure = 1.05;
     cropGL.shadowMap.enabled = true;
   }
-  const W = main.width, H = main.height;
-  const v = at.clone().project(R.camera);
-  if (Math.abs(v.x) > 1 || Math.abs(v.y) > 1) return null;
-  const px = ((v.x + 1) / 2) * W, py = ((1 - v.y) / 2) * H;
+  cropGL.setSize(px0, px0, false);
   const cam = R.camera.clone();
-  cam.setViewOffset(W, H, px - size / 2, py - size / 2, size, size);
+  cam.setViewOffset(main.width, main.height, px - size / 2, py - size / 2, size, size);
   cam.updateProjectionMatrix();
   cropGL.render(R.scene, cam);
   const t = document.createElement('canvas');
   t.width = px0; t.height = px0;
-  const g = t.getContext('2d');
-  g.drawImage(cropGL.domElement, 0, 0);
-  g.strokeStyle = '#ff2d55'; g.lineWidth = 3;
-  g.beginPath(); g.arc(px0 / 2, px0 / 2, 22, 0, Math.PI * 2); g.stroke();
-  return t.toDataURL('image/png');
+  t.getContext('2d').drawImage(cropGL.domElement, 0, 0);
+  return t;
 }

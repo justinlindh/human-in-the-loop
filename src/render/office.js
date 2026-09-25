@@ -248,6 +248,9 @@ const KIND = {
 };
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
 const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch', 'pingpong', 'foosball']);
+// Models with a piece meant to stand on the tile in front of their footprint.
+const FRONT_ZONE = new Set(['espresso_l3', 'standing_desk_l2', 'standing_desk_l3', 'server_rack_l3']);
+const FRONT_ZONE_M = 0.21;
 const LOUNGE = new Set(['couch', 'nap_pod', 'arcade', 'library', 'plant_wall', 'bookshelf']);
 
 // Desk sets face -Z at rot 0: desk in the back tile row, chair and sitter in the front row.
@@ -384,7 +387,7 @@ function meetingTable(w, h, era) {
   for (const sz of [-1, 1]) {
     for (let k = 0; k < per; k++) {
       const x = (k - (per - 1) / 2) * (L / per);
-      const z = sz * (D / 2 + 0.33);
+      const z = sz * (D / 2 + 0.24);
       const ch = place(getModel('chair'), x, 0, z, sz < 0 ? 0 : Math.PI);
       ch.userData.dynamic = true;
       ch.userData.home = new THREE.Vector3(x, 0, z);
@@ -435,8 +438,10 @@ function screensFor(obj, screens, seed) {
 }
 
 // Turns a model's long side along the footprint's long side and shrinks it to fit. Wall pieces
-// then sit against the back edge; the rest are centered.
-function fitFootprint(inner, f, againstBack) {
+// then sit against the back edge; the rest are centered. A model fits within its footprint both ways,
+// since the sim gives the room past it to a neighbour; frontZone models (stools, a mat or a grate in
+// front) may reach FRONT_ZONE_M past the front, onto the tile in front of them.
+function fitFootprint(inner, f, againstBack, frontZone = false) {
   let b = new THREE.Box3().setFromObject(inner);
   let sx = b.max.x - b.min.x, sz = b.max.z - b.min.z;
   if (f.h > f.w && sx > sz * 1.2) {
@@ -444,7 +449,7 @@ function fitFootprint(inner, f, againstBack) {
     b = new THREE.Box3().setFromObject(inner);
     sx = b.max.x - b.min.x; sz = b.max.z - b.min.z;
   }
-  const k = Math.min(1, (f.w - 0.06) / sx, (f.h + 0.15) / sz);
+  const k = Math.min(1, (f.w - 0.06) / sx, (f.h - 0.06 + (frontZone ? FRONT_ZONE_M : 0)) / sz);
   inner.scale.multiplyScalar(k);
   b = new THREE.Box3().setFromObject(inner);
   inner.position.x -= (b.min.x + b.max.x) / 2;
@@ -472,7 +477,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   if (kind !== 'desk') screensFor(inner, screens, seed);
   // LEDs blink per mesh, so they stay out of the static merge.
   inner.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) { c.userData.dynamic = true; c.userData.noAO = true; } });
-  if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind));
+  if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind), FRONT_ZONE.has(itemModelName(p.itemId, p.level)));
   const g = new THREE.Group();
   g.add(inner);
   inner.updateMatrix();

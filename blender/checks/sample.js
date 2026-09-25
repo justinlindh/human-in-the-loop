@@ -27,13 +27,13 @@ function createCollector({ state, known, crops, tol }) {
   const found = new Map();
   let cropped = 0;
   return {
-    add(R, check, t, a, b, value, at, detail = null) {
+    add(R, check, t, a, b, value, at, detail = null, shot = null) {
       const [x, y] = [a, b].sort();
       const key = `${check}|${x}|${y}`;
       const prev = found.get(key);
       if (prev && prev.value >= value) { prev.seen++; return; }
       const v = { check, key, state, t: +t.toFixed(2), a: x, b: y, value: +value.toFixed(3), at: at ? [+at.x.toFixed(2), +at.y.toFixed(2), +at.z.toFixed(2)] : null, seen: (prev?.seen ?? 0) + 1, crop: prev?.crop ?? null, ...(detail ? { detail } : {}) };
-      if (!v.crop && at && cropped < crops && !known.includes(key)) { v.crop = X.crop(R, at); cropped++; }
+      if (!v.crop && (at || shot) && cropped < crops && !known.includes(key)) { v.crop = at ? X.crop(R, at) : shot(); cropped++; }
       found.set(key, v);
     },
     // The same collector, recording under another state name (a moment played in this scene).
@@ -101,6 +101,71 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
 // matrices as render() would).
 function stepWorld(R, S, n) { window.__advance(n); }
 
+// Screen space: speech bubbles and stat labels must not cover each other, a face, or an emote.
+// The labels' layout eases into place over a few frames, so only an overlap that lasts SCREEN_HOLD
+// frames in a row counts; its value is the largest overlap seen, as a share of the smaller shape.
+const SCREEN_HOLD = 8;
+function checkScreen(R, C, t, track) {
+  const sc = X.screen(R);
+  const now = new Map();
+  const pair = (kind, a, b, o, what, ra, rb) => {
+    if (o.share <= C.tol.screen) return;
+    const key = `${kind}|${a}|${b}`;
+    const prev = track.get(key) ?? { n: 0, worst: 0 };
+    const cur = { n: prev.n + 1, worst: Math.max(prev.worst, o.share) };
+    now.set(key, cur);
+    const shot = () => X.cropScreen(R, (Math.max(ra.left, rb.left) + Math.min(ra.right, rb.right)) / 2, (Math.max(ra.top, rb.top) + Math.min(ra.bottom, rb.bottom)) / 2,
+      [{ r: ra.r ?? ra, color: '#ff2d55', text: a }, { r: rb.r ?? rb, color: '#2d7dff', text: b }]);
+    if (cur.n >= SCREEN_HOLD) C.add(R, 'screen', t, a, b, cur.worst, null, what, shot);
+  };
+  const L = sc.labels;
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+    pair('label', L[i].kind, L[j].kind, X.rectOverlap(L[i].r, L[j].r), `${L[i].kind} "${L[i].text}" over ${L[j].kind} "${L[j].text}"`, L[i].r, L[j].r);
+  }
+  for (const l of L) for (const f of sc.faces) pair('face', l.kind, 'face', X.rectOverlap(l.r, f.r), `${l.kind} "${l.text}" over ${f.id}'s face${f.id === nearestBelow(l, sc.faces) ? ' (likely its speaker)' : ''}`, l.r, f.r);
+  for (const l of L) for (const e of sc.emotes) pair('emote', l.kind, 'emote', X.rectOverlap(l.r, e.r), `${l.kind} "${l.text}" over ${e.id}'s emote`, l.r, e.r);
+  // Pairs are tracked by kind, so one lasting overlap is one entry however the labels shuffle.
+  track.clear();
+  for (const [k, v] of now) track.set(k, v);
+}
+
+// The face most likely to belong to a label: the nearest one under its bottom centre.
+function nearestBelow(l, faces) {
+  const cx = (l.r.left + l.r.right) / 2;
+  let best = null, d = Infinity;
+  for (const f of faces) {
+    if (f.r.bottom < l.r.top) continue;
+    const dd = Math.abs((f.r.left + f.r.right) / 2 - cx) + Math.max(0, f.r.top - l.r.bottom);
+    if (dd < d) { d = dd; best = f.id; }
+  }
+  return best;
+}
+
+// Tooltips (ui's __HITL_UI.showTip): each [data-tip] element on screen opens its tooltip once; it
+// must stay inside the window and must not cover the element it explains.
+function tooltipPass(R, C) {
+  const UI = window.__HITL_UI;
+  if (!UI?.showTip) return 0;
+  const vw = innerWidth, vh = innerHeight;
+  const els = [...document.querySelectorAll('[data-tip]')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < vh; });
+  for (const el of els) {
+    if (!UI.showTip(el)) continue;
+    window.__step(2);
+    const tip = document.querySelector('.gtip');
+    const tr = tip?.getBoundingClientRect(), er = el.getBoundingClientRect();
+    if (tr && tr.width > 0) {
+      const name = (el.getAttribute('data-tip') || el.textContent || '').trim().slice(0, 40);
+      const inside = Math.max(0, Math.min(tr.right, vw) - Math.max(tr.left, 0)) * Math.max(0, Math.min(tr.bottom, vh) - Math.max(tr.top, 0));
+      const out = 1 - inside / (tr.width * tr.height);
+      if (out > 0.02) C.add(R, 'tooltip', 0, name, 'window', out, null, `tooltip "${name}" is ${Math.round(out * 100)}% off screen`);
+      const o = X.rectOverlap(tr, er);
+      if (o.share > C.tol.screen) C.add(R, 'tooltip', 0, name, 'its element', o.share, null, `tooltip "${name}" covers ${Math.round(o.share * 100)}% of its element`);
+    }
+    UI.hideTip();
+  }
+  return els.length;
+}
+
 // A window of office life: `seconds` long, things checked every `every` seconds and people every
 // PEOPLE_EVERY (a walk past a desk takes well under a second).
 const PEOPLE_EVERY = 0.2;
@@ -110,8 +175,11 @@ function window_(R, S, C, { seconds, every, t0 = 0 }) {
   R.render(0);
   const k = Math.max(1, Math.round(every / PEOPLE_EVERY));
   const n = Math.round(seconds / every) * k;
+  const track = new Map();
+  const per = Math.round(PEOPLE_EVERY / DT);
   for (let i = 0; i <= n; i++) {
-    if (i) stepWorld(R, S, Math.round(PEOPLE_EVERY / DT));
+    // Drawn frames, as the game runs: the labels lay themselves out in render().
+    if (i) for (let f = 0; f < per; f++) { window.__step(1); checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
     const t = t0 + i * PEOPLE_EVERY;
     if (i % k === 0) checkFrame(R, C, t, memo);
     checkPeople(R, C, t);
@@ -123,7 +191,7 @@ function window_(R, S, C, { seconds, every, t0 = 0 }) {
 // ends up on the ground past the door in the garage and the HQ.
 const OUTSIDE = { printer_wrecked: [0, 2] };
 
-const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02, self: 0.01, grid: 0.03 };
+const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02, self: 0.01, grid: 0.03, screen: 0.15 };
 
 // Every staged prop the renderer can draw, put on `desks` different desks one at a time (desk
 // models vary by seat and era: monitor or laptop, plant, papers), and checked once it has popped in.
@@ -255,7 +323,8 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], cr
   if (propDesks) { R.perks.hold = true; await propsPass(R, S, C, propDesks); R.perks.hold = false; }
   if (grid) { R.perks.hold = true; await gridPass(R, S, C); R.perks.hold = false; }
   window_(R, S, C, { seconds, every });
-  const windows = [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length }];
+  const tips = tooltipPass(R, C);
+  const windows = [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length, tooltips: tips }];
   if (moments) {
     R.perks.hold = true;
     const played = await momentsPass(R, S, C, { ...moments, every });

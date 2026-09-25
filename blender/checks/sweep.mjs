@@ -22,6 +22,10 @@
 //   grid     an item's model reaches more than 3 cm past its sim footprint tiles on a side (the sim
 //            gives that room to a neighbour), or a desk's seat is off the sim's chair tile; every
 //            item, level and rotation, alone in the floor mock
+//   screen   a speech bubble or stat label covers another label, a face or an emote, by more than
+//            15% of the smaller, for 8 drawn frames in a row; value is that share
+//   tooltip  a tooltip (each [data-tip] element's, opened with ui's showTip) is partly off screen,
+//            or covers more than 15% of the element it explains; value is that share
 //   self     something a person holds or carries is more than 1 cm into their own head or torso
 //   person   a person's head or torso (and legs, walking) is more than 2 cm inside furniture, a
 //            prop, a wall or another person, other than what they are using (their desk, the
@@ -145,6 +149,8 @@ for (const v of found) {
 }
 const all = [...byKey.values()].sort((a, b) => a.check.localeCompare(b.check) || b.value - a.value);
 mkdirSync(outDir, { recursive: true });
+// Screen findings are a share of a shape; everything else is metres.
+const unit = (v) => (v.check === 'screen' || v.check === 'tooltip' ? ' of the smaller' : ' m');
 // A baselined violation that got clearly worse counts as new.
 const worst = new Map(baseline.accepted.map((b) => [b.key, b.worst]));
 const worse = (v) => worst.has(v.key) && v.value > worst.get(v.key) * 1.25 + 0.005;
@@ -164,14 +170,14 @@ for (const v of all) {
     writeFileSync(file, Buffer.from(v.crop.split(',')[1], 'base64'));
     shot = ` crop ${file}`;
   }
-  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${issueOf.has(v.key) ? ` (#${issueOf.get(v.key)})` : ''}${shot}`);
+  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value}${unit(v)} at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${issueOf.has(v.key) ? ` (#${issueOf.get(v.key)})` : ''}${shot}`);
 }
 // status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
 // check measures render output, so art owns what it finds.
 const status = (v) => (fresh.includes(v) ? 'new' : advisory.includes(v) ? 'advisory' : 'baseline');
 writeFileSync(`${outDir}/report.json`, JSON.stringify({ windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })) }, null, 1));
 // The same as a markdown table, for a PR comment (crops are named by file, not path).
-const md = ['| check | what | value (m) | state | t (s) | status | crop |', '|---|---|---|---|---|---|---|'];
+const md = ['| check | what | value (m, or share on screen) | state | t (s) | status | crop |', '|---|---|---|---|---|---|---|'];
 for (const v of all) md.push(`| ${v.check} | ${v.detail ?? `${v.a} ~ ${v.b}`} | ${v.value} | ${v.state} | ${v.t} | ${known.includes(v.key) && !worse(v) ? 'baseline' : 'NEW'} | ${v.crop ? `${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png` : ''} |`);
 writeFileSync(`${outDir}/report.md`, md.join('\n') + '\n');
 const gone = known.filter((k) => !byKey.has(k));
