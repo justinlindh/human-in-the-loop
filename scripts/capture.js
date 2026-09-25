@@ -34,8 +34,9 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 // Renders under the render lock for its GL mode (a GPU slot, or the software lock with --software).
 if (!args.list) holdRenderLock(args.software ? 'software' : 'gpu');
-const FPS = Number(args.fps ?? 60);
-const [W, H] = String(args.size ?? '1920x1080').split('x').map(Number);
+// The run's frame rate and size; an item's own fps or size (e.g. '3840x2160' for a still to crop) wins.
+const RUN_FPS = Number(args.fps ?? 60);
+const RUN_SIZE = String(args.size ?? '1920x1080');
 const QUALITY = args.quality ?? 'high';
 // --audio records the game's sound into each clip (AAC in the MP4, Opus in the WebM).
 const AUDIO = !!args.audio;
@@ -160,8 +161,8 @@ async function serve() {
 }
 
 
-function ffmpeg(file) {
-  const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+function ffmpeg(file, fps) {
+  const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
     // Screenshots are full-range JPEG; convert to the limited-range yuv420p every player expects.
     '-vf', 'scale=in_range=full:out_range=tv,format=yuv420p', '-color_range', 'tv',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', file], { stdio: ['pipe', 'inherit', 'inherit'] });
@@ -218,6 +219,8 @@ let failed = false;
 try {
   for (const it of items) {
     const t0 = Date.now();
+    const FPS = Number(it.fps ?? RUN_FPS);
+    const [W, H] = String(it.size ?? RUN_SIZE).split('x').map(Number);
     // A still item records only until its last screenshot and writes no video.
     const seconds = it.still ? Math.max(...(it.screenshots ?? [1])) + 1 / FPS : Number(args.seconds ?? it.seconds);
     const frames = Math.round(seconds * FPS);
@@ -285,7 +288,7 @@ try {
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());
 
     const mp4 = join(OUT, `${it.id}.mp4`);
-    const enc = it.still ? { write: async () => {}, end: async () => {} } : ffmpeg(mp4);
+    const enc = it.still ? { write: async () => {}, end: async () => {} } : ffmpeg(mp4, FPS);
     const actions = [...(it.actions ?? [])].sort((a, b) => a.at - b.at);
     const shots = new Set((it.screenshots ?? []).map((s) => Math.round(s * FPS)));
     const pngs = [];
