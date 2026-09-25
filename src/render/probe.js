@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // Staging probe (#350): how a character reads on screen this frame, measured from the scene.
 // Shared by the readability checks (blender/checks/stage.mjs) and the scene sweep (#352).
 //
-// createProbe({ scene, camera, office, charOf, stagingOf }) -> { measure(id), actors() }
+// createProbe({ scene, camera, office, charOf, stagingOf }) -> { measure(id) }
 //   charOf(id)     -> the character (character.js) for a staff id, or null
 //   stagingOf(id)  -> what a moment says about them now (moments.js stage record), or null:
 //                     { moment, beat, target: Vector3 | Object3D, held: Object3D, source: Object3D }
@@ -11,7 +11,8 @@ import * as THREE from 'three';
 // measure(id) -> {
 //   anim, beat, moment,
 //   eyes: [x, y, z], forward: [x, y, z], headY,
-//   gaze: { hit: 'held' | '<prop id>' | '<item id>' | 'floor' | 'wall' | 'none', dist },
+//   gaze: { hit: 'held' | '<prop id>' | '<item id>' | 'furniture' | 'floor' | 'wall' | 'nothing', dist },
+//                          // 'nothing': the line of sight meets nothing within GAZE_M
 //   targetAngle,            // degrees between the face's direction and the direction to the target
 //   faceCam,                // degrees between the face's direction and the direction to the camera
 //   visible,                // share of sample points on the body the camera sees unblocked (0..1)
@@ -23,6 +24,7 @@ import * as THREE from 'three';
 // }
 
 const tmp = new THREE.Vector3();
+const GAZE_M = 6;        // how far along the line of sight the probe looks
 
 export function createProbe({ scene, camera, office, charOf, stagingOf = () => null }) {
   const ray = new THREE.Raycaster();
@@ -69,15 +71,15 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
 
     // Gaze: what the line of sight from the eyes meets first (not the character's own body).
     const self = new Set([c.root]);
-    const hits = opaqueHits(p.eyes, p.forward, 6, self).filter((h) => h.distance > 0.02);
-    let gaze = { hit: 'none', dist: null };
-    const heldHit = st.held && opaqueHits(p.eyes, p.forward, 6, self, st.held)
+    const hits = opaqueHits(p.eyes, p.forward, GAZE_M, self).filter((h) => h.distance > 0.02);
+    let gaze = { hit: 'nothing', dist: null };
+    const heldHit = st.held && opaqueHits(p.eyes, p.forward, GAZE_M, self, st.held)
       .find((h) => labelOf(h.object, st.held) === 'held');
     if (heldHit && (!hits.length || heldHit.distance <= hits[0].distance + 1e-3)) gaze = { hit: 'held', dist: +heldHit.distance.toFixed(3) };
     else if (hits.length) {
       const h = hits[0];
       gaze = { hit: labelOf(h.object, st.held) ?? (h.point.y < 0.03 ? 'floor' : 'wall'), dist: +h.distance.toFixed(3) };
-    } else if (p.forward.y < -0.01) {
+    } else if (p.forward.y < -0.01 && p.eyes.y / -p.forward.y <= GAZE_M) {
       gaze = { hit: 'floor', dist: +(p.eyes.y / -p.forward.y).toFixed(3) };
     }
 
