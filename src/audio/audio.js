@@ -56,8 +56,9 @@ export function createAudio({ quality = 'high' } = {}) {
     }
   }
   if (AC) {
-    addEventListener('pointerdown', unlock, { capture: true });
-    addEventListener('keydown', unlock, { capture: true });
+    // iOS Safari counts only some events as a user gesture for audio (pointerup, touchend, click
+    // on touch), so every one of them tries: unlock is idempotent and just resumes once running.
+    for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(type, unlock, { capture: true, passive: true });
     // A hidden tab goes silent at once (frames stop there, so nothing else would). On return, sound
     // resumes only if the game is running or the title is up; after an auto-pause it waits for the
     // player's next click or key (unlock resumes it).
