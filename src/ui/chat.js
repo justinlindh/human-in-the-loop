@@ -5,6 +5,7 @@ import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
 import { loadSettings, saveSetting } from './settings.js';
+import { createPromptView } from './chatPrompts.js';
 
 const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
@@ -19,7 +20,7 @@ const BOT_ICON = {
 
 // Yak: the office's team chat. Channels with unread badges, threads, reactions, and names you
 // can click to find the person. Messages stay bounded per channel in memory and in the DOM.
-export function createChat(root, { getState, onName, onMaximize } = {}) {
+export function createChat(root, { getState, onName, onMaximize, onAnswer } = {}) {
   const store = Object.fromEntries(CHANNELS.map((c) => [c, []]));
   const unread = Object.fromEntries(CHANNELS.map((c) => [c, 0]));
   let current = 'general';
@@ -27,13 +28,16 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
   let lastGeneralWeek = null;
 
   const totalBadge = h('span.count');
+  // An open reply prompt, flagged on the header while Yak is collapsed. Tapping it goes to the
+  // prompt: in the big view on touch screens, where the small Yak is too cramped to read one.
+  const replyMark = h('button.ymark', { type: 'button', text: 'Reply', 'aria-label': 'Go to the reply prompt', onclick: (e) => { e.stopPropagation(); showPrompt(); } });
   const caret = h('span.caret', null, icon('caret.down'));
   // Size controls sit in the header; their clicks do not collapse the panel.
   const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
   const sizeBtns = Object.keys(SIZES).map((k) => h('button.ysz', { title: `${k[0].toUpperCase()}${k.slice(1)} Yak`, 'aria-label': `${k} size`, onclick: stop(() => setSize(k, null)) }, k[0].toUpperCase()));
   const maxBtn = h('button.ysz.ymax', { title: 'Open Yak big', 'aria-label': 'Maximize Yak', onclick: stop(() => setMax(!maximized)) }, icon('expand', { size: 13 }));
   const head = h('div.chat-head', { title: touchUI() ? 'Yak' : 'Yak (C)', onclick: () => { if (!maximized) toggle(); } },
-    h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), totalBadge,
+    h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), replyMark, totalBadge,
     h('span.ysizes', null, ...sizeBtns, maxBtn), caret);
   // Drag the top edge to set any height between MIN_H and MAX_H.
   const grip = h('div.ygrip', { title: 'Drag to resize', 'aria-hidden': 'true' });
@@ -48,6 +52,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
   const quiet = h('div.chat-quiet.banner');
   const list = h('div.chat-body');
   const el = h('div.chat.yak', { dataset: { occludes: '' } }, grip, head, tabsEl, quiet, list);
+  const prompts = createPromptView({ list, onAnswer });
   root.append(el);
 
   const saved = loadSettings();
@@ -146,6 +151,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
     const msgs = store[current];
     if (!msgs.length) list.append(h('div.chat-quiet.empty', { text: current === 'general' ? 'Quiet in here. Chatter shows up once the week gets going.' : `Nothing in #${current} yet.` }));
     for (const m of msgs) place(m, node(m));
+    prompts.attach();
     list.scrollTop = list.scrollHeight;
   }
 
@@ -169,6 +175,14 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
     refreshBadges();
   }
 
+  function showPrompt() {
+    const p = prompts.open()[0];
+    if (!p) return;
+    select(CHANNELS.includes(p.channel) ? p.channel : 'general');
+    if (phoneLayout() || touchUI()) setMax(true); else toggle(false);
+    requestAnimationFrame(() => list.querySelector(`.yprompt[data-prompt="${CSS.escape(p.id)}"]`)?.scrollIntoView({ block: 'center' }));
+  }
+
   function toggle(force) {
     collapsed = force ?? !collapsed;
     el.classList.toggle('collapsed', collapsed);
@@ -190,6 +204,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
       if (dropped) (dropped.id ? list.querySelector(`.msg[data-id="${CSS.escape(dropped.id)}"]`) : list.querySelector('.msg'))?.remove();
       const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
       place(m, node(m));
+      prompts.attach();
       if (nearBottom) list.scrollTop = list.scrollHeight;
       if (collapsed && !silent) unread[channel]++;
     } else if (!silent) {
@@ -199,7 +214,16 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
   }
 
   let quietText = '';
+  let markSig = '';
   function update(s) {
+    prompts.sync(s);
+    const open = prompts.open();
+    const sig = `${collapsed ? 1 : 0}|${open.map((p) => p.channel).join(',')}`;
+    if (sig !== markSig) {
+      markSig = sig;
+      toggleClass(replyMark, 'show', collapsed && open.length > 0);
+      for (const c of CHANNELS) toggleClass(tabBtns[c], 'prompt', open.some((p) => (p.channel ?? 'general') === c));
+    }
     const weeks = lastGeneralWeek === null ? 0 : s.week - lastGeneralWeek;
     const text = current === 'general' && weeks >= QUIET_WEEKS ? `It's been quiet in #general for ${weeks} weeks.` : '';
     if (text !== quietText) {
