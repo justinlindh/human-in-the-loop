@@ -11,7 +11,7 @@
 // <id>.webm (VP9, CRF 30),
 // optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
 import { chromium } from 'playwright';
-import { launchChromium } from './lib/gl.js';
+import { holdRenderLock, launchChromium } from './lib/gl.js';
 import { spawn, execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -31,6 +31,8 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+// Renders under the render lock for its GL mode (a GPU slot, or the software lock with --software).
+if (!args.list) holdRenderLock(args.software ? 'software' : 'gpu');
 const FPS = Number(args.fps ?? 60);
 const [W, H] = String(args.size ?? '1920x1080').split('x').map(Number);
 const QUALITY = args.quality ?? 'high';

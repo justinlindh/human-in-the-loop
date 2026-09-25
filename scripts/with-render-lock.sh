@@ -10,10 +10,13 @@
 # (scripts/render-lock-held.sh): the software lock covers both kinds, a GPU slot covers GPU work.
 # Otherwise it waits for a lock, exports its PID as the holder, and execs the command, which keeps
 # the lock until it exits.
+# It always says what it did on stderr: the lock it took and how long it waited, or that a holder
+# already covers the run.
 # Usage: scripts/with-render-lock.sh [--gpu|--software] <command> [args...]
+#        scripts/with-render-lock.sh [--gpu|--software] --held   exit 0 if a caller's lock covers it
 #   RENDER_LOCK_WAIT  seconds to wait for a lock (default 1800); exit 75 if it runs out
 set -uo pipefail
-usage="usage: scripts/with-render-lock.sh [--gpu|--software] <command> [args...]"
+usage="usage: scripts/with-render-lock.sh [--gpu|--software] <command> [args...] | [--gpu|--software] --held"
 mode=software
 case "${1:-}" in --gpu) mode=gpu; shift ;; --software) shift ;; esac
 [ $# -gt 0 ] || { echo "$usage" >&2; exit 2; }
@@ -25,23 +28,31 @@ gpu_locks=(); for i in $(seq 1 "$SLOTS"); do gpu_locks+=("$DIR/gpu-render-$i.loc
 WAIT="${RENDER_LOCK_WAIT:-1800}"
 mkdir -p "$DIR"
 
+covered() {
+  if [ "$mode" = software ]; then bash "$HERE/render-lock-held.sh" "$SOFT"
+  else bash "$HERE/render-lock-held.sh" "$SOFT" "${gpu_locks[@]}"; fi
+}
+if [ "$1" = --held ]; then covered; exit; fi
+if covered; then
+  echo "with-render-lock: $mode run covered by the lock held by PID $HITL_RENDER_LOCK_HELD" >&2
+  exec "$@"
+fi
+
 if [ "$mode" = software ]; then
-  bash "$HERE/render-lock-held.sh" "$SOFT" && exec "$@"
   t0=$SECONDS
   exec 8>"$SOFT"
   flock -w "$WAIT" 8 || { echo "with-render-lock: no software render lock after ${WAIT}s" >&2; exit 75; }
-  [ $((SECONDS - t0)) -gt 0 ] && echo "with-render-lock: waited $((SECONDS - t0))s for the software render lock" >&2
+  echo "with-render-lock: waited $((SECONDS - t0))s for the software render lock" >&2
   export HITL_RENDER_LOCK_HELD=$$
   exec "$@"
 fi
 
-bash "$HERE/render-lock-held.sh" "$SOFT" "${gpu_locks[@]}" && exec "$@"
 t0=$SECONDS
 while :; do
   for lock in "${gpu_locks[@]}"; do
     exec 8>"$lock"
     if flock -n 8; then
-      [ $((SECONDS - t0)) -gt 0 ] && echo "with-render-lock: waited $((SECONDS - t0))s for a GPU render slot" >&2
+      slot="${lock##*-}"; echo "with-render-lock: waited $((SECONDS - t0))s for GPU render slot ${slot%.lock}" >&2
       export HITL_RENDER_LOCK_HELD=$$
       exec "$@"
     fi

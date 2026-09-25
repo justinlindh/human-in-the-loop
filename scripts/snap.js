@@ -4,7 +4,7 @@
 //   [--real --seed 1 --weeks 20] [--eval "expr"]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { launchChromium } from './lib/gl.js';
+import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -22,6 +22,9 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+// Renders under the render lock for its GL mode (a GPU slot, or the software lock).
+const GL = glMode();
+holdRenderLock(GL);
 const scenario = args.scenario ?? 'floor';
 const outPath = resolve(args.out ?? `shots/${args.real ? `real-s${args.seed ?? 1}` : scenario}.png`);
 const width = Number(args.width ?? 1920);
@@ -45,7 +48,7 @@ await server.listen();
 const base = server.resolvedUrls.local[0];
 const url = `${base}?${q}`;
 
-const { browser } = await launchChromium(chromium, { label: 'snap' });
+const { browser } = await launchChromium(chromium, { mode: GL, label: 'snap' });
 const errors = [];
 let exitCode = 0;
 try {

@@ -84,8 +84,8 @@ step lifecycle bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --qua
 step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
 # whose wait does not count against the ten minutes:
-#   render-checks  clipping with and without the rig, and standups, on the GPU (a GPU slot). They
-#                  check geometry and behaviour, not exact pixels.
+#   render-checks  clipping with and without the rig, standups, and the scene sweep, on the GPU (a GPU
+#                  slot). They check geometry and behaviour, not exact pixels.
 #   golden         the golden images, on SwiftShader under the software lock: only software GL draws
 #                  the same pixels on every machine. GOLDEN_JOBS browsers render at once.
 # A run can lose a page to vite reloading while it optimizes a dependency, so a failed pass is
@@ -100,7 +100,7 @@ render_step() { # <name> <gpu|software> <command>
   local name="$1" mode="$2" pass="$3" first="$LOGS/$1.first.log"
   render_pass "$mode" "$pass" >"$first" 2>&1; local rc=$?
   cat "$first"
-  local waited; waited="$(grep -o 'waited [0-9]*s for [a-z -]*' "$first" | head -1)"
+  local waited; waited="$(grep -o 'waited [1-9][0-9]*s for [a-zA-Z -]*' "$first" | head -1)"
   [ -n "$waited" ] && NOTES+=("$name $waited")
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
@@ -116,7 +116,7 @@ render_step() { # <name> <gpu|software> <command>
   NOTES+=("$name failed twice. First pass: ${why:-exit without a message}")
   return 1
 }
-step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs'
+step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/sweep.mjs --gpu'
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
