@@ -1236,3 +1236,13 @@
 /* The HUD mute button: muted is a red-tinted outline and icon, distinct from a selected speed. */
 .hitl .chip.speed .mute.muted { background: #ffe1df; color: var(--bad); border-color: var(--bad); }
 .hitl .chip.speed .mute.muted:hover:not(:disabled) { background: #ffd0cc; }
+
+/* The staged-moment caption: one line above the bottom menu that fades in and out. */
+.hitl .moment-cap {
+  position: absolute; left: 50%; bottom: calc(var(--bottom-h, 6em) + 1.2em); transform: translate(-50%, 0.4em);
+  max-width: min(34em, calc(100% - 2em)); pointer-events: none; opacity: 0; transition: opacity 400ms ease, transform 400ms ease;
+  background: rgba(42, 38, 48, 0.88); color: var(--cream); border-radius: 1em; padding: 0.45em 1em; text-align: center;
+  font-size: 0.95em; line-height: 1.3; box-shadow: var(--soft);
+}
+.hitl .moment-cap.show { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .hitl .moment-cap { transition: opacity 200ms linear; transform: translate(-50%, 0); } }

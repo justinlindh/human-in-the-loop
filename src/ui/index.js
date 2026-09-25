@@ -20,6 +20,7 @@ import { openRecap } from './recap.js';
 import { createCallGrid } from './callgrid.js';
 import { createTooltips } from './tooltip.js';
 import { createSceneTips } from './sceneTips.js';
+import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK } from './v2content.js';
 
@@ -35,6 +36,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   root.append(layer);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
   const tooltips = createTooltips(layer);
+  createMomentCaptions(layer);
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
