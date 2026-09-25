@@ -405,8 +405,15 @@ describe('audio director', () => {
   });
 
   describe('office space nods', () => {
-    const withProps = (props) => ({ ...state(), office: { ...(state().office ?? {}), props: props.map((prop, i) => ({ id: `pp${i}`, prop })) } });
-    const run = (d, props, t) => d.update(withProps(props), t, { speed: 1, running: true });
+    // One game state per director, its props changed in place, as the real game does.
+    const games = new WeakMap();
+    const withProps = (d, props) => {
+      const st = games.get(d) ?? { ...state(), office: {} };
+      games.set(d, st);
+      st.office.props = props.map((prop, i) => ({ id: `pp${i}`, prop }));
+      return st;
+    };
+    const run = (d, props, t) => d.update(withProps(d, props), t, { speed: 1, running: true });
     const has = (cmds, pred) => cmds.some(pred);
 
     // Each case sets the asset entries it needs, so the real manifest's contents never matter.
@@ -487,11 +494,41 @@ describe('audio director', () => {
       expect(d.cue('click', 12.5).some((c) => c.cue === 'ui.click')).toBe(true);
       d.moment({ phase: 'end', key: 'printer_jam', id }, 15.7);
       expect(d.events([{ type: 'levelUp', staffId: 's1', level: 4 }], state(), 20).some((c) => c.cue === 'sfx.levelUp')).toBe(true);
-      // A spotlight from the host holds them the same way.
-      d.update(state(), 30, { speed: 1, running: true, spotlight: true });
+      // A spotlight from the host holds unrelated sounds the same way.
+      d.update(state(), 30, { speed: 1, running: true, spotlight: { kind: 'waffle_party' } });
       expect(d.events([{ type: 'levelUp', staffId: 's1', level: 5 }], state(), 31).some((c) => c.op === 'play')).toBe(false);
       d.update(state(), 40, { speed: 1, running: true, spotlight: false });
       expect(d.events([{ type: 'levelUp', staffId: 's1', level: 6 }], state(), 41).some((c) => c.cue === 'sfx.levelUp')).toBe(true);
+    } finally { ASSETS.sfx = saved; }
+  });
+
+  it('lets a spotlight keep its own sounds: a waffle party still cheers and plays its stinger', () => {
+    const d = createDirector();
+    d.setQuality('high');
+    const st = state();
+    d.update(st, 0, { speed: 1, running: true, spotlight: { kind: 'waffle_party' } });
+    const cmds = d.events([{ type: 'incentive', reward: 'waffle_party', staffId: 's1' }], st, 1);
+    expect(cmds.some((c) => c.cue === 'stinger.waffle')).toBe(true);
+    expect(cmds.filter((c) => c.cue === 'voice.bark').length).toBeGreaterThan(0);
+    // An unrelated chime in the same spotlight is held, and a single bark too.
+    expect(d.events([{ type: 'hire', staffId: 's2' }], st, 2).some((c) => c.op === 'play')).toBe(false);
+    // A kind nobody listed keeps its cheers and stingers.
+    const e = createDirector();
+    e.update(st, 0, { speed: 1, running: true, spotlight: { kind: 'cake_day' } });
+    expect(e.events([{ type: 'era', eraId: 'agents' }], st, 1).some((c) => c.cue === 'stinger.era')).toBe(true);
+  });
+
+  it('forgets moments when a new or loaded game arrives', () => {
+    const saved = ASSETS.sfx;
+    try {
+      ASSETS.sfx = { ...(saved ?? {}), level_up: { file: 'sfx/growth/level_up.ogg' } };
+      const d = createDirector();
+      d.setQuality('high');
+      d.update(state(), 0, { speed: 1, running: true });
+      d.moment({ phase: 'start', key: 'printer_jam', id: 'p1' }, 1);
+      expect(d.events([{ type: 'levelUp', staffId: 's1', level: 3 }], state(), 2).some((c) => c.op === 'play')).toBe(false);
+      d.update(state(), 3, { speed: 1, running: true });   // a new state object: a new or loaded game
+      expect(d.events([{ type: 'levelUp', staffId: 's1', level: 4 }], state(), 4).some((c) => c.cue === 'sfx.levelUp')).toBe(true);
     } finally { ASSETS.sfx = saved; }
   });
 });

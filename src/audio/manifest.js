@@ -147,8 +147,18 @@ export const PLAYLIST_LOOKAHEAD_S = 0.5; // how early the switch is scheduled be
 // decision that can lead to one, and the file that plays from its start event.
 // Impacts on a staged moment's hits (hitl:moment phase 'hit', fired on the frame each lands).
 export const MOMENT_HITS = { printer_jam: 'sfx.printerSmash' };
-// While a moment or spotlight plays, other one-shot sounds hold off; the player's own clicks stay.
+// While a moment or spotlight plays, unrelated one-shot sounds hold off; the player's own clicks stay.
 export const FOCUS_KEEP = new Set(['ui.click', 'ui.open', 'ui.close', 'ui.confirm', 'ui.error', 'ui.coin']);
+// A spotlight keeps its own sounds: per kind, the cues it plays and whether its crowd may cheer.
+// A kind not listed keeps cheers and stingers, so a new celebration is never silenced by default.
+export const SPOTLIGHT_KEEP = {
+  waffle_party: { cues: ['stinger.waffle', 'sfx.reward'], cheers: true },
+  music_night: { cues: ['music.night', 'sfx.reward'], cheers: true },
+  promotion: { cues: ['sfx.promotion', 'sfx.levelUp', 'sfx.trait'], cheers: true },
+  legend: { cues: ['sfx.promotion', 'stinger.win'], cheers: true },
+  path: { cues: ['sfx.promotion', 'sfx.trait'], cheers: true },
+};
+export const SPOTLIGHT_DEFAULT = { cues: [], cheers: true, stingers: true };
 export const MOMENT_CUES = {
   printer_jam: { eventId: 'printer_jam', file: 'moments/printer_smash', gain: 0.9 },
 };

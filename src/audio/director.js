@@ -17,7 +17,7 @@
 import { ASSETS, entryFor } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, FOCUS_KEEP, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -86,6 +86,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   let propsSeen = null;
   const loopLevel = {};
   const momentsOn = new Set();
+  let lastStateRef = null;
   function officeProps(state, t, quiet) {
     const out = [];
     const now = new Set((state?.office?.props ?? []).map((x) => x.prop));
@@ -129,12 +130,21 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   }
 
   // A moment or spotlight is playing: other one-shots hold off so the scene is heard alone.
-  let spotlightOn = false;
-  const focused = () => spotlightOn || momentsOn.size > 0;
+  // spotlight: null, or what the host says is playing ({ kind } or just true).
+  let spotlight = null;
+  const keepOf = () => (spotlight ? SPOTLIGHT_KEEP[spotlight.kind] ?? SPOTLIGHT_DEFAULT : null);
+  const focused = () => !!spotlight || momentsOn.size > 0;
+  // Whether a one-shot may sound now: always outside a focus, else only the scene's own sounds.
+  function allowed(id) {
+    if (!focused() || FOCUS_KEEP.has(id)) return true;
+    if (momentsOn.size) return false;
+    const k = keepOf();
+    return k.cues.includes(id) || (!!k.stingers && id.startsWith('stinger.'));
+  }
   function playCue(id, t, { speed = 1, gain = 1, inMoment = false } = {}) {
     const c = CUES[id];
     if (!c) return [];
-    if (focused() && !inMoment && !FOCUS_KEEP.has(id)) return [];
+    if (!inMoment && !allowed(id)) return [];
     if (c.delivered && !c.files.some((f) => entryFor(f)?.file)) return [];
     if (q === 'low' && c.priority <= 1) return [];
     if (speed >= 4 && c.priority <= 1) return [];
@@ -150,7 +160,9 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   }
 
   function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice', take = null } = {}) {
-    if (!person || focused()) return [];
+    if (!person) return [];
+    // In a focus only a spotlight's own crowd may cheer; moments and single barks stay quiet.
+    if (focused() && (momentsOn.size || key !== 'cheer' || !keepOf()?.cheers)) return [];
     // Single barks (not a cheer) never stack beyond VOICE.maxSingle at once.
     if (key === 'voice' && playing.filter((v) => v.bus === 'voice' && v.single && v.until > t).length >= VOICE.maxSingle) return [];
     if (!admit('voice', priority, t, 1.5)) return [];
@@ -272,7 +284,9 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     // Every frame: music state machine, pause filter, burnout barks, ambient barks.
     update(state, t, ctx = {}) {
       const out = [];
-      spotlightOn = !!ctx.spotlight;
+      spotlight = ctx.spotlight ? (typeof ctx.spotlight === 'object' ? ctx.spotlight : { kind: typeof ctx.spotlight === 'string' ? ctx.spotlight : null }) : null;
+      // A new or loaded game brings a new state object: no moment from the old one can still be playing.
+      if (state && state !== lastStateRef) { if (lastStateRef) momentsOn.clear(); lastStateRef = state; }
       if (Number.isFinite(ctx.speed)) speedNow = Math.max(1, ctx.speed);
       const hold = !!(ctx.menuPause || ctx.decision);
       // Music: title bed on the title screen, else the era's bed. An era change waits for its card.
