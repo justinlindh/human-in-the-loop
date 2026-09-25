@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
-# The main guard: runs the full local suite on each new commit of origin/main and reports it, so a
-# main that goes red (two PRs each green alone, say) is caught at once, not by the next PR to merge it.
-#   - local CI (scripts/ci-local.sh from that commit) with the balance suite forced on (CI_FULL=1);
-#   - the scene sweep in fast mode (findings seen only in seeded games are advisory).
-# It sets the commit status "main-guard" on the commit. When main is red it opens, or comments on,
-# one issue labelled main-red with the failing steps; the first green commit after closes it.
-# Findings that never mark main red go to their own issues: the strict sweep's seed-only findings
-# (sweep-finding) and timing regressions against the previous main commit (perf-regression).
-# One guard runs at a time; a commit already checked is skipped.
+# The main guard: checks the newest commit of origin/main with the full local suite and reports it, so
+# a main that goes red (two PRs each green alone, say) is caught at once, not by the next PR.
+#   - The gate: local CI (scripts/ci-local.sh from that commit, balance suite forced on) and one strict
+#     scene sweep. A new sweep violation seen in any mock, moment or props state fails the gate; one seen
+#     only in seeded games is a finding, not a failure.
+#   - It sets the commit status "main-guard". When main is red it opens, or comments on, one issue
+#     labelled main-red with the failing steps; if commits were skipped since the last green one, it
+#     bisects them to name the first red merge. The first green commit after closes the issue.
+#   - Findings never mark main red and go to their own issues: seed-only sweep violations
+#     (sweep-finding, owner art) and timing regressions against the previous main commit
+#     (perf-regression). Timing runs at most once an hour and is filed after two bad runs in a row.
+# It is built to stay out of the way: one guard at a time, only the newest head (commits merged in
+# between are skipped unless a bisect needs them), and it waits while any other job is queued for the
+# exclusive software render lock. Each tick it also fast-forwards the shared checkout named by
+# HITL_SHARED_CHECKOUT when that is clean, on main, and no ci-pr or local CI runs in it.
 # Usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]
-#   --sha       check this commit instead of the tip of origin/main (checked again even if seen)
-#   --no-post   no status, no issue: print the verdict only
+#   --sha       check this commit instead of origin/main's tip (checked again even if seen)
+#   --no-post   no status, no issues: print the verdict only
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
 usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]"
@@ -29,11 +35,51 @@ fi
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
+LOCKS="${HITL_LOCK_DIR:-$HOME/.cache/hitl-ci}"
 STATE="$ROOT/main-guard"
+PERF_EVERY="${MAIN_GUARD_PERF_EVERY:-3600}"
 mkdir -p "$STATE"
 exec 7>"$STATE/guard.lock"
 flock -n 7 || { echo "main-guard: another guard is running"; exit 0; }
 
+# True when a process whose working directory is $1 runs ci-pr or local CI (found by PID, not by name).
+busy_in() {
+  local dir="$1" q c a
+  for q in /proc/[0-9]*; do
+    c="$(readlink "$q/cwd" 2>/dev/null)" || continue
+    case "$c" in "$dir"|"$dir"/*) ;; *) continue ;; esac
+    a="$(tr '\0' ' ' <"$q/cmdline" 2>/dev/null)" || continue
+    case "$a" in *scripts/ci-pr.sh*|*scripts/ci-local.sh*) return 0 ;; esac
+  done
+  return 1
+}
+sync_shared() {
+  local dir="${HITL_SHARED_CHECKOUT:-}"
+  [ -n "$dir" ] && [ -d "$dir/.git" ] || return 0
+  [ "$(git -C "$dir" branch --show-current)" = main ] && [ -z "$(git -C "$dir" status --porcelain)" ] || return 0
+  busy_in "$dir" && { echo "main-guard: the shared checkout is in use; not updating it"; return 0; }
+  git -C "$dir" fetch -q origin main || return 0
+  [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ] || return 0
+  git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+}
+# True while any process waits (blocked in flock) for the exclusive software render lock.
+someone_waits() {
+  local soft; soft="$(readlink -f "$LOCKS/render-checks.lock" 2>/dev/null)" || return 1
+  local q f
+  for q in /proc/[0-9]*; do
+    [ "$(cat "$q/wchan" 2>/dev/null)" = locks_lock_inode_wait ] || continue
+    for f in "$q"/fd/*; do [ "$(readlink -f "$f" 2>/dev/null)" = "$soft" ] && return 0; done
+  done
+  return 1
+}
+yield() { # waits (up to an hour) while others queue for the software lock
+  local waited=0
+  while someone_waits && [ $waited -lt 3600 ]; do sleep 30; waited=$((waited + 30)); done
+  [ $waited -gt 0 ] && echo "main-guard: yielded ${waited}s to jobs waiting for the software render lock"
+  return 0
+}
+
+sync_shared
 git -C "$REPO" fetch -q origin main || { echo "main-guard: cannot fetch origin/main" >&2; exit 2; }
 sha="$(git -C "$REPO" rev-parse "${sha_arg:-origin/main}")" || exit 2
 short="${sha:0:7}"
@@ -45,74 +91,113 @@ status() { # <state> <description>
     || echo "main-guard: could not set the status" >&2
 }
 
-WT="$ROOT/main-guard-$short-$$"
-git -C "$REPO" worktree add -q --detach "$WT" "$sha" || exit 2
-trap 'git -C "$REPO" worktree remove --force "$WT" 2>/dev/null' EXIT
-trap 'exit 143' TERM INT HUP
-# Share the checkout's install when the lockfile matches and it is complete; otherwise ci-local
-# installs clean.
-if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_modules" ] && [ ! -L "$REPO/node_modules" ] \
-  && (cd "$REPO" && npm ls --depth=0 >/dev/null 2>&1); then
-  ln -s "$REPO/node_modules" "$WT/node_modules"
-fi
-echo "main-guard: checking $short $(git -C "$REPO" log -1 --format=%s "$sha" | cut -c1-80)"
-status pending "Main guard running"
-
-t0=$(date +%s)
-summary="$STATE/$short.md"
-# Each run can be replaced for tests (scripts/main-guard.test.sh): MAIN_GUARD_SUITE, MAIN_GUARD_SWEEP,
-# MAIN_GUARD_STRICT, MAIN_GUARD_PERF.
-run() { # <override> <log> <command...>
+# Each run can be replaced for tests (scripts/main-guard.test.sh): MAIN_GUARD_SUITE (writes $SUMMARY),
+# MAIN_GUARD_STRICT (writes $OUT/report.json) and MAIN_GUARD_PERF (prints budget lines, exit 1 on a breach).
+run() { # <override> <log> <command...>, in the worktree $WT
   local override="$1" log="$2"; shift 2
-  if [ -n "$override" ]; then (cd "$WT" && SUMMARY="$summary" bash -c "$override") >"$log" 2>&1
+  if [ -n "$override" ]; then (cd "$WT" && SUMMARY="$summary" OUT="$out" bash -c "$override") >"$log" 2>&1
   else (cd "$WT" && "$@") >"$log" 2>&1; fi
 }
-# The gate: local CI, and the sweep in fast mode, where findings seen only in seeded games are advisory.
-run "${MAIN_GUARD_SUITE:-}" "$STATE/$short.log" env CI_FULL=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$sha^1" --summary "$summary"
-ci_rc=$?
-run "${MAIN_GUARD_SWEEP:-}" "$STATE/$short.sweep.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --out "$STATE/sweep-$short"
-sweep_rc=$?
-# Findings, which never mark main red: the strict sweep (seed-only findings count too) and the
-# timing comparison with the previous main commit, both filed as issues for their owners.
-run "${MAIN_GUARD_STRICT:-}" "$STATE/$short.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$STATE/strict-$short"
-strict_rc=$?
-perf_rc=0
-if [ -n "${MAIN_GUARD_PERF:-}" ] || [ -f "$WT/scripts/perf/bench.js" ]; then
-  run "${MAIN_GUARD_PERF:-}" "$STATE/$short.perf.log" bash -c "timeout 1800 node scripts/perf/bench.js --software --cores 2 --quality low --scenes garage,floor --runs 3 --refs $sha^1,$sha --json $STATE/$short.perf.json && node scripts/perf/budget.js $STATE/$short.perf.json"
-  perf_rc=$?
-fi
-secs=$(( $(date +%s) - t0 ))
 
-failed=()
-[ $ci_rc -eq 0 ] || failed+=("$(grep -E '\| (FAIL|error)' "$summary" 2>/dev/null | cut -d'|' -f2 | tr -d ' ' | paste -sd, - || echo local-ci)")
-[ $sweep_rc -eq 0 ] || failed+=("sweep")
+# gate <commit>: runs the gate there. Sets ci_rc, gate_new (new sweep violations outside seeded games)
+# and seed_new (new ones only in seeded games), with the summary and logs under $STATE.
+gate() {
+  local c="$1" cs="${1:0:7}"
+  WT="$ROOT/main-guard-$cs-$$"
+  git -C "$REPO" worktree add -q --detach "$WT" "$c" || { ci_rc=2; gate_new=0; seed_new=0; return; }
+  if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_modules" ] && [ ! -L "$REPO/node_modules" ] \
+    && (cd "$REPO" && npm ls --depth=0 >/dev/null 2>&1); then
+    ln -s "$REPO/node_modules" "$WT/node_modules"
+  fi
+  summary="$STATE/$cs.md"; out="$STATE/strict-$cs"; mkdir -p "$out"
+  yield
+  run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
+  ci_rc=$?
+  run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
+  local counts
+  counts="$(node -e '
+    const fs = require("fs"); let r;
+    try { r = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); } catch { console.log("-1 0"); process.exit(0); }
+    const states = (v) => v.states ?? [v.state];
+    const seedOnly = (v) => states(v).every((s) => String(s).startsWith("seed:"));
+    const fresh = (r.violations ?? []).filter((v) => v.status === "new");
+    const lines = (list) => list.map((v) => `${v.key} (${states(v).join(", ")})`).join("\n");
+    fs.writeFileSync(process.argv[2], lines(fresh.filter((v) => !seedOnly(v))));
+    fs.writeFileSync(process.argv[3], lines(fresh.filter(seedOnly)));
+    console.log(`${fresh.filter((v) => !seedOnly(v)).length} ${fresh.filter(seedOnly).length}`);
+  ' "$out/report.json" "$STATE/$cs.gate-new.txt" "$STATE/$cs.seed-new.txt")"
+  gate_new="${counts% *}"; seed_new="${counts#* }"
+  git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
+  WT=""
+}
+red_steps() { # <short>: the failing parts of the gate just run
+  local cs="$1" parts=()
+  [ "$ci_rc" -eq 0 ] || parts+=("$(grep -E '\| (FAIL|error)' "$STATE/$cs.md" 2>/dev/null | cut -d'|' -f2 | tr -d ' ' | paste -sd, - | sed 's/^$/local-ci/')")
+  [ "$gate_new" = 0 ] || parts+=("sweep")
+  local IFS=', '; echo "${parts[*]}"
+}
+
+WT=""
+trap '[ -n "$WT" ] && git -C "$REPO" worktree remove --force "$WT" 2>/dev/null' EXIT
+trap 'exit 143' TERM INT HUP
+echo "main-guard: checking $short $(git -C "$REPO" log -1 --format=%s "$sha" | cut -c1-80)"
+status pending "Main guard running"
+t0=$(date +%s)
+gate "$sha"
+what="$(red_steps "$short")"
+secs=$(( $(date +%s) - t0 ))
 echo "$sha" >"$STATE/last"
 
 # One open issue per kind of finding: opened, commented on when the findings change, closed when clean.
-finding() { # <label> <description> <title> <rc> <log> <fingerprint regex>
-  local label="$1" desc="$2" title="$3" rc="$4" log="$5" re="$6"
+finding() { # <label> <description> <title> <failed: 0|1> <body file>
+  local label="$1" desc="$2" title="$3" failed="$4" bodyf="$5"
   [ $post = 1 ] || return 0
   local open; open="$(gh issue list --state open --label "$label" --json number --jq '.[0].number // ""')"
-  if [ "$rc" -eq 0 ]; then
+  if [ "$failed" = 0 ]; then
     [ -n "$open" ] && gh issue close "$open" --comment "Clean at $short." >/dev/null && echo "main-guard: closed #$open ($label)"
     rm -f "$STATE/$label.last"; return 0
   fi
-  local print; print="$(grep -E "$re" "$log" | sort | md5sum | cut -c1-12)"
+  local print; print="$(md5sum <"$bodyf" | cut -c1-12)"
   [ -n "$open" ] && [ "$(cat "$STATE/$label.last" 2>/dev/null)" = "$print" ] && return 0
   local body; body="$(mktemp)"
-  { echo "Main guard, \`$short\`: $title"; echo; echo '```'; tail -n 30 "$log"; echo '```'; } >"$body"
+  { echo "Main guard, \`$short\`: $title."; echo; echo '```'; cat "$bodyf"; echo '```'; } >"$body"
   gh label create "$label" --color fbca04 --description "$desc" >/dev/null 2>&1
   if [ -n "$open" ]; then gh issue comment "$open" --body-file "$body" >/dev/null && echo "main-guard: updated #$open ($label)"
   else gh issue create --title "$title at $short" --label "$label" --body-file "$body" >/dev/null && echo "main-guard: opened a $label issue"; fi
   echo "$print" >"$STATE/$label.last"; rm -f "$body"
 }
-if [ $sweep_rc -eq 0 ]; then
-  finding sweep-finding "Scene sweep findings from the main guard (owner: art)" "new scene sweep findings in seeded games" "$strict_rc" "$STATE/$short.strict.log" 'NEW|new'
+if [ "$gate_new" = 0 ]; then
+  finding sweep-finding "Scene sweep findings from the main guard (owner: art)" "new scene sweep violations seen only in seeded games" \
+    "$([ "$seed_new" = 0 ] && echo 0 || echo 1)" "$STATE/$short.seed-new.txt"
 fi
-finding perf-regression "Timing regressions found by the main guard" "a timing regression against the previous main commit" "$perf_rc" "$STATE/$short.perf.log" '>|x[0-9]|budget|ratio'
 
-if [ ${#failed[@]} -eq 0 ]; then
+# Timing against the previous main commit: at most once per PERF_EVERY seconds, filed after two bad
+# runs in a row. perf's bench pins and nices itself, so it runs under timeout only.
+now=$(date +%s)
+if [ $(( now - $(cat "$STATE/perf-at" 2>/dev/null || echo 0) )) -ge "$PERF_EVERY" ] \
+  && { [ -n "${MAIN_GUARD_PERF:-}" ] || git -C "$REPO" cat-file -e "$sha:scripts/perf/bench.js" 2>/dev/null; }; then
+  echo "$now" >"$STATE/perf-at"
+  yield
+  WT="$ROOT/main-guard-perf-$short-$$"
+  if git -C "$REPO" worktree add -q --detach "$WT" "$sha"; then
+    [ -d "$REPO/node_modules" ] && [ ! -L "$REPO/node_modules" ] && ln -s "$REPO/node_modules" "$WT/node_modules"
+    summary=""; out=""
+    run "${MAIN_GUARD_PERF:-}" "$STATE/$short.perf.log" bash -c "timeout 1200 node scripts/perf/bench.js --software --cores 2 --quality low --scenes garage,floor --runs 3 --seconds 5 --refs '$sha^1,$sha' --json '$STATE/$short.perf.json' > '$STATE/$short.perf.txt' 2>&1; node scripts/perf/budget.js '$STATE/$short.perf.json'"
+    perf_rc=$?
+    git -C "$REPO" worktree remove --force "$WT" 2>/dev/null; WT=""
+    if [ $perf_rc -eq 0 ]; then streak=0; else streak=$(( $(cat "$STATE/perf-streak" 2>/dev/null || echo 0) + 1 )); fi
+    echo "$streak" >"$STATE/perf-streak"
+    echo "main-guard: timing $([ $perf_rc -eq 0 ] && echo "within budget" || echo "over budget, $streak run(s) in a row")"
+    perf_body="$STATE/$short.perf.issue"
+    { grep -E 'FAIL|x[0-9]' "$STATE/$short.perf.log"; echo; head -n 1 "$STATE/$short.perf.txt" 2>/dev/null; grep -E 'render' "$STATE/$short.perf.txt" 2>/dev/null; } >"$perf_body"
+    if [ $perf_rc -eq 0 ]; then finding perf-regression "Timing regressions found by the main guard" "a timing regression against the previous main commit" 0 "$perf_body"
+    elif [ "$streak" -ge 2 ]; then finding perf-regression "Timing regressions found by the main guard" "a timing regression against the previous main commit, in $streak runs in a row" 1 "$perf_body"; fi
+  fi
+fi
+
+if [ -z "$what" ]; then
   echo "main-guard: $short PASS in ${secs}s"
+  echo "$sha" >"$STATE/last-green"
   status success "Full suite and sweep pass (${secs}s)"
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
@@ -122,19 +207,41 @@ if [ ${#failed[@]} -eq 0 ]; then
   exit 0
 fi
 
-what="$(IFS=', '; echo "${failed[*]}")"
 echo "main-guard: $short FAIL ($what) in ${secs}s"
 status failure "Red: $what"
+red_ci_rc=$ci_rc; red_gate_new=$gate_new
+
+# Merges since the last green commit were skipped: bisect them to name the first red one.
+first_red=""
+green="$(cat "$STATE/last-green" 2>/dev/null)"
+if [ -n "$green" ] && git -C "$REPO" merge-base --is-ancestor "$green" "$sha" 2>/dev/null; then
+  mapfile -t range < <(git -C "$REPO" rev-list --first-parent --reverse "$green..$sha")
+  lo=0; hi=$(( ${#range[@]} - 1 ))
+  if [ "$hi" -gt 0 ]; then
+    echo "main-guard: bisecting ${#range[@]} merges since the last green ${green:0:7}"
+    while [ $lo -lt $hi ]; do
+      mid=$(( (lo + hi) / 2 ))
+      gate "${range[$mid]}"
+      if [ -z "$(red_steps "${range[$mid]:0:7}")" ]; then lo=$((mid + 1)); else hi=$mid; fi
+    done
+  fi
+  [ "${#range[@]}" -gt 0 ] && first_red="${range[$lo]}"
+  [ -n "$first_red" ] && echo "main-guard: first red merge ${first_red:0:7}"
+fi
+ci_rc=$red_ci_rc; gate_new=$red_gate_new
 [ $post = 1 ] || exit 1
 body="$(mktemp)"
 {
   echo "Main guard: \`$short\` ($(git -C "$REPO" log -1 --format=%s "$sha")) is red: **$what**."
-  echo
-  [ -s "$summary" ] && { cat "$summary"; echo; }
-  if [ $sweep_rc -ne 0 ]; then
-    echo "Sweep:"; echo; echo '```'; tail -n 15 "$STATE/$short.sweep.log"; echo '```'
+  if [ -n "$first_red" ]; then
+    echo; echo "First red merge since the last green \`${green:0:7}\`: \`${first_red:0:7}\` ($(git -C "$REPO" log -1 --format=%s "$first_red"))."
   fi
-  if [ $ci_rc -ne 0 ]; then
+  echo
+  [ -s "$STATE/$short.md" ] && { cat "$STATE/$short.md"; echo; }
+  if [ "$gate_new" != 0 ]; then
+    echo "New sweep violations outside seeded games:"; echo; echo '```'; cat "$STATE/$short.gate-new.txt"; echo '```'
+  fi
+  if [ "$ci_rc" -ne 0 ]; then
     echo; echo "Local CI, last lines:"; echo; echo '```'; tail -n 25 "$STATE/$short.log"; echo '```'
   fi
 } >"$body"

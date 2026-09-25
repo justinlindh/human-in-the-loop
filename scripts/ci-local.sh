@@ -161,11 +161,11 @@ render_step() { # <name> <gpu|software> <command>
 step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' 'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs' 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 # Renderer counts (draw calls, triangles, programs, textures) against scripts/perf/budget.json: exact
-# on any machine, so they can gate. A production build per run, measured on a GPU slot.
+# on any machine, so they can gate; timing is never checked here. A production build per run, on a GPU slot.
 perf_budget() {
   [ -f scripts/perf/bench.js ] || { echo "no scripts/perf in this tree"; return 0; }
-  node scripts/perf/bench.js --gpu --scenes garage,floor --quality low,high --runs 1 --warmup 1 --seconds 2 --json "$LOGS/perf.json" \
-    && node scripts/perf/budget.js "$LOGS/perf.json"
+  timeout 600 node scripts/perf/bench.js --scenes garage,floor,hq,music --quality low,high --runs 1 --warmup 2 --seconds 1 --json "$LOGS/perf-counts.json" \
+    && node scripts/perf/budget.js "$LOGS/perf-counts.json" --counts-only
 }
 step perf-budget perf_budget
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
