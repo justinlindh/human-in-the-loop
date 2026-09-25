@@ -13,7 +13,9 @@ import { mat } from './materials.js';
 
 const POP_S = 0.22, GONE_S = 0.18;
 
-export function createProps(office) {
+const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
+
+export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }
   const dropped = new Set(); // keys whose desk was sold: not rebuilt while the sim still lists them
   let root = null;
@@ -35,6 +37,9 @@ export function createProps(office) {
       live.clear();
       root = cur.root;
     }
+    // A 'screens' prop takes over every monitor while its decision is open.
+    const st = state.pendingDecision?.stage;
+    screens?.setOverlay(st?.anchor === 'screens' ? SCREEN_OVERLAYS[st.prop] ?? null : null);
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));
     for (const [k, e] of live) if (!keys.has(k) && !e.gone) { e.gone = true; e.t = 0; }
@@ -46,7 +51,7 @@ export function createProps(office) {
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
       if (!obj) continue;
-      obj.scale.setScalar(0.001);
+      if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
       live.set(w.key, { obj, t: 0, gone: false });
     }
@@ -55,11 +60,17 @@ export function createProps(office) {
   function update(dt) {
     for (const [k, e] of live) {
       e.t += dt;
+      e.obj.userData.tick?.(dt);
       const f = e.obj.userData.follow;
       if (f && !e.gone) {
         const desk = office.placed?.get(f.deskId);
         if (desk) follow(e.obj, desk);
         else { e.gone = true; e.t = 0; dropped.add(k); }
+      }
+      // Effects are built in office coordinates and fade on their own: no pop, no shrink.
+      if (e.obj.userData.noPop) {
+        if (e.gone) { dispose(e.obj); live.delete(k); }
+        continue;
       }
       if (e.gone) {
         const q = Math.min(1, e.t / GONE_S);
@@ -72,7 +83,7 @@ export function createProps(office) {
     }
   }
 
-  return { sync, update, get ids() { return Object.keys(BUILDERS); } };
+  return { sync, update, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
@@ -525,6 +536,91 @@ function visitorChair() {
   return m;
 }
 
+
+// Effects on existing furniture: soft rising puffs (smoke, heat) from the item on the anchor tile.
+let puffTex = null;
+function puffTexture() {
+  if (puffTex) return puffTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g.addColorStop(0, 'rgba(255,255,255,0.95)');
+  g.addColorStop(0.6, 'rgba(255,255,255,0.45)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  puffTex = new THREE.CanvasTexture(c);
+  return puffTex;
+}
+// The item standing on the anchor tile (or the nearest one of the given kinds), as a world box.
+function itemAt(L, anchor, office, kinds = null) {
+  const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+  let best = null, bestD = Infinity;
+  for (const e of office.placed?.values() ?? []) {
+    if (kinds && !kinds.some((k) => e.itemId.includes(k))) continue;
+    const f = footprint(e.itemId, e.rot ?? 0);
+    const covers = anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h;
+    const d = covers ? -1 : Math.hypot(e.target.x - c.x, e.target.z - c.z);
+    if (d < bestD) { bestD = d; best = e; }
+  }
+  if (!best || (!kinds && bestD > 0)) return { box: new THREE.Box3(new THREE.Vector3(c.x - 0.3, 0, c.z - 0.3), new THREE.Vector3(c.x + 0.3, 0.6, c.z + 0.3)) };
+  return { box: new THREE.Box3().setFromObject(best.obj), entry: best };
+}
+// n puffs rising `rise` metres from the top of box over `life` seconds, looping, staggered.
+function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size = 0.35, opacity = 0.55, spread = 0.2 } = {}) {
+  const g = new THREE.Group();
+  const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
+  const parts = [];
+  for (let i = 0; i < n; i++) {
+    const m = own(new THREE.SpriteMaterial({ map: puffTexture(), color: new THREE.Color(color), transparent: true, opacity: 0, depthWrite: false }));
+    const sp = new THREE.Sprite(m);
+    sp.userData.noAO = true;
+    parts.push({ sp, t0: (i / n) * life, dx: Math.sin(i * 2.4) * spread, dz: Math.cos(i * 1.7) * spread });
+    g.add(sp);
+  }
+  let t = 0;
+  g.userData.tick = (dt) => {
+    t += dt;
+    for (const p of parts) {
+      const q = ((t + p.t0) % life) / life;
+      p.sp.position.set(top.x + p.dx * q, top.y + 0.05 + q * rise, top.z + p.dz * q);
+      p.sp.scale.setScalar(size * (0.5 + q * 1.3));
+      p.sp.material.opacity = opacity * Math.min(1, q * 5) * (1 - q);
+    }
+  };
+  g.userData.tick(0);
+  g.userData.noPop = true;
+  return g;
+}
+// Something is burning (the toaster, the demo): grey smoke from the item on the anchor tile.
+function smokePuff(L, anchor, env) {
+  // Dark enough to read against the cream walls behind most counters.
+  return puffs(itemAt(L, anchor, env.office).box, { color: P.metal_dark, size: 0.5, opacity: 0.75, rise: 1.4 });
+}
+// The server rack is running hot: a pulsing orange glow over its front and heat rising off the top.
+function rackHot(L, anchor, env) {
+  const { box } = itemAt(L, anchor, env.office, ['rack']);
+  const g = new THREE.Group();
+  const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2 });
+  g.add(heat);
+  const size = box.getSize(new THREE.Vector3()), mid = box.getCenter(new THREE.Vector3());
+  const glowMat = own(new THREE.SpriteMaterial({ map: puffTexture(), color: new THREE.Color(P.marker_orange), transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const glow = new THREE.Sprite(glowMat);
+  glow.position.copy(mid);
+  glow.scale.set(Math.max(size.x, size.z) * 2.2, size.y * 1.6, 1);
+  glow.userData.noAO = true;
+  g.add(glow);
+  let t = 0;
+  g.userData.tick = (dt) => {
+    t += dt;
+    heat.userData.tick(dt);
+    glowMat.opacity = 0.45 + 0.25 * Math.sin(t * 4);
+  };
+  g.userData.noPop = true;
+  return g;
+}
+
 const BUILDERS = {
   picture_pingpong: wallPrint(pingPongPicture(false)),
   picture_pingpong_ball: wallPrint(pingPongPicture(true)),
@@ -547,4 +643,6 @@ const BUILDERS = {
   pet_carrier: onFloor(petCarrier, { x: 1.0, z: 0.2, rot: -0.5, scale: 1.2 }),
   cable_chewed: onFloor(cableChewed, { x: 0.2, z: 0.05, rot: 0, scale: 1.4 }),
   visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
+  smoke_puff: smokePuff,
+  rack_hot: rackHot,
 };

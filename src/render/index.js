@@ -115,7 +115,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
     office = createOffice({ parent: scene, screens, lighting });
-    props = createProps(office);
+    props = createProps(office, screens);
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
