@@ -150,6 +150,7 @@ g -C "$repo" checkout -q -b video/reel
 lane_ok "$repo/scripts/capture-manifest.js" video
 lane_ok "$repo/scripts/feature-media/build.sh" video
 lane_ok "$repo/scripts/reels/nods.sh" video
+lane_ok "$repo/docs/reels.md" video
 lane_ok "$repo/docs/toolkit.md" video
 lane_no "$repo/scripts/capture.js" "video, the capture engine"
 lane_no "$repo/src/render/index.js" "video, render code"
