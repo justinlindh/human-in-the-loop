@@ -113,7 +113,7 @@ Temporary members join for one job and leave (the landing page, for one). Lanes 
 
 ### The human in this loop
 
-The one human is the designer and producer. They talk only to team-lead, in plain language: "the Yak window is still tiny", "this is 2020, why is standup talking about agents?", "make the sledgehammer parody the 1984 ad". The lead turns each note into a GitHub issue, routes it to the lane that owns it, and keeps passing ideas ranked in a pinned backlog issue.
+The one human is the designer and producer, and a veteran professional software engineer. Letting the agents write almost everything is a deliberate choice, not a gap in skills: the experience shows up in how the work is steered, split, gated and reviewed rather than in commits. They talk only to team-lead, in plain language: "the Yak window is still tiny", "this is 2020, why is standup talking about agents?", "make the sledgehammer parody the 1984 ad". The lead turns each note into a GitHub issue, routes it to the lane that owns it, and keeps passing ideas ranked in a pinned backlog issue.
 
 Anything that needs human eyes or ears goes on a **review desk**: a private page, built as a Claude artifact, with one card per question. A card carries the clip, screenshot or audio, a summary of what changed, and either Good / Needs work / Cut or a set of options to pick from. The human works through it whenever they like, from a desk or a phone. The lead reads the answers from the page's database, dispatches them to the lanes, records each pick on its issue so the reviewer can check the PR against it, and marks the card resolved. Voice lines for the trailer get approved one clip at a time, in chat, before any video uses them.
 
