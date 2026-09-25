@@ -37,5 +37,15 @@ describe('popup spacing', () => {
     s.tick(16, true, false);          // the close is counted here
     expect(s.ready()).toBe(false);
   });
+
+  it('stops holding after four game weeks, even with less than 30 s of play (high speed)', () => {
+    const s = createSpacing({ gap: 30000, maxWeeks: 4 });
+    s.tick(16, true, true, 10); s.tick(16, true, false, 10);
+    s.tick(8000, true, false, 13);
+    expect(s.ready()).toBe(false);
+    s.tick(2000, true, false, 14);   // 10 s of play, 4 weeks later
+    expect(s.ready()).toBe(true);
+    expect(s.waitMs).toBe(0);
+  });
 });
 

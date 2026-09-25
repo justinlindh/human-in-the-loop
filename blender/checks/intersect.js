@@ -37,6 +37,9 @@ function solidMeshes(obj) {
     if (o.userData.staffId !== undefined) return;
     // A window sill hidden behind tall furniture (office.js) is not there.
     if (o.userData.sill && !o.visible) return;
+    // Nor is a staged prop the renderer has hidden (the spare chair a visitor does not use). Batched
+    // furniture hides its own meshes too, so only a hidden prop counts, not any hidden mesh.
+    for (let x = o; x; x = x.parent) if (x.userData.propId && !x.visible) return;
     const m = Array.isArray(o.material) ? o.material[0] : o.material;
     if (m && (m.transparent && m.opacity < 0.6 || m.depthWrite === false || m.blending === THREE.AdditiveBlending)) return;
     out.push(o);

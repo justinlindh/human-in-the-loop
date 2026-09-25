@@ -12,6 +12,7 @@
     "test:fast": "vitest run --exclude tests/sim/balance.test.js",
     "test:balance": "vitest run tests/sim/balance.test.js",
     "ci": "bash scripts/ci-local.sh",
+    "gates": "bash scripts/gates.sh",
     "balance": "node scripts/balance.js",
     "snap": "node scripts/snap.js",
     "pace": "node scripts/pace.js",

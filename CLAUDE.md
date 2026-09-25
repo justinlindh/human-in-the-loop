@@ -27,10 +27,15 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | team-lead | coordination | the main checkout | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
 | integrator | integration | the main checkout (branch `main`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `main` |
 | sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
-| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
+| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/`, `docs/readme/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
+| video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
+| audio | sound | `../gamedev-audio` | `public/audio/`, `src/audio/` (shared with ui), `scripts/trailer/`, `docs/trailer/`, `docs/readme/`; music, sound effects, voice and masters |
+| tools | checks | `../gamedev-tools` | `blender/checks/`, `scripts/events/` |
+| perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
 | reviewer | review and playtest | any (read-only) | nothing |
 
+- When a permanent member joins or leaves, update this table and the team table in `README.md` in the same PR.
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
 - Anything that needs the user's eyes or ears (a clip, an audio pick, a visual change they asked for, a decision only they can make) goes to team-lead with the media files and the question. team-lead puts it on the user's review desk and tells them it's there. Don't only mention it in a report.
@@ -39,6 +44,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - When your change alters something other lanes use (a tool or check, a harness, a shared helper, CI, the contract, or a convention), list the affected teammates in the PR's Affects section. When it merges, message each of them: what changed, and what they should do (merge `main`, switch commands, stop a workaround).
 - Before starting each new task, merge `origin/main` into your working branch, then skim what changed in the tooling since your last sync (`git log --oneline <last-sync>..origin/main -- scripts blender/checks docs/toolkit.md src/contract`). Reach for new tools before hand-rolled ones.
 - Every instruction or status message names the PR and head (or issue) it's about. An update restates the whole current ask rather than adding a delta. Before stopping another agent's job, or when you do, send it a one-line notice.
+- Never use `git stash`: every worktree shares one stash stack, so two lanes stashing at once swap each other's work. To set changes aside, commit them to a scratch branch, or copy the files to your scratchpad.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
 - Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with one short line. team-lead replies with cross-lane news and the go-ahead for the next task.
 - Before a report or an action that depends on a PR's state, check it live (`scripts/pr-status.sh`, or `gh pr view <n>`). Messages cross, so an instruction or a status you received may already be out of date. Report only what changed since your last report: new PRs, new results, and decisions you need.

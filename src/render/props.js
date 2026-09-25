@@ -23,10 +23,13 @@ export function createProps(office, screens = null) {
   const gone = [];          // { prop, x, z, at }: props that just went, for a few seconds (a pet leaving its carrier)
   let root = null;
 
+  // What is staged now: the open decision's stage, and those of open Yak prompts (an event delivered
+  // as a prompt stages its prop exactly as behind a card).
+  const stages = (state) => [state.pendingDecision?.stage, ...(state.chatPrompts ?? []).filter((c) => !c.resolved).map((c) => c.stage)].filter((st) => st?.prop);
+
   function wanted(state) {
     const out = [];
-    const st = state.pendingDecision?.stage;
-    if (st?.prop && BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
+    for (const st of stages(state)) if (BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
     for (const p of state.office?.props ?? []) if (BUILDERS[p.prop]) out.push({ key: `prop|${p.id}|${p.prop}`, ...p });
     return out;
   }
@@ -40,9 +43,9 @@ export function createProps(office, screens = null) {
       live.clear();
       root = cur.root;
     }
-    // A 'screens' prop takes over every monitor while its decision is open.
-    const st = state.pendingDecision?.stage;
-    overlay = st?.anchor === 'screens' ? SCREEN_OVERLAYS[st.prop] ?? null : null;
+    // A 'screens' prop takes over every monitor while its decision or prompt is open.
+    const st = stages(state).find((x) => x.anchor === 'screens');
+    overlay = st ? SCREEN_OVERLAYS[st.prop] ?? null : null;
     screens?.setOverlay(overlay);
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));
@@ -67,9 +70,13 @@ export function createProps(office, screens = null) {
   }
 
   // Props standing on the floor block walking while they are up (office.setPropObstacles).
+  // Objects a staged moment keeps on the floor after their prop has gone block walking too (pin).
+  const pinned = new Map();
   function pushObstacles() {
-    office.setPropObstacles?.([...live.values()].filter((e) => !e.gone && e.obj.userData.rect).map((e) => e.obj.userData.rect));
+    office.setPropObstacles?.([...live.values()].filter((e) => !e.gone && e.obj.userData.rect).map((e) => e.obj.userData.rect).concat([...pinned.values()]));
   }
+  function pin(obj) { pinned.set(obj, floorRect(obj)); pushObstacles(); }
+  function unpin(obj) { if (pinned.delete(obj)) pushObstacles(); }
 
   function update(dt) {
     clock += dt;
@@ -119,7 +126,7 @@ export function createProps(office, screens = null) {
 
   // For checks: a counter's free grids for a prop this tall, one per level, as rows of '.' and '#'.
   const counterMap = (e, tall) => counterGrid(e, tall).map((g) => { const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.free[i + k * g.nx] ? '.' : '#'; rows.push(r); } return { y: g.y, rows }; });
-  return { sync, update, objectOf, current, deskMap, counterMap, goneAt, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  return { sync, update, objectOf, current, deskMap, counterMap, goneAt, pin, unpin, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
@@ -1000,6 +1007,8 @@ const printerScreen = () => cardTex('pcload', 256, 48, (ctx, W, H) => {
 });
 // The printer model on its own (moments.js carries one out the door).
 export function printerModel() { return printerBody(false); }
+// The visitor's chair, for a moment that keeps it after the staged prop has gone.
+export function visitorChairModel() { return visitorChair(); }
 function printerBody(broken = false) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(0.62, 0.36, 0.5, 0.05, 3), mat('pot_cream'), 0, 0.18, 0));
@@ -1051,18 +1060,17 @@ function printerWrecked() {
   g.add(bat);
   return g;
 }
-// Out the door on the ground: the driveway, the campus. The Office Floor is a storey up with its
-// street out of view, so there the pieces lie inside, a little way in from the door.
+// Inside, a little way in from the door: where the printer was taken to be smashed.
 const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
 const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
-function outside(build, scale = 1) {
+function byDoor(build, scale = 1) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
     const item = build();
     item.scale.setScalar(scale);
     g.add(item);
     const d = L.doorWorld;
-    if (L.name === 'Office Floor') {
+    {
       // In from the door, clear of the cut-away front wall and away from the columns, so the smash
       // that leaves it shows from either side.
       const cols = (L.blocked ?? []).map(([bx, by]) => ({ x: bx + 0.5 - L.W / 2, z: by + 0.5 - L.D / 2 }));
@@ -1076,9 +1084,6 @@ function outside(build, scale = 1) {
       }
       g.position.set(p.x, 0, p.z);
       g.userData.blocks = true;
-    } else {
-      const out = Math.abs(d.z) >= L.D / 2 - 1.2 ? [0, Math.sign(d.z)] : [Math.sign(d.x), 0];
-      g.position.set(d.x + out[0] * 2.2 + out[1] * 1.2, -0.3, d.z + out[1] * 2.2 - out[0] * 1.2);
     }
     g.rotation.y = 0.4;
     return g;
@@ -1305,7 +1310,7 @@ const BUILDERS = {
   cover_sheets: atDesk(coverSheets, FLAT),
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
   printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
-  printer_wrecked: outside(printerWrecked, 1.2),
+  printer_wrecked: byDoor(printerWrecked, 1.2),
   printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
   whiteboard_scrawl: whiteboardScrawl,
   mug_pile: atDesk(mugPile, { x: 0.2, z: -0.25, rot: 0.3, scale: 1.1, sprawl: true }),
