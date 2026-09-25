@@ -402,4 +402,51 @@ describe('audio director', () => {
     expect(ON_EVENT.posted({ outcome: 'flat' })).toBeNull();
     expect(cues('landed')).toContain('sfx.reward');
   });
+
+  describe('office space nods', () => {
+    const withProps = (props) => ({ ...state(), office: { ...(state().office ?? {}), props: props.map((prop, i) => ({ id: `pp${i}`, prop })) } });
+    const run = (d, props, t) => d.update(withProps(props), t, { speed: 1, running: true });
+    const has = (cmds, pred) => cmds.some(pred);
+
+    // Each case sets the asset entries it needs, so the real manifest's contents never matter.
+    const withSfx = (entries, fn) => {
+      const saved = ASSETS.sfx;
+      ASSETS.sfx = { ...(saved ?? {}) };
+      for (const k of ['stapler', 'memo', 'banner', 'printer_smash', 'printer_beep']) delete ASSETS.sfx[k];
+      Object.assign(ASSETS.sfx, entries);
+      try { fn(); } finally { ASSETS.sfx = saved; }
+    };
+
+    it('stay silent until their files are delivered', () => withSfx({}, () => {
+      const d = createDirector();
+      run(d, [], 0);
+      const cmds = [...run(d, ['stapler', 'cover_sheets', 'banner_company', 'printer_jammed'], 1), ...run(d, ['printer_wrecked'], 2)];
+      expect(has(cmds, (c) => ['sfx.stapler', 'sfx.memo', 'sfx.banner', 'sfx.printerSmash'].includes(c.cue))).toBe(false);
+      expect(has(cmds, (c) => c.op === 'loop' && c.id === 'sfx/printer_beep')).toBe(false);
+    }));
+
+    it('play on props arriving and leaving once delivered, with the printer beep looping while jammed', () => withSfx(
+      Object.fromEntries(['stapler', 'memo', 'banner', 'printer_smash', 'printer_beep'].map((k) => [k, { file: `sfx/office/${k}.ogg` }])), () => {
+        const d = createDirector();
+        run(d, [], 0);
+        const a = run(d, ['stapler', 'cover_sheets', 'banner_company', 'printer_jammed'], 1);
+        expect(a.filter((c) => c.op === 'play').map((c) => c.cue).sort()).toEqual(['sfx.banner', 'sfx.memo', 'sfx.stapler']);
+        expect(a.find((c) => c.op === 'loop' && c.id === 'sfx/printer_beep').gain).toBeGreaterThan(0);
+        // The choice clears the jammed printer and stages the wreck: the beep stops, and on Medium and
+        // High there is no crash (the smash moment's cue has the hits).
+        const b = run(d, ['stapler', 'printer_wrecked'], 2);
+        expect(b.find((c) => c.op === 'loop' && c.id === 'sfx/printer_beep').gain).toBe(0);
+        expect(b.some((c) => c.cue === 'sfx.printerSmash')).toBe(false);
+        // Any moment playing keeps the beep quiet.
+        run(d, ['stapler'], 3);
+        d.moment({ phase: 'start', key: 'printer_jam', id: 'printer_jam-1' }, 4);
+        expect(run(d, ['stapler', 'printer_jammed'], 5).find((c) => c.op === 'loop' && c.id === 'sfx/printer_beep')).toBeUndefined();
+        // On Low, where there is no moment, the wreck appearing plays the crash.
+        const low = createDirector();
+        low.setQuality('low');
+        run(low, ['printer_jammed'], 0);
+        expect(run(low, ['printer_wrecked'], 1).some((c) => c.cue === 'sfx.printerSmash')).toBe(true);
+      }));
+  });
 });
+

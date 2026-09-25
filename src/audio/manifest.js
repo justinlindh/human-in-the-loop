@@ -48,6 +48,12 @@ export const CUES = {
   'sfx.fixed': { bus: 'sfx', files: ['sfx/fixed'], cooldown: 5, priority: 6 },
   'sfx.door': { bus: 'sfx', files: ['sfx/door'], cooldown: 3, priority: 3, gain: 0.7 },
   'sfx.move': { bus: 'sfx', files: ['sfx/move'], cooldown: 0.2, priority: 3 },
+  // The Office Space nods (#468). `delivered` cues play only once their file ships; until then
+  // they stay silent rather than use a synthesized stand-in.
+  'sfx.printerSmash': { bus: 'sfx', files: ['sfx/printer_smash'], cooldown: 2, priority: 6, delivered: true },
+  'sfx.stapler': { bus: 'sfx', files: ['sfx/stapler'], cooldown: 0.5, priority: 3, gain: 0.8, delivered: true },
+  'sfx.memo': { bus: 'ui', files: ['sfx/memo'], cooldown: 1, priority: 3, gain: 0.8, delivered: true },
+  'sfx.banner': { bus: 'sfx', files: ['sfx/banner'], cooldown: 2, priority: 3, gain: 0.8, delivered: true },
   'sfx.foosball': { bus: 'sfx', files: ['sfx/foosball'], cooldown: 25, priority: 2, gain: 0.6 },
   'sfx.arcade': { bus: 'sfx', files: ['sfx/arcade'], cooldown: 25, priority: 2, gain: 0.6 },
   'sfx.pingpong': { bus: 'sfx', files: ['sfx/pingpong'], cooldown: 25, priority: 2, gain: 0.6 },
@@ -132,6 +138,18 @@ export const PLAYLIST_LOOKAHEAD_S = 0.5; // how early the switch is scheduled be
 export const MOMENT_CUES = {
   printer_jam: { eventId: 'printer_jam', file: 'moments/printer_smash', gain: 0.9 },
 };
+// Office Space nods, from the props the sim stages (state.office.props): a prop arriving or leaving
+// plays its cue. The jammed printer also beeps on a loop while it sits in the kitchen (it leaves props
+// when its decision closes), quiet while paused or while any moment plays.
+export const OFFICE_PROP_CUES = {
+  stapler: { on: 'sfx.stapler', off: 'sfx.stapler' },
+  cover_sheets: { on: 'sfx.memo' },
+  banner_company: { on: 'sfx.banner' },
+  // The wreck is staged at the choice; on Medium and High the smash moment's cue carries the hits,
+  // so the crash is for Low, where there is no moment and the wreck just appears.
+  printer_wrecked: { on: 'sfx.printerSmash', lowOnly: true },
+};
+export const OFFICE_PROP_LOOPS = { printer_jammed: { id: 'sfx/printer_beep', bus: 'sfx', gain: 0.5 } };
 export const PLAYLIST_PRELOAD_S = 30;   // how long before a projected switch the next bed starts decoding
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
