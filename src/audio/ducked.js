@@ -90,6 +90,22 @@ export function createDucked(ctx, loader, { mix, out, run, later = setTimeout })
         startSource(pb, Math.max(ctx.currentTime, pb.startAt));
       }
     },
+    // Stops pausable playbacks whose command matches, now, and ends their ducks.
+    stop(match) {
+      const now = ctx.currentTime;
+      for (const pb of [...active]) {
+        if (!match(pb.c)) continue;
+        try { pb.src?.stop(now); } catch { /* not started yet */ }
+        mix.endHold(pb.holdId, now);
+        queue = queue.filter((q) => q.owner !== pb);
+        active.delete(pb);
+      }
+    },
+    // Where each matching pausable playback is in its buffer, in seconds, and whether it is paused.
+    positions(match) {
+      const now = ctx.currentTime;
+      return [...active].filter((pb) => match(pb.c)).map((pb) => ({ c: pb.c, paused: pb.paused, at: pb.paused || !pb.src ? pb.offset : pb.offset + Math.max(0, now - pb.startAt) }));
+    },
     get paused() { return paused; },
   };
 }

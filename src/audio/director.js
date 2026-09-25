@@ -10,12 +10,14 @@
 //   { op: 'dance', file, gain, at, duck, expect, after }  a music night track (see musicNight)
 //   { op: 'dancePause', paused }                   stop or resume the dance track and its cheer
 //   { op: 'preload', ids }                         start loading assets that will be needed soon
+//   { op: 'moment', file, id, gain, at, duck }     a staged moment's cue; pauses with the dance track
+//   { op: 'momentStop', id }                       its moment ended or was cut short
 //   { op: 'stopAll', bus }
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -80,12 +82,13 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
-  // The playlist's next bed is chosen when the current one starts and preloaded at once, so its
-  // file is decoded by the time its bar line comes round.
+  // The playlist's next bed is chosen when the current one starts. It is preloaded PLAYLIST_PRELOAD_S
+  // before the projected switch, so only one decoded bed is held for most of a bed's run.
   function pickNext(beds) {
     const others = beds.filter((b) => b !== music.bed);
     music.nextBed = others.length ? pick(others) : null;
-    return music.nextBed ? [{ op: 'preload', ids: [`music/${music.nextBed}`] }] : [];
+    music.nextLoading = false;
+    return [];
   }
   const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(rng() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; } return arr; };
 
@@ -268,6 +271,12 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       if (beds.length > 1 && !hold && !stopped) {
         music.heard += dt;
         const len = bedSeconds(music.era, music.bed);
+        // The switch lands on the first loop boundary after PLAYLIST_MIN_S of listening.
+        if (len > 0 && music.nextBed && !music.nextLoading) {
+          const reach = t + Math.max(0, PLAYLIST_MIN_S - music.heard);
+          const switchAt = music.bedAt + Math.ceil((reach - music.bedAt) / len) * len;
+          if (switchAt - t <= PLAYLIST_PRELOAD_S) { music.nextLoading = true; out.push({ op: 'preload', ids: [`music/${music.nextBed}`] }); }
+        }
         if (music.heard >= PLAYLIST_MIN_S && len > 0) {
           const boundary = music.bedAt + Math.ceil((t - music.bedAt) / len) * len;
           if (boundary - t <= PLAYLIST_LOOKAHEAD_S) {
@@ -283,10 +292,13 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       const dp = !!(hold || stopped);
       if (dp !== music.dancePaused) { music.dancePaused = dp; out.push({ op: 'dancePause', paused: dp }); }
       // The genre pick for a music night: start loading the tracks so the real one plays.
-      if (!music.preloaded && isMusicNightDecision(state?.pendingDecision)) {
-        music.preloaded = true;
-        out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
-      }
+      // A decision that can stage a cued moment: load the cue while the player reads it.
+      const cue = Object.values(MOMENT_CUES).find((m) => m.eventId === state?.pendingDecision?.eventId);
+      if (cue && music.momentLoaded !== cue.file) { music.momentLoaded = cue.file; out.push({ op: 'preload', ids: [cue.file] }); }
+      // Each music night's pick loads them again: the tracks leave memory once one has played.
+      const nightPick = isMusicNightDecision(state?.pendingDecision);
+      if (nightPick && !music.preloaded) out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
+      music.preloaded = nightPick;
       // The typing bed: quiet, scaled by how many people are at their desks working; off while
       // paused, in lockdown, on the title, and on Low.
       const working = (state?.staff ?? []).filter((p) => p.mood !== 'away' && !p.remote && ['project', 'maintenance', 'support', 'security', 'sales', 'marketing'].includes(p.assignment?.type)).length;
@@ -329,6 +341,15 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
         }
       }
       return out;
+    },
+
+    // hitl:moment from the renderer: a moment with a cue starts it, its end stops it.
+    moment(detail, t) {
+      const m = MOMENT_CUES[detail?.key];
+      if (!m || !detail.id) return [];
+      if (detail.phase === 'start') return [{ op: 'moment', cue: `moment.${detail.key}`, file: m.file, id: detail.id, bus: 'sfx', gain: m.gain, at: t, duck: 'dance' }];
+      if (detail.phase === 'end') return [{ op: 'momentStop', id: detail.id }];
+      return [];
     },
 
     get musicState() { return { ...music }; },

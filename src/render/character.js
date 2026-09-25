@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -59,6 +59,7 @@ function ringMaterial(role, hex) {
   return m;
 }
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
+const HAND_TIP = new THREE.Vector3(0, -0.06, 0);   // the hand's centre below the wrist pivot
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 // Pizza slice: a wedge pointing at the mouth (-z) with a rounded crust along its back.
 const SLICE_GEO = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 3, 1, false, -Math.PI / 6, Math.PI / 3).translate(0, 0, -0.02);
@@ -132,6 +133,7 @@ function makeCheeks(tpl, skin) {
     dispose() { m.dispose(); },
   };
 }
+const _hands = [new THREE.Vector3(), new THREE.Vector3()];
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
 
 // Parts are modeled in their pivot's space, so the node transform from the file is kept as is.
@@ -252,6 +254,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const headParts = [P('head')];
   headGroup.add(headParts[0]);
   const eyes = P('eyes');
+  // Where the eyes are in the head's frame (the part is modelled in place), for staging checks.
+  eyes.geometry.computeBoundingBox();
+  const eyeLocal = eyes.geometry.boundingBox.getCenter(new THREE.Vector3()).add(eyes.position);
   const shine = P('eye_shine');
   const mouths = { ok: P('mouth_smile'), coasting: P('mouth_flat'), burnout: P('mouth_frown') };
   headGroup.add(eyes, shine, mouths.ok, mouths.coasting, mouths.burnout);
@@ -299,7 +304,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   slice.rotation.set(0.3, 0, 0);
 
   const box = new THREE.Mesh(boxGeo, mat('cardboard'));
-  box.position.set(0, TORSO_H * 0.35, 0.24);
+  // Held out in front of the chest: its back face just clear of the widest build's torso.
+  box.position.set(0, TORSO_H * 0.35, 0.31);
   box.castShadow = true;
   const boxParent = torso;
 
@@ -546,19 +552,38 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armLZ = 0.18; tgt.armRZ = -0.18;
         break;
       case 'shoulder':
+      case 'shoulderwalk':
         // Something heavy resting on the right shoulder: the hand at the shoulder, the load behind.
         tgt.armRX = -1.8; tgt.armRZ = -0.45;
         tgt.headX = -0.05;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
+        if (anim === 'shoulderwalk') {
+          tgt.legL = Math.sin(t * 7) * 0.4; tgt.legR = -Math.sin(t * 7) * 0.4;
+          tgt.armLX = -Math.sin(t * 7) * 0.3;
+          tgt.bodyY = Math.abs(Math.sin(t * 7)) * 0.02;
+        }
         break;
       case 'swing': {
-        // Wind up overhead, then bring it down hard, once a second.
-        const cyc = (t % 1.1) / 1.1;
+        // Wind up overhead, then bring it down hard, once a second, the first blow 0.6 s after it starts.
+        const cyc = (animT % 1.1) / 1.1;
         const down = cyc < 0.55 ? cyc / 0.55 : cyc < 0.7 ? 1 : 1 - (cyc - 0.7) / 0.3;
         const e = down * down;
         tgt.armRX = tgt.armLX = -3.0 + e * 2.3;
         tgt.armRZ = -0.1; tgt.armLZ = 0.1;
         tgt.lean = -0.12 + e * 0.4;
+        tgt.bodyY = -e * 0.03;
+        break;
+      }
+      case 'batswing': {
+        // Two-handed overhead, brought down onto something at waist height in front: the stroke ends
+        // with the arms just below level, so what they hold lands flat on its top. One blow a second,
+        // the first 0.6 s after it starts.
+        const cyc = (animT % 1.1) / 1.1;
+        const down = cyc < 0.55 ? cyc / 0.55 : cyc < 0.7 ? 1 : 1 - (cyc - 0.7) / 0.3;
+        const e = down * down;
+        tgt.armRX = tgt.armLX = -3.0 + e * 1.25;
+        tgt.armRZ = -0.1; tgt.armLZ = 0.1;
+        tgt.lean = -0.12 + e * 0.3;
         tgt.bodyY = -e * 0.03;
         break;
       }
@@ -622,6 +647,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armLX = -0.6; tgt.armLZ = -0.4;
         tgt.lean = -0.1;
         tgt.headX = -0.1; tgt.headZ = 0.2;
+        break;
+      case 'carryhold':
+        // Standing with something held low in front in both arms (the walking version is 'carry').
+        tgt.armLX = tgt.armRX = -1.05;
+        tgt.armLZ = 0.35; tgt.armRZ = -0.35;
+        tgt.lean = 0.06;
+        tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
@@ -935,7 +967,22 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   update(0);
   return {
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    // Both wrists in world space, left then right (shared vectors: copy them to keep them).
+    hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
     get anim() { return anim; },
+    // Staging measurements (probe.js), in world space: the eyes, the way the face points, the hands.
+    probe() {
+      root.updateMatrixWorld(true);
+      const q = headGroup.getWorldQuaternion(new THREE.Quaternion());
+      const hand = (a) => a.shoulder.localToWorld(a.wrist.position.clone().add(HAND_TIP));
+      return {
+        eyes: headGroup.localToWorld(eyeLocal.clone()),
+        forward: new THREE.Vector3(0, 0, 1).applyQuaternion(q),
+        head: headGroup.getWorldPosition(new THREE.Vector3()),
+        hands: [hand(arms[0]), hand(arms[1])],
+        anim,
+      };
+    },
     get emote() { return emoteKind; },
     get mood() { return mood; },
     get seated() { return SEATED.has(anim); },

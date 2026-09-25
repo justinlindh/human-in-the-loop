@@ -11,10 +11,16 @@
 #                 lockfile diff, since local CI executes the new packages' install scripts
 # To stop a run, signal its process group: kill -TERM -<pgid> (the pgid is printed at start). The
 # run then stops its local CI, removes its worktree and sets local-ci to error.
+# Everything it runs besides this script comes from freshly fetched origin/<base>, never from the
+# checkout it was started in: the trust list, helper scripts and local CI itself come from a worktree
+# of the base, and local CI runs on the tree under test (the PR merged into that base). A PR that
+# changes local CI is also run through its own version. A clean checkout on the base
+# branch that is behind updates itself first and starts again.
 set -uo pipefail
 
 usage="usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>] [--allow-bot]"
 pr="${1:?$usage}"; shift
+orig_args=("$@")
 comment=1; want=""; allow_bot=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -26,11 +32,25 @@ while [ $# -gt 0 ]; do
 done
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
+# The run and every step of it go to the team's timing log, tagged with the PR.
+source "$(dirname "$0")/lib/timing.sh" 2>/dev/null || timing_log() { :; }
+export HITL_PR="$pr"
+
+# A clean checkout on main that is behind origin/main fast-forwards and runs the new copy of this
+# script. git replaces files rather than rewriting them, so runs already going keep their own copy.
+if [ -z "${CI_PR_UPDATED:-}" ] && [ "$(git -C "$REPO" branch --show-current)" = main ] \
+  && [ -z "$(git -C "$REPO" status --porcelain)" ] && git -C "$REPO" fetch -q origin main \
+  && [ -n "$(git -C "$REPO" rev-list HEAD..origin/main)" ]; then
+  if git -C "$REPO" merge -q --ff-only origin/main; then
+    echo "ci-pr: updated this checkout to $(git -C "$REPO" rev-parse --short HEAD); starting again"
+    CI_PR_UPDATED=1 exec bash "$REPO/scripts/ci-pr.sh" "$pr" "${orig_args[@]}"
+  fi
+fi
 
 # Local CI runs the PR's code on this machine (npm install scripts, tests, a dev server, a browser),
 # so it only runs PRs from a branch of this repository by an author listed in scripts/ci-trusted.
 # Nothing is fetched, checked out or posted for any other PR.
-TRUSTED="${CI_TRUSTED_FILE:-$REPO/scripts/ci-trusted}"
+TRUSTED="${CI_TRUSTED_FILE:-}"
 pr_trusted() { # <isCrossRepository> <head repo owner> <author> <repo owner>
   [ "$1" = false ] || { echo "ci-pr: #$pr comes from a fork ($2); not running it" >&2; return 1; }
   [ "$2" = "$4" ] || { echo "ci-pr: #$pr head repository belongs to $2, not $4; not running it" >&2; return 1; }
@@ -39,9 +59,17 @@ pr_trusted() { # <isCrossRepository> <head repo owner> <author> <repo owner>
 }
 # Fields are split on the unit separator, which read never merges: an empty field stays empty
 # instead of shifting the next one (such as the branch name) into its place.
-pr_fields="$(gh pr view "$pr" --json isCrossRepository,headRepositoryOwner,author,headRefName \
-  --jq '[.isCrossRepository, (.headRepositoryOwner.login // ""), (.author.login // ""), .headRefName] | map(tostring) | join("\u001f")')"
-IFS=$'\037' read -r cross owner author branch <<<"$pr_fields"
+pr_fields="$(gh pr view "$pr" --json isCrossRepository,headRepositoryOwner,author,headRefName,baseRefName \
+  --jq '[.isCrossRepository, (.headRepositoryOwner.login // ""), (.author.login // ""), .headRefName, .baseRefName] | map(tostring) | join("\u001f")')"
+IFS=$'\037' read -r cross owner author branch pr_base <<<"$pr_fields"
+pr_base="${pr_base:-main}"
+# The trust list is the base branch's, freshly fetched: not this checkout's, which may be old.
+trusted_tmp=""
+if [ -z "$TRUSTED" ]; then
+  trusted_tmp="$(mktemp)"; TRUSTED="$trusted_tmp"
+  git -C "$REPO" fetch -q origin "$pr_base" 2>/dev/null
+  git -C "$REPO" show "origin/$pr_base:scripts/ci-trusted" >"$trusted_tmp" 2>/dev/null
+fi
 repo_owner="$(gh repo view --json owner --jq .owner.login)"
 [ -n "${cross:-}" ] && [ -n "$repo_owner" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
 if [ "$allow_bot" = 1 ]; then
@@ -50,8 +78,9 @@ if [ "$allow_bot" = 1 ]; then
   [ "${bot_login:-}" = 'dependabot[bot]' ] && [ "${bot_type:-}" = Bot ] \
     || { echo "ci-pr: --allow-bot is only for Dependabot PRs; #$pr is by ${bot_login:-unknown}" >&2; exit 2; }
 else
-  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || exit 2
+  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || { rm -f "$trusted_tmp"; exit 2; }
 fi
+rm -f "$trusted_tmp"
 mkdir -p "$ROOT"
 # One run per PR at a time, each in its own worktree: overlapping runs sharing a path deleted
 # each other's trees mid-run.
@@ -59,6 +88,7 @@ exec 9>"$ROOT/pr-$pr.lock"
 flock -n 9 || { echo "ci-pr: another run for #$pr is in progress; not starting a second one" >&2; exit 3; }
 echo "ci-pr: #$pr run $$, process group $(ps -o pgid= -p $$ | tr -d ' '); stop it with kill -TERM -<that group>"
 WT="$ROOT/pr-$pr-$$"
+TOOLS="$ROOT/tools-$pr-$$"
 
 read_pr() { read -r head base title < <(gh pr view "$pr" --json headRefOid,baseRefName,title --jq '[.headRefOid, .baseRefName, .title] | @tsv' | tr '\t' '\037' | awk -F'\037' '{ printf "%s %s %s\n", $1, $2, $3 }'); }
 read_pr
@@ -78,11 +108,10 @@ status() {
 }
 
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
-# Local CI runs this checkout's scripts, so a checkout whose scripts differ from the base branch would
-# gate the PR with old or unmerged checks. A posting run refuses; a local check only warns.
-if ! git -C "$REPO" diff --quiet HEAD "origin/$base" -- scripts/ .github/; then
-  behind="$(git -C "$REPO" rev-list --count "HEAD..origin/$base")"
-  msg="ci-pr: this checkout's scripts differ from origin/$base ($behind commits behind); update it with git pull --ff-only, or run from a checkout of origin/$base"
+# This script is the one piece taken from the checkout it runs in. If it differs from the base
+# branch's copy (a checkout that cannot update itself), a posting run refuses; a local check warns.
+if ! git -C "$REPO" diff --quiet HEAD "origin/$base" -- scripts/ci-pr.sh; then
+  msg="ci-pr: this checkout's scripts/ci-pr.sh differs from origin/$base; update it with git pull --ff-only, or run from a checkout of origin/$base"
   if [ "$comment" = 1 ]; then echo "$msg; not running it" >&2; exit 2; fi
   echo "$msg (a local check, so running anyway)" >&2
 fi
@@ -91,12 +120,24 @@ fi
 # The head must also be the tip of the PR's branch in this repository, not only a pull ref.
 [ "$(git -C "$REPO" ls-remote origin "refs/heads/$branch" | cut -f1)" = "$head" ] \
   || { echo "ci-pr: ${head:0:7} is not the tip of $branch in this repository; not running it" >&2; exit 2; }
+# The author's local branch (worktrees on this machine share refs) must not hold commits the PR
+# lacks: that means work not pushed yet, and the run would test something else.
+if local_tip="$(git -C "$REPO" rev-parse -q --verify "refs/heads/$branch")" && [ "$local_tip" != "$head" ] \
+  && ! git -C "$REPO" merge-base --is-ancestor "$local_tip" "$head"; then
+  unpushed="$(git -C "$REPO" rev-list --count "$head..$local_tip")"
+  msg="ci-pr: local branch $branch is at ${local_tip:0:7}, with $unpushed commit(s) the PR head ${head:0:7} lacks; push them first"
+  if [ "$comment" = 1 ]; then echo "$msg; not running it" >&2; exit 2; fi
+  echo "$msg (a local check, so running anyway)" >&2
+fi
+# Helper scripts (commit check, Dependabot check, review carry) come from a worktree of the base.
+git -C "$REPO" worktree add -q --detach "$TOOLS" "origin/$base" || { echo "ci-pr: cannot check out origin/$base" >&2; exit 2; }
+trap 'git -C "$REPO" worktree remove --force "$TOOLS" 2>/dev/null' EXIT
 if [ "$allow_bot" = 1 ]; then
   bot_mb="$(git -C "$REPO" merge-base "origin/$base" "$head")" || { echo "ci-pr: no merge base for #$pr" >&2; exit 2; }
   bot_tmp="$(mktemp -d)"
   git -C "$REPO" diff --name-only --no-renames "$bot_mb" "$head" >"$bot_tmp/paths"
   git -C "$REPO" log --no-merges --format='%ae' "$bot_mb..$head" >"$bot_tmp/authors"
-  bash "$REPO/scripts/ci-bot-check.sh" "$bot_login" "$bot_type" "$cross" "$owner" "$repo_owner" "$bot_tmp/paths" "$bot_tmp/authors"
+  bash "$TOOLS/scripts/ci-bot-check.sh" "$bot_login" "$bot_type" "$cross" "$owner" "$repo_owner" "$bot_tmp/paths" "$bot_tmp/authors"
   bot_rc=$?; rm -rf "$bot_tmp"
   [ $bot_rc -eq 0 ] || exit 2
   review_state="$(gh api "repos/{owner}/{repo}/commits/$head/status" --jq '[.statuses[] | select(.context == "review")][0].state // ""')"
@@ -109,6 +150,7 @@ cleanup() {
   # Local CI runs in its own process group; stop all of it (tests, browsers, dev servers) too.
   [ -n "$ci_pid" ] && kill -- "-$ci_pid" 2>/dev/null
   git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
+  git -C "$REPO" worktree remove --force "$TOOLS" 2>/dev/null
   # A run that stops before its verdict must not leave the status pending forever.
   [ "$status_final" = 1 ] || status error "Local CI stopped before finishing; run scripts/ci-pr.sh $pr again"
 }
@@ -134,7 +176,7 @@ rm -f "$skip_list" "$classify"
 echo "ci-pr: #$pr gets the $mode gate"
 if [ "$mode" = light ]; then
   t0=$(date +%s); light_ok=1; table="| step | result |"$'\n'"|---|---|"
-  if "$REPO/scripts/check-commits.sh" "$mb" "refs/ci/pr-$pr/head" "$title" >/dev/null 2>&1; then table+=$'\n'"| commits | pass |"
+  if "$TOOLS/scripts/check-commits.sh" "$mb" "refs/ci/pr-$pr/head" "$title" >/dev/null 2>&1; then table+=$'\n'"| commits | pass |"
   else table+=$'\n'"| commits | FAIL |"; light_ok=0; fi
   syntax=pass
   while IFS= read -r f; do
@@ -153,29 +195,29 @@ if [ "$mode" = light ]; then
   if [ $light_ok = 1 ]; then status success "skipped: docs-only change (commits and syntax checked)" "$url"
   else status failure "Local CI $verdict (light): commits or syntax" "$url"; fi
   status_final=1; rm -f "$body"
-  [ "$comment" = 1 ] && bash "$REPO/scripts/review-carry.sh" "$pr" || true
+  [ "$comment" = 1 ] && bash "$TOOLS/scripts/review-carry.sh" "$pr" || true
   [ $light_ok = 1 ]; exit $?
 fi
-# GitHub rebuilds the merge ref after each push; use it only when it merges this head.
-if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null \
-  && [ "$(git -C "$REPO" rev-parse "refs/ci/pr-$pr/merge^2" 2>/dev/null)" = "$head" ]; then
-  git -C "$REPO" worktree add -q --detach "$WT" "refs/ci/pr-$pr/merge"
-  what="GitHub's merge into $base"
-else
-  # No current merge ref from GitHub: merge the head into the base here.
-  git -C "$REPO" worktree add -q --detach "$WT" "origin/$base"
-  if ! git -C "$WT" -c user.name=ci -c user.email=ci@localhost merge -q --no-edit "refs/ci/pr-$pr/head" >/dev/null 2>&1; then
-    files="$(git -C "$WT" diff --name-only --diff-filter=U | sed 's/^/- `/; s/$/`/')"
-    body="$(mktemp)"
-    printf '### Local CI: FAIL\n\nHead `%s` does not merge cleanly into `%s`. Conflicting files:\n\n%s\n' "${head:0:7}" "$base" "$files" >"$body"
-    cat "$body"
-    url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
-    status failure "Head does not merge cleanly into $base" "$url"; status_final=1
-    rm -f "$body"
-    exit 1
+# The tree under test: the head merged into origin/$base fetched just now, so it matches what the
+# merge would land on (GitHub's merge ref can lag behind main).
+git -C "$REPO" fetch -q origin "$base"
+git -C "$REPO" worktree add -q --detach "$WT" "origin/$base"
+if ! git -C "$WT" -c user.name=ci -c user.email=ci@localhost merge -q --no-edit "refs/ci/pr-$pr/head" >/dev/null 2>&1; then
+  files="$(git -C "$WT" diff --name-only --diff-filter=U | sed 's/^/- `/; s/$/`/')"
+  body="$(mktemp)"
+  printf '### Local CI: FAIL\n\nHead `%s` does not merge cleanly into `%s`. Conflicting files:\n\n%s\n' "${head:0:7}" "$base" "$files" >"$body"
+  # Conflicts only in golden images are resolved by rendering the merge, not by picking a side.
+  if [ -z "$(git -C "$WT" diff --name-only --diff-filter=U | grep -v '^blender/checks/golden/[^/]*\.png$')" ]; then
+    printf '\nOnly golden images conflict. Merge `%s` into the branch and run `scripts/golden-resolve.sh`: it renders those scenes from the merged code, stages them and writes review sheets to post with `scripts/pr-media.sh`.\n' "$base" >>"$body"
   fi
-  what="merged into $base locally"
+  cat "$body"
+  url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
+  status failure "Head does not merge cleanly into $base" "$url"; status_final=1
+  rm -f "$body"
+  exit 1
 fi
+base_sha="$(git -C "$REPO" rev-parse --short "origin/$base")"
+what="merged into $base at $base_sha"
 sha="$(git -C "$WT" rev-parse --short HEAD)"
 # Same lockfile as this checkout and a real, complete install there: share it; otherwise
 # ci-local installs clean.
@@ -184,17 +226,32 @@ if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_
   ln -s "$REPO/node_modules" "$WT/node_modules"
 fi
 
-summary="$(mktemp)"
+# The gate is main's local CI (from the base worktree) run on the tree under test, so a PR can never
+# loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it
+# runs, its path lists) is also run through its own version, and both must pass.
+run_ci() { # <ci-local.sh> <summary file>
+  CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
+  ci_pid=$!
+  wait "$ci_pid"; local r=$?
+  ci_pid=""
+  return $r
+}
+summary="$(mktemp)"; own_summary=""
 t0=$(date +%s)
-# This checkout's ci-local.sh, so PRs cut before it existed are tested the same way.
-# fd 9 (this PR's lock) is closed for local CI, so nothing it starts can keep the lock after this run ends.
-CI_DIR="$WT" setsid bash "$REPO/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary" 9>&- &
-ci_pid=$!
-wait "$ci_pid"
+run_ci "$TOOLS/scripts/ci-local.sh" "$summary"
 rc=$?
-ci_pid=""
+ci_changes="$(printf '%s\n' "$changed" | grep -E '^scripts/([^/]+\.sh|lib/.+|ci-[a-z-]+-paths)$' || true)"
+if [ -n "$ci_changes" ]; then
+  echo "ci-pr: #$pr changes local CI itself; running its own version too"
+  own_summary="$(mktemp)"
+  run_ci "$WT/scripts/ci-local.sh" "$own_summary"
+  own_rc=$?
+  [ $rc -eq 0 ] && rc=$own_rc
+fi
 secs=$(( $(date +%s) - t0 ))
 verdict=$([ $rc -eq 0 ] && echo "PASS" || echo "FAIL")
+# setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
+timing_log kind=run tool=ci-pr wall_s=$SECONDS ci_s=$secs setup_s=$(( SECONDS - secs )) exit=$rc
 
 body="$(mktemp)"
 {
@@ -202,12 +259,19 @@ body="$(mktemp)"
   echo
   echo "Head \`${head:0:7}\`, tested as \`$sha\` ($what), in ${secs}s."
   echo
+  [ -n "$own_summary" ] && { echo "**main's local CI** (the gate):"; echo; }
   cat "$summary"
+  if [ -n "$own_summary" ]; then
+    echo
+    echo "**This PR's own local CI**, since it changes $(printf '%s\n' "$ci_changes" | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g'):"
+    echo
+    cat "$own_summary"
+  fi
 } >"$body"
 cat "$body"
 url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
 status "$([ $rc -eq 0 ] && echo success || echo failure)" "Local CI $verdict in ${secs}s on ${sha} ($what)" "$url"; status_final=1
-rm -f "$summary" "$body"
+rm -f "$summary" "$body" ${own_summary:+"$own_summary"}
 # A head that only merged main keeps the review pass of the head before it.
-[ "$comment" = 1 ] && bash "$REPO/scripts/review-carry.sh" "$pr" || true
+[ "$comment" = 1 ] && bash "$TOOLS/scripts/review-carry.sh" "$pr" || true
 exit $rc

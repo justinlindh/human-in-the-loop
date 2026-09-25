@@ -12,6 +12,8 @@ import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
+import { isSoftwareRenderer } from '../quality.js';
+import { createProbe } from './probe.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
@@ -97,6 +99,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let office = null;
   let props = null;
   let surroundings = null;
+  let probeImpl = null;
   let staff = null;
   let build = null;
   let rival = null;
@@ -118,7 +121,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   } else {
     office = createOffice({ parent: scene, screens, lighting });
     props = createProps(office, screens);
-    surroundings = createSurroundings({ parent: scene, low: () => q === 'low' });
+    surroundings = createSurroundings({ parent: scene, low: () => q === 'low', lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
@@ -137,8 +140,14 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function size() {
     return { w: canvas.clientWidth || innerWidth, h: canvas.clientHeight || innerHeight };
   }
+  // Software GL draws every pixel on the CPU, so Low renders it at three quarters scale.
+  const softwareGL = (() => {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return isSoftwareRenderer(String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
+  })();
   function pixelRatio() {
-    return q === 'low' ? 1 : Math.min(devicePixelRatio || 1, 2);
+    return q === 'low' ? (softwareGL ? 0.75 : 1) : Math.min(devicePixelRatio || 1, 2);
   }
 
   renderer.setPixelRatio(pixelRatio());
@@ -149,6 +158,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function applyQuality() {
     setRigEnabled(rigWanted());
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
+    lighting.setInteriorBudget(q === 'low' ? 2 : 6);
+    surroundings?.setQuality();
     staff?.setCharacterShadows(q !== 'low');
     setGlowScale(q === 'low' ? 0.45 : 1);
     screens.setBrightness(q === 'low' ? 1.0 : 1.7);
@@ -311,7 +322,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       surroundings?.update(dt, lighting.env);
       if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
       screens.update(simDt, lighting.env);
-      staff?.update(dt, { paused });
+      // A decision holds the office still, except the moment it stages (unless the game is paused).
+      staff?.update(dt, { paused, moments: paused && !speedZero });
       floating.update(simDt);
       fx.update(simDt, dt);
       props?.update(dt);
@@ -347,6 +359,13 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // Dev and snap hook: perk visits (send people to a placed item, counts).
     get perks() { return staff?.perks ?? null; },
     get moments() { return staff?.moments ?? null; },
+    // Dev and check tools: the page's own three.js, for measuring objects in page scripts.
+    get THREE() { return import.meta.env?.DEV ? THREE : undefined; },
+    // Staging probe (probe.js): how staff member `id` reads on screen this frame.
+    probe(id) {
+      probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf: (x) => staff?.charOf(x), stagingOf: (x) => staff?.moments?.staging?.(x) });
+      return probeImpl.measure(id);
+    },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },

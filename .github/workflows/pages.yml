@@ -1,6 +1,6 @@
 name: pages
 
-# Tagged builds only: every published release is tested, built for the Pages path, and deployed.
+# Tagged builds only: every published version release is tested, built for the Pages path, and deployed.
 on:
   release:
     types: [published]
@@ -21,6 +21,10 @@ permissions:
 
 jobs:
   build:
+    # A published release deploys only if its tag is a version (v*): other releases, such as asset
+    # pre-releases, must not redeploy the site under their name. Deploys called from release.yml
+    # (semantic-release's tags) and manual runs are not release events and always build.
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

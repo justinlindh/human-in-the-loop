@@ -1,0 +1,63 @@
+/* ---------- panels ---------- */
+.hitl .panel-wrap { position: absolute; left: 0; right: 0; top: 5em; bottom: 6.4em; display: flex; justify-content: center; align-items: flex-start; pointer-events: none; padding: 0 0.6em; }
+.hitl .panel {
+  pointer-events: auto;
+  width: min(64em, 100%); max-height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 1.1em; box-shadow: 0 0.35em 0 var(--ink), var(--soft);
+  overflow: hidden;
+  animation: hitl-panel-in 220ms cubic-bezier(.2,1.4,.4,1) both;
+}
+.hitl .panel.wide { width: min(76em, 100%); }
+@keyframes hitl-panel-in { 0% { opacity: 0; transform: translateY(1em) scale(0.96); } 100% { opacity: 1; transform: none; } }
+.hitl .panel-head {
+  display: flex; align-items: center; gap: 0.6em; padding: 0.5em 0.6em 0.5em 0.9em;
+  background: var(--accent, var(--blue)); color: #fff; border-bottom: var(--bw) solid var(--ink);
+  text-shadow: 0 0.1em 0 rgba(0,0,0,0.25);
+}
+.hitl .panel-head .ico { font-size: 1.4em; text-shadow: none; }
+.hitl .panel-head h2 { margin: 0; font-size: 1.35em; font-weight: 700; }
+.hitl .panel-head .hint { font-size: 0.8em; opacity: 0.9; margin-left: 0.4em; }
+.hitl .panel-head .x { margin-left: auto; width: 2.1em; height: 2.1em; padding: 0; border-radius: 0.6em; color: var(--ink); text-shadow: none; }
+.hitl .panel-tabs { display: flex; gap: 0.3em; padding: 0.5em 0.8em 0; background: var(--cream-2); border-bottom: var(--bw) solid var(--ink); }
+.hitl .tab { pointer-events: auto; border: var(--bw) solid var(--ink); border-bottom: none; border-radius: 0.6em 0.6em 0 0; padding: 0.35em 0.9em; background: var(--cream-3); font-weight: 600; margin-bottom: -0.19em; }
+.hitl .tab.on { background: var(--cream); padding-bottom: calc(0.35em + 0.19em); }
+.hitl .panel-body { padding: 0.8em 0.9em 1em; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; min-height: 0; }
+.hitl .panel-foot { display: flex; gap: 0.5em; align-items: center; padding: 0.6em 0.9em; border-top: var(--bw) solid var(--ink); background: var(--cream-2); }
+
+.hitl .section { margin-bottom: 1em; }
+.hitl .section > h3 { margin: 0 0 0.45em; font-size: 1em; font-weight: 700; display: flex; align-items: center; gap: 0.4em; }
+.hitl .section > h3 .aside { margin-left: auto; font-weight: 500; font-size: 0.85em; color: var(--ink-soft); }
+.hitl .muted { color: var(--ink-soft); }
+.hitl .faint { color: var(--ink-faint); }
+.hitl .good-t { color: var(--good); }
+.hitl .warn-t { color: var(--warn); }
+.hitl .bad-t { color: var(--bad); }
+.hitl .empty { padding: 1.2em; text-align: center; color: var(--ink-soft); border: 0.15em dashed var(--line); border-radius: 0.8em; }
+
+.hitl .card { background: #fffaf1; border: 0.15em solid var(--ink); border-radius: 0.8em; padding: 0.6em 0.7em; box-shadow: 0 0.16em 0 var(--ink); }
+.hitl .grid { display: grid; gap: 0.55em; }
+.hitl .row { display: flex; gap: 0.5em; align-items: center; }
+.hitl .wrap { flex-wrap: wrap; }
+
+.hitl .pill { display: inline-flex; align-items: center; gap: 0.25em; padding: 0.08em 0.5em; border-radius: 1em; font-size: 0.78em; font-weight: 600; border: 0.12em solid var(--ink); background: var(--cream-2); white-space: nowrap; }
+.hitl .pill.good { background: #d5f5e7; }
+.hitl .pill.warn { background: #ffecc2; }
+.hitl .pill.bad { background: #ffd6d4; }
+.hitl .pill.ink { background: var(--ink); color: var(--cream); }
+
+/* ---------- shortcut help ---------- */
+.hitl .kbd { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; padding: 0 0.35em; border: 0.12em solid var(--ink); border-radius: 0.3em; background: var(--cream); box-shadow: 0 0.1em 0 var(--ink); }
+
+/* ---------- small screens ---------- */
+@media (max-width: 1280px), (max-height: 720px) {
+  .hitl .chip.meters { gap: 0.6em; }
+  .hitl .hmeter { min-width: 5.2em; }
+  .hitl .chip.company .name { max-width: 8em; }
+}
+@media (max-width: 1100px) {
+  .hitl .toasts { width: 18em; }
+  .hitl .chip .sub.opt { display: none; }
+}
+.hitl .panel-head .kbd { color: var(--ink); text-shadow: none; }
+

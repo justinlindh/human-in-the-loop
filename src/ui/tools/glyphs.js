@@ -269,6 +269,21 @@ export const GLYPHS = {
   'channel.influencer': { d: rr(6.5, 2.5, 11, 19, 2.5, C.metalDark) + rr(8, 4.5, 8, 13, 1, C.pink) + path(star5(12, 11, 3.6, 1.6), C.yellow) + dot(12, 19.5, 0.9, PAPER) },
   'channel.conference': { d: path('M2.5 10 12 3.5 21.5 10Z', C.red) + rr(4, 10, 16, 11, 1, C.cream) + rr(9.5, 14, 5, 7, 1, C.woodDark) + `<path d="M4 10h16" ${line()}/>` + path('M12 3.5V1.5h3', 'none') },
   'channel.enterprise': { d: D.briefcase },
+  // A film clapperboard: striped sticks over a slate.
+  'channel.documentary': { d: rr(3.5, 9.5, 17, 11.5, 1.5, C.metalDark)
+    + `<path d="M6.5 14h11M6.5 17.5h7" stroke="${PAPER}" stroke-width="1.6" stroke-linecap="round" fill="none"/>`
+    + path('M3.2 9.2 19.4 4.5l.9 3.1L4.1 12.3Z', PAPER)
+    + `<path d="M6.9 8.1 8.8 10.9M10.9 7 12.8 9.8M14.9 5.8 16.8 8.6" stroke="${INK}" stroke-width="2" stroke-linecap="round" fill="none"/>` },
+  // A TV on legs with a football on screen.
+  'channel.big_game_ad': { d: `<path d="M9 2.5 12 5.5l3-3" ${line(1.8)}/>` + rr(2.5, 5.5, 19, 13, 2.5, C.metalDark) + rr(4.8, 7.8, 14.4, 8.4, 1.2, C.leaf)
+    + path('M7.5 12c1.6-2.4 7.4-2.4 9 0-1.6 2.4-7.4 2.4-9 0Z', C.wood)
+    + `<path d="M10.3 12h3.4M11.2 11.1v1.8M12.8 11.1v1.8" stroke="${PAPER}" stroke-width="1" stroke-linecap="round" fill="none"/>`
+    + `<path d="M7 18.5 5.5 21.5M17 18.5l1.5 3" ${line(1.8)}/>` },
+  // A stadium bowl with pennants on its rim.
+  'channel.stadium': { d: path('M2.5 11.5h19v5.5c0 2.2-4.3 4-9.5 4s-9.5-1.8-9.5-4Z', C.cream)
+    + `<ellipse cx="12" cy="11.5" rx="9.5" ry="3.2" fill="${C.leaf}" ${o}/>`
+    + `<path d="M5.5 15.6v4M12 16.2v4.8M18.5 15.6v4" stroke="${INK}" stroke-width="1.4" stroke-linecap="round" fill="none"/>`
+    + `<path d="M5 10V2M19 10V2" ${line(1.8)}/>` + path('M5 2h5.5L9 4.2l1.5 2.3H5Z', C.red) + path('M19 2h-5.5L15 4.2l-1.5 2.3H19Z', C.blue) },
 
   // training programs
   'train.workshop': { d: `<path d="M5 19l8.5-8.5" ${line(3.2)}/>` + path('M13 7.5a4 4 0 0 1 5.5-4.2l-2.8 2.8.6 2.1 2.1.6 2.8-2.8A4 4 0 0 1 16.5 11Z', C.metal) },

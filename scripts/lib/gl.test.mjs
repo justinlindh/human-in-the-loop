@@ -1,10 +1,11 @@
 // Cases for scripts/lib/gl.js. Exit 0 when all pass.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import { glMode, glArgs, rendererMatches, SOFTWARE_GL_ARGS, GPU_GL_ARGS } from './gl.js';
 
 const cases = [
@@ -35,7 +36,7 @@ const busy = (f) => spawnSync('flock', ['-n', f, 'true']).status !== 0;
 console.log(JSON.stringify({ soft: busy(${JSON.stringify(join(tmp, 'render-checks.lock'))}), gpu: busy(${JSON.stringify(join(tmp, 'gpu-render-1.lock'))}), holder: process.env.HITL_RENDER_LOCK_HELD === String(process.pid) }));
 process.exit(Number(process.argv[3] ?? 0));
 `);
-const env = { ...process.env, CI_WORKTREE_ROOT: tmp, HITL_GPU_SLOTS: '1', RENDER_LOCK_WAIT: '5' };
+const env = { ...process.env, HITL_LOCK_DIR: tmp, HITL_GPU_SLOTS: '1', RENDER_LOCK_WAIT: '5', HITL_TIMINGS: 'off' };
 delete env.CI; delete env.HITL_RENDER_LOCK_HELD;
 const runProbe = (args, extra = {}, pre = []) => {
   const r = spawnSync(pre.length ? 'bash' : process.execPath, pre.length ? [...pre, process.execPath, probe, ...args] : [probe, ...args], { env: { ...env, ...extra }, encoding: 'utf8' });
@@ -55,6 +56,37 @@ cases.push(
 
 let fails = 0;
 for (const [name, fn] of cases) {
+  try { fn(); } catch (e) { fails++; console.log(`FAIL ${name}: ${e.message}`); }
+}
+
+// webgl_lost: a real (software GL) browser whose page loses its context logs one line; a clean one none.
+const lossRun = (lose) => {
+  const log = join(tmp, `timings-${lose ? 'lost' : 'clean'}.jsonl`);
+  const probe = join(tmp, 'lose.mjs');
+  // Local CI runs this file from a checkout of main without node_modules, in the tree under test:
+  // resolve playwright from the working directory first.
+  const resolvePw = (from) => { try { return createRequire(from).resolve('playwright'); } catch { return ''; } };
+  const pw = pathToFileURL(resolvePw(pathToFileURL(join(process.cwd(), 'x.js'))) || createRequire(import.meta.url).resolve('playwright')).href;
+  writeFileSync(probe, `import playwright from ${JSON.stringify(pw)};
+const { chromium } = playwright;
+import { launchChromium } from ${JSON.stringify(lib)};
+const { browser } = await launchChromium(chromium, { mode: 'software', label: 'gl-test' });
+const ctx = await browser.newContext();
+const page = await ctx.newPage();
+await page.goto('data:text/html,<canvas id=c></canvas>');
+if (${lose}) await page.evaluate(() => document.getElementById('c').getContext('webgl').getExtension('WEBGL_lose_context').loseContext());
+await page.waitForTimeout(300);
+await browser.close();
+`);
+  const r = spawnSync(process.execPath, [probe], { cwd: fileURLToPath(new URL('../..', import.meta.url)), env: { ...env, HITL_TIMINGS: log }, encoding: 'utf8', timeout: 60000 });
+  if (r.status !== 0) throw new Error(`probe exited ${r.status}: ${r.stderr.slice(0, 300)}`);
+  let text = ''; try { text = readFileSync(log, 'utf8'); } catch { /* no line */ }
+  return text.split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((l) => l.webgl_lost);
+};
+for (const [name, fn] of [
+  ['a lost WebGL context logs webgl_lost', () => { const l = lossRun(true); assert.equal(l.length, 1); assert.equal(l[0].tool, 'gl-test'); assert.ok(l[0].lost_events >= 1); }],
+  ['a page that keeps its context logs nothing', () => assert.equal(lossRun(false).length, 0)],
+]) {
   try { fn(); } catch (e) { fails++; console.log(`FAIL ${name}: ${e.message}`); }
 }
 console.log(fails ? `gl: ${fails} failing` : 'gl: all cases pass');

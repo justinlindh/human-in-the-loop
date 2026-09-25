@@ -7,6 +7,7 @@ import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 
 const T = 0.2;            // wall thickness
+const SILL_Z = 0.18;       // a window sill's centre, out from the wall's centre line (0.15 m into the room)
 const SLAB = 0.35;        // floor slab thickness
 const WALL_KEYS = ['x', 'z', 'px', 'pz'];
 const OUTWARD = { x: [-1, 0], z: [0, -1], px: [1, 0], pz: [0, 1] };
@@ -193,11 +194,18 @@ function openingModel(L, o, screens) {
   const wz = o.wall === 'z' ? -L.D / 2 - T / 2 : o.wall === 'pz' ? L.D / 2 + T / 2 : o.at;
   const rot = WALL_ROT[o.wall];
   if (o.kind === 'window') {
+    const g = new THREE.Group();
     const m = getModel('window_frame');
     m.scale.set(o.width / 1.6, (o.top - o.bottom) / 1.3, 1);
-    place(m, wx, o.bottom, wz, rot);
     m.traverse((c) => { if (c.isMesh && c.name.startsWith('window_glass')) { c.material = screens.windowMaterial(); c.castShadow = false; } });
-    return m;
+    g.add(m);
+    // The sill stands out into the room, so it is its own mesh (kept out of the wall's merge) that
+    // hides when tall furniture stands against the wall below it (see sillBlockers).
+    const sill = mesh(roundedBox(o.width + 0.14, 0.05, 0.14, 0.018), mat('plastic_white'), 0, 0, SILL_Z);
+    sill.userData.dynamic = true;
+    sill.userData.sill = { wall: o.wall, a: o.at - o.width / 2 - 0.07, b: o.at + o.width / 2 + 0.07 };
+    g.add(sill);
+    return place(g, wx, o.bottom, wz, rot);
   }
   if (o.kind === 'rail') {
     // Glass balustrade: posts every ~1.5 m, a handrail on top, a glass panel between.
@@ -240,6 +248,9 @@ const KIND = {
 };
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
 const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch', 'pingpong', 'foosball']);
+// Models with a piece meant to stand on the tile in front of their footprint.
+const FRONT_ZONE = new Set(['espresso_l3', 'standing_desk_l2', 'standing_desk_l3', 'server_rack_l3']);
+const FRONT_ZONE_M = 0.21;
 const LOUNGE = new Set(['couch', 'nap_pod', 'arcade', 'library', 'plant_wall', 'bookshelf']);
 
 // Desk sets face -Z at rot 0: desk in the back tile row, chair and sitter in the front row.
@@ -376,7 +387,7 @@ function meetingTable(w, h, era) {
   for (const sz of [-1, 1]) {
     for (let k = 0; k < per; k++) {
       const x = (k - (per - 1) / 2) * (L / per);
-      const z = sz * (D / 2 + 0.33);
+      const z = sz * (D / 2 + 0.24);
       const ch = place(getModel('chair'), x, 0, z, sz < 0 ? 0 : Math.PI);
       ch.userData.dynamic = true;
       ch.userData.home = new THREE.Vector3(x, 0, z);
@@ -427,8 +438,10 @@ function screensFor(obj, screens, seed) {
 }
 
 // Turns a model's long side along the footprint's long side and shrinks it to fit. Wall pieces
-// then sit against the back edge; the rest are centered.
-function fitFootprint(inner, f, againstBack) {
+// then sit against the back edge; the rest are centered. A model fits within its footprint both ways,
+// since the sim gives the room past it to a neighbour; frontZone models (stools, a mat or a grate in
+// front) may reach FRONT_ZONE_M past the front, onto the tile in front of them.
+function fitFootprint(inner, f, againstBack, frontZone = false) {
   let b = new THREE.Box3().setFromObject(inner);
   let sx = b.max.x - b.min.x, sz = b.max.z - b.min.z;
   if (f.h > f.w && sx > sz * 1.2) {
@@ -436,7 +449,7 @@ function fitFootprint(inner, f, againstBack) {
     b = new THREE.Box3().setFromObject(inner);
     sx = b.max.x - b.min.x; sz = b.max.z - b.min.z;
   }
-  const k = Math.min(1, (f.w - 0.06) / sx, (f.h + 0.15) / sz);
+  const k = Math.min(1, (f.w - 0.06) / sx, (f.h - 0.06 + (frontZone ? FRONT_ZONE_M : 0)) / sz);
   inner.scale.multiplyScalar(k);
   b = new THREE.Box3().setFromObject(inner);
   inner.position.x -= (b.min.x + b.max.x) / 2;
@@ -464,7 +477,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   if (kind !== 'desk') screensFor(inner, screens, seed);
   // LEDs blink per mesh, so they stay out of the static merge.
   inner.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) { c.userData.dynamic = true; c.userData.noAO = true; } });
-  if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind));
+  if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind), FRONT_ZONE.has(itemModelName(p.itemId, p.level)));
   const g = new THREE.Group();
   g.add(inner);
   inner.updateMatrix();
@@ -880,6 +893,7 @@ export function createOffice({ parent, screens, lighting }) {
       dropBatch(); refresh();
       const key = blockKey;
       wallBlockers();
+      updateSills();
       if (blockKey !== key) updatePoster();
     }
     return changed;
@@ -934,7 +948,7 @@ export function createOffice({ parent, screens, lighting }) {
     if (!d?.screen || d.screenKind === kind) return;
     d.screenKind = kind;
     d.screen.material = kind === 'work' ? screens.deskMaterial(d.seed) : screens.material(kind);
-    dropBatch();
+    rebatchSwaps();
   }
 
   // LED meshes on racks and wall screens, rebuilt when furniture changes.
@@ -963,7 +977,6 @@ export function createOffice({ parent, screens, lighting }) {
       m.userData.dynamic = true;
       d.obj.add(m);
       d.sign = m;
-      dropBatch();
     }
     if (d.sign) d.sign.visible = on;
   }
@@ -1044,6 +1057,33 @@ export function createOffice({ parent, screens, lighting }) {
     return out;
   }
 
+  // Window sills stand 0.15 m into the room: one with furniture taller than it standing against the
+  // wall below it is hidden, since the furniture would stand in it. Any wall, front walls included.
+  function updateSills() {
+    if (!cur) return;
+    if (!cur.sills) { cur.sills = []; cur.root.traverse((o) => { if (o.userData.sill) cur.sills.push(o); }); }
+    if (!cur.sills.length) return;
+    const L = cur.L, near = [];
+    for (const e of placed.values()) {
+      const b = localBox(e);
+      if (b.max.y < 0.9) continue;
+      const t = e.target, c = Math.cos(t.rotY), sn = Math.sin(t.rotY);
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const [lx, lz] of [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]]) {
+        const x = t.x + c * lx + sn * lz, z = t.z - sn * lx + c * lz;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      }
+      if (x0 < -L.W / 2 + 0.3) near.push({ wall: 'x', a: z0, b: z1 });
+      if (x1 > L.W / 2 - 0.3) near.push({ wall: 'px', a: z0, b: z1 });
+      if (z0 < -L.D / 2 + 0.3) near.push({ wall: 'z', a: x0, b: x1 });
+      if (z1 > L.D / 2 - 0.3) near.push({ wall: 'pz', a: x0, b: x1 });
+    }
+    for (const m of cur.sills) {
+      const w = m.userData.sill;
+      m.visible = !near.some((n) => n.wall === w.wall && n.a < w.b && n.b > w.a);
+    }
+  }
+
   // Team mat under a desk set, tinted by the sitter's role; an empty desk gets a neutral mat.
   const rugMats = new Map();
   function setDeskRole(id, role) {
@@ -1051,7 +1091,6 @@ export function createOffice({ parent, screens, lighting }) {
     const rug = d?.obj.userData.rug;
     if (!rug || d.role === role) return;
     d.role = role;
-    dropBatch();
     const key = role ?? 'none';
     let m = rugMats.get(key);
     if (!m) {
@@ -1060,36 +1099,60 @@ export function createOffice({ parent, screens, lighting }) {
       rugMats.set(key, m);
     }
     rug.material = m;
+    rebatchSwaps();
   }
 
-  // Idle furniture is drawn as one merged batch per material. Any change (placement, era, a mat
-  // colour, an item hidden for a move) drops the batch and shows the originals until things settle.
+  // Idle furniture is drawn as one merged batch per material. Any change (placement, era, an item
+  // hidden for a move) drops the batch and shows the originals until things settle. Parts that swap
+  // material while idle (desk screens, team mats) sit in a small batch of their own, which a swap
+  // rebuilds on the spot without touching the rest.
   let batch = null;
   let idleT = 0;
   const BATCH_AFTER = 0.5;
+  function disposeGroup(g) {
+    g.removeFromParent();
+    g.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  }
   function dropBatch() {
     idleT = 0;
     if (!batch) return;
     for (const m of batch.members) m.visible = true;
-    batch.group.removeFromParent();
-    batch.group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    for (const m of batch.swaps) m.visible = true;
+    disposeGroup(batch.group);
+    if (batch.swapGroup) disposeGroup(batch.swapGroup);
     batch = null;
+  }
+  function buildSwaps() {
+    if (!batch.swaps.length) return;
+    batch.swapGroup = batchMeshes(batch.swaps, cur.furniture);
+    for (const m of batch.swaps) m.visible = false;
+    cur.furniture.add(batch.swapGroup);
+  }
+  function rebatchSwaps() {
+    if (!batch) return;
+    if (batch.swapGroup) disposeGroup(batch.swapGroup);
+    batch.swapGroup = null;
+    buildSwaps();
   }
   function buildBatch() {
     const members = [];
+    const swaps = [];
     const owners = [];
     for (const e of placed.values()) {
       if (!e.obj.visible || e.sliding) continue;
       owners.push(e.obj);
       for (const m of e.obj.children) {
-        if (m.isMesh && m.visible && (!m.userData.dynamic || m.userData.batch)) members.push(m);
+        if (!m.isMesh || !m.visible) continue;
+        if (!m.userData.dynamic) members.push(m);
+        else if (m.userData.batch) swaps.push(m);
       }
     }
-    if (members.length < 2) return;
+    if (members.length + swaps.length < 2) return;
     const group = batchMeshes(members, cur.furniture);
     for (const m of members) m.visible = false;
     cur.furniture.add(group);
-    batch = { group, members, owners };
+    batch = { group, members, swaps, swapGroup: null, owners };
+    buildSwaps();
   }
   function updateBatch(dt) {
     if (batch) {

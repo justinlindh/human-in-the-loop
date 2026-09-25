@@ -42,7 +42,7 @@ case "$*" in
 esac
 GH
 chmod +x "$tmp/bin/gh"
-GH_LOG="$tmp/gh.log" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$tmp/ci" bash "$HERE/ci-pr.sh" 7 --allow-bot 2>"$tmp/err"; rc=$?
+HITL_TIMINGS=off GH_LOG="$tmp/gh.log" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$tmp/ci" bash "$HERE/ci-pr.sh" 7 --allow-bot 2>"$tmp/err"; rc=$?
 [ $rc -eq 2 ] && grep -q 'only for Dependabot' "$tmp/err" && ! grep -q 'statuses\|pr comment' "$tmp/gh.log" && [ ! -d "$tmp/ci" ] \
   || { echo "FAIL ci-pr --allow-bot on a person's PR: rc $rc, $(cat "$tmp/err")"; fails=$((fails + 1)); }
 

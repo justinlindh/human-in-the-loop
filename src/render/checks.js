@@ -623,6 +623,149 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho });
     R.moments.full = false;
   }
+  // 6. The printer taken out back (printer_jam, choice 0): the carriers, the one with the bat and the
+  // printer itself stay clear of furniture and props from the lift to the walk-off, and the printer is
+  // carried low, its top under each carrier's chin. A week's events land mid-carry (a launch party, an
+  // incident, a standup) and must not call anyone away: the moment still plays to the end.
+  {
+    R.moments.full = true;
+    S.pendingDecision = { eventId: 'printer_jam', subjectId: ids[0], stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } };
+    step(30);
+    S.pendingDecision = null;
+    S.office.props.push({ id: 'wreck_prop', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 2 } });
+    R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: ids[0] }], S);
+    let worst = 0, worstWho = null, samples = 0, chin = Infinity, chinWho = null;
+    const phases = new Set();
+    const box = new THREE.Box3(), pbox = new THREE.Box3();
+    for (let i = 0; i < 30 * 30; i++) {
+      step(1);
+      const pm = R.moments.printerState;
+      if (!pm) { if (phases.size) break; continue; }
+      phases.add(pm.phase);
+      if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
+        pm.interrupted = true;
+        R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
+      }
+      if (i % 2 || pm.phase === 'off') continue;
+      samples++;
+      pbox.setFromObject(pm.obj);
+      pm.people.forEach((r, k) => {
+        const root = charOf(R.scene, r.id);
+        const own = new Set([R.perks.peek(r.id)?.seat]);
+        for (const e of R.office.placed.values()) {
+          if (own.has(e.id)) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; const ms = meshes(e.obj); worstWho = `${r.id} (${pm.phase} at ${pm.s.toFixed(2)} of ${pm.len.toFixed(2)} m, twist ${pm.twists?.[Math.round(pm.s / 0.1)]?.toFixed(2)}, clear ${pm.clear}, pos ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}) in ${e.itemId}:${e.id} [${ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`).join(' ')}]`; }
+        }
+        for (const p of R.props.current()) {
+          if (p.prop === 'printer_wrecked') continue;
+          const v = bodyInside(root, meshes(p.obj), false);
+          if (v > worst) { worst = v; worstWho = `${r.id} (${pm.phase}) in ${p.prop}`; }
+        }
+        // The chin: the head is the top 45% of a character.
+        if (k < 2 && (pm.phase === 'lift' || pm.phase === 'carry') && pm.obj.visible) {
+          box.setFromObject(root);
+          const gap = box.min.y + (box.max.y - box.min.y) * 0.55 - pbox.max.y;
+          if (gap < chin) { chin = gap; chinWho = `${r.id} (${pm.phase})`; }
+        }
+      });
+    }
+    S.office.props = S.office.props.filter((p) => p.id !== 'wreck_prop');
+    const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
+    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0, phases: [...phases], samples, insidePct: +(100 * worst).toFixed(2), worstWho, chinGap: +chin.toFixed(3), chinWho });
+    R.moments.full = false;
+    step(30);
+  }
+  // 8. Behind a decision card: the game freezes the office while a decision is open (main.js calls
+  // setPaused), and the moment the decision stages still plays through it; everyone else holds
+  // still. Paused outright (speed 0), the moment holds still too. Stepped through render(), which
+  // is where the freeze applies.
+  {
+    R.moments.full = true;
+    const frame = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.render(1 / 30); } };
+    // A desk whose sitter is at it (seated, not off on a hard problem).
+    frame(30 * 3);
+    const occupied = [...R.office.placed.values()].find((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.mood !== 'away' && p.assignment?.type !== 'hardProblem' && R.isSeated(p.id)));
+    const sitter = S.staff.find((p) => R.perks.peek(p.id)?.seat === occupied?.id);
+    S.pendingDecision = { eventId: 'resignation_letter', subjectId: sitter?.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: occupied?.x, y: occupied?.y } };
+    R.setPaused(true);
+    const where = () => new Map([...S.staff].map((p) => { const root = charOf(R.scene, p.id); return [p.id, root ? root.position.clone() : null]; }));
+    frame(1);
+    const before = where();
+    // The letter's poses seen (readpaper is the read beat).
+    const actors = new Set(), beats = new Set();
+    for (let i = 0; i < 30 * 14; i++) {
+      frame(1);
+      for (const [id, what] of R.moments.active) if (what === 'letter') { actors.add(id); beats.add(R.perks.peek(id)?.temp?.anim); }
+    }
+    const after = where();
+    const moved = [...before].filter(([id, p]) => p && after.get(id) && p.distanceTo(after.get(id)) > 0.01).map(([id]) => id);
+    const strays = moved.filter((id) => !actors.has(id));
+    // Paused outright: whoever is in the moment holds still.
+    R.setSpeed(0);
+    const held = where();
+    frame(60);
+    const late = where();
+    const drift = [...actors].filter((id) => held.get(id) && held.get(id).distanceTo(late.get(id)) > 0.001);
+    R.setSpeed(1);
+    R.setPaused(false);
+    S.pendingDecision = null;
+    frame(30 * 4);
+    results.push({ name: 'moment:behind-card', pass: actors.size > 0 && beats.has('readpaper') && strays.length === 0 && drift.length === 0, desk: occupied?.id ?? null, sitter: sitter?.id ?? null, actors: [...actors], beats: [...beats], strays, drift });
+    R.moments.full = false;
+  }
   R.perks.hold = false;
   return results;
+}
+
+// Pair perks in a small office: a foosball table on a free tile with room round it. The start rules
+// must allow a pair game there (perks.pairReady) within a minute of settling, and two people sent to
+// the table must get as far as playing. Random visits are held off, so nothing depends on a pick.
+export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
+  const { footprint } = await import('./layout.js');
+  const L = R.office.current.L;
+  const used = new Set();
+  const mark = (p) => { const f = footprint(p.itemId, p.rot ?? 0); for (let x = 0; x < f.w; x++) for (let y = 0; y < f.h; y++) used.add(`${p.x + x},${p.y + y}`); };
+  S.office.placed.forEach(mark);
+  for (const [x, y] of L.blocked) used.add(`${x},${y}`);
+  const f = footprint('foosball', 0);
+  let spot = null;
+  for (let y = 2; y < L.grid.h - f.h - 1 && !spot; y++) for (let x = 1; x < L.grid.w - f.w - 1 && !spot; x++) {
+    let ok = true;
+    for (let i = -1; i <= f.w && ok; i++) for (let j = -1; j <= f.h && ok; j++) if (used.has(`${x + i},${y + j}`)) ok = false;
+    if (ok) spot = { x, y };
+  }
+  if (!spot) return { name: `pairs:${label}`, pass: false, why: 'no free tile for the table' };
+  S.office.placed.push({ id: 'pair_table', itemId: 'foosball', level: 1, ...spot, rot: 0 });
+  const step = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  R.perks.hold = true;
+  let readyAt = null;
+  for (let t = 0; t < 60 && readyAt === null; t += dt * 5) { step(5); if (R.perks.pairReady(S)) readyAt = +t.toFixed(1); }
+  const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).slice(0, 2).map((p) => p.id);
+  const before = R.perks.played;
+  R.perks.send(ids, 'pair_table', { dur: 6 });
+  let playedAt = null;
+  for (let t = 0; t < 30 && playedAt === null; t += dt * 5) { step(5); if (R.perks.played > before) playedAt = +t.toFixed(1); }
+  S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
+  step(60);
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null, staff: S.staff.length, readyAt, playedAt, table: spot };
+}
+
+// The sky backdrop redraws at most a few times a second; a change inside that window must still be
+// drawn when it ends, so the sky settles on the last time of day asked for even if time then stops.
+export async function runSkyCheck() {
+  const { createBackdrop } = await import('./lighting.js');
+  const b = createBackdrop();
+  const px = () => [...b.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
+  b.update({ daylight: 1, dusk: 0 });
+  const day = px();
+  b.update({ daylight: 0.5, dusk: 1 });
+  b.update({ daylight: 0, dusk: 0 });
+  await new Promise((r) => setTimeout(r, 400));
+  window.__tick?.(400);
+  const last = px();
+  const fresh = createBackdrop();
+  fresh.update({ daylight: 0, dusk: 0 });
+  const night = [...fresh.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
+  return { name: 'sky:trailing', pass: last.join() === night.join() && day.join() !== night.join(), day: day.join(), last: last.join(), night: night.join() };
 }

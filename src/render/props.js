@@ -53,8 +53,11 @@ export function createProps(office, screens = null) {
       if ((e && !e.gone) || dropped.has(w.key)) continue;
       // Wall props keep clear of each other as well as of windows and wall pieces.
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
-      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
+      // Desk props already up, so another one on the same desk takes a different spot.
+      const onDesk = [...live.values()].filter((l) => !l.gone && l.obj.userData.deskRect).map((l) => ({ deskId: l.obj.userData.follow.deskId, ...l.obj.userData.deskRect }));
+      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk });
       if (!obj) continue;
+      obj.userData.propId = w.prop;
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
@@ -185,13 +188,14 @@ const tapeGeo = new THREE.PlaneGeometry(0.1, 0.035);  // shared by every tape st
 let tapeMat = null;
 
 // A printed picture taped to the wall at eye level, a little crooked.
-function wallPrint(tex, { w = 0.84, h = 0.63, tilt = 0.035 } = {}) {
+function wallPrint(tex, { w = 0.84, h = 0.63, tilt = 0.035, y = 1.45 } = {}) {
   return (L, anchor, env) => {
     const spot = wallSpot(L, anchor, env.busy, w);
     const g = new THREE.Group();
     g.userData.span = { wall: spot.wall, a: spot.at - w / 2, b: spot.at + w / 2 };
     const onX = spot.wall === 'x';
-    g.position.set(onX ? -L.W / 2 + 0.06 : spot.at, 1.45, onX ? spot.at : -L.D / 2 + 0.06);
+    // y: a height, or (L) => a height, for props that hang relative to the wall's top.
+    g.position.set(onX ? -L.W / 2 + 0.06 : spot.at, typeof y === 'function' ? y(L) : y, onX ? spot.at : -L.D / 2 + 0.06);
     if (onX) g.rotation.y = Math.PI / 2;
     const sheet = new THREE.Mesh(plane(w, h), own(new THREE.MeshStandardMaterial({ map: tex(env.state), roughness: 0.9 })));
     sheet.rotation.z = tilt;
@@ -355,6 +359,8 @@ const rivalCopied = (state) => {
 // centre toward the sitter; y is the height (the desk top for things on it, 0 beside it). The prop
 // remembers its desk, follows it when it moves and goes when it is sold (see follow()). Without a
 // desk, or for other anchors, it stands on the anchor tile's floor.
+const deskList = (office) => [...(office.placed?.values() ?? [])].filter((o) => o.desk && o.target);
+const dist = (a, b) => Math.hypot(a.target.x - b.target.x, a.target.z - b.target.z);
 function deskFor(L, anchor, office, nearest) {
   const desks = [...(office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
   const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
@@ -362,7 +368,7 @@ function deskFor(L, anchor, office, nearest) {
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
   return desks.find(covers) ?? (nearest ? desks.sort((a, b) => d(a) - d(b))[0] : null) ?? null;
 }
-function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0 } = {}) {
+function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0, group = false } = {}) {
   // Defaults read at call time: the constants are declared further down.
   return (L, anchor, env) => {
     const g = new THREE.Group();
@@ -370,6 +376,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     const item = build();
     item.scale.setScalar(scale);
     g.add(item);
+    if (item.userData.tick) g.userData.tick = item.userData.tick;
     // Things on a desk always find one, whatever the anchor (a wall anchor means the nearest desk);
     // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
@@ -377,11 +384,49 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
-      let spot = onTop ? deskSpot(e, g, lx, lz, rot, overhang) : { x: lx, z: lz };
-      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang); }
-      spot ??= { x: lx, z: lz };
-      g.userData.follow = { deskId: e.id, lx: spot.x, lz: spot.z, rot, y };
-      follow(g, e);
+      // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.
+      const around = overhang > 0 ? [...(env.office.placed?.values() ?? [])].filter((o) => o !== e && o.obj).map((o) => new THREE.Box3().setFromObject(o.obj)) : [];
+      // On the top: this desk, shrinking a little if need be, else the nearest desks with room. A
+      // prop that belongs to its desk's sitter (a subjectDesk anchor: their letter, their stapler)
+      // stays on that desk, since moments find the person by the desk it is on.
+      let spot = onTop ? null : { x: lx, z: lz }, desk = e;
+      if (onTop) {
+        // A group prop (a pizza stack for everyone) is nobody's in particular and may move on.
+        const mine = anchor.anchor === 'subjectDesk' && !group;
+        const near = mine ? [e] : [e, ...deskList(env.office).filter((o) => o !== e).sort((a2, b2) => dist(a2, e) - dist(b2, e)).slice(0, 6)];
+        for (const d of near) {
+          const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
+          item.scale.setScalar(scale);
+          spot = deskSpot(d, g, lx, lz, rot, overhang, around, others);
+          for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others); }
+          if (spot) { desk = d; break; }
+        }
+        // Still no room on its own desk: it may take the sitter's hand zone (the thing is theirs,
+        // and they will move it), shrinking a little further, rather than leave the desk its
+        // moment looks for.
+        if (!spot && mine) {
+          const others = (env.onDesk ?? []).filter((r) => r.deskId === e.id);
+          item.scale.setScalar(scale);
+          spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false);
+          for (let k = 0; !spot && k < 6; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false); }
+        }
+      }
+      if (spot) {
+        g.userData.follow = { deskId: desk.id, lx: spot.x, lz: spot.z, rot, y };
+        if (onTop) g.userData.deskRect = spot.rect;
+        follow(g, desk);
+      } else if (group && (item.scale.setScalar(scale), g.rotation.y = rot, spot = counterSpot(env.office, g, e))) {
+        // A group prop with no desk to go on: the nearest table or counter with room, full size.
+        g.position.set(spot.x, spot.y, spot.z);
+      } else {
+        // No room on any nearby desk even shrunk: it goes on the floor beside its desk, full size.
+        item.scale.setScalar(scale);
+        g.userData.blocks = true;
+        const o = e.obj, r = o.rotation.y, side = { x: o.position.x + Math.cos(r) * 0.95, z: o.position.z - Math.sin(r) * 0.95 };
+        g.rotation.y = rot;
+        const at = clearSpot(L, env.office, g, side);
+        g.position.set(at.x, 0, at.z);
+      }
     } else {
       const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
       g.rotation.y = rot;
@@ -423,9 +468,12 @@ function clearSpot(L, office, g, c) {
 // (monitor, keyboard, mug, plant, papers, era dressing), found by rasterising the desk's triangles
 // that rise above the top. The sitter's hands keep the front middle clear too.
 const TOP_X = 0.72, TOP_Z0 = -0.66, TOP_Z1 = -0.04, CELL = 0.02;
+const OVER = new THREE.Vector3();
 const deskGrids = new WeakMap();
-function deskGrid(e) {
-  let grid = deskGrids.get(e.obj);
+// hands: keep the sitter's hand zone clear (the default); off, only real clutter counts.
+function deskGrid(e, hands = true) {
+  const key = hands ? e.obj : e.obj.userData;
+  let grid = deskGrids.get(key);
   if (grid) return grid;
   const nx = Math.ceil((2 * TOP_X) / CELL), nz = Math.ceil((TOP_Z1 - TOP_Z0) / CELL);
   const cells = new Uint8Array(nx * nz);
@@ -437,6 +485,8 @@ function deskGrid(e) {
   e.obj.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(e.obj.matrixWorld).invert();
   const m = new THREE.Matrix4(), a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  // The top's real extent: desk models differ in width, and the grid spans the widest.
+  let tx0 = Infinity, tx1 = -Infinity, tz0 = Infinity, tz1 = -Infinity;
   e.obj.traverse((o) => {
     if (!o.isMesh || !o.geometry?.attributes?.position) return;
     m.multiplyMatrices(inv, o.matrixWorld);
@@ -447,37 +497,64 @@ function deskGrid(e) {
       a.fromBufferAttribute(pos, v(0)).applyMatrix4(m);
       b.fromBufferAttribute(pos, v(1)).applyMatrix4(m);
       c.fromBufferAttribute(pos, v(2)).applyMatrix4(m);
+      const lo = Math.min(a.y, b.y, c.y), hi = Math.max(a.y, b.y, c.y);
+      if (hi - lo < 0.002 && Math.abs(hi - TOP_Y) < 0.01) {
+        tx0 = Math.min(tx0, a.x, b.x, c.x); tx1 = Math.max(tx1, a.x, b.x, c.x);
+        tz0 = Math.min(tz0, a.z, b.z, c.z); tz1 = Math.max(tz1, a.z, b.z, c.z);
+      }
       // Only what stands on the top: above it, below head height.
-      if (Math.max(a.y, b.y, c.y) < TOP_Y + 0.012 || Math.min(a.y, b.y, c.y) > 1.3) continue;
+      if (hi < TOP_Y + 0.012 || lo > 1.3) continue;
       mark(Math.min(a.x, b.x, c.x), Math.max(a.x, b.x, c.x), Math.min(a.z, b.z, c.z), Math.max(a.z, b.z, c.z));
     }
   });
-  mark(-0.3, 0.3, -0.2, TOP_Z1);
+  if (hands) mark(-0.3, 0.3, -0.2, TOP_Z1);
+  // Off the top is taken too, so nothing lands in the air beside a narrow desk.
+  if (tx1 > tx0) {
+    for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) {
+      const x = -TOP_X + (i + 0.5) * CELL, z = TOP_Z0 + (k + 0.5) * CELL;
+      if (x < tx0 || x > tx1 || z < tz0 || z > tz1) cells[i + k * nx] = 1;
+    }
+  }
   grid = { cells, nx, nz };
-  deskGrids.set(e.obj, grid);
+  deskGrids.set(key, grid);
   return grid;
 }
-// The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top.
-// overhang: how far past the desk's side edges the prop may stick out (a stack of boxes).
-function deskSpot(e, g, lx, lz, rot, overhang = 0) {
+// The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top, clear of
+// `others` (desk-frame rects of the props already on this desk); with that rect.
+// overhang: how far past the desk's side edges the prop may stick out (a stack of boxes), and only
+// where none of `around` (world boxes of the items near the desk) is under the part that sticks out.
+function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = [], hands = true) {
   g.position.set(0, 0, 0);
   g.rotation.y = rot;
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
-  const { cells, nx, nz } = deskGrid(e);
+  const { cells, nx, nz } = deskGrid(e, hands);
   const fits = (x, z) => {
     if (x + b.min.x < -TOP_X - overhang || x + b.max.x > TOP_X + overhang || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
+    if (others.some((r) => x + b.min.x < r.x1 + 0.01 && x + b.max.x > r.x0 - 0.01 && z + b.min.z < r.z1 + 0.01 && z + b.max.z > r.z0 - 0.01)) return false;
     const i0 = Math.floor((x + b.min.x + TOP_X) / CELL), i1 = Math.floor((x + b.max.x + TOP_X) / CELL);
     const k0 = Math.floor((z + b.min.z - TOP_Z0) / CELL), k1 = Math.floor((z + b.max.z - TOP_Z0) / CELL);
     for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return false;
+    if (around.length && (x + b.min.x < -TOP_X || x + b.max.x > TOP_X)) {
+      // The overhanging part, sampled on a 4 cm grid, in world space at the desk top's height.
+      const x0 = x + b.min.x, x1 = x + b.max.x, z0 = z + b.min.z, z1 = z + b.max.z;
+      for (let px = x0; px <= x1 + 1e-6; px += 0.04) {
+        if (px >= -TOP_X && px <= TOP_X) continue;
+        for (let pz = z0; pz <= z1 + 1e-6; pz += 0.04) {
+          const w = OVER.set(px, TOP_Y + 0.05, pz).applyMatrix4(e.obj.matrixWorld);
+          if (around.some((a) => a.containsPoint(w))) return false;
+        }
+      }
+    }
     return true;
   };
-  if (fits(lx, lz)) return { x: lx, z: lz };
+  const at = (x, z) => ({ x, z, rect: { x0: x + b.min.x, x1: x + b.max.x, z0: z + b.min.z, z1: z + b.max.z } });
+  if (fits(lx, lz)) return at(lx, lz);
   for (let d = CELL; d < 1.4; d += CELL) {
     const n = Math.max(8, Math.round(d * 60));
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2, x = lx + Math.cos(a) * d, z = lz + Math.sin(a) * d;
-      if (fits(x, z)) return { x, z };
+      if (fits(x, z)) return at(x, z);
     }
   }
   return null;
@@ -489,11 +566,53 @@ function follow(g, e) {
   g.position.set(o.position.x + cs * f.lx + sn * f.lz, f.y, o.position.z - sn * f.lx + cs * f.lz);
   g.rotation.y = r + f.rot;
 }
+// A flat, clear spot on the top of the nearest table or counter (a meeting table, a coffee corner)
+// for g at its current scale and rotation, as { x, y, z }, or null. Rays straight down over the top
+// must all land on one level surface at table or counter height, with room above it.
+const COUNTERS = new Set(['meeting_table', 'coffee_corner']);
+const CAST = new THREE.Raycaster();
+const DOWN = new THREE.Vector3(0, -1, 0);
+function counterSpot(office, g, near) {
+  const saved = g.position.clone();
+  g.position.set(0, 0, 0);
+  g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  g.position.copy(saved);
+  const hw = (b.max.x - b.min.x) / 2, hd = (b.max.z - b.min.z) / 2;
+  const items = [...(office.placed?.values() ?? [])].filter((o) => COUNTERS.has(o.itemId) && o.target)
+    .sort((a, c) => Math.hypot(a.target.x - near.target.x, a.target.z - near.target.z) - Math.hypot(c.target.x - near.target.x, c.target.z - near.target.z));
+  // The highest surface at table or counter height with room for the prop above it (a shelf or cabinet
+  // over a counter is not in the way unless it is lower than the prop is tall).
+  const tall = b.max.y - b.min.y;
+  const top = (x, z, meshes) => {
+    CAST.set(OVER.set(x, 3, z), DOWN);
+    const ys = CAST.intersectObjects(meshes, false).map((h) => h.point.y);
+    const i = ys.findIndex((y) => y >= 0.6 && y <= 1.1);
+    if (i < 0) return null;
+    return ys.slice(0, i).some((y) => y - ys[i] < tall + 0.02) ? null : ys[i];
+  };
+  for (const it of items.slice(0, 4)) {
+    const meshes = [];
+    it.obj.updateMatrixWorld(true);
+    it.obj.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    const box = new THREE.Box3().setFromObject(it.obj);
+    for (let x = box.min.x + hw; x <= box.max.x - hw; x += 0.02) {
+      for (let z = box.min.z + hd; z <= box.max.z - hd; z += 0.02) {
+        const y = top(x, z, meshes);
+        if (y == null || y < 0.6 || y > 1.1) continue;
+        const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]].map(([u, v]) => top(x + u * hw, z + v * hd, meshes));
+        if (corners.every((c) => c != null && Math.abs(c - y) < 0.01)) return { x, y, z };
+      }
+    }
+  }
+  return null;
+}
+
 // A free-standing prop on the anchor tile's floor, or beside the subject's desk for that anchor.
 function onFloor(build, opts = {}) {
   return atDesk(build, { x: 0.95, z: 0.1, rot: 0, y: 0, scale: 1, ...opts });
 }
-const TOP_Y = 0.59;         // the desk model's top surface
+const TOP_Y = 0.57;         // the desk model's top surface
 const DESK_PROP_SCALE = 1.6;
 // Flat paper needs more size than objects to read from above. It sits on the sitter's right, where
 // their head does not hide it from the camera.
@@ -657,11 +776,12 @@ function petCarrier() {
 // A network cable run along the floor from the desk, bitten through, frayed ends and all.
 function cableChewed() {
   const g = new THREE.Group();
-  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.02, 0.02, x1 - x0, 0.006, 8), mat('role_engineer'), x1, 0.012, 0); m.rotation.z = Math.PI / 2; return m; };
+  // Lying on the floor: the centre line one radius up.
+  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.02, 0.02, x1 - x0, 0.006, 8), mat('role_engineer'), x1, 0.02, 0); m.rotation.z = Math.PI / 2; return m; };
   g.add(seg(-0.6, -0.08), seg(0.06, 0.55));
   for (const [x, s] of [[-0.08, 1], [0.06, -1]]) {
     for (let i = 0; i < 4; i++) {
-      const w = mesh(roundedCylinder(0.003, 0.003, 0.05, 0.001, 4), mat(['fabric_terracotta', 'marker_green', 'fabric_mustard', 'paper'][i]), x + s * 0.02, 0.012, (i - 1.5) * 0.008);
+      const w = mesh(roundedCylinder(0.003, 0.003, 0.05, 0.001, 4), mat(['fabric_terracotta', 'marker_green', 'fabric_mustard', 'paper'][i]), x + s * 0.02, 0.02, (i - 1.5) * 0.008);
       w.rotation.z = Math.PI / 2 + (i - 1.5) * 0.4 * s;
       g.add(w);
     }
@@ -777,6 +897,322 @@ function rackHot(L, anchor, env) {
   return g;
 }
 
+
+// #339, office classics. The banner: a wide corporate-blue motivational question over the wall.
+const companyBanner = () => canvasTex('banner_company', 1024, 256, (ctx, W, H) => {
+  ctx.fillStyle = P.role_engineer; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.paper; ctx.fillRect(10, 10, W - 20, 6); ctx.fillRect(10, H - 16, W - 20, 6);
+  text(ctx, 'IS THIS GOOD FOR', W / 2, 92, 84, P.paper);
+  text(ctx, 'THE COMPANY?', W / 2, 184, 84, P.paper);
+});
+// TPS report cover sheets: a squared-up stack with the memo about them on top.
+function coverSheets() {
+  const g = new THREE.Group();
+  for (let i = 0; i < 6; i++) {
+    const sh = mesh(roundedBox(0.21, 0.004, 0.28, 0.002, 1), mat('paper'), (i % 2) * 0.004, 0.002 + i * 0.004, (i % 3) * 0.003);
+    sh.rotation.y = (i % 2 ? 1 : -1) * 0.02;
+    g.add(sh);
+  }
+  const memo = cardTex('tps', 128, 170, (ctx, W, H) => {
+    ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
+    text(ctx, 'TPS', W / 2, 28, 30, P.ink);
+    text(ctx, 'COVER SHEET', W / 2, 56, 15, P.ink);
+    ctx.fillStyle = P.metal_soft; for (let i = 0; i < 5; i++) ctx.fillRect(18, 80 + i * 14, 92 - (i % 2) * 20, 5);
+    ctx.fillStyle = P.fabric_mustard; ctx.fillRect(W - 40, 8, 32, 32);
+  });
+  const top = new THREE.Mesh(plane(0.2, 0.27), flatMat(memo));
+  top.rotation.x = -Math.PI / 2; top.position.y = 0.027;
+  g.add(top);
+  return g;
+}
+// A red stapler, generic: a rounded base, a hinged top and a steel strip.
+function stapler() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.06, 0.02, 0.2, 0.008, 2), mat('metal_dark'), 0, 0.01, 0));
+  const top = mesh(roundedBox(0.056, 0.035, 0.19, 0.014, 3), mat('alarm_red'), 0, 0.04, -0.004);
+  top.rotation.x = -0.05;
+  g.add(top);
+  g.add(mesh(roundedBox(0.04, 0.006, 0.05, 0.002, 1), mat('metal_soft'), 0, 0.058, -0.08));
+  return g;
+}
+// An office printer: a boxy body, a paper tray, a jammed sheet sticking out, a blinking light and
+// a small screen that says PC LOAD LETTER.
+const printerScreen = () => cardTex('pcload', 256, 48, (ctx, W, H) => {
+  ctx.fillStyle = '#9fc7a1'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.font = '700 26px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('PC LOAD LETTER', W / 2, H / 2);
+});
+// The printer model on its own (moments.js carries one out the door).
+export function printerModel() { return printerBody(false); }
+function printerBody(broken = false) {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.62, 0.36, 0.5, 0.05, 3), mat('pot_cream'), 0, 0.18, 0));
+  g.add(mesh(roundedBox(0.64, 0.04, 0.52, 0.02, 2), mat('metal_soft'), 0, 0.37, 0));
+  g.add(mesh(roundedBox(0.44, 0.03, 0.16, 0.01, 2), mat('metal_soft'), 0, 0.12, 0.29));
+  const panel = new THREE.Mesh(plane(0.3, 0.056), flatMat(printerScreen()));
+  panel.position.set(0.1, 0.395, 0.17); panel.rotation.x = -Math.PI / 2 + 0.5;
+  g.add(panel);
+  if (!broken) {
+    // The jammed sheet, crumpled out of the output slot.
+    const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.05, 0.33, 0.3);
+    jam.rotation.set(0.9, 0.2, 0.15);
+    g.add(jam);
+  }
+  return g;
+}
+function printerJammed() {
+  const g = printerBody(false);
+  const light = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), own(new THREE.MeshStandardMaterial({ color: new THREE.Color(P.alarm_red), emissive: new THREE.Color(P.alarm_red), emissiveIntensity: 2 })));
+  light.geometry.userData.own = true;
+  light.position.set(0.26, 0.37, 0.2);
+  g.add(light);
+  let t = 0;
+  g.userData.tick = (dt) => { t += dt; light.material.emissiveIntensity = Math.sin(t * 7) > 0 ? 2.4 : 0.2; };
+  return g;
+}
+// After "Take it out back": the printer, smashed, on the ground outside, bits scattered and the
+// bat leaning on it.
+function printerWrecked() {
+  const g = new THREE.Group();
+  const body = printerBody(true);
+  body.rotation.set(0.25, 0.6, -0.35);
+  body.scale.set(1, 0.7, 1);
+  g.add(body);
+  // Tipped over, its lowest corner rests on the floor.
+  body.updateMatrixWorld(true);
+  body.position.y = -new THREE.Box3().setFromObject(body).min.y + 0.002;
+  const bits = [[0.5, 0.2, 'pot_cream'], [-0.45, 0.35, 'metal_soft'], [0.3, -0.45, 'pot_cream'], [-0.2, -0.5, 'metal_dark'], [0.62, -0.1, 'paper'], [-0.6, -0.1, 'paper']];
+  bits.forEach(([x, z, m], i) => {
+    const b = mesh(roundedBox(0.09 + (i % 3) * 0.03, 0.03, 0.07 + (i % 2) * 0.04, 0.01, 1), mat(m), x, 0.015, z);
+    b.rotation.y = i * 1.3;
+    g.add(b);
+  });
+  const bat = new THREE.Group();
+  bat.add(mesh(roundedCylinder(0.03, 0.05, 0.8, 0.02, 10), mat('wood_light'), 0, 0, 0));
+  // Dropped flat on the floor beside it.
+  bat.rotation.set(0, 0.4, Math.PI / 2);
+  bat.position.set(0.55, 0.05, 0.25);
+  g.add(bat);
+  return g;
+}
+// Out the door on the ground: the driveway, the campus. The Office Floor is a storey up with its
+// street out of view, so there the pieces lie inside, a little way in from the door.
+const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
+const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
+function outside(build, scale = 1) {
+  return (L, anchor, env) => {
+    const g = new THREE.Group();
+    const item = build();
+    item.scale.setScalar(scale);
+    g.add(item);
+    const d = L.doorWorld;
+    if (L.name === 'Office Floor') {
+      // In from the door, clear of the cut-away front wall and away from the columns, so the smash
+      // that leaves it shows from either side.
+      const cols = (L.blocked ?? []).map(([bx, by]) => ({ x: bx + 0.5 - L.W / 2, z: by + 0.5 - L.D / 2 }));
+      const l = Math.hypot(d.x, d.z) || 1, inx = -d.x / l, inz = -d.z / l;
+      let p = null, best = -1;
+      search: for (const along of WRECK_IN) for (const side of [0, 1, -1, 2, -2]) {
+        const q = clearSpot(L, env.office, g, { x: d.x + inx * along - inz * side, z: d.z + inz * along + inx * side });
+        const gap = Math.min(Infinity, ...cols.map((c) => Math.hypot(c.x - q.x, c.z - q.z)));
+        if (gap > best) { best = gap; p = q; }
+        if (gap >= WRECK_COLUMN_GAP) break search;
+      }
+      g.position.set(p.x, 0, p.z);
+      g.userData.blocks = true;
+    } else {
+      const out = Math.abs(d.z) >= L.D / 2 - 1.2 ? [0, Math.sign(d.z)] : [Math.sign(d.x), 0];
+      g.position.set(d.x + out[0] * 2.2 + out[1] * 1.2, -0.3, d.z + out[1] * 2.2 - out[0] * 1.2);
+    }
+    g.rotation.y = 0.4;
+    return g;
+  };
+}
+
+// The #228 set: reusable props several decisions stage.
+
+// A printed sheet taped up: a one-star review, a heading, lines of text, a bar chart.
+const printout = () => canvasTex('printout', 384, 512, (ctx, W, H) => {
+  ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.fillRect(28, 30, W - 56, 26);
+  ctx.fillStyle = P.fabric_mustard; ctx.font = '700 40px sans-serif'; ctx.textBaseline = 'top';
+  ctx.fillText('★', 28, 74);
+  ctx.fillStyle = P.metal_soft; ctx.fillText('★★★★', 70, 74);
+  for (let i = 0; i < 9; i++) ctx.fillRect(28, 140 + i * 22, W - 56 - (i % 3) * 60, 9);
+  const bars = [0.8, 0.55, 0.35, 0.2];
+  bars.forEach((b, i) => { ctx.fillStyle = i ? P.metal_soft : P.alarm_red; ctx.fillRect(40 + i * 80, H - 40 - b * 110, 56, b * 110); });
+});
+// Marker on a whiteboard: boxes, arrows between them, a scribbled heading and a circled word.
+const scrawl = () => canvasTex('whiteboard_scrawl', 512, 320, (ctx, W, H) => {
+  ctx.clearRect(0, 0, W, H);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pen = (col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; };
+  pen(P.marker_blue, 7);
+  ctx.beginPath(); ctx.moveTo(40, 44); for (let x = 40; x < 300; x += 22) ctx.lineTo(x + 11, 44 + ((x / 22) % 2 ? -8 : 8)); ctx.stroke();
+  pen(P.ink, 6);
+  ctx.strokeRect(50, 110, 120, 70); ctx.strokeRect(310, 90, 140, 80); ctx.strokeRect(300, 220, 150, 70);
+  pen(P.marker_orange, 6);
+  ctx.beginPath(); ctx.moveTo(175, 145); ctx.lineTo(300, 130); ctx.moveTo(285, 118); ctx.lineTo(302, 130); ctx.lineTo(288, 145);
+  ctx.moveTo(380, 175); ctx.lineTo(375, 215); ctx.moveTo(365, 202); ctx.lineTo(375, 217); ctx.lineTo(388, 204); ctx.stroke();
+  pen(P.alarm_red, 10);
+  ctx.beginPath(); ctx.ellipse(110, 250, 78, 40, -0.1, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = P.alarm_red; ctx.font = '900 64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('?!', 110, 252);
+  pen(P.ink, 5);
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(70, 132 + i * 16); ctx.lineTo(150 - i * 18, 132 + i * 16); ctx.stroke(); }
+});
+// Written on the board's face (both faces of a free-standing one); on the back wall without a board.
+function whiteboardScrawl(L, anchor, env) {
+  const { entry } = itemAt(L, anchor, env.office, ['whiteboard']);
+  if (!entry) return wallPrint(scrawl, { w: 0.9, h: 0.56, tilt: 0 })(L, anchor, env);
+  const face = new THREE.Box3();
+  entry.obj.updateMatrixWorld(true);
+  entry.obj.traverse((o) => { if (o.isMesh && /whiteboard/.test(o.material?.name ?? '')) face.expandByObject(o); });
+  if (face.isEmpty()) face.setFromObject(entry.obj);
+  const r = entry.target.rotY, n = [Math.sin(r), Math.cos(r)];
+  const c = face.getCenter(new THREE.Vector3()), size = face.getSize(new THREE.Vector3());
+  // The face's width across the board, its thickness along the facing.
+  const across = Math.abs(n[1]) * size.x + Math.abs(n[0]) * size.z, thick = Math.abs(n[0]) * size.x + Math.abs(n[1]) * size.z;
+  const g = new THREE.Group();
+  g.position.set(c.x, c.y, c.z);
+  g.rotation.y = r;
+  const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), transparent: true, roughness: 0.6 }));
+  for (const side of entry.itemId === 'whiteboard_wall' ? [1] : [1, -1]) {
+    const pl = new THREE.Mesh(plane(across * 0.8, size.y * 0.7), m);
+    pl.position.z = side * (thick / 2 + 0.004);
+    if (side < 0) pl.rotation.y = Math.PI;
+    pl.userData.noAO = true;
+    g.add(pl);
+  }
+  return g;
+}
+function mugMesh(scale = 1, color = 'mug') {
+  const g = new THREE.Group();
+  g.add(mesh(roundedCylinder(0.04 * scale, 0.036 * scale, 0.1 * scale, 0.01 * scale, 14), mat(color), 0, 0, 0));
+  g.add(mesh(roundedCylinder(0.034 * scale, 0.034 * scale, 0.004, 0.001, 14), mat('coffee'), 0, 0.09 * scale, 0));
+  const handle = mesh(new THREE.TorusGeometry(0.024 * scale, 0.007 * scale, 6, 12), mat(color), 0.045 * scale, 0.05 * scale, 0);
+  handle.geometry.userData.own = true;
+  g.add(handle);
+  return g;
+}
+// Mugs nobody took back to the kitchen: four in a huddle, one on its side.
+function mugPile() {
+  const g = new THREE.Group();
+  const spots = [[-0.07, 0, 0.4], [0.02, 0.03, 2.1], [0.1, -0.02, 4], [-0.02, -0.08, 5.2]];
+  const cols = ['mug', 'fabric_teal', 'mug', 'fabric_mustard'];
+  spots.forEach(([x, z, r], i) => { const m = mugMesh(1, cols[i]); m.position.set(x, 0, z); m.rotation.y = r; g.add(m); });
+  const down = mugMesh(1, 'screen_pink');
+  down.rotation.set(0, 0.8, Math.PI / 2);
+  down.position.set(0.06, 0.04, 0.09);
+  g.add(down);
+  return g;
+}
+// One absurdly big mug.
+function mugBucket() { return mugMesh(2.6, 'fabric_teal'); }
+// A small wall shelf with a mug on it, its slogan printed on the side facing the room.
+const MUG_SLOGAN = ['MAKE SOFTWEAR', 'PEOPLE LOVE'];
+const mugLabel = () => canvasTex('mug_typo', 256, 128, (ctx, W, H) => {
+  ctx.fillStyle = P.fabric_mustard; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 34px sans-serif';
+  MUG_SLOGAN.forEach((t, i) => ctx.fillText(t, W / 2, 38 + i * 50));
+});
+function mugShelf() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.42, 0.025, 0.16, 0.008, 2), mat('wood_honey'), 0, 0, 0.08));
+  for (const sx of [-0.15, 0.15]) g.add(mesh(roundedBox(0.02, 0.07, 0.1, 0.005, 1), mat('metal_dark'), sx, -0.045, 0.05));
+  const m = mugMesh(2, 'fabric_mustard');
+  m.position.set(0, 0.012, 0.085);
+  // Handle to the side, so the printed front faces the room.
+  m.rotation.y = Math.PI;
+  g.add(m);
+  // The slogan on a flat band across the mug's front, so it reads.
+  const label = new THREE.Mesh(plane(0.15, 0.075), flatMat(mugLabel(), 0.6));
+  label.position.set(0, 0.012 + 0.1, 0.085 + 0.082);
+  label.userData.noAO = true;
+  g.add(label);
+  return g;
+}
+// A 3D thing on the wall at a height, placed along the wall as a print is.
+function wallThing(build, { w = 0.5, y = 1.3, scale = 1 } = {}) {
+  return (L, anchor, env) => {
+    const spot = wallSpot(L, anchor, env.busy, w);
+    const g = new THREE.Group();
+    g.userData.span = { wall: spot.wall, a: spot.at - w / 2, b: spot.at + w / 2 };
+    const onX = spot.wall === 'x';
+    g.position.set(onX ? -L.W / 2 + 0.03 : spot.at, y, onX ? spot.at : -L.D / 2 + 0.03);
+    if (onX) g.rotation.y = Math.PI / 2;
+    const item = build();
+    item.scale.setScalar(scale);
+    g.add(item);
+    return g;
+  };
+}
+// Two cardboard boxes stacked by the door, the top one open with a monitor peeking out.
+function movingBoxes() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.55, 0.38, 0.42, 0.02, 2), mat('cardboard'), 0, 0.19, 0));
+  const top = mesh(roundedBox(0.48, 0.3, 0.38, 0.02, 2), mat('cardboard'), 0.03, 0.53, 0.01);
+  top.rotation.y = 0.12;
+  g.add(top);
+  for (const [sx, r] of [[-1, 0.9], [1, -0.9]]) {
+    const flap = mesh(roundedBox(0.2, 0.012, 0.36, 0.004, 1), mat('cardboard'), 0.03 + sx * 0.33, 0.7, 0.01);
+    flap.rotation.set(0, 0.12, r);
+    g.add(flap);
+  }
+  const mon = mesh(roundedBox(0.36, 0.24, 0.03, 0.01, 2), mat('plastic_charcoal'), 0.03, 0.72, -0.02);
+  mon.rotation.set(-0.2, 0.12, 0.05);
+  g.add(mon);
+  g.add(mesh(roundedBox(0.4, 0.004, 0.06, 0.001, 1), mat('paper'), 0, 0.38, 0.21));
+  return g;
+}
+// An oversized novelty cheque: the hackathon prize, to the winner, the amount left blank.
+const cheque = () => canvasTex('giant_cheque', 1024, 440, (ctx, W, H) => {
+  ctx.fillStyle = '#e9f1e4'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = P.fabric_teal; ctx.lineWidth = 14; ctx.strokeRect(14, 14, W - 28, H - 28);
+  ctx.fillStyle = P.ink; ctx.textBaseline = 'middle';
+  ctx.font = '700 40px sans-serif'; ctx.fillText('PAY TO THE ORDER OF', 60, 110);
+  ctx.fillStyle = P.metal_soft; ctx.fillRect(520, 128, 440, 6);
+  ctx.fillStyle = P.ink; ctx.font = 'italic 700 56px sans-serif'; ctx.fillText('Winner', 560, 104);
+  ctx.fillStyle = P.ink; ctx.font = '800 120px sans-serif'; ctx.fillText('$', 60, 260);
+  ctx.strokeStyle = P.fabric_teal; ctx.lineWidth = 8; ctx.strokeRect(160, 200, 420, 110);
+  ctx.fillStyle = P.metal_soft; ctx.fillRect(620, 360, 340, 6);
+  ctx.strokeStyle = P.ink; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(640, 350);
+  for (let x = 640; x < 940; x += 30) ctx.quadraticCurveTo(x + 15, 300 + (x % 60), x + 30, 345);
+  ctx.stroke();
+});
+// An open box of stickers and swag, a folded banner leaning on it.
+function swagBox() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.5, 0.26, 0.38, 0.02, 2), mat('cardboard'), 0, 0.13, 0));
+  const cols = ['fabric_mustard', 'fabric_teal', 'screen_pink', 'marker_green', 'marker_orange', 'role_engineer'];
+  for (let i = 0; i < 12; i++) {
+    const st = mesh(roundedBox(0.08, 0.01, 0.08, 0.003, 1), mat(cols[i % cols.length]), -0.18 + (i % 4) * 0.12, 0.26 + (i % 3) * 0.008, -0.12 + Math.floor(i / 4) * 0.12);
+    st.rotation.set(((i * 7) % 5 - 2) * 0.08, i * 0.7, 0);
+    g.add(st);
+  }
+  const banner = mesh(roundedBox(0.5, 0.06, 0.2, 0.02, 2), mat('fabric_teal'), 0.26, 0.24, 0.02);
+  banner.rotation.set(0, 0, 1.25);
+  g.add(banner);
+  return g;
+}
+// A French press on a small round stand.
+function frenchPress() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedCylinder(0.2, 0.2, 0.03, 0.01, 20), mat('wood_honey'), 0, 0.62, 0));
+  g.add(mesh(roundedCylinder(0.025, 0.035, 0.6, 0.008, 10), mat('metal_dark'), 0, 0.02, 0));
+  g.add(mesh(roundedCylinder(0.15, 0.15, 0.02, 0.008, 16), mat('metal_dark'), 0, 0, 0));
+  const top = 0.65;
+  const glass = mesh(roundedCylinder(0.065, 0.065, 0.2, 0.01, 18), mat('glass'), 0, top, 0);
+  g.add(glass);
+  g.add(mesh(roundedCylinder(0.058, 0.058, 0.12, 0.005, 16), mat('coffee'), 0, top + 0.01, 0));
+  g.add(mesh(roundedCylinder(0.07, 0.07, 0.025, 0.008, 18), mat('metal_soft'), 0, top + 0.2, 0));
+  g.add(mesh(roundedCylinder(0.008, 0.008, 0.08, 0.003, 8), mat('metal_soft'), 0, top + 0.22, 0));
+  g.add(mesh(roundedCylinder(0.02, 0.02, 0.018, 0.006, 10), mat('plastic_charcoal'), 0, top + 0.3, 0));
+  const handle = mesh(roundedBox(0.02, 0.14, 0.03, 0.008, 2), mat('plastic_charcoal'), 0.085, top + 0.08, 0);
+  g.add(handle);
+  return g;
+}
+
 const BUILDERS = {
   picture_pingpong: wallPrint(pingPongPicture(false)),
   picture_pingpong_ball: wallPrint(pingPongPicture(true)),
@@ -788,11 +1224,11 @@ const BUILDERS = {
   envelope: atDesk(envelope(false), FLAT),
   envelope_thick: atDesk(envelope(true), FLAT),
   binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
-  gift_cards: atDesk(giftCards, FLAT),
+  gift_cards: atDesk(giftCards, { ...FLAT, group: true }),
   sticky_notes: atDesk(stickyNotes, { x: 0.4, z: -0.28, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
-  smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0 }),
-  pizza_boxes: atDesk(pizzaBoxes, { x: 0.5, z: -0.38, rot: 0.06, scale: 1.0, overhang: 0.1 }),
+  smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0, group: true }),
+  pizza_boxes: atDesk(pizzaBoxes, { x: 0.5, z: -0.38, rot: 0.06, scale: 1.0, overhang: 0.1, group: true }),
   curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
@@ -801,4 +1237,19 @@ const BUILDERS = {
   visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
   smoke_puff: smokePuff,
   rack_hot: rackHot,
+  // A banner hangs high, across the top of the wall, over the posters.
+  banner_company: wallPrint(companyBanner, { w: 2.0, h: 0.46, tilt: 0.01, y: (L) => L.wallH - 0.3 }),
+  cover_sheets: atDesk(coverSheets, FLAT),
+  stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
+  printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
+  printer_wrecked: outside(printerWrecked, 1.2),
+  printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
+  whiteboard_scrawl: whiteboardScrawl,
+  mug_pile: atDesk(mugPile, { x: 0.42, z: -0.3, rot: 0.2, scale: 1.15 }),
+  mug_bucket: atDesk(mugBucket, { x: 0.45, z: -0.3, rot: -0.4, scale: 1 }),
+  mug_typo: wallThing(mugShelf, { w: 0.62, y: 1.25, scale: 1.4 }),
+  moving_boxes: onFloor(movingBoxes, { x: 0.9, z: 0.2, rot: 0.3, scale: 1.1 }),
+  giant_cheque: wallPrint(cheque, { w: 1.6, h: 0.69, tilt: 0.02, y: 1.5 }),
+  swag_box: onFloor(swagBox, { x: 0.9, z: 0.25, rot: -0.3, scale: 1.25 }),
+  french_press: onFloor(frenchPress, { x: 0.9, z: 0.2, rot: 0.2, scale: 1.3 }),
 };

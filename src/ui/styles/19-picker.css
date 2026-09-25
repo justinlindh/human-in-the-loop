@@ -1,0 +1,46 @@
+/* Picker: the game's dropdown (picker.js). A chunky button and a listbox of rows over the scene. */
+.hitl .gpick {
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 0.45em; min-width: 0; max-width: 100%;
+  font: inherit; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer;
+  background: #fff; border: 0.15em solid var(--ink); border-radius: 0.55em; padding: 0.28em 0.5em;
+  box-shadow: 0 0.14em 0 var(--ink);
+}
+.hitl .gpick:hover:not(:disabled) { background: #fffaf0; }
+.hitl .gpick:active:not(:disabled) { transform: translateY(0.1em); box-shadow: 0 0.04em 0 var(--ink); }
+.hitl .gpick:focus-visible { outline: 0.18em solid var(--yellow); outline-offset: 0.05em; }
+.hitl .gpick:disabled { opacity: 0.55; cursor: default; }
+.hitl .gpick.empty .pk-label { color: var(--ink-soft); }
+.hitl .gpick .pk-face { display: inline-flex; align-items: center; gap: 0.35em; min-width: 0; flex: 1; }
+.hitl .gpick .pk-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .gpick .pk-caret { flex: none; color: var(--ink-soft); display: inline-flex; }
+.hitl .gpick .portrait { flex: none; }
+.hitl .pk-pop {
+  position: fixed; z-index: 60; pointer-events: auto; display: flex; flex-direction: column;
+  background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 0.8em; box-shadow: var(--pop), var(--soft);
+  overflow: hidden; font-size: var(--fs);
+}
+.hitl .pk-list { overflow-y: auto; overscroll-behavior: contain; padding: 0.3em; outline: none; -webkit-overflow-scrolling: touch; }
+.hitl .pk-group { font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); padding: 0.55em 0.5em 0.2em; }
+.hitl .pk-row {
+  display: flex; align-items: center; gap: 0.55em; padding: 0.35em 0.5em; border-radius: 0.55em; cursor: pointer;
+  border: 0.13em solid transparent; min-height: 2.2em;
+}
+.hitl .pk-row.pk-on { background: #fff; border-color: var(--ink); }
+.hitl .pk-row.sel { background: #fff3d6; }
+.hitl .pk-row.sel.pk-on { background: #ffe9b8; }
+.hitl .pk-row.off { opacity: 0.45; cursor: default; }
+.hitl .pk-row .pk-main { flex: 1; min-width: 0; }
+.hitl .pk-row .pk-top { display: flex; align-items: center; gap: 0.4em; min-width: 0; }
+.hitl .pk-row .pk-top b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .pk-row .pk-top .role { font-size: 0.72em; }
+.hitl .pk-row .pk-sub { font-size: 0.78em; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .pk-row .pk-stat { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.82em; color: var(--ink-soft); flex: none; }
+.hitl .pk-row .pk-tag { flex: none; font-size: 0.7em; font-weight: 700; border-radius: 1em; padding: 0.1em 0.55em; border: 0.12em solid var(--ink); }
+.hitl .pk-row .pk-tag.busy { background: #ffe1c2; }
+.hitl .pk-row .pk-tag.free { background: #c9f0dc; }
+.hitl .pk-row .pk-ico { flex: none; display: inline-flex; }
+.hitl .pk-empty { padding: 0.8em; color: var(--ink-soft); font-size: 0.85em; }
+@media (pointer: coarse) {
+  .hitl .gpick { min-height: 44px; }
+  .hitl .pk-row { min-height: 44px; }
+}

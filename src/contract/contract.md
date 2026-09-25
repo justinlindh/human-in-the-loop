@@ -279,19 +279,99 @@ Decisions whose text describes something physical show it in the office.
 
 ```js
 // Event data (src/data/events.js), optional:
-stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens'
+stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens' | 'whiteboard'
 // Choice data, optional:
 grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
-leaves: { prop, until }            // until: { item } | { weeks } | { flag }
+leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor only when the event has no stage
 
 state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
 state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
 ```
 
-- `prop` ids come from one shared prop set that art owns; sim uses only ids art has shipped.
+- `prop` ids come from one shared prop set that art owns. sim may reference an id before art ships it; the renderer draws nothing for an unknown id.
 - `grant` charges once. If the choice has a `cash` effect, that is the whole price and the item's own cost isn't added. Otherwise it charges the item's cost. The item's normal effects apply either way. If the item can't be placed, the choice is unavailable with the placement reason ('No room for it', 'Desk limit reached', 'Needs a bigger office'), never granted and refunded.
 - `grant` replaces a `buyItem` effect on decisions.
 - `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
-- `leaves` takes the stage prop's tile when there is one. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
+- An anchor of `'whiteboard'` resolves to a placed whiteboard or whiteboard_wall, else the back wall as `'wall'` does.
+- `leaves` takes the stage prop's tile when there is one, and otherwise resolves its own `anchor`. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
+
+## Yak reply prompts (#16)
+
+Some staff posts in Yak carry two or three founder replies. They're small, low-stakes choices. Big-stakes choices stay as decision popups.
+
+```js
+state.chatPrompts = [ChatPrompt]   // open prompts, plus resolved ones kept for B.chatPromptsKept weeks so ui can show them as answered
+ChatPrompt = {
+  id,                // 'cp12', from its own sequence (state.flags.promptSeq), so prompt ids never shift other ids
+  kind,              // template id in src/data/prompts.js
+  chatId,            // the chatLog message the options hang under
+  channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
+  week,              // week opened
+  expiresWeek,       // resolves as ignored when state.week reaches it
+  options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
+  resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
+}
+```
+
+### Events: Yak reply prompts
+
+```js
+{ type: 'chatPrompt', promptId, chatId }            // a prompt opened; its chat event comes earlier in the same tick
+{ type: 'chatPromptResolved', promptId, choice }    // choice: index, or null when it expired unanswered
+```
+
+### Actions: Yak reply prompts
+
+```js
+{ type: 'answerPrompt', promptId, choice }
+// { ok: false, reason } with 'No such prompt' | 'Already answered' | 'That has gone quiet' | 'Invalid choice'
+// or the option's own requirement reason (the same strings as decision choices)
+```
+
+- The founder's reply and the poster's follow-up are ordinary chat events with `replyTo = chatId`. The founder's line has `fromId` set to a founder's id.
+- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup.
+- At most `B.chatPromptsOpen` prompts are open at once. A new prompt opens at least `B.chatPromptGapWeeks` after the last one.
+- Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
+- Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
+- Copy follows the voice guide and the era gates.
+- Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
+- Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
+
+## Yak quick posts (#16)
+
+The founders can post a ready-made message in Yak. The team reacts, and a post that fits the moment lifts morale, while a badly timed one backfires.
+
+```js
+postOptions(state)   // pure export from src/sim/index.js
+// -> [{ id, label, icon, hint, channel, available, reason, readyWeek }] in a fixed order
+// [] when B.postsEnabled is false; ui hides the Post control when the list is empty
+// id: 'pep_talk' | 'who_broke_prod' | 'meme' | 'pizza' | 'announcement'
+// hint states the likely effect; channel is where the post appears; reason says why an unavailable post is greyed out;
+// readyWeek is null when ready, else the week its cooldown ends
+```
+
+### Events: Yak quick posts
+
+```js
+{ type: 'posted', id, chatId, outcome }   // outcome: 'landed' | 'flat' | 'backfired'; the post's chat event comes earlier in the same dispatch
+```
+
+### Actions: Yak quick posts
+
+```js
+{ type: 'postMessage', id }
+// { ok: true, outcome, chatId }
+// or { ok: false, reason } with 'Unknown message' | 'Posted recently' | 'Ready in N weeks' | 'Not enough cash' | 'Posts are off'
+```
+
+- The post is an ordinary chat event with `fromId` set to a founder's id. It carries its final emoji reaction counts, picked for the outcome and the team's mood, so there is no separate reaction event.
+- One to three staff replies follow over the next one or two ticks, as chat events with `replyTo` set to the post's id. They are queued in `state.flags.posts`.
+- `postMessage` works while paused, like `answerPrompt`, and emits the post and `posted` from the dispatch itself.
+- The cooldown, repeat memory and reply queue live in `state.flags.posts`, keyed by post id. Repeating a kind inside `B.posts.repeatWeeks` makes it `flat`: no effect, lukewarm replies.
+- The outcome follows from state (an outage, low morale, recent news), not from a roll. Randomness picks only reactions, repliers and text, from its own stream seeded by the game seed, the week and a post sequence, so a game with no posts matches one without the feature.
+- Bots never post.
+- Every number is in `B.posts`, and `B.postsEnabled` turns the feature off.
+- Copy follows the voice guide and the era gates.
+- Old saves have no `flags.posts` and load with every post available.

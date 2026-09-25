@@ -3,14 +3,29 @@
 // The page runs with Math.random seeded, the clock frozen, and requestAnimationFrame held from the
 // first frame, so the game's own loop never runs. openScene() waits for real readiness (renderer
 // handles, models, fonts), never for wall time; the caller then steps frames itself with
-// window.__step(n), which advances the clock by 1/30 s per frame. A run depends only on the code.
+// window.__step(n), which advances the clock by 1/30 s per frame (or window.__advance(n), the same
+// without drawing). Tool code that makes three.js objects mid-run goes inside window.__tool(fn) (see
+// INIT). A run depends only on the code.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
 
+// Two seeded streams. The game draws from Math.random, and so does three.js: it takes a UUID from
+// Math.random for every object, geometry, material or texture it makes (clone() and new
+// WebGLRenderer included). A tool that makes any of those mid-run (a crop, a probe, an overlay)
+// would shift the game's stream and change every state after it, so tool code runs inside
+// window.__tool(fn), which gives fn a stream of its own. fn must be synchronous.
 const INIT = `(() => {
   let s = 1234567;
-  Math.random = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  const game = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  let ts = 7654321;
+  const tool = () => { ts = (ts * 16807) % 2147483647; return (ts - 1) / 2147483646; };
+  Math.random = game;
+  window.__tool = (fn) => {
+    const prev = Math.random;
+    Math.random = tool;
+    try { return fn(); } finally { Math.random = prev; }
+  };
   let t = 0;
   performance.now = () => t;
   Date.now = () => 1700000000000 + t;
@@ -41,7 +56,10 @@ async function launch(gpu) {
 export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
   // Every check renders under the render lock for its mode: a GPU slot, or the software lock.
   holdRenderLock(gpu ? 'gpu' : 'software');
-  const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
+  // HITL_VITE_CACHE gives the server its own dependency cache, so checks running side by side never
+  // re-optimize (and reload) each other's dependencies.
+  const cacheDir = process.env.HITL_VITE_CACHE || undefined;
+  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];
   const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));
@@ -65,7 +83,13 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
         R.setSpeed?.(1);
         R.setPaused?.(false);
         R.setTimeOfDay?.(tod);
-        window.__step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(S); R.render(1 / 30); } };
+        // The state is read on each frame: a loaded save (continueGame) replaces it.
+        window.__step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30); } };
+        // Stepping without drawing. R.advance() moves people, moments and effects but, unlike render(),
+        // never refreshes world matrices; game logic reads them (paths, gaze, props that follow a desk),
+        // so a stepper that skipped the refresh would play differently from the game, and any tool that
+        // later refreshed them (a crop, a probe) would change what comes after.
+        window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
       }, time);
       return { page, errors };
     },

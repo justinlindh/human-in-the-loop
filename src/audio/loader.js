@@ -25,6 +25,8 @@ export function entryFor(id) {
   if (kind === 'sfx') return ASSETS.sfx?.[a] ?? null;
   if (kind === 'ambience') return ASSETS.ambience?.[a] ?? null;
   if (kind === 'musicNight') return ASSETS.musicNight?.[a] ?? null;
+  // Moment cues live in public/audio/moments/ by name.
+  if (kind === 'moments') return ASSETS.moments?.[a] ?? (a ? { file: `moments/${a}.ogg` } : null);
   return null;
 }
 
@@ -36,7 +38,24 @@ function url(file) {
   return `${BASE}audio/${opusOk ? file : file.replace(/\.ogg$/, '.m4a')}`;
 }
 
+// Voice banks decode at this rate: speech keeps its clarity and the decoded PCM is half the size.
+// Playback resamples to the context rate.
+export const VOICE_RATE = 24000;
+const isVoiceBank = (id) => id.startsWith('voice/') && id !== 'voice/crowd';
+
 export function createLoader(ctx) {
+  let voiceCtx;
+  // A tiny offline context whose only job is decoding at VOICE_RATE; null where that is unsupported.
+  const voiceDecoder = () => {
+    if (voiceCtx !== undefined) return voiceCtx;
+    const OAC = globalThis.OfflineAudioContext ?? globalThis.webkitOfflineAudioContext;
+    try { voiceCtx = OAC && ctx.sampleRate !== VOICE_RATE ? new OAC(1, 1, VOICE_RATE) : null; } catch { voiceCtx = null; }
+    return voiceCtx;
+  };
+  const decode = (id, ab) => {
+    const vc = isVoiceBank(id) ? voiceDecoder() : null;
+    return vc ? vc.decodeAudioData(ab.slice(0)).catch(() => ctx.decodeAudioData(ab)) : ctx.decodeAudioData(ab);
+  };
   const cache = new Map();   // id -> AudioBuffer
   const pending = new Map(); // id -> Promise
   const failed = new Set();  // ids whose delivered file failed; they stay on the placeholder
@@ -48,7 +67,7 @@ export function createLoader(ctx) {
     const e = entryFor(id);
     if (!e?.file) return;
     pending.set(id, fetch(url(e.file)).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
-      .then((ab) => ctx.decodeAudioData(ab)).then((buf) => { cache.set(id, buf); pending.delete(id); settle(id, true); })
+      .then((ab) => decode(id, ab)).then((buf) => { cache.set(id, buf); pending.delete(id); settle(id, true); })
       .catch(() => { failed.add(id); pending.delete(id); settle(id, false); }));
   }
 
@@ -66,6 +85,18 @@ export function createLoader(ctx) {
     // True once the real file for id is decoded (not a placeholder).
     ready: (id) => cache.has(id) && !!entryFor(id)?.file,
     preload(ids) { for (const id of ids) load(id); },
+    // Drops decoded buffers whose id matches, so they can be collected. A source already playing one
+    // keeps its own reference; a later get() or preload() decodes it again.
+    release(match) {
+      for (const id of [...cache.keys()]) {
+        const real = id.startsWith('synth:') ? id.slice(6).split('#')[0] : id;
+        if (match(real)) cache.delete(id);
+      }
+    },
+    // Decoded PCM held in the cache, in bytes (32-bit float per sample per channel).
+    bytes() { let n = 0; for (const b of cache.values()) n += b.length * b.numberOfChannels * 4; return n; },
+    // Ids with a delivered file decoded right now.
+    loaded: () => [...cache.keys()].filter((id) => !id.startsWith('synth:')),
     // Calls cb(true) once the delivered file for id is decoded, cb(false) if it failed or there is none.
     whenReady(id, cb) {
       if (cache.has(id) && entryFor(id)?.file) { cb(true); return; }

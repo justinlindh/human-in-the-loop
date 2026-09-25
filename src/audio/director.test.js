@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createDirector, voiceBank, bedSeconds } from './director.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S } from './manifest.js';
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S, PLAYLIST_PRELOAD_S, MOMENT_CUES } from './manifest.js';
 
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
@@ -274,18 +274,23 @@ describe('audio director', () => {
     expect(dp(d.update(s, 4, { speed: 0, running: false })).paused).toBe(true);
   });
 
-  it('preloads the genre tracks once when the genre pick appears', () => {
+  it('preloads the genre tracks once each time the genre pick appears', () => {
+    // Only genre-track preloads count here; the playlist preloads its next bed on its own.
+    const genre = (cmds) => cmds.find((c) => c.op === 'preload' && c.ids.some((id) => id.startsWith('musicNight/')));
     const d = createDirector();
     const s = state();
-    expect(d.update(s, 0, {}).some((c) => c.op === 'preload')).toBe(false);
+    expect(genre(d.update(s, 0, {}))).toBeUndefined();
     const pick = { ...s, pendingDecision: { id: 'music_night_genre', options: [{ id: 'sad_lofi' }, { id: 'motivational_polka' }] } };
-    const pre = d.update(pick, 1, { decision: true }).find((c) => c.op === 'preload');
+    const pre = genre(d.update(pick, 1, { decision: true }));
     expect(pre.ids).toContain('musicNight/sad_lofi');
     expect(pre.ids).toHaveLength(4);
-    expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload')).toBe(false);
+    expect(genre(d.update(pick, 2, { decision: true }))).toBeUndefined();
+    // The next music night's pick loads them again, since the tracks are released after playing.
+    expect(genre(d.update(s, 3, {}))).toBeUndefined();
+    expect(genre(d.update(pick, 4, { decision: true }))).toBeDefined();
     // Other decisions do not.
     const other = createDirector();
-    expect(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}).some((c) => c.op === 'preload')).toBe(false);
+    expect(genre(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}))).toBeUndefined();
   });
 
   it('spaces cheer voices apart, deals emotions without repeats, and alternates takes', () => {
@@ -342,19 +347,53 @@ describe('audio director', () => {
     expect(n).toBe(1);
   });
 
-  it('preloads the next bed when a bed starts, and follows the real start of a late bed', () => {
+  it('preloads the next bed shortly before its switch, and follows the real start of a late bed', () => {
     const d = createDirector({ seed: 9, beds: { classic: ['classic/a', 'classic/b'] } });
     const s = state();
     const startCmds = d.update(s, 0, { speed: 1, running: true });
     const first = startCmds.find((c) => c.op === 'music');
-    const pre = startCmds.find((c) => c.op === 'preload');
-    expect(pre.ids).toEqual([`music/${first.bed === 'classic/a' ? 'classic/b' : 'classic/a'}`]);
+    // Nothing loads at the start: only the playing bed is held decoded.
+    expect(startCmds.some((c) => c.op === 'preload')).toBe(false);
     // The host could only start the first bed 0.8 s late (its file was still decoding).
     d.musicStarted(first.bed, 0.8);
-    let sw = null;
-    for (let t = 0.25; t <= 600 && !sw; t += 0.25) sw = d.update(s, t, { speed: 1, running: true }).find((c) => c.op === 'music') ?? null;
+    let sw = null, pre = null, preAt = null;
+    for (let t = 0.25; t <= 600 && !sw; t += 0.25) {
+      const cmds = d.update(s, t, { speed: 1, running: true });
+      const p = cmds.find((c) => c.op === 'preload');
+      if (p) { expect(pre).toBeNull(); pre = p; preAt = t; }
+      sw = cmds.find((c) => c.op === 'music') ?? null;
+    }
+    expect(pre.ids).toEqual([`music/${first.bed === 'classic/a' ? 'classic/b' : 'classic/a'}`]);
     expect(sw.bed).toBe(pre.ids[0].slice('music/'.length));
+    // It loads about PLAYLIST_PRELOAD_S ahead, not a whole bed ahead.
+    expect(sw.at - preAt).toBeGreaterThan(PLAYLIST_PRELOAD_S - 1);
+    expect(sw.at - preAt).toBeLessThanOrEqual(PLAYLIST_PRELOAD_S + 0.5);
     const loops = (sw.at - 0.8) / bedSeconds('classic', first.bed);
     expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
+  });
+
+  it('preloads a moment cue while its decision is open, and starts and stops it on hitl:moment', () => {
+    const d = createDirector();
+    const s = state();
+    const pick = { ...s, pendingDecision: { eventId: 'printer_jam', choices: [{}, {}] } };
+    const pre = d.update(pick, 1, { decision: true }).filter((c) => c.op === 'preload' && c.ids.includes(MOMENT_CUES.printer_jam.file));
+    expect(pre).toHaveLength(1);
+    expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload' && c.ids.includes(MOMENT_CUES.printer_jam.file))).toBe(false);
+    const start = d.moment({ phase: 'start', key: 'printer_jam', id: 'printer_jam-1' }, 5);
+    expect(start).toEqual([expect.objectContaining({ op: 'moment', file: 'moments/printer_smash', id: 'printer_jam-1', at: 5, duck: 'dance' })]);
+    expect(d.moment({ phase: 'end', key: 'printer_jam', id: 'printer_jam-1' }, 20)).toEqual([{ op: 'momentStop', id: 'printer_jam-1' }]);
+    // Moments without a cue, and malformed details, do nothing.
+    expect(d.moment({ phase: 'start', key: 'first_user_test', id: 'x' }, 5)).toEqual([]);
+    expect(d.moment(null, 5)).toEqual([]);
+  });
+
+  it('cheers a quick post that lands and winces at one that backfires', () => {
+    const d = createDirector();
+    const s = state();
+    const cues = (outcome) => d.events([{ type: 'posted', id: 'pizza', chatId: 'm1', outcome }], s, 10, {}).filter((c) => c.op === 'play').map((c) => c.cue);
+    expect(ON_EVENT.posted({ outcome: 'landed' })).toBe('sfx.reward');
+    expect(ON_EVENT.posted({ outcome: 'backfired' })).toBe('sfx.bad');
+    expect(ON_EVENT.posted({ outcome: 'flat' })).toBeNull();
+    expect(cues('landed')).toContain('sfx.reward');
   });
 });

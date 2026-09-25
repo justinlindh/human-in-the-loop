@@ -3,6 +3,8 @@ import { PALETTE } from './palette.js';
 
 const C = (k) => new THREE.Color(PALETTE[k]);
 const INTERIOR_COUNT = 6;
+const REACH = 11, DECAY = 1.25;             // an interior lamp's range and falloff
+const MERGED_REACH = 16, MERGED_DECAY = 0.6, MERGED_GAIN = 1.2; // a lamp standing in for several (Low)
 
 // Key sun with soft shadows, hemisphere fill, and a fixed pool of warm interior lights
 // (fixed count so materials never recompile when lamps turn on).
@@ -22,7 +24,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
 
   const interior = [];
   for (let i = 0; i < INTERIOR_COUNT; i++) {
-    const l = new THREE.PointLight(C('lamp_warm'), 0, 11, 1.25);
+    const l = new THREE.PointLight(C('lamp_warm'), 0, REACH, DECAY);
     l.position.set(0, -50, 0);
     scene.add(l);
     interior.push(l);
@@ -63,14 +65,54 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     cam.updateProjectionMatrix();
   }
 
-  function setInteriorLights(points) {
-    interiorSpots = points.slice(0, INTERIOR_COUNT);
+  // Every lamp costs every lit pixel, lit or not, so Low can run fewer lights: the spots merge into
+  // `budget` lights, one per band along the office's long axis, each at its band's centre with a
+  // longer, gentler falloff so the band stays evenly lit. Lights past the budget are hidden, which
+  // recompiles materials once.
+  let spots = [];
+  let budget = INTERIOR_COUNT;
+  function mergeSpots(points, n) {
+    if (points.length <= n) return points;
+    const xs = points.map((p) => p.x), zs = points.map((p) => p.z);
+    const alongX = Math.max(...xs) - Math.min(...xs) >= Math.max(...zs) - Math.min(...zs);
+    const sorted = [...points].sort((a, b) => (alongX ? a.x - b.x : a.z - b.z));
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const band = sorted.slice(Math.round((i * sorted.length) / n), Math.round(((i + 1) * sorted.length) / n));
+      const avg = (k) => band.reduce((a, p) => a + (p[k] ?? 0), 0) / band.length;
+      const power = band.reduce((a, p) => a + (p.power ?? 1), 0) / band.length;
+      out.push({ x: avg('x'), y: band[0].y, z: avg('z'), power: power * MERGED_GAIN, merged: band.length });
+    }
+    return out;
+  }
+  function placeInterior() {
+    interiorSpots = mergeSpots(spots, budget).slice(0, INTERIOR_COUNT);
     interior.forEach((l, i) => {
       const p = interiorSpots[i];
+      l.visible = i < budget;
+      const merged = (p?.merged ?? 1) > 1;
+      l.distance = merged ? MERGED_REACH : REACH;
+      l.decay = merged ? MERGED_DECAY : DECAY;
       if (p) l.position.set(p.x, p.y ?? 2.4, p.z);
       else l.position.set(0, -50, 0);
     });
+  }
+  function setLamps() {
+    const lamp = THREE.MathUtils.lerp(0, 7.5, THREE.MathUtils.smoothstep(env.night, 0.2, 0.9));
+    interior.forEach((l, i) => { l.intensity = interiorSpots[i] ? lamp * (interiorSpots[i].power ?? 1) : 0; });
+  }
+  function setInteriorLights(points) {
+    spots = points;
+    placeInterior();
     setTimeOfDay(lastT);
+  }
+  // Only the lamps change; the time of day (and the sky, which redraws on it) stays as it is.
+  function setInteriorBudget(n) {
+    const next = Math.max(1, Math.min(INTERIOR_COUNT, n));
+    if (next === budget) return;
+    budget = next;
+    placeInterior();
+    setLamps();
   }
 
   const skyDay = C('hemi_sky_day'), skyNight = C('hemi_sky_night');
@@ -113,8 +155,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.position.set(center.x + Math.sin(az) * Math.cos(el) * d, center.y + Math.sin(el) * d, center.z + Math.cos(az) * Math.cos(el) * d);
     sun.target.position.copy(center);
 
-    const lamp = THREE.MathUtils.lerp(0, 7.5, THREE.MathUtils.smoothstep(env.night, 0.2, 0.9));
-    interior.forEach((l, i) => { l.intensity = interiorSpots[i] ? lamp * (interiorSpots[i].power ?? 1) : 0; });
+    setLamps();
 
     baseHemi.copy(hemi.color);
     baseGround.copy(hemi.groundColor);
@@ -167,7 +208,7 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
     sun.shadow.map = null;
   }
 
-  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone, setSkeleton, setAccent, setPictureLight };
+  return { env, hemi, sun, interior, fitShadow, setInteriorLights, setInteriorBudget, setTimeOfDay, setViewYaw, setShadowSize, setAlarm, setEraTone, setSkeleton, setAccent, setPictureLight };
 }
 
 export function createBackdrop() {
@@ -186,10 +227,23 @@ export function createBackdrop() {
   let lastKey = '';
   let lastDraw = -1e9;
 
-  // Redrawn at most a few times per second.
+  // Redrawn at most a few times per second. A change inside that window is not dropped: the latest
+  // one is drawn when the window ends, so the sky always settles on the last time of day asked for,
+  // even if time then stops.
+  const SKY_MS = 250;
+  let pending = null, timer = null;
   function update(env) {
     const now = performance.now();
-    if (now - lastDraw < 250 && lastKey) return;
+    if (now - lastDraw < SKY_MS && lastKey) {
+      pending = { daylight: env.daylight, dusk: env.dusk };
+      timer ??= setTimeout(() => { timer = null; const p = pending; pending = null; if (p) draw(p); }, SKY_MS - (now - lastDraw));
+      return;
+    }
+    pending = null;
+    draw(env);
+  }
+  function draw(env) {
+    const now = performance.now();
     top.copy(nT).lerp(dT, env.daylight).lerp(kT, env.dusk * 0.6);
     bottom.copy(nB).lerp(dB, env.daylight).lerp(kB, env.dusk * 0.6);
     const key = top.getHexString() + bottom.getHexString();

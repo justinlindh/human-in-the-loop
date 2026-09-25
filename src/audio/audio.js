@@ -41,7 +41,7 @@ export function createAudio({ quality = 'high' } = {}) {
       loops = createLoops(ctx, loader, (b) => mix.bus[b] ?? mix.bus.ambience);
       danceBus = ctx.createGain();
       danceBus.connect(mix.bus.sfx);
-      ducked = createDucked(ctx, loader, { mix, out: (c) => (c.op === 'dance' ? danceBus : mix.bus[c.bus] ?? mix.bus.sfx), run: (cmds) => run(cmds) });
+      ducked = createDucked(ctx, loader, { mix, out: (c) => (c.op === 'dance' || c.op === 'moment' ? danceBus : mix.bus[c.bus] ?? mix.bus.sfx), run: (cmds) => run(cmds) });
       mix.setUser('master', user.master);
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
@@ -118,6 +118,9 @@ export function createAudio({ quality = 'high' } = {}) {
       old.src.stop(t + cmd.fade * 2);
     }
     music = { src, gain: g, era: cmd.era };
+    // Only the starting bed stays decoded: the fading one keeps its own reference until it stops,
+    // and the director preloads the next bed shortly before its switch.
+    loader.release((id) => id.startsWith('music/') && id !== `music/${cmd.bed}`);
   }
 
   function run(cmds) {
@@ -153,9 +156,16 @@ export function createAudio({ quality = 'high' } = {}) {
         else if (c.op === 'loop') loops.set(c);
         else if (c.op === 'dance') ducked.play(c, { wait: true, pausable: true, onStart: (src) => {
           lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt };
+          // The playing track holds its buffer through pauses, so every night track can leave the cache.
+          loader.release((id) => id.startsWith('musicNight/'));
           // The renderer stretches the dance to the track that actually plays.
           dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: c.genre, seconds: src.buffer.duration, startsIn: Math.max(0, src.startAt - ctx.currentTime) } }));
         } });
+        else if (c.op === 'moment') {
+          // Timed to the staging from its first frame: a cue still decoding is skipped, not late.
+          if (loader.ready(c.file)) ducked.play(c, { pausable: true });
+          else loader.preload([c.file]);
+        } else if (c.op === 'momentStop') ducked.stop((x) => x.op === 'moment' && x.id === c.id);
         else if (c.op === 'dancePause') { if (c.paused) ducked.pause(); else ducked.resume(); }
         else if (c.op === 'preload') loader.preload(c.ids);
         else if (c.op === 'musicMix') mix.musicMix(c);
@@ -173,6 +183,7 @@ export function createAudio({ quality = 'high' } = {}) {
   if (typeof window !== 'undefined') {
     addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
     addEventListener('hitl:propUse', (e) => run(director.prop(e.detail?.itemId, now())));
+    addEventListener('hitl:moment', (e) => run(director.moment(e.detail, now())));
     addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
@@ -225,6 +236,10 @@ export function createAudio({ quality = 'high' } = {}) {
     // The last music night track started: whether it was the delivered file, its length and start time.
     get lastDance() { return lastDance; },
     get musicDuck() { return mix?.duckLevel ?? 1; },
+    // Moment cues playing now: their moment id, position in the track (s), and whether paused.
+    get moments() { return ducked ? ducked.positions((c) => c.op === 'moment').map((m) => ({ id: m.c.id, at: m.at, paused: m.paused })) : []; },
+    // Decoded audio held by the loader: total bytes and the delivered ids.
+    get memory() { return loader ? { bytes: loader.bytes(), ids: loader.loaded() } : null; },
     // A MediaStream of the final mix, for capture tools.
     tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); mix.output.connect(d); return d.stream; },
     get state() { return { unlocked: !!ctx, running: !!ready(), music: director.musicState }; },

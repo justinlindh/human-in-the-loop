@@ -2,18 +2,27 @@
 
 Every file under `public/audio/` is listed here. Files marked *candidate* are for review and may be replaced.
 
+Lossless FLAC masters of every shipped file, with a manifest of checksums and sources, are attached to the `audio-masters-1` pre-release on GitHub. Re-encode from those rather than from the lossy files here.
+
 ## Music (candidate beds)
+
+Seeds are listed to identify each take. ACE-Step renders that use its planner are not reproducible run to run (the same seed and settings give a different take), so the lossless masters in the `audio-masters-1` release are the only source copies; the files here are the shipped encodes made from them. Re-encode from the masters rather than re-rendering.
 
 Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commercial use of outputs). XL-sft 4B checkpoint with the 4B planner, 60 steps, 48 kHz. Each file is cut to a seamless loop and mastered to -18 LUFS.
 
 | File | Era | Tempo, key | Loop |
 |---|---|---|---|
-| `music/classic/a_full.ogg` | Classic | 96 bpm, F major | 10 bars |
-| `music/chatgbt/a_full.ogg` | ChatGBT | 102 bpm, Bb major | 8 bars |
+| `music/classic/a_full.ogg` | Classic (playlist piece A, seed 4101) | 96 bpm, F major | 58 bars, 2:23.5 |
+| `music/classic/b_full.ogg` | Classic (playlist piece B, seed 4102) | 96 bpm, F major | 58 bars, 2:25.0 |
+| `music/classic/c_full.ogg` | Classic (playlist piece C, seed 4105) | 96 bpm, F major | 58 bars, 2:23.5 |
+| `music/chatgbt/a_full.ogg` | ChatGBT (playlist piece A, seed 5201) | 102 bpm, Bb major | 58 bars, 2:17.8 |
+| `music/chatgbt/b_full.ogg` | ChatGBT (playlist piece B, seed 5204) | 102 bpm, Bb major | 58 bars, 2:12.6 |
 | `music/agents/a_full.ogg` | Agents | 108 bpm, D minor | 8 bars |
 | `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
 | `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
 | `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
+
+The Classic and ChatGBT playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
 
 ## Music night dance breaks (candidates)
 
