@@ -87,17 +87,20 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 // the reel lays music in on the moment's own start signal.
 const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
 // Keeps the camera on what a beat is about from `from` to `to`, re-aimed every frame: a critically
-// damped spring glides the look point onto the staged prop, or onto the printer while it is carried,
+// damped spring glides the look point onto the staged prop, the printer while it is carried, or the visitors,
 // so the camera never steps. The game's own moment camera stands down while this drives.
-const AIM = (props, zoom) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
-  const find = () => { const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
+const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+  const find = () => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
+    const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
     o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; };
   const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
-  f.zoomGoal = ${zoom}; f.find = find; f.on = true;
+  f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift}; f.on = true;
   if (f.running) return; f.running = true;
   const damp = (x, v, goal, dt) => { const w = 2 / 0.6, k = w * dt, e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k), d = x - goal, t = (v + w * d) * dt; return [goal + (d + t) * e, (v - w * t) * e]; };
   const tick = () => { const now = performance.now(), dt = Math.min(0.1, (now - f.last) / 1000); f.last = now;
-    const p = f.on && f.find();
+    let p = f.on && f.find();
+    // Aim left of the subject so it lands the shift in px right of the frame center (a crop window center).
+    if (p && f.shift) { const e = R.camera.matrixWorld.elements, c = R.camera, wpp = (c.right - c.left) / c.zoom / innerWidth, k = f.shift * wpp / Math.hypot(e[0], e[2]); p = { x: p.x - e[0] * k, z: p.z - e[2] * k }; }
     // While the renderer is held (loading, or a frozen frame) the camera does not move: the glide waits
     // with it instead of running ahead and leaving the camera a jump to catch up.
     const v = R.view(), held = f.seen && v.x === f.seen.x && v.z === f.seen.z && Math.hypot(f.x - v.x, f.z - v.z) > 1e-3; f.seen = v;
@@ -127,7 +130,9 @@ const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THRE
     if (n > best) { best = n; turns = i; }
   }
   for (let i = 0; i < turns; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
-export const FOLLOW = (props, zoom, from, to) => [{ at: from, js: AIM(props, zoom) }, { at: to, js: UNAIM }];
+export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM(props, zoom, shift) }, { at: to, js: UNAIM }];
+// The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
+const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -441,7 +446,7 @@ export const ITEMS = [
     setup: BARE,
     actions: [
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...FOLLOW(['printer_jammed'], 2.4, 0, 25),
+      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 25),
       { at: 3.5, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([4, 4.5, 5.5], { escape: false }),
     ],
@@ -453,7 +458,7 @@ export const ITEMS = [
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })),
-      ...FOLLOW(['stapler'], 3.2, 0, 6),
+      ...NODS_FOLLOW(['stapler'], 3.2, 0, 6),
       { at: 4, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([4.5, 5], { escape: false }),
       { at: 6, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
@@ -467,7 +472,7 @@ export const ITEMS = [
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })),
-      ...FOLLOW(['cover_sheets'], 3.2, 0, 7),
+      ...NODS_FOLLOW(['cover_sheets'], 3.2, 0, 7),
       { at: 4, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([4.5], { escape: false }),
     ],
@@ -476,7 +481,7 @@ export const ITEMS = [
   {
     id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 13, warmup: 6.5,
     setup: BARE,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...FOLLOW(['visitor_chair'], 2.4, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
     screenshots: [5, 11],
   },
   {
@@ -484,10 +489,10 @@ export const ITEMS = [
     setup: BARE,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...FOLLOW(['banner_company'], 3, 0, 5),
+      ...NODS_FOLLOW(['banner_company'], 3, 0, 5),
       { at: 4, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([4.5, 5], { escape: false }),
-      ...FOLLOW(['banner_company'], 4, 5, 9),
+      ...NODS_FOLLOW(['banner_company'], 4, 5, 9),
     ],
     screenshots: [2, 7],
   },
