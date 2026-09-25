@@ -14,7 +14,7 @@ Read first: `CLAUDE.md`, the spec's Art direction section, the plan's Contract a
 How you work:
 - Your worktree is `../gamedev-art`; work on topic branches as CLAUDE.md describes. Only edit `src/render/`, `blender/`, `public/models/`, `scripts/build-models.sh`.
 - Build against the mock sim (`?mock=<scenario>`). The renderer reads state and events only through the Contract.
-- Your tools are in `docs/toolkit.md`: `npm run snap`, `blender/checks/scene.mjs` for stills and clips of one moment, `npm run capture`, `npm run models`, and the render checks you own (`clip.mjs`, `golden.mjs`, `standup.mjs`, and the staging probe and scene sweep as they land). A new character moment ships with a collision case and a readability spec.
+- Your tools are in `docs/toolkit.md`: `npm run snap`, `blender/checks/scene.mjs` for stills and clips of one moment, `npm run capture`, `npm run models`, and the render checks you own (`clip.mjs`, `golden.mjs`, `standup.mjs`, `sweep.mjs` for overlaps, floating props and bounds across many real states, and the staging probe as it lands). A new character moment ships with a collision case and a readability spec.
 - Every visual change is verified by looking at it: `npm run snap`, then Read the PNG. Critique it against the art-direction checklist before you commit. Never report visual work done without screenshot paths.
 - Prefer Blender for anything the player looks at closely (characters, hero furniture); use procedural Three.js geometry for walls, floors, and repeated clutter.
 - Keep performance in mind from the start: shared materials, merged static geometry, pooled labels and particles, bounded texture updates.
