@@ -368,7 +368,7 @@ function deskFor(L, anchor, office, nearest) {
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
   return desks.find(covers) ?? (nearest ? desks.sort((a, b) => d(a) - d(b))[0] : null) ?? null;
 }
-function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0 } = {}) {
+function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0, group = false } = {}) {
   // Defaults read at call time: the constants are declared further down.
   return (L, anchor, env) => {
     const g = new THREE.Group();
@@ -391,7 +391,8 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
       // stays on that desk, since moments find the person by the desk it is on.
       let spot = onTop ? null : { x: lx, z: lz }, desk = e;
       if (onTop) {
-        const mine = anchor.anchor === 'subjectDesk';
+        // A group prop (a pizza stack for everyone) is nobody's in particular and may move on.
+        const mine = anchor.anchor === 'subjectDesk' && !group;
         const near = mine ? [e] : [e, ...deskList(env.office).filter((o) => o !== e).sort((a2, b2) => dist(a2, e) - dist(b2, e)).slice(0, 6)];
         for (const d of near) {
           const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
@@ -414,6 +415,9 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         g.userData.follow = { deskId: desk.id, lx: spot.x, lz: spot.z, rot, y };
         if (onTop) g.userData.deskRect = spot.rect;
         follow(g, desk);
+      } else if (group && (item.scale.setScalar(scale), g.rotation.y = rot, spot = counterSpot(env.office, g, e))) {
+        // A group prop with no desk to go on: the nearest table or counter with room, full size.
+        g.position.set(spot.x, spot.y, spot.z);
       } else {
         // No room on any nearby desk even shrunk: it goes on the floor beside its desk, full size.
         item.scale.setScalar(scale);
@@ -562,6 +566,48 @@ function follow(g, e) {
   g.position.set(o.position.x + cs * f.lx + sn * f.lz, f.y, o.position.z - sn * f.lx + cs * f.lz);
   g.rotation.y = r + f.rot;
 }
+// A flat, clear spot on the top of the nearest table or counter (a meeting table, a coffee corner)
+// for g at its current scale and rotation, as { x, y, z }, or null. Rays straight down over the top
+// must all land on one level surface at table or counter height, with room above it.
+const COUNTERS = new Set(['meeting_table', 'coffee_corner']);
+const CAST = new THREE.Raycaster();
+const DOWN = new THREE.Vector3(0, -1, 0);
+function counterSpot(office, g, near) {
+  const saved = g.position.clone();
+  g.position.set(0, 0, 0);
+  g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  g.position.copy(saved);
+  const hw = (b.max.x - b.min.x) / 2, hd = (b.max.z - b.min.z) / 2;
+  const items = [...(office.placed?.values() ?? [])].filter((o) => COUNTERS.has(o.itemId) && o.target)
+    .sort((a, c) => Math.hypot(a.target.x - near.target.x, a.target.z - near.target.z) - Math.hypot(c.target.x - near.target.x, c.target.z - near.target.z));
+  // The highest surface at table or counter height with room for the prop above it (a shelf or cabinet
+  // over a counter is not in the way unless it is lower than the prop is tall).
+  const tall = b.max.y - b.min.y;
+  const top = (x, z, meshes) => {
+    CAST.set(OVER.set(x, 3, z), DOWN);
+    const ys = CAST.intersectObjects(meshes, false).map((h) => h.point.y);
+    const i = ys.findIndex((y) => y >= 0.6 && y <= 1.1);
+    if (i < 0) return null;
+    return ys.slice(0, i).some((y) => y - ys[i] < tall + 0.02) ? null : ys[i];
+  };
+  for (const it of items.slice(0, 4)) {
+    const meshes = [];
+    it.obj.updateMatrixWorld(true);
+    it.obj.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    const box = new THREE.Box3().setFromObject(it.obj);
+    for (let x = box.min.x + hw; x <= box.max.x - hw; x += 0.02) {
+      for (let z = box.min.z + hd; z <= box.max.z - hd; z += 0.02) {
+        const y = top(x, z, meshes);
+        if (y == null || y < 0.6 || y > 1.1) continue;
+        const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]].map(([u, v]) => top(x + u * hw, z + v * hd, meshes));
+        if (corners.every((c) => c != null && Math.abs(c - y) < 0.01)) return { x, y, z };
+      }
+    }
+  }
+  return null;
+}
+
 // A free-standing prop on the anchor tile's floor, or beside the subject's desk for that anchor.
 function onFloor(build, opts = {}) {
   return atDesk(build, { x: 0.95, z: 0.1, rot: 0, y: 0, scale: 1, ...opts });
@@ -1178,11 +1224,11 @@ const BUILDERS = {
   envelope: atDesk(envelope(false), FLAT),
   envelope_thick: atDesk(envelope(true), FLAT),
   binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
-  gift_cards: atDesk(giftCards, FLAT),
+  gift_cards: atDesk(giftCards, { ...FLAT, group: true }),
   sticky_notes: atDesk(stickyNotes, { x: 0.4, z: -0.28, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
-  smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0 }),
-  pizza_boxes: atDesk(pizzaBoxes, { x: 0.5, z: -0.38, rot: 0.06, scale: 1.0, overhang: 0.1 }),
+  smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0, group: true }),
+  pizza_boxes: atDesk(pizzaBoxes, { x: 0.5, z: -0.38, rot: 0.06, scale: 1.0, overhang: 0.1, group: true }),
   curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
