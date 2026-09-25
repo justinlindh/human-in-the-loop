@@ -61,6 +61,10 @@ const DEBUG_VIEWS = {
 
 let labelsElRef = null;
 
+const BLOOM = 0.55;          // the bloom pass's strength (post.js)
+const FLY_BLOOM = 0.3;       // its strength while the flying camera is on
+const FLY_NEAR = 1.5;        // metres from the flying camera within which a person is warned about
+
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   labelsElRef = labelsEl;
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
@@ -342,7 +346,18 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       rig.update(dt);
       const flying = fly.step(dt);
       const cam = flying ? fly.camera : rig.camera;
-      if (flying !== flyCamOn) { flyCamOn = flying; post.setCamera(cam); }
+      if (flying !== flyCamOn) {
+        flyCamOn = flying;
+        post.setCamera(cam);
+        // Up close a lamp or a glowing stack fills more of the frame: bloom is held lower in flight.
+        post.bloom.strength = flying ? FLY_BLOOM : BLOOM;
+      }
+      // Someone standing right by the flying camera fills the frame edge as a big soft head.
+      if (flying && staff) {
+        for (const p of staff.positions()) {
+          if (Math.hypot(p.x - cam.position.x, p.z - cam.position.z) < FLY_NEAR && cam.position.y < 2.6) { fly.warn('near', { x: +p.x.toFixed(2), z: +p.z.toFixed(2) }); break; }
+        }
+      }
       lighting.setViewYaw(rig.yaw);
       debugRoot.userData.update?.(dt);
       const paused = speedZero || menuPaused;

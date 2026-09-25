@@ -4,7 +4,7 @@ import * as THREE from 'three';
 // The renderer draws through it while a path is set (renderer.fly(path)), then hands back to the
 // isometric rig.
 //
-// createFly({ getWallH }) -> { camera, set(path), clear(), step(dt) -> bool, active, t, warnings }
+// createFly({ getWallH }) -> { camera, set(path), clear(), step(dt) -> bool, warn(kind, detail), active, t, warnings }
 //   path: { keys: [{ t, pos: [x, y, z], look: [x, y, z], fov }], fade, labels, tilt, rings }
 //     keys in seconds from the start; position and look-at follow a Catmull-Rom curve through the
 //     keys, eased in and out over the whole move, and the field of view eases between keys.
@@ -12,7 +12,8 @@ import * as THREE from 'three';
 //     tilt-shift and the floor rings (all off unless set).
 //   The office has no ceiling, so the top of the frame must stay below where one would be: a frame
 //   whose top edge rises above the wall tops while the camera is below them is reported in warnings
-//   (and on the console once per path).
+//   (and on the console once per path). The renderer adds its own (warn): someone standing so near
+//   the camera that they fill the frame's edge.
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -55,15 +56,23 @@ export function createFly({ getWallH = () => 3 } = {}) {
     const wallH = getWallH();
     top.set(0, Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), -1).applyQuaternion(camera.quaternion);
     if (camera.position.y < wallH + 0.3 && top.y > -0.02) {
-      const w = { t: +t.toFixed(2), y: +camera.position.y.toFixed(2), topY: +top.y.toFixed(3) };
+      const w = { kind: 'ceiling', t: +t.toFixed(2), y: +camera.position.y.toFixed(2), topY: +top.y.toFixed(3) };
       warnings.push(w);
       if (!warned) { warned = true; console.warn(`[fly] the frame's top edge rises above the wall tops at ${w.t}s (camera at ${w.y} m): the missing ceiling can show`); }
     }
     return true;
   }
 
+  // A warning from the renderer about the current frame (someone too near the camera): kept once
+  // per kind per second of flight.
+  function warn(kind, detail = {}) {
+    const at = +t.toFixed(1);
+    if (warnings.some((w) => w.kind === kind && Math.abs(w.t - at) < 1)) return;
+    warnings.push({ kind, t: at, ...detail });
+  }
+
   return {
-    camera,
+    camera, warn,
     set(p) { path = p?.keys?.length >= 2 ? { ...p, keys: [...p.keys].sort((x, y) => x.t - y.t) } : null; t = 0; warned = false; warnings.length = 0; if (path) step(0); },
     clear() { path = null; },
     step,
