@@ -54,6 +54,11 @@ export const CUES = {
   'sfx.stapler': { bus: 'sfx', files: ['sfx/stapler'], cooldown: 0.5, priority: 3, gain: 0.8, delivered: true },
   'sfx.memo': { bus: 'ui', files: ['sfx/memo'], cooldown: 1, priority: 3, gain: 0.8, delivered: true },
   'sfx.banner': { bus: 'sfx', files: ['sfx/banner'], cooldown: 2, priority: 3, gain: 0.8, delivered: true },
+  // Growth (#549). A level-up is common, so it is soft and spaced out (more so at speed, and not at
+  // all on Low or at top speed, where priority 1 drops); a promotion is rarer and brighter.
+  'sfx.levelUp': { bus: 'sfx', files: ['sfx/level_up'], cooldown: 2.5, scaleWithSpeed: true, priority: 1, gain: 0.5, delivered: true },
+  'sfx.promotion': { bus: 'sfx', files: ['sfx/promotion'], cooldown: 3, priority: 6, delivered: true },
+  'sfx.trait': { bus: 'sfx', files: ['sfx/trait'], cooldown: 1.5, priority: 3, gain: 0.7, delivered: true },
   'sfx.foosball': { bus: 'sfx', files: ['sfx/foosball'], cooldown: 25, priority: 2, gain: 0.6 },
   'sfx.arcade': { bus: 'sfx', files: ['sfx/arcade'], cooldown: 25, priority: 2, gain: 0.6 },
   'sfx.pingpong': { bus: 'sfx', files: ['sfx/pingpong'], cooldown: 25, priority: 2, gain: 0.6 },
@@ -90,6 +95,11 @@ export const ON_EVENT = {
   chatPromptResolved: null,
   // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
   posted: (e) => ({ landed: 'sfx.reward', backfired: 'sfx.bad' })[e.outcome] ?? null,
+  // Growth (#549): silent until audio ships the files.
+  levelUp: 'sfx.levelUp',
+  promoted: 'sfx.promotion',
+  traitEarned: 'sfx.trait',
+  skillTrained: 'sfx.trait',
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),

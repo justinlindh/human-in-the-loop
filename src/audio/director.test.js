@@ -7,7 +7,8 @@ import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
   const out = new Set();
-  const re = /#+ (SimEvent shapes|Events|Content ladder events|Speech vs (?:Yak|Slackk))[^\n]*\n([\s\S]*?)(?=\n#+ )/g;
+  // A section runs to the next heading, or to the end of the file for the last one.
+  const re = /#+ (SimEvent shapes|Events|Content ladder events|Speech vs (?:Yak|Slackk))[^\n]*\n([\s\S]*?)(?=\n#+ |$(?![\s\S]))/g;
   for (const m of contract.matchAll(re)) for (const t of m[2].matchAll(/type: '([a-zA-Z]+)'/g)) out.add(t[1]);
   return [...out];
 };
@@ -447,6 +448,24 @@ describe('audio director', () => {
         run(low, ['printer_jammed'], 0);
         expect(run(low, ['printer_wrecked'], 1).some((c) => c.cue === 'sfx.printerSmash')).toBe(true);
       }));
+  });
+
+  it('plays growth cues only once delivered, with level-ups soft and spaced out', () => {
+    const saved = ASSETS.sfx;
+    try {
+      ASSETS.sfx = { ...(saved ?? {}) };
+      for (const k of ['level_up', 'promotion', 'trait']) delete ASSETS.sfx[k];
+      const quiet = createDirector();
+      expect(quiet.events([{ type: 'levelUp', staffId: 's1', level: 4 }, { type: 'promoted', staffId: 's1', seniority: 'mid' }], state(), 5).filter((c) => c.op === 'play')).toHaveLength(0);
+      for (const k of ['level_up', 'promotion', 'trait']) ASSETS.sfx[k] = { file: `sfx/growth/${k}.ogg` };
+      const d = createDirector();
+      const cues = (evs, t, ctx) => d.events(evs, state(), t, ctx).filter((c) => c.op === 'play').map((c) => c.cue);
+      expect(cues([{ type: 'levelUp', staffId: 's1', level: 4 }], 10)).toEqual(['sfx.levelUp']);
+      expect(cues([{ type: 'levelUp', staffId: 's2', level: 3 }], 11)).toEqual([]);   // inside the cooldown
+      expect(cues([{ type: 'promoted', staffId: 's1', seniority: 'senior' }], 11)).toEqual(['sfx.promotion']);
+      expect(cues([{ type: 'skillTrained', staffId: 's3', skill: 'polish', gain: 5 }], 20)).toEqual(['sfx.trait']);
+      expect(cues([{ type: 'levelUp', staffId: 's1', level: 5 }], 40, { speed: 4 })).toEqual([]); // top speed drops it
+    } finally { ASSETS.sfx = saved; }
   });
 });
 
