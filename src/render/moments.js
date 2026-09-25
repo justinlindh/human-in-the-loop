@@ -359,16 +359,16 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     // They wait in the chair until it has rolled back (updateRolls), then step out.
     if (chair) r.temp.delay = 99; else r.path = route;
   }
-  // Chairs pushed back for a moment: out while the sitter is up, in as they come back to the seat,
-  // merged into the desk again once they have sat down.
+  // Chairs pushed back for a moment: out while the sitter is up, in once they have sat down again,
+  // then merged into the desk.
   const rolls = [];
   function updateRolls(dt) {
     for (let i = rolls.length - 1; i >= 0; i--) {
       const q = rolls[i], r = q.r;
       if (!recs.has(r.id)) { office.freeChair?.(q.deskId, false); rolls.splice(i, 1); continue; }
-      const near = Math.hypot(r.pos.x - q.seat.x, r.pos.z - q.seat.z);
-      const returning = !r.temp && r.path.length <= 1;
-      const want = r.char.seated && !r.temp ? 0 : returning && near < 0.3 ? 0 : 1;
+      // Out while they wait to get up and all the time they are up; in only once they sit again, so
+      // it never rolls under someone still standing.
+      const want = q.route || r.temp || !r.char.seated ? 1 : 0;
       q.k += (want - q.k) * (1 - Math.exp(-dt * 9));
       q.chair.position.z = q.z0 + q.k * CHAIR_ROLL;
       if (q.route && q.k > 0.9 && r.temp?.moment === 'letter') { r.temp.delay = 0; r.path = q.route; q.route = null; }

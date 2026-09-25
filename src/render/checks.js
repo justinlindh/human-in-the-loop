@@ -592,8 +592,13 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     const actors = new Set();
     for (const desk of occupied.slice(0, 4)) {
       S.office.props.push({ id: 'letter_prop', prop: 'envelope', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
-      for (let i = 0; i < 30 * 10; i++) {
+      // Until everyone who got up has sat down again (at most 25 s), sampling every frame.
+      let seen = false;
+      for (let i = 0; i < 30 * 25; i++) {
         step(1);
+        if (i === 30 * 12) S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
+        if (actors.size) seen = true;
+        if (seen && !actors.size) break;
         // Everyone in the moment, from getting up until they are seated again, walking back included;
         // not the seated pose itself (a sitter is meant to be in their chair).
         for (const [id, what] of R.moments.active) if (what === 'letter') actors.add(id);
@@ -613,7 +618,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         }
       }
       S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
-      step(60);
+      step(30);
     }
     results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho });
     R.moments.full = false;
