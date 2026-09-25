@@ -17,6 +17,12 @@
 **Human in the Loop** is a management sim about running a software company through the AI era, in the spirit of Kairosoft's Game Dev Story. It is a Three.js isometric diorama in the browser, driven by a pure, deterministic JavaScript simulation.
 
 <p align="center">
+  <a href="https://github.com/justinlindh/human-in-the-loop/raw/pr-media/pr-281/trailer-new.mp4"><img src="docs/readme/trailer-preview.gif" alt="Trailer preview: the team's music night dance break" width="400"></a>
+  <br>
+  <a href="https://github.com/justinlindh/human-in-the-loop/raw/pr-media/pr-281/trailer-new.mp4"><b>Watch the trailer</b></a> (mp4, 23 MB)
+</p>
+
+<p align="center">
   <img src="docs/readme/office-loop.gif" alt="A busy office in motion" width="800">
 </p>
 
