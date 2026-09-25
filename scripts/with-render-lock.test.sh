@@ -7,7 +7,7 @@ tmp="$(mktemp -d)"; bg=""
 # The lock holder is flock with a child; stop the child first so nothing keeps the lock.
 stop_holder() { [ -n "$bg" ] || return 0; pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; wait "$bg" 2>/dev/null; bg=""; }
 trap 'stop_holder; rm -rf "$tmp"' EXIT
-export CI_WORKTREE_ROOT="$tmp"; L="$tmp/render-checks.lock"
+export HITL_LOCK_DIR="$tmp"; L="$tmp/render-checks.lock"
 fails=0
 expect() { [ "$2" = "$3" ] || { echo "FAIL $1: want $3, got $2"; fails=$((fails + 1)); }; }
 

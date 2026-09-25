@@ -324,14 +324,12 @@ export function bounds(R, list, { tol = 0.02 } = {}) {
 // A close-up around a world point, as a PNG data URL (null if off screen). It draws the scene with
 // its own renderer and a copy of the camera narrowed to the spot, so taking one never steps the
 // game (the renderer's own render() advances people, moments and effects).
-// three.js draws a UUID from Math.random for every object it makes (the crop renderer, the camera
-// copy), and the page's Math.random is the seeded stream the game runs on: crops use their own.
+// Crops make three.js objects (a renderer, a camera copy), so they run on the harness's tool stream
+// (window.__tool), never the game's.
+const tool = (fn) => (window.__tool ? window.__tool(fn) : fn());
 let cropGL = null;
-let cropSeed = 99991;
 export function crop(R, at, size, zoom) {
-  const game = Math.random;
-  Math.random = () => { cropSeed = (cropSeed * 16807) % 2147483647; return (cropSeed - 1) / 2147483646; };
-  try { return cropNow(R, at, size, zoom); } finally { Math.random = game; }
+  return tool(() => cropNow(R, at, size, zoom));
 }
 function cropNow(R, at, size = 200, zoom = 2) {
   const main = document.querySelector('canvas');

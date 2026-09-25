@@ -17,8 +17,9 @@
 //   placement  Office, Place, then tap-to-aim and tap-to-place puts furniture down
 //   taps       a plain tap on a person opens them; two fingers resting on a person pop no long-press tip
 //   audio      audio unlocks on the first tap under an iOS-like gesture rule (pointerup, touchend, click)
-//   yak        Yak expands (by its caret) without covering the HUD, collapses, and its maximized view
-//              opens and closes without leaving anything over the game
+//   yak        Yak expands (by its caret) with its header controls inside it and without covering the
+//              HUD, collapses, and its maximized view opens and closes without leaving anything over
+//              the game
 // Uses CDP Input.dispatchTouchEvent for real multi-touch. GL follows scripts/lib/gl.js, and the run
 // holds the matching render lock.
 import { createServer } from 'vite';
@@ -327,6 +328,15 @@ const CHECKS = {
     try { await setYakOpen(page, tap, true); } catch { return { fails: ['Yak caret not tappable'] }; }
     if (await yakCollapsed(page)) fails.push('the caret did not expand Yak');
     await shot('yak-open');
+    // Every header control a player can see sits inside Yak, not clipped at its edge.
+    const clipped = await page.evaluate(() => {
+      const chat = document.querySelector('.bottom > .chat')?.getBoundingClientRect();
+      if (!chat) return [];
+      return [...document.querySelectorAll('.bottom > .chat .chat-head > *, .bottom > .chat .chat-head .ysz')]
+        .filter((e) => { const r = e.getBoundingClientRect(); return r.width && getComputedStyle(e).visibility !== 'hidden' && (r.right > chat.right - 1 || r.left < chat.left + 1); })
+        .map((e) => e.className || e.tagName.toLowerCase());
+    });
+    if (clipped.length) fails.push(`Yak header controls cut off at its edge: ${clipped.join(', ')}`);
     const o = await hudOverlaps(page);
     if (o.length) fails.push(`expanded Yak overlaps: ${o.join(', ')}`);
     await setYakOpen(page, tap, false);

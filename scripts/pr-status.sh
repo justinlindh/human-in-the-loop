@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One row per open pull request into main, from live GitHub data: number, merge state, what holds it
+# First the main guard's verdict on main's tip and any open main-red issue. Then one row per open
+# pull request into main, from live GitHub data: number, merge state, what holds it
 # (the awaiting-user label, or a draft), the review verdict and local-ci state for the current head,
 # any GitHub check not passing, and the title. Then the open issues waiting on the user.
 # Label PRs and issues that wait on a user decision `awaiting-user` (PRs also stay drafts), so nobody
@@ -7,6 +8,11 @@
 # Usage: scripts/pr-status.sh
 set -uo pipefail
 
+main_sha="$(gh api "repos/{owner}/{repo}/commits/main" --jq .sha)"
+guard="$(gh api "repos/{owner}/{repo}/commits/$main_sha/status" --jq '[.statuses[] | select(.context == "main-guard")][0] | if . then "\(.state): \(.description)" else "not checked yet" end')"
+red="$(gh issue list --state open --label main-red --json number,title --jq '.[] | "#\(.number) \(.title)"')"
+echo "main ${main_sha:0:7}, main guard ${guard}${red:+; open: $red}"
+echo
 printf '%-5s %-10s %-20s %-8s %-9s %-28s %s\n' PR MERGE HOLD REVIEW LOCAL-CI 'CHECKS NOT PASSING' TITLE
 for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '.[].number' | sort -n); do
   gh pr view "$pr" --json number,title,mergeStateStatus,isDraft,labels,statusCheckRollup --jq '

@@ -275,20 +275,22 @@ describe('audio director', () => {
   });
 
   it('preloads the genre tracks once each time the genre pick appears', () => {
+    // Only genre-track preloads count here; the playlist preloads its next bed on its own.
+    const genre = (cmds) => cmds.find((c) => c.op === 'preload' && c.ids.some((id) => id.startsWith('musicNight/')));
     const d = createDirector();
     const s = state();
-    expect(d.update(s, 0, {}).some((c) => c.op === 'preload')).toBe(false);
+    expect(genre(d.update(s, 0, {}))).toBeUndefined();
     const pick = { ...s, pendingDecision: { id: 'music_night_genre', options: [{ id: 'sad_lofi' }, { id: 'motivational_polka' }] } };
-    const pre = d.update(pick, 1, { decision: true }).find((c) => c.op === 'preload');
+    const pre = genre(d.update(pick, 1, { decision: true }));
     expect(pre.ids).toContain('musicNight/sad_lofi');
     expect(pre.ids).toHaveLength(4);
-    expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload')).toBe(false);
+    expect(genre(d.update(pick, 2, { decision: true }))).toBeUndefined();
     // The next music night's pick loads them again, since the tracks are released after playing.
-    expect(d.update(s, 3, {}).some((c) => c.op === 'preload' && c.ids.includes('musicNight/sad_lofi'))).toBe(false);
-    expect(d.update(pick, 4, { decision: true }).some((c) => c.op === 'preload' && c.ids.includes('musicNight/sad_lofi'))).toBe(true);
+    expect(genre(d.update(s, 3, {}))).toBeUndefined();
+    expect(genre(d.update(pick, 4, { decision: true }))).toBeDefined();
     // Other decisions do not.
     const other = createDirector();
-    expect(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}).some((c) => c.op === 'preload')).toBe(false);
+    expect(genre(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}))).toBeUndefined();
   });
 
   it('spaces cheer voices apart, deals emotions without repeats, and alternates takes', () => {
