@@ -8,7 +8,7 @@ fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 g() { git -c user.name=t -c user.email=t@t "$@"; }
 export HITL_TIMINGS=off HITL_GATES_ROOT="$tmp/root" HITL_LOCK_DIR="$tmp/locks"
 r="$tmp/repo"; mkdir -p "$r/scripts/lib" "$r/blender/checks" "$r/node_modules"
-cp "$HERE/gates.sh" "$r/scripts/"; cp "$HERE/lib/timing.sh" "$HERE/lib/ci-capacity.sh" "$r/scripts/lib/"
+cp "$HERE/gates.sh" "$HERE/with-render-lock.sh" "$HERE/render-lock-held.sh" "$r/scripts/"; cp "$HERE/lib/timing.sh" "$HERE/lib/ci-capacity.sh" "$r/scripts/lib/"
 cat >"$r/package.json" <<'JSON'
 { "name": "t", "private": true, "scripts": { "test:fast": "node check.js" } }
 JSON
@@ -17,13 +17,16 @@ echo '{}' >"$r/package-lock.json"
 cat >"$r/check.js" <<'JS'
 (() => {
 const fs = require('fs');
-// slow.flag: a gate that never finishes on its own; it records its PID for the TERM case.
-if (fs.existsSync('slow.flag')) { fs.writeFileSync(`${process.env.SRC}/../sleeper.pid`, String(process.pid)); setInterval(() => {}, 1000); return; }
 const ok = fs.readFileSync('a.txt', 'utf8') === 'edited\n' && !fs.existsSync('gone.txt') && fs.readFileSync('new.txt', 'utf8') === 'new\n'
   && process.cwd() !== process.env.SRC && !fs.existsSync('fail.flag');
 console.log(ok ? 'snapshot ok' : `snapshot wrong in ${process.cwd()}`);
 process.exit(ok ? 0 : 1);
 })();
+JS
+cat >"$r/blender/checks/clip.mjs" <<'JS'
+import { writeFileSync } from 'node:fs';
+writeFileSync(`${process.env.SRC}/../sleeper.pid`, String(process.pid));
+setInterval(() => {}, 1000);
 JS
 printf "const SCENARIOS = {\n  printer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen' } } } },\n};\n" >"$r/blender/checks/stage.mjs"
 echo original >"$r/a.txt"; echo bye >"$r/gone.txt"; printf 'node_modules\n' >"$r/.gitignore"
@@ -49,9 +52,11 @@ kept="$(ls -d "$tmp/root"/gates-* 2>/dev/null)"
 [ -n "$kept" ] && [[ "$out" == *"snapshot kept at $kept"* ]] || fail "--keep should keep and name the snapshot (got: $out)"
 g -C "$r" worktree remove --force "$kept" 2>/dev/null
 
-# Stopped mid-run (TERM, as timeout or a kill by PID sends it): no gate or its children survive.
-touch "$r/slow.flag"; rm -f "$tmp/sleeper.pid"
-(cd "$r" && exec bash scripts/gates.sh --only test >"$tmp/term.out" 2>&1) & gp=$!
+# Stopped mid-run (TERM, as timeout or a kill by PID sends it): no gate or its children survive,
+# including those under the gate's own timeout, which runs in a process group of its own.
+# The stand-in clip.mjs never finishes; it runs as a real render gate does, under with-render-lock and timeout.
+rm -f "$tmp/sleeper.pid"
+(cd "$r" && exec bash scripts/gates.sh --only clip >"$tmp/term.out" 2>&1) & gp=$!
 for _ in $(seq 1 100); do [ -s "$tmp/sleeper.pid" ] && break; sleep 0.1; done
 sp="$(cat "$tmp/sleeper.pid" 2>/dev/null)"
 if [ -z "$sp" ]; then fail "the slow gate never started ($(cat "$tmp/term.out"))"
@@ -62,7 +67,6 @@ else
   kill -0 "$sp" 2>/dev/null && { fail "a gate survived TERM (PID $sp)"; kill -KILL "$sp"; }
   [ -z "$(ls -d "$tmp/root"/gates-* 2>/dev/null)" ] || fail "the snapshot should be removed after TERM"
 fi
-rm -f "$r/slow.flag"
 
 out="$(cd "$r" && bash scripts/gates.sh --moment nosuch --only test 2>&1)"; rc=$?
 [ $rc -eq 2 ] && [[ "$out" == *"known: printer"* ]] || fail "an unknown moment should exit 2 and list the known ones (rc $rc: $out)"
