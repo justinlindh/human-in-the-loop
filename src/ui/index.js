@@ -19,6 +19,7 @@ import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
 import { createCallGrid } from './callgrid.js';
 import { createTooltips } from './tooltip.js';
+import { createSceneTips } from './sceneTips.js';
 import { retireOptions } from './retire.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK } from './v2content.js';
 
@@ -33,7 +34,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
-  createTooltips(layer);
+  const tooltips = createTooltips(layer);
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
@@ -110,7 +111,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   layer.append(bottom);
   // The bottom row's real height, so the tray can stop above it on short screens.
   if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(() => layer.style.setProperty('--bottom-h', `${bottom.offsetHeight}px`)).observe(bottom);
+    new ResizeObserver(() => requestAnimationFrame(() => layer.style.setProperty('--bottom-h', `${bottom.offsetHeight}px`))).observe(bottom);
   }
   const chat = createChat(bottom, {
     getState,
@@ -123,6 +124,11 @@ export function createUI({ root, getState, dispatch, controls }) {
   bottom.append(h('div'));
 
   const buildMode = createBuildMode({ layer, ctx, controls });
+  // Hover or long-press a person or an item in the office for its tooltip.
+  ctx.sceneTips = createSceneTips({
+    tooltips, getState, getRenderer: () => controls.renderer ?? null,
+    isBlocked: () => buildMode.on || layer.classList.contains('title-mode'),
+  });
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
   const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg) });
 

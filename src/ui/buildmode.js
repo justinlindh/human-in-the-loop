@@ -177,7 +177,7 @@ export function createBuildMode({ layer, ctx, controls }) {
         return;
       }
       place(at.x, at.y);
-    } else inspect(e.clientX, e.clientY);
+    } else if (!ctx.sceneTips?.eatTap?.()) inspect(e.clientX, e.clientY);
   }, true);
   addEventListener('pointermove', (e) => {
     if (!mode) return;

@@ -159,10 +159,11 @@ export function createHud({ root, controls, ui }) {
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
   // The bar wraps onto more rows on narrow screens; the tray and toasts sit below its real height.
   if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(() => {
+    // Written on the next frame: changing layout inside the observer callback would loop it.
+    new ResizeObserver(() => requestAnimationFrame(() => {
       const hgt = bar.offsetHeight;
       if (hgt) root.style.setProperty('--topbar-h', `${bar.offsetTop + hgt}px`);
-    }).observe(bar);
+    })).observe(bar);
   }
 
   const tray = h('div.tray');
