@@ -6,7 +6,7 @@
 //   [--out shots/trailer] [--reuse] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
 // --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
-import { spawn, execFileSync, execSync } from 'node:child_process';
+import { spawn, spawnSync, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
@@ -84,15 +84,14 @@ if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
   const capture = ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
     '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])];
-  // The render lock is re-entrant: under a caller that holds it (HITL_RENDER_LOCK_HELD=1) capture runs
-  // straight away; otherwise this takes it and marks it held for everything the capture starts.
-  if (process.env.HITL_RENDER_LOCK_HELD === '1') {
+  // The render lock is re-entrant: when an ancestor holds it (scripts/render-lock-held.sh) capture runs
+  // straight away; otherwise this takes it, and the capture it starts exports its PID as the holder.
+  const held = spawnSync('bash', [join(ROOT, 'scripts/render-lock-held.sh'), RENDER_LOCK], { stdio: 'ignore' }).status === 0;
+  if (held) {
     await run('node', capture, { timeout: CAPTURE_TIMEOUT_S });
   } else {
     mkdirSync(dirname(RENDER_LOCK), { recursive: true });
-    process.env.HITL_RENDER_LOCK_HELD = '1';
-    try { await run('flock', ['-w', '1800', '-E', '75', RENDER_LOCK, 'node', ...capture], { timeout: CAPTURE_TIMEOUT_S }); }
-    finally { delete process.env.HITL_RENDER_LOCK_HELD; }
+    await run('flock', ['-w', '1800', '-E', '75', RENDER_LOCK, 'sh', '-c', 'export HITL_RENDER_LOCK_HELD=$$; exec "$@"', 'sh', 'node', ...capture], { timeout: CAPTURE_TIMEOUT_S });
   }
   for (const b of todo) writeFileSync(keyFile(b), keyOf(b));
 }
