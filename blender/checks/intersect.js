@@ -33,6 +33,8 @@ function solidMeshes(obj) {
   obj.traverse((o) => {
     if (!o.isMesh || o.isSprite || o.isInstancedMesh || !o.geometry?.attributes?.position) return;
     if (o.userData.staffId !== undefined) return;
+    // A window sill hidden behind tall furniture (office.js) is not there.
+    if (o.userData.sill && !o.visible) return;
     const m = Array.isArray(o.material) ? o.material[0] : o.material;
     if (m && (m.transparent && m.opacity < 0.6 || m.depthWrite === false || m.blending === THREE.AdditiveBlending)) return;
     out.push(o);

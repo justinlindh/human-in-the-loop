@@ -49,26 +49,8 @@
    "issue": 363
   },
   {
-   "key": "overlap|bookshelf/pal_fabric_slate|wall_z/pal_plastic_white",
-   "worst": 0.01,
-   "state": "seed:1:w303",
-   "issue": 363
-  },
-  {
-   "key": "overlap|bookshelf/pal_fabric_terracotta|wall_z/pal_plastic_white",
-   "worst": 0.01,
-   "state": "seed:1:w303",
-   "issue": 363
-  },
-  {
    "key": "overlap|cable_chewed/pal_role_engineer|desk/pal_metal_dark",
    "worst": 0.015,
-   "state": "mock:floor",
-   "issue": 363
-  },
-  {
-   "key": "overlap|server_rack/pal_plastic_charcoal|wall_z/pal_plastic_white",
-   "worst": 0.09,
    "state": "mock:floor",
    "issue": 363
   },
