@@ -6,12 +6,14 @@ import { ERA, CATALOG, unlockInfo, unlockShort } from './v2content.js';
 
 const MAX_QUEUE = 8;
 
-export function createAnnouncer({ layer, sfx, openMenu }) {
+export function createAnnouncer({ layer, sfx, openMenu, canShow = () => true }) {
   const queue = [];
   let cur = null; // { back, item }
 
+  // Era cards go at once; the others wait until canShow() says the last popup was long enough ago.
   function show() {
     if (cur || !queue.length) return;
+    if (queue[0].kind !== 'era' && !canShow()) return;
     const item = queue.shift();
     const back = h(`div.announce-back${item.kind === 'era' ? '.docked' : ''}`);
     const done = () => { if (cur?.back !== back) return; back.remove(); cur = null; layer.classList.remove('announcing'); sfx('close'); show(); };
@@ -103,6 +105,8 @@ export function createAnnouncer({ layer, sfx, openMenu }) {
 
   return {
     get open() { return !!cur; },
+    get waiting() { return queue.length; },
+    pump: () => show(),
     era(eraId, week, decision, keys = []) {
       // Era cards go ahead of unlock explainers.
       const at = queue.findIndex((q) => q.kind !== 'era');
