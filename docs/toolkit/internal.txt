@@ -10,3 +10,6 @@ scripts/trailer/cards.js          the trailer build's title cards
 scripts/trailer/config.js         the trailer build's settings
 scripts/trailer/manifest.js       the trailer build's shot list
 scripts/hooks/claude/test.sh      the Claude Code hooks' own tests
+blender/checks/dump.js            the in-page half of dump.mjs
+blender/checks/intersect.js       the sweep's in-page measurements
+blender/checks/sample.js          the sweep's in-page state sampler

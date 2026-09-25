@@ -10,6 +10,10 @@ Headless browsers render on the GPU by default: `scripts/lib/gl.js` picks the mo
 
 Software GL (SwiftShader) renders on the CPU, often at many times the CPU cost. Use it only where it's needed: the golden images, which compare exact pixels; the GitHub runners, which have no GPU (the workflow sets `HITL_GL=software`); and runs that stand in for a weak device. The render locks (`scripts/with-render-lock.sh`, in the toolkit's CI internals) keep heavy browser work queued instead of piled onto the machine.
 
+## Claude Code hooks
+
+The repo's `.claude/settings.json` runs the hooks in `scripts/hooks/claude/` for every session here (their entries are in the toolkit's hooks section). Each matches cheaply before doing any work, takes a few milliseconds, and lets the action through if the hook itself fails, so a broken hook never blocks work.
+
 ## Render checks
 
 All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip (with and without the rig), standup, loop and the sweep (fast mode) side by side as `render-checks` on one GPU slot, and golden as `golden` under the software lock.

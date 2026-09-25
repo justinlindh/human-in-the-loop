@@ -6,9 +6,10 @@
 //   npm run toolkit -- --section render      one section
 //   npm run toolkit -- --grep <text>         entries whose tool or text mentions <text>
 //   npm run toolkit -- --check               every script and check has an entry, and every entry is well formed
+//                                            (scripts/, its tool folders, the git and Claude hooks, blender/checks/)
 // Header keys: tool (how it's run, in backticks), section (one of SECTIONS), who (optional), and
 // covers (the files the entry documents, space-separated; --check matches them against the tree).
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,7 +31,8 @@ export const SECTIONS = {
 const TOOL_GLOBS = [
   ['scripts', /\.(sh|js|mjs)$/], ['scripts/perf', /\.js$/], ['scripts/events', /\.js$/], ['scripts/hooks/claude', /\.sh$/],
   ['scripts/lib', /\.(sh|js|mjs)$/], ['scripts/trailer', /\.js$/], ['scripts/systemd', /\.sh$/], ['scripts/feature-media', /\.(sh|js|mjs)$/],
-  ['blender/checks', /\.mjs$/],
+  ['scripts/hooks', /^[^.]+$|\.(sh|js)$/], ['scripts/trailer/vo', /\.(sh|py|js)$/],
+  ['blender/checks', /\.(mjs|js)$/],
 ];
 
 export function readEntries(dir = DIR) {
@@ -88,7 +90,7 @@ export function check(root = ROOT, dir = join(root, 'docs/toolkit')) {
     if (!existsSync(d)) continue;
     for (const n of readdirSync(d)) {
       const p = `${sub}/${n}`;
-      if (!re.test(n) || /\.test\.[a-z]+$/.test(n) || /\.test\.sh$/.test(n)) continue;
+      if (!re.test(n) || /\.test\.[a-z]+$/.test(n) || !statSync(join(d, n)).isFile()) continue;
       if (!covered.has(p) && !internal.has(p)) problems.push(`${p} has no toolkit entry: add docs/toolkit/<name>.md (or list it in docs/toolkit/internal.txt if it is a module the tools use)`);
     }
   }

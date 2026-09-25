@@ -20,6 +20,11 @@ try {
   put('docs/toolkit/b.md', entry('`scripts/b.mjs`', 'run', 'scripts/b.mjs'));
   r = check(root);
   expect(r.problems.length === 0, `every script covered passes (got ${JSON.stringify(r.problems)})`);
+  put('scripts/hooks/pre-commit', ''); put('scripts/hooks/claude/x.sh', '');
+  r = check(root);
+  expect(r.problems.some((p) => p.startsWith('scripts/hooks/pre-commit has no toolkit entry')), 'a git hook with no extension is checked');
+  expect(!r.problems.some((p) => p.startsWith('scripts/hooks/claude has')), 'a folder is not taken for a script');
+  put('docs/toolkit/hooks.md', entry('`hooks`', 'hooks', 'scripts/hooks/pre-commit scripts/hooks/claude/x.sh'));
   put('docs/toolkit/gone.md', entry('`gone`', 'run', 'scripts/gone.sh'));
   put('docs/toolkit/bad.md', entry('`bad`', 'nowhere', null));
   put('docs/toolkit/nohead.md', 'just text\n');
