@@ -38,8 +38,8 @@
   },
   {
    "key": "person|coffee_corner/pal_plastic_white|person(walking)/head",
-   "worst": 0.039,
-   "state": "seed:1:w791",
+   "worst": 0.041,
+   "state": "event:hearing_summons:s2allHumansw476",
    "issue": 381
   },
   {
@@ -63,7 +63,7 @@
   {
    "key": "person|coffee_corner/pal_wood_light|person(walking)/head",
    "worst": 0.025,
-   "state": "seed:1:w520",
+   "state": "event:hearing_summons:s2allHumansw476",
    "issue": 381
   },
   {
@@ -87,13 +87,13 @@
   {
    "key": "person|desk/pal_fabric_slate|person(walking)/head",
    "worst": 0.055,
-   "state": "seed:1:w312",
+   "state": "event:hearing_summons:s1allHumansw420",
    "issue": 381
   },
   {
    "key": "person|desk/pal_fabric_slate|person(walking)/torso",
    "worst": 0.076,
-   "state": "seed:1:w198",
+   "state": "event:hearing_summons:s4allHumansw420",
    "issue": 381
   },
   {
@@ -253,9 +253,15 @@
    "issue": 381
   },
   {
+   "key": "person|person(walking)/head|plant/pal_leaf_light",
+   "worst": 0.062,
+   "state": "event:hearing_summons:s1allHumansw420",
+   "issue": 381
+  },
+  {
    "key": "person|person|person",
    "worst": 0.173,
-   "state": "seed:1:w416",
+   "state": "event:hearing_summons:s2allHumansw476",
    "issue": 381
   },
   {

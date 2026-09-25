@@ -1,7 +1,7 @@
 // Decision moments through the real game loop: a check that main.js's own frame loop, UI and decision
 // handling (not the harness's direct stepping) let a staged moment play while its decision is open.
 //
-//   node blender/checks/loop.mjs [--moments 'first_user_test; open_plan_office --seed 3']
+//   node blender/checks/loop.mjs [--moments 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1']
 //                                [--seconds 10] [--gpu | --software]
 //
 // Each moment is an indexed decision (scripts/events). The page loads the state just before the tick
@@ -23,7 +23,7 @@ import { join } from 'node:path';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-const queries = opt('moments', 'first_user_test; open_plan_office --seed 3').split(';').map((q) => q.trim()).filter(Boolean);
+const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1').split(';').map((q) => q.trim()).filter(Boolean);
 const seconds = Number(opt('seconds', 10));
 const MOVE_M = 0.3;
 
