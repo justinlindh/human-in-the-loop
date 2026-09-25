@@ -7,7 +7,8 @@ import { printerModel, visitorChairModel } from './props.js';
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
 // the walking grid and people return to their seat afterwards.
 //
-// createMoments({ office, recs, walkTo, emote, getProps, isBusy, low }) -> { update(dt), reset() }
+// createMoments({ office, recs, walkTo, emote, getProps, note, isBusy, low }) -> { update(dt), reset() }
+// note(id, what, detail) records a refusal (a moment that could not start) in the ownership trace.
 //   getProps() -> props.js handle (current(), overlay) or null
 //   isBusy()   -> true while a standup or party owns the room: no moments start then
 //   low()      -> Low quality: moments shrink to an emote, nobody walks
@@ -93,7 +94,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
