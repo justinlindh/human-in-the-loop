@@ -1,0 +1,9 @@
+/* ---------- growth (#549): the staff row's New pip, the card's Growth section, the portrait toast ---------- */
+.hitl .pill.tiny.grew { background: var(--yellow); color: var(--ink); border: 0.1em solid var(--ink); font-weight: 700; }
+.hitl .section.growth .gsince { font-size: 0.82em; padding: 0.3em 0.5em; border-radius: 0.5em; background: #fff4d6; margin-bottom: 0.4em; }
+.hitl .section.growth .gtl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2em; max-height: 11em; overflow-y: auto; font-size: 0.82em; }
+.hitl .section.growth .gtl li { display: flex; gap: 0.4em; align-items: baseline; }
+.hitl .section.growth .gtl .w { color: var(--ink-faint); min-width: 3em; }
+.hitl .section.growth .gtl li.promoted, .hitl .section.growth .gtl li.trait { font-weight: 700; }
+.hitl .toast .ico.face, .hitl .dtoast .ico.face { width: auto; height: auto; }
+.hitl .toast .ico.face .portrait, .hitl .dtoast .ico.face .portrait { border-radius: 0.4em; }
