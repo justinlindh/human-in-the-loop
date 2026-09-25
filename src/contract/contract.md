@@ -99,6 +99,7 @@ Product = {
 { type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
 { type: 'hire', staffId }
 { type: 'decision' }
+{ type: 'decisionResolved', eventId, choice, subjectId }   // emitted by resolveDecision: the event id, the chosen choice index, and the subject (or null). Render and ui react to the choice; never infer it from effects
 { type: 'officeUpgrade', stage }
 { type: 'celebrate', staffId }            // staffId may be null for company-wide
 { type: 'award', text }
