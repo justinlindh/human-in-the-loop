@@ -323,6 +323,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       switch (e.type) {
         case 'hire': if (e.staffId) hired.add(e.staffId); break;
         case 'decisionResolved': moments.decided(e); break;
+        case 'chatPromptResolved': {
+          // A prompt that delivered an event resolves it as its card would have.
+          const c = state?.chatPrompts?.find((x) => x.id === e.promptId);
+          if (c?.stage) moments.decided({ eventId: c.kind, choice: e.choice, subjectId: c.subjectId ?? null });
+          break;
+        }
         case 'resign': leaving.set(e.staffId, { fired: !!e.fired }); break;
         case 'bubble': {
           const r = recs.get(e.staffId);
@@ -491,7 +497,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && (!!standup || !!incentives.party || !!incentives.dance) });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
