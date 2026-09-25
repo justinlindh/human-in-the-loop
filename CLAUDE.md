@@ -30,8 +30,12 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
 | video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
+| audio | sound | `../gamedev-audio` | `public/audio/`, `scripts/trailer/`, `docs/trailer/`; music, sound effects, voice and masters |
+| tools | checks | `../gamedev-tools` | `blender/checks/`, `scripts/events/` |
+| perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
 | reviewer | review and playtest | any (read-only) | nothing |
 
+- When a permanent member joins or leaves, update this table and the team table in `README.md` in the same PR.
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
 - Anything that needs the user's eyes or ears (a clip, an audio pick, a visual change they asked for, a decision only they can make) goes to team-lead with the media files and the question. team-lead puts it on the user's review desk and tells them it's there. Don't only mention it in a report.
