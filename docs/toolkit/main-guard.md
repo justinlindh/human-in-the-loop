@@ -1,0 +1,6 @@
+---
+tool: `scripts/main-guard.sh [--sha <c>] [--no-post] [--loop <s>]`
+section: pr
+covers: scripts/main-guard.sh scripts/systemd/install.sh
+---
+Checks the newest commit of `main` with the full local suite (balance forced on) and one strict scene sweep. Sets the `main-guard` status on it; when main is red it opens or comments on one `main-red` issue, bisecting the merges skipped since the last green commit to name the first red one, and the next green commit closes it. New sweep violations seen only in seeded games go to a `sweep-finding` issue (art), and timing regressions against the previous main commit (checked at most hourly, filed after two bad runs in a row) to `perf-regression`; neither marks main red. It runs at the lowest priority, waits while others queue for the software render lock, and keeps the shared checkout fast-forwarded when that is clean and idle. `pr-status.sh` shows its verdict first. It runs every 5 minutes as a systemd user timer from its own clone: run `scripts/systemd/install.sh` from the shared checkout to install it; `systemctl --user list-timers 'hitl-main-guard*'` and `journalctl --user -u hitl-main-guard` show it; `systemctl --user disable --now hitl-main-guard.timer` (or `install.sh --remove`) stops it.

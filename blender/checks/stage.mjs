@@ -109,11 +109,28 @@ const SPECS = {
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
   ] },
+  // The efficiency consultants: the seated one and the nervous colleague face each other across the
+  // view, both turned three-quarters to the camera; the one with the clipboard stands behind, in view.
+  // (Their own scenario: the moment is the visitor one.)
+  'consultants.consultant': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'consultant', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('atInterviewee', 'face within 60 deg of the interviewee', (x) => x.targetAngle <= 60, 0.8),
+    visibleRule,
+  ] },
+  'consultants.clipboard': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'clipboard', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    visibleRule,
+  ] },
+  'consultants.interviewee': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'interviewee', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.8),
+    visibleRule,
+  ] },
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
-    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 600 },
-    { ...visibleRule, known: 600 },
+    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    visibleRule,
   ] },
   // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
   'screen.recoil': { moment: 'screen', beat: 'recoil', rules: [
@@ -122,8 +139,8 @@ const SPECS = {
   // A pet carrier by the door: whoever comes over peers at its door, face in view.
   'carrier.peer': { moment: 'carrier', beat: 'peer', rules: [
     share('atCarrier', 'face within 45 deg of the carrier', (x) => x.targetAngle <= 45, 0.8),
-    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 601 },
-    { ...visibleRule, known: 601 },
+    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    visibleRule,
   ] },
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
@@ -146,6 +163,9 @@ const SCENARIOS = {
   screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
+  // The consultants at the HQ door, where the sim stages their chair.
+  consultants: { query: 'mock=hq', patch: {}, seconds: 16,
+    steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
@@ -169,18 +189,19 @@ const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice
 const H = await startHarness({ browsers: JOBS });
 const wanted = Object.entries(SPECS).filter(([k]) => !ONLY || ONLY.some((o) => k === o || k.startsWith(`${o}.`)));
 const byMoment = new Map();
-for (const [k, s] of wanted) byMoment.set(s.moment, [...(byMoment.get(s.moment) ?? []), [k, s]]);
+// Grouped by scenario: a spec runs in its moment's scenario unless it names its own.
+for (const [k, s] of wanted) { const key = s.scenario ?? s.moment; byMoment.set(key, [...(byMoment.get(key) ?? []), [k, s]]); }
 
 // Each moment in each view is its own page, run a few at a time on separate browsers.
 const tasks = [];
-for (const [moment, specs] of byMoment) for (const view of views) tasks.push({ moment, specs, view });
+for (const [scenario, specs] of byMoment) for (const view of views) tasks.push({ moment: specs[0][1].moment, scenario, specs, view });
 const results = new Map();
 let next = 0;
 await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_, slot) => {
   while (next < tasks.length) {
     const task = tasks[next++];
     const { moment, view } = task;
-    const sc = SCENARIOS[moment];
+    const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
     const res = await page.evaluate(async ({ moment, patch, steps, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;

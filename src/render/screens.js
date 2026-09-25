@@ -172,6 +172,7 @@ const DRAW = {
 
 // Office-wide screen takeovers (a staged decision's 'screens' prop): every monitor shows one of
 // these instead of its own content for as long as the decision is open.
+const SWAP_HZ = 1;           // skull and alarm swaps a second, when ransomware lands during an outage
 const OVERLAY = {
   red: DRAW.red,
   // Ransomware: a grinning skull that bobs, and a wallet address that blinks.
@@ -203,6 +204,9 @@ export const SCREEN_VARIANTS = ['code', 'code', 'code', 'ui', 'chart', 'code', '
 
 export function createScreens() {
   const pool = new Map();
+  // The takeover on every monitor ('red' | 'skull' | null): a screen made while one is up shows it
+  // too (a decision card holds the office still, so no later redraw would come).
+  let overlay = null;
   const mats = new Set();
   let brightness = 1.7;
 
@@ -219,7 +223,7 @@ export function createScreens() {
     mat.userData.bright = !(kind === 'gray' || kind === 'off');
     mats.add(mat);
     v.mat = mat;
-    DRAW[kind](v, 0);
+    if (overlay) takeover(v, 0); else DRAW[kind](v, 0);
     v.tex.needsUpdate = true;
     pool.set(key, v);
     return v;
@@ -227,7 +231,8 @@ export function createScreens() {
 
   // Material for a screen: kind is code | ui | chart | game | gray | red | off; seed picks a variant.
   function material(kind, seed = 0) {
-    const s = kind === 'gray' || kind === 'red' || kind === 'off' ? 0 : seed % 4;
+    // Red has variants too, so an outage under the ransomware skull can flicker out of step.
+    const s = kind === 'gray' || kind === 'off' ? 0 : seed % 4;
     return variant(`${kind}:${s}`).mat;
   }
 
@@ -347,14 +352,19 @@ export function createScreens() {
   }
   drawWindows(1);
 
-  let overlay = null;
+  // The takeover drawn on one screen. Under the skull, an outage's red screens swap between the skull
+  // and their INCIDENT alarm about once a second, each variant out of step with the others.
+  function takeover(v, t) {
+    if (overlay === 'skull' && v.kind === 'red' && Math.floor(t * SWAP_HZ + v.seed * 0.5) % 2) DRAW.red(v, t);
+    else OVERLAY[overlay](v, t);
+  }
   // kind: 'red' | 'skull' | null. Every pooled screen redraws at once, including static ones.
   function setOverlay(kind) {
     const k = OVERLAY[kind] ? kind : null;
     if (k === overlay) return;
     overlay = k;
     for (const v of pool.values()) {
-      (overlay ? OVERLAY[overlay] : DRAW[v.kind])(v, t);
+      if (overlay) takeover(v, t); else DRAW[v.kind](v, t);
       v.tex.needsUpdate = true;
     }
   }
@@ -376,7 +386,7 @@ export function createScreens() {
     if (acc < RATE) return;
     acc = 0;
     for (const v of pool.values()) {
-      if (overlay) OVERLAY[overlay](v, t);
+      if (overlay) takeover(v, t);
       else if (v.static) continue;
       else DRAW[v.kind](v, t);
       v.tex.needsUpdate = true;
@@ -389,5 +399,5 @@ export function createScreens() {
     for (const m of mats) if (m.userData.bright) m.color.setScalar(b * (m.userData.eraGlow ?? 1));
   }
 
-  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra, setOverlay };
+  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra, setOverlay, get overlay() { return overlay; } };
 }
