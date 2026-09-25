@@ -22,3 +22,18 @@ describe('issue #131: no agent copy before agents exist', () => {
     expect(seen.has('paranoid') || seen.has('red_teamer')).toBe(true);
   });
 });
+
+describe('the trend toast', () => {
+  it('carries the id of the trend it announces', async () => {
+    const { makeCtx } = await import('../../src/sim/registry.js');
+    const { calendarStart } = await import('../../src/sim/vendors.js');
+    const { game } = await import('./helpers.js');
+    const s = game(2);
+    s.market.trendWeeksLeft = 1;
+    const c = makeCtx(s);
+    calendarStart(c);
+    const toast = c.events.find((e) => e.type === 'toast' && e.text.startsWith('Trend: '));
+    expect(toast.trendId).toBe(s.market.trend);
+    expect(TRENDS[toast.trendId]).toBeTruthy();
+  });
+});
