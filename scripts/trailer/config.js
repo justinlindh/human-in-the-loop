@@ -28,18 +28,21 @@ export const CARDS = {
 // Page JS for a beat's `actions`: closes a "new things to place" card the way a player would.
 const LATER = (at) => ({ at, js: "[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === 'Later')?.click()" });
 
+// Page JS for a beat's `actions`: shows Yak's recent history, which a fast-forwarded game never presented.
+const YAK_HISTORY = (at) => ({ at, js: 'window.__HITL.emit((window.__HITL.state.chatLog ?? []).slice(-15))' });
+
 export const BEATS = [
   { id: 'title', card: 'title', dur: 3.0 },
   { id: 'garage', item: 'readme-garage', capture: { still: false, seconds: 7, screenshots: [] }, camera: [{ at: 0.2, zoom: 1.6 }], punch: { at: [0.4, 0.45], zoom: [1.0, 1.2] }, from: 1.5, dur: 3.5, vx: 0.45 },
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1)], camera: [{ at: 2.6, zoom: 1.35 }], punch: { at: [0.5, 0.5], zoom: [1.0, 1.15] }, from: 2.8, dur: 3.5, vx: 0.5 },
-  { id: 'launch', item: '5-1-first-launch', capture: { seconds: 14 }, punch: { at: [0.5, 0.5], zoom: [1.05, 1.5] }, from: 7.8, dur: 3.5, vx: 0.5 },
+  { id: 'launch', item: 'real-first-launch', punch: { at: [0.5, 0.5], zoom: [1.05, 1.5] }, from: 8.0, dur: 3.5, vx: 0.5 },
   { id: 'incident', item: 'real-incident', capture: { seconds: 12 }, camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.52, 0.55], zoom: [1.0, 1.35] }, from: 8.2, dur: 3.0, vx: 0.5 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.8, 0.5], zoom: [1.0, 1.45] }, from: 7.9, dur: 2.7, vx: 1.0 },
   { id: 'era-agents', item: 'real-era-agents', camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.8, 0.5], zoom: [1.0, 1.45] }, from: 7.9, dur: 2.7, vx: 1.0 },
   { id: 'era-consolidation', item: 'real-era-consolidation', camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.8, 0.5], zoom: [1.0, 1.45] }, from: 7.9, dur: 3.0, vx: 1.0 },
   { id: 'waffle', item: '5-4-waffle-party-real', capture: { seconds: 22 }, punch: { at: [0.5, 0.55], zoom: [1.05, 1.4] }, from: 16.0, dur: 4.0, vx: 0.5 },
   { id: 'dance', item: '5-4b-music-night-real', capture: { seconds: 30 }, actions: [LATER(0.1), LATER(1.1)], punch: { at: [0.45, 0.6], zoom: [1.1, 1.45] }, from: 22.8, dur: 3.5, vx: 0.5 },
-  { id: 'yak', item: '3-4-conversations-1x', capture: { seconds: 14 }, camera: [{ at: 8.6, zoom: 1.35 }], punch: { at: [0.4, 0.5], zoom: [1.0, 1.3] }, from: 10.5, dur: 3.0, vx: 0.3 },
+  { id: 'yak', item: '3-4-conversations-1x', capture: { seconds: 14 }, actions: [YAK_HISTORY(0.1)], camera: [{ at: 8.6, zoom: 1.35 }], punch: { at: [0.4, 0.5], zoom: [1.0, 1.3] }, from: 10.5, dur: 3.0, vx: 0.3 },
   { id: 'end', card: 'end', dur: 4.0 },
 ];
 

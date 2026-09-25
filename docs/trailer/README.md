@@ -48,6 +48,13 @@ Everything lives in `scripts/trailer/config.js`:
   narrator, and the fade out. Times are seconds or `{ beat, offset }`, so they follow a beat when cuts move.
 - `VO`: the narration lines, their cue points and caption switch.
 
+The first launch, the incident and the era arrivals are the trailer's own capture items
+(`scripts/trailer/manifest.js`). Each plays a real game with the balanced bot and stops the week before
+its event, so the event happens live on camera. The launch and incident seeds are not fixed: when the
+manifest loads, it replays candidate seeds in the pure sim and takes the first whose event lands in a
+clean week (no decision or other launch card on top), so a sim change never leaves the trailer showing
+the wrong scene. If the page's game ever misses its event, the capture logs an error and the build stops.
+
 `scripts/trailer/manifest.js` turns the beats into a capture manifest; `scripts/trailer/cards.js`
 renders the stills; `scripts/trailer/build.js` runs capture, cuts, mixes and encodes. Capture runs under
 `timeout` and `nice`, and each ffmpeg step has its own ceiling.
