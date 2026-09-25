@@ -222,7 +222,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
   refreshBadges();
   // On phones Yak starts collapsed so it does not cover the tray and the office; the header's
   // unread badge still counts new messages.
-  if (typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches) toggle(true);
+  if (typeof matchMedia === 'function' && matchMedia('(max-width: 480px), (max-height: 500px)').matches) toggle(true);
   applySize();
   return { add, toggle, update, reset, el, setMax, get maximized() { return maximized; },
     onKey(e) { if (maximized && e.key === 'Escape') { e.preventDefault(); setMax(false); return true; } return false; } };

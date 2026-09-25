@@ -188,7 +188,7 @@ export function createHud({ root, controls, ui }) {
   const stripNeeds = h('span.tsb.needs'), stripWork = h('span.tsb'), stripGoals = h('span.tsb'), stripFx = h('span.tsb');
   const trayToggle = h('button.tray-toggle', { dataset: { occludes: '' }, 'aria-expanded': 'false', title: 'Show or hide the side cards', onclick: () => setTrayOpen(!trayOpen) },
     h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx);
-  let trayOpen = !(typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches);
+  let trayOpen = !(typeof matchMedia === 'function' && matchMedia('(max-width: 480px), (max-height: 500px)').matches);
   function setTrayOpen(on) {
     trayOpen = on;
     root.classList.toggle('tray-shut', !on);

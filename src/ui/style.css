@@ -1174,7 +1174,7 @@
 /* Phones: the tray folds into a strip of badges (needs, projects, goals, effects) under the top
    bar. Open, it sits below the strip and scrolls, so it never runs under the bottom row. */
 .hitl .tray-toggle { display: none; }
-@media (max-width: 480px) {
+@media (max-width: 480px), (max-height: 500px) {
   .hitl .tray-toggle {
     display: flex; align-items: center; gap: 0.55em; position: absolute; left: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.5em);
     pointer-events: auto; min-height: 44px; padding: 0.2em 0.7em; font: inherit; font-weight: 700; cursor: pointer;
@@ -1285,4 +1285,25 @@
 @media (pointer: coarse) {
   .hitl .chip.speed .btn .ic, .hitl .chip.speed .gear .ic, .hitl .chip.speed .mute .ic, .hitl .chat-head .ysz .ic { font-size: 20px; }
   .hitl .tray-toggle .tsb .ic { font-size: 16px; }
+}
+
+/* Phones in landscape (500 px tall or less): one compact top-bar row (company, cash, MRR, team,
+   speed; the meters hide), a one-row menu of smaller buttons, and panels and modals that fit
+   between the top bar and the menu and scroll inside. The tray folds and Yak starts collapsed. */
+@media (max-height: 500px) {
+  .hitl .topbar { flex-wrap: nowrap; }
+  .hitl .topbar > .spacer { order: 2; flex: 1 1 0; height: auto; }
+  .hitl .chip.company, .hitl .chip.cash, .hitl .chip.mrr, .hitl .chip.team { order: 0; flex: none; }
+  .hitl .chip.speed { order: 3; flex: none; }
+  .hitl .chip.meters { display: none; }
+  .hitl .chip { padding: 0.2em 0.55em; }
+  .hitl .chip .val { font-size: 1.1em; }
+  .hitl .chip .sub { display: none; }
+  .hitl .menu { flex-wrap: nowrap; }
+  .hitl .mbtn { width: 3.5em; height: 3.2em; }
+  .hitl .mbtn .lbl { font-size: 0.62em; }
+  .hitl .panel-wrap { top: calc(var(--topbar-h, 4.6em) + 0.3em); bottom: calc(var(--bottom-h, 6em) + 0.9em); }
+  .hitl .panel { max-height: 100%; }
+  .hitl .modal-back { padding: 0.4em; }
+  .hitl .modal { max-height: 100%; }
 }
