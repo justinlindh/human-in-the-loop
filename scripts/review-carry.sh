@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Carries a review pass to a new PR head that only brings in main. It finds the newest earlier head
-# of the PR with a "review" success status, and compares the PR's own changes at both heads (the diff
-# from their merge-base with main, as a patch-id). When they match, the new head gets "review"
-# success too; otherwise nothing is posted and a reviewer has to look again.
+# of the PR with any "review" status; if that verdict is a pass, it compares the PR's own changes at
+# both heads (the diff from their merge-base with main, as a patch-id). When they match, the new head
+# gets "review" success too; otherwise nothing is posted and a reviewer has to look again.
+# A verdict always beats a carry: nothing is posted on a head that has any review status of its own,
+# and a newer changes-requested verdict is never skipped to reach an older pass.
 # Usage: scripts/review-carry.sh <pr>
 # Exit 0 when carried or not needed, 1 when the changes differ or no earlier pass exists, 2 on errors.
 set -uo pipefail
@@ -14,14 +16,21 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 read -r head base < <(gh pr view "$pr" --json headRefOid,baseRefName --jq '"\(.headRefOid) \(.baseRefName)"') || exit 2
 review_state() { gh api "repos/{owner}/{repo}/commits/$1/statuses" --jq '[.[] | select(.context=="review")] | first | .state // ""'; }
 
-[ "$(review_state "$head")" = success ] && { echo "review-carry: #$pr head ${head:0:7} already has a review pass"; exit 0; }
+own_state="$(review_state "$head")"
+case "$own_state" in
+  success) echo "review-carry: #$pr head ${head:0:7} already has a review pass"; exit 0 ;;
+  '') ;;
+  *) echo "review-carry: #$pr head ${head:0:7} has its own review verdict ($own_state); not carrying"; exit 1 ;;
+esac
 
-prev=""
+prev=""; prev_state=""
 for sha in $(gh api "repos/{owner}/{repo}/pulls/$pr/commits" --paginate --jq '.[].sha' | tac); do
   [ "$sha" = "$head" ] && continue
-  [ "$(review_state "$sha")" = success ] && { prev="$sha"; break; }
+  prev_state="$(review_state "$sha")"
+  [ -n "$prev_state" ] && { prev="$sha"; break; }
 done
-[ -n "$prev" ] || { echo "review-carry: #$pr has no earlier head with a review pass"; exit 1; }
+[ -n "$prev" ] || { echo "review-carry: #$pr has no earlier head with a review verdict"; exit 1; }
+[ "$prev_state" = success ] || { echo "review-carry: #$pr's latest verdict (${prev:0:7}) is $prev_state, not a pass; not carrying"; exit 1; }
 
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head" "$prev" 2>/dev/null || true
 own() { git -C "$REPO" diff "$(git -C "$REPO" merge-base "origin/$base" "$1")" "$1" | git patch-id --stable | cut -d' ' -f1; }
