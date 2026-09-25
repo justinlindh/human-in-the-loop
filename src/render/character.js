@@ -49,14 +49,20 @@ function roleMaterial(role, hex) {
   return m;
 }
 const ringMats = new Map();
+let ringsShown = true;
 function ringMaterial(role, hex) {
   const key = role ?? hex;
   let m = ringMats.get(key);
   if (!m) {
-    m = new THREE.MeshBasicMaterial({ color: new THREE.Color(ROLE_COLORS[role] ?? hex), transparent: true, opacity: 0.55, depthWrite: false });
+    m = new THREE.MeshBasicMaterial({ color: new THREE.Color(ROLE_COLORS[role] ?? hex), transparent: true, opacity: 0.55, depthWrite: false, visible: ringsShown });
     ringMats.set(key, m);
   }
   return m;
+}
+// Everyone's floor rings on or off at once (the dev flying camera hides them).
+export function setRingsShown(on) {
+  ringsShown = !!on;
+  for (const m of ringMats.values()) m.visible = ringsShown;
 }
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
 const HAND_TIP = new THREE.Vector3(0, -0.06, 0);   // the hand's centre below the wrist pivot
