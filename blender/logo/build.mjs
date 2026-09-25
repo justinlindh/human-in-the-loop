@@ -2,11 +2,11 @@
 // own renderer, writes docs/readme/logo.svg (loop ring, check badge, character, wordmark, Approve
 // button; Fredoka embedded so the file stands alone), and exports the PNGs from that SVG.
 //
-//   node blender/logo/build.mjs [--out docs/readme]
+//   node blender/logo/build.mjs [--out docs/readme] [--gpu]   (--gpu or HITL_GPU=1: render on the GPU)
 //
 // Writes logo.svg, logo.png and logo-dark-theme.png (the wide logo; the dark variant lightens the
 // grey text), logo-square.png (the mark alone) and social-preview.png (1280x640, on cream).
-import { startHarness } from '../checks/harness.mjs';
+import { startHarness, wantGpu } from '../checks/harness.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +25,7 @@ const CHARACTER = {
 const INK = '#2a2630', GREY = '#6b5f52', GREY_DARK_THEME = '#d8c9b4', BLUE = '#4f8cff', GREEN = '#34c38f', CREAM = '#fbf5ea';
 const font = readFileSync(resolve(HERE, 'fredoka-latin.woff2')).toString('base64');
 
-const H = await startHarness();
+const H = await startHarness({ gpu: wantGpu() });
 const { page, errors } = await H.openScene('quality=high&mock=garage', { width: 640, height: 400 });
 const art = await page.evaluate(async ({ person, pose }) => {
   const m = await import('/blender/logo/bust.js');
