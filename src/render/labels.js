@@ -120,7 +120,7 @@ export function createLabels(parent) {
     l.w = null;
     l.inner.style.background = '';
     l.t = 0; l.life = seconds; l.rise = 0; l.follow = follow; l.offsetY = offsetY;
-    l.hold = null; l.holdT = 0; l.fresh = true;
+    l.hold = null; l.holdT = 0; l.fresh = true; l.fadeT = null; l.fadeTo = null;
     l.jit.set(0, 0, 0);
     parent.add(l.obj);
     live.push(l);
@@ -252,6 +252,8 @@ export function createLabels(parent) {
   // people walk does not make it hop.
   const CLEAR_OVER = 0.08;
   const SETTLE = 0.5;
+  const FADE = 0.09;
+  const FAR = 120;         // px: a longer move that would cross the crowd fades instead
 
   // Leader lines for lifted bubbles, in a layer under every label so they never cross text.
   let leadLayer = null;
@@ -328,32 +330,52 @@ export function createLabels(parent) {
       l.el.style.zIndex = String(Number(l.el.style.zIndex || 0) + 1000);
       const box = rectOf(l, camera, w, h);
       box.bottom += TAIL;
-      let dy = 0;
-      // Each pass jumps above the highest thing the bubble still overlaps.
-      for (let pass = 0; pass < 12; pass++) {
-        const at = { ...box, top: box.top + dy, bottom: box.bottom + dy };
-        let top = Infinity;
-        for (const q of placed) if (hits(at, q) && q.top < top) top = q.top;
-        for (const q of faces) if ((q.face || q.root !== l.follow) && q.top < top && coverage(at, q) > CLEAR_OVER) top = q.top;
-        if (top === Infinity) break;
-        dy = Math.min(dy, top - GAP - box.bottom);
-      }
-      // Rise at once; settle lower only after the lower spot has stayed clear for SETTLE seconds,
-      // so a bubble does not bob as heads pass under it.
-      // A held spot is kept only while it is still clear.
       const blocked = (d) => {
         const at = { ...box, top: box.top + d, bottom: box.bottom + d };
         return placed.some((q) => hits(at, q)) || faces.some((q) => (q.face || q.root !== l.follow) && coverage(at, q) > CLEAR_OVER);
       };
+      // The lowest clear spot at or above `from`: each pass jumps above the highest thing the bubble
+      // still overlaps.
+      const liftFrom = (from) => {
+        let d = from;
+        for (let pass = 0; pass < 12; pass++) {
+          const at = { ...box, top: box.top + d, bottom: box.bottom + d };
+          let top = Infinity;
+          for (const q of placed) if (hits(at, q) && q.top < top) top = q.top;
+          for (const q of faces) if ((q.face || q.root !== l.follow) && q.top < top && coverage(at, q) > CLEAR_OVER) top = q.top;
+          if (top === Infinity) break;
+          d = Math.min(d, top - GAP - box.bottom);
+        }
+        return d;
+      };
+      let dy = liftFrom(0);
+      // Rise at once. A held spot that gets blocked moves up from where it is, never down; the bubble
+      // settles lower only after the lower spot has stayed clear for SETTLE seconds. So a crowd
+      // shifting around a bubble nudges it up instead of flipping it between two far spots.
       if (l.hold == null || dy < l.hold - 0.5) { l.hold = dy; l.holdT = 0; }
-      else if (dy > l.hold + 0.5) { l.holdT += dt; if (l.holdT > SETTLE || blocked(l.hold)) { l.hold = dy; l.holdT = 0; } }
-      else l.holdT = 0;
+      else if (dy > l.hold + 0.5) {
+        // The settle clock keeps running while a blocked spot is nudged up, so a busy crowd can't
+        // keep a bubble climbing away from its speaker.
+        l.holdT += dt;
+        if (l.holdT > SETTLE) { l.hold = dy; l.holdT = 0; }
+        else if (blocked(l.hold)) l.hold = liftFrom(l.hold);
+      } else l.holdT = 0;
       dy = l.hold;
-      // A new bubble appears where it will stay; only later moves ease.
-      // Easing toward the target must not pass over a face or another bubble: snap instead.
-      if (l.fresh) { l.dy = dy; l.fresh = false; } else {
+      // A new bubble appears where it will stay; later moves ease there. A long move whose way
+      // crosses a face or another bubble fades out, jumps, and fades back in (FADE seconds each way)
+      // instead of sweeping across the crowd.
+      if (l.fresh) { l.dy = dy; l.fresh = false; l.fadeT = null; }
+      else if (l.fadeT != null) {
+        l.fadeT += dt;
+        if (l.fadeT >= FADE && l.fadeTo != null) { l.dy = dy; l.fadeTo = null; }
+        if (l.fadeT >= FADE * 2) l.fadeT = null;
+      } else {
         const next = l.dy + (dy - l.dy) * k;
-        l.dy = Math.abs(dy - next) > 0.5 && blocked(next) ? dy : next;
+        if (Math.abs(dy - l.dy) > FAR && blocked(next)) { l.fadeT = 0; l.fadeTo = dy; } else l.dy = next;
+      }
+      if (l.fadeT != null) {
+        const f = l.fadeT < FADE ? 1 - l.fadeT / FADE : (l.fadeT - FADE) / FADE;
+        l.el.style.opacity = String(Number(l.el.style.opacity || 1) * Math.max(0, Math.min(1, f)));
       }
       placed.push({ ...box, top: box.top + dy, bottom: box.bottom + dy });
       const anchor = { x: (box.left + box.right) / 2, y: box.bottom + TAIL };

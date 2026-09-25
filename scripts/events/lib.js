@@ -49,7 +49,8 @@ export function readIndex(hash) {
 }
 
 // Rows matching a query: { id (an event id or type, exact), choice, bot, seed, era, stage (0, 1, 2
-// or garage, floor, hq), week range [from, to], snapshot (only rows with one), prop }.
+// or garage, floor, hq), week range [from, to], snapshot (only rows with one), pre (only rows with a
+// preTick snapshot), prop }.
 const STAGES = { garage: 0, floor: 1, hq: 2 };
 export function match(rows, q) {
   const stage = q.stage == null ? null : STAGES[q.stage] ?? Number(q.stage);
@@ -62,6 +63,7 @@ export function match(rows, q) {
     && (q.from == null || r.week >= Number(q.from))
     && (q.to == null || r.week <= Number(q.to))
     && (!q.snapshot || r.snapshot)
+    && (!q.pre || r.preTick)
     && (q.prop == null || (r.props ?? []).includes(q.prop) || r.stageProp === q.prop));
 }
 
