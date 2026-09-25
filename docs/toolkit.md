@@ -164,7 +164,7 @@ Each line also records the worktree, branch, commit and exit code. The log never
 | `node src/ui/tools/build-glyphs.js` | ui | Writes the UI glyph SVGs in `public/icons/glyphs/` and their manifest from `src/ui/tools/glyphs.js`. |
 | `node src/ui/tools/icon-coverage.js [--strict]` | ui | Lists icon names that still use an emoji stand-in and fails on a manifest entry with no file. `src/ui/icons.test.js` (in `npm test`) fails when game data can ask for an icon name that has neither art nor an entry, such as a new marketing channel. |
 | `public/audio/LICENSES.md` | audio | Every audio file and its source and licence. Update it with any new file. |
-| `audio-masters-1` release | audio | Lossless FLAC masters of every shipped audio file, plus a manifest mapping each to its shipped file with SHA-256 checksums. Re-encode from these, never from `public/audio/`. |
+| `audio-masters-<n>` releases (use the newest) | audio | Lossless FLAC masters of every shipped audio file, plus a manifest mapping each to its shipped file with SHA-256 checksums. Re-encode from these, never from `public/audio/`. |
 
 ## Team process
 
