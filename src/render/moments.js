@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
+import { createCharacter } from './character.js';
+import { EVENTS } from '../data/events.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -15,6 +17,9 @@ import { PALETTE as P } from './palette.js';
 //   screen a screen takeover: people at their desks recoil from their monitors with an exclamation.
 //   hammer the sledgehammer (open plan): the subject shoulders it and sizes up the back wall; if the
 //          walls come down (the 'Open-plan buzz' modifier appears) they swing and dust flies.
+//   letter the envelope on a desk: its sitter sighs over it now and then.
+//   visitor the visitor chair (first user test): a visitor sits in it while someone hovers, sweating.
+//   fumes  smoke or a hot rack: someone comes over and fans it away.
 //   carrier the pet carrier: the requester bends over it and peers in; an adopted pet steps out of
 //          it (pets.js).
 
@@ -28,7 +33,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -37,11 +42,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   function free() {
     return [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && !r.temp && !r.path.length && r.staff.mood !== 'away');
   }
-  function pickIdle(n) {
+  // near: a point; people closer to it are much likelier, so moments start without a long walk.
+  function pickIdle(n, near = null) {
     const pool = free();
     const out = [];
     while (out.length < n && pool.length) {
-      const w = pool.map((r) => IDLE_W[r.staff.assignment?.type ?? 'idle'] ?? 0.5);
+      const w = pool.map((r) => (IDLE_W[r.staff.assignment?.type ?? 'idle'] ?? 0.5) / (near ? 1 + Math.hypot(r.pos.x - near.x, r.pos.z - near.z) ** 2 / 4 : 1));
       let k = Math.random() * w.reduce((a, b) => a + b, 0), i = 0;
       for (; i < pool.length - 1; i++) { k -= w[i]; if (k <= 0) break; }
       out.push(pool.splice(i, 1)[0]);
@@ -76,7 +82,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   function pizza(p, dt) {
     if (!due(`pizza|${p.obj.uuid}`, dt, PIZZA.first, PIZZA.every)) return;
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
-    const people = pickIdle(Math.round(rnd(...PIZZA.people)));
+    const people = pickIdle(Math.round(rnd(...PIZZA.people)), center);
     if (lite()) { for (const r of people) emote(r, 'heart', 2); return; }
     const spots = ringSpots(center, PIZZA.ring, people.length);
     people.slice(0, spots.length).forEach((r, i) => {
@@ -120,7 +126,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     return null;
   }
   function hammerTick(p, state) {
-    const knocked = (state?.modifiers ?? []).some((mo) => mo.label === 'Open-plan buzz' && (mo.untilWeek ?? 0) > (state.week ?? 0) + 25);
+    // The walls came down: the decisionResolved event says so; until sim emits it, the fresh
+    // 'Open-plan buzz' modifier is the tell.
+    const knocked = resolved.get('open_plan_office') === 'Knock them down'
+      || (state?.modifiers ?? []).some((mo) => mo.label === 'Open-plan buzz' && (mo.untilWeek ?? 0) > (state.week ?? 0) + 25);
     if (!hammer) {
       if (!p || lite()) { if (p && !timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
       const subject = state?.pendingDecision?.subjectId;
@@ -161,7 +170,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (h.phase === 'swing') {
       h.swingT += 1 / 30;
       const hit = Math.floor((h.swingT - 0.6) / 1.1);
-      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; fx?.puff(h.wall.x, h.wall.z - 0.45, 0.9); }
+      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; fx?.puff(h.wall.x, h.wall.z - 0.35, 1.1, 2.4); fx?.puff(h.wall.x, h.wall.z - 0.35, 0.6, 1.6); }
       if (!r.temp) { stopHammer(); return; }
     }
     // The decision went the other way: put it down and go back to work.
@@ -177,11 +186,87 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     hammer = null;
   }
 
+  // Choices made, by event id, from decisionResolved ({ eventId, choice }), choice given as an index
+  // or a label. Kept briefly: the moments that act on a choice read it within a few frames.
+  const resolved = new Map(), resolvedT = new Map();
+  function decided(e) {
+    const ch = typeof e.choice === 'number' ? EVENTS[e.eventId]?.choices?.[e.choice]?.label : e.choice?.label ?? e.choice;
+    resolved.set(e.eventId, ch ?? null);
+    resolvedT.set(e.eventId, 20);
+  }
+
+  // Envelope on a desk: whoever sits there sighs over it now and then.
+  function letter(p, dt) {
+    if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [10, 15])) return;
+    const deskId = p.obj.userData.follow?.deskId;
+    const r = [...recs.values()].find((x) => x.seat === deskId);
+    if (!r || !free().includes(r) || !r.char.seated) return;
+    emote(r, 'sweat', 2.4);
+    if (!lite()) r.temp = { anim: 'sigh', t: 3.2, keepPos: true, moment: 'letter' };
+  }
+
+  // Visitor chair: a visitor sits in it for as long as it is there; someone hovers nearby.
+  let visitor = null;     // { obj (the prop), char, host }
+  function visitorTick(p, dt) {
+    if (!p) { endVisitor(); return; }
+    if (lite() || !parent) return;
+    if (!visitor || visitor.obj !== p.obj) {
+      endVisitor();
+      const c = createCharacter({ skin: 2, hair: 4, hairColor: '#6b4a2e', shirt: '#9aa3b5', pants: '#3b4a6b', build: 1, accessory: 'glasses' }, P.metal_soft, { seed: 'visitor' });
+      c.setRingScale(0.0001);
+      c.pickProxy.visible = false;
+      c.setAnim('sit');
+      parent.add(c.root);
+      visitor = { obj: p.obj, char: c, host: null, hostT: 0 };
+    }
+    const v = visitor, o = p.obj;
+    v.char.root.position.set(o.position.x, 0, o.position.z);
+    v.char.root.rotation.y = o.rotation.y;
+    v.char.root.visible = o.visible && o.scale.x > 0.5;
+    v.char.update(dt);
+    v.hostT -= dt;
+    if (v.host && v.host.temp?.moment !== 'visitor') v.host = null;
+    if (!v.host && v.hostT <= 0) {
+      v.hostT = rnd(14, 20);
+      const r = pickIdle(1, o.position)[0];
+      const spots = r && ringSpots(o.position, 1.0, 1);
+      if (spots?.length) {
+        v.host = r;
+        r.temp = { anim: 'idle', t: rnd(6, 9), goal: spots[0], back: true, moment: 'visitor', emoteT: 0.5, tick: (rr, d, tp) => { tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = rnd(2.5, 3.5); emote(rr, 'sweat', 2); } return false; } };
+        walkTo(r, spots[0]);
+      }
+    }
+  }
+  function endVisitor() {
+    if (!visitor) return;
+    visitor.char.root.removeFromParent();
+    visitor.char.dispose();
+    visitor = null;
+  }
+
+  // Smoke or a hot rack: someone comes over and fans it away.
+  function fumes(p, dt) {
+    if (!due(`fumes|${p.obj.uuid}`, dt, [2, 4], [16, 24])) return;
+    const box = new THREE.Box3().setFromObject(p.obj);
+    // The rack effect is built round its rack, the smoke above its item: aim at the floor below.
+    box.getCenter(center);
+    center.y = 0;
+    const r = pickIdle(1, center)[0];
+    if (!r) return;
+    if (lite()) { emote(r, 'sweat', 2); return; }
+    const size = box.getSize(new THREE.Vector3());
+    const spot = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55, 1)[0];
+    if (!spot) return;
+    r.temp = { anim: 'fan', t: rnd(3.5, 5), goal: spot, back: true, moment: 'fumes' };
+    walkTo(r, spot);
+    emote(r, 'sweat', 2);
+  }
+
   // Pet carrier: the requester bends over it and peers in, now and then while it is down.
   function carrier(p, state, dt) {
     if (!due(`carrier|${p.obj.uuid}`, dt, [1, 2.5], [9, 14])) return;
     const subject = state?.pendingDecision?.subjectId;
-    const r = (subject && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1)[0];
+    const r = (subject && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1, p.obj.position)[0];
     if (!r) return;
     if (lite()) { emote(r, 'heart', 2); return; }
     const at = p.obj.position, nav = office.nav();
@@ -201,18 +286,22 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   }
 
   function update(dt, state) {
+    for (const [k, t] of resolvedT) { if (t - dt <= 0) { resolvedT.delete(k); resolved.delete(k); } else resolvedT.set(k, t - dt); }
     const props = getProps();
     if (!props || !office.current) return;
     const cur = props.current();
     hammerTick(cur.find((p) => p.prop === 'sledgehammer') ?? null, state);
+    visitorTick(cur.find((p) => p.prop === 'visitor_chair') ?? null, dt);
     if (isBusy()) return;
     for (const p of cur) if (p.prop === 'pet_carrier') carrier(p, state, dt);
+    for (const p of cur) if (p.prop === 'envelope' || p.prop === 'envelope_thick') letter(p, dt);
+    for (const p of cur) if (p.prop === 'smoke_puff' || p.prop === 'rack_hot') fumes(p, dt);
     for (const p of props.current()) if (p.prop === 'pizza_boxes') pizza(p, dt);
     if (props.overlay) screens(props.overlay, dt);
     else for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k);
   }
 
-  function reset() { stopHammer(); timers.clear(); }
+  function reset() { stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
-  return { update, reset, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { update, reset, decided, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

@@ -134,7 +134,8 @@ export function createFx({ scene, overlayEl }) {
   const PUFF_N = 9, PUFF_S = 0.5, MAX_PUFFS = 4;
   const puffGeo = new THREE.CircleGeometry(0.09, 12).rotateX(-Math.PI / 2);
   const puffs = [];
-  function puff(x, z, size) {
+  // strength: 1 for a placement, more for a sledgehammer blow (thicker, higher, longer).
+  function puff(x, z, size, strength = 1) {
     let q = puffs.find((u) => !u.active);
     if (!q && puffs.length < MAX_PUFFS) {
       const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(P.wall_warm), transparent: true, opacity: 0, depthWrite: false });
@@ -147,23 +148,23 @@ export function createFx({ scene, overlayEl }) {
       puffs.push(q);
     }
     if (!q) q = puffs.reduce((a, b) => (a.t > b.t ? a : b));
-    Object.assign(q, { active: true, t: 0, x, z, size });
+    Object.assign(q, { active: true, t: 0, x, z, size, strength });
     q.mesh.visible = true;
   }
   function updatePuffs(dt) {
     for (const q of puffs) {
       if (!q.active) continue;
-      q.t += dt;
+      q.t += dt / (0.6 + 0.4 * (q.strength ?? 1));
       const k = q.t / PUFF_S;
       if (k >= 1) { q.active = false; q.mesh.visible = false; continue; }
       const e = 1 - (1 - k) ** 3;
-      q.mat.opacity = 0.55 * (1 - k);
+      q.mat.opacity = Math.min(0.9, 0.55 * (q.strength ?? 1)) * (1 - k);
       for (let i = 0; i < PUFF_N; i++) {
         const a = (i / PUFF_N) * Math.PI * 2 + 0.3;
         const r = q.size * (0.35 + 0.35 * e);
-        dummy.position.set(q.x + Math.cos(a) * r, 0.03 + e * 0.05, q.z + Math.sin(a) * r);
+        dummy.position.set(q.x + Math.cos(a) * r, 0.03 + e * 0.05 * (q.strength ?? 1) + (i % 3) * 0.06 * ((q.strength ?? 1) - 1), q.z + Math.sin(a) * r);
         dummy.rotation.set(0, 0, 0);
-        dummy.scale.setScalar(0.6 + e * 0.9);
+        dummy.scale.setScalar((0.6 + e * 0.9) * Math.sqrt(q.strength ?? 1));
         dummy.updateMatrix();
         q.mesh.setMatrixAt(i, dummy.matrix);
       }

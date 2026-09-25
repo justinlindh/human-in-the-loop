@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -36,7 +36,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil']);
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh']);
 
 const roleMats = new Map();
 function roleMaterial(role, hex) {
@@ -546,8 +546,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armLZ = 0.18; tgt.armRZ = -0.18;
         break;
       case 'shoulder':
-        // Something heavy carried over the right shoulder, head end behind.
-        tgt.armRX = -2.75; tgt.armRZ = -0.25;
+        // Something heavy carried over the right shoulder, the arm out to the side so what it holds
+        // stands clear of the head.
+        tgt.armRX = -2.55; tgt.armRZ = -0.75;
+        tgt.headZ = 0.12;
         tgt.headX = -0.05;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
@@ -562,6 +564,25 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = -e * 0.03;
         break;
       }
+      case 'sigh': {
+        // Seated, a long breath out: shoulders drop and the head sinks, then comes back up.
+        const cyc = (t % 3.2) / 3.2;
+        const b = Math.sin(Math.min(1, cyc / 0.6) * Math.PI);
+        tgt.lean = 0.2 + b * 0.12;
+        tgt.headX = 0.2 + b * 0.35;
+        tgt.headZ = -0.25;
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.2 - b * 0.15;
+        tgt.armLZ = 0.2; tgt.armRZ = -0.2;
+        tgt.bodyY -= b * 0.01;
+        break;
+      }
+      case 'fan':
+        // Waving something away from the face with one hand, leaning back from it.
+        tgt.armRX = -2.0 + s(t * 11) * 0.35;
+        tgt.armRZ = -0.3 + s(t * 11) * 0.25;
+        tgt.lean = -0.1;
+        tgt.headX = -0.1; tgt.headZ = 0.2;
+        break;
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
         tgt.bodyZ = -0.08;
