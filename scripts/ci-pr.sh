@@ -103,4 +103,6 @@ cat "$body"
 url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
 status "$([ $rc -eq 0 ] && echo success || echo failure)" "Local CI $verdict in ${secs}s on ${sha} ($what)" "$url"; status_final=1
 rm -f "$summary" "$body"
+# A head that only merged main keeps the review pass of the head before it.
+[ "$comment" = 1 ] && bash "$REPO/scripts/review-carry.sh" "$pr" || true
 exit $rc

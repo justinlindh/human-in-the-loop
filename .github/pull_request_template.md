@@ -25,3 +25,7 @@
 ## Closes
 
 <!-- e.g. Fixes #14. Leave empty if none. -->
+
+<!-- After creating the PR, turn on auto-merge so GitHub merges it once every required check passes
+     (local-ci, review, test, balance, browser, commits):  gh pr merge <number> --auto --merge
+     Check where your PRs stand with scripts/pr-status.sh. -->
