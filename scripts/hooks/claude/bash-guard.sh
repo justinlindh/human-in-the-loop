@@ -65,7 +65,9 @@ if grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|comment|review|edit)' <<<"$outs
     /<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside {
       match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag = substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag)
       keep = ($0 ~ /gh[[:space:]]+(pr|api)[[:space:]]/)
+      # The file the heredoc is written to: a > redirect, or tee [-a] FILE.
       if (match($0, />[[:space:]]*[^[:space:]<;&|>]+/)) { f = substr($0, RSTART, RLENGTH); sub(/^>[[:space:]]*/, "", f); gsub(/["'"'"']/, "", f); if (f in want) keep = 1 }
+      if (match($0, /tee[[:space:]]+(-a[[:space:]]+)?[^[:space:]<;&|>-][^[:space:]<;&|>]*/)) { f = substr($0, RSTART, RLENGTH); sub(/^tee[[:space:]]+(-a[[:space:]]+)?/, "", f); gsub(/["'"'"']/, "", f); if (f in want) keep = 1 }
       inside = 1; next }
     inside && $0 == tag { inside = 0; next }
     inside && keep { print }' <<<"$cmd")"

@@ -63,7 +63,10 @@ for (const [name, fn] of cases) {
 const lossRun = (lose) => {
   const log = join(tmp, `timings-${lose ? 'lost' : 'clean'}.jsonl`);
   const probe = join(tmp, 'lose.mjs');
-  const pw = pathToFileURL(createRequire(import.meta.url).resolve('playwright')).href;
+  // Local CI runs this file from a checkout of main without node_modules, in the tree under test:
+  // resolve playwright from the working directory first.
+  const resolvePw = (from) => { try { return createRequire(from).resolve('playwright'); } catch { return ''; } };
+  const pw = pathToFileURL(resolvePw(pathToFileURL(join(process.cwd(), 'x.js'))) || createRequire(import.meta.url).resolve('playwright')).href;
   writeFileSync(probe, `import playwright from ${JSON.stringify(pw)};
 const { chromium } = playwright;
 import { launchChromium } from ${JSON.stringify(lib)};
