@@ -1337,3 +1337,26 @@
 }
 /* Touch: no keyboard hints. */
 @media (pointer: coarse) { .hitl .mbtn .key, .hitl .keyhelp { display: none; } }
+
+/* Phone batch 3. Tray strip readouts: a coloured dot, a letter and the number, spaced apart. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .tray-toggle .tsm { gap: 0.55em; }
+  .hitl .tray-toggle .tsmi { display: inline-flex; align-items: center; gap: 0.15em; font-weight: 700; }
+  .hitl .tray-toggle .tsmi b { font-weight: 600; }
+  /* A sideways-scrolling menu fades on the side with more buttons past its edge. */
+  .hitl .menu.more-right { mask-image: linear-gradient(to right, #000 calc(100% - 3em), transparent); }
+  .hitl .menu.more-left { mask-image: linear-gradient(to left, #000 calc(100% - 3em), transparent); }
+  .hitl .menu.more-left.more-right { mask-image: linear-gradient(to right, transparent, #000 3em, #000 calc(100% - 3em), transparent); }
+}
+/* Short landscape phones: Yak expanded stays below the tray strip, and Staff's summary chips and
+   Hire button share one scrolling line so the table shows. */
+@media (max-height: 500px) and (pointer: coarse) {
+  .hitl .bottom > .chat .chat-body { height: auto; max-height: max(3em, calc(100vh - var(--topbar-h, 4.6em) - 44px - 8em)); }
+  .hitl .summaryline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 0.4em; }
+  .hitl .summaryline > * { flex: none; }
+  /* A panel takes the full height over the top bar (the week waits while it is open); the paused
+     tags make way for the speed buttons. */
+  .hitl .panel-wrap { top: 0.3em; }
+  .hitl .chip.speed .paused-tag { display: none !important; }
+  .hitl .panel-tabs { padding-top: 0.25em; }
+}
