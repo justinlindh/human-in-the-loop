@@ -41,7 +41,7 @@ export function createAudio({ quality = 'high' } = {}) {
       loops = createLoops(ctx, loader, (b) => mix.bus[b] ?? mix.bus.ambience);
       danceBus = ctx.createGain();
       danceBus.connect(mix.bus.sfx);
-      ducked = createDucked(ctx, loader, { mix, out: (c) => (c.op === 'dance' ? danceBus : mix.bus[c.bus] ?? mix.bus.sfx), run: (cmds) => run(cmds) });
+      ducked = createDucked(ctx, loader, { mix, out: (c) => (c.op === 'dance' || c.op === 'moment' ? danceBus : mix.bus[c.bus] ?? mix.bus.sfx), run: (cmds) => run(cmds) });
       mix.setUser('master', user.master);
       mix.setUser('muted', user.muted);
       for (const [b, v] of Object.entries(busUser)) mix.setUser(b, v);
@@ -161,6 +161,11 @@ export function createAudio({ quality = 'high' } = {}) {
           // The renderer stretches the dance to the track that actually plays.
           dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: c.genre, seconds: src.buffer.duration, startsIn: Math.max(0, src.startAt - ctx.currentTime) } }));
         } });
+        else if (c.op === 'moment') {
+          // Timed to the staging from its first frame: a cue still decoding is skipped, not late.
+          if (loader.ready(c.file)) ducked.play(c, { pausable: true });
+          else loader.preload([c.file]);
+        } else if (c.op === 'momentStop') ducked.stop((x) => x.op === 'moment' && x.id === c.id);
         else if (c.op === 'dancePause') { if (c.paused) ducked.pause(); else ducked.resume(); }
         else if (c.op === 'preload') loader.preload(c.ids);
         else if (c.op === 'musicMix') mix.musicMix(c);
@@ -178,6 +183,7 @@ export function createAudio({ quality = 'high' } = {}) {
   if (typeof window !== 'undefined') {
     addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
     addEventListener('hitl:propUse', (e) => run(director.prop(e.detail?.itemId, now())));
+    addEventListener('hitl:moment', (e) => run(director.moment(e.detail, now())));
     addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
@@ -230,6 +236,8 @@ export function createAudio({ quality = 'high' } = {}) {
     // The last music night track started: whether it was the delivered file, its length and start time.
     get lastDance() { return lastDance; },
     get musicDuck() { return mix?.duckLevel ?? 1; },
+    // Moment cues playing now: their moment id, position in the track (s), and whether paused.
+    get moments() { return ducked ? ducked.positions((c) => c.op === 'moment').map((m) => ({ id: m.c.id, at: m.at, paused: m.paused })) : []; },
     // Decoded audio held by the loader: total bytes and the delivered ids.
     get memory() { return loader ? { bytes: loader.bytes(), ids: loader.loaded() } : null; },
     // A MediaStream of the final mix, for capture tools.

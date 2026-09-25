@@ -128,3 +128,36 @@ describe('ducked playback', () => {
     expect(starts).toEqual([16]);
   });
 });
+
+describe('moment cues', () => {
+  const moment = { op: 'moment', file: 'moments/printer_smash', id: 'printer_jam-1', gain: 0.9, at: 0, duck: 'dance' };
+
+  it('pause at a game pause and resume from the same offset, keeping the duck through the pause', () => {
+    const t = setup({ readyAfterMs: 0 });
+    t.ducked.play(moment, { pausable: true });
+    t.advance(5000);
+    t.ducked.pause();
+    const first = t.ctx.sources[0];
+    expect(first.stopped).toBe(true);
+    expect(t.holds()[0].to).toBe(Infinity);
+    t.advance(3000);
+    t.ducked.resume();
+    const second = t.ctx.sources[1];
+    expect(second.offset).toBeCloseTo(5, 5);
+    expect(second.started).toBeCloseTo(8, 5);
+    // The duck now ends where the rest of the cue does.
+    expect(t.holds()[0].to).toBeCloseTo(8 + 17.78 - 5, 5);
+  });
+
+  it('stop on the moment end: the source stops now and the duck ends now', () => {
+    const t = setup({ readyAfterMs: 0 });
+    t.ducked.play(moment, { pausable: true });
+    t.advance(2000);
+    t.ducked.stop((c) => c.op === 'moment' && c.id === 'printer_jam-1');
+    expect(t.ctx.sources[0].stoppedAt).toBeCloseTo(2, 5);
+    expect(t.holds()[0].to).toBeCloseTo(2, 5);
+    // A later pause and resume leaves it stopped.
+    t.ducked.pause(); t.ducked.resume();
+    expect(t.ctx.sources.length).toBe(1);
+  });
+});
