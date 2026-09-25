@@ -18,7 +18,10 @@ describe('content pass', () => {
     const p = addStaff(s, 'support', 'junior', { traits: [], level: 4, xp: 239, assignment: { type: 'support', targetId: null } });
     const c = makeCtx(s);
     staffUpkeep(c);
-    expect(c.events.some((e) => e.type === 'toast' && e.text === `${p.name} is now a Mid Support Specialist!`)).toBe(true);
+    expect(c.events.some((e) => e.type === 'chat' && e.text.includes(`${p.name}, now a Mid Support Specialist!`))).toBe(true);
+    expect(c.events.find((e) => e.type === 'promoted')).toEqual({ type: 'promoted', staffId: p.id, seniority: 'mid' });
+    // ui shows its own promotion toast from the promoted event, so the sim adds none.
+    expect(c.events.some((e) => e.type === 'toast' && e.text.includes('is now a'))).toBe(false);
   });
 
   it('a finished campaign ends quietly', () => {

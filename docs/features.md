@@ -240,6 +240,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Game over**: a headline, a score breakdown and epilogue lines revealed one at a time. `?mock=ending`
 - **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
 - **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.
+- **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline.
 
 ## Touch and low-end support
 

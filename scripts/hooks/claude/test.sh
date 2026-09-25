@@ -145,6 +145,13 @@ lane_no "$repo/CLAUDE.md" "integ, CLAUDE.md"
 g -C "$repo" checkout -q -b tools/sweep
 lane_ok "$repo/docs/toolkit.md" tools
 lane_no "$repo/docs/superpowers/specs/spec.md" "tools, the spec"
+g -C "$repo" checkout -q -b video/reel
+lane_ok "$repo/scripts/capture-manifest.js" video
+lane_ok "$repo/scripts/feature-media/build.sh" video
+lane_ok "$repo/scripts/reels/nods.sh" video
+lane_ok "$repo/docs/toolkit.md" video
+lane_no "$repo/scripts/capture.js" "video, the capture engine"
+lane_no "$repo/src/render/index.js" "video, render code"
 g -C "$repo" checkout -q -b lead/docs
 lane_ok "$repo/CLAUDE.md" lead
 lane_ok "$repo/docs/superpowers/plans/plan.md" lead

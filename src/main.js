@@ -270,9 +270,10 @@ async function boot() {
     }
     ui?.update(sim.state);
     // State-driven music and ambience; the same pause picture the renderer gets.
-    // A spotlight stops the clock, not the sound: audio hears it as running.
+    // A spotlight stops the clock, not the sound: audio hears it as running, with the spotlight
+    // ({ kind, key }) so it keeps that scene's own cues.
     const audible = running || (held && playing && !menuPause && !sim.state.gameOver && !document.hidden);
-    audio?.update?.(sim.state, dt, { speed, running: audible, spotlight: held, menuPause, decision: !!sim.state.pendingDecision, title: !playing, over: !!sim.state.gameOver });
+    audio?.update?.(sim.state, dt, { speed, running: audible, spotlight: held ? { kind: spot.kind, key: spot.key } : null, menuPause, decision: !!sim.state.pendingDecision, title: !playing, over: !!sim.state.gameOver });
     if (firstFrame) {
       firstFrame = false;
       requestAnimationFrame(() => { window.__HITL_READY = true; });

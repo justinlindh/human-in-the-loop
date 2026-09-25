@@ -6,7 +6,8 @@
 //   at that indexed moment, its decision open; with pre: true it opens the week before and the game's
 //   own tick raises the decision), setup (page JS run once after boot, may be async),
 //   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG), sound (an
-//   item made for --audio).
+//   item made for --audio), size and fps (this item's own, over the run's --size and --fps: a
+//   '3840x2160' still to crop tight, say).
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
