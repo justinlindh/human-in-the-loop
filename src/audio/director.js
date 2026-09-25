@@ -14,10 +14,10 @@
 //   { op: 'momentStop', id }                       its moment ended or was cut short
 //   { op: 'stopAll', bus }
 
-import { ASSETS } from './loader.js';
+import { ASSETS, entryFor } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -82,6 +82,28 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
+  // Office props seen last update, by prop name, and each loop's level.
+  let propsSeen = null;
+  const loopLevel = {};
+  const momentsOn = new Set(), momentsSeen = new Set();
+  function officeProps(state, t, quiet) {
+    const out = [];
+    const now = new Set((state?.office?.props ?? []).map((x) => x.prop));
+    if (propsSeen) {
+      for (const [prop, c] of Object.entries(OFFICE_PROP_CUES)) {
+        const was = propsSeen.has(prop), is = now.has(prop);
+        if (!was && is && c.on && !(c.unlessMoment && momentsSeen.has(c.unlessMoment))) out.push(...playCue(c.on, t));
+        if (was && !is && c.off) out.push(...playCue(c.off, t));
+      }
+    }
+    propsSeen = now;
+    for (const [prop, l] of Object.entries(OFFICE_PROP_LOOPS)) {
+      if (!entryFor(l.id)?.file) continue;
+      const g = now.has(prop) && !quiet && !momentsOn.size ? l.gain : 0;
+      if (g !== (loopLevel[l.id] ?? 0)) { loopLevel[l.id] = g; out.push({ op: 'loop', id: l.id, bus: l.bus, gain: g, fade: 0.4 }); }
+    }
+    return out;
+  }
   // The playlist's next bed is chosen when the current one starts. It is preloaded PLAYLIST_PRELOAD_S
   // before the projected switch, so only one decoded bed is held for most of a bed's run.
   function pickNext(beds) {
@@ -109,6 +131,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   function playCue(id, t, { speed = 1, gain = 1 } = {}) {
     const c = CUES[id];
     if (!c) return [];
+    if (c.delivered && !c.files.some((f) => entryFor(f)?.file)) return [];
     if (q === 'low' && c.priority <= 1) return [];
     if (speed >= 4 && c.priority <= 1) return [];
     const cd = (c.cooldown ?? 0.05) * (c.scaleWithSpeed ? Math.max(1, speed) : 1);
@@ -305,6 +328,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       const total = Math.max(1, (state?.staff ?? []).length);
       const tg = q === 'low' || ctx.title || hold || stopped || state?.lockdown && state.week < (state.lockdown.until ?? Infinity) ? 0 : Math.round((WORLD.typingMax * Math.min(1, working / total)) * 20) / 20;
       if (tg !== typing) { typing = tg; out.push({ op: 'loop', id: 'ambience/typing', bus: 'ambience', gain: tg, fade: 1.5 }); }
+      out.push(...officeProps(state, t, stopped || hold));
       if (!state?.staff || ctx.title) return out;
       // Outage start and end.
       const outage = !!state.outage;
@@ -345,6 +369,8 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
 
     // hitl:moment from the renderer: a moment with a cue starts it, its end stops it.
     moment(detail, t) {
+      if (detail?.key) { if (detail.phase === 'start') momentsOn.add(detail.key); else if (detail.phase === 'end') momentsOn.delete(detail.key); }
+      if (detail?.key && detail.phase === 'start') momentsSeen.add(detail.key);
       const m = MOMENT_CUES[detail?.key];
       if (!m || !detail.id) return [];
       if (detail.phase === 'start') return [{ op: 'moment', cue: `moment.${detail.key}`, file: m.file, id: detail.id, bus: 'sfx', gain: m.gain, at: t, duck: 'dance' }];
