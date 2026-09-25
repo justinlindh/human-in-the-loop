@@ -623,6 +623,54 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho });
     R.moments.full = false;
   }
+  // 6. The printer taken out back (printer_jam, choice 0): the carriers, the one with the bat and the
+  // printer itself stay clear of furniture and props from the lift to the walk-off, and the printer is
+  // carried low, its top under each carrier's chin.
+  {
+    R.moments.full = true;
+    S.pendingDecision = { eventId: 'printer_jam', subjectId: ids[0], stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } };
+    step(30);
+    S.pendingDecision = null;
+    S.office.props.push({ id: 'wreck_prop', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 2 } });
+    R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: ids[0] }], S);
+    let worst = 0, worstWho = null, samples = 0, chin = Infinity, chinWho = null;
+    const phases = new Set();
+    const box = new THREE.Box3(), pbox = new THREE.Box3();
+    for (let i = 0; i < 30 * 30; i++) {
+      step(1);
+      const pm = R.moments.printerState;
+      if (!pm) { if (phases.size) break; continue; }
+      phases.add(pm.phase);
+      if (i % 2 || pm.phase === 'off') continue;
+      samples++;
+      pbox.setFromObject(pm.obj);
+      pm.people.forEach((r, k) => {
+        const root = charOf(R.scene, r.id);
+        const own = new Set([R.perks.peek(r.id)?.seat]);
+        for (const e of R.office.placed.values()) {
+          if (own.has(e.id)) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; const ms = meshes(e.obj); worstWho = `${r.id} (${pm.phase} at ${pm.s.toFixed(2)} of ${pm.len.toFixed(2)} m, twist ${pm.twists?.[Math.round(pm.s / 0.1)]?.toFixed(2)}, clear ${pm.clear}, pos ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}) in ${e.itemId}:${e.id} [${ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`).join(' ')}]`; }
+        }
+        for (const p of R.props.current()) {
+          if (p.prop === 'printer_wrecked') continue;
+          const v = bodyInside(root, meshes(p.obj), false);
+          if (v > worst) { worst = v; worstWho = `${r.id} (${pm.phase}) in ${p.prop}`; }
+        }
+        // The chin: the head is the top 45% of a character.
+        if (k < 2 && (pm.phase === 'lift' || pm.phase === 'carry') && pm.obj.visible) {
+          box.setFromObject(root);
+          const gap = box.min.y + (box.max.y - box.min.y) * 0.55 - pbox.max.y;
+          if (gap < chin) { chin = gap; chinWho = `${r.id} (${pm.phase})`; }
+        }
+      });
+    }
+    S.office.props = S.office.props.filter((p) => p.id !== 'wreck_prop');
+    const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
+    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0, phases: [...phases], samples, insidePct: +(100 * worst).toFixed(2), worstWho, chinGap: +chin.toFixed(3), chinWho });
+    R.moments.full = false;
+    step(30);
+  }
   R.perks.hold = false;
   return results;
 }

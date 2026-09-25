@@ -186,13 +186,14 @@ const tapeGeo = new THREE.PlaneGeometry(0.1, 0.035);  // shared by every tape st
 let tapeMat = null;
 
 // A printed picture taped to the wall at eye level, a little crooked.
-function wallPrint(tex, { w = 0.84, h = 0.63, tilt = 0.035 } = {}) {
+function wallPrint(tex, { w = 0.84, h = 0.63, tilt = 0.035, y = 1.45 } = {}) {
   return (L, anchor, env) => {
     const spot = wallSpot(L, anchor, env.busy, w);
     const g = new THREE.Group();
     g.userData.span = { wall: spot.wall, a: spot.at - w / 2, b: spot.at + w / 2 };
     const onX = spot.wall === 'x';
-    g.position.set(onX ? -L.W / 2 + 0.06 : spot.at, 1.45, onX ? spot.at : -L.D / 2 + 0.06);
+    // y: a height, or (L) => a height, for props that hang relative to the wall's top.
+    g.position.set(onX ? -L.W / 2 + 0.06 : spot.at, typeof y === 'function' ? y(L) : y, onX ? spot.at : -L.D / 2 + 0.06);
     if (onX) g.rotation.y = Math.PI / 2;
     const sheet = new THREE.Mesh(plane(w, h), own(new THREE.MeshStandardMaterial({ map: tex(env.state), roughness: 0.9 })));
     sheet.rotation.z = tilt;
@@ -371,6 +372,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     const item = build();
     item.scale.setScalar(scale);
     g.add(item);
+    if (item.userData.tick) g.userData.tick = item.userData.tick;
     // Things on a desk always find one, whatever the anchor (a wall anchor means the nearest desk);
     // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
@@ -509,7 +511,7 @@ function follow(g, e) {
 function onFloor(build, opts = {}) {
   return atDesk(build, { x: 0.95, z: 0.1, rot: 0, y: 0, scale: 1, ...opts });
 }
-const TOP_Y = 0.59;         // the desk model's top surface
+const TOP_Y = 0.57;         // the desk model's top surface
 const DESK_PROP_SCALE = 1.6;
 // Flat paper needs more size than objects to read from above. It sits on the sitter's right, where
 // their head does not hide it from the camera.
@@ -794,6 +796,138 @@ function rackHot(L, anchor, env) {
   return g;
 }
 
+
+// #339, office classics. The banner: a wide corporate-blue motivational question over the wall.
+const companyBanner = () => canvasTex('banner_company', 1024, 256, (ctx, W, H) => {
+  ctx.fillStyle = P.role_engineer; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.paper; ctx.fillRect(10, 10, W - 20, 6); ctx.fillRect(10, H - 16, W - 20, 6);
+  text(ctx, 'IS THIS GOOD FOR', W / 2, 92, 84, P.paper);
+  text(ctx, 'THE COMPANY?', W / 2, 184, 84, P.paper);
+});
+// TPS report cover sheets: a squared-up stack with the memo about them on top.
+function coverSheets() {
+  const g = new THREE.Group();
+  for (let i = 0; i < 6; i++) {
+    const sh = mesh(roundedBox(0.21, 0.004, 0.28, 0.002, 1), mat('paper'), (i % 2) * 0.004, 0.002 + i * 0.004, (i % 3) * 0.003);
+    sh.rotation.y = (i % 2 ? 1 : -1) * 0.02;
+    g.add(sh);
+  }
+  const memo = cardTex('tps', 128, 170, (ctx, W, H) => {
+    ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
+    text(ctx, 'TPS', W / 2, 28, 30, P.ink);
+    text(ctx, 'COVER SHEET', W / 2, 56, 15, P.ink);
+    ctx.fillStyle = P.metal_soft; for (let i = 0; i < 5; i++) ctx.fillRect(18, 80 + i * 14, 92 - (i % 2) * 20, 5);
+    ctx.fillStyle = P.fabric_mustard; ctx.fillRect(W - 40, 8, 32, 32);
+  });
+  const top = new THREE.Mesh(plane(0.2, 0.27), flatMat(memo));
+  top.rotation.x = -Math.PI / 2; top.position.y = 0.027;
+  g.add(top);
+  return g;
+}
+// A red stapler, generic: a rounded base, a hinged top and a steel strip.
+function stapler() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.06, 0.02, 0.2, 0.008, 2), mat('metal_dark'), 0, 0.01, 0));
+  const top = mesh(roundedBox(0.056, 0.035, 0.19, 0.014, 3), mat('alarm_red'), 0, 0.04, -0.004);
+  top.rotation.x = -0.05;
+  g.add(top);
+  g.add(mesh(roundedBox(0.04, 0.006, 0.05, 0.002, 1), mat('metal_soft'), 0, 0.058, -0.08));
+  return g;
+}
+// An office printer: a boxy body, a paper tray, a jammed sheet sticking out, a blinking light and
+// a small screen that says PC LOAD LETTER.
+const printerScreen = () => cardTex('pcload', 256, 48, (ctx, W, H) => {
+  ctx.fillStyle = '#9fc7a1'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.font = '700 26px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('PC LOAD LETTER', W / 2, H / 2);
+});
+// The printer model on its own (moments.js carries one out the door).
+export function printerModel() { return printerBody(false); }
+function printerBody(broken = false) {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.62, 0.36, 0.5, 0.05, 3), mat('pot_cream'), 0, 0.18, 0));
+  g.add(mesh(roundedBox(0.64, 0.04, 0.52, 0.02, 2), mat('metal_soft'), 0, 0.37, 0));
+  g.add(mesh(roundedBox(0.44, 0.03, 0.16, 0.01, 2), mat('metal_soft'), 0, 0.12, 0.29));
+  const panel = new THREE.Mesh(plane(0.3, 0.056), flatMat(printerScreen()));
+  panel.position.set(0.1, 0.395, 0.17); panel.rotation.x = -Math.PI / 2 + 0.5;
+  g.add(panel);
+  if (!broken) {
+    // The jammed sheet, crumpled out of the output slot.
+    const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.05, 0.33, 0.3);
+    jam.rotation.set(0.9, 0.2, 0.15);
+    g.add(jam);
+  }
+  return g;
+}
+function printerJammed() {
+  const g = printerBody(false);
+  const light = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), own(new THREE.MeshStandardMaterial({ color: new THREE.Color(P.alarm_red), emissive: new THREE.Color(P.alarm_red), emissiveIntensity: 2 })));
+  light.geometry.userData.own = true;
+  light.position.set(0.26, 0.37, 0.2);
+  g.add(light);
+  let t = 0;
+  g.userData.tick = (dt) => { t += dt; light.material.emissiveIntensity = Math.sin(t * 7) > 0 ? 2.4 : 0.2; };
+  return g;
+}
+// After "Take it out back": the printer, smashed, on the ground outside, bits scattered and the
+// bat leaning on it.
+function printerWrecked() {
+  const g = new THREE.Group();
+  const body = printerBody(true);
+  body.rotation.set(0.25, 0.6, -0.35);
+  body.scale.set(1, 0.7, 1);
+  g.add(body);
+  // Tipped over, its lowest corner rests on the floor.
+  body.updateMatrixWorld(true);
+  body.position.y = -new THREE.Box3().setFromObject(body).min.y + 0.002;
+  const bits = [[0.5, 0.2, 'pot_cream'], [-0.45, 0.35, 'metal_soft'], [0.3, -0.45, 'pot_cream'], [-0.2, -0.5, 'metal_dark'], [0.62, -0.1, 'paper'], [-0.6, -0.1, 'paper']];
+  bits.forEach(([x, z, m], i) => {
+    const b = mesh(roundedBox(0.09 + (i % 3) * 0.03, 0.03, 0.07 + (i % 2) * 0.04, 0.01, 1), mat(m), x, 0.015, z);
+    b.rotation.y = i * 1.3;
+    g.add(b);
+  });
+  const bat = new THREE.Group();
+  bat.add(mesh(roundedCylinder(0.03, 0.05, 0.8, 0.02, 10), mat('wood_light'), 0, 0, 0));
+  // Dropped flat on the floor beside it.
+  bat.rotation.set(0, 0.4, Math.PI / 2);
+  bat.position.set(0.55, 0.05, 0.25);
+  g.add(bat);
+  return g;
+}
+// Out the door on the ground: the driveway, the campus. The Office Floor is a storey up with its
+// street out of view, so there the pieces lie inside, a little way in from the door.
+const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
+const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
+function outside(build, scale = 1) {
+  return (L, anchor, env) => {
+    const g = new THREE.Group();
+    const item = build();
+    item.scale.setScalar(scale);
+    g.add(item);
+    const d = L.doorWorld;
+    if (L.name === 'Office Floor') {
+      // In from the door, clear of the cut-away front wall and away from the columns, so the smash
+      // that leaves it shows from either side.
+      const cols = (L.blocked ?? []).map(([bx, by]) => ({ x: bx + 0.5 - L.W / 2, z: by + 0.5 - L.D / 2 }));
+      const l = Math.hypot(d.x, d.z) || 1, inx = -d.x / l, inz = -d.z / l;
+      let p = null, best = -1;
+      search: for (const along of WRECK_IN) for (const side of [0, 1, -1, 2, -2]) {
+        const q = clearSpot(L, env.office, g, { x: d.x + inx * along - inz * side, z: d.z + inz * along + inx * side });
+        const gap = Math.min(Infinity, ...cols.map((c) => Math.hypot(c.x - q.x, c.z - q.z)));
+        if (gap > best) { best = gap; p = q; }
+        if (gap >= WRECK_COLUMN_GAP) break search;
+      }
+      g.position.set(p.x, 0, p.z);
+      g.userData.blocks = true;
+    } else {
+      const out = Math.abs(d.z) >= L.D / 2 - 1.2 ? [0, Math.sign(d.z)] : [Math.sign(d.x), 0];
+      g.position.set(d.x + out[0] * 2.2 + out[1] * 1.2, -0.3, d.z + out[1] * 2.2 - out[0] * 1.2);
+    }
+    g.rotation.y = 0.4;
+    return g;
+  };
+}
+
 const BUILDERS = {
   picture_pingpong: wallPrint(pingPongPicture(false)),
   picture_pingpong_ball: wallPrint(pingPongPicture(true)),
@@ -818,4 +952,10 @@ const BUILDERS = {
   visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
   smoke_puff: smokePuff,
   rack_hot: rackHot,
+  // A banner hangs high, across the top of the wall, over the posters.
+  banner_company: wallPrint(companyBanner, { w: 2.0, h: 0.46, tilt: 0.01, y: (L) => L.wallH - 0.3 }),
+  cover_sheets: atDesk(coverSheets, FLAT),
+  stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
+  printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
+  printer_wrecked: outside(printerWrecked, 1.2),
 };

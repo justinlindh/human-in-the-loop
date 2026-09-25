@@ -185,6 +185,7 @@ export function placedTransform(L, p) {
 }
 
 // Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters.
+const NEAR_COST = 3;   // extra cost of a cell inside a soft clearance (one cell's move costs 1)
 export function createNav(L, obstacles, cell = 0.35) {
   const nx = Math.ceil(L.W / cell), nz = Math.ceil(L.D / cell);
   const blocked = new Uint8Array(nx * nz);
@@ -197,9 +198,25 @@ export function createNav(L, obstacles, cell = 0.35) {
       if (edge || obstacles.some((r) => x > r.x0 - 0.12 && x < r.x1 + 0.12 && z > r.z0 - 0.12 && z < r.z1 + 0.12)) blocked[i + k * nx] = 1;
     }
   }
+  const N0 = nx * nz, grid0 = blocked;
   const center = (i, k) => ({ x: -L.W / 2 + (i + 0.5) * cell, z: -L.D / 2 + (k + 0.5) * cell });
 
-  function nearestFree(i, k) {
+  // The grid with every blocked cell grown by `clear` metres, for something wider than one person.
+  const grown = new Map();
+  function gridFor(clear) {
+    const d = Math.round(clear / cell);
+    if (d <= 0) return blocked;
+    if (grown.has(d)) return grown.get(d);
+    const out = new Uint8Array(N0);
+    for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+      if (!blocked[i + k * nx]) continue;
+      for (let a = Math.max(0, i - d); a <= Math.min(nx - 1, i + d); a++) for (let b = Math.max(0, k - d); b <= Math.min(nz - 1, k + d); b++) out[a + b * nx] = 1;
+    }
+    grown.set(d, out);
+    return out;
+  }
+
+  function nearestFree(i, k, blocked = grid0) {
     for (let r = 0; r < Math.max(nx, nz); r++) {
       for (let di = -r; di <= r; di++) {
         for (let dk = -r; dk <= r; dk++) {
@@ -212,10 +229,14 @@ export function createNav(L, obstacles, cell = 0.35) {
     return [i, k];
   }
 
-  // A* on the grid with 8-way moves; returns world points from start to goal (inclusive).
-  function path(from, to) {
-    const [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))));
-    const [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))));
+  // A* on the grid with 8-way moves; returns world points from start to goal (inclusive). clear > 0
+  // keeps the way that many metres from anything blocked; with no such way, the result is null.
+  // soft: instead, cells nearer than that cost extra, so the way keeps its distance where it can.
+  function path(from, to, clear = 0, { soft = false } = {}) {
+    const near = soft && clear > 0 ? gridFor(clear) : null;
+    const blocked = near ? grid0 : gridFor(clear);
+    const [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
+    const [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked);
     const N = nx * nz;
     const g = new Float32Array(N).fill(Infinity);
     const came = new Int32Array(N).fill(-1);
@@ -244,7 +265,7 @@ export function createNav(L, obstacles, cell = 0.35) {
           const n = a + b * nx;
           if (blocked[n] || closed[n]) continue;
           if (di && dk && (blocked[ci + di + ck * nx] || blocked[ci + (ck + dk) * nx])) continue;
-          const cost = g[cur] + (di && dk ? Math.SQRT2 : 1);
+          const cost = g[cur] + (di && dk ? Math.SQRT2 : 1) + (near?.[n] ? NEAR_COST : 0);
           if (cost < g[n]) {
             g[n] = cost;
             came[n] = cur;
@@ -253,7 +274,7 @@ export function createNav(L, obstacles, cell = 0.35) {
         }
       }
     }
-    if (came[goal] === -1 && goal !== si + sk * nx) return [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
+    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 && !near ? null : [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
     const cells = [];
     for (let n = goal; n !== -1; n = came[n]) cells.push(n);
     cells.reverse();

@@ -67,6 +67,26 @@ const SPECS = {
     share('smokeBetween', 'smoke on the line from eyes to the fumes', (x) => (x.between ?? 0) > 0, 0.5),
     visibleRule, noFade,
   ] },
+  // The printer carried out back: both carriers hold it low in both hands, its middle well under
+  // their heads, and stay in view; the one with the bat faces it while swinging, bat in hand.
+  // The carry crosses the office, so it passes behind a pillar or a desk now and then: its
+  // visibility is held to most of the walk rather than all of it.
+  'printer.carry': { moment: 'printer', beat: 'carry', role: 'carrier', rules: [
+    share('inHands', 'printer centre within 0.5 m of a hand', (x) => x.held && x.heldHand <= 0.5, 1),
+    share('heldLow', 'printer centre >= 0.3 m below the head centre', (x) => x.held && x.heldDrop >= 0.3, 1),
+    share('visible', 'body >= 70% unblocked', (x) => x.visible >= 0.7, 0.75),
+    share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 0.6),
+  ] },
+  // Watching the smash while others walk past: a column behind them may fade for a few frames as
+  // someone passes behind it too.
+  'printer.watch': { moment: 'printer', beat: 'watch', role: 'carrier', rules: [
+    visibleRule, share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 0.95),
+  ] },
+  'printer.smash': { moment: 'printer', beat: 'smash', role: 'bat', rules: [
+    share('batInHand', 'bat centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
+    share('facesPrinter', 'face within 45 deg of the printer', (x) => x.targetAngle <= 45, 0.8),
+    visibleRule, noFade,
+  ] },
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
     share('notOverHead', 'hammer centre not above the top of the head', (x) => x.heldAbove <= 0.05, 1),
@@ -78,6 +98,9 @@ const SPECS = {
 const SCENARIOS = {
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
+  // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
+  printer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } } }, seconds: 32,
+    steps: [{ at: 30, js: "S.pendingDecision = null; S.office.props = [...(S.office.props ?? []), { id: 'stage_wreck', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 4 } }]; R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: 's1' }], S);" }] },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
 };
 
@@ -104,7 +127,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { moment, view } = task;
     const sc = SCENARIOS[moment];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, seconds, turns }) => {
+    const res = await page.evaluate(async ({ moment, patch, steps, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
@@ -114,24 +137,31 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       window.__step(90);
       Object.assign(S, JSON.parse(JSON.stringify(patch)));
       const samples = [];
-      let actor = null;
+      // Everyone the moment takes part, each sampled every frame until the moment is over for all.
+      const actors = new Set();
       for (let f = 0; f < seconds * 30; f++) {
+        for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
         window.__step(1);
-        if (!actor) actor = R.moments.active.find(([, m]) => m === moment)?.[0] ?? null;
-        if (!actor) continue;
-        const m = R.probe(actor);
-        if (!m?.moment) { if (samples.length) break; continue; }
-        // Held prop against the hands and the head, for the hold rules.
-        if (m.held) {
+        for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
+        let live = 0;
+        for (const actor of actors) {
+          const m = R.probe(actor);
+          if (!m?.moment) continue;
+          live++;
+          // Held prop against the hands and the head, for the hold rules.
           const st = R.moments.staging(actor);
-          const c = new THREE.Box3().setFromObject(st.held).getCenter(new THREE.Vector3());
-          m.heldHand = Math.min(...m.hands.map((h) => Math.hypot(h[0] - c.x, h[1] - c.y, h[2] - c.z)));
-          m.heldAbove = c.y - (m.headY + 0.3);
+          if (m.held) {
+            const c = new THREE.Box3().setFromObject(st.held).getCenter(new THREE.Vector3());
+            m.heldHand = Math.min(...m.hands.map((h) => Math.hypot(h[0] - c.x, h[1] - c.y, h[2] - c.z)));
+            m.heldAbove = c.y - (m.headY + 0.3);
+            m.heldDrop = m.headY - c.y;
+          }
+          samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
         }
-        samples.push({ t: f / 30, ...m });
+        if (samples.length && !live) break;
       }
-      return { actor, samples };
-    }, { moment, patch: sc.patch, seconds: sc.seconds, turns: view.turns });
+      return { actors: [...actors], samples };
+    }, { moment, patch: sc.patch, steps: sc.steps, seconds: sc.seconds, turns: view.turns });
     await page.close();
     results.set(task, { res, errors });
   }
@@ -146,7 +176,7 @@ for (const task of tasks) {
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
     if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
     for (const [k, spec] of specs) {
-      const xs = res.samples.filter((x) => x.beat === spec.beat);
+      const xs = res.samples.filter((x) => x.beat === spec.beat && (!spec.role || x.role === spec.role));
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
       for (const rule of spec.rules) {
         const value = rule.test(xs, res.samples);
