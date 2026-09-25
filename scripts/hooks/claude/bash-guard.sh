@@ -37,13 +37,17 @@ while IFS= read -r seg; do
 done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+push([^;&|]*)' <<<"$cmd")
 
 # gh pr create/comment/review/edit, and gh api calls that post to PR or issue comments or reviews.
-if grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|comment|review|edit)' <<<"$cmd" \
-  || grep -qE 'gh[[:space:]]+api[[:space:]][^;&|]*(/comments|/reviews)' <<<"$cmd"; then
+# Heredoc bodies are data, not commands: the gh call and its flags are looked for outside them, and
+# a heredoc is scanned only when it is the PR text (it feeds the gh command, or it is written to a
+# file that the gh command then reads as its body).
+outside="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd")"
+if grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|comment|review|edit)' <<<"$outside" \
+  || grep -qE 'gh[[:space:]]+api[[:space:]][^;&|]*(/comments|/reviews)' <<<"$outside"; then
   local_path='(/home/|/tmp/)'
-  texts="$(grep -oE -- "(--title|-t|--body|-b)[= ]+(\"([^\"\\\\]|\\\\.)*\"|'[^']*')" <<<"$cmd" || true)"
+  texts="$(grep -oE -- "(--title|-t|--body|-b)[= ]+(\"([^\"\\\\]|\\\\.)*\"|'[^']*')" <<<"$outside" || true)"
   # gh api fields: -f/-F body=..., --field/--raw-field body=...
   # (body=@file names a file, read below, so its path is not text.)
-  texts+="$(grep -oE -- "(-f|-F|--field|--raw-field)[= ]+(\"?)body=(\"([^\"\\\\]|\\\\.)*\"|'[^']*'|[^@[:space:]][^[:space:]]*)" <<<"$cmd" || true)"
+  texts+="$(grep -oE -- "(-f|-F|--field|--raw-field)[= ]+(\"?)body=(\"([^\"\\\\]|\\\\.)*\"|'[^']*'|[^@[:space:]][^[:space:]]*)" <<<"$outside" || true)"
   # A body built from a file ("$(cat FILE)", "$(<FILE)", `cat FILE`) is checked by its contents,
   # like --body-file, not by where the file lives.
   subst_re='(\$\((cat[[:space:]]+|<[[:space:]]*)|`cat[[:space:]]+)("[^"]*"|'"'"'[^'"'"']*'"'"'|[^)`[:space:]]+)[[:space:]]*(\)|`)'
@@ -54,13 +58,23 @@ if grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|comment|review|edit)' <<<"$cmd"
     m="$(sed -E 's/^(\$\((cat[[:space:]]+|<[[:space:]]*)|`cat[[:space:]]+)//; s/[[:space:]]*(\)|`)$//' <<<"$m")"
     subst_files+="$m"$'\n'
   done < <(grep -oE "$subst_re" <<<"$texts" || true)
-  heredocs="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); inside=1; next } inside && $0 == tag { inside=0; next } inside { print }' <<<"$cmd")"
+  # The files the gh command reads its body from, as written (a path or a $VAR).
+  body_targets="$({ grep -oE -- "(--body-file|-F|--input)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$outside"; grep -oE -- "(-F|--field)[= ]+body=@[^[:space:];&|]+" <<<"$outside" | sed -E 's/[= ]+body=@/ /'; } | grep -v 'body=' | sed -E "s/^[^= ]+[= ]+//; s/[\"']//g" || true)"
+  heredocs="$(awk -v targets="$body_targets" '
+    BEGIN { n = split(targets, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") want[t[i]] = 1 }
+    /<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside {
+      match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag = substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag)
+      keep = ($0 ~ /gh[[:space:]]+(pr|api)[[:space:]]/)
+      if (match($0, />[[:space:]]*[^[:space:]<;&|>]+/)) { f = substr($0, RSTART, RLENGTH); sub(/^>[[:space:]]*/, "", f); gsub(/["'"'"']/, "", f); if (f in want) keep = 1 }
+      inside = 1; next }
+    inside && $0 == tag { inside = 0; next }
+    inside && keep { print }' <<<"$cmd")"
   grep -qE "$local_path" <<<"$texts$heredocs" && deny "the PR text contains a local path (/home/... or /tmp/...). PR descriptions and comments never do: describe the file by its repo path, and put media on the PR with scripts/pr-media.sh."
   while IFS= read -r f; do
     f="${f#*[= ]}"; f="${f//\"/}"; f="${f//\'/}"; f="${f/#\~/$HOME}"
     case "$f" in *'$'*|'') continue ;; esac
     [ "${f#/}" = "$f" ] && [ -n "$cwd" ] && f="$cwd/$f"
     [ -r "$f" ] && grep -qE "$local_path" "$f" && deny "the PR body file contains a local path (/home/... or /tmp/...). PR text never does: use repo paths, and scripts/pr-media.sh for media."
-  done < <({ [ -n "$subst_files" ] && sed 's/^/--body-file /' <<<"$subst_files"; grep -oE -- "(--body-file|-F|--input)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$cmd"; grep -oE -- "(-F|--field)[= ]+body=@[^[:space:];&|]+" <<<"$cmd" | sed -E 's/[= ]+body=@/ /'; } | grep -v 'body=' || true)
+  done < <({ [ -n "$subst_files" ] && sed 's/^/--body-file /' <<<"$subst_files"; grep -oE -- "(--body-file|-F|--input)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$outside"; grep -oE -- "(-F|--field)[= ]+body=@[^[:space:];&|]+" <<<"$outside" | sed -E 's/[= ]+body=@/ /'; } | grep -v 'body=' || true)
 fi
 exit 0
