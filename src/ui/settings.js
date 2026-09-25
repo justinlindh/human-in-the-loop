@@ -124,5 +124,12 @@ export function createSettings({ layer, controls, sfx }) {
   function open() { render(); back.style.display = ''; sfx('open'); }
   function close() { if (back.style.display === 'none') return false; back.style.display = 'none'; sfx('close'); return true; }
 
-  return { open, close, get isOpen() { return back.style.display !== 'none'; }, get values() { return settings; } };
+  // The HUD's quick mute: muted, or master volume at zero, counts as muted; unmuting from zero
+  // brings the volume back to its default so the button always makes sound audible again.
+  const isMuted = () => !!settings.muted || !(settings.volume > 0);
+  function setMuted(on) {
+    set('muted', !!on);
+    if (!on && !(settings.volume > 0)) set('volume', DEFAULTS.volume);
+  }
+  return { open, close, get isOpen() { return back.style.display !== 'none'; }, get values() { return settings; }, isMuted, setMuted };
 }
