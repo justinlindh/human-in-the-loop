@@ -33,6 +33,14 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 | `scripts/check-commits.sh` | The Conventional Commits check that CI runs. |
 | `scripts/hooks/pre-push` (`npm run hooks`) | Refuses pushes to a branch whose PR has already merged or closed. |
 
+## Claude Code hooks
+
+The repo's `.claude/settings.json` runs these for every session here (scripts in `scripts/hooks/claude/`). Each matches cheaply before doing any work, takes a few milliseconds, and lets the action through if the hook itself fails.
+- **Before each Bash command** (`bash-guard.sh`): blocks `pkill -f` and `pgrep -f` (stop processes by PID), any push to `main` or forced push, and `gh pr create/comment/review/edit` text or body files that contain a local path.
+- **Before each Edit or Write** (`lane-guard.sh`): the branch prefix (`<lane>/<topic>`) must own the file, per `scripts/hooks/claude/lanes.txt`; the shared checkout on `main` is team-lead's. A cross-lane edit the owner agreed to goes in `$(git rev-parse --git-dir)/hitl-lane-allow`, one path per line.
+- **At session start and each turn** (`behind-main.sh`): says when the checkout is behind `origin/main` and which tooling or contract commits it lacks; silent when current.
+- **After `gh pr create`** (`pr-create-check.sh`): turns on auto-merge when a non-draft PR was created without it, and flags a missing Affects section, Gates run line or `Fixes #n`.
+
 CI internals, which rarely need touching:
 - `scripts/ci-classify.sh` with `scripts/ci-skip-paths` gives docs-only changes the light gate.
 - `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance. A pass is also recorded under a hash of the suite's inputs (the sim, its data, the balance test, the test config, the lockfile and Node), so the same inputs skip it later. `HITL_NO_CHECK_CACHE=1` turns this off.

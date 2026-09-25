@@ -1,0 +1,19 @@
+# Lanes for scripts/hooks/claude/lane-guard.sh. A branch named <prefix>/<topic> may edit the paths on
+# its prefix's line: a trailing / is a directory, anything else one file. "*" lists paths every lane
+# may edit. The shared checkout on main is team-lead's, like lead/ branches. CLAUDE.md, the contract
+# and docs/superpowers/ (plan and spec) belong to team-lead alone; .claude/settings.json and the hook
+# scripts to the integrator. A detached checkout, or a prefix not listed,
+# is not checked. An edit outside a lane that the owning lane agreed to goes in the worktree's
+# $(git rev-parse --git-dir)/hitl-lane-allow, one path or directory per line.
+*        docs/toolkit.md .claude/agents/
+main     CLAUDE.md src/contract/ docs/ .claude/agents/ .github/pull_request_template.md README.md LICENSE
+lead     CLAUDE.md src/contract/ docs/ .claude/agents/ .github/pull_request_template.md README.md LICENSE
+sim      src/sim/ src/data/ src/save/ tests/ scripts/balance.js
+art      src/render/ blender/ public/models/ docs/readme/
+ui       src/ui/ src/audio/ public/icons/
+audio    src/audio/ public/audio/ scripts/trailer/ docs/trailer/ docs/readme/
+integ    scripts/ src/main.js src/pacing.js src/pacing.test.js src/quality.js src/quality.test.js src/dev/ index.html package.json package-lock.json vite.config.js .github/ .releaserc.json .nvmrc .gitignore README.md docs/readme/ .claude/settings.json
+tools    blender/checks/ scripts/events/
+perf     scripts/perf/ scripts/lib/
+mobile   scripts/phone-check.js
+trailer  scripts/trailer/ docs/trailer/
