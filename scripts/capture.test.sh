@@ -3,6 +3,9 @@
 # Exit 0 when all pass. It opens one small page (a GPU slot, or software GL where there is none).
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# The tree under test (local CI sets CI_DIR), which has node_modules; local CI runs this test from a
+# checkout of main that has none.
+TREE="${CI_DIR:-$HERE/..}"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fails=0
 fail() { echo "FAIL $*"; fails=$((fails + 1)); }
@@ -14,7 +17,7 @@ export const ITEMS = [
 ];
 EOF
 out="$tmp/out"
-(cd "$HERE/.." && exec timeout 300 node scripts/capture.js --manifest "$tmp/manifest.mjs" --only bad-keys,clip-ok --out "$out" --size 320x180 --fps 10 --no-webm >"$tmp/log" 2>&1) & run=$!
+(cd "$TREE" && exec timeout 300 node scripts/capture.js --manifest "$tmp/manifest.mjs" --only bad-keys,clip-ok --out "$out" --size 320x180 --fps 10 --no-webm >"$tmp/log" 2>&1) & run=$!
 # While the run goes on to the next item, nothing may exist for the rejected one: no encoder, no file.
 stray=""; file=""
 while kill -0 "$run" 2>/dev/null; do
