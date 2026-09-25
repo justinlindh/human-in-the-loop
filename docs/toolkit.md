@@ -75,10 +75,11 @@ All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock,
 | `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path. |
 | `blender/checks/golden.mjs [--update]` | Close-up renders compared with stored reference images. Update the references only deliberately, in the PR that changes the look. |
 | `blender/checks/standup.mjs` | Standups gather everyone inside the walls and clear of furniture, in every office. |
+| `blender/checks/sweep.mjs [--full] [--gpu]` | The scene integrity sweep: walks every mock and bot-played seeded games (every few weeks, each stage and era, each staged decision while its moment plays) and tests all pairs with exact mesh intersection (three-mesh-bvh). Reports overlaps, floating props and furniture, held props away from the hand, and anything outside the room, with the state, time, both things, the depth or gap, and a crop of each. New violations fail it; `blender/checks/sweep-baseline.json` lists accepted ones (`--update-baseline` rewrites it). Writes `report.json`, `report.md` and crops to `--out` (default `shots/sweep/`). Fast mode by default; `--full` for more seeds, longer windows and denser sampling. Narrow a run with `--mocks a,b` and `--seeds 1,2`. |
 
 Planned additions to this toolkit:
 - **The staging probe (#350):** gaze, facing, visibility and gesture measured in code, with a readability spec per moment.
-- **The scene integrity sweep (#352):** overlaps, floating props and label collisions across many states.
+- **More sweep checks (#352):** characters against the world along real walk paths, label and bubble overlap on screen, and the sim's placement grid against render footprints.
 - **The performance harness (`scripts/perf/`):** frame times, draw calls and memory per scene.
 
 Each gets its row here when it lands.

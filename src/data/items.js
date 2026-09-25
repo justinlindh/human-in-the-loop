@@ -9,7 +9,7 @@ const FURNITURE = [
   ['meeting_table', 'Meeting Table', 'Standups and arguments happen here. Mostly arguments.', [3000], { w: 3, h: 2 }, null],
   ['whiteboard', 'Whiteboard', 'Nearby desks get a little more inventive. The markers are always dry.', [400], { w: 2, h: 1 },
     { radius: 2, key: 'novelty', value: 0.04 }],
-  ['coffee_corner', 'Coffee Corner', 'A kettle, a drip machine, and a mug that says World\'s Okayest Dev. Nearby desks keep their energy.', [1200], { w: 2, h: 1 },
+  ['coffee_corner', 'Coffee Corner', 'A kettle, a drip machine, and a mug that says World\'s Okayest Dev. Keeps the desks right next to it going.', [1200], { w: 2, h: 1 },
     { radius: 3, key: 'staminaRecovery', value: 0.08 }],
   ['plant', 'Potted Plant', 'Green and quietly judgmental. People nearby recover a little faster.', [150], { w: 1, h: 1 },
     { radius: 2, key: 'meaningRecovery', value: 0.04 }],
@@ -34,7 +34,7 @@ const SHOP_SHAPE = {
 const SHOP_ERA = { monitoring_wall: 'agents' };
 
 const rows = [
-  ['espresso', 'Espresso Machine', 'Proper coffee. Stamina comes back faster.', 0, [3000, 9000, 27000],
+  ['espresso', 'Espresso Machine', 'Proper coffee, for the whole office. Everyone\'s stamina comes back faster.', 0, [3000, 9000, 27000],
     [{ staminaRecovery: 0.15 }, { staminaRecovery: 0.3 }, { staminaRecovery: 0.45 }], null],
   ['plant_wall', 'Plant Wall', 'A wall of green. Everyone recovers a little faster.', 0, [2500, 7500, 22000],
     [{ meaningRecovery: 0.1 }, { meaningRecovery: 0.2 }, { meaningRecovery: 0.3 }], null],

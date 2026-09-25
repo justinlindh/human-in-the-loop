@@ -1,4 +1,5 @@
 import { B } from '../sim/balance.js';
+import { OFFICE_NODS } from './office-nods.js';
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
@@ -9,7 +10,7 @@ import { B } from '../sim/balance.js';
 
 export const SUBJECTS = [
   null, 'randomStaff', 'seniorStaff', 'juniorStaff', 'unmentoredJunior', 'burnoutStaff', 'coastingStaff', 'workingStaff',
-  'automatedSenior', 'mentorStaff', 'founder', 'randomProduct',
+  'automatedSenior', 'mentorStaff', 'founder', 'randomProduct', 'veteranStaff',
 ];
 
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
@@ -20,7 +21,7 @@ export const EFFECT_KEYS = [
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
-  'mission', 'purpose', 'ransom',
+  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag',
 ];
 
 
@@ -1172,7 +1173,7 @@ const list = [
   },
   {
     id: 'coffee_wanted', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso'),
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso' || i.itemId === 'coffee_corner'),
     chat: 'The office kettle is doing its best. Its best is not enough.',
     title: 'The team wants a coffee machine',
     text: 'Someone has started bringing a thermos to meetings. Someone else brought a French press and guards it like a dragon.',
@@ -1181,9 +1182,20 @@ const list = [
       { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The French press stays on its throne.' },
     ],
   },
+  {
+    id: 'coffee_wanted_corner', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'coffee_corner'),
+    chat: 'The coffee corner has a new review taped to it. One star. Written in coffee.',
+    title: 'The coffee corner has been reviewed',
+    text: 'The drip coffee in the corner has been formally reviewed. One star: "Keeps the three desks next to it alive. The rest of us are running on vibes." People want real espresso, for everyone.',
+    choices: [
+      { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
+      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The drip machine soldiers on. It has heard the review. It does not care.' },
+    ],
+  },
 ];
 
-export const EVENTS = Object.fromEntries(list.map((e) => [e.id, e]));
+export const EVENTS = Object.fromEntries([...list, ...OFFICE_NODS].map((e) => [e.id, e]));
 
 export const INCIDENT_EVENT = {
   db_wipe: 'agent_db_wipe', runaway_spend: 'agent_runaway_spend', mass_email: 'agent_mass_email',

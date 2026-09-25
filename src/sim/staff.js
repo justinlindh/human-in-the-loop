@@ -1,10 +1,12 @@
 import { B } from './balance.js';
-import { int, range, pick, shuffle, weighted } from './rng.js';
+import { int, range, pick, shuffle, weighted, next } from './rng.js';
 import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
 import { emptyRecord, addToRecord } from './record.js';
-import { FIRST_NAMES, LAST_NAMES, NAME_VOICE } from '../data/names.js';
+import {
+  US_FIRST_NAMES, SOUTH_ASIAN_FIRST_NAMES, INTL_FIRST_NAMES, US_LAST_NAMES, SOUTH_ASIAN_LAST_NAMES, INTL_LAST_NAMES, FAMOUS_NAMES, NAME_VOICE,
+} from '../data/names.js';
 import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -77,6 +79,49 @@ export function voiceFor(person) {
   };
 }
 
+const FIRST_TIERS = [US_FIRST_NAMES, SOUTH_ASIAN_FIRST_NAMES, INTL_FIRST_NAMES];
+const LAST_TIERS = [US_LAST_NAMES, SOUTH_ASIAN_LAST_NAMES, INTL_LAST_NAMES];
+
+// How often each tier is drawn: US, South Asian (a share of the US mix), international.
+function tierWeights() {
+  const us = 1 - B.intlNameShare;
+  return [us * (1 - B.southAsianNameShare), us * B.southAsianNameShare, B.intlNameShare];
+}
+
+// One draw picks a name part: it lands in a tier by weight, and the rest of the draw picks within the tier.
+// Names `taken` rules out are skipped while any are left. Returns the name and its tier.
+function tieredPick(r, tiers, weights, taken) {
+  const u = next(r);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let lo = 0;
+  for (let t = 0; t < tiers.length; t++) {
+    const w = weights[t] / total;
+    if (u < lo + w || t === tiers.length - 1) {
+      const left = tiers[t].filter((n) => !taken(n));
+      const pool = left.length ? left : tiers[t];
+      const f = w > 0 ? Math.min(0.999999, Math.max(0, (u - lo) / w)) : 0;
+      return { name: pool[Math.floor(f * pool.length)], tier: t };
+    }
+    lo += w;
+  }
+  return null;
+}
+
+// A name nobody at the company (staff or candidates) already has: a first name not in use if one is left,
+// never a full name in use, and never a famous person's. The last name leans toward the first name's tier
+// (B.nameTierMatch) without changing how often each tier comes up overall.
+function freshName(state, r) {
+  const people = [...(state.staff ?? []), ...(state.candidates ?? [])];
+  const firsts = new Set(people.map((p) => p.name.split(' ')[0]));
+  const fulls = new Set(people.map((p) => p.name));
+  const base = tierWeights();
+  const first = tieredPick(r, FIRST_TIERS, base, (n) => firsts.has(n));
+  const m = B.nameTierMatch;
+  const lastWeights = base.map((w, t) => (1 - m) * w + (t === first.tier ? m : 0));
+  const taken = (l) => fulls.has(`${first.name} ${l}`) || FAMOUS_NAMES.has(`${first.name} ${l}`);
+  return `${first.name} ${tieredPick(r, LAST_TIERS, lastWeights, taken).name}`;
+}
+
 export function generateStaff(state, { role, seniority }) {
   const r = state.rng;
   const top = topStats(role);
@@ -94,7 +139,7 @@ export function generateStaff(state, { role, seniority }) {
     && (!TRAITS[id].era || eraAtLeast(state, TRAITS[id].era)))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
-    name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,
+    name: freshName(state, r),
     role, seniority,
     level: int(r, ...LEVEL_RANGE[seniority]), xp: 0,
     skills, speed: round(range(r, 0.8, 1.2), 2),
