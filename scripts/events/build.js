@@ -9,13 +9,16 @@
 // (the game's save format, loadable with continueGame). The cache is ~/.cache/hitl-ci/events (see
 // lib.js). An index that already exists for this code is kept unless --force.
 //
-// A row: { seed, bot, week, era, stage, staff, type, id, choice?, subject?, stageProp?, props, snapshot? }
+// A row: { seed, bot, week, era, stage, staff, type, id, choice?, subject?, stageProp?, props, snapshot?,
+//         preTick? }
 //   type  decision (id: the event id; choice: what the bot picked), or a sim event type: era,
 //         officeUpgrade, incident, launch, award, resign, unlock, goal, hire, gameOver (id: the type,
 //         or its own id where it has one)
 //   props the staged props standing in the office that week
 // Snapshots, taken just before the moment: a decision with a staged prop or a moment caption (the
-// state with the decision open, so loading it stages the prop; the first two per run), an era change and an office move
+// state with the decision open, so loading it stages the prop; the first two per run; with it, as
+// preTick, the state just before the tick that raised it, from which the game's own loop ticks into
+// the decision), an era change and an office move
 // (the state the week before, so the change plays when the game runs on).
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { mkdirSync, writeFileSync, existsSync, rmSync, readdirSync, statSync } from 'node:fs';
@@ -46,7 +49,7 @@ async function play({ bot, seed, weeks, dir }) {
     writeFileSync(join(dir, 'snapshots', name), gzipSync(json));
     return name;
   };
-  let open = null;
+  let open = null, preTick = null;
   const collect = (events) => {
     for (const e of events ?? []) {
       if (e.type === 'decisionResolved' && open && open.id === e.eventId) open.choice = e.choice ?? null;
@@ -59,7 +62,12 @@ async function play({ bot, seed, weeks, dir }) {
       const d = s.pendingDecision;
       open = { ...base(), type: 'decision', id: d.eventId, subject: d.subjectId ?? null, stageProp: d.stage?.prop ?? null, choice: null };
       const n = taken.get(d.eventId) ?? 0;
-      if ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) && n < SNAP_PER_ID) { open.snapshot = snap(d.eventId, before); taken.set(d.eventId, n + 1); }
+      if ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) && n < SNAP_PER_ID) {
+        open.snapshot = snap(d.eventId, before);
+        // And the state just before the tick that raised it, so a page can play into the decision.
+        if (preTick) open.preTick = snap(`${d.eventId}-pre`, preTick, s.week - 1);
+        taken.set(d.eventId, n + 1);
+      }
       rows.push(open);
     }
     botDecide(bot, s, { onEvents: collect });
@@ -67,7 +75,9 @@ async function play({ bot, seed, weeks, dir }) {
     if (s.gameOver) break;
     const n = rows.length;
     botTurn(bot, s, { onEvents: collect });
+    preTick = JSON.stringify(s);
     collect(tick(s));
+    if (!s.pendingDecision) preTick = null;
     // An era change or an office move this week: snapshot the week before it, so it plays on load.
     for (const r of rows.slice(n)) if (SNAP.has(r.type) && !r.snapshot) { r.week = s.week - 1; r.snapshot = snap(r.type, before, r.week); }
   }
