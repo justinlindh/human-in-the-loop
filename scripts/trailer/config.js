@@ -67,9 +67,9 @@ export const VO = {
   gain: 0,
   captions: true,
   lines: [
-    { id: 'l1', at: { beat: 'title', offset: 0.4 }, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
+    { id: 'l1', at: { beat: 'title', offset: 1.8 }, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
     { id: 'l2', at: { beat: 'launch', offset: 0.3 }, text: 'Hire humans. Ship products. Call the outage a stress test.' },
-    { id: 'l3', at: { beat: 'era-chatgbt', offset: -1.6 }, text: 'Survive the AI eras. First chatbots.' },
+    { id: 'l3', at: { beat: 'era-chatgbt', offset: -1.2 }, text: 'Survive the AI eras. First chatbots.' },
     { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, text: 'Then agents.' },
     { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, text: 'Then whatever the agents hire.' },
     { id: 'l4', at: { beat: 'waffle', offset: 1.6 }, text: 'Reward your team with waffles. And a mandatory dance break.' },
