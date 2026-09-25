@@ -365,11 +365,40 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
       follow(g, e);
     } else {
       const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
-      g.position.set(c.x, onTop ? 0 : y, c.z);
       g.rotation.y = rot;
+      const p = onTop ? c : clearSpot(L, env.office, g, c);
+      g.position.set(p.x, onTop ? 0 : y, p.z);
     }
     return g;
   };
+}
+// The nearest spot to c where a floor prop fits: clear of furniture and other props with room to
+// walk round it, inside the walls, and off the doorway. Wall and door anchors land here.
+const DOOR_CLEAR = 1.6, WALK_ROOM = 0.25;
+function clearSpot(L, office, g, c) {
+  const nav = office.nav?.();
+  if (!nav) return c;
+  g.position.set(0, 0, 0);
+  g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  const door = L.doorWorld;
+  const fits = (x, z) => {
+    if (x + b.min.x < -L.W / 2 + 0.15 || x + b.max.x > L.W / 2 - 0.15 || z + b.min.z < -L.D / 2 + 0.15 || z + b.max.z > L.D / 2 - 0.15) return false;
+    if (door && Math.hypot(x - door.x, z - door.z) < DOOR_CLEAR) return false;
+    for (let sx = b.min.x - WALK_ROOM; sx <= b.max.x + WALK_ROOM + 1e-6; sx += 0.2) {
+      for (let sz = b.min.z - WALK_ROOM; sz <= b.max.z + WALK_ROOM + 1e-6; sz += 0.2) if (nav.isBlocked(x + sx, z + sz)) return false;
+    }
+    return true;
+  };
+  if (fits(c.x, c.z)) return c;
+  for (let d = 0.25; d < 8; d += 0.25) {
+    const n = Math.max(8, Math.round(d * 12));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2, x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
+      if (fits(x, z)) return { x, z };
+    }
+  }
+  return c;
 }
 // Put a desk-following prop where its desk is now (it may be sliding to a new spot).
 function follow(g, e) {
