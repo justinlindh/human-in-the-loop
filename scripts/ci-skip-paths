@@ -10,3 +10,4 @@ docs/*
 blender/logo/*
 !src/*
 !public/*
+# skip test
