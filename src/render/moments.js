@@ -27,6 +27,7 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 // How willing someone is to wander off for a moment, by what they are assigned to.
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
+const STAND_BACK = 0.95;     // how far behind their seat someone stands up, clear of the chair
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
 // A visitor's look is random each visit, from everyday colours (render only: Math.random is fine here).
 const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
@@ -262,15 +263,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     }
     return false;
   }
-  // A clear spot near `from` on the camera's side, for staging someone where they can be seen.
-  function cameraSide(from, dist = 0.7) {
-    const yaw = getYaw(), nav = office.nav();
-    for (const off of [0, 0.5, -0.5, 1, -1, 1.5, -1.5]) {
-      const a = yaw + off, x = from.x + Math.sin(a) * dist, z = from.z + Math.cos(a) * dist;
-      if (!nav.isBlocked(x, z, BODY_R)) return { x, z };
-    }
-    return null;
-  }
+
 
   // Envelope on a desk: whoever sits there gets up beside the desk, turns to the room and holds their
   // head over it (a seated sigh faces the monitor, away from the camera), then sits back down. At Low,
@@ -279,15 +272,17 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [12, 18])) return;
     const deskId = p.obj.userData.follow?.deskId;
     const r = [...recs.values()].find((x) => x.seat === deskId);
-    if (!r || !free().includes(r) || !r.char.seated) return;
+    // Not at their desk right now: look again shortly rather than after the full interval.
+    if (!r || !free().includes(r) || !r.char.seated) { timers.set(`letter|${p.obj.uuid}`, 1); return; }
     emote(r, 'storm', 2.8);
     if (lite()) return;
-    // Stand up behind the chair, where the seat's walkway already is, turned to the room: the desk
-    // row closes the chair's sides, so stepping round it would be a walk round the whole row.
+    // Stand up behind the chair, clear of it, turned to the room: the desk row closes the chair's
+    // sides, so stepping round it would be a walk round the whole row. The seat's walkway runs
+    // straight back from the chair, so the step there is direct.
     const desk = office.placed.get(deskId);
     const ry = desk?.obj.rotation.y ?? 0;
-    const spot = { x: r.pos.x + Math.sin(ry) * 0.42, z: r.pos.z + Math.cos(ry) * 0.42 };
-    if (columnInFront(spot)) return;
+    const spot = { x: r.pos.x + Math.sin(ry) * STAND_BACK, z: r.pos.z + Math.cos(ry) * STAND_BACK };
+    if (office.nav().isBlocked(spot.x, spot.z, BODY_R) || columnInFront(spot)) return;
     spot.yaw = towardCamera(spot, p.obj.position);
     r.temp = { anim: 'despair', t: 3.6, goal: spot, back: true, moment: 'letter' };
     r.path = [{ x: spot.x, z: spot.z }];
