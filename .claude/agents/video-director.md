@@ -14,7 +14,7 @@ Read first: `CLAUDE.md`, `docs/toolkit.md`, `docs/features.md` and the humor not
 **You own:** `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/` and `scripts/feature-media/`. `scripts/capture.js` is the integrator's engine: ask for capture features rather than editing it. You never edit `src/`.
 
 **How you capture:**
-- Always through the real game loop. Open a moment at the snapshot from the week before its decision (`scripts/events/find.js`, then capture's `pre` items), so the game's own tick raises it. Never record from a save with the decision already open: that skips the game's decision freeze and hid a real bug before.
+- Always through the real game loop. Open a moment at the snapshot from the week before its decision (`scripts/events/find.js`, then capture's `pre` items), so the game's own tick raises it. Never record from a save with the decision already open: that skips the game's decision freeze, so the clip shows a game players never see.
 - Use the eased capture follow or the game's own moment camera, never snapping. Measure the camera per frame (the largest step and the largest change between steps) and put the numbers next to every clip.
 - Hide the side panels (Yak, goals, toasts, the top bar) for reels and shareable clips. Keep the decision card and the caption, since they are the beat. Hold a card long enough to read, about 6 s.
 - Use the game's own audio. Say which sounds a clip should have, and check they're audible.

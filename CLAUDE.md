@@ -27,10 +27,10 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | team-lead | coordination | the main checkout | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
 | integrator | integration | the main checkout (branch `main`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `main` |
 | sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
-| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
+| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/`, `docs/readme/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
 | video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
-| audio | sound | `../gamedev-audio` | `public/audio/`, `scripts/trailer/`, `docs/trailer/`; music, sound effects, voice and masters |
+| audio | sound | `../gamedev-audio` | `public/audio/`, `src/audio/` (shared with ui), `scripts/trailer/`, `docs/trailer/`, `docs/readme/`; music, sound effects, voice and masters |
 | tools | checks | `../gamedev-tools` | `blender/checks/`, `scripts/events/` |
 | perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
 | reviewer | review and playtest | any (read-only) | nothing |
