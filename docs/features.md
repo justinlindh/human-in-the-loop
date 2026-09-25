@@ -68,7 +68,7 @@ Conventions:
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
 - **Coffee corner**: a kettle, a drip machine and a "World's Okayest Dev" mug in the description; people stop by to sip. `id: coffee_corner` `id: coffee`
 - **Potted plant, bookshelf, couch**: small recovery and learning boosts; people browse the shelf and sit on the couch. `id: plant` `id: bookshelf` `id: couch`
-- ★ **Foosball**: two people play head to head; at the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
+- ★ **Foosball**: two people play head to head. An orange ball runs between the rods, the rods slide after it and whip round when a man kicks it back, and now and then it drops into a goal and a new one pops out at the centre. At the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
 - ★ **Ping pong**: a real volley, the ball arcing paddle to paddle and bouncing once each side, then a winner's cheer and a loser's groan; a ping pong sound plays. `id: ping_pong_table` `id: pingpong`
 - **Espresso machine**: a drip pot on a cart, then a prosumer machine and grinder, then a chrome bar. `id: espresso`
 - **Plant wall**: two pots, a ladder shelf, then a living wall with a grow light; people water it. `id: plant_wall`
@@ -240,6 +240,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Game over**: a headline, a score breakdown and epilogue lines revealed one at a time. `?mock=ending`
 - **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
 - **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.
+- **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline.
 
 ## Touch and low-end support
 

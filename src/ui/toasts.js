@@ -1,6 +1,7 @@
 import { phoneLayout } from './media.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
+import { portrait } from './widgets.js';
 
 const MAX_VISIBLE = 5;
 // Phones (narrow, or short in landscape) keep at most two, docked in one line above the bottom row.
@@ -34,7 +35,7 @@ export function createToasts(root) {
 
   function node(t, cls, more = 0) {
     return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}`, { dataset: { occludes: '' }, onclick: () => { t.action?.(); remove(t); } },
-      h('span.ico', null, icon(t.glyph ?? `toast.${t.tone}`)), h('span.tt', { text: t.text }),
+      t.person ? h('span.ico.face', null, portrait(t.person, 24)) : h('span.ico', null, icon(t.glyph ?? `toast.${t.tone}`)), h('span.tt', { text: t.text }),
       more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
   }
 
@@ -131,7 +132,7 @@ export function createToasts(root) {
     if (on === hidden) return;
     hidden = on;
     if (on) {
-      for (const t of [...live]) { waiting.push({ text: t.text, tone: t.tone, opts: { action: t.action, glyph: t.glyph }, at: t.at }); remove(t); }
+      for (const t of [...live]) { waiting.push({ text: t.text, tone: t.tone, opts: { action: t.action, glyph: t.glyph, person: t.person }, at: t.at }); remove(t); }
       waiting = waiting.slice(-MAX_WAITING);
       return;
     }
@@ -143,10 +144,10 @@ export function createToasts(root) {
     for (const w of due) show(w.text, w.tone, w.opts, w.at);
   }
 
-  function show(text, tone = 'info', { action, glyph } = {}, at = performance.now()) {
+  function show(text, tone = 'info', { action, glyph, person } = {}, at = performance.now()) {
     if (!text) return;
     if (hidden) {
-      waiting.push({ text, tone: toneOf(tone), opts: { action, glyph }, at });
+      waiting.push({ text, tone: toneOf(tone), opts: { action, glyph, person }, at });
       if (waiting.length > MAX_WAITING) waiting.shift();
       return;
     }
@@ -154,7 +155,7 @@ export function createToasts(root) {
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;
-    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, at };
+    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at };
     live.push(t);
     t.timer = setTimeout(() => remove(t), LIFE[t.tone]);
     if (dock) renderDock();

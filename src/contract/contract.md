@@ -305,7 +305,7 @@ Some staff posts in Yak carry two or three founder replies. They're small, low-s
 state.chatPrompts = [ChatPrompt]   // open prompts, plus resolved ones kept for B.chatPromptsKept weeks so ui can show them as answered
 ChatPrompt = {
   id,                // 'cp12', from its own sequence (state.flags.promptSeq), so prompt ids never shift other ids
-  kind,              // template id in src/data/prompts.js
+  kind,              // template id in src/data/prompts.js, or the event id for an event delivered as a prompt
   chatId,            // the chatLog message the options hang under
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
@@ -313,6 +313,7 @@ ChatPrompt = {
   options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y },            // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
+  subjectId: null | staffId,                       // the event's subject, as pendingDecision.subjectId; moments cast the subject first
 }
 ```
 
@@ -339,7 +340,7 @@ ChatPrompt = {
 - Copy follows the voice guide and the era gates.
 - Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
 - An event from `src/data/events.js` delivered as a prompt keeps its `stage`: the prop, and any moment the renderer plays for it, show in the office while the prompt is open, exactly as they would behind its decision card. Its choices' `grant` and `leaves` apply when it's answered, or with the default choice when it expires.
-- For an event delivered as a prompt, the default choice when it expires is its mildest outcome: the smallest cost to the subject, or with no subject the smallest cost overall (no effect, if one choice has none). The player never takes a penalty for a prompt they may not have seen. Template prompts from `src/data/prompts.js` keep their own stated consequence for being ignored.
+- For an event delivered as a prompt, the default choice when it expires is its mildest outcome: the smallest cost to the subject, or with no subject the smallest cost overall (no effect, if one choice has none). The player never takes a penalty for a prompt they may not have seen, and an unanswered prompt never grants an item or a pet: when the mildest choice would grant an item or a pet, the default is the mildest choice that doesn't. Small props a choice leaves behind are fine. Template prompts from `src/data/prompts.js` keep their own stated consequence for being ignored.
 - Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
 
 ## Yak quick posts (#16)
