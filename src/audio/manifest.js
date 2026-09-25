@@ -50,7 +50,7 @@ export const CUES = {
   'sfx.move': { bus: 'sfx', files: ['sfx/move'], cooldown: 0.2, priority: 3 },
   // The Office Space nods (#468). `delivered` cues play only once their file ships; until then
   // they stay silent rather than use a synthesized stand-in.
-  'sfx.printerSmash': { bus: 'sfx', files: ['sfx/printer_smash'], cooldown: 2, priority: 6, delivered: true },
+  'sfx.printerSmash': { bus: 'sfx', files: ['sfx/printer_smash'], cooldown: 0.3, priority: 8, delivered: true },
   'sfx.stapler': { bus: 'sfx', files: ['sfx/stapler'], cooldown: 0.5, priority: 3, gain: 0.8, delivered: true },
   'sfx.memo': { bus: 'ui', files: ['sfx/memo'], cooldown: 1, priority: 3, gain: 0.8, delivered: true },
   'sfx.banner': { bus: 'sfx', files: ['sfx/banner'], cooldown: 2, priority: 3, gain: 0.8, delivered: true },
@@ -145,6 +145,10 @@ export const PLAYLIST_MIN_S = 120;    // an era with several beds switches after
 export const PLAYLIST_LOOKAHEAD_S = 0.5; // how early the switch is scheduled before its bar line
 // Staged moments (hitl:moment from the renderer) with a music cue timed to the staging: the
 // decision that can lead to one, and the file that plays from its start event.
+// Impacts on a staged moment's hits (hitl:moment phase 'hit', fired on the frame each lands).
+export const MOMENT_HITS = { printer_jam: 'sfx.printerSmash' };
+// While a moment or spotlight plays, other one-shot sounds hold off; the player's own clicks stay.
+export const FOCUS_KEEP = new Set(['ui.click', 'ui.open', 'ui.close', 'ui.confirm', 'ui.error', 'ui.coin']);
 export const MOMENT_CUES = {
   printer_jam: { eventId: 'printer_jam', file: 'moments/printer_smash', gain: 0.9 },
 };

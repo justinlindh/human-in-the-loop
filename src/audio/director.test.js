@@ -469,5 +469,30 @@ describe('audio director', () => {
       expect(cues([{ type: 'levelUp', staffId: 's1', level: 5 }], 40, { speed: 4 })).toEqual([]); // top speed drops it
     } finally { ASSETS.sfx = saved; }
   });
+
+  it('plays the smash impact on every hit of the printer moment, and holds other sounds while it runs', () => {
+    const saved = ASSETS.sfx;
+    try {
+      ASSETS.sfx = { ...(saved ?? {}), printer_smash: { file: 'sfx/office/printer_smash.ogg' }, level_up: { file: 'sfx/growth/level_up.ogg' } };
+      const d = createDirector();
+      d.setQuality('high');
+      const id = 'printer_jam-1';
+      d.moment({ phase: 'start', key: 'printer_jam', id }, 0);
+      // The rap's four blows, 0.78 s apart at the closest.
+      const hits = [10.46, 11.24, 12.98, 13.94].flatMap((t, hit) => d.moment({ phase: 'hit', key: 'printer_jam', id, hit }, t));
+      expect(hits.filter((c) => c.cue === 'sfx.printerSmash')).toHaveLength(4);
+      // During the moment: a level-up chime, a Yak ping, a warn toast and a bark are held; a click is not.
+      const during = d.events([{ type: 'levelUp', staffId: 's1', level: 3 }, { type: 'chatPrompt', promptId: 'cp1', chatId: 'm1' }, { type: 'toast', tone: 'warn', text: 'x' }, { type: 'hire', staffId: 's2' }], state(), 12);
+      expect(during.filter((c) => c.op === 'play')).toHaveLength(0);
+      expect(d.cue('click', 12.5).some((c) => c.cue === 'ui.click')).toBe(true);
+      d.moment({ phase: 'end', key: 'printer_jam', id }, 15.7);
+      expect(d.events([{ type: 'levelUp', staffId: 's1', level: 4 }], state(), 20).some((c) => c.cue === 'sfx.levelUp')).toBe(true);
+      // A spotlight from the host holds them the same way.
+      d.update(state(), 30, { speed: 1, running: true, spotlight: true });
+      expect(d.events([{ type: 'levelUp', staffId: 's1', level: 5 }], state(), 31).some((c) => c.op === 'play')).toBe(false);
+      d.update(state(), 40, { speed: 1, running: true, spotlight: false });
+      expect(d.events([{ type: 'levelUp', staffId: 's1', level: 6 }], state(), 41).some((c) => c.cue === 'sfx.levelUp')).toBe(true);
+    } finally { ASSETS.sfx = saved; }
+  });
 });
 
