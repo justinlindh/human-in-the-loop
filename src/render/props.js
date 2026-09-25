@@ -368,7 +368,8 @@ function deskFor(L, anchor, office, nearest) {
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
   return desks.find(covers) ?? (nearest ? desks.sort((a, b) => d(a) - d(b))[0] : null) ?? null;
 }
-function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0, group = false } = {}) {
+// sprawl: the sitter's own mess (the mugs) may use their hand zone, so it keeps its full size.
+function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0, group = false, sprawl = false } = {}) {
   // Defaults read at call time: the constants are declared further down.
   return (L, anchor, env) => {
     const g = new THREE.Group();
@@ -397,8 +398,8 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         for (const d of near) {
           const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
           item.scale.setScalar(scale);
-          spot = deskSpot(d, g, lx, lz, rot, overhang, around, others);
-          for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others); }
+          spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl);
+          for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl); }
           if (spot) { desk = d; break; }
         }
         // Still no room on its own desk: it may take the sitter's hand zone (the thing is theirs,
@@ -1095,39 +1096,46 @@ function mugMesh(scale = 1, color = 'mug') {
   g.add(handle);
   return g;
 }
-// Mugs nobody took back to the kitchen: four in a huddle, one on its side.
+// Mugs nobody took back to the kitchen, stacked into a leaning tower: one mug's footprint, so it fits a busy desk at full size and reads from across the room.
 function mugPile() {
   const g = new THREE.Group();
-  const spots = [[-0.07, 0, 0.4], [0.02, 0.03, 2.1], [0.1, -0.02, 4], [-0.02, -0.08, 5.2]];
-  const cols = ['mug', 'fabric_teal', 'mug', 'fabric_mustard'];
-  spots.forEach(([x, z, r], i) => { const m = mugMesh(1, cols[i]); m.position.set(x, 0, z); m.rotation.y = r; g.add(m); });
-  const down = mugMesh(1, 'screen_pink');
-  down.rotation.set(0, 0.8, Math.PI / 2);
-  down.position.set(0.06, 0.04, 0.09);
-  g.add(down);
+  const cols = ['plastic_white', 'fabric_teal', 'fabric_mustard', 'screen_pink', 'plastic_white', 'fabric_teal'];
+  cols.forEach((c, i) => {
+    const m = mugMesh(1.4, c);
+    m.position.set(i * 0.008, i * 0.125, i * 0.004);
+    m.rotation.set(0, i * 1.7, (i % 2 ? 1 : -1) * 0.04);
+    g.add(m);
+  });
   return g;
 }
-// One absurdly big mug.
-function mugBucket() { return mugMesh(2.6, 'fabric_teal'); }
-// A small wall shelf with a mug on it, its slogan printed on the side facing the room.
-const MUG_SLOGAN = ['MAKE SOFTWEAR', 'PEOPLE LOVE'];
+// One absurdly big mug: the size of a waste bin, on the floor beside its owner's desk.
+function mugBucket() { return mugMesh(5.5, 'fabric_teal'); }
+// A wall shelf with a big mug on it, its slogan to the room: SOFTWEAR, the swapped letters in red
+// and askew, so the typo reads without reading the word.
 const mugLabel = () => canvasTex('mug_typo', 256, 128, (ctx, W, H) => {
-  ctx.fillStyle = P.fabric_mustard; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = P.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 34px sans-serif';
-  MUG_SLOGAN.forEach((t, i) => ctx.fillText(t, W / 2, 38 + i * 50));
+  ctx.fillStyle = P.plastic_white; ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'middle'; ctx.font = '900 52px sans-serif';
+  const parts = [['SOFTW', P.ink, 0], ['E', P.alarm_red, -0.25], ['A', P.alarm_red, 0.3], ['R', P.ink, 0]];
+  const widths = parts.map(([t]) => ctx.measureText(t).width);
+  let x = (W - widths.reduce((a, b) => a + b, 0)) / 2;
+  parts.forEach(([t, col, rot], i) => {
+    ctx.save(); ctx.translate(x + widths[i] / 2, H / 2 + (rot ? -4 : 0)); ctx.rotate(rot);
+    ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.fillText(t, 0, 0); ctx.restore();
+    x += widths[i];
+  });
 });
 function mugShelf() {
   const g = new THREE.Group();
-  g.add(mesh(roundedBox(0.42, 0.025, 0.16, 0.008, 2), mat('wood_honey'), 0, 0, 0.08));
-  for (const sx of [-0.15, 0.15]) g.add(mesh(roundedBox(0.02, 0.07, 0.1, 0.005, 1), mat('metal_dark'), sx, -0.045, 0.05));
-  const m = mugMesh(2, 'fabric_mustard');
-  m.position.set(0, 0.012, 0.085);
+  g.add(mesh(roundedBox(0.5, 0.03, 0.22, 0.01, 2), mat('wood_honey'), 0, 0, 0.11));
+  for (const sx of [-0.19, 0.19]) g.add(mesh(roundedBox(0.025, 0.09, 0.14, 0.006, 1), mat('metal_dark'), sx, -0.06, 0.07));
+  const m = mugMesh(3.4, 'plastic_white');
+  m.position.set(0, 0.015, 0.13);
   // Handle to the side, so the printed front faces the room.
   m.rotation.y = Math.PI;
   g.add(m);
   // The slogan on a flat band across the mug's front, so it reads.
-  const label = new THREE.Mesh(plane(0.15, 0.075), flatMat(mugLabel(), 0.6));
-  label.position.set(0, 0.012 + 0.1, 0.085 + 0.082);
+  const label = new THREE.Mesh(plane(0.24, 0.12), flatMat(mugLabel(), 0.6));
+  label.position.set(0, 0.015 + 0.17, 0.13 + 0.138);
   label.userData.noAO = true;
   g.add(label);
   return g;
@@ -1245,9 +1253,9 @@ const BUILDERS = {
   printer_wrecked: outside(printerWrecked, 1.2),
   printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
   whiteboard_scrawl: whiteboardScrawl,
-  mug_pile: atDesk(mugPile, { x: 0.42, z: -0.3, rot: 0.2, scale: 1.15 }),
-  mug_bucket: atDesk(mugBucket, { x: 0.45, z: -0.3, rot: -0.4, scale: 1 }),
-  mug_typo: wallThing(mugShelf, { w: 0.62, y: 1.25, scale: 1.4 }),
+  mug_pile: atDesk(mugPile, { x: 0.2, z: -0.25, rot: 0.3, scale: 1.1, sprawl: true }),
+  mug_bucket: onFloor(mugBucket, { x: 0.95, z: 0.05, rot: -0.4 }),
+  mug_typo: wallThing(mugShelf, { w: 1.0, y: 1.15, scale: 1.8 }),
   moving_boxes: onFloor(movingBoxes, { x: 0.9, z: 0.2, rot: 0.3, scale: 1.1 }),
   giant_cheque: wallPrint(cheque, { w: 1.6, h: 0.69, tilt: 0.02, y: 1.5 }),
   swag_box: onFloor(swagBox, { x: 0.9, z: 0.25, rot: -0.3, scale: 1.25 }),
