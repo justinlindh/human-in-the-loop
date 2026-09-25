@@ -585,16 +585,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 1.6 + phase) * 0.006;
         break;
       case 'readpaper':
-        // Standing, a sheet held up in both hands in front of the face, head bent to read it.
-        tgt.armLX = tgt.armRX = -1.35;
-        tgt.armLZ = -0.25; tgt.armRZ = 0.25;
-        tgt.headX = 0.38 + s(t * 0.9 + phase) * 0.03;
-        tgt.lean = 0.06;
+        // Standing, a sheet held up at eye level in both hands, head tipped just a little to read it.
+        tgt.armLX = tgt.armRX = -2.05;
+        tgt.armLZ = -0.12; tgt.armRZ = 0.12;
+        tgt.headX = 0.14 + s(t * 0.9 + phase) * 0.03;
+        tgt.lean = 0.02;
         break;
       case 'slump':
         // Standing, deflated: shoulders forward, head hanging, arms dangling.
-        tgt.lean = 0.42;
-        tgt.headX = 0.7 + s(t * 1.2 + phase) * 0.05;
+        // Head hangs only a little, so the camera still sees the face.
+        tgt.lean = 0.18;
+        tgt.headX = 0.18 + s(t * 1.2 + phase) * 0.05;
+        tgt.headZ = 0.15;
         tgt.bodyY = -0.035;
         tgt.armLX = tgt.armRX = 0.25;
         tgt.armLZ = -0.05; tgt.armRZ = 0.05;
@@ -603,8 +605,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         // Fanning fumes away in a hurry: both hands up in front, flapping fast and small, leaning back
         // with the head turned away. Speed is what separates it from a wave.
         const f = s(t * 26);
-        tgt.armLX = -1.5 + f * 0.25; tgt.armRX = -1.5 - f * 0.25;
-        tgt.armLZ = -0.45 + f * 0.3; tgt.armRZ = 0.45 + f * 0.3;
+        // One hand flaps up by the face, the other out toward the fumes, so both show.
+        tgt.armLX = -2.1 + f * 0.3; tgt.armRX = -1.4 - f * 0.25;
+        tgt.armLZ = -0.75 + f * 0.25; tgt.armRZ = 0.5 + f * 0.3;
         tgt.lean = -0.22;
         tgt.headX = -0.18;
         tgt.headZ = 0.45;

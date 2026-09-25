@@ -70,7 +70,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, getYaw = () => Math.PI / 4, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -270,6 +270,21 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const d = Math.atan2(Math.sin(toAt - cam), Math.cos(toAt - cam));
     return cam + Math.sign(d || 1) * 0.6;
   }
+  // True when the camera sees a spot clearly: nothing placed (a desk's monitor, a beanbag) and no
+  // column between a standing person there (legs, chest, head) and the camera.
+  const ray = new THREE.Raycaster();
+  function inView(at) {
+    const cam = getCamera?.();
+    if (!cam || !office.current) return !columnInFront(at);
+    const dir = new THREE.Vector3();
+    cam.getWorldDirection(dir).negate();
+    for (const y of [0.25, 0.5, 0.85]) {
+      ray.set(new THREE.Vector3(at.x, y, at.z), dir);
+      ray.far = 12;
+      if (ray.intersectObject(office.current.furniture, true).length) return false;
+    }
+    return !columnInFront(at);
+  }
   // True when a column stands between the camera and a spot: someone there would be half hidden
   // behind the column (drawn faded over them), so a moment staged there would not read.
   function columnInFront(at) {
@@ -319,9 +334,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const env = p.obj;
     r.temp = {
       anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', el: 0,
+      side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 2 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
       tick: (rr, d, tp) => {
         tp.el += d;
-        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); rr.char.root.add(tp.sheet); env.visible = false; }
+        // The sheet is angled halfway toward the camera, so it shows beside the reader's profile.
+        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); tp.sheet.rotation.y = -tp.side * Math.PI / 4; rr.char.root.add(tp.sheet); env.visible = false; }
         if (tp.el >= READ_S && tp.sheet) {
           tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true;
           emote(rr, 'storm', 2.4);
@@ -334,6 +351,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
           return true;
         }
         rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
+        // Read in profile, the sheet in front of the face; then turn toward the camera to take it in.
+        tp.goal.yaw = tp.el < READ_S ? tp.readYaw : tp.slumpYaw;
         return true;
       },
     };
@@ -363,8 +382,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   // The letter in hand: a sheet held up in front of the face, a red stamp showing through it.
   function letterSheet() {
     const g = new THREE.Mesh(SHEET_GEO, sheetMat());
-    g.position.set(0, 0.8, 0.46);
-    g.rotation.x = -0.2;
+    g.position.set(0, 0.86, 0.33);
+    g.rotation.x = -0.05;
     g.userData.noAO = true;
     return g;
   }
@@ -432,10 +451,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const size = box.getSize(new THREE.Vector3());
     // On the camera's side of the fumes, a little off the view line.
     const yaw = getYaw();
-    const cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55, 12);
+    // Nearest ring round the item with a spot the camera sees clearly (not behind a desk's monitor).
+    let cands = [];
+    for (let k = 0; k < 5 && !cands.some(inView); k++) cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55 + k * 0.3, 12);
     const want = [Math.sin(yaw + 0.95), Math.cos(yaw + 0.95)], want2 = [Math.sin(yaw - 0.95), Math.cos(yaw - 0.95)];
     const score = (s) => { const dx = s.x - center.x, dz = s.z - center.z, l = Math.hypot(dx, dz) || 1; return Math.max((dx * want[0] + dz * want[1]) / l, (dx * want2[0] + dz * want2[1]) / l); };
-    const spot = cands.sort((a, b) => score(b) - score(a))[0];
+    const spot = cands.filter(inView).sort((a, b) => score(b) - score(a))[0] ?? cands.sort((a, b) => score(b) - score(a))[0];
     if (!spot) return;
     // Facing the room, three-quarters to the camera, waving the fumes off behind them.
     spot.yaw = towardCamera(spot, center);
