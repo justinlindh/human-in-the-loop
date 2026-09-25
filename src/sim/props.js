@@ -1,7 +1,7 @@
 import { B } from './balance.js';
 import { registerSystem } from './registry.js';
 import { ITEMS } from '../data/items.js';
-import { purchaseProblem, findSpot, layoutOf, desksOf, seatTile, footprintCells } from './office.js';
+import { purchaseProblem, findSpot, layoutOf, desksOf, seatTile, footprintCells, frontCells } from './office.js';
 import { officeShape } from '../data/office.js';
 
 // Staged props: decisions that describe something physical show it in the office while they are open,
@@ -9,12 +9,17 @@ import { officeShape } from '../data/office.js';
 
 const key = (x, y) => `${x},${y}`;
 
-// Tiles that hold something already: placed items, pillars, and props.
+// Tiles a floor prop may not use: placed items, pillars, other props, and every item's front zone (the floor
+// people stand on to use it), the same zones placement keeps clear.
 function takenTiles(state) {
   const shape = officeShape(state.officeStage, state.office.expansion ?? 0);
   const taken = new Set(shape.blocked.map(([x, y]) => key(x, y)));
-  for (const p of state.office.placed) for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(key(x, y));
+  for (const p of state.office.placed) {
+    for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(key(x, y));
+    for (const [x, y] of frontCells(p.itemId, p.x, p.y, p.rot, p.level)) taken.add(key(x, y));
+  }
   for (const p of state.office.props ?? []) taken.add(key(p.x, p.y));
+  taken.add(key(shape.door.x, shape.door.y));
   return { shape, taken };
 }
 
@@ -27,6 +32,22 @@ function wallTile(state) {
   return { x: mid, y: 0 };
 }
 
+// The free floor tile nearest (x, y), searching outward a few rings, or null.
+function nearestFree(state, x, y) {
+  const { shape, taken } = takenTiles(state);
+  for (let r = 0; r <= 3; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const tx = x + dx, ty = y + dy;
+        if (tx < 0 || ty < 0 || tx >= shape.grid.w || ty >= shape.grid.h || taken.has(key(tx, ty))) continue;
+        return { x: tx, y: ty };
+      }
+    }
+  }
+  return null;
+}
+
 // Where a staged prop goes for an anchor; null for 'screens', which has no tile.
 export function stageTile(state, anchor, subjectId) {
   if (anchor === 'screens') return { x: null, y: null };
@@ -37,7 +58,10 @@ export function stageTile(state, anchor, subjectId) {
   }
   if (anchor === 'kitchen') {
     const corner = state.office.placed.find((i) => i.itemId === 'coffee_corner' || i.itemId === 'espresso');
-    if (corner) return { x: corner.x, y: corner.y };
+    if (corner) {
+      const spot = nearestFree(state, corner.x, corner.y);
+      if (spot) return spot;
+    }
   }
   if (anchor === 'whiteboard') {
     const board = state.office.placed.find((i) => i.itemId === 'whiteboard' || i.itemId === 'whiteboard_wall');
@@ -45,7 +69,8 @@ export function stageTile(state, anchor, subjectId) {
   }
   if (anchor === 'door') {
     const { door } = officeShape(state.officeStage, state.office.expansion ?? 0);
-    return { x: door.x, y: Math.max(0, door.y - 1) };
+    const spot = nearestFree(state, door.x, Math.max(0, door.y - 1));
+    if (spot) return spot;
   }
   return wallTile(state);
 }

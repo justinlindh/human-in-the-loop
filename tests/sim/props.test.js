@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { raiseDecision } from '../../src/sim/events.js';
-import { propsSystem, leaveProp } from '../../src/sim/props.js';
-import { suggestPlacement } from '../../src/sim/office.js';
+import { propsSystem, leaveProp, stageTile } from '../../src/sim/props.js';
+import { suggestPlacement, footprintCells, frontCells } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
@@ -159,5 +159,28 @@ describe('issue #228: the whiteboard anchor and a stageless leave\'s own anchor'
     expect(dispatch(s, { type: 'placeItem', itemId: 'espresso', x: spot.x, y: spot.y, rot: spot.rot }).ok).toBe(true);
     propsSystem(makeCtx(s));
     expect(s.office.props.some((p) => p.prop === 'french_press')).toBe(false);
+  });
+});
+
+describe('staged prop tiles keep off items and their front zones', () => {
+  it('kitchen, door and wall anchors land on free floor, never on an item or where people stand to use one', () => {
+    for (let seed = 21; seed <= 26; seed++) {
+      const s = floor(seed);
+      for (const [itemId, x, y, rot] of [['coffee_corner', 3, 6, 0], ['espresso', 10, 1, 0], ['bookshelf', 6, 0, 0], ['plant', 8, 0, 0], ['arcade', 7, 9, 2]]) {
+        dispatch(s, { type: 'placeItem', itemId, x, y, rot });
+      }
+      const taken = new Set();
+      for (const p of s.office.placed) {
+        for (const c of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(String(c));
+        for (const c of frontCells(p.itemId, p.x, p.y, p.rot, p.level)) taken.add(String(c));
+      }
+      for (const anchor of ['kitchen', 'door', 'wall']) {
+        const t = stageTile(s, anchor, null);
+        expect(taken.has(String([t.x, t.y])), `seed ${seed} ${anchor} at ${t.x},${t.y}`).toBe(false);
+      }
+      const corner = s.office.placed.find((p) => p.itemId === 'coffee_corner');
+      const k = stageTile(s, 'kitchen', null);
+      expect(Math.max(Math.abs(k.x - corner.x), Math.abs(k.y - corner.y)), `seed ${seed}`).toBeLessThanOrEqual(3);
+    }
   });
 });
