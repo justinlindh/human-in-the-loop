@@ -53,7 +53,9 @@ export function createProps(office, screens = null) {
       if ((e && !e.gone) || dropped.has(w.key)) continue;
       // Wall props keep clear of each other as well as of windows and wall pieces.
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
-      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
+      // Desk props already up, so another one on the same desk takes a different spot.
+      const onDesk = [...live.values()].filter((l) => !l.gone && l.obj.userData.deskRect).map((l) => ({ deskId: l.obj.userData.follow.deskId, ...l.obj.userData.deskRect }));
+      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk });
       if (!obj) continue;
       obj.userData.propId = w.prop;
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
@@ -357,6 +359,8 @@ const rivalCopied = (state) => {
 // centre toward the sitter; y is the height (the desk top for things on it, 0 beside it). The prop
 // remembers its desk, follows it when it moves and goes when it is sold (see follow()). Without a
 // desk, or for other anchors, it stands on the anchor tile's floor.
+const deskList = (office) => [...(office.placed?.values() ?? [])].filter((o) => o.desk && o.target);
+const dist = (a, b) => Math.hypot(a.target.x - b.target.x, a.target.z - b.target.z);
 function deskFor(L, anchor, office, nearest) {
   const desks = [...(office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
   const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
@@ -382,11 +386,31 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
       // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.
       const around = overhang > 0 ? [...(env.office.placed?.values() ?? [])].filter((o) => o !== e && o.obj).map((o) => new THREE.Box3().setFromObject(o.obj)) : [];
-      let spot = onTop ? deskSpot(e, g, lx, lz, rot, overhang, around) : { x: lx, z: lz };
-      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang, around); }
-      spot ??= { x: lx, z: lz };
-      g.userData.follow = { deskId: e.id, lx: spot.x, lz: spot.z, rot, y };
-      follow(g, e);
+      // On the top: this desk, shrinking a little if need be, else the nearest desks with room.
+      let spot = onTop ? null : { x: lx, z: lz }, desk = e;
+      if (onTop) {
+        const near = [e, ...deskList(env.office).filter((o) => o !== e).sort((a2, b2) => dist(a2, e) - dist(b2, e)).slice(0, 6)];
+        for (const d of near) {
+          const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
+          item.scale.setScalar(scale);
+          spot = deskSpot(d, g, lx, lz, rot, overhang, around, others);
+          for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others); }
+          if (spot) { desk = d; break; }
+        }
+      }
+      if (spot) {
+        g.userData.follow = { deskId: desk.id, lx: spot.x, lz: spot.z, rot, y };
+        if (onTop) g.userData.deskRect = spot.rect;
+        follow(g, desk);
+      } else {
+        // No room on any nearby desk even shrunk: it goes on the floor beside its desk, full size.
+        item.scale.setScalar(scale);
+        g.userData.blocks = true;
+        const o = e.obj, r = o.rotation.y, side = { x: o.position.x + Math.cos(r) * 0.95, z: o.position.z - Math.sin(r) * 0.95 };
+        g.rotation.y = rot;
+        const at = clearSpot(L, env.office, g, side);
+        g.position.set(at.x, 0, at.z);
+      }
     } else {
       const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
       g.rotation.y = rot;
@@ -443,6 +467,8 @@ function deskGrid(e) {
   e.obj.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(e.obj.matrixWorld).invert();
   const m = new THREE.Matrix4(), a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  // The top's real extent: desk models differ in width, and the grid spans the widest.
+  let tx0 = Infinity, tx1 = -Infinity, tz0 = Infinity, tz1 = -Infinity;
   e.obj.traverse((o) => {
     if (!o.isMesh || !o.geometry?.attributes?.position) return;
     m.multiplyMatrices(inv, o.matrixWorld);
@@ -453,20 +479,33 @@ function deskGrid(e) {
       a.fromBufferAttribute(pos, v(0)).applyMatrix4(m);
       b.fromBufferAttribute(pos, v(1)).applyMatrix4(m);
       c.fromBufferAttribute(pos, v(2)).applyMatrix4(m);
+      const lo = Math.min(a.y, b.y, c.y), hi = Math.max(a.y, b.y, c.y);
+      if (hi - lo < 0.002 && Math.abs(hi - TOP_Y) < 0.01) {
+        tx0 = Math.min(tx0, a.x, b.x, c.x); tx1 = Math.max(tx1, a.x, b.x, c.x);
+        tz0 = Math.min(tz0, a.z, b.z, c.z); tz1 = Math.max(tz1, a.z, b.z, c.z);
+      }
       // Only what stands on the top: above it, below head height.
-      if (Math.max(a.y, b.y, c.y) < TOP_Y + 0.012 || Math.min(a.y, b.y, c.y) > 1.3) continue;
+      if (hi < TOP_Y + 0.012 || lo > 1.3) continue;
       mark(Math.min(a.x, b.x, c.x), Math.max(a.x, b.x, c.x), Math.min(a.z, b.z, c.z), Math.max(a.z, b.z, c.z));
     }
   });
   mark(-0.3, 0.3, -0.2, TOP_Z1);
+  // Off the top is taken too, so nothing lands in the air beside a narrow desk.
+  if (tx1 > tx0) {
+    for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) {
+      const x = -TOP_X + (i + 0.5) * CELL, z = TOP_Z0 + (k + 0.5) * CELL;
+      if (x < tx0 || x > tx1 || z < tz0 || z > tz1) cells[i + k * nx] = 1;
+    }
+  }
   grid = { cells, nx, nz };
   deskGrids.set(e.obj, grid);
   return grid;
 }
-// The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top.
+// The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top, clear of
+// `others` (desk-frame rects of the props already on this desk); with that rect.
 // overhang: how far past the desk's side edges the prop may stick out (a stack of boxes), and only
 // where none of `around` (world boxes of the items near the desk) is under the part that sticks out.
-function deskSpot(e, g, lx, lz, rot, overhang = 0, around = []) {
+function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = []) {
   g.position.set(0, 0, 0);
   g.rotation.y = rot;
   g.updateMatrixWorld(true);
@@ -474,6 +513,7 @@ function deskSpot(e, g, lx, lz, rot, overhang = 0, around = []) {
   const { cells, nx, nz } = deskGrid(e);
   const fits = (x, z) => {
     if (x + b.min.x < -TOP_X - overhang || x + b.max.x > TOP_X + overhang || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
+    if (others.some((r) => x + b.min.x < r.x1 + 0.01 && x + b.max.x > r.x0 - 0.01 && z + b.min.z < r.z1 + 0.01 && z + b.max.z > r.z0 - 0.01)) return false;
     const i0 = Math.floor((x + b.min.x + TOP_X) / CELL), i1 = Math.floor((x + b.max.x + TOP_X) / CELL);
     const k0 = Math.floor((z + b.min.z - TOP_Z0) / CELL), k1 = Math.floor((z + b.max.z - TOP_Z0) / CELL);
     for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return false;
@@ -490,12 +530,13 @@ function deskSpot(e, g, lx, lz, rot, overhang = 0, around = []) {
     }
     return true;
   };
-  if (fits(lx, lz)) return { x: lx, z: lz };
+  const at = (x, z) => ({ x, z, rect: { x0: x + b.min.x, x1: x + b.max.x, z0: z + b.min.z, z1: z + b.max.z } });
+  if (fits(lx, lz)) return at(lx, lz);
   for (let d = CELL; d < 1.4; d += CELL) {
     const n = Math.max(8, Math.round(d * 60));
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2, x = lx + Math.cos(a) * d, z = lz + Math.sin(a) * d;
-      if (fits(x, z)) return { x, z };
+      if (fits(x, z)) return at(x, z);
     }
   }
   return null;
