@@ -33,6 +33,14 @@ r="$(setup broken)"
 [ $rc -eq 1 ] || fail "a failed render should exit 1 (got $rc)"
 git -C "$r" diff --name-only --diff-filter=U | grep -q 'golden/a.png' || fail "a failed render must leave the conflict unresolved"
 
+r="$tmp/deleted"; mkdir -p "$r/blender/checks/golden" "$r/scripts"; cp "$HERE/golden-resolve.sh" "$r/scripts/"; printf base >"$r/blender/checks/golden/a.png"
+g -C "$r" init -q -b main && g -C "$r" add -A && g -C "$r" commit -qm base
+g -C "$r" checkout -q -b feat; printf feat >"$r/blender/checks/golden/a.png"; g -C "$r" commit -qam feat
+g -C "$r" checkout -q main; g -C "$r" rm -q blender/checks/golden/a.png; g -C "$r" commit -qm "remove the scene"
+g -C "$r" checkout -q feat; g -C "$r" merge -q main >/dev/null 2>&1
+(cd "$r" && GOLDEN_CMD="$RENDER" bash scripts/golden-resolve.sh --no-sheets >/dev/null 2>"$tmp/del.err"); rc=$?
+[ $rc -eq 1 ] && grep -q "deleted on one side" "$tmp/del.err" || fail "a scene deleted on one side should be refused for a hand resolve (rc $rc)"
+
 g -C "$tmp/ok" commit -qm merged
 (cd "$tmp/ok" && bash scripts/golden-resolve.sh --no-sheets >/dev/null 2>&1); rc=$?
 [ $rc -eq 2 ] || fail "no merge in progress should exit 2 (got $rc)"
