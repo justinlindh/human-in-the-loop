@@ -69,5 +69,5 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Merges to `main` cut releases automatically (semantic-release, 0.x while pre-alpha), and each release deploys to GitHub Pages, so the commit type decides the version bump: `feat` bumps minor, `fix` and `perf` bump patch.
 - PR descriptions follow `.github/pull_request_template.md`.
 - Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
-- Gate every commit and push on the test command's exit code (`npm test && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0.
+- Gate every commit and push on the test command's exit code (`npm run test:fast && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0. Use the full `npm test` (which adds the several-minute balance run) only when the change touches `src/sim/`, `src/data/`, `src/save/`, `tests/sim/` or `scripts/balance.js`; local CI runs everything on the PR regardless.
 - Evidence before claims: when reporting a task done, include the commit hash, the test output, and screenshot paths for visual work.
