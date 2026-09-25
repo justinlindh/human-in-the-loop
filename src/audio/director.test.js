@@ -386,5 +386,14 @@ describe('audio director', () => {
     expect(d.moment({ phase: 'start', key: 'first_user_test', id: 'x' }, 5)).toEqual([]);
     expect(d.moment(null, 5)).toEqual([]);
   });
-});
 
+  it('cheers a quick post that lands and winces at one that backfires', () => {
+    const d = createDirector();
+    const s = state();
+    const cues = (outcome) => d.events([{ type: 'posted', id: 'pizza', chatId: 'm1', outcome }], s, 10, {}).filter((c) => c.op === 'play').map((c) => c.cue);
+    expect(ON_EVENT.posted({ outcome: 'landed' })).toBe('sfx.reward');
+    expect(ON_EVENT.posted({ outcome: 'backfired' })).toBe('sfx.bad');
+    expect(ON_EVENT.posted({ outcome: 'flat' })).toBeNull();
+    expect(cues('landed')).toContain('sfx.reward');
+  });
+});

@@ -82,6 +82,8 @@ export const ON_EVENT = {
   // A Yak reply prompt opened; answering it already clicked in the UI, and an expiry is silent.
   chatPrompt: 'ui.prompt',
   chatPromptResolved: null,
+  // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
+  posted: (e) => ({ landed: 'sfx.reward', backfired: 'sfx.bad' })[e.outcome] ?? null,
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),
