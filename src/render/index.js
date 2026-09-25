@@ -100,6 +100,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let props = null;
   let surroundings = null;
   let probeImpl = null;
+  const charOf = (x) => staff?.charOf(x) ?? staff?.moments?.extras?.().find((e) => e.id === x)?.char ?? null;
+  // A staged prop by its state id, or by its kind ('pizza_boxes') when one of that kind stands.
+  const propOf = (x) => props?.objectOf?.(x) ?? props?.current?.().find((p) => p.prop === x)?.obj ?? null;
+  const probeFor = () => (probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf, stagingOf: (x) => staff?.moments?.staging?.(x) }));
   let staff = null;
   let build = null;
   let rival = null;
@@ -370,9 +374,21 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // Dev and check tools: the page's own three.js, for measuring objects in page scripts.
     get THREE() { return import.meta.env?.DEV ? THREE : undefined; },
     // Staging probe (probe.js): how staff member `id` reads on screen this frame.
+    // A staff id or a moment's own actor ('visitor:0'); for a staged prop (its id or its kind), how
+    // much of it the camera sees and what hides it.
     probe(id) {
-      probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf: (x) => staff?.charOf(x), stagingOf: (x) => staff?.moments?.staging?.(x) });
-      return probeImpl.measure(id);
+      const P = probeFor();
+      if (charOf(id)) return P.measure(id);
+      const prop = propOf(id);
+      if (!prop) return null;
+      const [v] = P.seen(prop, [0]);
+      return { visible: v.visible, occluder: v.occluder };
+    },
+    // How much of an actor or staged prop each camera turn sees (0: this view, n: n presses of E),
+    // and what hides it: [{ view, visible, occluder, blocked }].
+    probeViews(id, views = [0, 1, 2, 3]) {
+      const root = charOf(id)?.root ?? propOf(id);
+      return root ? probeFor().seen(root, views) : null;
     },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     walkOf(id) { return staff?.walkOf(id) ?? null; },
