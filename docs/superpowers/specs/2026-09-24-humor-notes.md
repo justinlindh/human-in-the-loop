@@ -139,4 +139,4 @@ All original. Tags: role / era / system. "Leadership" marks decision-event premi
 
 ## Influences
 
-The themes are old industry tropes that plenty of people have mined, from office sitcoms to conference talks. Deadpan interview sketches about tech stereotypes (the "Programmers are also human" channel among them) helped set the delivery. No lines, characters or premises are taken from any of them.
+The themes are old industry tropes, mined by plenty of people from office sitcoms to conference talks. Deadpan interview sketches about tech stereotypes, the "Programmers are also human" channel among them, shaped some of the themes and the delivery. Every line in the game is original.
