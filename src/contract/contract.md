@@ -155,6 +155,8 @@ era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /*
 eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
 unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
+// Count goals in src/data/goals.js also define progress(state, h) -> { n, of }, with n capped at of and never rounded up
+// to of before done. h = goalHelpers(state), exported from src/sim/index.js. ui reads these for progress bars and never recomputes them.
 founding: { founders: [archetypeIds], funding, logoColor, tagline },
 office: {
   stage /* 0|1|2, mirrors officeStage */,
@@ -191,7 +193,8 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 Speech bubbles in the office and Yak messages are separate streams.
 
 ```js
-{ type: 'say', id, week, staffId, text, toId, replyTo, tone }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
+{ type: 'say', id, week, staffId, text, toId, replyTo, tone, moment }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
+                                          // moment: optional event id; marks the line as that staged moment's own (#627), so the renderer shows it during the moment's spotlight; unmarked lines near the moment are dropped, not delayed
 ```
 - The renderer shows speech bubbles for `say` events only. A `chat` event is Yak only; the renderer may show a small typing emote on the author's character, never a bubble.
 - `say` events are never added to `chatLog` and never appear in Yak.
@@ -397,4 +400,15 @@ People's growth is announced as events, so render, ui and audio can make it visi
 - Founders emit them too.
 - The sim emits every event. Throttling at high speed is the job of render, ui and audio.
 - The big tier uses state, not new events: `p.path` set by `choosePath`, and `p.legend`, which also keeps its existing `celebrate` event.
-- No state or action changes, and old saves are unaffected.
+- Each staff member keeps a growth history, so the staff card's timeline survives a reload:
+
+```js
+p.growth = [{ week, kind, detail }]   // newest last
+// kind: 'level' { level, gains } | 'promoted' { seniority } | 'trait' { traitId, source }
+//     | 'trained' { skill, gain, program } | 'path' { pathId } | 'legend' {}
+```
+
+- Entries are recorded at the same moment as the matching event.
+- Milestones ('promoted', 'trait', 'path', 'legend') are kept for good. 'level' and 'trained' entries are capped at `B.growthHistoryMax`, and the oldest of those drop off first.
+- Candidates start with `[]`. The history leaves with the person.
+- It draws no randomness. Old saves load a missing `growth` as `[]`.

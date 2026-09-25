@@ -259,16 +259,33 @@ const CHECKS = {
     return { fails };
   },
 
-  async toasts({ page, vp, shot }) {
+  async toasts({ page, vp, shot, tap }) {
     const fails = [];
     let most = 0, blocking = 0;
     for (let i = 0; i < 60; i++) {
       await stepWeek(page); await wait(page, 100);
-      const t = await page.evaluate(() => { const ts = [...document.querySelectorAll('.toast:not(.out)')].filter((e) => e.getBoundingClientRect().width && getComputedStyle(e.parentElement).display !== 'none'); return { n: ts.length, blocking: ts.filter((e) => getComputedStyle(e).pointerEvents !== 'none' && !e.classList.contains('clickable')).length }; });
+      const t = await page.evaluate(() => { const ts = [...document.querySelectorAll('.toast:not(.out)')].filter((e) => e.getBoundingClientRect().width && getComputedStyle(e.parentElement).display !== 'none'); return { n: ts.length, blocking: ts.filter((e) => getComputedStyle(e).pointerEvents !== 'none' && !e.classList.contains('clickable') && !e.classList.contains('cut')).length }; });
       if (t.n > most) { most = t.n; await shot('toasts'); }
       blocking = Math.max(blocking, t.blocking);
     }
     await clearDecisions(page);
+    // A long toast: if it is cut off, it shows a cue and opens in full after one tap.
+    const longText = 'A very long message from the office that will not fit on one line on a phone, so it has to open when tapped.';
+    await page.evaluate(() => window.__HITL.setSpeed(0)); await clearDecisions(page); await wait(page, 300);
+    await page.evaluate((text) => window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]), longText); // warn always shows
+    await wait(page, 600);
+    const long = page.locator('.toasts .toast', { hasText: 'A very long message' }).first();
+    if (!(await long.count())) fails.push('the long test toast never showed');
+    else {
+      const { cut, overflows } = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { cut: e.classList.contains('cut'), overflows: tt.scrollWidth > tt.clientWidth + 1 || tt.scrollHeight > tt.clientHeight + 1 }; });
+      if (overflows && !cut) fails.push('a toast is cut off with no cue and no way to read the rest');
+      if (cut) {
+        await tap(long); await wait(page, 300);
+        const full = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return e.classList.contains('open') && tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1; }).catch(() => false);
+        if (!full) fails.push('tapping a cut toast does not show it in full');
+        await shot('toast-long');
+      }
+    }
     if (isPhone(vp)) {
       if (most > 2) fails.push(`${most} toasts at once on a phone (at most 2)`);
       if (blocking) fails.push(`${blocking} toasts take taps without an action`);

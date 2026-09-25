@@ -109,7 +109,7 @@ function bunting(word, len) {
   return g;
 }
 
-export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, momentCam = null }) {
+export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, momentCam = null, spotlights = null }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
   let party = null;
@@ -290,6 +290,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       return o;
     });
     party = { r, v, props, cart, stack, grow, watchers, t: 0 };
+    party.spot = spotlights?.begin('waffle_party', () => { endParty(); sendBack(); });
   }
 
   function endParty() {
@@ -299,8 +300,11 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setAccent(null);
     p.props.removeFromParent();
     easeOut();
+    spotlights?.end(p.spot);
     if (recs.has(p.r.id)) hangCaricature(p.r);
   }
+  // A party or dance cut short (the Skip control): everyone in it heads back now.
+  function sendBack() { for (const r of recs.values()) if (r.temp?.party) r.temp.t = 0.01; }
 
   function update(dt) {
     if (track) track.age += dt;
@@ -439,6 +443,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     const cartAt = at(0, -1.7);
     easeIn({ center });
     dance = { genre, genreId: ev.genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
+    dance.spot = spotlights?.begin('music_night', () => { endDance(); sendBack(); });
     if (track && track.age < 5) fitToTrack(dance);
   }
 
@@ -450,6 +455,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     d.props.removeFromParent();
     for (const r of d.dancers) r.char.setAnimRate(1);
     easeOut();
+    spotlights?.end(d.spot);
   }
 
   function updateDance(dt) {

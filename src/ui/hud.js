@@ -1,4 +1,6 @@
 import { phoneLayout } from './media.js';
+import { SIMX } from './simapi.js';
+import { progressBar, goalsDoneText } from './goalProgress.js';
 import { setTip } from './tooltip.js';
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
@@ -220,6 +222,7 @@ export function createHud({ root, controls, ui }) {
       badge(stripNeeds, 'warn', needs.length ? String(needs.length) : null, needs.length > 0);
       badge(stripWork, 'project', s.projects.length ? String(s.projects.length) : null);
       badge(stripGoals, 'star', goals.length ? `${goals.filter((g) => g.done).length}/${goals.length}` : null);
+      setTip(stripGoals, goals.length ? `Goals\n${goalsDoneText(goals.filter((g) => g.done).length, goals.length)}` : '');
       badge(stripFx, 'clock', (s.modifiers ?? []).length ? String(s.modifiers.length) : null);
     }
     if (needs.length) {
@@ -264,8 +267,8 @@ export function createHud({ root, controls, ui }) {
       const next = all.filter((g) => !s.goals[g.id].done).slice(0, 2);
       if (next.length) {
         tray.append(h('div.tray-card.goals', { title: 'Milestones. Each one pays a small reward. Click for the full list.', onclick: () => ui.openGoals?.() },
-          h('div.t', null, h('span', null, icon('star', { size: 14 }), ' Goals'), h('span.k.num', { text: `${done}/${all.length}` })),
-          ...next.map((g) => h('div.goal', null, h('span.gbox'), h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc }))))));
+          h('div.t', null, h('span', null, icon('star', { size: 14 }), ' Goals'), h('span.k', { text: goalsDoneText(done, all.length) })),
+          ...next.map((g) => h('div.goal', null, h('span.gbox'), h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc }), progressBar(s, g))))));
       }
     }
     const effects = groupEffects(s);
@@ -419,7 +422,8 @@ export function createHud({ root, controls, ui }) {
     const now2 = performance.now();
     if (now2 - (last.trayAt ?? 0) < 200) { for (const b of trayBinds) b(s); return; }
     last.trayAt = now2;
-    const sig = `${Object.entries(s.goals ?? {}).map(([k, v]) => `${k}${v.done}`).join()}|${needsYou(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
+    // Goal progress bars move weekly, so the week is part of the signature while any goal shows one.
+    const sig = `${SIMX.goalHelpers ? s.week : ''}|${Object.entries(s.goals ?? {}).map(([k, v]) => `${k}${v.done}`).join()}|${needsYou(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
     if (sig !== traySig) { traySig = sig; buildTray(s); }
     for (const b of trayBinds) b(s);
   }
