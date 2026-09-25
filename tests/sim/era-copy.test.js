@@ -37,3 +37,13 @@ describe('the trend toast', () => {
     expect(TRENDS[toast.trendId]).toBeTruthy();
   });
 });
+
+describe('the standing desks item', () => {
+  it('reads as an office-wide perk, not a seat', async () => {
+    const { ITEMS } = await import('../../src/data/items.js');
+    const d = ITEMS.standing_desk;
+    expect(d.desc).toMatch(/Not a seat/);
+    expect(d.desc).toMatch(/everyone/i);
+    expect(d.effects[0].staminaDrain).toBeLessThan(0);
+  });
+});
