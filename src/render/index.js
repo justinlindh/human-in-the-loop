@@ -11,6 +11,8 @@ import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
+import { createSurroundings } from './surroundings.js';
+import { createProbe } from './probe.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
@@ -95,6 +97,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   let office = null;
   let props = null;
+  let surroundings = null;
+  let probeImpl = null;
   let staff = null;
   let build = null;
   let rival = null;
@@ -116,7 +120,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   } else {
     office = createOffice({ parent: scene, screens, lighting });
     props = createProps(office, screens);
-    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
+    surroundings = createSurroundings({ parent: scene, low: () => q === 'low' });
+    staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
     Promise.all([loadModels(), rigLoaded]).then(() => { ready = true; });
@@ -178,6 +183,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     const moving = !firstStage && pendingUpgrade;
     if (office.setStage(stage, { animate: moving, expansion: state.office?.expansion ?? 0 })) {
       stageJustBuilt = true;
+      surroundings?.setStage(stage, office.current.L);
       rig.setBounds(office.bounds, true, moving);
       // The big HQ floor starts a little closer so seated staff read; the whole office is a scroll away.
       rig.setZoom(STAGE_ZOOM[stage] ?? 1, moving);
@@ -262,6 +268,25 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     advance(seconds, step = 1 / 30) {
       for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); props?.update(step); }
     },
+    // Where a picked thing is on screen, for anchoring UI (tooltips): { left, top, width, height } in
+    // client pixels, from its bounding box. kind: 'staff' | 'item' (as pick() returns); null if absent.
+    screenRectOf({ kind, id } = {}) {
+      let obj = null;
+      if (kind === 'item') obj = office?.placed.get(id)?.obj ?? null;
+      else if (kind === 'staff') scene.traverse((o) => { if (!obj && o.userData.staffId === id) obj = o.parent; });
+      if (!obj || !obj.visible) return null;
+      obj.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(obj);
+      if (box.isEmpty()) return null;
+      const r = canvas.getBoundingClientRect(), v = new THREE.Vector3();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(rig.camera);
+        const x = r.left + ((v.x + 1) / 2) * r.width, y = r.top + ((1 - v.y) / 2) * r.height;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
+      return { left: x0, top: y0, width: x1 - x0, height: y1 - y0 };
+    },
     pick(x, y) {
       const r = staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null };
       if (r.kind) return r;
@@ -284,6 +309,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const paused = speedZero || menuPaused;
       const simDt = paused ? 0 : dt;
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
+      surroundings?.setViewYaw(rig.yaw);
+      surroundings?.update(dt, lighting.env);
       if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
       screens.update(simDt, lighting.env);
       staff?.update(dt, { paused });
@@ -321,6 +348,15 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     // Dev and snap hook: perk visits (send people to a placed item, counts).
     get perks() { return staff?.perks ?? null; },
+    get moments() { return staff?.moments ?? null; },
+    // Dev and check tools: the page's own three.js, for measuring objects in page scripts.
+    get THREE() { return import.meta.env?.DEV ? THREE : undefined; },
+    // Staging probe (probe.js): how staff member `id` reads on screen this frame.
+    probe(id) {
+      probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf: (x) => staff?.charOf(x), stagingOf: (x) => staff?.moments?.staging?.(x) });
+      return probeImpl.measure(id);
+    },
+    isSeated(id) { return staff?.isSeated(id) ?? false; },
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },

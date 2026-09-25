@@ -1,3 +1,5 @@
+import { phoneLayout, touchUI } from './media.js';
+import { setTip } from './tooltip.js';
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
@@ -30,7 +32,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
   const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
   const sizeBtns = Object.keys(SIZES).map((k) => h('button.ysz', { title: `${k[0].toUpperCase()}${k.slice(1)} Yak`, 'aria-label': `${k} size`, onclick: stop(() => setSize(k, null)) }, k[0].toUpperCase()));
   const maxBtn = h('button.ysz.ymax', { title: 'Open Yak big', 'aria-label': 'Maximize Yak', onclick: stop(() => setMax(!maximized)) }, icon('expand', { size: 13 }));
-  const head = h('div.chat-head', { title: 'Yak (C)', onclick: () => { if (!maximized) toggle(); } },
+  const head = h('div.chat-head', { title: touchUI() ? 'Yak' : 'Yak (C)', onclick: () => { if (!maximized) toggle(); } },
     h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), totalBadge,
     h('span.ysizes', null, ...sizeBtns, maxBtn), caret);
   // Drag the top edge to set any height between MIN_H and MAX_H.
@@ -98,7 +100,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
     }
     el.classList.toggle('max', on);
     maxBtn.replaceChildren(icon(on ? 'close' : 'expand', { size: 13 }));
-    maxBtn.title = on ? 'Back to the corner' : 'Open Yak big';
+    setTip(maxBtn, on ? 'Back to the corner' : 'Open Yak big');
     list.scrollTop = list.scrollHeight;
     onMaximize?.(on);
   }
@@ -221,7 +223,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
   refreshBadges();
   // On phones Yak starts collapsed so it does not cover the tray and the office; the header's
   // unread badge still counts new messages.
-  if (typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches) toggle(true);
+  if (phoneLayout()) toggle(true);
   applySize();
   return { add, toggle, update, reset, el, setMax, get maximized() { return maximized; },
     onKey(e) { if (maximized && e.key === 'Escape') { e.preventDefault(); setMax(false); return true; } return false; } };

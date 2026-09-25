@@ -1,3 +1,5 @@
+import { phoneLayout } from './media.js';
+import { setTip } from './tooltip.js';
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
 import { icon } from './icons.js';
@@ -153,15 +155,30 @@ export function createHud({ root, controls, ui }) {
     onclick: () => ui.setSpeed(sp.k),
   }, icon(sp.ico)));
   const gear = h('button.btn.small.gear', { title: 'Settings', onclick: () => ui.openSettings?.() }, icon('settings'));
-  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, gear);
+  // Quick mute, the same setting as the Settings panel's; its icon follows mute and master volume.
+  const muteBtn = h('button.btn.small.mute', { title: 'Mute', 'aria-label': 'Mute', 'aria-pressed': 'false', onclick: () => { ui.toggleMute?.(); syncMute(); } }, icon('sound.on'));
+  let mutedShown = null;
+  function syncMute() {
+    const m = !!ui.isMuted?.();
+    if (m === mutedShown) return;
+    mutedShown = m;
+    muteBtn.replaceChildren(icon(m ? 'sound.off' : 'sound.on'));
+    muteBtn.setAttribute('aria-pressed', String(m));
+    muteBtn.setAttribute('aria-label', m ? 'Unmute' : 'Mute');
+    muteBtn.dataset.tip = m ? 'Sound is off. Tap to turn it on.' : 'Mute';
+    // Muted has its own look (a red-tinted outline), not the selected fill the speed buttons use.
+    toggleClass(muteBtn, 'muted', m);
+  }
+  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, muteBtn, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
   // The bar wraps onto more rows on narrow screens; the tray and toasts sit below its real height.
   if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(() => {
+    // Written on the next frame: changing layout inside the observer callback would loop it.
+    new ResizeObserver(() => requestAnimationFrame(() => {
       const hgt = bar.offsetHeight;
       if (hgt) root.style.setProperty('--topbar-h', `${bar.offsetTop + hgt}px`);
-    }).observe(bar);
+    })).observe(bar);
   }
 
   const tray = h('div.tray');
@@ -170,9 +187,12 @@ export function createHud({ root, controls, ui }) {
   // On phones the tray folds into a slim strip of badges under the top bar; a tap opens it.
   // It starts shut at 480 px and below, where the open tray would hide most of the office.
   const stripNeeds = h('span.tsb.needs'), stripWork = h('span.tsb'), stripGoals = h('span.tsb'), stripFx = h('span.tsb');
+  // On phones the meters chip hides; the strip carries Brand, Know-how and Debt as small readouts.
+  const smB = h('b.num'), smK = h('b.num'), smD = h('b.num');
+  const stripMeters = h('span.tsm', { title: 'Brand, Know-how and Debt' }, h('span.tsmi', null, h('i.brand'), 'B', smB), h('span.tsmi', null, h('i.ik'), 'K', smK), h('span.tsmi', null, h('i.debt'), 'D', smD));
   const trayToggle = h('button.tray-toggle', { dataset: { occludes: '' }, 'aria-expanded': 'false', title: 'Show or hide the side cards', onclick: () => setTrayOpen(!trayOpen) },
-    h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx);
-  let trayOpen = !(typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches);
+    h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx, stripMeters);
+  let trayOpen = !phoneLayout();
   function setTrayOpen(on) {
     trayOpen = on;
     root.classList.toggle('tray-shut', !on);
@@ -288,14 +308,15 @@ export function createHud({ root, controls, ui }) {
   let last = {};
   let lastLogoColor = '';
   function update(s) {
+    syncMute();
     const d = dateOf(s.week);
     const era = s.era?.id ?? null;
     if (era !== lastEra) {
       lastEra = era;
       eraEl.replaceChildren(...(era ? [icon(`era.${era}`, { size: 22 })] : []));
       // The title shows on hover, and on a tap through the tap tips.
-      eraEl.title = era ? `${ERA[era]?.name ?? era} era` : '';
-      eraEl.setAttribute('aria-label', eraEl.title);
+      setTip(eraEl, era ? `${ERA[era]?.name ?? era} era` : '');
+      eraEl.setAttribute('aria-label', era ? `${ERA[era]?.name ?? era} era` : '');
       eraEl.style.display = era ? '' : 'none';
     }
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
@@ -303,7 +324,7 @@ export function createHud({ root, controls, ui }) {
     if (lc !== lastLogoColor) { lastLogoColor = lc; logo.style.background = lc; }
     setText(name, s.companyName || 'Your Lab');
     const tag = s.founding?.tagline ?? '';
-    if (name.title !== tag) name.title = tag;
+    if ((name.dataset.tip ?? '') !== tag) setTip(name, tag);
     setText(dateVal, `${d.year} · Q${d.quarter} · Wk ${d.week}`);
 
     setText(cashVal, fmtMoney(s.cash));
@@ -360,6 +381,7 @@ export function createHud({ root, controls, ui }) {
 
     setWidth(mBrand.fill, s.brand / 100);
     setText(mBrand.v, Math.round(s.brand));
+    setText(smB, Math.round(s.brand)); setText(smK, Math.round(s.institutionalKnowledge)); setText(smD, Math.round(s.comprehensionDebt));
     setWidth(mIk.fill, s.institutionalKnowledge / 100);
     setText(mIk.v, Math.round(s.institutionalKnowledge));
     toggleClass(mIk.bar, 'low', s.institutionalKnowledge < 30);
@@ -389,7 +411,7 @@ export function createHud({ root, controls, ui }) {
     if (away !== last.away) {
       last.away = away;
       setText(pausedTag, away ? 'Paused while you were away' : 'Paused');
-      pausedTag.title = away ? 'The game paused when the window lost focus. Press play or Space to resume. Change this in Settings.' : '';
+      pausedTag.dataset.tip = away ? 'The game paused when the window lost focus. Press play or Space to resume. Change this in Settings.' : '';
     }
     const busy = sp > 0 && !!ui.isBusy?.();
     if (busy !== last.busy) { last.busy = busy; menuTag.style.display = busy ? 'inline' : 'none'; }

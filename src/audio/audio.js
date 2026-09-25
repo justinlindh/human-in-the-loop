@@ -56,8 +56,9 @@ export function createAudio({ quality = 'high' } = {}) {
     }
   }
   if (AC) {
-    addEventListener('pointerdown', unlock, { capture: true });
-    addEventListener('keydown', unlock, { capture: true });
+    // iOS Safari counts only some events as a user gesture for audio (pointerup, touchend, click
+    // on touch), so every one of them tries: unlock is idempotent and just resumes once running.
+    for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(type, unlock, { capture: true, passive: true });
     // A hidden tab goes silent at once (frames stop there, so nothing else would). On return, sound
     // resumes only if the game is running or the title is up; after an auto-pause it waits for the
     // player's next click or key (unlock resumes it).
@@ -106,8 +107,10 @@ export function createAudio({ quality = 'high' } = {}) {
     const g = ctx.createGain();
     g.gain.value = 0.0001;
     src.connect(g).connect(mix.musicIn);
-    const t = ctx.currentTime;
+    // A playlist switch is scheduled on a bar line (cmd.at); an era change starts now.
+    const t = Math.max(ctx.currentTime, cmd.at ?? 0);
     src.start(t);
+    director.musicStarted(cmd.bed, t);
     g.gain.setTargetAtTime(1, t, cmd.fade / 3);
     if (music) {
       const old = music;

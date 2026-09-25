@@ -135,6 +135,7 @@ export function resolveSubjects(state, ev) {
     case 'automatedSenior': return people.filter((p) => p.seniority === 'senior' && automationExposure(state, p) >= 0.5);
     case 'mentorStaff': return people.filter((p) => p.assignment.type === 'mentor');
     case 'founder': return people.filter((p) => p.founder);
+    case 'veteranStaff': return people.filter((p) => state.week - (p.hiredWeek ?? 0) >= B.nods.staplerTenureWeeks);
     case 'randomProduct': return liveProducts(state);
     default: return [];
   }
@@ -203,6 +204,7 @@ registerAction('resolveDecision', (ctx, { choice }) => {
   const why = choiceBlocker(state, c, d.subjectId);
   if (why) return { ok: false, reason: why };
   state.pendingDecision = null;
+  ctx.emit({ type: 'decisionResolved', eventId: d.eventId, choice, subjectId: d.subjectId ?? null });
   if (c.outcome) ctx.emit({ type: 'toast', text: fillText(state, ctx.rng, c.outcome, d.subjectId, d.vars), tone: 'info' });
   applyEffects(ctx, c.effects, d.subjectId, d.eventId, d.vars);
   // A granted item is paid for by the choice's cash when it has any, so it is placed without charging again.

@@ -1,0 +1,322 @@
+{
+ "accepted": [
+  {
+   "key": "bounds|cable_chewed|room",
+   "worst": 0.026,
+   "state": "moment:pet_mishap",
+   "issue": 363
+  },
+  {
+   "key": "float|binder|desk",
+   "worst": 0.02,
+   "state": "mock:floor",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|envelope",
+   "worst": 0.02,
+   "state": "moment:resignation_letter",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|envelope_thick",
+   "worst": 0.02,
+   "state": "moment:hearing_summons",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|gift_cards",
+   "worst": 0.022,
+   "state": "mock:floor",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|photos_laminated",
+   "worst": 0.02,
+   "state": "moment:pet_request",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|pizza_boxes",
+   "worst": 0.02,
+   "state": "moment:pizza_boxes",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|smoothie",
+   "worst": 0.02,
+   "state": "moment:investor_demo_day",
+   "issue": 363
+  },
+  {
+   "key": "float|desk|sticky_notes",
+   "worst": 0.02,
+   "state": "moment:junior_overwhelmed",
+   "issue": 363
+  },
+  {
+   "key": "overlap|bookshelf/pal_fabric_slate|wall_z/pal_plastic_white",
+   "worst": 0.01,
+   "state": "seed:1:w303",
+   "issue": 363
+  },
+  {
+   "key": "overlap|bookshelf/pal_fabric_terracotta|wall_z/pal_plastic_white",
+   "worst": 0.01,
+   "state": "seed:1:w303",
+   "issue": 363
+  },
+  {
+   "key": "overlap|cable_chewed/pal_role_engineer|desk/pal_metal_dark",
+   "worst": 0.015,
+   "state": "mock:floor",
+   "issue": 363
+  },
+  {
+   "key": "overlap|desk/pal_leaf_dark|pizza_boxes/pal_wood_light",
+   "worst": 0.016,
+   "state": "seed:1:w48",
+   "issue": 363
+  },
+  {
+   "key": "overlap|desk/pal_leaf_light|pizza_boxes/pal_wood_light",
+   "worst": 0.025,
+   "state": "seed:1:w48",
+   "issue": 363
+  },
+  {
+   "key": "overlap|desk/pal_leaf|pizza_boxes/pal_wood_light",
+   "worst": 0.024,
+   "state": "seed:1:w48",
+   "issue": 363
+  },
+  {
+   "key": "overlap|desk/pal_pot_cream|pizza_boxes/pal_wood_light",
+   "worst": 0.023,
+   "state": "seed:1:w48",
+   "issue": 363
+  },
+  {
+   "key": "overlap|desk/pal_soil|pizza_boxes/pal_wood_light",
+   "worst": 0.025,
+   "state": "seed:1:w48",
+   "issue": 363
+  },
+  {
+   "key": "overlap|server_rack/pal_plastic_charcoal|wall_z/pal_plastic_white",
+   "worst": 0.09,
+   "state": "mock:floor",
+   "issue": 363
+  },
+  {
+   "key": "person|coffee_corner/pal_plastic_white|person(walking)/head",
+   "worst": 0.039,
+   "state": "seed:1:w728",
+   "issue": 381
+  },
+  {
+   "key": "person|coffee_corner/pal_wood_light|person(walking)/head",
+   "worst": 0.025,
+   "state": "seed:1:w624",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_fabric_slate|person(celebrate)/head",
+   "worst": 0.034,
+   "state": "seed:1:w208",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_fabric_slate|person(still)/head",
+   "worst": 0.057,
+   "state": "seed:1:w832",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_fabric_slate|person(still)/torso",
+   "worst": 0.055,
+   "state": "seed:1:w832",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_fabric_slate|person(walking)/head",
+   "worst": 0.052,
+   "state": "seed:1:w48",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_fabric_slate|person(walking)/torso",
+   "worst": 0.076,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_metal_dark|person(still)/torso",
+   "worst": 0.038,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_metal_soft|person(still)/torso",
+   "worst": 0.052,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_metal_soft|person(walking)/legR",
+   "worst": 0.027,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_paper_sheet|person(still)/torso",
+   "worst": 0.029,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_plastic_charcoal|person(still)/torso",
+   "worst": 0.053,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_plastic_charcoal|person(walking)/legL",
+   "worst": 0.025,
+   "state": "seed:1:w328",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_plastic_charcoal|person(walking)/legR",
+   "worst": 0.026,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_plastic_charcoal|person(walking)/torso",
+   "worst": 0.073,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_pot_cream|person(still)/torso",
+   "worst": 0.02,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
+   "key": "person|desk/pal_wood_honey|person(still)/torso",
+   "worst": 0.027,
+   "state": "seed:1:w33",
+   "issue": 381
+  },
+  {
+   "key": "person|espresso/pal_fabric_terracotta|person(walking)/torso",
+   "worst": 0.044,
+   "state": "seed:1:w936",
+   "issue": 381
+  },
+  {
+   "key": "person|espresso/pal_metal_soft|person(walking)/legR",
+   "worst": 0.051,
+   "state": "seed:1:w936",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/head|pizza_boxes/pal_wood_light",
+   "worst": 0.024,
+   "state": "seed:1:w48",
+   "issue": 435
+  },
+  {
+   "key": "person|person(still)/head|plant/pal_leaf",
+   "worst": 0.137,
+   "state": "seed:1:w624",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/head|plant/pal_leaf_dark",
+   "worst": 0.167,
+   "state": "seed:1:w832",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/head|plant/pal_leaf_light",
+   "worst": 0.114,
+   "state": "seed:1:w624",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/torso|pizza_boxes/pal_wood_light",
+   "worst": 0.024,
+   "state": "seed:1:w48",
+   "issue": 435
+  },
+  {
+   "key": "person|person(still)/torso|plant/pal_leaf",
+   "worst": 0.06,
+   "state": "seed:1:w624",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/torso|plant/pal_leaf_dark",
+   "worst": 0.047,
+   "state": "seed:1:w791",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/torso|whiteboard/pal_fabric_sage",
+   "worst": 0.022,
+   "state": "seed:1:w832",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/torso|whiteboard/pal_metal_soft",
+   "worst": 0.053,
+   "state": "seed:1:w832",
+   "issue": 381
+  },
+  {
+   "key": "person|person(still)/torso|whiteboard/pal_role_designer",
+   "worst": 0.043,
+   "state": "seed:1:w832",
+   "issue": 381
+  },
+  {
+   "key": "person|person(walking)/head|pizza_boxes/pal_wood_light",
+   "worst": 0.024,
+   "state": "moment:hackathon",
+   "issue": 435
+  },
+  {
+   "key": "person|person(walking)/head|plant/pal_leaf",
+   "worst": 0.099,
+   "state": "seed:1:w728",
+   "issue": 381
+  },
+  {
+   "key": "person|person|person",
+   "worst": 0.173,
+   "state": "seed:1:w791",
+   "issue": 381
+  },
+  {
+   "key": "self|held/held|own head",
+   "worst": 0.023,
+   "state": "moment:open_plan_office",
+   "issue": 433
+  },
+  {
+   "key": "self|held/held|own torso",
+   "worst": 0.011,
+   "state": "moment:open_plan_office",
+   "issue": 433
+  },
+  {
+   "key": "self|held/pal_cardboard|own torso",
+   "worst": 0.052,
+   "state": "seed:1:w791",
+   "issue": 434
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 import { createMockSim } from './dev/mockSim.js';
 import { createPacer, MAX_STEP } from './pacing.js';
-import { autoQuality, glRendererName } from './quality.js';
+import { autoQuality, deviceTraits, glRendererName } from './quality.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
 const renderMods = import.meta.glob('./render/index.js');
@@ -52,7 +52,7 @@ async function boot() {
   // saved setting, which ui applies through controls.setQuality at startup. 'auto' (and the boot
   // value) is Low on software GL, High otherwise.
   const urlQuality = params.get('quality');
-  const detectedQuality = autoQuality(glRendererName());
+  const detectedQuality = autoQuality(glRendererName(), deviceTraits());
   const quality = urlQuality ?? detectedQuality;
   let activeQuality = quality;
   const forcedTime = params.get('time') ?? (sim.state.flags?.mockTime ?? null);

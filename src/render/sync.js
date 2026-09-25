@@ -5,6 +5,7 @@ import { glow } from './materials.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createIncentives } from './incentives.js';
+import { createMoments } from './moments.js';
 import { holdSeconds } from './reading.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
@@ -32,7 +33,7 @@ function angleLerp(a, b, k) {
   return a + d * k;
 }
 
-export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {}, setPictureLight = () => {} }) {
+export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {}, setPictureLight = () => {}, getProps = () => null, low = () => false }) {
   const group = new THREE.Group();
   group.name = 'staff';
   parent.add(group);
@@ -210,7 +211,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); moments.reset(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -293,6 +294,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const e of events ?? []) {
       switch (e.type) {
         case 'hire': if (e.staffId) hired.add(e.staffId); break;
+        case 'decisionResolved': moments.decided(e); break;
         case 'resign': leaving.set(e.staffId, { fired: !!e.fired }); break;
         case 'bubble': {
           const r = recs.get(e.staffId);
@@ -441,8 +443,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
-  const pets = createPets({ office, recs, emote, parent: group });
+  const pets = createPets({ office, recs, emote, parent: group, getProps });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -469,7 +472,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
     // Mood emotes now and then, so state reads without UI.
     r.moodEmoteT -= dt;
-    if (r.moodEmoteT <= 0 && !r.hidden) {
+    // Not in the middle of a moment (moments.js): their own emotes carry it.
+    if (r.moodEmoteT <= 0 && !r.hidden && !r.temp?.moment) {
       r.moodEmoteT = rnd(9, 18);
       const m = r.staff.mood;
       if (!c.emote) {
@@ -482,7 +486,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         else if (m === 'coasting' && Math.random() < 0.6) emote(r, 'sweat', 2.5);
         else if (r.goal?.thinking && Math.random() < 0.7) emote(r, 'lightbulb', 2.5);
         else if (r.goal?.mentoring && Math.random() < 0.5) emote(r, 'heart', 2);
-        else if (m === 'ok' && Math.random() < 0.12) emote(r, 'music', 2.2);
+        // Nobody hums while the screens are taken over.
+        else if (m === 'ok' && !getProps()?.overlay && Math.random() < 0.12) emote(r, 'music', 2.2);
       }
     }
 
@@ -848,6 +853,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     perks.update(dt, lastState);
     pets.update(dt);
     incentives.update(dt);
+    moments.update(dt, lastState);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
@@ -887,9 +893,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   return {
+    // A staff member's character (character.js), for the staging probe.
+    charOf(id) { return recs.get(id)?.char ?? null; },
+    // Whether someone is in a seated pose (for checks).
+    isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, setCharacterShadows,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.
     standAt(id, x, z) {

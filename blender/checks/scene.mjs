@@ -13,6 +13,9 @@
 //   --warm N                             frames stepped before anything is captured (default 60)
 //   --settle N                           still mode: frames stepped after the patch (default 30)
 //   --crop x,y,w,h                       crop every image (canvas pixels)
+//   --focus-on '<js>' [--zoom Z]          like --focus, on a point from an expression after the patch
+//   --crop-around '<js>' --crop-size WxH  crop every image to WxH around a world point: the
+//                                        expression gives [x, y, z], evaluated after the patch
 //   --report '<js>'                      an expression evaluated in the page at the end; printed as JSON
 //   --size WxH (960x600)  --quality medium  --time 0.45  --paused  --software  --timeout 300
 //
@@ -37,6 +40,8 @@ export async function renderScene(H, o) {
   const images = await page.evaluate(async (o) => {
     const R = window.__hitlRender, S = window.__HITL.state;
     R.perks.hold = true;
+    // three, for expressions (--focus-on, --crop-around, --report) that measure objects.
+    window.THREE ??= R.THREE ?? null;
     const merge = (dst, src) => {
       for (const [k, v] of Object.entries(src)) {
         if (v && typeof v === 'object' && !Array.isArray(v) && dst[k] && typeof dst[k] === 'object') merge(dst[k], v);
@@ -52,11 +57,20 @@ export async function renderScene(H, o) {
       if (place) S.office.placed = [...S.office.placed, ...place];
       merge(S, rest);
     };
+    let around = null;
     const grab = () => {
       window.__step(1);
       const c = document.querySelector('canvas');
-      if (!o.crop) return c.toDataURL('image/png');
-      const [x, y, cw, ch] = o.crop;
+      let crop = o.crop;
+      if (around) {
+        // The point on screen, in canvas pixels, with the crop kept inside the canvas.
+        const v = new R.camera.position.constructor(...around).project(R.camera);
+        const [cw, ch] = o.cropSize;
+        const px = ((v.x + 1) / 2) * c.width, py = ((1 - v.y) / 2) * c.height;
+        crop = [Math.max(0, Math.min(c.width - cw, Math.round(px - cw / 2))), Math.max(0, Math.min(c.height - ch, Math.round(py - ch / 2))), cw, ch];
+      }
+      if (!crop) return c.toDataURL('image/png');
+      const [x, y, cw, ch] = crop;
       const t = document.createElement('canvas');
       t.width = cw; t.height = ch;
       t.getContext('2d').drawImage(c, x, y, cw, ch, 0, 0, cw, ch);
@@ -70,17 +84,27 @@ export async function renderScene(H, o) {
     // Textures that load asynchronously (the era emblems) get a turn of the event loop.
     await new Promise((r) => setTimeout(r, 50));
     const out = [];
+    // A literal point crops the frames before the patch too, so a clip holds one framing.
+    if (o.cropAround?.trim().startsWith('[')) around = JSON.parse(o.cropAround);
     for (let i = 0; i < (o.frames ? o.before ?? 0 : 0); i++) out.push(grab());
     apply(o.patch);
     if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
     if (o.event) R.handleEvents([].concat(o.event), S);
-    if (o.frames) for (let i = 0; i < o.frames; i++) out.push(grab());
-    else { window.__step(Math.max(0, (o.settle ?? 30) - 1)); out.push(grab()); }
-    const report = o.report ? (0, eval)(o.report) : undefined;
-    return { out, report };
+    if (o.focusOn) { window.__step(3); const f = (0, eval)(o.focusOn); R.focusAt(f[0], f[2], o.zoom ?? 2.5); window.__step(1); }
+    if (o.cropAround) { window.__step(3); around = (0, eval)(o.cropAround); }
+    if (!o.frames) { window.__step(Math.max(0, (o.settle ?? 30) - 1)); out.push(grab()); }
+    // Clip frames are fetched in batches (below): one call returning every frame can pass the
+    // browser's string size limit.
+    window.__sceneGrab = grab;
+    return { out };
   }, o);
+  const frames = [...images.out];
+  for (let left = o.frames ?? 0; left > 0; left -= 30) {
+    frames.push(...await page.evaluate((n) => Array.from({ length: n }, () => window.__sceneGrab()), Math.min(30, left)));
+  }
+  const report = o.report ? await page.evaluate((r) => (0, eval)(r), o.report) : undefined;
   await page.close();
-  return { images: images.out.map((d) => Buffer.from(d.split(',')[1], 'base64')), errors, report: images.report };
+  return { images: frames.map((d) => Buffer.from(d.split(',')[1], 'base64')), errors, report };
 }
 
 function parse(argv) {
@@ -100,7 +124,7 @@ function parse(argv) {
     out: a.out, mock: a.mock, seed: num(a.seed), week: num(a.week), size: a.size, quality: a.quality, time: num(a.time),
     patch: json(a.patch), pre: json(a.pre), event: json(a.event), focus: list(a.focus), zoom: num(a.zoom),
     frames: num(a.frames), before: num(a.before), warm: num(a.warm), settle: num(a.settle), crop: list(a.crop),
-    paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300, report: a.report, patchJs: a['patch-js'],
+    paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300, report: a.report, patchJs: a['patch-js'], cropAround: a['crop-around'], focusOn: a['focus-on'], cropSize: a['crop-size'] ? String(a['crop-size']).split('x').map(Number) : [800, 500],
   };
 }
 

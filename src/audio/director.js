@@ -15,7 +15,7 @@
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -46,7 +46,24 @@ export function moodEmotion(p, rng) {
 
 const present = (s) => (s?.staff ?? []).filter((p) => p.mood !== 'away' && !p.remote);
 
-export function createDirector({ seed = 1, quality = 'high' } = {}) {
+// An era's beds: the delivered ones (assets.json music.<era>.beds) when there are any, else the
+// manifest's list. Ids are '<era>/<bed>'.
+function erasBeds(era, override) {
+  if (override?.[era]?.length) return override[era];
+  const got = ASSETS.music?.[era]?.beds?.map((b) => `${era}/${b.id}`) ?? [];
+  return got.length ? got : MUSIC[era]?.beds ?? [];
+}
+// One pass of a bed in seconds: its loop region when delivered, else the placeholder's bars.
+export function bedSeconds(era, bed) {
+  const id = bed.split('/')[1];
+  const full = ASSETS.music?.[era]?.beds?.find((b) => b.id === id)?.stems?.full;
+  const sr = ASSETS.sampleRate ?? 48000;
+  if (full?.loopEnd) return (full.loopEnd - (full.loopStart ?? 0)) / sr;
+  if (full?.duration) return full.duration;
+  return MUSIC_BARS * (60 / (MUSIC[era]?.bpm ?? 100)) * 4;
+}
+
+export function createDirector({ seed = 1, quality = 'high', beds: bedOverride = null } = {}) {
   const rng = mulberry32(seed);
   let q = quality;
   const lastCue = new Map();      // cue id -> t
@@ -63,6 +80,13 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
   const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
+  // The playlist's next bed is chosen when the current one starts and preloaded at once, so its
+  // file is decoded by the time its bar line comes round.
+  function pickNext(beds) {
+    const others = beds.filter((b) => b !== music.bed);
+    music.nextBed = others.length ? pick(others) : null;
+    return music.nextBed ? [{ op: 'preload', ids: [`music/${music.nextBed}`] }] : [];
+  }
   const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(rng() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; } return arr; };
 
   // Voice allocation: a full bus accepts a new cue only by stealing a lower-priority voice.
@@ -215,11 +239,13 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
       if (want && want !== music.era && MUSIC[want]) {
         const m = MUSIC[want];
         const barLen = (60 / m.bpm) * 4;
-        const bed = m.beds[Math.floor(rng() * m.beds.length) % m.beds.length];
+        const list = erasBeds(want, bedOverride);
+        const bed = list[Math.floor(rng() * list.length) % list.length];
         const first = music.era === null;
         const fromTitle = music.era === 'title';
-        music.era = want; music.bed = bed;
+        music.era = want; music.bed = bed; music.bedAt = t; music.heard = 0;
         out.push({ op: 'music', era: want, bed, at: t, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
+        out.push(...pickNext(list));
         // Only a real era arrival cheers: not the first bed, and not starting or loading from the title.
         if (want !== 'title' && !first && !fromTitle && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
       }
@@ -232,6 +258,26 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
       if (level !== music.level || lowpass !== music.lowpass) {
         music.level = level; music.lowpass = lowpass;
         out.push({ op: 'musicMix', level, lowpass, fade: 0.4 });
+      }
+      // Playlist: with several beds, each plays for at least PLAYLIST_MIN_S of unpaused listening, then
+      // the next (never the same one twice running) starts on the current bed's loop boundary, which
+      // is a bar line, and crossfades over CROSSFADE_BARS. Paused time does not count.
+      const beds = music.era ? erasBeds(music.era, bedOverride) : [];
+      const dt = Number.isFinite(music.lastT) ? Math.max(0, Math.min(1, t - music.lastT)) : 0;
+      music.lastT = t;
+      if (beds.length > 1 && !hold && !stopped) {
+        music.heard += dt;
+        const len = bedSeconds(music.era, music.bed);
+        if (music.heard >= PLAYLIST_MIN_S && len > 0) {
+          const boundary = music.bedAt + Math.ceil((t - music.bedAt) / len) * len;
+          if (boundary - t <= PLAYLIST_LOOKAHEAD_S) {
+            const next = music.nextBed && music.nextBed !== music.bed ? music.nextBed : beds.find((b) => b !== music.bed);
+            const barLen = (60 / (MUSIC[music.era]?.bpm ?? 100)) * 4;
+            music.bed = next; music.bedAt = boundary; music.heard = 0;
+            out.push({ op: 'music', era: music.era, bed: next, at: boundary, fade: CROSSFADE_BARS * barLen });
+            out.push(...pickNext(beds));
+          }
+        }
       }
       // A paused game pauses the dance track (and the dancers' cheer waits with it).
       const dp = !!(hold || stopped);
@@ -286,5 +332,8 @@ export function createDirector({ seed = 1, quality = 'high' } = {}) {
     },
 
     get musicState() { return { ...music }; },
+    // The host reports when a bed really started (a delivered file may wait to decode), so the
+    // playlist's loop boundaries follow the audio that is playing.
+    musicStarted(bed, at) { if (bed === music.bed && Number.isFinite(at)) music.bedAt = at; },
   };
 }

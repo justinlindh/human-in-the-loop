@@ -98,6 +98,19 @@ export const B = {
   rivalMergeBase: 150000, rivalMergePerStrength: 60000,
   beatAgentBillAfter: 45, beatMegaroundAfter: 95, beatFloorNextDoorAfter: 130, megaroundWeeks: 26,
   productNameMax: 20,
+  // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.
+  nods: {
+    bannerStaff: 12, bannerOutput: 0.02, bannerDrain: 0.05, bannerWeeks: 26, bannerStays: 104, bannerIronyMiss: 0.2, bannerReturnFee: 300,
+    coverStaff: 8, coverOutput: -0.02, coverWeeks: 26, coverIk: 3,
+    staplerTenureWeeks: 104, staplerLoss: 25, staplerBack: 10, staplerBackWeeks: 13, staplerKeep: 5, staplerSaving: 200,
+    consultantStaff: 15, consultantFee: 60000, consultantCuts: 2, consultantNewHireWeeks: 13, consultantMinEligible: 3,
+    consultantOutput: 0.05, consultantWeeks: 26, consultantMeaning: -4, layoffGapWeeks: 52,
+    printerCost: 2500, printerMeaning: 6, printerWreckWeeks: 4, printerRepair: 300, printLessOutput: -0.01, printLessWeeks: 13,
+    saturdayStaff: 10, saturdayOutput: 0.08, saturdayWeeks: 2, saturdayStrain: 10, saturdayMeaning: -3, saturdayNoTeam: 2, saturdayNoSubject: -3,
+  },
+  // Staff names: the share of draws from the international tier, the share of the US mix that is South
+  // Asian, and how often a last name comes from the same tier as the first name.
+  intlNameShare: 0.28, southAsianNameShare: 0.18, nameTierMatch: 0.7,
   fameDecay: 0.3, fameChurnRelief: 0.25, fameHireRelief: 0.4,
   moonshotAfterConsolidation: 100, moonshotRevenueShare: 0.25, moonshotMinWeekly: 50000, moonshotCheckinWeeks: 26, moonshotCheckins: 4,
   moonshotProduct: { stats: { features: 200, polish: 180, reliability: 160, novelty: 120 }, score: 8.6, hype: 60, novelty: 10, health: 90 },
@@ -119,6 +132,7 @@ export const B = {
   plateauPolishAppeal: 1.5, plateauBrandAppeal: 0.5,
   eraJitterWeeks: 13, chatgbtAutomationCap: 0.5, chatgbtAutomationFns: ['support', 'marketing'], noModelTrust: 0.85,
   eraCompetition: { classic: 1, chatgbt: 1.12, agents: 1.25, consolidation: 1.4, plateau: 1.45 }, consolidationVendorEveryWeeks: 13, consolidationDeprecateChance: 0.8,
-  acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.95,
+  // How often an acquisition offer comes up among random events: the main dial for how often good play exits.
+  acquisitionOfferWeight: 4.5, acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.95,
   ipoMrr: 2850000, ipoBrand: 60, acquisitionOfferMrr: 2550000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };

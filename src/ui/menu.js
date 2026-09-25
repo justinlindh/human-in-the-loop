@@ -1,3 +1,5 @@
+import { touchUI } from './media.js';
+import { setTip } from './tooltip.js';
 import { h, toggleClass, setText, clear } from './dom.js';
 import { icon } from './icons.js';
 
@@ -31,11 +33,22 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     badges[m.id] = badge;
     labels[m.id] = h('span.lbl', { text: m.label });
     newTags[m.id] = h('span.newtag', { text: 'New!' });
-    buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
+    // The label stays the accessible name when phones show the icon alone.
+    buttons[m.id] = h('button.mbtn', { title: touchUI() ? m.label : `${m.label} (${m.key})`, 'aria-label': m.label, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
       badge, newTags[m.id], h('span.key', { text: m.key }), icos[m.id] = h('span.ico', null, icon(`menu.${m.id}`)), labels[m.id]);
     menu.append(buttons[m.id]);
   }
   bottom.append(menu);
+  // When the menu scrolls sideways (phones), fade the edge that has more buttons past it.
+  const edges = () => {
+    const max = menu.scrollWidth - menu.clientWidth;
+    menu.classList.toggle('more-right', max > 2 && menu.scrollLeft < max - 2);
+    menu.classList.toggle('more-left', max > 2 && menu.scrollLeft > 2);
+  };
+  menu.addEventListener('scroll', edges, { passive: true });
+  addEventListener('resize', edges);
+  requestAnimationFrame(edges);
+  setTimeout(edges, 500);
 
   const wrap = h('div.panel-wrap');
   panelRoot.append(wrap);
@@ -113,7 +126,8 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const m = MENU.find((x) => x.id === id);
     if (!labels[id] || labels[id].textContent === text) return;
     setText(labels[id], text);
-    buttons[id].title = `${text} (${m?.key})`;
+    setTip(buttons[id], touchUI() ? text : `${text} (${m?.key})`);
+    buttons[id].setAttribute('aria-label', text);
   }
 
   // Swaps a menu button's icon (and its panel header's) while the button stands for something else.

@@ -14,6 +14,8 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 - `npm run snap -- --scenario floor --out shots/floor.png`: headless screenshot, exits non-zero on console errors.
 - `npm run models`: rebuild `public/models/*.glb` from `blender/` scripts (Blender 5.2, headless).
 
+Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) is listed in `docs/toolkit.md`, with who uses it and for what. Read it at the start of a session. A PR that adds, removes or changes a tool updates `docs/toolkit.md` and, when a role should reach for it, that role's brief in `.claude/agents/`.
+
 ## Team
 
 Message teammates by name with SendMessage. Other sessions that ListAgents shows (other projects, cloud sessions, older gamedev sessions) are not on the team; never message them.
@@ -32,6 +34,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Anything that needs the user's eyes or ears (a clip, an audio pick, a visual change they asked for, a decision only they can make) goes to team-lead with the media files and the question. team-lead puts it on the user's review desk and tells them it's there. Don't only mention it in a report.
 - Wrap long-running commands (renders, ffmpeg, captures, balance runs) in `timeout`, and nice heavy batch jobs (`nice -n 10`). The machine is shared: a runaway job blocks your own turn, so you never see messages about it, and it starves every lane's CI.
 - Stop or wait on processes by PID (`$!`, `wait`, `tail --pid`, a lock), never with `pkill -f` or `pgrep -f` on text: the pattern also matches your own shell's command line, so it kills your own command or waits forever.
+- When your change alters something other lanes use (a tool or check, a harness, a shared helper, CI, the contract, or a convention), list the affected teammates in the PR's Affects section. When it merges, message each of them: what changed, and what they should do (merge `main`, switch commands, stop a workaround).
+- Before starting each new task, merge `origin/main` into your working branch, then skim what changed in the tooling since your last sync (`git log --oneline <last-sync>..origin/main -- scripts blender/checks docs/toolkit.md src/contract`). Reach for new tools before hand-rolled ones.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
 - Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with one short line. team-lead replies with cross-lane news and the go-ahead for the next task.
 - Before a report or an action that depends on a PR's state, check it live (`scripts/pr-status.sh`, or `gh pr view <n>`). Messages cross, so an instruction or a status you received may already be out of date. Report only what changed since your last report: new PRs, new results, and decisions you need.
@@ -60,6 +64,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
   - Never push to a PR's branch after it merges: those commits never reach `main`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/main` with its own PR.
+- Dependabot PRs (author `dependabot[bot]`) are never in `scripts/ci-trusted`: local CI would run the new packages' install scripts. The reviewer reads the diff and the changelogs first (`gh pr diff <n>`, with no install) and posts the verdict. Then they run `scripts/ci-pr.sh <n> --allow-bot --head <sha>` and turn on auto-merge. `--allow-bot` refuses any PR that isn't a same-repo Dependabot PR with only Dependabot's commits, that changes anything other than `package.json`, `package-lock.json` or `.github/workflows/`, or whose head has no review pass.
 - The repo is public. Never fetch, install, build, run or open the code of a PR from a fork or an author outside `scripts/ci-trusted`: check `gh pr view <n> --json isCrossRepository,author` first. Report such PRs to team-lead instead. `scripts/ci-pr.sh` enforces this for local CI.
 - PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`, imperative, lower case after the colon, no trailing period.

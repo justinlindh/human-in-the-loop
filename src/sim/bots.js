@@ -497,8 +497,9 @@ export function botTurn(name, s, { onEvents = null } = {}) {
 // table; eras holds { week, cash, staff, mrr } at each era's arrival, stageWeeks the week each office
 // stage was reached; exited is true for a retirement (IPO or acquisition).
 // onWeek(state, tickEvents) after each tick; onEvents(events, action) for every dispatch; setup(state) once at the start;
+// stopWhen(state) after each week ends the run early once it returns true;
 // founding: { founders, funding } passed to createGame.
-export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null, setup, founding = {} } = {}) {
+export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null, setup, founding = {}, stopWhen = null } = {}) {
   const s = createGame({ seed, companyName: `Bot ${name}`, ...founding });
   setup?.(s);
   let maxStage = 0;
@@ -521,6 +522,7 @@ export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = n
     wasUnrecoverable = unrecoverable;
     if (firstLaunch === null && s.stats.launches > 0) firstLaunch = s.week;
     onWeek?.(s, events);
+    if (stopWhen?.(s)) break;
   }
   return {
     won: !!s.gameOver?.won, exited: s.gameOver?.reason === 'retired', reason: s.gameOver?.reason ?? 'unfinished', weeks: s.week,

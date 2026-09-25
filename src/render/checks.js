@@ -524,7 +524,105 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     S.staff[3].assignment = { type: 'project', targetId: null };
     step(10);
   }
+  // 3. Pizza on a desk: the people who gather to eat stand clear of every piece of furniture and prop.
+  {
+    R.moments.full = true;
+    const desk = [...R.office.placed.values()].find((e) => e.desk);
+    S.office.props.push({ id: 'pizza_prop', prop: 'pizza_boxes', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
+    let worst = 0, worstWho = null;
+    const eaters = new Set();
+    for (let i = 0; i < 30 * 20; i++) {
+      step(1);
+      if (i % 5) continue;
+      for (const [id, what] of R.moments.active) {
+        if (what !== 'pizza') continue;
+        eaters.add(id);
+        const root = charOf(R.scene, id);
+        // Their own desk (they get up from it) and the pizza desk (they stand at it) are theirs.
+        const own = new Set([R.perks.peek(id)?.seat, desk.id]);
+        for (const e of R.office.placed.values()) {
+          if (own.has(e.id)) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}`; }
+        }
+        for (const p of R.props.current()) {
+          if (p.prop === 'pizza_boxes') continue;
+          const v = bodyInside(root, meshes(p.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} in ${p.prop}`; }
+        }
+      }
+    }
+    results.push({ name: 'moment:pizza', pass: eaters.size > 0 && worst < 0.01, eaters: eaters.size, insidePct: +(100 * worst).toFixed(2), worstWho });
+    S.office.props = S.office.props.filter((p) => p.id !== 'pizza_prop');
+    R.moments.full = false;
+    step(10);
+  }
+  // 4. The sledgehammer: whoever fetches it and carries it to the wall stays clear of furniture and
+  // props, and the walls-down choice (decisionResolved) ends in a swing.
+  {
+    R.moments.full = true;
+    S.pendingDecision = { eventId: 'open_plan_office', subjectId: ids[0], stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } };
+    let worst = 0, worstWho = null, phases = new Set();
+    for (let i = 0; i < 30 * 25; i++) {
+      if (i === 30 * 16) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'open_plan_office', choice: 0, subjectId: ids[0] }], S); }
+      step(1);
+      const h = R.moments.hammer;
+      if (!h || i % 5) continue;
+      phases.add(h.phase);
+      const root = charOf(R.scene, h.id);
+      const own = new Set([R.perks.peek(h.id)?.seat]);
+      for (const e of R.office.placed.values()) {
+        if (own.has(e.id)) continue;
+        const v = bodyInside(root, meshes(e.obj), false);
+        if (v > worst) { worst = v; worstWho = `${h.id} (${h.phase}) in ${e.itemId}:${e.id}`; }
+      }
+    }
+    results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho });
+    R.moments.full = false;
+    step(10);
+  }
+  // 5. A letter on a desk: its sitter gets up (rolling the chair back), reads it in the aisle and sits
+  // down again, clear of every piece of furniture the whole way, their own desk and chair included.
+  {
+    R.moments.full = true;
+    R.perks.hold = true;
+    step(90);
+    const occupied = [...R.office.placed.values()].filter((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.assignment?.type !== 'hardProblem' && p.mood !== 'away'));
+    let worst = 0, worstWho = null, stood = 0;
+    const actors = new Set();
+    for (const desk of occupied.slice(0, 4)) {
+      S.office.props.push({ id: 'letter_prop', prop: 'envelope', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
+      // Until everyone who got up has sat down again (at most 25 s), sampling every frame.
+      let seen = false;
+      for (let i = 0; i < 30 * 25; i++) {
+        step(1);
+        if (i === 30 * 12) S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
+        if (actors.size) seen = true;
+        if (seen && !actors.size) break;
+        // Everyone in the moment, from getting up until they are seated again, walking back included;
+        // not the seated pose itself (a sitter is meant to be in their chair).
+        for (const [id, what] of R.moments.active) if (what === 'letter') actors.add(id);
+        for (const id of actors) {
+          if (R.isSeated(id)) { if (!R.moments.active.some(([x]) => x === id)) actors.delete(id); continue; }
+          stood++;
+          const root = charOf(R.scene, id);
+          for (const e of R.office.placed.values()) {
+            const ms = meshes(e.obj);
+            const v = bodyInside(root, ms, false);
+            if (v > worst) {
+              worst = v;
+              const parts = ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`);
+              worstWho = `${id} in ${e.itemId}:${e.id} [${parts.join(' ')}] path ${R.perks.peek(id)?.path}`;
+            }
+          }
+        }
+      }
+      S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
+      step(30);
+    }
+    results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho });
+    R.moments.full = false;
+  }
   R.perks.hold = false;
   return results;
 }
-

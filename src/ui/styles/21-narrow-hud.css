@@ -1,0 +1,28 @@
+/* Narrow screens: the top bar wraps. The company and the speed controls share the first row,
+   cash, MRR and team the second, and the three meters take a row of their own. */
+@media (max-width: 880px) {
+  .hitl .topbar { flex-wrap: wrap; row-gap: 0.4em; }
+  .hitl .chip.company { order: 0; flex: 1 1 0; min-width: 0; justify-content: flex-start; }
+  .hitl .chip.company > div { min-width: 0; }
+  .hitl .chip.company .name { max-width: 100%; }
+  .hitl .chip.speed { order: 1; flex: none; }
+  /* The spacer becomes a line break after the first row. */
+  .hitl .topbar > .spacer { order: 2; flex: 0 0 100%; height: 0; }
+  .hitl .chip.cash, .hitl .chip.mrr, .hitl .chip.team { order: 3; flex: 1 1 0; }
+  .hitl .chip.meters { order: 4; flex: 1 1 100%; justify-content: space-between; }
+  .hitl .chip.meters .hmeter { min-width: 0; flex: 1; }
+  .hitl .tray { width: min(17em, calc(100% - 1.2em)); }
+}
+/* Phones: the company chip takes the whole first row, so the date is never cut; the speed
+   controls follow on a row of their own. */
+@media (max-width: 480px) {
+  .hitl .chip.company { flex: 1 1 100%; }
+  .hitl .chip.speed { order: 1; flex: 1 1 100%; justify-content: space-between; }
+  /* The bottom row stacks: Yak above, then the menu across the full width in two rows. */
+  .hitl .bottom { grid-template-columns: minmax(0, 1fr); }
+  .hitl .bottom > .chat { max-width: 17em; }
+  .hitl .bottom > .chat .chat-body { height: 6.5em; }
+  .hitl .menu { justify-self: stretch; row-gap: 0.35em; }
+  .hitl .mbtn { width: calc(25% - 0.3em); min-width: 3.9em; height: 4em; }
+}
+

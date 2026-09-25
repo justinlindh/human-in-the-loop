@@ -8,8 +8,7 @@
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } from './config.js';
 import { renderGraphics } from './cards.js';
@@ -43,7 +42,6 @@ const CAPTIONS = !args['no-captions'] && VO.captions;
 // Hard ceilings on the child processes, so a hung browser or encoder cannot hold the machine.
 const CAPTURE_TIMEOUT_S = 3600;
 // Headless renders share one machine-wide lock with local CI's render checks.
-const RENDER_LOCK = join(homedir(), '.cache/hitl-ci/render-checks.lock');
 const FFMPEG_TIMEOUT_S = 900;
 mkdirSync(CLIPS, { recursive: true });
 mkdirSync(GFX, { recursive: true });
@@ -82,10 +80,11 @@ const AUDIO_ONLY = !!args['audio-only'];
 const todo = AUDIO_ONLY ? [] : args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
-  mkdirSync(dirname(RENDER_LOCK), { recursive: true });
-  await run('flock', ['-w', '1800', '-E', '75', RENDER_LOCK, 'node', 'scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
-    '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])],
-  { timeout: CAPTURE_TIMEOUT_S });
+  const capture = ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
+    '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])];
+  // Capture renders under a render lock (a GPU slot, or the software lock with --software); the
+  // wrapper runs straight through when a caller already holds one.
+  await run('bash', [join(ROOT, 'scripts/with-render-lock.sh'), args.software ? '--software' : '--gpu', 'node', ...capture], { timeout: CAPTURE_TIMEOUT_S });
   for (const b of todo) writeFileSync(keyFile(b), keyOf(b));
 }
 for (const b of AUDIO_ONLY ? [] : clipBeats) {

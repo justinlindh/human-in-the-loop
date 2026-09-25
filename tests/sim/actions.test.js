@@ -50,9 +50,11 @@ describe('dispatch invariants', () => {
     let failures = 0;
     for (const seed of [1, 2, 3]) {
       const r = createRng(seed * 101);
+      // Build each seed's mid-game once; every action gets a fresh copy of it.
+      const base = JSON.stringify(midGame(seed));
       for (const type of types) {
         for (let i = 0; i < 60; i++) {
-          const s = midGame(seed);
+          const s = JSON.parse(base);
           if (chance(r, 0.3)) s.cash = int(r, -100, 3000);
           const before = JSON.stringify(s);
           const res = dispatch(s, randomAction(r, s, type));

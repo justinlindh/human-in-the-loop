@@ -1,0 +1,31 @@
+/* ---------- buttons ---------- */
+.hitl .btn {
+  pointer-events: auto;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4em;
+  padding: 0.45em 0.9em;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0.7em;
+  background: var(--cream);
+  box-shadow: 0 0.2em 0 var(--ink);
+  font-weight: 600;
+  line-height: 1.1;
+  transition: transform 80ms ease, box-shadow 80ms ease, background 120ms;
+  white-space: nowrap;
+}
+.hitl .btn:hover:not(:disabled) { background: #fff8ec; transform: translateY(-0.06em); box-shadow: 0 0.26em 0 var(--ink); }
+.hitl .btn:active:not(:disabled) { transform: translateY(0.16em); box-shadow: 0 0.04em 0 var(--ink); }
+.hitl .btn:disabled { opacity: 0.55; box-shadow: 0 0.1em 0 var(--ink); }
+.hitl .btn.primary { background: var(--yellow); }
+.hitl .btn.primary:hover:not(:disabled) { background: #ffc24d; }
+.hitl .btn.go { background: var(--green); color: #fff; text-shadow: 0 0.08em 0 rgba(0,0,0,0.25); }
+.hitl .btn.go:hover:not(:disabled) { background: #45d3a0; }
+.hitl .btn.danger { background: var(--red); color: #fff; text-shadow: 0 0.08em 0 rgba(0,0,0,0.25); }
+.hitl .btn.danger:hover:not(:disabled) { background: #f0595e; }
+.hitl .btn.blue { background: var(--blue); color: #fff; text-shadow: 0 0.08em 0 rgba(0,0,0,0.25); }
+.hitl .btn.blue:hover:not(:disabled) { background: #6b9fff; }
+.hitl .btn.small { padding: 0.25em 0.6em; font-size: 0.88em; border-radius: 0.55em; }
+.hitl .btn.on { background: var(--ink); color: var(--cream); }
+/* An active button stays dark when hovered, so its cream content stays visible. */
+.hitl .btn.on:hover:not(:disabled) { background: #3d3845; }
+.hitl .btn .key { font-size: 0.72em; opacity: 0.65; font-family: 'JetBrains Mono', monospace; }
+

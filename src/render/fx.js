@@ -181,7 +181,7 @@ export function createFx({ scene, overlayEl }) {
   }
 
   return {
-    group, confetti, alarm, pop, update,
+    group, confetti, alarm, pop, puff, update,
     get alarmLevel() { return alarmLevel; },
     get liveConfetti() { return systems.filter((s) => s.active).length; },
   };

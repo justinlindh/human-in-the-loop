@@ -115,3 +115,15 @@ describe('props never change a seeded run', () => {
     expect(b.flags.propSeq).toBeGreaterThan(40);
   }, 120000);
 });
+
+describe('prop ids from older saves', () => {
+  it('a new prop never reuses the id of one numbered off the old shared counter', () => {
+    const s = floor(9);
+    s.office.props = [{ id: 'prop1', prop: 'brochure', x: 1, y: 0, since: 0, until: null }, { id: 'prop412', prop: 'invoice', x: 2, y: 0, since: 0, until: null }];
+    delete s.flags.propSeq;
+    leaveProp(s, { prop: 'pizza_boxes', until: null }, null);
+    const ids = s.office.props.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.at(-1)).toBe('prop413');
+  });
+});

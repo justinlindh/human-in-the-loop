@@ -12,15 +12,18 @@ const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure'
   'envelope', 'envelope_thick', 'binder', 'gift_cards', 'sticky_notes', 'photos_laminated',
   'pizza_boxes', 'smoothie', 'curtain', 'sledgehammer', 'tape_measure', 'pet_carrier', 'cable_chewed', 'visitor_chair',
   'screens_red', 'screens_skull', 'smoke_puff', 'rack_hot']);
+// Props art is still building; until they ship the renderer shows nothing for them.
+const PENDING = new Set(['banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked']);
+const known = (prop) => SHIPPED.has(prop) || PENDING.has(prop);
 
 const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
 
 describe('issue #228: staged props, batch one', () => {
-  it('every staged or left prop is one art has shipped', () => {
+  it('every staged or left prop is one art has shipped or is building', () => {
     for (const e of Object.values(EVENTS)) {
-      if (e.stage) expect(SHIPPED.has(e.stage.prop), e.id).toBe(true);
-      for (const c of e.choices ?? []) if (c.leaves) expect(SHIPPED.has(c.leaves.prop), `${e.id}: ${c.label}`).toBe(true);
+      if (e.stage) expect(known(e.stage.prop), e.id).toBe(true);
+      for (const c of e.choices ?? []) if (c.leaves) expect(known(c.leaves.prop), `${e.id}: ${c.label}`).toBe(true);
     }
   });
 
@@ -88,5 +91,20 @@ describe('issue #228: staged props, batch one', () => {
     s.week += 2;
     propsSystem(makeCtx(s));
     expect(s.office.props).toEqual([]);
+  });
+});
+
+describe('decisionResolved', () => {
+  it('names the event, the chosen index and the subject, once, and only when the choice goes through', () => {
+    const s = passOfficeGates(game(8));
+    s.cash = 1e6;
+    const p = addStaff(s, 'engineer', 'junior');
+    raise(s, 'junior_overwhelmed', p.id);
+    const i = EVENTS.junior_overwhelmed.choices.length - 1;
+    const res = dispatch(s, { type: 'resolveDecision', choice: i });
+    const ev = res.events.filter((e) => e.type === 'decisionResolved');
+    expect(ev).toEqual([{ type: 'decisionResolved', eventId: 'junior_overwhelmed', choice: i, subjectId: p.id }]);
+    raise(s, 'team_offsite');
+    expect(dispatch(s, { type: 'resolveDecision', choice: 99 }).events.some((e) => e.type === 'decisionResolved')).toBe(false);
   });
 });

@@ -9,7 +9,7 @@ const FURNITURE = [
   ['meeting_table', 'Meeting Table', 'Standups and arguments happen here. Mostly arguments.', [3000], { w: 3, h: 2 }, null],
   ['whiteboard', 'Whiteboard', 'Nearby desks get a little more inventive. The markers are always dry.', [400], { w: 2, h: 1 },
     { radius: 2, key: 'novelty', value: 0.04 }],
-  ['coffee_corner', 'Coffee Corner', 'A kettle, a drip machine, and a mug that says World\'s Okayest Dev. Nearby desks keep their energy.', [1200], { w: 2, h: 1 },
+  ['coffee_corner', 'Coffee Corner', 'A kettle, a drip machine, and a mug that says World\'s Okayest Dev. Keeps the desks right next to it going.', [1200], { w: 2, h: 1 },
     { radius: 3, key: 'staminaRecovery', value: 0.08 }],
   ['plant', 'Potted Plant', 'Green and quietly judgmental. People nearby recover a little faster.', [150], { w: 1, h: 1 },
     { radius: 2, key: 'meaningRecovery', value: 0.04 }],
@@ -34,7 +34,7 @@ const SHOP_SHAPE = {
 const SHOP_ERA = { monitoring_wall: 'agents' };
 
 const rows = [
-  ['espresso', 'Espresso Machine', 'Proper coffee. Stamina comes back faster.', 0, [3000, 9000, 27000],
+  ['espresso', 'Espresso Machine', 'Proper coffee, for the whole office. Everyone\'s stamina comes back faster.', 0, [3000, 9000, 27000],
     [{ staminaRecovery: 0.15 }, { staminaRecovery: 0.3 }, { staminaRecovery: 0.45 }], null],
   ['plant_wall', 'Plant Wall', 'A wall of green. Everyone recovers a little faster.', 0, [2500, 7500, 22000],
     [{ meaningRecovery: 0.1 }, { meaningRecovery: 0.2 }, { meaningRecovery: 0.3 }], null],
@@ -42,7 +42,7 @@ const rows = [
     [{ burnoutResign: -0.15 }, { burnoutResign: -0.3 }, { burnoutResign: -0.45 }], null],
   ['arcade', 'Arcade Cabinet', 'Fun at work, officially. Faster recovery, slightly less work.', 1, [8000, 24000, 70000],
     [{ meaningRecovery: 0.15, output: -0.02 }, { meaningRecovery: 0.25, output: -0.03 }, { meaningRecovery: 0.35, output: -0.04 }], null],
-  ['standing_desk', 'Standing Desks', 'Everyone stands. Stamina lasts longer.', 0, [4000, 12000, 36000],
+  ['standing_desk', 'Standing Desks', 'Raised once, for a photo. Now a shelf for hoodies. Somehow everyone\'s stamina lasts longer. Not a seat.', 0, [4000, 12000, 36000],
     [{ staminaDrain: -0.1 }, { staminaDrain: -0.2 }, { staminaDrain: -0.3 }], null],
   ['whiteboard_wall', 'Whiteboard Wall', 'Floor-to-ceiling whiteboards. Ideas get weirder, in a good way.', 0, [3500, 10000, 30000],
     [{ novelty: 0.05 }, { novelty: 0.1 }, { novelty: 0.15 }], null],

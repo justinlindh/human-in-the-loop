@@ -1,3 +1,4 @@
+import { setTip } from '../tooltip.js';
 import { h, setText, fmtMoney, toggleClass } from '../dom.js';
 import { OFFICE_STAGES } from '../content.js';
 import { ITEMS } from '../../data/items.js';
@@ -8,6 +9,7 @@ import { placedOf, stageOf } from '../placement.js';
 import { EVENTS } from '../../data/events.js';
 import { weeklyCosts } from '../../sim/economy.js';
 import { call, SIMX } from '../simapi.js';
+import { touchUI } from '../media.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
@@ -49,6 +51,15 @@ export function availableItems(s) {
   return Object.values(CATALOG).filter((it) => !beforeEra(s, it.era) && !itemLock(s, it)).map((it) => it.id);
 }
 
+// What an item is, from its data: a desk is a workstation for one person; an item whose effects
+// apply to everyone (its level-1 effects are not empty) is office-wide. Items that only help
+// nearby desks say so in their adjacency line instead.
+function kindTag(it) {
+  if (isDesk(it.id)) return h('span.pill.kindtag.work', { title: 'A seat for one person. Nobody can work, or be hired, without one.' }, icon('seat', { size: 12 }), ' Workstation');
+  if (Object.keys(it.effects?.[0] ?? {}).length) return h('span.pill.kindtag.perk', { title: 'Works for the whole office once placed. Nobody is assigned to it.' }, icon('team', { size: 12 }), ' Office-wide');
+  return null;
+}
+
 // "3 more items unlock later", or null when nothing is hidden.
 const laterLine = (n) => (n ? h('div.small.muted.laterline', null, icon('lock', { size: 12 }), ` ${n} more ${n === 1 ? 'item unlocks' : 'items unlock'} as the company grows.`) : null);
 
@@ -68,7 +79,7 @@ function legacyOfficePanel(ctx) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
           icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
         const why = h('span.why.small');
-        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
+        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); setTip(btn, r); });
         upgrade = h('div.card.stagecard', null,
           h('div', null, h('div.small.muted', { text: 'Your office' }), h('h2.oname', { text: stage.name })),
           h('div.row.wrap', null,
@@ -117,7 +128,7 @@ function legacyOfficePanel(ctx) {
         });
         const card = h('div.card.item', null,
           h('div.row', null, h('span.iico', null, icon(`item.${it.id}`, { size: 30 })), h('div', { style: { minWidth: 0 } },
-            h('b.iname', { text: it.name }), h('div.small.muted', { text: it.desc }))),
+            h('b.iname', { text: it.name }), h('div.small.muted', { text: it.desc }), kindTag(it))),
           owned.length ? null : h('div.small', null, h('b', { text: 'Level 1: ' }), effectWords(it.effects[0])),
           ...copies,
           owned.length < 2 ? h('div.row', null, locked ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${locked}`) : buy, h('span.spacer'), locked ? null : why) : null);
@@ -200,7 +211,7 @@ function buildPalette(ctx, arg) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
           icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
         const why = h('span.why.small');
-        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
+        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); setTip(btn, r); });
         right = h('div.col.right', null,
           h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
       } else if (Number.isFinite(s.office?.expansion)) {
@@ -218,7 +229,7 @@ function buildPalette(ctx, arg) {
           bind((st) => {
             const gate = nextStep ? call('officeGateReason', st, nextStep) : call('officeGateReason', st, stageIx);
             const r = gate ?? (Number.isFinite(cost) && st.cash < cost ? 'Not enough cash' : '');
-            btn.disabled = !!r; setText(why, r ?? ''); btn.title = r ?? '';
+            btn.disabled = !!r; setText(why, r ?? ''); setTip(btn, r ?? '');
           });
           right = h('div.col.right', null,
             h('div.small.muted', { text: `Step ${step + 1} of ${maxSteps}: room for ${EXPANSION_DESKS} more desks${Number.isFinite(nextStep?.rent) ? `, ${fmtMoney(nextStep.rent)}/wk more rent` : ''}.` }), btn, why);
@@ -249,7 +260,7 @@ function buildPalette(ctx, arg) {
           h('div.row', null, h('span.iico', null, icon(`item.${it.id}`, { size: 30 })),
             h('div', { style: { minWidth: 0, flex: 1 } },
               h('div.row', null, h('b.iname', { text: it.name }), h('span.spacer'), h('span.pill.num', { title: 'Footprint in tiles', text: `${f.w}x${f.h}` })),
-              h('div.small.muted', { text: it.desc ?? '' }))),
+              h('div.small.muted', { text: it.desc ?? '' }), kindTag(it))),
           eff ? h('div.small', null, h('b', { text: it.costs?.length > 1 ? 'Level 1: ' : 'Effect: ' }), eff) : null,
           adj ? h('div.small.adj', null, icon('team', { size: 12 }), ` ${adj}`) : null,
           mine.length ? h('div.row.wrap.placedrow', null,
@@ -269,7 +280,7 @@ function buildPalette(ctx, arg) {
       const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));
       const shop = all.filter((it) => it.kind !== 'furniture');
       return [stageCard, hint,
-        h('div.section', null, h('h3', null, 'Furniture', h('span.aside', { text: 'Click a spot on the floor to place. Click anything placed to move or sell it.' })),
+        h('div.section', null, h('h3', null, 'Furniture', h('span.aside', { text: touchUI() ? 'Tap a spot on the floor to place. Tap anything placed to move or sell it.' : 'Click a spot on the floor to place. Click anything placed to move or sell it.' })),
           h('div.shop', null, ...furniture.map(card))),
         h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Upgradeable. Sell for half of what you paid.' })),
           h('div.shop', null, ...shop.map(card)), laterLine(later))];

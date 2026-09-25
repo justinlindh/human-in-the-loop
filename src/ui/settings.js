@@ -7,7 +7,7 @@ export const BUSES = [
   { id: 'music', label: 'Music' }, { id: 'ambience', label: 'Ambience' }, { id: 'sfx', label: 'Sound effects' },
   { id: 'ui', label: 'Interface' }, { id: 'voice', label: 'Voices' },
 ];
-const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, yakSize: 'small', yakHeight: null };
+const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, momentCamera: true, yakSize: 'small', yakHeight: null };
 
 export function loadSettings() {
   try {
@@ -52,6 +52,8 @@ export function applySettings(controls, s) {
   controls.setQuality?.(s.quality === 'auto' && controls.autoQuality === undefined ? 'high' : s.quality);
   controls.setTiltShift?.(s.tiltShift);
   (controls.setAutoPause ?? controls.setPauseOnBlur)?.(s.autoPause !== false);
+  // The renderer listens: with momentCamera off, staged moments do not move the camera.
+  window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: s.momentCamera !== false } }));
 }
 
 export function createSettings({ layer, controls, sfx }) {
@@ -116,13 +118,25 @@ export function createSettings({ layer, controls, sfx }) {
           toggleClass(sw, 'on', settings.autoPause !== false);
           return row('Pause when the window loses focus', 'Switching tabs or apps stops the clock.', sw);
         })(),
+        (() => {
+          const sw = h('button.switch', { onclick: () => { set('momentCamera', settings.momentCamera === false); toggleClass(sw, 'on', settings.momentCamera !== false); } }, h('span.knob'));
+          toggleClass(sw, 'on', settings.momentCamera !== false);
+          return row('Camera follows big moments', 'Eases to things like a first user test. Any input takes the camera back.', sw);
+        })(),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
-        h('div.small.muted', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
+        h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));
   }
 
   function open() { render(); back.style.display = ''; sfx('open'); }
   function close() { if (back.style.display === 'none') return false; back.style.display = 'none'; sfx('close'); return true; }
 
-  return { open, close, get isOpen() { return back.style.display !== 'none'; }, get values() { return settings; } };
+  // The HUD's quick mute: muted, or master volume at zero, counts as muted; unmuting from zero
+  // brings the volume back to its default so the button always makes sound audible again.
+  const isMuted = () => !!settings.muted || !(settings.volume > 0);
+  function setMuted(on) {
+    set('muted', !!on);
+    if (!on && !(settings.volume > 0)) set('volume', DEFAULTS.volume);
+  }
+  return { open, close, get isOpen() { return back.style.display !== 'none'; }, get values() { return settings; }, isMuted, setMuted };
 }

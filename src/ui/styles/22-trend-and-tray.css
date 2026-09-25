@@ -1,0 +1,29 @@
+/* Market trend: the tray card opens to its effects; New Product tiles show trending or cooling. */
+.hitl .tray-card.trend { cursor: pointer; }
+.hitl .tray-card.trend .tdetail { display: none; margin-top: 0.35em; }
+.hitl .tray-card.trend.open .tdetail { display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .tray-card.trend .tfx { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.15em; font-size: 0.85em; }
+.hitl .tray-card.trend .tdetail .muted { color: #d9d2e0; }
+.hitl .tray-card.trend .tfx .up b { color: #7ee2b0; }
+.hitl .tray-card.trend .tfx .down b { color: #ff9a9a; }
+/* The tray stops above the bottom row and scrolls, so an opened card never sits under Yak. */
+.hitl .tray { max-height: calc(100% - var(--topbar-h, 4.6em) - var(--bottom-h, 16em) - 1.8em); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.hitl .trendtag { display: inline-flex; align-items: center; gap: 0.15em; font-size: 0.68em; font-weight: 700; border-radius: 1em; padding: 0.05em 0.45em; border: 0.12em solid var(--ink); white-space: nowrap; }
+.hitl .trendtag.up { background: #c9f0dc; color: #0f5c3c; }
+.hitl .trendtag.down { background: #ffe1df; color: #8f1d22; }
+
+/* Phones: the tray folds into a strip of badges (needs, projects, goals, effects) under the top
+   bar. Open, it sits below the strip and scrolls, so it never runs under the bottom row. */
+.hitl .tray-toggle { display: none; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .tray-toggle {
+    display: flex; align-items: center; gap: 0.55em; position: absolute; left: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.5em);
+    pointer-events: auto; min-height: 44px; padding: 0.2em 0.7em; font: inherit; font-weight: 700; cursor: pointer;
+    background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 0.75em; box-shadow: 0 0.2em 0 var(--ink); color: var(--ink);
+  }
+  .hitl .tray-toggle .tsb { display: inline-flex; align-items: center; gap: 0.2em; font-variant-numeric: tabular-nums; }
+  .hitl .tray-toggle .tsb.hot b { color: var(--bad); }
+  .hitl .tray { top: calc(var(--topbar-h, 4.6em) + 0.5em + 44px + 0.6em); max-height: calc(100% - var(--topbar-h, 4.6em) - 44px - var(--bottom-h, 12em) - 2.3em); overflow-y: auto; overscroll-behavior: contain; }
+  .hitl.tray-shut .tray { display: none; }
+}
+

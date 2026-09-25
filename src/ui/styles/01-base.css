@@ -1,0 +1,46 @@
+/* Human in the Loop overlay. Chunky cream panels, thick ink outlines, sticker shadows.
+   Everything is sized in em off .hitl so the whole overlay scales with the window. */
+
+.hitl {
+  --ink: #2a2630;
+  --ink-soft: #5b5361;
+  --ink-faint: #8f8795;
+  --cream: #fbf5ea;
+  --cream-2: #f4ead8;
+  --cream-3: #e9dbc2;
+  --line: #d9c9ad;
+  --blue: #4f8cff;
+  --pink: #ff7eb6;
+  --yellow: #ffb020;
+  --green: #34c38f;
+  --red: #e5484d;
+  --purple: #9b6bff;
+  --teal: #3fb6b0;
+  --good: #25a877;
+  --warn: #e8930c;
+  --bad: #e5484d;
+  --radius: 0.9em;
+  --bw: 0.19em;
+  --pop: 0 0.25em 0 var(--ink);
+  --soft: 0 0.6em 1.4em rgba(42, 38, 48, 0.28);
+
+  position: absolute;
+  inset: 0;
+  /* Its own stacking context above the 3D label layer, whose labels carry depth z-indexes. */
+  z-index: 10000;
+  pointer-events: none;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  font-weight: 500;
+  color: var(--ink);
+  --fs: clamp(12px, calc(0.42vw + 0.62vh + 2.2px), 16px);
+  font-size: var(--fs);
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+.hitl * { box-sizing: border-box; }
+.hitl .num, .hitl .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.hitl button { font: inherit; color: inherit; cursor: pointer; }
+.hitl button:disabled { cursor: not-allowed; }
+.hitl input, .hitl select { font: inherit; color: var(--ink); }
+
