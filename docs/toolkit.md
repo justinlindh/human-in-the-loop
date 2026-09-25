@@ -64,14 +64,41 @@ All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock,
 | `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path. |
 | `blender/checks/golden.mjs [--update]` | Close-up renders compared with stored reference images. Update the references only deliberately, in the PR that changes the look. |
 | `blender/checks/standup.mjs` | Standups gather everyone inside the walls and clear of furniture, in every office. |
+| `blender/checks/stage.mjs [--only=letter,fumes] [--jobs=N]` | The staging probe (#350): does each character moment read on screen? Plays every moment from the default camera and a turned view, samples `R.probe(id)` every frame, splits the samples by beat and holds each beat to its readability spec. Prints a per-beat table (check, view, beat, metric, value, want) and writes `shots/stage/report.json`. A moment this build doesn't play is skipped. See "Writing a readability spec" below. |
 | `blender/checks/sweep.mjs [--full] [--gpu]` | The scene integrity sweep: walks every mock and bot-played seeded games (every few weeks, each stage and era, each staged decision while its moment plays) and tests all pairs with exact mesh intersection (three-mesh-bvh). Reports overlaps, floating props and furniture, held props away from the hand, and anything outside the room, with the state, time, both things, the depth or gap, and a crop of each. New violations fail it; `blender/checks/sweep-baseline.json` lists accepted ones (`--update-baseline` rewrites it). Writes `report.json`, `report.md` and crops to `--out` (default `shots/sweep/`). Fast mode by default; `--full` for more seeds, longer windows and denser sampling. Narrow a run with `--mocks a,b` and `--seeds 1,2`. |
 
 Planned additions to this toolkit:
-- **The staging probe (#350):** gaze, facing, visibility and gesture measured in code, with a readability spec per moment.
 - **More sweep checks (#352):** characters against the world along real walk paths, label and bubble overlap on screen, and the sim's placement grid against render footprints.
 - **The performance harness (`scripts/perf/`):** frame times, draw calls and memory per scene.
 
 Each gets its row here when it lands.
+
+### Writing a readability spec
+
+Every new character moment ships with one. Three places change:
+
+1. **Tag the actors (`src/render/moments.js`).** Give the moment's `r.temp` a `stage` record: `{ beat, target, held, source }`.
+   - `beat` names the part of the moment playing now (`'read'`, `'fan'`); update it from the temp's `tick` as the moment moves on. While the actor walks, `staging()` reports `'walk'` on its own.
+   - `target` is what they deal with: a `Vector3` or an `Object3D` (its box centre is used).
+   - `held` is a prop in their hand (an `Object3D`).
+   - `source` is an effect whose sprites should sit between them and the target (smoke).
+   - Add the moment's name to `KINDS`, so the check knows the build plays it.
+2. **Set it up (`SCENARIOS` in `blender/checks/stage.mjs`).** A mock query, a state `patch` that starts the moment (usually a `pendingDecision` with a `stage` prop), and how many seconds to watch.
+3. **Say what reading means (`SPECS` in the same file).** One entry per beat, `'<moment>.<beat>': { moment, beat, rules }`. Most rules are shares: `share(metric, want, sample => condition, minShare)` passes when enough of the beat's frames meet the condition. Custom rules are `{ metric, want, test(beatSamples, allSamples) -> value, pass(value) }`.
+
+What `R.probe(id)` measures per frame (`src/render/probe.js` has the full list):
+- `gaze.hit`: what the line of sight from the eyes meets first: `'held'`, a staged prop id, a placed item id, `'furniture'`, `'floor'`, `'wall'` or `'none'`.
+- `targetAngle`: degrees between the face's direction and the target.
+- `faceCam`: degrees between the face's direction and the camera. The face reads within about 60 to 70.
+- `visible`: the share of the body the camera sees unblocked, walls and wall stubs included.
+- `fadeOver`: faded columns drawn over the character.
+- `held.dist`, `held.ahead`: the held prop's distance from the eyes, and its angle off the face.
+- `handsRel`: the hands relative to the eyes in the face's heading. `stage.mjs`'s `motion()` turns them into a gesture's frequency and amplitude (fanning is fast and small; a wave is slow and wide).
+- `lean`: metres the head sits ahead of the feet toward the target (negative means away).
+- `between`: `source` sprites near the line from the eyes to the target.
+- `headY`, `eyes`, `forward`, `anim`.
+
+Run `node blender/checks/stage.mjs --only=<moment>` while staging (under the render lock), and fix the staging until the table passes before recording clips. A turned view matters: staging that picks a spot relative to the room rather than the camera usually fails there.
 
 ## Models and assets
 
