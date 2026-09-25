@@ -31,7 +31,7 @@ guard() { # <gh log> <open file> [env assignments...] -- [guard args...]
   local log="$1" open="$2"; shift 2
   local envs=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
   env GH_LOG="$log" GH_OPEN="$open" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$case_root" HITL_LOCK_DIR="$tmp/locks" \
-    MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
+    MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
 }
 expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x looks in the guard's output>
   local w want; IFS='|' read -ra want <<<"$3"
@@ -74,6 +74,18 @@ echo "perf-regression 60" >"$po"
 expect 'a good timing run closes it' "$pl" 'issue close 60'
 : >"$pl"; guard "$pl" "$po" MAIN_GUARD_PERF_EVERY=3600 MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_PERF="$BAD_PERF" -- --sha HEAD
 expect 'timing runs at most once per interval' "$pl" '!out:timing'
+
+# phone-check, hourly with perf: one failure files nothing, two in a row file phone-regression (main stays
+# green), and a pass closes it.
+case_root="$tmp/root-phone"; phl="$tmp/phone.log"; pho="$tmp/phone.open"; : >"$pho"
+BAD_PHONE='echo "FAIL iphone14 placement: tap-to-place did not place"; exit 1'
+: >"$phl"; guard "$phl" "$pho" MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_PHONE="$BAD_PHONE" -- --sha HEAD
+expect 'one phone-check failure files nothing' "$phl" '!phone-regression|out:fails, 1 run(s) in a row|state=success'
+: >"$phl"; guard "$phl" "$pho" MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_PHONE="$BAD_PHONE" -- --sha HEAD
+expect 'a second phone-check failure files phone-regression, main stays green' "$phl" '--label phone-regression|state=success|!--label main-red --body'
+echo "phone-regression 70" >"$pho"
+: >"$phl"; guard "$phl" "$pho" MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'a passing phone-check closes it' "$phl" 'issue close 70'
 
 # Yield: while another process waits for the software lock, the guard does not start its gate.
 mkdir -p "$tmp/locks"; flock "$tmp/locks/render-checks.lock" sleep 30 & bg=$!
