@@ -227,10 +227,23 @@ export function createBackdrop() {
   let lastKey = '';
   let lastDraw = -1e9;
 
-  // Redrawn at most a few times per second.
+  // Redrawn at most a few times per second. A change inside that window is not dropped: the latest
+  // one is drawn when the window ends, so the sky always settles on the last time of day asked for,
+  // even if time then stops.
+  const SKY_MS = 250;
+  let pending = null, timer = null;
   function update(env) {
     const now = performance.now();
-    if (now - lastDraw < 250 && lastKey) return;
+    if (now - lastDraw < SKY_MS && lastKey) {
+      pending = { daylight: env.daylight, dusk: env.dusk };
+      timer ??= setTimeout(() => { timer = null; const p = pending; pending = null; if (p) draw(p); }, SKY_MS - (now - lastDraw));
+      return;
+    }
+    pending = null;
+    draw(env);
+  }
+  function draw(env) {
+    const now = performance.now();
     top.copy(nT).lerp(dT, env.daylight).lerp(kT, env.dusk * 0.6);
     bottom.copy(nB).lerp(dB, env.daylight).lerp(kB, env.dusk * 0.6);
     const key = top.getHexString() + bottom.getHexString();

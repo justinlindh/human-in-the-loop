@@ -750,3 +750,22 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   step(60);
   return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null, staff: S.staff.length, readyAt, playedAt, table: spot };
 }
+
+// The sky backdrop redraws at most a few times a second; a change inside that window must still be
+// drawn when it ends, so the sky settles on the last time of day asked for even if time then stops.
+export async function runSkyCheck() {
+  const { createBackdrop } = await import('./lighting.js');
+  const b = createBackdrop();
+  const px = () => [...b.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
+  b.update({ daylight: 1, dusk: 0 });
+  const day = px();
+  b.update({ daylight: 0.5, dusk: 1 });
+  b.update({ daylight: 0, dusk: 0 });
+  await new Promise((r) => setTimeout(r, 400));
+  window.__tick?.(400);
+  const last = px();
+  const fresh = createBackdrop();
+  fresh.update({ daylight: 0, dusk: 0 });
+  const night = [...fresh.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
+  return { name: 'sky:trailing', pass: last.join() === night.join() && day.join() !== night.join(), day: day.join(), last: last.join(), night: night.join() };
+}
