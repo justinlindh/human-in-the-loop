@@ -75,6 +75,11 @@ export const STANDUP = {
     'I found out why it is hard. That counts as progress in my book.',
   ],
   oversight: [
+    'Reviewed every pull request this week. Two were jokes. One was mine.',
+    'Ran the QA checklist. The checklist found a bug in the checklist.',
+    'Double-checked the release notes. They now describe the release.',
+    'Spot-checked the nightly jobs. All green. Suspiciously green.',
+    'Read every change that shipped. Three questions, two answers.',
     'Watched the agents all week. One tried to rename prod. Stopped it.',
     'Agent logs look calm. Too calm. Staying on it.',
     'Reviewed 40 agent changes. Sent 3 back. One was a haiku.',

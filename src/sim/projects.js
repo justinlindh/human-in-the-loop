@@ -40,13 +40,30 @@ export function reviewScore(state, project) {
   const fit = comboFit(project.category, project.angle) * trendMods(state, project.category, project.angle);
   const imbalance = total > 0 ? ['features', 'polish', 'reliability'].filter((st) => stats[st] / total < B.balancePenaltyBelow).length : 3;
   const base = clamp(B.reviewBase + B.reviewScale * (quality / bar - 1) + B.fitScoreScale * (fit - 1) - 0.8 * imbalance, 1, 10);
-  const reviews = PRESS.map((outlet) => {
-    const score = Math.round(clamp(base + range(state.rng, -B.reviewNoise, B.reviewNoise), 1, 10) * 2) / 2;
+  const reviews = pressReviews(state, base, { update: project.kind === 'update' });
+  return { score: meanScore(reviews), reviews, base, fit, quality };
+}
+
+// The product score is the outlets' mean at the precision the game shows.
+const meanScore = (reviews) => round(sum(reviews, (r) => r.score) / reviews.length, 1);
+
+// One review per outlet around a target score, each with a different quote that fits a first launch or an
+// update. The product's score is then the mean of these, so what the popup shows always adds up.
+// With centered, the outlets' spread is shifted to average zero, so the scores average to the target.
+export function pressReviews(state, target, { update = false, centered = false } = {}) {
+  const used = new Set();
+  const offsets = PRESS.map(() => range(state.rng, -B.reviewNoise, B.reviewNoise));
+  const shift = centered ? sum(offsets, (o) => o) / offsets.length : 0;
+  return PRESS.map((outlet, i) => {
+    const score = Math.round(clamp(target + offsets[i] - shift, 1, 10) * 2) / 2;
     const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
-    const quotes = eraIndex(state) > 0 ? [...REVIEW_QUOTES[band], ...AI_REVIEW_QUOTES[band]] : REVIEW_QUOTES[band];
-    return { outlet: outlet.name, score, quote: pick(state.rng, quotes) };
+    const all = eraIndex(state) > 0 ? [...REVIEW_QUOTES[band], ...AI_REVIEW_QUOTES[band]] : REVIEW_QUOTES[band];
+    const fits = all.filter((q) => typeof q === 'string' || q.when === (update ? 'update' : 'first')).map((q) => (typeof q === 'string' ? q : q.text));
+    const fresh = fits.filter((q) => !used.has(q));
+    const quote = pick(state.rng, fresh.length ? fresh : fits);
+    used.add(quote);
+    return { outlet: outlet.name, score, quote };
   });
-  return { score: round(sum(reviews, (r) => r.score) / reviews.length, 1), reviews, base, fit, quality };
 }
 
 // Founders built the company, so any founder can build, whatever their role.
@@ -173,9 +190,12 @@ function complete(ctx, j) {
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'update' && pr && !pr.killed) {
     for (const st of STATS) pr.stats[st] = pr.stats[st] * 0.6 + j.stats[st];
-    const review = reviewScore(state, j);
-    const score = round(B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * review.score, 1);
-    Object.assign(pr, { score, reviews: review.reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
+    // The new version's standing blends its old score with the update's own reviews, as it always has; the
+    // outlets then review that blended product, so the scores shown average to the score the product gets.
+    const fresh = reviewScore(state, j).score;
+    const target = B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * fresh;
+    const reviews = pressReviews(state, target, { update: true, centered: true });
+    Object.assign(pr, { score: meanScore(reviews), reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
     ctx.emit({ type: 'toast', text: `${pr.name} v${pr.version} shipped. Reviews average ${pr.score}.`, tone: 'good' });
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);

@@ -56,16 +56,5 @@ describe('natural attrition', () => {
     expect(s.candidates.at(-1)).toMatchObject({ role: 'designer', seniority: 'senior' });
   });
 
-  it('a balanced company loses someone every year or two, not zero and not a flood', () => {
-    const rates = [];
-    for (const seed of [1, 2, 3, 4]) {
-      let n = 0;
-      let weeks = 0;
-      runBot('balanced', seed, 780, { onWeek: (s, ev) => { weeks++; n += ev.filter((e) => e.type === 'resign' && !e.fired).length; } });
-      rates.push(n / (weeks / 52));
-    }
-    const mean = rates.reduce((a, b) => a + b) / rates.length;
-    expect(mean).toBeGreaterThanOrEqual(0.25);
-    expect(mean).toBeLessThanOrEqual(1.2);
-  }, 120000);
+  // The balanced-run rate check is in full-runs.test.js.
 });

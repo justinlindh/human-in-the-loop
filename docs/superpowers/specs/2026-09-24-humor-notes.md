@@ -1,6 +1,6 @@
-# Humor notes: adapting "Programmers are also human"
+# Humor notes
 
-Reference research for the game's writing voice. The source channel is a series of deadpan interview sketches about software-industry stereotypes. We adapt its joke *shapes* and *themes*; we never reuse its lines. Source titles below are references for the writer only and never appear in game text.
+The game's writing voice: deadpan satire of software-industry stereotypes, the themes it draws on, the joke shapes that carry them, and example lines. Every line in the game is original.
 
 Rules carried over from the game: affectionate satire, never mean to a group of people; parody vendors only (Yak, Jirra, Figmo, ChatGBT, Claudius, Gemenai, Grokk, Llamarama, DeepSleep, Mistrale, TechCrunchy, GitHug, LinkedOut); no AI references before the ChatGBT era; "company" or "lab", never "startup" outside a parody joke.
 
@@ -9,52 +9,36 @@ Rules carried over from the game: affectionate satire, never mean to a group of 
 Ordered roughly by how well each fits the game.
 
 1. **The framework treadmill.** The team rewrites everything every few months and ends up where it started. Every recommendation comes with a quiet confession that the speaker doesn't follow it. Fits: engineer; all eras (in Classic it's frameworks, later it's model vendors and deprecations); standups, Yak, vendor migration events.
-   Source: *Interview with Senior JS Developer*; *Shipping a button in 2026*.
 
 2. **Over-engineering the trivial.** A single button acquires a service mesh, an audit log, role-based access, and a migration guide before anyone decides what it does. The joke is the stack growing while the feature stays at zero. Fits: engineer, security, designer; Classic onward; launches, standups, Research.
-   Source: *Shipping a button in 2026*.
 
 3. **The jargon avalanche with a plain-English cut.** An executive speaks in grand abstractions ("capability layers", "knowledge fabric"), and someone flatly translates each one: it's a search box, it's a PDF, it's autocomplete. Fits: leadership events, marketer, sales, launch reviews; ChatGBT and later.
-   Source: *AI CEO vs Engineer (2026)*; *Interview with a 'sweating' AI CEO (2026)*.
 
 4. **Vibe coding and pleading with the model.** The user threatens, begs and bargains with the tool, adds ever-longer rule files, and the tool confidently does something else. The senior version: a veteran with decades of opinions who cannot get the model to leave the header alone. Fits: engineer, designer; Agents era mostly (lighter version in ChatGBT); automation, incidents, comprehension debt.
-   Source: *Interview with Vibe Coder in 2025*; *Senior Engineer tries Vibe Coding*.
 
 5. **The chaos 10x engineer.** Brilliant, cheerful, and a walking incident: moved production onto a spare computer, has a secret backup nobody knew about, shipped both versions early. Catastrophes announced like good news. Fits: engineer (a trait or archetype), incidents, spoken asides; all eras.
-   Source: *Next-door 10x Software Engineer*.
 
 6. **The 0.1x engineer.** More content creator than coder: filming a day-in-the-life, committing secrets, outsourcing the task to someone who outsources it again. Fits: engineer, marketer; Classic (the "influencer" angle) and later (outsourcing to an agent); meaning, security.
-   Source: *0.1x engineer [Office Edition]*; *Interview with 0.1x engineer [Home Edition]*.
 
 7. **Management's AI land grab.** Every department claims ownership of AI, settles on "shared ownership" meaning nobody, then drafts a plan where every number is "conservative" and the scary chart goes in the appendix. Fits: leadership decision events; ChatGBT and Agents eras; incentives, automation.
-   Source: *Upper Management Meeting*.
 
 8. **Cloud bills and ops fatalism.** The monitoring costs more than the service; the tool that shuts down idle tools is the biggest expense; nothing can be reproduced outside the cloud. Dry, weary, numerically absurd. Fits: engineer, security; all eras; incidents, Ops, observability upgrades.
-   Source: *Interview with Cloud Architect in 2025*; *Interview with Senior DevOps engineer 2025*; *Interview with Big Data engineer in 2026*.
 
 9. **The indispensable on-call hermit.** One person who knows where everything is plugged in, practically lives in the server room, and is quietly unfireable. Fits: engineer, security; all eras; incidents, burnout, institutional knowledge (the senior pipeline mechanic).
-   Source: *\*On-Call Engineer\**.
 
 10. **Process theater.** Status updates nobody reads, OKRs rewritten when missed, retros about why nothing was surfaced earlier, an agile coach whose value is moderating the meeting about the meeting. Fits: standups, incentives, meaning; all eras.
-    Source: *OKR calibration sync*; *Interview with an Agile Coach - Sprint1*; *Interview with Product Manager in 2024 [Corporate]*; *Interview with Dying Company's Manager*.
 
 11. **Who actually owns this.** A blocker chases through six teams and ends at one person who is on vacation and very happy about it. Fits: standups, incidents, remote work; all eras.
-    Source: *PTO Call*.
 
 12. **Dying-company serenity.** A calm, almost cheerful acceptance that the ship is sinking, plus dark-pattern "wins" like hiding every rating except five stars. Fits: support, marketer; Consolidation; the rival company, churn, incentives.
-    Source: *Interview with Dying Company's Product Manager*.
 
 13. **Hiring whiplash.** In the boom, candidates interview the company about perks; in the bust, the company asks for fifteen years in a five-year-old tool. Fits: hiring events, sales, marketer; Classic boom vs. Consolidation squeeze.
-    Source: *Hiring in 2026 vs 2021*; *Tech job requirements in 2023*.
 
 14. **The language evangelist.** Identity-level devotion to one language: "choose the job for the tool", rewriting a color in it. Fits: engineer trait, Research events; all eras.
-    Source: *Interview with Senior Rust Developer*.
 
 15. **Security as a human problem.** The trainer who explains that computers are secure and people are the vulnerability, then plugs in the suspicious stick himself. Fits: security; all eras; breaches, policies.
-    Source: *Interview with Computer Security Trainer*.
 
 16. **Monitoring the situation.** Over-reading noise as signal: someone tracking every metric and rumor feed except the one that matters. Fits: marketer, the rival company, market events; any era.
-    Source: *I am monitoring the situation*.
 
 ## Joke shapes
 
@@ -152,3 +136,7 @@ All original. Tags: role / era / system. "Leadership" marks decision-event premi
 58. "Customers pay extra to talk to a human. The human is me. I've never been this expensive." *(support / Plateau / meaning, incentives)*
 59. Premise: A senior offers a lunch workshop, "Reading Code You Didn't Generate". It is oversubscribed within the hour. *(leadership / Plateau / decision, comprehension debt)*
 60. "Found the old strategy deck. Changed the year on the cover. Still accurate." *(marketer / Plateau / Yak #random)*
+
+## Influences
+
+The themes are old industry tropes, mined by plenty of people from office sitcoms to conference talks. Deadpan interview sketches about tech stereotypes, the "Programmers are also human" channel among them, shaped some of the themes and the delivery. Every line in the game is original.

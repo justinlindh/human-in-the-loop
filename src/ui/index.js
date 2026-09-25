@@ -18,7 +18,9 @@ import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
 import { createCallGrid } from './callgrid.js';
-import { createTapTips } from './tapTips.js';
+import { createTooltips } from './tooltip.js';
+import { createSceneTips } from './sceneTips.js';
+import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK } from './v2content.js';
 
@@ -33,7 +35,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
-  createTapTips(layer);
+  const tooltips = createTooltips(layer);
+  createMomentCaptions(layer);
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
@@ -110,7 +113,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   layer.append(bottom);
   // The bottom row's real height, so the tray can stop above it on short screens.
   if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(() => layer.style.setProperty('--bottom-h', `${bottom.offsetHeight}px`)).observe(bottom);
+    new ResizeObserver(() => requestAnimationFrame(() => layer.style.setProperty('--bottom-h', `${bottom.offsetHeight}px`))).observe(bottom);
   }
   const chat = createChat(bottom, {
     getState,
@@ -123,6 +126,11 @@ export function createUI({ root, getState, dispatch, controls }) {
   bottom.append(h('div'));
 
   const buildMode = createBuildMode({ layer, ctx, controls });
+  // Hover or long-press a person or an item in the office for its tooltip.
+  ctx.sceneTips = createSceneTips({
+    tooltips, getState, getRenderer: () => controls.renderer ?? null,
+    isBlocked: () => buildMode.on || layer.classList.contains('title-mode'),
+  });
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
   const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg) });
 
@@ -196,6 +204,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx });
   ui.openSettings = () => settings.open();
+  ui.isMuted = () => settings.isMuted();
+  ui.toggleMute = () => { settings.setMuted(!settings.isMuted()); sfx('click'); };
   const title = createTitle({
     layer, controls, sfx,
     toast: (text, tone) => toasts.push(text, tone),
@@ -294,6 +304,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   let lastPanelAt = 0;
   function update(state) {
     checkNewItems(state);
+    // Phones hide toasts while a card is up (the stylesheet reads this class).
+    if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);

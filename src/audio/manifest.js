@@ -75,6 +75,8 @@ export const ON_EVENT = {
   hire: 'sfx.hire',
   resign: (e) => (e.fired ? null : isWarmExit(e) ? 'sfx.farewell' : 'sfx.resign'),
   decision: 'ui.decision',
+  // The player's pick already clicked in the UI; the resolution itself makes no sound.
+  decisionResolved: null,
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),
@@ -116,6 +118,8 @@ export function isMusicNightDecision(d) {
   return text.includes('music_night') || Object.keys(MUSIC_NIGHT).some((g) => text.includes(g));
 }   // placeholder length, and the fallback when assets.json gives none
 export const MUSIC_BARS = 8;          // placeholder bed length in bars
+export const PLAYLIST_MIN_S = 120;    // an era with several beds switches after this much unpaused listening
+export const PLAYLIST_LOOKAHEAD_S = 0.5; // how early the switch is scheduled before its bar line
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
 export const LOCKDOWN_LOWPASS = 1800;

@@ -1024,8 +1024,6 @@
 .hitl .needrow .nquick { flex: none; padding: 0.1em 0.5em; font-size: 0.75em; }
 
 /* ---------- touch ---------- */
-.hitl .taptip { position: absolute; z-index: 60; max-width: 18em; padding: 0.35em 0.6em; border-radius: 0.6em; background: var(--ink); color: var(--cream);
-  font-size: 0.85em; font-weight: 600; line-height: 1.25; box-shadow: var(--soft); pointer-events: none; }
 /* On touch screens every control gets a finger-sized target (about 40 px); the mouse layout is unchanged. */
 @media (pointer: coarse) {
   .hitl .btn, .hitl .btn.small, .hitl .btn.x, .hitl .segb, .hitl .ctab, .hitl .tab, .hitl select, .hitl input.text, .hitl .need,
@@ -1211,4 +1209,52 @@
   .hitl .yak-back { padding: 0; }
   .hitl .chat.max { width: 100%; height: 100%; border-radius: 0; }
   .hitl .chat-head .ysz:not(.ymax) { display: none; }
+}
+
+/* Tooltips (tooltip.js): a cream panel with an ink outline, an offset shadow and a pointer. */
+.hitl .gtip {
+  position: absolute; z-index: 70; max-width: 20em; pointer-events: none;
+  background: var(--cream); color: var(--ink); border: 0.16em solid var(--ink); border-radius: 0.7em;
+  box-shadow: 0 0.22em 0 var(--ink), var(--soft); padding: 0.45em 0.7em; font-size: 0.86em; line-height: 1.35;
+  font-variant-numeric: tabular-nums; animation: gtipin 120ms ease-out;
+}
+.hitl .gtip-title { display: block; font-size: 1.02em; margin-bottom: 0.1em; }
+.hitl .gtip-line { white-space: pre-line; }
+.hitl .gtip-arrow {
+  position: absolute; bottom: -0.5em; width: 0.8em; height: 0.8em; margin-left: -0.4em; background: var(--cream);
+  border-right: 0.16em solid var(--ink); border-bottom: 0.16em solid var(--ink); transform: rotate(45deg);
+}
+.hitl .gtip.below .gtip-arrow { bottom: auto; top: -0.5em; transform: rotate(225deg); }
+@keyframes gtipin { from { opacity: 0; transform: translateY(0.2em); } }
+@media (prefers-reduced-motion: reduce) { .hitl .gtip { animation: none; } }
+
+/* Office items say what they are: a workstation (desk) or an office-wide perk. */
+.hitl .kindtag { font-size: 0.68em; margin-top: 0.3em; display: inline-flex; align-items: center; gap: 0.2em; }
+.hitl .kindtag.perk { background: #e6f4ff; }
+.hitl .kindtag.work { background: #fff1d6; }
+
+/* The HUD mute button: muted is a red-tinted outline and icon, distinct from a selected speed. */
+.hitl .chip.speed .mute.muted { background: #ffe1df; color: var(--bad); border-color: var(--bad); }
+.hitl .chip.speed .mute.muted:hover:not(:disabled) { background: #ffd0cc; }
+
+/* The staged-moment caption: one line above the bottom menu that fades in and out. */
+.hitl .moment-cap {
+  position: absolute; left: 50%; bottom: calc(var(--bottom-h, 6em) + 1.2em); transform: translate(-50%, 0.4em);
+  max-width: min(34em, calc(100% - 2em)); pointer-events: none; opacity: 0; transition: opacity 400ms ease, transform 400ms ease;
+  background: rgba(42, 38, 48, 0.88); color: var(--cream); border-radius: 1em; padding: 0.45em 1em; text-align: center;
+  font-size: 0.95em; line-height: 1.3; box-shadow: var(--soft);
+}
+.hitl .moment-cap.show { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .hitl .moment-cap { transition: opacity 200ms linear; transform: translate(-50%, 0); } }
+
+/* Phones (narrow, or short in landscape): at most two toasts, one line each, full width and docked
+   above the bottom row; only toasts with an action take taps, so the office stays playable. They
+   hide while placing furniture and while a card (a decision, a launch) is up. */
+@media (max-width: 480px), (max-height: 500px) {
+  .hitl .toasts { top: auto; left: 0.6em; right: 0.6em; width: auto; bottom: calc(var(--bottom-h, 6em) + 0.9em); gap: 0.3em; pointer-events: none; }
+  .hitl .toasts .toast { pointer-events: none; padding-top: 0.3em; padding-bottom: 0.3em; }
+  .hitl .toasts .toast.clickable, .hitl .toasts .toast-more { pointer-events: auto; }
+  .hitl .toasts .toast { align-items: center; }
+  .hitl .toasts .toast .tt { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .hitl.building .toasts, .hitl.popup-open .toasts { display: none; }
 }

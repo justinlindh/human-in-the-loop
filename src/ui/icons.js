@@ -32,6 +32,8 @@ export const ICONS = {
   'arrow.down': I('▼', 'MRR trend, active effects (red)', 12),
   'arrow.flat': I('•', 'MRR trend when flat', 12),
   'arrow.back': I('◀', 'Staff detail back button', 14),
+  'sound.on': I('🔊', 'HUD mute button, sound on', 14),
+  'sound.off': I('🔇', 'HUD mute button, muted', 14),
   expand: I('⤢', 'Yak maximize button', 12),
   'caret.down': I('▾', 'Chat header, expanded', 12),
   'caret.right': I('▸', 'Chat header, collapsed', 12),
@@ -275,7 +277,7 @@ export function icon(name, { size, title } = {}) {
   el.style.setProperty('--is', String(px / 16));
   el.dataset.icon = name;
   fill(el, name);
-  if (title) el.title = title;
+  if (title) el.dataset.tip = title;
   return el;
 }
 

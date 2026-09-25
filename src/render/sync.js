@@ -442,9 +442,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
-  const pets = createPets({ office, recs, emote, parent: group });
+  const pets = createPets({ office, recs, emote, parent: group, getProps });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx });
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -851,7 +851,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     perks.update(dt, lastState);
     pets.update(dt);
     incentives.update(dt);
-    moments.update(dt);
+    moments.update(dt, lastState);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }

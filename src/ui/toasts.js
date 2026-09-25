@@ -2,6 +2,9 @@ import { h } from './dom.js';
 import { icon } from './icons.js';
 
 const MAX_VISIBLE = 5;
+// Phones (narrow, or short in landscape) keep at most two, docked in one line above the bottom row.
+const COMPACT = '(max-width: 480px), (max-height: 500px)';
+const maxVisible = () => (typeof matchMedia === 'function' && matchMedia(COMPACT).matches ? 2 : MAX_VISIBLE);
 const LIFE = { info: 6500, good: 6500, warn: 9000, bad: 9000 };
 // Toasts shown per game week before the rest collapse into a "+N more" chip. Warn and bad always show.
 const WEEK_BUDGET = 3;
@@ -111,7 +114,7 @@ export function createToasts(root) {
     t.timer = setTimeout(() => remove(t), LIFE[t.tone]);
     if (dock) renderDock();
     else { t.node = node(t, 'toast'); el.insertBefore(t.node, moreChip); }
-    while (live.length > MAX_VISIBLE) remove(live[0]);
+    while (live.length > maxVisible()) remove(live[0]);
   }
 
   // Pass a panel's strip element to dock there, or null to go back to the corner stack.

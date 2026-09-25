@@ -33,7 +33,7 @@ describe('issue #67: the Office Floor gate', () => {
       const moves = [];
       for (const seed of [1, 2, 3, 4, 5, 6]) {
         let moved = Infinity;
-        runBot('sensible', seed, 200, { founding: { founders: [ids[i], ids[k]] }, onWeek: (s) => { if (moved === Infinity && s.officeStage >= 1) moved = s.week; } });
+        runBot('sensible', seed, 200, { founding: { founders: [ids[i], ids[k]] }, onWeek: (s) => { if (moved === Infinity && s.officeStage >= 1) moved = s.week; }, stopWhen: () => moved !== Infinity });
         moves.push(moved);
       }
       moves.sort((a, b) => a - b);

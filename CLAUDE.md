@@ -14,6 +14,8 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 - `npm run snap -- --scenario floor --out shots/floor.png`: headless screenshot, exits non-zero on console errors.
 - `npm run models`: rebuild `public/models/*.glb` from `blender/` scripts (Blender 5.2, headless).
 
+Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) is listed in `docs/toolkit.md`, with who uses it and for what. Read it at the start of a session. A PR that adds, removes or changes a tool updates `docs/toolkit.md` and, when a role should reach for it, that role's brief in `.claude/agents/`.
+
 ## Team
 
 Message teammates by name with SendMessage. Other sessions that ListAgents shows (other projects, cloud sessions, older gamedev sessions) are not on the team; never message them.
@@ -60,6 +62,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
   - Never push to a PR's branch after it merges: those commits never reach `main`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/main` with its own PR.
+- Dependabot PRs (author `dependabot[bot]`) are never in `scripts/ci-trusted`: local CI would run the new packages' install scripts. The reviewer reads the diff and the changelogs first (`gh pr diff <n>`, with no install) and posts the verdict. Then they run `scripts/ci-pr.sh <n> --allow-bot --head <sha>` and turn on auto-merge. `--allow-bot` refuses any PR that isn't a same-repo Dependabot PR with only Dependabot's commits, that changes anything other than `package.json`, `package-lock.json` or `.github/workflows/`, or whose head has no review pass.
 - The repo is public. Never fetch, install, build, run or open the code of a PR from a fork or an author outside `scripts/ci-trusted`: check `gh pr view <n> --json isCrossRepository,author` first. Report such PRs to team-lead instead. `scripts/ci-pr.sh` enforces this for local CI.
 - PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`, imperative, lower case after the colon, no trailing period.
