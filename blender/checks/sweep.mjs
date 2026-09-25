@@ -9,10 +9,13 @@
 // Checks:
 //   overlap  two things interpenetrate by more than 1 cm (furniture, desk and floor props, wall
 //            prints, walls, columns); value is the depth in metres
-//   float    a desk prop, floor prop or piece of furniture hangs more than 2 cm above what is
+//   float    a desk prop, floor prop or piece of furniture hangs more than 1.5 cm above what is
 //            under it; value is the gap
 //   hand     a prop held in the hand is more than 6 cm from the wrist; value is the gap
 //   bounds   something reaches past the room's walls or under the floor; value is how far
+//   person   a person's head or torso (and legs, walking) is more than 2 cm inside furniture, a
+//            prop, a wall or another person, other than what they are using (their desk, the
+//            item they sit on or leave, a moment's desk); checked every 0.2 s along real walks
 //
 // Each violation prints with its state (mock:<name> or seed:<n>:w<week>), time into the window,
 // the two things, and the value. New ones (not in sweep-baseline.json, or clearly worse than its
