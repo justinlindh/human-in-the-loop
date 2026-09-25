@@ -91,7 +91,7 @@ Snap and capture drive a headless Chromium through Playwright; run `npx playwrig
 
 ## How it is built
 
-A game about deciding how much of the work the machines should do, built almost entirely by machines, with one human deciding. The irony is not lost on anyone, least of all the machines.
+A game about deciding how much of the work the machines should do, built almost entirely by machines, with one human deciding. Yes, the developer knows this is very meta. So do the machines.
 
 ### The team
 
