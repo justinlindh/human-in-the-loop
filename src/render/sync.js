@@ -15,6 +15,9 @@ import { holdSeconds } from './reading.js';
 const WALK = 1.25;
 const CHAIR_BACK_M = 0.55;
 const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
+const CELEBRATE_ROOM = 0.25;   // clear floor around someone who stops to celebrate
+const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
+const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
@@ -99,7 +102,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const cur = office.current;
     const Z = cur.zones;
     const type = s.assignment?.type ?? 'idle';
-    if (s.mood === 'away' || s.remote || type === 'sabbatical') return { hidden: true, x: Z.door.x, z: Z.door.z, yaw: 0, anim: 'idle', key: 'away' };
+    // Out the door. Each person heads for their own spot around it, so two leaving together do not
+    // walk into each other there.
+    if (s.mood === 'away' || s.remote || type === 'sabbatical') {
+      const k = [...recs.keys()].indexOf(r.id), a = k * 2.4, d = k ? DOOR_SPREAD : 0;
+      const at = office.nav().freePoint(Z.door.x + Math.cos(a) * d, Z.door.z + Math.sin(a) * d);
+      return { hidden: true, x: at.x, z: at.z, yaw: 0, anim: 'idle', key: 'away' };
+    }
     const desk = r.seat !== null ? office.deskById(r.seat) : null;
     const seated = (d) => ({ x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: isTired(s) ? 'tired' : SEATED_ANIM[s.mood] ?? 'typing', seated: true });
     if (type === 'oversight') {
@@ -151,11 +160,20 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
     r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
+    // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
+    // clear point first, then on from there.
+    if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
+      const p = clearOf(r, nav);
+      r.path = [p, ...nav.path(p, { x: to.x, z: to.z }).slice(1)];
+    }
     r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
   }
 
   function teleport(r, goal) {
+    // A standing spot inside furniture moves to the nearest walkable point, as walkTo does.
+    const nav = office.nav();
+    if (!goal.seated && !goal.onItem && !goal.hidden && nav.isBlocked(goal.x, goal.z)) Object.assign(goal, nav.freePoint(goal.x, goal.z));
     r.pos.set(goal.x, 0, goal.z);
     r.yaw = goal.yaw;
     r.path = [];
@@ -404,8 +422,17 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // if they are called away.
   const taken = (r) => !!(r.temp?.standup || r.temp?.moment);
 
+  // Whether someone can stop right where they are to celebrate: seated, or standing clear of
+  // furniture and of everyone else. Otherwise they carry on to where they were going.
+  function roomToCelebrate(r) {
+    if (r.char.seated) return true;
+    if (office.nav().isBlocked(r.pos.x, r.pos.z, CELEBRATE_ROOM)) return false;
+    for (const o of recs.values()) if (o !== r && !o.hidden && o.pos.distanceTo(r.pos) < CELEBRATE_APART) return false;
+    return true;
+  }
+
   function celebrate(r, seconds, sparkle) {
-    if (r.temp?.moment) return;
+    if (r.temp?.moment || !roomToCelebrate(r)) return;
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
     if (sparkle) emote(r, 'sparkle', seconds);
   }
@@ -422,7 +449,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
     for (const r of recs.values()) {
-      if (r.hidden || r.mode !== 'placed' || taken(r)) continue;
+      if (r.hidden || r.mode !== 'placed' || taken(r) || !roomToCelebrate(r)) continue;
       r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08 };
     }
   }
@@ -826,22 +853,30 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         continue;
       }
       if (r.temp?.enter || r.temp?.lift || r.goal?.seated && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.3) continue;
-      if (nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
-        // The nearest point, in widening rings, where the whole body is clear.
-        let p = null;
-        for (let d = 0.3; d < 3 && !p; d += 0.2) {
-          for (let a = 0; a < 12; a++) {
-            const q = { x: r.pos.x + Math.cos((a / 12) * Math.PI * 2) * d, z: r.pos.z + Math.sin((a / 12) * Math.PI * 2) * d };
-            if (!nav.isBlocked(q.x, q.z, BODY_R)) { p = q; break; }
-          }
-        }
-        p ??= nav.freePoint(r.pos.x, r.pos.z);
-        r.path = [{ x: p.x, z: p.z }];
-        if (r.temp) r.temp.goal = { ...r.temp.goal, x: p.x, z: p.z };
-        else if (r.goal && !r.goal.seated) Object.assign(r.goal, r.goal && nav.isBlocked(r.goal.x, r.goal.z) ? p : {});
-      }
+      if (nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) stepOut(r, nav);
     }
   }
+
+  // The nearest point, in widening rings, where the whole body is clear.
+  function clearOf(r, nav) {
+    for (let d = 0.3; d < 3; d += 0.2) {
+      for (let a = 0; a < 12; a++) {
+        const q = { x: r.pos.x + Math.cos((a / 12) * Math.PI * 2) * d, z: r.pos.z + Math.sin((a / 12) * Math.PI * 2) * d };
+        if (!nav.isBlocked(q.x, q.z, BODY_R)) return q;
+      }
+    }
+    return nav.freePoint(r.pos.x, r.pos.z);
+  }
+
+  // Someone standing where the whole body is not clear walks out to the nearest point where it is.
+  function stepOut(r, nav) {
+    const p = clearOf(r, nav);
+    r.path = [{ x: p.x, z: p.z }];
+    if (r.temp) r.temp.goal = { ...r.temp.goal, x: p.x, z: p.z };
+    else if (r.goal && !r.goal.seated) Object.assign(r.goal, r.goal && nav.isBlocked(r.goal.x, r.goal.z) ? p : {});
+  }
+
+
 
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
