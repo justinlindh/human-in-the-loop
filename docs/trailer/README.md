@@ -61,7 +61,44 @@ If a beat's `from + dur` runs past its capture, the build stops and says which b
 
 ## The voiceover
 
-See `scripts/trailer/vo/` for how the narration is rendered, and `LICENSES.md` for the voice's source and
-license. Rules: the voice is synthetic or from a source whose license allows this use, never a clone of an
-identifiable living person without that person's license; no pitch-shifting; generation runs on the GPU
-and stops if the GPU is unavailable.
+The narrator is a synthetic deadpan voice: the Qwen3-TTS Base clone model, run on the GPU through the
+audio lane's voice-clone script, prompted with the audio lane's designed reference `ref_masc_deadpan`
+and its transcript. Source and licence are in `LICENSES.md` next to this file.
+
+1. Render takes, three per line by default:
+
+   ```sh
+   VOICE_CLONE=<the audio lane's voice-clone script> \
+   TRAILER_VO_REF=<ref_masc_deadpan.wav> \
+   TRAILER_VO_REF_TEXT=<ref_text.txt, the reference transcript> \
+     scripts/trailer/vo/render.sh shots/trailer/takes 3
+   ```
+
+   The lines come from `VO.lines` in `config.js` (written to `shots/trailer/takes/lines.json`), and
+   each take lands as `<line id>.take<n>.wav`. All three variables are required: the script refuses to
+   run without them, so the voice-clone script's own default reference (a recording of a real person)
+   is never used.
+
+2. Pick and master:
+
+   ```sh
+   HF_HUB_OFFLINE=1 python3 scripts/trailer/vo/pick.py --lines shots/trailer/takes/lines.json \
+     --takes shots/trailer/takes --out shots/trailer/vo
+   ```
+
+   Run it with a Python that has torch (CUDA) and transformers, and a local Whisper large-v3. Each take is
+   transcribed, and the one that says the line correctly wins (the shorter one on a tie). `--take
+   l1=2,l3=0` forces takes by ear. The winner is loudness-normalized to -18 LUFS, its only processing,
+   and written as `<line id>.wav`; `picks.json` records every take's transcript and length, and
+   `sample.wav` plays the lines back to back.
+
+3. Build with `npm run trailer -- --vo shots/trailer/vo`. The build warns when a line runs into the next
+   one or past the end; move its cue (`at`) in `config.js`.
+
+Rules: no pitch processing, ever. Generation and transcription run on the GPU and stop if it is
+unavailable; there is no CPU path. Never clone an identifiable living person's voice.
+
+## Cards and the logo
+
+The cards read `docs/readme/logo.png` fresh on every build (they are never reused), so a new logo shows
+up on the next `npm run trailer`, even with `--reuse`.
