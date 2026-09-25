@@ -203,6 +203,7 @@ registerAction('resolveDecision', (ctx, { choice }) => {
   const why = choiceBlocker(state, c, d.subjectId);
   if (why) return { ok: false, reason: why };
   state.pendingDecision = null;
+  ctx.emit({ type: 'decisionResolved', eventId: d.eventId, choice, subjectId: d.subjectId ?? null });
   if (c.outcome) ctx.emit({ type: 'toast', text: fillText(state, ctx.rng, c.outcome, d.subjectId, d.vars), tone: 'info' });
   applyEffects(ctx, c.effects, d.subjectId, d.eventId, d.vars);
   // A granted item is paid for by the choice's cash when it has any, so it is placed without charging again.
