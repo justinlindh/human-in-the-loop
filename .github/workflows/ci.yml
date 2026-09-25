@@ -13,40 +13,118 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Classify the change (scripts/ci-skip-paths, read from the base branch)
+        id: cls
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mode=full
+          if [ "$EVENT" = pull_request ]; then
+            git fetch -q origin "$BASE_REF"
+            if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
+              && git show "origin/$BASE_REF:scripts/ci-skip-paths" >"$RUNNER_TEMP/skip" 2>/dev/null; then
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
+            fi
+          fi
+          echo "mode=$mode" >>"$GITHUB_OUTPUT"
+          if [ "$mode" = light ]; then echo "skipped: docs-only change" | tee -a "$GITHUB_STEP_SUMMARY"; fi
       - name: No node_modules in the repo
         run: test -z "$(git ls-files node_modules)"
+      - name: Syntax of touched .js and .mjs (light gate)
+        if: steps.cls.outputs.mode == 'light'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | grep -E '\.m?js$' | while read -r f; do
+            if [ -f "$f" ]; then node --check "$f"; fi
+          done
       - uses: actions/setup-node@v7
+        if: steps.cls.outputs.mode == 'full'
         with:
           node-version: 25
           cache: npm
       - run: npm ci
+        if: steps.cls.outputs.mode == 'full'
       - run: npm run test:fast
+        if: steps.cls.outputs.mode == 'full'
       - run: npm run build
+        if: steps.cls.outputs.mode == 'full'
 
   balance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Classify the change (scripts/ci-skip-paths, read from the base branch)
+        id: cls
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mode=full
+          if [ "$EVENT" = pull_request ]; then
+            git fetch -q origin "$BASE_REF"
+            if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
+              && git show "origin/$BASE_REF:scripts/ci-skip-paths" >"$RUNNER_TEMP/skip" 2>/dev/null; then
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
+            fi
+          fi
+          echo "mode=$mode" >>"$GITHUB_OUTPUT"
+          if [ "$mode" = light ]; then echo "skipped: docs-only change" | tee -a "$GITHUB_STEP_SUMMARY"; fi
       - uses: actions/setup-node@v7
+        if: steps.cls.outputs.mode == 'full'
         with:
           node-version: 25
           cache: npm
       - run: npm ci
+        if: steps.cls.outputs.mode == 'full'
       - run: npm run test:balance
+        if: steps.cls.outputs.mode == 'full'
 
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Classify the change (scripts/ci-skip-paths, read from the base branch)
+        id: cls
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mode=full
+          if [ "$EVENT" = pull_request ]; then
+            git fetch -q origin "$BASE_REF"
+            if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
+              && git show "origin/$BASE_REF:scripts/ci-skip-paths" >"$RUNNER_TEMP/skip" 2>/dev/null; then
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
+            fi
+          fi
+          echo "mode=$mode" >>"$GITHUB_OUTPUT"
+          if [ "$mode" = light ]; then echo "skipped: docs-only change" | tee -a "$GITHUB_STEP_SUMMARY"; fi
       - uses: actions/setup-node@v7
+        if: steps.cls.outputs.mode == 'full'
         with:
           node-version: 25
           cache: npm
       - run: npm ci
+        if: steps.cls.outputs.mode == 'full'
       - run: npx playwright install --with-deps chromium
+        if: steps.cls.outputs.mode == 'full'
       - run: npm run soak
+        if: steps.cls.outputs.mode == 'full'
       - run: npm run lifecycle -- --quality low --no-shots
+        if: steps.cls.outputs.mode == 'full'
 
   commits:
     if: github.event_name == 'pull_request'

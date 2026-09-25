@@ -50,6 +50,7 @@ syntax() {
   return $failed
 }
 step syntax syntax
+step ci-classify bash "$SELF/ci-classify.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 bal_t0=$(now)
