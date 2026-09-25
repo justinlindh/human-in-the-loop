@@ -239,7 +239,8 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Scene tips**: hover (or long-press) a person or item in the office for a tooltip; clicking a person opens them in Staff, clicking an item opens its card to move, upgrade or sell.
 - **Coach marks**: dismissible tips for the HUD and speed controls.
 - **Game over**: a headline, a score breakdown and epilogue lines revealed one at a time. `?mock=ending`
-- **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
+- **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, how much Yak asks for attention, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
+- **Yak level**: All, Important or Off, in Settings and on a button in Yak's header. Important counts only incidents, wins and bot posts as new; Off keeps Yak shut with no unread count. A reply prompt still shows its Reply mark at every level.
 - **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.
 - **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline.
 
