@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { createRng, pick, int, shuffle } from './rng.js';
-import { registerAction } from './registry.js';
+import { registerAction, registerSystem } from './registry.js';
 import { clamp } from './util.js';
 import { emitChat, teamMeaning } from './chat.js';
 import { eraLines } from './eras.js';
@@ -10,9 +10,9 @@ import { POSTS } from '../data/posts.js';
 // the moment; its own stream, seeded by the game seed, the week and a post sequence, picks only the words,
 // the repliers and the reactions, so a game where nobody posts plays exactly as one without the feature.
 
-const BY_KIND = Object.fromEntries(POSTS.map((p) => [p.kind, p]));
+const BY_ID = Object.fromEntries(POSTS.map((p) => [p.id, p]));
 const present = (state) => state.staff.filter((p) => p.mood !== 'away' && !p.remote);
-const memory = (state) => (state.flags.posts ??= { lastWeek: null, byKind: {} });
+const memory = (state) => { const m = (state.flags.posts ??= { lastWeek: null, byId: {}, queue: [] }); m.byId ??= {}; m.queue ??= []; return m; };
 
 const pizzaCost = (state) => B.posts.pizzaPerHead * Math.max(1, present(state).length);
 const recentNews = (state) => {
@@ -36,22 +36,26 @@ const OUTCOMES = {
   announcement: (state) => (recentNews(state) ? { outcome: 'landed', teamMeaning: B.posts.news } : { outcome: 'backfired', teamMeaning: -B.posts.backfire }),
 };
 
+// Why a post cannot go out right now, or null.
 function blocker(state, post) {
-  const m = memory(state);
-  if (m.lastWeek !== null && state.week - m.lastWeek < B.posts.cooldownWeeks) return 'You posted recently';
-  if (post.kind === 'pizza' && state.cash < pizzaCost(state)) return 'Not enough cash';
+  const last = state.flags.posts?.lastWeek ?? null;
+  if (last !== null && state.week - last < B.posts.cooldownWeeks) {
+    const n = last + B.posts.cooldownWeeks - state.week;
+    return state.week === last ? 'Posted recently' : `Ready in ${n} week${n === 1 ? '' : 's'}`;
+  }
+  if (post.id === 'pizza' && state.cash < pizzaCost(state)) return 'Not enough cash';
   return null;
 }
 
 // The posts the picker offers, in a fixed order, with why any of them is greyed out and when it is ready.
 export function postOptions(state) {
   if (!B.postsEnabled) return [];
-  const m = state.flags.posts ?? { lastWeek: null };
-  const ready = m.lastWeek === null ? null : m.lastWeek + B.posts.cooldownWeeks;
+  const last = state.flags.posts?.lastWeek ?? null;
+  const ready = last === null ? null : last + B.posts.cooldownWeeks;
   return POSTS.map((p) => {
-    const reason = blocker({ ...state, flags: { ...state.flags, posts: m } }, p);
-    const hint = p.kind === 'pizza' ? `$${pizzaCost(state).toLocaleString('en-US')} for the office; team meaning and stamina up.` : p.hint;
-    return { kind: p.kind, label: p.label, hint, icon: p.icon, available: !reason, reason, readyWeek: ready !== null && ready > state.week ? ready : null };
+    const reason = blocker(state, p);
+    const hint = p.id === 'pizza' ? `$${pizzaCost(state).toLocaleString('en-US')} for the office; team meaning and stamina up.` : p.hint;
+    return { id: p.id, label: p.label, icon: p.icon, hint, available: !reason, reason, readyWeek: ready !== null && ready > state.week ? ready : null };
   });
 }
 
@@ -80,10 +84,10 @@ function applyOutcome(state, fx) {
   }
 }
 
-registerAction('postMessage', (outer, { kind }) => {
+registerAction('postMessage', (outer, { id }) => {
   const { state } = outer;
   if (!B.postsEnabled) return { ok: false, reason: 'Posts are off' };
-  const post = BY_KIND[kind];
+  const post = BY_ID[id];
   if (!post) return { ok: false, reason: 'Unknown message' };
   const why = blocker(state, post);
   if (why) return { ok: false, reason: why };
@@ -93,13 +97,13 @@ registerAction('postMessage', (outer, { kind }) => {
   state.flags.postSeq = (state.flags.postSeq ?? 0) + 1;
   const rng = createRng(((state.seed >>> 0) * 6151 + state.week * 389 + state.flags.postSeq * 9973) >>> 0);
   const ctx = { ...outer, rng };
-  const repeat = m.byKind[kind] !== undefined && state.week - m.byKind[kind] < B.posts.repeatWeeks;
-  const fx = repeat ? { outcome: 'flat' } : OUTCOMES[kind](state);
+  const repeat = m.byId[id] !== undefined && state.week - m.byId[id] < B.posts.repeatWeeks;
+  const fx = repeat ? { outcome: 'flat' } : OUTCOMES[id](state);
   const news = recentNews(state);
-  const lines = kind === 'announcement' && !news ? post.vague : post.text.map((t) => t.replace('{news}', news ?? ''));
+  const lines = id === 'announcement' && !news ? post.vague : post.text.map((t) => t.replace('{news}', news ?? ''));
   const msg = emitChat(ctx, { channel: post.channel, person: founder, text: pick(rng, eraLines(state, lines)), reactions: reactionsFor(state, rng, fx.outcome) });
   applyOutcome(state, fx);
-  // Replies: people in the roles that care first, one to three of them.
+  // Replies, chosen now and posted over the next week or two: people in the roles that care first, one to three of them.
   const staff = present(state).filter((p) => !p.founder);
   const byRole = (p) => { const i = post.who.indexOf(p.role); return i < 0 ? post.who.length : i; };
   const repliers = shuffle(rng, staff).sort((a, b) => byRole(a) - byRole(b)).slice(0, int(rng, 1, Math.min(3, Math.max(1, staff.length))));
@@ -108,13 +112,27 @@ registerAction('postMessage', (outer, { kind }) => {
     const tired = p.mood === 'burnout' || p.mood === 'coasting';
     const pool = eraLines(state, (tired && post.replies.tired) || post.replies[fx.outcome]).filter((l) => !used.has(l));
     if (!pool.length) break;
-    const line = pick(rng, pool);
-    used.add(line);
-    emitChat(ctx, { channel: post.channel, person: p, text: line, replyTo: msg.id, reactions: {} });
+    const text = pick(rng, pool);
+    used.add(text);
+    m.queue.push({ week: state.week + int(rng, 1, B.posts.replyWeeks), channel: post.channel, fromId: p.id, text, replyTo: msg.id });
   }
   if (fx.outcome === 'backfired') outer.emit({ type: 'toast', text: `That ${post.label.toLowerCase()} did not land.`, tone: 'warn' });
   m.lastWeek = state.week;
-  m.byKind[kind] = state.week;
-  outer.emit({ type: 'posted', kind, chatId: msg.id, outcome: fx.outcome });
+  m.byId[id] = state.week;
+  outer.emit({ type: 'posted', id, chatId: msg.id, outcome: fx.outcome });
   return { ok: true, outcome: fx.outcome, chatId: msg.id };
 });
+
+// Weekly: posts the queued replies that are due, from people still at the company.
+export function postsSystem(ctx) {
+  const m = ctx.state.flags.posts;
+  if (!m?.queue?.length) return;
+  const due = m.queue.filter((r) => r.week <= ctx.state.week);
+  m.queue = m.queue.filter((r) => r.week > ctx.state.week);
+  for (const r of due) {
+    const person = ctx.state.staff.find((p) => p.id === r.fromId);
+    if (person) emitChat(ctx, { channel: r.channel, person, text: r.text, replyTo: r.replyTo, reactions: {} });
+  }
+}
+
+registerSystem('posts', postsSystem, 91);

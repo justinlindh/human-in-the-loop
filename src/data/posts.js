@@ -8,7 +8,7 @@ const N = B.posts;
 
 export const POSTS = [
   {
-    kind: 'pep_talk', label: 'Pep talk', icon: 'megaphone', channel: 'general',
+    id: 'pep_talk', label: 'Pep talk', icon: 'megaphone', channel: 'general',
     hint: 'Team meaning up a little. Backfires during an outage or when morale is low.',
     text: [
       'Proud of this team. Seriously. Keep going.',
@@ -24,7 +24,7 @@ export const POSTS = [
     },
   },
   {
-    kind: 'who_broke_prod', label: 'Who broke prod?', icon: 'siren', channel: 'incidents',
+    id: 'who_broke_prod', label: 'Who broke prod?', icon: 'siren', channel: 'incidents',
     hint: 'During an outage, the product\'s health up a little and team meaning down a little. With nothing broken, it just scares people.',
     text: [
       'Okay. Who broke prod?',
@@ -40,7 +40,7 @@ export const POSTS = [
     },
   },
   {
-    kind: 'meme', label: 'Share a meme', icon: 'laugh', channel: 'random',
+    id: 'meme', label: 'Share a meme', icon: 'laugh', channel: 'random',
     hint: 'Team meaning up a little. Backfires during an outage.',
     text: [
       '[a picture of a dog at a laptop, captioned "me in standup"]',
@@ -56,7 +56,7 @@ export const POSTS = [
     },
   },
   {
-    kind: 'pizza', label: 'Pizza\'s here', icon: 'pizza', channel: 'general',
+    id: 'pizza', label: 'Pizza\'s here', icon: 'pizza', channel: 'general',
     hint: `$${N.pizzaPerHead} per person in the office; team meaning and stamina up.`,
     text: [
       'Pizza is in the kitchen. Go. Go now.',
@@ -72,7 +72,7 @@ export const POSTS = [
     },
   },
   {
-    kind: 'announcement', label: 'Announcement', icon: 'bullhorn', channel: 'general',
+    id: 'announcement', label: 'Announcement', icon: 'bullhorn', channel: 'general',
     hint: 'With real news to share, team meaning up. With none, it just makes everyone nervous.',
     text: [
       'Company update: {news}. Thank you all.',
@@ -94,4 +94,4 @@ export const POSTS = [
   },
 ];
 
-export const POST_KINDS = POSTS.map((p) => p.kind);
+export const POST_IDS = POSTS.map((p) => p.id);

@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { dispatch, postOptions } from '../../src/sim/index.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
-import { POSTS, POST_KINDS } from '../../src/data/posts.js';
+import { POSTS, POST_IDS } from '../../src/data/posts.js';
+import { postsSystem } from '../../src/sim/posts.js';
+import { makeCtx } from '../../src/sim/registry.js';
 import { eraAllowsText } from '../../src/sim/eras.js';
 import { game, addStaff, addDesks, addProduct } from './helpers.js';
 
-const KINDS = ['pep_talk', 'who_broke_prod', 'meme', 'pizza', 'announcement'];
+const IDS = ['pep_talk', 'who_broke_prod', 'meme', 'pizza', 'announcement'];
 
 function office(seed = 1) {
   const s = game(seed);
@@ -19,15 +21,21 @@ function office(seed = 1) {
   for (const g of Object.values(s.goals)) g.week = g.week ?? null;
   return s;
 }
-const post = (s, kind) => dispatch(s, { type: 'postMessage', kind });
+const post = (s, id) => dispatch(s, { type: 'postMessage', id });
+// Runs the weeks after a post and returns the replies that land.
+function repliesOver(s, weeks) {
+  const out = [];
+  for (let i = 0; i < weeks; i++) { s.week++; const ctx = makeCtx(s); postsSystem(ctx); out.push(...ctx.events.filter((e) => e.type === 'chat')); }
+  return out;
+}
 const avgMeaning = (s) => s.staff.reduce((a, p) => a + p.meaning, 0) / s.staff.length;
 
 describe('issue #16: the founders\' quick posts', () => {
   it('offers the five posts in a fixed order with the contract shape', () => {
-    expect(POST_KINDS).toEqual(KINDS);
+    expect(POST_IDS).toEqual(IDS);
     const opts = postOptions(office(1));
-    expect(opts.map((o) => o.kind)).toEqual(KINDS);
-    for (const o of opts) expect(o).toEqual({ kind: expect.any(String), label: expect.any(String), hint: expect.any(String), icon: expect.any(String), available: true, reason: null, readyWeek: null });
+    expect(opts.map((o) => o.id)).toEqual(IDS);
+    for (const o of opts) expect(o).toEqual({ id: expect.any(String), label: expect.any(String), hint: expect.any(String), icon: expect.any(String), available: true, reason: null, readyWeek: null });
   });
 
   it('copy fits Classic and never says startup', () => {
@@ -41,21 +49,24 @@ describe('issue #16: the founders\' quick posts', () => {
     }
   });
 
-  it('a pep talk lands: the post, replies in the thread, then posted, all from the dispatch', () => {
+  it('a pep talk lands: the post and posted come from the dispatch, and one to three replies follow over the next weeks', () => {
     const s = office(2);
     const before = avgMeaning(s);
     const res = post(s, 'pep_talk');
     expect(res).toEqual({ ok: true, outcome: 'landed', chatId: expect.any(String), events: expect.any(Array) });
-    const chats = res.events.filter((e) => e.type === 'chat');
-    const head = chats.find((e) => e.id === res.chatId);
+    const head = res.events.find((e) => e.type === 'chat' && e.id === res.chatId);
     expect(s.staff.find((p) => p.id === head.fromId).founder).toBe(true);
     expect(Object.values(head.reactions).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
-    const replies = chats.filter((e) => e.replyTo === res.chatId);
+    expect(res.events.at(-1)).toEqual({ type: 'posted', id: 'pep_talk', chatId: res.chatId, outcome: 'landed' });
+    expect(avgMeaning(s)).toBeCloseTo(before + B.posts.pepTalk, 5);
+    const replies = repliesOver(s, B.posts.replyWeeks);
     expect(replies.length).toBeGreaterThanOrEqual(1);
     expect(replies.length).toBeLessThanOrEqual(3);
-    for (const r of replies) expect(s.staff.find((p) => p.id === r.fromId).founder).toBe(false);
-    expect(res.events.at(-1)).toEqual({ type: 'posted', kind: 'pep_talk', chatId: res.chatId, outcome: 'landed' });
-    expect(avgMeaning(s)).toBeCloseTo(before + B.posts.pepTalk, 5);
+    for (const r of replies) {
+      expect(r.replyTo).toBe(res.chatId);
+      expect(s.staff.find((p) => p.id === r.fromId).founder).toBe(false);
+    }
+    expect(s.flags.posts.queue).toEqual([]);
   });
 
   it('timing decides the outcome: a meme or a pep talk during an outage backfires, "who broke prod?" helps', () => {
@@ -94,15 +105,18 @@ describe('issue #16: the founders\' quick posts', () => {
     for (const p of s.staff) expect(p.stamina).toBe(50 + B.posts.pizzaStamina);
     const broke = office(8);
     broke.cash = 10;
-    expect(postOptions(broke).find((o) => o.kind === 'pizza')).toMatchObject({ available: false, reason: 'Not enough cash' });
+    expect(postOptions(broke).find((o) => o.id === 'pizza')).toMatchObject({ available: false, reason: 'Not enough cash' });
     expect(post(broke, 'pizza').reason).toBe('Not enough cash');
   });
 
   it('a shared cooldown, and the same post again inside the repeat window falls flat with no effect', () => {
     const s = office(9);
     post(s, 'meme');
-    expect(post(s, 'pep_talk').reason).toBe('You posted recently');
-    expect(postOptions(s)[0]).toMatchObject({ available: false, reason: 'You posted recently', readyWeek: s.week + B.posts.cooldownWeeks });
+    expect(post(s, 'pep_talk').reason).toBe('Posted recently');
+    expect(postOptions(s)[0]).toMatchObject({ available: false, reason: 'Posted recently', readyWeek: s.week + B.posts.cooldownWeeks });
+    s.week += 1;
+    expect(post(s, 'pep_talk').reason).toBe(B.posts.cooldownWeeks - 1 === 1 ? 'Ready in 1 week' : `Ready in ${B.posts.cooldownWeeks - 1} weeks`);
+    s.week -= 1;
     s.week += B.posts.cooldownWeeks;
     const before = avgMeaning(s);
     const again = post(s, 'meme');
