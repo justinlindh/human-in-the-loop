@@ -117,7 +117,9 @@ export function createProps(office, screens = null) {
   // Where a prop of this id stood if it went within the last `within` seconds, else null.
   const goneAt = (prop, within = 5) => [...gone].reverse().find((g) => g.prop === prop && clock - g.at <= within) ?? null;
 
-  return { sync, update, objectOf, current, deskMap, goneAt, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  // For checks: a counter's free grids for a prop this tall, one per level, as rows of '.' and '#'.
+  const counterMap = (e, tall) => counterGrid(e, tall).map((g) => { const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.free[i + k * g.nx] ? '.' : '#'; rows.push(r); } return { y: g.y, rows }; });
+  return { sync, update, objectOf, current, deskMap, counterMap, goneAt, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
@@ -416,8 +418,8 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         g.userData.follow = { deskId: desk.id, lx: spot.x, lz: spot.z, rot, y };
         if (onTop) g.userData.deskRect = spot.rect;
         follow(g, desk);
-      } else if (group && (item.scale.setScalar(scale), g.rotation.y = rot, spot = counterSpot(env.office, g, e))) {
-        // A group prop with no desk to go on: the nearest table or counter with room, full size.
+      } else if (group && (spot = onCounter(env.office, g, item, scale, rot, e))) {
+        // A group prop with no desk to go on: the nearest table or counter with room.
         g.position.set(spot.x, spot.y, spot.z);
       } else {
         // No room on any nearby desk even shrunk: it goes on the floor beside its desk, full size.
@@ -447,9 +449,13 @@ function clearSpot(L, office, g, c) {
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
   const door = L.doorWorld;
+  // Furniture reaches past its blocked tiles (a chair mat, a desk's overhang), so the nav grid alone
+  // can put a floor prop against it.
+  const furniture = [...(office.placed?.values() ?? [])].filter((o) => o.obj).map((o) => new THREE.Box3().setFromObject(o.obj)).filter((f) => f.min.y < b.max.y);
   const fits = (x, z) => {
     if (x + b.min.x < -L.W / 2 + 0.15 || x + b.max.x > L.W / 2 - 0.15 || z + b.min.z < -L.D / 2 + 0.15 || z + b.max.z > L.D / 2 - 0.15) return false;
     if (door && Math.hypot(x - door.x, z - door.z) < DOOR_CLEAR) return false;
+    if (furniture.some((f) => x + b.min.x < f.max.x + 0.02 && x + b.max.x > f.min.x - 0.02 && z + b.min.z < f.max.z + 0.02 && z + b.max.z > f.min.z - 0.02)) return false;
     for (let sx = b.min.x - WALK_ROOM; sx <= b.max.x + WALK_ROOM + 1e-6; sx += 0.2) {
       for (let sz = b.min.z - WALK_ROOM; sz <= b.max.z + WALK_ROOM + 1e-6; sz += 0.2) if (nav.isBlocked(x + sx, z + sz)) return false;
     }
@@ -568,45 +574,94 @@ function follow(g, e) {
   g.rotation.y = r + f.rot;
 }
 // A flat, clear spot on the top of the nearest table or counter (a meeting table, a coffee corner)
-// for g at its current scale and rotation, as { x, y, z }, or null. Rays straight down over the top
-// must all land on one level surface at table or counter height, with room above it.
+// for g at its current scale and rotation, as { x, y, z }, or null: the prop's whole footprint must
+// be over one level surface at table or counter height, with room above it.
 const COUNTERS = new Set(['meeting_table', 'coffee_corner']);
-const CAST = new THREE.Raycaster();
-const DOWN = new THREE.Vector3(0, -1, 0);
+// counterSpot at full size, then shrinking a little, as on a desk.
+function onCounter(office, g, item, scale, rot, near) {
+  item.scale.setScalar(scale);
+  g.rotation.y = rot;
+  let spot = counterSpot(office, g, near);
+  for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = counterSpot(office, g, near); }
+  return spot;
+}
 function counterSpot(office, g, near) {
   const saved = g.position.clone();
   g.position.set(0, 0, 0);
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
   g.position.copy(saved);
-  const hw = (b.max.x - b.min.x) / 2, hd = (b.max.z - b.min.z) / 2;
+  const tall = b.max.y - b.min.y;
+  const nw = Math.ceil((b.max.x - b.min.x) / CELL), nd = Math.ceil((b.max.z - b.min.z) / CELL);
   const items = [...(office.placed?.values() ?? [])].filter((o) => COUNTERS.has(o.itemId) && o.target)
     .sort((a, c) => Math.hypot(a.target.x - near.target.x, a.target.z - near.target.z) - Math.hypot(c.target.x - near.target.x, c.target.z - near.target.z));
-  // The highest surface at table or counter height with room for the prop above it (a shelf or cabinet
-  // over a counter is not in the way unless it is lower than the prop is tall).
-  const tall = b.max.y - b.min.y;
-  const top = (x, z, meshes) => {
-    CAST.set(OVER.set(x, 3, z), DOWN);
-    const ys = CAST.intersectObjects(meshes, false).map((h) => h.point.y);
-    const i = ys.findIndex((y) => y >= 0.6 && y <= 1.1);
-    if (i < 0) return null;
-    return ys.slice(0, i).some((y) => y - ys[i] < tall + 0.02) ? null : ys[i];
-  };
-  for (const it of items.slice(0, 4)) {
-    const meshes = [];
-    it.obj.updateMatrixWorld(true);
-    it.obj.traverse((o) => { if (o.isMesh) meshes.push(o); });
-    const box = new THREE.Box3().setFromObject(it.obj);
-    for (let x = box.min.x + hw; x <= box.max.x - hw; x += 0.02) {
-      for (let z = box.min.z + hd; z <= box.max.z - hd; z += 0.02) {
-        const y = top(x, z, meshes);
-        if (y == null || y < 0.6 || y > 1.1) continue;
-        const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]].map(([u, v]) => top(x + u * hw, z + v * hd, meshes));
-        if (corners.every((c) => c != null && Math.abs(c - y) < 0.01)) return { x, y, z };
+  for (const it of items.slice(0, 4)) for (const grid of counterGrid(it, tall)) {
+    const { free, nx, nz, x0, z0, y } = grid;
+    for (let i = 0; i + nw <= nx; i++) {
+      for (let k = 0; k + nd <= nz; k++) {
+        let ok = true;
+        for (let a = 0; a < nw && ok; a++) for (let c = 0; c < nd; c++) if (!free[i + a + (k + c) * nx]) { ok = false; break; }
+        if (ok) return { x: x0 + (i + nw / 2) * CELL, y, z: z0 + (k + nd / 2) * CELL };
       }
     }
   }
   return null;
+}
+
+// A table or counter top as grids of CELL cells in world space, one per surface level: flat, upward
+// triangles at table or counter height, largest first (a shelf inside is covered, so all taken). A
+// cell is free when that surface is under it and nothing stands on it lower than `tall` above (a
+// cabinet higher up is no obstacle). Measured from the triangles, once per item and prop height, like
+// the desk-top grid, so choosing a spot casts no rays. The grids are in world space, so they are
+// kept for the item's pose and measured again once it moves (build mode slides the same object).
+const counterGrids = new WeakMap();
+function counterGrid(it, tall) {
+  const key = Math.round(tall * 100);
+  it.obj.updateMatrixWorld(true);
+  const m = it.obj.matrixWorld.elements, pose = [m[0], m[2], m[12], m[14]].map((v) => Math.round(v * 1000)).join();
+  let cached = counterGrids.get(it.obj);
+  if (cached?.pose !== pose) { cached = { pose, byTall: new Map() }; counterGrids.set(it.obj, cached); }
+  const byTall = cached.byTall;
+  if (byTall.has(key)) return byTall.get(key);
+  const box = new THREE.Box3().setFromObject(it.obj);
+  const tris = [];
+  const a = new THREE.Vector3(), b2 = new THREE.Vector3(), c = new THREE.Vector3();
+  it.obj.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    const pos = o.geometry.attributes.position, idx = o.geometry.index, n = idx ? idx.count : pos.count;
+    for (let t = 0; t < n; t += 3) {
+      const v = (j) => (idx ? idx.getX(t + j) : t + j);
+      a.fromBufferAttribute(pos, v(0)).applyMatrix4(o.matrixWorld);
+      b2.fromBufferAttribute(pos, v(1)).applyMatrix4(o.matrixWorld);
+      c.fromBufferAttribute(pos, v(2)).applyMatrix4(o.matrixWorld);
+      tris.push([Math.min(a.x, b2.x, c.x), Math.max(a.x, b2.x, c.x), Math.min(a.y, b2.y, c.y), Math.max(a.y, b2.y, c.y), Math.min(a.z, b2.z, c.z), Math.max(a.z, b2.z, c.z),
+        Math.abs((b2.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b2.z - a.z)) / 2]);
+    }
+  });
+  // The surfaces: heights (to the centimetre) of flat triangle area in range, the largest first.
+  const area = new Map();
+  for (const t of tris) if (t[3] - t[2] < 0.002 && t[2] >= 0.6 && t[3] <= 1.1) { const h = Math.round(t[3] * 100); area.set(h, (area.get(h) ?? 0) + t[6]); }
+  const levels = [...area].sort((p, q) => q[1] - p[1]).slice(0, 8).map(([h]) => h / 100);
+  const grids = levels.map((y) => levelGrid(tris, box, y, tall));
+  byTall.set(key, grids);
+  return grids;
+}
+
+function levelGrid(tris, box, y, tall) {
+  const nx = Math.floor((box.max.x - box.min.x) / CELL), nz = Math.floor((box.max.z - box.min.z) / CELL);
+  const top = new Uint8Array(nx * nz), taken = new Uint8Array(nx * nz);
+  const cellsOf = (t, into) => {
+    const i0 = Math.max(0, Math.ceil((t[0] - box.min.x) / CELL - 0.5)), i1 = Math.min(nx - 1, Math.floor((t[1] - box.min.x) / CELL - 0.5));
+    const k0 = Math.max(0, Math.ceil((t[4] - box.min.z) / CELL - 0.5)), k1 = Math.min(nz - 1, Math.floor((t[5] - box.min.z) / CELL - 0.5));
+    for (let k = k0; k <= k1; k++) for (let i = i0; i <= i1; i++) into[i + k * nx] = 1;
+  };
+  for (const t of tris) {
+    if (t[3] - t[2] < 0.002 && Math.abs(t[3] - y) < 0.006) cellsOf(t, top);
+    else if (t[3] > y + 0.012 && t[2] < y + tall + 0.02) { const w = [t[0] - CELL, t[1] + CELL, t[2], t[3], t[4] - CELL, t[5] + CELL]; cellsOf(w, taken); }
+  }
+  const free = new Uint8Array(nx * nz);
+  for (let i = 0; i < nx * nz; i++) free[i] = top[i] && !taken[i] ? 1 : 0;
+  return { free, nx, nz, x0: box.min.x, z0: box.min.z, y };
 }
 
 // A free-standing prop on the anchor tile's floor, or beside the subject's desk for that anchor.
