@@ -530,7 +530,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
-  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
+  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const momentCam = createMomentCamera(rig);
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam });

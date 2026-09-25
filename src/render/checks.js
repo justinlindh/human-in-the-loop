@@ -866,9 +866,23 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   R.perks.send(ids, 'pair_table', { dur: 6 });
   let playedAt = null;
   for (let t = 0; t < 30 && playedAt === null; t += dt * 5) { step(5); if (R.perks.played > before) playedAt = +t.toFixed(1); }
+  // The game on the table: the ball travels and stays on the pitch, and the rods turn.
+  const obj = R.office.placed.get('pair_table')?.obj;
+  const rods = [0, 1, 2, 3].map((i) => obj?.getObjectByName(`foosball_rod${i}`));
+  let travel = 0, off = 0, turn = 0, prev = null;
+  for (let i = 0; i < 30 * 5 && playedAt !== null; i++) {
+    step(1);
+    const ball = rods[0]?.parent.children.map((c) => c.children.find((b) => b.isMesh && b.geometry.type === 'SphereGeometry')).find(Boolean);
+    if (!ball) continue;
+    if (prev) travel += Math.hypot(ball.position.x - prev.x, ball.position.z - prev.z);
+    prev = ball.position.clone();
+    if (Math.abs(ball.position.x) > 0.43 || Math.abs(ball.position.z) > 0.24) off++;
+    turn = Math.max(turn, ...rods.map((r) => (r ? 2 * Math.acos(Math.min(1, Math.abs(r.quaternion.dot(r.userData.q0 ??= r.quaternion.clone())))) : 0)));
+  }
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
   step(60);
-  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null, staff: S.staff.length, readyAt, playedAt, table: spot };
+  const game = travel > 1 && off === 0 && turn > 0.3;
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2) };
 }
 
 // The sky backdrop redraws at most a few times a second; a change inside that window must still be
