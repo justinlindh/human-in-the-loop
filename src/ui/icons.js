@@ -93,6 +93,7 @@ export const ICONS = {
   'research.docs_culture': I('📖', 'Internal tools card', 26),
   'research.onboarding_kit': I('🧭', 'Internal tools card', 26),
   'research.red_team_suite': I('🥷', 'Internal tools card', 26),
+  'research.squish': I('🗜️', 'Internal tools card', 26),
   'bot.pager': I('🚨', 'Yak avatar for @pagerbot', 13),
   'bot.vendor': I('🧠', 'Yak avatar for @vendorbot', 13),
   'bot.launch': I('🚀', 'Yak avatar for @launchbot and @shipbot', 13),
