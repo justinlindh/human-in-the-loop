@@ -1,6 +1,6 @@
 import { addToRecord } from './record.js';
 import { B } from './balance.js';
-import { int, range, pick } from './rng.js';
+import { int, range, pick, createRng } from './rng.js';
 import { clamp, round, sum, newId, dateOf } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { STATS, defaultAssignment } from './staff.js';
@@ -49,20 +49,32 @@ const meanScore = (reviews) => round(sum(reviews, (r) => r.score) / reviews.leng
 
 // One review per outlet around a target score, each with a different quote that fits a first launch or an
 // update. The product's score is then the mean of these, so what the popup shows always adds up.
-// With centered, the outlets' spread is shifted to average zero, so the scores average to the target.
-export function pressReviews(state, target, { update = false, centered = false } = {}) {
+// Uncentred reviews draw an offset then a quote per outlet from state.rng, outlet by outlet.
+// Centred reviews (shifted so they average to the target) are only for display, so they draw from their own
+// stream and leave state.rng exactly as it would otherwise be.
+export function pressReviews(state, target, { update = false, centered = false, rng = state.rng } = {}) {
   const used = new Set();
-  const offsets = PRESS.map(() => range(state.rng, -B.reviewNoise, B.reviewNoise));
-  const shift = centered ? sum(offsets, (o) => o) / offsets.length : 0;
-  return PRESS.map((outlet, i) => {
-    const score = Math.round(clamp(target + offsets[i] - shift, 1, 10) * 2) / 2;
+  const quoteFor = (score) => {
     const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
     const all = eraIndex(state) > 0 ? [...REVIEW_QUOTES[band], ...AI_REVIEW_QUOTES[band]] : REVIEW_QUOTES[band];
     const fits = all.filter((q) => typeof q === 'string' || q.when === (update ? 'update' : 'first')).map((q) => (typeof q === 'string' ? q : q.text));
     const fresh = fits.filter((q) => !used.has(q));
-    const quote = pick(state.rng, fresh.length ? fresh : fits);
+    const quote = pick(rng, fresh.length ? fresh : fits);
     used.add(quote);
-    return { outlet: outlet.name, score, quote };
+    return quote;
+  };
+  const toHalf = (x) => Math.round(clamp(x, 1, 10) * 2) / 2;
+  if (!centered) {
+    return PRESS.map((outlet) => {
+      const score = toHalf(target + range(rng, -B.reviewNoise, B.reviewNoise));
+      return { outlet: outlet.name, score, quote: quoteFor(score) };
+    });
+  }
+  const offsets = PRESS.map(() => range(rng, -B.reviewNoise, B.reviewNoise));
+  const shift = sum(offsets, (o) => o) / offsets.length;
+  return PRESS.map((outlet, i) => {
+    const score = toHalf(target + offsets[i] - shift);
+    return { outlet: outlet.name, score, quote: quoteFor(score) };
   });
 }
 
@@ -194,7 +206,8 @@ function complete(ctx, j) {
     // outlets then review that blended product, so the scores shown average to the score the product gets.
     const fresh = reviewScore(state, j).score;
     const target = B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * fresh;
-    const reviews = pressReviews(state, target, { update: true, centered: true });
+    const shown = createRng(state.seed * 7577 + state.week * 131 + (Number(String(pr.id).replace(/\D/g, '')) || 0));
+    const reviews = pressReviews(state, target, { update: true, centered: true, rng: shown });
     Object.assign(pr, { score: meanScore(reviews), reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
     ctx.emit({ type: 'toast', text: `${pr.name} v${pr.version} shipped. Reviews average ${pr.score}.`, tone: 'good' });
