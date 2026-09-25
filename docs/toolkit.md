@@ -130,6 +130,8 @@ The machine and the GPU are shared, so single numbers are noisy. Trust relative 
 | Tool | Who | What it does |
 |---|---|---|
 | `npm run models` (`scripts/build-models.sh`) | art | Rebuilds `public/models/*.glb` from the Blender scripts, headless. Reports z-fighting and renders five-view contact sheets into `shots/sheets/` for review. |
+| `node src/ui/tools/build-glyphs.js` | ui | Writes the UI glyph SVGs in `public/icons/glyphs/` and their manifest from `src/ui/tools/glyphs.js`. |
+| `node src/ui/tools/icon-coverage.js [--strict]` | ui | Lists icon names that still use an emoji stand-in and fails on a manifest entry with no file. `src/ui/icons.test.js` (in `npm test`) fails when game data can ask for an icon name that has neither art nor an entry, such as a new marketing channel. |
 | `public/audio/LICENSES.md` | audio | Every audio file and its source and licence. Update it with any new file. |
 
 ## Team process
