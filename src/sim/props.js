@@ -52,7 +52,11 @@ function nearestFree(state, x, y) {
 export function stageTile(state, anchor, subjectId) {
   if (anchor === 'screens') return { x: null, y: null };
   if (anchor === 'subjectDesk') {
-    const p = state.staff.find((x) => x.id === subjectId);
+    // A desk prop for no one in particular (a summons for the company) goes to someone who is in to
+    // read it, a founder first: a desk whose sitter is away would hold it unread.
+    const present = (x) => x.deskId && x.mood !== 'away' && !x.remote && x.assignment?.type !== 'sabbatical';
+    const p = subjectId != null ? state.staff.find((x) => x.id === subjectId)
+      : state.staff.find((x) => x.founder && present(x)) ?? state.staff.find(present);
     const desk = p?.deskId ? desksOf(state.office.placed).find((d) => d.id === p.deskId) : null;
     if (desk) { const [x, y] = seatTile(desk); return { x, y }; }
   }

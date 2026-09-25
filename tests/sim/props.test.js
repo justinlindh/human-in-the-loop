@@ -19,6 +19,29 @@ const raise = (s, id) => { delete s.flags.lastDecisionWeek; s.pendingDecision = 
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
 const tables = (s) => s.office.placed.filter((i) => i.itemId === 'ping_pong_table').length;
 
+describe('a desk prop with no subject goes to someone who is in', () => {
+  it('skips an away sitter and prefers a founder', () => {
+    const s = floor(1);
+    for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'mid');
+    const withDesk = s.staff.filter((p) => p.deskId);
+    expect(withDesk.length).toBeGreaterThan(1);
+    const seatOf = (p) => {
+      const t = stageTile(s, 'subjectDesk', p.id);
+      return `${t.x},${t.y}`;
+    };
+    const pick = () => { const t = stageTile(s, 'subjectDesk', null); return `${t.x},${t.y}`; };
+    // Everyone in: a founder's desk if there is one, else the first desk.
+    const founder = withDesk.find((p) => p.founder);
+    expect(pick()).toBe(seatOf(founder ?? withDesk[0]));
+    // That person away: someone else who is in.
+    const first = founder ?? withDesk[0];
+    first.mood = 'away';
+    const other = pick();
+    expect(other).not.toBe(seatOf(first));
+    expect(withDesk.filter((p) => p !== first).map(seatOf)).toContain(other);
+  });
+});
+
 describe('issue #228: the ping pong question, staged', () => {
   it('shows the printed picture on a wall tile while the decision is open', () => {
     const s = floor(1);
