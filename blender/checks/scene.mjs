@@ -3,6 +3,8 @@
 //   node blender/checks/scene.mjs --out shots/x.png [options]
 //
 //   --mock floor | --seed N [--week W]   the mock sim (default floor) or a real seeded game
+//   --moment '<find query>' | --snapshot <path>   an indexed moment (scripts/events/find.js), loaded
+//                                        from its snapshot: the state just before it
 //   --patch '<json>'                     applied to the state after warm-up (see applyPatch)
 //   --pre '<json>'                       applied before warm-up (the "before" state)
 //   --patch-js '<js>'                    statements run with S (the state) and R (the renderer) at patch time
@@ -27,6 +29,7 @@
 // becomes { id, since }, props: [...] sets office.props, placed: [...] replaces office.placed, and
 // place: [...] adds to it.
 import { startHarness } from './harness.mjs';
+import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { writeFileSync, mkdirSync, rmSync, existsSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -36,7 +39,9 @@ export async function renderScene(H, o) {
   const [w, h] = (o.size ?? '960x600').split('x').map(Number);
   const q = new URLSearchParams({ quality: o.quality ?? 'medium' });
   if (o.seed != null) { q.set('seed', String(o.seed)); if (o.week) q.set('weeks', String(o.week)); } else q.set('mock', o.mock ?? 'floor');
-  const { page, errors } = await H.openScene(q.toString(), { width: w, height: h, time: o.time ?? 0.45 });
+  // An indexed moment (scripts/events): the page loads its snapshot instead of a mock or a seed.
+  const target = o.snapshot || o.moment ? resolveTarget({ snapshot: o.snapshot, event: o.moment }) : null;
+  const { page, errors } = target ? await openAt(H, target, { width: w, height: h, quality: o.quality ?? 'medium' }) : await H.openScene(q.toString(), { width: w, height: h, time: o.time ?? 0.45 });
   const images = await page.evaluate(async (o) => {
     const R = window.__hitlRender, S = window.__HITL.state;
     R.perks.hold = true;
@@ -122,7 +127,7 @@ function parse(argv) {
   const json = (v) => (v == null ? undefined : JSON.parse(v));
   return {
     out: a.out, mock: a.mock, seed: num(a.seed), week: num(a.week), size: a.size, quality: a.quality, time: num(a.time),
-    patch: json(a.patch), pre: json(a.pre), event: json(a.event), focus: list(a.focus), zoom: num(a.zoom),
+    snapshot: a.snapshot, moment: a.moment, patch: json(a.patch), pre: json(a.pre), event: json(a.event), focus: list(a.focus), zoom: num(a.zoom),
     frames: num(a.frames), before: num(a.before), warm: num(a.warm), settle: num(a.settle), crop: list(a.crop),
     paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300, report: a.report, patchJs: a['patch-js'], cropAround: a['crop-around'], focusOn: a['focus-on'], cropSize: a['crop-size'] ? String(a['crop-size']).split('x').map(Number) : [800, 500],
   };

@@ -83,12 +83,13 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
         R.setSpeed?.(1);
         R.setPaused?.(false);
         R.setTimeOfDay?.(tod);
-        window.__step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(S); R.render(1 / 30); } };
+        // The state is read on each frame: a loaded save (continueGame) replaces it.
+        window.__step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30); } };
         // Stepping without drawing. R.advance() moves people, moments and effects but, unlike render(),
         // never refreshes world matrices; game logic reads them (paths, gaze, props that follow a desk),
         // so a stepper that skipped the refresh would play differently from the game, and any tool that
         // later refreshed them (a crop, a probe) would change what comes after.
-        window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(S); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
+        window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
       }, time);
       return { page, errors };
     },

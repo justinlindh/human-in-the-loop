@@ -107,9 +107,9 @@ elif [ -n "$bal_passed" ]; then
   echo "test:balance: skipped: these sim inputs passed on ${bal_passed:-an earlier run}"
 else
   (
-    c0=$(timing_child_cpu); t0=$(now); rc=0
+    me=$BASHPID; c0=$(timing_child_cpu "$me"); t0=$(now); rc=0
     npm run test:balance || rc=$?
-    timing_log kind=step tool=ci-local step=test:balance wall_s=$(( $(now) - t0 )) cpu_s="$(awk -v a="$(timing_child_cpu)" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')" exit=$rc
+    timing_log kind=step tool=ci-local step=test:balance wall_s=$(( $(now) - t0 )) cpu_s="$(awk -v a="$(timing_child_cpu "$me")" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')" exit=$rc
     if [ $rc -eq 0 ] && [ -n "$bal_hash" ]; then
       { mkdir -p "$BAL_CACHE" && git rev-parse --short HEAD >"$BAL_CACHE/$bal_hash.pass"; } 2>/dev/null || true
     fi
@@ -160,6 +160,14 @@ render_step() { # <name> <gpu|software> <command>
 # The four render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
 step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' 'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs' 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
+# Renderer counts (draw calls, triangles, programs, textures) against scripts/perf/budget.json: exact
+# on any machine, so they can gate. A production build per run, measured on a GPU slot.
+perf_budget() {
+  [ -f scripts/perf/bench.js ] || { echo "no scripts/perf in this tree"; return 0; }
+  node scripts/perf/bench.js --gpu --scenes garage,floor --quality low,high --runs 1 --warmup 1 --seconds 2 --json "$LOGS/perf.json" \
+    && node scripts/perf/budget.js "$LOGS/perf.json"
+}
+step perf-budget perf_budget
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 

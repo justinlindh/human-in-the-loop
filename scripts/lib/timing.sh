@@ -22,8 +22,9 @@ timing_log() {
     printf '%s}\n' "$line" >>"$file"
   } 2>/dev/null || true
 }
-# CPU seconds (user + system) used so far by the finished, waited-for children of the calling shell
-# (or subshell).
+# CPU seconds (user + system) used so far by the finished, waited-for children of a shell: the
+# calling shell by default, or the PID given (a subshell passes its own $BASHPID, read before any
+# command substitution, since inside one BASHPID names the substitution itself).
 timing_child_cpu() {
-  awk -v hz="$(getconf CLK_TCK 2>/dev/null || echo 100)" '{ sub(/^.*\) /, ""); printf "%.2f", ($14 + $15) / hz }' "/proc/${BASHPID:-$$}/stat" 2>/dev/null || echo 0
+  awk -v hz="$(getconf CLK_TCK 2>/dev/null || echo 100)" '{ sub(/^.*\) /, ""); printf "%.2f", ($14 + $15) / hz }' "/proc/${1:-$$}/stat" 2>/dev/null || echo 0
 }

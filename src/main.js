@@ -81,6 +81,8 @@ async function boot() {
   };
 
   const canSave = () => realSim && !!saveMod && !isSnap;
+  // Headless tools (?snap) never write saves but may load one: an indexed moment's snapshot.
+  const canLoad = () => realSim && !!saveMod;
   // Each company writes its own save slot. A finished run is saved too, so it stays listed (as over)
   // and its ending can be revisited or, for the anniversary, played on.
   function save() {
@@ -122,7 +124,7 @@ async function boot() {
     },
     // Loads a slot by id (default: the last one written).
     continueGame: (id) => {
-      if (!canSave()) return { ok: false, reason: 'No save found' };
+      if (!canLoad()) return { ok: false, reason: 'No save found' };
       const res = saveMod.loadGame(undefined, id);
       if (res.ok) startPlaying(res.state);
       // Everything the save module reports (reason, notice, any failure code) except the state.
