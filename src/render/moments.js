@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
-import { EVENTS } from '../data/events.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -28,6 +27,7 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 // How willing someone is to wander off for a moment, by what they are assigned to.
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
+const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
 // A visitor's look is random each visit, from everyday colours (render only: Math.random is fine here).
 const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
 const VISITOR_SHIRT = ['#9aa3b5', '#d9a441', '#6f8fc0', '#9ab58a', '#c78a8a', '#e8e2d6'];
@@ -143,8 +143,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     return null;
   }
   function hammerTick(p, state) {
-    // The walls came down (decisionResolved chose 'Knock them down').
-    const knocked = resolved.get('open_plan_office') === 'Knock them down';
+    // The walls came down: decisionResolved chose KNOCK_DOWN of open_plan_office.
+    const knocked = resolved.get('open_plan_office') === KNOCK_DOWN;
     if (!hammer) {
       if (!p) { timers.delete('hammer'); return; }
       if (lite()) { if (!timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
@@ -239,8 +239,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   // choices). Kept briefly: the moments that act on a choice read it within a few frames.
   const resolved = new Map(), resolvedT = new Map();
   function decided(e) {
-    const ch = EVENTS[e.eventId]?.choices?.[e.choice]?.label;
-    resolved.set(e.eventId, ch ?? null);
+    resolved.set(e.eventId, e.choice ?? null);
     resolvedT.set(e.eventId, 20);
   }
 
@@ -285,7 +284,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   let visitor = null;     // { obj (the prop), char, host }
   function visitorTick(p, dt) {
     if (!p) { endVisitor(); return; }
-    if (lite() || !parent) return;
+    if (lite() || !parent) {
+      // Low quality: no visitor, just a nervous colleague now and then.
+      if (due('visitor-lite', dt, [1, 2], [12, 18])) { const r = pickIdle(1, p.obj.position)[0]; if (r) emote(r, 'sweat', 2.2); }
+      return;
+    }
     if (!visitor || visitor.obj !== p.obj) {
       endVisitor();
       const pick = (a) => a[Math.floor(Math.random() * a.length)];
