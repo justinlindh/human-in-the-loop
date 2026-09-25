@@ -143,8 +143,9 @@ const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320
 // Landing page (group 'landing', #582). Plays a real game with a bot straight through the sim until
 // the next week would bring what the shot is about (`hit`, tested on a copy ticked one week ahead,
 // given the copy and the week's events), and stops the week before: the game's own tick brings it
-// live, with its card, freeze and staging as in play.
-export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', after = '' }) => `(async () => {
+// live, with its card, freeze and staging as in play. `prep` changes state every week before the
+// look-ahead (so the live week matches it); `after` only presents (it must not change state).
+export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '' }) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
@@ -152,6 +153,7 @@ export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', after = '' }) => `(as
   for (let i = 0; i < ${weeks} && !s.gameOver; i++) {
     b.botDecide('${bot}', s);
     b.botTurn('${bot}', s);
+    ${prep}
     const ahead = structuredClone(s);
     if (hit(ahead, sim.tick(ahead) ?? [])) break;
     sim.tick(s);
@@ -167,11 +169,11 @@ export const CLEAN = `(() => { const st = document.createElement('style'); st.id
 // can still be closed (a paused game would freeze the shot).
 export const STAGE_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui > * { visibility: hidden !important; }'; document.head.append(st); })()`;
 // Yak stays, alone, for a shot whose subject is a Yak thread.
-const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } #ui .chat.yak { zoom: 1.7; }'; document.head.append(st); })()`;
-// Answers `eventId` with `choice` once its card has been up `read` seconds (a player reading it),
-// checked every half second from `from` to `to`.
+const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } '; document.head.append(st); })()`;
+// Answers `eventId` (null: any decision) with `choice` once its card has been up `read` seconds, by
+// pressing the choice's number key as a player would; checked every half second from `from` to `to`.
 export const CHOOSE_WHEN = (eventId, choice, from, to, read = 3) => Array.from({ length: Math.round((to - from) * 2) }, (_, i) => ({ at: from + i / 2,
-  js: `(() => { const H = window.__HITL; if (H.state.pendingDecision?.eventId !== '${eventId}') return; window.__seen ??= performance.now(); if (performance.now() - window.__seen >= ${read * 1000}) { H.dispatch({ type: 'resolveDecision', choice: ${choice} }); window.__seen = undefined; } })()` }));
+  js: `(() => { const H = window.__HITL; const d = H.state.pendingDecision; if (!d || (${JSON.stringify(eventId)} && d.eventId !== ${JSON.stringify(eventId)})) return; window.__seen ??= performance.now(); if (performance.now() - window.__seen >= ${read * 1000}) { ${KEY(String(choice + 1), `Digit${choice + 1}`)}; window.__seen = undefined; } })()` }));
 // Hides the decision card, for a still whose subject is what the decision staged.
 export const NO_CARD = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { visibility: hidden !important; }'; document.head.append(st); })()`;
 // Resolves the open decision with a choice after it has been on screen `after` seconds (a player reading it).
@@ -180,7 +182,7 @@ export const CHOOSE = (eventId, choice) => `(() => { const H = window.__HITL; if
 export const CLEAR_EARLY = [0, 0.3, 0.6, 1, 1.5, 2, 3].map((at) => ({ at, js: CLEAR_CARDS }));
 // Records where the camera looks (view()) as a capture mark, for framing a shot.
 const MARK_VIEW = `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'view ' + JSON.stringify(window.__hitlRender.view()) }); })()`;
-const OUTAGE_ON_FLOOR = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'incident' && !e.caught)";
+const INCIDENT_ON_FLOOR = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'incident' && !e.caught)";
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -591,15 +593,15 @@ export const ITEMS = [
     setup: `(async () => { await ${PLAY({ weeks: 2 })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
   },
   {
-    id: 'landing-launch', group: 'landing', title: 'Launch day reviews', query: 'seed=33&speed=1', seconds: 16, warmup: 0.5,
-    // The live week launches the first product; a decision raised the same week is answered first,
-    // so the launch results are what stay up.
+    id: 'landing-launch', group: 'landing', title: 'Launch day reviews', query: 'seed=33&speed=1', seconds: 48, warmup: 0.5,
+    // The live week launches the first product; a decision raised the same week is answered first.
+    // The results card then waits out the UI's spacing after the last card (about 30 s of play).
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 120, bot: 'balanced', hit: "(c, ev) => ev.some((e) => e.type === 'launch')" })}; ${BARE}; })()`,
     actions: [
       ...DISMISS_AT([0.1, 0.6, 1.5, 3, 4, 5, 6, 8, 10], { escape: false }),
-      ...[4, 5, 6, 7].map((at) => ({ at, js: `(() => { const H = window.__HITL; if (H.state.pendingDecision) H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })),
+      ...CHOOSE_WHEN(null, 0, 1, 20, 2),
     ],
-    screenshots: [8, 11, 14],
+    screenshots: [32, 36, 40, 44, 47],
   },
   {
     id: 'landing-lockdown', group: 'landing', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', seconds: 12, warmup: 1,
@@ -612,14 +614,16 @@ export const ITEMS = [
   },
   {
     id: 'landing-incident', group: 'landing', title: 'An outage on the Office Floor', query: 'seed=2&speed=1', seconds: 16, warmup: 0.5,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: OUTAGE_ON_FLOOR, after: IN_OFFICE })}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...DISMISS_AT([3, 5, 7, 9, 11, 13], { escape: false })], screenshots: [6, 10, 14],
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: INCIDENT_ON_FLOOR, prep: IN_OFFICE })}; ${CLEAN}; })()`,
+    // A decision the same week freezes the office; it is answered quickly so the alarm plays out.
+    actions: [...CLEAR_EARLY, ...DISMISS_AT([3, 5, 7, 9, 11, 13], { escape: false }), ...CHOOSE_WHEN(null, 1, 1, 16, 0.5)], screenshots: [8, 9, 10, 12],
   },
   {
     id: 'landing-yak-post', group: 'landing', title: 'Talk back in Yak: a pep talk mid-outage', query: 'seed=2&speed=1', seconds: 22, warmup: 0.5,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: OUTAGE_ON_FLOOR, after: IN_OFFICE + CHAT_HISTORY })}; ${YAK_ONLY}; })()`,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: INCIDENT_ON_FLOOR, prep: IN_OFFICE, after: CHAT_HISTORY })}; ${YAK_ONLY}; })()`,
     actions: [...CLEAR_EARLY, 
       ...DISMISS_AT([2, 3, 4], { escape: false }),
+      { at: 4.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 5, js: CLICK_SEL('.ypost-btn') },
       { at: 6.5, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /pep talk/i.test(b.textContent))?.click()` },
     ],
@@ -634,14 +638,12 @@ export const ITEMS = [
     setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: WAFFLE_ACTIONS(30), screenshots: [12, 16, 20, 24],
   },
   {
-    id: 'landing-music', group: 'landing', title: 'Music night', query: 'seed=1&speed=1', seconds: 34,
-    setup: `(async () => { await ${MUSIC_SETUP}; ${CLEAN}; })()`,
-    actions: [
-      ...CLEAR_EARLY,
-      ...Array.from({ length: 34 }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
-      ...Array.from({ length: 30 }, (_, i) => ({ at: i + 1, js: `(() => { const H = window.__HITL; const d = H.state.pendingDecision; if (!d) return; window.__decisionSeen ??= performance.now(); if (performance.now() - window.__decisionSeen > 3000) { H.dispatch({ type: 'resolveDecision', choice: 0 }); window.__decisionSeen = undefined; } })()` })),
-    ],
-    screenshots: [12, 16, 20, 24, 28],
+    id: 'landing-music', group: 'landing', title: 'Music night', query: 'seed=1&speed=1', seconds: 40, warmup: 0.5,
+    // Music night is made the next reward, and the live week raises its genre decision; the first
+    // genre is picked by key and the dance break plays.
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', 0, 1, 20, 3), ...Array.from({ length: 36 }, (_, i) => ({ at: i + 4.5, js: CLICK('Onward') }))],
+    screenshots: [12, 16, 20, 24, 28, 32],
   },
   {
     id: 'landing-printer', group: 'landing', title: 'The printer taken out back (loop)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
@@ -686,3 +688,12 @@ export const ITEMS = [
     screenshots: [3, 7, 10, 13],
   },
 ];
+
+// The landing loops log where the camera looks every frame (index.json marks, 'camlog'), so each
+// cut's largest step and largest change between steps can be measured.
+const CAMLOG = (seconds) => [
+  { at: 0, js: `(() => { const R = window.__hitlRender; const log = window.__camLog = [], t0 = window.__capture.now; const f = () => { const v = R.view(); log.push([+((window.__capture.now - t0) / 1000).toFixed(4), v.x, v.y, v.z, v.zoom]); requestAnimationFrame(f); }; requestAnimationFrame(f); })()` },
+  { at: seconds - 0.05, js: `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'camlog ' + JSON.stringify(window.__camLog) }); })()` },
+];
+const LANDING_LOOPS = new Set(['landing-hero', 'landing-era', 'landing-incident', 'landing-ransomware', 'landing-waffle', 'landing-music', 'landing-printer', 'landing-visitor']);
+for (const it of ITEMS) if (LANDING_LOOPS.has(it.id)) it.actions = [...(it.actions ?? []), ...CAMLOG(it.seconds)];

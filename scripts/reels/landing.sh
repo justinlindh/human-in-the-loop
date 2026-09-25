@@ -14,29 +14,29 @@ OUT="${2:?usage: scripts/reels/landing.sh <capture dir> <out dir>}"
 FF=(timeout 600 nice -n 10 ffmpeg -nostdin -hide_banner -loglevel error -y)
 mkdir -p "$OUT/img/loops" "$OUT/media/loops"
 
-# kind name source start seconds crop(w:h:x:y of the 1920x1080 frame, or -) size fps
-# still: source is a PNG and start is unused; loop: source is an MP4.
+# kind name source start seconds crop(w:h:x:y of the source frame, or -) size fps
+# still: source is a PNG and start is unused; loop: source is an MP4. The prop stills (stapler, cover
+# sheets, rival sign, cheque, whiteboard) come from a 3840x2160 capture, so their crops are native.
 CUTS='
-still hero           landing-hero-4.0s.png           0    0    -                1920x1080 0
-loop  hero           landing-hero.mp4                0.5  14   -                1600x900  24
-still hq-night       landing-hq-night-4.0s.png       0    0    -                1600x900  0
-still floor          landing-floor-4.0s.png          0    0    -                1600x900  0
-still garage         landing-garage-4.0s.png         0    0    -                1600x900  0
-still launch         landing-launch-6.0s.png         0    0    -                1920x1080 0
-still lockdown       landing-lockdown-10.0s.png      0    0    -                1920x1080 0
-loop  era            landing-era.mp4                 4    6.1  -                1280x720  30
-loop  incident       landing-incident.mp4            4    9.2  -                1280x720  30
-loop  music          landing-music.mp4               18   4.2  1280:720:320:180 1280x720  30
-loop  ransomware     landing-ransomware.mp4          5    4.2  1280:720:320:180 1280x720  30
-loop  waffle         landing-waffle.mp4              16   4.2  1280:720:320:180 1280x720  30
-loop  printer        landing-printer.mp4             15   6    1280:720:320:180 1280x720  30
-loop  visitor        landing-visitor.mp4             4    6    1280:720:320:180 1280x720  30
-still yak-post       landing-yak-post-18.0s.png      0    0    -                1600x900  0
-still stapler        landing-stapler-8.5s.png        0    0    1280:720:320:180 1600x900  0
-still cover-sheets   landing-cover-sheets-8.5s.png   0    0    1280:720:320:180 1600x900  0
-still rival-sign     landing-rival-sign-13.0s.png    0    0    1280:720:320:180 1600x900  0
-still cheque         landing-cheque-13.0s.png        0    0    1280:720:320:180 1600x900  0
-still whiteboard     landing-whiteboard-5.0s.png     0    0    -                1600x900  0
+still hero           landing-hero-4.0s.png            0    0    -                    1920x1080 0
+loop  hero           landing-hero.mp4                 0.5  14   -                    1600x900  24
+still hq-night       landing-hq-night-4.0s.png        0    0    -                    1600x900  0
+still floor          landing-floor-4.0s.png           0    0    -                    1600x900  0
+still garage         landing-garage-4.0s.png          0    0    -                    1600x900  0
+still launch         landing-launch-44.0s.png         0    0    -                    1920x1080 0
+still lockdown       landing-lockdown-10.0s.png       0    0    -                    1920x1080 0
+loop  era            landing-era.mp4                  5    6.1  -                    1280x720  30
+loop  incident       landing-incident.mp4             8.8  7    -                    1280x720  30
+loop  music          landing-music.mp4                19   4.2  1280:720:320:180     1280x720  30
+loop  ransomware     landing-ransomware.mp4           5    4.2  1280:720:0:180       1280x720  30
+loop  waffle         landing-waffle.mp4               16   4.2  1280:720:320:180     1280x720  30
+loop  printer        landing-printer.mp4              17.5 6    1280:720:320:180     1280x720  30
+loop  visitor        landing-visitor.mp4              5    6    1280:720:260:100     1280x720  30
+still yak-post       landing-yak-post-21.0s.png       0    0    1280:720:0:360       1600x900  0
+still stapler        landing-stapler-8.0s.png         0    0    1280:720:1280:720    1600x900  0
+still cover-sheets   landing-cover-sheets-4.5s.png    0    0    1600:900:1120:630    1600x900  0
+still rival-sign     landing-rival-sign-14.0s.png     0    0    1600:900:1120:500    1600x900  0
+still cheque         landing-cheque-17.0s.png         0    0    1600:900:800:380     1600x900  0
 '
 
 vf() { local crop="$1" size="$2"; local s="scale=${size%x*}:${size#*x}:flags=lanczos"; [ "$crop" = - ] && echo "$s" || echo "crop=$crop,$s"; }
