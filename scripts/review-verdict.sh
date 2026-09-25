@@ -5,7 +5,8 @@
 # Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--repo <owner/name>]
 #   <body-file>  the review text; its first line is also the status description
 #   --head       the head that was reviewed; refuses if the PR's head has moved since
-#   --repo       the repository the PR is in (default: the one this checkout points at)
+#   --repo       the repository the PR is in, one of the two this project uses (default: the one this
+#                checkout points at)
 # Exit 0 when posted, 1 when the head moved (before posting, or during it), 2 on usage or lookup errors.
 set -uo pipefail
 
@@ -23,7 +24,10 @@ while [ $# -gt 0 ]; do
     *) echo "$usage" >&2; exit 2 ;;
   esac
 done
-case "$repo" in '') ;; */*/*|/*|*/) echo "$usage" >&2; exit 2 ;; */*) ;; *) echo "$usage" >&2; exit 2 ;; esac
+case "$repo" in
+  ''|justinlindh/human-in-the-loop|justinlindh/humanintheloopgame-site) ;;
+  *) echo "review-verdict: --repo must be justinlindh/human-in-the-loop or justinlindh/humanintheloopgame-site" >&2; exit 2 ;;
+esac
 R=(); api="repos/{owner}/{repo}"
 [ -n "$repo" ] && { R=(-R "$repo"); api="repos/$repo"; }
 
