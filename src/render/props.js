@@ -1063,7 +1063,7 @@ function printerWrecked() {
 // Inside, a little way in from the door: where the printer was taken to be smashed.
 const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
 const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
-function byDoor(build, scale = 1) {
+function byDoor(build, scale = 1, rot = 0.4) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
     const item = build();
@@ -1085,7 +1085,7 @@ function byDoor(build, scale = 1) {
       g.position.set(p.x, 0, p.z);
       g.userData.blocks = true;
     }
-    g.rotation.y = 0.4;
+    g.rotation.y = rot;
     return g;
   };
 }
@@ -1427,10 +1427,10 @@ const BUILDERS = {
   mug_bucket: onFloor(mugBucket, { x: 0.95, z: 0.05, rot: -0.4 }),
   mug_typo: wallThing(mugShelf, { w: 1.0, y: 1.15, scale: 1.8 }),
   moving_boxes: onFloor(movingBoxes, { x: 0.9, z: 0.2, rot: 0.3, scale: 1.1 }),
-  house_sign: onFloor(houseSign, { x: 0.9, z: 0.3, rot: Math.PI / 4, scale: 1.3 }),
+  house_sign: byDoor(houseSign, 1.3, Math.PI / 4),
   box_poster: wallPrint(boxPoster, { w: 0.84, h: 1.12, tilt: 0, y: 1.55 }),
   box_cube: atDesk(boxCube, { x: FLAT.x, z: FLAT.z, rot: 0.5, scale: 1.8 }),
-  oat_milk: onFloor(oatMilk, { x: 0.9, z: 0.2, rot: 0.2 }),
+  oat_milk: byDoor(oatMilk),
   giant_cheque: wallPrint(cheque, { w: 1.6, h: 0.69, tilt: 0.02, y: 1.5 }),
   swag_box: onFloor(swagBox, { x: 0.9, z: 0.25, rot: -0.3, scale: 1.25 }),
   french_press: onFloor(frenchPress, { x: 0.9, z: 0.2, rot: 0.2, scale: 1.3 }),
