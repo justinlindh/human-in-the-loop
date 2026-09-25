@@ -21,6 +21,22 @@ export function glRendererName(doc = globalThis.document) {
   }
 }
 
-export function autoQuality(name) {
-  return isSoftwareRenderer(name) ? 'low' : 'high';
+// Phones: a coarse pointer on a small screen. Their GPUs cannot carry High's ambient occlusion,
+// bloom and anti-aliasing at device pixel ratio 2. Tablets and desktops fall outside this.
+const PHONE_SHORT_SIDE = 600;
+export function isPhone({ coarse = false, shortSide = Infinity } = {}) {
+  return !!coarse && shortSide < PHONE_SHORT_SIDE;
+}
+
+// What the browser says about the device, for isPhone; empty outside a browser.
+export function deviceTraits(win = globalThis) {
+  try {
+    return { coarse: !!win.matchMedia?.('(pointer: coarse)').matches, shortSide: Math.min(win.screen.width, win.screen.height) };
+  } catch {
+    return {};
+  }
+}
+
+export function autoQuality(name, device = {}) {
+  return isSoftwareRenderer(name) || isPhone(device) ? 'low' : 'high';
 }
