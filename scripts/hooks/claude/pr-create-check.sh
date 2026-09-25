@@ -7,19 +7,24 @@ set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-grep -qE 'gh[[:space:]]+pr[[:space:]]+create' <<<"$cmd" || exit 0
+# Only a real invocation counts: heredoc bodies and quoted strings are text, and `gh pr create` must
+# sit in command position (line start, or after ; & | or a paren, optionally behind VAR=value).
+outside="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd")"
+bare="$(sed -E "s/'[^']*'//g; s/\"([^\"\\\\]|\\\\.)*\"//g" <<<"$outside")"
+grep -qE '(^|[;&|(])[[:space:]]*([A-Za-z_][A-Za-z_0-9]*=[^[:space:]]*[[:space:]]+)*gh[[:space:]]+pr[[:space:]]+create' <<<"$bare" || exit 0
 cwd="$(jq -r '.cwd // empty' <<<"$input")"
 out="$(jq -r '[.tool_response, .tool_result] | map(select(. != null) | if type == "string" then . else (.stdout // tojson) end) | join("\n")' <<<"$input" 2>/dev/null)"
-url="$(grep -oE 'https://github\.com/[^/[:space:]]+/[^/[:space:]]+/pull/[0-9]+' <<<"$out" | tail -1)"
+# gh pr create prints the new PR's URL alone on a line; a URL inside other output is not it.
+url="$(grep -xE '[[:space:]]*https://github\.com/[^/[:space:]]+/[^/[:space:]]+/pull/[0-9]+[[:space:]]*' <<<"$out" | head -1 | tr -d '[:space:]')"
 [ -n "$url" ] || exit 0
 pr="${url##*/}"; repo="$(sed -E 's|https://github.com/([^/]+/[^/]+)/pull/.*|\1|' <<<"$url")"
 notes=()
-if ! grep -qE -- '--draft|(^|[[:space:]])-d([[:space:]]|$)' <<<"$cmd" && ! grep -qE "gh[[:space:]]+pr[[:space:]]+merge[^;&|]*--auto" <<<"$cmd"; then
+if ! grep -qE -- '--draft|(^|[[:space:]])-d([[:space:]]|$)' <<<"$outside" && ! grep -qE "gh[[:space:]]+pr[[:space:]]+merge[^;&|]*--auto" <<<"$outside"; then
   (cd "${cwd:-.}" && gh pr merge "$pr" -R "$repo" --auto --merge >/dev/null 2>&1 &)
   notes+=("Auto-merge was not turned on in that command; the hook is turning it on (gh pr merge $pr --auto --merge). Check it with gh pr view $pr.")
 fi
 body=""
-f="$(grep -oE -- "(--body-file|-F)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$cmd" | head -1)"
+f="$(grep -oE -- "(--body-file|-F)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$outside" | head -1)"
 if [ -n "$f" ]; then
   f="${f#*[= ]}"; f="${f//\"/}"; f="${f//\'/}"; f="${f/#\~/$HOME}"
   case "$f" in *'$'*) ;; /*) body="$(cat "$f" 2>/dev/null)" ;; *) body="$(cat "$cwd/$f" 2>/dev/null)" ;; esac
