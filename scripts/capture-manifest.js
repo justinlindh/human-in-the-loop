@@ -11,19 +11,19 @@
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
 // Clicks the visible button with this label (a player pressing it).
-const CLICK = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()`;
+export const CLICK = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()`;
 // Clicks the nth visible element matching a CSS selector.
-const CLICK_SEL = (sel, n = 0) => `[...document.querySelectorAll(${JSON.stringify(sel)})].filter((b) => b.getClientRects().length)[${n}]?.click()`;
+export const CLICK_SEL = (sel, n = 0) => `[...document.querySelectorAll(${JSON.stringify(sel)})].filter((b) => b.getClientRects().length)[${n}]?.click()`;
 // A key press as the UI hears it.
-const KEY = (key, code = key) => `dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, bubbles: true }))`;
+export const KEY = (key, code = key) => `dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, bubbles: true }))`;
 // Closes the tutorial, cards, and panels until the UI reports nothing open.
-const IDLE = `(() => { for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) ${KEY('Escape')}; })()`;
+export const IDLE = `(() => { for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) ${KEY('Escape')}; })()`;
 // Clicks the visible button whose label starts with this text (tabs like "Hire (8)").
 const CLICK_STARTS = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith(${JSON.stringify(label)}))?.click()`;
 // Cards that turn up once play resumes (unlocks, tips): a player dismisses them in the first seconds.
 // Unlock cards close with their "Got it" button; panels and tips close with Escape.
 // With escape false only "Got it" is pressed, so popups that close on Escape (launch results) stay.
-const DISMISS_AT = (times, { escape = true } = {}) => times.map((at) => ({ at, js: `(() => { for (let i = 0; i < 12; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && x.textContent.trim() === 'Got it'); if (b) b.click(); else if (${escape} && window.__HITL.clock.busy) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); else break; } })()` }));
+export const DISMISS_AT = (times, { escape = true } = {}) => times.map((at) => ({ at, js: `(() => { for (let i = 0; i < 12; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && x.textContent.trim() === 'Got it'); if (b) b.click(); else if (${escape} && window.__HITL.clock.busy) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); else break; } })()` }));
 // Every second through a clip of live play; decisions get the first choice after a moment to read.
 const DISMISS_EVERY = (seconds) => [
   ...DISMISS_AT([0.1, ...Array.from({ length: Math.floor(seconds) }, (_, i) => i + 1)]),
@@ -38,7 +38,7 @@ const PICK = `(() => { const s = window.__HITL.state; return s.staff.find((p) =>
 // Fast-forwards a real game with a bot, straight through the sim (no presentation), until `until`
 // (a JS condition on s) holds or `weeks` pass. With keepDecision it stops at the first decision
 // raised after minWeeks.
-const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, minWeeks = 0, after = '' }) => `(async () => {
+export const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, minWeeks = 0, after = '' }) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
@@ -62,11 +62,11 @@ const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendin
 // A bare frame for the reel: the side overlays (top bar, tray, Yak, menu, toasts) hidden, so the
 // office and the beat fill the frame; the decision card and the moment caption stay. YAK brings Yak
 // back, at the right where the reel's crop keeps it, for a beat whose payoff is a message.
-const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts { display: none !important; }'; document.head.append(st); })()`;
+export const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts { display: none !important; }'; document.head.append(st); })()`;
 const YAK = `(() => { const st = document.getElementById('reel-bare'); if (st) st.textContent = '#ui .topbar, #ui .tray, #ui .menu, #ui .toasts { display: none !important; } #ui .chat.yak { position: fixed !important; left: auto !important; right: 24px !important; top: 300px !important; bottom: auto !important; width: 380px !important; }'; })()`;
 // Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
 // "Got it"), so the nod's decision card is what shows.
-const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
+export const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
 // Runs the sim a week at a time (at most `max`, the bot deciding) straight through, with nothing
 // presented on the way (no launch cards, incidents or toasts), until a Yak message containing `until`
 // is in the log; then shows only the new messages that contain one of `show`. A nod's payoff weeks
@@ -85,14 +85,15 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 })()`;
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
-const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
+export const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
 // Keeps the camera on what a beat is about from `from` to `to`, re-aimed every frame: a critically
 // damped spring glides the look point onto the staged prop, the printer while it is carried, or the visitors,
 // so the camera never steps. The game's own moment camera stands down while this drives.
-const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
-  const find = () => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
+// `props` is a list of staged prop names, or a JS function source returning the world point to aim at.
+export const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+  const find = ${typeof props === 'string' ? props : `() => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
     const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
-    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; };
+    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; }`};
   const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
   f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift}; f.on = true;
   if (f.running) return; f.running = true;
@@ -110,11 +111,16 @@ const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender;
       R.easeTo(f.x, f.z, f.zoom, 12, f.y); }
     requestAnimationFrame(tick); };
   requestAnimationFrame(tick); })()`;
-const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
+// A person at their desk (on a project, in the office), for FOLLOW: their character's world position.
+export const SEATED = `() => { const R = window.__hitlRender, s = window.__HITL.state;
+  const p = s.staff.find((x) => x.assignment?.type === 'project' && !x.remote && x.mood !== 'away'); if (!p) return null;
+  let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === p.id) o = x.parent; });
+  return o ? o.getWorldPosition(new o.position.constructor()) : null; }`;
+export const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
 // Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
 // most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
 // points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
-const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
+export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
   const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o || window.__viewPicked) return;
   window.__viewPicked = true;
   const box = new T.Box3().setFromObject(o), c = box.getCenter(new T.Vector3()), ray = new T.Raycaster(); ray.camera = R.camera;
@@ -134,6 +140,48 @@ export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 
+// Landing page (group 'landing', #582). Plays a real game with a bot straight through the sim until
+// the next week would bring what the shot is about (`hit`, tested on a copy ticked one week ahead,
+// given the copy and the week's events), and stops the week before: the game's own tick brings it
+// live, with its card, freeze and staging as in play.
+export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', after = '' }) => `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const s = window.__HITL.state;
+  const hit = ${hit};
+  for (let i = 0; i < ${weeks} && !s.gameOver; i++) {
+    b.botDecide('${bot}', s);
+    b.botTurn('${bot}', s);
+    const ahead = structuredClone(s);
+    if (hit(ahead, sim.tick(ahead) ?? [])) break;
+    sim.tick(s);
+  }
+  ${after}
+  ${IDLE};
+})()`;
+export const PRE_DECISION = (eventId, weeks, cond = 'true') => PRE_UNTIL({ weeks, hit: `(c) => c.pendingDecision?.eventId === '${eventId}' && (${cond})` });
+// The landing shots keep the office clean: the side overlays go (BARE), and so do the decision card,
+// the caption and the moment toasts once a shot is about the office rather than the beat.
+export const CLEAN = `(() => { const st = document.createElement('style'); st.id = 'landing-clean'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle { display: none !important; }'; document.head.append(st); })()`;
+// Only the office: every overlay is invisible but still laid out, so the cards a fast-forward queues
+// can still be closed (a paused game would freeze the shot).
+export const STAGE_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui > * { visibility: hidden !important; }'; document.head.append(st); })()`;
+// Yak stays, alone, for a shot whose subject is a Yak thread.
+const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } #ui .chat.yak { zoom: 1.7; }'; document.head.append(st); })()`;
+// Answers `eventId` with `choice` once its card has been up `read` seconds (a player reading it),
+// checked every half second from `from` to `to`.
+export const CHOOSE_WHEN = (eventId, choice, from, to, read = 3) => Array.from({ length: Math.round((to - from) * 2) }, (_, i) => ({ at: from + i / 2,
+  js: `(() => { const H = window.__HITL; if (H.state.pendingDecision?.eventId !== '${eventId}') return; window.__seen ??= performance.now(); if (performance.now() - window.__seen >= ${read * 1000}) { H.dispatch({ type: 'resolveDecision', choice: ${choice} }); window.__seen = undefined; } })()` }));
+// Hides the decision card, for a still whose subject is what the decision staged.
+export const NO_CARD = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { visibility: hidden !important; }'; document.head.append(st); })()`;
+// Resolves the open decision with a choice after it has been on screen `after` seconds (a player reading it).
+export const CHOOSE = (eventId, choice) => `(() => { const H = window.__HITL; if (H.state.pendingDecision?.eventId === '${eventId}') H.dispatch({ type: 'resolveDecision', choice: ${choice} }); })()`;
+// Closes the unlock and tip cards a fast-forward queues ("Later", "Got it"), as a player would.
+export const CLEAR_EARLY = [0, 0.3, 0.6, 1, 1.5, 2, 3].map((at) => ({ at, js: CLEAR_CARDS }));
+// Records where the camera looks (view()) as a capture mark, for framing a shot.
+const MARK_VIEW = `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'view ' + JSON.stringify(window.__hitlRender.view()) }); })()`;
+const OUTAGE_ON_FLOOR = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'incident' && !e.caught)";
+
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
   const c = window.__HITL.controls;
@@ -151,10 +199,10 @@ const THREE_SAVES = `(async () => {
 })()`;
 
 // Everyone in the office: no lockdown, and an office work policy (the sim keeps nobody remote).
-const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
+export const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
 
 // Presents the recent Yak history the sim kept, since a fast-forward shows nothing as it goes.
-const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
+export const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
 
@@ -170,14 +218,14 @@ const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY
   const ahead = structuredClone(s); let weeks = 0;
   while (weeks < 12) { weeks++; const ev = sim.tick(ahead) ?? []; if (ev.some((e) => e.type === 'incentive' && e.reward === '${reward}')) break; b.botDecide('balanced', ahead); }
   for (let i = 1; i < weeks; i++) { sim.tick(s); b.botDecide('balanced', s); }` });
-const WAFFLE_SETUP = STAGED('waffle_party');
+export const WAFFLE_SETUP = STAGED('waffle_party');
 // Music night comes naturally: the Incentives Program on from its unlock, played until the fifth
 // reward is due next week, so the live week raises the genre decision.
 const MUSIC_DUE = "((s.policies.incentives || sim.dispatch(s, { type: 'setPolicy', id: 'incentives', on: true })), s.flags.incentiveCount === 4 && s.week - s.flags.incentiveWeek >= (await import('/src/sim/balance.js')).B.incentiveEveryWeeks - 1)";
-const MUSIC_SETUP = PLAY({ weeks: 400, until: MUSIC_DUE, after: IN_OFFICE + CHAT_HISTORY + DROP_UNSTAFFED + STAFF_IDLE });
+export const MUSIC_SETUP = PLAY({ weeks: 400, until: MUSIC_DUE, after: IN_OFFICE + CHAT_HISTORY + DROP_UNSTAFFED + STAFF_IDLE });
 // Clicks through the incentive card each second, so the party plays as soon as it is awarded;
 // decisions get the first choice.
-const WAFFLE_ACTIONS = (seconds) => [
+export const WAFFLE_ACTIONS = (seconds) => [
   ...Array.from({ length: Math.floor(seconds) }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
   ...DISMISS_EVERY(seconds).filter((a) => a.at % 4 === 0),
 ];
@@ -523,5 +571,118 @@ export const ITEMS = [
   {
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
+  },
+  // Landing page (group 'landing', #582): the site's stills and loops, re-shot from real games.
+  // Sizes are cut by scripts/reels/landing.sh; these record at 1920x1080.
+  {
+    id: 'landing-hero', group: 'landing', title: 'Hero: a busy HQ by day (still and loop)', query: 'seed=1&speed=1&time=day', seconds: 15, warmup: 6,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
+  },
+  {
+    id: 'landing-hq-night', group: 'landing', title: 'HQ at night', query: 'seed=1&speed=1&time=night', still: true, warmup: 6,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
+  },
+  {
+    id: 'landing-floor', group: 'landing', title: 'The Office Floor', query: 'seed=1&speed=1&time=day', still: true, warmup: 6,
+    setup: `(async () => { await ${PLAY({ weeks: 400, until: 's.office.stage === 1 && s.staff.length >= 12', after: IN_OFFICE })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
+  },
+  {
+    id: 'landing-garage', group: 'landing', title: 'The garage: two founders at their first desks', query: 'seed=1&speed=1&time=day', still: true, warmup: 4,
+    setup: `(async () => { await ${PLAY({ weeks: 2 })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
+  },
+  {
+    id: 'landing-launch', group: 'landing', title: 'Launch day reviews', query: 'seed=33&speed=1', seconds: 16, warmup: 0.5,
+    // The live week launches the first product; a decision raised the same week is answered first,
+    // so the launch results are what stay up.
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 120, bot: 'balanced', hit: "(c, ev) => ev.some((e) => e.type === 'launch')" })}; ${BARE}; })()`,
+    actions: [
+      ...DISMISS_AT([0.1, 0.6, 1.5, 3, 4, 5, 6, 8, 10], { escape: false }),
+      ...[4, 5, 6, 7].map((at) => ({ at, js: `(() => { const H = window.__HITL; if (H.state.pendingDecision) H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })),
+    ],
+    screenshots: [8, 11, 14],
+  },
+  {
+    id: 'landing-lockdown', group: 'landing', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', seconds: 12, warmup: 1,
+    setup: `(async () => { await ${PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY })}; ${BARE}; })()`,
+    actions: DISMISS_EVERY(12), screenshots: [6, 10],
+  },
+  {
+    id: 'landing-era', group: 'landing', title: 'An era arrives and the office redresses', query: 'seed=1&speed=1', moment: 'era --era agents --stage floor --snapshot', seconds: 16, warmup: 0.5,
+    setup: `(() => { ${CLEAN}; document.getElementById('landing-clean').textContent += ' #ui .announce-back.docked { display: none !important; }'; })()`, actions: DISMISS_AT([2, 3, 4, 5, 6, 8, 10], { escape: false }), screenshots: [4, 8, 12],
+  },
+  {
+    id: 'landing-incident', group: 'landing', title: 'An outage on the Office Floor', query: 'seed=2&speed=1', seconds: 16, warmup: 0.5,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: OUTAGE_ON_FLOOR, after: IN_OFFICE })}; ${CLEAN}; })()`,
+    actions: [...CLEAR_EARLY, ...DISMISS_AT([3, 5, 7, 9, 11, 13], { escape: false })], screenshots: [6, 10, 14],
+  },
+  {
+    id: 'landing-yak-post', group: 'landing', title: 'Talk back in Yak: a pep talk mid-outage', query: 'seed=2&speed=1', seconds: 22, warmup: 0.5,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: OUTAGE_ON_FLOOR, after: IN_OFFICE + CHAT_HISTORY })}; ${YAK_ONLY}; })()`,
+    actions: [...CLEAR_EARLY, 
+      ...DISMISS_AT([2, 3, 4], { escape: false }),
+      { at: 5, js: CLICK_SEL('.ypost-btn') },
+      { at: 6.5, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /pep talk/i.test(b.textContent))?.click()` },
+    ],
+    screenshots: [6, 10, 14, 18, 21],
+  },
+  {
+    id: 'landing-ransomware', group: 'landing', title: 'Ransomware takes over every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
+    setup: BARE, actions: [...FOLLOW(SEATED, 3.2, 0, 14, -320)], screenshots: [3, 6, 9],
+  },
+  {
+    id: 'landing-waffle', group: 'landing', title: 'The Waffle Party', query: 'seed=1&speed=1', seconds: 30,
+    setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: WAFFLE_ACTIONS(30), screenshots: [12, 16, 20, 24],
+  },
+  {
+    id: 'landing-music', group: 'landing', title: 'Music night', query: 'seed=1&speed=1', seconds: 34,
+    setup: `(async () => { await ${MUSIC_SETUP}; ${CLEAN}; })()`,
+    actions: [
+      ...CLEAR_EARLY,
+      ...Array.from({ length: 34 }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
+      ...Array.from({ length: 30 }, (_, i) => ({ at: i + 1, js: `(() => { const H = window.__HITL; const d = H.state.pendingDecision; if (!d) return; window.__decisionSeen ??= performance.now(); if (performance.now() - window.__decisionSeen > 3000) { H.dispatch({ type: 'resolveDecision', choice: 0 }); window.__decisionSeen = undefined; } })()` })),
+    ],
+    screenshots: [12, 16, 20, 24, 28],
+  },
+  {
+    id: 'landing-printer', group: 'landing', title: 'The printer taken out back (loop)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
+    setup: CLEAN,
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...FOLLOW(['printer_jammed'], 2.4, 0, 25), { at: 3.5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([4, 4.5, 5.5], { escape: false })],
+    screenshots: [14, 17, 20],
+  },
+  {
+    id: 'landing-stapler', group: 'landing', title: 'The red stapler (record at 3840x2160)', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 9, warmup: 6.5,
+    setup: CLEAN,
+    // "Let them keep it" leaves the stapler on the desk.
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })), ...FOLLOW(['stapler'], 3.2, 0, 9), { at: 4, js: KEY('2', 'Digit2') }, ...DISMISS_AT([4.5, 5], { escape: false })],
+    screenshots: [8],
+  },
+  {
+    id: 'landing-cover-sheets', group: 'landing', title: 'The TPS cover sheets (record at 3840x2160)', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 5, warmup: 6.5,
+    // Both choices clear the stack, so it is shot while the decision is open, the card hidden.
+    setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })), ...FOLLOW(['cover_sheets'], 3.2, 0, 5)],
+    screenshots: [4.5],
+  },
+  {
+    id: 'landing-rival-sign', group: 'landing', title: 'Days since they copied us: 0 (record at 3840x2160)', query: 'seed=1&speed=1', seconds: 20, warmup: 0.5,
+    setup: `(async () => { await ${PRE_DECISION('rival_jab', 600, 'c.office.stage >= 1')}; ${CLEAN}; })()`,
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('rival_jab', 0, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['sign_rival_copied'], 3.2, 0, 20)], screenshots: [14, 17, 19.5],
+  },
+  {
+    id: 'landing-cheque', group: 'landing', title: 'The giant novelty cheque (record at 3840x2160)', query: 'seed=1&speed=1', seconds: 20, warmup: 0.5,
+    setup: `(async () => { await ${PRE_DECISION('ai_summit_hackathon', 600)}; ${CLEAN}; })()`,
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('ai_summit_hackathon', 1, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['giant_cheque'], 3.2, 0, 20)], screenshots: [14, 17, 19.5],
+  },
+  {
+    id: 'landing-whiteboard', group: 'landing', title: 'The whiteboard: the market has spoken (record at 3840x2160)', query: 'seed=1&speed=1', moment: 'pivot_pitch --stage floor', pre: true, seconds: 5, warmup: 6.5,
+    setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['whiteboard_scrawl']) })), ...FOLLOW(['whiteboard_scrawl'], 3.2, 0, 5)],
+    screenshots: [4.5],
+  },
+  {
+    id: 'landing-visitor', group: 'landing', title: 'The first user test: the founders hiding', query: 'seed=1&speed=1', moment: 'first_user_test', pre: true, seconds: 16, warmup: 6.5,
+    setup: BARE,
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...FOLLOW(['visitor_chair'], 3, 0, 16), { at: 5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([5.5, 6], { escape: false })],
+    screenshots: [3, 7, 10, 13],
   },
 ];
