@@ -58,11 +58,5 @@ describe('Crunch Mode', () => {
     expect(p.strain).toBe(B.vacationMaxPostpones * B.vacationPostponeStrain);
   });
 
-  it('a crunch-built company burns people out; careful players do not', () => {
-    const count = (bot, seed) => runBot(bot, seed, 780).resignations;
-    const reckless = [1, 3, 4, 7].map((seed) => count('recklessHumans', seed));
-    const careful = [1, 3].map((seed) => count('sensible', seed));
-    expect(Math.max(...reckless)).toBeGreaterThanOrEqual(10);
-    expect(Math.max(...careful)).toBeLessThan(Math.max(...reckless));
-  }, 180000);
+  // The real-run burnout check is in full-runs.test.js.
 });

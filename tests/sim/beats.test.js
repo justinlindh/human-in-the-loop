@@ -151,15 +151,4 @@ describe('the floor next door and the first deals', () => {
   });
 });
 
-describe('beats in real runs', () => {
-  it('the agent bill and the first deals land between the eras they fill', () => {
-    const weeks = { agent_bill: [], rival_megaround: [], floor_next_door: [], deals_open: [] };
-    for (const seed of [1, 2, 3, 4]) {
-      let st = null;
-      runBot('balanced', seed, 800, { setup: (s) => { st = s; }, onWeek: (s) => { st = s; } });
-      for (const [id, w] of Object.entries(st.flags.beats ?? {})) (weeks[id] ??= []).push(w - st.eraSchedule.agents);
-    }
-    expect(weeks.agent_bill.length).toBe(4);
-    expect(weeks.deals_open.length).toBeGreaterThanOrEqual(3);
-  }, 180000);
-});
+// Beats in real runs are checked in full-runs.test.js.
