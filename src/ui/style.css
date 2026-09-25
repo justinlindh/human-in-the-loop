@@ -175,9 +175,9 @@
 /* ---------- bottom row: chat + menu ---------- */
 .hitl .bottom {
   position: absolute; left: 0.6em; right: 0.6em; bottom: 0.6em;
-  display: grid; grid-template-columns: 19em 1fr 19em; align-items: end; gap: 0.6em;
+  display: grid; grid-template-columns: var(--yak-w, 19em) 1fr 19em; align-items: end; gap: 0.6em;
 }
-@media (max-width: 1400px) { .hitl .bottom { grid-template-columns: 17em 1fr 0; } }
+@media (max-width: 1400px) { .hitl .bottom { grid-template-columns: min(var(--yak-w, 17em), 45vw) 1fr 0; } }
 
 
 .hitl .menu { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4em; max-width: 100%; min-width: 0; pointer-events: auto; padding: 0.4em; background: var(--ink); border-radius: 1.1em; box-shadow: var(--soft); }
@@ -720,7 +720,7 @@
 .hitl .ctab.on { background: #4a154b; color: #fff; }
 .hitl .ctab .cbadge { display: none; font-size: 0.85em; background: var(--red); color: #fff; border-radius: 1em; padding: 0 0.4em; }
 .hitl .ctab .cbadge.show { display: inline-block; }
-.hitl .chat-body { height: 12em; overflow-y: auto; padding: 0.3em 0.45em 0.4em; display: flex; flex-direction: column; gap: 0.3em; scrollbar-width: thin; }
+.hitl .chat-body { height: var(--yak-h, 12em); overflow-y: auto; padding: 0.3em 0.45em 0.4em; display: flex; flex-direction: column; gap: 0.3em; scrollbar-width: thin; }
 .hitl .chat.collapsed .chat-body, .hitl .chat.collapsed .chat-tabs, .hitl .chat.collapsed .chat-quiet.banner { display: none; }
 .hitl .chat-quiet { color: var(--ink-faint); font-size: 0.85em; text-align: center; margin: auto 0; padding: 1em 0.5em; }
 .hitl .chat-quiet.banner { display: none; margin: 0; padding: 0.25em 0.5em; font-size: 0.78em; background: #fff4dc; color: var(--warn); font-weight: 600; border-bottom: 0.12em solid var(--line); }
@@ -1157,4 +1157,29 @@
   .hitl .bottom > .chat .chat-body { height: 6.5em; }
   .hitl .menu { justify-self: stretch; row-gap: 0.35em; }
   .hitl .mbtn { width: calc(25% - 0.3em); min-width: 3.9em; height: 4em; }
+}
+
+/* Yak sizes: S, M, L in the header, a drag handle on the top edge, and a maximize button that
+   opens a big overlay (full screen on phones). */
+.hitl .chat { position: relative; }
+.hitl .bottom > .chat .chat-body { max-height: calc(100vh - var(--topbar-h, 4.6em) - 7.5em); }
+.hitl .chat .ygrip { position: absolute; top: -0.35em; left: 0; right: 0; height: 0.9em; cursor: ns-resize; z-index: 2; touch-action: none; }
+.hitl .chat.collapsed .ygrip, .hitl .chat.max .ygrip { display: none; }
+.hitl .chat-head .ysizes { display: inline-flex; gap: 0.2em; margin-left: auto; }
+.hitl .chat-head .count.show + .ysizes { margin-left: 0.4em; }
+.hitl .chat-head .ysz { font: inherit; font-size: 0.72em; font-weight: 700; min-width: 1.9em; height: 1.9em; padding: 0 0.3em; border-radius: 0.45em; border: 0.12em solid rgba(255,255,255,0.35); background: transparent; color: #fff; cursor: pointer; display: inline-grid; place-items: center; }
+.hitl .chat-head .ysz.on { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+.hitl .chat-head .ysz:hover { border-color: #fff; }
+.hitl .chat.collapsed .ysizes .ysz:not(.ymax) { display: none; }
+.hitl .yak-back { position: absolute; inset: 0; z-index: 45; background: rgba(42,38,48,0.45); display: grid; place-items: center; padding: 1.5em; pointer-events: auto; }
+.hitl .chat.max { width: min(56em, 100%); height: min(46em, 100%); }
+.hitl .chat.max .chat-body { height: auto; flex: 1; }
+.hitl .chat.max .chat-head .ysz:not(.ymax), .hitl .chat.max .chat-head .caret { display: none; }
+.hitl .chat.max .chat-head .ysizes { margin-left: auto; }
+.hitl .chat.max .chat-head { cursor: default; }
+@media (pointer: coarse) { .hitl .chat-head .ysz { min-width: 44px; height: 36px; } .hitl .chat .ygrip { height: 1.6em; top: -0.8em; } }
+@media (max-width: 480px) {
+  .hitl .yak-back { padding: 0; }
+  .hitl .chat.max { width: 100%; height: 100%; border-radius: 0; }
+  .hitl .chat-head .ysz:not(.ymax) { display: none; }
 }

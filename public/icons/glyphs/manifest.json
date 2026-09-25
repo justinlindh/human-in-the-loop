@@ -74,6 +74,9 @@
  "arrow.back": {
   "file": "glyphs/arrow.back.svg"
  },
+ "expand": {
+  "file": "glyphs/expand.svg"
+ },
  "caret.down": {
   "file": "glyphs/caret.down.svg"
  },
