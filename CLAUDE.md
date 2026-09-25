@@ -14,7 +14,7 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 - `npm run snap -- --scenario floor --out shots/floor.png`: headless screenshot, exits non-zero on console errors.
 - `npm run models`: rebuild `public/models/*.glb` from `blender/` scripts (Blender 5.2, headless).
 
-Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) is listed in `docs/toolkit.md`, with who uses it and for what. Read it at the start of a session. A PR that adds, removes or changes a tool updates `docs/toolkit.md` and, when a role should reach for it, that role's brief in `.claude/agents/`.
+Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) has an entry in `docs/toolkit/`, one file per tool, saying who uses it and for what. `npm run toolkit` prints them all (`--grep <word>` finds one), and `docs/toolkit.md` holds the shared guidance. Read both at the start of a session. A PR that adds, removes or changes a tool adds or updates its entry in `docs/toolkit/` and, when a role should reach for it, that role's brief in `.claude/agents/`.
 
 Everything the game does for the player (items, perks, staged moments, props, Yak features, jokes, sounds, interface) is catalogued in `docs/features.md`, with the ids it is built from and how to see each one. A PR that adds, changes or removes something a player can see updates its entry in the same PR. A data-backed entry carries its ids (`id: printer_jam`).
 
@@ -42,7 +42,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Wrap long-running commands (renders, ffmpeg, captures, balance runs) in `timeout`, and nice heavy batch jobs (`nice -n 10`). The machine is shared: a runaway job blocks your own turn, so you never see messages about it, and it starves every lane's CI.
 - Stop or wait on processes by PID (`$!`, `wait`, `tail --pid`, a lock), never with `pkill -f` or `pgrep -f` on text: the pattern also matches your own shell's command line, so it kills your own command or waits forever.
 - When your change alters something other lanes use (a tool or check, a harness, a shared helper, CI, the contract, or a convention), list the affected teammates in the PR's Affects section. When it merges, message each of them: what changed, and what they should do (merge `main`, switch commands, stop a workaround).
-- Before starting each new task, merge `origin/main` into your working branch, then skim what changed in the tooling since your last sync (`git log --oneline <last-sync>..origin/main -- scripts blender/checks docs/toolkit.md src/contract`). Reach for new tools before hand-rolled ones.
+- Before starting each new task, merge `origin/main` into your working branch, then skim what changed in the tooling since your last sync (`git log --oneline <last-sync>..origin/main -- scripts blender/checks docs/toolkit docs/toolkit.md src/contract`). Reach for new tools before hand-rolled ones.
 - Every instruction or status message names the PR and head (or issue) it's about. An update restates the whole current ask rather than adding a delta. Before stopping another agent's job, or when you do, send it a one-line notice.
 - Never use `git stash`: every worktree shares one stash stack, so two lanes stashing at once swap each other's work. To set changes aside, commit them to a scratch branch, or copy the files to your scratchpad.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
