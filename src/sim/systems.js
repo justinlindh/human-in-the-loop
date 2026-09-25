@@ -31,3 +31,4 @@ import './beats.js';
 import './moonshot.js';
 import './props.js';
 import './prompts.js';
+import './posts.js';
