@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { tileCenter, footprint } from './layout.js';
-import { roundedBox, mesh } from './prims.js';
+import { roundedBox, roundedCylinder, mesh } from './prims.js';
+import { getModel } from './models.js';
 import { mat } from './materials.js';
 
 // Staged props (contract: Staged props): the open decision's stage prop and the lingering
@@ -14,6 +15,7 @@ const POP_S = 0.22, GONE_S = 0.18;
 
 export function createProps(office) {
   const live = new Map();   // key -> { obj, t, gone }
+  const dropped = new Set(); // keys whose desk was sold: not rebuilt while the sim still lists them
   let root = null;
 
   function wanted(state) {
@@ -36,9 +38,10 @@ export function createProps(office) {
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));
     for (const [k, e] of live) if (!keys.has(k) && !e.gone) { e.gone = true; e.t = 0; }
+    for (const k of dropped) if (!keys.has(k)) dropped.delete(k);
     for (const w of want) {
       const e = live.get(w.key);
-      if (e && !e.gone) continue;
+      if ((e && !e.gone) || dropped.has(w.key)) continue;
       // Wall props keep clear of each other as well as of windows and wall pieces.
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
@@ -52,6 +55,12 @@ export function createProps(office) {
   function update(dt) {
     for (const [k, e] of live) {
       e.t += dt;
+      const f = e.obj.userData.follow;
+      if (f && !e.gone) {
+        const desk = office.placed?.get(f.deskId);
+        if (desk) follow(e.obj, desk);
+        else { e.gone = true; e.t = 0; dropped.add(k); }
+      }
       if (e.gone) {
         const q = Math.min(1, e.t / GONE_S);
         e.obj.scale.setScalar(Math.max(0.001, 1 - q));
@@ -66,10 +75,22 @@ export function createProps(office) {
   return { sync, update, get ids() { return Object.keys(BUILDERS); } };
 }
 
+// Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
+// prims geometry (cached and shared) and loaded models (userData.shared) belong to everyone.
 function dispose(obj) {
   obj.removeFromParent();
-  obj.traverse((o) => { if (o.isMesh) o.material.dispose(); });
+  const walk = (o) => {
+    if (o.userData.shared) return;
+    if (o.isMesh) {
+      if (o.geometry.userData.own) o.geometry.dispose();
+      if (o.material.userData.own) o.material.dispose();
+    }
+    for (const c of o.children) walk(c);
+  };
+  walk(obj);
 }
+const own = (m) => { m.userData.own = true; return m; };
+const plane = (w, h) => own(new THREE.PlaneGeometry(w, h));
 
 // A wall prop's spot: the anchor tile's place along its back wall, slid to the nearest stretch
 // clear of windows, doors, the era's wall pieces, tall furniture and other props; if that wall is
@@ -105,7 +126,7 @@ function canvasTex(key, w, h, draw) {
   return t;
 }
 
-const tapeGeo = new THREE.PlaneGeometry(0.1, 0.035);
+const tapeGeo = new THREE.PlaneGeometry(0.1, 0.035);  // shared by every tape strip; never disposed
 let tapeMat = null;
 
 // A printed picture taped to the wall at eye level, a little crooked.
@@ -117,14 +138,14 @@ function wallPrint(tex, { w = 0.84, h = 0.63, tilt = 0.035 } = {}) {
     const onX = spot.wall === 'x';
     g.position.set(onX ? -L.W / 2 + 0.06 : spot.at, 1.45, onX ? spot.at : -L.D / 2 + 0.06);
     if (onX) g.rotation.y = Math.PI / 2;
-    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex(env.state), roughness: 0.9 }));
+    const sheet = new THREE.Mesh(plane(w, h), own(new THREE.MeshStandardMaterial({ map: tex(env.state), roughness: 0.9 })));
     sheet.rotation.z = tilt;
     sheet.userData.noAO = true;
     sheet.receiveShadow = true;
     g.add(sheet);
     tapeMat ??= new THREE.MeshStandardMaterial({ color: new THREE.Color(P.paper_sheet), roughness: 0.6, transparent: true, opacity: 0.75 });
     for (const sx of [-1, 1]) {
-      const tape = new THREE.Mesh(tapeGeo, tapeMat.clone());
+      const tape = new THREE.Mesh(tapeGeo, tapeMat);
       tape.position.set(sx * (w / 2 - 0.03), h / 2 - 0.02 + sx * tilt * (w / 2), 0.004);
       tape.rotation.z = sx * -0.6 + tilt;
       tape.userData.noAO = true;
@@ -274,34 +295,55 @@ const rivalCopied = (state) => {
   });
 };
 
-// Desk props sit on the subject's desk: the desk whose footprint covers the anchor tile (else the
-// nearest desk, else the tile itself on the floor). Offsets are in the desk's own frame: x across
-// the top, z from its back edge toward the sitter.
-function onDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3 } = {}) {
+// Desk props sit on (or beside) the subject's desk: the desk whose footprint covers the anchor
+// tile, else the nearest desk. Offsets are in the desk's own frame: x across the top, z from its
+// centre toward the sitter; y is the height (the desk top for things on it, 0 beside it). The prop
+// remembers its desk, follows it when it moves and goes when it is sold (see follow()). Without a
+// desk, or for other anchors, it stands on the anchor tile's floor.
+function deskFor(L, anchor, office, nearest) {
+  const desks = [...(office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
+  const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
+  const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+  const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
+  return desks.find(covers) ?? (nearest ? desks.sort((a, b) => d(a) - d(b))[0] : null) ?? null;
+}
+function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE } = {}) {
+  // Defaults read at call time: the constants are declared further down.
   return (L, anchor, env) => {
-    const desks = [...(env.office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
-    const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
-    const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
-    const e = desks.find(covers) ?? desks.sort((a, b) => Math.hypot(a.target.x - c.x, a.target.z - c.z) - Math.hypot(b.target.x - c.x, b.target.z - c.z))[0];
     const g = new THREE.Group();
     // Oversized, like the rest of the furniture, so a small thing still reads at gameplay zoom.
     const item = build();
-    item.scale.setScalar(DESK_PROP_SCALE);
+    item.scale.setScalar(scale);
     g.add(item);
+    // Things on a desk always find one; things beside a desk only when the anchor tile is a desk's.
+    const onTop = y > 0;
+    const e = anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
-      const t = e.target, cs = Math.cos(t.rotY), sn = Math.sin(t.rotY);
-      g.position.set(t.x + cs * lx + sn * lz, TOP_Y, t.z - sn * lx + cs * lz);
-      g.rotation.y = t.rotY + rot;
+      g.userData.follow = { deskId: e.id, lx, lz, rot, y };
+      follow(g, e);
     } else {
-      g.position.set(c.x, 0, c.z);
+      const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+      g.position.set(c.x, onTop ? 0 : y, c.z);
       g.rotation.y = rot;
     }
     return g;
   };
 }
+// Put a desk-following prop where its desk is now (it may be sliding to a new spot).
+function follow(g, e) {
+  const f = g.userData.follow, o = e.obj, r = o.rotation.y, cs = Math.cos(r), sn = Math.sin(r);
+  g.position.set(o.position.x + cs * f.lx + sn * f.lz, f.y, o.position.z - sn * f.lx + cs * f.lz);
+  g.rotation.y = r + f.rot;
+}
+// A free-standing prop on the anchor tile's floor, or beside the subject's desk for that anchor.
+function onFloor(build, opts = {}) {
+  return atDesk(build, { x: 0.95, z: 0.1, rot: 0, y: 0, scale: 1, ...opts });
+}
 const TOP_Y = 0.57;
 const DESK_PROP_SCALE = 1.6;
-const flatMat = (tex, rough = 0.85) => new THREE.MeshStandardMaterial({ map: tex, roughness: rough });
+// Flat paper needs more size than objects to read from above, and sits further in so it stays on the top.
+const FLAT = { scale: 2.0, x: -0.36, z: -0.3 };
+const flatMat = (tex, rough = 0.85) => own(new THREE.MeshStandardMaterial({ map: tex, roughness: rough }));
 const cardTex = (key, w, h, draw) => canvasTex(key, w, h, draw);
 
 function envelope(thick) {
@@ -316,7 +358,7 @@ function envelope(thick) {
       else { ctx.fillStyle = P.ink; ctx.fillRect(W * 0.3, H * 0.72, W * 0.4, 8); }
     });
     const body = mesh(roundedBox(0.26, h, 0.17, Math.min(0.006, h / 2.2), 2), mat('paper_sheet'), 0, h / 2, 0);
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.17), flatMat(tex));
+    const top = new THREE.Mesh(plane(0.26, 0.17), flatMat(tex));
     top.rotation.x = -Math.PI / 2; top.position.y = h + 0.001;
     g.add(body, top);
     return g;
@@ -367,7 +409,7 @@ function photosLaminated() {
   for (let i = 0; i < 4; i++) {
     const card = new THREE.Group();
     card.add(mesh(roundedBox(0.15, 0.003, 0.115, 0.002, 1), mat('paper'), 0, 0.0015, 0));
-    const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.095), flatMat(tex, 0.25));
+    const pic = new THREE.Mesh(plane(0.13, 0.095), flatMat(tex, 0.25));
     pic.rotation.x = -Math.PI / 2; pic.position.y = 0.0035;
     card.add(pic);
     card.position.set(i * 0.05 - 0.07, i * 0.004, (i % 2) * 0.03);
@@ -375,6 +417,112 @@ function photosLaminated() {
     g.add(card);
   }
   return g;
+}
+
+
+// Hackathon aftermath: a leaning stack of pizza boxes.
+function pizzaBoxes() {
+  const g = new THREE.Group();
+  const lid = cardTex('pizza', 128, 128, (ctx, W, H) => {
+    ctx.fillStyle = P.wood_light; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = P.fabric_terracotta; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(W / 2, H / 2, 38, 0, Math.PI * 2); ctx.stroke();
+    text(ctx, 'PIZZA', W / 2, H / 2, 24, P.fabric_terracotta);
+  });
+  for (let i = 0; i < 4; i++) {
+    const box = new THREE.Group();
+    box.add(mesh(roundedBox(0.42, 0.05, 0.42, 0.008, 1), mat('wood_light'), 0, 0.025, 0));
+    const top = new THREE.Mesh(plane(0.4, 0.4), flatMat(lid));
+    top.rotation.x = -Math.PI / 2; top.position.y = 0.051;
+    box.add(top);
+    box.position.set(((i * 7) % 3 - 1) * 0.03, i * 0.052, ((i * 5) % 3 - 1) * 0.03);
+    box.rotation.y = (i % 2 ? 1 : -1) * 0.12 * i;
+    g.add(box);
+  }
+  return g;
+}
+// The moonshot's secret corner: a curtain on a rod between two stands.
+function curtain() {
+  const g = new THREE.Group();
+  const W = 1.5, H = 1.9;
+  for (const x of [-W / 2, W / 2]) {
+    g.add(mesh(roundedCylinder(0.02, 0.02, H, 0.006, 8), mat('metal_dark'), x, 0, 0));
+    g.add(mesh(roundedCylinder(0.12, 0.14, 0.03, 0.01, 12), mat('metal_dark'), x, 0.015, 0));
+  }
+  // roundedCylinder grows up from its base; turned onto its side it runs from x toward -x.
+  const rod = mesh(roundedCylinder(0.018, 0.018, W + 0.08, 0.006, 8), mat('metal_dark'), (W + 0.08) / 2, H, 0);
+  rod.rotation.z = Math.PI / 2;
+  g.add(rod);
+  // Folds: a row of soft, slightly staggered panels.
+  const n = 9;
+  for (let i = 0; i < n; i++) {
+    const x = -W / 2 + 0.06 + (i / (n - 1)) * (W - 0.12);
+    g.add(mesh(roundedBox(W / n + 0.03, H - 0.12, 0.05, 0.02, 2), mat('fabric_terracotta'), x, (H - 0.12) / 2 + 0.06, (i % 2) * 0.04));
+  }
+  return g;
+}
+// Lying on the floor where someone put it down.
+function sledgehammer() {
+  const g = new THREE.Group();
+  const handle = mesh(roundedCylinder(0.025, 0.03, 0.85, 0.008, 8), mat('wood_light'), 0.425, 0.05, 0);
+  handle.rotation.z = Math.PI / 2;
+  g.add(handle);
+  g.add(mesh(roundedBox(0.12, 0.12, 0.24, 0.025, 2), mat('metal_dark'), 0.47, 0.06, 0));
+  return g;
+}
+// A tape measure with its tape run out across the floor.
+function tapeMeasure() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.12, 0.12, 0.06, 0.025, 3), mat('fabric_mustard'), 0, 0.06, 0));
+  g.add(mesh(roundedCylinder(0.03, 0.03, 0.065, 0.008, 12), mat('metal_dark'), 0, 0.06, -0.0325).rotateX(Math.PI / 2));
+  const tape = mesh(roundedBox(0.9, 0.004, 0.03, 0.001, 1), mat('fabric_mustard'), 0.52, 0.004, 0);
+  g.add(tape);
+  g.add(mesh(roundedBox(0.012, 0.03, 0.035, 0.002, 1), mat('metal_dark'), 0.97, 0.015, 0));
+  return g;
+}
+// A pet carrier with a wire door and a handle.
+function petCarrier() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.55, 0.36, 0.38, 0.06, 3), mat('pot_cream'), 0, 0.18, 0));
+  g.add(mesh(roundedBox(0.56, 0.05, 0.39, 0.02, 2), mat('fabric_teal'), 0, 0.2, 0));
+  g.add(mesh(roundedBox(0.24, 0.04, 0.05, 0.015, 2), mat('fabric_teal'), 0, 0.39, 0));
+  const door = new THREE.Group();
+  door.add(mesh(roundedBox(0.012, 0.24, 0.26, 0.004, 1), mat('metal_dark'), 0, 0, 0));
+  for (let i = -2; i <= 2; i++) door.add(mesh(roundedBox(0.016, 0.24, 0.012, 0.003, 1), mat('metal_soft'), 0.004, 0, i * 0.05));
+  door.position.set(0.28, 0.18, 0);
+  g.add(door);
+  // Two eyes looking out.
+  for (const z of [-0.035, 0.035]) g.add(mesh(roundedBox(0.01, 0.022, 0.022, 0.005, 1), mat('paper'), 0.27, 0.2, z));
+  return g;
+}
+// A network cable run along the floor from the desk, bitten through, frayed ends and all.
+function cableChewed() {
+  const g = new THREE.Group();
+  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.012, 0.012, x1 - x0, 0.004, 8), mat('role_engineer'), x1, 0.012, 0); m.rotation.z = Math.PI / 2; return m; };
+  g.add(seg(-0.6, -0.08), seg(0.06, 0.55));
+  for (const [x, s] of [[-0.08, 1], [0.06, -1]]) {
+    for (let i = 0; i < 4; i++) {
+      const w = mesh(roundedCylinder(0.003, 0.003, 0.05, 0.001, 4), mat(['fabric_terracotta', 'marker_green', 'fabric_mustard', 'paper'][i]), x + s * 0.02, 0.012, (i - 1.5) * 0.008);
+      w.rotation.z = Math.PI / 2 + (i - 1.5) * 0.4 * s;
+      g.add(w);
+    }
+  }
+  return g;
+}
+// The demo-day smoothie: a tall cup with a lid and a straw.
+function smoothie() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedCylinder(0.035, 0.045, 0.14, 0.01, 14), mat('screen_pink'), 0, 0, 0));
+  g.add(mesh(roundedCylinder(0.048, 0.048, 0.02, 0.006, 14), mat('paper'), 0, 0.135, 0));
+  const straw = mesh(roundedCylinder(0.006, 0.006, 0.12, 0.002, 6), mat('marker_green'), 0.01, 0.14, 0);
+  straw.rotation.z = -0.25;
+  g.add(straw);
+  return g;
+}
+// A visitor pulls up a spare desk chair beside the desk.
+function visitorChair() {
+  const m = getModel('chair');
+  m.userData.shared = true;
+  return m;
 }
 
 const BUILDERS = {
@@ -385,10 +533,18 @@ const BUILDERS = {
   invoice: wallPrint(invoice, { w: 0.5, h: 0.67 }),
   old_sign: wallPrint(oldSign, { w: 0.9, h: 0.45 }),
   sign_rival_copied: wallPrint(rivalCopied),
-  envelope: onDesk(envelope(false)),
-  envelope_thick: onDesk(envelope(true)),
-  binder: onDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
-  gift_cards: onDesk(giftCards),
-  sticky_notes: onDesk(stickyNotes, { x: -0.45, z: -0.25, rot: 0.1 }),
-  photos_laminated: onDesk(photosLaminated),
+  envelope: atDesk(envelope(false), FLAT),
+  envelope_thick: atDesk(envelope(true), FLAT),
+  binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
+  gift_cards: atDesk(giftCards, FLAT),
+  sticky_notes: atDesk(stickyNotes, { x: -0.45, z: -0.25, rot: 0.1 }),
+  photos_laminated: atDesk(photosLaminated, FLAT),
+  smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0 }),
+  pizza_boxes: atDesk(pizzaBoxes, { x: 0.35, z: -0.4, rot: 0.2, scale: 1.2 }),
+  curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
+  sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
+  tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
+  pet_carrier: onFloor(petCarrier, { x: 1.0, z: 0.2, rot: -0.5, scale: 1.2 }),
+  cable_chewed: onFloor(cableChewed, { x: 0.2, z: 0.05, rot: 0, scale: 1.4 }),
+  visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
 };

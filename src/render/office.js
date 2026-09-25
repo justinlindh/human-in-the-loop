@@ -1339,9 +1339,10 @@ function eraDressing(L, era, blockers = []) {
   }
   return g;
 }
+// Frees the dressing's own planes and textured materials; prims geometry is cached and shared.
 function disposeDressing(o) {
   if (o.userData.shared) return;
-  if (o.isMesh) { o.geometry?.dispose(); if (o.material?.map) o.material.dispose(); }
+  if (o.isMesh) { if (o.geometry?.type === 'PlaneGeometry' || o.geometry?.type === 'CircleGeometry') o.geometry.dispose(); if (o.material?.map) o.material.dispose(); }
   for (const c of o.children) disposeDressing(c);
 }
 // The floors take a faint wash of the era's accent.
