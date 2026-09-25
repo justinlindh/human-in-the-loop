@@ -34,7 +34,19 @@ stamp="$(date +%Y%m%d-%H%M%S)-$$"
 snap="$ROOT/gates-$stamp"; LOGS="$ROOT/gates/$stamp"; mkdir -p "$LOGS"
 
 # The snapshot: HEAD, plus staged and unstaged changes (deletions included), plus untracked files.
-cleanup() { [ $keep = 1 ] || { git -C "$src" worktree remove --force "$snap" 2>/dev/null; rm -rf "$snap"; }; }
+# Each gate runs in its own process group (setsid), so stopping gates (TERM from timeout or by PID,
+# INT, or any exit) stops every gate and what it started, render locks released, before the snapshot goes.
+pids=()
+stop_gates() {
+  local p left
+  for p in "${pids[@]}"; do kill -TERM -- "-$p" 2>/dev/null; done
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    left=0; for p in "${pids[@]}"; do kill -0 -- "-$p" 2>/dev/null && left=1; done
+    [ $left = 0 ] && return; sleep 0.3
+  done
+  for p in "${pids[@]}"; do kill -KILL -- "-$p" 2>/dev/null; done
+}
+cleanup() { stop_gates; [ $keep = 1 ] || { git -C "$src" worktree remove --force "$snap" 2>/dev/null; rm -rf "$snap"; }; }
 trap cleanup EXIT
 trap 'exit 143' TERM INT HUP
 git -C "$src" worktree add -q --detach "$snap" HEAD || { echo "gates: could not create the snapshot" >&2; exit 2; }
@@ -81,12 +93,14 @@ else
 fi
 
 # Side by side, each with its own vite cache; results in order.
-names=(); pids=(); t0=$SECONDS
+names=(); t0=$SECONDS
 IFS=',' read -ra want <<<"$only"
 for n in "${want[@]}"; do
   [ -n "${CMD[$n]:-}" ] || { echo "gates: unknown gate $n (test, clip, stage, sweep)" >&2; exit 2; }
   names+=("$n")
-  ( s=$SECONDS; HITL_VITE_CACHE=".vite/gates-$n" bash -c "${CMD[$n]}" >"$LOGS/$n.log" 2>&1; r=$?; echo "$r $((SECONDS - s))" >"$LOGS/$n.result" ) &
+  # setsid execs in place here (the child isn't a group leader), so $! is the new group's id.
+  GATE_CMD="${CMD[$n]}" GATE_LOG="$LOGS/$n.log" GATE_RES="$LOGS/$n.result" HITL_VITE_CACHE=".vite/gates-$n" \
+    setsid bash -c 's=$SECONDS; bash -c "$GATE_CMD" >"$GATE_LOG" 2>&1; r=$?; echo "$r $((SECONDS - s))" >"$GATE_RES"' &
   pids+=($!)
 done
 echo "gates: running ${names[*]}${moment:+ for $moment}; logs in $LOGS"

@@ -15,11 +15,15 @@ JSON
 echo '{}' >"$r/package-lock.json"
 # The stand-in test:fast: the snapshot has the edit, the deletion and the new file, and it isn't the source tree.
 cat >"$r/check.js" <<'JS'
+(() => {
 const fs = require('fs');
+// slow.flag: a gate that never finishes on its own; it records its PID for the TERM case.
+if (fs.existsSync('slow.flag')) { fs.writeFileSync(`${process.env.SRC}/../sleeper.pid`, String(process.pid)); setInterval(() => {}, 1000); return; }
 const ok = fs.readFileSync('a.txt', 'utf8') === 'edited\n' && !fs.existsSync('gone.txt') && fs.readFileSync('new.txt', 'utf8') === 'new\n'
   && process.cwd() !== process.env.SRC && !fs.existsSync('fail.flag');
 console.log(ok ? 'snapshot ok' : `snapshot wrong in ${process.cwd()}`);
 process.exit(ok ? 0 : 1);
+})();
 JS
 printf "const SCENARIOS = {\n  printer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen' } } } },\n};\n" >"$r/blender/checks/stage.mjs"
 echo original >"$r/a.txt"; echo bye >"$r/gone.txt"; printf 'node_modules\n' >"$r/.gitignore"
@@ -44,6 +48,21 @@ out="$(cd "$r" && bash scripts/gates.sh --only test --keep 2>&1)"
 kept="$(ls -d "$tmp/root"/gates-* 2>/dev/null)"
 [ -n "$kept" ] && [[ "$out" == *"snapshot kept at $kept"* ]] || fail "--keep should keep and name the snapshot (got: $out)"
 g -C "$r" worktree remove --force "$kept" 2>/dev/null
+
+# Stopped mid-run (TERM, as timeout or a kill by PID sends it): no gate or its children survive.
+touch "$r/slow.flag"; rm -f "$tmp/sleeper.pid"
+(cd "$r" && exec bash scripts/gates.sh --only test >"$tmp/term.out" 2>&1) & gp=$!
+for _ in $(seq 1 100); do [ -s "$tmp/sleeper.pid" ] && break; sleep 0.1; done
+sp="$(cat "$tmp/sleeper.pid" 2>/dev/null)"
+if [ -z "$sp" ]; then fail "the slow gate never started ($(cat "$tmp/term.out"))"
+else
+  kill -TERM "$gp"; wait "$gp"; trc=$?
+  [ $trc -eq 143 ] || fail "gates stopped by TERM should exit 143 (got $trc)"
+  for _ in $(seq 1 30); do kill -0 "$sp" 2>/dev/null || break; sleep 0.1; done
+  kill -0 "$sp" 2>/dev/null && { fail "a gate survived TERM (PID $sp)"; kill -KILL "$sp"; }
+  [ -z "$(ls -d "$tmp/root"/gates-* 2>/dev/null)" ] || fail "the snapshot should be removed after TERM"
+fi
+rm -f "$r/slow.flag"
 
 out="$(cd "$r" && bash scripts/gates.sh --moment nosuch --only test 2>&1)"; rc=$?
 [ $rc -eq 2 ] && [[ "$out" == *"known: printer"* ]] || fail "an unknown moment should exit 2 and list the known ones (rc $rc: $out)"
