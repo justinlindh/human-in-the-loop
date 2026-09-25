@@ -581,28 +581,34 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(10);
   }
-  // 5. A letter on a desk: its sitter stands up behind the chair clear of every piece of furniture,
-  // their own desk and chair included.
+  // 5. A letter on a desk: its sitter gets up (rolling the chair back), reads it in the aisle and sits
+  // down again, clear of every piece of furniture the whole way, their own desk and chair included.
   {
     R.moments.full = true;
     R.perks.hold = true;
     step(90);
     const occupied = [...R.office.placed.values()].filter((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.assignment?.type !== 'hardProblem' && p.mood !== 'away'));
     let worst = 0, worstWho = null, stood = 0;
+    const actors = new Set();
     for (const desk of occupied.slice(0, 4)) {
       S.office.props.push({ id: 'letter_prop', prop: 'envelope', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
-      for (let i = 0; i < 30 * 8; i++) {
+      for (let i = 0; i < 30 * 10; i++) {
         step(1);
-        if (i % 3) continue;
-        for (const [id, what] of R.moments.active) {
-          if (what !== 'letter') continue;
-          const pk = R.perks.peek(id);
-          if (!pk?.temp || pk.path) continue;
+        // Everyone in the moment, from getting up until they are seated again, walking back included;
+        // not the seated pose itself (a sitter is meant to be in their chair).
+        for (const [id, what] of R.moments.active) if (what === 'letter') actors.add(id);
+        for (const id of actors) {
+          if (R.isSeated(id)) { if (!R.moments.active.some(([x]) => x === id)) actors.delete(id); continue; }
           stood++;
           const root = charOf(R.scene, id);
           for (const e of R.office.placed.values()) {
-            const v = bodyInside(root, meshes(e.obj), false);
-            if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id}`; }
+            const ms = meshes(e.obj);
+            const v = bodyInside(root, ms, false);
+            if (v > worst) {
+              worst = v;
+              const parts = ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`);
+              worstWho = `${id} in ${e.itemId}:${e.id} [${parts.join(' ')}] path ${R.perks.peek(id)?.path}`;
+            }
           }
         }
       }

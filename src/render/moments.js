@@ -28,7 +28,9 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
-const STAND_BACK = 0.95;     // how far behind their seat someone stands up, clear of the chair
+const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
+const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
+const STAND_BACK = 0.8;      // then how far back into the aisle, clear of the chair
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
 // The letter sheet: paper with lines of text and a big red stamp, both faces (the camera sees its back).
 const SHEET_GEO = new THREE.PlaneGeometry(0.26, 0.32);
@@ -293,19 +295,30 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (!r || !free().includes(r) || !r.char.seated) { timers.set(`letter|${p.obj.uuid}`, 1); return; }
     // At Low: just the bad-news emote at the desk. Otherwise the emote comes after reading it.
     if (lite()) { emote(r, 'storm', 2.8); return; }
-    // Stand up behind the chair, clear of it, turned to the room: the desk row closes the chair's
-    // sides, so stepping round it would be a walk round the whole row. The seat's walkway runs
-    // straight back from the chair, so the step there is direct.
+    // Out of the chair sideways (on the camera's side when both are clear), then back into the aisle
+    // to read it; the chair's back and the desk row are in the way of any straight route. They come
+    // back the same way.
     const desk = office.placed.get(deskId);
-    const ry = desk?.obj.rotation.y ?? 0;
-    const spot = { x: r.pos.x + Math.sin(ry) * STAND_BACK, z: r.pos.z + Math.cos(ry) * STAND_BACK };
-    if (office.nav().isBlocked(spot.x, spot.z, BODY_R) || columnInFront(spot)) return;
+    const ry = desk?.obj.rotation.y ?? 0, nav = office.nav(), yaw = getYaw();
+    const ax = [Math.cos(ry), -Math.sin(ry)], back = [Math.sin(ry), Math.cos(ry)];
+    const seat = { x: r.pos.x, z: r.pos.z };
+    const sides = [1, -1].map((sg) => ({ x: seat.x + ax[0] * SIDE_OUT * sg + back[0] * 0.2, z: seat.z + ax[1] * SIDE_OUT * sg + back[1] * 0.2 }))
+      .filter((q) => !nav.isBlocked(q.x, q.z))
+      .sort((a, b) => (b.x * Math.sin(yaw) + b.z * Math.cos(yaw)) - (a.x * Math.sin(yaw) + a.z * Math.cos(yaw)));
+    const side = sides[0];
+    if (!side) return;
+    const spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
+    if (nav.isBlocked(spot.x, spot.z, BODY_R) || columnInFront(spot)) return;
     spot.yaw = towardCamera(spot, p.obj.position);
+    // Push the chair back to get up; it rolls in again as they sit back down.
+    const chair = office.freeChair?.(deskId, true);
+    const route = [{ x: side.x, z: side.z }, { x: spot.x, z: spot.z }];
+    if (chair) rolls.push({ r, deskId, chair, z0: chair.position.z, k: 0, seat, sat: 0, route });
     // Read, then react: the letter goes up in front of their face for a beat, then down on the desk
     // and they slump over the news.
     const env = p.obj;
     r.temp = {
-      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: true, moment: 'letter', el: 0,
+      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', el: 0,
       tick: (rr, d, tp) => {
         tp.el += d;
         if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); rr.char.root.add(tp.sheet); env.visible = false; }
@@ -313,13 +326,40 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
           tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true;
           emote(rr, 'storm', 2.4);
         }
-        if (tp.t <= d * 1.5 && tp.sheet) { tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true; }
+        if (tp.t <= d * 1.5) {
+          if (tp.sheet) { tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true; }
+          // Back the way they came: to the side of the chair, then in.
+          rr.temp = null;
+          rr.path = [{ x: side.x, z: side.z }, { x: seat.x, z: seat.z }];
+          return true;
+        }
         rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
         return true;
       },
     };
-    r.path = [{ x: spot.x, z: spot.z }];
+    // They wait in the chair until it has rolled back (updateRolls), then step out.
+    if (chair) r.temp.delay = 99; else r.path = route;
   }
+  // Chairs pushed back for a moment: out while the sitter is up, in as they come back to the seat,
+  // merged into the desk again once they have sat down.
+  const rolls = [];
+  function updateRolls(dt) {
+    for (let i = rolls.length - 1; i >= 0; i--) {
+      const q = rolls[i], r = q.r;
+      if (!recs.has(r.id)) { office.freeChair?.(q.deskId, false); rolls.splice(i, 1); continue; }
+      const near = Math.hypot(r.pos.x - q.seat.x, r.pos.z - q.seat.z);
+      const returning = !r.temp && r.path.length <= 1;
+      const want = r.char.seated && !r.temp ? 0 : returning && near < 0.3 ? 0 : 1;
+      q.k += (want - q.k) * (1 - Math.exp(-dt * 9));
+      q.chair.position.z = q.z0 + q.k * CHAIR_ROLL;
+      if (q.route && q.k > 0.9 && r.temp?.moment === 'letter') { r.temp.delay = 0; r.path = q.route; q.route = null; }
+      if (r.char.seated && !r.temp && q.k < 0.02) {
+        q.sat += dt;
+        if (q.sat > 0.4) { office.freeChair?.(q.deskId, false); rolls.splice(i, 1); }
+      } else q.sat = 0;
+    }
+  }
+
   // The letter in hand: a sheet held up in front of the face, a red stamp showing through it.
   function letterSheet() {
     const g = new THREE.Mesh(SHEET_GEO, sheetMat());
@@ -432,6 +472,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   function update(dt, state) {
     for (const [k, t] of resolvedT) { if (t - dt <= 0) { resolvedT.delete(k); resolved.delete(k); } else resolvedT.set(k, t - dt); }
     updateBursts(dt);
+    updateRolls(dt);
     const props = getProps();
     if (!props || !office.current) return;
     const cur = props.current();
@@ -451,7 +492,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     else for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k);
   }
 
-  function reset() { stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
+  function reset() { rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
   return { update, reset, decided, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

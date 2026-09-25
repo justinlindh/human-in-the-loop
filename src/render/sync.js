@@ -893,6 +893,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   return {
+    // Whether someone is in a seated pose (for checks).
+    isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, setCharacterShadows,
