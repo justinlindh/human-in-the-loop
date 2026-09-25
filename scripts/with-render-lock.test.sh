@@ -3,7 +3,10 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$HERE/with-render-lock.sh"
-tmp="$(mktemp -d)"; bg=""; trap '[ -n "$bg" ] && kill "$bg" 2>/dev/null; rm -rf "$tmp"' EXIT
+tmp="$(mktemp -d)"; bg=""
+# The lock holder is flock with a child; stop the child first so nothing keeps the lock.
+stop_holder() { [ -n "$bg" ] || return 0; pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; wait "$bg" 2>/dev/null; bg=""; }
+trap 'stop_holder; rm -rf "$tmp"' EXIT
 export CI_WORKTREE_ROOT="$tmp"; L="$tmp/render-checks.lock"
 fails=0
 expect() { [ "$2" = "$3" ] || { echo "FAIL $1: want $3, got $2"; fails=$((fails + 1)); }; }
@@ -20,7 +23,7 @@ flock "$L" sleep 30 & bg=$!
 sleep 0.3
 RENDER_LOCK_WAIT=1 bash "$W" echo ran >/dev/null 2>&1; expect 'waits, then exits 75 when the lock is busy' "$?" 75
 HITL_RENDER_LOCK_HELD=1 RENDER_LOCK_WAIT=1 bash "$W" echo ran >/dev/null 2>&1; expect 'a stray HITL_RENDER_LOCK_HELD does not skip the lock' "$?" 75
-kill "$bg"; pkill -P "$bg" 2>/dev/null; bg=""
+stop_holder
 
 bash "$W" >/dev/null 2>&1; expect 'no command is a usage error' "$?" 2
 [ $fails -eq 0 ] && echo "with-render-lock: all cases pass" || echo "with-render-lock: $fails failing"
