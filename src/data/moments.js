@@ -30,4 +30,8 @@ export const MOMENT_CAPTIONS = {
   the_stapler: 'A red stapler, much loved. Facilities has noticed it.',
   efficiency_consultants: 'Two consultants named Rob are here. Everyone is being interviewed.',
   printer_jam: 'The printer says PC LOAD LETTER. Nobody knows what it wants.',
+  // Ambient moments, keyed by the prop that sets them off.
+  pizza_boxes: 'The hackathon pizza boxes are still here. Nobody says whose turn it is.',
+  smoke_puff: 'A puff of smoke from the coffee machine. Everyone pretends not to see.',
+  rack_hot: 'The server rack is running hot. Somewhere, a bill is counting.',
 };
