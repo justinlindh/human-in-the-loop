@@ -100,11 +100,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const r = {
       id: s.id, char, pos: new THREE.Vector3(), yaw: 0, path: [], speed: WALK,
       goal: null, goalKey: '', seat: null, mode: 'placed', hidden: false,
-      emoteT: 0, moodEmoteT: rnd(6, 14), staff: s, walkAnim: 'walk', tempBy: null,
+      temp: null, emoteT: 0, moodEmoteT: rnd(6, 14), staff: s, walkAnim: 'walk', tempBy: null,
     };
-    let temp = null;
-    Object.defineProperty(r, 'temp', { enumerable: true, get: () => temp, set: (v) => { if (trace.on && v !== temp) traceTemp(r, temp, v); temp = v; } });
+    if (trace.on) traceRec(r);
     return r;
+  }
+  // While the trace is on, temp becomes a property that reports each change; the game never pays
+  // for it otherwise.
+  function traceRec(r) {
+    if (r.traced) return;
+    r.traced = true;
+    let temp = r.temp;
+    Object.defineProperty(r, 'temp', { enumerable: true, get: () => temp, set: (v) => { if (trace.on && v !== temp) traceTemp(r, temp, v); temp = v; } });
   }
 
   function disposeRec(r) {
@@ -999,7 +1006,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // The moment ownership trace: trace.on = true starts it; lines(n) are the last n entries.
     trace: {
       get on() { return trace.on; },
-      set on(v) { trace.on = !!v; if (!v) trace.lines.length = 0; },
+      set on(v) { trace.on = !!v; if (v) for (const r of recs.values()) traceRec(r); else trace.lines.length = 0; },
       lines(n = 50) { return trace.lines.slice(-n); },
       // Refusals and other notes from the moments module.
       note(id, what, detail) { traceLine(id, what, detail); },
