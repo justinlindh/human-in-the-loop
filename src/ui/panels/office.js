@@ -50,6 +50,15 @@ export function availableItems(s) {
   return Object.values(CATALOG).filter((it) => !beforeEra(s, it.era) && !itemLock(s, it)).map((it) => it.id);
 }
 
+// What an item is, from its data: a desk is a workstation for one person; an item whose effects
+// apply to everyone (its level-1 effects are not empty) is an office-wide perk. Items that only help
+// nearby desks say so in their adjacency line instead.
+function kindTag(it) {
+  if (isDesk(it.id)) return h('span.pill.kindtag.work', { title: 'A seat for one person. Nobody can work, or be hired, without one.' }, icon('seat', { size: 12 }), ' Workstation');
+  if (Object.keys(it.effects?.[0] ?? {}).length) return h('span.pill.kindtag.perk', { title: 'Works for the whole office once placed. Nobody is assigned to it.' }, icon('team', { size: 12 }), ' Office-wide perk');
+  return null;
+}
+
 // "3 more items unlock later", or null when nothing is hidden.
 const laterLine = (n) => (n ? h('div.small.muted.laterline', null, icon('lock', { size: 12 }), ` ${n} more ${n === 1 ? 'item unlocks' : 'items unlock'} as the company grows.`) : null);
 
@@ -118,7 +127,7 @@ function legacyOfficePanel(ctx) {
         });
         const card = h('div.card.item', null,
           h('div.row', null, h('span.iico', null, icon(`item.${it.id}`, { size: 30 })), h('div', { style: { minWidth: 0 } },
-            h('b.iname', { text: it.name }), h('div.small.muted', { text: it.desc }))),
+            h('b.iname', { text: it.name }), h('div.small.muted', { text: it.desc }), kindTag(it))),
           owned.length ? null : h('div.small', null, h('b', { text: 'Level 1: ' }), effectWords(it.effects[0])),
           ...copies,
           owned.length < 2 ? h('div.row', null, locked ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${locked}`) : buy, h('span.spacer'), locked ? null : why) : null);
@@ -250,7 +259,7 @@ function buildPalette(ctx, arg) {
           h('div.row', null, h('span.iico', null, icon(`item.${it.id}`, { size: 30 })),
             h('div', { style: { minWidth: 0, flex: 1 } },
               h('div.row', null, h('b.iname', { text: it.name }), h('span.spacer'), h('span.pill.num', { title: 'Footprint in tiles', text: `${f.w}x${f.h}` })),
-              h('div.small.muted', { text: it.desc ?? '' }))),
+              h('div.small.muted', { text: it.desc ?? '' }), kindTag(it))),
           eff ? h('div.small', null, h('b', { text: it.costs?.length > 1 ? 'Level 1: ' : 'Effect: ' }), eff) : null,
           adj ? h('div.small.adj', null, icon('team', { size: 12 }), ` ${adj}`) : null,
           mine.length ? h('div.row.wrap.placedrow', null,
