@@ -175,10 +175,12 @@ export function eligibleEvents(state) {
 export function fireEvent(ctx, ev, subjectId) {
   const { state } = ctx;
   // A low-stakes event (yak) arrives as a Yak reply prompt instead of a popup while prompts are on, or waits
-  // for another week when a prompt is already open.
+  // for another week when a prompt is already open. It keeps the popup's place in the decision cadence, so
+  // how often every other event comes up is unchanged.
   if (ev.yak && ev.choices && B.chatPromptsEnabled) {
     if (!promptSlotFree(state)) return false;
     state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+    state.flags.lastDecisionWeek = state.week;
     openEventPrompt(ctx, ev, subjectId);
     return true;
   }
