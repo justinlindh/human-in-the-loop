@@ -44,6 +44,16 @@ if grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|comment|review|edit)' <<<"$cmd"
   # gh api fields: -f/-F body=..., --field/--raw-field body=...
   # (body=@file names a file, read below, so its path is not text.)
   texts+="$(grep -oE -- "(-f|-F|--field|--raw-field)[= ]+(\"?)body=(\"([^\"\\\\]|\\\\.)*\"|'[^']*'|[^@[:space:]][^[:space:]]*)" <<<"$cmd" || true)"
+  # A body built from a file ("$(cat FILE)", "$(<FILE)", `cat FILE`) is checked by its contents,
+  # like --body-file, not by where the file lives.
+  subst_re='(\$\((cat[[:space:]]+|<[[:space:]]*)|`cat[[:space:]]+)("[^"]*"|'"'"'[^'"'"']*'"'"'|[^)`[:space:]]+)[[:space:]]*(\)|`)'
+  subst_files=""
+  while IFS= read -r m; do
+    [ -n "$m" ] || continue
+    texts="${texts//"$m"/}"
+    m="$(sed -E 's/^(\$\((cat[[:space:]]+|<[[:space:]]*)|`cat[[:space:]]+)//; s/[[:space:]]*(\)|`)$//' <<<"$m")"
+    subst_files+="$m"$'\n'
+  done < <(grep -oE "$subst_re" <<<"$texts" || true)
   heredocs="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); inside=1; next } inside && $0 == tag { inside=0; next } inside { print }' <<<"$cmd")"
   grep -qE "$local_path" <<<"$texts$heredocs" && deny "the PR text contains a local path (/home/... or /tmp/...). PR descriptions and comments never do: describe the file by its repo path, and put media on the PR with scripts/pr-media.sh."
   while IFS= read -r f; do
@@ -51,6 +61,6 @@ if grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|comment|review|edit)' <<<"$cmd"
     case "$f" in *'$'*|'') continue ;; esac
     [ "${f#/}" = "$f" ] && [ -n "$cwd" ] && f="$cwd/$f"
     [ -r "$f" ] && grep -qE "$local_path" "$f" && deny "the PR body file contains a local path (/home/... or /tmp/...). PR text never does: use repo paths, and scripts/pr-media.sh for media."
-  done < <({ grep -oE -- "(--body-file|-F|--input)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$cmd"; grep -oE -- "(-F|--field)[= ]+body=@[^[:space:];&|]+" <<<"$cmd" | sed -E 's/[= ]+body=@/ /'; } | grep -v 'body=' || true)
+  done < <({ [ -n "$subst_files" ] && sed 's/^/--body-file /' <<<"$subst_files"; grep -oE -- "(--body-file|-F|--input)[= ]+(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)" <<<"$cmd"; grep -oE -- "(-F|--field)[= ]+body=@[^[:space:];&|]+" <<<"$cmd" | sed -E 's/[= ]+body=@/ /'; } | grep -v 'body=' || true)
 fi
 exit 0

@@ -19,6 +19,7 @@ export const SIMX = {
   automationCap: find('automationCap'),
   retireVia: find('retireVia'),
   campaignCost: find('campaignCost'),
+  postOptions: find('postOptions'),
   ipoBlocker: find('ipoBlocker'),
   acquisitionOpen: find('acquisitionOpen'),
 };

@@ -279,21 +279,22 @@ Decisions whose text describes something physical show it in the office.
 
 ```js
 // Event data (src/data/events.js), optional:
-stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens'
+stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens' | 'whiteboard'
 // Choice data, optional:
 grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
-leaves: { prop, until }            // until: { item } | { weeks } | { flag }
+leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor only when the event has no stage
 
 state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
 state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
 ```
 
-- `prop` ids come from one shared prop set that art owns; sim uses only ids art has shipped.
+- `prop` ids come from one shared prop set that art owns. sim may reference an id before art ships it; the renderer draws nothing for an unknown id.
 - `grant` charges once. If the choice has a `cash` effect, that is the whole price and the item's own cost isn't added. Otherwise it charges the item's cost. The item's normal effects apply either way. If the item can't be placed, the choice is unavailable with the placement reason ('No room for it', 'Desk limit reached', 'Needs a bigger office'), never granted and refunded.
 - `grant` replaces a `buyItem` effect on decisions.
 - `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
-- `leaves` takes the stage prop's tile when there is one. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
+- An anchor of `'whiteboard'` resolves to a placed whiteboard or whiteboard_wall, else the back wall as `'wall'` does.
+- `leaves` takes the stage prop's tile when there is one, and otherwise resolves its own `anchor`. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
 
 ## Yak reply prompts (#16)
