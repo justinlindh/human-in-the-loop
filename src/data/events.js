@@ -170,6 +170,7 @@ const list = [
   {
     id: 'no_show', kind: 'staff', weight: 2, cooldownWeeks: 40, random: true, subject: 'workingStaff',
     when: (s) => s.staff.length >= 4,
+    stage: { prop: 'sticky_notes', anchor: 'subjectDesk' },
     title: 'Where is {name}?',
     text: '{name} has not been in for three days. Their Yak status just says "focusing". It has said that since Tuesday.',
     choices: [
@@ -310,10 +311,11 @@ const list = [
   {
     id: 'pivot_pitch', kind: 'leadership', weight: 1, cooldownWeeks: 104, random: true, subject: 'founder',
     when: (s, h) => h.live.length >= 2,
+    stage: { prop: 'whiteboard_scrawl', anchor: 'whiteboard' },
     title: '{name} wants to pivot',
     text: '{name} gathers everyone: "The market has spoken. It said something else." They want to drop the weakest product and chase what is hot.',
     choices: [
-      { label: 'Pivot', hint: 'Sunset your weakest product; start a free medium project on a hot combo', effects: { pivot: true }, outcome: 'Whiteboards are wiped. New sticky notes appear. Some are the same sticky notes.' },
+      { label: 'Pivot', hint: 'Sunset your weakest product; start a free medium project on a hot combo', effects: { pivot: true }, leaves: { prop: 'sticky_notes', until: { weeks: 8 } }, outcome: 'Whiteboards are wiped. New sticky notes appear. Some are the same sticky notes.' },
       { label: 'Stay the course', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: '"Focus is a feature," you say. It goes on a mug.' },
     ],
   },
@@ -342,11 +344,12 @@ const list = [
   {
     id: 'founder_burnout', kind: 'leadership', weight: 3, cooldownWeeks: 52, random: true, subject: 'founder',
     when: (s) => s.staff.some((p) => p.founder && p.meaning < 40 && p.mood !== 'away'),
+    stage: { prop: 'mug_pile', anchor: 'subjectDesk' },
     title: 'Even founders run out',
     text: '{name} answered an email at 3am, then another at 4am, then stared at a wall until 6. They say they are fine.',
     choices: [
       { label: 'Take a real break', hint: '{name} is away four weeks and comes back restored', effects: { awayWeeks: 4, meaning: 10 }, outcome: '{name} goes somewhere with no Wi-Fi and one very patient dog.' },
-      { label: 'Push through', hint: 'A burst of output now; the crash comes later', effects: { modifier: { key: 'output', value: 0.1, weeks: 8, label: 'Founder hustle' }, later: [{ inWeeks: 8, effects: { meaning: -20, teamMeaning: -3 } }] }, outcome: '{name} buys a treadmill desk and a mug the size of a bucket.' },
+      { label: 'Push through', hint: 'A burst of output now; the crash comes later', effects: { modifier: { key: 'output', value: 0.1, weeks: 8, label: 'Founder hustle' }, later: [{ inWeeks: 8, effects: { meaning: -20, teamMeaning: -3 } }] }, leaves: { prop: 'mug_bucket', until: { weeks: 26 } }, outcome: '{name} buys a treadmill desk and a mug the size of a bucket.' },
     ],
   },
 
@@ -701,6 +704,7 @@ const list = [
   {
     id: 'lockdown_start', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'moving_boxes', anchor: 'door' },
     title: 'The office closes',
     text: 'The whole world is working from home for a while. Everyone takes a laptop and a monitor from the office, except {name}, who says somebody has to keep the place running.',
     choices: [
@@ -847,7 +851,7 @@ const list = [
     title: 'What are we for?',
     text: 'The agents can do most of the work now. The team keeps asking the same question in different words: what is {company} actually for? Pick one answer and mean it.',
     choices: [
-      { label: 'Make software people love', hint: 'Purpose from craft and care; automating the craft away will cost it later', effects: { mission: 'craft', teamMeaning: 3 }, outcome: 'Someone prints it on a mug. The mug has a typo. You keep it.' },
+      { label: 'Make software people love', hint: 'Purpose from craft and care; automating the craft away will cost it later', effects: { mission: 'craft', teamMeaning: 3 }, leaves: { prop: 'mug_typo', until: { weeks: 52 }, anchor: 'wall' }, outcome: 'Someone prints it on a mug. The mug has a typo. You keep it.' },
       { label: 'A place where people grow', hint: 'Purpose from mentoring and juniors; replacing people will cost it later', effects: { mission: 'people', teamMeaning: 4 }, outcome: 'The juniors read it twice. One of them cries a little, quietly, in a good way.' },
       { label: 'The company customers trust', hint: 'Purpose from reliability and honesty; hype and shortcuts will cost it later', effects: { mission: 'trust', brand: 2 }, outcome: 'You write it at the top of the incident runbook. It is the only line anyone reads.' },
       { label: 'Grow as fast as the tools allow', hint: 'Purpose starts lower; automation keeps faith with it later', effects: { mission: 'growth', hype: 10 }, outcome: 'The all-hands claps. Some of the clapping is real.' },
@@ -856,6 +860,7 @@ const list = [
   {
     id: 'mission_test_support', kind: 'leadership', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['agents', 'consolidation', 'plateau'],
     when: (s) => !!s.purpose && s.staff.some((p) => p.role === 'support'),
+    stage: { prop: 'printout', anchor: 'wall' },
     title: 'Humans on the phones?',
     text: 'The board has a spreadsheet showing support run entirely by agents. The support team has seen the spreadsheet. The spreadsheet is very convincing.',
     choices: [
@@ -903,8 +908,8 @@ const list = [
     text: 'The AI Summit is running a 36-hour hackathon and wants a sponsor. The prize is a giant cheque. The real prize is whatever the teams build on top of your product.',
     choices: [
       { label: 'Pass', hint: 'Nothing happens. Skip twice in a row and the invitations stop until you ship a new AI product', effects: { summit: 'skip' }, outcome: 'Someone else sponsors it. The giant cheque has their logo. It is very large.' },
-      { label: 'Sponsor a prize', hint: '-{summitSmall}; hype +15 on your newest product and a few junior candidates', effects: { summit: 'small', hype: 15, candidates: 'juniorBatch' }, outcome: 'The winning team built a thing that orders pizza by feel. You hire two of them.' },
-      { label: 'Put your whole API on the table', hint: '-{summitBig} and a gamble: the teams build you an ecosystem, or one of them builds a better version of you', effects: { summit: 'big', gamble: { p: 0.55, effects: { brand: 5, hype: 25, ik: 2 }, else: { brand: -2, clones: 1 } } }, outcome: 'Thirty teams, one API key each. The Wi-Fi gives up at hour four. The teams do not.' },
+      { label: 'Sponsor a prize', hint: '-{summitSmall}; hype +15 on your newest product and a few junior candidates', effects: { summit: 'small', hype: 15, candidates: 'juniorBatch' }, leaves: { prop: 'giant_cheque', until: { weeks: 26 }, anchor: 'wall' }, outcome: 'The winning team built a thing that orders pizza by feel. You hire two of them.' },
+      { label: 'Put your whole API on the table', hint: '-{summitBig} and a gamble: the teams build you an ecosystem, or one of them builds a better version of you', effects: { summit: 'big', gamble: { p: 0.55, effects: { brand: 5, hype: 25, ik: 2 }, else: { brand: -2, clones: 1 } } }, leaves: { prop: 'giant_cheque', until: { weeks: 26 }, anchor: 'wall' }, outcome: 'Thirty teams, one API key each. The Wi-Fi gives up at hour four. The teams do not.' },
     ],
   },
   {
@@ -1092,6 +1097,7 @@ const list = [
   {
     id: 'moonshot_pitch', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'printout', anchor: 'wall' },
     title: 'Project {moonshot}',
     text: 'Your best engineers have a pitch. It is ambitious, expensive, and slightly unhinged. They have named it Project {moonshot}. They made a logo before they made a plan.',
     choices: [
@@ -1125,7 +1131,7 @@ const list = [
     title: 'The founders\' last big bet',
     text: 'The founders take a long walk. They have built {company} for most of their adult lives. There is money in the bank and time left on the clock. What is the last big thing?',
     choices: [
-      { label: 'One last moonshot', hint: '-{lastBetCost} now. A gamble: a legend, or a very expensive lesson', effects: { lastBet: 'moonshot' }, outcome: 'The founders clear their calendars and start sketching on the big whiteboard, like the garage days.' },
+      { label: 'One last moonshot', hint: '-{lastBetCost} now. A gamble: a legend, or a very expensive lesson', effects: { lastBet: 'moonshot' }, leaves: { prop: 'whiteboard_scrawl', until: { weeks: 26 }, anchor: 'whiteboard' }, outcome: 'The founders clear their calendars and start sketching on the big whiteboard, like the garage days.' },
       { label: 'Start a foundation', hint: '-{foundationCost}; fame and Purpose up; the team is proud', effects: { lastBet: 'foundation' }, outcome: 'The foundation funds free tools for people who cannot afford them. The team puts it in their bios.' },
       { label: 'Hand over the keys', hint: 'Nothing to spend. The founders step back and the seniors step up', effects: { lastBet: 'keys' }, outcome: 'The founders move to a small desk by the window. They are allowed one opinion a week.' },
     ],
@@ -1134,12 +1140,13 @@ const list = [
   {
     id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'printout', anchor: 'wall' },
     title: 'SaaSCon is next week',
     text: 'The biggest software expo of the year. {incumbent} has a booth with a slide.',
     choices: [
       { label: 'Skip it', hint: 'Nothing happens', effects: {}, outcome: 'You watch the keynote on stream. It is fine.' },
-      { label: 'Small booth', hint: '-$15k, brand +2, hype +10 on newest product', effects: { cash: -15000, brand: 2, hype: 10 }, outcome: 'A folding table, a banner, and a lot of stickers.' },
-      { label: 'Big booth', hint: '-$40k, brand +5, hype +25. Needs the Office Floor', requires: 'stage1', effects: { cash: -40000, brand: 5, hype: 25 }, outcome: 'Your booth has a slide too. Yours is bigger.' },
+      { label: 'Small booth', hint: '-$15k, brand +2, hype +10 on newest product', effects: { cash: -15000, brand: 2, hype: 10 }, leaves: { prop: 'swag_box', until: { weeks: 4 } }, outcome: 'A folding table, a banner, and a lot of stickers.' },
+      { label: 'Big booth', hint: '-$40k, brand +5, hype +25. Needs the Office Floor', requires: 'stage1', effects: { cash: -40000, brand: 5, hype: 25 }, leaves: { prop: 'swag_box', until: { weeks: 4 } }, outcome: 'Your booth has a slide too. Yours is bigger.' },
     ],
   },
   {
@@ -1175,22 +1182,24 @@ const list = [
     id: 'coffee_wanted', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso' || i.itemId === 'coffee_corner'),
     chat: 'The office kettle is doing its best. Its best is not enough.',
+    stage: { prop: 'french_press', anchor: 'kitchen' },
     title: 'The team wants a coffee machine',
     text: 'Someone has started bringing a thermos to meetings. Someone else brought a French press and guards it like a dragon.',
     choices: [
       { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
-      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The French press stays on its throne.' },
+      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, leaves: { prop: 'french_press', until: { item: 'espresso' } }, outcome: 'The French press stays on its throne.' },
     ],
   },
   {
     id: 'coffee_wanted_corner', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'coffee_corner'),
     chat: 'The coffee corner has a new review taped to it. One star. Written in coffee.',
+    stage: { prop: 'printout', anchor: 'kitchen' },
     title: 'The coffee corner has been reviewed',
     text: 'The drip coffee in the corner has been formally reviewed. One star: "Keeps the three desks next to it alive. The rest of us are running on vibes." People want real espresso, for everyone.',
     choices: [
       { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
-      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The drip machine soldiers on. It has heard the review. It does not care.' },
+      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, leaves: { prop: 'printout', until: { item: 'espresso' } }, outcome: 'The drip machine soldiers on. It has heard the review. It does not care.' },
     ],
   },
 ];
