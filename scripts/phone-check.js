@@ -17,6 +17,8 @@
 //   placement  Office, Place, then tap-to-aim and tap-to-place puts furniture down
 //   taps       a plain tap on a person opens them; two fingers resting on a person pop no long-press tip
 //   audio      audio unlocks on the first tap under an iOS-like gesture rule (pointerup, touchend, click)
+//   yak        Yak expands (by its caret) without covering the HUD, collapses, and its maximized view
+//              opens and closes without leaving anything over the game
 // Uses CDP Input.dispatchTouchEvent for real multi-touch. GL follows scripts/lib/gl.js, and the run
 // holds the matching render lock.
 import { createServer } from 'vite';
@@ -46,7 +48,7 @@ const DEVICES = {
   ipad: devices['iPad Mini'],
   desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
 };
-const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio'];
+const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak'];
 const TOUCH_ONLY = new Set(['pinch', 'toasts', 'taps', 'audio']);
 
 const args = parseArgs(process.argv.slice(2));
@@ -112,6 +114,15 @@ const stepWeek = (page) => page.evaluate(() => {
 });
 const clearDecisions = (page) => page.evaluate(() => { const h = window.__HITL; for (let c = 0; c < 4 && h.state.pendingDecision; c++) h.dispatch({ type: 'resolveDecision', choice: c }); });
 const camera = (page) => page.evaluate(() => { const c = window.__HITL.controls.renderer.camera; return { h: c.top - c.bottom, x: c.position.x, z: c.position.z, scale: visualViewport.scale }; });
+// Yak's caret expands and collapses it; the header's other buttons resize or maximize it, so taps
+// meant to expand go to the caret only.
+const yakCollapsed = (page) => page.evaluate(() => document.querySelector('.bottom > .chat')?.classList.contains('collapsed') ?? null);
+async function setYakOpen(page, tap, open) {
+  if ((await yakCollapsed(page)) === !open) return;
+  await tap(page.locator('.bottom > .chat .chat-head .caret').first());
+  await wait(page, 500);
+}
+const yakMaxShown = (page) => page.evaluate(() => [...document.querySelectorAll('.yak-back')].some((e) => e.getBoundingClientRect().width && getComputedStyle(e).display !== 'none'));
 const isPhone = (vp) => vp.width <= 480 || vp.height <= 500;
 
 // Visible boxes of the fixed HUD pieces, and the pairs that overlap by more than 2 px.
@@ -308,6 +319,27 @@ const CHECKS = {
     await shot('tap-person');
     if (!opened) fails.push('a tap on a person did not open them');
     await page.keyboard.press('Escape'); await wait(page, 300);
+    return { fails };
+  },
+
+  async yak({ page, tap, vp, shot }) {
+    const fails = [];
+    try { await setYakOpen(page, tap, true); } catch { return { fails: ['Yak caret not tappable'] }; }
+    if (await yakCollapsed(page)) fails.push('the caret did not expand Yak');
+    await shot('yak-open');
+    const o = await hudOverlaps(page);
+    if (o.length) fails.push(`expanded Yak overlaps: ${o.join(', ')}`);
+    await setYakOpen(page, tap, false);
+    if (!(await yakCollapsed(page))) fails.push('the caret did not collapse Yak');
+    try { await tap(page.locator('.ysz.ymax').first()); } catch { fails.push('maximize button not tappable'); return { fails }; }
+    await wait(page, 500);
+    if (!(await yakMaxShown(page))) fails.push('maximize did not open the big Yak view');
+    const box = await page.evaluate(() => { const c = document.querySelector('.chat.max'); if (!c) return null; const r = c.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; });
+    await shot('yak-max');
+    if (box && (box.l < -1 || box.r > vp.width + 1 || box.t < -1 || box.b > vp.height + 1)) fails.push('the big Yak view runs off screen');
+    try { await tap(page.locator('.chat.max .ysz.ymax').first()); } catch { fails.push('the big Yak view has no tappable close'); await page.keyboard.press('Escape'); }
+    await wait(page, 500);
+    if (await yakMaxShown(page)) fails.push('closing the big Yak view left its backdrop over the game');
     return { fails };
   },
 
