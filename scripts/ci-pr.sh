@@ -194,7 +194,8 @@ if [ "$mode" = light ]; then
     if git -C "$REPO" show "refs/ci/pr-$pr/head:docs/features.md" >"$fdoc" 2>/dev/null; then
       if fout="$(node "$TOOLS/scripts/features-ids.mjs" --root "$TOOLS" --doc "$fdoc" 2>&1)"; then features=pass
       else features=FAIL; light_ok=0; fi
-      fout="${fout//$fdoc/docs\/features.md}"
+      fout="${fout//$fdoc/docs\/features.md}"; fout="${fout//$TOOLS\//}"
+      fout="$(sed -E 's#/(home|tmp)/[^[:space:]:)]*#<local path>#g' <<<"$fout")"
     fi
     rm -f "$fdoc"
   fi

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Checks docs/features.md against the game's data, both ways:
 //   - every required id has an entry (`id: <x>` in a bullet), unless a bullet in the "Ids left out on
-//     purpose" section names it as a code span in its subject (before the first ": ");
+//     purpose" section names it as a code span in its subject (before the first ": ", leaving out
+//     parenthesised examples and anything after "other than");
 //   - every `id: <x>` in the file exists somewhere in the data.
 // Required ids: events with a stage, a grant or a leaves prop; items; perks; moment KINDS; quick
 // posts; prompt template ids; music night genres; eras. Some ids are shared by several kinds
@@ -96,7 +97,8 @@ for (const line of leftOut.split('\n').filter((l) => /^\s*- /.test(l))) {
     if (line[i] === '`') inSpan = !inSpan;
     else if (!inSpan && line.startsWith(': ', i)) { end = i; break; }
   }
-  const subject = line.slice(0, end).split(/\bother than\b/)[0];
+  // Parenthesised examples ("(for example `x`)") illustrate a rule; they don't exempt ids.
+  const subject = line.slice(0, end).split(/\bother than\b/)[0].replace(/\([^)]*\)/g, '');
   for (const m of subject.matchAll(/`([^`\s]+)`/g)) excepted.add(m[1]);
 }
 

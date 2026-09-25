@@ -33,7 +33,7 @@ good='# F
 ## Ids left out on purpose
 
 - `printer`: a moment kind shown through `printer_jam` above.
-- Events with no `stage` (for example `grumble`): decision cards only.
+- Events with no `stage` (for example `grumble`, `gift`): decision cards only.
 - Caption keys other than `printer_jam`: not announced.
 '
 run() { printf '%s' "$2" >"$tmp/doc.md"; out="$(node "$HERE/features-ids.mjs" --root "$r" --doc "$tmp/doc.md" 2>&1)"; rc=$?; [ $rc -eq "$1" ] || fail "$3: exit $rc, expected $1 ($out)"; }
@@ -47,6 +47,8 @@ run 1 "${good/\`id: sad_lofi\`/}" "a music night genre with no entry"
 run 1 "${good/\`id: classic\`/\`id: clasic\`}" "a typo"
 [[ "$out" == *"clasic"* && "$out" == *"era classic"* ]] || fail "a typo is both unknown and a missing entry (got: $out)"
 run 0 "${good/\`id: bootstrapped\`/\`id: bootstrapped\` \`id: coffee\`}" "an id shared by two kinds, named twice"
+run 1 "${good/\`id: gift\`/}" "an example in parentheses is not an exception"
+[[ "$out" == *"staged event gift"* ]] || fail "gift, named only as an example, should still need an entry (got: $out)"
 run 1 "${good/\`id: printer_jam\` and/and}" "an id named after other than is not an exception"
 [[ "$out" == *"staged event printer_jam"* ]] || fail "printer_jam should still need an entry (got: $out)"
 run 0 "$(printf '%s' "$good" | sed 's/, pizza `id: pizza`//; s/^- `printer`:/- `printer` and `pizza`:/')" "a kind named in the left-out section"
