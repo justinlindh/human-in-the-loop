@@ -274,7 +274,7 @@ describe('audio director', () => {
     expect(dp(d.update(s, 4, { speed: 0, running: false })).paused).toBe(true);
   });
 
-  it('preloads the genre tracks once when the genre pick appears', () => {
+  it('preloads the genre tracks once each time the genre pick appears', () => {
     const d = createDirector();
     const s = state();
     expect(d.update(s, 0, {}).some((c) => c.op === 'preload')).toBe(false);
@@ -283,6 +283,9 @@ describe('audio director', () => {
     expect(pre.ids).toContain('musicNight/sad_lofi');
     expect(pre.ids).toHaveLength(4);
     expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload')).toBe(false);
+    // The next music night's pick loads them again, since the tracks are released after playing.
+    expect(d.update(s, 3, {}).some((c) => c.op === 'preload' && c.ids.includes('musicNight/sad_lofi'))).toBe(false);
+    expect(d.update(pick, 4, { decision: true }).some((c) => c.op === 'preload' && c.ids.includes('musicNight/sad_lofi'))).toBe(true);
     // Other decisions do not.
     const other = createDirector();
     expect(other.update({ ...s, pendingDecision: { id: 'layoffs', options: [{ id: 'yes' }] } }, 1, {}).some((c) => c.op === 'preload')).toBe(false);
