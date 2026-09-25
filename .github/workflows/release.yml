@@ -27,9 +27,12 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
+      # The commit that triggered this run, not the branch tip: the Pages job below runs this commit's
+      # pages.yml, so it must build the same commit. A queued run that main has moved past releases
+      # nothing (semantic-release sees the branch ahead), and the newest run releases.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
