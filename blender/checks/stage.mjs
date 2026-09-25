@@ -6,9 +6,9 @@
 //   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json]
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
-// A rule with known: <issue> fails as KNOWN (not failing the run) while that issue is open; once the
-// issue is closed, the rule fails again. Issue states come from gh, once per run; if gh can't be
-// reached, markers count as open and the run says so.
+// A rule with known: <issue> fails as KNOWN (not failing the run) until that issue is fixed: closed by
+// a merged PR or commit that changed render code. Then the rule fails again. Issue states come from gh,
+// once per run; if gh can't be reached, markers count as open and the run says so.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
@@ -149,12 +149,29 @@ const SCENARIOS = {
 };
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
-// The issues known rules point at, and which of them are closed: a closed one no longer excuses.
+// The issues known rules point at, and which of them are fixed: closed by a merged PR (or a commit)
+// that changed render code, the staging fix itself. A fixed issue no longer excuses its rules. An
+// issue closed any other way (by hand, or by a PR that only mentions it) still excuses them, with a
+// note to reopen it, so closing an issue early never turns every PR red.
+const gh = (...a) => execFileSync('gh', a, { timeout: 15000, encoding: 'utf8' }).trim();
+const RENDER = /^(src\/render\/|public\/models\/)/;
 const closedIssues = new Set();
 for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) => r.known)).filter(Boolean))) {
   try {
-    const state = execFileSync('gh', ['issue', 'view', String(n), '--json', 'state', '-q', '.state'], { timeout: 15000, encoding: 'utf8' }).trim();
-    if (state === 'CLOSED') closedIssues.add(n);
+    const q = 'query($n:Int!){repository(owner:"justinlindh",name:"human-in-the-loop"){issue(number:$n){state timelineItems(itemTypes:[CLOSED_EVENT],last:1){nodes{... on ClosedEvent{closer{__typename ... on PullRequest{number merged} ... on Commit{oid}}}}}}}}';
+    const issue = JSON.parse(gh('api', 'graphql', '-f', `query=${q}`, '-F', `n=${n}`)).data.repository.issue;
+    if (issue.state !== 'CLOSED') continue;
+    const closer = issue.timelineItems.nodes[0]?.closer ?? null;
+    let files = [], by = 'hand';
+    if (closer?.__typename === 'PullRequest' && closer.merged) {
+      by = `#${closer.number}`;
+      files = JSON.parse(gh('pr', 'view', String(closer.number), '--json', 'files')).files.map((f) => f.path);
+    } else if (closer?.__typename === 'Commit') {
+      by = closer.oid.slice(0, 7);
+      files = JSON.parse(gh('api', `repos/justinlindh/human-in-the-loop/commits/${closer.oid}`)).files.map((f) => f.filename);
+    } else if (closer?.__typename === 'PullRequest') by = `#${closer.number} (not merged)`;
+    if (files.some((f) => RENDER.test(f))) closedIssues.add(n);
+    else console.log(`stage: issue #${n} was closed by ${by}, which changed no render code; its known rules still excuse. Reopen #${n} until its fix merges.`);
   } catch {
     console.log(`stage: could not read issue #${n} (gh unavailable?); its known rules count as open`);
   }
