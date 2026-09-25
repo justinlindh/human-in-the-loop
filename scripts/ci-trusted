@@ -1,0 +1,3 @@
+# GitHub logins whose pull requests scripts/ci-pr.sh will run on this machine.
+# One per line. Pull requests from forks are refused whoever opens them.
+justinlindh

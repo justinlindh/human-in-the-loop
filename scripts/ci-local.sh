@@ -61,19 +61,27 @@ step build npm run build
 step lifecycle npm run lifecycle -- --quality low --no-shots
 step soak npm run soak
 # Render checks (headless SwiftShader, deterministic): clipping with and without the rig,
-# standups indoors, and the golden images. Ten minutes at most.
+# standups indoors, and the golden images. Ten minutes at most per pass.
+# SwiftShader renders on the CPU with every core, so concurrent runs on one machine starve each
+# other into timeouts: a pass holds a machine-wide lock, and its ten minutes start once it has it.
 # A run can lose a page to vite reloading while it optimizes a dependency, so a failed pass is
 # retried once; a real failure fails both.
 # A retry is reported in the summary (and so in the PR comment) with the first pass's error.
 NOTES=()
+RENDER_LOCK="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/render-checks.lock"
+render_pass() {
+  mkdir -p "$(dirname "$RENDER_LOCK")"
+  local t0; t0=$(now)
+  flock -w 1800 "$RENDER_LOCK" bash -c 'echo "render-checks: waited $(( $(date +%s) - '"$t0"' ))s for the render lock"; timeout 600 bash -c "$0"' "$1"
+}
 render_checks() {
   local pass='node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
   local first="$LOGS/render-checks.first.log"
-  timeout 600 bash -c "$pass" >"$first" 2>&1 && { cat "$first"; return 0; }
+  render_pass "$pass" >"$first" 2>&1 && { cat "$first"; return 0; }
   cat "$first"
   echo "render-checks: first pass failed; retrying once"
   local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
-  if timeout 600 bash -c "$pass"; then
+  if render_pass "$pass"; then
     NOTES+=("render-checks passed only on its retry. First pass: ${why:-exit without a message}")
     return 0
   fi
