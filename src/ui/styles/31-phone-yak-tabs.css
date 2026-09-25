@@ -1,0 +1,10 @@
+/* ---------- Yak's channel tabs on a phone: one row that scrolls sideways, so the feed keeps its room ---------- */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .chat:not(.max) .chat-tabs { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 0.2em 0.35em; }
+  .hitl .chat:not(.max) .chat-tabs::-webkit-scrollbar { display: none; }
+  .hitl .chat:not(.max) .ctab { flex: none; min-height: 32px; padding: 0 0.6em; }
+}
+/* Portrait phones have the height: the feed gets the room the tabs gave back. */
+@media (max-width: 480px) {
+  .hitl .chat:not(.max) .chat-body { height: calc(var(--yak-h, 12em) + 60px); }
+}
