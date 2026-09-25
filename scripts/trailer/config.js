@@ -18,7 +18,7 @@ export const OUTPUT = {
   truePeak: -1.5,
 };
 
-export const PLAY_URL = 'https://justinlindh.github.io/human-in-the-loop/';
+export const PLAY_URL = 'https://humanintheloopgame.com/';
 
 export const CARDS = {
   title: { logo: true, lines: [] },

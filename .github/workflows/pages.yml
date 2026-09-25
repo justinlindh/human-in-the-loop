@@ -36,7 +36,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: Build for the Pages path
-        run: npm run build -- --base "/${{ github.event.repository.name }}/"
+        run: npm run build -- --base "/"
         env:
           # The release tag; a manual run from a branch leaves it empty and git describe names the build.
           HITL_VERSION: ${{ inputs.ref || (github.ref_type == 'tag' && github.ref_name) || '' }}
