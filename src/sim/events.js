@@ -135,6 +135,7 @@ export function resolveSubjects(state, ev) {
     case 'automatedSenior': return people.filter((p) => p.seniority === 'senior' && automationExposure(state, p) >= 0.5);
     case 'mentorStaff': return people.filter((p) => p.assignment.type === 'mentor');
     case 'founder': return people.filter((p) => p.founder);
+    case 'veteranStaff': return people.filter((p) => state.week - (p.hiredWeek ?? 0) >= B.nods.staplerTenureWeeks);
     case 'randomProduct': return liveProducts(state);
     default: return [];
   }

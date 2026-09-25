@@ -98,6 +98,16 @@ export const B = {
   rivalMergeBase: 150000, rivalMergePerStrength: 60000,
   beatAgentBillAfter: 45, beatMegaroundAfter: 95, beatFloorNextDoorAfter: 130, megaroundWeeks: 26,
   productNameMax: 20,
+  // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.
+  nods: {
+    bannerStaff: 12, bannerOutput: 0.02, bannerDrain: 0.05, bannerWeeks: 26, bannerStays: 104, bannerIronyMiss: 0.2, bannerReturnFee: 300,
+    coverStaff: 8, coverOutput: -0.02, coverWeeks: 26, coverIk: 3,
+    staplerTenureWeeks: 104, staplerLoss: 25, staplerBack: 10, staplerBackWeeks: 13, staplerKeep: 5, staplerSaving: 200,
+    consultantStaff: 15, consultantFee: 60000, consultantCuts: 2, consultantNewHireWeeks: 13, consultantMinEligible: 3,
+    consultantOutput: 0.05, consultantWeeks: 26, consultantMeaning: -4, layoffGapWeeks: 52,
+    printerCost: 2500, printerMeaning: 6, printerWreckWeeks: 4, printerRepair: 300, printLessOutput: -0.01, printLessWeeks: 13,
+    saturdayStaff: 10, saturdayOutput: 0.08, saturdayWeeks: 2, saturdayStrain: 10, saturdayMeaning: -3, saturdayNoTeam: 2, saturdayNoSubject: -3,
+  },
   fameDecay: 0.3, fameChurnRelief: 0.25, fameHireRelief: 0.4,
   moonshotAfterConsolidation: 100, moonshotRevenueShare: 0.25, moonshotMinWeekly: 50000, moonshotCheckinWeeks: 26, moonshotCheckins: 4,
   moonshotProduct: { stats: { features: 200, polish: 180, reliability: 160, novelty: 120 }, score: 8.6, hype: 60, novelty: 10, health: 90 },

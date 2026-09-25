@@ -14,6 +14,8 @@ import { MODELS } from '../data/models.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
+import { cuttable, consultantRating } from '../data/office-nods.js';
+import { emitChat } from './chat.js';
 import { raiseDecision, ransomFor, summitCost } from './events.js';
 import { agentSpend, rivalMergePrice } from './economy.js';
 import { acquireCompany, bestDeal, dealBlocker } from './acquire.js';
@@ -233,6 +235,21 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.stats.resignations++;
     // resign: true for someone who has had enough, or a reason string such as 'poached'.
     ctx.emit({ type: 'resign', staffId: person.id, name: person.name, fired: false, reason: typeof fx.resign === 'string' ? fx.resign : 'burnout' });
+  }
+  if (fx.efficiencyCuts) {
+    const cut = cuttable(state).sort((a, b) => consultantRating(a) - consultantRating(b)).slice(0, fx.efficiencyCuts);
+    for (const p of cut) {
+      removeStaff(state, p);
+      ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: true, reason: 'fired' });
+    }
+  }
+  if (fx.teamStrain) for (const p of state.staff) p.strain = clamp((p.strain ?? 0) + fx.teamStrain, 0, 100);
+  // The subject owns something until they leave; onDeparture then sets `${name}Gone`.
+  if (fx.ownerFlag && person) (state.flags.owners ??= {})[fx.ownerFlag] = person.id;
+  for (const c of [fx.chat].flat().filter(Boolean)) {
+    if (c.text.includes('{first}') && !person) continue;
+    const text = c.text.replaceAll('{first}', person?.name.split(' ')[0] ?? '').replaceAll('{name}', person?.name ?? '');
+    emitChat(ctx, { channel: c.channel ?? 'general', from: c.from, text });
   }
   if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);
   if (fx.musicNight) danceBreak(ctx, fx.musicNight);
