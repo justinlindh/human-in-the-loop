@@ -1,12 +1,6 @@
 {
  "accepted": [
   {
-   "key": "bounds|cable_chewed|room",
-   "worst": 0.026,
-   "state": "moment:pet_mishap",
-   "issue": 363
-  },
-  {
    "key": "float|binder|desk",
    "worst": 0.02,
    "state": "mock:floor",
@@ -70,36 +64,6 @@
    "key": "overlap|cable_chewed/pal_role_engineer|desk/pal_metal_dark",
    "worst": 0.015,
    "state": "mock:floor",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_leaf_dark|pizza_boxes/pal_wood_light",
-   "worst": 0.016,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_leaf_light|pizza_boxes/pal_wood_light",
-   "worst": 0.025,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_leaf|pizza_boxes/pal_wood_light",
-   "worst": 0.024,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_pot_cream|pizza_boxes/pal_wood_light",
-   "worst": 0.023,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_soil|pizza_boxes/pal_wood_light",
-   "worst": 0.025,
-   "state": "seed:1:w48",
    "issue": 363
   },
   {
