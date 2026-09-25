@@ -105,8 +105,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // Out the door. Each person heads for their own spot around it, so two leaving together do not
     // walk into each other there.
     if (s.mood === 'away' || s.remote || type === 'sabbatical') {
-      const k = [...recs.keys()].indexOf(r.id), a = k * 2.4, d = k ? DOOR_SPREAD : 0;
-      const at = office.nav().freePoint(Z.door.x + Math.cos(a) * d, Z.door.z + Math.sin(a) * d);
+      let h = 0;
+      for (const ch of String(r.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      // Their own angle around the door, turned on until the whole body is clear there.
+      const nav = office.nav();
+      let at = null;
+      for (let i = 0; i < 12 && !at; i++) {
+        const a = (h % 360) * Math.PI / 180 + i * Math.PI / 6, x = Z.door.x + Math.cos(a) * DOOR_SPREAD, z = Z.door.z + Math.sin(a) * DOOR_SPREAD;
+        if (!nav.isBlocked(x, z, BODY_R)) at = { x, z };
+      }
+      at ??= nav.freePoint(Z.door.x, Z.door.z);
       return { hidden: true, x: at.x, z: at.z, yaw: 0, anim: 'idle', key: 'away' };
     }
     const desk = r.seat !== null ? office.deskById(r.seat) : null;
@@ -431,10 +439,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return true;
   }
 
+  // Their own good news always shows as a sparkle; the pose needs clear floor around them.
   function celebrate(r, seconds, sparkle) {
+    if (sparkle) emote(r, 'sparkle', seconds);
     if (r.temp?.moment || !roomToCelebrate(r)) return;
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
-    if (sparkle) emote(r, 'sparkle', seconds);
   }
 
   let lastParty = -1e9;
@@ -875,8 +884,6 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (r.temp) r.temp.goal = { ...r.temp.goal, x: p.x, z: p.z };
     else if (r.goal && !r.goal.seated) Object.assign(r.goal, r.goal && nav.isBlocked(r.goal.x, r.goal.z) ? p : {});
   }
-
-
 
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
