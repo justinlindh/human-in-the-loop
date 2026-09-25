@@ -25,6 +25,8 @@ export function entryFor(id) {
   if (kind === 'sfx') return ASSETS.sfx?.[a] ?? null;
   if (kind === 'ambience') return ASSETS.ambience?.[a] ?? null;
   if (kind === 'musicNight') return ASSETS.musicNight?.[a] ?? null;
+  // Moment cues live in public/audio/moments/ by name.
+  if (kind === 'moments') return ASSETS.moments?.[a] ?? (a ? { file: `moments/${a}.ogg` } : null);
   return null;
 }
 

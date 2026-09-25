@@ -10,12 +10,14 @@
 //   { op: 'dance', file, gain, at, duck, expect, after }  a music night track (see musicNight)
 //   { op: 'dancePause', paused }                   stop or resume the dance track and its cheer
 //   { op: 'preload', ids }                         start loading assets that will be needed soon
+//   { op: 'moment', file, id, gain, at, duck }     a staged moment's cue; pauses with the dance track
+//   { op: 'momentStop', id }                       its moment ended or was cut short
 //   { op: 'stopAll', bus }
 
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -290,6 +292,9 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       const dp = !!(hold || stopped);
       if (dp !== music.dancePaused) { music.dancePaused = dp; out.push({ op: 'dancePause', paused: dp }); }
       // The genre pick for a music night: start loading the tracks so the real one plays.
+      // A decision that can stage a cued moment: load the cue while the player reads it.
+      const cue = Object.values(MOMENT_CUES).find((m) => m.eventId === state?.pendingDecision?.eventId);
+      if (cue && music.momentLoaded !== cue.file) { music.momentLoaded = cue.file; out.push({ op: 'preload', ids: [cue.file] }); }
       // Each music night's pick loads them again: the tracks leave memory once one has played.
       const nightPick = isMusicNightDecision(state?.pendingDecision);
       if (nightPick && !music.preloaded) out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
@@ -336,6 +341,15 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
         }
       }
       return out;
+    },
+
+    // hitl:moment from the renderer: a moment with a cue starts it, its end stops it.
+    moment(detail, t) {
+      const m = MOMENT_CUES[detail?.key];
+      if (!m || !detail.id) return [];
+      if (detail.phase === 'start') return [{ op: 'moment', cue: `moment.${detail.key}`, file: m.file, id: detail.id, bus: 'sfx', gain: m.gain, at: t, duck: 'dance' }];
+      if (detail.phase === 'end') return [{ op: 'momentStop', id: detail.id }];
+      return [];
     },
 
     get musicState() { return { ...music }; },

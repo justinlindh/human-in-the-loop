@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createDirector, voiceBank, bedSeconds } from './director.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S, PLAYLIST_PRELOAD_S } from './manifest.js';
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S, PLAYLIST_PRELOAD_S, MOMENT_CUES } from './manifest.js';
 
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
@@ -371,4 +371,20 @@ describe('audio director', () => {
     const loops = (sw.at - 0.8) / bedSeconds('classic', first.bed);
     expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
   });
+
+  it('preloads a moment cue while its decision is open, and starts and stops it on hitl:moment', () => {
+    const d = createDirector();
+    const s = state();
+    const pick = { ...s, pendingDecision: { eventId: 'printer_jam', choices: [{}, {}] } };
+    const pre = d.update(pick, 1, { decision: true }).filter((c) => c.op === 'preload' && c.ids.includes(MOMENT_CUES.printer_jam.file));
+    expect(pre).toHaveLength(1);
+    expect(d.update(pick, 2, { decision: true }).some((c) => c.op === 'preload' && c.ids.includes(MOMENT_CUES.printer_jam.file))).toBe(false);
+    const start = d.moment({ phase: 'start', key: 'printer_jam', id: 'printer_jam-1' }, 5);
+    expect(start).toEqual([expect.objectContaining({ op: 'moment', file: 'moments/printer_smash', id: 'printer_jam-1', at: 5, duck: 'dance' })]);
+    expect(d.moment({ phase: 'end', key: 'printer_jam', id: 'printer_jam-1' }, 20)).toEqual([{ op: 'momentStop', id: 'printer_jam-1' }]);
+    // Moments without a cue, and malformed details, do nothing.
+    expect(d.moment({ phase: 'start', key: 'first_user_test', id: 'x' }, 5)).toEqual([]);
+    expect(d.moment(null, 5)).toEqual([]);
+  });
 });
+
