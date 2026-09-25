@@ -510,7 +510,12 @@ function envelope(thick) {
       ctx.strokeStyle = P.metal_soft; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W / 2, H * 0.55); ctx.lineTo(W, 0); ctx.stroke();
       if (thick) { ctx.fillStyle = P.fabric_terracotta; ctx.fillRect(W * 0.62, 0, 16, H); }
-      else { ctx.fillStyle = P.ink; ctx.fillRect(W * 0.3, H * 0.72, W * 0.4, 8); }
+      else {
+        ctx.fillStyle = P.ink; ctx.fillRect(W * 0.3, H * 0.72, W * 0.4, 8);
+        // A red urgent stamp, so it reads as bad news at gameplay zoom.
+        ctx.strokeStyle = P.alarm_red; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(W * 0.78, H * 0.3, 26, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = P.alarm_red; ctx.fillRect(W * 0.78 - 4, H * 0.3 - 16, 8, 20); ctx.fillRect(W * 0.78 - 4, H * 0.3 + 8, 8, 7);
+      }
     });
     const body = mesh(roundedBox(0.26, h, 0.17, Math.min(0.006, h / 2.2), 2), mat('paper_sheet'), 0, h / 2, 0);
     const top = new THREE.Mesh(plane(0.26, 0.17), flatMat(tex));
@@ -712,9 +717,10 @@ function itemAt(L, anchor, office, kinds = null) {
   return { box: new THREE.Box3().setFromObject(best.obj), entry: best };
 }
 // n puffs rising `rise` metres from the top of box over `life` seconds, looping, staggered.
-function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size = 0.35, opacity = 0.55, spread = 0.2, glow = false } = {}) {
+// origin: where puffs start (default the top centre of box); drift: extra travel per life (x, z).
+function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size = 0.35, opacity = 0.55, spread = 0.2, glow = false, origin = null, drift = [0, 0] } = {}) {
   const g = new THREE.Group();
-  const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
+  const top = origin ?? new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
   const parts = [];
   for (let i = 0; i < n; i++) {
     const m = own(new THREE.SpriteMaterial({ map: puffTexture(), color: new THREE.Color(color), transparent: true, opacity: 0, depthWrite: false, blending: glow ? THREE.AdditiveBlending : THREE.NormalBlending }));
@@ -728,7 +734,7 @@ function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size 
     t += dt;
     for (const p of parts) {
       const q = ((t + p.t0) % life) / life;
-      p.sp.position.set(top.x + p.dx * q, top.y + 0.05 + q * rise, top.z + p.dz * q);
+      p.sp.position.set(top.x + (p.dx + drift[0]) * q, top.y + 0.05 + q * rise, top.z + (p.dz + drift[1]) * q);
       p.sp.scale.setScalar(size * (0.5 + q * 1.3));
       p.sp.material.opacity = opacity * Math.min(1, q * 5) * (1 - q);
     }
@@ -748,6 +754,11 @@ function rackHot(L, anchor, env) {
   const g = new THREE.Group();
   const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2, glow: true });
   g.add(heat);
+  // Smoke pouring out of the rack's front vents into the room.
+  const front = new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.4, box.max.z + 0.05);
+  // Light grey: dark smoke vanishes against the dark rack behind it.
+  const smoke = puffs(box, { n: 14, color: P.metal_soft, rise: 0.6, life: 2.4, size: 0.7, opacity: 1, spread: 0.5, origin: front, drift: [0, 1.4] });
+  g.add(smoke);
   const size = box.getSize(new THREE.Vector3()), mid = box.getCenter(new THREE.Vector3());
   // A soft orange wash on the rack's face (racks stand with their backs to a wall).
   const glowMat = own(new THREE.MeshBasicMaterial({ map: puffTexture(), color: new THREE.Color(P.marker_orange), transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -759,6 +770,7 @@ function rackHot(L, anchor, env) {
   g.userData.tick = (dt) => {
     t += dt;
     heat.userData.tick(dt);
+    smoke.userData.tick(dt);
     glowMat.opacity = 0.45 + 0.25 * Math.sin(t * 4);
   };
   g.userData.noPop = true;

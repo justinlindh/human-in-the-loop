@@ -472,7 +472,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
     // Mood emotes now and then, so state reads without UI.
     r.moodEmoteT -= dt;
-    if (r.moodEmoteT <= 0 && !r.hidden) {
+    // Not in the middle of a moment (moments.js): their own emotes carry it.
+    if (r.moodEmoteT <= 0 && !r.hidden && !r.temp?.moment) {
       r.moodEmoteT = rnd(9, 18);
       const m = r.staff.mood;
       if (!c.emote) {

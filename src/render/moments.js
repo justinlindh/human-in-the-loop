@@ -27,8 +27,25 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 // How willing someone is to wander off for a moment, by what they are assigned to.
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
+const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const STAND_BACK = 0.95;     // how far behind their seat someone stands up, clear of the chair
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
+// The letter sheet: paper with lines of text and a big red stamp, both faces (the camera sees its back).
+const SHEET_GEO = new THREE.PlaneGeometry(0.26, 0.32);
+let sheetMatCache = null;
+function sheetMat() {
+  if (sheetMatCache) return sheetMatCache;
+  const c = document.createElement('canvas'); c.width = 128; c.height = 160;
+  const x = c.getContext('2d');
+  x.fillStyle = P.paper; x.fillRect(0, 0, 128, 160);
+  x.fillStyle = P.metal_soft; for (let i = 0; i < 8; i++) x.fillRect(16, 18 + i * 12, 96 - (i % 3) * 18, 5);
+  x.strokeStyle = P.alarm_red; x.lineWidth = 8; x.beginPath(); x.arc(64, 124, 24, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = P.alarm_red; x.fillRect(59, 108, 10, 20); x.fillRect(59, 133, 10, 8);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  sheetMatCache = new THREE.MeshStandardMaterial({ map: t, side: THREE.DoubleSide, roughness: 0.9 });
+  return sheetMatCache;
+}
+
 // A visitor's look is random each visit, from everyday colours (render only: Math.random is fine here).
 const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
 const VISITOR_SHIRT = ['#9aa3b5', '#d9a441', '#6f8fc0', '#9ab58a', '#c78a8a', '#e8e2d6'];
@@ -274,8 +291,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const r = [...recs.values()].find((x) => x.seat === deskId);
     // Not at their desk right now: look again shortly rather than after the full interval.
     if (!r || !free().includes(r) || !r.char.seated) { timers.set(`letter|${p.obj.uuid}`, 1); return; }
-    emote(r, 'storm', 2.8);
-    if (lite()) return;
+    // At Low: just the bad-news emote at the desk. Otherwise the emote comes after reading it.
+    if (lite()) { emote(r, 'storm', 2.8); return; }
     // Stand up behind the chair, clear of it, turned to the room: the desk row closes the chair's
     // sides, so stepping round it would be a walk round the whole row. The seat's walkway runs
     // straight back from the chair, so the step there is direct.
@@ -284,8 +301,32 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const spot = { x: r.pos.x + Math.sin(ry) * STAND_BACK, z: r.pos.z + Math.cos(ry) * STAND_BACK };
     if (office.nav().isBlocked(spot.x, spot.z, BODY_R) || columnInFront(spot)) return;
     spot.yaw = towardCamera(spot, p.obj.position);
-    r.temp = { anim: 'despair', t: 3.6, goal: spot, back: true, moment: 'letter' };
+    // Read, then react: the letter goes up in front of their face for a beat, then down on the desk
+    // and they slump over the news.
+    const env = p.obj;
+    r.temp = {
+      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: true, moment: 'letter', el: 0,
+      tick: (rr, d, tp) => {
+        tp.el += d;
+        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); rr.char.root.add(tp.sheet); env.visible = false; }
+        if (tp.el >= READ_S && tp.sheet) {
+          tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true;
+          emote(rr, 'storm', 2.4);
+        }
+        if (tp.t <= d * 1.5 && tp.sheet) { tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true; }
+        rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
+        return true;
+      },
+    };
     r.path = [{ x: spot.x, z: spot.z }];
+  }
+  // The letter in hand: a sheet held up in front of the face, a red stamp showing through it.
+  function letterSheet() {
+    const g = new THREE.Mesh(SHEET_GEO, sheetMat());
+    g.position.set(0, 0.8, 0.46);
+    g.rotation.x = -0.2;
+    g.userData.noAO = true;
+    return g;
   }
 
   // Visitor chair: a visitor sits in it for as long as it is there; someone hovers nearby.
@@ -336,11 +377,16 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   // Smoke or a hot rack: someone comes over and fans it away.
   function fumes(p, dt) {
     if (!due(`fumes|${p.obj.uuid}`, dt, [2, 4], [16, 24])) return;
-    const box = new THREE.Box3().setFromObject(p.obj);
-    // The rack effect is built round its rack, the smoke above its item: aim at the floor below.
+    // The item the fumes come from (the rack, the espresso machine): the placed item nearest the
+    // effect. The effect's own box is no use; its smoke drifts a metre or more out into the room.
+    new THREE.Box3().setFromObject(p.obj).getCenter(center);
+    let item = null, best = Infinity;
+    for (const e of office.placed.values()) { const d = Math.hypot(e.target.x - center.x, e.target.z - center.z); if (d < best) { best = d; item = e; } }
+    const box = item ? new THREE.Box3().setFromObject(item.obj) : new THREE.Box3().setFromObject(p.obj);
     box.getCenter(center);
     center.y = 0;
-    const r = pickIdle(1, center)[0];
+    // Whoever is nearest notices first.
+    const r = free().sort((a, b) => Math.hypot(a.pos.x - center.x, a.pos.z - center.z) - Math.hypot(b.pos.x - center.x, b.pos.z - center.z))[0];
     if (!r) return;
     if (lite()) { emote(r, 'sweat', 2); return; }
     const size = box.getSize(new THREE.Vector3());
@@ -353,9 +399,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (!spot) return;
     // Facing the room, three-quarters to the camera, waving the fumes off behind them.
     spot.yaw = towardCamera(spot, center);
-    r.temp = { anim: 'fan', t: rnd(3.5, 5), goal: spot, back: true, moment: 'fumes' };
+    r.temp = {
+      anim: 'fanfrantic', t: rnd(3.5, 4.5), goal: spot, back: true, moment: 'fumes', emoteT: 0.2,
+      tick: (rr, d, tp) => { tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = 1.4; emote(rr, rr.char.emote === 'exclamation' ? 'sweat' : 'exclamation', 1.3); } return false; },
+    };
     walkTo(r, spot);
-    emote(r, 'sweat', 2);
   }
 
   // Pet carrier: the requester bends over it and peers in, now and then while it is down.

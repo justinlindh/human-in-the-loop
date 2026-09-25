@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -584,6 +584,33 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.08;
         tgt.bodyY = s(t * 1.6 + phase) * 0.006;
         break;
+      case 'readpaper':
+        // Standing, a sheet held up in both hands in front of the face, head bent to read it.
+        tgt.armLX = tgt.armRX = -1.35;
+        tgt.armLZ = -0.25; tgt.armRZ = 0.25;
+        tgt.headX = 0.38 + s(t * 0.9 + phase) * 0.03;
+        tgt.lean = 0.06;
+        break;
+      case 'slump':
+        // Standing, deflated: shoulders forward, head hanging, arms dangling.
+        tgt.lean = 0.42;
+        tgt.headX = 0.7 + s(t * 1.2 + phase) * 0.05;
+        tgt.bodyY = -0.035;
+        tgt.armLX = tgt.armRX = 0.25;
+        tgt.armLZ = -0.05; tgt.armRZ = 0.05;
+        break;
+      case 'fanfrantic': {
+        // Fanning fumes away in a hurry: both hands up in front, flapping fast and small, leaning back
+        // with the head turned away. Speed is what separates it from a wave.
+        const f = s(t * 26);
+        tgt.armLX = -1.5 + f * 0.25; tgt.armRX = -1.5 - f * 0.25;
+        tgt.armLZ = -0.45 + f * 0.3; tgt.armRZ = 0.45 + f * 0.3;
+        tgt.lean = -0.22;
+        tgt.headX = -0.18;
+        tgt.headZ = 0.45;
+        tgt.bodyY = Math.abs(s(t * 13)) * 0.012;
+        break;
+      }
       case 'fan':
         // Waving something away from the face with one hand, leaning back from it.
         // A big sweep out to the side and back, so it reads from any angle.
@@ -685,7 +712,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = 0.24 - HIP_Y;
         tgt.lean = -0.55;
         tgt.legL = -1.1; tgt.legR = -0.95;
-        tgt.armLZ = -0.9; tgt.armRZ = 0.9;
+        tgt.armLZ = 1.25; tgt.armRZ = -1.25;
         tgt.headX = -0.2 + s(t * 0.8 + phase) * 0.04;
         break;
       case 'play': {
