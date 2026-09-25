@@ -5,7 +5,8 @@ export const PRESS = [
   { id: 'wiredish', name: 'Wired-ish' },
 ];
 
-// Review quotes that fit any era. AI_REVIEW_QUOTES join them from the ChatGBT moment on.
+// Review quotes that fit any era. AI_REVIEW_QUOTES join them from the ChatGBT moment on. A quote is a string
+// (any launch) or { text, when: 'first' | 'update' } for a first launch or a new version only.
 export const REVIEW_QUOTES = {
   low: [
     'Crashed twice during the demo. The demo was about reliability.',
@@ -16,16 +17,21 @@ export const REVIEW_QUOTES = {
     'We clicked the button. We are still waiting.',
     'Somewhere, a spreadsheet is laughing at this.',
     'The logo is nice. We would like to review the logo instead.',
+    { text: 'A first release, in every sense of the word.', when: 'first' },
+    { text: 'The update fixed the bug we liked and kept the ones we did not.', when: 'update' },
+    { text: 'New version, same questions. Fewer answers.', when: 'update' },
   ],
   mid: [
     'Solid, if you squint. We squinted.',
     'Does what it says. Says a bit more than it does.',
-    'A promising v1. We look forward to v2 fixing v1.',
+    { text: 'A promising v1. We look forward to v2 fixing v1.', when: 'first' },
     'Useful on Tuesdays. Tuesdays are good now.',
     'Not the future, but a pleasant present.',
     'Would recommend to a coworker we mildly like.',
     'It works. We were surprised enough to write that down.',
     'Fine. Genuinely, reassuringly, boringly fine.',
+    { text: 'Better than last time. We checked last time.', when: 'update' },
+    { text: 'The update is an improvement. The bar was reachable.', when: 'update' },
   ],
   high: [
     'We cancelled three subscriptions after a week with this.',
@@ -36,6 +42,9 @@ export const REVIEW_QUOTES = {
     'The kind of app you bring up at dinner. Twice.',
     'Fast, friendly, and it never once asked us to upgrade.',
     'We tried to find something to complain about. We ran out of time.',
+    { text: 'A debut this polished is rude to everyone else.', when: 'first' },
+    { text: 'The rare update that makes it better instead of just different.', when: 'update' },
+    { text: 'They listened. We did not know that was allowed.', when: 'update' },
   ],
 };
 
