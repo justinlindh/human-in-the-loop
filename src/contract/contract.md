@@ -344,28 +344,29 @@ The founders can post a ready-made message in Yak. The team reacts, and a post t
 
 ```js
 postOptions(state)   // pure export from src/sim/index.js
-// -> [{ kind, label, hint, available, reason }] in a fixed order; [] when B.postsEnabled is false
-// kind: 'pep_talk' | 'who_broke_prod' | 'meme' | 'pizza' | 'announcement'
-// hint states the likely effect; reason says why an unavailable post is greyed out
+// -> [{ id, label, icon, hint, available, reason, readyWeek }] in a fixed order; [] when B.postsEnabled is false
+// id: 'pep_talk' | 'who_broke_prod' | 'meme' | 'pizza' | 'announcement'
+// hint states the likely effect; reason says why an unavailable post is greyed out; readyWeek is when its cooldown ends
 ```
 
 ### Events: Yak quick posts
 
 ```js
-{ type: 'posted', kind, chatId, outcome }   // outcome: 'landed' | 'flat' | 'backfired'; the chat events come earlier in the same dispatch
+{ type: 'posted', id, chatId, outcome }   // outcome: 'landed' | 'flat' | 'backfired'; the post's chat event comes earlier in the same dispatch
 ```
 
 ### Actions: Yak quick posts
 
 ```js
-{ type: 'postMessage', kind }
+{ type: 'postMessage', id }
 // { ok: true, outcome, chatId }
-// or { ok: false, reason } with 'Unknown message' | 'You posted recently' | 'Not enough cash' | 'Posts are off'
+// or { ok: false, reason } with 'Unknown message' | 'Posted recently' | 'Ready in N weeks' | 'Not enough cash' | 'Posts are off'
 ```
 
-- The post is an ordinary chat event with `fromId` set to a founder's id, carrying emoji reactions picked for the outcome and the team's mood. One to three staff replies follow as chat events with `replyTo` set to the post's id.
-- `postMessage` works while paused, like `answerPrompt`, and emits its events from the dispatch itself.
-- The cooldown and repeat memory live in `state.flags.posts = { lastWeek, byKind }`. Repeating a kind inside `B.posts.repeatWeeks` makes it `flat`: no effect, lukewarm replies.
+- The post is an ordinary chat event with `fromId` set to a founder's id. It carries its final emoji reaction counts, picked for the outcome and the team's mood, so there is no separate reaction event.
+- One to three staff replies follow over the next one or two ticks, as chat events with `replyTo` set to the post's id. They are queued in `state.flags.posts`.
+- `postMessage` works while paused, like `answerPrompt`, and emits the post and `posted` from the dispatch itself.
+- The cooldown, repeat memory and reply queue live in `state.flags.posts`, keyed by post id. Repeating a kind inside `B.posts.repeatWeeks` makes it `flat`: no effect, lukewarm replies.
 - The outcome follows from state (an outage, low morale, recent news), not from a roll. Randomness picks only reactions, repliers and text, from its own stream seeded by the game seed, the week and a post sequence, so a game with no posts matches one without the feature.
 - Bots never post.
 - Every number is in `B.posts`, and `B.postsEnabled` turns the feature off.
