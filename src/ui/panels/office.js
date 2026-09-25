@@ -51,11 +51,11 @@ export function availableItems(s) {
 }
 
 // What an item is, from its data: a desk is a workstation for one person; an item whose effects
-// apply to everyone (its level-1 effects are not empty) is an office-wide perk. Items that only help
+// apply to everyone (its level-1 effects are not empty) is office-wide. Items that only help
 // nearby desks say so in their adjacency line instead.
 function kindTag(it) {
   if (isDesk(it.id)) return h('span.pill.kindtag.work', { title: 'A seat for one person. Nobody can work, or be hired, without one.' }, icon('seat', { size: 12 }), ' Workstation');
-  if (Object.keys(it.effects?.[0] ?? {}).length) return h('span.pill.kindtag.perk', { title: 'Works for the whole office once placed. Nobody is assigned to it.' }, icon('team', { size: 12 }), ' Office-wide perk');
+  if (Object.keys(it.effects?.[0] ?? {}).length) return h('span.pill.kindtag.perk', { title: 'Works for the whole office once placed. Nobody is assigned to it.' }, icon('team', { size: 12 }), ' Office-wide');
   return null;
 }
 
