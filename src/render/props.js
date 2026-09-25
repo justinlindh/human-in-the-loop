@@ -104,7 +104,10 @@ export function createProps(office, screens = null) {
   // What is up now, for staff moments: [{ prop, obj }] and the screen takeover ('red' | 'skull' | null).
   const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj }));
 
-  return { sync, update, objectOf, current, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  // For checks: the free-top grid of a placed desk entry, as rows of '.' (free) and '#' (taken).
+  const deskMap = (e) => { const g = deskGrid(e); const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.cells[i + k * g.nx] ? '#' : '.'; rows.push(r); } return rows; };
+
+  return { sync, update, objectOf, current, deskMap, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
@@ -352,7 +355,7 @@ function deskFor(L, anchor, office, nearest) {
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
   return desks.find(covers) ?? (nearest ? desks.sort((a, b) => d(a) - d(b))[0] : null) ?? null;
 }
-function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE } = {}) {
+function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scale = DESK_PROP_SCALE, overhang = 0 } = {}) {
   // Defaults read at call time: the constants are declared further down.
   return (L, anchor, env) => {
     const g = new THREE.Group();
@@ -367,8 +370,8 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
-      let spot = onTop ? deskSpot(e, g, lx, lz, rot) : { x: lx, z: lz };
-      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot); }
+      let spot = onTop ? deskSpot(e, g, lx, lz, rot, overhang) : { x: lx, z: lz };
+      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang); }
       spot ??= { x: lx, z: lz };
       g.userData.follow = { deskId: e.id, lx: spot.x, lz: spot.z, rot, y };
       follow(g, e);
@@ -448,14 +451,15 @@ function deskGrid(e) {
   return grid;
 }
 // The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top.
-function deskSpot(e, g, lx, lz, rot) {
+// overhang: how far past the desk's side edges the prop may stick out (a stack of boxes).
+function deskSpot(e, g, lx, lz, rot, overhang = 0) {
   g.position.set(0, 0, 0);
   g.rotation.y = rot;
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
   const { cells, nx, nz } = deskGrid(e);
   const fits = (x, z) => {
-    if (x + b.min.x < -TOP_X || x + b.max.x > TOP_X || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
+    if (x + b.min.x < -TOP_X - overhang || x + b.max.x > TOP_X + overhang || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
     const i0 = Math.floor((x + b.min.x + TOP_X) / CELL), i1 = Math.floor((x + b.max.x + TOP_X) / CELL);
     const k0 = Math.floor((z + b.min.z - TOP_Z0) / CELL), k1 = Math.floor((z + b.max.z - TOP_Z0) / CELL);
     for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return false;
@@ -482,11 +486,11 @@ function follow(g, e) {
 function onFloor(build, opts = {}) {
   return atDesk(build, { x: 0.95, z: 0.1, rot: 0, y: 0, scale: 1, ...opts });
 }
-const TOP_Y = 0.57;
+const TOP_Y = 0.59;         // the desk model's top surface
 const DESK_PROP_SCALE = 1.6;
 // Flat paper needs more size than objects to read from above. It sits on the sitter's right, where
 // their head does not hide it from the camera.
-const FLAT = { scale: 2.0, x: 0.38, z: -0.3, rot: -0.2 };
+const FLAT = { scale: 1.8, x: 0.4, z: -0.3, rot: -0.12, overhang: 0.04 };
 const flatMat = (tex, rough = 0.85) => own(new THREE.MeshStandardMaterial({ map: tex, roughness: rough }));
 const cardTex = (key, w, h, draw) => canvasTex(key, w, h, draw);
 
@@ -578,8 +582,8 @@ function pizzaBoxes() {
     const top = new THREE.Mesh(plane(0.4, 0.4), flatMat(lid));
     top.rotation.x = -Math.PI / 2; top.position.y = 0.051;
     box.add(top);
-    box.position.set(((i * 7) % 3 - 1) * 0.03, i * 0.052, ((i * 5) % 3 - 1) * 0.03);
-    box.rotation.y = (i % 2 ? 1 : -1) * 0.12 * i;
+    box.position.set(((i * 7) % 3 - 1) * 0.015, i * 0.052, ((i * 5) % 3 - 1) * 0.015);
+    box.rotation.y = (i % 2 ? 1 : -1) * 0.04 * i;
     g.add(box);
   }
   return g;
@@ -769,7 +773,7 @@ const BUILDERS = {
   sticky_notes: atDesk(stickyNotes, { x: 0.4, z: -0.28, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
   smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0 }),
-  pizza_boxes: atDesk(pizzaBoxes, { x: 0.45, z: -0.4, rot: 0.2, scale: 1.0 }),
+  pizza_boxes: atDesk(pizzaBoxes, { x: 0.5, z: -0.38, rot: 0.06, scale: 1.0, overhang: 0.1 }),
   curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
