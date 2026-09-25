@@ -6,7 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="https://humanintheloopgame.com/"><b>Play in your browser</b></a>
+  <a href="https://play.humanintheloopgame.com/"><b>Play in your browser</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://humanintheloopgame.com/">Website</a>
   &nbsp;·&nbsp;
   <a href="https://github.com/justinlindh/human-in-the-loop/releases/latest"><img src="https://img.shields.io/github/v/release/justinlindh/human-in-the-loop?include_prereleases&amp;label=build" alt="Latest build"></a>
 </p>
@@ -17,9 +19,9 @@
 **Human in the Loop** is a management sim about running a software company through the AI era, in the spirit of Kairosoft's Game Dev Story. It is a Three.js isometric diorama in the browser, driven by a pure, deterministic JavaScript simulation.
 
 <p align="center">
-  <a href="https://github.com/justinlindh/human-in-the-loop/raw/pr-media/pr-273/trailer.mp4"><img src="docs/readme/trailer-preview.gif" alt="Trailer preview: the team's music night dance break" width="400"></a>
+  <a href="https://humanintheloopgame.com/#trailer"><img src="docs/readme/trailer-preview.gif" alt="Trailer preview: the team's music night dance break" width="400"></a>
   <br>
-  <a href="https://github.com/justinlindh/human-in-the-loop/raw/pr-media/pr-273/trailer.mp4"><b>Watch the trailer</b></a> (mp4, 24 MB)
+  <a href="https://humanintheloopgame.com/#trailer"><b>Watch the trailer</b></a>
 </p>
 
 <p align="center">
@@ -59,7 +61,7 @@ The interface between the simulation and the other layers (state shape, events, 
 
 ## Running it
 
-The latest tagged build is playable at https://humanintheloopgame.com/. Each release deploys there automatically.
+The latest tagged build is playable at https://play.humanintheloopgame.com/, and each release deploys there automatically. The website, with the trailer, is https://humanintheloopgame.com/.
 
 To run it locally you need Node.js (CI uses Node 25) with npm.
 
