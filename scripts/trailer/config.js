@@ -31,18 +31,48 @@ const LATER = (at) => ({ at, js: "[...document.querySelectorAll('button')].find(
 // Page JS for a beat's `actions`: shows Yak's recent history, which a fast-forwarded game never presented.
 const YAK_HISTORY = (at) => ({ at, js: 'window.__HITL.emit((window.__HITL.state.chatLog ?? []).slice(-15))' });
 
+// The camera target and zoom a beat's capture keeps: `target` is where the view already looks
+// (VIEW0), or a party's centre (PARTY). In-engine moves only; `punch` (a 2D zoom) is not used.
+const VIEW0 = { js: '(window.__v0 ??= window.__hitlRender.view())' };
+const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
+// Yak at trailer size: the panel scaled up, so the thread and its reactions read.
+const BIG_YAK = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .chat.yak { zoom: 1.6; }'; document.head.append(st); })()" });
+// Speech bubbles and work labels hidden, for a shot about something else.
+const NO_SAY_T = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
+// The first dancer of a music night.
+const DANCER = { js: "(() => { const R = window.__hitlRender, id = R.incentives?.dance?.dancers?.[0]; if (id == null) return null; let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === id) o = x.parent; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; })()" };
+const PARTY = { js: '(() => { const R = window.__hitlRender; const c = R.incentives?.party?.center ?? R.incentivesFrame; return c ? { x: c.x, z: c.z } : null; })()' };
+// Hides the docked era card, so an era beat shows the office redressing itself.
+const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .announce-back.docked, #ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, .hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
+
+// The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
 export const BEATS = [
-  { id: 'title', card: 'title', dur: 3.0 },
-  { id: 'garage', item: 'readme-garage', capture: { still: false, seconds: 7, screenshots: [] }, camera: [{ at: 0.2, zoom: 1.6 }], punch: { at: [0.4, 0.45], zoom: [1.0, 1.2] }, from: 1.5, dur: 3.5, vx: 0.45 },
-  { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1)], camera: [{ at: 2.6, zoom: 1.35 }], punch: { at: [0.5, 0.5], zoom: [1.0, 1.15] }, from: 2.8, dur: 3.5, vx: 0.5 },
-  { id: 'launch', item: 'real-first-launch', punch: { at: [0.5, 0.5], zoom: [1.05, 1.5] }, from: 8.0, dur: 3.5, vx: 0.5 },
-  { id: 'incident', item: 'real-incident', capture: { seconds: 12 }, camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.52, 0.55], zoom: [1.0, 1.35] }, from: 8.2, dur: 3.0, vx: 0.5 },
-  { id: 'era-chatgbt', item: 'real-era-chatgbt', camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.8, 0.5], zoom: [1.0, 1.45] }, from: 7.9, dur: 2.7, vx: 1.0 },
-  { id: 'era-agents', item: 'real-era-agents', camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.8, 0.5], zoom: [1.0, 1.45] }, from: 7.9, dur: 2.7, vx: 1.0 },
-  { id: 'era-consolidation', item: 'real-era-consolidation', camera: [{ at: 6.5, zoom: 1.4 }], punch: { at: [0.8, 0.5], zoom: [1.0, 1.45] }, from: 7.9, dur: 3.0, vx: 1.0 },
-  { id: 'waffle', item: '5-4-waffle-party-real', capture: { seconds: 22 }, punch: { at: [0.5, 0.55], zoom: [1.05, 1.4] }, from: 16.0, dur: 4.0, vx: 0.5 },
-  { id: 'dance', item: '5-4b-music-night-real', capture: { seconds: 30 }, actions: [LATER(0.1), LATER(1.1)], punch: { at: [0.45, 0.6], zoom: [1.1, 1.45] }, from: 22.8, dur: 3.5, vx: 0.5 },
-  { id: 'yak', item: '3-4-conversations-1x', capture: { seconds: 14 }, actions: [YAK_HISTORY(0.1)], camera: [{ at: 8.6, zoom: 1.35 }], punch: { at: [0.4, 0.5], zoom: [1.0, 1.3] }, from: 10.5, dur: 3.0, vx: 0.3 },
+  { id: 'title', card: 'title', dur: 2.0 },
+  // The founders' first desks, with a slow in-engine push-in.
+  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
+  { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 2.8, dur: 3.5 },
+  // The player places a foosball table (the build bar is the one interface kept), and people come to play.
+  { id: 'build', item: 'trail-build', capture: { seconds: 7 }, from: 0.5, dur: 4.0 },
+  // The hire panel: a candidate hired.
+  { id: 'hire', item: 'trail-hire', from: 0.6, dur: 2.2 },
+  // The first launch on the Office Floor, so the story never steps back into the garage.
+  { id: 'launch', item: 'trail-launch', from: 49.6, dur: 2.4 },
+  { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
+  // A meme posted mid-outage, and the reactions.
+  // After the unlock card the week raises is closed (about 31 s in); speech bubbles hidden.
+  { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [BIG_YAK(0), NO_SAY_T(0)], from: 31.6, dur: 3.5 },
+  // PC LOAD LETTER: the carry, then all four hits, to the rap's last word. No narration.
+  { id: 'printer', item: 'share-printer', from: 20.8, dur: 5.7 },
+  { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },
+  { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 2.4 },
+  // The runaway cloud bill: the hot rack smoking behind the card.
+  { id: 'cloud-bill', item: 'site-loop-automation', from: 10.0, dur: 4.0 },
+  // Consolidation's redress is mostly cleanup: the beat frames the crowd, the busiest HQ.
+  { id: 'era-consolidation', item: 'real-era-consolidation', actions: [NO_ERA_CARD(0)], capture: { camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 7.9, dur: 2.8 },
+  { id: 'waffle', item: 'site-loop-waffle', capture: { camera: [{ at: 12, target: PARTY, zoom: 2.4 }] }, from: 16.0, dur: 3.2 },
+  { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
+  // The Plateau: 18 people left, pushing in on the empty desks.
+  { id: 'plateau', item: 'growth-late', from: 0.5, dur: 5.0 },
   { id: 'end', card: 'end', dur: 8.0 },
 ];
 
@@ -52,28 +82,35 @@ export const BEATS = [
 // Optional: `swaps` (tracks that replace the bed for a stretch, crossfaded over `fade`), `stingers`, and
 // `duck` ({ db, attack, release }: a dip under each narrator line).
 export const MUSIC = {
-  bed: { file: 'public/audio/music/title/a_full.ogg', gain: -14, fadeIn: 0.3 },
-  swaps: [],
+  bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -14, fadeIn: 0.3 },
+  // The printer's own cue replaces the bed for its beat: 9.9 s of the cue lands on the beat's cut.
+  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
   stingers: [],
-  duck: null,
+  duck: { db: 6, attack: 0.15, release: 0.4 },
   fadeOut: 1.5,
 };
 
-
-
 // The narration. `file` is the rendered line in the VO directory (build.js --vo); `text` doubles as
 // the burned-in caption and the TTS script unless `say` gives the spoken form (a URL read aloud) (scripts/trailer/vo.py reads it through `npm run trailer -- --print-vo`).
+// Each line's window (its offset and the most it may run) keeps it inside one shot; the rendered
+// files start 0.04 s before their first word.
 export const VO = {
   gain: 0,
   captions: true,
   lines: [
-    { id: 'l1', at: { beat: 'title', offset: 1.8 }, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
-    { id: 'l2', at: { beat: 'launch', offset: 0.3 }, text: 'Hire humans. Ship products. Call the outage a stress test.' },
-    { id: 'l3', at: { beat: 'era-chatgbt', offset: -1.2 }, text: 'Survive the AI eras. First chatbots.' },
+    { id: 'l1', at: { beat: 'garage', offset: 0.4 }, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
+    { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, text: 'Hire humans.' },
+    { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, text: 'Ship products.' },
+    { id: 'l2b', at: { beat: 'incident', offset: 0.3 }, text: 'Call the outage a stress test.' },
+    { id: 'l7', at: { beat: 'yak', offset: 0.4 }, text: 'Your team talks. Mostly in memes.' },
+    { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, text: 'Survive the AI eras. First chatbots.' },
     { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, text: 'Then agents.' },
+    { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, text: 'Automate everything. Read the bill later.' },
     { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, text: 'Then whatever the agents hire.' },
-    { id: 'l4', at: { beat: 'waffle', offset: 1.6 }, text: 'Reward your team with waffles. And a mandatory dance break.' },
-    { id: 'l5', at: { beat: 'end', offset: 0.5 }, text: 'Human in the Loop. Someone has to be.' },
-    { id: 'l6', at: { beat: 'end', offset: 3.4 }, text: 'Play it free, right now, at humanintheloopgame.com.', say: 'Play it free, right now, at human in the loop game dot com.' },
+    { id: 'l4a', at: { beat: 'waffle', offset: 0.4 }, text: 'Reward your team with waffles.' },
+    { id: 'l4b', at: { beat: 'dance', offset: 0.3 }, text: 'And a mandatory dance break.' },
+    { id: 'l10', at: { beat: 'plateau', offset: 0.5 }, text: "Or automate them all, and see who's left." },
+    { id: 'l5', at: { beat: 'end', offset: 0.4 }, text: 'Human in the Loop. Someone has to be.' },
+    { id: 'l6', at: { beat: 'end', offset: 3.6 }, text: 'Play it free, right now, at humanintheloopgame.com.', say: 'Play it free, right now, at human in the loop game dot com.' },
   ],
 };
