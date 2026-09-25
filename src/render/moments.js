@@ -102,8 +102,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   const lite = () => !full && low();
 
   // People who could take part: in the office, standing still or seated, not already doing something.
+  // Who a moment may take: placed, in view, standing still, and doing nothing that matters. A party
+  // or celebration pose counts as nothing: it would hold everyone through a decision freeze (which
+  // stops it running out), and the moment would find nobody.
+  const posing = (t) => !t.moment && t.anim === 'celebrate';
   function free() {
-    return [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && !r.temp && !r.path.length && r.staff.mood !== 'away');
+    return [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && (!r.temp || posing(r.temp)) && !r.path.length && r.staff.mood !== 'away');
   }
   // near: a point; people closer to it are much likelier, so moments start without a long walk.
   function pickIdle(n, near = null) {

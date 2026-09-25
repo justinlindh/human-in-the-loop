@@ -7,7 +7,8 @@
 // npm run capture -- --manifest scripts/capture-manifest.js --out shots/capture
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
 //   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
-// Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
+// An item's `camera` (a list of { at, target, zoom, ease } keys) moves the camera along that path in
+// the render (see CAMERA_PATH below). Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
 // <id>.webm (VP9, CRF 30),
 // optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file (with any marks
 // the page pushed to window.__captureMarks: { t, label }, t in seconds into the clip).
@@ -161,6 +162,43 @@ async function serve() {
 }
 
 
+// Camera paths: an item's `camera` is a list of keys { at, target, zoom, ease }, and each recorded
+// frame places the camera on the path, so push-ins and pans happen in the render. A target is a world
+// point [x, z], { prop: 'name' } (the first staged prop whose name contains it), { staff: 'id' }, or
+// { js: 'expression giving { x, z }' }; targets are found again every frame, so a key can follow
+// something that moves. A key without a target or zoom keeps the one before. ease shapes the move
+// into that key: 'inOut' (the default), 'in', 'out' or 'linear'. Before the first key and after the
+// last the camera holds. The game's own moment camera is off for the item, so it never fights the path.
+const CAMERA_PATH = `(() => {
+  const R = window.__hitlRender, S = window.__HITL?.state;
+  const where = (t) => {
+    if (!t) return null;
+    if (Array.isArray(t)) return { x: t[0], z: t[1] };
+    if (t.prop) { const p = R.props?.current?.().find((x) => x.prop.includes(t.prop)); return p ? { x: p.obj.position.x, z: p.obj.position.z } : null; }
+    if (t.staff != null) { let o = null; R.scene.traverse((x) => { if (x.userData.staffId === t.staff) o = x.parent; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; }
+    if (t.js) return (0, eval)(t.js);
+    return null;
+  };
+  const EASE = { linear: (u) => u, in: (u) => u * u * u, out: (u) => 1 - (1 - u) ** 3, inOut: (u) => (u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2) };
+  window.__cameraPath = (keys) => {
+    // Fill each key's missing target and zoom from the key before.
+    const ks = []; let tg = null, zm = 1.5;
+    for (const k of keys) { tg = k.target ?? tg; zm = k.zoom ?? zm; ks.push({ at: k.at, target: tg, zoom: zm, ease: k.ease ?? 'inOut' }); }
+    dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+    let last = null;
+    return (t) => {
+      let a = ks[0], b = ks[0];
+      for (let i = 0; i < ks.length; i++) { if (ks[i].at <= t) a = ks[i]; if (ks[i].at >= t) { b = ks[i]; break; } b = ks[i]; }
+      const pa = where(a.target) ?? last, pb = where(b.target) ?? pa;
+      if (!pa) return;
+      const u = b.at > a.at ? (EASE[b.ease] ?? EASE.inOut)(Math.min(1, Math.max(0, (t - a.at) / (b.at - a.at)))) : 1;
+      const p = { x: pa.x + (pb.x - pa.x) * u, z: pa.z + (pb.z - pa.z) * u };
+      last = p;
+      R.focusAt(p.x, p.z, a.zoom + (b.zoom - a.zoom) * u);
+    };
+  };
+})()`;
+
 function ffmpeg(file, fps) {
   const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
     // Screenshots are full-range JPEG; convert to the limited-range yuv420p every player expects.
@@ -284,7 +322,13 @@ try {
         continue;
       }
     }
-    if (it.setup) await page.evaluate(it.setup);
+    // A setup that throws (a staging that never happens) fails that item, named, and the run goes on.
+    if (it.setup) {
+      try { await page.evaluate(it.setup); } catch (e) {
+        console.log(`FAIL ${it.id}: setup: ${String(e.message ?? e).split('\n')[0]}`);
+        failed = true; await ctx.close(); continue;
+      }
+    }
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());
 
     const mp4 = join(OUT, `${it.id}.mp4`);
@@ -293,9 +337,14 @@ try {
     const shots = new Set((it.screenshots ?? []).map((s) => Math.round(s * FPS)));
     const pngs = [];
     const recFrom = await page.evaluate(() => window.__capture.now);
+    if (it.camera?.length) {
+      await page.evaluate(CAMERA_PATH);
+      await page.evaluate((keys) => { window.__cameraAt = window.__cameraPath(keys); }, it.camera);
+    }
     for (let f = 0; f < frames; f++) {
       const t = f / FPS;
       while (actions.length && actions[0].at <= t) await page.evaluate(actions.shift().js);
+      if (it.camera?.length) await page.evaluate((t) => window.__cameraAt(t), t);
       await page.evaluate(() => window.__capture.frame());
       if (!it.still) await enc.write(await page.screenshot({ type: 'jpeg', quality: 95 }));
       if (shots.has(f)) {
