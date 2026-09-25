@@ -178,6 +178,38 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     return true;
   }
 
+  // Several launches waiting at once share one card: each product's review average, verdict, best
+  // quote and its own next-step shortcuts, so no result arrives on its own long after the fact.
+  function showBatch(s, ids) {
+    const items = ids.map((id) => s.products.find((x) => x.id === id)).filter(Boolean);
+    if (items.length < 2) return items.length === 1 ? showLaunch(s, items[0].id) : false;
+    const prevSpeed = resumeSpeed ?? ctx.controls.getSpeed?.() ?? 1;
+    resumeSpeed = null;
+    ctx.controls.setSpeed?.(0);
+    const rows = items.map((p) => {
+      const best = [...(p.reviews ?? [])].sort((a, b) => b.score - a.score)[0];
+      const verdict = VERDICT.find(([min]) => p.score >= min)?.[1] ?? '';
+      return h('div.lbrow', null,
+        h('div.lbhead', null, icon('launch', { size: 18 }), h('b', { text: p.version > 1 ? `${p.name} v${p.version}` : p.name }),
+          h('span.small.muted', { text: p.version > 1 ? 'update' : 'new' }), h('span.spacer'),
+          h(`span.lbscore.num.${tier(p.score)}`, { text: p.score.toFixed(1) }), h('span.verdict.small', { text: verdict })),
+        best ? h('div.rquote.small', { text: `"${best.quote}" (${best.outlet})` }) : null,
+        nextSteps(s, p));
+    });
+    const ok = h('button.btn.go.big', { onclick: () => closeLaunch() }, 'Nice!');
+    const dock = h('div.modal-dock');
+    backdrop.classList.remove('docked');
+    backdrop.replaceChildren(h('div.modal.launch.batch', null,
+      h('div.mhead', null, icon('launch', { size: 24 }), h('h2', { text: `${items.length} launches` }), h('span.spacer'), h('span.mtag', { text: 'Launch day' })),
+      h('div.mbody', null, h('div.lbrows', null, ...rows), h('div.row.lfoot', null, h('span.spacer'), ok)),
+      dock));
+    backdrop.style.display = '';
+    toasts.setDock(dock);
+    ctx.sfx(items.some((p) => p.score >= 6.5) ? 'fanfare' : 'blip');
+    launch = { productId: items.map((p) => p.id), prevSpeed, timers: [] };
+    return true;
+  }
+
   function closeLaunch() {
     if (!launch) return;
     launch.timers.forEach(clearTimeout);
@@ -194,20 +226,21 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     const d = s.pendingDecision;
     if (d && d !== shown) {
       // A decision outranks launch results; put an open launch back at the front of the queue.
-      if (launch) { const id = launch.productId; launch.timers.forEach(clearTimeout); resumeSpeed = launch.prevSpeed; launch = null; queue.unshift(id); }
+      if (launch) { const ids = [].concat(launch.productId); launch.timers.forEach(clearTimeout); resumeSpeed = launch.prevSpeed; launch = null; queue.unshift(...ids); }
       shown = d;
       renderDecision(s, d);
       return;
     }
     if (!d && shown) hide();
     if (!shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
-      while (queue.length && !showLaunch(s, queue.shift()));
+      if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
+      else while (queue.length && !showLaunch(s, queue.shift()));
     }
   }
 
   function queueLaunch(productId) {
     if (!queue.includes(productId)) queue.push(productId);
-    if (queue.length > 3) queue.splice(0, queue.length - 3);
+    if (queue.length > 6) queue.splice(0, queue.length - 6);
   }
 
   // Returns true when the modal consumed the key.
