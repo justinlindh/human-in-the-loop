@@ -120,6 +120,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom, {
     getState,
     onName: (id) => { controls.focusStaff?.(id); menu.open('staff', { staffId: id }); },
+    onAnswer: (promptId, choice) => { if (act({ type: 'answerPrompt', promptId, choice }).ok) sfx('confirm'); },
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,

@@ -1,0 +1,26 @@
+/* ---------- Yak reply prompts: founder replies under a staff post ---------- */
+.hitl .yprompt { margin-top: 0.35em; padding: 0.4em; border: 0.13em dashed var(--ink-soft); border-radius: 0.6em; background: #fff8e6; display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .yprompt .yp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5em; font-size: 0.72em; color: var(--ink-soft); }
+.hitl .yprompt .yp-head b { color: var(--ink); }
+.hitl .yprompt .yp-left { white-space: nowrap; font-weight: 600; }
+.hitl .yp-opt {
+  pointer-events: auto; font: inherit; text-align: left; cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; align-content: center; column-gap: 0.6em;
+  padding: 0.3em 0.55em; border: 0.13em solid var(--ink); border-radius: 0.6em; background: #fff; box-shadow: 0 0.15em 0 var(--ink); color: var(--ink);
+}
+.hitl .yp-opt:hover:not(:disabled) { background: #fff1c9; }
+.hitl .yp-opt:active:not(:disabled) { transform: translateY(0.1em); box-shadow: 0 0.05em 0 var(--ink); }
+.hitl .yp-opt .yp-label { font-size: 0.82em; }
+.hitl .yp-opt .yp-hint { font-size: 0.7em; font-weight: 600; color: var(--ink-soft); }
+.hitl .yp-opt.off { cursor: not-allowed; opacity: 0.6; box-shadow: none; background: #f3eee4; }
+.hitl .yp-opt.off .yp-hint { color: var(--bad); }
+.hitl .yprompt.done { padding: 0.2em 0.45em; border-style: solid; border-color: rgba(42, 38, 48, 0.18); background: rgba(255, 255, 255, 0.5); }
+.hitl .yprompt .yp-done { font-size: 0.72em; color: var(--ink-soft); }
+.hitl .yprompt .yp-done b { color: var(--ink); }
+/* Unread markers for an open prompt: a pill on the collapsed header, a dot on its channel's tab. */
+.hitl .chat-head .ymark { pointer-events: auto; cursor: pointer; font-family: inherit; display: none; font-size: 0.7em; font-weight: 700; color: var(--ink); background: var(--yellow); border: 0.12em solid var(--ink); border-radius: 1em; padding: 0.05em 0.5em; }
+.hitl .chat-head .ymark.show { display: inline-block; }
+.hitl .ctab.prompt::after { content: ''; width: 0.45em; height: 0.45em; border-radius: 50%; background: var(--yellow); border: 0.1em solid var(--ink); }
+@media (pointer: coarse) {
+  .hitl .yp-opt { min-height: 44px; }
+  .hitl .chat-head .ymark { min-height: 32px; padding: 0 0.8em; }
+}

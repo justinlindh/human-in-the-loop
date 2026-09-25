@@ -1,12 +1,6 @@
 {
  "accepted": [
   {
-   "key": "bounds|cable_chewed|room",
-   "worst": 0.026,
-   "state": "moment:pet_mishap",
-   "issue": 363
-  },
-  {
    "key": "grid|espresso@L3/front|footprint",
    "worst": 0.21,
    "state": "mock:floor",
@@ -65,54 +59,6 @@
    "worst": 0.21,
    "state": "mock:floor",
    "issue": 385
-  },
-  {
-   "key": "overlap|bookshelf/pal_fabric_slate|wall_z/pal_plastic_white",
-   "worst": 0.01,
-   "state": "seed:1:w303",
-   "issue": 363
-  },
-  {
-   "key": "overlap|bookshelf/pal_fabric_terracotta|wall_z/pal_plastic_white",
-   "worst": 0.01,
-   "state": "seed:1:w303",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_leaf_dark|pizza_boxes/pal_wood_light",
-   "worst": 0.016,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_leaf_light|pizza_boxes/pal_wood_light",
-   "worst": 0.025,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_leaf|pizza_boxes/pal_wood_light",
-   "worst": 0.024,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_pot_cream|pizza_boxes/pal_wood_light",
-   "worst": 0.023,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|desk/pal_soil|pizza_boxes/pal_wood_light",
-   "worst": 0.025,
-   "state": "seed:1:w48",
-   "issue": 363
-  },
-  {
-   "key": "overlap|server_rack/pal_plastic_charcoal|wall_z/pal_plastic_white",
-   "worst": 0.09,
-   "state": "mock:floor",
-   "issue": 363
   },
   {
    "key": "person|coffee_corner/pal_plastic_white|person(sip)/head",

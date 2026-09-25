@@ -380,8 +380,10 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
-      let spot = onTop ? deskSpot(e, g, lx, lz, rot, overhang) : { x: lx, z: lz };
-      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang); }
+      // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.
+      const around = overhang > 0 ? [...(env.office.placed?.values() ?? [])].filter((o) => o !== e && o.obj).map((o) => new THREE.Box3().setFromObject(o.obj)) : [];
+      let spot = onTop ? deskSpot(e, g, lx, lz, rot, overhang, around) : { x: lx, z: lz };
+      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang, around); }
       spot ??= { x: lx, z: lz };
       g.userData.follow = { deskId: e.id, lx: spot.x, lz: spot.z, rot, y };
       follow(g, e);
@@ -426,6 +428,7 @@ function clearSpot(L, office, g, c) {
 // (monitor, keyboard, mug, plant, papers, era dressing), found by rasterising the desk's triangles
 // that rise above the top. The sitter's hands keep the front middle clear too.
 const TOP_X = 0.72, TOP_Z0 = -0.66, TOP_Z1 = -0.04, CELL = 0.02;
+const OVER = new THREE.Vector3();
 const deskGrids = new WeakMap();
 function deskGrid(e) {
   let grid = deskGrids.get(e.obj);
@@ -461,8 +464,9 @@ function deskGrid(e) {
   return grid;
 }
 // The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top.
-// overhang: how far past the desk's side edges the prop may stick out (a stack of boxes).
-function deskSpot(e, g, lx, lz, rot, overhang = 0) {
+// overhang: how far past the desk's side edges the prop may stick out (a stack of boxes), and only
+// where none of `around` (world boxes of the items near the desk) is under the part that sticks out.
+function deskSpot(e, g, lx, lz, rot, overhang = 0, around = []) {
   g.position.set(0, 0, 0);
   g.rotation.y = rot;
   g.updateMatrixWorld(true);
@@ -473,6 +477,17 @@ function deskSpot(e, g, lx, lz, rot, overhang = 0) {
     const i0 = Math.floor((x + b.min.x + TOP_X) / CELL), i1 = Math.floor((x + b.max.x + TOP_X) / CELL);
     const k0 = Math.floor((z + b.min.z - TOP_Z0) / CELL), k1 = Math.floor((z + b.max.z - TOP_Z0) / CELL);
     for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return false;
+    if (around.length && (x + b.min.x < -TOP_X || x + b.max.x > TOP_X)) {
+      // The overhanging part, sampled on a 4 cm grid, in world space at the desk top's height.
+      const x0 = x + b.min.x, x1 = x + b.max.x, z0 = z + b.min.z, z1 = z + b.max.z;
+      for (let px = x0; px <= x1 + 1e-6; px += 0.04) {
+        if (px >= -TOP_X && px <= TOP_X) continue;
+        for (let pz = z0; pz <= z1 + 1e-6; pz += 0.04) {
+          const w = OVER.set(px, TOP_Y + 0.05, pz).applyMatrix4(e.obj.matrixWorld);
+          if (around.some((a) => a.containsPoint(w))) return false;
+        }
+      }
+    }
     return true;
   };
   if (fits(lx, lz)) return { x: lx, z: lz };
@@ -660,11 +675,12 @@ function petCarrier() {
 // A network cable run along the floor from the desk, bitten through, frayed ends and all.
 function cableChewed() {
   const g = new THREE.Group();
-  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.02, 0.02, x1 - x0, 0.006, 8), mat('role_engineer'), x1, 0.012, 0); m.rotation.z = Math.PI / 2; return m; };
+  // Lying on the floor: the centre line one radius up.
+  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.02, 0.02, x1 - x0, 0.006, 8), mat('role_engineer'), x1, 0.02, 0); m.rotation.z = Math.PI / 2; return m; };
   g.add(seg(-0.6, -0.08), seg(0.06, 0.55));
   for (const [x, s] of [[-0.08, 1], [0.06, -1]]) {
     for (let i = 0; i < 4; i++) {
-      const w = mesh(roundedCylinder(0.003, 0.003, 0.05, 0.001, 4), mat(['fabric_terracotta', 'marker_green', 'fabric_mustard', 'paper'][i]), x + s * 0.02, 0.012, (i - 1.5) * 0.008);
+      const w = mesh(roundedCylinder(0.003, 0.003, 0.05, 0.001, 4), mat(['fabric_terracotta', 'marker_green', 'fabric_mustard', 'paper'][i]), x + s * 0.02, 0.02, (i - 1.5) * 0.008);
       w.rotation.z = Math.PI / 2 + (i - 1.5) * 0.4 * s;
       g.add(w);
     }
