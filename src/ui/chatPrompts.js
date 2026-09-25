@@ -6,6 +6,11 @@ import { h, setText } from './dom.js';
 
 const weeksText = (n) => (n <= 1 ? 'last week to reply' : `${n} weeks to reply`);
 
+// What a prompt's view shows: its resolution and which replies are available (and why not).
+export const promptSig = (p) => `${p.id}:${p.resolved ? `r${p.resolved.choice}` : 'o'}:${p.options.map((o) => (o.available === false ? `0${o.reason ?? ''}` : '1')).join(',')}`;
+// Every prompt plus the week (for "weeks to reply"): unchanged means nothing on screen changes.
+export const promptsSig = (list, week) => `${week}|${list.map(promptSig).join('|')}`;
+
 export function createPromptView({ list, onAnswer }) {
   const views = new Map(); // promptId -> { el, sig, chatId }
   let prompts = [];
@@ -42,16 +47,20 @@ export function createPromptView({ list, onAnswer }) {
     }
   }
 
-  // Called every frame; rebuilds only the prompts whose state changed.
+  // Called every frame. The sim resolves a prompt in place on the same array, so the check is a
+  // signature over every prompt, not the array's identity; views rebuild only when theirs changed.
+  let lastSig = '';
   function sync(s) {
     const next = s?.chatPrompts ?? [];
-    if (next === prompts && !next.some((p) => !p.resolved)) return;
+    const all = promptsSig(next, s?.week);
+    if (all === lastSig) return;
+    lastSig = all;
     prompts = next;
     const seen = new Set();
     let changed = false;
     for (const p of next) {
       seen.add(p.id);
-      const sig = `${p.resolved ? `r${p.resolved.choice}` : 'o'}|${p.options.map((o) => `${o.available !== false ? 1 : 0}${o.reason ?? ''}`).join(',')}`;
+      const sig = promptSig(p);
       let v = views.get(p.id);
       if (!v || v.sig !== sig) {
         v?.el.remove();
@@ -59,10 +68,7 @@ export function createPromptView({ list, onAnswer }) {
         views.set(p.id, v);
         changed = true;
       }
-      if (!p.resolved && v.el._left) {
-        const t = weeksText(Math.max(1, (p.expiresWeek ?? s.week + 1) - s.week));
-        if (v.el._left.textContent !== t) setText(v.el._left, t);
-      }
+      if (!p.resolved && v.el._left) setText(v.el._left, weeksText(Math.max(1, (p.expiresWeek ?? s.week + 1) - s.week)));
     }
     for (const [id, v] of views) if (!seen.has(id)) { v.el.remove(); views.delete(id); changed = true; }
     if (changed) attach();
