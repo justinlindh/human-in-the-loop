@@ -70,8 +70,21 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // short or replaced, with the function that did it; refusals and the decision freeze too. Off
   // unless a check turns it on.
   const trace = { on: false, t: 0, lines: [], max: 600, seq: 0 };
+  // A refusal repeated for the same person within REFUSE_FOLD_S (a moment retrying every second) is
+  // counted on the first line rather than logged again.
+  const REFUSE_FOLD_S = 5;
+  const lastRefuse = new Map();
   function traceLine(id, what, detail = {}) {
     if (!trace.on) return;
+    if (what === 'refuse') {
+      const k = `${id}|${detail.by}|${detail.why}`, prev = lastRefuse.get(id);
+      if (prev?.k === k && trace.t - prev.at < REFUSE_FOLD_S) { prev.line.repeats = (prev.line.repeats ?? 1) + 1; prev.at = trace.t; return; }
+      const line = { seq: trace.seq++, t: +trace.t.toFixed(2), id, what, ...detail };
+      lastRefuse.set(id, { k, at: trace.t, line });
+      trace.lines.push(line);
+      if (trace.lines.length > trace.max) trace.lines.splice(0, trace.lines.length - trace.max);
+      return;
+    }
     trace.lines.push({ seq: trace.seq++, t: +trace.t.toFixed(2), id, what, ...detail });
     if (trace.lines.length > trace.max) trace.lines.splice(0, trace.lines.length - trace.max);
   }
