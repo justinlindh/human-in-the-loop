@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
+import { printerModel } from './props.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -31,6 +32,11 @@ const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the 
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
 const STAND_BACK = 0.8;      // then how far back into the aisle, clear of the chair
+const TAKE_IT_OUT = 0;       // printer_jam's 'Take it out back' choice index
+const PRINTER_SPEED = 1.2;   // metres a second, carrying the printer
+const CARRY_GAP = 0.38;     // metres from the printer's middle to each carrier
+const FOLLOW_GAP = -1.1;    // the third walks this far behind the printer's middle
+const OUT_S = 3;             // how long they are out back with it
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
 // The letter sheet: paper with lines of text and a big red stamp, both faces (the camera sees its back).
 const SHEET_GEO = new THREE.PlaneGeometry(0.26, 0.32);
@@ -261,6 +267,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   function decided(e) {
     resolved.set(e.eventId, e.choice ?? null);
     resolvedT.set(e.eventId, 20);
+    if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3;
   }
 
   // A yaw that faces the camera three-quarters, turned toward a point so it still reads as about it.
@@ -490,7 +497,126 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     }
   }
 
+  // "Take it out back" (printer_jam): the three nearest people lift the jammed printer overhead and
+  // carry it out of the door in a line, a third walking behind; they are gone a few seconds (the
+  // wreck appears outside), then walk back in smiling. The moment carries its own printer, since the
+  // staged one goes as soon as the decision is made.
+  let printer = null;   // { phase, obj, people: [front, back, follower], route, s, t, len }
+  let printerDue = 0;   // seconds left to find the printer and people after the decision
+  function printerStart() {
+    const at = getProps?.()?.goneAt?.('printer_jammed', 10);
+    const L = office.current?.L;
+    if (!at || !L || printer || lite() || !parent) return false;
+    const near = free().sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.z - at.z) - Math.hypot(b.pos.x - at.x, b.pos.z - at.z)).slice(0, 3);
+    if (near.length < 2) return false;
+    const obj = printerModel();
+    obj.scale.setScalar(1.2);
+    obj.position.set(at.x, 0, at.z);
+    parent.add(obj);
+    const door = L.doorWorld;
+    const route = office.nav().path({ x: at.x, z: at.z }, { x: door.x, z: door.z }) ?? [];
+    const out = Math.abs(door.z) >= L.D / 2 - 1.2 ? [0, Math.sign(door.z)] : [Math.sign(door.x), 0];
+    route.push({ x: door.x + out[0] * 1.6, z: door.z + out[1] * 1.6 });
+    printer = { phase: 'gather', obj, people: near, hid: new Set(), route: [{ x: at.x, z: at.z }, ...route], s: 0, t: 0, out };
+    // The spots to lift from: in front of and behind the printer along the way out, the third behind.
+    const first = printer.route[1] ?? route[0];
+    const dir = norm(first.x - at.x, first.z - at.z);
+    const spots = [[CARRY_GAP, dir], [-CARRY_GAP, dir], [FOLLOW_GAP, dir]].map(([d, v]) => ({ x: at.x + v[0] * d, z: at.z + v[1] * d, yaw: Math.atan2(v[0], v[1]) }));
+    near.forEach((r, i) => {
+      r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', target: obj, held: i < 2 ? obj : null } };
+      walkTo(r, spots[i]);
+    });
+    dispatch('start', 'printer_jam');
+    return true;
+  }
+  function norm(x, z) { const l = Math.hypot(x, z) || 1; return [x / l, z / l]; }
+  // Where along the route a distance s lands: { x, z, dir }.
+  function along(route, s) {
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1], b = route[i], len = Math.hypot(b.x - a.x, b.z - a.z);
+      if (s <= len || i === route.length - 1) { const k = Math.min(1, s / (len || 1)); return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, dir: norm(b.x - a.x, b.z - a.z) }; }
+      s -= len;
+    }
+    return { ...route[0], dir: [0, 1] };
+  }
+  function routeLength(route) { let n = 0; for (let i = 1; i < route.length; i++) n += Math.hypot(route[i].x - route[i - 1].x, route[i].z - route[i - 1].z); return n; }
+  function printerTick(dt) {
+    const pm = printer;
+    if (!pm) return;
+    pm.t += dt;
+    const wreck = getProps?.()?.current().find((p) => p.prop === 'printer_wrecked')?.obj;
+    if (wreck && pm.phase !== 'back') wreck.visible = false;
+    const alive = pm.people.filter((r) => recs.has(r.id));
+    if (alive.length < pm.people.length) { printerEnd(); return; }
+    if (pm.phase === 'gather') {
+      if (pm.people.every((r) => !r.path.length) || pm.t > 12) { pm.phase = 'lift'; pm.t = 0; pm.people.forEach((r) => { r.temp.anim = 'hoist'; r.temp.stage.beat = 'lift'; }); }
+      return;
+    }
+    if (pm.phase === 'lift') {
+      pm.obj.position.y = Math.min(1, pm.t / 0.6) * handsY(pm);
+      if (pm.t > 0.8) { pm.phase = 'carry'; pm.t = 0; pm.len = routeLength(pm.route); pm.people.forEach((r, i) => { r.temp.anim = i < 2 ? 'hoistwalk' : 'walk'; r.temp.keepPos = true; r.temp.stage.beat = 'carry'; }); }
+      return;
+    }
+    if (pm.phase === 'carry') {
+      // Everyone walks on until the last of them reaches the end of the route; each is gone from there.
+      pm.s = Math.min(pm.len - FOLLOW_GAP, pm.s + PRINTER_SPEED * dt);
+      const c = along(pm.route, Math.min(pm.len, pm.s));
+      pm.obj.position.set(c.x, handsY(pm), c.z);
+      pm.obj.rotation.y = Math.atan2(c.dir[0], c.dir[1]);
+      if (pm.s >= pm.len) pm.obj.visible = false;
+      // In a line along the way: one ahead, one behind, the third a step behind them.
+      [CARRY_GAP, -CARRY_GAP, FOLLOW_GAP].forEach((d, i) => {
+        const r = pm.people[i];
+        if (!r) return;
+        const at = Math.max(0, pm.s + d);
+        const p = along(pm.route, Math.min(pm.len, at));
+        r.pos.set(p.x, 0, p.z);
+        r.yaw = Math.atan2(p.dir[0], p.dir[1]);
+        if (at >= pm.len && !r.hidden) { pm.hid.add(r); r.hidden = true; r.char.root.visible = false; }
+      });
+      if (pm.s >= pm.len - FOLLOW_GAP - 1e-3) { pm.phase = 'out'; pm.t = 0; }
+      return;
+    }
+    if (pm.phase === 'out' && pm.t > OUT_S) {
+      // Back in through the door, smiling, to wherever they were going.
+      pm.phase = 'back';
+      if (wreck) wreck.visible = true;
+      const door = office.current.L.doorWorld;
+      pm.people.forEach((r, i) => { r.pos.set(door.x, 0, door.z); unhide(r); emote(r, 'heart', 2.5 + i * 0.3); });
+      printerEnd();
+    }
+  }
+  // The printer rests on the two carriers' raised hands.
+  function handsY(pm) { return (pm.people[0].char.handTop() + pm.people[1].char.handTop()) / 2 - 0.03; }
+  function unhide(r) {
+    if (!printer?.hid.delete(r) || r.goal?.hidden) return;
+    r.hidden = false;
+    r.char.root.visible = true;
+  }
+  function printerEnd() {
+    if (!printer) return;
+    const wreck = getProps?.()?.current().find((p) => p.prop === 'printer_wrecked')?.obj;
+    if (wreck) wreck.visible = true;
+    printer.obj.removeFromParent();
+    printer.obj.traverse((o) => { if (o.isMesh && o.material?.userData?.own) o.material.dispose(); });
+    for (const r of printer.people) {
+      unhide(r);
+      if (r.temp?.moment === 'printer') { r.temp = null; if (r.goal) walkTo(r, r.goal); }
+    }
+    printer = null;
+    dispatch('end', 'printer_jam');
+  }
+  // Moment captions (ui): hitl:moment { phase, id, key }.
+  let momentSeq = 0, momentId = null;
+  function dispatch(phase, key) {
+    if (typeof window === 'undefined') return;
+    if (phase === 'start') momentId = `${key}-${++momentSeq}`;
+    window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id: momentId, key } }));
+  }
+
   function update(dt, state) {
+    printerTick(dt);
+    if (printerDue > 0) { printerDue -= dt; if (printerStart()) printerDue = 0; }
     for (const [k, t] of resolvedT) { if (t - dt <= 0) { resolvedT.delete(k); resolved.delete(k); } else resolvedT.set(k, t - dt); }
     updateBursts(dt);
     updateRolls(dt);
@@ -513,7 +639,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     else for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k);
   }
 
-  function reset() { rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
+  function reset() { printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
-  return { update, reset, decided, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { update, reset, decided, get printer() { return printer && { phase: printer.phase, s: +printer.s.toFixed(2), len: +(printer.len ?? 0).toFixed(2), t: +printer.t.toFixed(2) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }
