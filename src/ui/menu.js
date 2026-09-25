@@ -1,3 +1,4 @@
+import { setTip } from './tooltip.js';
 import { h, toggleClass, setText, clear } from './dom.js';
 import { icon } from './icons.js';
 
@@ -113,7 +114,7 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const m = MENU.find((x) => x.id === id);
     if (!labels[id] || labels[id].textContent === text) return;
     setText(labels[id], text);
-    buttons[id].title = `${text} (${m?.key})`;
+    setTip(buttons[id], `${text} (${m?.key})`);
   }
 
   // Swaps a menu button's icon (and its panel header's) while the button stands for something else.

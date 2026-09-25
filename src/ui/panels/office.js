@@ -1,3 +1,4 @@
+import { setTip } from '../tooltip.js';
 import { h, setText, fmtMoney, toggleClass } from '../dom.js';
 import { OFFICE_STAGES } from '../content.js';
 import { ITEMS } from '../../data/items.js';
@@ -68,7 +69,7 @@ function legacyOfficePanel(ctx) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
           icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
         const why = h('span.why.small');
-        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
+        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); setTip(btn, r); });
         upgrade = h('div.card.stagecard', null,
           h('div', null, h('div.small.muted', { text: 'Your office' }), h('h2.oname', { text: stage.name })),
           h('div.row.wrap', null,
@@ -200,7 +201,7 @@ function buildPalette(ctx, arg) {
         const btn = h('button.btn.go', { onclick: () => { if (ctx.act({ type: 'upgradeOffice' }).ok) ctx.sfx('confirm'); } },
           icon('office'), ` Move to ${next.name} · ${fmtMoney(next.upgradeCost)}`);
         const why = h('span.why.small');
-        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); btn.title = r; });
+        bind((st) => { const r = moveBlocker(st, next); btn.disabled = !!r; setText(why, r); setTip(btn, r); });
         right = h('div.col.right', null,
           h('div.small.muted', { text: `${next.name}: more floor, ${fmtMoney(rentOf({ ...s, officeStage: stageIx + 1, office: s.office ? { ...s.office, stage: stageIx + 1 } : s.office }, next))}/wk rent. Your furniture comes along.` }), btn, why);
       } else if (Number.isFinite(s.office?.expansion)) {
@@ -218,7 +219,7 @@ function buildPalette(ctx, arg) {
           bind((st) => {
             const gate = nextStep ? call('officeGateReason', st, nextStep) : call('officeGateReason', st, stageIx);
             const r = gate ?? (Number.isFinite(cost) && st.cash < cost ? 'Not enough cash' : '');
-            btn.disabled = !!r; setText(why, r ?? ''); btn.title = r ?? '';
+            btn.disabled = !!r; setText(why, r ?? ''); setTip(btn, r ?? '');
           });
           right = h('div.col.right', null,
             h('div.small.muted', { text: `Step ${step + 1} of ${maxSteps}: room for ${EXPANSION_DESKS} more desks${Number.isFinite(nextStep?.rent) ? `, ${fmtMoney(nextStep.rent)}/wk more rent` : ''}.` }), btn, why);

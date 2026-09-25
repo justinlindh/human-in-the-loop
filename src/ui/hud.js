@@ -1,3 +1,4 @@
+import { setTip } from './tooltip.js';
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
 import { icon } from './icons.js';
@@ -294,8 +295,8 @@ export function createHud({ root, controls, ui }) {
       lastEra = era;
       eraEl.replaceChildren(...(era ? [icon(`era.${era}`, { size: 22 })] : []));
       // The title shows on hover, and on a tap through the tap tips.
-      eraEl.title = era ? `${ERA[era]?.name ?? era} era` : '';
-      eraEl.setAttribute('aria-label', eraEl.title);
+      setTip(eraEl, era ? `${ERA[era]?.name ?? era} era` : '');
+      eraEl.setAttribute('aria-label', era ? `${ERA[era]?.name ?? era} era` : '');
       eraEl.style.display = era ? '' : 'none';
     }
     setText(logo, (s.companyName || '?').slice(0, 1).toUpperCase());
@@ -303,7 +304,7 @@ export function createHud({ root, controls, ui }) {
     if (lc !== lastLogoColor) { lastLogoColor = lc; logo.style.background = lc; }
     setText(name, s.companyName || 'Your Lab');
     const tag = s.founding?.tagline ?? '';
-    if (name.title !== tag) name.title = tag;
+    if ((name.dataset.tip ?? '') !== tag) setTip(name, tag);
     setText(dateVal, `${d.year} · Q${d.quarter} · Wk ${d.week}`);
 
     setText(cashVal, fmtMoney(s.cash));
@@ -389,7 +390,7 @@ export function createHud({ root, controls, ui }) {
     if (away !== last.away) {
       last.away = away;
       setText(pausedTag, away ? 'Paused while you were away' : 'Paused');
-      pausedTag.title = away ? 'The game paused when the window lost focus. Press play or Space to resume. Change this in Settings.' : '';
+      pausedTag.dataset.tip = away ? 'The game paused when the window lost focus. Press play or Space to resume. Change this in Settings.' : '';
     }
     const busy = sp > 0 && !!ui.isBusy?.();
     if (busy !== last.busy) { last.busy = busy; menuTag.style.display = busy ? 'inline' : 'none'; }

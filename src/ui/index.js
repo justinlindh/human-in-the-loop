@@ -18,7 +18,7 @@ import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
 import { createCallGrid } from './callgrid.js';
-import { createTapTips } from './tapTips.js';
+import { createTooltips } from './tooltip.js';
 import { retireOptions } from './retire.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK } from './v2content.js';
 
@@ -33,7 +33,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
-  createTapTips(layer);
+  createTooltips(layer);
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
