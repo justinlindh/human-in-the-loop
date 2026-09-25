@@ -1,5 +1,5 @@
 /* ---------- title ---------- */
-.hitl.title-mode .topbar, .hitl.title-mode .tray, .hitl.title-mode .bottom, .hitl.title-mode .panel-wrap { display: none; }
+.hitl.title-mode .topbar, .hitl.title-mode .tray, .hitl.title-mode .tray-toggle, .hitl.title-mode .bottom, .hitl.title-mode .panel-wrap { display: none !important; }
 .hitl .title { position: absolute; inset: 0; pointer-events: auto; display: flex; align-items: center; justify-content: flex-start; padding: 0 6vw; z-index: 30;
   background: linear-gradient(90deg, rgba(42,38,48,0.55) 0%, rgba(42,38,48,0.25) 45%, rgba(42,38,48,0) 70%); }
 .hitl .tl-card { width: min(30em, 92vw); display: flex; flex-direction: column; gap: 1.2em; animation: hitl-modal-in 400ms cubic-bezier(.2,1.4,.4,1) both; }
