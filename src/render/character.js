@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -584,6 +584,41 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armRZ = -0.1; tgt.armLZ = 0.1;
         tgt.lean = -0.12 + e * 0.3;
         tgt.bodyY = -e * 0.03;
+        break;
+      }
+      case 'hide': {
+        // Crouched low behind cover, hands on it; now and then a peek up and out to one side, then
+        // back down.
+        const cyc = ((t + phase) % 3.4) / 3.4;
+        const k = cyc < 0.45 ? 0 : cyc < 0.55 ? (cyc - 0.45) / 0.1 : cyc < 0.8 ? 1 : cyc < 0.9 ? 1 - (cyc - 0.8) / 0.1 : 0;
+        const peek = k * k * (3 - 2 * k);
+        tgt.bodyY = -0.3 + peek * 0.12;
+        tgt.legL = tgt.legR = -1.2 + peek * 0.35;
+        tgt.lean = 0.3 - peek * 0.15;
+        tgt.headX = -0.2 - peek * 0.15;
+        tgt.headZ = peek * 0.35;
+        tgt.armLX = tgt.armRX = -1.2;
+        tgt.armLZ = 0.25; tgt.armRZ = -0.25;
+        break;
+      }
+      case 'flinch':
+        // Caught out: ducking down, hands up at the face.
+        tgt.bodyY = -0.26;
+        tgt.legL = tgt.legR = -1.0;
+        tgt.lean = -0.2;
+        tgt.headX = 0.3;
+        tgt.armLX = tgt.armRX = -2.3;
+        tgt.armLZ = 0.4; tgt.armRZ = -0.4;
+        break;
+      case 'pointscreen': {
+        // Leaning over someone's shoulder, jabbing a finger at their screen; the other hand on the hip.
+        const jab = Math.max(0, s(t * 5.5 + phase));
+        tgt.lean = 0.28;
+        tgt.headX = 0.2;
+        tgt.armRX = -1.3 - jab * 0.12;
+        tgt.armRZ = 0.05;
+        tgt.armLX = -0.2; tgt.armLZ = -0.55;
+        tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       }
       case 'sigh': {

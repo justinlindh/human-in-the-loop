@@ -123,6 +123,8 @@ What `R.probe(id)` measures per frame (`src/render/probe.js` has the full list):
 - `between`: `source` sprites near the line from the eyes to the target.
 - `headY`, `eyes`, `forward`, `anim`.
 
+`stage.mjs` turns the moment camera off (`hitl:cameraSettings`), so every spec reads the default and the turned view as a player would set them; a moment that should follow its actors does so through `momentcam.js`, which players can switch off.
+
 Run `node blender/checks/stage.mjs --only=<moment>` while staging (under the render lock), and fix the staging until the table passes before recording clips. A turned view matters: staging that picks a spot relative to the room rather than the camera usually fails there.
 
 ## Performance

@@ -87,6 +87,17 @@ const SPECS = {
     share('facesPrinter', 'face within 45 deg of the printer', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
   ] },
+  // The first user test: the founders crouch out of the visitor's sight, faces to the camera, watching
+  // the visitor; on "Explain everything" one leans in beside the visitor, at their screen.
+  'visitor.hide': { moment: 'visitor', beat: 'hide', role: 'founder', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
+    visibleRule, noFade,
+  ] },
+  'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
+    share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
+    visibleRule, noFade,
+  ] },
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
     share('notOverHead', 'hammer centre not above the top of the head', (x) => x.heldAbove <= 0.05, 1),
@@ -101,6 +112,9 @@ const SCENARIOS = {
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
   printer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } } }, seconds: 32,
     steps: [{ at: 30, js: "S.pendingDecision = null; S.office.props = [...(S.office.props ?? []), { id: 'stage_wreck', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 4 } }]; R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: 's1' }], S);" }] },
+  // The first user test in the garage, both founders there; "Explain everything" 8 s in.
+  visitor: { query: 'mock=garage', patch: { pendingDecision: { eventId: 'first_user_test', subjectId: 's1', stage: { prop: 'visitor_chair', anchor: 'subjectDesk', x: 2, y: 2 } } }, seconds: 16,
+    steps: [{ at: 240, js: "S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'first_user_test', choice: 1, subjectId: 's1' }], S);" }] },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
 };
 
@@ -133,6 +147,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;
+      // The specs hold staging to the default and the turned view, so the moment camera stays put.
+      window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
       for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
       window.__step(90);
       Object.assign(S, JSON.parse(JSON.stringify(patch)));

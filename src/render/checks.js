@@ -676,6 +676,42 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(30);
   }
+  // 7. The visitor chair (first user test) in the current office: the founders crouch out of sight
+  // and one goes to the visitor's shoulder, clear of furniture and props the whole way.
+  {
+    R.moments.full = true;
+    const desk = [...R.office.placed.values()].find((e) => e.desk);
+    for (const choice of [0, 1]) {
+      S.pendingDecision = { eventId: 'first_user_test', subjectId: ids[0], stage: { prop: 'visitor_chair', anchor: 'subjectDesk', x: desk.x, y: desk.y } };
+      let worst = 0, worstWho = null, samples = 0;
+      const beats = new Set();
+      for (let i = 0; i < 30 * 16; i++) {
+        if (i === 30 * 8) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'first_user_test', choice, subjectId: ids[0] }], S); }
+        step(1);
+        if (i % 3) continue;
+        for (const [id, what] of R.moments.active) {
+          if (what !== 'visitor') continue;
+          samples++;
+          beats.add(R.moments.staging(id)?.beat);
+          const root = charOf(R.scene, id);
+          const own = new Set([R.perks.peek(id)?.seat]);
+          for (const e of R.office.placed.values()) {
+            if (own.has(e.id)) continue;
+            const v = bodyInside(root, meshes(e.obj), false);
+            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id}`; }
+          }
+          for (const p of R.props.current()) {
+            const v = bodyInside(root, meshes(p.obj), false);
+            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${p.prop} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}; prop at ${p.obj.position.x.toFixed(2)},${p.obj.position.z.toFixed(2)}; path ${JSON.stringify(R.perks.peek(id)?.path)}; t ${i}`; }
+          }
+        }
+      }
+      const want = choice === 0 ? 'flinch' : 'explain';
+      results.push({ name: `moment:visitor:${want}`, pass: samples > 0 && beats.has('hide') && beats.has(want) && worst < 0.01, samples, beats: [...beats], insidePct: +(100 * worst).toFixed(2), worstWho });
+      step(30 * 8);
+    }
+    R.moments.full = false;
+  }
   R.perks.hold = false;
   return results;
 }
