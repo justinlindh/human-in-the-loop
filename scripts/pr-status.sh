@@ -7,7 +7,7 @@
 # Usage: scripts/pr-status.sh
 set -uo pipefail
 
-printf '%-5s %-10s %-19s %-8s %-9s %-28s %s\n' PR MERGE HOLD REVIEW LOCAL-CI 'CHECKS NOT PASSING' TITLE
+printf '%-5s %-10s %-20s %-8s %-9s %-28s %s\n' PR MERGE HOLD REVIEW LOCAL-CI 'CHECKS NOT PASSING' TITLE
 for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '.[].number' | sort -n); do
   gh pr view "$pr" --json number,title,mergeStateStatus,isDraft,labels,statusCheckRollup --jq '
     def ctx(n): [(.statusCheckRollup // [])[] | select(.__typename == "StatusContext" and .context == n) | .state] | first // "none";
@@ -22,7 +22,7 @@ for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '
           | select($c != "SUCCESS" and $c != "SKIPPED" and $c != "NEUTRAL")
           | "\(.name)=\($c | ascii_downcase)"] | join(",") | if . == "" then "-" else . end),
       .title ] | @tsv' \
-  | awk -F'\t' '{ printf "%-5s %-10s %-19s %-8s %-9s %-28s %s\n", "#"$1, $2, $3, $4, $5, $6, $7 }'
+  | awk -F'\t' '{ printf "%-5s %-10s %-20s %-8s %-9s %-28s %s\n", "#"$1, $2, $3, $4, $5, $6, $7 }'
 done
 
 holds="$(gh issue list --state open --label awaiting-user --limit 100 --json number,title --jq '.[] | "#\(.number)\t\(.title)"')"
