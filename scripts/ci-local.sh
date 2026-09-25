@@ -168,6 +168,7 @@ tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
 tool_step main-guard bash "$SELF/main-guard.test.sh"
 tool_step gl node "$SELF/lib/gl.test.mjs"
 tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
+tool_step gates bash "$SELF/gates.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
