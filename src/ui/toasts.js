@@ -64,6 +64,7 @@ export function createToasts(root) {
     if (dock.firstChild?.dataset?.tid === String(top.id)) n.classList.add('still');
     n.dataset.tid = String(top.id);
     dock.replaceChildren(n);
+    markCut(n);
   }
 
   // After layout: does the text fit, or is it cut off?
