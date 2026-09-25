@@ -106,7 +106,10 @@ Every line of code, every model, every sound and most of the words here were wri
 | art | render and art | `src/render/`, the Blender scripts and the models |
 | ui | UI | `src/ui/` and the in-game audio code |
 | audio | sound | generating, curating and mastering music, stingers, barks and the trailer voice |
-| integrator | integration | `main.js`, pacing, CI, capture and trailer tooling, merges |
+| integrator | integration | `main.js`, pacing, CI, the capture engine, the hooks, merges |
+| tools | checks | the staging probe, the scene sweep and dump, the real-loop moment check and the event index |
+| perf | performance | frame-time and dev-loop profiling, the perf budget and the timing log |
+| video | capture and video | reels, shareable clips, landing page assets and feature media; turns what it sees on video into fixes for the owning lanes |
 | reviewer | review and playtest | nothing: reads every PR, plays the build in a browser, posts verdicts |
 
 Temporary members join for one job and leave (the landing page, for one). Lanes talk to each other directly about the things they share (sim and ui about actions and reason strings, art and ui about fonts and label stacking) and go through the lead for contract changes and disagreements. [`src/contract/contract.md`](src/contract/contract.md) is what lets them work in parallel without stepping on each other: the simulation promises a state shape and a list of events, and everyone else only reads.

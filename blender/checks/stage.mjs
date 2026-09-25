@@ -94,9 +94,11 @@ const SPECS = {
     share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
     visibleRule, noFade,
   ] },
-  // The visitor at the desk trying the product: at the screen, and in view.
+  // The visitor at the desk trying the product: at the screen, and in view. A laptop screen sits a
+  // hand's width in front of the eyes and well below them, so looking at it reads about 30 to 40 deg
+  // off the face's line; looking away from it is 60 and more.
   'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
-    share('atScreen', 'face within 35 deg of the screen', (x) => x.targetAngle <= 35, 0.8),
+    share('atScreen', 'face within 45 deg of the screen', (x) => x.targetAngle <= 45, 0.8),
     visibleRule,
   ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
