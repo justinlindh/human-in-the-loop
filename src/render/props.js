@@ -64,7 +64,7 @@ export function createProps(office, screens = null) {
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj, obj.userData.blockPart);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
-      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop });
+      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop, staffId: w.staffId ?? null });
     }
     pushObstacles();
   }
@@ -116,7 +116,8 @@ export function createProps(office, screens = null) {
   const objectOf = (id) => [...live.entries()].find(([k, e]) => !e.gone && k.startsWith(`prop|${id}|`))?.[1].obj ?? null;
 
   // What is up now, for staff moments: [{ prop, obj }] and the screen takeover ('red' | 'skull' | null).
-  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj }));
+  // What is up now: { prop, obj, staffId } (staffId: whose desk a desk-staged prop is on, or null).
+  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj, staffId: e.staffId }));
 
   // For checks: the free-top grid of a placed desk entry, as rows of '.' (free) and '#' (taken).
   const deskMap = (e) => { const g = deskGrid(e); const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.cells[i + k * g.nx] ? '#' : '.'; rows.push(r); } return rows; };
@@ -371,8 +372,13 @@ const rivalCopied = (state) => {
 // desk, or for other anchors, it stands on the anchor tile's floor.
 const deskList = (office) => [...(office.placed?.values() ?? [])].filter((o) => o.desk && o.target);
 const dist = (a, b) => Math.hypot(a.target.x - b.target.x, a.target.z - b.target.z);
-function deskFor(L, anchor, office, nearest) {
+// The desk a prop goes on: the named person's own (anchor.staffId, with their deskId in state),
+// else the one covering the anchor tile, else (nearest) the closest.
+function deskFor(L, anchor, office, nearest, state = null) {
   const desks = [...(office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
+  const own = anchor.staffId && state?.staff?.find((p) => p.id === anchor.staffId)?.deskId;
+  const theirs = own && desks.find((e) => e.id === own);
+  if (theirs) return theirs;
   const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
   const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
@@ -392,7 +398,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
     g.userData.blocks = !onTop;
-    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
+    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop, env.state) : null;
     if (e) {
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
       // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.

@@ -410,7 +410,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   function letter(p, dt) {
     if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [12, 18])) return;
     const deskId = p.obj.userData.follow?.deskId;
-    const r = [...recs.values()].find((x) => x.seat === deskId);
+    // The person the stage names (whose desk it is), else whoever sits at the desk it landed on.
+    const r = (p.staffId && recs.get(p.staffId)) || [...recs.values()].find((x) => x.seat === deskId);
     // Not at their desk right now: look again shortly rather than after the full interval.
     if (!r || !free().includes(r) || !r.char.seated) {
       note(r?.id ?? null, 'refuse', { by: 'letter', why: !r ? `nobody sits at ${deskId}` : r.hidden ? 'out of the office' : !free().includes(r) ? `busy (${r.temp?.moment ?? r.temp?.anim ?? (r.path.length ? 'walking' : r.mode)})` : 'not seated' });
