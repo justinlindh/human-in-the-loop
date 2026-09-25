@@ -107,6 +107,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 - the ambience loop is quieter (-32 dBFS RMS) and crossfaded into a seamless loop
 - the office printer beep loop is quieter (-24 dBFS RMS) and loops seamlessly as a whole file; its beeps are synthesized here (sine plus third harmonic)
 - the smash crash has a 1.5 to 4 kHz dip so it sits under the printer rap's vocal
+- the level-up chime is quieter (-24 dBFS RMS) because it plays often under the music; it and the promotion fanfare are additive synthesis made here
 
 | File | Source |
 |---|---|
@@ -134,6 +135,9 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/office/stapler.ogg` | freesound.org 'sqeeeek_stapler.wav' by sqeeeek, CC0 1.0 (https://freesound.org/people/sqeeeek/sounds/237108/) |
 | `sfx/office/memo.ogg` | freesound.org 'soft electronic ping' by Metrolynn, CC0 1.0 (https://freesound.org/people/Metrolynn/sounds/719210/) |
 | `sfx/office/banner.ogg` | freesound.org 'cloth flap' by ssierra1202, CC0 1.0 (https://freesound.org/people/ssierra1202/sounds/391945/) |
+| `sfx/growth/level_up.ogg` | own synthesis (additive), CC0 1.0 |
+| `sfx/growth/promotion.ogg` | own synthesis (additive), CC0 1.0 |
+| `sfx/growth/trait.ogg` | Kenney (kenney.nl), CC0 1.0: interface-sounds drop_002 |
 | `ambience/typing.ogg` | freesound.org 'Keyboard typing.WAV' by beansqueso31, CC0 1.0 (https://freesound.org/people/beansqueso31/sounds/223101/) |
 
 ## Voices (candidates)
