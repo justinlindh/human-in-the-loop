@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
-import { printerModel } from './props.js';
+import { printerModel, visitorChairModel } from './props.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -201,7 +201,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (!hammer) {
       if (!p) { timers.delete('hammer'); return; }
       if (lite()) { if (!timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
-      const subject = state?.pendingDecision?.subjectId;
+      const subject = stagedBy(state, 'sledgehammer')?.subjectId;
       const r = (subject && recs.get(subject) && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1)[0];
       if (!r) return;
       const at = p.obj.position;
@@ -305,6 +305,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     resolved.set(e.eventId, e.choice ?? null);
     resolvedT.set(e.eventId, 20);
     if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3;
+  }
+
+  // The open decision or Yak prompt that stages `prop`: { eventId, subjectId }, or null. A prompt
+  // delivering an event carries the event id as its kind.
+  function stagedBy(state, prop) {
+    const d = state?.pendingDecision;
+    if (d?.stage?.prop === prop) return { eventId: d.eventId, subjectId: d.subjectId ?? null };
+    const c = (state?.chatPrompts ?? []).find((x) => !x.resolved && x.stage?.prop === prop);
+    return c ? { eventId: c.kind, subjectId: c.subjectId ?? null } : null;
   }
 
   // A yaw that faces the camera three-quarters, turned toward a point so it still reads as about it.
@@ -502,7 +511,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return best ?? [{ x: at.x + 2, z: at.z, yaw: -Math.PI / 2 }, { x: at.x + 2, z: at.z + 0.55, yaw: -Math.PI / 2 }];
   }
   function visitorStart(p, state) {
-    const event = state?.pendingDecision?.stage?.prop === 'visitor_chair' ? state.pendingDecision.eventId : 'first_user_test';
+    const event = stagedBy(state, 'visitor_chair')?.eventId ?? 'first_user_test';
     const o = p.obj;
     const v = visitor = { event, obj: o, at: { x: o.position.x, z: o.position.z }, yaw: o.rotation.y, chars: [], cast: [], resolved: null, t: 0, since: decisionSeq };
     // The user test happens at the desk: the stranger takes its seat, at the monitor, once whoever
@@ -519,6 +528,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (f) { f.lx = 0; f.lz = SEAT_LOCAL_Z; } else o.position.set(v.at.x, 0, v.at.z);
     }
     v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit'));
+    // Off a desk, the stranger sits in a chair of the moment's own, standing where the staged one
+    // does: the staged chair leaves with the choice, and nobody may be left sitting on air.
+    if (!v.seat) {
+      v.chair = visitorChairModel();
+      v.chair.position.copy(o.position); v.chair.rotation.y = o.rotation.y; v.chair.scale.setScalar(o.scale.x > 0.5 ? o.scale.x : 1);
+      v.chars[0].root.parent.add(v.chair);
+      v.chair.updateMatrixWorld(true);
+      getProps()?.pin?.(v.chair);
+    }
     const fwd = [Math.sin(v.yaw), Math.cos(v.yaw)], side = [Math.cos(v.yaw), -Math.sin(v.yaw)];
     if (event === 'efficiency_consultants') {
       // The second consultant stands beside the chair with a clipboard; a colleague is interviewed.
@@ -671,7 +689,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (p) p.obj.visible = false;
       v.seated ||= ![...recs.values()].some((r) => !r.hidden && Math.hypot(r.pos.x - v.at.x, r.pos.z - v.at.z) < 0.45);
       sitter.root.visible = v.seated;
-    } else sitter.root.visible = p ? p.obj.visible && p.obj.scale.x > 0.5 : true;
+    } else {
+      // Once the staged chair has popped in, the moment's own takes its place until the end.
+      v.shown ||= !p || (p.obj.visible && p.obj.scale.x > 0.5);
+      if (p && v.shown) p.obj.visible = false;
+      sitter.root.visible = v.chair.visible = v.shown;
+    }
     if (rob) {
       rob.root.position.set(v.robAt.x, 0, v.robAt.z);
       rob.root.rotation.y = Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
@@ -687,6 +710,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     visitor = null;
     releaseCast(v);
     for (const c of v.chars) { c.root.removeFromParent(); c.dispose(); }
+    if (v.chair) { v.chair.removeFromParent(); getProps()?.unpin?.(v.chair); }
     if (v.mid) dispatch('end', v.event, v.mid);
     momentCam?.release('visitor');
   }
@@ -728,7 +752,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // Pet carrier: the requester bends over it and peers in, now and then while it is down.
   function carrier(p, state, dt) {
     if (!due(`carrier|${p.obj.uuid}`, dt, [1, 2.5], [9, 14])) return;
-    const subject = state?.pendingDecision?.subjectId;
+    const subject = stagedBy(state, 'pet_carrier')?.subjectId;
     const r = (subject && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1, p.obj.position)[0];
     if (!r) return;
     if (lite()) { emote(r, 'heart', 2); return; }
@@ -951,6 +975,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       // Each blow: the swing starts so its downstroke lands on the word; between blows, back on the shoulder.
       if (bat && next != null && pm.swung < pm.hit && t >= next - SWING_HIT) { pm.swung = pm.hit; pm.bat.rotation.set(0, 0, 0); setAnim(bat, 'batswing', true); }
       if (next != null && t >= next) {
+        if (pm.mid) dispatch('hit', 'printer_jam', pm.mid, { hit: pm.hit });
         pm.hit++;
         const c = pm.end;
         wallDust(c.x, c.y + 0.25, c.z);
@@ -1079,9 +1104,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // Moment captions (ui): hitl:moment { phase, id, key }. A start makes the moment's id and returns it;
   // its end passes the same id back.
   let momentSeq = 0;
-  function dispatch(phase, key, id = null) {
+  // hitl:moment { phase: 'start' | 'end' | 'hit', id, key, ...extra }; 'hit' marks a beat inside a
+  // moment as it lands (the printer's blows: { hit: 0.. }).
+  function dispatch(phase, key, id = null, extra = null) {
     if (phase === 'start') id = `${key}-${++momentSeq}`;
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id, key } }));
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id, key, ...extra } }));
     return id;
   }
 
