@@ -60,6 +60,17 @@ printf 'All green: scripts/ci-pr.sh passes.\n' >"$tmp/apiclean.md"
 allowed "gh api repos/o/r/pulls/5/reviews -F body=@$tmp/apiclean.md -f event=COMMENT"
 allowed "gh api repos/o/r/issues/5/comments --field body=@$tmp/apiclean.md"
 allowed 'gh api repos/o/r/pulls/5 --jq .state'
+# A body built from a file is judged by the file's contents, wherever the file lives.
+allowed "gh pr create --title t --body \"\$(cat $tmp/clean.md)\""
+allowed "gh pr create --title t --body \"\$(<$tmp/clean.md)\""
+allowed "gh pr comment 5 --body \"\`cat $tmp/clean.md\`\""
+allowed "gh pr edit 5 --body-file $tmp/clean.md"
+allowed "gh pr comment 5 --body-file $tmp/clean.md"
+denied "gh pr create --title t --body \"\$(cat $tmp/body.md)\""
+denied "gh pr edit 5 --body-file $tmp/body.md"
+denied "gh pr comment 5 --body-file $tmp/body.md"
+leak="$tmp/leak"
+denied "gh pr create --title t --body \"intro \$(cat $tmp/clean.md) and $leak\""
 
 # lane-guard: branch prefix decides
 editjson() { jq -n --arg f "$1" --arg d "$repo" '{hook_event_name: "PreToolUse", tool_name: "Edit", cwd: $d, tool_input: {file_path: $f}}'; }
