@@ -72,7 +72,8 @@ const listNames = (names) => (names.length <= 2 ? names.join(' and ') : `${names
 export function vacationSystem(ctx) {
   const { state, rng } = ctx;
   const due = (state.flags.vacationDue ??= {});
-  const n = (id) => Number(String(id).replace(/\D/g, '')) || 0;
+  // Spread by the person's name, which is fixed when they are hired, rather than by an id from the shared counter.
+  const spread = (p) => [...p.name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0);
   for (const id of Object.keys(due)) if (!state.staff.some((p) => p.id === id)) delete due[id];
   const away = state.staff.filter((p) => p.mood === 'away').length;
   let leaving = 0;
@@ -81,7 +82,7 @@ export function vacationSystem(ctx) {
   const postponed = [];
   for (const p of state.staff) {
     // The first vacation falls somewhere in the person's first year, spread by id.
-    due[p.id] ??= p.hiredWeek + B.vacationFirstAfter + (n(p.id) * 7) % 52;
+    due[p.id] ??= p.hiredWeek + B.vacationFirstAfter + (spread(p) * 7) % 52;
     if (p.mood === 'away' || state.week < due[p.id]) continue;
     if (blockedBy && (postponedCount[p.id] ?? 0) < B.vacationMaxPostpones) {
       postponedCount[p.id] = (postponedCount[p.id] ?? 0) + 1;
@@ -96,7 +97,7 @@ export function vacationSystem(ctx) {
     }
     leaving++;
     delete postponedCount[p.id];
-    due[p.id] = state.week + 52 + ((n(p.id) * 13) % 9) - 4;
+    due[p.id] = state.week + 52 + ((spread(p) * 13) % 9) - 4;
     if (p.assignment.type === 'project') state.flags[`returnTo_${p.id}`] = p.assignment.targetId;
     p.mood = 'away';
     p.assignment = { type: 'sabbatical', targetId: null };
