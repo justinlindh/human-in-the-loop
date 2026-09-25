@@ -303,4 +303,33 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     dispatch(t, { type: 'answerPrompt', promptId: t.chatPrompts[0].id, choice: 0 });
     expect(t.pets.length).toBe(pets + 1);
   });
+
+  it('a prompt from a staged event carries its stage while open; template prompts have none', () => {
+    const s = strained(25);
+    for (const p of s.staff) p.strain = 0;
+    s.week = 60;
+    eventPrompt(s, 'coffee_wanted');
+    expect(s.chatPrompts[0].stage).toMatchObject({ prop: 'french_press', anchor: 'kitchen', x: expect.any(Number), y: expect.any(Number) });
+    const t = strained(26);
+    openOne(t);
+    expect(t.chatPrompts[0].stage).toBe(null);
+  });
+
+  it('every default is the mildest choice: an unanswered stapler prompt lets them keep it, on their desk', () => {
+    const s = strained(27);
+    for (const p of s.staff) { p.strain = 0; p.hiredWeek = 0; }
+    s.week = 200;
+    eventPrompt(s, 'the_stapler');
+    const p = s.chatPrompts[0];
+    const owner = s.staff.find((x) => x.id === s.flags.promptCtx[p.id].subjectId);
+    const meaning = owner.meaning;
+    s.week = p.expiresWeek;
+    weekOf(s);
+    expect(owner.meaning).toBe(Math.min(100, meaning + B.nods.staplerKeep));
+    const stapler = s.office.props.find((x) => x.prop === 'stapler');
+    expect(stapler).toMatchObject({ x: p.stage.x, y: p.stage.y });
+    expect(EVENTS.cover_sheets.choices[EVENTS.cover_sheets.yak.ignore].label).toBe('Quietly lose the memo');
+    expect(EVENTS.ai_skeptic_speech.choices[EVENTS.ai_skeptic_speech.yak.ignore].effects.meaning).toBeGreaterThan(0);
+    expect(EVENTS.coffee_machine_broke.choices[EVENTS.coffee_machine_broke.yak.ignore].label).toBe('Get it repaired');
+  });
 });

@@ -32,7 +32,7 @@ export const OFFICE_NODS = [
     ],
   },
   {
-    id: 'cover_sheets', yak: { ignore: 0 }, kind: 'leadership', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'workingStaff',
+    id: 'cover_sheets', yak: { ignore: 1 }, kind: 'leadership', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'workingStaff',
     when: (s) => s.staff.length >= N.coverStaff,
     title: 'The new cover sheets',
     text: 'Starting Monday, every TPS report needs the new cover sheet. {name} forgot it once, on a Tuesday. Facilities noticed.',
@@ -48,7 +48,7 @@ export const OFFICE_NODS = [
     ],
   },
   {
-    id: 'the_stapler', yak: { ignore: 0 }, kind: 'staff', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'veteranStaff',
+    id: 'the_stapler', yak: { ignore: 1 }, kind: 'staff', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'veteranStaff',
     when: () => true,
     title: 'The red stapler',
     text: '{name} has a red stapler. It is not the company stapler. Facilities would like to standardize the staplers.',

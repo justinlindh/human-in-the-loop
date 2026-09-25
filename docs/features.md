@@ -172,6 +172,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
   - **Low-cash lunch**: "are we a sandwich company now?" `id: lowcash_lunch`
   - **Desk squeeze**: "I am currently sharing a desk with the printer. The printer is winning." `id: desk_squeeze`
   - **Junior PR**: "It is small. It is one line." `id: junior_pr`
+  - **Low-stakes events in Yak**: sixteen small decisions arrive as officebot posts with the event's own choices instead of pausing popups: the side project, the copycat sidebar, the unhappy big customer, the hosting bill, the rival's podcast jab, a new model, the all-hands speech, the LinkedOut post, the app store rejection, the three coffee questions, the "API call with a logo" thread, the dog on Fridays, the red stapler and the TPS cover sheets. Their staged props show while the prompt is open, and left unanswered, the mildest choice happens.
 - **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it.
   - **Pep talk**: backfires mid-outage ("Respectfully, the servers are on fire."). `id: pep_talk`
   - **Who broke prod?**: helps during an outage; with nothing broken it just scares people ("Why are you asking. What do you know."). `id: who_broke_prod`
@@ -188,8 +189,8 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 ## Nods and parodies
 
 - ★ **"Is this good for the company?"**: a corporate-blue banner high on the wall; hang it, hang it ironically (a visiting investor may post it sincerely), or send it back. `id: banner_company` `capture nods-banner`
-- ★ **TPS reports**: a squared stack of cover sheets with the memo on top; mandating them brings three weeks of @facilities reminders. `id: cover_sheets` `capture nods-cover-sheets`
-- ★ **The red stapler**: a red stapler on a veteran's desk; letting them keep it leaves it until they leave. `id: the_stapler` `capture nods-stapler`
+- ★ **TPS reports**: a squared stack of cover sheets with the memo on top, asked about in Yak; mandating them brings three weeks of @facilities reminders, and if nobody answers the memo quietly gets lost. `id: cover_sheets` `capture nods-cover-sheets`
+- ★ **The red stapler**: a red stapler on a veteran's desk, asked about in Yak; letting them keep it (also what happens if nobody answers) leaves it until they leave. `id: the_stapler` `capture nods-stapler`
 - ★ **The two Robs**: "So what would you say you do here?" `id: efficiency_consultants`
 - ★ **PC LOAD LETTER**: a printer with a blinking light and a screen reading PC LOAD LETTER that beeps on a loop while it sits in the kitchen; "Print less" puts up an OUT OF ORDER. FOREVER. sign. `id: printer_jam` `npm run capture -- --group nods`
 - **"Yeahhh, Saturday"**: a senior leans on your desk with a mug; the refusal is "No. Mmkay?". `id: saturday_ask` `capture nods-saturday`

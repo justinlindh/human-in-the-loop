@@ -4,7 +4,8 @@ import { OFFICE_NODS } from './office-nods.js';
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way. yak: { ignore }: a low-stakes event delivered as a Yak reply prompt
-// instead of a popup while prompts are on; ignore is the choice that happens if nobody answers (null: nothing).
+// instead of a popup while prompts are on; ignore is the choice that happens if nobody answers: the mildest one, with
+// the smallest cost to the subject (or overall), so nobody pays for a prompt they did not see (null: nothing).
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
@@ -94,7 +95,7 @@ const list = [
     auto: { meaning: 10, teamMeaning: 1 },
   },
   {
-    id: 'senior_side_project', yak: { ignore: 1 }, kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
+    id: 'senior_side_project', yak: { ignore: 0 }, kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
     when: () => true,
     title: 'A little side project',
     text: '{name} has been rebuilding the admin panel on weekends "just to see". It is beautiful.',
@@ -150,7 +151,7 @@ const list = [
     ],
   },
   {
-    id: 'ai_skeptic_speech', yak: { ignore: 1 }, kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
+    id: 'ai_skeptic_speech', yak: { ignore: 0 }, kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
     when: (s) => Object.values(s.automation).some((a) => a.level > 0),
     title: 'A speech at all-hands',
     text: '{name} stands up at all-hands: "Does anyone here still understand what we ship?"',
@@ -384,7 +385,7 @@ const list = [
     ],
   },
   {
-    id: 'big_customer_threat', yak: { ignore: 1 }, kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
+    id: 'big_customer_threat', yak: { ignore: 0 }, kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.customers > 500),
     title: 'Your biggest customer is unhappy',
     text: 'Your largest {product} account says {incumbent} offered them a 40% discount. They want to "talk".',
@@ -394,7 +395,7 @@ const list = [
     ],
   },
   {
-    id: 'press_wrapper_mockery', yak: { ignore: null }, kind: 'market', weight: 2, cooldownWeeks: 30, random: true, subject: 'randomProduct',
+    id: 'press_wrapper_mockery', yak: { ignore: 0 }, kind: 'market', weight: 2, cooldownWeeks: 30, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.score < 6),
     title: 'The press is laughing',
     text: 'Hacker Olds has a thread titled "{product} is just an API call with a logo". It has 900 points.',
@@ -726,7 +727,7 @@ const list = [
     ],
   },
   {
-    id: 'pet_request', yak: { ignore: 1 }, kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
+    id: 'pet_request', yak: { ignore: 0 }, kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
     when: (s) => s.workPolicy !== null && s.workPolicy !== 'remote' && s.staff.length >= 6 && !s.pets.some((p) => p.species === 'dog'),
     stage: { prop: 'photos_laminated', anchor: 'subjectDesk' },
     title: 'A dog on Fridays?',
@@ -1167,7 +1168,7 @@ const list = [
 
   // Misc
   {
-    id: 'coffee_machine_broke', yak: { ignore: 2 }, kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
+    id: 'coffee_machine_broke', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
     when: (s) => s.office.placed.some((i) => i.itemId === 'espresso'),
     stage: { prop: 'smoke_puff', anchor: 'kitchen' },
     chat: 'Coffee machine status: deceased. Please grieve responsibly.',

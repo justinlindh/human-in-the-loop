@@ -10,7 +10,7 @@ import { mentorOf } from './staff.js';
 import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
 import { decisionVars, fillText } from './events.js';
-import { grantBlocker, leaveProp } from './props.js';
+import { grantBlocker, leaveProp, stageTile } from './props.js';
 import { placeNow, findSpot, layoutOf } from './office.js';
 
 // Yak reply prompts: a staff post with two or three founder replies, open for a few weeks. Answering applies
@@ -129,8 +129,8 @@ function applyOption(ctx, o, pc) {
 }
 
 // Low-stakes events (those with `yak` in src/data/events.js) are delivered as Yak prompts instead of popups:
-// officebot posts the event, its choices become the replies, and if nobody answers, the choice named by
-// yak.ignore happens (or nothing, when it is null).
+// officebot posts the event, its choices become the replies, and its staged prop shows while it is open. If
+// nobody answers, yak.ignore names the mildest choice, which happens (or nothing, when it is null).
 const eventChoiceBlocker = (state, c, subjectId) =>
   (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
 
@@ -153,6 +153,7 @@ export function openEventPrompt(outer, ev, subjectId) {
     expiresWeek: state.week + B.chatPromptExpiryWeeks,
     options: ev.choices.map((c) => { const why = eventChoiceBlocker(state, c, subjectId); return { label: fill2(c.label), hint: fill2(c.hint), available: !why, reason: why }; }),
     resolved: null,
+    stage: ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null,
   });
   state.flags.lastPromptWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
@@ -183,7 +184,7 @@ function resolveEvent(ctx, prompt, choice) {
         placeNow(ctx, c.grant.item, findSpot(layoutOf(state), state.office.placed, c.grant.item));
         if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
       }
-      if (c.leaves) leaveProp(state, { ...c.leaves, anchor: c.leaves.anchor ?? ev.stage?.anchor }, null, pc.subjectId);
+      if (c.leaves) leaveProp(state, c.leaves, prompt.stage ?? null, pc.subjectId);
       if (c.outcome) botLine(ctx, prompt, choice === null ? `Nobody answered, so: ${fill2(c.outcome)}` : fill2(c.outcome));
     }
   } else {
@@ -219,6 +220,7 @@ function openPrompt(ctx) {
     expiresWeek: state.week + B.chatPromptExpiryWeeks,
     options: t.options.map((o) => { const why = optionBlocker(state, o, pc.posterId); return { label: o.label, hint: fill(state, o.hint, pc) ?? o.hint, available: !why, reason: why }; }),
     resolved: null,
+    stage: null,
   });
   state.flags.lastPromptWeek = state.week;
   state.flags[`pcd_${t.id}`] = state.week + t.cooldown;
