@@ -61,6 +61,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     return res;
   } });
   el.append(posts.bar);
+  head.insertBefore(posts.headBtn, head.querySelector('.ysizes'));
   root.append(el);
 
   const saved = loadSettings();

@@ -28,3 +28,10 @@
   .hitl .ypost-btn { min-height: 36px; }
   .hitl .ypost-opt { min-height: 48px; }
 }
+/* Phones: the post button moves into the small Yak's header; the big view keeps the bar. */
+.hitl .chat-head .ypost-hbtn { display: none; }
+.hitl .chat.collapsed .chat-head .ypost-hbtn { display: none !important; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .chat:not(.max) .ypost { display: none !important; }
+  .hitl .chat:not(.max) .chat-head .ypost-hbtn.shown { display: inline-grid; }
+}

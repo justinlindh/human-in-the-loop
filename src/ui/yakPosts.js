@@ -20,6 +20,9 @@ export function createPostBar({ layer, getState, onPost }) {
   const btn = h('button.btn.blue.ypost-btn', { type: 'button', 'aria-haspopup': 'dialog', onclick: (e) => { e.stopPropagation(); if (open) close(); else show(); } },
     icon('channel.community', { size: 14 }), ' Post');
   const bar = h('div.ypost', null, btn, status);
+  // Phones: the small Yak has no room for the bar, so a compact button in its header opens the picker.
+  const headBtn = h('button.ysz.ypost-hbtn', { type: 'button', 'aria-label': 'Post to Yak', onclick: (e) => { e.stopPropagation(); if (open) close(); else show(); } },
+    icon('channel.community', { size: 14 }));
   bar.style.display = 'none';
 
   const options = () => { const l = SIMX.postOptions?.(getState()); return l?.length ? l : null; };
@@ -57,7 +60,7 @@ export function createPostBar({ layer, getState, onPost }) {
     removeEventListener('pointerdown', outside, true);
     removeEventListener('keydown', esc, true);
   }
-  const outside = (e) => { if (open && !open.contains(e.target) && !btn.contains(e.target)) close(); };
+  const outside = (e) => { if (open && !open.contains(e.target) && !btn.contains(e.target) && !headBtn.contains(e.target)) close(); };
   const esc = (e) => { if (open && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
 
   // Per frame: cheap. The options are read once a week (and whenever the picker opens).
@@ -72,10 +75,11 @@ export function createPostBar({ layer, getState, onPost }) {
     if (next === sig) return;
     sig = next;
     bar.style.display = list ? '' : 'none';
+    toggleClass(headBtn, 'shown', !!list);
     setText(status, !list ? '' : ready ? `${ready} ready` : 'Nothing to post right now');
     toggleClass(bar, 'none-ready', !!list && !ready);
     if (open) { close(); show(); }
   }
 
-  return { bar, update, close, get open() { return !!open; } };
+  return { bar, headBtn, update, close, get open() { return !!open; } };
 }
