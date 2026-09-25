@@ -327,6 +327,7 @@ registerAction('train', (ctx, { staffId, program, focus }) => {
   state.cash -= t.cost;
   const gain = t.xp * staffMods(p).xp;
   p.xp += gain;
+  const trainedFrom = t.skill > 0 ? p.skills[focus] : null;
   if (t.skill > 0) p.skills[focus] = Math.min(100, p.skills[focus] + t.skill);
   p.meaning = Math.min(100, p.meaning + t.meaning);
   p.knowledge = Math.min(100, p.knowledge + t.knowledge);
@@ -341,6 +342,7 @@ registerAction('train', (ctx, { staffId, program, focus }) => {
     state.flags[`awayFor_${p.id}`] = t.name;
   }
   ctx.emit({ type: 'bubble', staffId: p.id, text: `+${Math.round(gain)} XP`, tone: 'good' });
+  if (trainedFrom !== null) ctx.emit({ type: 'skillTrained', staffId: p.id, skill: focus, gain: p.skills[focus] - trainedFrom });
   ctx.emit({ type: 'toast', text: `${p.name} is off to a ${t.name.toLowerCase()}.`, tone: 'info' });
   return { ok: true };
 });
@@ -352,7 +354,14 @@ function levelUp(ctx, p) {
     p.level++;
     const mentor = state.staff.find((m) => m.assignment.type === 'mentor' && m.assignment.targetId === p.id);
     if (mentor) addToRecord(state, mentor, 'mentored', 1);
-    for (const st of topStats(p.role)) p.skills[st] = Math.min(100, p.skills[st] + int(ctx.rng, 2, 4));
+    const gains = {};
+    for (const st of topStats(p.role)) {
+      const before = p.skills[st];
+      p.skills[st] = Math.min(100, p.skills[st] + int(ctx.rng, 2, 4));
+      if (p.skills[st] > before) gains[st] = p.skills[st] - before;
+    }
+    ctx.emit({ type: 'levelUp', staffId: p.id, level: p.level, gains });
+    (ctx.happenings ??= {}).levelUps = [...(ctx.happenings.levelUps ?? []), p.id];
     onLevelUp(ctx, p);
   }
   if (p.level >= B.maxLevel) p.xp = Math.min(p.xp, B.xpPerLevel * p.level);
@@ -366,6 +375,7 @@ function levelUp(ctx, p) {
   emitChat(ctx, { channel: 'wins', from: '@hr-bot', text: `Please congratulate ${p.name}, now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, kind: 'win' });
   ctx.emit({ type: 'toast', text: `${p.name} is now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
+  ctx.emit({ type: 'promoted', staffId: p.id, seniority: next });
   if (next === 'senior') onReachedSenior(ctx, p);
 }
 

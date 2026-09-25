@@ -75,5 +75,6 @@ export function progressRecords(ctx, p) {
     if (p.record[e.counter] < e.threshold || p.traits.includes(e.trait) || p.traits.length >= 3) continue;
     p.traits.push(e.trait);
     ctx.emit({ type: 'toast', text: `${p.name} earned the ${TRAITS[e.trait].name} trait.`, tone: 'good' });
+    ctx.emit({ type: 'traitEarned', staffId: p.id, traitId: e.trait, source: 'record' });
   }
 }
