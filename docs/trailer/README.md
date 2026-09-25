@@ -29,7 +29,7 @@ Flags:
 - `--reuse`: keep clips already captured from the same commit and capture only the rest.
 - `--vertical`: also build the 1080x1920 cut.
 - `--no-captions`: skip the burned-in captions.
-- `--print-vo`: print the voiceover lines as JSON (the input the voice script reads).
+- `--print-vo`: print the voiceover lines as JSON (the input the voice script reads), using each line's `say` when it has one.
 - `--software`: capture with SwiftShader when there is no GPU for the browser.
 
 The cards load the Fredoka font from Google Fonts, so the build needs network access; it stops if the
@@ -83,8 +83,10 @@ and its transcript. Source and licence are in `LICENSES.md` next to this file.
      scripts/trailer/vo/render.sh shots/trailer/takes 3
    ```
 
-   The lines come from `VO.lines` in `config.js` (written to `shots/trailer/takes/lines.json`), and
-   each take lands as `<line id>.take<n>.wav`. All three variables are required: the script refuses to
+   The lines come from `VO.lines` in `config.js` (written to `shots/trailer/takes/lines.json`). A line's
+   `text` is its caption; when a line also has `say` (how the narrator speaks it, such as a URL read
+   aloud as "human in the loop game dot com"), `say` is what gets voiced and checked instead.
+   Each take lands as `<line id>.take<n>.wav`. All three variables are required: the script refuses to
    run without them, so the voice-clone script's own default reference (a recording of a real person)
    is never used.
 
@@ -96,10 +98,14 @@ and its transcript. Source and licence are in `LICENSES.md` next to this file.
    ```
 
    Run it with a Python that has torch (CUDA) and transformers, and a local Whisper large-v3. Each take is
-   transcribed, and the one that says the line correctly wins (the shorter one on a tie). `--take
-   l1=2,l3=0` forces takes by ear. The winner is loudness-normalized to -18 LUFS, its only processing,
-   and written as `<line id>.wav`; `picks.json` records every take's transcript and length, and
-   `sample.wav` plays the lines back to back.
+   transcribed with word timings and checked the way an ear would:
+   - A take is rejected if it stops before its voice has decayed (clean takes end at -70 dB or lower).
+   - It's rejected if its last word ends less than 120 ms before the audio does, or if Whisper doesn't hear the line's last word.
+   - Among the rest, the lowest word error wins, then the fewest pauses over 0.6 s, then the length closest to the median take. The shortest take isn't preferred, because that favours rushed or cut takes.
+
+   `--take l1=2,l3=0` forces takes by ear.
+
+   The winner is trimmed to 40 ms before its first sound and to its natural decay. It then gets `--tail` seconds of silence (0.2 by default) so a line never stops dead. Finally one fixed gain sets it to -18 LUFS, under a gentle peak limit; there is no dynamic loudness processing. It's written as `<line id>.wav`. `picks.json` records every take's checks and transcript, and `sample.wav` plays the lines back to back.
 
 3. Build with `npm run trailer -- --vo shots/trailer/vo`. The build warns when a line runs into the next
    one or past the end; move its cue (`at`) in `config.js`.

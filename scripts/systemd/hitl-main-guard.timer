@@ -1,0 +1,11 @@
+# Runs the main guard every 5 minutes; a commit it has already checked is skipped at once.
+[Unit]
+Description=Run the Human in the Loop main guard every 5 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+Persistent=false
+
+[Install]
+WantedBy=timers.target
