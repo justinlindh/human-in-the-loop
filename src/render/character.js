@@ -645,10 +645,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 1.6 + phase) * 0.006;
         break;
       case 'readpaper':
-        // Standing, a sheet held up at eye level in both hands, head tipped just a little to read it.
-        tgt.armLX = tgt.armRX = -2.05;
-        tgt.armLZ = -0.12; tgt.armRZ = 0.12;
-        tgt.headX = 0.14 + s(t * 0.9 + phase) * 0.03;
+        // Standing, a sheet held low in both hands and tipped up toward the face, head bent to read it.
+        tgt.armLX = tgt.armRX = -1.85;
+        tgt.armLZ = 0.15; tgt.armRZ = -0.15;
+        tgt.headX = 0.25 + s(t * 0.9 + phase) * 0.03;
         tgt.lean = 0.02;
         break;
       case 'slump':

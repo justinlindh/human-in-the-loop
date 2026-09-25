@@ -3,7 +3,8 @@
 //   id, title, query (URL params: mock=<scenario> or seed=N, speed, time, ...), seconds, seed (for
 //   the page's Math.random), warmup (seconds run before recording starts), hideUi, gif,
 //   still (screenshots only, no video), moment (a find query, scripts/events/find.js: the item opens
-//   at that indexed moment, its decision open), setup (page JS run once after boot, may be async),
+//   at that indexed moment, its decision open; with pre: true it opens the week before and the game's
+//   own tick raises the decision), setup (page JS run once after boot, may be async),
 //   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG), sound (an
 //   item made for --audio).
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
@@ -53,11 +54,16 @@ const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, 
   ${IDLE};
 })()`;
 
-// Office Space nods (group 'nods', #383): each opens at an indexed moment where its decision is
-// raised (the event index follows the sim code, so a history that shifts still finds one); the card
-// shows, a choice is made, and the camera frames what it stages. A nod that stages nothing has no
+// Office Space nods (group 'nods', #383): each opens at an indexed moment (the event index follows
+// the sim code, so a history that shifts still finds one) and plays the week into its decision; the
+// card shows, a choice is made, and the camera frames what it stages. A nod that stages nothing has no
 // snapshot in the index, so it fast-forwards seed 1 with the allHumans bot to its decision instead.
 const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendingDecision?.eventId === '${eventId}'`, keepDecision: true, minWeeks: 1e9 });
+// A bare frame for the reel: the side overlays (top bar, tray, Yak, menu, toasts) hidden, so the
+// office and the beat fill the frame; the decision card and the moment caption stay. YAK brings Yak
+// back, at the right where the reel's crop keeps it, for a beat whose payoff is a message.
+const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts { display: none !important; }'; document.head.append(st); })()`;
+const YAK = `(() => { const st = document.getElementById('reel-bare'); if (st) st.textContent = '#ui .topbar, #ui .tray, #ui .menu, #ui .toasts { display: none !important; } #ui .chat.yak { position: fixed !important; left: auto !important; right: 24px !important; top: 300px !important; bottom: auto !important; width: 380px !important; }'; })()`;
 // Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
 // "Got it"), so the nod's decision card is what shows.
 const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
@@ -80,9 +86,53 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
 const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
-// Eases the camera onto a staged prop, or onto a point between two of them.
-const FOCUS_PROP = (prop, zoom) => `(() => { const R = window.__hitlRender; const p = R.props.current().find((x) => x.prop === '${prop}'); if (p) R.focusAt(p.obj.position.x, p.obj.position.z, ${zoom}); })()`;
-const FOCUS_PRINTER = (zoom, end = false) => `(() => { const R = window.__hitlRender; const p = R.moments.printerState; if (!p) return; const a = p.route[0], b = p.route[p.route.length - 1]; if (${end}) R.focusAt(b.x, b.z, ${zoom}); else R.focusAt((a.x + b.x) / 2, (a.z + b.z) / 2, ${zoom}); })()`;
+// Keeps the camera on what a beat is about from `from` to `to`, re-aimed every frame: a critically
+// damped spring glides the look point onto the staged prop, the printer while it is carried, or the visitors,
+// so the camera never steps. The game's own moment camera stands down while this drives.
+const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+  const find = () => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
+    const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
+    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; };
+  const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
+  f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift}; f.on = true;
+  if (f.running) return; f.running = true;
+  const damp = (x, v, goal, dt) => { const w = 2 / 0.6, k = w * dt, e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k), d = x - goal, t = (v + w * d) * dt; return [goal + (d + t) * e, (v - w * t) * e]; };
+  const tick = () => { const now = performance.now(), dt = Math.min(0.1, (now - f.last) / 1000); f.last = now;
+    let p = f.on && f.find();
+    // Aim left of the subject so it lands the shift in px right of the frame center (a crop window center).
+    if (p && f.shift) { const e = R.camera.matrixWorld.elements, c = R.camera, wpp = (c.right - c.left) / c.zoom / innerWidth, k = f.shift * wpp / Math.hypot(e[0], e[2]); p = { x: p.x - e[0] * k, z: p.z - e[2] * k }; }
+    // While the renderer is held (loading, or a frozen frame) the camera does not move: the glide waits
+    // with it instead of running ahead and leaving the camera a jump to catch up.
+    const v = R.view(), held = f.seen && v.x === f.seen.x && v.z === f.seen.z && Math.hypot(f.x - v.x, f.z - v.z) > 1e-3; f.seen = v;
+    if (held) { f.x = v.x; f.y = v.y; f.z = v.z; f.zoom = v.zoom; f.vx = f.vy = f.vz = f.vzoom = 0; }
+    if (p) { if (f.x === null) { f.x = v.x; f.y = v.y; f.z = v.z; f.zoom = v.zoom; }
+      [f.x, f.vx] = damp(f.x, f.vx, p.x, dt); [f.y, f.vy] = damp(f.y, f.vy, 0.4, dt); [f.z, f.vz] = damp(f.z, f.vz, p.z, dt); [f.zoom, f.vzoom] = damp(f.zoom, f.vzoom, f.zoomGoal, dt);
+      R.easeTo(f.x, f.z, f.zoom, 12, f.y); }
+    requestAnimationFrame(tick); };
+  requestAnimationFrame(tick); })()`;
+const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
+// Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
+// most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
+// points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
+const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
+  const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o || window.__viewPicked) return;
+  window.__viewPicked = true;
+  const box = new T.Box3().setFromObject(o), c = box.getCenter(new T.Vector3()), ray = new T.Raycaster(); ray.camera = R.camera;
+  const pts = [c, ...[[0.3, 0.8, 0.3], [0.7, 0.8, 0.7], [0.3, 0.8, 0.7], [0.7, 0.8, 0.3]].map(([a, b, d]) => new T.Vector3(box.min.x + (box.max.x - box.min.x) * a, box.min.y + (box.max.y - box.min.y) * b, box.min.z + (box.max.z - box.min.z) * d))];
+  const own = (h) => { for (let x = h.object; x; x = x.parent) if (x === o) return true; return false; };
+  const off = R.camera.position.clone().sub(c);
+  let best = -1, turns = 0;
+  for (let i = 0; i < 4; i++) {
+    const eye = off.clone().applyAxisAngle(new T.Vector3(0, 1, 0), i * Math.PI / 2).add(c);
+    let n = 0;
+    // Only what stands near the prop can hide it (the backdrop and the cutaway lie far off the line).
+    for (const p of pts) { const far = eye.distanceTo(p); ray.set(eye, p.clone().sub(eye).normalize()); const h = ray.intersectObject(R.scene, true).find((x) => x.object.visible && x.object.isMesh && x.distance > far - 3); if (h && own(h)) n++; }
+    if (n > best) { best = n; turns = i; }
+  }
+  for (let i = 0; i < turns; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
+export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM(props, zoom, shift) }, { at: to, js: UNAIM }];
+// The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
+const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -388,64 +438,63 @@ export const ITEMS = [
 
   // README (group 'readme'): hero stills at 1920x1080 with the UI, from real seeded games so every
   // shot is internally consistent (date, era, effects, goals), plus one short loop.
+  // Each nod loads the save from just before the week that raises its decision (pre: the game's own
+  // tick raises it, card and freeze as in play); the warm-up skips most of that week, so the card is
+  // up a second into the clip. The moment camera follows staged moments; props get a close focus.
   {
-    id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor', seconds: 27, warmup: 0.5,
+    id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
+    setup: BARE,
     actions: [
-      { at: 0, js: MARK_MOMENTS },
-      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
-      { at: 0.1, js: FOCUS_PROP('printer_jammed', 2.6) },
+      { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 25),
       { at: 3.5, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5, 5.5, 6.5], { escape: false }),
-      { at: 4, js: FOCUS_PRINTER(2.0) },
-      // In on the set-down spot as the carry reaches it (the cue's set-down is 8.1 s after its start).
-      { at: 12, js: FOCUS_PRINTER(2.6, true) },
+      ...DISMISS_AT([4, 4.5, 5.5], { escape: false }),
     ],
-    screenshots: [2, 12, 20],
-  },  {
-    id: 'nods-saturday', group: 'nods', title: 'About Saturday', query: 'seed=1&speed=1', setup: NOD('saturday_ask', 1040), seconds: 9, warmup: 0.5,
-    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }, ...[5.4, 6, 7].map((at) => ({ at, js: CLEAR_CARDS }))],
-    screenshots: [3, 7],
+    screenshots: [2, 14, 20],
   },
   {
-    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', seconds: 12, warmup: 0.5,
+    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 11, warmup: 6.5,
+    setup: BARE,
     actions: [
-      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
-      { at: 0.1, js: FOCUS_PROP('stapler', 3.2) },
+      ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })),
+      ...NODS_FOLLOW(['stapler'], 3.2, 0, 6),
       { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([5, 6], { escape: false }),
-      { at: 7, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
-      { at: 7.4, js: CLICK_STARTS('#random') },
+      ...DISMISS_AT([4.5, 5], { escape: false }),
+      { at: 6, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
+      { at: 6.1, js: YAK }, { at: 6.3, js: CLICK_STARTS('#random') },
     ],
-    screenshots: [2, 10],
+    screenshots: [2, 9],
   },
   {
-    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', seconds: 13, warmup: 0.5,
+    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 7, warmup: 6.5,
+    setup: BARE,
     actions: [
-      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
-      { at: 0.1, js: FOCUS_PROP('cover_sheets', 3.2) },
+      ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })),
+      ...NODS_FOLLOW(['cover_sheets'], 3.2, 0, 7),
       { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([5], { escape: false }),
-      { at: 6, js: QUIET_UNTIL_CHAT('cover sheet on the TPS', ['memo', 'cover sheet'], 4) },
-      { at: 8, js: QUIET_UNTIL_CHAT('printed the memo', ['memo'], 4) },
+      ...DISMISS_AT([4.5], { escape: false }),
     ],
-    screenshots: [2, 11],
+    screenshots: [2, 6],
   },
   {
-    // Card only until the visitor restage stages the consultants themselves.
-    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', seconds: 8, warmup: 0.5,
-    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }],
-    screenshots: [3, 7],
+    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 13, warmup: 6.5,
+    setup: BARE,
+    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
+    screenshots: [5, 11],
   },
   {
-    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', seconds: 10, warmup: 0.5,
+    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 9, warmup: 6.5,
+    setup: BARE,
     actions: [
-      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
-      ...[0.1, 0.6, 1.2].map((at) => ({ at, js: FOCUS_PROP('banner_company', 3) })),
+      ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...NODS_FOLLOW(['banner_company'], 3, 0, 5),
       { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([5, 6], { escape: false }),
-      ...[5.5, 6].map((at) => ({ at, js: FOCUS_PROP('banner_company', 5) })),
+      ...DISMISS_AT([4.5, 5], { escape: false }),
+      ...NODS_FOLLOW(['banner_company'], 4, 5, 9),
     ],
-    screenshots: [2, 8],
+    screenshots: [2, 7],
   },
 
   {

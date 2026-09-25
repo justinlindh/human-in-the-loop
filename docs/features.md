@@ -14,7 +14,7 @@ Conventions:
 - **Funding**: Bootstrapped (full score, no net), Friends and Family (dinner-table questions later), Pre-seed VC (two senior intros, a board that pushes for growth, then automation). `id: bootstrapped` `id: family` `id: preseed`
 - **Family and investor check-ins**: funded companies get their own decisions, from a cousin wanting an update to a board asking "why so many humans?". `id: family_dinner` `id: family_checkin` `id: family_intern` `id: investor_growth_push` `id: investor_automation_push`
 - **Building products**: pick a category and an approach (later an AI angle and a model vendor); some pairings fit much better than others, and a dice button suggests a name.
-- **Launches and reviews**: a launch popup with a review score and quotes from TechCrunchy, The Vergence, Hacker Olds and Wired-ish, plus shortcuts to start the next version with the same team or rerun the last campaign. `capture 5-1-first-launch`
+- **Launches and reviews**: a launch popup with a review score and quotes from TechCrunchy, The Vergence, Hacker Olds and Wired-ish, plus shortcuts to start the next version with the same team or rerun the last campaign; launches that land together share one card with each product's score, best quote and shortcuts. `capture 5-1-first-launch`
 - **Marketing campaigns**: from a blog and Product Hunch Day up to an influencer deal and a conference booth; Consolidation adds fame campaigns (The Documentary, The Big Game Ad, Stadium Naming Rights) priced in weeks of revenue. `id: documentary` `id: big_game_ad` `id: stadium`
 - **Market trends**: timed trends such as Agents Are Hot, AI Fatigue, Mobile Rush and Made by Humans lift or sink angles and categories; the HUD shows the current one with its flavour line.
 - **Hiring, training and careers**: hire from candidates, send people to a workshop, conference or course, and let freshly promoted seniors pick a career path (Architect, AI Wrangler, Community Manager, Incident Commander and more).
@@ -68,7 +68,7 @@ Conventions:
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
 - **Coffee corner**: a kettle, a drip machine and a "World's Okayest Dev" mug in the description; people stop by to sip. `id: coffee_corner` `id: coffee`
 - **Potted plant, bookshelf, couch**: small recovery and learning boosts; people browse the shelf and sit on the couch. `id: plant` `id: bookshelf` `id: couch`
-- ★ **Foosball**: two people play head to head; at the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
+- ★ **Foosball**: two people play head to head. An orange ball runs between the rods, the rods slide after it and whip round when a man kicks it back, and now and then it drops into a goal and a new one pops out at the centre. At the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
 - ★ **Ping pong**: a real volley, the ball arcing paddle to paddle and bouncing once each side, then a winner's cheer and a loser's groan; a ping pong sound plays. `id: ping_pong_table` `id: pingpong`
 - **Espresso machine**: a drip pot on a cart, then a prosumer machine and grinder, then a chrome bar. `id: espresso`
 - **Plant wall**: two pots, a ladder shelf, then a living wall with a grow light; people water it. `id: plant_wall`

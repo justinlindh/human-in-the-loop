@@ -27,10 +27,15 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | team-lead | coordination | the main checkout | talks to the user; the plan, spec, contract, and this file; approves merges; writes no code |
 | integrator | integration | the main checkout (branch `main`) | `main.js`, `src/pacing.js`, `src/dev/`, `scripts/snap.js`, `scripts/pace.js`, `index.html`, `package.json`, `vite.config.js`, CI, merges approved PRs into `main` |
 | sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
-| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
+| art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/`, `docs/readme/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
+| video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
+| audio | sound | `../gamedev-audio` | `public/audio/`, `src/audio/` (shared with ui), `scripts/trailer/`, `docs/trailer/`, `docs/readme/`; music, sound effects, voice and masters |
+| tools | checks | `../gamedev-tools` | `blender/checks/`, `scripts/events/` |
+| perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
 | reviewer | review and playtest | any (read-only) | nothing |
 
+- When a permanent member joins or leaves, update this table and the team table in `README.md` in the same PR.
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
 - Anything that needs the user's eyes or ears (a clip, an audio pick, a visual change they asked for, a decision only they can make) goes to team-lead with the media files and the question. team-lead puts it on the user's review desk and tells them it's there. Don't only mention it in a report.
