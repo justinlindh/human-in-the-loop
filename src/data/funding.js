@@ -7,12 +7,12 @@ export const FUNDING = {
   },
   family: {
     id: 'family', name: 'Friends and Family',
-    desc: 'About $150k from people who love you: more runway, fewer panicked weeks. Score x0.97.',
+    desc: 'About $150k from people who love you: more runway, fewer panicked weeks.',
     pressure: 'Every so often, someone at dinner asks how the company is doing.',
   },
   preseed: {
     id: 'preseed', name: 'Pre-seed VC',
-    desc: 'About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise. Score x0.96.',
+    desc: 'About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.',
     pressure: 'Investors push for growth now and for automation later. They have a deck about it.',
   },
 };

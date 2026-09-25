@@ -287,7 +287,7 @@ export function buildPanel(ctx, arg) {
         portrait(p, 26), h('span', { text: p.name.split(' ')[0] }),
         h('button.x', { onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }, icon('close', { size: 12 })))),
       people.length ? null : automatedProject(s, j) ? h('span.small.muted', { text: agentsHere(s) ? 'Agents are building this.' : 'Automation is building this.' }) : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel);
-      const meta = j.kind === 'research' ? 'Internal tool' : j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle} · ${MODEL[j.model]?.name ?? j.model}` : KIND_LABEL[j.kind];
+      const meta = j.kind === 'research' ? 'Internal tool' : j.kind === 'new' ? `${CATEGORY[j.category]?.name ?? j.category} × ${ANGLES.find((a) => a.id === j.angle)?.name ?? j.angle}${j.model ? ` · ${MODEL[j.model]?.name ?? j.model}` : ''}` : KIND_LABEL[j.kind];
       out.push(h('div.card.proj', { dataset: { project: j.id } },
         h('div.row', null, h('span.pill.ink', { text: KIND_LABEL[j.kind] ?? j.kind }), h('b.ptitle', { text: projectLabel(s, j) }), h('span.faint.small', { text: meta }), h('span.spacer'), pct,
           // Cancelling loses the progress, so it takes a second tap to confirm.
