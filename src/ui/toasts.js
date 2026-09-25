@@ -6,8 +6,12 @@ const MAX_VISIBLE = 5;
 // Phones (narrow, or short in landscape) keep at most two, docked in one line above the bottom row.
 const maxVisible = () => (phoneLayout() ? 2 : MAX_VISIBLE);
 const LIFE = { info: 6500, good: 6500, warn: 9000, bad: 9000 };
-// Toasts shown per game week before the rest collapse into a "+N more" chip. Warn and bad always show.
+// Toasts shown per game week before the rest collapse into a "+N more" chip. Warn and bad always
+// show; clickable ones count like any other, and keep their action in the chip.
 const WEEK_BUDGET = 3;
+// Info and good toasts that arrive together appear this far apart, so a busy moment builds up a
+// stack instead of dropping it all at once. Warn and bad show at once.
+const GAP_MS = 700;
 
 // Toasts stack top-right when no panel is open. While a panel is open they show one at a
 // time in a strip reserved at the bottom of the panel, so they never cover its controls.
@@ -76,7 +80,8 @@ export function createToasts(root) {
     const list = held;
     held = [];
     refreshMore();
-    for (const t of list) show(t.text, t.tone, t.opts);
+    for (const t of list) queue.push({ ...t, released: true, n: ++qSeq });
+    if (queue.length && !qTimer) drain();
   }
 
   // Called with the game week; a new week resets the budget and drops last week's extras.
@@ -85,22 +90,36 @@ export function createToasts(root) {
     week = w;
     shownThisWeek = 0;
     held = [];
+    for (const q of queue) q.released = false;
     refreshMore();
   }
 
   let seq = 0;
+  // Warn and bad show at once. Info and good wait in a short queue and are shown GAP_MS apart,
+  // most important first (clickable before plain, good before info), so when the weekly budget
+  // runs out it is the minor ones that fold into the "+N more" chip.
+  let queue = [], nextAt = 0, qTimer = 0, qSeq = 0;
+  const weight = (q) => (q.opts.always ? 4 : 0) + (q.opts.action ? 2 : 0) + (toneOf(q.tone) === 'good' ? 1 : 0);
   function push(text, tone = 'info', opts = {}) {
     const t0 = toneOf(tone);
-    // opts.always: never held back by the weekly budget (awards night can bring four at once).
-    if (t0 !== 'warn' && t0 !== 'bad' && !opts.action && !opts.always && shownThisWeek >= WEEK_BUDGET) {
-      if (text !== lastText) held.push({ text, tone, opts });
-      if (held.length > 20) held.shift();
-      lastText = text;
-      refreshMore();
-      return;
-    }
-    shownThisWeek++;
-    show(text, tone, opts);
+    if (t0 === 'warn' || t0 === 'bad') { shownThisWeek++; show(text, tone, opts); return; }
+    queue.push({ text, tone, opts, n: ++qSeq });
+    if (queue.length > 16) { queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n); hold(queue.pop()); }
+    if (!qTimer) qTimer = setTimeout(drain, Math.max(0, nextAt - performance.now()));
+  }
+  function hold(q) {
+    if (q.text !== lastText) held.push(q);
+    if (held.length > 20) held.shift();
+    refreshMore();
+  }
+  function drain() {
+    qTimer = 0;
+    if (!queue.length) return;
+    queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n);
+    const q = queue.shift();
+    if (!q.opts.always && !q.released && shownThisWeek >= WEEK_BUDGET) hold(q);
+    else { shownThisWeek++; show(q.text, q.tone, q.opts); nextAt = performance.now() + GAP_MS; }
+    if (queue.length) qTimer = setTimeout(drain, Math.max(0, nextAt - performance.now()));
   }
 
   // While hidden (a phone during placement or a card), toasts wait instead of timing out unseen.
