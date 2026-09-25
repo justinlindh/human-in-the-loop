@@ -22,7 +22,7 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 | Tool | What it does |
 |---|---|
 | `scripts/pr-status.sh` | One live row per open PR: merge state, what holds it (`awaiting-user`, draft), review verdict and local-ci for the current head, and any failing check; then the issues awaiting the user. Check it before reporting on or acting on a PR, and don't build on a held item. Anything waiting on a user decision gets the `awaiting-user` label (a PR also stays a draft). |
-| `scripts/ci-pr.sh <pr>` | Local CI for a PR, run on the PR merged into `main` in a throwaway worktree. Posts the Local CI comment and the `local-ci` status. `--allow-bot` is for reviewed Dependabot PRs only. |
+| `scripts/ci-pr.sh <pr>` | Local CI for a PR: it merges the head into freshly fetched `main` in a throwaway worktree and runs that tree's own `ci-local.sh`; the trust list and helper scripts come from `main` too, so the checkout you start it from doesn't matter (a clean one on `main` updates itself first). It refuses when your local copy of the branch has commits the PR lacks: push first. Posts the Local CI comment and the `local-ci` status. `--allow-bot` is for reviewed Dependabot PRs only. |
 | `npm run ci` (`scripts/ci-local.sh`) | The same checks in the current worktree, with a summary table. |
 | `scripts/review-verdict.sh <pr> pass\|changes <body> --head <sha>` | The reviewer's verdict: a PR review plus the `review` status on that head. team-lead uses it for lead and integrator PRs. |
 | `scripts/review-carry.sh <pr>` | Carries a review pass to a new head that only merges `main` in (ci-pr runs it). |
