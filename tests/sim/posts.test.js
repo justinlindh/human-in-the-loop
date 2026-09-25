@@ -35,7 +35,8 @@ describe('issue #16: the founders\' quick posts', () => {
     expect(POST_IDS).toEqual(IDS);
     const opts = postOptions(office(1));
     expect(opts.map((o) => o.id)).toEqual(IDS);
-    for (const o of opts) expect(o).toEqual({ id: expect.any(String), label: expect.any(String), hint: expect.any(String), icon: expect.any(String), available: true, reason: null, readyWeek: null });
+    for (const o of opts) expect(o).toEqual({ id: expect.any(String), label: expect.any(String), hint: expect.any(String), icon: expect.any(String), channel: expect.any(String), available: true, reason: null, readyWeek: null });
+    expect(opts.find((o) => o.id === 'who_broke_prod').channel).toBe('incidents');
   });
 
   it('copy fits Classic and never says startup', () => {

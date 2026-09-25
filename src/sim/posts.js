@@ -55,7 +55,7 @@ export function postOptions(state) {
   return POSTS.map((p) => {
     const reason = blocker(state, p);
     const hint = p.id === 'pizza' ? `$${pizzaCost(state).toLocaleString('en-US')} for the office; team meaning and stamina up.` : p.hint;
-    return { id: p.id, label: p.label, icon: p.icon, hint, available: !reason, reason, readyWeek: ready !== null && ready > state.week ? ready : null };
+    return { id: p.id, label: p.label, icon: p.icon, hint, channel: p.channel, available: !reason, reason, readyWeek: ready !== null && ready > state.week ? ready : null };
   });
 }
 
