@@ -1,0 +1,7 @@
+/* Touch build mode once the ghost is aimed: Rotate, Place and Done share the row, and
+   "Place for me" shrinks to its dice. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .buildbar.aimed .bauto { flex: 0 0 auto; padding-left: 0.7em; padding-right: 0.7em; }
+  .hitl .buildbar.aimed .bauto .blabel { display: none; }
+}
+.hitl .buildbar .bplace { font-size: 1.05em; }

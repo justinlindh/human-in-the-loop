@@ -62,7 +62,7 @@ Conventions:
 - **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
 - **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. `id: floor_next_door`
-- **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. `capture 2-1-build-mode`
+- **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
 - **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
 - **Meeting table**: standups gather round it and tuck the chairs in. `id: meeting_table`
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`

@@ -23,14 +23,18 @@ export function createBuildMode({ layer, ctx, controls }) {
   const priceEl = h('span.pill.num');
   const sizeEl = h('span.pill.num');
   const statusEl = h('div.bstatus');
-  const rotBtn = h('button.btn', { title: 'Rotate (R)', onclick: () => rotate() }, icon('refresh'), ' Rotate', h('span.key', { text: ' R' }));
-  const autoBtn = h('button.btn.blue', { title: 'Put it in the first spot that fits', onclick: () => autoPlace() }, icon('dice'), ' Place for me');
-  const doneBtn = h('button.btn.go', { title: 'Done (Esc)', onclick: () => exit() }, icon('check'), ' Done');
+  // On touch these act on the first press: no long-press tip to swallow a slow tap.
+  const rotBtn = h('button.btn', { title: touchUI() ? null : 'Rotate (R)', onclick: () => rotate() }, icon('refresh'), ' Rotate', h('span.key', { text: ' R' }));
+  const autoBtn = h('button.btn.blue.bauto', { title: 'Put it in the first spot that fits', 'aria-label': 'Place for me', onclick: () => autoPlace() }, icon('dice'), h('span.blabel', { text: ' Place for me' }));
+  const doneBtn = h('button.btn.go', { title: touchUI() ? null : 'Done (Esc)', onclick: () => exit() }, icon('check'), ' Done');
+  // Touch: places the item where the ghost is aimed (a tap on the ghost does the same).
+  const placeBtn = h('button.btn.go.bplace', { onclick: () => { if (mode && hover) place(hover.x, hover.y); } }, icon('check'), ' Place');
+  placeBtn.style.display = 'none';
   const icoEl = h('span.iico');
   const bar = h('div.buildbar', null,
     icoEl,
     h('div.binfo', null, h('div.row', null, nameEl, priceEl, sizeEl), statusEl),
-    h('span.spacer'), rotBtn, autoBtn, doneBtn);
+    h('span.spacer'), rotBtn, placeBtn, autoBtn, doneBtn);
   const tip = h('div.buildtip');
   bar.style.display = 'none';
   tip.style.display = 'none';
@@ -86,6 +90,13 @@ export function createBuildMode({ layer, ctx, controls }) {
     syncRenderer();
     refresh();
     ctx.sfx('click');
+    // A touch aim keeps its tile; the corner shifts with the new footprint once the ghost updates.
+    if (hover && !mouseAim) requestAnimationFrame(() => requestAnimationFrame(() => followTarget()));
+  }
+  let mouseAim = !touchUI();
+  function followTarget() {
+    const t = R()?.buildTarget;
+    if (mode && t && Number.isFinite(t.x) && (t.x !== hover?.x || t.y !== hover?.y)) { hover = { x: t.x, y: t.y }; refresh(); }
   }
 
   function place(x, y) {
@@ -117,12 +128,12 @@ export function createBuildMode({ layer, ctx, controls }) {
     setText(sizeEl, `${f.w}x${f.h}`);
     if (!hover) {
       const r = R();
-      return { ok: null, text: r?.pickTile ? (touchUI() ? 'Tap the floor to aim, then tap again to place it.' : 'Point at the floor to place it. R rotates, Esc finishes.') : 'Use "Place for me" to drop it in the first spot that fits.' };
+      return { ok: null, text: r?.pickTile ? (touchUI() ? 'Tap the floor to aim. Drag the item to move it, then tap it or Place.' : 'Point at the floor to place it. R rotates, Esc finishes.') : 'Use "Place for me" to drop it in the first spot that fits.' };
     }
     const chk = checkPlace(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
     if (!chk.ok) return { ok: false, text: chk.reason ?? 'Cannot place here' };
     const prev = adjacencyPreview(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
-    return { ok: true, text: adjacencyWords(prev) || (touchUI() ? 'Tap again to place' : 'Click to place'), ids: prev.gives?.ids ?? [] };
+    return { ok: true, text: adjacencyWords(prev) || (touchUI() ? 'Tap it or Place to put it down' : 'Click to place'), ids: prev.gives?.ids ?? [] };
   }
 
   // Warm plates under the things the item would boost, when the renderer offers them.
@@ -153,6 +164,8 @@ export function createBuildMode({ layer, ctx, controls }) {
     setText(tip, st.text);
     toggleClass(tip, 'bad', st.ok === false);
     tip.style.display = hover ? '' : 'none';
+    placeBtn.style.display = !mouseAim && hover ? '' : 'none';
+    toggleClass(bar, 'aimed', !mouseAim && !!hover);
     highlight(st.ok ? st.ids : null);
   }
 
@@ -166,12 +179,28 @@ export function createBuildMode({ layer, ctx, controls }) {
   addEventListener('pointerup', (e) => {
     const d = down;
     down = null;
+    // A touch drag may have carried the ghost: pick up where it landed.
+    if (mode && d && e.pointerType !== 'mouse') requestAnimationFrame(() => followTarget());
     // A pinch (two fingers) is never a tap, even if a finger lifts where it landed.
     if (!d || !onScene(e) || multiTouch() || Math.hypot(e.clientX - d.x, e.clientY - d.y) > CLICK_PX) return;
     if (mode) {
+      mouseAim = e.pointerType === 'mouse';
+      const r = R();
+      // Touch has no hover: a tap aims the ghost (reason, adjacency), and a tap on the aimed ghost places it.
+      if (e.pointerType !== 'mouse' && r?.aimBuild) {
+        const tile = r.pickTile?.(e.clientX, e.clientY);
+        if (!tile) return;
+        const f = footprint(mode.itemId, mode.rot);
+        if (hover && tile.x >= hover.x && tile.x < hover.x + f.w && tile.y >= hover.y && tile.y < hover.y + f.h) { place(hover.x, hover.y); return; }
+        const aimed = r.aimBuild(e.clientX, e.clientY);
+        if (!aimed) return;
+        hover = aimed;
+        tipAt(e.clientX, e.clientY);
+        refresh();
+        return;
+      }
       const at = anchorAt(e.clientX, e.clientY);
       if (!at) return;
-      // Touch has no hover: the first tap aims (ghost, reason, adjacency), a second tap on the same spot places.
       if (e.pointerType !== 'mouse' && (at.x !== hover?.x || at.y !== hover?.y)) {
         hover = at;
         tip.style.left = `${e.clientX - layer.getBoundingClientRect().left + 16}px`;
@@ -182,10 +211,16 @@ export function createBuildMode({ layer, ctx, controls }) {
       place(at.x, at.y);
     } else if (!ctx.sceneTips?.eatTap?.()) inspect(e.clientX, e.clientY);
   }, true);
+  function tipAt(x, y) {
+    tip.style.left = `${x - layer.getBoundingClientRect().left + 16}px`;
+    tip.style.top = `${y - layer.getBoundingClientRect().top + 18}px`;
+  }
   addEventListener('pointermove', (e) => {
     if (!mode) return;
-    tip.style.left = `${e.clientX - layer.getBoundingClientRect().left + 16}px`;
-    tip.style.top = `${e.clientY - layer.getBoundingClientRect().top + 18}px`;
+    if (e.pointerType === 'mouse') mouseAim = true;
+    // A touch drag only aims while it carries the ghost; any other drag pans and leaves the aim.
+    else if (!R()?.buildGrabbing) return;
+    tipAt(e.clientX, e.clientY);
     if (pendingMove) { pendingMove = e; return; }
     pendingMove = e;
     requestAnimationFrame(() => {
