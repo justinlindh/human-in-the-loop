@@ -207,9 +207,9 @@ function complete(ctx, j) {
     // outlets then review that blended product, so the scores shown average to the score the product gets.
     const fresh = reviewScore(state, j).score;
     const target = B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * fresh;
-    // Seeded from things fixed to the product (its launch week and version), never its id, so ids handed out
-    // elsewhere cannot change the scores an update gets.
-    const shown = createRng(state.seed * 7577 + state.week * 131 + (pr.launchedWeek ?? 0) * 97 + pr.version * 13);
+    // Seeded from things fixed to the product (its launch week, version and place in the product list), never its
+    // id, so ids handed out elsewhere cannot change the scores an update gets.
+    const shown = createRng(state.seed * 7577 + state.week * 131 + (pr.launchedWeek ?? 0) * 97 + pr.version * 13 + state.products.indexOf(pr) * 7919);
     const reviews = pressReviews(state, target, { update: true, centered: true, rng: shown });
     Object.assign(pr, { score: meanScore(reviews), reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
