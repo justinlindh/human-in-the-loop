@@ -276,7 +276,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       },
       h('b.fname', { text: f.name }),
       h('span.fcash.num', { text: fmtMoney(fundingCash(f)) }),
-      h('span', { class: mult < 1 ? 'pill warn' : 'pill good', text: mult < 1 ? `Score x${mult}` : 'Full score' }),
+      h('span', { class: mult < 1 ? 'pill warn' : 'pill good', text: mult < 1 ? `Final score x${mult}` : 'Full final score',
+        title: mult < 1 ? `Final score\nWhen the game ends, your company is scored on what it built. Outside money means that score is multiplied by ${mult}.` : 'Final score\nWhen the game ends, your company is scored on what it built. Bootstrapping keeps all of it.' }),
       h('span.small', { text: f.desc ?? '' }),
       f.pressure ? h('span.small.fpress', null, icon('warn', { size: 12 }), ` ${f.pressure}`) : null);
       if (f.id === draft.funding) card.classList.add('on');
@@ -285,7 +286,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const cardsEl = h('div.funds', null, ...cards);
     frame(2, h('div.fbody', null,
       h('b', { text: 'How are you paying for this?' }),
-      cardsEl), start, 'Start the company');
+      cardsEl,
+      h('div.small.muted', { text: 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
   }
 
   function start() {

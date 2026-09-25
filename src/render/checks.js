@@ -557,6 +557,44 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(10);
   }
+  // 3b. A group prop with every desk full goes on a table, and on the same table's new spot after
+  // it is moved in build mode (the same object slides there).
+  {
+    const tile = (() => {
+      const nav = R.office.nav();
+      // The table's 3 x 2 tiles clear, and one tile to the right for the move.
+      for (let y = 1; y < L.grid.h - 3; y++) for (let x = 1; x < L.grid.w - 5; x++) {
+        let ok = true;
+        for (let i = 0; i <= 3 && ok; i++) for (let j = 0; j <= 1 && ok; j++) if (nav.isBlocked(x + i - L.W / 2 + 0.5, y + j - L.D / 2 + 0.5)) ok = false;
+        if (ok) return { x, y };
+      }
+      return null;
+    })();
+    const saved = S.office.props;
+    const table = tile && { id: 'counter_table', itemId: 'meeting_table', level: 1, x: tile.x, y: tile.y, rot: 0 };
+    const where = [];
+    if (table) {
+      S.office.placed.push(table);
+      step(20);
+      const desks = [...R.office.placed.values()].filter((e) => e.desk);
+      S.office.props = desks.flatMap((e, i) => [0, 1, 2, 3, 4, 5].map((j) => ({ id: `full${i}_${j}`, prop: 'binder', x: e.x, y: e.y, since: S.week, until: { weeks: 9 } })));
+      step(10);
+      for (const shift of [0, 1]) {
+        if (shift) { table.x = tile.x + 1; step(60); }
+        S.office.props.push({ id: 'group_prop', prop: 'pizza_boxes', x: desks[0].x, y: desks[0].y, since: S.week, until: { weeks: 2 } });
+        step(2);
+        const p = R.props.objectOf('group_prop'), t = R.office.placed.get(table.id);
+        const box = new THREE.Box3().setFromObject(t.obj), c = p ? new THREE.Box3().setFromObject(p).getCenter(new THREE.Vector3()) : null;
+        where.push(!!c && c.x > box.min.x && c.x < box.max.x && c.z > box.min.z && c.z < box.max.z && p.position.y > 0.5);
+        S.office.props = S.office.props.filter((q) => q.id !== 'group_prop');
+        step(2);
+      }
+      S.office.placed = S.office.placed.filter((q) => q.id !== table.id);
+    }
+    S.office.props = saved;
+    step(10);
+    results.push({ name: 'prop:groupOnMovedTable', pass: where.length === 2 && where.every(Boolean), onTable: where, tile });
+  }
   // 4. The sledgehammer: whoever fetches it and carries it to the wall stays clear of furniture and
   // props, and the walls-down choice (decisionResolved) ends in a swing.
   {
@@ -698,9 +736,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
           for (const e of R.office.placed.values()) {
             if (own.has(e.id)) continue;
             const v = bodyInside(root, meshes(e.obj), false);
-            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id}`; }
+            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} t ${i} path ${JSON.stringify(R.perks.peek(id)?.path)} goal ${JSON.stringify(R.perks.peek(id)?.temp?.goal)} seat ${R.perks.peek(id)?.seat} vseat ${JSON.stringify(R.moments.visitorState?.seat)} desk ${desk.id}`; }
           }
           for (const p of R.props.current()) {
+            if (!p.obj.visible) continue;
             const v = bodyInside(root, meshes(p.obj), false);
             if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${p.prop} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}; prop at ${p.obj.position.x.toFixed(2)},${p.obj.position.z.toFixed(2)}; path ${JSON.stringify(R.perks.peek(id)?.path)}; t ${i}`; }
           }
