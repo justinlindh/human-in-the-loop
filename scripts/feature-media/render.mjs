@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Renders feature media from scripts/feature-media.js: each item is a capture.js item (so capture.js
+// Renders feature media from scripts/feature-media/manifest.js: each item is a capture.js item (so capture.js
 // records it through the real game loop), plus the files to make from the recording:
 //   out: [{ path, size, crop?, from?, seconds?, fps?, loop?, poster?, webm? }]
 //     path     where the file goes under --out (its extension picks the kind: .webp still, .mp4 clip)
@@ -21,7 +21,7 @@ import { pathToFileURL } from 'node:url';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-const MANIFEST = resolve(opt('manifest', 'scripts/feature-media.js'));
+const MANIFEST = resolve(opt('manifest', 'scripts/feature-media/manifest.js'));
 const OUT = resolve(opt('out', 'shots/feature-media'));
 const RAW = join(OUT, '.raw');
 const compare = opt('compare', null);
@@ -30,7 +30,9 @@ const only = opt('only', null)?.split(',');
 const items = ITEMS.filter((it) => !only || only.includes(it.id));
 if (!items.length) { console.error(`feature-media: nothing matches --only ${only}`); process.exit(1); }
 
+// Encodes run niced, under a timeout, like every heavy job on the shared machine.
 const run = (cmd, args, what) => {
+  if (cmd === 'ffmpeg') { args = ['-n', '10', 'timeout', '600', 'ffmpeg', ...args]; cmd = 'nice'; }
   const r = spawnSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 << 20 });
   if (r.status !== 0) throw new Error(`${what}: ${cmd} exited ${r.status}: ${(r.stderr || r.stdout).trim().split('\n').slice(-3).join(' | ')}`);
   return r.stdout;

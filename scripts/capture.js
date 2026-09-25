@@ -281,7 +281,13 @@ try {
         continue;
       }
     }
-    if (it.setup) await page.evaluate(it.setup);
+    // A setup that throws (a staging that never happens) fails that item, named, and the run goes on.
+    if (it.setup) {
+      try { await page.evaluate(it.setup); } catch (e) {
+        console.log(`FAIL ${it.id}: setup: ${String(e.message ?? e).split('\n')[0]}`);
+        failed = true; await ctx.close(); continue;
+      }
+    }
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());
 
     const mp4 = join(OUT, `${it.id}.mp4`);

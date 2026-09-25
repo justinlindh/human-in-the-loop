@@ -1,7 +1,7 @@
-import { ITEMS as REVIEW } from './capture-manifest.js';
+import { ITEMS as REVIEW } from '../capture-manifest.js';
 
 // Feature media: capture.js items (see scripts/capture-manifest.js for the item fields) with the files
-// to make from each recording (`out`, see scripts/feature-media.mjs). Paths mirror where the files are
+// to make from each recording (`out`, see scripts/feature-media/render.mjs). Paths mirror where the files are
 // used: img/ and media/ are the landing page's (humanintheloopgame-site), so a render drops straight
 // into a checkout of it. Everything plays through the real game loop.
 
@@ -21,6 +21,7 @@ const PLAY = ({ weeks, bot = 'balanced', until = 'false', after = '', decision =
     b.botTurn('${bot}', s);
     sim.tick(s);
   }
+  if (want && s.pendingDecision?.eventId !== want) throw new Error(\`the decision \${want} never came up in ${weeks} weeks\`);
   if (!want) b.botDecide('${bot}', s);
   ${after}
   ${IDLE};
@@ -42,8 +43,9 @@ const FOCUS_PROP = (name, zoom) => `(() => { const R = window.__hitlRender; cons
 const FOCUS_PARTY = (zoom) => `(() => { const R = window.__hitlRender; const c = R.incentives?.party?.center ?? R.incentivesFrame; if (c) R.focusAt(c.x, c.z, ${zoom}); })()`;
 const FOCUS_DANCE = (zoom) => FOCUS_STAFF('(s) => { const id = window.__hitlRender.incentives?.dance?.dancers?.[0]; return id != null ? s.staff.find((p) => p.id === id) : null; }', zoom);
 const FOCUS_STAFF = (pick, zoom) => `(() => { const R = window.__hitlRender, s = window.__HITL.state; const p = (${pick})(s); if (!p) return; let o = null; R.scene.traverse((x) => { if (x.userData.staffId === p.id) o = x.parent; }); if (o) { const v = o.getWorldPosition(new o.position.constructor()); R.focusAt(v.x, v.z, ${zoom}); } })()`;
-// Bare, with Yak moved beside the office for a message thread.
-const YAK_BARE = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .menu, #ui .toasts { display: none !important; } #ui .chat.yak { position: fixed !important; left: auto !important; right: 40px !important; top: 120px !important; bottom: auto !important; width: 440px !important; }'; document.head.append(st); })()`;
+// Bare, with Yak moved beside the office for a message thread, and the office's speech bubbles hidden
+// so the crop never cuts one: the thread carries the story.
+const YAK_BARE = `(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads, #ui .topbar, #ui .tray, #ui .menu, #ui .toasts { display: none !important; } #ui .chat.yak { position: fixed !important; left: auto !important; right: 40px !important; top: 120px !important; bottom: auto !important; width: 440px !important; }'; document.head.append(st); })()`;
 // A key press as the UI hears it (decision choices are 1, 2, 3).
 const KEY = (key) => `dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', code: 'Digit${key}', bubbles: true }))`;
 // Clicks the first visible element matching a selector whose text contains `text` (any, when empty).
