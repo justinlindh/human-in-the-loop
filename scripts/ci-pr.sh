@@ -28,7 +28,7 @@ TRUSTED="${CI_TRUSTED_FILE:-$REPO/scripts/ci-trusted}"
 pr_trusted() { # <isCrossRepository> <head repo owner> <author> <repo owner>
   [ "$1" = false ] || { echo "ci-pr: #$pr comes from a fork ($2); not running it" >&2; return 1; }
   [ "$2" = "$4" ] || { echo "ci-pr: #$pr head repository belongs to $2, not $4; not running it" >&2; return 1; }
-  grep -qxF -- "$3" <(sed -e 's/#.*//' -e 's/[[:blank:]]//g' "$TRUSTED" 2>/dev/null | grep -v '^$') \
+  grep -qxF -- "$3" <(tr -d '\r' <"$TRUSTED" 2>/dev/null | sed -e 's/#.*//' -e 's/[[:blank:]]//g' | grep -v '^$') \
     || { echo "ci-pr: #$pr is by $3, who is not in scripts/ci-trusted; not running it" >&2; return 1; }
 }
 # Fields are split on the unit separator, which read never merges: an empty field stays empty
