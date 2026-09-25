@@ -16,7 +16,8 @@
 // Frame rate is uncapped (no vsync), and each frame ends with a one-pixel readback that waits for
 // the GPU, so frame time is the whole frame's cost. Per scene and quality, the median across runs:
 //   p50/p95  interval between frames (ms)            cpu     main-thread rAF work per frame (ms)
-//   render   renderer.render per frame, GPU included  calls/tris/geo/tex/prog  renderer.info
+//   render   renderer.render per frame, GPU included  best    the fastest run's render
+//   calls/tris/meshes/geo/tex/prog  renderer.info
 //   heap     JS heap after a forced GC (MB)           dom     DOM nodes
 //   mut/s    DOM mutation records per second (UI churn)
 import { chromium } from 'playwright';
@@ -260,7 +261,7 @@ const f1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : '-');
 const pad = (x, n) => String(x ?? '-').padStart(n);
 function formatRow(label, key, r) {
   const k = (x) => (Number.isFinite(x) ? `${Math.round(x / 1000)}k` : '-');
-  return `${label.padEnd(12)} ${key.padEnd(11)} p50 ${pad(f1(r.p50), 6)}  p95 ${pad(f1(r.p95), 6)}  cpu ${pad(f1(r.cpu), 5)}  render ${pad(f1(r.render), 6)}`
+  return `${label.padEnd(12)} ${key.padEnd(11)} p50 ${pad(f1(r.p50), 6)}  p95 ${pad(f1(r.p95), 6)}  cpu ${pad(f1(r.cpu), 5)}  render ${pad(f1(r.render), 6)}  best ${pad(f1(r.best), 6)}`
     + `  calls ${pad(r.calls, 4)}  tris ${pad(k(r.triangles), 5)}  meshes ${pad(r.meshes, 4)}  geo ${pad(r.geometries, 4)}  tex ${pad(r.textures, 3)}`
     + `  prog ${pad(r.programs, 3)}  heap ${pad(f1(r.heapMB), 5)}MB  dom ${pad(r.dom, 5)}  mut/s ${pad(f1(r.mutPerSec), 6)}`;
 }
@@ -297,6 +298,8 @@ try {
         const rs = runs.get(b);
         const keys = Object.keys(rs[0]).filter((k) => typeof rs[0][k] === 'number');
         const med = Object.fromEntries(keys.map((k) => [k, median(rs.map((r) => r[k]))]));
+        // The fastest run: other jobs on shared cores only ever add time, so it is the steadiest figure.
+        med.best = Math.min(...rs.map((r) => r.render));
         glName ??= rs[0].glName;
         b.scenes[key] = { ...med, spread: { p50: rs.map((r) => +r.p50.toFixed(2)), render: rs.map((r) => +r.render.toFixed(2)) } };
         console.log(formatRow(b.label, key, med));
