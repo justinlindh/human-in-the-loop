@@ -1,8 +1,8 @@
 // The founder's quick posts in Yak: a Post button at the foot of Yak opens a picker of predefined
 // posts (a pep talk, "who broke prod?", pizza...). Everything about them comes from the sim's
 // postOptions(state): label, effect hint, and why one can't be posted now. The post and the team's
-// replies arrive as ordinary chat, so they thread like any message. Without the sim helper the
-// bar stays hidden. On phones the picker opens as a sheet over the bottom of the screen.
+// replies arrive as ordinary chat, so they thread like any message. The bar stays hidden without
+// the sim helper, and when it returns no posts (posts are off). On phones the picker opens as a sheet over the bottom of the screen.
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
@@ -18,7 +18,7 @@ export function createPostBar({ layer, getState, onPost }) {
   const bar = h('div.ypost', null, btn, status);
   bar.style.display = 'none';
 
-  const options = () => SIMX.postOptions?.(getState()) ?? null;
+  const options = () => { const l = SIMX.postOptions?.(getState()); return l?.length ? l : null; };
 
   function row(o) {
     const off = o.available === false;
@@ -61,7 +61,8 @@ export function createPostBar({ layer, getState, onPost }) {
   function update(s) {
     if (s.week === week) return;
     week = s.week;
-    const list = SIMX.postOptions ? SIMX.postOptions(s) : null;
+    const all = SIMX.postOptions ? SIMX.postOptions(s) : null;
+    const list = all?.length ? all : null;
     const ready = list ? list.filter((o) => o.available !== false).length : 0;
     const next = list ? `${list.length}|${ready}` : 'none';
     if (next === sig) return;
