@@ -7,7 +7,7 @@
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
 // A rule with known: <issue> fails as KNOWN (not failing the run) until that issue is fixed: closed by
-// a merged PR or commit that changed render code. Then the rule fails again. Issue states come from gh,
+// a merged PR or commit that changed game code. Then the rule fails again. Issue states come from gh,
 // once per run; if gh can't be reached, markers count as open and the run says so.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { startHarness } from './harness.mjs';
@@ -150,11 +150,11 @@ const SCENARIOS = {
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
 // The issues known rules point at, and which of them are fixed: closed by a merged PR (or a commit)
-// that changed render code, the staging fix itself. A fixed issue no longer excuses its rules. An
-// issue closed any other way (by hand, or by a PR that only mentions it) still excuses them, with a
-// note to reopen it, so closing an issue early never turns every PR red.
+// that changed game code (src/ or public/: a staging fix may be in render, sim or data). A fixed issue
+// no longer excuses its rules. An issue closed any other way (by hand, or by a PR that only mentions
+// it) still excuses them, with a note to reopen it, so closing an issue early never turns every PR red.
 const gh = (...a) => execFileSync('gh', a, { timeout: 15000, encoding: 'utf8' }).trim();
-const RENDER = /^(src\/render\/|public\/models\/)/;
+const GAME = /^(src|public)\//;
 const closedIssues = new Set();
 for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) => r.known)).filter(Boolean))) {
   try {
@@ -170,8 +170,8 @@ for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) =>
       by = closer.oid.slice(0, 7);
       files = JSON.parse(gh('api', `repos/justinlindh/human-in-the-loop/commits/${closer.oid}`)).files.map((f) => f.filename);
     } else if (closer?.__typename === 'PullRequest') by = `#${closer.number} (not merged)`;
-    if (files.some((f) => RENDER.test(f))) closedIssues.add(n);
-    else console.log(`stage: issue #${n} was closed by ${by}, which changed no render code; its known rules still excuse. Reopen #${n} until its fix merges.`);
+    if (files.some((f) => GAME.test(f))) closedIssues.add(n);
+    else console.log(`stage: issue #${n} was closed by ${by}, which changed no game code; its known rules still excuse. Reopen #${n} until its fix merges.`);
   } catch {
     console.log(`stage: could not read issue #${n} (gh unavailable?); its known rules count as open`);
   }

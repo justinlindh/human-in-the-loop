@@ -24,7 +24,7 @@ export function createReport(name) {
       const tag = (r) => (r.pass ? 'ok  ' : r.known ? 'KNWN' : 'FAIL');
       // A known rule passing in every view it ran in: its marker can come off.
       const fixed = (r) => rows.filter((q) => q.known === r.known && q.check === r.check && q.metric === r.metric).every((q) => q.pass);
-      const line = (vals, r) => `${name.toUpperCase()} ${r ? tag(r) : '    '} ${vals.map((v, i) => v.padEnd(w[i])).join('  ')}${r?.known && (!r.pass || fixed(r)) ? `  (#${r.known}${r.pass ? ': passes now, drop the marker' : ''})` : ''}${r?.closed && !r.pass ? `  (#${r.closed} was fixed by a render change but this still fails: fix it or reopen the issue)` : ''}${r?.closed && r.pass ? `  (#${r.closed} is fixed: drop the marker)` : ''}`;
+      const line = (vals, r) => `${name.toUpperCase()} ${r ? tag(r) : '    '} ${vals.map((v, i) => v.padEnd(w[i])).join('  ')}${r?.known && (!r.pass || fixed(r)) ? `  (#${r.known}${r.pass ? ': passes now, drop the marker' : ''})` : ''}${r?.closed && !r.pass ? `  (#${r.closed} was fixed by a game change but this still fails: fix it or reopen the issue)` : ''}${r?.closed && r.pass ? `  (#${r.closed} is fixed: drop the marker)` : ''}`;
       console.log(line(cols));
       for (const r of rows) console.log(line(cols.map((c) => cell(r, c)), r));
       for (const s of skips) console.log(`${name.toUpperCase()} skip ${s.check}: ${s.why}`);
