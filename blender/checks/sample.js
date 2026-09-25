@@ -296,6 +296,7 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
     if (why) {
       stage = S.officeStage; era = S.era?.id;
       if (why.startsWith('decision')) staged++;
+      console.log(`sweep-progress w${S.week}`);
       const C = createCollector({ state: `seed:${seed}:w${S.week}`, known, crops: crops - out.filter((v) => v.crop).length, tol: TOL });
       // Settle what the weeks since the last window changed (a stage move, new furniture popping in).
       stepWorld(R, S, 120);
