@@ -95,7 +95,7 @@ export const ON_EVENT = {
   chatPromptResolved: null,
   // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
   posted: (e) => ({ landed: 'sfx.reward', backfired: 'sfx.bad' })[e.outcome] ?? null,
-  // Growth (#549): silent until audio ships the files.
+  // Growth (#549). A promotion's level-up in the same batch plays only the promotion (see director).
   levelUp: 'sfx.levelUp',
   promoted: 'sfx.promotion',
   traitEarned: 'sfx.trait',

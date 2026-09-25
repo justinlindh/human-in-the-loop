@@ -463,6 +463,8 @@ describe('audio director', () => {
       expect(cues([{ type: 'levelUp', staffId: 's1', level: 4 }], 10)).toEqual(['sfx.levelUp']);
       expect(cues([{ type: 'levelUp', staffId: 's2', level: 3 }], 11)).toEqual([]);   // inside the cooldown
       expect(cues([{ type: 'promoted', staffId: 's1', seniority: 'senior' }], 11)).toEqual(['sfx.promotion']);
+      // A level-up and the promotion it caused, in one batch: only the fanfare.
+      expect(cues([{ type: 'levelUp', staffId: 's4', level: 10 }, { type: 'promoted', staffId: 's4', seniority: 'mid' }], 30)).toEqual(['sfx.promotion']);
       expect(cues([{ type: 'skillTrained', staffId: 's3', skill: 'polish', gain: 5 }], 20)).toEqual(['sfx.trait']);
       expect(cues([{ type: 'levelUp', staffId: 's1', level: 5 }], 40, { speed: 4 })).toEqual([]); // top speed drops it
     } finally { ASSETS.sfx = saved; }

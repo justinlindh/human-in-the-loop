@@ -224,7 +224,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **World sounds**: foosball, arcade and ping pong when in use, the coffee machine and pets now and then, a typing bed that follows how many people are working, a door for arrivals and departures. `capture 6-2-sfx`
 - **Voices**: short barks from a cast of voices, with emotions (happy, excited, laughing, questioning, annoyed, tired, sighing); staggered group cheers over a crowd bed for launches, waffle parties, music nights and eras; a sigh for a burnout exit, a warm goodbye for a friendly one. `capture 6-3-voices`
 - **Event sounds**: alarms for incidents, a save sound for caught ones, outage and fixed cues, hire and resign, awards, rewards, and a soft ping for Yak prompts.
-- **Growth sounds**: a soft chime when someone levels up (spaced out, and skipped at top speed and on Low), a brighter stinger for a promotion, and a small pop for an earned trait or a trained skill. Silent until the sound files ship.
+- **Growth sounds**: a soft chime when someone levels up (spaced out, and skipped at top speed and on Low), a brighter stinger for a promotion,, which replaces the chime for the level-up that caused it, and a small pop for an earned trait or a trained skill.
 
 ## Interface
 
