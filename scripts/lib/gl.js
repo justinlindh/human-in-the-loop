@@ -4,13 +4,18 @@
 // (the golden images), for machines without a GPU (the GitHub runners set HITL_GL=software), and
 // for runs that stand in for a weak device. A run that asked for the GPU and got software GL fails
 // instead of quietly taking minutes of CPU.
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { isSoftwareRenderer } from '../../src/quality.js';
+
+const WITH_RENDER_LOCK = fileURLToPath(new URL('../with-render-lock.sh', import.meta.url));
 
 export const SOFTWARE_GL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 export const GPU_GL_ARGS = ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu'];
 
-// 'gpu' or 'software': --software or --gpu on the command line, else HITL_GL, else the fallback.
-export function glMode({ argv = process.argv, env = process.env, fallback = 'gpu' } = {}) {
+// 'gpu' or 'software': --software or --gpu on the command line, else HITL_GL, else software under
+// CI (the cloud runners have no GPU), else the fallback.
+export function glMode({ argv = process.argv, env = process.env, fallback = env.CI ? 'software' : 'gpu' } = {}) {
   if (argv.includes('--software')) return 'software';
   if (argv.includes('--gpu')) return 'gpu';
   if (env.HITL_GL === 'software' || env.HITL_GL === 'gpu') return env.HITL_GL;
@@ -53,4 +58,17 @@ export async function launchChromium(chromium, { mode = glMode(), label = 'brows
     throw new Error(`${label}: asked for the GPU but got ${renderer ?? 'no WebGL2'}; set HITL_GL=software to run on SwiftShader`);
   }
   return { browser, renderer, mode };
+}
+
+// Makes sure this process renders under the render lock for `mode`: the exclusive software-GL lock,
+// or a GPU slot. Returns at once when it already holds a lock that covers the request (it is the
+// holder, or an ancestor is). Otherwise it runs this same command again under
+// scripts/with-render-lock.sh, waits for it, and exits with its status, so nothing after the call
+// runs twice. Call it before starting servers or browsers. Under CI (no shared machine) it does nothing.
+export function holdRenderLock(mode, { env = process.env, argv = process.argv } = {}) {
+  if (env.CI) return;
+  const flag = mode === 'software' ? '--software' : '--gpu';
+  if (spawnSync('bash', [WITH_RENDER_LOCK, flag, '--held'], { stdio: 'inherit' }).status === 0) return;
+  const r = spawnSync('bash', [WITH_RENDER_LOCK, flag, process.execPath, ...process.execArgv, ...argv.slice(1)], { stdio: 'inherit' });
+  process.exit(r.status ?? 1);
 }

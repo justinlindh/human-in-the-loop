@@ -39,6 +39,16 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     menu.append(buttons[m.id]);
   }
   bottom.append(menu);
+  // When the menu scrolls sideways (phones), fade the edge that has more buttons past it.
+  const edges = () => {
+    const max = menu.scrollWidth - menu.clientWidth;
+    menu.classList.toggle('more-right', max > 2 && menu.scrollLeft < max - 2);
+    menu.classList.toggle('more-left', max > 2 && menu.scrollLeft > 2);
+  };
+  menu.addEventListener('scroll', edges, { passive: true });
+  addEventListener('resize', edges);
+  requestAnimationFrame(edges);
+  setTimeout(edges, 500);
 
   const wrap = h('div.panel-wrap');
   panelRoot.append(wrap);

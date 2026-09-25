@@ -2,6 +2,7 @@
 // Desktop: hover a character or an item for a moment. Touch: long-press it (the release then does
 // not open Staff or the item card, which a plain tap still does). The renderer says what is under
 // the pointer (pick) and where it is on screen (screenRectOf); the text comes from game state.
+import { touchCount } from './touches.js';
 import { MOOD_INFO, roleName } from './content.js';
 import { CATALOG } from './v2content.js';
 import { doingText } from './panels/common.js';
@@ -74,7 +75,7 @@ export function createSceneTips({ tooltips, getRenderer, getState, isBlocked }) 
     eaten = false;
     clearTimeout(press?.timer);
     press = null;
-    if (e.pointerType === 'mouse' || !isScene(e) || isBlocked()) return;
+    if (e.pointerType === 'mouse' || !isScene(e) || isBlocked() || touchCount() > 1) return;
     const x = e.clientX, y = e.clientY;
     press = {
       x, y, timer: setTimeout(() => {

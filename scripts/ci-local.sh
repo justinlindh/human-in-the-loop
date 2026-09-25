@@ -100,7 +100,7 @@ render_step() { # <name> <gpu|software> <command>
   local name="$1" mode="$2" pass="$3" first="$LOGS/$1.first.log"
   render_pass "$mode" "$pass" >"$first" 2>&1; local rc=$?
   cat "$first"
-  local waited; waited="$(grep -o 'waited [0-9]*s for [a-z -]*' "$first" | head -1)"
+  local waited; waited="$(grep -o 'waited [1-9][0-9]*s for [a-zA-Z -]*' "$first" | head -1)"
   [ -n "$waited" ] && NOTES+=("$name $waited")
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.

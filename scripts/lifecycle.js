@@ -4,7 +4,7 @@
 // CI uses --quality low --no-shots: runners render with software GL, where full screenshots time out.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { launchChromium } from './lib/gl.js';
+import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
 import { mkdirSync } from 'node:fs';
 
 const argv = process.argv.slice(2);
@@ -15,10 +15,13 @@ const QUALITY = arg('quality', null);
 const SHOTS = !argv.includes('--no-shots');
 mkdirSync(OUT, { recursive: true });
 
+// Renders under the render lock for its GL mode (a GPU slot, or the software lock).
+const GL = glMode();
+holdRenderLock(GL);
 const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const { browser } = await launchChromium(chromium, { label: 'lifecycle' });
+const { browser } = await launchChromium(chromium, { mode: GL, label: 'lifecycle' });
 const context = await browser.newContext({ viewport: QUALITY === 'low' ? { width: 960, height: 540 } : { width: 1600, height: 900 } });
 // No CSS animation or transitions: on a slow runner an animating card never counts as stable, so
 // clicks on it time out. The checks here are about behavior, not motion.

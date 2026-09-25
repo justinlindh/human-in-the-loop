@@ -3,6 +3,7 @@
 // touch. A tip with line breaks shows its first line in bold. The tooltip flips and shifts to stay
 // on screen, never covers its element, and is linked to it with aria-describedby while shown.
 // h() turns a `title` prop into data-tip; setTip() does the same for an element made elsewhere.
+import { touchCount } from './touches.js';
 import { h } from './dom.js';
 
 const SHOW_MS = 300;       // hover or focus delay
@@ -145,7 +146,7 @@ export function createTooltips(layer) {
     if (target || scene) hide();
     clearTimeout(press?.timer);
     press = null;
-    if (e.pointerType === 'mouse') return;
+    if (e.pointerType === 'mouse' || touchCount() > 1) return;
     const el = find(e.target);
     if (el) press = { el, x: e.clientX, y: e.clientY, timer: setTimeout(() => { show(el, 'touch'); eatClick = true; }, LONG_MS) };
   }, true);

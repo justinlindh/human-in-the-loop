@@ -2,6 +2,7 @@
 // The renderer draws the ghost (setBuildMode) and maps the cursor to a tile (pickTile); this module
 // owns the bar, the cursor tip, keys, and every dispatch. Without those renderer hooks the bar still
 // works through "Place for me".
+import { multiTouch } from './touches.js';
 import { touchUI } from './media.js';
 import { h, setText, toggleClass, fmtMoney } from './dom.js';
 import { icon } from './icons.js';
@@ -165,7 +166,8 @@ export function createBuildMode({ layer, ctx, controls }) {
   addEventListener('pointerup', (e) => {
     const d = down;
     down = null;
-    if (!d || !onScene(e) || Math.hypot(e.clientX - d.x, e.clientY - d.y) > CLICK_PX) return;
+    // A pinch (two fingers) is never a tap, even if a finger lifts where it landed.
+    if (!d || !onScene(e) || multiTouch() || Math.hypot(e.clientX - d.x, e.clientY - d.y) > CLICK_PX) return;
     if (mode) {
       const at = anchorAt(e.clientX, e.clientY);
       if (!at) return;
