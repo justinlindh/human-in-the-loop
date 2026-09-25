@@ -24,6 +24,8 @@ export function createTooltips(layer) {
   layer.append(tip);
 
   let target = null, shownText = '', by = null;
+  // A tip anchored to something in the 3D scene instead of an element: { key, rect(), text() }.
+  let scene = null;
   let timer = 0, raf = 0;
   let press = null;          // { el, x, y, timer } during a touch press
   let eatClick = false;      // the release after a long-press is not a click
@@ -42,11 +44,12 @@ export function createTooltips(layer) {
   }
 
   function place() {
-    if (!target) return;
-    if (!target.isConnected || !target.dataset.tip || target.getClientRects().length === 0) { hide(); return; }
-    if (target.dataset.tip !== shownText) fill(target.dataset.tip);
+    if (!target && !scene) return;
+    const r = target ? (target.isConnected && target.getClientRects().length ? target.getBoundingClientRect() : null) : scene.rect();
+    const text = target ? target.dataset.tip : scene.text();
+    if (!r || !text) { hide(); return; }
+    if (text !== shownText) fill(text);
     const box = layer.getBoundingClientRect();
-    const r = target.getBoundingClientRect();
     const tw = tip.offsetWidth, th = tip.offsetHeight;
     // Above by default; below when there is no room above.
     const above = r.top - box.top - GAP - th >= EDGE;
@@ -60,9 +63,22 @@ export function createTooltips(layer) {
     raf = requestAnimationFrame(place);
   }
 
+  // Shows a tip for a scene object; place() follows its rect every frame and hides it when gone.
+  function showScene(anchor, how) {
+    clearTimeout(timer);
+    hide();
+    const text = anchor.text();
+    if (!text || !anchor.rect()) return;
+    scene = anchor;
+    by = how;
+    fill(text);
+    tip.style.display = '';
+    place();
+  }
+
   function show(el, how) {
     clearTimeout(timer);
-    if (target && target !== el) hide();
+    if ((target && target !== el) || scene) hide();
     target = el;
     by = how;
     fill(el.dataset.tip);
@@ -81,6 +97,7 @@ export function createTooltips(layer) {
       if (ids.length) target.setAttribute('aria-describedby', ids.join(' ')); else target.removeAttribute('aria-describedby');
     }
     target = null;
+    scene = null;
     by = null;
     tip.style.display = 'none';
   }
@@ -117,7 +134,7 @@ export function createTooltips(layer) {
     if (el && target === el && by === 'focus') hide();
     clearTimeout(timer);
   });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape' && target) hide(); }, true);
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && (target || scene)) hide(); }, true);
 
   // Any press dismisses a shown tip, on its own element too (tapping the Team chip opens Staff, and
   // the tip must not sit over the panel). Listening on window catches taps on the 3D scene, which
@@ -125,7 +142,7 @@ export function createTooltips(layer) {
   addEventListener('pointerdown', (e) => {
     eatClick = false;
     clearTimeout(timer);
-    if (target) hide();
+    if (target || scene) hide();
     clearTimeout(press?.timer);
     press = null;
     if (e.pointerType === 'mouse') return;
@@ -144,7 +161,14 @@ export function createTooltips(layer) {
     if (target && target.contains(e.target)) hide();
   }, true);
   layer.addEventListener('contextmenu', (e) => { if (press || by === 'touch') e.preventDefault(); }, true);
-  addEventListener('wheel', () => { if (target && by === 'hover') hide(); }, { passive: true });
+  addEventListener('wheel', () => { if ((target || scene) && by === 'hover') hide(); }, { passive: true });
 
-  return { hide, get open() { return !!target; }, show };
+  return {
+    hide,
+    get open() { return !!(target || scene); },
+    show,
+    showScene,
+    get sceneKey() { return scene?.key ?? null; },
+    get sceneBy() { return scene ? by : null; },
+  };
 }

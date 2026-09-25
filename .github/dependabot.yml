@@ -16,6 +16,12 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Majors 10 and up of the preset target conventional-changelog-writer 9, but
+      # @semantic-release/release-notes-generator uses writer 8, so release notes would break.
+      # Drop this once release-notes-generator depends on writer 9 or later.
+      - dependency-name: conventional-changelog-conventionalcommits
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

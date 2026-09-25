@@ -75,6 +75,8 @@ export const ON_EVENT = {
   hire: 'sfx.hire',
   resign: (e) => (e.fired ? null : isWarmExit(e) ? 'sfx.farewell' : 'sfx.resign'),
   decision: 'ui.decision',
+  // The player's pick already clicked in the UI; the resolution itself makes no sound.
+  decisionResolved: null,
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),

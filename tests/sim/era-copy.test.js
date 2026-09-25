@@ -68,3 +68,22 @@ describe('the two coffee items', () => {
     expect(ITEMS.espresso.desc).toMatch(/whole office/);
   });
 });
+
+describe('issue #321: every line pool has something to say in every era', () => {
+  it('standup and chatter pools always hold a line that fits Classic and the ChatGBT moment', async () => {
+    const { STANDUP } = await import('../../src/data/standup.js');
+    const { CHATTER } = await import('../../src/data/chatter.js');
+    const { eraOnlyAllowsText } = await import('../../src/sim/eras.js');
+    const { classicGame } = await import('./helpers.js');
+    const s = classicGame(1);
+    for (const era of ['classic', 'chatgbt']) {
+      s.era = { id: era, since: 0 };
+      for (const [name, pools] of [['standup', STANDUP], ['chatter', CHATTER]]) {
+        for (const [key, lines] of Object.entries(pools)) {
+          if (!Array.isArray(lines) || typeof lines[0] !== 'string') continue;
+          expect(lines.some((l) => eraOnlyAllowsText(s, l)), `${name}.${key} in ${era}`).toBe(true);
+        }
+      }
+    }
+  });
+});

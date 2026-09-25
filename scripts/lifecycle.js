@@ -136,6 +136,14 @@ try {
   const hold = await page.evaluate(async () => {
     const H = window.__HITL;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Pause takes effect on the next frame, and software rendering on a busy machine can go seconds
+    // between frames, so the check counts frames rather than milliseconds. The limit only catches a
+    // page that stopped rendering altogether.
+    const frames = async (n, limitMs) => {
+      const until = H.clock.frames + n; const t0 = performance.now();
+      while (H.clock.frames < until && performance.now() - t0 < limitMs) await wait(50);
+      return H.clock.frames >= until;
+    };
     let routed = 0;
     const api = window.__HITL_UI;
     const orig = api.handleEvents;
@@ -144,23 +152,26 @@ try {
     for (let g = 0; g < 5 && H.state.pendingDecision; g++) H.dispatch({ type: 'resolveDecision', choice: 0 });
     for (let i = 0; i < 10 && H.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
     H.controls.setSpeed(1);
-    const day0 = H.clock.dayClock;
+    const day0 = H.clock.dayClock; const f0 = H.clock.frames; const t0 = performance.now();
     await wait(1500);
+    await frames(2, 60000);
     const dayMoved = H.clock.dayClock !== day0;
+    const fps = Math.round(((H.clock.frames - f0) / ((performance.now() - t0) / 1000)) * 10) / 10;
     const before = { busy: H.clock.busy, pending: !!H.state.pendingDecision };
     H.controls.setSpeed(0);
-    await wait(300);
+    const settled = await frames(1, 60000);
     const a = { ...H.clock, week: H.state.week };
     routed = 0;
-    await wait(3000);
+    await wait(1000);
+    const held = await frames(3, 60000);
     const b = { ...H.clock, week: H.state.week };
     api.handleEvents = orig;
-    return { dayMoved, before, a, b, routed, rendererPaused: H.controls.renderer?.paused ?? 'n/a' };
+    return { dayMoved, fps, settled, held, before, a, b, routed, rendererPaused: H.controls.renderer?.paused ?? 'n/a' };
   });
   const same = (k) => hold.a[k] === hold.b[k];
   check('pause holds the clock, the week, the day, and events',
-    hold.dayMoved && hold.b.frozen && same('acc') && same('week') && same('dayClock') && same('queued') && hold.routed === 0 && hold.rendererPaused !== false,
-    JSON.stringify({ dayMoved: hold.dayMoved, before: hold.before, acc: hold.b.acc, week: hold.b.week, day: hold.b.dayClock, queued: hold.b.queued, routed: hold.routed, rendererPaused: hold.rendererPaused }));
+    hold.dayMoved && hold.settled && hold.held && hold.b.frozen && same('acc') && same('week') && same('dayClock') && same('queued') && hold.routed === 0 && hold.rendererPaused !== false,
+    JSON.stringify({ dayMoved: hold.dayMoved, fps: hold.fps, settled: hold.settled, held: hold.held, frozen: hold.b.frozen, before: hold.before, acc: hold.b.acc, week: hold.b.week, day: hold.b.dayClock, queued: hold.b.queued, routed: hold.routed, rendererPaused: hold.rendererPaused }));
 
   // Auto-pause: focus leaving the page pauses and saves; coming back does not resume.
   const away = await page.evaluate(async () => {

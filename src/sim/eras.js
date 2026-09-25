@@ -21,6 +21,11 @@ const AI_WORDS = /\b(AI|LLMs?|GPUs?|agents?|agentic|models?|prompts?|prompting|C
 
 export const isAiText = (text) => AI_WORDS.test(text);
 
+// Agents arrive with their own era: before it, even ChatGBT-era text must not talk about them.
+const AGENT_WORDS = /\b(agents?|agentic)\b/i;
+export const isAgentText = (text) => AGENT_WORDS.test(text);
+const agentsAllowed = (state, text) => !AGENT_WORDS.test(text) || eraAtLeast(state, 'agents');
+
 // Lines that name a piece of office furniture only fit when the office has one.
 const NEEDS_ITEM = [
   [/office plant/i, ['plant', 'plant_wall']],
@@ -42,7 +47,7 @@ const officeHas = (state, text) => NEEDS_ITEM.every(([re, ids]) => !re.test(text
   || (state.office?.placed ?? []).some((p) => ids.includes(p.itemId)));
 
 // Whether text fits the current era, ignoring the office (events gate on the office themselves).
-export const eraOnlyAllowsText = (state, text) => eraIndex(state) > 0 || !isAiText(String(text ?? ''));
+export const eraOnlyAllowsText = (state, text) => (eraIndex(state) > 0 || !isAiText(String(text ?? ''))) && agentsAllowed(state, String(text ?? ''));
 
 // Words that assume progress the company may not have yet, and what they need.
 export const NEEDS_PROGRESS = [
@@ -60,7 +65,7 @@ const progressAllows = (state, text) => NEEDS_PROGRESS.every(([re, ok]) => !re.t
 // Whether a piece of player-facing text fits the current era, the office as it is, and the company's progress.
 export const eraAllowsText = (state, text) => {
   const t = String(text ?? '');
-  return (eraIndex(state) > 0 || !isAiText(t)) && officeHas(state, t) && progressAllows(state, t);
+  return (eraIndex(state) > 0 || !isAiText(t)) && agentsAllowed(state, t) && officeHas(state, t) && progressAllows(state, t);
 };
 
 // Filters a pool of lines to the ones that fit. If none fit, falls back to the lines that at least fit the
