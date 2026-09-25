@@ -31,7 +31,9 @@ mkdir -p "$DIR"
 source "$HERE/lib/timing.sh"
 label() {
   local a b
-  for a in "$@"; do
+  # Word by word, so a job given as one bash -c string is labelled by its first real command.
+  for a in $*; do
+    a="${a//\'/}"; a="${a//\"/}"; [ -n "$a" ] || continue
     b="$(basename -- "$a")"
     case "$b" in node|npm|npx|bash|sh|run|timeout|nice|-*|[0-9]*) continue ;; esac
     echo "$b"; return

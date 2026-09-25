@@ -41,7 +41,10 @@ async function launch(gpu) {
 export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
   // Every check renders under the render lock for its mode: a GPU slot, or the software lock.
   holdRenderLock(gpu ? 'gpu' : 'software');
-  const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
+  // HITL_VITE_CACHE gives the server its own dependency cache, so checks running side by side never
+  // re-optimize (and reload) each other's dependencies.
+  const cacheDir = process.env.HITL_VITE_CACHE || undefined;
+  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];
   const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));

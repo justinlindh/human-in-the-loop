@@ -34,7 +34,8 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 
 CI internals, which rarely need touching:
 - `scripts/ci-classify.sh` with `scripts/ci-skip-paths` gives docs-only changes the light gate.
-- `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance.
+- `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance. A pass is also recorded under a hash of the suite's inputs (the sim, its data, the balance test, the test config, the lockfile and Node), so the same inputs skip it later. `HITL_NO_CHECK_CACHE=1` turns this off.
+- `scripts/lib/run-parallel.sh` runs commands side by side, each with its own vite dependency cache (`HITL_VITE_CACHE`), and prints their output in order.
 - `scripts/ci-trusted` is the allowlist of PR authors that local CI will run.
 - `scripts/ci-bot-check.sh` guards the Dependabot path.
 - `scripts/render-lock-held.sh` lets nested jobs share a render lock.
@@ -70,7 +71,7 @@ CI internals, which rarely need touching:
 
 ## Render checks (art owns these; local CI runs them)
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip, standup and the sweep (fast mode) as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip (with and without the rig), standup and the sweep (fast mode) side by side as `render-checks` on one GPU slot, and golden as `golden` under the software lock.
 
 | Check | What it guards |
 |---|---|

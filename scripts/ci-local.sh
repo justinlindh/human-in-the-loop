@@ -81,14 +81,36 @@ fi
 # Vitest defaults to a worker per core, so a few runs at once (several PRs gating, or balance beside
 # test:fast) oversubscribe the machine and slow bot-run tests past their timeout. Each run takes a share.
 VITEST_WORKERS="${VITEST_WORKERS:-$(( $(nproc) / 3 > 4 ? $(nproc) / 3 : 4 ))}"
+# The suite is deterministic in its inputs: the sim and its data (which import nothing else), the
+# balance test and its worker, the test config, the lockfile and Node. A pass is recorded under that
+# hash, and the same inputs later skip the suite (a retest, or main moving without touching the sim).
+# HITL_NO_CHECK_CACHE=1 turns this off, as it does for the render checks.
+BAL_CACHE="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/balance"
+balance_hash() {
+  { node --version
+    find src/sim src/data tests/sim/balance.test.js tests/sim/balance-worker.js vite.config.js package-lock.json -type f 2>/dev/null \
+      | LC_ALL=C sort | xargs sha256sum
+  } | sha256sum | cut -c1-32
+}
+bal_hash=""; bal_passed=""
+if [ "$bal_mode" != light ] && [ "${HITL_NO_CHECK_CACHE:-}" != 1 ]; then
+  bal_hash="$(balance_hash 2>/dev/null)" || bal_hash=""
+  [ -n "$bal_hash" ] && [ -f "$BAL_CACHE/$bal_hash.pass" ] && bal_passed="$(cat "$BAL_CACHE/$bal_hash.pass")"
+  [ -n "$bal_hash" ] && timing_log kind=cache tool=test:balance cache="$([ -n "$bal_passed" ] && echo hit || echo miss)" input="$bal_hash"
+fi
 bal_t0=$(now)
 if [ "$bal_mode" = light ]; then
   echo "test:balance: skipped: no sim changes"
+elif [ -n "$bal_passed" ]; then
+  echo "test:balance: skipped: these sim inputs passed on ${bal_passed:-an earlier run}"
 else
   (
     c0=$(timing_child_cpu); t0=$(now); rc=0
     npm run test:balance || rc=$?
     timing_log kind=step tool=ci-local step=test:balance wall_s=$(( $(now) - t0 )) cpu_s="$(awk -v a="$(timing_child_cpu)" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')" exit=$rc
+    if [ $rc -eq 0 ] && [ -n "$bal_hash" ]; then
+      { mkdir -p "$BAL_CACHE" && git rev-parse --short HEAD >"$BAL_CACHE/$bal_hash.pass"; } 2>/dev/null || true
+    fi
     exit $rc
   ) >"$LOGS/test:balance.log" 2>&1 &
   bal_pid=$!
@@ -133,12 +155,14 @@ render_step() { # <name> <gpu|software> <command>
   NOTES+=("$name failed twice. First pass: ${why:-exit without a message}")
   return 1
 }
-step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/sweep.mjs --gpu --out shots/sweep'
+# The four render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
+step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' 'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs' 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
-if [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 wall_s=0 exit=0;
+if [ -n "$bal_passed" ]; then record test:balance "skipped: these sim inputs passed on $bal_passed" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 cached=1 wall_s=0 exit=0;
+elif [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 wall_s=0 exit=0;
 elif wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
 else record test:balance FAIL $(( $(now) - bal_t0 )); echo "---- test:balance failed; last lines:"; tail -n 25 "$LOGS/test:balance.log"; fi
 
