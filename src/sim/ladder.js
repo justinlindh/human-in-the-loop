@@ -1,12 +1,12 @@
 import { B } from './balance.js';
-import { chance, int, pick, range, shuffle } from './rng.js';
+import { chance, int, pick, range, shuffle, next } from './rng.js';
 import { clamp, newId } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { raiseDecision } from './events.js';
 import { liveProducts } from './projects.js';
 import { eraAtLeast } from './eras.js';
-import { FIRST_NAMES, LAST_NAMES } from '../data/names.js';
+import { FIRST_NAMES, LAST_NAMES, FAMOUS_NAMES } from '../data/names.js';
 import { RIVAL_NAMES, PET_NAMES, CALL_SCRIPTS } from '../data/ladder.js';
 
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
@@ -57,13 +57,21 @@ function lockdownStep(ctx) {
   }
 }
 
+// A rival founder's name: a first and last name, moving to the next last name if the pair is someone famous.
+function rivalFounder(rng) {
+  const first = pick(rng, FIRST_NAMES);
+  let i = Math.floor(next(rng) * LAST_NAMES.length);
+  while (FAMOUS_NAMES.has(`${first} ${LAST_NAMES[i]}`)) i = (i + 1) % LAST_NAMES.length;
+  return `${first} ${LAST_NAMES[i]}`;
+}
+
 function rivalStep(ctx) {
   const { state } = ctx;
   const live = liveProducts(state);
   if (!state.rival && state.stats.launches >= 2 && state.week >= B.rivalFromWeek && live.length) {
     const category = pick(ctx.rng, live).category;
     state.rival = {
-      name: pick(ctx.rng, RIVAL_NAMES), founderName: `${pick(ctx.rng, FIRST_NAMES)} ${pick(ctx.rng, LAST_NAMES)}`,
+      name: pick(ctx.rng, RIVAL_NAMES), founderName: rivalFounder(ctx.rng),
       logoColor: pick(ctx.rng, ['#e5484d', '#9b6bff', '#34c38f', '#4f8cff', '#ffb020']), categoryId: category,
       strength: B.rivalStartStrength, status: 'rising',
     };
