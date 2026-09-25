@@ -1186,6 +1186,7 @@
   .hitl .tray-toggle .tsb.hot b { color: var(--bad); }
   .hitl .tray { top: calc(var(--topbar-h, 4.6em) + 0.5em + 44px + 0.6em); max-height: calc(100% - var(--topbar-h, 4.6em) - 44px - var(--bottom-h, 12em) - 2.3em); overflow-y: auto; overscroll-behavior: contain; }
   .hitl.tray-shut .tray { display: none; }
+}
 
 /* Yak sizes: S, M, L in the header, a drag handle on the top edge, and a maximize button that
    opens a big overlay (full screen on phones). */
