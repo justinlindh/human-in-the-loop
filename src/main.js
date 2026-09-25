@@ -226,14 +226,16 @@ async function boot() {
   // Spotlight hold: while the renderer plays a spotlight moment (renderer.spotlight() returns it),
   // no sim ticks run, queued events wait and the day doesn't turn, but the office keeps moving: the
   // hold stops the clock, it doesn't freeze the renderer. It composes with the decision freeze (a
-  // spotlight behind its card keeps the clock stopped until the moment ends), and one that outlasts
-  // SPOTLIGHT_MAX_S is let go.
+  // spotlight behind its card keeps the clock stopped until the moment ends), and one that holds it
+  // alone for more than SPOTLIGHT_MAX_S is let go. Only frames where nothing else stops the clock
+  // (a card, pause, a menu, a hidden tab) count toward that, so reading a card never costs the moment.
   let spot = null;          // { key, kind, heldFor } while a hold is on
   let spotStuck = null;     // the key of a moment let go for running too long
-  function spotlightHold(dt) {
+  function spotlightHold(dt, alone) {
     const s = renderer?.spotlight?.() ?? null;
     if (!s || s.key === spotStuck) { spot = null; if (!s) spotStuck = null; return false; }
-    spot = spot?.key === s.key ? { ...spot, heldFor: spot.heldFor + dt } : { key: s.key, kind: s.kind, heldFor: 0 };
+    const add = alone ? dt : 0;
+    spot = spot?.key === s.key ? { ...spot, heldFor: spot.heldFor + add } : { key: s.key, kind: s.kind, heldFor: add };
     if (spot.heldFor > SPOTLIGHT_MAX_S) {
       console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} held the clock over ${SPOTLIGHT_MAX_S}s; letting go`);
       spotStuck = s.key; spot = null; return false;
@@ -247,8 +249,9 @@ async function boot() {
     last = now;
     // The UI reports busy while a panel or modal is open (auto-pause for menus).
     const menuPause = ui?.isBusy?.() === true;
-    const held = spotlightHold(dt);
-    const running = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden && !held;
+    const free = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
+    const held = spotlightHold(dt, free && speed > 0);
+    const running = free && !held;
     if (pacer.step(dt, { speed, running })) {
       route(pacer.schedule(sim.tick()), sim.state);
       pacer.takeDropped();
