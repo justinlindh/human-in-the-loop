@@ -287,6 +287,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     }
   }
 
+  // The stylesheet's phone layout (narrow, or short in landscape).
+  const PHONE = typeof matchMedia === 'function' ? matchMedia('(max-width: 480px), (max-height: 500px)') : { matches: false };
+
   // New office items: when the stage, the first award, or the era opens items up, announce them.
   // A different state object (a new game or a load) resets the baseline without announcing.
   let itemsState = null, itemsSig = null, itemsSeen = null;
@@ -306,6 +309,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
+    toasts.setHidden(PHONE.matches && (buildMode.on || !!popups.open));
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);

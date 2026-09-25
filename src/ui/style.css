@@ -1276,3 +1276,13 @@
 @media (max-height: 500px) {
   .hitl .modal-back.docked, .hitl .announce-back.docked { padding: 0.4em; }
 }
+
+/* Phones: the New Product form is one column (the team list and summary below the choices). */
+@media (max-width: 480px) {
+  .hitl .buildgrid { grid-template-columns: minmax(0, 1fr); }
+}
+/* Touch: icon-only buttons grow to 44 px, so their glyphs grow with them (about 45% of the tile). */
+@media (pointer: coarse) {
+  .hitl .chip.speed .btn .ic, .hitl .chip.speed .gear .ic, .hitl .chip.speed .mute .ic, .hitl .chat-head .ysz .ic { font-size: 20px; }
+  .hitl .tray-toggle .tsb .ic { font-size: 16px; }
+}

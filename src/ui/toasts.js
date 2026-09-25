@@ -103,13 +103,39 @@ export function createToasts(root) {
     show(text, tone, opts);
   }
 
-  function show(text, tone = 'info', { action, glyph } = {}) {
+  // While hidden (a phone during placement or a card), toasts wait instead of timing out unseen.
+  // When the view clears, warnings always show; info and good ones only if still fresh.
+  const STALE_MS = 10000, MAX_WAITING = 10;
+  let hidden = false, waiting = [];
+  function setHidden(on) {
+    on = !!on;
+    if (on === hidden) return;
+    hidden = on;
+    if (on) {
+      for (const t of [...live]) { waiting.push({ text: t.text, tone: t.tone, opts: { action: t.action, glyph: t.glyph }, at: t.at }); remove(t); }
+      waiting = waiting.slice(-MAX_WAITING);
+      return;
+    }
+    const now = performance.now();
+    const due = waiting.filter((w) => w.tone === 'warn' || w.tone === 'bad' || now - w.at < STALE_MS);
+    waiting = [];
+    // Least important first, so the most important are the last trimmed to the phone's two.
+    due.sort((a, b) => (RANK[a.tone] - RANK[b.tone]) || (a.at - b.at));
+    for (const w of due) show(w.text, w.tone, w.opts, w.at);
+  }
+
+  function show(text, tone = 'info', { action, glyph } = {}, at = performance.now()) {
     if (!text) return;
+    if (hidden) {
+      waiting.push({ text, tone: toneOf(tone), opts: { action, glyph }, at });
+      if (waiting.length > MAX_WAITING) waiting.shift();
+      return;
+    }
     const now = performance.now();
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;
-    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph };
+    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, at };
     live.push(t);
     t.timer = setTimeout(() => remove(t), LIFE[t.tone]);
     if (dock) renderDock();
@@ -127,5 +153,5 @@ export function createToasts(root) {
     refreshMore();
   }
 
-  return { push, setDock, setWeek, el };
+  return { push, setDock, setWeek, setHidden, el };
 }
