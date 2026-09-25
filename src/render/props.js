@@ -996,18 +996,17 @@ function printerWrecked() {
   g.add(bat);
   return g;
 }
-// Out the door on the ground: the driveway, the campus. The Office Floor is a storey up with its
-// street out of view, so there the pieces lie inside, a little way in from the door.
+// Inside, a little way in from the door: where the printer was taken to be smashed.
 const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
 const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
-function outside(build, scale = 1) {
+function byDoor(build, scale = 1) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
     const item = build();
     item.scale.setScalar(scale);
     g.add(item);
     const d = L.doorWorld;
-    if (L.name === 'Office Floor') {
+    {
       // In from the door, clear of the cut-away front wall and away from the columns, so the smash
       // that leaves it shows from either side.
       const cols = (L.blocked ?? []).map(([bx, by]) => ({ x: bx + 0.5 - L.W / 2, z: by + 0.5 - L.D / 2 }));
@@ -1021,9 +1020,6 @@ function outside(build, scale = 1) {
       }
       g.position.set(p.x, 0, p.z);
       g.userData.blocks = true;
-    } else {
-      const out = Math.abs(d.z) >= L.D / 2 - 1.2 ? [0, Math.sign(d.z)] : [Math.sign(d.x), 0];
-      g.position.set(d.x + out[0] * 2.2 + out[1] * 1.2, -0.3, d.z + out[1] * 2.2 - out[0] * 1.2);
     }
     g.rotation.y = 0.4;
     return g;
@@ -1250,7 +1246,7 @@ const BUILDERS = {
   cover_sheets: atDesk(coverSheets, FLAT),
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
   printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
-  printer_wrecked: outside(printerWrecked, 1.2),
+  printer_wrecked: byDoor(printerWrecked, 1.2),
   printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
   whiteboard_scrawl: whiteboardScrawl,
   mug_pile: atDesk(mugPile, { x: 0.2, z: -0.25, rot: 0.3, scale: 1.1, sprawl: true }),
