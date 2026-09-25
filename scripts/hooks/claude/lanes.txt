@@ -17,3 +17,4 @@ tools    blender/checks/ scripts/events/
 perf     scripts/perf/ scripts/lib/
 mobile   scripts/phone-check.js
 trailer  scripts/trailer/ docs/trailer/
+video    scripts/capture-manifest.js scripts/nods-reel.sh scripts/sheet.sh scripts/reels/ scripts/feature-media/

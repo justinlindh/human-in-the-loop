@@ -14,6 +14,7 @@
     "ci": "bash scripts/ci-local.sh",
     "gates": "bash scripts/gates.sh",
     "toolkit": "node scripts/toolkit.mjs",
+    "feature-media": "node scripts/feature-media/render.mjs",
     "balance": "node scripts/balance.js",
     "snap": "node scripts/snap.js",
     "pace": "node scripts/pace.js",
