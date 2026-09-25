@@ -114,7 +114,8 @@ export function productsSystem(ctx) {
       + (p.hype / 10 > p.score + B.wrapperGap ? B.wrapperChurn : 0)
       + state.ops.supportShortfall * B.supportShortfallChurn
       + (1 - Math.min(10, p.novelty) / 10) * B.staleChurn
-      + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn;
+      + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn
+      * (1 - B.fameChurnRelief * (state.fame ?? 0) / 100);
     p.customers = Math.max(0, Math.floor(p.customers * (1 - churn)));
 
     if (shortfall > 0) p.health -= decay * shortfall;
