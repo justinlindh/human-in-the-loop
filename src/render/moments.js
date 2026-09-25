@@ -44,7 +44,7 @@ const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
 const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
 const TWIST_STEP = 0.1, END_ON_HOLD = 0.8, TWIST_EASE = 0.3;   // metres: turn samples, how far an end-on stretch reaches, and its easing
-const SWING_HIT = 0.605;     // seconds from the start of the 'swing' pose to its blow (character.js)
+const SWING_HIT = 0.605;     // seconds from the start of the 'batswing' pose to its blow (character.js)
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
 // The letter sheet: paper with lines of text and a big red stamp, both faces (the camera sees its back).
 const SHEET_GEO = new THREE.PlaneGeometry(0.26, 0.32);
@@ -682,7 +682,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
         pm.swingSpot = swingSpot(pm, c);
         a.temp.stage.beat = b.temp.stage.beat = 'watch';
         setAnim(a, 'idle'); setAnim(b, 'idle');
-        if (bat) { setAnim(bat, 'shoulderwalk'); bat.temp.stage = { beat: 'smash', role: 'bat', held: pm.bat, target: pm.obj }; }
+        if (bat) { setAnim(bat, 'shoulderwalk'); bat.temp.stage = { beat: 'ready', role: 'bat', held: pm.bat, target: pm.obj }; }
       }
       return;
     }
@@ -701,13 +701,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       }
       // Both carriers turn to watch it get what it deserves.
       [a, b].forEach((r) => { r.yaw = angleTo(r, c); });
-      if (k >= 1 && t >= CUE.wind) { pm.phase = 'smash'; pm.t = 0; }
+      if (k >= 1 && t >= CUE.wind) { pm.phase = 'smash'; pm.t = 0; if (bat) bat.temp.stage.beat = 'smash'; }
       return;
     }
     if (pm.phase === 'smash') {
       const next = CUE.hits[pm.hit];
       // Each blow: the swing starts so its downstroke lands on the word; between blows, back on the shoulder.
-      if (bat && next != null && pm.swung < pm.hit && t >= next - SWING_HIT) { pm.swung = pm.hit; pm.bat.rotation.set(0, 0, 0); setAnim(bat, 'swing', true); }
+      if (bat && next != null && pm.swung < pm.hit && t >= next - SWING_HIT) { pm.swung = pm.hit; pm.bat.rotation.set(0, 0, 0); setAnim(bat, 'batswing', true); }
       if (next != null && t >= next) {
         pm.hit++;
         const c = pm.end;
@@ -743,19 +743,23 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     // placed with room clear around it, so inside its footprint only chairs are tested.
     const wreckBox = new THREE.Box3().setFromObject(pm.wreck).expandByScalar(0.35);
     const blocked = (q) => (!wreckBox.containsPoint(_q.set(q.x, 0.1, q.z)) && nav.isBlocked(q.x, q.z, BODY_R)) || chairs.some((h) => Math.hypot(h.x - q.x, h.z - q.z) < CHAIR_CLEAR);
+    // Anything in the way on screen costs 2 (a column, the printer, or out of view), sharing a screen
+    // strip with a carrier costs 1; the first spot with the least cost wins.
+    const cols = (office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: 0.3, top: col.h }));
+    const strips = carriers.map((p) => ({ ...p, r: 0.3, top: 1.1, either: true }));
+    let best = null, bestCost = Infinity;
     for (const d of [1.3, -1.3, 1, -1, 1.7, -1.7, 0.6, -0.6, 2.2, -2.2, 0, Math.PI]) {
       const q = { x: c.x + Math.sin(away + d) * SWING_AT, z: c.z + Math.cos(away + d) * SWING_AT };
-      if (blocked(q)) continue;
-      if (carriers.some((p) => Math.hypot(p.x - q.x, p.z - q.z) < 0.6)) continue;
-      if (!inView(q)) continue;
-      const blockers = [...(office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: 0.3, top: col.h })), ...carriers.map((p) => ({ ...p, r: 0.3, top: 1.1 })), { x: c.x, z: c.z, r: 0.35, top: 0.55 }];
-      if (screenBlocked(q, blockers)) continue;
-      return q;
+      if (blocked(q) || carriers.some((p) => Math.hypot(p.x - q.x, p.z - q.z) < 0.6)) continue;
+      const cost = (inView(q) ? 0 : 2) + (screenBlocked(q, [...cols, { x: c.x, z: c.z, r: 0.35, top: 0.55 }]) ? 2 : 0) + (screenBlocked(q, strips) ? 1 : 0);
+      if (cost < bestCost) { best = q; bestCost = cost; }
+      if (!cost) break;
     }
-    return { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT };
+    return best ?? { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT };
   }
   // Whether anything in blockers ({ x, z, r, top }) stands in front of a person at q on screen: the
-  // same test the office uses to fade a column over someone.
+  // same test the office uses to fade a column over someone. `either` blockers also count from behind
+  // (two people in one screen strip read as a tangle whichever is in front).
   const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Vector3();
   function screenBlocked(q, blockers) {
     const cam = getCamera?.();
@@ -768,7 +772,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       _b.set(b.x, b.top, b.z).project(cam);
       const half = (b.r * Math.abs(_b.y - _a.y)) / b.top + 0.02;
       if (Math.abs(_p.x - _a.x) > half + 0.03 || _p.y < _a.y - 0.02 || _p.y > _b.y + 0.02) return false;
-      return cam.position.distanceTo(_q.set(b.x, 0.5, b.z)) < dq;
+      return b.either || cam.position.distanceTo(_q.set(b.x, 0.5, b.z)) < dq;
     });
   }
   function angleTo(r, c) { return Math.atan2(c.x - r.pos.x, c.z - r.pos.z); }

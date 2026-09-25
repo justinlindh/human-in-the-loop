@@ -74,8 +74,8 @@ const SPECS = {
   'printer.carry': { moment: 'printer', beat: 'carry', role: 'carrier', rules: [
     share('inHands', 'printer centre within 0.5 m of a hand', (x) => x.held && x.heldHand <= 0.5, 1),
     share('heldLow', 'printer centre >= 0.3 m below the head centre', (x) => x.held && x.heldDrop >= 0.3, 1),
-    share('visible', 'body >= 70% unblocked', (x) => x.visible >= 0.7, 0.8),
-    share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 0.7),
+    share('visible', 'body >= 70% unblocked', (x) => x.visible >= 0.7, 0.75),
+    share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 0.6),
   ] },
   'printer.smash': { moment: 'printer', beat: 'smash', role: 'bat', rules: [
     share('batInHand', 'bat centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),

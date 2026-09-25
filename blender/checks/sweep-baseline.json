@@ -7,54 +7,6 @@
    "issue": 363
   },
   {
-   "key": "float|binder|desk",
-   "worst": 0.02,
-   "state": "mock:floor",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|envelope",
-   "worst": 0.02,
-   "state": "moment:resignation_letter",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|envelope_thick",
-   "worst": 0.02,
-   "state": "moment:hearing_summons",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|gift_cards",
-   "worst": 0.022,
-   "state": "mock:floor",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|photos_laminated",
-   "worst": 0.02,
-   "state": "moment:pet_request",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|pizza_boxes",
-   "worst": 0.02,
-   "state": "moment:pizza_boxes",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|smoothie",
-   "worst": 0.02,
-   "state": "moment:investor_demo_day",
-   "issue": 363
-  },
-  {
-   "key": "float|desk|sticky_notes",
-   "worst": 0.02,
-   "state": "moment:junior_overwhelmed",
-   "issue": 363
-  },
-  {
    "key": "overlap|bookshelf/pal_fabric_slate|wall_z/pal_plastic_white",
    "worst": 0.01,
    "state": "seed:1:w303",

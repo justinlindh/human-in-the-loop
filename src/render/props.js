@@ -496,7 +496,7 @@ function follow(g, e) {
 function onFloor(build, opts = {}) {
   return atDesk(build, { x: 0.95, z: 0.1, rot: 0, y: 0, scale: 1, ...opts });
 }
-const TOP_Y = 0.59;         // the desk model's top surface
+const TOP_Y = 0.57;         // the desk model's top surface
 const DESK_PROP_SCALE = 1.6;
 // Flat paper needs more size than objects to read from above. It sits on the sitter's right, where
 // their head does not hide it from the camera.
@@ -859,9 +859,11 @@ function printerWrecked() {
   const g = new THREE.Group();
   const body = printerBody(true);
   body.rotation.set(0.25, 0.6, -0.35);
-  body.position.y = 0.06;
   body.scale.set(1, 0.7, 1);
   g.add(body);
+  // Tipped over, its lowest corner rests on the floor.
+  body.updateMatrixWorld(true);
+  body.position.y = -new THREE.Box3().setFromObject(body).min.y + 0.002;
   const bits = [[0.5, 0.2, 'pot_cream'], [-0.45, 0.35, 'metal_soft'], [0.3, -0.45, 'pot_cream'], [-0.2, -0.5, 'metal_dark'], [0.62, -0.1, 'paper'], [-0.6, -0.1, 'paper']];
   bits.forEach(([x, z, m], i) => {
     const b = mesh(roundedBox(0.09 + (i % 3) * 0.03, 0.03, 0.07 + (i % 2) * 0.04, 0.01, 1), mat(m), x, 0.015, z);
@@ -870,8 +872,9 @@ function printerWrecked() {
   });
   const bat = new THREE.Group();
   bat.add(mesh(roundedCylinder(0.03, 0.05, 0.8, 0.02, 10), mat('wood_light'), 0, 0, 0));
-  bat.rotation.z = 0.5;
-  bat.position.set(0.42, 0, 0.18);
+  // Dropped flat on the floor beside it.
+  bat.rotation.set(0, 0.4, Math.PI / 2);
+  bat.position.set(0.55, 0.05, 0.25);
   g.add(bat);
   return g;
 }
@@ -938,5 +941,5 @@ const BUILDERS = {
   cover_sheets: atDesk(coverSheets, FLAT),
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
   printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
-  printer_wrecked: outside(printerWrecked, 1.6),
+  printer_wrecked: outside(printerWrecked, 1.35),
 };

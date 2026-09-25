@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -563,13 +563,26 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         }
         break;
       case 'swing': {
-        // Wind up overhead, then bring it down hard, once a second.
-        const cyc = (t % 1.1) / 1.1;
+        // Wind up overhead, then bring it down hard, once a second, the first blow 0.6 s after it starts.
+        const cyc = (animT % 1.1) / 1.1;
         const down = cyc < 0.55 ? cyc / 0.55 : cyc < 0.7 ? 1 : 1 - (cyc - 0.7) / 0.3;
         const e = down * down;
         tgt.armRX = tgt.armLX = -3.0 + e * 2.3;
         tgt.armRZ = -0.1; tgt.armLZ = 0.1;
         tgt.lean = -0.12 + e * 0.4;
+        tgt.bodyY = -e * 0.03;
+        break;
+      }
+      case 'batswing': {
+        // Two-handed overhead, brought down onto something at waist height in front: the stroke ends
+        // with the arms just below level, so what they hold lands flat on its top. One blow a second,
+        // the first 0.6 s after it starts.
+        const cyc = (animT % 1.1) / 1.1;
+        const down = cyc < 0.55 ? cyc / 0.55 : cyc < 0.7 ? 1 : 1 - (cyc - 0.7) / 0.3;
+        const e = down * down;
+        tgt.armRX = tgt.armLX = -3.0 + e * 1.25;
+        tgt.armRZ = -0.1; tgt.armLZ = 0.1;
+        tgt.lean = -0.12 + e * 0.3;
         tgt.bodyY = -e * 0.03;
         break;
       }
