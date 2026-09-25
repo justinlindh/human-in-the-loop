@@ -51,21 +51,32 @@ export function createProps(office, screens = null) {
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
       if (!obj) continue;
+      if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
       live.set(w.key, { obj, t: 0, gone: false });
     }
+    pushObstacles();
+  }
+
+  // Props standing on the floor block walking while they are up (office.setPropObstacles).
+  function pushObstacles() {
+    office.setPropObstacles?.([...live.values()].filter((e) => !e.gone && e.obj.userData.rect).map((e) => e.obj.userData.rect));
   }
 
   function update(dt) {
+    let moved = false;
     for (const [k, e] of live) {
       e.t += dt;
       e.obj.userData.tick?.(dt);
       const f = e.obj.userData.follow;
       if (f && !e.gone) {
         const desk = office.placed?.get(f.deskId);
-        if (desk) follow(e.obj, desk);
-        else { e.gone = true; e.t = 0; dropped.add(k); }
+        if (desk) {
+          follow(e.obj, desk);
+          const r = e.obj.userData.rect;
+          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj); moved = true; }
+        } else { e.gone = true; e.t = 0; dropped.add(k); moved = true; }
       }
       // Effects are built in office coordinates and fade on their own: no pop, no shrink.
       if (e.obj.userData.noPop) {
@@ -73,6 +84,7 @@ export function createProps(office, screens = null) {
         continue;
       }
       if (e.gone) {
+        if (e.obj.userData.rect) { e.obj.userData.rect = null; moved = true; }
         const q = Math.min(1, e.t / GONE_S);
         e.obj.scale.setScalar(Math.max(0.001, 1 - q));
         if (q >= 1) { dispose(e.obj); live.delete(k); }
@@ -81,13 +93,30 @@ export function createProps(office, screens = null) {
         e.obj.scale.setScalar(q < 0.7 ? Math.max(0.001, (q / 0.7) * 1.15) : 1.15 - ((q - 0.7) / 0.3) * 0.15);
       }
     }
+    if (moved) pushObstacles();
   }
 
-  return { sync, update, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  // The live object for a lingering prop id (office.props[].id), for checks.
+  const objectOf = (id) => [...live.entries()].find(([k, e]) => !e.gone && k.startsWith(`prop|${id}|`))?.[1].obj ?? null;
+
+  return { sync, update, objectOf, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
 // prims geometry (cached and shared) and loaded models (userData.shared) belong to everyone.
+// A floor prop's footprint in office coordinates, measured at full size, with a little room around
+// it; px, pz remember where it stood so a moving prop can tell when to re-measure.
+function floorRect(obj) {
+  const s = obj.scale.x;
+  obj.scale.setScalar(1);
+  obj.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(obj);
+  obj.scale.setScalar(s);
+  obj.updateMatrixWorld(true);
+  const pad = 0.05;
+  return { x0: b.min.x - pad, x1: b.max.x + pad, z0: b.min.z - pad, z1: b.max.z + pad, px: obj.position.x, pz: obj.position.z };
+}
+
 function dispose(obj) {
   obj.removeFromParent();
   const walk = (o) => {
@@ -329,6 +358,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     // Things on a desk always find one, whatever the anchor (a wall anchor means the nearest desk);
     // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
+    g.userData.blocks = !onTop;
     const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
       g.userData.follow = { deskId: e.id, lx, lz, rot, y };

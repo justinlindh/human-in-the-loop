@@ -311,6 +311,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
+    // Staged props (props.js), for checks.
+    get props() { return props; },
     // Draw calls and triangles for the last frame (all passes) and a smoothed CPU frame time.
     get perf() {
       let meshes = 0;

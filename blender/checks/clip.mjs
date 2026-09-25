@@ -50,6 +50,7 @@ const out = await page.evaluate(async () => {
   const dance = [];
   for (const g of ['motivational_polka', 'corporate_synthwave', 'aggressive_bossa_nova', 'sad_lofi']) dance.push(await C.runDanceCheck(R, S, g));
   const w = await C.runWalkChecks(R, S);
+  w.push(...await C.runPropChecks(R, S));
   // Counters and wall items, each on free tiles with a clear row in front (the perk items above go first).
   S.office.placed = S.office.placed.filter((p) => !p.id.startsWith('k_'));
   for (let i = 0; i < 60; i++) { R.sync(S); R.advance(1 / 30); }

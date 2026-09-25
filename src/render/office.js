@@ -729,6 +729,7 @@ export function createOffice({ parent, screens, lighting }) {
     if (!cur.nav) {
       const rects = [];
       for (const e of placed.values()) rects.push(...obstaclesOf(e));
+      rects.push(...(cur.propRects ?? []));
       for (const [bx, by] of cur.L.blocked) rects.push({ x0: bx - cur.L.W / 2, x1: bx + 1 - cur.L.W / 2, z0: by - cur.L.D / 2, z1: by + 1 - cur.L.D / 2 });
       cur.nav = createNav(cur.L, rects);
       cur.zones.wander = wanderSpots(cur.nav, cur.L);
@@ -1170,6 +1171,17 @@ export function createOffice({ parent, screens, lighting }) {
     },
     // Bumps whenever the walkable grid is rebuilt (furniture placed, moved or removed).
     get navVersion() { return navVersion; },
+    // Floor rectangles of staged props standing in the office ({ x0, x1, z0, z1 }). A change
+    // rebuilds the walking grid, which re-routes walkers and steps aside anyone standing inside.
+    setPropObstacles(rects) {
+      if (!cur) return;
+      const key = rects.map((r) => [r.x0, r.x1, r.z0, r.z1].map((v) => v.toFixed(2)).join(',')).join('|');
+      if (key === (cur.propKey ?? '')) return;
+      cur.propKey = key;
+      cur.propRects = rects;
+      cur.nav = null;
+      navVersion++;
+    },
     // Columns standing in front of anyone (on screen, nearer the camera) fade to COLUMN_FADE.
     fadeColumns(camera, people, dt) {
       if (!cur?.columns?.length) return;

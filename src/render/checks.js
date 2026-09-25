@@ -464,3 +464,67 @@ export async function runStandupCheck(R, S, { dt = 1 / 30 } = {}) {
   // Nobody piles onto one spot: people in a ring stand at least 0.4 m apart.
   return { pass: gathered === lines.length && outside === 0 && inside === 0 && minGap > 0.4, people: gathered, outside, insideFurniture: inside, minGap: +minGap.toFixed(2) };
 }
+
+// Staged props standing on the floor block walking like furniture: one dropped ahead of a walker
+// is walked around, and one dropped where someone stands steps them aside.
+export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
+  const results = [];
+  const step = (n = 1) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  const ids = S.staff.map((p) => p.id);
+  const L = R.office.current.L;
+  S.office.props ??= [];
+
+  // 1. A curtain dropped across an active walk, on the walker's own path a little ahead.
+  {
+    const who = ids[2];
+    const root = charOf(R.scene, who);
+    const perks = [...R.office.placed.values()].filter((e) => ['couch', 'nap_pod', 'arcade', 'library', 'espresso', 'coffee_corner'].includes(e.itemId));
+    const far = perks.sort((a, b) => Math.hypot(b.target.x - root.position.x, b.target.z - root.position.z) - Math.hypot(a.target.x - root.position.x, a.target.z - root.position.z))[0];
+    R.perks.hold = true;
+    R.perks.send([who], far.id, { dur: 20 });
+    step(15);
+    // The point on the remaining path about 1.2 m ahead of the walker.
+    const goal = R.perks.peek(who)?.temp?.goal ?? far.target;
+    const path = R.office.nav().path({ x: root.position.x, z: root.position.z }, goal) ?? [];
+    let prev = { x: root.position.x, z: root.position.z }, run = 0, at = path[path.length - 1] ?? prev;
+    for (const p of path) { run += Math.hypot(p.x - prev.x, p.z - prev.z); prev = p; if (run >= 1.2) { at = p; break; } }
+    const tx = Math.floor(at.x + L.W / 2), ty = Math.floor(at.z + L.D / 2);
+    S.office.props.push({ id: 'walk_prop', prop: 'curtain', x: tx, y: ty, since: S.week, until: { weeks: 4 } });
+    step(2);
+    const obj = R.props.objectOf('walk_prop');
+    const targets = obj ? meshes(obj) : [];
+    let worst = 0;
+    for (let i = 0; i < 400 && R.perks.peek(who)?.path; i++) { step(1); if (i % 3 === 0) worst = Math.max(worst, bodyInside(root, targets)); }
+    results.push({ name: 'prop:dropOnWalk', pass: !!obj && worst === 0, insidePct: +(100 * worst).toFixed(2), tile: [tx, ty] });
+    S.office.props = S.office.props.filter((p) => p.id !== 'walk_prop');
+    step(10);
+  }
+
+  // 2. A pet carrier dropped where someone stands.
+  {
+    const who = ids[3];
+    const root = charOf(R.scene, who);
+    const nav = R.office.nav();
+    let tx = -1, ty = -1;
+    for (let y = 1; y < L.grid.h - 3 && tx < 0; y++) for (let x = 2; x < L.grid.w - 2 && tx < 0; x++) {
+      let ok = true;
+      for (let i = -2; i <= 2 && ok; i++) for (let j = -1; j <= 1 && ok; j++) if (nav.isBlocked(x + i - L.W / 2 + 0.5, y + j - L.D / 2 + 0.5)) ok = false;
+      if (ok) { tx = x; ty = y; }
+    }
+    step(1);
+    R.standAt(who, tx - L.W / 2 + 0.5, ty - L.D / 2 + 0.5);
+    step(1);
+    S.office.props.push({ id: 'stand_prop', prop: 'pet_carrier', x: tx, y: ty, since: S.week, until: { weeks: 4 } });
+    step(2);
+    const obj = R.props.objectOf('stand_prop');
+    for (let i = 0; i < 90; i++) step(1);
+    const inside = obj ? bodyInside(root, meshes(obj)) : 1;
+    results.push({ name: 'prop:dropOnStand', pass: !!obj && inside === 0, insidePct: +(100 * inside).toFixed(2), tile: [tx, ty] });
+    S.office.props = S.office.props.filter((p) => p.id !== 'stand_prop');
+    S.staff[3].assignment = { type: 'project', targetId: null };
+    step(10);
+  }
+  R.perks.hold = false;
+  return results;
+}
+
