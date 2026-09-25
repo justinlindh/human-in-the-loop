@@ -16,3 +16,10 @@ For a code review request (the lead names a lane branch and task):
 
 For a playtest request:
 - Use the `playtest` skill. Play in Chrome, take screenshots at key moments, read the console, and report bugs, confusing moments, balance feel, and the three things that would most improve the game.
+
+For a Dependabot PR (author `dependabot[bot]`, title `fix(deps): ...`, `build(deps-dev): ...` or `ci(deps): ...`):
+- Local CI never runs a bot PR on its own: it would execute the new packages' install scripts. You clear it first.
+- Read the diff without installing anything: `gh pr diff <n>`. Check that only `package.json`, `package-lock.json` or `.github/workflows/` change, that each bumped package's `resolved` URL is on registry.npmjs.org, and that the lockfile gains no unexpected packages and no new `"hasInstallScript": true` entries.
+- Read the changelog or release notes linked in the PR body for every bump, a major one especially, and note anything that affects the game or the tooling.
+- Post the verdict with `scripts/review-verdict.sh <n> pass|changes <body> --head <sha>`, saying what you read.
+- On a pass, run `scripts/ci-pr.sh <n> --allow-bot --head <sha>` from a checkout of `main`. It refuses anything but a same-repo Dependabot PR whose commits are all Dependabot's, that touches only those files, and whose head has your review pass. Then turn on auto-merge: `gh pr merge <n> --auto --merge`.

@@ -1,3 +1,4 @@
+import { setTip } from './tooltip.js';
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
@@ -98,7 +99,7 @@ export function createChat(root, { getState, onName, onMaximize } = {}) {
     }
     el.classList.toggle('max', on);
     maxBtn.replaceChildren(icon(on ? 'close' : 'expand', { size: 13 }));
-    maxBtn.title = on ? 'Back to the corner' : 'Open Yak big';
+    setTip(maxBtn, on ? 'Back to the corner' : 'Open Yak big');
     list.scrollTop = list.scrollHeight;
     onMaximize?.(on);
   }

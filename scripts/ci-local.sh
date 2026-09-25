@@ -52,6 +52,7 @@ syntax() {
 step syntax syntax
 step ci-classify bash "$SELF/ci-classify.test.sh"
 step render-lock bash "$SELF/render-lock-held.test.sh"
+step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,

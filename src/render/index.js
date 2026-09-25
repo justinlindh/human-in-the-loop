@@ -266,6 +266,25 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     advance(seconds, step = 1 / 30) {
       for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); props?.update(step); }
     },
+    // Where a picked thing is on screen, for anchoring UI (tooltips): { left, top, width, height } in
+    // client pixels, from its bounding box. kind: 'staff' | 'item' (as pick() returns); null if absent.
+    screenRectOf({ kind, id } = {}) {
+      let obj = null;
+      if (kind === 'item') obj = office?.placed.get(id)?.obj ?? null;
+      else if (kind === 'staff') scene.traverse((o) => { if (!obj && o.userData.staffId === id) obj = o.parent; });
+      if (!obj || !obj.visible) return null;
+      obj.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(obj);
+      if (box.isEmpty()) return null;
+      const r = canvas.getBoundingClientRect(), v = new THREE.Vector3();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(rig.camera);
+        const x = r.left + ((v.x + 1) / 2) * r.width, y = r.top + ((1 - v.y) / 2) * r.height;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
+      return { left: x0, top: y0, width: x1 - x0, height: y1 - y0 };
+    },
     pick(x, y) {
       const r = staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null };
       if (r.kind) return r;

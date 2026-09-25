@@ -176,7 +176,7 @@ function panelOf(ctx, tab) {
         h('div.row', null, h('b.pname', { text: p.name }), h('span.spacer'), sw),
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,
-          (() => { const c = call('policyCost', s, p.id) ?? p.weeklyCost; return h('span.pill', { title: call('policyCost', s, p.id) != null ? 'Grows with the company' : '' }, icon('money'), c ? ` ${fmtMoney(c)}/wk` : ' Free'); })(),
+          (() => { const c = call('policyCost', s, p.id) ?? p.weeklyCost; const grows = c !== (p.weeklyCost ?? 0); return h('span.pill', { title: !c ? 'No weekly cost' : grows ? `${fmtMoney(c)} a week now. Grows with the company.` : `${fmtMoney(c)} a week` }, icon('money'), c ? ` ${fmtMoney(c)}/wk` : ' Free'); })(),
           !unlocked && !on ? h('span.pill.warn', null, icon('lock', { size: 12 }), ` ${policyLockText(p)}`) : on ? h('span.pill.good', null, icon('check'), ' Active') : null,
           rivals.length ? h('span', { class: rivalOn && !on ? 'pill warn' : 'pill', title: 'Only one of these can be on at a time' },
             icon('migrate', { size: 12 }), rivalOn && !on ? ` Turns off ${POLICY[rivalOn].name}` : ` Either this or ${rivals.map((id) => POLICY[id].name).join(', ')}`) : null));

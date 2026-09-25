@@ -42,7 +42,7 @@ const rows = [
     [{ burnoutResign: -0.15 }, { burnoutResign: -0.3 }, { burnoutResign: -0.45 }], null],
   ['arcade', 'Arcade Cabinet', 'Fun at work, officially. Faster recovery, slightly less work.', 1, [8000, 24000, 70000],
     [{ meaningRecovery: 0.15, output: -0.02 }, { meaningRecovery: 0.25, output: -0.03 }, { meaningRecovery: 0.35, output: -0.04 }], null],
-  ['standing_desk', 'Standing Desks', 'Everyone stands. Stamina lasts longer.', 0, [4000, 12000, 36000],
+  ['standing_desk', 'Standing Desks', 'Raised once, for a photo. Now a shelf for hoodies. Somehow everyone\'s stamina lasts longer. Not a seat.', 0, [4000, 12000, 36000],
     [{ staminaDrain: -0.1 }, { staminaDrain: -0.2 }, { staminaDrain: -0.3 }], null],
   ['whiteboard_wall', 'Whiteboard Wall', 'Floor-to-ceiling whiteboards. Ideas get weirder, in a good way.', 0, [3500, 10000, 30000],
     [{ novelty: 0.05 }, { novelty: 0.1 }, { novelty: 0.15 }], null],

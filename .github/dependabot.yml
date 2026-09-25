@@ -1,0 +1,31 @@
+# Version updates. Dependabot PRs are gated like any other: a review pass after reading the changelog
+# and the lockfile diff, then `scripts/ci-pr.sh <n> --allow-bot` for local CI.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    # Runtime bumps are fixes, so they cut a release and reach the live site; dev-only bumps are builds.
+    commit-message:
+      prefix: fix
+      prefix-development: build
+      include: scope
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]

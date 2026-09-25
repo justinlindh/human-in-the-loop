@@ -1,3 +1,4 @@
+import { setTip } from '../tooltip.js';
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
 import { portrait, portraitLive, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
@@ -179,7 +180,7 @@ export function staffPanel(ctx, arg) {
           const line = recordLine(cur, 2);
           setText(rec, line);
           rec.style.display = line ? '' : 'none';
-          rec.title = recordStats(cur).map((x) => x.text).join('\n');
+          setTip(rec, ['Track record', ...recordStats(cur).map((x) => x.text)].join('\n'));
           const badge = leaders.get(cur.id);
           setText(top, badge ?? '');
           top.style.display = badge ? '' : 'none';
