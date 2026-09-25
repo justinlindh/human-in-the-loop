@@ -141,10 +141,10 @@ export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 
-// Landing page (group 'landing', #582). Plays a real game with a bot straight through the sim until
-// the next week would bring what the shot is about (`hit`, tested on a copy ticked one week ahead,
-// given the copy and the week's events), and stops the week before: the game's own tick brings it
-// live, with its card, freeze and staging as in play. `prep` changes state every week before the
+// Plays a real game with a bot straight through the sim until the next week would bring what the
+// shot is about (`hit`, tested on a copy ticked one week ahead, given the copy and the week's
+// events), and stops the week before: the game's own tick brings it live, with its card, freeze and
+// staging as in play. `prep` changes state every week before the
 // look-ahead (so the live week matches it); `after` only presents (it must not change state).
 export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '' }) => `(async () => {
   const sim = await import('/src/sim/index.js');
@@ -163,14 +163,14 @@ export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = ''
   ${IDLE};
 })()`;
 export const PRE_DECISION = (eventId, weeks, cond = 'true') => PRE_UNTIL({ weeks, hit: `(c) => c.pendingDecision?.eventId === '${eventId}' && (${cond})` });
-// The landing shots keep the office clean: the side overlays go (BARE), and so do the decision card,
-// the caption and the moment toasts once a shot is about the office rather than the beat.
-export const CLEAN = `(() => { const st = document.createElement('style'); st.id = 'landing-clean'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle { display: none !important; }'; document.head.append(st); })()`;
+// The side overlays hidden (top bar, tray, bottom bar, toasts, tray toggle), Yak included; cards and
+// captions stay. The style element's id is 'clean-shot', for a shot that hides more.
+export const CLEAN = `(() => { const st = document.createElement('style'); st.id = 'clean-shot'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle { display: none !important; }'; document.head.append(st); })()`;
 // Only the office: every overlay is invisible but still laid out, so the cards a fast-forward queues
 // can still be closed (a paused game would freeze the shot).
 export const STAGE_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui > * { visibility: hidden !important; }'; document.head.append(st); })()`;
 // Yak stays, alone, for a shot whose subject is a Yak thread.
-const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } '; document.head.append(st); })()`;
+export const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } '; document.head.append(st); })()`;
 // Answers `eventId` (null: any decision) with `choice` once its card has been up `read` seconds, by
 // pressing the choice's number key as a player would; checked every half second from `from` to `to`.
 export const CHOOSE_WHEN = (eventId, choice, from, to, read = 3) => Array.from({ length: Math.round((to - from) * 2) }, (_, i) => ({ at: from + i / 2,
@@ -183,7 +183,7 @@ export const CHOOSE = (eventId, choice) => `(() => { const H = window.__HITL; if
 export const CLEAR_EARLY = [0, 0.3, 0.6, 1, 1.5, 2, 3].map((at) => ({ at, js: CLEAR_CARDS }));
 // Records where the camera looks (view()) as a capture mark, for framing a shot.
 const MARK_VIEW = `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'view ' + JSON.stringify(window.__hitlRender.view()) }); })()`;
-const INCIDENT_ON_FLOOR = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'incident' && !e.caught)";
+export const INCIDENT_ON_FLOOR = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'incident' && !e.caught)";
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -210,13 +210,13 @@ export const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
 
 // Unstaffed product updates the bot started are dropped, as for readme-hq, so Needs You shows the game.
-const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
+export const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
 // Idle people go onto the projects nobody is on, as a player would.
-const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
+export const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
 // A real game played to week 176, then the sim's own staging. The sim is deterministic, so a copy of
 // the state is ticked ahead to find the week the reward lands, and the game is advanced to the week
 // before it: the first live week awards it on camera.
-const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
+export const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
   sim.stageIncentive(s, '${reward}');
   const ahead = structuredClone(s); let weeks = 0;
   while (weeks < 12) { weeks++; const ev = sim.tick(ahead) ?? []; if (ev.some((e) => e.type === 'incentive' && e.reward === '${reward}')) break; b.botDecide('balanced', ahead); }
@@ -575,126 +575,11 @@ export const ITEMS = [
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
   },
-  // Landing page (group 'landing', #582): the site's stills and loops, re-shot from real games.
-  // Sizes are cut by scripts/reels/landing.sh; these record at 1920x1080.
-  {
-    id: 'landing-hero', group: 'landing', title: 'Hero: a busy HQ by day (still and loop)', query: 'seed=1&speed=1&time=day', seconds: 15, warmup: 6,
-    setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
-  },
-  {
-    id: 'landing-hq-night', group: 'landing', title: 'HQ at night', query: 'seed=1&speed=1&time=night', still: true, warmup: 6,
-    setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
-  },
-  {
-    id: 'landing-floor', group: 'landing', title: 'The Office Floor', query: 'seed=1&speed=1&time=day', still: true, warmup: 6,
-    setup: `(async () => { await ${PLAY({ weeks: 400, until: 's.office.stage === 1 && s.staff.length >= 12', after: IN_OFFICE })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
-  },
-  {
-    id: 'landing-garage', group: 'landing', title: 'The garage: two founders at their first desks', query: 'seed=1&speed=1&time=day', still: true, warmup: 4,
-    setup: `(async () => { await ${PLAY({ weeks: 2 })}; ${STAGE_ONLY}; })()`, actions: [...CLEAR_EARLY, { at: 3.5, js: MARK_VIEW }], screenshots: [4],
-  },
-  {
-    id: 'landing-launch', group: 'landing', title: 'Launch day reviews', query: 'seed=33&speed=1', seconds: 48, warmup: 0.5,
-    // The live week launches the first product; a decision raised the same week is answered first.
-    // The results card then waits out the UI's spacing after the last card (about 30 s of play).
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 120, bot: 'balanced', hit: "(c, ev) => ev.some((e) => e.type === 'launch')" })}; ${BARE}; })()`,
-    actions: [
-      ...DISMISS_AT([0.1, 0.6, 1.5, 3, 4, 5, 6, 8, 10], { escape: false }),
-      ...CHOOSE_WHEN(null, 0, 1, 20, 2),
-    ],
-    screenshots: [32, 36, 40, 44, 47],
-  },
-  {
-    id: 'landing-lockdown', group: 'landing', title: 'Lockdown: the video call over the empty office', query: 'seed=1&speed=1', seconds: 12, warmup: 1,
-    setup: `(async () => { await ${PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY })}; ${BARE}; })()`,
-    actions: DISMISS_EVERY(12), screenshots: [6, 10],
-  },
-  {
-    id: 'landing-era', group: 'landing', title: 'An era arrives and the office redresses', query: 'seed=1&speed=1', moment: 'era --era agents --stage floor --snapshot', seconds: 16, warmup: 0.5,
-    setup: `(() => { ${CLEAN}; document.getElementById('landing-clean').textContent += ' #ui .announce-back.docked { display: none !important; }'; })()`, actions: DISMISS_AT([2, 3, 4, 5, 6, 8, 10], { escape: false }), screenshots: [4, 8, 12],
-  },
-  {
-    id: 'landing-incident', group: 'landing', title: 'An outage on the Office Floor', query: 'seed=2&speed=1', seconds: 16, warmup: 0.5,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: INCIDENT_ON_FLOOR, prep: IN_OFFICE })}; ${CLEAN}; })()`,
-    // A decision the same week freezes the office; it is answered quickly so the alarm plays out.
-    actions: [...CLEAR_EARLY, ...DISMISS_AT([3, 5, 7, 9, 11, 13], { escape: false }), ...CHOOSE_WHEN(null, 1, 1, 16, 0.5)], screenshots: [8, 9, 10, 12],
-  },
-  {
-    id: 'landing-yak-post', group: 'landing', title: 'Talk back in Yak: a pep talk mid-outage', query: 'seed=2&speed=1', seconds: 22, warmup: 0.5,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 500, hit: INCIDENT_ON_FLOOR, prep: IN_OFFICE, after: CHAT_HISTORY })}; ${YAK_ONLY}; })()`,
-    actions: [...CLEAR_EARLY, 
-      ...DISMISS_AT([2, 3, 4], { escape: false }),
-      { at: 4.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
-      { at: 5, js: CLICK_SEL('.ypost-btn') },
-      { at: 6.5, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /pep talk/i.test(b.textContent))?.click()` },
-    ],
-    screenshots: [6, 10, 14, 18, 21],
-  },
-  {
-    id: 'landing-ransomware', group: 'landing', title: 'Ransomware takes over every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
-    setup: BARE, actions: [...FOLLOW(SEATED, 3.2, 0, 14, -320)], screenshots: [3, 6, 9],
-  },
-  {
-    id: 'landing-waffle', group: 'landing', title: 'The Waffle Party', query: 'seed=1&speed=1', seconds: 30,
-    setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: WAFFLE_ACTIONS(30), screenshots: [12, 16, 20, 24],
-  },
-  {
-    id: 'landing-music', group: 'landing', title: 'Music night', query: 'seed=1&speed=1', seconds: 40, warmup: 0.5,
-    // Music night is made the next reward, and the live week raises its genre decision; the first
-    // genre is picked by key and the dance break plays.
-    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', 0, 1, 20, 3), ...Array.from({ length: 36 }, (_, i) => ({ at: i + 4.5, js: CLICK('Onward') }))],
-    screenshots: [12, 16, 20, 24, 28, 32],
-  },
-  {
-    id: 'landing-printer', group: 'landing', title: 'The printer taken out back (loop)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
-    setup: CLEAN,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...FOLLOW(['printer_jammed'], 2.4, 0, 25), { at: 3.5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([4, 4.5, 5.5], { escape: false })],
-    screenshots: [14, 17, 20],
-  },
-  {
-    id: 'landing-stapler', group: 'landing', title: 'The red stapler (record at 3840x2160)', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 9, warmup: 6.5,
-    setup: CLEAN,
-    // "Let them keep it" leaves the stapler on the desk.
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })), ...FOLLOW(['stapler'], 3.2, 0, 9), { at: 4, js: KEY('2', 'Digit2') }, ...DISMISS_AT([4.5, 5], { escape: false })],
-    screenshots: [8],
-  },
-  {
-    id: 'landing-cover-sheets', group: 'landing', title: 'The TPS cover sheets (record at 3840x2160)', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 5, warmup: 6.5,
-    // Both choices clear the stack, so it is shot while the decision is open, the card hidden.
-    setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })), ...FOLLOW(['cover_sheets'], 3.2, 0, 5)],
-    screenshots: [4.5],
-  },
-  {
-    id: 'landing-rival-sign', group: 'landing', title: 'Days since they copied us: 0 (record at 3840x2160)', query: 'seed=1&speed=1', seconds: 20, warmup: 0.5,
-    setup: `(async () => { await ${PRE_DECISION('rival_jab', 600, 'c.office.stage >= 1')}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('rival_jab', 0, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['sign_rival_copied'], 3.2, 0, 20)], screenshots: [14, 17, 19.5],
-  },
-  {
-    id: 'landing-cheque', group: 'landing', title: 'The giant novelty cheque (record at 3840x2160)', query: 'seed=1&speed=1', seconds: 20, warmup: 0.5,
-    setup: `(async () => { await ${PRE_DECISION('ai_summit_hackathon', 600)}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('ai_summit_hackathon', 1, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['giant_cheque'], 3.2, 0, 20)], screenshots: [14, 17, 19.5],
-  },
-  {
-    id: 'landing-whiteboard', group: 'landing', title: 'The whiteboard: the market has spoken (record at 3840x2160)', query: 'seed=1&speed=1', moment: 'pivot_pitch --stage floor', pre: true, seconds: 5, warmup: 6.5,
-    setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['whiteboard_scrawl']) })), ...FOLLOW(['whiteboard_scrawl'], 3.2, 0, 5)],
-    screenshots: [4.5],
-  },
-  {
-    id: 'landing-visitor', group: 'landing', title: 'The first user test: the founders hiding', query: 'seed=1&speed=1', moment: 'first_user_test', pre: true, seconds: 16, warmup: 6.5,
-    setup: BARE,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...FOLLOW(['visitor_chair'], 3, 0, 16), { at: 5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([5.5, 6], { escape: false })],
-    screenshots: [3, 7, 10, 13],
-  },
 ];
 
-// The landing loops log where the camera looks every frame (index.json marks, 'camlog'), so each
-// cut's largest step and largest change between steps can be measured.
-const CAMLOG = (seconds) => [
+// Logs where the camera looks every frame into the index.json marks ('camlog'), so a cut's largest
+// step and largest change between steps can be measured (scripts/reels/camstats.mjs).
+export const CAMLOG = (seconds) => [
   { at: 0, js: `(() => { const R = window.__hitlRender; const log = window.__camLog = [], t0 = window.__capture.now; const f = () => { const v = R.view(); log.push([+((window.__capture.now - t0) / 1000).toFixed(4), v.x, v.y, v.z, v.zoom]); requestAnimationFrame(f); }; requestAnimationFrame(f); })()` },
   { at: seconds - 0.05, js: `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'camlog ' + JSON.stringify(window.__camLog) }); })()` },
 ];
-const LANDING_LOOPS = new Set(['landing-hero', 'landing-era', 'landing-incident', 'landing-ransomware', 'landing-waffle', 'landing-music', 'landing-printer', 'landing-visitor']);
-for (const it of ITEMS) if (LANDING_LOOPS.has(it.id)) it.actions = [...(it.actions ?? []), ...CAMLOG(it.seconds)];
