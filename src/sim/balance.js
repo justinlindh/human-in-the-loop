@@ -119,6 +119,7 @@ export const B = {
   plateauPolishAppeal: 1.5, plateauBrandAppeal: 0.5,
   eraJitterWeeks: 13, chatgbtAutomationCap: 0.5, chatgbtAutomationFns: ['support', 'marketing'], noModelTrust: 0.85,
   eraCompetition: { classic: 1, chatgbt: 1.12, agents: 1.25, consolidation: 1.4, plateau: 1.45 }, consolidationVendorEveryWeeks: 13, consolidationDeprecateChance: 0.8,
-  acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.95,
+  // How often an acquisition offer comes up among random events: the main dial for how often good play exits.
+  acquisitionOfferWeight: 4.5, acquisitionOfferOpenWeeks: 26, consolidationOfferMult: 0.95,
   ipoMrr: 2850000, ipoBrand: 60, acquisitionOfferMrr: 2550000, acquisitionOfferBrand: 50, leaderCategoriesToWin: 3,
 };

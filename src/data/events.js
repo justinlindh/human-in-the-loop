@@ -1,3 +1,4 @@
+import { B } from '../sim/balance.js';
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
@@ -405,7 +406,7 @@ const list = [
     auto: { hype: 20 },
   },
   {
-    id: 'acquisition_offer', kind: 'market', weight: 6, cooldownWeeks: 52, random: true, subject: null, marks: 'acquisitionOfferWeek',
+    id: 'acquisition_offer', kind: 'market', weight: B.acquisitionOfferWeight, cooldownWeeks: 52, random: true, subject: null, marks: 'acquisitionOfferWeek',
     when: (s, h) => h.offerReady,
     title: 'An acquisition offer',
     text: '{incumbent} wants to buy {company}. The number has a lot of zeros. The integration plan has a lot of question marks.',
