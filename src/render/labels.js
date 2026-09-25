@@ -171,16 +171,16 @@ export function createLabels(parent) {
   }
   // Faces and emotes a speech bubble must not cover: every other person's head (its projected
   // outline) and any emote above it. People are the 'character' roots beside the speaker; each
-  // one's baked head mesh (userData.part 'head') and emote sprite are looked up once and kept.
+  // one's baked head mesh (userData.part 'head') is looked up once and kept.
   const partsOf = new WeakMap(); // root -> { head, sphere, emote }
   const tmpV = new THREE.Vector3(), tmpU = new THREE.Vector3();
   function parts(root) {
     let pr = partsOf.get(root);
     if (!pr) {
-      let head = null, emote = null;
-      root.traverse((o) => { if (!head && o.isMesh && o.userData.part === 'head') head = o; if (!emote && o.isSprite) emote = o; });
+      let head = null;
+      root.traverse((o) => { if (!head && o.isMesh && o.userData.part === 'head') head = o; });
       if (head?.geometry && !head.geometry.boundingSphere) head.geometry.computeBoundingSphere();
-      pr = { head, sphere: head?.geometry?.boundingSphere ?? null, emote };
+      pr = { head, sphere: head?.geometry?.boundingSphere ?? null };
       partsOf.set(root, pr);
     }
     return pr;
@@ -196,21 +196,27 @@ export function createLabels(parent) {
   }
   // Every person in the scene, re-found a couple of times a second (people sit, visit and move
   // between groups, so the speaker's siblings are not enough).
-  let people = [], peopleT = Infinity;
-  function findPeople(from, dt) {
+  // People change (hires, arrivals, a loaded game): a speaker missing from the list, or a change
+  // in how many children the groups people live in have, means look again now.
+  let people = [], peopleSet = new Set(), homes = [], homeSig = -1, peopleT = Infinity;
+  const sigOf = () => { let n = 0; for (const g of homes) n += g.children.length; return n; };
+  function findPeople(speakers, dt) {
     peopleT += dt;
-    if (peopleT < 0.5 && people.length) return people;
+    if (peopleT < 0.5 && sigOf() === homeSig && speakers.every((r) => peopleSet.has(r))) return people;
     peopleT = 0;
-    let top = from;
+    let top = speakers[0];
     while (top?.parent) top = top.parent;
     people = [];
     top?.traverse((o) => { if (o.name === 'character') people.push(o); });
+    peopleSet = new Set(people);
+    homes = [...new Set(people.map((p) => p.parent).filter(Boolean))];
+    homeSig = sigOf();
     return people;
   }
   const shown = (o) => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
   function obstacles(speakers, camera, w, h, dt) {
     const out = [];
-    const roots = speakers[0] ? findPeople(speakers[0], dt) : [];
+    const roots = speakers.length ? findPeople(speakers, dt) : [];
     for (const root of roots) {
       if (!shown(root)) continue;
       const pr = parts(root);
@@ -221,8 +227,10 @@ export function createLabels(parent) {
         const r = screenCircle(c.clone(), pr.sphere.radius * scale, camera, w, h);
         if (r) out.push({ ...r, root, face: true });
       }
-      if (pr.emote?.visible) {
-        const e = pr.emote;
+      // The emote sprite is attached to the root only while one shows.
+      let e = null;
+      for (const c of root.children) if (c.isSprite && c.visible) { e = c; break; }
+      if (e) {
         e.getWorldPosition(tmpV);
         const sz = e.getWorldScale(tmpU).y;
         // The sprite hangs from 10% up its height (center.y 0.1), so it covers from just below its
@@ -312,7 +320,7 @@ export function createLabels(parent) {
       drawLeads(segs, overlay);
       return;
     }
-    for (const l of [...says, ...stats]) if (l.w == null) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+    for (const l of [...says, ...stats]) if (!l.w) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; } // 0 until the element is in the page
     says.sort((a, b) => b.t - a.t);
     const placed = [];
     const faces = obstacles(says.map((l) => l.follow).filter(Boolean), camera, w, h, dt);
@@ -326,7 +334,7 @@ export function createLabels(parent) {
         const at = { ...box, top: box.top + dy, bottom: box.bottom + dy };
         let top = Infinity;
         for (const q of placed) if (hits(at, q) && q.top < top) top = q.top;
-        for (const q of faces) if (q.root !== l.follow && q.top < top && coverage(at, q) > CLEAR_OVER) top = q.top;
+        for (const q of faces) if ((q.face || q.root !== l.follow) && q.top < top && coverage(at, q) > CLEAR_OVER) top = q.top;
         if (top === Infinity) break;
         dy = Math.min(dy, top - GAP - box.bottom);
       }
@@ -335,14 +343,18 @@ export function createLabels(parent) {
       // A held spot is kept only while it is still clear.
       const blocked = (d) => {
         const at = { ...box, top: box.top + d, bottom: box.bottom + d };
-        return placed.some((q) => hits(at, q)) || faces.some((q) => q.root !== l.follow && coverage(at, q) > CLEAR_OVER);
+        return placed.some((q) => hits(at, q)) || faces.some((q) => (q.face || q.root !== l.follow) && coverage(at, q) > CLEAR_OVER);
       };
       if (l.hold == null || dy < l.hold - 0.5) { l.hold = dy; l.holdT = 0; }
       else if (dy > l.hold + 0.5) { l.holdT += dt; if (l.holdT > SETTLE || blocked(l.hold)) { l.hold = dy; l.holdT = 0; } }
       else l.holdT = 0;
       dy = l.hold;
       // A new bubble appears where it will stay; only later moves ease.
-      if (l.fresh) { l.dy = dy; l.fresh = false; } else l.dy += (dy - l.dy) * k;
+      // Easing toward the target must not pass over a face or another bubble: snap instead.
+      if (l.fresh) { l.dy = dy; l.fresh = false; } else {
+        const next = l.dy + (dy - l.dy) * k;
+        l.dy = Math.abs(dy - next) > 0.5 && blocked(next) ? dy : next;
+      }
       placed.push({ ...box, top: box.top + dy, bottom: box.bottom + dy });
       const anchor = { x: (box.left + box.right) / 2, y: box.bottom + TAIL };
       clearOfPanels(l, { ...box, top: box.top + dy, bottom: box.bottom + dy }, anchor, w, h, k);
