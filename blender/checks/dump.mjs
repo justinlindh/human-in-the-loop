@@ -52,6 +52,7 @@ try {
   await page.evaluate(async (o) => {
     const R = window.__hitlRender, S = window.__HITL.state;
     window.__dump = await import('/blender/checks/dump.js');
+    await window.__dump.prepare();
     if (o.bot && !o.loaded) {
       const { botDecide, botTurn } = await import('/src/sim/bots.js');
       const H = window.__HITL, route = (e) => { if (e?.length) H.emit(e); };
