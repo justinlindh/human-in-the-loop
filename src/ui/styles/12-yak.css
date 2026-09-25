@@ -1,0 +1,63 @@
+/* ---------- Yak ---------- */
+.hitl .chat { pointer-events: auto; background: var(--cream); border: var(--bw) solid var(--ink); border-radius: var(--radius); box-shadow: var(--pop), var(--soft); overflow: hidden; display: flex; flex-direction: column; }
+.hitl .chat-head { display: flex; align-items: center; gap: 0.45em; padding: 0.3em 0.6em; background: #4a154b; color: #fff; cursor: pointer; }
+.hitl .chat-head .slogo { width: 1.5em; height: 1.5em; display: grid; place-items: center; border-radius: 0.4em; background: var(--yellow); }
+.hitl .chat-head .sbrand { letter-spacing: 0.01em; }
+.hitl .chat-head .count { margin-left: auto; display: none; min-width: 1.5em; text-align: center; font-size: 0.75em; font-weight: 700; background: var(--red); border-radius: 1em; padding: 0.05em 0.45em; }
+.hitl .chat-head .count.show { display: inline-block; }
+.hitl .chat-head .caret { margin-left: auto; font-size: 0.8em; }
+.hitl .chat-head .count.show + .caret { margin-left: 0.3em; }
+.hitl .chat-tabs { display: flex; flex-wrap: wrap; gap: 0.15em 0.2em; padding: 0.3em 0.35em; background: #f1e9f1; border-bottom: 0.13em solid var(--line); }
+.hitl .ctab { pointer-events: auto; border: none; background: none; padding: 0.15em 0.4em; border-radius: 0.45em; font-size: 0.78em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25em; }
+.hitl .ctab.on { background: #4a154b; color: #fff; }
+.hitl .ctab .cbadge { display: none; font-size: 0.85em; background: var(--red); color: #fff; border-radius: 1em; padding: 0 0.4em; }
+.hitl .ctab .cbadge.show { display: inline-block; }
+.hitl .chat-body { height: var(--yak-h, 12em); overflow-y: auto; padding: 0.3em 0.45em 0.4em; display: flex; flex-direction: column; gap: 0.3em; scrollbar-width: thin; }
+.hitl .chat.collapsed .chat-body, .hitl .chat.collapsed .chat-tabs, .hitl .chat.collapsed .chat-quiet.banner { display: none; }
+.hitl .chat-quiet { color: var(--ink-faint); font-size: 0.85em; text-align: center; margin: auto 0; padding: 1em 0.5em; }
+.hitl .chat-quiet.banner { display: none; margin: 0; padding: 0.25em 0.5em; font-size: 0.78em; background: #fff4dc; color: var(--warn); font-weight: 600; border-bottom: 0.12em solid var(--line); }
+.hitl .chat-quiet.banner.show { display: block; }
+.hitl .msg { display: grid; grid-template-columns: 1.7em 1fr; gap: 0.4em; align-items: start; }
+.hitl .msg .av { width: 1.7em; height: 1.7em; border-radius: 0.4em; border: 0.1em solid var(--ink); background: var(--cream-2); display: grid; place-items: center; font-weight: 700; font-size: 1em; }
+.hitl .msg .av.bot { background: #efe6ff; }
+.hitl .msg .av.gone { color: var(--ink-faint); font-size: 0.8em; }
+.hitl .msg .mline { display: flex; align-items: baseline; gap: 0.4em; font-size: 0.8em; }
+.hitl .msg .who { font-weight: 700; }
+.hitl .msg .who.link { cursor: pointer; pointer-events: auto; }
+.hitl .msg .who.link:hover { text-decoration: underline; color: var(--blue); }
+.hitl .msg.bot .who { color: #7a2f7b; }
+.hitl .msg .w { color: var(--ink-faint); font-size: 0.85em; }
+.hitl .msg .mtext { font-size: 0.84em; line-height: 1.25; }
+.hitl .msg.bot .mtext { color: var(--ink-soft); }
+.hitl .msg.reply { margin-left: 1.1em; padding-left: 0.5em; border-left: 0.16em solid #d5c4d6; }
+.hitl .msg.reply .av { width: 1.4em; height: 1.4em; }
+.hitl .msg.reply { grid-template-columns: 1.4em 1fr; }
+.hitl .reacts { display: flex; flex-wrap: wrap; gap: 0.2em; margin-top: 0.15em; }
+.hitl .react { font-size: 0.72em; background: #eef4ff; border: 0.1em solid #b9cff7; border-radius: 1em; padding: 0 0.4em; }
+.hitl .go-card .kv.sum { font-weight: 700; border-bottom: none; border-top: 0.13em solid var(--ink); margin-top: 0.2em; padding-top: 0.25em; }
+
+/* icon art */
+.hitl .ic svg, .hitl .ic img { display: block; width: 1em; height: 1em; overflow: visible; }
+.hitl .ic[data-art] { vertical-align: -0.15em; }
+
+/* ?icons=1 board */
+.hitl .iconboard { position: absolute; inset: 0; z-index: 60; overflow-y: auto; pointer-events: auto; background: var(--cream); padding: 1em; }
+.hitl .ib-head { margin-bottom: 0.6em; }
+.hitl .ib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr)); gap: 0.4em; margin-bottom: 1em; padding: 0.6em; border-radius: 0.8em; background: #fffaf1; border: 0.15em solid var(--line); }
+.hitl .ib-grid.dark { background: var(--ink); }
+.hitl .ib-cell { display: flex; flex-direction: column; gap: 0.2em; padding: 0.3em; border-radius: 0.5em; border: 0.12em solid transparent; }
+.hitl .ib-cell.missing { border-color: var(--bad); }
+.hitl .ib-icons { display: flex; align-items: flex-end; gap: 0.4em; color: var(--ink); }
+.hitl .ib-cell.dark .ib-icons { color: var(--cream); }
+.hitl .ib-icons .ic { font-size: calc(var(--is) * 16px); }
+.hitl .ib-name { font-size: 0.7em; font-family: 'JetBrains Mono', monospace; color: var(--ink-soft); word-break: break-all; }
+.hitl .ib-cell.dark .ib-name { color: #cfc6d6; }
+.hitl .tray-card.needs { background: #fff4dc; border-color: var(--ink); cursor: default; display: flex; flex-direction: column; gap: 0.2em; }
+.hitl .tray-card.needs .t span:first-child { color: var(--warn); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8em; font-weight: 700; }
+.hitl .need { pointer-events: auto; display: grid; grid-template-columns: auto 1fr auto; gap: 0.4em; align-items: center; text-align: left; border: none; background: #fffaf1; border-radius: 0.5em; padding: 0.2em 0.4em; font-size: 0.82em; font-weight: 600; }
+.hitl .need:hover { background: #fff; box-shadow: 0 0 0 0.12em var(--ink); }
+.hitl .need .go { color: var(--ink-faint); font-weight: 700; }
+.hitl .starterhint { display: flex; gap: 0.5em; align-items: center; background: #fff4dc; border: 0.14em solid var(--yellow); border-radius: 0.7em; padding: 0.45em 0.7em; margin-bottom: 0.8em; font-weight: 600; font-size: 0.9em; }
+.hitl .speed .paused-tag.menu { display: none; color: var(--ink); background: #fff4dc; border: 0.12em solid var(--warn); border-radius: 1em; padding: 0.1em 0.55em; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.hitl .toast-more { pointer-events: auto; align-self: flex-end; border: 0.14em solid var(--ink); border-radius: 1em; background: var(--cream); padding: 0.15em 0.7em; font-size: 0.82em; font-weight: 700; box-shadow: 0 0.14em 0 var(--ink); }
+

@@ -56,8 +56,9 @@ export function createAudio({ quality = 'high' } = {}) {
     }
   }
   if (AC) {
-    addEventListener('pointerdown', unlock, { capture: true });
-    addEventListener('keydown', unlock, { capture: true });
+    // iOS Safari counts only some events as a user gesture for audio (pointerup, touchend, click
+    // on touch), so every one of them tries: unlock is idempotent and just resumes once running.
+    for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(type, unlock, { capture: true, passive: true });
     // A hidden tab goes silent at once (frames stop there, so nothing else would). On return, sound
     // resumes only if the game is running or the title is up; after an auto-pause it waits for the
     // player's next click or key (unlock resumes it).
@@ -117,6 +118,9 @@ export function createAudio({ quality = 'high' } = {}) {
       old.src.stop(t + cmd.fade * 2);
     }
     music = { src, gain: g, era: cmd.era };
+    // Beds of other eras are done with (eras only move forward); the fading bed keeps its own reference.
+    const era = cmd.bed.split('/')[0];
+    loader.release((id) => id.startsWith('music/') && id.split('/')[1] !== era);
   }
 
   function run(cmds) {
@@ -152,6 +156,8 @@ export function createAudio({ quality = 'high' } = {}) {
         else if (c.op === 'loop') loops.set(c);
         else if (c.op === 'dance') ducked.play(c, { wait: true, pausable: true, onStart: (src) => {
           lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt };
+          // The playing track holds its buffer through pauses, so every night track can leave the cache.
+          loader.release((id) => id.startsWith('musicNight/'));
           // The renderer stretches the dance to the track that actually plays.
           dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: c.genre, seconds: src.buffer.duration, startsIn: Math.max(0, src.startAt - ctx.currentTime) } }));
         } });
@@ -224,6 +230,8 @@ export function createAudio({ quality = 'high' } = {}) {
     // The last music night track started: whether it was the delivered file, its length and start time.
     get lastDance() { return lastDance; },
     get musicDuck() { return mix?.duckLevel ?? 1; },
+    // Decoded audio held by the loader: total bytes and the delivered ids.
+    get memory() { return loader ? { bytes: loader.bytes(), ids: loader.loaded() } : null; },
     // A MediaStream of the final mix, for capture tools.
     tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); mix.output.connect(d); return d.stream; },
     get state() { return { unlocked: !!ctx, running: !!ready(), music: director.musicState }; },
