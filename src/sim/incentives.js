@@ -122,7 +122,8 @@ function stageTalk(ctx, winner, reward) {
   const name = winner.name.split(' ')[0];
   const fill = (t) => t.replaceAll('{winner}', name);
   const say = (person, text, to, replyTo) => {
-    const e = { type: 'say', id: newId(state, 'v'), week: state.week, staffId: person.id, text: fill(text), toId: to?.id ?? null, replyTo: replyTo?.id ?? null };
+    // Marked as the ceremony's own lines, so they still show while its spotlight plays.
+    const e = { type: 'say', id: newId(state, 'v'), week: state.week, staffId: person.id, text: fill(text), toId: to?.id ?? null, replyTo: replyTo?.id ?? null, moment: reward.id };
     ctx.emit(e);
     return e;
   };
