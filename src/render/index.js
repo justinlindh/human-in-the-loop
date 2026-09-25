@@ -304,6 +304,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     // Ease the camera to a world point (dev and snap use).
     focusAt(x, z, zoom = 2.5) { rig.focus({ x, y: 0.4, z }, zoom); rig.update(10); },
+    // The same, eased: the camera glides there at `rate` (as the moment camera does) instead of jumping.
+    easeTo(x, z, zoom = 2.5, rate = 2) { rig.focus({ x, y: 0.4, z }, zoom, rate); },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);

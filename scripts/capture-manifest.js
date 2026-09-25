@@ -86,15 +86,15 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
 const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
-// Keeps the camera on what a beat is about, re-aimed every quarter second from `from` to `to` (the
-// staged prop, or the printer or the visitor while their moment plays): the prop appears only once
-// the week raises the decision, and a moment moves.
+// Keeps the camera on what a beat is about from `from` to `to`: eased onto the staged prop (which
+// appears only once the week raises the decision), and left to the game's moment camera while the
+// printer or the visitor moment plays.
 const AIM = (props, zoom) => `(() => { const R = window.__hitlRender; const pm = R.moments?.printerState; const v = R.moments?.visitorState;
-  let p = null;
-  if (pm) { const o = pm.obj?.visible ? pm.obj : pm.people?.[0]?.char?.root; if (o) p = o.getWorldPosition(new o.position.constructor()); }
-  else if (v) p = v.at;
-  else { const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (o) p = o.getWorldPosition(new o.position.constructor()); }
-  if (p) R.focusAt(p.x, p.z, ${zoom}); })()`;
+  // A moment under way: the game's moment camera follows it. Otherwise ease onto the staged prop.
+  if (pm || v) return;
+  const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o) return;
+  const p = o.getWorldPosition(new o.position.constructor());
+  (R.easeTo ?? R.focusAt)(p.x, p.z, ${zoom}); })()`;
 // Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
 // most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
 // points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
@@ -428,7 +428,7 @@ export const ITEMS = [
     setup: BARE,
     actions: [
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...FOLLOW(['printer_jammed', 'printer_wrecked'], 2.4, 0, 25),
+      ...FOLLOW(['printer_jammed'], 2.4, 0, 25),
       { at: 3.5, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([4, 4.5, 5.5], { escape: false }),
     ],
