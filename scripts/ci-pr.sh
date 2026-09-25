@@ -206,6 +206,10 @@ if ! git -C "$WT" -c user.name=ci -c user.email=ci@localhost merge -q --no-edit 
   files="$(git -C "$WT" diff --name-only --diff-filter=U | sed 's/^/- `/; s/$/`/')"
   body="$(mktemp)"
   printf '### Local CI: FAIL\n\nHead `%s` does not merge cleanly into `%s`. Conflicting files:\n\n%s\n' "${head:0:7}" "$base" "$files" >"$body"
+  # Conflicts only in golden images are resolved by rendering the merge, not by picking a side.
+  if [ -z "$(git -C "$WT" diff --name-only --diff-filter=U | grep -v '^blender/checks/golden/[^/]*\.png$')" ]; then
+    printf '\nOnly golden images conflict. Merge `%s` into the branch and run `scripts/golden-resolve.sh`: it renders those scenes from the merged code, stages them and writes review sheets to post with `scripts/pr-media.sh`.\n' "$base" >>"$body"
+  fi
   cat "$body"
   url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
   status failure "Head does not merge cleanly into $base" "$url"; status_final=1
