@@ -80,9 +80,19 @@ All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock,
 Planned additions to this toolkit:
 - **The staging probe (#350):** gaze, facing, visibility and gesture measured in code, with a readability spec per moment.
 - **More sweep checks (#352):** label and bubble overlap on screen, and the sim's placement grid against render footprints.
-- **The performance harness (`scripts/perf/`):** frame times, draw calls and memory per scene.
 
 Each gets its row here when it lands.
+
+## Performance
+
+| Tool | Who | What it does |
+|---|---|---|
+| `node scripts/perf/bench.js --refs origin/main,<branch>` | art, ui, reviewer | Builds each ref and measures the scenes garage, floor, hq, music (a staged music night) and late (a bot-played save at week 400) at Low and High. It prints one line per build and scene: frame time p50 and p95, main-thread and render time with the GPU wait included, the fastest run, draw calls, triangles, meshes, geometries, textures, programs, JS heap, DOM nodes and DOM mutations per second. Builds alternate run by run, so compare builds from one invocation, never across invocations. Main flags: `--scenes`, `--quality low,high`, `--runs` (default 3), `--size` (default 1280x720), `--json <file>`, `--profile` (top main-thread functions per scene, on an unminified build). |
+| `node scripts/perf/bench.js --software --cores 2 --quality low` | art, reviewer | The weak-device stand-in: SwiftShader with the browser pinned to two cores. GL follows `scripts/lib/gl.js` like every other tool, so without `--software` it runs on the GPU. It takes a GPU slot or the software lock one scene at a time, so run it under `timeout`, not under a lock. |
+| `node scripts/perf/budget.js <result.json>` | reviewer, integrator | Checks a bench result against `scripts/perf/budget.json`. Each scene's draw calls, triangles, programs and textures must stay under their ceilings. With two builds in the result, the head's Low render time in garage and floor may be at most 1.4x the base's. Exits 1 on a breach. |
+| `node scripts/perf/sim.js --seeds 5 --weeks 1040` | sim | Times `tick()` alone, bucketed by year, across bot-played seeds. No browser. |
+
+The machine and the GPU are shared, so single numbers are noisy. Trust relative numbers from one interleaved run, and treat renderer counts (calls, triangles, programs) as exact.
 
 ## Models and assets
 
