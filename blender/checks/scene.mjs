@@ -22,7 +22,7 @@
 // becomes { id, since }, props: [...] sets office.props, placed: [...] replaces office.placed, and
 // place: [...] adds to it.
 import { startHarness } from './harness.mjs';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync, existsSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -109,6 +109,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const { images, errors } = await renderScene(H, o);
     const out = resolve(o.out);
     mkdirSync(dirname(out), { recursive: true });
+    if (o.frames) rmSync(out.replace(/\.[a-z0-9]+$/i, '') + '.mp4', { force: true });
     if (!o.frames) writeFileSync(out, images[0]);
     else {
       const dir = out.replace(/\.[a-z0-9]+$/i, '') + '-frames';
@@ -117,9 +118,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       images.forEach((b, i) => writeFileSync(`${dir}/${String(i).padStart(4, '0')}.png`, b));
       const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', `${dir}/%04d.png`, '-frames:v', String(images.length),
         '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', out.replace(/\.[a-z0-9]+$/i, '') + '.mp4'], { stdio: 'inherit', timeout: 120000 });
-      if (r.status !== 0) console.error('scene: ffmpeg failed');
+      if (r.status !== 0) { console.error(`scene: ffmpeg failed${r.error ? `: ${r.error.message}` : ''}`); process.exitCode = 1; }
     }
-    console.log(`scene: ${o.frames ? `${images.length} frames` : 'still'} -> ${o.out} (${H.renderer})`);
+    // Whatever went wrong on the way, a caller must not see success without the file.
+    const written = o.frames ? out.replace(/\.[a-z0-9]+$/i, '') + '.mp4' : out;
+    if (!existsSync(written) || statSync(written).size === 0) { console.error(`scene: ${written} was not written`); process.exitCode = 1; }
+    if (!process.exitCode) console.log(`scene: ${o.frames ? `${images.length} frames` : 'still'} -> ${o.out} (${H.renderer})`);
     if (errors.length) { console.error('scene: page errors:', errors.slice(0, 3)); process.exitCode = 1; }
   } finally {
     await H.close();

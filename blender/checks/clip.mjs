@@ -6,9 +6,17 @@
 // Seated desk poses in every mood, head bounds, and resting perk poses (couch, beanbag, nap pod,
 // arcade stool, library armchair). Runs through harness.mjs, so the result depends only on the code.
 import { startHarness } from './harness.mjs';
+import { inputHash, passedAt, recordPass } from './cache.mjs';
 
-const H = await startHarness();
 const rig = process.argv.includes('--rig') ? '&rig=1' : '';
+// A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
+const hash = inputHash('clip', rig);
+const before = passedAt('clip', hash);
+if (before) {
+  console.log(`clip${rig ? ' --rig' : ''}: inputs unchanged since ${before}, skipped`);
+  process.exit(0);
+}
+const H = await startHarness();
 const { page, errors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
 const out = await page.evaluate(async () => {
   const R = window.__hitlRender, S = window.__HITL.state;
@@ -78,4 +86,5 @@ for (const r of out) {
 }
 if (errors.length) { failed++; console.log(`page errors: ${errors.join('; ')}`); }
 console.log(`clip: ${out.length - failed} of ${out.length} passed`);
+if (!failed) recordPass('clip', hash);
 process.exit(failed ? 1 : 0);

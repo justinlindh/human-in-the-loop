@@ -51,17 +51,21 @@ async function rendererOf(browser) {
 }
 
 // gpu: render on the GPU when there is one (see wantGpu); the default is SwiftShader.
-export async function startHarness({ gpu = false } = {}) {
+// browsers: separate Chromium instances to spread pages over. Every page in one browser shares its
+// GPU process, so SwiftShader work from concurrent pages queues behind each other; checks that run
+// scenes in parallel pass their job count here. openScene's `slot` picks the browser.
+export async function startHarness({ gpu = false, browsers = 1 } = {}) {
   const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  const { browser, renderer } = await launch(gpu);
+  const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));
+  const { browser, renderer } = launched[0];
   return {
     browser,
     renderer,
     // A page on `query`, ready to step. errors collects page errors and console errors.
-    async openScene(query, { width = 960, height = 640, time = 0.45 } = {}) {
-      const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+    async openScene(query, { width = 960, height = 640, time = 0.45, slot = 0 } = {}) {
+      const page = await launched[slot % launched.length].browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
       const errors = [];
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -79,6 +83,6 @@ export async function startHarness({ gpu = false } = {}) {
       }, time);
       return { page, errors };
     },
-    async close() { await browser.close(); await server.close(); },
+    async close() { await Promise.all(launched.map((l) => l.browser.close())); await server.close(); },
   };
 }
