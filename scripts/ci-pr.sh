@@ -70,12 +70,17 @@ git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
 [ "$(git -C "$REPO" ls-remote origin "refs/heads/$branch" | cut -f1)" = "$head" ] \
   || { echo "ci-pr: ${head:0:7} is not the tip of $branch in this repository; not running it" >&2; exit 2; }
 git -C "$REPO" worktree prune
+ci_pid=""
 cleanup() {
+  # Local CI runs in its own process group; stop all of it (tests, browsers, dev servers) too.
+  [ -n "$ci_pid" ] && kill -- "-$ci_pid" 2>/dev/null
   git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
   # A run that stops before its verdict must not leave the status pending forever.
   [ "$status_final" = 1 ] || status error "Local CI stopped before finishing; run scripts/ci-pr.sh $pr again"
 }
 trap cleanup EXIT
+# A stop signal ends the run through the EXIT trap instead of skipping it.
+trap 'exit 143' TERM INT HUP
 status pending "Local CI running"
 # GitHub rebuilds the merge ref after each push; use it only when it merges this head.
 if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null \
@@ -108,8 +113,11 @@ fi
 summary="$(mktemp)"
 t0=$(date +%s)
 # This checkout's ci-local.sh, so PRs cut before it existed are tested the same way.
-CI_DIR="$WT" bash "$REPO/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary"
+CI_DIR="$WT" setsid bash "$REPO/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary" &
+ci_pid=$!
+wait "$ci_pid"
 rc=$?
+ci_pid=""
 secs=$(( $(date +%s) - t0 ))
 verdict=$([ $rc -eq 0 ] && echo "PASS" || echo "FAIL")
 
