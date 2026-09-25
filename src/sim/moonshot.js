@@ -48,12 +48,13 @@ function launchMoonshot(ctx, m) {
   const mine = new Set(liveProducts(state).map((p) => p.category));
   const fresh = state.market.unlockedCategories.filter((c) => !mine.has(c));
   const category = pick(rng, fresh.length ? fresh : state.market.unlockedCategories);
-  const mrr = Math.max(20000, totalMrr(state) * B.moonshotCustomers);
+  const mrr = Math.max(B.moonshotMinMrr, totalMrr(state) * B.moonshotCustomers);
   const customers = Math.round(mrr / CATEGORIES[category].price);
   state.products.push({
     id: newId(state, 'p'), name: m.name, category, angle: 'web', model: null, modelVersion: 0, version: 1, size: 'large',
-    stats: { features: 200, polish: 180, reliability: 160, novelty: 120 }, score: 8.6, reviews: [],
-    customers, mrr: customers * CATEGORIES[category].price, hype: 60, novelty: 10, health: 90, baseHealth: 90, uptime: 1,
+    stats: { ...B.moonshotProduct.stats }, score: B.moonshotProduct.score, reviews: [],
+    customers, mrr: customers * CATEGORIES[category].price, hype: B.moonshotProduct.hype, novelty: B.moonshotProduct.novelty,
+    health: B.moonshotProduct.health, baseHealth: B.moonshotProduct.health, uptime: 1,
     launchedWeek: state.week, copyAtWeek: state.week + B.copyDelayWeeks[1], copied: false, wrapperHit: false, ownerId: null, migrationDueWeek: null, killed: false,
   });
   state.stats.launches++;
@@ -78,7 +79,7 @@ export function lastBetEffect(ctx, bet) {
     state.cash -= Math.max(0, state.cash) * B.foundationCashShare;
     state.flags.lastBet = 'foundation';
     addFame(state, B.foundationFame);
-    testPurpose(state, { people: 8, trust: 5 }, 'The foundation');
+    testPurpose(state, B.foundationPurpose, 'The foundation');
     for (const p of state.staff) p.meaning = Math.min(100, p.meaning + B.foundationMeaning);
   } else if (bet === 'keys') {
     state.flags.lastBet = 'keys';

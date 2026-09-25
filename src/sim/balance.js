@@ -100,6 +100,8 @@ export const B = {
   productNameMax: 20,
   fameDecay: 0.3, fameChurnRelief: 0.25, fameHireRelief: 0.4,
   moonshotAfterConsolidation: 100, moonshotRevenueShare: 0.25, moonshotMinWeekly: 50000, moonshotCheckinWeeks: 26, moonshotCheckins: 4,
+  moonshotProduct: { stats: { features: 200, polish: 180, reliability: 160, novelty: 120 }, score: 8.6, hype: 60, novelty: 10, health: 90 },
+  moonshotMinMrr: 20000, foundationPurpose: { people: 8, trust: 5 },
   moonshotSuccess: 0.5, moonshotCustomers: 0.15, moonshotStopFame: 3, moonshotFailFame: 8, moonshotFailBrand: 2, moonshotWinFame: 20, moonshotWinBrand: 8,
   lastBetWeek: 900, lastBetCashShare: 0.3, lastBetSuccess: 0.45, lastBetWinFame: 30, lastBetLoseFame: 10, lastBetWinBrand: 10, lastBetLoseBrand: 5,
   foundationCashShare: 0.25, foundationFame: 15, foundationMeaning: 5, keysSeniorMeaning: 8,
