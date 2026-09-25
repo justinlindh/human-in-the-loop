@@ -7,42 +7,6 @@
    "issue": 385
   },
   {
-   "key": "grid|footprint|meeting_table@L1/back",
-   "worst": 0.088,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|meeting_table@L1/front",
-   "worst": 0.088,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|monitoring_wall@L1/front",
-   "worst": 0.065,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|nap_pod@L2/front",
-   "worst": 0.11,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|ping_pong_table@L1/back",
-   "worst": 0.065,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|ping_pong_table@L1/front",
-   "worst": 0.065,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
    "key": "grid|footprint|server_rack@L3/front",
    "worst": 0.21,
    "state": "mock:floor",
