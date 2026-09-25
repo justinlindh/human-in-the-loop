@@ -314,10 +314,14 @@ ChatPrompt = {
 }
 ```
 
+### Events: Yak reply prompts
+
 ```js
 { type: 'chatPrompt', promptId, chatId }            // a prompt opened; its chat event comes earlier in the same tick
 { type: 'chatPromptResolved', promptId, choice }    // choice: index, or null when it expired unanswered
 ```
+
+### Actions: Yak reply prompts
 
 ```js
 { type: 'answerPrompt', promptId, choice }
