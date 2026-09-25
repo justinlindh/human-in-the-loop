@@ -227,10 +227,18 @@ export function createBackdrop() {
   let lastKey = '';
   let lastDraw = -1e9;
 
-  // Redrawn at most a few times per second.
+  // Redrawn at most a few times per second. A change inside the window is kept, and the latest
+  // one is drawn when the window ends, so the sky never stops on a stale colour.
+  const WINDOW_MS = 250;
+  let pending = null, timer = 0;
   function update(env) {
     const now = performance.now();
-    if (now - lastDraw < 250 && lastKey) return;
+    if (now - lastDraw < WINDOW_MS && lastKey) {
+      pending = env;
+      if (!timer) timer = setTimeout(() => { timer = 0; const e = pending; pending = null; if (e) update(e); }, WINDOW_MS - (now - lastDraw) + 1);
+      return;
+    }
+    pending = null;
     top.copy(nT).lerp(dT, env.daylight).lerp(kT, env.dusk * 0.6);
     bottom.copy(nB).lerp(dB, env.daylight).lerp(kB, env.dusk * 0.6);
     const key = top.getHexString() + bottom.getHexString();
