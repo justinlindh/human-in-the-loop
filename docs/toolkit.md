@@ -42,6 +42,7 @@ The repo's `.claude/settings.json` runs these for every session here (scripts in
 - **After `gh pr create`** (`pr-create-check.sh`): turns on auto-merge when a non-draft PR was created without it, and flags a missing Affects section, Gates run line or `Fixes #n`.
 
 CI internals, which rarely need touching:
+- `scripts/ci-local.sh` runs golden (software GL) in the background while the GPU steps run one after another, and runs the tooling self-tests only when a change touches `scripts/` or `.claude/` (the main guard runs them all).
 - `scripts/ci-classify.sh` with `scripts/ci-skip-paths` gives docs-only changes the light gate.
 - `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance. A pass is also recorded under a hash of the suite's inputs (the sim, its data, the balance test, the test config, the lockfile and Node), so the same inputs skip it later. `HITL_NO_CHECK_CACHE=1` turns this off.
 - `scripts/lib/run-parallel.sh` runs commands side by side, each with its own vite dependency cache (`HITL_VITE_CACHE`), and prints their output in order.
