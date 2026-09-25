@@ -165,7 +165,8 @@ export function createHud({ root, controls, ui }) {
     muteBtn.setAttribute('aria-pressed', String(m));
     muteBtn.setAttribute('aria-label', m ? 'Unmute' : 'Mute');
     muteBtn.dataset.tip = m ? 'Sound is off. Tap to turn it on.' : 'Mute';
-    toggleClass(muteBtn, 'on', m);
+    // Muted has its own look (a red-tinted outline), not the selected fill the speed buttons use.
+    toggleClass(muteBtn, 'muted', m);
   }
   const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, muteBtn, gear);
 

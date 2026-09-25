@@ -1232,3 +1232,7 @@
 .hitl .kindtag { font-size: 0.68em; margin-top: 0.3em; display: inline-flex; align-items: center; gap: 0.2em; }
 .hitl .kindtag.perk { background: #e6f4ff; }
 .hitl .kindtag.work { background: #fff1d6; }
+
+/* The HUD mute button: muted is a red-tinted outline and icon, distinct from a selected speed. */
+.hitl .chip.speed .mute.muted { background: #ffe1df; color: var(--bad); border-color: var(--bad); }
+.hitl .chip.speed .mute.muted:hover:not(:disabled) { background: #ffd0cc; }
