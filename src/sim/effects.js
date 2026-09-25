@@ -17,6 +17,7 @@ import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { raiseDecision, ransomFor, summitCost } from './events.js';
 import { agentSpend, rivalMergePrice } from './economy.js';
 import { acquireCompany, bestDeal, dealBlocker } from './acquire.js';
+import { moonshotEffect, lastBetEffect } from './moonshot.js';
 import { expandOffice, officeGateReason } from './products.js';
 import { nextExpansion } from './office.js';
 
@@ -253,6 +254,9 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     }
   }
   if (fx.rivalHit && state.rival) state.rival.strength = clamp(state.rival.strength - fx.rivalHit, 0, 100);
+  if (fx.fame) state.fame = clamp((state.fame ?? 0) + fx.fame, 0, 100);
+  if (fx.moonshot) moonshotEffect(ctx, fx.moonshot);
+  if (fx.lastBet) lastBetEffect(ctx, fx.lastBet);
   if (fx.agentAudit) {
     state.cash -= agentSpend(state, B.agentAuditWeeks);
     state.modifiers.push({ id: newId(state, 'mod'), key: 'rogueRisk', value: -B.agentAuditRogueRelief, label: 'The agent audit', untilWeek: state.week + 52, source });

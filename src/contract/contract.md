@@ -90,7 +90,7 @@ Product = {
 
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
-{ type: 'toast', text, tone }             // tone: info|good|warn|bad
+{ type: 'toast', text, tone, trendId }    // tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
@@ -271,3 +271,26 @@ staff.record: {
 }
 ```
 - Lifetime totals, starting at 0 on hire and kept when someone becomes an alum. Each counter only moves for work the person actually did, so a role's own numbers are the meaningful ones; ui shows the ones that fit the role.
+
+## Staged props (#228)
+
+Decisions whose text describes something physical show it in the office.
+
+```js
+// Event data (src/data/events.js), optional:
+stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens'
+// Choice data, optional:
+grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
+leaves: { prop, until }            // until: { item } | { weeks } | { flag }
+
+state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
+state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
+```
+
+- `prop` ids come from one shared prop set that art owns; sim uses only ids art has shipped.
+- `grant` charges once. If the choice has a `cash` effect, that is the whole price and the item's own cost isn't added. Otherwise it charges the item's cost. The item's normal effects apply either way. If the item can't be placed, the choice is unavailable with the placement reason ('No room for it', 'Desk limit reached', 'Needs a bigger office'), never granted and refunded.
+- `grant` replaces a `buyItem` effect on decisions.
+- `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
+- An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
+- `leaves` takes the stage prop's tile when there is one. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
+- Old saves load with `office.props = []`.

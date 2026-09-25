@@ -9,6 +9,15 @@ const rows = [
   ['enterprise', 'Enterprise Sales Push', 30000, 10, 2, 0.8, 1, 'Slide decks, security questionnaires, and golf.'],
 ];
 
-export const CHANNELS = Object.fromEntries(rows.map(([id, name, cost, weeks, hype, brand, minStage, desc]) => [
-  id, { id, name, cost, weeks, hype, brand, minStage, desc },
-]));
+// Fame campaigns: big-ticket marketing from the Consolidation era, priced in weeks of revenue (mrrWeeks) with
+// cost as the floor. fame is added when the campaign starts.
+const FAME = [
+  ['documentary', 'The Documentary', 400000, 4, 10, 1, 2, 'A film crew follows the team for a month. Someone cries in the edit. It might be you.', { mrrWeeks: 6, fame: 20 }],
+  ['big_game_ad', 'The Big Game Ad', 800000, 1, 40, 2, 2, 'Thirty seconds between a truck commercial and a truck commercial. Everyone will see it.', { mrrWeeks: 8, fame: 25 }],
+  ['stadium', 'Stadium Naming Rights', 2000000, 12, 3, 0.8, 2, 'Your name on a stadium for a season. The fans will call it something else.', { mrrWeeks: 16, fame: 35 }],
+];
+
+export const CHANNELS = Object.fromEntries([
+  ...rows.map(([id, name, cost, weeks, hype, brand, minStage, desc]) => [id, { id, name, cost, weeks, hype, brand, minStage, desc, fame: 0, mrrWeeks: 0, era: null }]),
+  ...FAME.map(([id, name, cost, weeks, hype, brand, minStage, desc, extra]) => [id, { id, name, cost, weeks, hype, brand, minStage, desc, ...extra, era: 'consolidation' }]),
+]);

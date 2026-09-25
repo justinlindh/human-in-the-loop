@@ -8,6 +8,15 @@ import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 import { lockedReason } from './unlocks.js';
 import { eraAtLeast } from './eras.js';
+import { totalMrr } from './products.js';
+
+// What a campaign costs now: its price, or for a fame campaign that many weeks of revenue if that is more.
+export function campaignCost(state, channel) {
+  const ch = CHANNELS[channel];
+  if (!ch) return 0;
+  const scaled = Math.round(((ch.mrrWeeks ?? 0) * totalMrr(state) * 12 / 52) / 10000) * 10000;
+  return Math.max(ch.cost, scaled);
+}
 
 const marketers = (state) => state.staff.filter((p) => p.mood !== 'away' && p.assignment.type === 'marketing');
 
@@ -18,6 +27,7 @@ registerAction('runCampaign', (ctx, { channel, productId, projectId }) => {
   const locked = lockedReason(state, 'marketing');
   if (locked) return { ok: false, reason: locked };
   if (state.officeStage < ch.minStage) return { ok: false, reason: 'Needs a bigger office' };
+  if (ch.era && !eraAtLeast(state, ch.era)) return { ok: false, reason: 'Arrives with the Consolidation era' };
   const hasProduct = productId !== null && productId !== undefined;
   const hasProject = projectId !== null && projectId !== undefined;
   if (hasProduct === hasProject) return { ok: false, reason: 'Pick a product or a project' };
@@ -27,8 +37,10 @@ registerAction('runCampaign', (ctx, { channel, productId, projectId }) => {
   } else if (!state.projects.some((j) => j.id === projectId && j.kind === 'new')) {
     return { ok: false, reason: 'No such project' };
   }
-  if (state.cash < ch.cost) return { ok: false, reason: 'Not enough cash' };
-  state.cash -= ch.cost;
+  const cost = campaignCost(state, channel);
+  if (state.cash < cost) return { ok: false, reason: 'Not enough cash' };
+  state.cash -= cost;
+  if (ch.fame) state.fame = clamp((state.fame ?? 0) + ch.fame, 0, 100);
   state.campaigns.push({ id: newId(state, 'c'), channel, productId: hasProduct ? productId : null, projectId: hasProject ? projectId : null, weeksLeft: ch.weeks });
   ctx.emit({ type: 'toast', text: `${ch.name} is live.`, tone: 'info' });
   return { ok: true };
@@ -68,6 +80,8 @@ export function marketingSystem(ctx) {
   // Brand fades faster the higher it is, so steady marketing settles instead of pinning at 100.
   const decay = (B.brandDecay + B.brandDecayRate * state.brand) * Math.max(0, 1 + itemBonus(state, 'brandDecay'));
   state.brand = clamp(state.brand - decay + modifierBonus(state, 'brandPerWeek') + steady, 0, 100);
+  // Fame fades slowly unless something keeps it up.
+  state.fame = Math.max(0, (state.fame ?? 0) - B.fameDecay);
   for (const p of live) {
     p.hype = clamp(p.hype * (1 - B.hypeDecay), 0, 100);
     if (!p.wrapperHit && p.hype / 10 > p.score + B.wrapperGap) {

@@ -60,7 +60,8 @@ const fill = (state, text, x = {}) => text.replaceAll('{company}', state.company
   .replaceAll('{office}', x.office ?? 'the garage').replaceAll('{launches}', String(x.launches ?? 0))
   .replaceAll('{eras}', `${NUMBER_WORDS[x.eraCount] ?? x.eraCount} ${x.eraCount === 1 ? 'era' : 'eras'}`)
   .replaceAll('{people}', String(x.people ?? 0)).replaceAll('{alumni}', String(x.alumni ?? 0))
-  .replaceAll('{veteran}', x.veteran ?? 'Someone').replaceAll('{veteranYears}', String(x.veteranYears ?? 0));
+  .replaceAll('{veteran}', x.veteran ?? 'Someone').replaceAll('{veteranYears}', String(x.veteranYears ?? 0))
+  .replaceAll('{moonshot}', state.flags.moonshot?.name ?? 'the moonshot');
 
 // The ending in order: how it ended, a recap of the run, one line about its people, the consequences
 // (strongest first), then flavour;

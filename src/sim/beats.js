@@ -14,6 +14,8 @@ const BEATS = [
   { id: 'floor_next_door', ready: (s, since) => eraAtLeast(s, 'agents') && s.week >= since.agents + B.beatFloorNextDoorAfter
     && nextExpansion(s)?.step === 1 && !officeGateReason(s, nextExpansion(s)) && s.cash >= nextExpansion(s).upgradeCost },
   { id: 'deals_open', ready: (s) => eraAtLeast(s, 'consolidation') && (s.market.forSale ?? []).length > 0 },
+  { id: 'moonshot_pitch', ready: (s, since) => eraAtLeast(s, 'consolidation') && s.week >= since.consolidation + B.moonshotAfterConsolidation && s.officeStage >= 2 },
+  { id: 'last_bet', ready: (s) => s.week >= B.lastBetWeek },
 ];
 
 export function beatsSystem(ctx) {

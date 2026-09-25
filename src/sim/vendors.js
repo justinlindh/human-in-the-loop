@@ -67,7 +67,7 @@ function trendStep(ctx) {
   const next = pick(ctx.rng, Object.keys(TRENDS).filter((id) => id !== m.trend && trendFits(ctx.state, TRENDS[id])));
   m.trend = next;
   m.trendWeeksLeft = TRENDS[next].weeks;
-  ctx.emit({ type: 'toast', text: `Trend: ${TRENDS[next].name}. ${TRENDS[next].text}`, tone: 'info' });
+  ctx.emit({ type: 'toast', text: `Trend: ${TRENDS[next].name}. ${TRENDS[next].text}`, tone: 'info', trendId: next });
 }
 
 function vendorRelease(ctx) {
