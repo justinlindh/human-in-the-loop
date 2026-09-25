@@ -283,7 +283,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       screens.update(simDt, lighting.env);
       staff?.update(dt, { paused });
       floating.update(simDt);
-      fx.update(simDt);
+      fx.update(simDt, dt);
       build?.update(dt, scene);
       portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);

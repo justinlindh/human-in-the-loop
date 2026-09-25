@@ -171,11 +171,13 @@ export function createFx({ scene, overlayEl }) {
     }
   }
 
-  function update(dt) {
+  // dt is game time (stops while paused); frameDt is wall-clock, so placing furniture while paused
+  // still drops the item in and settles its dust.
+  function update(dt, frameDt = dt) {
     updateConfetti(dt);
     updateAlarm(dt);
-    updatePops(dt);
-    updatePuffs(dt);
+    updatePops(frameDt);
+    updatePuffs(frameDt);
   }
 
   return {
