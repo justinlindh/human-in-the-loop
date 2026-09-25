@@ -203,6 +203,23 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], cr
   return { violations: C.list, windows };
 }
 
+// A loaded snapshot of an indexed moment (scripts/events): `open` seconds as loaded (the decision
+// open, its prop staged), then, if a decision is open, the choice made (the index's, or 0) and
+// `after` seconds more.
+export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], crops = 60 }) {
+  const R = window.__hitlRender, H = window.__HITL;
+  R.moments.full = true;
+  const C = createCollector({ state: label, known, crops, tol: TOL });
+  // The loaded office builds on the first sync; a second settles it.
+  window.__step(30);
+  window_(R, H.state, C, { seconds: open, every });
+  if (H.state.pendingDecision) {
+    H.dispatch({ type: 'resolveDecision', choice: choice ?? 0 });
+    window_(R, H.state, C, { seconds: after, every, t0: open });
+  }
+  return { violations: C.list, windows: [{ state: label, why: 'event', bodies: X.bodies(R).length, staff: H.state.staff.length }] };
+}
+
 export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 60, maxStaged = 6 }) {
   const R = window.__hitlRender, H = window.__HITL;
   const { botDecide, botTurn } = await import('/src/sim/bots.js');
