@@ -17,13 +17,48 @@ const INIT = `(() => {
   window.requestAnimationFrame = () => 0;
 })();`;
 
-export async function startHarness() {
+// SwiftShader draws the same pixels on every machine, which the golden and clip checks need. Renders
+// that only have to look right (the logo build, clips) can opt into the GPU instead.
+const SOFTWARE_GL = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+const GPU_GL = ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu'];
+
+// True when a render script was asked for the GPU: HITL_GPU=1 or --gpu. Checks never call this.
+export function wantGpu(argv = process.argv) {
+  return process.env.HITL_GPU === '1' || argv.includes('--gpu');
+}
+
+async function launch(gpu) {
+  if (gpu) {
+    const browser = await chromium.launch({ args: GPU_GL });
+    const renderer = await rendererOf(browser);
+    if (renderer && !/SwiftShader/i.test(renderer)) return { browser, renderer };
+    await browser.close();
+    console.warn(`harness: no GPU (${renderer ?? 'no WebGL2'}), using SwiftShader`);
+  }
+  const browser = await chromium.launch({ args: SOFTWARE_GL });
+  return { browser, renderer: 'SwiftShader' };
+}
+
+async function rendererOf(browser) {
+  const page = await browser.newPage();
+  const r = await page.evaluate(() => {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    const ext = gl?.getExtension('WEBGL_debug_renderer_info');
+    return gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unknown') : null;
+  });
+  await page.close();
+  return r;
+}
+
+// gpu: render on the GPU when there is one (see wantGpu); the default is SwiftShader.
+export async function startHarness({ gpu = false } = {}) {
   const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const { browser, renderer } = await launch(gpu);
   return {
     browser,
+    renderer,
     // A page on `query`, ready to step. errors collects page errors and console errors.
     async openScene(query, { width = 960, height = 640, time = 0.45 } = {}) {
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
