@@ -290,7 +290,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       return o;
     });
     party = { r, v, props, cart, stack, grow, watchers, t: 0 };
-    party.spot = spotlights?.begin('waffle_party', () => { endParty(); sendBack(); });
+    party.spot = spotlights?.begin('waffle_party', () => { endParty(); sendBack(); }, PARTY_S);
   }
 
   function endParty() {
@@ -443,7 +443,9 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     const cartAt = at(0, -1.7);
     easeIn({ center });
     dance = { genre, genreId: ev.genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
-    dance.spot = spotlights?.begin('music_night', () => { endDance(); sendBack(); });
+    // A dance fitted to its track (fitToTrack) plays as long as the music.
+    const d0 = dance;
+    dance.spot = spotlights?.begin('music_night', () => { endDance(); sendBack(); }, () => d0.dur);
     if (track && track.age < 5) fitToTrack(dance);
   }
 

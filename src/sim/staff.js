@@ -14,7 +14,7 @@ import { onDeparture } from './knowledge.js';
 import { emitChat } from './chat.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus, researchBonus } from './bonus.js';
-import { onReachedSenior, onLevelUp, progressRecords } from './progression.js';
+import { onReachedSenior, onLevelUp, progressRecords, recordGrowth } from './progression.js';
 import { PATHS, ADDITIVE_PATH_KEYS } from '../data/paths.js';
 import { TRAINING } from '../data/training.js';
 import { eraLines, eraOnlyAllowsText, eraAtLeast } from './eras.js';
@@ -147,7 +147,7 @@ export function generateStaff(state, { role, seniority }) {
     assignment: { type: ROLES[role].defaultAssignment, targetId: null },
     mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0,
     salary: 0, hiredWeek: state.week, founder: false, deskId: null, remote: false, call: null, strain: 0,
-    path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: emptyRecord(),
+    path: null, pathPending: seniority === 'senior' && state.unlocks?.paths !== undefined, legend: false, record: emptyRecord(), growth: [],
     appearance: {
       skin: int(r, 0, 5), hair: int(r, 0, 7), hairColor: pick(r, HAIR), shirt: pick(r, SHIRTS),
       pants: pick(r, PANTS), accessory: pick(r, ACCESSORIES), build: int(r, 0, 2),
@@ -343,6 +343,7 @@ registerAction('train', (ctx, { staffId, program, focus }) => {
   }
   ctx.emit({ type: 'bubble', staffId: p.id, text: `+${Math.round(gain)} XP`, tone: 'good' });
   if (trainedFrom !== null) ctx.emit({ type: 'skillTrained', staffId: p.id, skill: focus, gain: p.skills[focus] - trainedFrom });
+  recordGrowth(state, p, 'trained', { skill: trainedFrom !== null ? focus : null, gain: trainedFrom !== null ? p.skills[focus] - trainedFrom : 0, program });
   ctx.emit({ type: 'toast', text: `${p.name} is off to a ${t.name.toLowerCase()}.`, tone: 'info' });
   return { ok: true };
 });
@@ -361,6 +362,7 @@ function levelUp(ctx, p) {
       if (p.skills[st] > before) gains[st] = p.skills[st] - before;
     }
     ctx.emit({ type: 'levelUp', staffId: p.id, level: p.level, gains });
+    recordGrowth(state, p, 'level', { level: p.level, gains });
     (ctx.happenings ??= {}).levelUps = [...(ctx.happenings.levelUps ?? []), p.id];
     onLevelUp(ctx, p);
   }
@@ -375,6 +377,7 @@ function levelUp(ctx, p) {
   emitChat(ctx, { channel: 'wins', from: '@hr-bot', text: `Please congratulate ${p.name}, now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, kind: 'win' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
   ctx.emit({ type: 'promoted', staffId: p.id, seniority: next });
+  recordGrowth(state, p, 'promoted', { seniority: next });
   if (next === 'senior') onReachedSenior(ctx, p);
 }
 

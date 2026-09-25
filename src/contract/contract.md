@@ -94,6 +94,8 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
+                                          // important: optional true promotes a post that wouldn't otherwise count as important (a running joke, big news);
+                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, bot posts, or flagged) raise unread counts
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
 { type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
@@ -287,7 +289,8 @@ stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen'
 grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
 leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor optional
 
-state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
+state.pendingDecision.stage = null | { prop, anchor, x, y, staffId }   // tile resolved when raised; x, y null for 'screens'
+// staffId: 'subjectDesk' only; whose desk it is: the subject's, or for an event with no subject (or one past its wait) someone present, a founder first; absent when it fell back to the back wall
 state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
 ```
 
@@ -296,6 +299,7 @@ state.office.props = [{ id, prop, x, y, since, until }]       // lingering props
 - `grant` replaces a `buyItem` effect on decisions.
 - `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
+- A desk-staged event whose subject is away or remote waits, up to `B.deskStageWaitWeeks`. After that it's raised with someone present's desk instead, so nothing queued behind it stalls.
 - An anchor of `'whiteboard'` resolves to a placed whiteboard or whiteboard_wall, else the back wall as `'wall'` does.
 - `leaves` uses its own `anchor` when it sets one; otherwise it takes the stage prop's tile, or the back wall when there is no stage. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
@@ -315,7 +319,7 @@ ChatPrompt = {
   expiresWeek,       // resolves as ignored when state.week reaches it
   options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
-  stage: null | { prop, anchor, x, y },            // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
+  stage: null | { prop, anchor, x, y, staffId },   // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
   subjectId: null | staffId,                       // the event's subject, as pendingDecision.subjectId; moments cast the subject first
 }
 ```

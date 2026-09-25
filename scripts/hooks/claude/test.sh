@@ -122,6 +122,7 @@ g -C "$repo" checkout -q -b sim/balance
 lane_ok "$repo/src/sim/tick.js" sim
 lane_ok "$repo/tests/sim/a.test.js" sim
 lane_ok "$repo/docs/toolkit.md" sim
+lane_ok "$repo/docs/toolkit/balance.md" sim
 lane_ok "$repo/.claude/agents/sim-engineer.md" sim
 lane_no "$repo/src/ui/hud.js" sim
 [[ "$err" == *"belongs to ui"* ]] || fail "lane-guard should name the owner (got: $err)"
@@ -149,6 +150,7 @@ g -C "$repo" checkout -q -b video/reel
 lane_ok "$repo/scripts/capture-manifest.js" video
 lane_ok "$repo/scripts/feature-media/build.sh" video
 lane_ok "$repo/scripts/reels/nods.sh" video
+lane_ok "$repo/docs/reels.md" video
 lane_ok "$repo/docs/toolkit.md" video
 lane_no "$repo/scripts/capture.js" "video, the capture engine"
 lane_no "$repo/src/render/index.js" "video, render code"
