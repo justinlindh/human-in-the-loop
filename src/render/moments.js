@@ -7,7 +7,8 @@ import { printerModel, visitorChairModel } from './props.js';
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
 // the walking grid and people return to their seat afterwards.
 //
-// createMoments({ office, recs, walkTo, emote, getProps, isBusy, low }) -> { update(dt), reset() }
+// createMoments({ office, recs, walkTo, emote, getProps, note, isBusy, low }) -> { update(dt), reset() }
+// note(id, what, detail) records a refusal (a moment that could not start) in the ownership trace.
 //   getProps() -> props.js handle (current(), overlay) or null
 //   isBusy()   -> true while a standup or party owns the room: no moments start then
 //   low()      -> Low quality: moments shrink to an emote, nobody walks
@@ -29,10 +30,11 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor'];
+const KINDS = ['pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
+const SIDE_SQUEEZE = 0.5;    // in a row of desks side by side: out between their chair and the next
 const STAND_BACK = 0.8;      // then how far back into the aisle, clear of the chair
 const TAKE_IT_OUT = 0;       // printer_jam's 'Take it out back' choice index
 const CARRY_SPEED = [0.5, 3];  // metres a second: the printer carry takes the cue's verse, within these
@@ -93,7 +95,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -369,13 +371,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const ry = desk?.obj.rotation.y ?? 0, nav = office.nav(), yaw = getYaw();
     const ax = [Math.cos(ry), -Math.sin(ry)], back = [Math.sin(ry), Math.cos(ry)];
     const seat = { x: r.pos.x, z: r.pos.z };
-    const sides = [1, -1].map((sg) => ({ x: seat.x + ax[0] * SIDE_OUT * sg + back[0] * 0.2, z: seat.z + ax[1] * SIDE_OUT * sg + back[1] * 0.2 }))
-      .filter((q) => !nav.isBlocked(q.x, q.z))
-      .sort((a, b) => (b.x * Math.sin(yaw) + b.z * Math.cos(yaw)) - (a.x * Math.sin(yaw) + a.z * Math.cos(yaw)));
-    const side = sides[0];
+    // A clear side first; where desks stand side by side there is none, so they squeeze out between
+    // their chair and the next one and straight back to the aisle.
+    const at = (u) => ({ x: seat.x + ax[0] * u + back[0] * 0.2, z: seat.z + ax[1] * u + back[1] * 0.2 });
+    const camFirst = (a, b) => (b.x * Math.sin(yaw) + b.z * Math.cos(yaw)) - (a.x * Math.sin(yaw) + a.z * Math.cos(yaw));
+    const wide = [1, -1].map((sg) => at(SIDE_OUT * sg)).filter((q) => !nav.isBlocked(q.x, q.z)).sort(camFirst);
+    const narrow = [1, -1].map((sg) => at(SIDE_SQUEEZE * sg)).sort(camFirst);
+    const side = [...wide, ...narrow].find((q) => { const s = { x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK }; return !nav.isBlocked(s.x, s.z, BODY_R) && !columnInFront(s); });
     if (!side) return;
     const spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
-    if (nav.isBlocked(spot.x, spot.z, BODY_R) || columnInFront(spot)) return;
     spot.yaw = towardCamera(spot, p.obj.position);
     // Push the chair back to get up; it rolls in again as they sit back down.
     const chair = office.freeChair?.(deskId, true);
@@ -385,12 +389,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     // and they slump over the news.
     const env = p.obj;
     r.temp = {
-      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', el: 0,
-      side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 2 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
+      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', el: 0, stage: { beat: 'getup', target: env },
+      side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 6 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
       tick: (rr, d, tp) => {
         tp.el += d;
-        // The sheet is angled halfway toward the camera, so it shows beside the reader's profile.
-        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); tp.sheet.rotation.y = -tp.side * Math.PI / 4; rr.char.root.add(tp.sheet); env.visible = false; }
+        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); rr.char.root.add(tp.sheet); env.visible = false; }
         if (tp.el >= READ_S && tp.sheet) {
           tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true;
           emote(rr, 'storm', 2.4);
@@ -403,7 +406,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
           return true;
         }
         rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
-        // Read in profile, the sheet in front of the face; then turn toward the camera to take it in.
+        tp.stage = tp.el < READ_S ? { beat: 'read', held: tp.sheet, target: tp.sheet } : { beat: 'slump', target: env };
+        // Read turned a third of the way off the camera, so the face shows over the sheet; then turn to
+        // the camera to take it in.
         tp.goal.yaw = tp.el < READ_S ? tp.readYaw : tp.slumpYaw;
         return true;
       },
@@ -431,11 +436,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     }
   }
 
-  // The letter in hand: a sheet held up in front of the face, a red stamp showing through it.
+  // The letter in hand: a sheet held low and tipped up square to the reader's line of sight, below
+  // the face as the camera sees it, a red stamp showing through it.
   function letterSheet() {
     const g = new THREE.Mesh(SHEET_GEO, sheetMat());
-    g.position.set(0, 0.86, 0.33);
-    g.rotation.x = -0.05;
+    g.position.set(0, 0.65, 0.40);
+    g.rotation.x = 0.44;
     g.userData.noAO = true;
     return g;
   }

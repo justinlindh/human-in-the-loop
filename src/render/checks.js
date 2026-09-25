@@ -73,6 +73,14 @@ function headCentre(root) {
   return head;
 }
 
+// The standard failure detail for an actor at the worst sample: where they stand and face, their
+// walk (path, goal, the temp and who set it) and their last lines in the ownership trace.
+function actorAt(R, id) {
+  const root = charOf(R.scene, id);
+  if (!root) return { id };
+  return { id, pos: [+root.position.x.toFixed(2), +root.position.z.toFixed(2)], yaw: +root.rotation.y.toFixed(2), walk: R.walkOf?.(id) ?? null, trace: R.trace?.on ? R.trace.lines(600).filter((l) => l.id === id).slice(-8) : [] };
+}
+
 export async function runClipChecks(R, S, { frames = 24, dt = 0.07 } = {}) {
   const results = [];
   const scene = R.scene;
@@ -342,7 +350,7 @@ export async function runWalkChecks(R, S, { dt = 1 / 30 } = {}) {
   // 3. Normal office life: walkers never inside furniture (a sitter's own desk excepted).
   {
     R.perks.hold = false;
-    let worst = 0, worstWho = null, samples = 0;
+    let worst = 0, worstWho = null, worstAt = null, samples = 0;
     for (let f = 0; f < 30 * 40; f++) {
       step(1);
       if (f % 10) continue;
@@ -359,12 +367,12 @@ export async function runWalkChecks(R, S, { dt = 1 / 30 } = {}) {
         for (const e of R.office.placed.values()) {
           if (own.has(e.id)) continue;
           const v = bodyInside(root, meshes(e.obj), false);
-          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} (${pk.temp?.key ?? 'goal'}) at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} own ${deskOf(id)} item at ${e.target.x.toFixed(2)},${e.target.z.toFixed(2)} path ${pk.path}`; }
+          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} (${pk.temp?.key ?? 'goal'}) at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} own ${deskOf(id)} item at ${e.target.x.toFixed(2)},${e.target.z.toFixed(2)} path ${pk.path}`; worstAt = actorAt(R, id); }
         }
       }
     }
     R.perks.hold = true;
-    results.push({ name: 'walk:walkers', pass: worst < 0.01 && samples > 20, worstInsidePct: +(100 * worst).toFixed(2), worstWho, samples });
+    results.push({ name: 'walk:walkers', pass: worst < 0.01 && samples > 20, worstInsidePct: +(100 * worst).toFixed(2), worstWho, worstAt, samples });
   }
   return results;
 }
@@ -529,7 +537,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = true;
     const desk = [...R.office.placed.values()].find((e) => e.desk);
     S.office.props.push({ id: 'pizza_prop', prop: 'pizza_boxes', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
-    let worst = 0, worstWho = null;
+    let worst = 0, worstWho = null, worstAt = null;
     const eaters = new Set();
     for (let i = 0; i < 30 * 20; i++) {
       step(1);
@@ -543,16 +551,16 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         for (const e of R.office.placed.values()) {
           if (own.has(e.id)) continue;
           const v = bodyInside(root, meshes(e.obj), false);
-          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}`; }
+          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}`; worstAt = actorAt(R, id); }
         }
         for (const p of R.props.current()) {
           if (p.prop === 'pizza_boxes') continue;
           const v = bodyInside(root, meshes(p.obj), false);
-          if (v > worst) { worst = v; worstWho = `${id} in ${p.prop}`; }
+          if (v > worst) { worst = v; worstWho = `${id} in ${p.prop}`; worstAt = actorAt(R, id); }
         }
       }
     }
-    results.push({ name: 'moment:pizza', pass: eaters.size > 0 && worst < 0.01, eaters: eaters.size, insidePct: +(100 * worst).toFixed(2), worstWho });
+    results.push({ name: 'moment:pizza', pass: eaters.size > 0 && worst < 0.01, eaters: eaters.size, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
     S.office.props = S.office.props.filter((p) => p.id !== 'pizza_prop');
     R.moments.full = false;
     step(10);
@@ -600,7 +608,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
   {
     R.moments.full = true;
     S.pendingDecision = { eventId: 'open_plan_office', subjectId: ids[0], stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } };
-    let worst = 0, worstWho = null, phases = new Set();
+    let worst = 0, worstWho = null, worstAt = null, phases = new Set();
     for (let i = 0; i < 30 * 25; i++) {
       if (i === 30 * 16) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'open_plan_office', choice: 0, subjectId: ids[0] }], S); }
       step(1);
@@ -612,10 +620,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       for (const e of R.office.placed.values()) {
         if (own.has(e.id)) continue;
         const v = bodyInside(root, meshes(e.obj), false);
-        if (v > worst) { worst = v; worstWho = `${h.id} (${h.phase}) in ${e.itemId}:${e.id}`; }
+        if (v > worst) { worst = v; worstWho = `${h.id} (${h.phase}) in ${e.itemId}:${e.id}`; worstAt = actorAt(R, h.id); }
       }
     }
-    results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho });
+    results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
     R.moments.full = false;
     step(10);
   }
@@ -626,7 +634,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.perks.hold = true;
     step(90);
     const occupied = [...R.office.placed.values()].filter((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.assignment?.type !== 'hardProblem' && p.mood !== 'away'));
-    let worst = 0, worstWho = null, stood = 0;
+    let worst = 0, worstWho = null, worstAt = null, stood = 0;
     const actors = new Set();
     for (const desk of occupied.slice(0, 4)) {
       S.office.props.push({ id: 'letter_prop', prop: 'envelope', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
@@ -650,7 +658,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
             if (v > worst) {
               worst = v;
               const parts = ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`);
-              worstWho = `${id} in ${e.itemId}:${e.id} [${parts.join(' ')}] path ${R.perks.peek(id)?.path}`;
+              worstWho = `${id} in ${e.itemId}:${e.id} [${parts.join(' ')}] path ${R.perks.peek(id)?.path}`; worstAt = actorAt(R, id);
             }
           }
         }
@@ -658,7 +666,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
       step(30);
     }
-    results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho });
+    results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
     R.moments.full = false;
   }
   // 6. The printer taken out back (printer_jam, choice 0): the carriers, the one with the bat and the
@@ -672,7 +680,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     S.pendingDecision = null;
     S.office.props.push({ id: 'wreck_prop', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 2 } });
     R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: ids[0] }], S);
-    let worst = 0, worstWho = null, samples = 0, chin = Infinity, chinWho = null;
+    let worst = 0, worstWho = null, worstAt = null, samples = 0, chin = Infinity, chinWho = null;
     const phases = new Set();
     const box = new THREE.Box3(), pbox = new THREE.Box3();
     // Each blow announces itself (hitl:moment 'hit', numbered from 0), for the sound to land on.
@@ -697,12 +705,12 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         for (const e of R.office.placed.values()) {
           if (own.has(e.id)) continue;
           const v = bodyInside(root, meshes(e.obj), false);
-          if (v > worst) { worst = v; const ms = meshes(e.obj); worstWho = `${r.id} (${pm.phase} at ${pm.s.toFixed(2)} of ${pm.len.toFixed(2)} m, twist ${pm.twists?.[Math.round(pm.s / 0.1)]?.toFixed(2)}, clear ${pm.clear}, pos ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}) in ${e.itemId}:${e.id} [${ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`).join(' ')}]`; }
+          if (v > worst) { worst = v; const ms = meshes(e.obj); worstWho = `${r.id} (${pm.phase} at ${pm.s.toFixed(2)} of ${pm.len.toFixed(2)} m, twist ${pm.twists?.[Math.round(pm.s / 0.1)]?.toFixed(2)}, clear ${pm.clear}, pos ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}) in ${e.itemId}:${e.id} [${ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`).join(' ')}]`; worstAt = actorAt(R, r.id); }
         }
         for (const p of R.props.current()) {
           if (p.prop === 'printer_wrecked') continue;
           const v = bodyInside(root, meshes(p.obj), false);
-          if (v > worst) { worst = v; worstWho = `${r.id} (${pm.phase}) in ${p.prop}`; }
+          if (v > worst) { worst = v; worstWho = `${r.id} (${pm.phase}) in ${p.prop}`; worstAt = actorAt(R, r.id); }
         }
         // The chin: the head is the top 45% of a character.
         if (k < 2 && (pm.phase === 'lift' || pm.phase === 'carry') && pm.obj.visible) {
@@ -716,7 +724,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     removeEventListener('hitl:moment', onHit);
     const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
     const hitsOk = hits.join() === '0,1,2,3';
-    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk, phases: [...phases], hits, samples, insidePct: +(100 * worst).toFixed(2), worstWho, chinGap: +chin.toFixed(3), chinWho });
+    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk, phases: [...phases], hits, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
     R.moments.full = false;
     step(30);
   }
@@ -727,7 +735,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     const desk = [...R.office.placed.values()].find((e) => e.desk);
     for (const choice of [0, 1]) {
       S.pendingDecision = { eventId: 'first_user_test', subjectId: ids[0], stage: { prop: 'visitor_chair', anchor: 'subjectDesk', x: desk.x, y: desk.y } };
-      let worst = 0, worstWho = null, samples = 0;
+      let worst = 0, worstWho = null, worstAt = null, samples = 0;
       const beats = new Set();
       for (let i = 0; i < 30 * 16; i++) {
         if (i === 30 * 8) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'first_user_test', choice, subjectId: ids[0] }], S); }
@@ -742,17 +750,17 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
           for (const e of R.office.placed.values()) {
             if (own.has(e.id)) continue;
             const v = bodyInside(root, meshes(e.obj), false);
-            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} t ${i} path ${JSON.stringify(R.perks.peek(id)?.path)} goal ${JSON.stringify(R.perks.peek(id)?.temp?.goal)} seat ${R.perks.peek(id)?.seat} vseat ${JSON.stringify(R.moments.visitorState?.seat)} desk ${desk.id}`; }
+            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} t ${i} path ${JSON.stringify(R.perks.peek(id)?.path)} goal ${JSON.stringify(R.perks.peek(id)?.temp?.goal)} seat ${R.perks.peek(id)?.seat} vseat ${JSON.stringify(R.moments.visitorState?.seat)} desk ${desk.id}`; worstAt = actorAt(R, id); }
           }
           for (const p of R.props.current()) {
             if (!p.obj.visible) continue;
             const v = bodyInside(root, meshes(p.obj), false);
-            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${p.prop} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}; prop at ${p.obj.position.x.toFixed(2)},${p.obj.position.z.toFixed(2)}; path ${JSON.stringify(R.perks.peek(id)?.path)}; t ${i}`; }
+            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${p.prop} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}; prop at ${p.obj.position.x.toFixed(2)},${p.obj.position.z.toFixed(2)}; path ${JSON.stringify(R.perks.peek(id)?.path)}; t ${i}`; worstAt = actorAt(R, id); }
           }
         }
       }
       const want = choice === 0 ? 'flinch' : 'explain';
-      results.push({ name: `moment:visitor:${want}`, pass: samples > 0 && beats.has('hide') && beats.has(want) && worst < 0.01, samples, beats: [...beats], insidePct: +(100 * worst).toFixed(2), worstWho });
+      results.push({ name: `moment:visitor:${want}`, pass: samples > 0 && beats.has('hide') && beats.has(want) && worst < 0.01, samples, beats: [...beats], insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
       step(30 * 8);
     }
     R.moments.full = false;
@@ -858,9 +866,23 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   R.perks.send(ids, 'pair_table', { dur: 6 });
   let playedAt = null;
   for (let t = 0; t < 30 && playedAt === null; t += dt * 5) { step(5); if (R.perks.played > before) playedAt = +t.toFixed(1); }
+  // The game on the table: the ball travels and stays on the pitch, and the rods turn.
+  const obj = R.office.placed.get('pair_table')?.obj;
+  const rods = [0, 1, 2, 3].map((i) => obj?.getObjectByName(`foosball_rod${i}`));
+  let travel = 0, off = 0, turn = 0, prev = null;
+  for (let i = 0; i < 30 * 5 && playedAt !== null; i++) {
+    step(1);
+    const ball = rods[0]?.parent.children.map((c) => c.children.find((b) => b.isMesh && b.geometry.type === 'SphereGeometry')).find(Boolean);
+    if (!ball) continue;
+    if (prev) travel += Math.hypot(ball.position.x - prev.x, ball.position.z - prev.z);
+    prev = ball.position.clone();
+    if (Math.abs(ball.position.x) > 0.43 || Math.abs(ball.position.z) > 0.24) off++;
+    turn = Math.max(turn, ...rods.map((r) => (r ? 2 * Math.acos(Math.min(1, Math.abs(r.quaternion.dot(r.userData.q0 ??= r.quaternion.clone())))) : 0)));
+  }
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
   step(60);
-  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null, staff: S.staff.length, readyAt, playedAt, table: spot };
+  const game = travel > 1 && off === 0 && turn > 0.3;
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2) };
 }
 
 // The sky backdrop redraws at most a few times a second; a change inside that window must still be
