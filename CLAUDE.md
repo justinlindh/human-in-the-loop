@@ -14,6 +14,8 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 - `npm run snap -- --scenario floor --out shots/floor.png`: headless screenshot, exits non-zero on console errors.
 - `npm run models`: rebuild `public/models/*.glb` from `blender/` scripts (Blender 5.2, headless).
 
+Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) is listed in `docs/toolkit.md`, with who uses it and for what. Read it at the start of a session. A PR that adds, removes or changes a tool updates `docs/toolkit.md` and, when a role should reach for it, that role's brief in `.claude/agents/`.
+
 ## Team
 
 Message teammates by name with SendMessage. Other sessions that ListAgents shows (other projects, cloud sessions, older gamedev sessions) are not on the team; never message them.
