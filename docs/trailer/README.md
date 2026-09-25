@@ -16,7 +16,7 @@ Output lands in `shots/trailer/` (ignored by git):
 | File | What |
 |---|---|
 | `trailer.mp4` | 1920x1080, 30 fps, H.264 and AAC, loudness-normalized to -14 LUFS |
-| `trailer-vertical.mp4` | 1080x1920: the logo above a square gameplay window, captions and the play URL below |
+| `trailer-vertical.mp4` | only with `--vertical`: 1080x1920, the logo above a square gameplay window, captions and the play URL below |
 | `trailer.json` | what went in: build commit, beat timings, voiceover lines and their lengths |
 | `clips/` | the raw captures, one per beat, with the capture `index.json` |
 | `gfx/` | the rendered cards, captions and vertical frame |
@@ -27,7 +27,8 @@ Flags:
 - `--vo <dir>`: the voiceover, one WAV per line named by line id (`l1.wav`, `l2.wav`, ...). Without it the
   trailer is built with music and captions only, which is handy while editing cuts.
 - `--reuse`: keep clips already captured from the same commit and capture only the rest.
-- `--no-vertical`, `--no-captions`: skip the vertical cut, or the burned-in captions.
+- `--vertical`: also build the 1080x1920 cut.
+- `--no-captions`: skip the burned-in captions.
 - `--print-vo`: print the voiceover lines as JSON (the input the voice script reads).
 - `--software`: capture with SwiftShader when there is no GPU for the browser.
 
@@ -40,8 +41,9 @@ Everything lives in `scripts/trailer/config.js`:
 
 - `BEATS`: the cuts, in order. A clip beat names a capture item from `scripts/capture-manifest.js`
   (`item`), overrides for it (`capture`: seconds, warmup, hideUi, ...), where to cut (`from`, `dur`),
-  optional camera zooms (`camera: [{ at, zoom }]`) and page actions, and where the vertical cut's square
-  window sits (`vx`). A card beat names one of `CARDS`.
+  optional in-game camera zooms (`camera: [{ at, zoom }]`) and page actions, a camera-style push-in done
+  in the edit (`punch: { at: [x, y], zoom: [from, to] }`, eased over the beat toward that point of the
+  frame), and where the vertical cut's square window sits (`vx`). A card beat names one of `CARDS`.
 - `MUSIC`: the bed, tracks that swap in for a stretch (the music night track), stingers, ducking under the
   narrator, and the fade out. Times are seconds or `{ beat, offset }`, so they follow a beat when cuts move.
 - `VO`: the narration lines, their cue points and caption switch.
@@ -53,7 +55,7 @@ renders the stills; `scripts/trailer/build.js` runs capture, cuts, mixes and enc
 To check a cut quickly, build without the voiceover and with `--reuse`, then look at a contact sheet:
 
 ```sh
-npm run trailer -- --reuse --no-vertical
+npm run trailer -- --reuse
 ffmpeg -i shots/trailer/trailer.mp4 -vf "fps=2,scale=480:-1,tile=6x10" -frames:v 1 shots/trailer/sheet.png
 ```
 

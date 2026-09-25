@@ -3,7 +3,7 @@
 //
 // npm run trailer                                  capture, then build shots/trailer/trailer.mp4
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
-//   [--out shots/trailer] [--reuse] [--no-vertical] [--no-captions] [--print-vo] [--software]
+//   [--out shots/trailer] [--reuse] [--vertical] [--no-captions] [--print-vo] [--software]
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -36,7 +36,8 @@ const OUT = resolve(String(args.out ?? join(ROOT, 'shots/trailer')));
 const CLIPS = join(OUT, 'clips');
 const GFX = join(OUT, 'gfx');
 const VO_DIR = typeof args.vo === 'string' ? resolve(args.vo) : null;
-const VERTICAL = !args['no-vertical'] && !!OUTPUT.vertical;
+// The vertical (1080x1920) cut is built only on request.
+const VERTICAL = !!args.vertical && !!OUTPUT.vertical;
 const CAPTIONS = !args['no-captions'] && VO.captions;
 // Hard ceilings on the child processes, so a hung browser or encoder cannot hold the machine.
 const CAPTURE_TIMEOUT_S = 3600;
@@ -106,7 +107,7 @@ for (const [i, l] of lines.entries()) {
 }
 
 // 3. Cards and captions.
-const gfx = await renderGraphics({ dir: GFX, cards: CARDS, lines, output: OUTPUT, logoPath: join(ROOT, 'docs/readme/logo.png'), url: PLAY_URL.replace(/^https:\/\//, '').replace(/\/$/, '') });
+const gfx = await renderGraphics({ dir: GFX, cards: CARDS, lines, output: VERTICAL ? OUTPUT : { ...OUTPUT, vertical: null }, logoPath: join(ROOT, 'docs/readme/logo.png'), url: PLAY_URL.replace(/^https:\/\//, '').replace(/\/$/, '') });
 
 // 4. Audio mix: music bed, swaps and stingers, ducked under the voiceover, then loudness-normalized.
 const f = (n) => n.toFixed(3);

@@ -58,8 +58,8 @@ export async function renderGraphics({ dir, cards, lines, output, logoPath, url 
   const logo = `data:image/png;base64,${readFileSync(logoPath).toString('base64')}`;
   const { width: W, height: H } = output;
   const V = output.vertical;
-  const square = V.width;
-  const top = Math.round((V.height - square) * 0.42);
+  const square = V ? V.width : 0;
+  const top = V ? Math.round((V.height - square) * 0.42) : 0;
   const browser = await chromium.launch();
   const out = { cards: {}, vcards: {}, captions: {}, vcaptions: {}, vframe: null, vlayout: { square, top } };
   try {
