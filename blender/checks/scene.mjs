@@ -12,6 +12,7 @@
 //   --warm N                             frames stepped before anything is captured (default 60)
 //   --settle N                           still mode: frames stepped after the patch (default 30)
 //   --crop x,y,w,h                       crop every image (canvas pixels)
+//   --report '<js>'                      an expression evaluated in the page at the end; printed as JSON
 //   --size WxH (960x600)  --quality medium  --time 0.45  --paused  --software  --timeout 300
 //
 // Output: a still is written to --out. A clip writes --out as .mp4 (H.264), plus the frames in
@@ -73,10 +74,11 @@ export async function renderScene(H, o) {
     if (o.event) R.handleEvents([].concat(o.event), S);
     if (o.frames) for (let i = 0; i < o.frames; i++) out.push(grab());
     else { window.__step(Math.max(0, (o.settle ?? 30) - 1)); out.push(grab()); }
-    return out;
+    const report = o.report ? (0, eval)(o.report) : undefined;
+    return { out, report };
   }, o);
   await page.close();
-  return { images: images.map((d) => Buffer.from(d.split(',')[1], 'base64')), errors };
+  return { images: images.out.map((d) => Buffer.from(d.split(',')[1], 'base64')), errors, report: images.report };
 }
 
 function parse(argv) {
@@ -96,7 +98,7 @@ function parse(argv) {
     out: a.out, mock: a.mock, seed: num(a.seed), week: num(a.week), size: a.size, quality: a.quality, time: num(a.time),
     patch: json(a.patch), pre: json(a.pre), event: json(a.event), focus: list(a.focus), zoom: num(a.zoom),
     frames: num(a.frames), before: num(a.before), warm: num(a.warm), settle: num(a.settle), crop: list(a.crop),
-    paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300,
+    paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300, report: a.report,
   };
 }
 
@@ -106,7 +108,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const kill = setTimeout(() => { console.error(`scene: timed out after ${o.timeout} s`); process.exit(124); }, o.timeout * 1000);
   const H = await startHarness({ gpu: o.gpu });
   try {
-    const { images, errors } = await renderScene(H, o);
+    const { images, errors, report } = await renderScene(H, o);
+    if (report !== undefined) console.log(`scene: report ${JSON.stringify(report)}`);
     const out = resolve(o.out);
     mkdirSync(dirname(out), { recursive: true });
     if (o.frames) rmSync(out.replace(/\.[a-z0-9]+$/i, '') + '.mp4', { force: true });

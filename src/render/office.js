@@ -1162,11 +1162,11 @@ export function createOffice({ parent, screens, lighting }) {
     get placed() { return placed; },
     get bounds() { return cur?.bounds; },
     // Stretches of the back walls already taken, as { wall, a, b } along the wall: windows, doors,
-    // the era's wall pieces, and tall furniture. Staged wall props hang clear of them.
+    // the era's wall pieces (decor: true), and tall furniture. Staged wall props hang clear of them.
     get wallBusy() {
       if (!cur) return [];
       const ops = cur.L.openings.filter((o) => o.wall === 'x' || o.wall === 'z').map((o) => ({ wall: o.wall, a: o.at - o.width / 2, b: o.at + o.width / 2 }));
-      return ops.concat(dressing?.userData.spans ?? [], wallBlockers());
+      return ops.concat((dressing?.userData.spans ?? []).map((b) => ({ ...b, decor: true })), wallBlockers());
     },
     // Bumps whenever the walkable grid is rebuilt (furniture placed, moved or removed).
     get navVersion() { return navVersion; },
