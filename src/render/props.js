@@ -612,14 +612,17 @@ function counterSpot(office, g, near) {
 // triangles at table or counter height, largest first (a shelf inside is covered, so all taken). A
 // cell is free when that surface is under it and nothing stands on it lower than `tall` above (a
 // cabinet higher up is no obstacle). Measured from the triangles, once per item and prop height, like
-// the desk-top grid, so choosing a spot casts no rays.
+// the desk-top grid, so choosing a spot casts no rays. The grids are in world space, so they are
+// kept for the item's pose and measured again once it moves (build mode slides the same object).
 const counterGrids = new WeakMap();
 function counterGrid(it, tall) {
   const key = Math.round(tall * 100);
-  let byTall = counterGrids.get(it.obj);
-  if (byTall?.has(key)) return byTall.get(key);
-  if (!byTall) { byTall = new Map(); counterGrids.set(it.obj, byTall); }
   it.obj.updateMatrixWorld(true);
+  const m = it.obj.matrixWorld.elements, pose = [m[0], m[2], m[12], m[14]].map((v) => Math.round(v * 1000)).join();
+  let cached = counterGrids.get(it.obj);
+  if (cached?.pose !== pose) { cached = { pose, byTall: new Map() }; counterGrids.set(it.obj, cached); }
+  const byTall = cached.byTall;
+  if (byTall.has(key)) return byTall.get(key);
   const box = new THREE.Box3().setFromObject(it.obj);
   const tris = [];
   const a = new THREE.Vector3(), b2 = new THREE.Vector3(), c = new THREE.Vector3();
