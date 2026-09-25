@@ -185,6 +185,7 @@ export function placedTransform(L, p) {
 }
 
 // Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters.
+const NEAR_COST = 3;   // extra cost of a cell inside a soft clearance (one cell's move costs 1)
 export function createNav(L, obstacles, cell = 0.35) {
   const nx = Math.ceil(L.W / cell), nz = Math.ceil(L.D / cell);
   const blocked = new Uint8Array(nx * nz);
@@ -230,8 +231,10 @@ export function createNav(L, obstacles, cell = 0.35) {
 
   // A* on the grid with 8-way moves; returns world points from start to goal (inclusive). clear > 0
   // keeps the way that many metres from anything blocked; with no such way, the result is null.
-  function path(from, to, clear = 0) {
-    const blocked = gridFor(clear);
+  // soft: instead, cells nearer than that cost extra, so the way keeps its distance where it can.
+  function path(from, to, clear = 0, { soft = false } = {}) {
+    const near = soft && clear > 0 ? gridFor(clear) : null;
+    const blocked = near ? grid0 : gridFor(clear);
     const [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
     const [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked);
     const N = nx * nz;
@@ -262,7 +265,7 @@ export function createNav(L, obstacles, cell = 0.35) {
           const n = a + b * nx;
           if (blocked[n] || closed[n]) continue;
           if (di && dk && (blocked[ci + di + ck * nx] || blocked[ci + (ck + dk) * nx])) continue;
-          const cost = g[cur] + (di && dk ? Math.SQRT2 : 1);
+          const cost = g[cur] + (di && dk ? Math.SQRT2 : 1) + (near?.[n] ? NEAR_COST : 0);
           if (cost < g[n]) {
             g[n] = cost;
             came[n] = cur;
@@ -271,7 +274,7 @@ export function createNav(L, obstacles, cell = 0.35) {
         }
       }
     }
-    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 ? null : [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
+    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 && !near ? null : [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
     const cells = [];
     for (let n = goal; n !== -1; n = came[n]) cells.push(n);
     cells.reverse();

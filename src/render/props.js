@@ -941,5 +941,5 @@ const BUILDERS = {
   cover_sheets: atDesk(coverSheets, FLAT),
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
   printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
-  printer_wrecked: outside(printerWrecked, 1.35),
+  printer_wrecked: outside(printerWrecked, 1.2),
 };

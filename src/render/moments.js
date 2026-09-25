@@ -543,7 +543,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const route = printerRoute(at, wreck.position, L);
     const pm = printer = {
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
-      side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
+      clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
     pm.twists = twists(pm);
     const c = along(route, 0);
@@ -561,6 +561,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     return true;
   }
   // From the printer's spot to the wreck's: through the door first when the wreck lies outside.
+  let routeClear = 0;
   function printerRoute(at, end, L) {
     const outside = end.y < -0.05;
     const door = L.doorWorld;
@@ -569,7 +570,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     // As wide a way as there is for the pair: the printer's half-width plus a carrier either side.
     const nav = office.nav();
     let way = null;
-    for (const clear of [PAIR_CLEAR, PAIR_CLEAR * 0.7, 0.35, 0]) if ((way = nav.path({ x: at.x, z: at.z }, { x: to.x, z: to.z }, clear))) break;
+    for (const clear of [PAIR_CLEAR, PAIR_CLEAR * 0.7]) if ((way = nav.path({ x: at.x, z: at.z }, { x: to.x, z: to.z }, clear))) { routeClear = clear; break; }
+    // Through a narrow aisle: as far from its sides as it can keep.
+    if (!way) { way = nav.path({ x: at.x, z: at.z }, { x: to.x, z: to.z }, 0.35, { soft: true }); routeClear = -0.35; }
     for (const q of way ?? []) pts.push({ x: q.x, y: 0, z: q.z });
     if (outside) pts.push({ x: door.x, y: 0, z: door.z });
     pts.push({ x: end.x, y: end.y, z: end.z });
