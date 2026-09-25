@@ -934,7 +934,7 @@ export function createOffice({ parent, screens, lighting }) {
     if (!d?.screen || d.screenKind === kind) return;
     d.screenKind = kind;
     d.screen.material = kind === 'work' ? screens.deskMaterial(d.seed) : screens.material(kind);
-    dropBatch();
+    rebatchSwaps();
   }
 
   // LED meshes on racks and wall screens, rebuilt when furniture changes.
@@ -963,7 +963,6 @@ export function createOffice({ parent, screens, lighting }) {
       m.userData.dynamic = true;
       d.obj.add(m);
       d.sign = m;
-      dropBatch();
     }
     if (d.sign) d.sign.visible = on;
   }
@@ -1051,7 +1050,6 @@ export function createOffice({ parent, screens, lighting }) {
     const rug = d?.obj.userData.rug;
     if (!rug || d.role === role) return;
     d.role = role;
-    dropBatch();
     const key = role ?? 'none';
     let m = rugMats.get(key);
     if (!m) {
@@ -1060,36 +1058,60 @@ export function createOffice({ parent, screens, lighting }) {
       rugMats.set(key, m);
     }
     rug.material = m;
+    rebatchSwaps();
   }
 
-  // Idle furniture is drawn as one merged batch per material. Any change (placement, era, a mat
-  // colour, an item hidden for a move) drops the batch and shows the originals until things settle.
+  // Idle furniture is drawn as one merged batch per material. Any change (placement, era, an item
+  // hidden for a move) drops the batch and shows the originals until things settle. Parts that swap
+  // material while idle (desk screens, team mats) sit in a small batch of their own, which a swap
+  // rebuilds on the spot without touching the rest.
   let batch = null;
   let idleT = 0;
   const BATCH_AFTER = 0.5;
+  function disposeGroup(g) {
+    g.removeFromParent();
+    g.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  }
   function dropBatch() {
     idleT = 0;
     if (!batch) return;
     for (const m of batch.members) m.visible = true;
-    batch.group.removeFromParent();
-    batch.group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    for (const m of batch.swaps) m.visible = true;
+    disposeGroup(batch.group);
+    if (batch.swapGroup) disposeGroup(batch.swapGroup);
     batch = null;
+  }
+  function buildSwaps() {
+    if (!batch.swaps.length) return;
+    batch.swapGroup = batchMeshes(batch.swaps, cur.furniture);
+    for (const m of batch.swaps) m.visible = false;
+    cur.furniture.add(batch.swapGroup);
+  }
+  function rebatchSwaps() {
+    if (!batch) return;
+    if (batch.swapGroup) disposeGroup(batch.swapGroup);
+    batch.swapGroup = null;
+    buildSwaps();
   }
   function buildBatch() {
     const members = [];
+    const swaps = [];
     const owners = [];
     for (const e of placed.values()) {
       if (!e.obj.visible || e.sliding) continue;
       owners.push(e.obj);
       for (const m of e.obj.children) {
-        if (m.isMesh && m.visible && (!m.userData.dynamic || m.userData.batch)) members.push(m);
+        if (!m.isMesh || !m.visible) continue;
+        if (!m.userData.dynamic) members.push(m);
+        else if (m.userData.batch) swaps.push(m);
       }
     }
-    if (members.length < 2) return;
+    if (members.length + swaps.length < 2) return;
     const group = batchMeshes(members, cur.furniture);
     for (const m of members) m.visible = false;
     cur.furniture.add(group);
-    batch = { group, members, owners };
+    batch = { group, members, swaps, swapGroup: null, owners };
+    buildSwaps();
   }
   function updateBatch(dt) {
     if (batch) {
