@@ -47,6 +47,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Every tunable number lives in `src/sim/balance.js`.
 - Keep a path open to touch and low-end devices (issue #8): nothing hover-only or keyboard-only in new UI, and new render features must degrade under the Low quality setting.
 - Stay in your lane's paths (see the plan's lane table). Need something elsewhere: message its owner. Need a contract change: message the lead.
+  - A Claude Code hook (`scripts/hooks/claude/lane-guard.sh`, lanes in `scripts/hooks/claude/lanes.txt`) refuses edits outside your lane. When the owner agrees to a specific edit, add that path to your worktree's exception file, `$(git rev-parse --git-dir)/hitl-lane-allow`, as the refusal message shows. List the owner in the PR's Affects section. The exception file lives in git's own directory, so it never reaches a commit.
 - Game text says "company" or "lab", never "startup", except inside a parody joke.
 - No em dash characters anywhere (files, commits, messages); a hook blocks them. Do not type the escape sequence for U+2014 either: the hook decodes it.
 - Comments describe what non-obvious code does now. No history, dates, or measurements in source.
