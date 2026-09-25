@@ -5,7 +5,7 @@
 # scripts to the integrator. A detached checkout, or a prefix not listed,
 # is not checked. An edit outside a lane that the owning lane agreed to goes in the worktree's
 # $(git rev-parse --git-dir)/hitl-lane-allow, one path or directory per line.
-*        docs/toolkit.md .claude/agents/
+*        docs/toolkit.md docs/toolkit/ .claude/agents/
 main     CLAUDE.md src/contract/ docs/ .claude/agents/ .github/pull_request_template.md README.md LICENSE
 lead     CLAUDE.md src/contract/ docs/ .claude/agents/ .github/pull_request_template.md README.md LICENSE
 sim      src/sim/ src/data/ src/save/ tests/ scripts/balance.js
