@@ -156,8 +156,20 @@ expect 'a checkout that fails once is retried and judged' "$cl" "state=failure|-
 if [ ${#fp[@]} -eq 5 ]; then
   case_root="$tmp/root-co3"; mkdir -p "$case_root/main-guard"; echo "${fp[4]}" >"$case_root/main-guard/last-green"; : >"$cl"
   guard "$cl" /dev/null "$gp" GIT_FAIL_CO="${fp[2]:0:7}" GIT_FAIL_COUNT="$tmp/co3.n" MAIN_GUARD_RETRY_WAIT=0 MAIN_GUARD_SUITE="$RED_FROM" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
-  expect 'a bisect stops at a commit it cannot check out' "$cl" "--label main-red|could not check out \`${fp[2]:0:7}\`|!First red merge"
+  expect 'a bisect stops at a commit it cannot check out' "$cl" "--label main-red|could not judge \`${fp[2]:0:7}\`|!First red merge"
 fi
+# Local CI failing only on the machine (exit 3) is no verdict either.
+MACHINE='printf "| step | result | seconds |\n|---|---|---|\n| lifecycle | error: machine (ENOSPC) | 1 |\n" >"$SUMMARY"; exit 3'
+case_root="$tmp/root-machine"; : >"$cl"
+guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'local CI failing on the machine gets no verdict' "$cl" "state=error|error: machine (ENOSPC)|!state=failure|!issue create|out:no verdict"
+[ -f "$case_root/main-guard/last" ] && fail_last=1 || fail_last=0
+[ $fail_last = 0 ] || { echo "FAIL an unjudged commit must be tried again on the next tick"; fails=$((fails + 1)); }
+# The same commit unjudged twice: recorded as checked, and filed for a person.
+: >"$cl"; guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label main-red|!state=failure"
+[ "$(cat "$case_root/main-guard/last" 2>/dev/null)" = "$(git -C "$REPO" rev-parse HEAD)" ] \
+  || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); }
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]

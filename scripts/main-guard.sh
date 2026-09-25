@@ -106,14 +106,14 @@ gate() {
   local c="$1" cs="${1:0:7}"
   WT="$ROOT/main-guard-$cs-$$"
   # A failed checkout (a full disk, a git lock) says nothing about the commit: retry once, then set
-  # gate_err so no caller counts it as red.
-  gate_err=0
+  # gate_err so no caller counts it as red. So does local CI failing only on the machine (exit 3).
+  gate_err=0; gate_why=""
   if ! git -C "$REPO" worktree add -q --detach "$WT" "$c"; then
     rm -rf "$WT"; git -C "$REPO" worktree prune
     sleep "${MAIN_GUARD_RETRY_WAIT:-30}"
     if ! git -C "$REPO" worktree add -q --detach "$WT" "$c"; then
       rm -rf "$WT"; git -C "$REPO" worktree prune
-      WT=""; gate_err=1; ci_rc=0; gate_new=0; seed_new=0; return
+      WT=""; gate_err=1; gate_why="the checkout failed twice"; ci_rc=0; gate_new=0; seed_new=0; return
     fi
   fi
   if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_modules" ] && [ ! -L "$REPO/node_modules" ] \
@@ -124,6 +124,10 @@ gate() {
   yield
   run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_SKIP_SWEEP=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
   ci_rc=$?
+  if [ "$ci_rc" -eq 3 ]; then
+    gate_err=1; ci_rc=0
+    gate_why="$(grep -oE 'error: machine \([^|]*\)' "$summary" 2>/dev/null | sed 's/ *$//' | sort -u | paste -sd';' -)"
+  fi
   run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
   local counts
   counts="$(node -e '
@@ -148,22 +152,6 @@ red_steps() { # <short>: the failing parts of the gate just run
   local IFS=', '; echo "${parts[*]}"
 }
 
-WT=""
-trap '[ -n "$WT" ] && git -C "$REPO" worktree remove --force "$WT" 2>/dev/null' EXIT
-trap 'exit 143' TERM INT HUP
-echo "main-guard: checking $short $(git -C "$REPO" log -1 --format=%s "$sha" | cut -c1-80)"
-status pending "Main guard running"
-t0=$(date +%s)
-gate "$sha"
-if [ "$gate_err" = 1 ]; then
-  echo "main-guard: could not check out $short; no verdict"
-  status error "Main guard could not check out this commit"
-  exit 2
-fi
-what="$(red_steps "$short")"
-secs=$(( $(date +%s) - t0 ))
-echo "$sha" >"$STATE/last"
-
 # One open issue per kind of finding: opened, commented on when the findings change, closed when clean.
 finding() { # <label> <description> <title> <failed: 0|1> <body file>
   local label="$1" desc="$2" title="$3" failed="$4" bodyf="$5"
@@ -182,6 +170,37 @@ finding() { # <label> <description> <title> <failed: 0|1> <body file>
   else gh issue create --title "$title at $short" --label "$label" --body-file "$body" >/dev/null && echo "main-guard: opened a $label issue"; fi
   echo "$print" >"$STATE/$label.last"; rm -f "$body"
 }
+WT=""
+trap '[ -n "$WT" ] && git -C "$REPO" worktree remove --force "$WT" 2>/dev/null' EXIT
+trap 'exit 143' TERM INT HUP
+echo "main-guard: checking $short $(git -C "$REPO" log -1 --format=%s "$sha" | cut -c1-80)"
+status pending "Main guard running"
+t0=$(date +%s)
+gate "$sha"
+# A commit that can't be judged (gate_err) is tried again next tick. The same commit unjudged
+# MAIN_GUARD_UNJUDGED_MAX times (default 2) is recorded as checked and filed for a person: a failure
+# that looks like the machine every time may come from the code (a leak, a GPU crash), and re-running
+# the full gate every tick would add the load it complains about.
+if [ "$gate_err" = 1 ]; then
+  echo "main-guard: could not judge $short (${gate_why:-a machine failure}); no verdict"
+  status error "Main guard could not judge this commit: ${gate_why:-a machine failure}"
+  n=$(( $(cat "$STATE/$short.unjudged" 2>/dev/null || echo 0) + 1 )); echo "$n" >"$STATE/$short.unjudged"
+  if [ "$n" -ge "${MAIN_GUARD_UNJUDGED_MAX:-2}" ]; then
+    echo "$sha" >"$STATE/last"
+    uj="$(mktemp)"
+    printf '%s\n\n%s\n' "Could not judge this commit $n times in a row: ${gate_why:-a machine failure}." \
+      "Every attempt failed with what looks like the machine, so the guard stops retrying it. If the machine was fine, the code may cause it (a leak, a GPU crash): run npm run ci on this commit to see." >"$uj"
+    finding main-unjudged "Main commits the main guard could not judge" "main could not be judged" 1 "$uj"
+    rm -f "$uj"
+  fi
+  exit 2
+fi
+rm -f "$STATE/$short.unjudged"
+finding main-unjudged "Main commits the main guard could not judge" "main could not be judged" 0 /dev/null
+what="$(red_steps "$short")"
+secs=$(( $(date +%s) - t0 ))
+echo "$sha" >"$STATE/last"
+
 if [ "$gate_new" = 0 ]; then
   finding sweep-finding "Scene sweep findings from the main guard (owner: art)" "new scene sweep violations seen only in seeded games" \
     "$([ "$seed_new" = 0 ] && echo 0 || echo 1)" "$STATE/$short.seed-new.txt"
@@ -286,7 +305,7 @@ if [ $lo -eq $hi ]; then
   note="First red merge since the last green \`${green:0:7}\`: \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}"))."
   echo "main-guard: first red merge ${range[$lo]:0:7}"
 else
-  why="ran out of time"; [ -n "${stopped:-}" ] && why="could not check out \`$stopped\`"
+  why="ran out of time"; [ -n "${stopped:-}" ] && why="could not judge \`$stopped\` (a machine failure)"
   note="The bisect $why: the first red merge is between \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}")) and \`${range[$hi]:0:7}\` ($(subject "${range[$hi]}"))."
   echo "main-guard: bisect stopped at ${range[$lo]:0:7}..${range[$hi]:0:7}"
 fi

@@ -4,7 +4,8 @@
 #   --base     ref the commit check compares against (default origin/main)
 #   --title    PR title for the commit check (skipped when empty)
 #   --summary  also write the summary table (markdown) to this file
-# The balance suite runs alongside the other steps; the rest run in order. Exit 0 only if all pass.
+# The balance suite runs alongside the other steps; the rest run in order. Exit 0 when all pass, 1
+# when a step fails on the code, 3 when the only failures are the machine's (see machine_why).
 set -uo pipefail
 
 BASE="origin/main"; TITLE=""; SUMMARY=""
@@ -26,18 +27,62 @@ cd "${CI_DIR:-$SELF/..}"
 LOGS="${CI_LOGS:-$(mktemp -d)}"; mkdir -p "$LOGS"
 declare -a NAMES RESULTS TIMES
 now() { date +%s; }
+# Notes for the summary, kept in a file so steps running in the background can add them.
+note() { echo "$*" >>"$LOGS/notes"; }
+load1() { cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo 0; }
+
+# At most HITL_CI_SLOTS runs at once on the machine (scripts/lib/ci-capacity.sh); a run past the cap
+# waits here, before it installs anything. The slot is held on fd 6 until the run exits. A run that
+# gets no slot is a machine failure (exit 3), not a code one.
+source "$SELF/lib/ci-capacity.sh"
+slot_t0=$EPOCHREALTIME
+ci_slot_take 6; slot_rc=$?
+timing_log kind=lock mode=ci-run for=ci-local wait_s="$(awk -v a="$EPOCHREALTIME" -v b="$slot_t0" 'BEGIN { printf "%.1f", a - b }')" ${CI_SLOT:+slot=$CI_SLOT} $([ $slot_rc = 0 ] || echo timed_out=1)
+if [ $slot_rc -ne 0 ]; then
+  echo "ci-local: gave up waiting for a CI run slot; the machine is full, re-run later"
+  [ -n "$SUMMARY" ] && printf '| step | result | seconds |\n|---|---|---|\n| ci-run-slot | error: machine (no CI run slot after %ss) | 0 |\n' "${CI_RUN_WAIT:-7200}" >"$SUMMARY"
+  exit 3
+fi
+[ "${CI_SLOT_WAITED:-0}" -gt 0 ] && note "waited ${CI_SLOT_WAITED}s for a CI run slot (at most $(ci_slot_count) runs at once)"
+run_load0="$(load1)"; run_going0="$(ci_runs_going)"
 
 record() { NAMES+=("$1"); RESULTS+=("$2"); TIMES+=("$3"); }
 
 bal_pid=""
 bal_running() { [ -n "$bal_pid" ] && kill -0 "$bal_pid" 2>/dev/null && echo 1 || echo 0; }
+# A failed step whose output says the machine ran out of something (infra_failure) runs once more
+# after a pause. Failing that way again records "error: machine (...)", which makes the run exit 3
+# instead of 1. Render steps retry inside render_step, so here they are only classified, from their
+# last pass (<name>.retry.log when there was one). Exit 75, a lock wait that ran out, is the machine.
+machine_why() { # <rc> <log> <seconds>: prints the reason when the failure is the machine's
+  [ "$1" -eq 75 ] && { echo "timed out waiting for a lock"; return 0; }
+  infra_failure "$2" "$3"
+}
 step() {
   local name="$1"; shift
   local t0 c0 b0 rc=0; t0=$(now); c0=$(timing_child_cpu); b0=$(bal_running)
-  "$@" >"$LOGS/$name.log" 2>&1 || rc=$?
+  local log="$LOGS/$name.log" why=""
+  rm -f "$LOGS/$name.retry.log"
+  "$@" >"$log" 2>&1 || rc=$?
+  local last=$(( $(now) - t0 ))
+  if [ $rc -ne 0 ] && [ "$1" != render_step ] && why="$(machine_why "$rc" "$log" "$last")"; then
+    echo "$name: failed on the machine ($why); retrying once"
+    timing_log kind=infra tool=ci-local step="$name" why="$why" load1="$(load1)" exit=$rc
+    sleep "${CI_INFRA_RETRY_WAIT:-20}"
+    local t1; t1=$(now); rc=0
+    "$@" >"$LOGS/$name.retry.log" 2>&1 || rc=$?
+    last=$(( $(now) - t1 ))
+    { echo "---- retry after a machine failure ($why)"; cat "$LOGS/$name.retry.log"; } >>"$log"
+    [ $rc -eq 0 ] && note "$name passed only on its retry after a machine failure ($why)"
+  fi
   local wall=$(( $(now) - t0 ))
-  if [ $rc -eq 0 ]; then record "$name" pass "$wall";
-  else record "$name" FAIL "$wall"; echo "---- $name failed; last lines:"; tail -n 25 "$LOGS/$name.log"; fi
+  if [ $rc -eq 0 ]; then record "$name" pass "$wall"
+  else
+    local lastlog="$log"; [ -f "$LOGS/$name.retry.log" ] && lastlog="$LOGS/$name.retry.log"
+    if why="$(machine_why "$rc" "$lastlog" "$last")"; then record "$name" "error: machine ($why)" "$wall"
+    else record "$name" FAIL "$wall"; fi
+    echo "---- $name failed; last lines:"; tail -n 25 "$log"
+  fi
   # CPU counts only when the background balance run did not finish (and add its own) meanwhile.
   local cpu=""
   [ "$b0" = "$(bal_running)" ] && cpu="cpu_s=$(awk -v a="$(timing_child_cpu)" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')"
@@ -53,6 +98,7 @@ pstep() {
   local name="$1"; shift
   (
     me=$BASHPID; c0=$(timing_child_cpu "$me"); t0=$(now); rc=0
+    rm -f "$LOGS/$name.retry.log"
     HITL_VITE_CACHE=".vite/parallel-$name" "$@" >"$LOGS/$name.log" 2>&1 || rc=$?
     wall=$(( $(now) - t0 ))
     echo "$rc $wall" >"$LOGS/$name.result"
@@ -67,14 +113,17 @@ pjoin() {
     read -r rc wall <"$LOGS/${PNAMES[$i]}.result" 2>/dev/null || { rc=1; wall=0; }
     sum=$(( sum + wall ))
     if [ "$rc" = 0 ]; then record "${PNAMES[$i]}" pass "$wall"
-    else record "${PNAMES[$i]}" FAIL "$wall"; echo "---- ${PNAMES[$i]} failed; last lines:"; tail -n 25 "$LOGS/${PNAMES[$i]}.log"; fi
+    else
+      local log="$LOGS/${PNAMES[$i]}.log" why; [ -f "$LOGS/${PNAMES[$i]}.retry.log" ] && log="$LOGS/${PNAMES[$i]}.retry.log"
+      if why="$(machine_why "$rc" "$log" "$wall")"; then record "${PNAMES[$i]}" "error: machine ($why)" "$wall"
+      else record "${PNAMES[$i]}" FAIL "$wall"; fi
+      echo "---- ${PNAMES[$i]} failed; last lines:"; tail -n 25 "$LOGS/${PNAMES[$i]}.log"
+    fi
   done
   local phase=$(( $(now) - t0 ))
   timing_log kind=phase tool=ci-local phase=browser wall_s="$phase" background_s="$sum" steps="$(IFS=,; echo "${PNAMES[*]}")"
   PNAMES=(); PPIDS=()
 }
-# Notes for the summary, kept in a file so steps running in the background can add them.
-note() { echo "$*" >>"$LOGS/notes"; }
 
 # The tooling self-tests (the CI, lock, hook and guard scripts' own tests) run only when the change
 # touches scripts/ or .claude/ (where those scripts, the timing log and the perf budget live) or the
@@ -100,7 +149,7 @@ deps() {
   npm ci
 }
 step deps deps
-tracked_modules() { test -z "$(git ls-files node_modules)"; }
+tracked_modules() { test -z "$(git ls-files node_modules)" || { echo "node_modules is tracked by git"; return 1; }; }
 step no-node-modules tracked_modules
 # A parse check of every script, so a syntax error fails in seconds with its file and line.
 syntax() {
@@ -118,6 +167,7 @@ tool_step golden-resolve bash "$SELF/golden-resolve.test.sh"
 tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
 tool_step main-guard bash "$SELF/main-guard.test.sh"
 tool_step gl node "$SELF/lib/gl.test.mjs"
+tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
@@ -131,8 +181,9 @@ if [ "${CI_FULL:-}" != 1 ] && git show "$BASE:scripts/ci-balance-skip-paths" >"$
   bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
 fi
 # Vitest defaults to a worker per core, so a few runs at once (several PRs gating, or balance beside
-# test:fast) oversubscribe the machine and slow bot-run tests past their timeout. Each run takes a share.
-VITEST_WORKERS="${VITEST_WORKERS:-$(( $(nproc) / 3 > 4 ? $(nproc) / 3 : 4 ))}"
+# test:fast) oversubscribe the machine and slow bot-run tests past their timeout. Each run takes its
+# share of the cores the load leaves free (vitest_workers), read when test:fast starts.
+VITEST_WORKERS="${VITEST_WORKERS:-}"
 # The suite is deterministic in its inputs: the sim and its data (which import nothing else), the
 # balance test and its worker, the test config, the lockfile and Node. A pass is recorded under that
 # hash, and the same inputs later skip the suite (a retest, or main moving without touching the sim).
@@ -168,6 +219,10 @@ else
   bal_pid=$!
 fi
 
+if [ -z "$VITEST_WORKERS" ]; then
+  VITEST_WORKERS="$(vitest_workers "$(nproc)" "$(load1)" "$(ci_runs_going)")"
+  timing_log kind=vitest tool=ci-local workers="$VITEST_WORKERS" cores="$(nproc)" load1="$(load1)" runs="$(ci_runs_going)"
+fi
 step test:fast npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 step build npm run build
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
@@ -192,11 +247,14 @@ render_step() { # <name> <gpu|software> <command>
   [ -n "$waited" ] && note "$name $waited"
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
-  if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock"; return 1; fi
+  if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock"; return 75; fi
   echo "$name: first pass failed; retrying once"
   local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
-  render_pass "$mode" "$pass"; rc=$?
-  if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock (on the retry)"; return 1; fi
+  # A machine that ran out of something gets a moment to recover first.
+  infra_failure "$first" 999 >/dev/null && sleep "${CI_INFRA_RETRY_WAIT:-20}"
+  render_pass "$mode" "$pass" >"$LOGS/$name.retry.log" 2>&1; rc=$?
+  cat "$LOGS/$name.retry.log"
+  if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock (on the retry)"; return 75; fi
   if [ $rc -eq 0 ]; then
     note "$name passed only on its retry. First pass: ${why:-exit without a message}"
     return 0
@@ -204,9 +262,11 @@ render_step() { # <name> <gpu|software> <command>
   note "$name failed twice. First pass: ${why:-exit without a message}"
   return 1
 }
-# The four render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
+# The render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
 # CI_SKIP_SWEEP=1 (the main guard, which runs its own strict sweep) leaves the sweep out.
 render_parts="'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs'"
+# loop: staged decision moments play through the real game loop while the game is frozen.
+[ -f blender/checks/loop.mjs ] && render_parts+=" 'loop=node blender/checks/loop.mjs'"
 [ "${CI_SKIP_SWEEP:-}" = 1 ] || render_parts+=" 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
 # Renderer counts (draw calls, triangles, programs, textures) against scripts/perf/budget.json: exact
 # on any machine, so they can gate; timing is never checked here. A production build per run, on a GPU slot.
@@ -245,14 +305,21 @@ step commits commits
 if [ -n "$bal_passed" ]; then record test:balance "skipped: these sim inputs passed on $bal_passed" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 cached=1 wall_s=0 exit=0;
 elif [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 wall_s=0 exit=0;
 elif wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
-else record test:balance FAIL $(( $(now) - bal_t0 )); echo "---- test:balance failed; last lines:"; tail -n 25 "$LOGS/test:balance.log"; fi
+else
+  bal_wall=$(( $(now) - bal_t0 ))
+  if why="$(infra_failure "$LOGS/test:balance.log" "$bal_wall")"; then record test:balance "error: machine ($why)" "$bal_wall"
+  else record test:balance FAIL "$bal_wall"; fi
+  echo "---- test:balance failed; last lines:"; tail -n 25 "$LOGS/test:balance.log"
+fi
 
-failed=0
+# Exit 1 when any step failed on the code; else 3 when a step failed on the machine twice; else 0.
+failed=0; machine=0
 table="| step | result | seconds |"$'\n'"|---|---|---|"
 for i in "${!NAMES[@]}"; do
   table+=$'\n'"| ${NAMES[$i]} | ${RESULTS[$i]} | ${TIMES[$i]} |"
-  case "${RESULTS[$i]}" in pass|skipped:*) ;; *) failed=1 ;; esac
+  case "${RESULTS[$i]}" in pass|skipped:*) ;; "error: machine"*) machine=1 ;; *) failed=1 ;; esac
 done
+[ $failed = 0 ] && [ $machine = 1 ] && note "Machine failures only: the machine ran out of something (disk, memory, GPU) twice. Nothing here judges the code; re-run when the machine is quieter."
 tests="$(grep -hE '^ +Tests ' "$LOGS/test:fast.log" "$LOGS/test:balance.log" 2>/dev/null | sed 's/^ *//' | paste -sd ';' -)"
 notes=""
 NOTES=(); [ -f "$LOGS/notes" ] && mapfile -t NOTES <"$LOGS/notes"
@@ -263,5 +330,6 @@ echo "vitest: $tests"
 [ -n "$notes" ] && printf '\n%s' "$notes"
 if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; [ -n "$notes" ] && printf '\n%s' "$notes"; } >"$SUMMARY"; fi
 [ -n "${CI_LOGS:-}" ] || rm -rf "$LOGS"
-timing_log kind=run tool=ci-local wall_s=$SECONDS exit="$failed"
-exit "$failed"
+rc=$failed; [ $failed = 0 ] && [ $machine = 1 ] && rc=3
+timing_log kind=run tool=ci-local wall_s=$SECONDS exit="$rc" load1_start="$run_load0" load1_end="$(load1)" runs_start="$run_going0" slot_wait_s="${CI_SLOT_WAITED:-0}"
+exit "$rc"
