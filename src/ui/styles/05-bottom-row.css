@@ -1,0 +1,26 @@
+/* ---------- bottom row: chat + menu ---------- */
+.hitl .bottom {
+  position: absolute; left: 0.6em; right: 0.6em; bottom: 0.6em;
+  display: grid; grid-template-columns: var(--yak-w, 19em) 1fr 19em; align-items: end; gap: 0.6em;
+}
+@media (max-width: 1400px) { .hitl .bottom { grid-template-columns: min(var(--yak-w, 17em), 45vw) 1fr 0; } }
+
+
+.hitl .menu { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4em; max-width: 100%; min-width: 0; pointer-events: auto; padding: 0.4em; background: var(--ink); border-radius: 1.1em; box-shadow: var(--soft); }
+.hitl .mbtn {
+  position: relative; width: 4.6em; height: 4.4em; border-radius: 0.8em; border: var(--bw) solid var(--ink);
+  background: var(--cream); box-shadow: inset 0 -0.3em 0 var(--cream-3);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1em;
+  transition: transform 90ms ease, background 120ms;
+}
+.hitl .mbtn .ico { font-size: 1.55em; line-height: 1; }
+.hitl .mbtn .lbl { font-size: 0.72em; font-weight: 600; }
+.hitl .mbtn .key { position: absolute; top: 0.2em; right: 0.35em; font-size: 0.68em; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--ink-soft); }
+.hitl .mbtn:hover { transform: translateY(-0.15em); background: #fff8ec; }
+.hitl .mbtn.active { background: var(--yellow); box-shadow: inset 0 -0.3em 0 #d98f00; transform: translateY(-0.2em); }
+.hitl .mbtn .badge {
+  position: absolute; top: -0.45em; left: -0.35em; min-width: 1.5em; height: 1.5em; border-radius: 1em; padding: 0 0.35em;
+  background: var(--red); color: #fff; font-size: 0.7em; font-weight: 700; display: none; place-items: center; border: 0.14em solid var(--ink);
+}
+.hitl .mbtn .badge.show { display: grid; }
+
