@@ -2,21 +2,33 @@
 # Claude Code PreToolUse hook for Bash. Denies (exit 2, reason on stderr):
 #   - pkill -f / pgrep -f: they match their own command line and kill or find the wrong process;
 #   - git push to main, or a forced push;
+#   - git stash, other than list and show: every worktree shares one stash stack, so a pop can take
+#     another lane's work;
 #   - gh pr create/comment/review/edit text (title, body, heredoc bodies, body files), and gh api posts
 #     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...).
-# It looks only at commands mentioning pkill, pgrep, push, gh pr or gh api, and fails open on its own errors.
+# It looks only at commands mentioning pkill, pgrep, push, stash, gh pr or gh api, and fails open on its own errors.
 # Only deny() exits 2; any other failure exits otherwise, which Claude Code treats as allow.
 set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*stash*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
 if grep -qE '(^|[^[:alnum:]_./-])(pkill|pgrep)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(-[[:alnum:]]*f[[:alnum:]]*|--full)([[:space:]]|$)' <<<"$cmd"; then
   deny "pkill -f and pgrep -f match their own command line (and your shell's), so they find or kill the wrong process. Stop a process by PID, wait on a lock, or match /proc/<pid>/cmdline by exact prefix."
 fi
+
+# git stash as a command (not in heredoc bodies or quoted text): only the read-only list and show.
+stash_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+  | sed -E "s/'[^']*'//g; s/\"([^\"\\\\]|\\\\.)*\"//g" \
+  | grep -oE '(^|[;&|(])[[:space:]]*([A-Za-z_][A-Za-z_0-9]*=[^[:space:]]*[[:space:]]+)*git([[:space:]]+(-C|-c)[[:space:]]+[^[:space:];&|]+|[[:space:]]+--[a-z-]+(=[^[:space:];&|]+)?)*[[:space:]]+stash([[:space:]]+[^[:space:];&|]+)?' || true)"
+while IFS= read -r m; do
+  [ -n "$m" ] || continue
+  sub="${m##*stash}"; sub="${sub#"${sub%%[![:space:]]*}"}"
+  case "$sub" in list|show) ;; *) deny "git stash is refused: commit to a scratch branch or copy to your scratchpad; all worktrees share one stash stack." ;; esac
+done <<<"$stash_cmds"
 
 # Each "git ... push ..." segment, up to the next ; & | or newline.
 while IFS= read -r seg; do
