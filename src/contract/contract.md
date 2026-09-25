@@ -339,7 +339,7 @@ ChatPrompt = {
 - Copy follows the voice guide and the era gates.
 - Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
 - An event from `src/data/events.js` delivered as a prompt keeps its `stage`: the prop, and any moment the renderer plays for it, show in the office while the prompt is open, exactly as they would behind its decision card. Its choices' `grant` and `leaves` apply when it's answered, or with the default choice when it expires.
-- The default choice for an unanswered prompt is the mildest outcome for the subject, never a penalty the player never saw.
+- For an event delivered as a prompt, the default choice when it expires is its mildest outcome: the smallest cost to the subject, or with no subject the smallest cost overall (no effect, if one choice has none). The player never takes a penalty for a prompt they may not have seen. Template prompts from `src/data/prompts.js` keep their own stated consequence for being ignored.
 - Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
 
 ## Yak quick posts (#16)
