@@ -3,20 +3,24 @@
 # (GitHub's merge ref) when there is one, else the PR head, in a throwaway worktree.
 # Besides the comment it sets the commit status "local-ci" on the PR head (pending while it runs,
 # then success or failure), which branch protection can require.
-# Usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>]
+# Usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>] [--allow-bot]
 #   --no-comment  no comment and no status (a local check)
 #   --head        the head to test, such as the commit just pushed: waits until GitHub reports it
+#   --allow-bot   run a Dependabot PR (see scripts/ci-bot-check.sh for what qualifies), and only once
+#                 its head has a review pass: the reviewer runs it after reading the changelog and the
+#                 lockfile diff, since local CI executes the new packages' install scripts
 # To stop a run, signal its process group: kill -TERM -<pgid> (the pgid is printed at start). The
 # run then stops its local CI, removes its worktree and sets local-ci to error.
 set -uo pipefail
 
-usage="usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>]"
+usage="usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>] [--allow-bot]"
 pr="${1:?$usage}"; shift
-comment=1; want=""
+comment=1; want=""; allow_bot=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-comment) comment=0; shift ;;
     --head) want="${2:?$usage}"; shift 2 ;;
+    --allow-bot) allow_bot=1; shift ;;
     *) echo "$usage" >&2; exit 2 ;;
   esac
 done
@@ -40,7 +44,14 @@ pr_fields="$(gh pr view "$pr" --json isCrossRepository,headRepositoryOwner,autho
 IFS=$'\037' read -r cross owner author branch <<<"$pr_fields"
 repo_owner="$(gh repo view --json owner --jq .owner.login)"
 [ -n "${cross:-}" ] && [ -n "$repo_owner" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
-pr_trusted "$cross" "$owner" "$author" "$repo_owner" || exit 2
+if [ "$allow_bot" = 1 ]; then
+  # gh reports app authors as app/<name>; the REST login (dependabot[bot]) cannot belong to a person.
+  IFS=$'\037' read -r bot_login bot_type < <(gh api "repos/{owner}/{repo}/pulls/$pr" --jq '[.user.login, .user.type] | join("\u001f")')
+  [ "${bot_login:-}" = 'dependabot[bot]' ] && [ "${bot_type:-}" = Bot ] \
+    || { echo "ci-pr: --allow-bot is only for Dependabot PRs; #$pr is by ${bot_login:-unknown}" >&2; exit 2; }
+else
+  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || exit 2
+fi
 mkdir -p "$ROOT"
 # One run per PR at a time, each in its own worktree: overlapping runs sharing a path deleted
 # each other's trees mid-run.
@@ -72,6 +83,18 @@ git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
 # The head must also be the tip of the PR's branch in this repository, not only a pull ref.
 [ "$(git -C "$REPO" ls-remote origin "refs/heads/$branch" | cut -f1)" = "$head" ] \
   || { echo "ci-pr: ${head:0:7} is not the tip of $branch in this repository; not running it" >&2; exit 2; }
+if [ "$allow_bot" = 1 ]; then
+  bot_mb="$(git -C "$REPO" merge-base "origin/$base" "$head")" || { echo "ci-pr: no merge base for #$pr" >&2; exit 2; }
+  bot_tmp="$(mktemp -d)"
+  git -C "$REPO" diff --name-only --no-renames "$bot_mb" "$head" >"$bot_tmp/paths"
+  git -C "$REPO" log --no-merges --format='%ae' "$bot_mb..$head" >"$bot_tmp/authors"
+  bash "$REPO/scripts/ci-bot-check.sh" "$bot_login" "$bot_type" "$cross" "$owner" "$repo_owner" "$bot_tmp/paths" "$bot_tmp/authors"
+  bot_rc=$?; rm -rf "$bot_tmp"
+  [ $bot_rc -eq 0 ] || exit 2
+  review_state="$(gh api "repos/{owner}/{repo}/commits/$head/status" --jq '[.statuses[] | select(.context == "review")][0].state // ""')"
+  [ "$review_state" = success ] \
+    || { echo "ci-pr: #$pr head ${head:0:7} has no review pass (review: ${review_state:-none}); review it first" >&2; exit 2; }
+fi
 git -C "$REPO" worktree prune
 ci_pid=""
 cleanup() {
