@@ -296,7 +296,10 @@ export function createSurroundings({ parent, low = () => false }) {
       for (let i = 0; i < 5; i++) {
         const s = new THREE.Sprite(cm);
         s.scale.set(7 + rnd() * 5, 3 + rnd() * 1.5, 1);
-        s.position.set(-BW / 2 + rnd() * BW, 14 + rnd() * 6, -hd - M - 2 - rnd() * 6);
+        // Placed each frame from the view yaw (update): u across the view, depth behind the office.
+        s.userData.u = -BW / 2 + rnd() * BW;
+        s.userData.depth = Math.max(hw, hd) + M + 2 + rnd() * 6;
+        s.position.y = 14 + rnd() * 6;
         s.userData.speed = 0.25 + rnd() * 0.3;
         s.userData.noAO = true;
         dyn.add(s);
@@ -342,9 +345,14 @@ export function createSurroundings({ parent, low = () => false }) {
     const night = env?.night ?? 0;
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
+    // Clouds stay in the half of the sky behind the office from wherever the camera looks, drifting
+    // across the view, so a turned view never puts one between the camera and the office.
+    const bx = -Math.sin(viewYaw), bz = -Math.cos(viewYaw), sx = Math.cos(viewYaw), sz = -Math.sin(viewYaw);
     for (const c of cur.clouds) {
-      c.position.x += c.userData.speed * dt;
-      if (c.position.x > cur.clouds.bounds[1]) c.position.x = cur.clouds.bounds[0];
+      c.userData.u += c.userData.speed * dt;
+      if (c.userData.u > cur.clouds.bounds[1]) c.userData.u = cur.clouds.bounds[0];
+      c.position.x = bx * c.userData.depth + sx * c.userData.u;
+      c.position.z = bz * c.userData.depth + sz * c.userData.u;
       c.material.opacity = 0.8 * (1 - night * 0.8);
     }
     for (const mv of cur.movers) {
