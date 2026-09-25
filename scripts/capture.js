@@ -246,20 +246,32 @@ try {
     // An item with `moment` (a find query, scripts/events/find.js) opens at that indexed moment: its
     // snapshot is loaded through the game's own save, decision open and prop staged, before setup runs.
     // Its query should start a game (seed=N), so the title is not showing when the load takes over.
+    // A moment that cannot be opened (not in the index, no snapshot, a load the game refuses) fails
+    // that item only: it is recorded as an error and the run goes on with the next item.
     let moment = null;
     if (it.moment) {
-      const { resolveTarget, snapshotEntries } = await import('./events/load.js');
-      const target = resolveTarget({ event: it.moment });
-      const entries = await snapshotEntries(target.file);
-      const r = await page.evaluate((list) => {
-        for (const [k, v] of list) localStorage.setItem(k, v);
-        const res = window.__HITL.controls.continueGame();
-        // A load does not announce the open decision the way the sim's week did; announce it again.
-        if (res.ok && window.__HITL.state.pendingDecision) window.__HITL.emit([{ type: 'decision' }]);
-        return res;
-      }, entries);
-      if (!r.ok) throw new Error(`${it.id}: could not open the moment "${it.moment}"`);
-      moment = target.row && { query: it.moment, seed: target.row.seed, bot: target.row.bot, week: target.row.week };
+      try {
+        const { resolveTarget, snapshotEntries } = await import('./events/load.js');
+        const target = resolveTarget({ event: it.moment });
+        const entries = await snapshotEntries(target.file);
+        const r = await page.evaluate((list) => {
+          for (const [k, v] of list) localStorage.setItem(k, v);
+          const res = window.__HITL.controls.continueGame();
+          // A load does not announce the open decision the way the sim's week did; announce it again.
+          if (res.ok && window.__HITL.state.pendingDecision) window.__HITL.emit([{ type: 'decision' }]);
+          return res;
+        }, entries);
+        if (!r.ok) throw new Error(r.reason ?? 'the game did not load it');
+        moment = target.row && { query: it.moment, seed: target.row.seed, bot: target.row.bot, week: target.row.week };
+      } catch (e) {
+        const why = `could not open the moment "${it.moment}": ${e.message}`;
+        console.log(`\rFAIL ${it.id}: ${why}`);
+        failed = true;
+        index.items[it.id] = { title: it.title, file: null, query: it.query, moment: { query: it.moment }, errors: 1, error: why, capturedAt: new Date().toISOString() };
+        writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
+        await ctx.close();
+        continue;
+      }
     }
     if (it.setup) await page.evaluate(it.setup);
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());

@@ -8,6 +8,8 @@
 #      stages the new references.
 #   3. It writes a sheet per scene (this branch | merged in | regenerated) under shots/golden-resolve/:
 #      post them with scripts/pr-media.sh for review as an image diff, then commit the merge.
+# A conflict where one side deleted a scene (its image exists on one side only) is resolved by hand:
+# keep or remove the scene in golden.mjs, then git add or git rm the image. The script refuses it.
 # Usage: scripts/golden-resolve.sh [--no-sheets]
 #   GOLDEN_CMD replaces the render command (tests); it gets the scene list as $1.
 set -uo pipefail
@@ -20,7 +22,10 @@ mapfile -t unmerged < <(git diff --name-only --diff-filter=U)
 golden=(); other=()
 for f in "${unmerged[@]}"; do
   case "$f" in blender/checks/golden/*.actual.png|blender/checks/golden/*.diff.png) other+=("$f") ;;
-               blender/checks/golden/*.png) golden+=("$f") ;;
+               blender/checks/golden/*.png)
+                 # Both sides must have the image; a deletion on one side is resolved by hand.
+                 if [ "$(git ls-files -u -- "$f" | awk '$3 == 2 || $3 == 3' | wc -l)" -eq 2 ]; then golden+=("$f")
+                 else other+=("$f (deleted on one side: keep or remove the scene by hand)"); fi ;;
                *) other+=("$f") ;; esac
 done
 if [ ${#other[@]} -gt 0 ]; then
