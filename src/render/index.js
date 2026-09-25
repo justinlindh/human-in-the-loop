@@ -271,6 +271,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     set validate(fn) { if (build) build.validator = fn; },
     get validate() { return build?.validator ?? null; },
     pickTile(x, y) { return build?.pickTile(x, y) ?? null; },
+    // Touch build mode: aim the ghost at the tile under a screen point; returns the placement corner.
+    aimBuild(x, y) { return build?.aim(x, y) ?? null; },
+    get buildGrabbing() { return !!build?.grabbing; },
     pickPlaced(x, y) { return build?.pickPlaced(x, y) ?? null; },
     // Warm plates under these placed ids (adjacency preview); null clears.
     highlightItems(ids) { build?.highlightItems(ids); },
