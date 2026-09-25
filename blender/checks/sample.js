@@ -273,7 +273,7 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
 // also land on the sim's chair tile.
 async function gridPass(R, S, C, { rots = [0, 1, 2, 3] } = {}) {
   const { ITEMS } = await import('/src/data/items.js');
-  const { footprintCells, seatTile } = await import('/src/sim/office.js');
+  const { footprintCells, seatTile, frontCells } = await import('/src/sim/office.js');
   const L = R.office.current.L;
   const saved = S.office.placed;
   const tx = Math.floor(L.grid.w / 2) - 1, ty = Math.floor(L.grid.h / 2) - 1;
@@ -297,8 +297,10 @@ async function gridPass(R, S, C, { rots = [0, 1, 2, 3] } = {}) {
       const order = ['pz', 'nx', 'nz', 'px']; // the item's front at rot 0, 1, 2, 3
       for (let k = 0; k < 4; k++) {
         const side = SIDES[k], w = order[(k + rot) % 4], over = world[w];
-        // A wall item's back is meant to sit in the wall.
+        // A wall item's back is meant to sit in the wall, and an item with a front zone (the sim keeps
+        // the row in front of it clear: frontCells) may reach onto that row.
         if (side === 'back' && b.wallMounted) continue;
+        if (side === 'front' && over <= 1 && frontCells(itemId, p.x, p.y, rot, level).length) continue;
         if (over > C.tol.grid) C.add(R, 'grid', 0, `${itemId}@L${level}/${side}`, 'footprint', over, b.box.getCenter(new b.box.min.constructor()), `${itemId} L${level} reaches ${over.toFixed(3)} m past its footprint at its ${side} (rot ${rot})`);
       }
       if (itemId === 'desk' && e.desk) {
