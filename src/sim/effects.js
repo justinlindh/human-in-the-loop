@@ -148,6 +148,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (fx.teamSalaryPct) for (const p of state.staff) p.salary = Math.round((p.salary * (1 + fx.teamSalaryPct / 100)) / 10) * 10;
   if (person) {
     if (fx.meaning) person.meaning = clamp(person.meaning + fx.meaning, 0, 100);
+    if (fx.strain) person.strain = clamp((person.strain ?? 0) + fx.strain, 0, 100);
     if (fx.knowledge) person.knowledge = clamp(person.knowledge + fx.knowledge, 0, 100);
     if (fx.salaryPct) person.salary = Math.round((person.salary * (1 + fx.salaryPct / 100)) / 10) * 10;
     if (fx.awayWeeks && person.mood !== 'away') sendAway(state, person, fx.awayWeeks);

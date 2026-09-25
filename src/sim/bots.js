@@ -346,8 +346,8 @@ function staffProjects(s) {
     dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } });
     i++;
   }
-  // A migration cannot wait: it borrows someone from whichever project has the biggest crew.
-  for (const j of s.projects.filter((x) => x.kind === 'migration')) {
+  // A migration, or a new product nobody is on, borrows someone from whichever project has the biggest crew.
+  for (const j of s.projects.filter((x) => x.kind === 'migration' || (x.kind === 'new' && stalled(s, x)))) {
     if (crewOf(s, j).length) continue;
     const donor = s.projects.map((x) => crewOf(s, x)).filter((c) => c.length > 1).sort((a, b) => b.length - a.length)[0];
     const p = donor?.find((x) => !x.founder) ?? donor?.[0];
@@ -481,12 +481,24 @@ export function botDecide(name, s, { onEvents = null } = {}) {
 
 // One week of the named bot's play before tick: furnishing, then every action it takes.
 // onEvents(events, action) receives the events of every dispatch, including the bot's internal ones.
+// Bots answer open Yak prompts the week they appear: the reckless bot takes a reply that pushes output when one
+// is offered, and otherwise everyone takes the first reply that is available.
+function answerPrompts(name, s) {
+  for (const p of (s.chatPrompts ?? []).filter((x) => !x.resolved)) {
+    const open = p.options.map((o, i) => (o.available ? i : -1)).filter((i) => i >= 0);
+    const push = open.find((i) => /^Output up/.test(p.options[i].hint));
+    const choice = name === 'recklessHumans' && push !== undefined ? push : open[0];
+    if (choice !== undefined) dispatch(s, { type: 'answerPrompt', promptId: p.id, choice });
+  }
+}
+
 export function botTurn(name, s, { onEvents = null } = {}) {
   const prev = sink;
   sink = onEvents;
   try {
     furnish(s);
     if (name !== 'recklessHumans') decorate(s);
+    answerPrompts(name, s);
     for (const a of BOTS[name](s)) dispatch(s, a);
   } finally {
     sink = prev;

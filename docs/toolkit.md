@@ -85,7 +85,7 @@ All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock,
 
 | Check | What it guards |
 |---|---|
-| `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path, and pair games (`pairs:floor`, `pairs:garage`) starting on their own. |
+| `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path, and pair games (`pairs:floor`, `pairs:garage`): the start rules allow one by a new table, and two people sent there get to play. |
 | `blender/checks/golden.mjs [--update]` | Close-up renders compared with stored reference images. Update the references only deliberately, in the PR that changes the look. |
 | `blender/checks/standup.mjs` | Standups gather everyone inside the walls and clear of furniture, in every office. |
 | `R.probe(id)` (`src/render/probe.js`) | The staging probe (#350), in the page: how staff member `id` reads on screen this frame (gaze, face to camera, visibility, fades, hands, held prop, lean, smoke on the line of sight). Use it in `scene.mjs --report` or a check. |
