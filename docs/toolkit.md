@@ -68,7 +68,7 @@ CI internals, which rarely need touching:
 
 ## Render checks (art owns these; local CI runs them)
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip and standup as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip, standup and the sweep (fast mode) as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
 
 | Check | What it guards |
 |---|---|
