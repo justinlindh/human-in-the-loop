@@ -1254,6 +1254,17 @@ export function createOffice({ parent, screens, lighting }) {
     },
     // Bumps whenever the walkable grid is rebuilt (furniture placed, moved or removed).
     get navVersion() { return navVersion; },
+    // For checks and the scene dump: the rectangles the walkable grid is built from, and whose each is
+    // (a placed item's id, 'prop', or 'pillar'). The grid blocks a cell whose centre is within the
+    // grid's clearance of one.
+    obstacles() {
+      if (!cur) return [];
+      const out = [];
+      for (const e of placed.values()) for (const r of obstaclesOf(e)) out.push({ by: e.id, itemId: e.itemId, ...r });
+      for (const r of cur.propRects ?? []) out.push({ by: 'prop', ...r });
+      for (const [bx, by] of cur.L.blocked) out.push({ by: 'pillar', x0: bx - cur.L.W / 2, x1: bx + 1 - cur.L.W / 2, z0: by - cur.L.D / 2, z1: by + 1 - cur.L.D / 2 });
+      return out;
+    },
     // Floor rectangles of staged props standing in the office ({ x0, x1, z0, z1 }). A change
     // rebuilds the walking grid, which re-routes walkers and steps aside anyone standing inside.
     setPropObstacles(rects) {
