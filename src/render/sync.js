@@ -17,6 +17,7 @@ const CHAIR_BACK_M = 0.55;
 const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
 const CELEBRATE_ROOM = 0.25;   // clear floor around someone who stops to celebrate
 const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
+const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
@@ -577,9 +578,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       } else {
         if (r.mode === 'enter') r.mode = 'placed';
         const g = r.goal;
-        if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.05) { r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8)); }
-        r.yaw = angleLerp(r.yaw, r.face?.yaw ?? g.yaw, 1 - Math.exp(-dt * 8));
-        c.setAnim(g.anim);
+        const d = Math.hypot(r.pos.x - g.x, r.pos.z - g.z);
+        // Left away from their spot with no route (a pose that kept them where it caught them, a
+        // goal that changed meanwhile): they walk back rather than glide there, once per goal.
+        if (d > GLIDE_M && r.walkedTo !== g) { r.walkedTo = g; walkTo(r, g); }
+        if (r.path.length) stepWalker(r, dt, r.walkAnim);
+        else {
+          if (d > 0.05) r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8));
+          r.yaw = angleLerp(r.yaw, r.face?.yaw ?? g.yaw, 1 - Math.exp(-dt * 8));
+          c.setAnim(g.anim);
+        }
       }
     }
     c.setRingScale(c.seated ? 1.4 : 1);

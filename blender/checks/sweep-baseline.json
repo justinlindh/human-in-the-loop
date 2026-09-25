@@ -1,6 +1,12 @@
 {
  "accepted": [
   {
+   "key": "person|bookshelf/pal_cardboard|person(walking)/head",
+   "worst": 0.021,
+   "state": "event:open_plan_office:s3allHumansw259",
+   "issue": 381
+  },
+  {
    "key": "person|coffee_corner/pal_glass_frame|person(still)/head",
    "worst": 0.067,
    "state": "seed:1:w208",
