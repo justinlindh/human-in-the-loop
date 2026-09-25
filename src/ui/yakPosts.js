@@ -8,6 +8,10 @@ import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
 import { phoneLayout } from './media.js';
 
+// The sim names each post's icon by what it shows; these are the glyphs for them.
+export const POST_ICON = { megaphone: 'channel.ads', siren: 'bot.pager', laugh: 'react.laugh', pizza: 'react.pizza', bullhorn: 'channel.launch' };
+export const postIcon = (key) => POST_ICON[key] ?? key ?? 'channel.community';
+
 export function createPostBar({ layer, getState, onPost }) {
   let open = null; // the open picker element
   let sig = '';
@@ -26,7 +30,7 @@ export function createPostBar({ layer, getState, onPost }) {
       type: 'button', disabled: off, 'aria-label': `${o.label}. ${off ? o.reason ?? 'Not now' : o.hint ?? ''}`,
       onclick: (e) => { e.stopPropagation(); if (onPost?.(o)?.ok) { close(); week = null; } },
     },
-    h('span.ypost-ico', null, icon(o.icon ?? 'channel.community', { size: 20 })),
+    h('span.ypost-ico', null, icon(postIcon(o.icon), { size: 20 })),
     h('span.ypost-main', null, h('b', { text: o.label }), h('span.ypost-hint', { text: o.hint ?? '' })),
     h(`span.ypost-tag${off ? '.wait' : ''}`, { text: off ? o.reason ?? 'Not now' : 'Ready' }));
   }
