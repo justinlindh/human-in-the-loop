@@ -117,14 +117,15 @@ export function createCameraRig(canvas) {
   const onDown = (e) => {
     touched();
     dragging = true; lastX = e.clientX; lastY = e.clientY;
-    canvas.setPointerCapture?.(e.pointerId);
+    // Capture can fail (a pointer that already ended); a drag works without it.
+    try { canvas.setPointerCapture?.(e.pointerId); } catch { /* not capturable */ }
   };
   const onMove = (e) => {
     if (!dragging) return;
     panScreen(e.clientX - lastX, e.clientY - lastY);
     lastX = e.clientX; lastY = e.clientY;
   };
-  const onUp = (e) => { dragging = false; canvas.releasePointerCapture?.(e.pointerId); };
+  const onUp = (e) => { dragging = false; if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId); };
   const onWheel = (e) => {
     e.preventDefault();
     touched();
