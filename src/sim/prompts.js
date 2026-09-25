@@ -154,6 +154,7 @@ export function openEventPrompt(outer, ev, subjectId) {
     options: ev.choices.map((c) => { const why = eventChoiceBlocker(state, c, subjectId); return { label: fill2(c.label), hint: fill2(c.hint), available: !why, reason: why }; }),
     resolved: null,
     stage: ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null,
+    subjectId: state.staff.some((p) => p.id === subjectId) ? subjectId : null,
   });
   state.flags.lastPromptWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
@@ -221,6 +222,7 @@ function openPrompt(ctx) {
     options: t.options.map((o) => { const why = optionBlocker(state, o, pc.posterId); return { label: o.label, hint: fill(state, o.hint, pc) ?? o.hint, available: !why, reason: why }; }),
     resolved: null,
     stage: null,
+    subjectId: null,
   });
   state.flags.lastPromptWeek = state.week;
   state.flags[`pcd_${t.id}`] = state.week + t.cooldown;

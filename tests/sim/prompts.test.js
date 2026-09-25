@@ -310,9 +310,11 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     s.week = 60;
     eventPrompt(s, 'coffee_wanted');
     expect(s.chatPrompts[0].stage).toMatchObject({ prop: 'french_press', anchor: 'kitchen', x: expect.any(Number), y: expect.any(Number) });
+    expect(s.chatPrompts[0].subjectId).toBe(null);
     const t = strained(26);
     openOne(t);
     expect(t.chatPrompts[0].stage).toBe(null);
+    expect(t.chatPrompts[0].subjectId).toBe(null);
   });
 
   it('every default is the mildest choice: an unanswered stapler prompt lets them keep it, on their desk', () => {
@@ -321,7 +323,8 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     s.week = 200;
     eventPrompt(s, 'the_stapler');
     const p = s.chatPrompts[0];
-    const owner = s.staff.find((x) => x.id === s.flags.promptCtx[p.id].subjectId);
+    const owner = s.staff.find((x) => x.id === p.subjectId);
+    expect(p.subjectId).toBe(s.flags.promptCtx[p.id].subjectId);
     const meaning = owner.meaning;
     s.week = p.expiresWeek;
     weekOf(s);
