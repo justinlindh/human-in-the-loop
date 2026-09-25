@@ -373,7 +373,6 @@ function levelUp(ctx, p) {
   endMentorshipsOf(state, p);
   (ctx.happenings ??= {}).promoted = [...(ctx.happenings.promoted ?? []), p.id];
   emitChat(ctx, { channel: 'wins', from: '@hr-bot', text: `Please congratulate ${p.name}, now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, kind: 'win' });
-  ctx.emit({ type: 'toast', text: `${p.name} is now a ${next === 'mid' ? 'Mid' : 'Senior'} ${roleName(p.role)}!`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
   ctx.emit({ type: 'promoted', staffId: p.id, seniority: next });
   if (next === 'senior') onReachedSenior(ctx, p);
