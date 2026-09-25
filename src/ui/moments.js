@@ -19,6 +19,15 @@ export function createMomentCaptions(layer) {
   layer.append(el);
   let cur = null, timer = 0;
 
+  // Just above the bottom menu bar, not the taller Yak column, so it stays off the office floor.
+  // On phones the bottom row stacks and the stylesheet's position is kept.
+  function place() {
+    const menu = layer.querySelector('.bottom .menu');
+    if (!menu || matchMedia('(max-width: 480px)').matches) { el.style.bottom = ''; return; }
+    const box = layer.getBoundingClientRect(), r = menu.getBoundingClientRect();
+    el.style.bottom = `${Math.round(box.bottom - r.top + 14)}px`;
+  }
+
   function hide(id) {
     if (id && cur !== id) return;
     cur = null;
@@ -34,6 +43,7 @@ export function createMomentCaptions(layer) {
     if (!line) return;
     cur = d.id ?? d.key;
     setText(text, line);
+    place();
     el.classList.add('show');
     clearTimeout(timer);
     timer = setTimeout(() => hide(cur), MAX_MS);
