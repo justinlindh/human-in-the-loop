@@ -2,7 +2,7 @@
 // through real states and runs the checks in intersect.js on each, collecting violations.
 //
 //   sampleMock(opts)   the loaded mock scene, over `seconds` of office life; with propDesks, first
-//                      every staged prop on that many desks
+//                      every staged prop at its anchor, against that many desks
 //   sampleSeed(opts)   the loaded seeded game, played by a bot: a window of office life every
 //                      `every` weeks, on each office stage and era change, and whenever a decision
 //                      with a staged prop is open (so its moment plays)
@@ -58,7 +58,8 @@ function checkFrame(R, C, t, memo) {
     for (const s of X.support(list, (b) => b.kind === 'deskProp' || b.kind === 'floorProp' || (b.kind === 'placed' && !b.wallMounted))) {
       if (s.gap > C.tol.float) C.add(R, 'float', t, s.b.label, s.under, s.gap, s.at, `${s.b.label} ${s.gap.toFixed(3)} m above ${s.under}`);
     }
-    for (const o of X.bounds(R, list, { tol: C.tol.bounds })) C.add(R, 'bounds', t, o.b.label, 'room', o.over, o.at);
+    const stage = R.office.current?.stage;
+    for (const o of X.bounds(R, list, { tol: C.tol.bounds })) if (!OUTSIDE[o.b.label]?.includes(stage)) C.add(R, 'bounds', t, o.b.label, 'room', o.over, o.at);
   }
   for (const h of X.held(R)) if (h.gap > C.tol.hand) C.add(R, 'hand', t, h.label, 'wrist', h.gap, h.at);
 }
@@ -118,18 +119,31 @@ function window_(R, S, C, { seconds, every, t0 = 0 }) {
 }
 
 // Metres. hand: the wrist sits inside the hand, so a held thing's surface is a hand's width away.
-const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02, self: 0.01 };
+// Props meant to lie outside the room on some office stages (by stage index): the wrecked printer
+// ends up on the ground past the door in the garage and the HQ.
+const OUTSIDE = { printer_wrecked: [0, 2] };
+
+const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02, self: 0.01, grid: 0.03 };
 
 // Every staged prop the renderer can draw, put on `desks` different desks one at a time (desk
 // models vary by seat and era: monitor or laptop, plant, papers), and checked once it has popped in.
-function propsPass(R, S, C, desks) {
+// Each prop stands where its decision stages it (the event's anchor, placed by the sim's
+// stageTile): on or beside the subject's desk, or at the door, a wall or the kitchen. A prop no
+// event stages goes on the desk.
+async function propsPass(R, S, C, desks) {
+  const { EVENTS } = await import('/src/data/events.js');
+  const { stageTile } = await import('/src/sim/props.js');
+  const anchorOf = new Map(Object.values(EVENTS).filter((e) => e.stage).map((e) => [e.stage.prop, e.stage.anchor]));
   const all = [...R.office.placed.values()].filter((e) => e.desk);
   const pick = Array.from({ length: Math.min(desks, all.length) }, (_, i) => all[Math.floor((i * all.length) / Math.min(desks, all.length))]);
   const ids = R.props.ids.filter((id) => !/^screens_/.test(id));
   S.office.props ??= [];
   for (const d of pick) for (const prop of ids) {
     const id = `sweep_${prop}`;
-    S.office.props.push({ id, prop, x: d.x, y: d.y, since: S.week, until: { weeks: 4 } });
+    const anchor = anchorOf.get(prop) ?? 'subjectDesk';
+    let at = { x: d.x, y: d.y };
+    if (anchor !== 'subjectDesk') { try { const t = stageTile(S, anchor, null); if (t.x != null) at = t; } catch { /* the desk */ } }
+    S.office.props.push({ id, prop, anchor, x: at.x, y: at.y, since: S.week, until: { weeks: 4 } });
     stepWorld(R, S, 12);
     checkFrame(R, C, 0, {});
     S.office.props = S.office.props.filter((p) => p.id !== id);
@@ -185,13 +199,61 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
   return played;
 }
 
-export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0, moments = null }) {
+// Layout agreement: every item at every level and rotation, alone in the middle of the room. The
+// sim's footprint cells (src/sim/office.js) are where the sim lets neighbours stand, so the model
+// must stay inside them: overhang past a side is room the sim gives away twice. A desk's seat must
+// also land on the sim's chair tile.
+async function gridPass(R, S, C, { rots = [0, 1, 2, 3] } = {}) {
+  const { ITEMS } = await import('/src/data/items.js');
+  const { footprintCells, seatTile } = await import('/src/sim/office.js');
+  const L = R.office.current.L;
+  const saved = S.office.placed;
+  const tx = Math.floor(L.grid.w / 2) - 1, ty = Math.floor(L.grid.h / 2) - 1;
+  const SIDES = ['front', 'right', 'back', 'left'];
+  for (const [itemId, it] of Object.entries(ITEMS)) {
+    for (let level = 1; level <= (it.costs?.length ?? 1); level++) for (const rot of rots) {
+      // A fresh id each time: the same id with a new rotation would slide rather than rebuild.
+      const p = { id: `sweep_grid_${itemId}_${level}_${rot}`, itemId, level, x: tx, y: ty, rot };
+      S.office.placed = [p];
+      stepWorld(R, S, 12);
+      const e = R.office.placed.get(p.id);
+      if (!e) { C.add(R, 'grid', 0, `${itemId}@L${level}`, 'unbuilt', 1, null, `${itemId} L${level} rot ${rot} was not built`); continue; }
+      for (let i = 0; i < 30 && Math.abs(e.obj.scale.x - 1) > 1e-3; i++) stepWorld(R, S, 1);
+      const [b] = X.bodies(R).filter((x) => x.key === `placed:${p.id}`);
+      if (!b) continue;
+      const cells = footprintCells(itemId, p.x, p.y, rot);
+      const x0 = Math.min(...cells.map((c) => c[0])) - L.W / 2, x1 = Math.max(...cells.map((c) => c[0])) + 1 - L.W / 2;
+      const z0 = Math.min(...cells.map((c) => c[1])) - L.D / 2, z1 = Math.max(...cells.map((c) => c[1])) + 1 - L.D / 2;
+      // Overhang past each world side, named by the side of the item it is (rot 0 faces +z).
+      const world = { pz: b.box.max.z - z1, px: b.box.max.x - x1, nz: z0 - b.box.min.z, nx: x0 - b.box.min.x };
+      const order = ['pz', 'nx', 'nz', 'px']; // the item's front at rot 0, 1, 2, 3
+      for (let k = 0; k < 4; k++) {
+        const side = SIDES[k], w = order[(k + rot) % 4], over = world[w];
+        // A wall item's back is meant to sit in the wall.
+        if (side === 'back' && b.wallMounted) continue;
+        if (over > C.tol.grid) C.add(R, 'grid', 0, `${itemId}@L${level}/${side}`, 'footprint', over, b.box.getCenter(new b.box.min.constructor()), `${itemId} L${level} reaches ${over.toFixed(3)} m past its footprint at its ${side} (rot ${rot})`);
+      }
+      if (itemId === 'desk' && e.desk) {
+        const [sx, sy] = seatTile(p);
+        const seat = e.desk.seat;
+        const off = Math.max(Math.abs(seat.x - (sx + 0.5 - L.W / 2)), Math.abs(seat.z - (sy + 0.5 - L.D / 2)));
+        if (off > 0.5) C.add(R, 'grid', 0, 'desk/seat', 'chair tile', off - 0.5, null, `desk seat is ${(off - 0.5).toFixed(2)} m off the sim's chair tile (rot ${rot})`);
+      }
+    }
+  }
+  S.office.placed = saved;
+  stepWorld(R, S, 30);
+}
+
+
+export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0, moments = null, grid = false }) {
   const R = window.__hitlRender, S = window.__HITL.state;
   R.moments.full = true;
   const C = createCollector({ state: `mock:${name}`, known, crops, tol: TOL });
   stepWorld(R, S, 90);
   R.render(0);
-  if (propDesks) { R.perks.hold = true; propsPass(R, S, C, propDesks); R.perks.hold = false; }
+  if (propDesks) { R.perks.hold = true; await propsPass(R, S, C, propDesks); R.perks.hold = false; }
+  if (grid) { R.perks.hold = true; await gridPass(R, S, C); R.perks.hold = false; }
   window_(R, S, C, { seconds, every });
   const windows = [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length }];
   if (moments) {
