@@ -1421,7 +1421,7 @@ const BUILDERS = {
   curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
-  pet_carrier: onFloor(petCarrier, { x: 1.0, z: 0.2, rot: -0.5, scale: 1.2 }),
+  pet_carrier: byDoor(petCarrier, 1.2, -0.5),
   cable_chewed: onFloor(cableChewed, { x: 0.95, z: 0.25, rot: 0.6, scale: 1.4 }),
   visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
   smoke_puff: smokePuff,
