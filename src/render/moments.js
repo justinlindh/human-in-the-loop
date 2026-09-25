@@ -33,10 +33,16 @@ const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up 
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
 const STAND_BACK = 0.8;      // then how far back into the aisle, clear of the chair
 const TAKE_IT_OUT = 0;       // printer_jam's 'Take it out back' choice index
-const PRINTER_SPEED = 1.2;   // metres a second, carrying the printer
-const CARRY_GAP = 0.38;     // metres from the printer's middle to each carrier
-const FOLLOW_GAP = -1.1;    // the third walks this far behind the printer's middle
-const OUT_S = 3;             // how long they are out back with it
+const CARRY_SPEED = [0.5, 3];  // metres a second: the printer carry takes the cue's verse, within these
+const PAIR_CLEAR = 0.7;      // metres a printer carry keeps from furniture, either side of its way
+const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer's side
+const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
+const SWING_AT = 0.75;       // and swings from this far off it
+const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
+const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
+const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
+const TWIST_STEP = 0.1, END_ON_HOLD = 0.8, TWIST_EASE = 0.3;   // metres: turn samples, how far an end-on stretch reaches, and its easing
+const SWING_HIT = 0.605;     // seconds from the start of the 'swing' pose to its blow (character.js)
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
 // The letter sheet: paper with lines of text and a big red stamp, both faces (the camera sees its back).
 const SHEET_GEO = new THREE.PlaneGeometry(0.26, 0.32);
@@ -497,113 +503,250 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     }
   }
 
-  // "Take it out back" (printer_jam): the three nearest people lift the jammed printer overhead and
-  // carry it out of the door in a line, a third walking behind; they are gone a few seconds (the
-  // wreck appears outside), then walk back in smiling. The moment carries its own printer, since the
-  // staged one goes as soon as the decision is made.
-  let printer = null;   // { phase, obj, people: [front, back, follower], route, s, t, len }
+  // "Take it out back" (printer_jam), staged to its music cue (public/audio/moments/printer_smash.ogg).
+  // CUE times are seconds from the cue's start, which is the first step of the carry. Two people carry
+  // the printer low between them to where the wreck will lie, a third following with a bat on the
+  // shoulder. They set it down at the end of the verse, the bat winds up in the gap before the hook
+  // and lands on each shouted word, the last blow leaves the wreck, and everyone walks off before the
+  // cue ends. The moment carries its own printer, since the staged one goes as soon as the decision
+  // is made.
+  const CUE = { down: 8.13, wind: 9.14, hits: [10.46, 11.24, 12.98, 13.94], off: 14.4, end: 15.69 };
+  let printer = null;
   let printerDue = 0;   // seconds left to find the printer and people after the decision
+  const wreckObj = () => getProps?.()?.current().find((p) => p.prop === 'printer_wrecked')?.obj ?? null;
   function printerStart() {
     const at = getProps?.()?.goneAt?.('printer_jammed', 10);
+    const wreck = wreckObj();
     const L = office.current?.L;
-    if (!at || !L || printer || lite() || !parent) return false;
+    if (!at || !wreck || !L || printer || lite() || !parent) return false;
     const near = free().sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.z - at.z) - Math.hypot(b.pos.x - at.x, b.pos.z - at.z)).slice(0, 3);
     if (near.length < 2) return false;
     const obj = printerModel();
-    obj.scale.setScalar(1.2);
-    obj.position.set(at.x, 0, at.z);
+    obj.scale.setScalar(JAM_SCALE);
     parent.add(obj);
-    const door = L.doorWorld;
-    const route = office.nav().path({ x: at.x, z: at.z }, { x: door.x, z: door.z }) ?? [];
-    const out = Math.abs(door.z) >= L.D / 2 - 1.2 ? [0, Math.sign(door.z)] : [Math.sign(door.x), 0];
-    route.push({ x: door.x + out[0] * 1.6, z: door.z + out[1] * 1.6 });
-    printer = { phase: 'gather', obj, people: near, hid: new Set(), route: [{ x: at.x, z: at.z }, ...route], s: 0, t: 0, out };
-    // The spots to lift from: in front of and behind the printer along the way out, the third behind.
-    const first = printer.route[1] ?? route[0];
-    const dir = norm(first.x - at.x, first.z - at.z);
-    const spots = [[CARRY_GAP, dir], [-CARRY_GAP, dir], [FOLLOW_GAP, dir]].map(([d, v]) => ({ x: at.x + v[0] * d, z: at.z + v[1] * d, yaw: Math.atan2(v[0], v[1]) }));
+    const size = new THREE.Box3().setFromObject(obj).getSize(new THREE.Vector3());
+    obj.position.set(at.x, 0, at.z);
+    const route = printerRoute(at, wreck.position, L);
+    const pm = printer = {
+      phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
+      side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
+    };
+    pm.twists = twists(pm);
+    const c = along(route, 0);
+    const spots = carrySpots(pm, c);
+    obj.rotation.y = carryYaw(pm);
+    if (near[2]) {
+      pm.bat = batHeld();
+      pm.bat.rotation.set(...BAT_SHOULDER);
+      near[2].char.setHeld(pm.bat);
+    }
     near.forEach((r, i) => {
-      r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', target: obj, held: i < 2 ? obj : null } };
+      r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', target: obj, held: i < 2 ? obj : pm.bat } };
       walkTo(r, spots[i]);
     });
-    dispatch('start', 'printer_jam');
     return true;
   }
+  // From the printer's spot to the wreck's: through the door first when the wreck lies outside.
+  function printerRoute(at, end, L) {
+    const outside = end.y < -0.05;
+    const door = L.doorWorld;
+    const to = outside ? door : end;
+    const pts = [{ x: at.x, y: 0, z: at.z }];
+    // As wide a way as there is for the pair: the printer's half-width plus a carrier either side.
+    const nav = office.nav();
+    let way = null;
+    for (const clear of [PAIR_CLEAR, PAIR_CLEAR * 0.7, 0.35, 0]) if ((way = nav.path({ x: at.x, z: at.z }, { x: to.x, z: to.z }, clear))) break;
+    for (const q of way ?? []) pts.push({ x: q.x, y: 0, z: q.z });
+    if (outside) pts.push({ x: door.x, y: 0, z: door.z });
+    pts.push({ x: end.x, y: end.y, z: end.z });
+    return pts.filter((q, i) => i === 0 || Math.hypot(q.x - pts[i - 1].x, q.z - pts[i - 1].z) > 0.05);
+  }
+  // Where each of them stands for a printer at route point c: the carriers either side of it facing
+  // in, the third behind it facing along the way.
+  function carrySpots(pm, c) {
+    const a = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(a), Math.cos(a)];
+    const out = [1, -1].map((k) => ({ x: c.x + perp[0] * pm.side * k, y: c.y, z: c.z + perp[1] * pm.side * k, yaw: Math.atan2(-perp[0] * k, -perp[1] * k) }));
+    const b = along(pm.route, Math.max(0, pm.s - BAT_BEHIND));
+    out.push({ x: b.x, y: b.y, z: b.z, yaw: Math.atan2(b.dir[0], b.dir[1]) });
+    return out;
+  }
+  // The printer's heading at distance s: along the way (read over a stretch of it, so corners turn
+  // smoothly), turned by the twist there.
+  function carryYaw(pm, s = pm.s) {
+    const a = along(pm.route, Math.max(0, s - 0.4)), b = along(pm.route, Math.min(pm.len, s + 0.4));
+    const base = Math.hypot(b.x - a.x, b.z - a.z) > 0.05 ? Math.atan2(b.x - a.x, b.z - a.z) : Math.atan2(b.dir[0], b.dir[1]);
+    return base + (pm.twists?.[Math.min(pm.twists.length - 1, Math.round(s / TWIST_STEP))] ?? 0);
+  }
+  // Straight across the way where both carriers fit. Near anywhere they don't, the pair carries it end
+  // on instead (both then walk the way itself, which is clear), turning over a short stretch where
+  // across still fits.
+  function twists(pm) {
+    // Desk chairs stand out past their cells on the nav grid; a carrier keeps clear of each seat.
+    const chairs = [...office.placed.values()].filter((e) => e.desk?.seat).map((e) => e.desk.seat);
+    const nav = office.nav();
+    const clear = (x, z) => !nav.isBlocked(x, z, BODY_R) && chairs.every((c) => Math.hypot(c.x - x, c.z - z) > CHAIR_CLEAR);
+    const raw = [];
+    for (let s = 0; s <= pm.len + 1e-6; s += TWIST_STEP) {
+      const c = along(pm.route, s), a = Math.atan2(c.dir[0], c.dir[1]) + Math.PI / 2;
+      raw.push([1, -1].every((k) => clear(c.x + Math.sin(a) * pm.side * k, c.z + Math.cos(a) * pm.side * k)) ? 0 : 1);
+    }
+    const win = (arr, n, f) => arr.map((_, i) => f(arr.slice(Math.max(0, i - n), i + n + 1)));
+    const endOn = win(raw, Math.round(END_ON_HOLD / TWIST_STEP), (xs) => Math.max(...xs));
+    return win(endOn, Math.round(TWIST_EASE / TWIST_STEP), (xs) => (xs.reduce((a, x) => a + x, 0) / xs.length) * Math.PI / 2);
+  }
+  function batHeld() {
+    const g = new THREE.Group();
+    // Hangs from the hand like the sledgehammer: the handle in the fist, the barrel beyond it.
+    const bat = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.042, 0.78, 10), HANDLE_MAT);
+    bat.position.y = -0.33;
+    g.add(bat);
+    return g;
+  }
   function norm(x, z) { const l = Math.hypot(x, z) || 1; return [x / l, z / l]; }
-  // Where along the route a distance s lands: { x, z, dir }.
+  // Where along the route a distance s lands: { x, y, z, dir }.
   function along(route, s) {
     for (let i = 1; i < route.length; i++) {
       const a = route[i - 1], b = route[i], len = Math.hypot(b.x - a.x, b.z - a.z);
-      if (s <= len || i === route.length - 1) { const k = Math.min(1, s / (len || 1)); return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, dir: norm(b.x - a.x, b.z - a.z) }; }
+      if (s <= len || i === route.length - 1) {
+        const k = Math.max(0, Math.min(1, s / (len || 1)));
+        return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k, dir: norm(b.x - a.x, b.z - a.z) };
+      }
       s -= len;
     }
     return { ...route[0], dir: [0, 1] };
   }
   function routeLength(route) { let n = 0; for (let i = 1; i < route.length; i++) n += Math.hypot(route[i].x - route[i - 1].x, route[i].z - route[i - 1].z); return n; }
+  // The printer's base height with its middle at the carriers' hands.
+  function gripY(pm) {
+    let y = 0;
+    for (const r of pm.people.slice(0, 2)) for (const h of r.char.hands()) y += h.y - r.pos.y;
+    return Math.max(0, y / 4 - pm.h * 0.5);
+  }
+  function place(r, q) { r.pos.set(q.x, q.y ?? 0, q.z); if (q.yaw != null) r.yaw = q.yaw; }
+  function setAnim(r, name, restart = false) {
+    if (restart) r.char.setAnim('idle');
+    r.temp.anim = name;
+    r.char.setAnim(name);
+  }
+
   function printerTick(dt) {
     const pm = printer;
     if (!pm) return;
     pm.t += dt;
-    const wreck = getProps?.()?.current().find((p) => p.prop === 'printer_wrecked')?.obj;
-    if (wreck && pm.phase !== 'back') wreck.visible = false;
-    const alive = pm.people.filter((r) => recs.has(r.id));
-    if (alive.length < pm.people.length) { printerEnd(); return; }
+    if (!pm.smashed) pm.wreck.visible = false;
+    if (pm.phase === 'off') { if (pm.cue + dt >= CUE.end) printerEnd(); else pm.cue += dt; return; }
+    if (pm.people.some((r) => !recs.has(r.id) || r.temp?.moment !== 'printer')) { printerEnd(); return; }
+    const [a, b, bat] = pm.people;
     if (pm.phase === 'gather') {
-      if (pm.people.every((r) => !r.path.length) || pm.t > 12) { pm.phase = 'lift'; pm.t = 0; pm.people.forEach((r) => { r.temp.anim = 'hoist'; r.temp.stage.beat = 'lift'; }); }
+      if (pm.people.every((r) => !r.path.length) || pm.t > 12) {
+        pm.phase = 'lift'; pm.t = 0;
+        pm.people.forEach((r, i) => { r.temp.keepPos = true; r.temp.stage.beat = 'lift'; setAnim(r, i < 2 ? 'carryhold' : 'shoulder'); });
+      }
       return;
     }
     if (pm.phase === 'lift') {
-      pm.obj.position.y = Math.min(1, pm.t / 0.6) * handsY(pm);
-      if (pm.t > 0.8) { pm.phase = 'carry'; pm.t = 0; pm.len = routeLength(pm.route); pm.people.forEach((r, i) => { r.temp.anim = i < 2 ? 'hoistwalk' : 'walk'; r.temp.keepPos = true; r.temp.stage.beat = 'carry'; }); }
+      carrySpots(pm, along(pm.route, 0)).forEach((q, i) => pm.people[i] && place(pm.people[i], q));
+      pm.obj.position.y = Math.min(1, pm.t / 0.5) * gripY(pm);
+      if (pm.t >= 0.6) {
+        pm.phase = 'carry'; pm.t = 0;
+        pm.speed = Math.min(CARRY_SPEED[1], Math.max(CARRY_SPEED[0], pm.len / CUE.down));
+        pm.people.forEach((r, i) => { r.temp.stage.beat = 'carry'; setAnim(r, i < 2 ? 'carry' : 'shoulderwalk'); });
+        dispatch('start', 'printer_jam');
+      }
       return;
     }
+    pm.cue += dt;
+    const t = pm.cue;
     if (pm.phase === 'carry') {
-      // Everyone walks on until the last of them reaches the end of the route; each is gone from there.
-      pm.s = Math.min(pm.len - FOLLOW_GAP, pm.s + PRINTER_SPEED * dt);
-      const c = along(pm.route, Math.min(pm.len, pm.s));
-      pm.obj.position.set(c.x, handsY(pm), c.z);
-      pm.obj.rotation.y = Math.atan2(c.dir[0], c.dir[1]);
-      if (pm.s >= pm.len) pm.obj.visible = false;
-      // In a line along the way: one ahead, one behind, the third a step behind them.
-      [CARRY_GAP, -CARRY_GAP, FOLLOW_GAP].forEach((d, i) => {
-        const r = pm.people[i];
-        if (!r) return;
-        const at = Math.max(0, pm.s + d);
-        const p = along(pm.route, Math.min(pm.len, at));
-        r.pos.set(p.x, 0, p.z);
-        r.yaw = Math.atan2(p.dir[0], p.dir[1]);
-        if (at >= pm.len && !r.hidden) { pm.hid.add(r); r.hidden = true; r.char.root.visible = false; }
-      });
-      if (pm.s >= pm.len - FOLLOW_GAP - 1e-3) { pm.phase = 'out'; pm.t = 0; }
+      pm.s = Math.min(pm.len, pm.s + pm.speed * dt);
+      const c = along(pm.route, pm.s);
+      carrySpots(pm, c).forEach((q, i) => pm.people[i] && place(pm.people[i], q));
+      pm.obj.position.set(c.x, c.y + gripY(pm), c.z);
+      pm.obj.rotation.y = carryYaw(pm);
+      if (pm.s >= pm.len && t >= CUE.down - 0.5) {
+        // Set it down, step back from it, and the bat comes up to its spot.
+        pm.phase = 'down'; pm.t = 0; pm.end = c;
+        pm.from = pm.people.map((r) => ({ x: r.pos.x, z: r.pos.z }));
+        a.temp.stage.beat = b.temp.stage.beat = 'watch';
+        setAnim(a, 'idle'); setAnim(b, 'idle');
+        if (bat) { setAnim(bat, 'shoulderwalk'); bat.temp.stage = { beat: 'smash', held: pm.bat, target: pm.obj }; }
+      }
       return;
     }
-    if (pm.phase === 'out' && pm.t > OUT_S) {
-      // Back in through the door, smiling, to wherever they were going.
-      pm.phase = 'back';
-      if (wreck) wreck.visible = true;
-      const door = office.current.L.doorWorld;
-      pm.people.forEach((r, i) => { r.pos.set(door.x, 0, door.z); unhide(r); emote(r, 'heart', 2.5 + i * 0.3); });
-      printerEnd();
+    if (pm.phase === 'down') {
+      const k = Math.min(1, pm.t / 0.6), e = k * k * (3 - 2 * k);
+      const c = pm.end;
+      pm.obj.position.y = c.y + gripY(pm) * (1 - e);
+      pm.obj.scale.setScalar(JAM_SCALE + (pm.scale1 - JAM_SCALE) * e);
+      const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
+      [a, b].forEach((r, i) => { const k2 = i ? -1 : 1, d = e * 0.45; r.pos.x = pm.from[i].x + perp[0] * d * k2; r.pos.z = pm.from[i].z + perp[1] * d * k2; });
+      if (bat) {
+        const to = { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT };
+        bat.pos.x = pm.from[2].x + (to.x - pm.from[2].x) * e; bat.pos.z = pm.from[2].z + (to.z - pm.from[2].z) * e;
+        bat.yaw = Math.atan2(c.x - bat.pos.x, c.z - bat.pos.z);
+        if (k >= 1 && bat.temp.anim !== 'shoulder') setAnim(bat, 'shoulder');
+      }
+      // Both carriers turn to watch it get what it deserves.
+      [a, b].forEach((r) => { r.yaw = angleTo(r, c); });
+      if (k >= 1 && t >= CUE.wind) { pm.phase = 'smash'; pm.t = 0; }
+      return;
+    }
+    if (pm.phase === 'smash') {
+      const next = CUE.hits[pm.hit];
+      // Each blow: the swing starts so its downstroke lands on the word; between blows, back on the shoulder.
+      if (bat && next != null && pm.swung < pm.hit && t >= next - SWING_HIT) { pm.swung = pm.hit; pm.bat.rotation.set(0, 0, 0); setAnim(bat, 'swing', true); }
+      if (next != null && t >= next) {
+        pm.hit++;
+        const c = pm.end;
+        wallDust(c.x, c.y + 0.25, c.z);
+        pm.squash = 1;
+        [a, b].forEach((r) => setAnim(r, 'celebrate', true));
+        if (pm.hit === CUE.hits.length) {
+          // The last blow: what is left is the wreck.
+          pm.smashed = true;
+          pm.wreck.visible = true;
+          pm.obj.visible = false;
+          wallDust(c.x + 0.2, c.y + 0.15, c.z - 0.2);
+        }
+      }
+      const after = CUE.hits[pm.hit - 1];
+      if (bat && after != null && pm.swung === pm.hit - 1 && t >= after + 0.2 && (CUE.hits[pm.hit] ?? Infinity) - SWING_HIT > t + 0.1 && bat.temp.anim !== 'shoulder') {
+        pm.bat.rotation.set(...BAT_SHOULDER);
+        setAnim(bat, 'shoulder');
+      }
+      if (pm.squash > 0) { pm.squash = Math.max(0, pm.squash - dt / 0.25); pm.obj.scale.y = pm.scale1 * (1 - 0.25 * Math.sin(pm.squash * Math.PI)); }
+      if (t >= CUE.off) { pm.phase = 'off'; pm.t = 0; release(pm); }
+      return;
     }
   }
-  // The printer rests on the two carriers' raised hands.
-  function handsY(pm) { return (pm.people[0].char.handTop() + pm.people[1].char.handTop()) / 2 - 0.03; }
-  function unhide(r) {
-    if (!printer?.hid.delete(r) || r.goal?.hidden) return;
-    r.hidden = false;
-    r.char.root.visible = true;
+  function angleTo(r, c) { return Math.atan2(c.x - r.pos.x, c.z - r.pos.z); }
+  // Everyone back to what they were doing, pleased with themselves; from outside, in through the door.
+  function release(pm) {
+    const door = office.current.L.doorWorld;
+    pm.people.forEach((r, i) => {
+      if (r === pm.people[2]) r.char.setHeld(null);
+      r.temp = null;
+      emote(r, 'heart', 2.5 + i * 0.3);
+      const outside = r.pos.y < -0.05;
+      if (outside) r.pos.y = 0;
+      if (r.goal) walkTo(r, r.goal);
+      if (outside) r.path.unshift({ x: door.x, z: door.z });
+    });
   }
   function printerEnd() {
     if (!printer) return;
-    const wreck = getProps?.()?.current().find((p) => p.prop === 'printer_wrecked')?.obj;
-    if (wreck) wreck.visible = true;
-    printer.obj.removeFromParent();
-    printer.obj.traverse((o) => { if (o.isMesh && o.material?.userData?.own) o.material.dispose(); });
-    for (const r of printer.people) {
-      unhide(r);
-      if (r.temp?.moment === 'printer') { r.temp = null; if (r.goal) walkTo(r, r.goal); }
-    }
+    const pm = printer;
     printer = null;
+    pm.wreck.visible = true;
+    pm.obj.removeFromParent();
+    pm.bat?.traverse((o) => o.geometry?.dispose());
+    for (const r of pm.people) {
+      if (r.temp?.moment !== 'printer') continue;
+      if (r === pm.people[2]) r.char.setHeld(null);
+      r.temp = null;
+      r.pos.y = 0;
+      if (r.goal) walkTo(r, r.goal);
+    }
     dispatch('end', 'printer_jam');
   }
   // Moment captions (ui): hitl:moment { phase, id, key }.
@@ -641,5 +784,5 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
 
   function reset() { printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
-  return { update, reset, decided, get printer() { return printer && { phase: printer.phase, s: +printer.s.toFixed(2), len: +(printer.len ?? 0).toFixed(2), t: +printer.t.toFixed(2) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { update, reset, decided, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

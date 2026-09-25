@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'hoist', 'hoistwalk', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -132,7 +132,7 @@ function makeCheeks(tpl, skin) {
     dispose() { m.dispose(); },
   };
 }
-const _hand = new THREE.Vector3();
+const _hands = [new THREE.Vector3(), new THREE.Vector3()];
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
 
 // Parts are modeled in their pivot's space, so the node transform from the file is kept as is.
@@ -547,10 +547,16 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armLZ = 0.18; tgt.armRZ = -0.18;
         break;
       case 'shoulder':
+      case 'shoulderwalk':
         // Something heavy resting on the right shoulder: the hand at the shoulder, the load behind.
         tgt.armRX = -1.8; tgt.armRZ = -0.45;
         tgt.headX = -0.05;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
+        if (anim === 'shoulderwalk') {
+          tgt.legL = Math.sin(t * 7) * 0.4; tgt.legR = -Math.sin(t * 7) * 0.4;
+          tgt.armLX = -Math.sin(t * 7) * 0.3;
+          tgt.bodyY = Math.abs(Math.sin(t * 7)) * 0.02;
+        }
         break;
       case 'swing': {
         // Wind up overhead, then bring it down hard, once a second.
@@ -624,17 +630,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = -0.1;
         tgt.headX = -0.1; tgt.headZ = 0.2;
         break;
-      case 'hoist':
-      case 'hoistwalk':
-        // Something big held up overhead in both hands (the printer on its way out); walking, the legs
-        // step under it.
-        tgt.armLX = tgt.armRX = -2.75;
-        tgt.armLZ = -0.25; tgt.armRZ = 0.25;
-        tgt.headX = -0.15;
-        if (anim === 'hoistwalk') {
-          tgt.legL = Math.sin(t * 8) * 0.35; tgt.legR = -Math.sin(t * 8) * 0.35;
-          tgt.bodyY = Math.abs(Math.sin(t * 8)) * 0.015;
-        }
+      case 'carryhold':
+        // Standing with something held low in front in both arms (the walking version is 'carry').
+        tgt.armLX = tgt.armRX = -1.05;
+        tgt.armLZ = 0.35; tgt.armRZ = -0.35;
+        tgt.lean = 0.06;
+        tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
@@ -948,8 +949,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   update(0);
   return {
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
-    // The world height of the higher hand, for things held up overhead.
-    handTop() { let y = -Infinity; for (const a of arms) y = Math.max(y, a.wrist.getWorldPosition(_hand).y); return y; },
+    // Both wrists in world space, left then right (shared vectors: copy them to keep them).
+    hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
     get anim() { return anim; },
     get emote() { return emoteKind; },
     get mood() { return mood; },

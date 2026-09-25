@@ -197,9 +197,25 @@ export function createNav(L, obstacles, cell = 0.35) {
       if (edge || obstacles.some((r) => x > r.x0 - 0.12 && x < r.x1 + 0.12 && z > r.z0 - 0.12 && z < r.z1 + 0.12)) blocked[i + k * nx] = 1;
     }
   }
+  const N0 = nx * nz, grid0 = blocked;
   const center = (i, k) => ({ x: -L.W / 2 + (i + 0.5) * cell, z: -L.D / 2 + (k + 0.5) * cell });
 
-  function nearestFree(i, k) {
+  // The grid with every blocked cell grown by `clear` metres, for something wider than one person.
+  const grown = new Map();
+  function gridFor(clear) {
+    const d = Math.round(clear / cell);
+    if (d <= 0) return blocked;
+    if (grown.has(d)) return grown.get(d);
+    const out = new Uint8Array(N0);
+    for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+      if (!blocked[i + k * nx]) continue;
+      for (let a = Math.max(0, i - d); a <= Math.min(nx - 1, i + d); a++) for (let b = Math.max(0, k - d); b <= Math.min(nz - 1, k + d); b++) out[a + b * nx] = 1;
+    }
+    grown.set(d, out);
+    return out;
+  }
+
+  function nearestFree(i, k, blocked = grid0) {
     for (let r = 0; r < Math.max(nx, nz); r++) {
       for (let di = -r; di <= r; di++) {
         for (let dk = -r; dk <= r; dk++) {
@@ -212,10 +228,12 @@ export function createNav(L, obstacles, cell = 0.35) {
     return [i, k];
   }
 
-  // A* on the grid with 8-way moves; returns world points from start to goal (inclusive).
-  function path(from, to) {
-    const [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))));
-    const [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))));
+  // A* on the grid with 8-way moves; returns world points from start to goal (inclusive). clear > 0
+  // keeps the way that many metres from anything blocked; with no such way, the result is null.
+  function path(from, to, clear = 0) {
+    const blocked = gridFor(clear);
+    const [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
+    const [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked);
     const N = nx * nz;
     const g = new Float32Array(N).fill(Infinity);
     const came = new Int32Array(N).fill(-1);
@@ -253,7 +271,7 @@ export function createNav(L, obstacles, cell = 0.35) {
         }
       }
     }
-    if (came[goal] === -1 && goal !== si + sk * nx) return [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
+    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 ? null : [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
     const cells = [];
     for (let n = goal; n !== -1; n = came[n]) cells.push(n);
     cells.reverse();
