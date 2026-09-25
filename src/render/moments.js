@@ -28,12 +28,16 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 // How willing someone is to wander off for a moment, by what they are assigned to.
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
+// A visitor's look is random each visit, from everyday colours (render only: Math.random is fine here).
+const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
+const VISITOR_SHIRT = ['#9aa3b5', '#d9a441', '#6f8fc0', '#9ab58a', '#c78a8a', '#e8e2d6'];
+const VISITOR_PANTS = ['#2e3440', '#3b4a6b', '#5b4a3a', '#6b6b6b'];
 const HANDLE_MAT = new THREE.MeshStandardMaterial({ color: P.wood_light, roughness: 0.8 });
 const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness: 0.5, metalness: 0.3 });
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, fx = null, parent = null, getYaw = () => Math.PI / 4, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -212,7 +216,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (lite() || !parent) return;
     if (!visitor || visitor.obj !== p.obj) {
       endVisitor();
-      const c = createCharacter({ skin: 2, hair: 4, hairColor: '#6b4a2e', shirt: '#9aa3b5', pants: '#3b4a6b', build: 1, accessory: 'glasses' }, P.metal_soft, { seed: 'visitor' });
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      const look = { skin: Math.floor(Math.random() * 6), hair: Math.floor(Math.random() * 8), hairColor: pick(VISITOR_HAIR), shirt: pick(VISITOR_SHIRT), pants: pick(VISITOR_PANTS), build: Math.floor(Math.random() * 3), accessory: pick(['none', 'none', 'glasses', 'cap', 'beanie']) };
+      const c = createCharacter(look, P.metal_soft, { seed: `visitor-${Math.random()}` });
       c.setRingScale(0.0001);
       c.pickProxy.visible = false;
       c.setAnim('sit');
@@ -255,7 +261,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (!r) return;
     if (lite()) { emote(r, 'sweat', 2); return; }
     const size = box.getSize(new THREE.Vector3());
-    const spot = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55, 1)[0];
+    // On the camera's side, turned a little off the view line, so the fanning shows in profile.
+    const yaw = getYaw();
+    const cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55, 12);
+    const want = [Math.sin(yaw + 0.95), Math.cos(yaw + 0.95)], want2 = [Math.sin(yaw - 0.95), Math.cos(yaw - 0.95)];
+    const score = (s) => { const dx = s.x - center.x, dz = s.z - center.z, l = Math.hypot(dx, dz) || 1; return Math.max((dx * want[0] + dz * want[1]) / l, (dx * want2[0] + dz * want2[1]) / l); };
+    const spot = cands.sort((a, b) => score(b) - score(a))[0];
     if (!spot) return;
     r.temp = { anim: 'fan', t: rnd(3.5, 5), goal: spot, back: true, moment: 'fumes' };
     walkTo(r, spot);
