@@ -107,9 +107,9 @@ elif [ -n "$bal_passed" ]; then
   echo "test:balance: skipped: these sim inputs passed on ${bal_passed:-an earlier run}"
 else
   (
-    c0=$(timing_child_cpu); t0=$(now); rc=0
+    me=$BASHPID; c0=$(timing_child_cpu "$me"); t0=$(now); rc=0
     npm run test:balance || rc=$?
-    timing_log kind=step tool=ci-local step=test:balance wall_s=$(( $(now) - t0 )) cpu_s="$(awk -v a="$(timing_child_cpu)" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')" exit=$rc
+    timing_log kind=step tool=ci-local step=test:balance wall_s=$(( $(now) - t0 )) cpu_s="$(awk -v a="$(timing_child_cpu "$me")" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')" exit=$rc
     if [ $rc -eq 0 ] && [ -n "$bal_hash" ]; then
       { mkdir -p "$BAL_CACHE" && git rev-parse --short HEAD >"$BAL_CACHE/$bal_hash.pass"; } 2>/dev/null || true
     fi
