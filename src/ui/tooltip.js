@@ -119,22 +119,30 @@ export function createTooltips(layer) {
   });
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && target) hide(); }, true);
 
-  // Touch: a long-press shows the tip; a tap anywhere else dismisses it.
-  layer.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') { if (target && by === 'hover' && !target.contains(e.target)) hide(); return; }
+  // Any press dismisses a shown tip, on its own element too (tapping the Team chip opens Staff, and
+  // the tip must not sit over the panel). Listening on window catches taps on the 3D scene, which
+  // is outside the UI layer. On touch, a press on a tipped element may become a long-press.
+  addEventListener('pointerdown', (e) => {
     eatClick = false;
-    const el = find(e.target);
-    if (target && el !== target) hide();
+    clearTimeout(timer);
+    if (target) hide();
     clearTimeout(press?.timer);
-    press = el ? { el, x: e.clientX, y: e.clientY, timer: setTimeout(() => { show(el, 'touch'); eatClick = true; }, LONG_MS) } : null;
+    press = null;
+    if (e.pointerType === 'mouse') return;
+    const el = find(e.target);
+    if (el) press = { el, x: e.clientX, y: e.clientY, timer: setTimeout(() => { show(el, 'touch'); eatClick = true; }, LONG_MS) };
   }, true);
   const endPress = () => { clearTimeout(press?.timer); press = null; };
-  layer.addEventListener('pointermove', (e) => {
+  addEventListener('pointermove', (e) => {
     if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_PX) endPress();
   }, true);
-  layer.addEventListener('pointerup', endPress, true);
-  layer.addEventListener('pointercancel', endPress, true);
-  layer.addEventListener('click', (e) => { if (eatClick) { eatClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
+  addEventListener('pointerup', endPress, true);
+  addEventListener('pointercancel', endPress, true);
+  layer.addEventListener('click', (e) => {
+    if (eatClick) { eatClick = false; e.preventDefault(); e.stopPropagation(); return; }
+    // A click on the tipped element (including Enter or Space on it) acts, so the tip goes.
+    if (target && target.contains(e.target)) hide();
+  }, true);
   layer.addEventListener('contextmenu', (e) => { if (press || by === 'touch') e.preventDefault(); }, true);
   addEventListener('wheel', () => { if (target && by === 'hover') hide(); }, { passive: true });
 
