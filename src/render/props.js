@@ -365,11 +365,40 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
       follow(g, e);
     } else {
       const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
-      g.position.set(c.x, onTop ? 0 : y, c.z);
       g.rotation.y = rot;
+      const p = onTop ? c : clearSpot(L, env.office, g, c);
+      g.position.set(p.x, onTop ? 0 : y, p.z);
     }
     return g;
   };
+}
+// The nearest spot to c where a floor prop fits: clear of furniture and other props with room to
+// walk round it, inside the walls, and off the doorway. Wall and door anchors land here.
+const DOOR_CLEAR = 1.6, WALK_ROOM = 0.25;
+function clearSpot(L, office, g, c) {
+  const nav = office.nav?.();
+  if (!nav) return c;
+  g.position.set(0, 0, 0);
+  g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  const door = L.doorWorld;
+  const fits = (x, z) => {
+    if (x + b.min.x < -L.W / 2 + 0.15 || x + b.max.x > L.W / 2 - 0.15 || z + b.min.z < -L.D / 2 + 0.15 || z + b.max.z > L.D / 2 - 0.15) return false;
+    if (door && Math.hypot(x - door.x, z - door.z) < DOOR_CLEAR) return false;
+    for (let sx = b.min.x - WALK_ROOM; sx <= b.max.x + WALK_ROOM + 1e-6; sx += 0.2) {
+      for (let sz = b.min.z - WALK_ROOM; sz <= b.max.z + WALK_ROOM + 1e-6; sz += 0.2) if (nav.isBlocked(x + sx, z + sz)) return false;
+    }
+    return true;
+  };
+  if (fits(c.x, c.z)) return c;
+  for (let d = 0.25; d < 8; d += 0.25) {
+    const n = Math.max(8, Math.round(d * 12));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2, x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
+      if (fits(x, z)) return { x, z };
+    }
+  }
+  return c;
 }
 // Put a desk-following prop where its desk is now (it may be sliding to a new spot).
 function follow(g, e) {
@@ -383,8 +412,9 @@ function onFloor(build, opts = {}) {
 }
 const TOP_Y = 0.57;
 const DESK_PROP_SCALE = 1.6;
-// Flat paper needs more size than objects to read from above, and sits further in so it stays on the top.
-const FLAT = { scale: 2.0, x: -0.36, z: -0.3 };
+// Flat paper needs more size than objects to read from above. It sits on the sitter's right, where
+// their head does not hide it from the camera.
+const FLAT = { scale: 2.0, x: 0.38, z: -0.3, rot: -0.2 };
 const flatMat = (tex, rough = 0.85) => own(new THREE.MeshStandardMaterial({ map: tex, roughness: rough }));
 const cardTex = (key, w, h, draw) => canvasTex(key, w, h, draw);
 
@@ -539,7 +569,7 @@ function petCarrier() {
 // A network cable run along the floor from the desk, bitten through, frayed ends and all.
 function cableChewed() {
   const g = new THREE.Group();
-  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.012, 0.012, x1 - x0, 0.004, 8), mat('role_engineer'), x1, 0.012, 0); m.rotation.z = Math.PI / 2; return m; };
+  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.02, 0.02, x1 - x0, 0.006, 8), mat('role_engineer'), x1, 0.012, 0); m.rotation.z = Math.PI / 2; return m; };
   g.add(seg(-0.6, -0.08), seg(0.06, 0.55));
   for (const [x, s] of [[-0.08, 1], [0.06, -1]]) {
     for (let i = 0; i < 4; i++) {
@@ -599,12 +629,12 @@ function itemAt(L, anchor, office, kinds = null) {
   return { box: new THREE.Box3().setFromObject(best.obj), entry: best };
 }
 // n puffs rising `rise` metres from the top of box over `life` seconds, looping, staggered.
-function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size = 0.35, opacity = 0.55, spread = 0.2 } = {}) {
+function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size = 0.35, opacity = 0.55, spread = 0.2, glow = false } = {}) {
   const g = new THREE.Group();
   const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
   const parts = [];
   for (let i = 0; i < n; i++) {
-    const m = own(new THREE.SpriteMaterial({ map: puffTexture(), color: new THREE.Color(color), transparent: true, opacity: 0, depthWrite: false }));
+    const m = own(new THREE.SpriteMaterial({ map: puffTexture(), color: new THREE.Color(color), transparent: true, opacity: 0, depthWrite: false, blending: glow ? THREE.AdditiveBlending : THREE.NormalBlending }));
     const sp = new THREE.Sprite(m);
     sp.userData.noAO = true;
     parts.push({ sp, t0: (i / n) * life, dx: Math.sin(i * 2.4) * spread, dz: Math.cos(i * 1.7) * spread });
@@ -633,13 +663,13 @@ function smokePuff(L, anchor, env) {
 function rackHot(L, anchor, env) {
   const { box } = itemAt(L, anchor, env.office, ['rack']);
   const g = new THREE.Group();
-  const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2 });
+  const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2, glow: true });
   g.add(heat);
   const size = box.getSize(new THREE.Vector3()), mid = box.getCenter(new THREE.Vector3());
-  const glowMat = own(new THREE.SpriteMaterial({ map: puffTexture(), color: new THREE.Color(P.marker_orange), transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-  const glow = new THREE.Sprite(glowMat);
-  glow.position.copy(mid);
-  glow.scale.set(Math.max(size.x, size.z) * 2.2, size.y * 1.6, 1);
+  // A soft orange wash on the rack's face (racks stand with their backs to a wall).
+  const glowMat = own(new THREE.MeshBasicMaterial({ map: puffTexture(), color: new THREE.Color(P.marker_orange), transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const glow = new THREE.Mesh(plane(size.x * 1.3, size.y * 1.1), glowMat);
+  glow.position.set(mid.x, mid.y, box.max.z + 0.03);
   glow.userData.noAO = true;
   g.add(glow);
   let t = 0;
@@ -664,7 +694,7 @@ const BUILDERS = {
   envelope_thick: atDesk(envelope(true), FLAT),
   binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
   gift_cards: atDesk(giftCards, FLAT),
-  sticky_notes: atDesk(stickyNotes, { x: -0.45, z: -0.25, rot: 0.1 }),
+  sticky_notes: atDesk(stickyNotes, { x: 0.4, z: -0.28, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
   smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0 }),
   pizza_boxes: atDesk(pizzaBoxes, { x: 0.35, z: -0.4, rot: 0.2, scale: 1.2 }),
@@ -672,7 +702,7 @@ const BUILDERS = {
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
   pet_carrier: onFloor(petCarrier, { x: 1.0, z: 0.2, rot: -0.5, scale: 1.2 }),
-  cable_chewed: onFloor(cableChewed, { x: 0.2, z: 0.05, rot: 0, scale: 1.4 }),
+  cable_chewed: onFloor(cableChewed, { x: 0.95, z: 0.25, rot: 0.6, scale: 1.4 }),
   visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
   smoke_puff: smokePuff,
   rack_hot: rackHot,
