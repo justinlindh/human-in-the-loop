@@ -1,7 +1,7 @@
 import {
   PLAY, PRE_UNTIL, PRE_DECISION, IN_OFFICE, DROP_UNSTAFFED, STAFF_IDLE, INCIDENT_ON_FLOOR, CHAT_HISTORY,
   BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, KEY,
-  FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS, MARK_MOMENTS,
+  FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS, MARK_MOMENTS, NO_SAY,
 } from '../capture-manifest.js';
 
 // Feature media: capture.js items (see scripts/capture-manifest.js for the item fields) with the files
@@ -32,6 +32,14 @@ const OFFICE = (weeks, until, time = 'day') => ({
 // Consolidation, run by the automate-everything bot, so headcount peaks at HQ and falls in the
 // Plateau. Each stage is the game played to `week`, then shown live with nothing over the office.
 const GROWTH_STAGES = [['garage', 6, 'Classic'], ['floor', 138, 'Classic'], ['floor-full', 262, 'ChatGBT'], ['hq', 700, 'Consolidation'], ['late', 780, 'Plateau']];
+// Where the camera looks at the start: the stage's own fitted view.
+const VIEW0 = { js: '(window.__view0 ??= window.__hitlRender.view())' };
+// The people's centre, for a tighter frame on a filled room.
+const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
+const GROWTH_CAMERA = {
+  'floor-full': [{ at: 0, target: PEOPLE, zoom: 1.7 }],
+  late: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: [-1.6, -4.1], zoom: 2.5, ease: 'inOut' }],
+};
 const GROW = (week) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
@@ -62,9 +70,6 @@ const RUNAWAY = `(async () => {
 
 // For FOLLOW: the centre of a staged prop's bounds, for a prop drawn away from its origin (on a wall).
 const BOX = (prop) => `() => { const R = window.__hitlRender, T = R.THREE; const o = R.props.current().find((x) => x.prop === '${prop}')?.obj; return o ? new T.Box3().setFromObject(o).getCenter(new T.Vector3()) : null; }`;
-
-// Speech bubbles and work labels hidden: people in a moment's shot still chat about other things.
-const NO_SAY = `(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()`;
 
 export const ITEMS = [
   // The office, by stage and time.
@@ -108,7 +113,7 @@ export const ITEMS = [
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 120, bot: 'balanced', hit: "(c, ev) => ev.some((e) => e.type === 'launch')" })}; ${BARE}; })()`,
     actions: [...DISMISS_AT([0.1, 0.6, 1.5, 3, 4, 5, 6, 8, 10], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 20, 2)],
     screenshots: [44],
-    out: [{ path: 'img/launch.webp', size: '1920x1080' }],
+    out: [{ path: 'img/launch.webp', size: '1920x1080', crop: { x: 0.2083, y: 0.2269, w: 0.5833, h: 0.5833 } }],
   },
 
   // Event loops: the office in motion, no side panels.
@@ -193,7 +198,7 @@ export const ITEMS = [
     setup: CLEAN,
     actions: [...OPEN(['stapler']), ...FOLLOW(['stapler'], 3.2, 0, 9), { at: 4, js: KEY('2', 'Digit2') }, ...DISMISS_AT([4.5, 5], { escape: false })],
     screenshots: [8],
-    out: [STILL('stapler', 8, { x: 1 / 3, y: 1 / 3, w: 1 / 3, h: 1 / 3 })],
+    out: [STILL('stapler', 8, { x: 0.4297, y: 0.4069, w: 0.15, h: 0.15 })],
   },
   {
     // Both choices clear the stack, so it is shot while the decision is open, the card hidden.
@@ -201,7 +206,7 @@ export const ITEMS = [
     setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
     actions: [...OPEN(['cover_sheets']), ...FOLLOW(['cover_sheets'], 3.2, 0, 5)],
     screenshots: [4.5],
-    out: [STILL('cover-sheets', 4.5, { x: 0.2917, y: 0.2917, w: 0.4167, h: 0.4167 })],
+    out: [STILL('cover-sheets', 4.5, { x: 0.3917, y: 0.4125, w: 0.2083, h: 0.2083 })],
   },
   {
     // "Rise above it" hangs the sign; the live week raises the jab.
@@ -217,7 +222,7 @@ export const ITEMS = [
     setup: `(async () => { await ${PRE_DECISION('ai_summit_hackathon', 600)}; ${CLEAN}; })()`,
     actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('ai_summit_hackathon', 1, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['giant_cheque'], 3.2, 0, 20)],
     screenshots: [17],
-    out: [STILL('cheque', 17, { x: 0.2083, y: 0.1759, w: 0.4167, h: 0.4167 })],
+    out: [STILL('cheque', 17, { x: 0.3698, y: 0.2454, w: 0.25, h: 0.25 })],
   },
   {
     // Shot while the pivot is open, the card hidden.
@@ -236,9 +241,15 @@ export const ITEMS = [
     out: [LOOP('visitor', 5, 6, { x: 0.1354, y: 0.0926, w: 2 / 3, h: 2 / 3 }), STILL('visitor', 7, { x: 0.1354, y: 0.0926, w: 2 / 3, h: 2 / 3 })],
   },
 
-  // The growth timelapse, one clip per stage (cut and labelled by scripts/reels/growth.sh).
+  // The growth timelapse, one clip per stage (cut, labelled and joined by scripts/reels/growth.sh). Each
+  // records its headcount as a mark. The filled floor frames a little tighter on the people; the late
+  // HQ pushes in from the wide view onto its row of empty desks.
   ...GROWTH_STAGES.map(([name, week, era]) => ({
     id: `growth-${name}`, title: `Growth timelapse: ${name}, ${era} (week ${week})`, query: 'seed=5&speed=1&time=day', seconds: 6, warmup: 3,
-    setup: GROW(week), actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 1, 6, 1), ...CAMLOG(6)], screenshots: [2],
+    setup: GROW(week),
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 1, 6, 1), ...CAMLOG(6),
+      { at: 0.5, js: `(() => { const s = window.__HITL.state; (window.__captureMarks ??= []).push({ t: 0, label: 'headcount ' + s.staff.filter((p) => p.mood !== 'away').length + ' era ${era}' }); })()` }],
+    ...(GROWTH_CAMERA[name] ? { camera: GROWTH_CAMERA[name] } : {}),
+    screenshots: [2, 5.5],
   })),
 ];
