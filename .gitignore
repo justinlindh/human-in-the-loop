@@ -6,3 +6,4 @@ shots/
 
 # vite dependency cache (per worktree)
 .vite/
+__pycache__/
