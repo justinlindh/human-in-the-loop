@@ -154,7 +154,20 @@ export function createHud({ root, controls, ui }) {
     onclick: () => ui.setSpeed(sp.k),
   }, icon(sp.ico)));
   const gear = h('button.btn.small.gear', { title: 'Settings', onclick: () => ui.openSettings?.() }, icon('settings'));
-  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, gear);
+  // Quick mute, the same setting as the Settings panel's; its icon follows mute and master volume.
+  const muteBtn = h('button.btn.small.mute', { title: 'Mute', 'aria-label': 'Mute', 'aria-pressed': 'false', onclick: () => { ui.toggleMute?.(); syncMute(); } }, icon('sound.on'));
+  let mutedShown = null;
+  function syncMute() {
+    const m = !!ui.isMuted?.();
+    if (m === mutedShown) return;
+    mutedShown = m;
+    muteBtn.replaceChildren(icon(m ? 'sound.off' : 'sound.on'));
+    muteBtn.setAttribute('aria-pressed', String(m));
+    muteBtn.setAttribute('aria-label', m ? 'Unmute' : 'Mute');
+    muteBtn.dataset.tip = m ? 'Sound is off. Tap to turn it on.' : 'Mute';
+    toggleClass(muteBtn, 'on', m);
+  }
+  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, muteBtn, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
   // The bar wraps onto more rows on narrow screens; the tray and toasts sit below its real height.
@@ -290,6 +303,7 @@ export function createHud({ root, controls, ui }) {
   let last = {};
   let lastLogoColor = '';
   function update(s) {
+    syncMute();
     const d = dateOf(s.week);
     const era = s.era?.id ?? null;
     if (era !== lastEra) {

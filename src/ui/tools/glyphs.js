@@ -157,6 +157,8 @@ export const GLYPHS = {
   'arrow.down': { d: path('M12 20.5 20.5 11h-5V3.5h-7V11h-5Z', 'currentColor') },
   'arrow.flat': { d: circ(12, 12, 4.5, 'currentColor') },
   'arrow.back': { d: path('M3.5 12 12 4v5h8.5v6H12v5Z', 'currentColor') },
+  'sound.on': { d: `<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>` },
+  'sound.off': { d: `<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>` },
   expand: { d: `<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
   'caret.down': { d: `<path d="M5 8.5h14l-7 8Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>` },
   'caret.right': { d: `<path d="M8.5 5v14l8-7Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>` },
