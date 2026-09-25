@@ -6,6 +6,7 @@
 // window.__step(n), which advances the clock by 1/30 s per frame. A run depends only on the code.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
+import { glMode, launchChromium } from '../../scripts/lib/gl.js';
 
 const INIT = `(() => {
   let s = 1234567;
@@ -17,44 +18,27 @@ const INIT = `(() => {
   window.requestAnimationFrame = () => 0;
 })();`;
 
-// SwiftShader draws the same pixels on every machine, which the golden and clip checks need. Renders
-// that only have to look right (the logo build, clips) can opt into the GPU instead.
-const SOFTWARE_GL = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
-const GPU_GL = ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu'];
+// Checks render on the GPU unless told otherwise (scripts/lib/gl.js: --software or HITL_GL=software).
+// Pixel comparisons (golden) pass gpu: false, since only SwiftShader draws the same pixels on every
+// machine. A GPU run that cannot get a hardware renderer fails rather than falling back.
 
-// True when a render script was asked for the GPU: HITL_GPU=1 or --gpu. Checks never call this.
+// True unless the command line or HITL_GL asks for software GL (or HITL_GPU=0).
 export function wantGpu(argv = process.argv) {
-  return process.env.HITL_GPU === '1' || argv.includes('--gpu');
+  if (process.env.HITL_GPU === '1') return true;
+  if (process.env.HITL_GPU === '0') return false;
+  return glMode({ argv }) === 'gpu';
 }
 
 async function launch(gpu) {
-  if (gpu) {
-    const browser = await chromium.launch({ args: GPU_GL });
-    const renderer = await rendererOf(browser);
-    if (renderer && !/SwiftShader/i.test(renderer)) return { browser, renderer };
-    await browser.close();
-    console.warn(`harness: no GPU (${renderer ?? 'no WebGL2'}), using SwiftShader`);
-  }
-  const browser = await chromium.launch({ args: SOFTWARE_GL });
-  return { browser, renderer: 'SwiftShader' };
+  const { browser, renderer } = await launchChromium(chromium, { mode: gpu ? 'gpu' : 'software', label: 'harness' });
+  return { browser, renderer };
 }
 
-async function rendererOf(browser) {
-  const page = await browser.newPage();
-  const r = await page.evaluate(() => {
-    const gl = document.createElement('canvas').getContext('webgl2');
-    const ext = gl?.getExtension('WEBGL_debug_renderer_info');
-    return gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unknown') : null;
-  });
-  await page.close();
-  return r;
-}
-
-// gpu: render on the GPU when there is one (see wantGpu); the default is SwiftShader.
+// gpu: render on the GPU (the default, see wantGpu) or on SwiftShader.
 // browsers: separate Chromium instances to spread pages over. Every page in one browser shares its
 // GPU process, so SwiftShader work from concurrent pages queues behind each other; checks that run
 // scenes in parallel pass their job count here. openScene's `slot` picks the browser.
-export async function startHarness({ gpu = false, browsers = 1 } = {}) {
+export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
   const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];

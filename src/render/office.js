@@ -303,7 +303,8 @@ function oldMonitor(g) {
   g.add(mesh(roundedBox(0.4, 0.3, 0.2, 0.04), mat('plastic_white'), 0, 0.3, -0.13));
 }
 
-function deskSet(i, stageIdx, screens, era) {
+// freeChair: the chair stays its own object (not merged), so it can roll (office.freeChair).
+function deskSet(i, stageIdx, screens, era, freeChair = false) {
   const g = new THREE.Group();
   // Desk sets are one tile wide, so neighbours butt together into a bench.
   const desk = getModel('desk');
@@ -313,6 +314,8 @@ function deskSet(i, stageIdx, screens, era) {
   onTop.position.y = DY;
   g.add(onTop);
   const chair = place(getModel('chair'), 0, 0, SEAT_Z + 0.05, Math.PI);
+  chair.name = 'chair';
+  chair.userData.dynamic = freeChair;
   g.add(chair);
   const laptop = stageIdx === 0;
   // The keys sit about 0.3 m in front of the sitter, where chibi arms reach: a laptop is pulled
@@ -445,7 +448,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   const kind = kindOf(p.itemId);
   const f = footprint(p.itemId, 0);
   let inner;
-  if (kind === 'desk') inner = deskSet(seed, stageIdx, screens, era);
+  if (kind === 'desk') inner = deskSet(seed, stageIdx, screens, era, !!p.freeChair);
   else if (kind === 'meeting') inner = meetingTable(f.w, f.h, era);
   else if (p.itemId === 'monitoring_wall' && era === 'classic') inner = statusTv(screens);
   else if (kind === 'whiteboard') inner = getModel('whiteboard');
@@ -982,6 +985,23 @@ export function createOffice({ parent, screens, lighting }) {
   const ERA_DRESSED = new Set(['desk', 'meeting']);
   const ERA_PER_FRAME = 4;
   let eraQueue = [];
+  // A desk's chair as its own object, to roll it (someone getting up), or merged back in. Returns the
+  // chair (its local z is SEAT_Z + CHAIR_Z at rest) or null. Rebuilds just that desk.
+  function freeChair(deskId, on = true) {
+    const old = placed.get(deskId);
+    if (!old?.desk) return null;
+    if (!!old.freeChair === on) return on ? old.chair : null;
+    cur.furniture.remove(old.obj);
+    const e = makeEntry({ ...old, freeChair: on }, old.seed);
+    e.desk = { ...old.desk, screen: e.obj.userData.screen, obj: e.obj, sign: null, screenKind: null, role: undefined };
+    e.freeChair = on;
+    e.chair = on ? e.obj.getObjectByName('chair') : null;
+    placed.set(old.id, e);
+    dropBatch();
+    refresh();
+    return e.chair;
+  }
+
   function rebuildForEra() {
     let n = 0;
     while (eraQueue.length && n < ERA_PER_FRAME) {
@@ -1157,7 +1177,7 @@ export function createOffice({ parent, screens, lighting }) {
   }
 
   return {
-    setStage, setPlaced, setDeskScreen, setDeskSign, setDeskRole, setEra, leds, update, nav, tuckMeetingChairs, deskById,
+    setStage, setPlaced, freeChair, setDeskScreen, setDeskSign, setDeskRole, setEra, leds, update, nav, tuckMeetingChairs, deskById,
     get era() { return era; },
     get current() { return cur; },
     get placed() { return placed; },

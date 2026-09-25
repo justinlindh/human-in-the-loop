@@ -1,10 +1,10 @@
+import { phoneLayout } from './media.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
 
 const MAX_VISIBLE = 5;
 // Phones (narrow, or short in landscape) keep at most two, docked in one line above the bottom row.
-const COMPACT = '(max-width: 480px), (max-height: 500px)';
-const maxVisible = () => (typeof matchMedia === 'function' && matchMedia(COMPACT).matches ? 2 : MAX_VISIBLE);
+const maxVisible = () => (phoneLayout() ? 2 : MAX_VISIBLE);
 const LIFE = { info: 6500, good: 6500, warn: 9000, bad: 9000 };
 // Toasts shown per game week before the rest collapse into a "+N more" chip. Warn and bad always show.
 const WEEK_BUDGET = 3;

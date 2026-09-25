@@ -558,13 +558,13 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     step(10);
   }
   // 4. The sledgehammer: whoever fetches it and carries it to the wall stays clear of furniture and
-  // props, and the walls-down choice ends in a swing.
+  // props, and the walls-down choice (decisionResolved) ends in a swing.
   {
     R.moments.full = true;
     S.pendingDecision = { eventId: 'open_plan_office', subjectId: ids[0], stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } };
     let worst = 0, worstWho = null, phases = new Set();
     for (let i = 0; i < 30 * 25; i++) {
-      if (i === 30 * 16) { S.modifiers = [...(S.modifiers ?? []), { id: 'chk', key: 'output', value: 0.08, label: 'Open-plan buzz', untilWeek: S.week + 26, source: 'check' }]; S.pendingDecision = null; }
+      if (i === 30 * 16) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'open_plan_office', choice: 0, subjectId: ids[0] }], S); }
       step(1);
       const h = R.moments.hammer;
       if (!h || i % 5) continue;
@@ -578,9 +578,50 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       }
     }
     results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho });
-    S.modifiers = (S.modifiers ?? []).filter((m) => m.id !== 'chk');
     R.moments.full = false;
     step(10);
+  }
+  // 5. A letter on a desk: its sitter gets up (rolling the chair back), reads it in the aisle and sits
+  // down again, clear of every piece of furniture the whole way, their own desk and chair included.
+  {
+    R.moments.full = true;
+    R.perks.hold = true;
+    step(90);
+    const occupied = [...R.office.placed.values()].filter((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.assignment?.type !== 'hardProblem' && p.mood !== 'away'));
+    let worst = 0, worstWho = null, stood = 0;
+    const actors = new Set();
+    for (const desk of occupied.slice(0, 4)) {
+      S.office.props.push({ id: 'letter_prop', prop: 'envelope', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
+      // Until everyone who got up has sat down again (at most 25 s), sampling every frame.
+      let seen = false;
+      for (let i = 0; i < 30 * 25; i++) {
+        step(1);
+        if (i === 30 * 12) S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
+        if (actors.size) seen = true;
+        if (seen && !actors.size) break;
+        // Everyone in the moment, from getting up until they are seated again, walking back included;
+        // not the seated pose itself (a sitter is meant to be in their chair).
+        for (const [id, what] of R.moments.active) if (what === 'letter') actors.add(id);
+        for (const id of actors) {
+          if (R.isSeated(id)) { if (!R.moments.active.some(([x]) => x === id)) actors.delete(id); continue; }
+          stood++;
+          const root = charOf(R.scene, id);
+          for (const e of R.office.placed.values()) {
+            const ms = meshes(e.obj);
+            const v = bodyInside(root, ms, false);
+            if (v > worst) {
+              worst = v;
+              const parts = ms.map((m) => [m.material.name, bodyInside(root, [m], false)]).filter(([, x]) => x > 0).map(([n, x]) => `${n}:${(100 * x).toFixed(1)}`);
+              worstWho = `${id} in ${e.itemId}:${e.id} [${parts.join(' ')}] path ${R.perks.peek(id)?.path}`;
+            }
+          }
+        }
+      }
+      S.office.props = S.office.props.filter((p) => p.id !== 'letter_prop');
+      step(30);
+    }
+    results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho });
+    R.moments.full = false;
   }
   R.perks.hold = false;
   return results;
