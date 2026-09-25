@@ -105,7 +105,17 @@ run() { # <override> <log> <command...>, in the worktree $WT
 gate() {
   local c="$1" cs="${1:0:7}"
   WT="$ROOT/main-guard-$cs-$$"
-  git -C "$REPO" worktree add -q --detach "$WT" "$c" || { ci_rc=2; gate_new=0; seed_new=0; return; }
+  # A failed checkout (a full disk, a git lock) says nothing about the commit: retry once, then set
+  # gate_err so no caller counts it as red.
+  gate_err=0
+  if ! git -C "$REPO" worktree add -q --detach "$WT" "$c"; then
+    rm -rf "$WT"; git -C "$REPO" worktree prune
+    sleep "${MAIN_GUARD_RETRY_WAIT:-30}"
+    if ! git -C "$REPO" worktree add -q --detach "$WT" "$c"; then
+      rm -rf "$WT"; git -C "$REPO" worktree prune
+      WT=""; gate_err=1; ci_rc=0; gate_new=0; seed_new=0; return
+    fi
+  fi
   if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_modules" ] && [ ! -L "$REPO/node_modules" ] \
     && (cd "$REPO" && npm ls --depth=0 >/dev/null 2>&1); then
     ln -s "$REPO/node_modules" "$WT/node_modules"
@@ -145,6 +155,11 @@ echo "main-guard: checking $short $(git -C "$REPO" log -1 --format=%s "$sha" | c
 status pending "Main guard running"
 t0=$(date +%s)
 gate "$sha"
+if [ "$gate_err" = 1 ]; then
+  echo "main-guard: could not check out $short; no verdict"
+  status error "Main guard could not check out this commit"
+  exit 2
+fi
 what="$(red_steps "$short")"
 secs=$(( $(date +%s) - t0 ))
 echo "$sha" >"$STATE/last"
@@ -263,6 +278,7 @@ echo "main-guard: bisecting ${#range[@]} merges since the last green ${green:0:7
 while [ $lo -lt $hi ] && [ "$(date +%s)" -lt "$deadline" ]; do
   mid=$(( (lo + hi) / 2 ))
   YIELD_MAX=$(( deadline - $(date +%s) )) gate "${range[$mid]}"
+  [ "$gate_err" = 1 ] && { stopped="${range[$mid]:0:7}"; break; }
   if [ -z "$(red_steps "${range[$mid]:0:7}")" ]; then lo=$((mid + 1)); else hi=$mid; fi
 done
 subject() { git -C "$REPO" log -1 --format=%s "$1"; }
@@ -270,7 +286,8 @@ if [ $lo -eq $hi ]; then
   note="First red merge since the last green \`${green:0:7}\`: \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}"))."
   echo "main-guard: first red merge ${range[$lo]:0:7}"
 else
-  note="The bisect ran out of time: the first red merge is between \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}")) and \`${range[$hi]:0:7}\` ($(subject "${range[$hi]}"))."
+  why="ran out of time"; [ -n "${stopped:-}" ] && why="could not check out \`$stopped\`"
+  note="The bisect $why: the first red merge is between \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}")) and \`${range[$hi]:0:7}\` ($(subject "${range[$hi]}"))."
   echo "main-guard: bisect stopped at ${range[$lo]:0:7}..${range[$hi]:0:7}"
 fi
 [ -n "$issue" ] && gh issue comment "$issue" --body "$note" >/dev/null

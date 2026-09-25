@@ -133,5 +133,31 @@ if [ ${#fp[@]} -eq 5 ]; then
   [ -n "$first_post" ] && [ -n "$first_comment" ] && [ "$first_post" -lt "$first_comment" ] || { echo "FAIL the red issue must be posted before the bisect note"; fails=$((fails + 1)); }
 fi
 
+# A checkout that fails is no verdict: never red. A stand-in git fails `worktree add` for commits
+# starting with GIT_FAIL_CO (all when "any"), GIT_FAIL_TIMES times (unlimited when unset).
+real_git="$(command -v git)"; mkdir -p "$tmp/gitbin"
+cat >"$tmp/gitbin/git" <<GIT
+#!/usr/bin/env bash
+if [[ " \$* " == *" worktree add "* ]] && [ -n "\${GIT_FAIL_CO:-}" ] && { [ "\$GIT_FAIL_CO" = any ] || [[ " \$* " == *" \$GIT_FAIL_CO"* ]]; }; then
+  n=\$(cat "\$GIT_FAIL_COUNT" 2>/dev/null || echo 0); echo \$((n + 1)) >"\$GIT_FAIL_COUNT"
+  if [ -z "\${GIT_FAIL_TIMES:-}" ] || [ "\$n" -lt "\$GIT_FAIL_TIMES" ]; then echo "error: unable to write file x" >&2; exit 128; fi
+fi
+exec "$real_git" "\$@"
+GIT
+chmod +x "$tmp/gitbin/git"
+gp="PATH=$tmp/gitbin:$tmp/bin:$PATH"
+case_root="$tmp/root-co1"; cl="$tmp/co.log"; : >"$cl"
+guard "$cl" /dev/null "$gp" GIT_FAIL_CO=any GIT_FAIL_COUNT="$tmp/co1.n" MAIN_GUARD_RETRY_WAIT=0 MAIN_GUARD_SUITE="$FAIL_BAL" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'a head that cannot be checked out gets no verdict' "$cl" "state=error|!state=failure|!issue create|out:no verdict"
+[ "$(cat "$tmp/co1.n")" = 2 ] || { echo "FAIL a failed checkout should be tried twice (got $(cat "$tmp/co1.n"))"; fails=$((fails + 1)); }
+case_root="$tmp/root-co2"; : >"$cl"
+guard "$cl" /dev/null "$gp" GIT_FAIL_CO=any GIT_FAIL_TIMES=1 GIT_FAIL_COUNT="$tmp/co2.n" MAIN_GUARD_RETRY_WAIT=0 MAIN_GUARD_SUITE="$FAIL_BAL" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'a checkout that fails once is retried and judged' "$cl" "state=failure|--label main-red"
+if [ ${#fp[@]} -eq 5 ]; then
+  case_root="$tmp/root-co3"; mkdir -p "$case_root/main-guard"; echo "${fp[4]}" >"$case_root/main-guard/last-green"; : >"$cl"
+  guard "$cl" /dev/null "$gp" GIT_FAIL_CO="${fp[2]:0:7}" GIT_FAIL_COUNT="$tmp/co3.n" MAIN_GUARD_RETRY_WAIT=0 MAIN_GUARD_SUITE="$RED_FROM" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+  expect 'a bisect stops at a commit it cannot check out' "$cl" "--label main-red|could not check out \`${fp[2]:0:7}\`|!First red merge"
+fi
+
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]
