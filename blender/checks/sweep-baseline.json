@@ -43,6 +43,12 @@
    "issue": 381
   },
   {
+   "key": "person|coffee_corner/pal_role_marketer|person(still)/head",
+   "worst": 0.038,
+   "state": "seed:1:w535",
+   "issue": 381
+  },
+  {
    "key": "person|coffee_corner/pal_wood_dark|person(still)/torso",
    "worst": 0.072,
    "state": "seed:1:w208",
@@ -58,12 +64,6 @@
    "key": "person|coffee_corner/pal_wood_light|person(walking)/head",
    "worst": 0.025,
    "state": "seed:1:w520",
-   "issue": 381
-  },
-  {
-   "key": "person|desk/pal_fabric_slate|person(celebrate)/head",
-   "worst": 0.034,
-   "state": "seed:1:w208",
    "issue": 381
   },
   {

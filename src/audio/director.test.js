@@ -232,7 +232,12 @@ describe('audio director', () => {
     const s = state();
     const cmds = d.events([{ type: 'incentive', staffId: 's1', reward: 'music_night', genre: 'motivational_polka', dancers: ['s2', 's3'] }], s, 10);
     const dance = cmds.find((c) => c.op === 'dance');
-    expect(dance.file).toBe('musicNight/motivational_polka');
+    expect(dance.file).toMatch(/^musicNight\/motivational_polka\/[01]$/);
+    // The next music night in the same genre plays its other track, with that track's length.
+    const again = d.events([{ type: 'incentive', staffId: 's1', reward: 'music_night', genre: 'motivational_polka' }], s, 60).find((c) => c.op === 'dance');
+    expect(again.file).not.toBe(dance.file);
+    const i = Number(again.file.split('/')[2]);
+    expect(again.expect).toBe(ASSETS.musicNight.motivational_polka.tracks[i].duration);
     expect(dance.duck).toBe('dance');
     expect(dance.at).toBeCloseTo(10.4);
     // The cheer is timed from the end of whatever buffer plays, so its offsets are small and positive.
@@ -283,7 +288,7 @@ describe('audio director', () => {
     expect(genre(d.update(s, 0, {}))).toBeUndefined();
     const pick = { ...s, pendingDecision: { id: 'music_night_genre', options: [{ id: 'sad_lofi' }, { id: 'motivational_polka' }] } };
     const pre = genre(d.update(pick, 1, { decision: true }));
-    expect(pre.ids).toContain('musicNight/sad_lofi');
+    expect(pre.ids.some((id) => /^musicNight\/sad_lofi\/\d$/.test(id))).toBe(true);
     expect(pre.ids).toHaveLength(4);
     expect(genre(d.update(pick, 2, { decision: true }))).toBeUndefined();
     // The next music night's pick loads them again, since the tracks are released after playing.

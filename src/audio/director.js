@@ -191,14 +191,22 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   // A dance break: one 'dance' command. The host holds the dance duck from now, starts the genre's
   // track (waiting briefly for the real file), releases the duck when the buffer actually ends, and
   // then plays `after` (a small cheer from the dancers) with each `at` measured from that end.
+  // Each genre alternates between its tracks, starting from a seeded pick. The next one is chosen
+  // at the genre pick, so only it is preloaded.
+  const nightNext = {};
+  const nightTracks = (genre) => ASSETS.musicNight?.[genre]?.tracks?.length ?? 1;
+  const nextNight = (genre) => (nightNext[genre] ??= Math.floor(rng() * nightTracks(genre)) % nightTracks(genre));
   function musicNight(e, s, t) {
     const genre = MUSIC_NIGHT[e.genre] ? e.genre : 'corporate_synthwave';
-    const len = ASSETS.musicNight?.[genre]?.duration ?? MUSIC_NIGHT_SECONDS;
+    const i = nextNight(genre);
+    nightNext[genre] = (i + 1) % nightTracks(genre);
+    const track = ASSETS.musicNight?.[genre]?.tracks?.[i] ?? ASSETS.musicNight?.[genre];
+    const len = track?.duration ?? MUSIC_NIGHT_SECONDS;
     const end = t + 0.4 + len;
     const dancers = new Set([e.staffId, ...(e.dancers ?? [])].filter(Boolean));
     const crowd = dancers.size ? { ...s, staff: (s?.staff ?? []).filter((p) => dancers.has(p.id)) } : s;
     const after = cheer('musicNight', crowd, end + 0.2, e.staffId, { force: true }).map((c) => ({ ...c, at: c.at - end }));
-    return [{ op: 'dance', cue: 'music.night', genre, file: `musicNight/${genre}`, bus: 'sfx', gain: 0.75, at: t + 0.4, duck: 'dance', expect: len, after }];
+    return [{ op: 'dance', cue: 'music.night', genre, file: `musicNight/${genre}/${i}`, bus: 'sfx', gain: 0.75, at: t + 0.4, duck: 'dance', expect: len, after }];
   }
 
   const voiceMomentOk = (t) => t - lastVoiceMoment.t >= VOICE.globalGap;
@@ -320,7 +328,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       if (cue && music.momentLoaded !== cue.file) { music.momentLoaded = cue.file; out.push({ op: 'preload', ids: [cue.file] }); }
       // Each music night's pick loads them again: the tracks leave memory once one has played.
       const nightPick = isMusicNightDecision(state?.pendingDecision);
-      if (nightPick && !music.preloaded) out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
+      if (nightPick && !music.preloaded) out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}/${nextNight(g)}`) });
       music.preloaded = nightPick;
       // The typing bed: quiet, scaled by how many people are at their desks working; off while
       // paused, in lockdown, on the title, and on Low.

@@ -24,7 +24,12 @@ export function entryFor(id) {
   if (kind === 'ui') return ASSETS.ui?.[a] ?? null;
   if (kind === 'sfx') return ASSETS.sfx?.[a] ?? null;
   if (kind === 'ambience') return ASSETS.ambience?.[a] ?? null;
-  if (kind === 'musicNight') return ASSETS.musicNight?.[a] ?? null;
+  // A genre's tracks are musicNight/<genre>/<n>; musicNight/<genre> is its first.
+  if (kind === 'musicNight') {
+    const g = ASSETS.musicNight?.[a];
+    const n = Number(b ?? 0);
+    return g?.tracks?.[n] ?? (n === 0 ? g ?? null : null);
+  }
   // Moment cues live in public/audio/moments/ by name.
   if (kind === 'moments') return ASSETS.moments?.[a] ?? (a ? { file: `moments/${a}.ogg` } : null);
   return null;
