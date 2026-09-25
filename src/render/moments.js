@@ -43,6 +43,7 @@ const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer
 const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
 const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: its corner-on width plus a body's
 const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
+const CHEAT_TURN = 0.5;      // radians the consultants' scene turns off face-to-face toward the camera
 const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its centre toward the camera
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
@@ -595,29 +596,43 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     }
     const fwd = [Math.sin(v.yaw), Math.cos(v.yaw)], side = [Math.cos(v.yaw), -Math.sin(v.yaw)];
     if (event === 'efficiency_consultants') {
-      // The second consultant stands beside the chair with a clipboard; a colleague is interviewed.
-      // Arms out low in front, the clipboard between the hands, tipped up to be read.
+      // A nervous colleague is interviewed across from the seated consultant, the second consultant
+      // behind with a clipboard. Face to face across the camera's view line, each turned three-quarters
+      // to the camera, so all three faces read. Arms out low in front, the clipboard tipped up to be read.
       const rob = makeVisitor(event, 'carryhold');
       rob.root.add(clipboard());
       v.chars.push(rob);
-      v.robAt = { x: v.at.x + side[0] * 0.6 - fwd[0] * 0.1, z: v.at.z + side[1] * 0.6 - fwd[1] * 0.1 };
-      // In front of the seated one, where the camera sees them clear of columns.
-      const r = pickIdle(1, v.at)[0];
-      const nav = office.nav(), cands = [];
-      for (const d of [1.1, 1.3, 0.9]) for (const a of [0, 0.35, -0.35, 0.7, -0.7]) {
-        const c = Math.cos(a), sn = Math.sin(a);
-        cands.push({ x: v.at.x + (fwd[0] * c + side[0] * sn) * d, z: v.at.z + (fwd[1] * c + side[1] * sn) * d });
+      const yaw = getYaw(), cam = [Math.sin(yaw), Math.cos(yaw)], across = [Math.cos(yaw), -Math.sin(yaw)];
+      const nav = office.nav();
+      // The interviewee's side of the chair: whichever side has room and is in plain view.
+      let spot = null;
+      for (const d of [1.3, 1.1, 1.5]) for (const sgn of [1, -1]) for (const back of [0.2, 0.05, 0.35]) {
+        if (spot) break;
+        const q = { x: v.at.x + across[0] * sgn * d - cam[0] * back, z: v.at.z + across[1] * sgn * d - cam[1] * back };
+        if (!nav.isBlocked(q.x, q.z, BODY_R) && inView(q, { body: true })) spot = q;
       }
-      const free = cands.filter((q) => !nav.isBlocked(q.x, q.z, BODY_R));
-      const spot = r && (free.find((q) => inView(q) && !columnInFront(q)) ?? free[0]);
-      if (r && spot) {
-        spot.yaw = Math.atan2(v.at.x - spot.x, v.at.z - spot.z);
+      if (!spot) for (const sgn of [1, -1]) { const q = { x: v.at.x + across[0] * sgn * 1.1, z: v.at.z + across[1] * sgn * 1.1 }; if (!spot && !nav.isBlocked(q.x, q.z, BODY_R)) spot = q; }
+      const toward = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
+      const cheat = (y, k = CHEAT_TURN) => { const d = Math.atan2(Math.sin(yaw - y), Math.cos(yaw - y)); return y + Math.sign(d) * Math.min(Math.abs(d), k); };
+      if (spot) {
+        v.yaw = cheat(toward(v.at, spot));
+        // The nervous one plays a little more to the room.
+        spot.yaw = cheat(toward(spot, v.at), CHEAT_TURN * 1.1);
+      }
+      // The clipboard consultant stands at the seated one's shoulder, on the side away from the
+      // interviewee and a little behind, clear of the chair so the camera sees all of them.
+      const side = spot ? Math.sign((spot.x - v.at.x) * across[0] + (spot.z - v.at.z) * across[1]) || 1 : 1;
+      v.robAt = { x: v.at.x - cam[0] * 0.3 - across[0] * side * 0.7, z: v.at.z - cam[1] * 0.3 - across[1] * side * 0.7 };
+      v.robYaw = spot ? cheat(toward(v.robAt, spot)) : yaw;
+      if (v.chair) v.chair.rotation.y = v.yaw;
+      const r = spot && (pickIdle(1, spot)[0] ?? free().sort((a, b) => Math.hypot(a.pos.x - spot.x, a.pos.z - spot.z) - Math.hypot(b.pos.x - spot.x, b.pos.z - spot.z))[0]);
+      if (r) {
         r.temp = { anim: 'idle', t: 1e6, goal: spot, moment: 'visitor', emoteT: 1, stage: { beat: 'interview', role: 'interviewee', target: v.chars[0].root },
           tick: (rr, d, tp) => { tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = rnd(2.5, 3.5); emote(rr, 'sweat', 2); } return false; } };
         (v.walks ??= []).push([r, spot]);
         v.cast.push(r);
         v.interviewee = r;
-      }
+      } else note(null, 'refuse', { by: 'consultants', why: spot ? 'nobody free to interview' : 'no room beside the chair' });
     } else {
       // The founders, or failing that whoever is free, crouch out of sight and peek.
       const founders = free().filter((r) => r.staff.founder);
@@ -755,7 +770,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     }
     if (rob) {
       rob.root.position.set(v.robAt.x, 0, v.robAt.z);
-      rob.root.rotation.y = Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
+      rob.root.rotation.y = v.robYaw ?? Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
       rob.root.visible = sitter.root.visible;
     }
     for (const c of v.chars) c.update(dt);
@@ -1205,8 +1220,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const consult = v.event === 'efficiency_consultants';
     const at = consult ? v.interviewee?.char.root ?? null : v.desk?.screen ?? null;
     const out = [];
-    if (sitter?.root.visible) out.push({ id: 'visitor:0', char: sitter, stage: { moment: 'visitor', beat: consult ? 'interview' : 'test', role: consult ? 'consultant' : 'visitor', target: at, held: null, source: null } });
-    if (rob?.root.visible) out.push({ id: 'visitor:1', char: rob, stage: { moment: 'visitor', beat: 'interview', role: 'clipboard', target: at, held: null, source: null } });
+    // The interview starts once the colleague has sat down across from them.
+    const arrived = consult && v.interviewee && !v.interviewee.path.length;
+    if (sitter?.root.visible) out.push({ id: 'visitor:0', char: sitter, stage: { moment: 'visitor', beat: consult ? (arrived ? 'interview' : 'wait') : 'test', role: consult ? 'consultant' : 'visitor', target: at, held: null, source: null } });
+    if (rob?.root.visible) out.push({ id: 'visitor:1', char: rob, stage: { moment: 'visitor', beat: arrived ? 'interview' : 'wait', role: 'clipboard', target: at, held: null, source: null } });
     return out;
   }
   function staging(id) {
