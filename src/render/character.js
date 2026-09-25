@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -574,6 +574,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY -= b * 0.01;
         break;
       }
+      case 'despair':
+        // Standing, both hands on the head, rocking slowly: bad news.
+        tgt.armLX = tgt.armRX = -2.5;
+        tgt.armLZ = 0.95; tgt.armRZ = -0.95;
+        tgt.headX = 0.22 + s(t * 1.6 + phase) * 0.08;
+        tgt.headZ = s(t * 1.1 + phase) * 0.18;
+        tgt.lean = 0.08;
+        tgt.bodyY = s(t * 1.6 + phase) * 0.006;
+        break;
       case 'fan':
         // Waving something away from the face with one hand, leaning back from it.
         tgt.armRX = -2.0 + s(t * 11) * 0.35;

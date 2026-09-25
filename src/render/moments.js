@@ -244,14 +244,41 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     resolvedT.set(e.eventId, 20);
   }
 
-  // Envelope on a desk: whoever sits there sighs over it now and then.
+  // A yaw that faces the camera three-quarters, turned toward a point so it still reads as about it.
+  function towardCamera(from, at) {
+    const cam = getYaw();
+    const toAt = Math.atan2(at.x - from.x, at.z - from.z);
+    const d = Math.atan2(Math.sin(toAt - cam), Math.cos(toAt - cam));
+    return cam + Math.sign(d || 1) * 0.6;
+  }
+  // A clear spot near `from` on the camera's side, for staging someone where they can be seen.
+  function cameraSide(from, dist = 0.7) {
+    const yaw = getYaw(), nav = office.nav();
+    for (const off of [0, 0.5, -0.5, 1, -1, 1.5, -1.5]) {
+      const a = yaw + off, x = from.x + Math.sin(a) * dist, z = from.z + Math.cos(a) * dist;
+      if (!nav.isBlocked(x, z, BODY_R)) return { x, z };
+    }
+    return null;
+  }
+
+  // Envelope on a desk: whoever sits there gets up beside the desk, turns to the room and holds their
+  // head over it (a seated sigh faces the monitor, away from the camera), then sits back down. At Low,
+  // a sweat emote at the desk.
   function letter(p, dt) {
-    if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [10, 15])) return;
+    if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [12, 18])) return;
     const deskId = p.obj.userData.follow?.deskId;
     const r = [...recs.values()].find((x) => x.seat === deskId);
     if (!r || !free().includes(r) || !r.char.seated) return;
-    emote(r, 'sweat', 2.4);
-    if (!lite()) r.temp = { anim: 'sigh', t: 3.2, keepPos: true, moment: 'letter' };
+    emote(r, 'sweat', 2.6);
+    if (lite()) return;
+    // Stand up behind the chair, where the seat's walkway already is, turned to the room: the desk
+    // row closes the chair's sides, so stepping round it would be a walk round the whole row.
+    const desk = office.placed.get(deskId);
+    const ry = desk?.obj.rotation.y ?? 0;
+    const spot = { x: r.pos.x + Math.sin(ry) * 0.42, z: r.pos.z + Math.cos(ry) * 0.42 };
+    spot.yaw = towardCamera(spot, p.obj.position);
+    r.temp = { anim: 'despair', t: 3.6, goal: spot, back: true, moment: 'letter' };
+    r.path = [{ x: spot.x, z: spot.z }];
   }
 
   // Visitor chair: a visitor sits in it for as long as it is there; someone hovers nearby.
@@ -306,13 +333,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (!r) return;
     if (lite()) { emote(r, 'sweat', 2); return; }
     const size = box.getSize(new THREE.Vector3());
-    // On the camera's side, turned a little off the view line, so the fanning shows in profile.
+    // On the camera's side of the fumes, a little off the view line.
     const yaw = getYaw();
     const cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55, 12);
     const want = [Math.sin(yaw + 0.95), Math.cos(yaw + 0.95)], want2 = [Math.sin(yaw - 0.95), Math.cos(yaw - 0.95)];
     const score = (s) => { const dx = s.x - center.x, dz = s.z - center.z, l = Math.hypot(dx, dz) || 1; return Math.max((dx * want[0] + dz * want[1]) / l, (dx * want2[0] + dz * want2[1]) / l); };
     const spot = cands.sort((a, b) => score(b) - score(a))[0];
     if (!spot) return;
+    // Facing the room, three-quarters to the camera, waving the fumes off behind them.
+    spot.yaw = towardCamera(spot, center);
     r.temp = { anim: 'fan', t: rnd(3.5, 5), goal: spot, back: true, moment: 'fumes' };
     walkTo(r, spot);
     emote(r, 'sweat', 2);
