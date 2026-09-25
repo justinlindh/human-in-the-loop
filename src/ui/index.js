@@ -1,7 +1,8 @@
 import { phoneMedia } from './media.js';
 import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
-import './style.css';
+// Stylesheets load in file-name order, which is their cascade order.
+import.meta.glob('./styles/*.css', { eager: true });
 import { h, dateOf } from './dom.js';
 import { createHud } from './hud.js';
 import { createToasts } from './toasts.js';

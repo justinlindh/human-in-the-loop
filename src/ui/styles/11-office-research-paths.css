@@ -1,0 +1,41 @@
+/* ---------- office shop ---------- */
+.hitl .stagecard { display: flex; align-items: center; gap: 1em; flex-wrap: wrap; margin-bottom: 0.9em; }
+.hitl .shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(18em, 1fr)); gap: 0.7em; }
+.hitl .item { display: flex; flex-direction: column; gap: 0.45em; }
+.hitl .item.owned { background: #eefaf3; }
+.hitl .item.locked { opacity: 0.65; }
+.hitl .item .iico { flex: none; width: 2.6em; height: 2.6em; display: grid; place-items: center; background: var(--cream-2); border: 0.13em solid var(--ink); border-radius: 0.7em; }
+.hitl .item .iname { font-size: 1.05em; }
+.hitl .copy { display: flex; flex-direction: column; gap: 0.25em; border-top: 0.12em dashed var(--line); padding-top: 0.4em; }
+.hitl .lvpips { display: inline-flex; gap: 0.2em; }
+.hitl .lvpips i { width: 0.8em; height: 0.8em; border-radius: 50%; border: 0.12em solid var(--ink); background: var(--cream-3); }
+.hitl .lvpips i.on { background: var(--yellow); }
+
+/* ---------- research ---------- */
+.hitl .rtree { display: flex; flex-direction: column; gap: 0.45em; }
+.hitl .rcard { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 0.7em; align-items: center; }
+.hitl .rcard .rico { width: 2.4em; height: 2.4em; display: grid; place-items: center; background: var(--cream-2); border: 0.13em solid var(--ink); border-radius: 0.6em; }
+.hitl .rcard.done { background: #eefaf3; }
+.hitl .rcard.locked { opacity: 0.6; }
+.hitl .rcard.running { background: #eef4ff; }
+.hitl .rcard .rlink { position: absolute; left: -1.5em; top: -0.6em; width: 1.2em; height: 50%; border-left: 0.16em solid var(--ink-faint); border-bottom: 0.16em solid var(--ink-faint); border-bottom-left-radius: 0.5em; }
+.hitl .rrun { display: grid; grid-template-columns: 7em auto auto; gap: 0.4em; align-items: center; }
+.hitl .proj.focus { box-shadow: 0 0.16em 0 var(--ink), 0 0 0 0.25em var(--yellow); }
+
+/* ---------- career paths and training ---------- */
+.hitl .pill.pathpend { background: var(--yellow); animation: hitl-pulse-y 1.4s ease-in-out infinite; }
+@keyframes hitl-pulse-y { 50% { box-shadow: 0 0 0 0.25em rgba(255,176,32,0.35); } }
+.hitl .pill.pathb { background: #efe6ff; }
+.hitl .pathinfo { background: #efe6ff; border: 0.13em solid var(--ink); border-radius: 0.7em; padding: 0.4em 0.6em; }
+.hitl .modal.paths .mhead, .hitl .modal.training .mhead { background: var(--purple); color: #fff; text-shadow: 0 0.08em 0 rgba(0,0,0,0.25); }
+.hitl .modal.paths .mhead .btn.x, .hitl .modal.training .mhead .btn.x { text-shadow: none; color: var(--ink); }
+.hitl .pathcards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em; }
+.hitl .pathcard { pointer-events: auto; display: flex; flex-direction: column; gap: 0.35em; text-align: left; padding: 0.7em; background: #fffaf1; border: 0.16em solid var(--ink); border-radius: 0.9em; box-shadow: 0 0.2em 0 var(--ink); transition: transform 80ms, background 120ms; }
+.hitl .pathcard:hover { background: #f3ecff; transform: translateY(-0.1em); }
+.hitl .pathcard .pname { font-size: 1.15em; }
+.hitl .pathcard .pick { align-self: flex-end; margin-top: auto; font-weight: 700; background: var(--purple); color: #fff; border-radius: 0.5em; padding: 0.15em 0.7em; }
+.hitl .trcards { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.6em; }
+.hitl .trcard { display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .trcard .gpick { align-self: flex-start; }
+.hitl .toast.clickable, .hitl .dtoast.clickable { cursor: pointer; text-decoration: underline dotted; }
+

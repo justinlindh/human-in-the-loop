@@ -1,8 +1,9 @@
 // Scene integrity sweep (issue #352): walks real states and checks that the world is physically
 // sane, with accurate mesh tests (intersect.js) on states from the sampler (sample.js).
 //
-//   node blender/checks/sweep.mjs            fast mode: the mocks and one seeded game, briefly, and
-//                                            every staged prop on a few desks of two mocks
+//   node blender/checks/sweep.mjs            fast mode: the mocks and one seeded game, briefly,
+//                                            every staged prop on a few desks of two mocks, and
+//                                            every moment played on purpose in the floor mock
 //   node blender/checks/sweep.mjs --full     every mock for longer, several seeds, sampled often
 //   options: --seeds 1,2,3|none  --mocks floor,hq|none  --out <dir>  --timeout <s>  --gpu
 //            --update-baseline [--prune]  --strict (fail on new seed-only violations in fast mode)
@@ -14,13 +15,15 @@
 //            under it; value is the gap
 //   hand     a prop held in the hand is more than 6 cm from the wrist; value is the gap
 //   bounds   something reaches past the room's walls or under the floor; value is how far
+//   self     something a person holds or carries is more than 1 cm into their own head or torso
 //   person   a person's head or torso (and legs, walking) is more than 2 cm inside furniture, a
 //            prop, a wall or another person, other than what they are using (their desk, the
 //            item they sit on or leave, a moment's desk); checked every 0.2 s along real walks
 //
 // Each violation prints with its state (mock:<name> or seed:<n>:w<week>), time into the window,
 // the two things, and the value. New ones (not in sweep-baseline.json, or clearly worse than its
-// entry) fail the run, except that in fast mode those seen only in seeded games are advisory. --out
+// entry) fail the run, except that in fast mode those seen only in seeded games are advisory. An
+// accepted entry may name the issue tracking it ("issue": n); fix it, then drop the entry. --out
 // (default shots/sweep/) gets report.json, report.md (a table for a PR) and a crop of each. --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
@@ -35,8 +38,8 @@ const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const full = argv.includes('--full');
 const MODES = {
-  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, mockSeconds: 6, seeds: [1], weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
-  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, mockSeconds: 30, seeds: [1, 2, 3, 4], weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
+  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
+  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
 };
 const M = { ...MODES[full ? 'full' : 'fast'] };
 const list = (v) => (v === 'none' ? [] : v.split(',').filter(Boolean));
@@ -47,6 +50,8 @@ const timeout = Number(opt('timeout', full ? 3600 : 600));
 
 const baseline = (() => { try { return JSON.parse(readFileSync(BASELINE, 'utf8')); } catch { return { accepted: [] }; } })();
 const known = baseline.accepted.map((b) => b.key);
+// The issue tracking each accepted violation, printed beside it, so it comes out when that is fixed.
+const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.key, b.issue]));
 
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = Date.now();
@@ -58,11 +63,13 @@ const windows = [];
 try {
   for (const name of M.mocks) {
     const { page, errors: e } = await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0 });
+    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null });
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
     errors.push(...e.map((x) => `mock:${name}: ${x}`));
+    const played = r.windows.find((w) => w.why === 'moments')?.played;
+    if (played) console.log(`sweep: mock:${name} played ${played.length} moments: ${played.join(', ')}`);
     console.log(`sweep: mock:${name} ${vs.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
     await page.close();
   }
@@ -114,7 +121,7 @@ for (const v of all) {
     writeFileSync(file, Buffer.from(v.crop.split(',')[1], 'base64'));
     shot = ` crop ${file}`;
   }
-  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${shot}`);
+  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${issueOf.has(v.key) ? ` (#${issueOf.get(v.key)})` : ''}${shot}`);
 }
 // status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
 // check measures render output, so art owns what it finds.
@@ -132,7 +139,8 @@ for (const k of gone) console.log(`sweep: baseline entry not seen this run: ${k}
 if (argv.includes('--update-baseline')) {
   const seen = new Map(all.map((v) => [v.key, { key: v.key, worst: v.value, state: v.state }]));
   const kept = argv.includes('--prune') ? [] : baseline.accepted.filter((b) => !seen.has(b.key));
-  for (const b of baseline.accepted) if (seen.has(b.key)) seen.get(b.key).worst = Math.max(seen.get(b.key).worst, b.worst);
+  // An entry seen again keeps its larger worst value and anything else it carries (its issue).
+  for (const b of baseline.accepted) if (seen.has(b.key)) { const e = seen.get(b.key); Object.assign(e, { ...b, ...e, worst: Math.max(e.worst, b.worst) }); }
   const accepted = [...kept, ...seen.values()].sort((a, b) => a.key.localeCompare(b.key));
   writeFileSync(BASELINE, JSON.stringify({ accepted }, null, 1) + '\n');
   console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);

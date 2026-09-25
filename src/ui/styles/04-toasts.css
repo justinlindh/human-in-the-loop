@@ -1,0 +1,19 @@
+/* ---------- toasts ---------- */
+.hitl .toasts { position: absolute; right: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.6em); width: 21em; display: flex; flex-direction: column; gap: 0.45em; align-items: stretch; }
+.hitl .toast {
+  pointer-events: auto;
+  display: flex; gap: 0.55em; align-items: flex-start;
+  background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 0.75em; box-shadow: 0 0.22em 0 var(--ink), var(--soft);
+  padding: 0.5em 0.7em; font-size: 0.95em; line-height: 1.2;
+  animation: hitl-pop-in 240ms cubic-bezier(.2,1.6,.4,1) both;
+  border-left-width: 0.7em;
+}
+.hitl .toast .ico { font-size: 1.1em; line-height: 1.1; }
+.hitl .toast.info { border-left-color: var(--blue); }
+.hitl .toast.good { border-left-color: var(--green); }
+.hitl .toast.warn { border-left-color: var(--yellow); background: #fff4dc; }
+.hitl .toast.bad { border-left-color: var(--red); background: #ffe7e5; }
+.hitl .toast.out { animation: hitl-pop-out 220ms ease-in both; }
+@keyframes hitl-pop-in { 0% { opacity: 0; transform: translateX(1.5em) scale(0.8); } 100% { opacity: 1; transform: none; } }
+@keyframes hitl-pop-out { to { opacity: 0; transform: translateX(1.5em) scale(0.9); } }
+

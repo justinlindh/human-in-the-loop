@@ -28,6 +28,8 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 // How willing someone is to wander off for a moment, by what they are assigned to.
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
+// The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
+const KINDS = ['pizza', 'screen', 'hammer', 'carrier'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
@@ -135,7 +137,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (lite()) { for (const r of people) emote(r, 'heart', 2); return; }
     const spots = ringSpots(center, PIZZA.ring, people.length);
     people.slice(0, spots.length).forEach((r, i) => {
-      r.temp = { anim: 'eat', t: rnd(...PIZZA.dur), goal: spots[i], back: true, moment: 'pizza' };
+      r.temp = { anim: 'eat', t: rnd(...PIZZA.dur), goal: spots[i], back: true, moment: 'pizza', stage: { beat: 'eat', target: p.obj } };
       walkTo(r, spots[i]);
       if (Math.random() < 0.5) emote(r, 'heart', 1.8);
     });
@@ -147,7 +149,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     for (const r of seated) {
       if (Math.random() > SCREEN.share) continue;
       emote(r, 'exclamation', 2);
-      if (!lite()) r.temp = { anim: 'recoil', t: rnd(...SCREEN.dur), keepPos: true, delay: rnd(0, 0.8), moment: 'screen' };
+      if (!lite()) r.temp = { anim: 'recoil', t: rnd(...SCREEN.dur), keepPos: true, delay: rnd(0, 0.8), moment: 'screen', stage: { beat: 'recoil' } };
     }
   }
 
@@ -164,13 +166,22 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     g.add(handle, head);
     return g;
   }
+  // A clear spot facing a wall, nearest the hammer, on the far side from the camera (the near walls
+  // are cut away, and whoever stood at one would be hidden behind its stub). { x, z, yaw, n } where
+  // n is the wall's outward normal.
   function wallSpot(from) {
-    const L = office.current.L, nav = office.nav();
-    // Along the back wall z, nearest the hammer, where a person can stand facing it.
-    for (let d = 0; d < L.W; d += 0.35) for (const s of [1, -1]) {
-      const x = from.x + s * d, z = -L.D / 2 + 0.7;
-      if (Math.abs(x) > L.W / 2 - 0.6) continue;
-      if (!nav.isBlocked(x, z, BODY_R)) return { x, z, yaw: Math.PI };
+    const L = office.current.L, nav = office.nav(), yaw = getYaw?.() ?? Math.PI / 4;
+    const cam = [Math.sin(yaw), Math.cos(yaw)];
+    const walls = [[-1, 0], [0, -1], [1, 0], [0, 1]].filter(([nx, nz]) => nx * cam[0] + nz * cam[1] < -0.2);
+    for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
+      const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
+      const start = along ? from.x : from.z;
+      for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
+        const u = start + s * d;
+        if (Math.abs(u) > half - 0.6) continue;
+        const x = along ? u : fixed, z = along ? fixed : u;
+        if (!nav.isBlocked(x, z, BODY_R)) return { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
+      }
     }
     return null;
   }
@@ -189,7 +200,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       for (let i = 0; i < 12 && !pick; i++) { const a = (i / 12) * Math.PI * 2; const x = at.x + Math.cos(a) * 0.7, z = at.z + Math.sin(a) * 0.7; if (!nav.isBlocked(x, z, BODY_R)) pick = { x, z, yaw: Math.atan2(at.x - x, at.z - z) }; }
       if (!pick) return;
       hammer = { r, phase: 'fetch', obj: p.obj, held: null };
-      r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer' };
+      r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer', stage: { beat: 'fetch', target: p.obj } };
       walkTo(r, pick);
       return;
     }
@@ -203,11 +214,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       const w = wallSpot(r.pos);
       if (!w) { stopHammer(); return; }
       h.phase = 'carry';
-      r.temp = { anim: 'shoulder', t: 1e6, goal: w, moment: 'hammer' };
+      r.temp = { anim: 'shoulder', t: 1e6, goal: w, moment: 'hammer', stage: { beat: 'carry', held: h.held, target: new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7) } };
       walkTo(r, w);
       h.wall = w;
     } else if (h.phase === 'carry' && !r.path.length) {
       h.phase = 'hold';
+      if (r.temp?.stage) r.temp.stage.beat = 'hold';
       // On the shoulder: the handle across it and the head down behind the back.
       h.held.rotation.set(2.7, 0, 0.45);
       emote(r, 'lightbulb', 2);
@@ -215,13 +227,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (knocked && h.phase === 'hold') {
       h.phase = 'swing';
       h.held.rotation.set(0, 0, 0);
-      r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true };
+      r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
     }
     if (h.phase === 'swing') {
       h.swingT += 1 / 30;
       const hit = Math.floor((h.swingT - 0.6) / 1.1);
-      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; wallDust(h.wall.x + 0.35, 1.0, -office.current.L.D / 2 + 0.08); }
+      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; wallDust(h.wall.x + h.wall.n[0] * 0.62 - h.wall.n[1] * 0.35, 1.0, h.wall.z + h.wall.n[1] * 0.62 + h.wall.n[0] * 0.35); }
       if (!r.temp) { stopHammer(); return; }
     }
     // The decision went the other way: put it down and go back to work.
@@ -496,7 +508,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       const x = at.x + Math.cos(a) * 0.75, z = at.z + Math.sin(a) * 0.75;
       if (nav.isBlocked(x, z, BODY_R)) continue;
       const spot = { x, z, yaw: Math.atan2(at.x - x, at.z - z) };
-      r.temp = { anim: 'peer', t: rnd(3.5, 5), goal: spot, back: true, moment: 'carrier' };
+      r.temp = { anim: 'peer', t: rnd(3.5, 5), goal: spot, back: true, moment: 'carrier', stage: { beat: 'peer', target: p.obj } };
       walkTo(r, spot);
       emote(r, 'heart', 2.2);
       return;
@@ -784,5 +796,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
 
   function reset() { printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
-  return { update, reset, decided, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  // What a moment says about someone now, for the staging probe (probe.js): the moment, its beat
+  // ('walk' while they are on the way), the target they deal with, what they hold, the effect source.
+  function staging(id) {
+    const r = recs.get(id), tp = r?.temp;
+    if (!tp?.moment) return null;
+    const st = tp.stage ?? {};
+    return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
+  }
+
+  return { update, reset, decided, staging, kinds: KINDS, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

@@ -893,6 +893,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   return {
+    // A staff member's character (character.js), for the staging probe.
+    charOf(id) { return recs.get(id)?.char ?? null; },
     // Whether someone is in a seated pose (for checks).
     isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.

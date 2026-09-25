@@ -56,14 +56,16 @@ step render-lock bash "$SELF/render-lock-held.test.sh"
 step with-render-lock bash "$SELF/with-render-lock.test.sh"
 step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
 step review-carry bash "$SELF/review-carry.test.sh"
+step main-guard bash "$SELF/main-guard.test.sh"
 step gl node "$SELF/lib/gl.test.mjs"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
 # uncommitted edits and new files) matches scripts/ci-balance-skip-paths. The list and the classifier
 # come from the base, and any doubt (no list, no classifier, nothing to compare) runs the suite.
+# CI_FULL=1 (the main guard) always runs it.
 bal_mode=full
-if git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
+if [ "${CI_FULL:-}" != 1 ] && git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
   && git show "$BASE:scripts/ci-classify.sh" >"$LOGS/classify.sh" 2>/dev/null \
   && bal_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)"; then
   bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
@@ -85,7 +87,8 @@ step lifecycle bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --qua
 step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
 # whose wait does not count against the ten minutes:
-#   render-checks  clipping with and without the rig, and standups, on the GPU (a GPU slot). They
+#   render-checks  clipping with and without the rig, standups, and the scene sweep (new violations in
+#                  mocks and props fail; seed-only ones are advisory), on the GPU (a GPU slot). They
 #                  check geometry and behaviour, not exact pixels.
 #   golden         the golden images, on SwiftShader under the software lock: only software GL draws
 #                  the same pixels on every machine. GOLDEN_JOBS browsers render at once.
@@ -117,7 +120,7 @@ render_step() { # <name> <gpu|software> <command>
   NOTES+=("$name failed twice. First pass: ${why:-exit without a message}")
   return 1
 }
-step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs'
+step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/sweep.mjs --gpu --out shots/sweep'
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits

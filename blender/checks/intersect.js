@@ -5,6 +5,7 @@
 //   support(R, bodies)   things that should rest on something: the gap to what is under them
 //   held(R)              props in a hand: the gap from the wrist to the prop
 //   bounds(R, bodies)    things outside the room or below the floor
+//   carried(R)           what each person holds or carries, with their own head and torso
 //   people(R)            every character as a body, with what they may touch (their own desk,
 //                        the item they are using or leaving, the desk of a moment they are in)
 //
@@ -106,6 +107,57 @@ export function people(R, world = []) {
     out.push(b);
   });
   return out;
+}
+
+// What each person holds or carries, and the parts of their own body it must stay out of. A held
+// thing is anything attached to the body that is not a body part: a child of a wrist (a mug, a
+// slice, a hammer) or a mesh hung on a pivot beside a baked part (a carried box against the torso).
+// A moment's held prop (moments.js staging) counts too. The body to test is the head and torso;
+// the arms grip the thing and are left out.
+export function carried(R) {
+  const out = [];
+  R.scene.traverse((o) => {
+    if (o.name !== 'character' || !o.visible) return;
+    let id = null;
+    const parts = [], pivots = new Set();
+    o.traverse((c) => {
+      if (c.userData.staffId !== undefined) id = c.userData.staffId;
+      if (c.isMesh && c.userData.part) { parts.push(c); pivots.add(c.parent); }
+    });
+    // A group with a body part somewhere under it is more body (a shoulder, a neck), not a hand.
+    const hasPart = (g) => { let yes = false; g.traverse((c) => { if (c.userData.part) yes = true; }); return yes; };
+    const things = new Set();
+    for (const pv of pivots) {
+      for (const c of pv.children) {
+        if (c.userData.part || c.name === 'baked' || c.isSprite || c.userData.staffId !== undefined || !c.visible || hasPart(c)) continue;
+        // A wrist (a group holding the hand's things) or a thing hung on the pivot itself.
+        if (c.isMesh) things.add(c);
+        else if (c.isGroup) for (const k of c.children) if (k.visible && !k.isSprite) things.add(k);
+      }
+    }
+    // What a moment says they hold (moments.js staging): a prop it carries on their hands without
+    // attaching it to the body, like a printer lifted overhead by two people.
+    const st = id != null ? R.moments?.staging?.(id) : null;
+    if (st?.held?.isObject3D && st.held.visible) things.add(st.held);
+    const self = parts.filter((m) => m.userData.part === 'head' || m.userData.part === 'torso');
+    if (!things.size || !self.length) return;
+    o.updateMatrixWorld(true);
+    const body = { key: `self:${id}`, kind: 'self', label: 'body', id, obj: o, meshes: self };
+    body.box = boxOf(self);
+    for (const t of things) {
+      const meshes = solidMeshes(t);
+      if (!meshes.length) continue;
+      const label = t.name || (Array.isArray(meshes[0].material) ? meshes[0].material[0] : meshes[0].material)?.name || 'held';
+      out.push({ staffId: id, thing: { key: `held:${id}:${t.uuid}`, kind: 'held', label, obj: t, meshes, box: boxOf(meshes) }, body });
+    }
+  });
+  return out;
+}
+
+function boxOf(meshes) {
+  const b = new THREE.Box3();
+  for (const m of meshes) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); }
+  return b;
 }
 
 // World-space sample points of a mesh: its vertices, at most MAX_POINTS of them.
@@ -272,14 +324,12 @@ export function bounds(R, list, { tol = 0.02 } = {}) {
 // A close-up around a world point, as a PNG data URL (null if off screen). It draws the scene with
 // its own renderer and a copy of the camera narrowed to the spot, so taking one never steps the
 // game (the renderer's own render() advances people, moments and effects).
-// three.js draws a UUID from Math.random for every object it makes (the crop renderer, the camera
-// copy), and the page's Math.random is the seeded stream the game runs on: crops use their own.
+// Crops make three.js objects (a renderer, a camera copy), so they run on the harness's tool stream
+// (window.__tool), never the game's.
+const tool = (fn) => (window.__tool ? window.__tool(fn) : fn());
 let cropGL = null;
-let cropSeed = 99991;
 export function crop(R, at, size, zoom) {
-  const game = Math.random;
-  Math.random = () => { cropSeed = (cropSeed * 16807) % 2147483647; return (cropSeed - 1) / 2147483646; };
-  try { return cropNow(R, at, size, zoom); } finally { Math.random = game; }
+  return tool(() => cropNow(R, at, size, zoom));
 }
 function cropNow(R, at, size = 200, zoom = 2) {
   const main = document.querySelector('canvas');

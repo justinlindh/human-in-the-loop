@@ -35,9 +35,27 @@ done
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head" "$prev" 2>/dev/null || true
 own() { git -C "$REPO" diff "$(git -C "$REPO" merge-base "origin/$base" "$1")" "$1" | git patch-id --stable | cut -d' ' -f1; }
 a="$(own "$prev")"; b="$(own "$head")"
+# The newest review status on the head that is a verdict, not a carry: "state<US>description", or empty.
+verdict_on_head() {
+  gh api "repos/{owner}/{repo}/commits/$head/statuses" \
+    --jq '[.[] | select(.context=="review" and ((.description // "") | startswith("carried from") | not))] | first | if . then "\(.state)\u001f\(.description // "")" else "" end'
+}
 if [ -n "$a" ] && [ "$a" = "$b" ]; then
+  # A verdict or a push can land while this runs: check both right before posting.
+  late="$(review_state "$head")"
+  [ -z "$late" ] || { echo "review-carry: #$pr head ${head:0:7} got a review verdict ($late) meanwhile; not carrying"; exit 1; }
+  [ "$(gh pr view "$pr" --json headRefOid --jq .headRefOid)" = "$head" ] || { echo "review-carry: #$pr moved past ${head:0:7}; not carrying"; exit 1; }
   gh api "repos/{owner}/{repo}/statuses/$head" -f state=success -f context=review \
     -f description="carried from ${prev:0:7}: only merges $base" >/dev/null || exit 2
+  # A verdict posted in the instant before the carry would now be older than it: post the verdict
+  # again so it is the newest status and wins.
+  v="$(verdict_on_head)"
+  if [ -n "$v" ]; then
+    IFS=$'\037' read -r vstate vdesc <<<"$v"
+    gh api "repos/{owner}/{repo}/statuses/$head" -f state="$vstate" -f context=review -f description="$vdesc" >/dev/null || exit 2
+    echo "review-carry: #$pr head ${head:0:7} got a review verdict ($vstate) during the carry; restored it"
+    exit 1
+  fi
   echo "review-carry: #$pr review pass carried from ${prev:0:7} to ${head:0:7}"
   exit 0
 fi

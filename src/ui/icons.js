@@ -180,6 +180,9 @@ export const ICONS = {
   'channel.influencer': I('🤳', 'Marketing channel card', 20),
   'channel.conference': I('🎪', 'Marketing channel card', 20),
   'channel.enterprise': I('💼', 'Marketing channel card', 20),
+  'channel.documentary': I('🎬', 'Marketing channel card', 20),
+  'channel.big_game_ad': I('📺', 'Marketing channel card', 20),
+  'channel.stadium': I('🏟️', 'Marketing channel card', 20),
 };
 
 // Yak reactions: the sim sends emoji; each maps to a glyph name.

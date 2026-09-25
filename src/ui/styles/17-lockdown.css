@@ -1,0 +1,62 @@
+/* ---------- lockdown video call ---------- */
+.hitl .callgrid {
+  position: absolute; right: 0.6em; bottom: 6.6em; width: min(23em, 44vw); z-index: 9; pointer-events: auto;
+  background: #23202b; color: var(--cream); border: var(--bw) solid var(--ink); border-radius: 1em; box-shadow: 0 0.25em 0 var(--ink), var(--soft);
+  padding: 0.5em; display: flex; flex-direction: column; gap: 0.45em; animation: hitl-modal-in 300ms cubic-bezier(.2,1.4,.4,1) both;
+}
+.hitl .callgrid.folded { width: auto; }
+.hitl .cghead { display: flex; align-items: center; gap: 0.45em; }
+.hitl .cgt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.hitl .cgsub { color: #cfc6d6; }
+.hitl .cgfold { min-height: 2.5em; }
+.hitl .cgtiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35em; }
+.hitl .cgtile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.15em; padding: 0.25em; min-height: 2.5em;
+  background: #34303e; border: 0.14em solid #4a4556; border-radius: 0.6em; color: var(--cream); font: inherit; cursor: pointer; }
+.hitl .cgtile .portrait { width: 3.4em !important; height: 3.4em !important; border-color: #4a4556; }
+.hitl .cgtile.talking { border-color: var(--green); box-shadow: 0 0 0 0.15em rgba(52,195,143,0.45); animation: hitl-talk 1.2s ease-in-out infinite; }
+@keyframes hitl-talk { 0%, 100% { box-shadow: 0 0 0 0.1em rgba(52,195,143,0.35); } 50% { box-shadow: 0 0 0 0.3em rgba(52,195,143,0.15); } }
+.hitl .cgname { font-size: 0.72em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.hitl .cgmore { grid-column: 1 / -1; text-align: center; font-size: 0.8em; color: #cfc6d6; }
+.hitl .pill.remote { background: #fff4dc; margin-left: 0.3em; }
+@media (max-width: 1200px) { .hitl .cgtiles { grid-template-columns: repeat(3, 1fr); } }
+/* The foot (Keep playing, New Game) stays in view; the body scrolls on small screens. */
+.hitl .go-card { display: flex; flex-direction: column; overflow: hidden; }
+.hitl .go-body { overflow-y: auto; min-height: 0; flex: 1; }
+.hitl .go-head, .hitl .go-foot { flex: none; }
+.hitl.ended > .announce-back, .hitl.ended > .modal-back { visibility: hidden; }
+.hitl .callgrid .btn { color: var(--ink); }
+.hitl .tl-slot.pickable.on { color: var(--ink); background: #fff4dc; box-shadow: 0 0.2em 0 var(--ink), 0 0 0 0.2em var(--yellow); }
+.hitl .cgface { position: relative; display: block; width: 3.4em; height: 3.4em; border-radius: 0.55em; overflow: hidden; }
+.hitl .cgface .portrait { width: 3.4em !important; height: 3.4em !important; }
+.hitl .cgtile .cgmute { position: absolute; top: 0.2em; right: 0.2em; width: 1.4em; height: 1.4em; border-radius: 50%; display: grid; place-items: center; background: var(--red); border: 0.12em solid var(--ink); }
+.hitl .cgtile.muted.talking { border-color: var(--red); box-shadow: 0 0 0 0.15em rgba(229,72,77,0.45); animation: none; }
+.hitl .cgtile.frozen .portrait { filter: grayscale(0.6) blur(0.6px) brightness(0.8); }
+.hitl .cgspin { position: absolute; inset: 0; margin: auto; width: 1.4em; height: 1.4em; border-radius: 50%; border: 0.22em solid rgba(255,255,255,0.35); border-top-color: #fff; animation: hitl-spin 0.9s linear infinite; }
+@keyframes hitl-spin { to { transform: rotate(360deg); } }
+/* Bad camera: only the top of the head, from below, over a ceiling. */
+.hitl .cgtile.badcam .cgface { background: linear-gradient(#e9e4dc, #cfc6bb); }
+.hitl .cgtile.badcam .cgface .portrait { transform: scale(2.3) translateY(-6%); transform-origin: 50% 0; background: transparent !important; border: none; }
+.hitl .rivalcard { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.8em; }
+.hitl .rivalcard .rlogo { flex: none; width: 2.2em; height: 2.2em; border-radius: 0.6em; border: 0.14em solid var(--ink); display: grid; place-items: center; font-weight: 700; color: #fff; text-shadow: 0 0.08em 0 var(--ink); }
+.hitl .rivalcard .row { gap: 0.4em; align-items: center; }
+.hitl .policytip { max-width: 34em; margin-top: 0.25em; }
+.hitl .tired { display: inline-flex; margin-left: 0.2em; }
+.hitl .emptywarn { display: flex; align-items: center; gap: 0.7em; flex-wrap: wrap; background: #fff4dc; border-color: var(--warn); margin-bottom: 0.7em; }
+.hitl .emptywarn .btn { min-height: 2.5em; }
+.hitl .purposecard { display: flex; flex-direction: column; gap: 0.35em; margin-bottom: 0.8em; }
+.hitl .purposecard > .row { gap: 0.4em; align-items: center; }
+.hitl .ptests { display: flex; flex-direction: column; gap: 0.2em; }
+.hitl .ptest { display: grid; grid-template-columns: 2.5em 1fr auto; gap: 0.5em; font-size: 0.88em; align-items: baseline; }
+.hitl .msg .mention { background: #fff0b8; color: #8a5a00; border-radius: 0.3em; padding: 0 0.2em; font-weight: 700; }
+.hitl .cgsay { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 0.35em); z-index: 2; width: max-content; max-width: 11em; padding: 0.25em 0.5em;
+  background: var(--cream); color: var(--ink); border: 0.14em solid var(--ink); border-radius: 0.6em; font-size: 0.72em; font-weight: 600; line-height: 1.2; box-shadow: 0 0.12em 0 var(--ink); pointer-events: none; }
+.hitl .cgtiles { padding-top: 1.6em; }
+.hitl .settings .sethead { margin: 0.4em 0 -0.2em; font-size: 0.8em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.hitl .settings .levelrow { gap: 0.5em; align-items: center; }
+.hitl .settings .levelrow .num { min-width: 2.6em; text-align: right; }
+.hitl .settings input.range { min-height: 2.5em; }
+.hitl .modal.settings .mbody { max-height: calc(100vh - 7em); overflow-y: auto; }
+.hitl .needrow { display: flex; align-items: center; gap: 0.3em; }
+.hitl .needrow .need { flex: 1; min-width: 0; }
+.hitl .needrow .nquick { flex: none; padding: 0.1em 0.5em; font-size: 0.75em; }
+

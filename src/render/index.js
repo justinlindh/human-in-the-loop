@@ -12,6 +12,7 @@ import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
+import { createProbe } from './probe.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
@@ -97,6 +98,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let office = null;
   let props = null;
   let surroundings = null;
+  let probeImpl = null;
   let staff = null;
   let build = null;
   let rival = null;
@@ -349,6 +351,11 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get moments() { return staff?.moments ?? null; },
     // Dev and check tools: the page's own three.js, for measuring objects in page scripts.
     get THREE() { return import.meta.env?.DEV ? THREE : undefined; },
+    // Staging probe (probe.js): how staff member `id` reads on screen this frame.
+    probe(id) {
+      probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf: (x) => staff?.charOf(x), stagingOf: (x) => staff?.moments?.staging?.(x) });
+      return probeImpl.measure(id);
+    },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
