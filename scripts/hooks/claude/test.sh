@@ -48,10 +48,12 @@ allowed 'pgrep -x node'
 # git stash: every worktree shares one stack, so only the read-only list and show get through.
 for c in 'git stash' 'git stash push -m wip' 'git stash save wip' 'git stash pop' 'git stash apply stash@{0}' \
   'git stash drop' 'git -C ../gamedev-sim stash' 'cd x && git stash && git checkout main' 'npm test; git stash pop' \
-  'GIT_DIR=.git git stash -u' 'git -c core.x=1 stash push'; do denied "$c"; done
+  'GIT_DIR=.git git stash -u' 'git -c core.x=1 stash push' 'if git stash pop; then echo ok; fi' 'nice -n 10 git stash' \
+  'timeout 60 git stash pop' 'time git stash pop' 'sudo git stash' 'git -C "/some dir" stash pop' 'git --no-pager stash pop' \
+  $'npm test\ngit stash pop'; do denied "$c"; done
 run bash-guard.sh "$(bashjson 'git stash pop')"
 [[ "$err" == *"commit to a scratch branch or copy to your scratchpad; all worktrees share one stash stack"* ]] || fail "the stash refusal should say what to do instead (got: $err)"
-for c in 'git stash list' 'git stash show -p stash@{0}' 'git commit -m "no git stash here"' "echo 'never git stash'" \
+for c in 'git stash list' 'git stash show -p stash@{0}' 'x=$(git stash list)' 'git stash list | head' 'git stash show' 'git commit -m "no git stash here"' "echo 'never git stash'" \
   'grep -rn stash scripts' 'git log --grep=stash' "cat > \$R <<'EOF'
 Two lanes ran git stash pop within seconds.
 EOF

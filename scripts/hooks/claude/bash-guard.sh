@@ -20,10 +20,11 @@ if grep -qE '(^|[^[:alnum:]_./-])(pkill|pgrep)([[:space:]]+-[^[:space:]]+)*[[:sp
   deny "pkill -f and pgrep -f match their own command line (and your shell's), so they find or kill the wrong process. Stop a process by PID, wait on a lock, or match /proc/<pid>/cmdline by exact prefix."
 fi
 
-# git stash as a command (not in heredoc bodies or quoted text): only the read-only list and show.
+# git stash as a command (not in heredoc bodies or quoted text, which become Q so a quoted -C path
+# keeps its place), behind any wrapper (if, nice, timeout, sudo, $(...)): only the read-only list and show.
 stash_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
-  | sed -E "s/'[^']*'//g; s/\"([^\"\\\\]|\\\\.)*\"//g" \
-  | grep -oE '(^|[;&|(])[[:space:]]*([A-Za-z_][A-Za-z_0-9]*=[^[:space:]]*[[:space:]]+)*git([[:space:]]+(-C|-c)[[:space:]]+[^[:space:];&|]+|[[:space:]]+--[a-z-]+(=[^[:space:];&|]+)?)*[[:space:]]+stash([[:space:]]+[^[:space:];&|]+)?' || true)"
+  | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
+  | grep -oE '(^|[^[:alnum:]_./-])git([[:space:]]+(-C|-c)[[:space:]]+[^[:space:];&|)]+|[[:space:]]+--[a-z-]+(=[^[:space:];&|)]+)?)*[[:space:]]+stash([[:space:]]+[^[:space:];&|)]+)?' || true)"
 while IFS= read -r m; do
   [ -n "$m" ] || continue
   sub="${m##*stash}"; sub="${sub#"${sub%%[![:space:]]*}"}"
