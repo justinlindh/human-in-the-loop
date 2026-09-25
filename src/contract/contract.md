@@ -337,3 +337,37 @@ ChatPrompt = {
 - Copy follows the voice guide and the era gates.
 - Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
 - Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
+
+## Yak quick posts (#16)
+
+The founders can post a ready-made message in Yak. The team reacts, and a post that fits the moment lifts morale, while a badly timed one backfires.
+
+```js
+postOptions(state)   // pure export from src/sim/index.js
+// -> [{ kind, label, hint, available, reason }] in a fixed order; [] when B.postsEnabled is false
+// kind: 'pep_talk' | 'who_broke_prod' | 'meme' | 'pizza' | 'announcement'
+// hint states the likely effect; reason says why an unavailable post is greyed out
+```
+
+### Events: Yak quick posts
+
+```js
+{ type: 'posted', kind, chatId, outcome }   // outcome: 'landed' | 'flat' | 'backfired'; the chat events come earlier in the same dispatch
+```
+
+### Actions: Yak quick posts
+
+```js
+{ type: 'postMessage', kind }
+// { ok: true, outcome, chatId }
+// or { ok: false, reason } with 'Unknown message' | 'You posted recently' | 'Not enough cash' | 'Posts are off'
+```
+
+- The post is an ordinary chat event with `fromId` set to a founder's id, carrying emoji reactions picked for the outcome and the team's mood. One to three staff replies follow as chat events with `replyTo` set to the post's id.
+- `postMessage` works while paused, like `answerPrompt`, and emits its events from the dispatch itself.
+- The cooldown and repeat memory live in `state.flags.posts = { lastWeek, byKind }`. Repeating a kind inside `B.posts.repeatWeeks` makes it `flat`: no effect, lukewarm replies.
+- The outcome follows from state (an outage, low morale, recent news), not from a roll. Randomness picks only reactions, repliers and text, from its own stream seeded by the game seed, the week and a post sequence, so a game with no posts matches one without the feature.
+- Bots never post.
+- Every number is in `B.posts`, and `B.postsEnabled` turns the feature off.
+- Copy follows the voice guide and the era gates.
+- Old saves have no `flags.posts` and load with every post available.
