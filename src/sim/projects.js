@@ -9,7 +9,7 @@ import { comboFit } from '../data/combos.js';
 import { TRENDS } from '../data/trends.js';
 import { PRESS, REVIEW_QUOTES, AI_REVIEW_QUOTES } from '../data/press.js';
 import { CATEGORIES } from '../data/categories.js';
-import { RESEARCH } from '../data/research.js';
+import { RESEARCH, RESEARCH_ANNOUNCE } from '../data/research.js';
 import { ANGLES } from '../data/angles.js';
 import { lockedReason } from './unlocks.js';
 import { eraAtLeast, eraIndex } from './eras.js';
@@ -229,7 +229,9 @@ function complete(ctx, j) {
     state.research.done.push(r.id);
     (ctx.happenings ??= {}).research = true;
     ctx.emit({ type: 'toast', text: `${r.name} is live. ${r.desc}`, tone: 'good' });
-    emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
+    const announce = RESEARCH_ANNOUNCE[r.id];
+    if (announce) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: announce, important: true });
+    else emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
   } else if (j.kind === 'craft') {
     for (const p of team) p.meaning = Math.min(100, p.meaning + 15);
     state.brand = Math.min(100, state.brand + 1);

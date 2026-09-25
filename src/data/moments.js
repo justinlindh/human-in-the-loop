@@ -39,6 +39,9 @@ export const MOMENT_CAPTIONS = {
   coffee_wanted: 'A French press has appeared. It has a guard.',
   coffee_wanted_corner: 'A one-star review is taped to the coffee corner.',
   pivot_pitch: 'The whiteboard says "the market has spoken". Nobody knows what it said.',
+  incubator_house: 'A hand-painted INCUBATOR sign by the door. The mentor awaits an answer.',
+  the_box: 'The rival made a very shiny cube. Everyone is staring at the poster.',
+  oat_milk: 'Four thousand pounds of oat milk in the lobby. The agent is very proud.',
   // Ambient moments, keyed by the prop that sets them off.
   pizza_boxes: 'The hackathon pizza boxes are still here. Nobody says whose turn it is.',
   smoke_puff: 'A puff of smoke from the coffee machine. Everyone pretends not to see.',

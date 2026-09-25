@@ -172,6 +172,28 @@ export const SAY_SOLO_LINES = {
 
 export const JOKES = [
   {
+    // Ends in the tabs_or_spaces decision, raised the week after the last beat, with {a} as its subject.
+    id: 'joke_tabs_spaces', stream: 'chat', channel: 'general', then: 'tabs_or_spaces',
+    cast: { a: 'engineer', b: 'engineer' },
+    beats: [
+      [
+        ['a', ['Quick poll: tabs or spaces. For science.', 'Genuine question, no wrong answers: tabs or spaces?']],
+        ['b', ['Spaces. Obviously. Next question.', 'There is a wrong answer and it is tabs.']],
+        ['a', ['Interesting. Noted. Forever.', 'Okay. I will remember this.']],
+      ],
+      [
+        ['b', ['Someone reformatted my file to tabs. I am not saying who. It was {a}.', 'My diff is 900 lines of whitespace. {a}.']],
+        ['a', ['The linter did it. I simply did not stop it.', 'I was helping. You are welcome.']],
+        ['b', ['I have filed a ticket. It is indented with spaces.', 'This is not over.']],
+      ],
+      [
+        ['a', ['I have prepared a short presentation on why tabs are more accessible.', 'Fourteen slides on tabs. Attendance is optional but it will be noticed.']],
+        ['b', ['I have prepared a longer one. It is in spaces.', 'I booked the big room for the rebuttal.']],
+        ['a', ['Let us settle this properly. I am asking the founders.', 'Fine. We take it upstairs.']],
+      ],
+    ],
+  },
+  {
     id: 'joke_framework_circle', stream: 'say',
     cast: { a: 'engineer', b: 'any' },
     beats: [
