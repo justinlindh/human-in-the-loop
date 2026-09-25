@@ -1,3 +1,4 @@
+import { phoneMedia } from './media.js';
 import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
 import './style.css';
@@ -287,6 +288,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     }
   }
 
+  // The stylesheet's phone layout (narrow, or short in landscape).
+  const PHONE = phoneMedia();
+
   // New office items: when the stage, the first award, or the era opens items up, announce them.
   // A different state object (a new game or a load) resets the baseline without announcing.
   let itemsState = null, itemsSig = null, itemsSeen = null;
@@ -306,6 +310,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
+    toasts.setHidden(PHONE.matches && (buildMode.on || !!popups.open));
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);
@@ -410,6 +415,18 @@ export function createUI({ root, getState, dispatch, controls }) {
     hideTitle() { title.hide(); },
     openStaff: (id) => menu.open('staff', { staffId: id }),
     openSettings: () => settings.open(),
+    // Dev and tool hooks: open a tooltip without hovering (an element, a CSS selector, or text in
+    // its tip), and close it. Returns the element shown, or null.
+    showTip(target) {
+      const bySelector = (sel) => { try { return document.querySelector(sel)?.closest?.('[data-tip]') ?? null; } catch { return null; } };
+      const el = typeof target === 'string'
+        ? (bySelector(target) ?? [...layer.querySelectorAll('[data-tip]')].find((e) => e.dataset.tip.includes(target)) ?? null)
+        : target ?? null;
+      if (!el?.dataset?.tip) return null;
+      tooltips.show(el, 'dev');
+      return el;
+    },
+    hideTip: () => tooltips.hide(),
     startTutorial: () => tutorial.start(true),
     build: buildMode,
     openGoals: () => goalsModal(),

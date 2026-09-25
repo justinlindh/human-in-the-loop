@@ -11,6 +11,7 @@
 // <id>.webm (VP9, CRF 30),
 // optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
 import { chromium } from 'playwright';
+import { launchChromium } from './lib/gl.js';
 import { spawn, execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -155,9 +156,6 @@ async function serve() {
   return { base: server.resolvedUrls.local[0], close: () => server.close() };
 }
 
-const gl = args.software
-  ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
-  : ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu'];
 
 function ffmpeg(file) {
   const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
@@ -211,7 +209,7 @@ const BUILD = typeof args.build === 'string' ? args.build
   : typeof args.url === 'string' ? 'unknown'
   : (() => { try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { return 'unknown'; } })();
 index.build = BUILD;
-const browser = await chromium.launch({ args: gl });
+const { browser } = await launchChromium(chromium, { mode: args.software ? 'software' : 'gpu', label: 'capture' });
 let failed = false;
 
 try {

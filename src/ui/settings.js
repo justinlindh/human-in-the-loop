@@ -124,7 +124,7 @@ export function createSettings({ layer, controls, sfx }) {
           return row('Camera follows big moments', 'Eases to things like a first user test. Any input takes the camera back.', sw);
         })(),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
-        h('div.small.muted', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
+        h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));
   }
 

@@ -354,6 +354,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf: (x) => staff?.charOf(x), stagingOf: (x) => staff?.moments?.staging?.(x) });
       return probeImpl.measure(id);
     },
+    isSeated(id) { return staff?.isSeated(id) ?? false; },
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },

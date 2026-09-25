@@ -14,6 +14,11 @@
 - **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh --comment <pr> <files>`; paste the markdown here or reference the comment -->
 - **Numbers:** <!-- balance tables, perf (draw calls, frame times), pacing, as relevant -->
 
+## Affects
+
+<!-- Teammates whose work this changes (a tool, check, harness, shared helper, CI, contract or convention they use), and what each should do. Message each of them when this merges. Write "None" if nothing outside your lane changes. -->
+-
+
 ## Checklist
 
 - [ ] Commits and the PR title follow Conventional Commits (`type(scope): summary`)
@@ -21,6 +26,7 @@
 - [ ] No local paths and no Claude attribution or session lines anywhere in the PR or its commits
 - [ ] Stays within the lane's paths (or the owning lane agreed)
 - [ ] Contract changes, if any, went through team-lead
+- [ ] Affected teammates are listed above and will be messaged on merge
 
 ## Closes
 

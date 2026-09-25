@@ -3,6 +3,7 @@
 // announces moments with window events: hitl:moment { phase: 'start' | 'end', id, key, caption? }.
 // The text comes from the event, else from the sim's data (MOMENT_CAPTIONS by key), else a
 // built-in line for the moments that exist today.
+import { phoneLayout } from './media.js';
 import { h, setText } from './dom.js';
 
 const DATA = Object.values(import.meta.glob('../data/moments.js', { eager: true }))[0] ?? {};
@@ -23,7 +24,7 @@ export function createMomentCaptions(layer) {
   // On phones the bottom row stacks and the stylesheet's position is kept.
   function place() {
     const menu = layer.querySelector('.bottom .menu');
-    if (!menu || matchMedia('(max-width: 480px)').matches) { el.style.bottom = ''; return; }
+    if (!menu || phoneLayout()) { el.style.bottom = ''; return; }
     const box = layer.getBoundingClientRect(), r = menu.getBoundingClientRect();
     el.style.bottom = `${Math.round(box.bottom - r.top + 14)}px`;
   }

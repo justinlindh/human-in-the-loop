@@ -4,6 +4,7 @@
 // npm run soak -- [--weeks 24] [--seed 1] [--quality low]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
+import { launchChromium } from './lib/gl.js';
 
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
@@ -21,7 +22,7 @@ const RUNS = [
 const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const { browser } = await launchChromium(chromium, { label: 'soak' });
 let failed = false;
 
 try {

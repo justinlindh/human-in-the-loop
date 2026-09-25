@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -36,7 +36,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil']);
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh']);
 
 const roleMats = new Map();
 function roleMaterial(role, hex) {
@@ -566,6 +566,67 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = -e * 0.03;
         break;
       }
+      case 'sigh': {
+        // Seated, a long breath out: shoulders drop and the head sinks, then comes back up.
+        const cyc = (t % 3.2) / 3.2;
+        const b = Math.sin(Math.min(1, cyc / 0.6) * Math.PI);
+        tgt.lean = 0.2 + b * 0.12;
+        tgt.headX = 0.2 + b * 0.35;
+        tgt.headZ = -0.25;
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.2 - b * 0.15;
+        tgt.armLZ = 0.2; tgt.armRZ = -0.2;
+        tgt.bodyY -= b * 0.01;
+        break;
+      }
+      case 'despair':
+        // Standing, both arms flung up in a V, head back then down, rocking: bad news. Hands on the
+        // head would hide behind the chibi head; a V shows from any angle.
+        tgt.armLX = tgt.armRX = -0.3;
+        tgt.armLZ = -2.3 - s(t * 2.2 + phase) * 0.2; tgt.armRZ = 2.3 + s(t * 2.2 + phase) * 0.2;
+        tgt.headX = 0.3 + s(t * 1.6 + phase) * 0.1;
+        tgt.headZ = s(t * 1.1 + phase) * 0.26;
+        tgt.lean = 0.08;
+        tgt.bodyY = s(t * 1.6 + phase) * 0.006;
+        break;
+      case 'readpaper':
+        // Standing, a sheet held up at eye level in both hands, head tipped just a little to read it.
+        tgt.armLX = tgt.armRX = -2.05;
+        tgt.armLZ = -0.12; tgt.armRZ = 0.12;
+        tgt.headX = 0.14 + s(t * 0.9 + phase) * 0.03;
+        tgt.lean = 0.02;
+        break;
+      case 'slump':
+        // Standing, deflated: shoulders forward, head hanging, arms dangling.
+        // Head hangs only a little, so the camera still sees the face.
+        tgt.lean = 0.18;
+        tgt.headX = 0.18 + s(t * 1.2 + phase) * 0.05;
+        tgt.headZ = 0.15;
+        tgt.bodyY = -0.035;
+        tgt.armLX = tgt.armRX = 0.25;
+        tgt.armLZ = -0.05; tgt.armRZ = 0.05;
+        break;
+      case 'fanfrantic': {
+        // Fanning fumes away in a hurry: both hands up in front, flapping fast and small, leaning back
+        // with the head turned away. Speed is what separates it from a wave.
+        const f = s(t * 26);
+        // One hand flaps up by the face, the other out toward the fumes, so both show.
+        tgt.armLX = -2.1 + f * 0.3; tgt.armRX = -1.4 - f * 0.25;
+        tgt.armLZ = -0.75 + f * 0.25; tgt.armRZ = 0.5 + f * 0.3;
+        tgt.lean = -0.22;
+        tgt.headX = -0.18;
+        tgt.headZ = 0.45;
+        tgt.bodyY = Math.abs(s(t * 13)) * 0.012;
+        break;
+      }
+      case 'fan':
+        // Waving something away from the face with one hand, leaning back from it.
+        // A big sweep out to the side and back, so it reads from any angle.
+        tgt.armRX = -0.5;
+        tgt.armRZ = 2.2 + s(t * 7) * 0.45;
+        tgt.armLX = -0.6; tgt.armLZ = -0.4;
+        tgt.lean = -0.1;
+        tgt.headX = -0.1; tgt.headZ = 0.2;
+        break;
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
         tgt.bodyZ = -0.08;

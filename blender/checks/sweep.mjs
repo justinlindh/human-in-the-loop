@@ -4,19 +4,23 @@
 //   node blender/checks/sweep.mjs            fast mode: the mocks and one seeded game, briefly, and
 //                                            every staged prop on a few desks of two mocks
 //   node blender/checks/sweep.mjs --full     every mock for longer, several seeds, sampled often
-//   options: --seeds 1,2,3|none  --mocks floor,hq|none  --out <dir>  --update-baseline  --timeout <s>  --gpu
+//   options: --seeds 1,2,3|none  --mocks floor,hq|none  --out <dir>  --timeout <s>  --gpu
+//            --update-baseline [--prune]  --strict (fail on new seed-only violations in fast mode)
 //
 // Checks:
 //   overlap  two things interpenetrate by more than 1 cm (furniture, desk and floor props, wall
 //            prints, walls, columns); value is the depth in metres
-//   float    a desk prop, floor prop or piece of furniture hangs more than 2 cm above what is
+//   float    a desk prop, floor prop or piece of furniture hangs more than 1.5 cm above what is
 //            under it; value is the gap
 //   hand     a prop held in the hand is more than 6 cm from the wrist; value is the gap
 //   bounds   something reaches past the room's walls or under the floor; value is how far
+//   person   a person's head or torso (and legs, walking) is more than 2 cm inside furniture, a
+//            prop, a wall or another person, other than what they are using (their desk, the
+//            item they sit on or leave, a moment's desk); checked every 0.2 s along real walks
 //
 // Each violation prints with its state (mock:<name> or seed:<n>:w<week>), time into the window,
 // the two things, and the value. New ones (not in sweep-baseline.json, or clearly worse than its
-// entry) fail the run. --out
+// entry) fail the run, except that in fast mode those seen only in seeded games are advisory. --out
 // (default shots/sweep/) gets report.json, report.md (a table for a PR) and a crop of each. --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
@@ -95,31 +99,44 @@ mkdirSync(outDir, { recursive: true });
 // A baselined violation that got clearly worse counts as new.
 const worst = new Map(baseline.accepted.map((b) => [b.key, b.worst]));
 const worse = (v) => worst.has(v.key) && v.value > worst.get(v.key) * 1.25 + 0.005;
-const fresh = [];
+// A seeded game replays the sim, so any sim change reshuffles who walks where and which moments
+// play. In fast mode a new violation seen only in seeded states is advisory (printed, not failed);
+// --full or --strict fails on it too. Mocks and the props pass always count.
+const strict = full || argv.includes('--strict');
+const seedOnly = (v) => v.states.every((s) => s.startsWith('seed:'));
+const fresh = [], advisory = [];
 for (const v of all) {
   const isNew = !known.includes(v.key) || worse(v);
-  if (isNew) fresh.push(v);
+  if (isNew) (strict || !seedOnly(v) ? fresh : advisory).push(v);
   let shot = '';
   if (v.crop) {
     const file = `${outDir}/${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png`;
     writeFileSync(file, Buffer.from(v.crop.split(',')[1], 'base64'));
     shot = ` crop ${file}`;
   }
-  console.log(`SWEEP ${isNew ? (worse(v) ? 'WORSE' : 'NEW ') : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${shot}`);
+  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${shot}`);
 }
-writeFileSync(`${outDir}/report.json`, JSON.stringify({ windows, violations: all.map(({ crop, ...v }) => v) }, null, 1));
+// status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
+// check measures render output, so art owns what it finds.
+const status = (v) => (fresh.includes(v) ? 'new' : advisory.includes(v) ? 'advisory' : 'baseline');
+writeFileSync(`${outDir}/report.json`, JSON.stringify({ windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })) }, null, 1));
 // The same as a markdown table, for a PR comment (crops are named by file, not path).
 const md = ['| check | what | value (m) | state | t (s) | status | crop |', '|---|---|---|---|---|---|---|'];
 for (const v of all) md.push(`| ${v.check} | ${v.detail ?? `${v.a} ~ ${v.b}`} | ${v.value} | ${v.state} | ${v.t} | ${known.includes(v.key) && !worse(v) ? 'baseline' : 'NEW'} | ${v.crop ? `${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png` : ''} |`);
 writeFileSync(`${outDir}/report.md`, md.join('\n') + '\n');
 const gone = known.filter((k) => !byKey.has(k));
-for (const k of gone) console.log(`sweep: baseline entry no longer found: ${k}`);
+for (const k of gone) console.log(`sweep: baseline entry not seen this run: ${k}`);
 
+// Updating keeps accepted entries this run did not see (a seeded moment may not come up every
+// time) unless --prune is given; an entry seen again takes the larger worst value.
 if (argv.includes('--update-baseline')) {
-  const accepted = all.map((v) => ({ key: v.key, worst: v.value, state: v.state }));
+  const seen = new Map(all.map((v) => [v.key, { key: v.key, worst: v.value, state: v.state }]));
+  const kept = argv.includes('--prune') ? [] : baseline.accepted.filter((b) => !seen.has(b.key));
+  for (const b of baseline.accepted) if (seen.has(b.key)) seen.get(b.key).worst = Math.max(seen.get(b.key).worst, b.worst);
+  const accepted = [...kept, ...seen.values()].sort((a, b) => a.key.localeCompare(b.key));
   writeFileSync(BASELINE, JSON.stringify({ accepted }, null, 1) + '\n');
-  console.log(`sweep: baseline written with ${accepted.length} entries`);
+  console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
-console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${gone.length} fixed since the baseline; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'})`);
+console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'})`);
 process.exit(fresh.length && !argv.includes('--update-baseline') || errors.length ? 1 : 0);
