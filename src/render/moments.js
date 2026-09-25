@@ -376,11 +376,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const env = p.obj;
     r.temp = {
       anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', el: 0, stage: { beat: 'getup', target: env },
-      side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 2 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
+      side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 6 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
       tick: (rr, d, tp) => {
         tp.el += d;
-        // The sheet is angled halfway toward the camera, so it shows beside the reader's profile.
-        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); tp.sheet.rotation.y = -tp.side * Math.PI / 4; rr.char.root.add(tp.sheet); env.visible = false; }
+        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); rr.char.root.add(tp.sheet); env.visible = false; }
         if (tp.el >= READ_S && tp.sheet) {
           tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true;
           emote(rr, 'storm', 2.4);
@@ -394,7 +393,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
         }
         rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
         tp.stage = tp.el < READ_S ? { beat: 'read', held: tp.sheet, target: tp.sheet } : { beat: 'slump', target: env };
-        // Read in profile, the sheet in front of the face; then turn toward the camera to take it in.
+        // Read turned a third of the way off the camera, so the face shows over the sheet; then turn to
+        // the camera to take it in.
         tp.goal.yaw = tp.el < READ_S ? tp.readYaw : tp.slumpYaw;
         return true;
       },
@@ -422,11 +422,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     }
   }
 
-  // The letter in hand: a sheet held up in front of the face, a red stamp showing through it.
+  // The letter in hand: a sheet held low and tipped up square to the reader's line of sight, below
+  // the face as the camera sees it, a red stamp showing through it.
   function letterSheet() {
     const g = new THREE.Mesh(SHEET_GEO, sheetMat());
-    g.position.set(0, 0.86, 0.33);
-    g.rotation.x = -0.05;
+    g.position.set(0, 0.65, 0.40);
+    g.rotation.x = 0.44;
     g.userData.noAO = true;
     return g;
   }
