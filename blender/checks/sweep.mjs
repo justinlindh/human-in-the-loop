@@ -1,8 +1,9 @@
 // Scene integrity sweep (issue #352): walks real states and checks that the world is physically
 // sane, with accurate mesh tests (intersect.js) on states from the sampler (sample.js).
 //
-//   node blender/checks/sweep.mjs            fast mode: the mocks and one seeded game, briefly, and
-//                                            every staged prop on a few desks of two mocks
+//   node blender/checks/sweep.mjs            fast mode: the mocks and one seeded game, briefly,
+//                                            every staged prop on a few desks of two mocks, and
+//                                            every moment played on purpose in the floor mock
 //   node blender/checks/sweep.mjs --full     every mock for longer, several seeds, sampled often
 //   options: --seeds 1,2,3|none  --mocks floor,hq|none  --out <dir>  --timeout <s>  --gpu
 //            --update-baseline [--prune]  --strict (fail on new seed-only violations in fast mode)
@@ -14,6 +15,7 @@
 //            under it; value is the gap
 //   hand     a prop held in the hand is more than 6 cm from the wrist; value is the gap
 //   bounds   something reaches past the room's walls or under the floor; value is how far
+//   self     something a person holds or carries is more than 1 cm into their own head or torso
 //   person   a person's head or torso (and legs, walking) is more than 2 cm inside furniture, a
 //            prop, a wall or another person, other than what they are using (their desk, the
 //            item they sit on or leave, a moment's desk); checked every 0.2 s along real walks
@@ -35,8 +37,8 @@ const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const full = argv.includes('--full');
 const MODES = {
-  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, mockSeconds: 6, seeds: [1], weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
-  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, mockSeconds: 30, seeds: [1, 2, 3, 4], weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
+  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
+  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
 };
 const M = { ...MODES[full ? 'full' : 'fast'] };
 const list = (v) => (v === 'none' ? [] : v.split(',').filter(Boolean));
@@ -58,11 +60,13 @@ const windows = [];
 try {
   for (const name of M.mocks) {
     const { page, errors: e } = await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0 });
+    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null });
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
     errors.push(...e.map((x) => `mock:${name}: ${x}`));
+    const played = r.windows.find((w) => w.why === 'moments')?.played;
+    if (played) console.log(`sweep: mock:${name} played ${played.length} moments: ${played.join(', ')}`);
     console.log(`sweep: mock:${name} ${vs.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
     await page.close();
   }
