@@ -14,6 +14,7 @@
 //   panels     every menu panel fits on screen, nothing inside is cut off, and its close button works
 //   decision   a real decision card fits, and its last choice can be reached and tapped
 //   toasts     phones show at most two toasts and they don't block taps
+//   skip       a spotlight moment (the Waffle Party) shows its caption and a Skip a tap ends it with
 //   placement  Office, Place, then tap-to-aim and tap-to-place puts furniture down
 //   taps       a plain tap on a person opens them; two fingers resting on a person pop no long-press tip
 //   audio      audio unlocks on the first tap under an iOS-like gesture rule (pointerup, touchend, click)
@@ -49,7 +50,7 @@ const DEVICES = {
   ipad: devices['iPad Mini'],
   desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
 };
-const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak'];
+const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak', 'skip'];
 const TOUCH_ONLY = new Set(['pinch', 'toasts', 'taps', 'audio']);
 
 const args = parseArgs(process.argv.slice(2));
@@ -293,6 +294,25 @@ const CHECKS = {
       if (blocking) fails.push(`${blocking} toasts take taps without an action`);
     }
     return { fails, note: `most at once: ${most}` };
+  },
+
+  async skip({ page, tap, shot }) {
+    const fails = [];
+    await clearDecisions(page);
+    await page.evaluate(() => { const H = window.__HITL; H.setSpeed(1); const p = H.state.staff.find((x) => x.mood !== 'away') ?? H.state.staff[0]; H.emit([{ type: 'incentive', staffId: p.id, reward: 'waffle_party' }]); });
+    await wait(page, 1200);
+    await page.evaluate(() => [...document.querySelectorAll('.announce-back button')].find((b) => b.textContent.trim() === 'Onward')?.click());
+    await wait(page, 400);
+    const spot = () => page.evaluate(() => window.__HITL.controls.renderer?.spotlight?.()?.kind ?? null);
+    if (!(await spot())) { await page.evaluate(() => window.__HITL.setSpeed(0)); return { fails, note: 'no spotlight in this renderer' }; }
+    const cap = await page.evaluate(() => document.querySelector('.moment-cap.spot.show .mcap-text')?.textContent ?? '');
+    if (!cap) fails.push('a spotlight plays with no caption');
+    await shot('skip');
+    try { await tap(page.locator('.moment-cap .mcap-skip')); } catch { fails.push('Skip is not tappable'); }
+    await wait(page, 500);
+    if (await spot()) fails.push('tapping Skip did not end the moment');
+    await page.evaluate(() => window.__HITL.setSpeed(0));
+    return { fails };
   },
 
   async placement({ page, tap, touchy, vp, shot }) {
