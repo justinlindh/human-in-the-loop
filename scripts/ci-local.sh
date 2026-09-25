@@ -161,6 +161,9 @@ step syntax syntax
 # docs/features.md against the data: every staged event, item, perk, moment kind, quick post, prompt,
 # music night genre and era has an entry, and every id the file names exists (scripts/features-ids.mjs).
 step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
+# Every script and check has a docs/toolkit/ entry, and every entry is well formed (scripts/toolkit.mjs).
+toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
+step toolkit toolkit_check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
@@ -173,6 +176,7 @@ tool_step gl node "$SELF/lib/gl.test.mjs"
 tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
 tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
+tool_step toolkit-test node "$SELF/toolkit.test.mjs"
 tool_step capture bash "$SELF/capture.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.

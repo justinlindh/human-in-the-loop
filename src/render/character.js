@@ -548,12 +548,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       }
       case 'peer':
-        // Bent right over to look into something on the floor, hands on knees.
-        tgt.bodyY = -0.09;
-        tgt.lean = 0.62;
-        tgt.headX = 0.35 + s(t * 1.3 + phase) * 0.05;
+        // Crouched over something on the floor, hands on knees, the head up enough to show the face.
+        tgt.bodyY = -0.12;
+        tgt.lean = 0.42;
+        tgt.headX = 0.08 + s(t * 1.3 + phase) * 0.05;
         tgt.headZ = s(t * 0.9) * 0.12;
-        tgt.legL = -0.35; tgt.legR = -0.35;
+        tgt.legL = -0.5; tgt.legR = -0.5;
         tgt.armLX = tgt.armRX = -0.55;
         tgt.armLZ = 0.18; tgt.armRZ = -0.18;
         break;

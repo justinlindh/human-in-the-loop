@@ -1,0 +1,15 @@
+# Scripts that are modules or data for the tools, not tools themselves, so they need no toolkit
+# entry. One path per line, then what uses it. `npm run toolkit -- --check` reads this.
+blender/checks/harness.mjs        the page every render check runs in
+blender/checks/report.mjs         the report format stage.mjs and the sweep share
+blender/checks/diag.mjs           failure detail shared by loop.mjs and clip.mjs
+scripts/events/lib.js             the event index's location and key, for build.js and find.js
+scripts/events/load.js            opens a page at an indexed moment, for the tools' --moment flags
+scripts/perf/stats.js             helpers shared by the perf scripts
+scripts/trailer/cards.js          the trailer build's title cards
+scripts/trailer/config.js         the trailer build's settings
+scripts/trailer/manifest.js       the trailer build's shot list
+scripts/hooks/claude/test.sh      the Claude Code hooks' own tests
+blender/checks/dump.js            the in-page half of dump.mjs
+blender/checks/intersect.js       the sweep's in-page measurements
+blender/checks/sample.js          the sweep's in-page state sampler

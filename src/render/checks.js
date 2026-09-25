@@ -697,7 +697,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       const pm = R.moments.printerState;
       if (!pm) { if (phases.size) break; continue; }
       phases.add(pm.phase);
-      if (pm.phase === 'carry') spotSeen ||= R.spotlight?.()?.kind === 'printer_jam';
+      if (pm.phase === 'carry') spotSeen ||= R.spotlight?.()?.kind === 'printer_jam' && R.spotlight().expectedSeconds > 10;
       if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
         pm.interrupted = true;
         R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
