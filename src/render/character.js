@@ -575,18 +575,21 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       }
       case 'despair':
-        // Standing, both hands on the head, rocking slowly: bad news.
-        tgt.armLX = tgt.armRX = -2.5;
-        tgt.armLZ = 0.95; tgt.armRZ = -0.95;
-        tgt.headX = 0.22 + s(t * 1.6 + phase) * 0.08;
-        tgt.headZ = s(t * 1.1 + phase) * 0.18;
+        // Standing, both arms flung up in a V, head back then down, rocking: bad news. Hands on the
+        // head would hide behind the chibi head; a V shows from any angle.
+        tgt.armLX = tgt.armRX = -0.3;
+        tgt.armLZ = -2.3 - s(t * 2.2 + phase) * 0.2; tgt.armRZ = 2.3 + s(t * 2.2 + phase) * 0.2;
+        tgt.headX = 0.3 + s(t * 1.6 + phase) * 0.1;
+        tgt.headZ = s(t * 1.1 + phase) * 0.26;
         tgt.lean = 0.08;
         tgt.bodyY = s(t * 1.6 + phase) * 0.006;
         break;
       case 'fan':
         // Waving something away from the face with one hand, leaning back from it.
-        tgt.armRX = -2.0 + s(t * 11) * 0.35;
-        tgt.armRZ = -0.3 + s(t * 11) * 0.25;
+        // A big sweep out to the side and back, so it reads from any angle.
+        tgt.armRX = -0.5;
+        tgt.armRZ = 2.2 + s(t * 7) * 0.45;
+        tgt.armLX = -0.6; tgt.armLZ = -0.4;
         tgt.lean = -0.1;
         tgt.headX = -0.1; tgt.headZ = 0.2;
         break;
@@ -682,7 +685,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = 0.24 - HIP_Y;
         tgt.lean = -0.55;
         tgt.legL = -1.1; tgt.legR = -0.95;
-        tgt.armLZ = 1.25; tgt.armRZ = -1.25;
+        tgt.armLZ = -0.9; tgt.armRZ = 0.9;
         tgt.headX = -0.2 + s(t * 0.8 + phase) * 0.04;
         break;
       case 'play': {

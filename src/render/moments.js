@@ -250,6 +250,18 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const d = Math.atan2(Math.sin(toAt - cam), Math.cos(toAt - cam));
     return cam + Math.sign(d || 1) * 0.6;
   }
+  // True when a column stands between the camera and a spot: someone there would be half hidden
+  // behind the column (drawn faded over them), so a moment staged there would not read.
+  function columnInFront(at) {
+    const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
+    for (const col of office.current?.columns ?? []) {
+      const dx = col.x - at.x, dz = col.z - at.z;
+      const along = dx * cx + dz * cz;               // toward the camera
+      const across = Math.abs(dx * cz - dz * cx);
+      if (along > 0 && along < 3 && across < 0.55) return true;
+    }
+    return false;
+  }
   // A clear spot near `from` on the camera's side, for staging someone where they can be seen.
   function cameraSide(from, dist = 0.7) {
     const yaw = getYaw(), nav = office.nav();
@@ -268,13 +280,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const deskId = p.obj.userData.follow?.deskId;
     const r = [...recs.values()].find((x) => x.seat === deskId);
     if (!r || !free().includes(r) || !r.char.seated) return;
-    emote(r, 'sweat', 2.6);
+    emote(r, 'storm', 2.8);
     if (lite()) return;
     // Stand up behind the chair, where the seat's walkway already is, turned to the room: the desk
     // row closes the chair's sides, so stepping round it would be a walk round the whole row.
     const desk = office.placed.get(deskId);
     const ry = desk?.obj.rotation.y ?? 0;
     const spot = { x: r.pos.x + Math.sin(ry) * 0.42, z: r.pos.z + Math.cos(ry) * 0.42 };
+    if (columnInFront(spot)) return;
     spot.yaw = towardCamera(spot, p.obj.position);
     r.temp = { anim: 'despair', t: 3.6, goal: spot, back: true, moment: 'letter' };
     r.path = [{ x: spot.x, z: spot.z }];
