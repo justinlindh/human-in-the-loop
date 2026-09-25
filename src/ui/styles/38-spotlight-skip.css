@@ -1,0 +1,8 @@
+/* Skip on the moment caption while a spotlight plays: the line on the left, the button on the
+   right. Only the button takes taps. */
+.hitl .moment-cap.spot { width: max-content; display: flex; align-items: center; gap: 0.8em; text-align: left; padding: 0.4em 0.45em 0.4em 1em; }
+.hitl .moment-cap .mcap-skip { display: none; flex: none; pointer-events: auto; gap: 0.3em; align-items: center;
+  background: var(--yellow); color: var(--ink); font-weight: 700; font-size: 0.95em; padding: 0.3em 0.8em; }
+.hitl .moment-cap.spot .mcap-skip { display: inline-flex; }
+.hitl .moment-cap.bare { padding: 0.3em; background: transparent; box-shadow: none; }
+.hitl .moment-cap:not(.show) .mcap-skip { pointer-events: none; }
