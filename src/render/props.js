@@ -55,6 +55,7 @@ export function createProps(office, screens = null) {
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
       if (!obj) continue;
+      obj.userData.propId = w.prop;
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);

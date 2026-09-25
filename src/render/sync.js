@@ -444,7 +444,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx });
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -891,6 +891,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   return {
+    // A staff member's character (character.js), for the staging probe.
+    charOf(id) { return recs.get(id)?.char ?? null; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, setCharacterShadows,
