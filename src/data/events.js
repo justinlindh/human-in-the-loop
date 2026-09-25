@@ -57,6 +57,7 @@ const list = [
   {
     id: 'resignation_letter', kind: 'staff', weight: 4, cooldownWeeks: 12, random: true, subject: 'burnoutStaff',
     when: () => true,
+    stage: { prop: 'envelope', anchor: 'subjectDesk' },
     title: 'A letter on your desk',
     text: '{name} hands you an envelope. It is not a birthday card.',
     choices: [
@@ -112,10 +113,11 @@ const list = [
   {
     id: 'team_offsite', kind: 'staff', weight: 1, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.staff.length >= 6,
+    stage: { prop: 'brochure', anchor: 'wall' },
     title: 'Team offsite',
     text: 'The team wants an offsite. A cabin, a lake, zero Yak.',
     choices: [
-      { label: 'Book the cabin', hint: 'Expensive, big team meaning boost', effects: { cash: -12000, teamMeaning: 10 }, outcome: 'Someone fell in the lake. Morale has never been higher.' },
+      { label: 'Book the cabin', hint: 'Expensive, big team meaning boost', effects: { cash: -12000, teamMeaning: 10 }, leaves: { prop: 'photo_lake', until: { weeks: 52 } }, outcome: 'Someone fell in the lake. Morale has never been higher.' },
       { label: 'Maybe next quarter', hint: 'Nothing happens', effects: {}, outcome: 'Next quarter, everyone says.' },
     ],
   },
@@ -218,6 +220,7 @@ const list = [
   {
     id: 'junior_overwhelmed', kind: 'staff', weight: 2, cooldownWeeks: 26, random: true, subject: 'juniorStaff',
     when: () => true,
+    stage: { prop: 'sticky_notes', anchor: 'subjectDesk' },
     title: 'Fourteen tabs of docs',
     text: '{name} has fourteen tabs of documentation open and is quietly panicking in a very organized way.',
     choices: [
@@ -363,6 +366,7 @@ const list = [
   {
     id: 'enterprise_rfp', kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.length > 0 && s.week >= 30,
+    stage: { prop: 'binder', anchor: 'subjectDesk' },
     title: 'An enterprise RFP',
     text: 'A bank wants {product}. Their security questionnaire has 340 questions, four about the model you use.',
     choices: [
@@ -618,6 +622,7 @@ const list = [
   {
     id: 'phishing_ceo', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'gift_cards', anchor: 'subjectDesk' },
     title: 'The CEO wants gift cards',
     text: 'An email from "you" asked finance to buy $25,000 of gift cards "for a client". Finance almost did it. Finance is very efficient.',
     choices: [
@@ -709,6 +714,7 @@ const list = [
   {
     id: 'pet_request', kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
     when: (s) => s.workPolicy !== null && s.workPolicy !== 'remote' && s.staff.length >= 6 && !s.pets.some((p) => p.species === 'dog'),
+    stage: { prop: 'photos_laminated', anchor: 'subjectDesk' },
     title: 'A dog on Fridays?',
     text: '{name} would like to bring their dog in on Fridays. They have printed photos. The photos are laminated.',
     choices: [
@@ -753,7 +759,7 @@ const list = [
     title: 'Another jab from {rival}',
     text: '{rivalFounder} went on a podcast and called {company} "a nice little lifestyle business". The podcast has eleven listeners. All of them work for you.',
     choices: [
-      { label: 'Rise above it', hint: 'Team meaning up a little', effects: { teamMeaning: 1 }, outcome: 'You say nothing. It is the most satisfying nothing you have ever said.' },
+      { label: 'Rise above it', hint: 'Team meaning up a little; the team puts up a sign', effects: { teamMeaning: 1 }, leaves: { prop: 'sign_rival_copied', until: { flag: 'rivalGone' } }, outcome: 'You say nothing. Someone else puts up a sign in the kitchen. It is counting.' },
       { label: 'Poach one of their people', hint: '-$10k; three senior candidates appear, and {rival} slows down', effects: { cash: -10000, candidates: 'seniorBatch', rivalHit: 15 }, outcome: 'Their best engineer takes your call. So do two of their friends.' },
     ],
   },
@@ -783,6 +789,7 @@ const list = [
   {
     id: 'agent_invoice', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'invoice', anchor: 'wall' },
     title: 'The invoice arrived',
     text: 'It is for {agentBill}. The line items include "reasoning", "more reasoning", and "reasoning about the reasoning".',
     choices: [
@@ -891,6 +898,7 @@ const list = [
   {
     id: 'hearing_summons', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'envelope_thick', anchor: 'subjectDesk' },
     title: 'Invited to testify',
     text: 'A committee on AI in the workplace would like {company} to testify. The invitation is on very thick paper. The hearing will be on television.',
     choices: [
@@ -935,7 +943,7 @@ const list = [
     title: 'The alumni reunion',
     text: 'The #alumni group chat wants a reunion. It has more members than the company. {alum} volunteered to bring the old office sign.',
     choices: [
-      { label: 'Host it', hint: '-$8k; team meaning up, brand and knowledge up a little', effects: { cash: -8000, brand: 1, teamMeaning: 3, ik: 2 }, outcome: 'Old and new people swap war stories. Several bugs are finally explained.' },
+      { label: 'Host it', hint: '-$8k; team meaning up, brand and knowledge up a little', effects: { cash: -8000, brand: 1, teamMeaning: 3, ik: 2 }, leaves: { prop: 'old_sign', until: { weeks: 26 } }, outcome: 'Old and new people swap war stories. Several bugs are finally explained.' },
       { label: 'Let them organise it', hint: 'Nothing happens', effects: {}, outcome: 'You hear it was great. There are photos. You are in none of them.' },
     ],
   },
@@ -943,6 +951,7 @@ const list = [
   {
     id: 'cloud_bill', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, eras: ['classic'],
     when: (s, h) => h.live.length > 0,
+    stage: { prop: 'invoice', anchor: 'wall' },
     title: 'The hosting bill',
     text: 'The hosting invoice has a new line item called "Egress". Nobody knows what egress is. Everyone is paying for it.',
     choices: [
@@ -973,6 +982,7 @@ const list = [
   {
     id: 'onprem_bank', kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: 'randomProduct', eras: ['classic'],
     when: (s, h) => s.week >= 30 && h.live.length > 0,
+    stage: { prop: 'binder', anchor: 'subjectDesk' },
     title: 'A bank wants it on their servers',
     text: 'A regional bank wants {product} installed in their own server room. They will pay well. They also sent a 90-page security questionnaire.',
     choices: [

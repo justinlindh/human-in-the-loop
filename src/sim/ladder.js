@@ -72,6 +72,8 @@ function rivalStep(ctx) {
     return;
   }
   const r = state.rival;
+  // Once the rival is out of the picture, anything the team put up about it comes down.
+  if (r && r.status !== 'rising' && r.status !== 'stalled') state.flags.rivalGone = true;
   if (!r || (r.status !== 'rising' && r.status !== 'stalled')) return;
   if (r.status === 'rising') {
     r.strength = clamp(r.strength + range(ctx.rng, 0, B.rivalGrowth * 2), 0, 100);
