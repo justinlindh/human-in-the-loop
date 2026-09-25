@@ -212,6 +212,6 @@ registerAction('resolveDecision', (ctx, { choice }) => {
     placeNow(ctx, c.grant.item, findSpot(layoutOf(state), state.office.placed, c.grant.item));
     if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
   }
-  if (c.leaves) leaveProp(state, c.leaves, d.stage);
+  if (c.leaves) leaveProp(state, c.leaves, d.stage, d.subjectId);
   return { ok: true };
 });

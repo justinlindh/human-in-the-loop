@@ -39,6 +39,10 @@ export function stageTile(state, anchor, subjectId) {
     const corner = state.office.placed.find((i) => i.itemId === 'coffee_corner' || i.itemId === 'espresso');
     if (corner) return { x: corner.x, y: corner.y };
   }
+  if (anchor === 'whiteboard') {
+    const board = state.office.placed.find((i) => i.itemId === 'whiteboard' || i.itemId === 'whiteboard_wall');
+    if (board) return { x: board.x, y: board.y };
+  }
   if (anchor === 'door') {
     const { door } = officeShape(state.officeStage, state.office.expansion ?? 0);
     return { x: door.x, y: Math.max(0, door.y - 1) };
@@ -59,10 +63,12 @@ export function grantBlocker(state, c) {
   return findSpot(layoutOf(state), state.office.placed, item) ? null : 'No room for it';
 }
 
-// Leaves a prop at the decision's stage tile (or a wall tile), keeping at most officePropsMax.
-export function leaveProp(state, leaves, stage) {
+// Leaves a prop at the decision's stage tile, or where its own anchor (else the back wall) resolves when the
+// event has no stage, keeping at most officePropsMax.
+export function leaveProp(state, leaves, stage, subjectId = null) {
   const props = (state.office.props ??= []);
-  const tile = stage && stage.x !== null ? { x: stage.x, y: stage.y } : wallTile(state);
+  const own = stageTile(state, leaves.anchor ?? 'wall', subjectId);
+  const tile = stage && stage.x !== null ? { x: stage.x, y: stage.y } : own.x !== null ? own : wallTile(state);
   // Props number themselves apart from the game's shared id counter, so a cosmetic prop never shifts the
   // ids (and so the seeded course) of everything created after it.
   // Props from older saves were numbered off the shared counter, so start above any id still in use.

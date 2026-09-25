@@ -127,3 +127,37 @@ describe('prop ids from older saves', () => {
     expect(ids.at(-1)).toBe('prop413');
   });
 });
+
+describe('issue #228: the whiteboard anchor and a stageless leave\'s own anchor', () => {
+  it('a whiteboard stage sits on the placed whiteboard, else on the back wall', () => {
+    const s = floor(11);
+    raise(s, 'pivot_pitch');
+    expect(s.pendingDecision.stage).toMatchObject({ prop: 'whiteboard_scrawl', anchor: 'whiteboard', y: 0 });
+    const t = floor(12);
+    expect(dispatch(t, { type: 'placeItem', itemId: 'whiteboard', x: 6, y: 6, rot: 0 }).ok).toBe(true);
+    raise(t, 'pivot_pitch');
+    expect(t.pendingDecision.stage).toMatchObject({ prop: 'whiteboard_scrawl', x: 6, y: 6 });
+  });
+
+  it('a choice on an event with no stage leaves its prop where its own anchor resolves', () => {
+    const s = floor(13);
+    expect(dispatch(s, { type: 'placeItem', itemId: 'whiteboard', x: 6, y: 6, rot: 0 }).ok).toBe(true);
+    raise(s, 'last_bet');
+    expect(s.pendingDecision.stage).toBe(null);
+    choose(s, 'One last moonshot');
+    expect(s.office.props.at(-1)).toMatchObject({ prop: 'whiteboard_scrawl', x: 6, y: 6, until: { weeks: 26 } });
+  });
+
+  it('"Not yet" on the coffee question leaves the French press until an espresso machine arrives', () => {
+    const s = floor(14);
+    s.week = 30;
+    raise(s, 'coffee_wanted');
+    expect(s.pendingDecision.stage.prop).toBe('french_press');
+    choose(s, 'Not yet');
+    expect(s.office.props.at(-1).prop).toBe('french_press');
+    const spot = suggestPlacement(s, 'espresso');
+    expect(dispatch(s, { type: 'placeItem', itemId: 'espresso', x: spot.x, y: spot.y, rot: spot.rot }).ok).toBe(true);
+    propsSystem(makeCtx(s));
+    expect(s.office.props.some((p) => p.prop === 'french_press')).toBe(false);
+  });
+});
