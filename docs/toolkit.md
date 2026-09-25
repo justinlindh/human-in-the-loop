@@ -21,7 +21,7 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 
 | Tool | What it does |
 |---|---|
-| `scripts/main-guard.sh [--sha <c>] [--no-post] [--loop <s>]` | Runs the full local suite (balance forced on) and the strict scene sweep on each new commit of `main`. Sets the `main-guard` status on it; when main is red it opens or comments on one `main-red` issue with the failing steps, and the next green commit closes it. `pr-status.sh` shows its verdict on main first. |
+| `scripts/main-guard.sh [--sha <c>] [--no-post] [--loop <s>]` | Runs the full local suite (balance forced on) and the strict scene sweep on each new commit of `main`. Sets the `main-guard` status on it; when main is red it opens or comments on one `main-red` issue with the failing steps, and the next green commit closes it. `pr-status.sh` shows its verdict on main first. Timing regressions and the strict sweep's seed-only findings go to `perf-regression` and `sweep-finding` issues and never mark main red. It runs every 5 minutes as a systemd user timer from its own clone: `scripts/systemd/install.sh` installs it, `systemctl --user list-timers 'hitl-main-guard*'` and `journalctl --user -u hitl-main-guard` show it, and `systemctl --user disable --now hitl-main-guard.timer` (or `install.sh --remove`) stops it. |
 | `scripts/pr-status.sh` | One live row per open PR: merge state, what holds it (`awaiting-user`, draft), review verdict and local-ci for the current head, and any failing check; then the issues awaiting the user. Check it before reporting on or acting on a PR, and don't build on a held item. Anything waiting on a user decision gets the `awaiting-user` label (a PR also stays a draft). |
 | `scripts/ci-pr.sh <pr>` | Local CI for a PR: it merges the head into freshly fetched `main` in a throwaway worktree and runs that tree's own `ci-local.sh`; the trust list and helper scripts come from `main` too, so the checkout you start it from doesn't matter (a clean one on `main` updates itself first). It refuses when your local copy of the branch has commits the PR lacks: push first. Posts the Local CI comment and the `local-ci` status. `--allow-bot` is for reviewed Dependabot PRs only. |
 | `npm run ci` (`scripts/ci-local.sh`) | The same checks in the current worktree, with a summary table. |
@@ -35,7 +35,8 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 
 CI internals, which rarely need touching:
 - `scripts/ci-classify.sh` with `scripts/ci-skip-paths` gives docs-only changes the light gate.
-- `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance.
+- `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance. A pass is also recorded under a hash of the suite's inputs (the sim, its data, the balance test, the test config, the lockfile and Node), so the same inputs skip it later. `HITL_NO_CHECK_CACHE=1` turns this off.
+- `scripts/lib/run-parallel.sh` runs commands side by side, each with its own vite dependency cache (`HITL_VITE_CACHE`), and prints their output in order.
 - `scripts/ci-trusted` is the allowlist of PR authors that local CI will run.
 - `scripts/ci-bot-check.sh` guards the Dependabot path.
 - `scripts/render-lock-held.sh` lets nested jobs share a render lock.
@@ -59,6 +60,7 @@ CI internals, which rarely need touching:
 |---|---|---|
 | `npm test`, `npm run test:fast` | all | Vitest. `test:fast` skips the slow balance suite; use the full `npm test` when the sim changes. |
 | `npm run balance -- --seeds N [--bots a,b]` | sim, reviewer | Seeded bot games with a win and exit table, plus era by era arrival stats. Use paired runs on the same seeds to compare two builds. |
+| `node scripts/events/build.js` and `node scripts/events/find.js <event> [--choice N --stage floor --bot b --era e --weeks a-b --snapshot]` | all | The seeded event index: bots play seeds 1 to 20 (balanced, sensible, allHumans) in the pure sim in about 25 s, and every decision (with the choice made), era change, office move, incident, launch and so on is indexed by seed, bot, week, era and stage, with a save-state snapshot just before staged decisions, era changes and office moves. `find.js` prints where an event happens and its snapshot. Tools stage straight to it: `scene.mjs` and `dump.mjs` take `--moment '<query>'` or `--snapshot <path>`, and `sweep.mjs` takes `--moments 'q1; q2'`. The index lives in `~/.cache/hitl-ci/events/`, keyed by a hash of the sim, data, save and build code; a tool asked for a moment builds it when the code has changed. Use it instead of playing and scanning seeds by hand. |
 | `node scripts/pace.js ...` | sim, integrator | Plays the real sim through the pacer with a simulated player and reports what a person would see, and when, in real time. |
 
 ## Browser health
@@ -71,7 +73,7 @@ CI internals, which rarely need touching:
 
 ## Render checks (art owns these; local CI runs them)
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip, standup and the sweep (fast mode) as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip (with and without the rig), standup and the sweep (fast mode) side by side as `render-checks` on one GPU slot, and golden as `golden` under the software lock.
 
 | Check | What it guards |
 |---|---|
@@ -126,11 +128,29 @@ Run `node blender/checks/stage.mjs --only=<moment>` while staging (under the ren
 
 The machine and the GPU are shared, so single numbers are noisy. Trust relative numbers from one interleaved run, and treat renderer counts (calls, triangles, programs) as exact.
 
+### The team's timing log
+
+Every common tool logs itself to `~/.cache/hitl-ci/timings.jsonl`, one JSON line per event, with no setup:
+- ci-pr runs, with the PR number;
+- each ci-local step, with wall and CPU time;
+- every browser tool that launches through `scripts/lib/gl.js` (snap, lifecycle, soak, capture, the render checks, bench);
+- balance and build-models runs;
+- every render-lock wait, labelled with the job that waited;
+- every render-check cache lookup (hit or miss, with the input hash).
+
+Each line also records the worktree, branch, commit and exit code. The log never fails a run, and `HITL_TIMINGS=off` turns it off (tests do). New tools get it by calling `trackRun` from `scripts/lib/timing.js`, or `timing_log` from `scripts/lib/timing.sh` in shell.
+
+| Tool | Who | What it does |
+|---|---|---|
+| `node scripts/perf/loop-report.js [--since 24h]` | perf, integrator, team-lead | Where the team's time goes: total, median and p90 per tool and CI step; time per worktree; lock waits per job, with timeouts; cache hit rates; repeated runs on identical inputs (the caching candidates); and the slowest runs. `--json` adds the numbers as JSON. |
+
 ## Models and assets
 
 | Tool | Who | What it does |
 |---|---|---|
 | `npm run models` (`scripts/build-models.sh`) | art | Rebuilds `public/models/*.glb` from the Blender scripts, headless. Reports z-fighting and renders five-view contact sheets into `shots/sheets/` for review. |
+| `node src/ui/tools/build-glyphs.js` | ui | Writes the UI glyph SVGs in `public/icons/glyphs/` and their manifest from `src/ui/tools/glyphs.js`. |
+| `node src/ui/tools/icon-coverage.js [--strict]` | ui | Lists icon names that still use an emoji stand-in and fails on a manifest entry with no file. `src/ui/icons.test.js` (in `npm test`) fails when game data can ask for an icon name that has neither art nor an entry, such as a new marketing channel. |
 | `public/audio/LICENSES.md` | audio | Every audio file and its source and licence. Update it with any new file. |
 
 ## Team process

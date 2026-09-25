@@ -7,12 +7,13 @@ import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 // front; the Office Floor as a storey of a building above a plaza, among neighbouring towers; HQ on
 // a campus plaza under a skyline. Everything sits on one diorama board with a cut edge.
 //
-// createSurroundings({ parent, low }) -> { setStage(stage, L), setViewYaw(yaw), update(dt, env) }
+// createSurroundings({ parent, low, lighting }) -> { setStage(stage, L), setQuality(), setViewYaw(yaw), update(dt, env) }
 //
 // Only flat things (ground, streets, paving, low fences) stand on the camera's side. Anything tall
 // belongs to one side of the office (+x, -x, +z, -z) and shows only while that side faces away from
 // the camera, as the cutaway walls do, so the view can rotate without scenery hiding the office.
-// Low quality keeps the board, streets and buildings and drops trees, clouds, cars and lamps.
+// Low quality keeps the board, streets and buildings and drops trees, clouds, cars and lamps, and
+// draws what is left with backdrop materials (below) instead of the full lighting model.
 
 const T = 0.25;                    // wall thickness margin round the office footprint
 const GROUND_Y = -0.3;             // board top on the ground-level stages
@@ -58,6 +59,48 @@ function facade(wallHex) {
   f = new THREE.MeshStandardMaterial({ map: tex(cc), emissiveMap: tex(ec), emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0, roughness: 0.85 });
   facades.set(wallHex, f);
   return f;
+}
+
+// Backdrop materials for Low: unlit materials shaded per vertex by the sun and hemisphere only,
+// the same diffuse terms MeshStandardMaterial computes for these rough, unshadowed surfaces, but
+// without evaluating every interior lamp for every pixel. The scenery covers most of the screen,
+// so on a fill-bound device this is most of the frame. Facades add their lit windows at night.
+const LIT = {
+  uSunDir: { value: new THREE.Vector3(0, 1, 0) },
+  uSunColor: { value: new THREE.Color() },
+  uSky: { value: new THREE.Color() },
+  uGround: { value: new THREE.Color() },
+  uNight: { value: 0 },
+};
+const backdropMats = new Map();
+function backdropMaterial(std) {
+  let b = backdropMats.get(std);
+  if (b) return b;
+  const windows = !!std.emissiveMap;
+  b = new THREE.MeshBasicMaterial({ color: std.color, map: std.map ?? null });
+  b.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, LIT, windows ? { uWin: { value: std.emissiveMap } } : {});
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uSunDir, uSunColor, uSky, uGround;\nvarying vec3 vLit;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vec3 wn = normalize(mat3(modelMatrix) * normal);
+        vLit = (uSunColor * max(dot(wn, uSunDir), 0.0) + mix(uGround, uSky, 0.5 * wn.y + 0.5)) * RECIPROCAL_PI;`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vLit;${windows ? '\nuniform sampler2D uWin;\nuniform float uNight;' : ''}`)
+      .replace('#include <envmap_fragment>', `outgoingLight *= vLit;${windows ? '\noutgoingLight += texture2D(uWin, vMapUv).rgb * uNight;' : ''}\n#include <envmap_fragment>`);
+  };
+  b.customProgramCacheKey = () => `hitl-backdrop-${windows ? 1 : 0}`;
+  backdropMats.set(std, b);
+  return b;
+}
+const tmpDir = new THREE.Vector3();
+function updateBacklight(lighting, night) {
+  const { sun, hemi } = lighting;
+  LIT.uSunDir.value.copy(tmpDir.copy(sun.position).sub(sun.target.position).normalize());
+  LIT.uSunColor.value.copy(sun.color).multiplyScalar(sun.intensity);
+  LIT.uSky.value.copy(hemi.color).multiplyScalar(hemi.intensity);
+  LIT.uGround.value.copy(hemi.groundColor).multiplyScalar(hemi.intensity);
+  LIT.uNight.value = night * 1.1;
 }
 
 // A building: facade walls (a box whose UVs count windows), a cap over the roof in the wall colour,
@@ -151,12 +194,13 @@ function cloudTexture() {
   return cloudTex;
 }
 
-export function createSurroundings({ parent, low = () => false }) {
+export function createSurroundings({ parent, low = () => false, lighting = null }) {
   const root = new THREE.Group();
   root.name = 'surroundings';
   parent.add(root);
   let cur = null;          // { group, sides: { px, nx, pz, nz }, facades, bulbs, movers, clouds }
   let viewYaw = Math.PI / 4;
+  let built = null;        // { stage, L, lite } of the current build
 
   function clear() {
     if (!cur) return;
@@ -173,6 +217,7 @@ export function createSurroundings({ parent, low = () => false }) {
 
   function setStage(stage, L) {
     clear();
+    built = { stage, L, lite: low() };
     const group = new THREE.Group();
     const flat = new THREE.Group();
     const sides = { px: new THREE.Group(), nx: new THREE.Group(), pz: new THREE.Group(), nz: new THREE.Group() };
@@ -313,7 +358,13 @@ export function createSurroundings({ parent, low = () => false }) {
     for (const k of Object.keys(sides)) merged[k] = mergeStatic(sides[k]);
     // No shadows either way: the sun's shadow map is fitted to the office, and the board would take
     // acne stripes outside it.
-    for (const g of Object.values(merged)) g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    for (const g of Object.values(merged)) {
+      g.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = false; o.receiveShadow = false;
+        if (lite && lighting && o.material.isMeshStandardMaterial) o.material = backdropMaterial(o.material);
+      });
+    }
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
@@ -340,9 +391,15 @@ export function createSurroundings({ parent, low = () => false }) {
     applyYaw();
   }
 
+  // A quality change rebuilds the scenery only when it changes what Low leaves out.
+  function setQuality() {
+    if (built && built.lite !== low()) setStage(built.stage, built.L);
+  }
+
   function update(dt, env) {
     if (!cur) return;
     const night = env?.night ?? 0;
+    if (built?.lite && lighting) updateBacklight(lighting, night);
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
     // Clouds stay in the half of the sky behind the office from wherever the camera looks, drifting
@@ -376,5 +433,5 @@ export function createSurroundings({ parent, low = () => false }) {
     }
   }
 
-  return { setStage, setViewYaw, update, get group() { return root; } };
+  return { setStage, setQuality, setViewYaw, update, get group() { return root; } };
 }

@@ -17,9 +17,20 @@
 .hitl .chat.max .chat-head .ysizes { margin-left: auto; }
 .hitl .chat.max .chat-head { cursor: default; }
 @media (pointer: coarse) { .hitl .chat-head .ysz { min-width: 44px; height: 36px; } .hitl .chat .ygrip { height: 1.6em; top: -0.8em; } }
+/* Touch-sized size buttons do not fit beside the name, so on a tablet they get their own header row.
+   Phones hide them instead (below). */
+@media (pointer: coarse) and (min-width: 481px) and (min-height: 501px) {
+  .hitl .chat:not(.max) .chat-head { flex-wrap: wrap; row-gap: 0.3em; }
+  .hitl .chat:not(.max) .chat-head .ysizes { order: 1; flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
+  .hitl .chat:not(.max) .chat-head .caret { margin-left: auto; }
+}
 @media (max-width: 480px) {
   .hitl .yak-back { padding: 0; }
   .hitl .chat.max { width: 100%; height: 100%; border-radius: 0; }
+}
+/* A phone's Yak is too narrow for S, M and L beside maximize and the caret; maximize covers the big view. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
   .hitl .chat-head .ysz:not(.ymax) { display: none; }
+  .hitl .chat-head .ysizes + .caret { margin-left: 0.5em; }
 }
 

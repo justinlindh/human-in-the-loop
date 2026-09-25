@@ -3,11 +3,13 @@
 // from images.
 //
 //   node blender/checks/dump.mjs --out <dir> [--mock floor | --seed N [--week W] [--bot balanced|none]]
-//        [--patch-js '<js>'] [--event '<json>'] [--warm 60]
+//        [--snapshot <path> | --moment '<find query>'] [--patch-js '<js>'] [--event '<json>'] [--warm 60]
 //        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium]
 //
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
+//   --snapshot   start from an indexed moment's snapshot (scripts/events/find.js prints paths)
+//   --moment     start from the first indexed moment matching a find query, e.g. 'printer_jam --choice 0'
 //   --event      an event or list of events handed to the renderer with the patch
 //   --frames     frames (at 30 fps, counted from the patch) to dump; default 0
 //   --clip       dump every --every frames (default 15) for this many seconds
@@ -18,6 +20,7 @@
 // dump-query.mjs. Units and fields are described in dump.js. Renders on the GPU (--software for
 // SwiftShader), under the render lock the harness takes.
 import { startHarness, wantGpu } from './harness.mjs';
+import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -42,11 +45,14 @@ const dir = resolve(out);
 mkdirSync(dir, { recursive: true });
 const H = await startHarness({ gpu: wantGpu() });
 try {
-  const { page, errors } = await H.openScene(q.toString(), { width: w, height: h });
+  // An indexed moment (scripts/events): the page loads its snapshot, the state just before it.
+  const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
+  const { page, errors, row } = target ? await openAt(H, target, { width: w, height: h, quality: opt('quality', 'medium') }) : { ...(await H.openScene(q.toString(), { width: w, height: h })), row: null };
+  if (target) console.log(`dump: ${row ? `${row.id} seed ${row.seed} bot ${row.bot} week ${row.week}` : 'snapshot'} from ${target.file}`);
   await page.evaluate(async (o) => {
     const R = window.__hitlRender, S = window.__HITL.state;
     window.__dump = await import('/blender/checks/dump.js');
-    if (o.bot) {
+    if (o.bot && !o.loaded) {
       const { botDecide, botTurn } = await import('/src/sim/bots.js');
       const H = window.__HITL, route = (e) => { if (e?.length) H.emit(e); };
       while (H.state.week < o.week && !H.state.gameOver) {
@@ -58,8 +64,8 @@ try {
     }
     window.__step(o.warm);
     if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
-    if (o.event) R.handleEvents([].concat(o.event), S);
-  }, { warm, patchJs: opt('patch-js'), event: opt('event') ? JSON.parse(opt('event')) : null, bot: opt('seed') && bot !== 'none' ? bot : null, week });
+    if (o.events) R.handleEvents([].concat(o.events), S);
+  }, { warm, patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, bot: opt('seed') && bot !== 'none' ? bot : null, week, loaded: !!target });
   const canvas = await page.$('canvas');
   const dumped = [];
   let at = 0;
@@ -76,7 +82,7 @@ try {
     writeFileSync(`${dir}/${name}-annotated.png`, Buffer.from(shot.annotated.split(',')[1], 'base64'));
     dumped.push({ frame: f, t: +(f / 30).toFixed(3), ...shot.d });
   }
-  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: Object.fromEntries(q), warm, frames: dumped }, null, 1));
+  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: target ? { snapshot: target.file, row } : Object.fromEntries(q), warm, frames: dumped }, null, 1));
   const last = dumped[dumped.length - 1];
   console.log(`dump: ${dumped.length} frame(s), ${last.people.length} people, ${last.items.length} items, ${last.props.length} props -> ${out}/dump.json (${H.renderer})`);
   if (errors.length) { console.error(`dump: page errors: ${errors.slice(0, 3).join('; ')}`); process.exitCode = 1; }
