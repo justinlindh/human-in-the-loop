@@ -287,6 +287,12 @@
    "worst": 0.052,
    "state": "seed:1:w791",
    "issue": 434
+  },
+  {
+   "key": "person|monitoring_wall/pal_wood_honey|person(walking)/torso",
+   "worst": 0.023,
+   "state": "moment:first_user_test",
+   "issue": 385
   }
  ]
 }
