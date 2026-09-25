@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
-import { tileCenter } from './layout.js';
+import { tileCenter, footprint } from './layout.js';
+import { roundedBox, mesh } from './prims.js';
+import { mat } from './materials.js';
 
 // Staged props (contract: Staged props): the open decision's stage prop and the lingering
 // office.props, diffed each sync. New props pop in, gone ones shrink away, on the frame clock.
@@ -37,7 +39,9 @@ export function createProps(office) {
     for (const w of want) {
       const e = live.get(w.key);
       if (e && !e.gone) continue;
-      const obj = BUILDERS[w.prop](cur.L, w, office.wallBusy);
+      // Wall props keep clear of each other as well as of windows and wall pieces.
+      const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
+      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office });
       if (!obj) continue;
       obj.scale.setScalar(0.001);
       root.add(obj);
@@ -68,18 +72,23 @@ function dispose(obj) {
 }
 
 // A wall prop's spot: the anchor tile's place along its back wall, slid to the nearest stretch
-// clear of windows, doors and the era's wall pieces.
+// clear of windows, doors, the era's wall pieces, tall furniture and other props; if that wall is
+// full, the nearest clear stretch of the other back wall. A staged prop matters more than decor,
+// so when both walls are full it may go over an era wall piece.
 function wallSpot(L, { x, y }, busy, w) {
-  const wall = y === 0 || x !== 0 ? 'z' : 'x';
+  const home = y === 0 || x !== 0 ? 'z' : 'x';
   const c = tileCenter(L, x ?? 0, y ?? 0);
-  const len = wall === 'x' ? L.D : L.W;
-  const want = wall === 'x' ? c.z : c.x;
-  const spans = busy.filter((b) => b.wall === wall);
-  const free = (at) => at - w / 2 > -len / 2 + 0.3 && at + w / 2 < len / 2 - 0.3 && spans.every((b) => at + w / 2 + 0.08 < b.a || at - w / 2 - 0.08 > b.b);
-  for (let k = 0; k <= 80; k++) {
-    for (const at of [want + k * 0.1, want - k * 0.1]) if (free(at)) return { wall, at };
+  for (const [wall, ignoreDecor] of [[home, false], [home === 'z' ? 'x' : 'z', false], [home, true], [home === 'z' ? 'x' : 'z', true]]) {
+    const len = wall === 'x' ? L.D : L.W;
+    // On the other wall, start from the corner nearest the anchor.
+    const want = wall === home ? (wall === 'x' ? c.z : c.x) : -len / 2;
+    const spans = busy.filter((b) => b.wall === wall && !(ignoreDecor && b.decor));
+    const free = (at) => at - w / 2 > -len / 2 + 0.3 && at + w / 2 < len / 2 - 0.3 && spans.every((b) => at + w / 2 + 0.08 < b.a || at - w / 2 - 0.08 > b.b);
+    for (let k = 0; k <= len * 10; k++) {
+      for (const at of [want + k * 0.1, want - k * 0.1]) if (free(at)) return { wall, at };
+    }
   }
-  return { wall, at: want };
+  return { wall: home, at: home === 'x' ? c.z : c.x };
 }
 
 const texCache = new Map();
@@ -101,13 +110,14 @@ let tapeMat = null;
 
 // A printed picture taped to the wall at eye level, a little crooked.
 function wallPrint(tex, { w = 0.84, h = 0.63, tilt = 0.035 } = {}) {
-  return (L, anchor, busy) => {
-    const spot = wallSpot(L, anchor, busy, w);
+  return (L, anchor, env) => {
+    const spot = wallSpot(L, anchor, env.busy, w);
     const g = new THREE.Group();
+    g.userData.span = { wall: spot.wall, a: spot.at - w / 2, b: spot.at + w / 2 };
     const onX = spot.wall === 'x';
-    g.position.set(onX ? -L.W / 2 + 0.012 : spot.at, 1.45, onX ? spot.at : -L.D / 2 + 0.012);
+    g.position.set(onX ? -L.W / 2 + 0.06 : spot.at, 1.45, onX ? spot.at : -L.D / 2 + 0.06);
     if (onX) g.rotation.y = Math.PI / 2;
-    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex(), roughness: 0.9 }));
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex(env.state), roughness: 0.9 }));
     sheet.rotation.z = tilt;
     sheet.userData.noAO = true;
     sheet.receiveShadow = true;
@@ -171,7 +181,214 @@ function pingPongPicture(ball) {
   });
 }
 
+
+// Hand-lettering and small drawing helpers for the printed props.
+function text(ctx, t, x, y, px, col, wt = 700, align = 'center') {
+  ctx.fillStyle = col; ctx.font = `${wt} ${px}px Fredoka, sans-serif`; ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.fillText(t, x, y);
+}
+function lines(ctx, x, y, w, n, gap, col = P.metal_soft) {
+  ctx.fillStyle = col;
+  for (let i = 0; i < n; i++) ctx.fillRect(x, y + i * gap, w * (i % 3 === 2 ? 0.6 : 1), 7);
+}
+function lakeScene(ctx, x, y, w, h) {
+  ctx.fillStyle = '#bcd7e6'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#5d8f8b';
+  ctx.beginPath(); ctx.moveTo(x, y + h * 0.55); ctx.lineTo(x + w * 0.3, y + h * 0.2); ctx.lineTo(x + w * 0.55, y + h * 0.5); ctx.lineTo(x + w * 0.8, y + h * 0.25); ctx.lineTo(x + w, y + h * 0.5); ctx.lineTo(x + w, y + h * 0.6); ctx.lineTo(x, y + h * 0.6); ctx.fill();
+  ctx.fillStyle = '#4f8cff'; ctx.fillRect(x, y + h * 0.6, w, h * 0.4);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  for (let i = 0; i < 5; i++) ctx.fillRect(x + w * (0.1 + i * 0.18), y + h * (0.7 + (i % 2) * 0.12), w * 0.08, 3);
+}
+
+// Offsite brochure: a tri-fold with the cabin and the lake.
+const brochure = () => canvasTex('brochure', 512, 384, (ctx, W, H) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+  lakeScene(ctx, 16, 16, 160, 352);
+  ctx.fillStyle = P.wood_dark; ctx.fillRect(60, 150, 70, 50);
+  ctx.fillStyle = P.fabric_terracotta; ctx.beginPath(); ctx.moveTo(50, 152); ctx.lineTo(95, 115); ctx.lineTo(140, 152); ctx.fill();
+  text(ctx, 'LAKESIDE', 344, 60, 44, P.ink); text(ctx, 'CABIN', 344, 104, 44, P.ink);
+  text(ctx, 'zero wifi. zero Yak.', 344, 150, 24, P.fabric_teal, 600);
+  lines(ctx, 200, 190, 290, 6, 26);
+  ctx.strokeStyle = P.metal_soft; ctx.lineWidth = 2;
+  for (const x of [180, 346]) { ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, H - 10); ctx.stroke(); }
+});
+// Offsite photo: the team at the lake, one of them mid-splash.
+const photoLake = () => canvasTex('photo_lake', 512, 384, (ctx, W, H) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+  lakeScene(ctx, 20, 20, W - 40, H - 90);
+  const cols = [P.role_engineer, P.role_designer, P.role_marketer, P.role_sales, P.fabric_mustard];
+  cols.forEach((c, i) => {
+    const x = 70 + i * 62, y = 200;
+    ctx.fillStyle = c; ctx.fillRect(x - 16, y, 32, 44);
+    ctx.fillStyle = P.skin_2 ?? '#d9a37a'; ctx.beginPath(); ctx.arc(x, y - 14, 18, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.fillStyle = P.paper; for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(420 + Math.cos(i) * 30, 250 + Math.sin(i * 2) * 10 - i * 3, 9, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = P.skin_3 ?? '#b97b55'; ctx.beginPath(); ctx.arc(420, 238, 15, 0, Math.PI * 2); ctx.fill();
+  text(ctx, 'best offsite ever', W / 2, H - 36, 34, P.ink, 600);
+});
+// The agent invoice: a long itemised sheet with a stamped total.
+const invoice = () => canvasTex('invoice', 384, 512, (ctx, W, H) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+  text(ctx, 'INVOICE', 40, 50, 48, P.ink, 700, 'left');
+  text(ctx, 'agent compute, itemised', 40, 92, 20, P.ink, 500, 'left');
+  for (let i = 0; i < 11; i++) {
+    ctx.fillStyle = P.metal_soft; ctx.fillRect(40, 130 + i * 24, 200 - (i % 4) * 25, 8);
+    ctx.fillRect(290, 130 + i * 24, 54, 8);
+  }
+  ctx.fillStyle = P.ink; ctx.fillRect(40, 404, 304, 4);
+  text(ctx, 'TOTAL', 40, 436, 30, P.ink, 700, 'left');
+  text(ctx, '$$$$$$', 344, 436, 30, P.ink, 700, 'right');
+  ctx.save(); ctx.translate(250, 250); ctx.rotate(-0.3);
+  ctx.strokeStyle = P.fabric_terracotta; ctx.lineWidth = 7; ctx.strokeRect(-110, -36, 220, 72);
+  text(ctx, 'PAST DUE', 0, 2, 44, P.fabric_terracotta);
+  ctx.restore();
+});
+// The pre-rebrand sign: the company name in its own colour, kept for posterity.
+const oldSign = (state) => {
+  const name = String(state?.companyName ?? 'Our Company').slice(0, 18);
+  const col = state?.logoColor ?? P.role_engineer;
+  return canvasTex(`old_sign|${name}|${col}`, 512, 256, (ctx, W, H) => {
+    ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(24, 24, W - 48, 150, 20); ctx.fill();
+    const px = Math.min(72, Math.floor(880 / Math.max(6, name.length)));
+    text(ctx, name.toUpperCase(), W / 2, 100, px, P.paper);
+    text(ctx, 'the old logo. we miss it.', W / 2, 212, 28, P.ink, 600);
+  });
+};
+// #163: the rival keeps copying you, and someone keeps count.
+const rivalCopied = (state) => {
+  const name = String(state?.rival?.name ?? 'The Rival').slice(0, 16);
+  const col = state?.rival?.logoColor ?? P.fabric_slate;
+  return canvasTex(`rival_copied|${name}|${col}`, 512, 384, (ctx, W, H) => {
+    ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+    text(ctx, 'DAYS SINCE', W / 2, 56, 50, P.ink);
+    const px = Math.min(54, Math.floor(820 / Math.max(6, name.length)));
+    text(ctx, name.toUpperCase(), W / 2, 116, px, col);
+    text(ctx, 'COPIED US:', W / 2, 176, 50, P.ink);
+    // The flip counter.
+    for (const [i, d] of [[0, '0']]) {
+      ctx.fillStyle = P.ink; ctx.beginPath(); ctx.roundRect(W / 2 - 60 + i * 130, 214, 120, 146, 14); ctx.fill();
+      ctx.fillStyle = P.paper_sheet; ctx.fillRect(W / 2 - 60 + i * 130, 286, 120, 4);
+      text(ctx, d, W / 2 + i * 130, 290, 118, P.paper);
+    }
+  });
+};
+
+// Desk props sit on the subject's desk: the desk whose footprint covers the anchor tile (else the
+// nearest desk, else the tile itself on the floor). Offsets are in the desk's own frame: x across
+// the top, z from its back edge toward the sitter.
+function onDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3 } = {}) {
+  return (L, anchor, env) => {
+    const desks = [...(env.office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
+    const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
+    const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+    const e = desks.find(covers) ?? desks.sort((a, b) => Math.hypot(a.target.x - c.x, a.target.z - c.z) - Math.hypot(b.target.x - c.x, b.target.z - c.z))[0];
+    const g = new THREE.Group();
+    // Oversized, like the rest of the furniture, so a small thing still reads at gameplay zoom.
+    const item = build();
+    item.scale.setScalar(DESK_PROP_SCALE);
+    g.add(item);
+    if (e) {
+      const t = e.target, cs = Math.cos(t.rotY), sn = Math.sin(t.rotY);
+      g.position.set(t.x + cs * lx + sn * lz, TOP_Y, t.z - sn * lx + cs * lz);
+      g.rotation.y = t.rotY + rot;
+    } else {
+      g.position.set(c.x, 0, c.z);
+      g.rotation.y = rot;
+    }
+    return g;
+  };
+}
+const TOP_Y = 0.57;
+const DESK_PROP_SCALE = 1.6;
+const flatMat = (tex, rough = 0.85) => new THREE.MeshStandardMaterial({ map: tex, roughness: rough });
+const cardTex = (key, w, h, draw) => canvasTex(key, w, h, draw);
+
+function envelope(thick) {
+  return () => {
+    const g = new THREE.Group();
+    const h = thick ? 0.05 : 0.012;
+    const tex = cardTex(`env|${thick}`, 256, 170, (ctx, W, H) => {
+      ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = P.metal_soft; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W / 2, H * 0.55); ctx.lineTo(W, 0); ctx.stroke();
+      if (thick) { ctx.fillStyle = P.fabric_terracotta; ctx.fillRect(W * 0.62, 0, 16, H); }
+      else { ctx.fillStyle = P.ink; ctx.fillRect(W * 0.3, H * 0.72, W * 0.4, 8); }
+    });
+    const body = mesh(roundedBox(0.26, h, 0.17, Math.min(0.006, h / 2.2), 2), mat('paper_sheet'), 0, h / 2, 0);
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.17), flatMat(tex));
+    top.rotation.x = -Math.PI / 2; top.position.y = h + 0.001;
+    g.add(body, top);
+    return g;
+  };
+}
+function binder() {
+  const g = new THREE.Group();
+  for (let i = 0; i < 2; i++) {
+    const b = mesh(roundedBox(0.07, 0.3, 0.26, 0.01, 2), mat(i ? 'fabric_slate' : 'role_security'), i * 0.08, 0.15, 0);
+    g.add(b);
+    const label = mesh(roundedBox(0.072, 0.09, 0.12, 0.004, 1), mat('paper'), i * 0.08, 0.2, 0);
+    label.scale.set(1.02, 1, 1);
+    g.add(label);
+  }
+  return g;
+}
+function giftCards() {
+  const g = new THREE.Group();
+  const cols = ['fabric_mustard', 'role_engineer', 'marker_green', 'screen_pink', 'fabric_terracotta'];
+  cols.forEach((c, i) => {
+    const card = mesh(roundedBox(0.12, 0.004, 0.076, 0.002, 1), mat(c), 0, 0.003 + i * 0.004, 0);
+    card.rotation.y = (i - 2) * 0.28;
+    card.position.x = (i - 2) * 0.02;
+    g.add(card);
+  });
+  return g;
+}
+function stickyNotes() {
+  const g = new THREE.Group();
+  const cols = ['fabric_mustard', 'marker_orange', 'fabric_teal', 'screen_pink'];
+  for (let i = 0; i < 7; i++) {
+    const n = mesh(roundedBox(0.075, 0.004, 0.075, 0.002, 1), mat(cols[i % 4]), (i % 4) * 0.085 - 0.12, 0.002 + Math.floor(i / 4) * 0.004, Math.floor(i / 4) * 0.09 - 0.04);
+    n.rotation.y = ((i * 37) % 11 - 5) * 0.05;
+    g.add(n);
+  }
+  return g;
+}
+function photosLaminated() {
+  const g = new THREE.Group();
+  const tex = cardTex('dogphoto', 128, 96, (ctx, W, H) => {
+    ctx.fillStyle = '#bcd7e6'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#5d8f8b'; ctx.fillRect(0, H * 0.7, W, H * 0.3);
+    ctx.fillStyle = P.wood_light; ctx.beginPath(); ctx.ellipse(W * 0.5, H * 0.6, 30, 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * 0.72, H * 0.42, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = P.wood_dark; ctx.beginPath(); ctx.ellipse(W * 0.8, H * 0.32, 5, 9, 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(W * 0.76, H * 0.4, 2.5, 0, Math.PI * 2); ctx.fill();
+  });
+  for (let i = 0; i < 4; i++) {
+    const card = new THREE.Group();
+    card.add(mesh(roundedBox(0.15, 0.003, 0.115, 0.002, 1), mat('paper'), 0, 0.0015, 0));
+    const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.095), flatMat(tex, 0.25));
+    pic.rotation.x = -Math.PI / 2; pic.position.y = 0.0035;
+    card.add(pic);
+    card.position.set(i * 0.05 - 0.07, i * 0.004, (i % 2) * 0.03);
+    card.rotation.y = (i - 1.5) * 0.25;
+    g.add(card);
+  }
+  return g;
+}
+
 const BUILDERS = {
   picture_pingpong: wallPrint(pingPongPicture(false)),
   picture_pingpong_ball: wallPrint(pingPongPicture(true)),
+  brochure: wallPrint(brochure),
+  photo_lake: wallPrint(photoLake),
+  invoice: wallPrint(invoice, { w: 0.5, h: 0.67 }),
+  old_sign: wallPrint(oldSign, { w: 0.9, h: 0.45 }),
+  sign_rival_copied: wallPrint(rivalCopied),
+  envelope: onDesk(envelope(false)),
+  envelope_thick: onDesk(envelope(true)),
+  binder: onDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
+  gift_cards: onDesk(giftCards),
+  sticky_notes: onDesk(stickyNotes, { x: -0.45, z: -0.25, rot: 0.1 }),
+  photos_laminated: onDesk(photosLaminated),
 };
