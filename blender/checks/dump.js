@@ -1,8 +1,20 @@
 // In-page scene dump (dump.mjs): exact positions, poses and screen boxes of every character, item
 // and staged prop on the current frame, and an annotated copy of the frame.
 //
-//   dumpFrame(R, S)      -> { people: [...], items: [...], props: [...], camera }
-//   annotate(R, frame)   -> PNG data URL: the frame with ids, screen boxes, facing arrows, gaze rays
+//   prepare()            loads what the dump reads from the sim; await it once before dumping
+//   dumpFrame(R, S)      -> { people: [...], items: [...], props: [...], nav, spots, camera }
+//   annotate(R, frame)   -> PNG data URL: the frame with ids, screen boxes, facing arrows, gaze rays,
+//                           the walk grid, paths and goals
+//
+// nav is the walk grid people path on (layout.js createNav): cell size, origin, and one row string
+// per grid row (z), '#' blocked, 'o' walkable but under furniture (a meeting chair, a model that
+// reaches past its blocked cells), '.' free. occupied lists what stands over each 'o' cell, and
+// obstacles the rectangles the grid is built from and whose each is (an item id, 'prop' or
+// 'pillar'): a cell is blocked when its centre is within 0.12 m of one, or at the room's edge.
+// spots are the office's named spots (door, coffee, whiteboard, lounge, meeting, wander) and each
+// item's front cells (the sim's front zones). Each person carries walk: their path, goal and what
+// sent them (a moment, a perk visit), and pathHits: the furniture a body (radius BODY_R) would pass
+// through along the rest of the path, first hit first.
 //
 // World coordinates are metres (y up; the floor is y = 0). Screen coordinates are canvas pixels from
 // the top left. Yaw is radians about y; a character with yaw 0 faces +z. Nothing here changes the
@@ -32,6 +44,95 @@ function screenBox(R, box) {
 }
 const boxJson = (b) => (b && !b.isEmpty() ? { min: r3(b.min), max: r3(b.max) } : null);
 
+const BODY_R = 0.2;
+// Furniture meshes at body height, as world boxes grouped by item (and staged prop), for the walk
+// checks: rugs and mats (under 5 cm) and anything overhead (above 1.5 m) never block a body. Hidden
+// meshes count: the office draws still furniture as merged batches and hides the item's own meshes.
+function furniture(R) {
+  const out = [];
+  const add = (id, label, obj) => {
+    const all = new THREE.Box3().setFromObject(obj);
+    const parts = [];
+    obj.traverse((m) => {
+      if (!m.isMesh) return;
+      const b = new THREE.Box3().setFromObject(m);
+      if (b.isEmpty() || b.max.y < 0.05 || b.min.y > 1.5) return;
+      parts.push({ b, part: m.material?.name || m.name || 'mesh' });
+    });
+    if (parts.length) out.push({ id, label, all, parts });
+  };
+  for (const e of R.office?.placed.values() ?? []) add(e.id, e.itemId, e.obj);
+  for (const p of R.props?.current() ?? []) add(p.obj.userData.propId ?? p.prop, p.prop, p.obj);
+  return out;
+}
+const nearRect = (b, x, z, r) => x > b.min.x - r && x < b.max.x + r && z > b.min.z - r && z < b.max.z + r;
+function hitAt(F, x, z, r, skip) {
+  for (const f of F) {
+    if (skip.has(f.id) || !nearRect(f.all, x, z, r)) continue;
+    const p = f.parts.find((q) => nearRect(q.b, x, z, r));
+    if (p) return { id: f.id, label: f.label, part: p.part };
+  }
+  return null;
+}
+
+// What furniture a body of radius r standing at (x, z) would pass through, or null.
+export function furnitureAt(R, x, z, r = BODY_R) { R.scene.updateMatrixWorld(); return hitAt(furniture(R), x, z, r, new Set()); }
+
+function navOf(R, F) {
+  const n = R.office?.nav?.(), L = R.office?.current?.L;
+  if (!n || !L) return null;
+  const nz = n.blocked.length / n.nx, x0 = -L.W / 2, z0 = -L.D / 2;
+  const rows = [], occupied = [];
+  for (let k = 0; k < nz; k++) {
+    let row = '';
+    for (let i = 0; i < n.nx; i++) {
+      if (n.blocked[i + k * n.nx]) { row += '#'; continue; }
+      const x = x0 + (i + 0.5) * n.cell, z = z0 + (k + 0.5) * n.cell;
+      const by = hitAt(F, x, z, 0, new Set());
+      if (by) { row += 'o'; occupied.push({ cell: [i, k], at: [+x.toFixed(2), +z.toFixed(2)], by: `${by.id} ${by.label}`, part: by.part }); } else row += '.';
+    }
+    rows.push(row);
+  }
+  const obstacles = (R.office.obstacles?.() ?? []).map((r) => ({ ...r, x0: +r.x0.toFixed(3), x1: +r.x1.toFixed(3), z0: +r.z0.toFixed(3), z1: +r.z1.toFixed(3) }));
+  return { cell: n.cell, nx: n.nx, nz, origin: [x0, z0], W: L.W, D: L.D, rows, occupied, obstacles };
+}
+
+// The sim's front zones, loaded once by prepare() so a dump never waits between drawing a frame and
+// reading it back (a wait lets the canvas clear).
+let frontCells = null;
+export async function prepare() { ({ frontCells } = await import('/src/sim/office.js')); }
+
+function spotsOf(R) {
+  const Z = R.office?.current?.zones ?? {};
+  const pt = (p) => (p ? [+p.x.toFixed(2), +p.z.toFixed(2)] : null);
+  const out = { door: pt(Z.door), coffee: pt(Z.coffee), whiteboard: pt(Z.whiteboard), meeting: pt(Z.meeting), lounge: (Z.lounge ?? []).map(pt), wander: (Z.wander ?? []).map(pt), front: {} };
+  const L = R.office?.current?.L;
+  if (!frontCells || !L) { out.front = null; return out; }
+  for (const e of R.office?.placed.values() ?? []) {
+    const cells = frontCells(e.itemId, e.x, e.y, e.rot, e.level);
+    if (cells?.length) out.front[e.id] = cells.map(([x, y]) => [x, y, +(x + 0.5 - L.W / 2).toFixed(2), +(y + 0.5 - L.D / 2).toFixed(2)]);
+  }
+  return out;
+}
+
+// The rest of someone's walk swept with their body: the first furniture it passes through, other
+// than the desk they sit at and the item their goal is on.
+function pathHits(F, pos, walk, seat) {
+  if (!walk?.path?.length) return [];
+  const skip = new Set([seat].filter(Boolean));
+  const pts = [{ x: pos.x, z: pos.z }, ...walk.path];
+  const out = [];
+  for (let j = 1; j < pts.length && out.length < 3; j++) {
+    const a = pts[j - 1], b = pts[j], d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(d / 0.1));
+    for (let s = 0; s <= n; s++) {
+      const x = a.x + ((b.x - a.x) * s) / n, z = a.z + ((b.z - a.z) * s) / n;
+      const h = hitAt(F, x, z, BODY_R, skip);
+      if (h && !out.some((o) => o.id === h.id)) { out.push({ ...h, segment: j, at: [+x.toFixed(2), +z.toFixed(2)] }); break; }
+    }
+  }
+  return out;
+}
+
 function characters(R) {
   const out = new Map();
   R.scene.traverse((o) => {
@@ -53,8 +154,10 @@ function lowest(mesh) {
 }
 
 export function dumpFrame(R, S) {
+  const spots = spotsOf(R);
   return ownRandom(() => {
     R.scene.updateMatrixWorld();
+    const F = furniture(R);
     const people = [];
     for (const [id, root] of characters(R)) {
       if (!root.visible) continue;
@@ -71,6 +174,8 @@ export function dumpFrame(R, S) {
       const feet = ['legL', 'legR'].map((n) => partOf(root, n)).map((m) => (m ? lowest(m) : null));
       const hands = probe?.hands?.map((h) => new THREE.Vector3(...(h.isVector3 ? [h.x, h.y, h.z] : h))) ?? [];
       const held = st?.held ?? null;
+      const walk = staff ? R.walkOf?.(id) ?? null : null;
+      const r2w = (p) => p && { ...p, x: +p.x.toFixed(3), z: +p.z.toFixed(3) };
       people.push({
         id, name: staff?.name ?? null, role: staff?.role ?? null, mood: staff?.mood ?? null,
         pos: r3(pos), yaw: +yaw.toFixed(3), bounds: boxJson(box), screen: screenBox(R, box),
@@ -83,6 +188,8 @@ export function dumpFrame(R, S) {
         feet: feet.map((f) => (f ? { world: r3(f), screen: r2(screenOf(R, f)) } : null)),
         held: held ? { name: held.name || null, world: r3(new THREE.Box3().setFromObject(held).getCenter(new THREE.Vector3())), ...(probe?.held ?? {}) } : null,
         gaze: probe?.gaze ?? null, faceCam: probe?.faceCam ?? null, visible: probe?.visible ?? null,
+        walk: walk && { ...walk, path: walk.path.map(r2w), goal: r2w(walk.goal), temp: walk.temp && { ...walk.temp, goal: r2w(walk.temp.goal) } },
+        pathHits: pathHits(F, pos, walk, pk?.seat),
       });
     }
     const items = [];
@@ -100,7 +207,7 @@ export function dumpFrame(R, S) {
       props.push({ id: p.obj.userData.propId ?? null, prop: p.prop, pos: r3(p.obj.position), yaw: +p.obj.rotation.y.toFixed(3), bounds: boxJson(box), screen: screenBox(R, box), deskId: p.obj.userData.follow?.deskId ?? null });
     }
     const c = document.querySelector('canvas');
-    return { people, items, props, camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
+    return { people, items, props, nav: navOf(R, F), spots, camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
   });
 }
 
@@ -119,6 +226,19 @@ export function annotate(R, f) {
     g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(x, y - 15, w, 15);
     g.fillStyle = color; g.fillText(text, x + 3, y - 2);
   };
+  const at = (w) => screenOf(R, new THREE.Vector3(...w));
+  // The walk grid, faintly: blocked cells red, walkable cells under furniture orange.
+  if (f.nav) {
+    const { cell, origin: [x0, z0] } = f.nav;
+    f.nav.rows.forEach((row, k) => {
+      for (let i = 0; i < row.length; i++) {
+        if (row[i] === '.') continue;
+        const c = [[0, 0], [1, 0], [1, 1], [0, 1]].map(([a, b]) => at([x0 + (i + a) * cell, 0.01, z0 + (k + b) * cell]));
+        g.fillStyle = row[i] === '#' ? 'rgba(255,40,40,0.16)' : 'rgba(255,150,0,0.35)';
+        g.beginPath(); g.moveTo(c[0].x, c[0].y); for (const q of c.slice(1)) g.lineTo(q.x, q.y); g.closePath(); g.fill();
+      }
+    });
+  }
   for (const it of f.items) {
     if (!it.screen) continue;
     g.strokeStyle = 'rgba(255,200,0,0.7)'; g.lineWidth = 1;
@@ -131,8 +251,23 @@ export function annotate(R, f) {
     g.strokeRect(...p.screen);
     label(p.prop, p.screen[0], p.screen[1] + p.screen[3] + 15, '#4dd2ff');
   }
-  const at = (w) => screenOf(R, new THREE.Vector3(...w));
   for (const p of f.people) {
+    // The rest of the path (cyan) to the goal (a ring), and where the body would pass through
+    // furniture (a cross).
+    const w = p.walk;
+    if (w?.path?.length) {
+      g.strokeStyle = '#00e5ff'; g.lineWidth = 2;
+      g.beginPath(); const s0 = at(p.pos); g.moveTo(s0.x, s0.y);
+      for (const q of w.path) { const s = at([q.x, 0.02, q.z]); g.lineTo(s.x, s.y); }
+      g.stroke();
+    }
+    const goal = w?.temp?.goal ?? w?.goal;
+    if (goal && !w?.goal?.hidden) { const s = at([goal.x, 0.02, goal.z]); g.strokeStyle = '#00e5ff'; g.lineWidth = 2; g.beginPath(); g.arc(s.x, s.y, 6, 0, Math.PI * 2); g.stroke(); }
+    for (const h of p.pathHits ?? []) {
+      const s = at([h.at[0], 0.02, h.at[1]]);
+      g.strokeStyle = '#ff00ff'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(s.x - 6, s.y - 6); g.lineTo(s.x + 6, s.y + 6); g.moveTo(s.x + 6, s.y - 6); g.lineTo(s.x - 6, s.y + 6); g.stroke();
+    }
     if (!p.screen) continue;
     g.strokeStyle = '#ff2d55'; g.lineWidth = 2;
     g.strokeRect(...p.screen);

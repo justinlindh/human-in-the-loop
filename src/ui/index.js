@@ -333,7 +333,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
     lastFrame = frameAt;
     const running = (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
-    spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision));
+    spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
     announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).

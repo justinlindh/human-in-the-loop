@@ -312,6 +312,7 @@ ChatPrompt = {
   expiresWeek,       // resolves as ignored when state.week reaches it
   options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
+  stage: null | { prop, anchor, x, y },            // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
 }
 ```
 
@@ -337,6 +338,8 @@ ChatPrompt = {
 - Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
 - Copy follows the voice guide and the era gates.
 - Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
+- An event from `src/data/events.js` delivered as a prompt keeps its `stage`: the prop, and any moment the renderer plays for it, show in the office while the prompt is open, exactly as they would behind its decision card. Its choices' `grant` and `leaves` apply when it's answered, or with the default choice when it expires.
+- For an event delivered as a prompt, the default choice when it expires is its mildest outcome: the smallest cost to the subject, or with no subject the smallest cost overall (no effect, if one choice has none). The player never takes a penalty for a prompt they may not have seen. Template prompts from `src/data/prompts.js` keep their own stated consequence for being ignored.
 - Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
 
 ## Yak quick posts (#16)
@@ -386,10 +389,10 @@ People's growth is announced as events, so render, ui and audio can make it visi
 { type: 'levelUp', staffId, level, gains }          // one per level gained; gains: { [skill]: n } added by that level
 { type: 'promoted', staffId, seniority }            // seniority: 'mid' | 'senior'; follows the levelUp that caused it, same tick
 { type: 'traitEarned', staffId, traitId, source }   // source: 'record' | 'training'
-{ type: 'skillTrained', staffId, skill, gain }      // from a finished training program
+{ type: 'skillTrained', staffId, skill, gain }      // when a training program raises a skill
 ```
 
-- Emitted by the tick (or the `train` action's result, for `skillTrained`) exactly where the change happens. They draw no randomness, so balance can't move.
+- Emitted by the tick (or by the `train` action, for `skillTrained`) exactly where the change happens. They draw no randomness, so balance can't move.
 - Founders emit them too.
 - The sim emits every event. Throttling at high speed is the job of render, ui and audio.
 - The big tier uses state, not new events: `p.path` set by `choosePath`, and `p.legend`, which also keeps its existing `celebrate` event.
