@@ -326,9 +326,10 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     const item = build();
     item.scale.setScalar(scale);
     g.add(item);
-    // Things on a desk always find one; things beside a desk only when the anchor tile is a desk's.
+    // Things on a desk always find one, whatever the anchor (a wall anchor means the nearest desk);
+    // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
-    const e = anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
+    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
       g.userData.follow = { deskId: e.id, lx, lz, rot, y };
       follow(g, e);
