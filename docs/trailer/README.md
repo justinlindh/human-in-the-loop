@@ -29,7 +29,7 @@ Flags:
 - `--reuse`: keep clips already captured from the same commit and capture only the rest.
 - `--vertical`: also build the 1080x1920 cut.
 - `--no-captions`: skip the burned-in captions.
-- `--print-vo`: print the voiceover lines as JSON (the input the voice script reads).
+- `--print-vo`: print the voiceover lines as JSON (the input the voice script reads), using each line's `say` when it has one.
 - `--software`: capture with SwiftShader when there is no GPU for the browser.
 
 The cards load the Fredoka font from Google Fonts, so the build needs network access; it stops if the
@@ -83,8 +83,10 @@ and its transcript. Source and licence are in `LICENSES.md` next to this file.
      scripts/trailer/vo/render.sh shots/trailer/takes 3
    ```
 
-   The lines come from `VO.lines` in `config.js` (written to `shots/trailer/takes/lines.json`), and
-   each take lands as `<line id>.take<n>.wav`. All three variables are required: the script refuses to
+   The lines come from `VO.lines` in `config.js` (written to `shots/trailer/takes/lines.json`). A line's
+   `text` is its caption; when a line also has `say` (how the narrator speaks it, such as a URL read
+   aloud as "human in the loop game dot com"), `say` is what gets voiced and checked instead.
+   Each take lands as `<line id>.take<n>.wav`. All three variables are required: the script refuses to
    run without them, so the voice-clone script's own default reference (a recording of a real person)
    is never used.
 

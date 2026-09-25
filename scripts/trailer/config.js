@@ -43,7 +43,7 @@ export const BEATS = [
   { id: 'waffle', item: '5-4-waffle-party-real', capture: { seconds: 22 }, punch: { at: [0.5, 0.55], zoom: [1.05, 1.4] }, from: 16.0, dur: 4.0, vx: 0.5 },
   { id: 'dance', item: '5-4b-music-night-real', capture: { seconds: 30 }, actions: [LATER(0.1), LATER(1.1)], punch: { at: [0.45, 0.6], zoom: [1.1, 1.45] }, from: 22.8, dur: 3.5, vx: 0.5 },
   { id: 'yak', item: '3-4-conversations-1x', capture: { seconds: 14 }, actions: [YAK_HISTORY(0.1)], camera: [{ at: 8.6, zoom: 1.35 }], punch: { at: [0.4, 0.5], zoom: [1.0, 1.3] }, from: 10.5, dur: 3.0, vx: 0.3 },
-  { id: 'end', card: 'end', dur: 4.0 },
+  { id: 'end', card: 'end', dur: 8.0 },
 ];
 
 // Paths are relative to the repo root. `at` is seconds from the start of the trailer, or
@@ -62,7 +62,7 @@ export const MUSIC = {
 
 
 // The narration. `file` is the rendered line in the VO directory (build.js --vo); `text` doubles as
-// the burned-in caption and the TTS script (scripts/trailer/vo.py reads it through `npm run trailer -- --print-vo`).
+// the burned-in caption and the TTS script unless `say` gives the spoken form (a URL read aloud) (scripts/trailer/vo.py reads it through `npm run trailer -- --print-vo`).
 export const VO = {
   gain: 0,
   captions: true,
@@ -74,5 +74,6 @@ export const VO = {
     { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, text: 'Then whatever the agents hire.' },
     { id: 'l4', at: { beat: 'waffle', offset: 1.6 }, text: 'Reward your team with waffles. And a mandatory dance break.' },
     { id: 'l5', at: { beat: 'end', offset: 0.5 }, text: 'Human in the Loop. Someone has to be.' },
+    { id: 'l6', at: { beat: 'end', offset: 3.4 }, text: 'Play it free, right now, at humanintheloopgame.com.', say: 'Play it free, right now, at human in the loop game dot com.' },
   ],
 };
