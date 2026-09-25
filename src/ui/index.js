@@ -11,6 +11,7 @@ import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
+import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
 import { roleName } from './content.js';
 import { icon } from './icons.js';
@@ -212,10 +213,10 @@ export function createUI({ root, getState, dispatch, controls }) {
       const reward = goalReward(g);
       const wk = st.done && st.week != null ? dateOf(st.week) : null;
       return [head, h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
-        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
+        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), st.done ? null : progressBar(s, g), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
         wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null)].filter(Boolean);
     }));
-    ctx.openModal({ title: `Goals (${list.filter((g) => s.goals[g.id].done).length}/${list.length})`, iconName: 'star', body, cls: 'small' });
+    ctx.openModal({ title: `Goals: ${goalsDoneText(list.filter((g) => s.goals[g.id].done).length, list.length)}`, iconName: 'star', body, cls: 'small' });
   }
   ui.openGoals = goalsModal;
   ctx.build = buildMode;

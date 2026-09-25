@@ -38,7 +38,7 @@ Conventions:
   - **HQ perks**: Top-of-Market Pay and Office Upkeep ("chairs that do not squeak"). `id: top_pay` `id: office_upkeep`
   - **Incentives Program**: the reward ladder under Staged moments. `id: incentives`
 - **Unlocks**: Marketing, Ops, Research, Models, Automation, Meaning, Career Paths and Standups each arrive with a one-time explainer card. `capture 4-6-unlock-card`
-- **Goals and trophies**: milestones from "Place two desks" to "Ten years", each with a small reward; trophy goals fill a shelf.
+- **Goals and trophies**: milestones from "Place two desks" to "Ten years", each with a small reward; trophy goals fill a shelf. The goals card and list say "3 of 5 done", and a count goal shows a thin bar with how far along it is.
 - **The rival**: a named rival company appears, jabs at you in Yak, may raise a mega-round, and can die, be acquired or merge with you. `id: rival_appears` `id: rival_merge` `id: rival_megaround` `capture 2-6-rival`
 - **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open`
 - **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result`
@@ -234,7 +234,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **HUD**: cash with the weekly change, the date with the era emblem, brand, know-how, debt and (late) fame meters, speed buttons (1x, 2x, 4x) and a quick mute. `capture 4-1-hud`
 - **Needs strip**: things waiting on the player, most urgent first, each with a click-to-fix and sometimes a one-tap fix.
 - **Panels**: Build, Staff, Marketing, Model Vendors, Automation, Policies, Ops and Security, Office and Reports, unlocking left to right as the game goes. `capture 4-3-build-panel` `capture 4-4-reports`
-- **Decisions and toasts**: decision cards dock right with a light dim; toasts stack top right and dock inside an open panel so they never cover its controls.
+- **Decisions and toasts**: decision cards dock right with a light dim; toasts stack top right and dock inside an open panel so they never cover its controls. A toast too long for its box shows a "more" cue and opens in full on a tap.
 - **Moment captions**: a single fading line near the bottom while the printer, the first user test or the consultants play.
 - **Scene tips**: hover (or long-press) a person or item in the office for a tooltip; clicking a person opens them in Staff, clicking an item opens its card to move, upgrade or sell.
 - **Coach marks**: dismissible tips for the HUD and speed controls.
