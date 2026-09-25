@@ -1,3 +1,4 @@
+import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
 import './style.css';
 import { h, dateOf } from './dom.js';
@@ -322,7 +323,10 @@ export function createUI({ root, getState, dispatch, controls }) {
         case 'toast': {
           // "X is ready to choose a career path." opens the path picker when clicked.
           const who = /ready to choose a career path/.test(e.text) ? state.staff.find((p) => p.pathPending && e.text.startsWith(p.name)) : null;
-          toasts.push(e.text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
+          // A new market trend's toast also says what it does to products.
+          const trend = e.trendId ?? (/^Trend: /.test(e.text) ? state.market?.trend : null);
+          const text = trend && trend !== 'steady' ? `${e.text} ${trendSummary(trend)}` : e.text;
+          toasts.push(text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
           break;
         }
         case 'chat': chat.add(e, state.week); break;

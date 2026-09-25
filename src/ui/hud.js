@@ -1,5 +1,5 @@
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
-import { B, trendName, capacityOf } from './content.js';
+import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { projectLabel, stalledProject } from './panels/common.js';
 import { GOALS, ERA, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
@@ -188,6 +188,7 @@ export function createHud({ root, controls, ui }) {
   root.append(bar, trayToggle, tray);
 
   let traySig = '';
+  let trendOpen = false;
   let trayBinds = [];
 
   function buildTray(s) {
@@ -264,9 +265,21 @@ export function createHud({ root, controls, ui }) {
         h('div.t', null, h('span', null, icon('tray.effects'), ' Active effects')), list));
     }
     if (s.market?.trend && s.market.trend !== 'steady') {
+      // Tap to open: the flavour text and what the trend does, in plain words.
       const k = h('span.k.num');
-      tray.append(h('div.tray-card.trend', { title: 'Current market trend' },
-        h('div.t', null, h('span', null, icon('tray.trend'), ` ${trendName(s.market.trend)}`), k)));
+      const id = s.market.trend;
+      const fx = trendEffects(id);
+      const card = h('div.tray-card.trend', { title: 'Market trend: tap for its effects', role: 'button', tabindex: '0', 'aria-expanded': String(trendOpen),
+        onclick: () => { trendOpen = !trendOpen; card.classList.toggle('open', trendOpen); card.setAttribute('aria-expanded', String(trendOpen)); },
+        onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } } },
+        h('div.t', null, h('span', null, icon('tray.trend'), ` ${trendName(id)}`), k),
+        h('div.tdetail', null,
+          h('div.small.muted', { text: trendText(id) }),
+          fx.length ? h('ul.tfx', null, ...fx.map((f) => h(`li.${f.mult > 1 ? 'up' : 'down'}`, null,
+            h('b.num', { text: trendPct(f.mult) }), ` ${f.name} products`))) : null,
+          h('div.small.muted', { text: 'Applies to customer growth and review scores while the trend lasts.' })));
+      card.classList.toggle('open', trendOpen);
+      tray.append(card);
       trayBinds.push((st) => setText(k, `${st.market.trendWeeksLeft}w`));
     }
     for (const c of tray.children) c.dataset.occludes = '';

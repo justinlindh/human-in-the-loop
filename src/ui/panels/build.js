@@ -1,5 +1,5 @@
 import { h, setText, setWidth, setClass, fmtMoney, fmtNum, dateOf, toggleClass } from '../dom.js';
-import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES } from '../content.js';
+import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES, trendMult, trendPct } from '../content.js';
 import { portrait, liveView, stars, tabs, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { researchView } from './research.js';
@@ -91,7 +91,8 @@ export function buildPanel(ctx, arg) {
       h('span.ti', null, icon(unlocked ? `cat.${c.id}` : 'lock')),
       h('span.tn', { text: c.name }),
       h('span.ts.num', { text: unlocked ? `$${c.price}/mo` : `${c.unlockYear}` }),
-      c.compliance && unlocked ? h('span.tag', { title: 'Compliance-heavy' }, icon('compliance')) : null);
+      c.compliance && unlocked ? h('span.tag', { title: 'Compliance-heavy' }, icon('compliance')) : null,
+      unlocked ? trendBadge(trendMult(s, 'category', c.id)) : null);
       toggleClass(tile, 'on', form.category === c.id);
       toggleClass(tile, 'locked', !unlocked);
       catGrid.append(tile);
@@ -113,7 +114,8 @@ export function buildPanel(ctx, arg) {
       h('span.tn', null, unlocked ? null : icon('lock', { size: 13 }), unlocked ? a.name : ` ${a.name}`),
       h('span.tb', { text: unlocked ? a.blurb : lockText(a) }),
       h('span.tf', null, fit !== undefined ? stars(fit) : h('span.faint', { text: form.category && unlocked ? '? fit' : '' }),
-        a.agentic && unlocked ? h('span.tag', { title: 'Agentic: needs human oversight' }, icon('agentic')) : null));
+        a.agentic && unlocked ? h('span.tag', { title: 'Agentic: needs human oversight' }, icon('agentic')) : null,
+        unlocked ? trendBadge(trendMult(s, 'angle', a.id)) : null));
       toggleClass(tile, 'on', form.angle === a.id);
       toggleClass(tile, 'locked', !unlocked);
       angGrid.append(tile);
@@ -367,4 +369,12 @@ function pickGuide(s) {
       h('li', null, h('b', { text: 'Size' }), ' is speed against reach. Small ships fast and cheap; bigger takes longer and draws more customers.'),
       h('li', null, h('b', { text: 'Team' }), ' decides the reviews. Building makes Features, Craft makes Polish, Rigor makes Reliability, Ideas make Freshness. Reviewers punish a product missing any of the first three, so mix skills.')));
   return el;
+}
+
+// The current market trend on a tile: "Trending +35%" or "Cooling -25%", or nothing.
+function trendBadge(mult) {
+  if (mult === 1) return null;
+  const up = mult > 1;
+  return h(`span.trendtag.${up ? 'up' : 'down'}`, { title: `Market trend: ${trendPct(mult)} customer growth and reviews` },
+    icon(up ? 'arrow.up' : 'arrow.down', { size: 10 }), ` ${up ? 'Trending' : 'Cooling'} ${trendPct(mult)}`);
 }
