@@ -7,6 +7,7 @@ export const MENU = [
   { id: 'marketing', label: 'Marketing', key: 'M', accent: '#ffb020' },
   { id: 'models', label: 'Models', key: 'V', accent: '#9b6bff' },
   { id: 'automation', label: 'Automation', key: 'A', accent: '#3fb6b0' },
+  { id: 'policies', label: 'Policies', key: 'P', accent: '#8a6fd1' },
   { id: 'ops', label: 'Ops', key: 'O', accent: '#e5484d' },
   { id: 'office', label: 'Office', key: 'F', accent: '#d98c5f' },
   { id: 'reports', label: 'Reports', key: 'R', accent: '#5b6cff' },

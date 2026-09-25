@@ -8,7 +8,7 @@ function exclusiveWith(p) {
   for (const group of EXCLUSIVE) if (group.includes(p.id)) group.filter((x) => x !== p.id).forEach((x) => ids.add(x));
   return [...ids];
 }
-import { liveView, tabs } from '../widgets.js';
+import { liveView } from '../widgets.js';
 import * as SIM from '../../sim/index.js';
 import { automationWeeklyCost } from '../../sim/economy.js';
 import { icon } from '../icons.js';
@@ -63,13 +63,11 @@ function affected(s, fn) {
   return s.staff.filter((p) => (ROLES[p.role]?.automatedBy?.[fn] ?? 0) > 0);
 }
 
-export function automationPanel(ctx) {
-  // Before automation unlocks, this menu holds only the policies that have arrived.
-  const s0 = ctx.getState();
-  const dialsLocked = !!s0.unlocks && !s0.unlocks.automation;
-  let tab = dialsLocked ? 'policies' : 'dials';
-  const t = tabs([{ id: 'dials', icon: 'menu.automation', label: 'Automation' }, { id: 'policies', icon: 'policy', label: 'Policies' }], tab, (id) => { tab = id; t.set(id); render(); });
-  t.setHidden('dials', dialsLocked);
+// Automation and Policies are separate menus sharing this module: each shows only its own view.
+export function automationPanel(ctx) { return panelOf(ctx, 'dials'); }
+export function policiesPanel(ctx) { return panelOf(ctx, 'policies'); }
+
+function panelOf(ctx, tab) {
   const host = h('div');
 
   const dials = liveView(
@@ -187,19 +185,11 @@ export function automationPanel(ctx) {
       return card;
     })));
 
-  function render() {
-    const v = tab === 'dials' ? dials : pol;
-    host.replaceChildren(v.el);
-    v.update(ctx.getState(), true);
-  }
-  render();
+  const view = tab === 'dials' ? dials : pol;
+  host.replaceChildren(view.el);
+  view.update(ctx.getState(), true);
   return {
     el: host,
-    tabs: t.el,
-    update(s) {
-      this.setTitle?.(s.unlocks && !s.unlocks.automation ? 'Policies' : 'Automation');
-      t.setLabel('policies', `Policies (${Object.keys(s.policies).length} on)`);
-      (tab === 'dials' ? dials : pol).update(s);
-    },
+    update(s) { view.update(s); },
   };
 }
