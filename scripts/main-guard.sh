@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The main guard: checks the newest commit of origin/main with the full local suite and reports it, so
 # a main that goes red (two PRs each green alone, say) is caught at once, not by the next PR.
-#   - The gate: local CI (scripts/ci-local.sh from that commit, balance suite forced on) and one strict
-#     scene sweep. A new sweep violation seen in any mock, moment or props state fails the gate; one seen
+#   - The gate: local CI (scripts/ci-local.sh from that commit, balance suite forced on, its own sweep
+#     left out) and one strict scene sweep. A new sweep violation seen in any mock, moment or props state fails the gate; one seen
 #     only in seeded games is a finding, not a failure.
 #   - It sets the commit status "main-guard". When main is red it opens, or comments on, one issue
 #     labelled main-red with the failing steps; if commits were skipped since the last green one, it
@@ -111,7 +111,7 @@ gate() {
   fi
   summary="$STATE/$cs.md"; out="$STATE/strict-$cs"; mkdir -p "$out"
   yield
-  run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
+  run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_SKIP_SWEEP=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
   ci_rc=$?
   run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
   local counts

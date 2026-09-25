@@ -124,7 +124,7 @@ step lifecycle bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --qua
 step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
 # whose wait does not count against the ten minutes:
-#   render-checks  clipping with and without the rig, standups, and the scene sweep (new violations in
+#   render-checks  clipping with and without the rig, standups, and (unless CI_SKIP_SWEEP=1) the scene sweep (new violations in
 #                  mocks and props fail; seed-only ones are advisory), on the GPU (a GPU slot). They
 #                  check geometry and behaviour, not exact pixels.
 #   golden         the golden images, on SwiftShader under the software lock: only software GL draws
@@ -158,7 +158,10 @@ render_step() { # <name> <gpu|software> <command>
   return 1
 }
 # The four render checks run side by side (scripts/lib/run-parallel.sh), each with its own vite cache.
-step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' 'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs' 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
+# CI_SKIP_SWEEP=1 (the main guard, which runs its own strict sweep) leaves the sweep out.
+render_parts="'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/clip.mjs --rig' 'standup=node blender/checks/standup.mjs'"
+[ "${CI_SKIP_SWEEP:-}" = 1 ] || render_parts+=" 'sweep=node blender/checks/sweep.mjs --gpu --out shots/sweep'"
+step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' $render_parts"
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 # Renderer counts (draw calls, triangles, programs, textures) against scripts/perf/budget.json: exact
 # on any machine, so they can gate; timing is never checked here. A production build per run, on a GPU slot.
@@ -168,6 +171,19 @@ perf_budget() {
     && node scripts/perf/budget.js "$LOGS/perf-counts.json" --counts-only
 }
 step perf-budget perf_budget
+# Phone and tablet playability (scripts/phone-check.js, on a GPU slot), for changes that can affect
+# touch play: the UI, audio, the page, the camera, the game loop's input.
+phone_check() {
+  [ -f scripts/phone-check.js ] || { echo "skipped: no scripts/phone-check.js in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/ui/|src/audio/|index\.html$|src/render/camera\.js$|src/main\.js$)' <<<"$files"; then
+    echo "skipped: no UI, audio, page, camera or input changes"; return 0
+  fi
+  timeout 900 node scripts/phone-check.js --out "$LOGS/phone"
+}
+step phone-check phone_check
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
