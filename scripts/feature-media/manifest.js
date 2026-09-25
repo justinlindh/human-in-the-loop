@@ -158,7 +158,7 @@ export const ITEMS = [
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
     // the card, so the camera sits on one person at their desk. The window keeps the card out.
     id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
-    setup: BARE, actions: [...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
+    setup: BARE, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
 
@@ -224,19 +224,20 @@ export const ITEMS = [
   },
   {
     // "Sponsor a prize" hangs the cheque; the live week raises the hackathon.
-    id: 'site-cheque', title: 'Landing page: the giant novelty cheque', query: 'seed=1&speed=1', warmup: 0.5, still: true, record: '3840x2160',
+    id: 'site-cheque', title: 'Landing page: the giant novelty cheque', query: 'seed=1&speed=1', warmup: 0.5, seconds: 20.5, record: '3840x2160',
     setup: `(async () => { await ${PRE_DECISION('ai_summit_hackathon', 600)}; ${CLEAN}; })()`,
     actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('ai_summit_hackathon', 1, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['giant_cheque'], 3.2, 0, 20)],
     screenshots: [17],
     out: [STILL('cheque', 17, { x: 0.3698, y: 0.2454, w: 0.25, h: 0.25 })],
   },
   {
-    // Shot while the pivot is open, the card hidden.
-    id: 'site-whiteboard', title: 'Landing page: the whiteboard, the market has spoken', query: 'seed=1&speed=1', moment: 'pivot_pitch --stage floor', pre: true, warmup: 6.5, still: true, record: '3840x2160',
+    // Shot while the pivot is open, the card hidden. The cheque, this and the visitor also make the
+    // decisions loop (scripts/reels/decisions.sh).
+    id: 'site-whiteboard', title: 'Landing page: the whiteboard, the market has spoken', query: 'seed=1&speed=1', moment: 'pivot_pitch --stage floor', pre: true, warmup: 6.5, seconds: 8, record: '3840x2160',
     setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
-    actions: [...OPEN(['whiteboard_scrawl']), ...FOLLOW(['whiteboard_scrawl'], 3.2, 0, 5)],
+    actions: [...OPEN(['whiteboard_scrawl']), ...FOLLOW(['whiteboard_scrawl'], 3.2, 0, 8)],
     screenshots: [4.5],
-    out: [STILL('whiteboard', 4.5, { x: 0.2917, y: 0.2917, w: 0.4167, h: 0.4167 })],
+    out: [STILL('whiteboard', 4.5, { x: 0.3125, y: 0.2106, w: 0.375, h: 0.375 })],
   },
   {
     // "Watch in silence": the founders flinch together behind the visitor.
