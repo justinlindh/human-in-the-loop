@@ -5,6 +5,7 @@
 //   node blender/checks/dump.mjs --out <dir> [--mock floor | --seed N [--week W] [--bot balanced|none]]
 //        [--snapshot <path> | --moment '<find query>'] [--patch-js '<js>'] [--event '<json>'] [--warm 60]
 //        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium]
+//        [--views 0,1,2,3]
 //
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
@@ -12,6 +13,8 @@
 //   --moment     start from the first indexed moment matching a find query, e.g. 'printer_jam --choice 0'
 //   --event      an event or list of events handed to the renderer with the patch
 //   --frames     frames (at 30 fps, counted from the patch) to dump; default 0
+//   --views      camera turns to measure each person's and prop's visibility from (0 is the view as
+//                it is, n is n presses of E); without it, only the current view
 //   --clip       dump every --every frames (default 15) for this many seconds
 //
 // Writes <dir>/dump.json ({ scene, frames: [{ frame, t, people, items, props, camera }] }), and for
@@ -71,12 +74,13 @@ try {
   const dumped = [];
   let at = 0;
   for (const f of frames) {
-    const shot = await page.evaluate((n) => {
+    const shot = await page.evaluate(({ n, views }) => {
+      const o = { views };
       window.__step(n);
       const R = window.__hitlRender, S = window.__HITL.state;
-      const d = window.__dump.dumpFrame(R, S);
+      const d = window.__dump.dumpFrame(R, S, { views: o.views });
       return { d, annotated: window.__dump.annotate(R, d) };
-    }, f - at);
+    }, { n: f - at, views: opt('views') ? opt('views').split(',').map(Number) : null });
     at = f;
     const name = String(f).padStart(4, '0');
     await canvas.screenshot({ path: `${dir}/${name}.png` });
