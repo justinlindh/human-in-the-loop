@@ -1,3 +1,4 @@
+import { phoneMedia } from './media.js';
 import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
 import './style.css';
@@ -288,7 +289,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
 
   // The stylesheet's phone layout (narrow, or short in landscape).
-  const PHONE = typeof matchMedia === 'function' ? matchMedia('(max-width: 480px), (max-height: 500px)') : { matches: false };
+  const PHONE = phoneMedia();
 
   // New office items: when the stage, the first award, or the era opens items up, announce them.
   // A different state object (a new game or a load) resets the baseline without announcing.
