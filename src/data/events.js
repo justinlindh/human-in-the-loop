@@ -103,10 +103,11 @@ const list = [
   {
     id: 'hackathon', kind: 'staff', weight: 2, cooldownWeeks: 40, random: true, subject: null,
     when: (s) => s.staff.length >= 4,
+    stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' },
     title: 'Hackathon weekend?',
     text: 'Someone proposes a weekend hackathon. There will be pizza and questionable architecture.',
     choices: [
-      { label: 'Host it', hint: 'Costs cash, team meaning up, a bit of debt', effects: { cash: -3000, teamMeaning: 6, debt: 2 }, outcome: 'Twelve prototypes, one good idea, zero sleep.' },
+      { label: 'Host it', hint: 'Costs cash, team meaning up, a bit of debt', effects: { cash: -3000, teamMeaning: 6, debt: 2 }, leaves: { prop: 'pizza_boxes', until: { weeks: 2 } }, outcome: 'Twelve prototypes, one good idea, zero sleep.' },
       { label: 'Skip it', hint: 'Nothing happens', effects: {}, outcome: 'Everyone goes home and does their laundry.' },
     ],
   },
@@ -317,6 +318,7 @@ const list = [
   {
     id: 'open_plan_office', kind: 'leadership', weight: 1, cooldownWeeks: ONCE, random: true, subject: 'founder',
     when: (s) => s.officeStage >= 1,
+    stage: { prop: 'sledgehammer', anchor: 'wall' },
     title: 'Knock down the walls?',
     text: '{name} wants an open-plan office. "Collaboration!" The walls are not structural. Neither, it turns out, is the plan.',
     choices: [
@@ -327,10 +329,11 @@ const list = [
   {
     id: 'hackathon_week', kind: 'leadership', weight: 1, cooldownWeeks: 52, random: true, subject: 'founder',
     when: (s, h) => s.staff.length >= 5 && h.live.length > 0,
+    stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' },
     title: 'A whole hackathon week',
     text: '{name} wants to stop everything for a week of pure hacking. "Remember when we used to have fun?"',
     choices: [
-      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, outcome: 'Someone builds a karaoke bot for Yak. It is the best thing you own.' },
+      { label: 'Stop everything for a week', hint: 'Costs $2k and half output next week; hype and team meaning up', effects: { cash: -2000, hype: 8, teamMeaning: 5, modifier: { key: 'output', value: -0.5, weeks: 1, label: 'Hackathon week' } }, leaves: { prop: 'pizza_boxes', until: { weeks: 2 } }, outcome: 'Someone builds a karaoke bot for Yak. It is the best thing you own.' },
       { label: 'Not this quarter', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The hackathon becomes a "hack afternoon". It gets moved twice.' },
     ],
   },
@@ -415,6 +418,7 @@ const list = [
   {
     id: 'bridge_loan', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'screens_red', anchor: 'screens' },
     title: 'The bank account is red',
     text: 'The balance has a minus sign in front of it. Your accountant has started using the word "concerning" in every sentence.',
     choices: [
@@ -513,6 +517,7 @@ const list = [
   {
     id: 'agent_runaway_spend', kind: 'incident', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'rack_hot', anchor: 'wall' },
     title: 'The cloud bill has feelings',
     text: 'An agent spun up 4,000 GPUs to "optimize" a cron job. The bill is still counting.',
     choices: [
@@ -592,6 +597,7 @@ const list = [
   {
     id: 'ransomware', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'screens_skull', anchor: 'screens' },
     title: 'Ransomware',
     text: 'Every server now displays a skull and a crypto wallet address. The skull is animated.',
     choices: [
@@ -680,6 +686,7 @@ const list = [
   {
     id: 'first_user_test', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'visitor_chair', anchor: 'subjectDesk' },
     title: 'The first user test',
     text: 'A real person, found through a friend of a friend, is about to try {company}\'s first product. The founders are hiding behind a door.',
     choices: [
@@ -725,6 +732,7 @@ const list = [
   {
     id: 'cat_request', kind: 'staff', weight: 2, cooldownWeeks: 78, random: true, subject: 'workingStaff',
     when: (s) => s.workPolicy !== null && s.staff.length >= 8 && !s.pets.some((p) => p.species === 'cat') && s.week >= (s.flags.workPolicyAsked ?? 9999) + 52,
+    stage: { prop: 'pet_carrier', anchor: 'door' },
     title: 'A cat, apparently',
     text: '{name} wants to bring a cat to the office. The cat has not been consulted and does not care either way.',
     choices: [
@@ -735,6 +743,7 @@ const list = [
   {
     id: 'pet_mishap', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.pets.length > 0,
+    stage: { prop: 'cable_chewed', anchor: 'door' },
     title: 'Pet incident',
     text: 'A pet chewed through the network cable in the middle of a customer demo. The demo is now about the pet.',
     choices: [
@@ -811,6 +820,7 @@ const list = [
   {
     id: 'floor_next_door', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
+    stage: { prop: 'tape_measure', anchor: 'wall' },
     title: 'The floor next door is empty',
     text: 'The company next door moved out. Someone has already measured the wall between you twice. "It is only drywall," they say. They are not a builder.',
     choices: [
@@ -1045,6 +1055,7 @@ const list = [
   {
     id: 'investor_demo_day', kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: null, funding: 'preseed',
     when: (s, h) => h.live.length > 0,
+    stage: { prop: 'smoothie', anchor: 'subjectDesk' },
     title: 'Demo day',
     text: 'Your fund\'s demo day is next week. Two minutes on stage, three hundred investors, and one very loud smoothie blender.',
     choices: [
@@ -1082,7 +1093,7 @@ const list = [
     title: 'Project {moonshot}',
     text: 'Your best engineers have a pitch. It is ambitious, expensive, and slightly unhinged. They have named it Project {moonshot}. They made a logo before they made a plan.',
     choices: [
-      { label: 'Fund the moonshot', hint: '-{moonshotWeekly} a week for up to two years; you can pull the plug every 26 weeks', effects: { moonshot: 'start', purpose: { craft: 4 } }, outcome: 'A corner of the office gets a curtain and a sign that says "do not ask". Everyone asks.' },
+      { label: 'Fund the moonshot', hint: '-{moonshotWeekly} a week for up to two years; you can pull the plug every 26 weeks', effects: { moonshot: 'start', purpose: { craft: 4 } }, leaves: { prop: 'curtain', until: { flag: 'moonshotDone' } }, outcome: 'A corner of the office gets a curtain and a sign that says "do not ask". Everyone asks.' },
       { label: 'Not now', hint: 'Nothing happens', effects: {}, outcome: 'The engineers say "fair enough" and start a smaller, secret version on Fridays.' },
     ],
   },
@@ -1148,6 +1159,7 @@ const list = [
   {
     id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
     when: (s) => s.office.placed.some((i) => i.itemId === 'espresso'),
+    stage: { prop: 'smoke_puff', anchor: 'kitchen' },
     chat: 'Coffee machine status: deceased. Please grieve responsibly.',
     title: 'The coffee machine is dead',
     text: 'The espresso machine made a noise like a sad robot and stopped. Productivity is in freefall.',

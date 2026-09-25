@@ -9,7 +9,9 @@ import { game, addStaff, addProduct, passOfficeGates } from './helpers.js';
 
 // Prop ids art has shipped; the sim uses no others.
 const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure', 'photo_lake', 'invoice', 'old_sign', 'sign_rival_copied',
-  'envelope', 'envelope_thick', 'binder', 'gift_cards', 'sticky_notes', 'photos_laminated']);
+  'envelope', 'envelope_thick', 'binder', 'gift_cards', 'sticky_notes', 'photos_laminated',
+  'pizza_boxes', 'smoothie', 'curtain', 'sledgehammer', 'tape_measure', 'pet_carrier', 'cable_chewed', 'visitor_chair',
+  'screens_red', 'screens_skull', 'smoke_puff', 'rack_hot']);
 
 const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
@@ -57,6 +59,33 @@ describe('issue #228: staged props, batch one', () => {
     expect(s.office.props).toHaveLength(1);
     s.rival.status = 'dead';
     ladderSystem(makeCtx(s));
+    propsSystem(makeCtx(s));
+    expect(s.office.props).toEqual([]);
+  });
+
+  it('screens overlays have no tile; the moonshot curtain stays until the moonshot is done', async () => {
+    const { moonshotEffect } = await import('../../src/sim/moonshot.js');
+    const s = passOfficeGates(game(4));
+    s.cash = 1e8;
+    raise(s, 'ransomware');
+    expect(s.pendingDecision.stage).toMatchObject({ prop: 'screens_skull', anchor: 'screens', x: null, y: null });
+    raise(s, 'moonshot_pitch');
+    choose(s, 'Fund the moonshot');
+    expect(s.office.props.map((x) => x.prop)).toEqual(['curtain']);
+    propsSystem(makeCtx(s));
+    expect(s.office.props).toHaveLength(1);
+    moonshotEffect(makeCtx(s), 'stop');
+    propsSystem(makeCtx(s));
+    expect(s.office.props).toEqual([]);
+  });
+
+  it('a hackathon leaves pizza boxes for two weeks', () => {
+    const s = passOfficeGates(game(5));
+    s.cash = 1e6;
+    raise(s, 'hackathon');
+    choose(s, 'Host it');
+    expect(s.office.props.map((x) => x.prop)).toEqual(['pizza_boxes']);
+    s.week += 2;
     propsSystem(makeCtx(s));
     expect(s.office.props).toEqual([]);
   });

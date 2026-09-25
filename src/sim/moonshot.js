@@ -26,9 +26,12 @@ export function moonshotEffect(ctx, step) {
     m.checkins++;
   } else if (step === 'stop') {
     Object.assign(m, { active: false, outcome: 'stopped' });
+    state.flags.moonshotDone = true;
     addFame(state, B.moonshotStopFame);
   } else if (step === 'resolve') {
     m.active = false;
+    // The curtain comes down either way.
+    state.flags.moonshotDone = true;
     if (chance(rng, B.moonshotSuccess)) {
       m.outcome = 'shipped';
       launchMoonshot(ctx, m);
