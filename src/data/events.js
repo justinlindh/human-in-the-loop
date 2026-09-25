@@ -3,7 +3,10 @@ import { OFFICE_NODS } from './office-nods.js';
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
-// funding: only for companies funded that way.
+// funding: only for companies funded that way. yak: { ignore }: a low-stakes event delivered as a Yak reply prompt
+// instead of a popup while prompts are on; ignore is the choice that happens if nobody answers: the mildest one, with
+// the smallest cost to the subject (or overall), and never one that grants an item or a pet, so nobody pays for or
+// gets saddled with a prompt they did not see (null: nothing).
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
@@ -93,7 +96,7 @@ const list = [
     auto: { meaning: 10, teamMeaning: 1 },
   },
   {
-    id: 'senior_side_project', kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
+    id: 'senior_side_project', yak: { ignore: 0 }, kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
     when: () => true,
     title: 'A little side project',
     text: '{name} has been rebuilding the admin panel on weekends "just to see". It is beautiful.',
@@ -459,7 +462,7 @@ const list = [
 
   // Vendors
   {
-    id: 'vendor_new_version', kind: 'vendor', weight: 2, cooldownWeeks: 26, random: true, subject: null,
+    id: 'vendor_new_version', yak: { ignore: 1 }, kind: 'vendor', weight: 2, cooldownWeeks: 26, random: true, subject: null,
     when: () => true,
     title: 'A new frontier model',
     text: 'A new model dropped overnight. #general is now 90% benchmark screenshots.',
@@ -725,7 +728,7 @@ const list = [
     ],
   },
   {
-    id: 'pet_request', kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
+    id: 'pet_request', yak: { ignore: 1 }, kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
     when: (s) => s.workPolicy !== null && s.workPolicy !== 'remote' && s.staff.length >= 6 && !s.pets.some((p) => p.species === 'dog'),
     stage: { prop: 'photos_laminated', anchor: 'subjectDesk' },
     title: 'A dog on Fridays?',
@@ -977,7 +980,7 @@ const list = [
     ],
   },
   {
-    id: 'app_store_rejection', kind: 'market', weight: 2, cooldownWeeks: 39, random: true, subject: 'randomProduct', eras: ['classic'],
+    id: 'app_store_rejection', yak: { ignore: 0 }, kind: 'market', weight: 2, cooldownWeeks: 39, random: true, subject: 'randomProduct', eras: ['classic'],
     when: (s, h) => h.live.length > 0,
     title: 'Rejected by the app store',
     text: 'The app store rejected the latest {product} update for "unclear reasons". The reasons are, in fact, unclear.',
@@ -1179,7 +1182,7 @@ const list = [
     ],
   },
   {
-    id: 'coffee_wanted', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    id: 'coffee_wanted', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso' || i.itemId === 'coffee_corner'),
     chat: 'The office kettle is doing its best. Its best is not enough.',
     stage: { prop: 'french_press', anchor: 'kitchen' },
@@ -1191,7 +1194,7 @@ const list = [
     ],
   },
   {
-    id: 'coffee_wanted_corner', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    id: 'coffee_wanted_corner', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'coffee_corner'),
     chat: 'The coffee corner has a new review taped to it. One star. Written in coffee.',
     stage: { prop: 'printout', anchor: 'kitchen' },

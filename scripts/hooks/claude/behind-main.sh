@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Claude Code SessionStart and UserPromptSubmit hook: tells the session when its checkout is behind
 # origin/main, with the tooling and contract commits it is missing (scripts/, blender/checks/,
-# docs/toolkit.md, src/contract/). Silent when up to date, and each turn repeats it only when the
+# docs/toolkit.md and docs/toolkit/, src/contract/). Silent when up to date, and each turn repeats it only when the
 # count changed. It never waits on the network: it starts a quiet fetch in the background at most
 # once every two minutes, so the next notice is current. Fails open on its own errors.
 input="$(cat)" || exit 0
@@ -22,7 +22,7 @@ key="$behind $(git -C "$top" rev-parse --short origin/main)"
 echo "$key" >"$state" 2>/dev/null
 branch="$(git -C "$top" branch --show-current)"; branch="${branch:-detached HEAD}"
 msg="This checkout ($branch) is $behind commit(s) behind origin/main."
-tools="$(git -C "$top" log --format='  %h %s' HEAD..origin/main -- scripts/ blender/checks/ docs/toolkit.md src/contract/ 2>/dev/null)"
+tools="$(git -C "$top" log --format='  %h %s' HEAD..origin/main -- scripts/ blender/checks/ docs/toolkit.md docs/toolkit/ src/contract/ 2>/dev/null)"
 if [ -n "$tools" ]; then
   n="$(wc -l <<<"$tools")"
   msg+=$'\n'"Tooling or contract changes you don't have yet ($n):"$'\n'"$(head -n 6 <<<"$tools")"

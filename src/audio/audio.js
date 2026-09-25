@@ -72,12 +72,6 @@ export function createAudio({ quality = 'high' } = {}) {
 
   const now = () => (ctx ? ctx.currentTime : 0);
   // Pause and title state from the page when the host does not pass them (the menu pause flag and title screen).
-  // The host passes spotlight as a flag; its kind (which sounds the scene keeps) is on the clock.
-  function withSpot(c) {
-    if (!c?.spotlight) return c;
-    const k = typeof window !== 'undefined' ? window.__HITL?.clock?.spotlight?.kind : null;
-    return { ...c, spotlight: { kind: k ?? null } };
-  }
   function hostCtx() {
     const h = typeof window !== 'undefined' ? window.__HITL : null;
     const busy = h?.clock?.busy === true;
@@ -203,7 +197,7 @@ export function createAudio({ quality = 'high' } = {}) {
     lastState = state;
     lastCtx = c;
     lastUpdateAt = performance.now();
-    if (ready()) run(director.update(state, now(), withSpot(c)));
+    if (ready()) run(director.update(state, now(), c));
   }
 
   // Until the host calls update() every frame, keep music and ambient barks going from the last state seen.
@@ -211,7 +205,7 @@ export function createAudio({ quality = 'high' } = {}) {
     const tick = () => {
       const s = stateNow();
       if (ready()) ducked?.pump();
-      if (ready() && s && performance.now() - lastUpdateAt > 500) run(director.update(s, now(), withSpot({ ...lastCtx, ...hostCtx() })));
+      if (ready() && s && performance.now() - lastUpdateAt > 500) run(director.update(s, now(), { ...lastCtx, ...hostCtx() }));
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
