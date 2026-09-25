@@ -6,6 +6,8 @@
 # Usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>]
 #   --no-comment  no comment and no status (a local check)
 #   --head        the head to test, such as the commit just pushed: waits until GitHub reports it
+# To stop a run, signal its process group: kill -TERM -<pgid> (the pgid is printed at start). The
+# run then stops its local CI, removes its worktree and sets local-ci to error.
 set -uo pipefail
 
 usage="usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>]"
@@ -44,6 +46,7 @@ mkdir -p "$ROOT"
 # each other's trees mid-run.
 exec 9>"$ROOT/pr-$pr.lock"
 flock -n 9 || { echo "ci-pr: another run for #$pr is in progress; not starting a second one" >&2; exit 3; }
+echo "ci-pr: #$pr run $$, process group $(ps -o pgid= -p $$ | tr -d ' '); stop it with kill -TERM -<that group>"
 WT="$ROOT/pr-$pr-$$"
 
 read_pr() { read -r head base title < <(gh pr view "$pr" --json headRefOid,baseRefName,title --jq '[.headRefOid, .baseRefName, .title] | @tsv' | tr '\t' '\037' | awk -F'\037' '{ printf "%s %s %s\n", $1, $2, $3 }'); }
@@ -153,7 +156,8 @@ fi
 summary="$(mktemp)"
 t0=$(date +%s)
 # This checkout's ci-local.sh, so PRs cut before it existed are tested the same way.
-CI_DIR="$WT" setsid bash "$REPO/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary" &
+# fd 9 (this PR's lock) is closed for local CI, so nothing it starts can keep the lock after this run ends.
+CI_DIR="$WT" setsid bash "$REPO/scripts/ci-local.sh" --base "origin/$base" --title "$title" --summary "$summary" 9>&- &
 ci_pid=$!
 wait "$ci_pid"
 rc=$?

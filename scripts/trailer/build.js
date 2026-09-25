@@ -82,10 +82,18 @@ const AUDIO_ONLY = !!args['audio-only'];
 const todo = AUDIO_ONLY ? [] : args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
-  mkdirSync(dirname(RENDER_LOCK), { recursive: true });
-  await run('flock', ['-w', '1800', '-E', '75', RENDER_LOCK, 'node', 'scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
-    '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])],
-  { timeout: CAPTURE_TIMEOUT_S });
+  const capture = ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
+    '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])];
+  // The render lock is re-entrant: under a caller that holds it (HITL_RENDER_LOCK_HELD=1) capture runs
+  // straight away; otherwise this takes it and marks it held for everything the capture starts.
+  if (process.env.HITL_RENDER_LOCK_HELD === '1') {
+    await run('node', capture, { timeout: CAPTURE_TIMEOUT_S });
+  } else {
+    mkdirSync(dirname(RENDER_LOCK), { recursive: true });
+    process.env.HITL_RENDER_LOCK_HELD = '1';
+    try { await run('flock', ['-w', '1800', '-E', '75', RENDER_LOCK, 'node', ...capture], { timeout: CAPTURE_TIMEOUT_S }); }
+    finally { delete process.env.HITL_RENDER_LOCK_HELD; }
+  }
   for (const b of todo) writeFileSync(keyFile(b), keyOf(b));
 }
 for (const b of AUDIO_ONLY ? [] : clipBeats) {

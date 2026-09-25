@@ -83,10 +83,13 @@ step soak npm run soak
 # A retry is reported in the summary (and so in the PR comment) with the first pass's error.
 NOTES=()
 RENDER_LOCK="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/render-checks.lock"
+# Re-entrant: a caller that already holds the lock sets HITL_RENDER_LOCK_HELD=1, and a nested
+# taker runs straight through instead of waiting on itself.
 render_pass() {
+  if [ "${HITL_RENDER_LOCK_HELD:-}" = 1 ]; then timeout 600 bash -c "$1"; return; fi
   mkdir -p "$(dirname "$RENDER_LOCK")"
   local t0; t0=$(now)
-  flock -w "${RENDER_LOCK_WAIT:-1800}" -E 75 "$RENDER_LOCK" bash -c 'echo "render-checks: waited $(( $(date +%s) - '"$t0"' ))s for the render lock"; timeout 600 bash -c "$0"' "$1"
+  HITL_RENDER_LOCK_HELD=1 flock -w "${RENDER_LOCK_WAIT:-1800}" -E 75 "$RENDER_LOCK" bash -c 'echo "render-checks: waited $(( $(date +%s) - '"$t0"' ))s for the render lock"; timeout 600 bash -c "$0"' "$1"
 }
 render_checks() {
   local pass='node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/golden.mjs'
