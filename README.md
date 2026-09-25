@@ -144,7 +144,7 @@ CI runs locally, on the same workstation as the agents, and gates merges through
 - **Agents:** Claude Code with Claude Opus, as an agent team, plus the [Superpowers](https://github.com/obra/superpowers) skills for brainstorming, planning and review (the spec and plan in `docs/superpowers/` came out of that). The logo and landing page started in Claude Design.
 - **Game:** three.js, Vite and Vitest; plain JavaScript, no framework.
 - **Models:** Blender, run headless from Python scripts. Nothing is modelled by hand; every mesh is code.
-- **Team tools:** every script, check and helper the agents use is documented in [`docs/toolkit.md`](docs/toolkit.md), starting from a task-based "when you need to..." index, with one page per tool under [`docs/toolkit/`](docs/toolkit/). `npm run toolkit` prints them all.
+- **Team tools:** every script, check and helper the agents use is documented in [`docs/toolkit.md`](docs/toolkit.md), with one page per tool under [`docs/toolkit/`](docs/toolkit/). `npm run toolkit` prints them all.
 - **Captures:** Playwright driving headless Chromium, with the GPU for trailer and README clips and a software renderer for pixel checks; ffmpeg for encoding.
 - **Audio:** ACE-Step 1.5 for music, Chatterbox-Turbo, Zonos and Qwen3-TTS for voices, all running locally on the GPU.
 - **Hardware:** one desktop with an AMD Ryzen 9 9950X3D and an NVIDIA RTX 5090. The whole team, its CI and all audio generation share it.
