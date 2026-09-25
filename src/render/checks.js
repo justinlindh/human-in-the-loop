@@ -557,6 +557,31 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(10);
   }
+  // 4. The sledgehammer: whoever fetches it and carries it to the wall stays clear of furniture and
+  // props, and the walls-down choice ends in a swing.
+  {
+    R.moments.full = true;
+    S.pendingDecision = { eventId: 'open_plan_office', subjectId: ids[0], stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } };
+    let worst = 0, worstWho = null, phases = new Set();
+    for (let i = 0; i < 30 * 25; i++) {
+      if (i === 30 * 16) { S.modifiers = [...(S.modifiers ?? []), { id: 'chk', key: 'output', value: 0.08, label: 'Open-plan buzz', untilWeek: S.week + 26, source: 'check' }]; S.pendingDecision = null; }
+      step(1);
+      const h = R.moments.hammer;
+      if (!h || i % 5) continue;
+      phases.add(h.phase);
+      const root = charOf(R.scene, h.id);
+      const own = new Set([R.perks.peek(h.id)?.seat]);
+      for (const e of R.office.placed.values()) {
+        if (own.has(e.id)) continue;
+        const v = bodyInside(root, meshes(e.obj), false);
+        if (v > worst) { worst = v; worstWho = `${h.id} (${h.phase}) in ${e.itemId}:${e.id}`; }
+      }
+    }
+    results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho });
+    S.modifiers = (S.modifiers ?? []).filter((m) => m.id !== 'chk');
+    R.moments.full = false;
+    step(10);
+  }
   R.perks.hold = false;
   return results;
 }

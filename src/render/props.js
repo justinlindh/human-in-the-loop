@@ -17,8 +17,10 @@ const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 
 export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }
-  const dropped = new Set();
-  let overlay = null; // keys whose desk was sold: not rebuilt while the sim still lists them
+  const dropped = new Set(); // keys whose desk was sold: not rebuilt while the sim still lists them
+  let overlay = null;        // the screen takeover shown now ('red' | 'skull' | null)
+  let clock = 0;
+  const gone = [];          // { prop, x, z, at }: props that just went, for a few seconds (a pet leaving its carrier)
   let root = null;
 
   function wanted(state) {
@@ -44,7 +46,7 @@ export function createProps(office, screens = null) {
     screens?.setOverlay(overlay);
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));
-    for (const [k, e] of live) if (!keys.has(k) && !e.gone) { e.gone = true; e.t = 0; }
+    for (const [k, e] of live) if (!keys.has(k) && !e.gone) { e.gone = true; e.t = 0; gone.push({ prop: e.prop, x: e.obj.position.x, z: e.obj.position.z, at: clock }); }
     for (const k of dropped) if (!keys.has(k)) dropped.delete(k);
     for (const w of want) {
       const e = live.get(w.key);
@@ -67,6 +69,8 @@ export function createProps(office, screens = null) {
   }
 
   function update(dt) {
+    clock += dt;
+    while (gone.length && clock - gone[0].at > 8) gone.shift();
     let moved = false;
     for (const [k, e] of live) {
       e.t += dt;
@@ -107,7 +111,10 @@ export function createProps(office, screens = null) {
   // For checks: the free-top grid of a placed desk entry, as rows of '.' (free) and '#' (taken).
   const deskMap = (e) => { const g = deskGrid(e); const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.cells[i + k * g.nx] ? '#' : '.'; rows.push(r); } return rows; };
 
-  return { sync, update, objectOf, current, deskMap, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  // Where a prop of this id stood if it went within the last `within` seconds, else null.
+  const goneAt = (prop, within = 5) => [...gone].reverse().find((g) => g.prop === prop && clock - g.at <= within) ?? null;
+
+  return { sync, update, objectOf, current, deskMap, goneAt, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),

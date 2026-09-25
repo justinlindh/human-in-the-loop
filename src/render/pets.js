@@ -100,7 +100,7 @@ function buildPet(species, look) {
   return { root, body, legs, neck, head, ears, tail, emote };
 }
 
-export function createPets({ office, recs, emote: staffEmote, parent }) {
+export function createPets({ office, recs, emote: staffEmote, parent, getProps = () => null }) {
   const pets = new Map();       // pet id -> rec
   const pens = [];
   const penGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.17, 8);
@@ -118,7 +118,10 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
     return list[hash(p.id) % Math.max(1, list.length)] ?? null;
   }
 
-  function spawnAt() {
+  // New pets come in at the door, or step out of the pet carrier a decision just put down.
+  function spawnAt(species) {
+    const c = species === 'cat' || species === 'dog' ? getProps()?.goneAt('pet_carrier') : null;
+    if (c) return new THREE.Vector3(c.x, 0, c.z);
     const d = office.current.zones.door;
     return new THREE.Vector3(d.x, 0, d.z);
   }
@@ -134,7 +137,7 @@ export function createPets({ office, recs, emote: staffEmote, parent }) {
       const look = hash(p.id);
       const rig = buildPet(p.species === 'cat' ? 'cat' : 'dog', look);
       parent.add(rig.root);
-      const pos = spawnAt();
+      const pos = spawnAt(p.species);
       pets.set(p.id, { id: p.id, data: p, species: p.species === 'cat' ? 'cat' : 'dog', rig, pos, yaw: 0, path: [], mode: 'idle', t: rnd(1, 3), y: 0, pose: 'stand', emoteT: 0, phase: Math.random() * 6 });
     }
     for (const [id, r] of pets) if (!want.has(id)) { r.rig.root.removeFromParent(); pets.delete(id); }
