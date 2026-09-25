@@ -386,16 +386,28 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
       // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.
       const around = overhang > 0 ? [...(env.office.placed?.values() ?? [])].filter((o) => o !== e && o.obj).map((o) => new THREE.Box3().setFromObject(o.obj)) : [];
-      // On the top: this desk, shrinking a little if need be, else the nearest desks with room.
+      // On the top: this desk, shrinking a little if need be, else the nearest desks with room. A
+      // prop that belongs to its desk's sitter (a subjectDesk anchor: their letter, their stapler)
+      // stays on that desk, since moments find the person by the desk it is on.
       let spot = onTop ? null : { x: lx, z: lz }, desk = e;
       if (onTop) {
-        const near = [e, ...deskList(env.office).filter((o) => o !== e).sort((a2, b2) => dist(a2, e) - dist(b2, e)).slice(0, 6)];
+        const mine = anchor.anchor === 'subjectDesk';
+        const near = mine ? [e] : [e, ...deskList(env.office).filter((o) => o !== e).sort((a2, b2) => dist(a2, e) - dist(b2, e)).slice(0, 6)];
         for (const d of near) {
           const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
           item.scale.setScalar(scale);
           spot = deskSpot(d, g, lx, lz, rot, overhang, around, others);
           for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others); }
           if (spot) { desk = d; break; }
+        }
+        // Still no room on its own desk: it may take the sitter's hand zone (the thing is theirs,
+        // and they will move it), shrinking a little further, rather than leave the desk its
+        // moment looks for.
+        if (!spot && mine) {
+          const others = (env.onDesk ?? []).filter((r) => r.deskId === e.id);
+          item.scale.setScalar(scale);
+          spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false);
+          for (let k = 0; !spot && k < 6; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false); }
         }
       }
       if (spot) {
@@ -454,8 +466,10 @@ function clearSpot(L, office, g, c) {
 const TOP_X = 0.72, TOP_Z0 = -0.66, TOP_Z1 = -0.04, CELL = 0.02;
 const OVER = new THREE.Vector3();
 const deskGrids = new WeakMap();
-function deskGrid(e) {
-  let grid = deskGrids.get(e.obj);
+// hands: keep the sitter's hand zone clear (the default); off, only real clutter counts.
+function deskGrid(e, hands = true) {
+  const key = hands ? e.obj : e.obj.userData;
+  let grid = deskGrids.get(key);
   if (grid) return grid;
   const nx = Math.ceil((2 * TOP_X) / CELL), nz = Math.ceil((TOP_Z1 - TOP_Z0) / CELL);
   const cells = new Uint8Array(nx * nz);
@@ -489,7 +503,7 @@ function deskGrid(e) {
       mark(Math.min(a.x, b.x, c.x), Math.max(a.x, b.x, c.x), Math.min(a.z, b.z, c.z), Math.max(a.z, b.z, c.z));
     }
   });
-  mark(-0.3, 0.3, -0.2, TOP_Z1);
+  if (hands) mark(-0.3, 0.3, -0.2, TOP_Z1);
   // Off the top is taken too, so nothing lands in the air beside a narrow desk.
   if (tx1 > tx0) {
     for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) {
@@ -498,19 +512,19 @@ function deskGrid(e) {
     }
   }
   grid = { cells, nx, nz };
-  deskGrids.set(e.obj, grid);
+  deskGrids.set(key, grid);
   return grid;
 }
 // The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top, clear of
 // `others` (desk-frame rects of the props already on this desk); with that rect.
 // overhang: how far past the desk's side edges the prop may stick out (a stack of boxes), and only
 // where none of `around` (world boxes of the items near the desk) is under the part that sticks out.
-function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = []) {
+function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = [], hands = true) {
   g.position.set(0, 0, 0);
   g.rotation.y = rot;
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
-  const { cells, nx, nz } = deskGrid(e);
+  const { cells, nx, nz } = deskGrid(e, hands);
   const fits = (x, z) => {
     if (x + b.min.x < -TOP_X - overhang || x + b.max.x > TOP_X + overhang || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
     if (others.some((r) => x + b.min.x < r.x1 + 0.01 && x + b.max.x > r.x0 - 0.01 && z + b.min.z < r.z1 + 0.01 && z + b.max.z > r.z0 - 0.01)) return false;
