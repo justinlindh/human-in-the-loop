@@ -356,6 +356,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
+    // Whether someone has a speech bubble up now (checks).
+    isSpeaking(id) { const root = staff?.charOf(id)?.root; return !!root && floating.speaking(root); },
     // Staged props (props.js), for checks.
     get props() { return props; },
     // Draw calls and triangles for the last frame (all passes) and a smoothed CPU frame time.
