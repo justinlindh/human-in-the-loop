@@ -252,17 +252,25 @@ try {
     if (it.moment) {
       try {
         const { resolveTarget, snapshotEntries } = await import('./events/load.js');
-        const target = resolveTarget({ event: it.moment });
+        // pre: the save from just before the week that raises the decision; the game's own tick then
+        // raises it (the card, the freeze), as in play.
+        const target = resolveTarget({ event: it.pre ? `${it.moment} --pre` : it.moment });
+        if (it.pre) {
+          if (!target.row?.preTick) throw new Error('no indexed moment with a pre-tick snapshot');
+          const { simHash, indexDir } = await import('./events/lib.js');
+          target.file = join(indexDir(simHash()), 'snapshots', target.row.preTick);
+        }
         const entries = await snapshotEntries(target.file);
-        const r = await page.evaluate((list) => {
+        const r = await page.evaluate(({ list, pre }) => {
           for (const [k, v] of list) localStorage.setItem(k, v);
           const res = window.__HITL.controls.continueGame();
+          if (pre) window.__HITL.setSpeed?.(1);
           // A load does not announce the open decision the way the sim's week did; announce it again.
-          if (res.ok && window.__HITL.state.pendingDecision) window.__HITL.emit([{ type: 'decision' }]);
+          else if (res.ok && window.__HITL.state.pendingDecision) window.__HITL.emit([{ type: 'decision' }]);
           return res;
-        }, entries);
+        }, { list: entries, pre: !!it.pre });
         if (!r.ok) throw new Error(r.reason ?? 'the game did not load it');
-        moment = target.row && { query: it.moment, seed: target.row.seed, bot: target.row.bot, week: target.row.week };
+        moment = target.row && { query: it.moment, seed: target.row.seed, bot: target.row.bot, week: target.row.week, pre: !!it.pre };
       } catch (e) {
         const why = `could not open the moment "${it.moment}": ${e.message}`;
         console.log(`\rFAIL ${it.id}: ${why}`);
