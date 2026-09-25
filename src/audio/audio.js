@@ -106,7 +106,8 @@ export function createAudio({ quality = 'high' } = {}) {
     const g = ctx.createGain();
     g.gain.value = 0.0001;
     src.connect(g).connect(mix.musicIn);
-    const t = ctx.currentTime;
+    // A playlist switch is scheduled on a bar line (cmd.at); an era change starts now.
+    const t = Math.max(ctx.currentTime, cmd.at ?? 0);
     src.start(t);
     g.gain.setTargetAtTime(1, t, cmd.fade / 3);
     if (music) {

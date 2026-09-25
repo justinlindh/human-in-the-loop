@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createDirector, voiceBank } from './director.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK } from './manifest.js';
+import { createDirector, voiceBank, bedSeconds } from './director.js';
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S } from './manifest.js';
 
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
@@ -302,5 +302,43 @@ describe('audio director', () => {
     const byEmotion = {};
     for (const b of barks) (byEmotion[b.emotion] ??= []).push(b.take);
     for (const takes of Object.values(byEmotion)) for (let i = 1; i < takes.length; i++) expect(takes[i] % 2).not.toBe(takes[i - 1] % 2);
+  });
+
+  it('plays the beds of an era as a playlist: switches on a loop boundary, never repeats one straight away', () => {
+    const beds = { classic: ['classic/a', 'classic/b', 'classic/c'] };
+    const d = createDirector({ seed: 5, beds });
+    const s = state();
+    const switches = [];
+    let first = null;
+    for (let t = 0; t <= 900; t += 0.25) {
+      for (const c of d.update(s, t, { speed: 1, running: true })) {
+        if (c.op !== 'music') continue;
+        if (!first) first = c; else switches.push(c);
+      }
+    }
+    expect(first.bed).toMatch(/^classic\//);
+    expect(switches.length).toBeGreaterThan(2);
+    let prev = first.bed;
+    for (const c of switches) { expect(c.bed).not.toBe(prev); prev = c.bed; }
+    // The first switch waits at least PLAYLIST_MIN_S and lands on a whole number of the first bed's loops.
+    expect(switches[0].at).toBeGreaterThanOrEqual(PLAYLIST_MIN_S);
+    expect(switches[0].fade).toBeGreaterThan(0);
+    const loops = switches[0].at / bedSeconds('classic', first.bed);
+    expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
+  });
+
+  it('does not count paused time toward the next bed, and keeps a single bed forever', () => {
+    const d = createDirector({ seed: 5, beds: { classic: ['classic/a', 'classic/b'] } });
+    const s = state();
+    let switched = false;
+    for (let t = 0; t <= 400; t += 0.25) {
+      const cmds = d.update(s, t, { speed: 1, running: true, menuPause: t > 5 });
+      if (t > 1 && cmds.some((c) => c.op === 'music')) switched = true;
+    }
+    expect(switched).toBe(false);
+    const one = createDirector({ seed: 5, beds: { classic: ['classic/a'] } });
+    let n = 0;
+    for (let t = 0; t <= 900; t += 0.5) n += one.update(s, t, { speed: 1, running: true }).filter((c) => c.op === 'music').length;
+    expect(n).toBe(1);
   });
 });
