@@ -77,6 +77,18 @@ export function voiceFor(person) {
   };
 }
 
+// A name nobody at the company (staff or candidates) already has: a first name not in use if one is left,
+// and never a full name in use.
+function freshName(state, r) {
+  const people = [...(state.staff ?? []), ...(state.candidates ?? [])];
+  const firsts = new Set(people.map((p) => p.name.split(' ')[0]));
+  const fulls = new Set(people.map((p) => p.name));
+  const pool = FIRST_NAMES.filter((n) => !firsts.has(n));
+  const first = pick(r, pool.length ? pool : FIRST_NAMES);
+  const lasts = LAST_NAMES.filter((l) => !fulls.has(`${first} ${l}`));
+  return `${first} ${pick(r, lasts.length ? lasts : LAST_NAMES)}`;
+}
+
 export function generateStaff(state, { role, seniority }) {
   const r = state.rng;
   const top = topStats(role);
@@ -94,7 +106,7 @@ export function generateStaff(state, { role, seniority }) {
     && (!TRAITS[id].era || eraAtLeast(state, TRAITS[id].era)))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
-    name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,
+    name: freshName(state, r),
     role, seniority,
     level: int(r, ...LEVEL_RANGE[seniority]), xp: 0,
     skills, speed: round(range(r, 0.8, 1.2), 2),
