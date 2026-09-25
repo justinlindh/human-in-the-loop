@@ -198,9 +198,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       if (!r) return;
       const at = p.obj.position;
       const nav = office.nav();
+      // A spot beside the hammer to pick it up from: the nearest free ring round it, widening when
+      // it stands among desks or against a wall, else the nearest walkable point.
       let pick = null;
-      for (let i = 0; i < 12 && !pick; i++) { const a = (i / 12) * Math.PI * 2; const x = at.x + Math.cos(a) * 0.7, z = at.z + Math.sin(a) * 0.7; if (!nav.isBlocked(x, z, BODY_R)) pick = { x, z, yaw: Math.atan2(at.x - x, at.z - z) }; }
-      if (!pick) return;
+      for (const d of [0.7, 0.9, 1.1, 1.4, 1.8]) for (let i = 0; i < 16 && !pick; i++) {
+        const a = (i / 16) * Math.PI * 2, x = at.x + Math.cos(a) * d, z = at.z + Math.sin(a) * d;
+        if (!nav.isBlocked(x, z, BODY_R)) pick = { x, z, yaw: Math.atan2(at.x - x, at.z - z) };
+      }
+      if (!pick) { const q = nav.freePoint(at.x, at.z); pick = { x: q.x, z: q.z, yaw: Math.atan2(at.x - q.x, at.z - q.z) }; }
       hammer = { r, phase: 'fetch', obj: p.obj, held: null };
       r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer', stage: { beat: 'fetch', target: p.obj } };
       walkTo(r, pick);

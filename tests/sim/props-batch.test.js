@@ -13,7 +13,7 @@ const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure'
   'pizza_boxes', 'smoothie', 'curtain', 'sledgehammer', 'tape_measure', 'pet_carrier', 'cable_chewed', 'visitor_chair',
   'screens_red', 'screens_skull', 'smoke_puff', 'rack_hot']);
 // Props art is still building; until they ship the renderer shows nothing for them.
-const PENDING = new Set(['banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked']);
+const PENDING = new Set(['banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked', 'printout', 'whiteboard_scrawl', 'mug_pile', 'mug_bucket', 'mug_typo', 'moving_boxes', 'giant_cheque', 'swag_box', 'french_press']);
 const known = (prop) => SHIPPED.has(prop) || PENDING.has(prop);
 
 const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };

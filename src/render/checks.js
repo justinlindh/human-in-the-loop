@@ -676,6 +676,44 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(30);
   }
+  // 8. Behind a decision card: the game freezes the office while a decision is open (main.js calls
+  // setPaused), and the moment the decision stages still plays through it; everyone else holds
+  // still. Paused outright (speed 0), the moment holds still too. Stepped through render(), which
+  // is where the freeze applies.
+  {
+    R.moments.full = true;
+    const frame = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.render(1 / 30); } };
+    // A desk whose sitter is at it (seated, not off on a hard problem).
+    frame(30 * 3);
+    const occupied = [...R.office.placed.values()].find((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.mood !== 'away' && p.assignment?.type !== 'hardProblem' && R.isSeated(p.id)));
+    const sitter = S.staff.find((p) => R.perks.peek(p.id)?.seat === occupied?.id);
+    S.pendingDecision = { eventId: 'resignation_letter', subjectId: sitter?.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: occupied?.x, y: occupied?.y } };
+    R.setPaused(true);
+    const where = () => new Map([...S.staff].map((p) => { const root = charOf(R.scene, p.id); return [p.id, root ? root.position.clone() : null]; }));
+    frame(1);
+    const before = where();
+    // The letter's poses seen (readpaper is the read beat).
+    const actors = new Set(), beats = new Set();
+    for (let i = 0; i < 30 * 14; i++) {
+      frame(1);
+      for (const [id, what] of R.moments.active) if (what === 'letter') { actors.add(id); beats.add(R.perks.peek(id)?.temp?.anim); }
+    }
+    const after = where();
+    const moved = [...before].filter(([id, p]) => p && after.get(id) && p.distanceTo(after.get(id)) > 0.01).map(([id]) => id);
+    const strays = moved.filter((id) => !actors.has(id));
+    // Paused outright: whoever is in the moment holds still.
+    R.setSpeed(0);
+    const held = where();
+    frame(60);
+    const late = where();
+    const drift = [...actors].filter((id) => held.get(id) && held.get(id).distanceTo(late.get(id)) > 0.001);
+    R.setSpeed(1);
+    R.setPaused(false);
+    S.pendingDecision = null;
+    frame(30 * 4);
+    results.push({ name: 'moment:behind-card', pass: actors.size > 0 && beats.has('readpaper') && strays.length === 0 && drift.length === 0, desk: occupied?.id ?? null, sitter: sitter?.id ?? null, actors: [...actors], beats: [...beats], strays, drift });
+    R.moments.full = false;
+  }
   R.perks.hold = false;
   return results;
 }

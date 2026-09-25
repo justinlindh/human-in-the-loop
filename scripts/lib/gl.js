@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { basename } from 'node:path';
 import { isSoftwareRenderer } from '../../src/quality.js';
+import { logTiming } from './timing.js';
 import { trackRun } from './timing.js';
 
 const WITH_RENDER_LOCK = fileURLToPath(new URL('../with-render-lock.sh', import.meta.url));
@@ -58,6 +59,7 @@ export async function launchChromium(chromium, { mode = glMode(), label = 'brows
   const browser = await chromium.launch({ ...opts, args: [...glArgs(mode), ...args] });
   const renderer = await rendererOf(browser);
   console.log(`${label}: GL ${mode} (${renderer ?? 'no WebGL2'})`);
+  watchWebglLoss(browser, { label, mode });
   if (!rendererMatches(mode, renderer)) {
     await browser.close();
     throw new Error(`${label}: asked for the GPU but got ${renderer ?? 'no WebGL2'}; set HITL_GL=software to run on SwiftShader`);
@@ -76,4 +78,34 @@ export function holdRenderLock(mode, { env = process.env, argv = process.argv } 
   if (spawnSync('bash', [WITH_RENDER_LOCK, flag, '--held'], { stdio: 'inherit' }).status === 0) return;
   const r = spawnSync('bash', [WITH_RENDER_LOCK, flag, process.execPath, ...process.execArgv, ...argv.slice(1)], { stdio: 'inherit' });
   process.exit(r.status ?? 1);
+}
+
+// Counts pages that lose their WebGL context (or never get one) in this browser, and logs one
+// timing line (webgl_lost=1) when the browser closes, so GPU failures can be told apart from a
+// check's own failures and set against how many GPU runs overlapped. Every page, from newPage or a
+// new context, gets a listener; watching never fails the run.
+const LOST_MARK = '[hitl] webglcontextlost';
+const LOST_RE = /\[hitl\] webglcontextlost|could not be created|Error creating WebGL context|CONTEXT_LOST_WEBGL/;
+function watchWebglLoss(browser, { label, mode }) {
+  let lost = 0;
+  const script = `document.addEventListener('webglcontextlost', () => console.warn(${JSON.stringify(LOST_MARK)}), true);`;
+  const watch = (page) => {
+    try {
+      page.on('console', (m) => { if (LOST_RE.test(m.text())) lost++; });
+    } catch { /* never fail the run */ }
+  };
+  const newPage = browser.newPage.bind(browser);
+  browser.newPage = async (...a) => {
+    const page = await newPage(...a);
+    try { await page.addInitScript(script); } catch { /* never fail the run */ }
+    watch(page);
+    return page;
+  };
+  const newContext = browser.newContext.bind(browser);
+  browser.newContext = async (...a) => {
+    const ctx = await newContext(...a);
+    try { await ctx.addInitScript(script); ctx.on('page', watch); } catch { /* never fail the run */ }
+    return ctx;
+  };
+  browser.on('disconnected', () => { if (lost) logTiming({ kind: 'gpu', tool: label, gl: mode, webgl_lost: 1, lost_events: lost }); });
 }

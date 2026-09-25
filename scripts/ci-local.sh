@@ -78,11 +78,12 @@ note() { echo "$*" >>"$LOGS/notes"; }
 
 # The tooling self-tests (the CI, lock, hook and guard scripts' own tests) run only when the change
 # touches scripts/ or .claude/ (where those scripts, the timing log and the perf budget live) or the
-# package files (the tools' dependencies); the main guard (CI_FULL=1) runs them on every main commit.
+# package files and vite.config.js (the tools' dependencies and dev servers); the main guard
+# (CI_FULL=1) runs them on every main commit.
 tool_changes=1
 if [ "${CI_FULL:-}" != 1 ]; then
   tool_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || tool_mb=""
-  if [ -n "$tool_mb" ] && ! { git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } | grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$)'; then
+  if [ -n "$tool_mb" ] && ! { git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } | grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)'; then
     tool_changes=0
   fi
 fi

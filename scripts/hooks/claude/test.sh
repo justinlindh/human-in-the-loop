@@ -71,6 +71,23 @@ denied "gh pr edit 5 --body-file $tmp/body.md"
 denied "gh pr comment 5 --body-file $tmp/body.md"
 leak="$tmp/leak"
 denied "gh pr create --title t --body \"intro \$(cat $tmp/clean.md) and $leak\""
+# Heredocs are data: a review that talks about gh pr commands and example paths is not PR text for
+# a gh call, but a heredoc that becomes the gh command's body still is.
+allowed "cat > \$R <<'EOF'
+The check refused gh pr create --body \"see $leak\" as intended.
+EOF
+bash scripts/review-verdict.sh 5 pass \$R"
+allowed "python3 - <<'EOF'
+open('$leak/x', 'w').write('scratch')
+EOF
+gh pr create --title t --body-file $tmp/clean.md"
+denied "cat > \$B <<'EOF'
+Evidence in $leak/shot.png
+EOF
+gh pr create --title t --body-file \$B"
+denied "gh pr create --title t --body-file - <<'EOF'
+Evidence in $leak/shot.png
+EOF"
 
 # lane-guard: branch prefix decides
 editjson() { jq -n --arg f "$1" --arg d "$repo" '{hook_event_name: "PreToolUse", tool_name: "Edit", cwd: $d, tool_input: {file_path: $f}}'; }
