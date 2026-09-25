@@ -22,7 +22,9 @@ const AUTOSAVE_WEEKS = 4;
 const SPOTLIGHT_MAX_S = 60;
 const SPOTLIGHT_SLACK = 1.25;
 const SPOTLIGHT_EXTRA_S = 10;
-const spotlightCap = (s) => (Number(s?.expectedSeconds) > 0 ? s.expectedSeconds * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S : SPOTLIGHT_MAX_S);
+// A hard ceiling, so a wrong expectedSeconds (milliseconds by mistake, say) can't hold the clock for long.
+const SPOTLIGHT_CEILING_S = 180;
+const spotlightCap = (s) => (Number(s?.expectedSeconds) > 0 ? Math.min(s.expectedSeconds * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S, SPOTLIGHT_CEILING_S) : SPOTLIGHT_MAX_S);
 
 async function loadOptional(mods) {
   const loader = Object.values(mods)[0];
@@ -239,6 +241,9 @@ async function boot() {
     const s = renderer?.spotlight?.() ?? null;
     if (!s || s.key === spotStuck) { spot = null; if (!s) spotStuck = null; return false; }
     const add = alone ? dt : 0;
+    if (spot?.key !== s.key && Number(s.expectedSeconds) * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S > SPOTLIGHT_CEILING_S) {
+      console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} expects ${s.expectedSeconds}s; holding the clock ${SPOTLIGHT_CEILING_S}s at most`);
+    }
     spot = spot?.key === s.key ? { ...spot, heldFor: spot.heldFor + add } : { key: s.key, kind: s.kind, heldFor: add };
     const cap = spotlightCap(s);
     if (spot.heldFor > cap) {

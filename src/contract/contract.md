@@ -155,6 +155,8 @@ era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /*
 eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
 unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
+// Count goals in src/data/goals.js also define progress(state, h) -> { n, of }, with n capped at of and never rounded up
+// to of before done. h = goalHelpers(state), exported from src/sim/index.js. ui reads these for progress bars and never recomputes them.
 founding: { founders: [archetypeIds], funding, logoColor, tagline },
 office: {
   stage /* 0|1|2, mirrors officeStage */,

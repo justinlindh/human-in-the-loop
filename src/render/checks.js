@@ -687,11 +687,17 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     const hits = [];
     const onHit = (e) => { if (e.detail?.phase === 'hit' && e.detail.key === 'printer_jam') hits.push(e.detail.hit); };
     addEventListener('hitl:moment', onHit);
+    // It is a spotlight: announced on start and end with one key, and current while it plays.
+    const spots = [];
+    const onSpot = (e) => spots.push(e.detail);
+    addEventListener('hitl:spotlight', onSpot);
+    let spotSeen = false;
     for (let i = 0; i < 30 * 30; i++) {
       step(1);
       const pm = R.moments.printerState;
       if (!pm) { if (phases.size) break; continue; }
       phases.add(pm.phase);
+      if (pm.phase === 'carry') spotSeen ||= R.spotlight?.()?.kind === 'printer_jam';
       if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
         pm.interrupted = true;
         R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
@@ -722,9 +728,11 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     }
     S.office.props = S.office.props.filter((p) => p.id !== 'wreck_prop');
     removeEventListener('hitl:moment', onHit);
+    removeEventListener('hitl:spotlight', onSpot);
     const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
     const hitsOk = hits.join() === '0,1,2,3';
-    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk, phases: [...phases], hits, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
+    const spotOk = spotSeen && spots.length === 2 && spots[0].active && !spots[1].active && spots[0].key === spots[1].key && spots[0].kind === 'printer_jam' && !R.spotlight();
+    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk && spotOk, phases: [...phases], hits, spotlight: { seen: spotSeen, events: spots.map((x) => `${x.active ? 'start' : 'end'} ${x.kind}`) }, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
     R.moments.full = false;
     step(30);
   }
@@ -829,8 +837,11 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       step(1);
       if (R.moments.hammer) phases.add(R.moments.hammer.phase);
     }
+    // The swing is a spotlight, and Skip (endSpotlight) cuts it short cleanly.
+    const swingSpot = R.spotlight?.()?.kind ?? null;
+    const skipped = R.endSpotlight?.() === true && !R.moments.hammer && !R.spotlight();
     S.chatPrompts = [];
-    results.push({ name: 'moment:prompt-stage', pass: drawn && fanned && phases.has('swing'), drawn, fanned, phases: [...phases] });
+    results.push({ name: 'moment:prompt-stage', pass: drawn && fanned && phases.has('swing') && swingSpot === 'open_plan_office' && skipped, drawn, fanned, phases: [...phases], swingSpot, skipped });
     R.moments.full = false;
     step(30 * 4);
   }
