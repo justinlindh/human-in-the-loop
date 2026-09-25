@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { makeCtx } from '../../src/sim/registry.js';
 import { raiseDecision, eligibleEvents, lastPauseWeek, eventsSystem } from '../../src/sim/events.js';
 import { B } from '../../src/sim/balance.js';
+import { showsCard } from '../../src/sim/unlocks.js';
 import { game, addProduct } from './helpers.js';
 
 // A settled company with a product, past the opening grace, with nothing recent.
@@ -70,5 +71,17 @@ describe('issue #556: a launch or an unlock counts as the last pausing moment', 
     } finally {
       B.randomEventChance = chance;
     }
+  });
+
+  it('only unlocks that show a card pause decisions: a later policy is a toast unless an era comes with it', () => {
+    const s = settled(6);
+    s.unlocks = { marketing: 10 };
+    expect(showsCard(makeCtx(s), 'ops')).toBe(true);
+    expect(showsCard(makeCtx(s), 'policy.crunch')).toBe(true);
+    s.unlocks['policy.crunch'] = s.week - 20;
+    expect(showsCard(makeCtx(s), 'policy.remote_first')).toBe(false);
+    const withEra = makeCtx(s);
+    withEra.events.push({ type: 'era', eraId: 'agents' });
+    expect(showsCard(withEra, 'policy.remote_first')).toBe(true);
   });
 });
