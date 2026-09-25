@@ -7,7 +7,7 @@
 #   kit_title   <out.mp4> <title> [subtitle] [seconds=2.5]           a title card on cream
 #   kit_end     <out.mp4> [line] [seconds=3]                         the end card: name and site
 #   kit_lower   <in> <out> <text> [start=0.3] [seconds=2.6]          a lower-third caption
-#   kit_label   <in> <out> <text>                                    a corner label for a whole clip (an era)
+#   kit_label   <in> <out> <text>                                    a corner label for a whole clip (an era); KIT_LABEL_SCALE=26 for a smaller one
 #   kit_trim    <in> <out> <from> <seconds> [crop w:h:x:y]           cut a beat, optionally cropped
 #   kit_cut     <out> <clip>...                                      hard cuts, in order
 #   kit_xfade   <out> <seconds> <clip>...                            crossfades (picture and sound)
@@ -60,7 +60,7 @@ kit_lower() {
 kit_label() {
   local in="$1" out="$2" text="$3" t
   t="$(_kit_txt "$text")"
-  _kit_ff -i "$in" -vf "drawtext=fontfile=${KIT_TITLE_FONT}:textfile=${t}:fontsize=$((KIT_H / 18)):fontcolor=${KIT_CREAM}:box=1:boxcolor=${KIT_INK}@0.82:boxborderw=$((KIT_H / 48)):x=$((KIT_W / 24)):y=$((KIT_H / 18))" \
+  _kit_ff -i "$in" -vf "drawtext=fontfile=${KIT_TITLE_FONT}:textfile=${t}:fontsize=$((KIT_H / ${KIT_LABEL_SCALE:-18})):fontcolor=${KIT_CREAM}:box=1:boxcolor=${KIT_INK}@0.82:boxborderw=$((KIT_H / 48)):x=$((KIT_W / 24)):y=$((KIT_H / 18))" \
     $(_kit_venc) -c:a copy "$out"
   local r=$?; rm -f "$t"; return $r
 }

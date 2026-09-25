@@ -4,13 +4,15 @@
 #
 #   node scripts/capture.js --manifest scripts/feature-media/manifest.js --only growth-garage,growth-floor,growth-floor-full,growth-hq,growth-late \
 #     --out shots/growth --size 1920x1080 --fps 30 --audio --no-webm
-#   scripts/reels/growth.sh shots/growth shots/growth-out
+#   scripts/reels/growth.sh shots/growth shots/growth-out [--site]
 #
+# --site labels each stage with its headcount only, smaller (the landing page's timeline names the
+# eras); without it each stage carries "Era · N people", for reels and social.
 # Each stage is cut to its window, labelled with its era and headcount (the capture's headcount mark),
 # and crossfaded into the next. Writes growth-desk.mp4 (1920x1080 with the game's sound) and the site's
 # files: media/loops/growth.mp4 and .webm (1600x900, muted) and the poster img/loops/growth.webp.
 set -euo pipefail
-IN=${1:?captures dir}; OUT=${2:?output dir}
+IN=${1:?captures dir}; OUT=${2:?output dir}; SITE=${3:-}
 export KIT_W=1920 KIT_H=1080
 source "$(dirname "$0")/kit.sh"
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
@@ -20,9 +22,9 @@ STAGES=("garage|1|3.4" "floor|1|3.4" "floor-full|1|3.4" "hq|1|3.4" "late|1|4.8")
 clips=()
 for s in "${STAGES[@]}"; do
   IFS='|' read -r name from secs <<< "$s"
-  label=$(node -e "const m=(require('$(realpath "$IN")/index.json').items['growth-$name'].marks||[]).find((x)=>x.label.startsWith('headcount ')); const [, n, , era] = m.label.split(' '); console.log(era + ' · ' + n + (n === '1' ? ' person' : ' people'))")
+  label=$(node -e "const m=(require('$(realpath "$IN")/index.json').items['growth-$name'].marks||[]).find((x)=>x.label.startsWith('headcount ')); const [, n, , era] = m.label.split(' '); console.log(('$SITE' ? '' : era + ' · ') + n + (n === '1' ? ' person' : ' people'))")
   kit_trim "$IN/growth-$name.mp4" "$TMP/$name.mp4" "$from" "$secs"
-  kit_label "$TMP/$name.mp4" "$TMP/$name-l.mp4" "$label"
+  if [ "$SITE" = --site ]; then KIT_LABEL_SCALE=26 kit_label "$TMP/$name.mp4" "$TMP/$name-l.mp4" "$label"; else kit_label "$TMP/$name.mp4" "$TMP/$name-l.mp4" "$label"; fi
   clips+=("$TMP/$name-l.mp4")
   echo "growth: $name, $label"
 done
