@@ -5,15 +5,19 @@
 //   --only=a,b    just these scenes      --jobs=N   scenes rendered at once (default 8)
 //
 // Scenes render concurrently, each in its own page with its own seeded random and frozen clock, so
-// the pixels do not depend on the order or the overlap. A full clean pass is recorded against a
-// hash of every input (cache.mjs); a later run with the same inputs skips rendering.
+// the pixels do not depend on the order or the overlap. Each scene that passes (or is updated) is
+// recorded with every file its page loaded (cache.mjs); a later run, verify or --update, skips a
+// scene when none of those files, its reference, or anything else in its base key changed, and
+// starts no browser at all when every scene is unchanged. HITL_NO_CHECK_CACHE=1 renders them all.
 //
 // Each scene loads the game through harness.mjs (Math.random seeded, the clock frozen, the game
-// loop held) and steps a fixed number of frames by hand, so a render depends only on the code.
+// loop held) and steps a fixed number of frames by hand, drawing only the last (__settle), so a
+// render depends only on the code.
 // Differences are counted per pixel (any channel off by more than CHANNEL_TOL); a scene fails when
 // more than MAX_SHARE of pixels differ. Failures write <scene>.actual.png and <scene>.diff.png next to the reference.
 import { startHarness } from './harness.mjs';
-import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { sceneBase, sceneUpToDate, recordScene, requestedFiles } from './cache.mjs';
+import { logTiming } from '../../scripts/lib/timing.js';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,29 +57,39 @@ const SCENES = [
   { name: 'couch-nap-procedural', query: 'mock=floor&rig=0', setup: `__HITL.state.office.placed.push({ id: 'g_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }); __nap = 'g_couch';`, steps: 60, zoom: 4.2 },
 ];
 
-const FULL = !UPDATE && !ONLY;
-const hash = FULL ? inputHash('golden') : null;
-const before = passedAt('golden', hash);
-if (before) {
-  console.log(`golden: inputs unchanged since ${before}, skipped`);
+// The code a scene's pixels depend on beyond what its page loads.
+const TOOL_FILES = ['blender/checks/golden.mjs', 'blender/checks/harness.mjs', 'blender/checks/cache.mjs', 'scripts/lib/gl.js'];
+const refRel = (sc) => `blender/checks/golden/${sc.name}.png`;
+const selected = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
+const results = new Map();
+const todo = [];
+for (const sc of selected) {
+  sc.base = sceneBase('golden', { ...sc, base: undefined }, TOOL_FILES);
+  const fresh = sceneUpToDate('golden', sc.name, sc.base, refRel(sc));
+  logTiming({ kind: 'cache', tool: 'golden', scene: sc.name, cache: sc.base ? (fresh ? 'hit' : 'miss') : 'off', input: sc.base });
+  if (fresh) results.set(sc.name, `${sc.name}: unchanged, skipped`);
+  else todo.push(sc);
+}
+if (!todo.length) {
+  for (const sc of selected) console.log(`GOLDEN ${results.get(sc.name)}`);
+  console.log(`golden: all ${selected.length} scenes unchanged since they last passed, skipped`);
   process.exit(0);
 }
 
 // Golden images compare exact pixels, which only SwiftShader reproduces on every machine.
-const H = await startHarness({ gpu: false, browsers: JOBS });
+const H = await startHarness({ gpu: false, browsers: Math.min(JOBS, todo.length) });
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
 let failed = 0;
-const results = new Map();
 async function runScene(sc, slot) {
-  const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
+  const { page, errors, requests } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
   const png = await page.evaluate(async ({ setup, steps, zoom, at }) => {
     const R = window.__hitlRender;
     const S = window.__HITL?.state;
     window.__focus = null; window.__nap = null;
     if (setup) (0, eval)(setup);
-    const step = window.__step;
+    const step = window.__settle;
     step(10);
     if (window.__nap) {
       const who = S.staff[0].id;
@@ -98,6 +112,7 @@ async function runScene(sc, slot) {
   if (UPDATE || !existsSync(refPath)) {
     writeFileSync(refPath, buf);
     results.set(sc.name, `${sc.name}: reference ${UPDATE ? 'updated' : 'created'}`);
+    if (!errors.length) recordScene('golden', sc.name, sc.base, requestedFiles(requests), refRel(sc));
     await page.close();
     return;
   }
@@ -122,6 +137,7 @@ async function runScene(sc, slot) {
     return { share: n / (w * h), diff: out.toDataURL('image/png') };
   }, { a: `data:image/png;base64,${readFileSync(refPath).toString('base64')}`, b: png, tol: CHANNEL_TOL });
   const ok = cmp.share <= MAX_SHARE && !errors.length;
+  if (ok) recordScene('golden', sc.name, sc.base, requestedFiles(requests), refRel(sc));
   if (!ok) {
     failed++;
     writeFileSync(join(OUT, `${sc.name}.actual.png`), buf);
@@ -132,7 +148,6 @@ async function runScene(sc, slot) {
 }
 
 // A pool of JOBS workers takes scenes in order; results print in scene order.
-const todo = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
 let next = 0;
 await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, async (_, slot) => {
   while (next < todo.length) {
@@ -141,7 +156,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, async (_, 
   }
 }));
 await H.close();
-for (const sc of todo) console.log(`GOLDEN ${results.get(sc.name)}`);
-if (!failed && results.size === SCENES.length) recordPass('golden', hash);
+for (const sc of selected) console.log(`GOLDEN ${results.get(sc.name)}`);
+console.log(`golden: rendered ${todo.length} of ${selected.length} scenes; ${selected.length - todo.length} unchanged, skipped`);
 if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended`);
 process.exit(failed ? 1 : 0);
