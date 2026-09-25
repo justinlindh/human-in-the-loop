@@ -2,10 +2,14 @@ import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
+import { loadSettings, saveSetting } from './settings.js';
 
 const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
 const QUIET_WEEKS = 6;
+// Sizes: the feed's height and the panel's width, in em. A dragged height overrides the preset's.
+const SIZES = { small: { h: 12, w: null }, medium: { h: 20, w: 24 }, large: { h: 30, w: 30 } }; // small keeps the layout's width
+const MIN_H = 6, MAX_H = 44;
 const BOT_ICON = {
   '@pagerbot': 'bot.pager', '@vendorbot': 'bot.vendor', '@launchbot': 'bot.launch', '@shipbot': 'bot.launch', '@hr-bot': 'bot.hr',
   '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackerspewsbot': 'bot.hn', '@newsbot': 'bot.news', '@buildbot': 'bot.build',
@@ -13,7 +17,7 @@ const BOT_ICON = {
 
 // Yak: the office's team chat. Channels with unread badges, threads, reactions, and names you
 // can click to find the person. Messages stay bounded per channel in memory and in the DOM.
-export function createChat(root, { getState, onName } = {}) {
+export function createChat(root, { getState, onName, onMaximize } = {}) {
   const store = Object.fromEntries(CHANNELS.map((c) => [c, []]));
   const unread = Object.fromEntries(CHANNELS.map((c) => [c, 0]));
   let current = 'general';
@@ -22,8 +26,15 @@ export function createChat(root, { getState, onName } = {}) {
 
   const totalBadge = h('span.count');
   const caret = h('span.caret', null, icon('caret.down'));
-  const head = h('div.chat-head', { title: 'Yak (C)', onclick: () => toggle() },
-    h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), totalBadge, caret);
+  // Size controls sit in the header; their clicks do not collapse the panel.
+  const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
+  const sizeBtns = Object.keys(SIZES).map((k) => h('button.ysz', { title: `${k[0].toUpperCase()}${k.slice(1)} Yak`, 'aria-label': `${k} size`, onclick: stop(() => setSize(k, null)) }, k[0].toUpperCase()));
+  const maxBtn = h('button.ysz.ymax', { title: 'Open Yak big', 'aria-label': 'Maximize Yak', onclick: stop(() => setMax(!maximized)) }, icon('expand', { size: 13 }));
+  const head = h('div.chat-head', { title: 'Yak (C)', onclick: () => { if (!maximized) toggle(); } },
+    h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), totalBadge,
+    h('span.ysizes', null, ...sizeBtns, maxBtn), caret);
+  // Drag the top edge to set any height between MIN_H and MAX_H.
+  const grip = h('div.ygrip', { title: 'Drag to resize', 'aria-hidden': 'true' });
 
   const tabBtns = {};
   const tabBadges = {};
@@ -34,8 +45,63 @@ export function createChat(root, { getState, onName } = {}) {
   }));
   const quiet = h('div.chat-quiet.banner');
   const list = h('div.chat-body');
-  const el = h('div.chat.yak', { dataset: { occludes: '' } }, head, tabsEl, quiet, list);
+  const el = h('div.chat.yak', { dataset: { occludes: '' } }, grip, head, tabsEl, quiet, list);
   root.append(el);
+
+  const saved = loadSettings();
+  let size = SIZES[saved.yakSize] ? saved.yakSize : 'small';
+  let height = Number.isFinite(saved.yakHeight) ? saved.yakHeight : null;
+  let maximized = false;
+  const layerEl = () => root.closest('.hitl') ?? root;
+  function applySize() {
+    const sz = SIZES[size];
+    const hgt = Math.max(MIN_H, Math.min(MAX_H, height ?? sz.h));
+    if (sz.w) layerEl().style.setProperty('--yak-w', `${sz.w}em`); else layerEl().style.removeProperty('--yak-w');
+    el.style.setProperty('--yak-h', `${hgt}em`);
+    sizeBtns.forEach((b, i) => toggleClass(b, 'on', Object.keys(SIZES)[i] === size && height === null));
+  }
+  function setSize(k, hgt) {
+    size = k; height = hgt;
+    saveSetting('yakSize', size);
+    saveSetting('yakHeight', height);
+    applySize();
+    if (collapsed) toggle(false);
+  }
+  grip.addEventListener('pointerdown', (e) => {
+    if (maximized || collapsed) return;
+    e.preventDefault();
+    grip.setPointerCapture?.(e.pointerId);
+    const em = parseFloat(getComputedStyle(list).fontSize) || 16;
+    const startY = e.clientY, startH = list.getBoundingClientRect().height / em;
+    const move = (ev) => { height = Math.max(MIN_H, Math.min(MAX_H, startH + (startY - ev.clientY) / em)); applySize(); };
+    const up = () => { grip.removeEventListener('pointermove', move); saveSetting('yakHeight', Math.round(height * 10) / 10); };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', up, { once: true });
+    grip.addEventListener('pointercancel', up, { once: true });
+  });
+
+  // Maximized: the panel moves into a large overlay, and time holds like any open panel.
+  const back = h('div.yak-back', { onpointerdown: (e) => { if (e.target === back) setMax(false); } });
+  // An empty cell holds Yak's place in the bottom row, so the menu does not shift under the overlay.
+  const slot = h('div.yak-slot');
+  function setMax(on) {
+    if (on === maximized) return;
+    maximized = on;
+    if (on) {
+      if (collapsed) toggle(false);
+      el.replaceWith(slot);
+      back.append(el);
+      layerEl().append(back);
+    } else {
+      back.remove();
+      slot.replaceWith(el);
+    }
+    el.classList.toggle('max', on);
+    maxBtn.replaceChildren(icon(on ? 'close' : 'expand', { size: 13 }));
+    maxBtn.title = on ? 'Back to the corner' : 'Open Yak big';
+    list.scrollTop = list.scrollHeight;
+    onMaximize?.(on);
+  }
 
   function avatar(m) {
     if (m.from?.startsWith('@')) return h('span.av.bot', null, icon(BOT_ICON[m.from] ?? 'bot.generic', { size: 13 }));
@@ -156,5 +222,7 @@ export function createChat(root, { getState, onName } = {}) {
   // On phones Yak starts collapsed so it does not cover the tray and the office; the header's
   // unread badge still counts new messages.
   if (typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches) toggle(true);
-  return { add, toggle, update, reset, el };
+  applySize();
+  return { add, toggle, update, reset, el, setMax, get maximized() { return maximized; },
+    onKey(e) { if (maximized && e.key === 'Escape') { e.preventDefault(); setMax(false); return true; } return false; } };
 }

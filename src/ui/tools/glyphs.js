@@ -157,6 +157,7 @@ export const GLYPHS = {
   'arrow.down': { d: path('M12 20.5 20.5 11h-5V3.5h-7V11h-5Z', 'currentColor') },
   'arrow.flat': { d: circ(12, 12, 4.5, 'currentColor') },
   'arrow.back': { d: path('M3.5 12 12 4v5h8.5v6H12v5Z', 'currentColor') },
+  expand: { d: `<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
   'caret.down': { d: `<path d="M5 8.5h14l-7 8Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>` },
   'caret.right': { d: `<path d="M8.5 5v14l8-7Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>` },
   'sort.up': { d: `<path d="M12 5 20 17H4Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>` },

@@ -7,7 +7,7 @@ export const BUSES = [
   { id: 'music', label: 'Music' }, { id: 'ambience', label: 'Ambience' }, { id: 'sfx', label: 'Sound effects' },
   { id: 'ui', label: 'Interface' }, { id: 'voice', label: 'Voices' },
 ];
-const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true };
+const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, yakSize: 'small', yakHeight: null };
 
 export function loadSettings() {
   try {
@@ -25,8 +25,19 @@ export function loadSettings() {
   }
 }
 
-function saveSettings(s) {
+function write(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode or blocked storage */ }
+}
+// Keys the UI remembers outside the Settings panel; the panel's own saves keep what is stored.
+const OUTSIDE = ['yakSize', 'yakHeight'];
+function saveSettings(s) {
+  const cur = loadSettings();
+  write({ ...s, ...Object.fromEntries(OUTSIDE.map((k) => [k, cur[k]])) });
+}
+
+// Saves one remembered setting on top of whatever is stored.
+export function saveSetting(key, value) {
+  write({ ...loadSettings(), [key]: value });
 }
 
 // Pushes settings into the renderer and audio through the controls main.js provides.

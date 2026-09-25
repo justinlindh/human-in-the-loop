@@ -216,6 +216,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (ctx.modal) { if (e.key === 'Escape') ctx.modal.close(); e.preventDefault(); return true; }
     if (settings.isOpen) { if (e.key === 'Escape') settings.close(); e.preventDefault(); return true; }
     if (title.isOpen) return true;
+    if (chat.onKey(e)) return true;
     if (tutorial.onKey(e)) return true;
     if (popups.onKey(e)) return true;
     if (gameover.open) { e.preventDefault(); return true; }
@@ -386,7 +387,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // not the decision popup (the sim already waits for decisions).
   function isBusy() {
     if (settings.values.pauseMenus === false) return false;
-    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || settings.isOpen || tutorial.open);
+    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || settings.isOpen || tutorial.open || chat.maximized);
   }
   ui.isBusy = isBusy;
 

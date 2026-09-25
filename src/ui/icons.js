@@ -32,6 +32,7 @@ export const ICONS = {
   'arrow.down': I('▼', 'MRR trend, active effects (red)', 12),
   'arrow.flat': I('•', 'MRR trend when flat', 12),
   'arrow.back': I('◀', 'Staff detail back button', 14),
+  expand: I('⤢', 'Yak maximize button', 12),
   'caret.down': I('▾', 'Chat header, expanded', 12),
   'caret.right': I('▸', 'Chat header, collapsed', 12),
   'sort.up': I('▲', 'Staff table sorted column', 10),
