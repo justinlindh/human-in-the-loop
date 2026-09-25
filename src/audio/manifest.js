@@ -30,6 +30,8 @@ export const CUES = {
   'ui.error': { bus: 'ui', files: ['ui/error'], cooldown: 0.2, priority: 3 },
   'ui.coin': { bus: 'ui', files: ['ui/coin'], cooldown: 0.08, priority: 3 },
   'ui.blip': { bus: 'ui', files: ['ui/blip'], cooldown: 0.25, priority: 1 },
+  // A Yak reply prompt opened: a soft ping, spaced out so it never nags.
+  'ui.prompt': { bus: 'ui', files: ['ui/blip'], cooldown: 4, priority: 3, gain: 0.7 },
   'ui.decision': { bus: 'ui', files: ['ui/decision'], cooldown: 1, priority: 6, duck: 'decision' },
   'ui.unlock': { bus: 'ui', files: ['ui/unlock'], cooldown: 1, priority: 5 },
   'ui.goal': { bus: 'ui', files: ['ui/goal'], cooldown: 1, priority: 5 },
@@ -77,6 +79,9 @@ export const ON_EVENT = {
   decision: 'ui.decision',
   // The player's pick already clicked in the UI; the resolution itself makes no sound.
   decisionResolved: null,
+  // A Yak reply prompt opened; answering it already clicked in the UI, and an expiry is silent.
+  chatPrompt: 'ui.prompt',
+  chatPromptResolved: null,
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),
