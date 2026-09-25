@@ -414,7 +414,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     const faceCam = Math.atan2(cam.x, cam.z);
     const SPOTS = [[0, 0.35], [-0.85, 0], [0.85, 0], [-0.45, -0.75], [0.45, -0.75], [0, -0.95], [-1.3, -0.5], [1.3, -0.5]];
     const others = (ev.dancers ?? []).map((id) => recs.get(id))
-      .filter((o) => o && o !== winner && !o.hidden && o.mode === 'placed');
+      .filter((o) => o && o !== winner && !o.hidden && o.mode === 'placed' && !o.temp?.moment);
     const dancers = [winner, ...others].slice(0, SPOTS.length);
     const moves = dancers.map((r, i) => {
       if (i === 0) return { anim: genre.lead, rate: 1 };

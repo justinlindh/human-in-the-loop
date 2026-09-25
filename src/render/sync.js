@@ -399,7 +399,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
   }
 
+  // Someone already taken up: at a standup, or playing a part in a moment (moments.js), which ends
+  // if they are called away.
+  const taken = (r) => !!(r.temp?.standup || r.temp?.moment);
+
   function celebrate(r, seconds, sparkle) {
+    if (r.temp?.moment) return;
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
     if (sparkle) emote(r, 'sparkle', seconds);
   }
@@ -416,7 +421,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
     for (const r of recs.values()) {
-      if (r.hidden || r.mode !== 'placed' || r.temp?.standup) continue;
+      if (r.hidden || r.mode !== 'placed' || taken(r)) continue;
       r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08 };
     }
   }
@@ -430,7 +435,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     fx.alarm(new THREE.Vector3(0, 0, 0), Math.min(L.W, L.D) * 0.3, e.caught ? 1.6 : 3.2);
     if (!e.caught) rig?.shake(0.22, 0.4);
     // The nearest few people run to the servers, then go back.
-    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.standup)
+    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !taken(r))
       .sort((a, b) => a.pos.distanceToSquared(hot) - b.pos.distanceToSquared(hot))
       .slice(0, e.caught ? 1 : 4);
     near.forEach((r, i) => {
@@ -724,9 +729,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // In person only now and then (by real play time, so speed doesn't change how often); a
     // standup still talking is never cut off, and the weeks between stay at the desks.
     const stage = speed < 4 && !standup && playTime - lastStagedAt >= STAGE_GAP_S;
-    const present = (l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !r.temp?.standup; };
+    const present = (l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !taken(r); };
     if (!stage) { deskStandup((e.lines ?? []).filter(present)); return; }
-    const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed'; });
+    const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !r.temp?.moment; });
     if (!lines.length) return;
     lastStagedWeek = week;
     lastStagedAt = playTime;
