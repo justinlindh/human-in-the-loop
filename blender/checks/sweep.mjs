@@ -22,7 +22,8 @@
 //
 // Each violation prints with its state (mock:<name> or seed:<n>:w<week>), time into the window,
 // the two things, and the value. New ones (not in sweep-baseline.json, or clearly worse than its
-// entry) fail the run, except that in fast mode those seen only in seeded games are advisory. --out
+// entry) fail the run, except that in fast mode those seen only in seeded games are advisory. An
+// accepted entry may name the issue tracking it ("issue": n); fix it, then drop the entry. --out
 // (default shots/sweep/) gets report.json, report.md (a table for a PR) and a crop of each. --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
@@ -49,6 +50,8 @@ const timeout = Number(opt('timeout', full ? 3600 : 600));
 
 const baseline = (() => { try { return JSON.parse(readFileSync(BASELINE, 'utf8')); } catch { return { accepted: [] }; } })();
 const known = baseline.accepted.map((b) => b.key);
+// The issue tracking each accepted violation, printed beside it, so it comes out when that is fixed.
+const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.key, b.issue]));
 
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = Date.now();
@@ -118,7 +121,7 @@ for (const v of all) {
     writeFileSync(file, Buffer.from(v.crop.split(',')[1], 'base64'));
     shot = ` crop ${file}`;
   }
-  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${shot}`);
+  console.log(`SWEEP ${isNew ? `${worse(v) ? 'WORSE' : 'NEW '}${advisory.includes(v) ? ' (seed, advisory)' : ''}` : 'base'} ${v.check} ${v.detail ?? `${v.a} ~ ${v.b}`} ${v.value} m at ${v.state} t=${v.t}s ${JSON.stringify(v.at)} x${v.count} in ${v.states.length} state(s)${issueOf.has(v.key) ? ` (#${issueOf.get(v.key)})` : ''}${shot}`);
 }
 // status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
 // check measures render output, so art owns what it finds.
@@ -136,7 +139,8 @@ for (const k of gone) console.log(`sweep: baseline entry not seen this run: ${k}
 if (argv.includes('--update-baseline')) {
   const seen = new Map(all.map((v) => [v.key, { key: v.key, worst: v.value, state: v.state }]));
   const kept = argv.includes('--prune') ? [] : baseline.accepted.filter((b) => !seen.has(b.key));
-  for (const b of baseline.accepted) if (seen.has(b.key)) seen.get(b.key).worst = Math.max(seen.get(b.key).worst, b.worst);
+  // An entry seen again keeps its larger worst value and anything else it carries (its issue).
+  for (const b of baseline.accepted) if (seen.has(b.key)) { const e = seen.get(b.key); Object.assign(e, { ...b, ...e, worst: Math.max(e.worst, b.worst) }); }
   const accepted = [...kept, ...seen.values()].sort((a, b) => a.key.localeCompare(b.key));
   writeFileSync(BASELINE, JSON.stringify({ accepted }, null, 1) + '\n');
   console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);

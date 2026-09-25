@@ -1,0 +1,12 @@
+# The main guard (scripts/main-guard.sh), run by hitl-main-guard.timer. It works in its own clone,
+# updated to origin/main before each run, never in a checkout someone is using. Render work inside
+# takes the machine's render locks like any other run.
+[Unit]
+Description=Human in the Loop main guard: the full suite on each new main commit
+
+[Service]
+Type=oneshot
+Nice=10
+TimeoutStartSec=90min
+Environment=GUARD_CLONE=%h/.cache/hitl-ci/main-guard/clone
+ExecStart=/bin/bash -c 'set -e; cd "$GUARD_CLONE"; git fetch -q origin main; git checkout -q --detach origin/main; npm ls --depth=0 >/dev/null 2>&1 || npm ci --no-audit --no-fund; exec bash scripts/main-guard.sh'

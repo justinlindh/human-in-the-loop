@@ -21,7 +21,8 @@ mode=software
 case "${1:-}" in --gpu) mode=gpu; shift ;; --software) shift ;; esac
 [ $# -gt 0 ] || { echo "$usage" >&2; exit 2; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DIR="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
+# Lock files live in HITL_LOCK_DIR, one place for the whole machine whatever else a run relocates.
+DIR="${HITL_LOCK_DIR:-$HOME/.cache/hitl-ci}"
 SOFT="$DIR/render-checks.lock"
 SLOTS="${HITL_GPU_SLOTS:-8}"
 gpu_locks=(); for i in $(seq 1 "$SLOTS"); do gpu_locks+=("$DIR/gpu-render-$i.lock"); done

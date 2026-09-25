@@ -35,7 +35,7 @@ const busy = (f) => spawnSync('flock', ['-n', f, 'true']).status !== 0;
 console.log(JSON.stringify({ soft: busy(${JSON.stringify(join(tmp, 'render-checks.lock'))}), gpu: busy(${JSON.stringify(join(tmp, 'gpu-render-1.lock'))}), holder: process.env.HITL_RENDER_LOCK_HELD === String(process.pid) }));
 process.exit(Number(process.argv[3] ?? 0));
 `);
-const env = { ...process.env, CI_WORKTREE_ROOT: tmp, HITL_GPU_SLOTS: '1', RENDER_LOCK_WAIT: '5', HITL_TIMINGS: 'off' };
+const env = { ...process.env, HITL_LOCK_DIR: tmp, HITL_GPU_SLOTS: '1', RENDER_LOCK_WAIT: '5', HITL_TIMINGS: 'off' };
 delete env.CI; delete env.HITL_RENDER_LOCK_HELD;
 const runProbe = (args, extra = {}, pre = []) => {
   const r = spawnSync(pre.length ? 'bash' : process.execPath, pre.length ? [...pre, process.execPath, probe, ...args] : [probe, ...args], { env: { ...env, ...extra }, encoding: 'utf8' });

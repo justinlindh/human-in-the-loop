@@ -66,14 +66,16 @@ step render-lock bash "$SELF/render-lock-held.test.sh"
 step with-render-lock bash "$SELF/with-render-lock.test.sh"
 step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
 step review-carry bash "$SELF/review-carry.test.sh"
+step main-guard bash "$SELF/main-guard.test.sh"
 step gl node "$SELF/lib/gl.test.mjs"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
 # uncommitted edits and new files) matches scripts/ci-balance-skip-paths. The list and the classifier
 # come from the base, and any doubt (no list, no classifier, nothing to compare) runs the suite.
+# CI_FULL=1 (the main guard) always runs it.
 bal_mode=full
-if git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
+if [ "${CI_FULL:-}" != 1 ] && git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
   && git show "$BASE:scripts/ci-classify.sh" >"$LOGS/classify.sh" 2>/dev/null \
   && bal_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)"; then
   bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
