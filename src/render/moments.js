@@ -55,6 +55,8 @@ const BEHIND_RAD = 2.1;       // how far off a seated visitor's facing counts as
 const SEAT_BACK = 0.75;       // how far someone backs out of a desk seat before walking off
 const EXPLAIN_CLEAR = 0.32;  // room round the spot beside the visitor where a founder leans in to explain
 const REACT_S = 6;           // how long the visitors stay once the choice is in, for the reaction
+const VISITOR_EXPECT_S = REACT_S + 10;   // the visitors' play once they sit, then the reaction
+const PRINTER_GATHER_S = 8;  // the carriers walking to the printer and lifting it, before its cue
 const FLINCH_S = 0.9;        // the founders' flinch on 'Watch in silence'
 const SWING_HIT = 0.605;     // seconds from the start of the 'batswing' pose to its blow (character.js)
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
@@ -272,7 +274,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       h.held.rotation.set(0, 0, 0);
       r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
-      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true));
+      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3);
       momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
     }
     if (h.phase === 'swing') {
@@ -626,7 +628,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       });
     }
     v.mid = dispatch('start', event);
-    v.spot = spotlights?.begin(event, endVisitor);
+    v.spot = spotlights?.begin(event, endVisitor, VISITOR_EXPECT_S);
     momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
   }
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
@@ -848,7 +850,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
       clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
-    pm.spot = spotlights?.begin('printer_jam', printerEnd);
+    // Gathering and the lift, then the cue from the carry to the walk-off.
+    pm.spot = spotlights?.begin('printer_jam', printerEnd, PRINTER_GATHER_S + CUE.end);
     pm.twists = twists(pm);
     const c = along(route, 0);
     const spots = carrySpots(pm, c);

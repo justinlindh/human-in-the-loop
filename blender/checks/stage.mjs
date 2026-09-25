@@ -102,8 +102,8 @@ const SPECS = {
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
-    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 600 },
-    { ...visibleRule, known: 600 },
+    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    visibleRule,
   ] },
   // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
   'screen.recoil': { moment: 'screen', beat: 'recoil', rules: [
@@ -112,8 +112,8 @@ const SPECS = {
   // A pet carrier by the door: whoever comes over peers at its door, face in view.
   'carrier.peer': { moment: 'carrier', beat: 'peer', rules: [
     share('atCarrier', 'face within 45 deg of the carrier', (x) => x.targetAngle <= 45, 0.8),
-    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 601 },
-    { ...visibleRule, known: 601 },
+    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    visibleRule,
   ] },
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
