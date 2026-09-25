@@ -415,6 +415,18 @@ export function createUI({ root, getState, dispatch, controls }) {
     hideTitle() { title.hide(); },
     openStaff: (id) => menu.open('staff', { staffId: id }),
     openSettings: () => settings.open(),
+    // Dev and tool hooks: open a tooltip without hovering (an element, a CSS selector, or text in
+    // its tip), and close it. Returns the element shown, or null.
+    showTip(target) {
+      const bySelector = (sel) => { try { return document.querySelector(sel)?.closest?.('[data-tip]') ?? null; } catch { return null; } };
+      const el = typeof target === 'string'
+        ? (bySelector(target) ?? [...layer.querySelectorAll('[data-tip]')].find((e) => e.dataset.tip.includes(target)) ?? null)
+        : target ?? null;
+      if (!el?.dataset?.tip) return null;
+      tooltips.show(el, 'dev');
+      return el;
+    },
+    hideTip: () => tooltips.hide(),
     startTutorial: () => tutorial.start(true),
     build: buildMode,
     openGoals: () => goalsModal(),

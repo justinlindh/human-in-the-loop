@@ -9,6 +9,7 @@ import { placedOf, stageOf } from '../placement.js';
 import { EVENTS } from '../../data/events.js';
 import { weeklyCosts } from '../../sim/economy.js';
 import { call, SIMX } from '../simapi.js';
+import { touchUI } from '../media.js';
 
 const EFFECT_LABEL = {
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
@@ -279,7 +280,7 @@ function buildPalette(ctx, arg) {
       const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));
       const shop = all.filter((it) => it.kind !== 'furniture');
       return [stageCard, hint,
-        h('div.section', null, h('h3', null, 'Furniture', h('span.aside', { text: 'Click a spot on the floor to place. Click anything placed to move or sell it.' })),
+        h('div.section', null, h('h3', null, 'Furniture', h('span.aside', { text: touchUI() ? 'Tap a spot on the floor to place. Tap anything placed to move or sell it.' : 'Click a spot on the floor to place. Click anything placed to move or sell it.' })),
           h('div.shop', null, ...furniture.map(card))),
         h('div.section', null, h('h3', null, 'Office shop', h('span.aside', { text: 'Upgradeable. Sell for half of what you paid.' })),
           h('div.shop', null, ...shop.map(card)), laterLine(later))];

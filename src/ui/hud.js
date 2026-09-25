@@ -187,8 +187,11 @@ export function createHud({ root, controls, ui }) {
   // On phones the tray folds into a slim strip of badges under the top bar; a tap opens it.
   // It starts shut at 480 px and below, where the open tray would hide most of the office.
   const stripNeeds = h('span.tsb.needs'), stripWork = h('span.tsb'), stripGoals = h('span.tsb'), stripFx = h('span.tsb');
+  // On phones the meters chip hides; the strip carries Brand, Know-how and Debt as small readouts.
+  const smB = h('b.num'), smK = h('b.num'), smD = h('b.num');
+  const stripMeters = h('span.tsm', null, h('i.brand'), smB, h('i.ik'), smK, h('i.debt'), smD);
   const trayToggle = h('button.tray-toggle', { dataset: { occludes: '' }, 'aria-expanded': 'false', title: 'Show or hide the side cards', onclick: () => setTrayOpen(!trayOpen) },
-    h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx);
+    h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx, stripMeters);
   let trayOpen = !phoneLayout();
   function setTrayOpen(on) {
     trayOpen = on;
@@ -378,6 +381,7 @@ export function createHud({ root, controls, ui }) {
 
     setWidth(mBrand.fill, s.brand / 100);
     setText(mBrand.v, Math.round(s.brand));
+    setText(smB, Math.round(s.brand)); setText(smK, Math.round(s.institutionalKnowledge)); setText(smD, Math.round(s.comprehensionDebt));
     setWidth(mIk.fill, s.institutionalKnowledge / 100);
     setText(mIk.v, Math.round(s.institutionalKnowledge));
     toggleClass(mIk.bar, 'low', s.institutionalKnowledge < 30);
