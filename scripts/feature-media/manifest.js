@@ -113,7 +113,7 @@ export const ITEMS = [
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 120, bot: 'balanced', hit: "(c, ev) => ev.some((e) => e.type === 'launch')" })}; ${BARE}; })()`,
     actions: [...DISMISS_AT([0.1, 0.6, 1.5, 3, 4, 5, 6, 8, 10], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 20, 2)],
     screenshots: [44],
-    out: [{ path: 'img/launch.webp', size: '1920x1080' }],
+    out: [{ path: 'img/launch.webp', size: '1920x1080', crop: { x: 0.2083, y: 0.2269, w: 0.5833, h: 0.5833 } }],
   },
 
   // Event loops: the office in motion, no side panels.
@@ -198,7 +198,7 @@ export const ITEMS = [
     setup: CLEAN,
     actions: [...OPEN(['stapler']), ...FOLLOW(['stapler'], 3.2, 0, 9), { at: 4, js: KEY('2', 'Digit2') }, ...DISMISS_AT([4.5, 5], { escape: false })],
     screenshots: [8],
-    out: [STILL('stapler', 8, { x: 1 / 3, y: 1 / 3, w: 1 / 3, h: 1 / 3 })],
+    out: [STILL('stapler', 8, { x: 0.4297, y: 0.4069, w: 0.15, h: 0.15 })],
   },
   {
     // Both choices clear the stack, so it is shot while the decision is open, the card hidden.
@@ -206,7 +206,7 @@ export const ITEMS = [
     setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
     actions: [...OPEN(['cover_sheets']), ...FOLLOW(['cover_sheets'], 3.2, 0, 5)],
     screenshots: [4.5],
-    out: [STILL('cover-sheets', 4.5, { x: 0.2917, y: 0.2917, w: 0.4167, h: 0.4167 })],
+    out: [STILL('cover-sheets', 4.5, { x: 0.3917, y: 0.4125, w: 0.2083, h: 0.2083 })],
   },
   {
     // "Rise above it" hangs the sign; the live week raises the jab.
@@ -222,7 +222,7 @@ export const ITEMS = [
     setup: `(async () => { await ${PRE_DECISION('ai_summit_hackathon', 600)}; ${CLEAN}; })()`,
     actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('ai_summit_hackathon', 1, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['giant_cheque'], 3.2, 0, 20)],
     screenshots: [17],
-    out: [STILL('cheque', 17, { x: 0.2083, y: 0.1759, w: 0.4167, h: 0.4167 })],
+    out: [STILL('cheque', 17, { x: 0.3698, y: 0.2454, w: 0.25, h: 0.25 })],
   },
   {
     // Shot while the pivot is open, the card hidden.
