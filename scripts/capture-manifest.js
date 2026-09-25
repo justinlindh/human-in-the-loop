@@ -170,6 +170,37 @@ export const CAMLOG = (seconds) => [
   { at: 0, js: `(() => { const R = window.__hitlRender; const log = window.__camLog = [], t0 = window.__capture.now; const f = () => { const v = R.view(); log.push([+((window.__capture.now - t0) / 1000).toFixed(4), v.x, v.y, v.z, v.zoom]); requestAnimationFrame(f); }; requestAnimationFrame(f); })()` },
   { at: seconds - 0.05, js: `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'camlog ' + JSON.stringify(window.__camLog) }); })()` },
 ];
+// Build mode as a player uses it (the trailer's placement beat): enters build mode for `itemId` at
+// `at`, finds a free spot near the middle of the screen, glides the cursor onto it from `from` tiles
+// away over `glide` seconds (the ghost and the tip follow), rests `rest` seconds, then clicks it.
+export const BUILD_GLIDE = ({ itemId, at = 0.2, glide = 1.2, rest = 0.5, from = 3 }) => {
+  const find = `(() => { const R = window.__hitlRender, v = R.validate; if (!v) return;
+    const W = innerWidth, H = innerHeight, cells = new Map();
+    for (let y = H * 0.2; y < H * 0.8; y += 12) for (let x = W * 0.2; x < W * 0.8; x += 12) { const t = R.pickTile(x, y); if (!t) continue; const k = t.x + ',' + t.y; const c = cells.get(k) ?? { t, x: 0, y: 0, n: 0 }; c.x += x; c.y += y; c.n++; cells.set(k, c); }
+    const fits = (x, y) => { const r = v(x, y); return r === true || !!r?.ok; };
+    // Open floor: the spot and every tile round it would take the item, so people can gather round it.
+    const ok = [...cells.values()].filter((c) => [-1, 0, 1].every((dx) => [-1, 0, 1].every((dy) => fits(c.t.x + dx, c.t.y + dy)))).map((c) => ({ t: c.t, x: c.x / c.n, y: c.y / c.n }));
+    if (!ok.length) return;
+    const goal = ok.reduce((a, c) => (Math.hypot(c.x - W / 2, c.y - H / 2) < Math.hypot(a.x - W / 2, a.y - H / 2) ? c : a));
+    const start = [...cells.values()].map((c) => ({ x: c.x / c.n, y: c.y / c.n, t: c.t })).filter((c) => c.t.y === goal.t.y && c.t.x === goal.t.x - ${from})[0] ?? { x: goal.x - 180, y: goal.y + 60 };
+    window.__glide = { start, goal }; })()`;
+  const move = (u) => `(() => { const g = window.__glide; if (!g) return; const e = (k) => k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2, k = e(${u});
+    const x = g.start.x + (g.goal.x - g.start.x) * k, y = g.start.y + (g.goal.y - g.start.y) * k;
+    document.getElementById('scene').dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true, pointerType: 'mouse' })); })()`;
+  const click = `(() => { const g = window.__glide; if (!g) return; const s = document.getElementById('scene'), o = { clientX: g.goal.x, clientY: g.goal.y, bubbles: true, button: 0, pointerType: 'mouse' };
+    s.dispatchEvent(new PointerEvent('pointerdown', o)); s.dispatchEvent(new PointerEvent('pointerup', o)); })()`;
+  const n = Math.round(glide * 30);
+  return [
+    { at, js: `window.__HITL_UI.build.enter('${itemId}')` },
+    { at: at + 0.1, js: find },
+    ...Array.from({ length: n + 1 }, (_, i) => ({ at: at + 0.15 + (i / n) * glide, js: move(i / n) })),
+    { at: at + 0.15 + glide + rest, js: click },
+    // Leave build mode at once, or the ghost stays on the item just placed and reads as blocked.
+    { at: at + 0.2 + glide + rest, js: `window.__HITL_UI.build.exit?.()` },
+  ];
+};
+// Only the build bar and its tip over the office (the trailer's build beat): every other overlay hidden.
+export const BUILD_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle, #ui .chat.yak, #ui .menu { display: none !important; }'; document.head.append(st); })()`;
 // Speech bubbles and work labels hidden: people in a moment's shot still chat about other things.
 export const NO_SAY = `(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()`;
 // Hides the decision card, for a still whose subject is what the decision staged.
@@ -591,5 +622,23 @@ export const ITEMS = [
     setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`,
     camera: [{ at: 0, target: [-9, -3], zoom: 1.5 }, { at: 1.5, target: [-9, -3], zoom: 1.5 }, { at: 7.5, target: [7, -6], zoom: 1.5, ease: 'inOut' }],
     actions: [...CLEAR_EARLY, ...CAMLOG(9)], screenshots: [1, 4.5, 8],
+  },
+  {
+    // Trailer beat 4: on the Office Floor the player places a foosball table with the cursor, and two
+    // people come over to play.
+    id: 'trail-build', group: 'trailer', title: 'Trailer: build mode, a foosball table placed', query: 'seed=1&speed=1&time=day', seconds: 9, warmup: 1,
+    setup: `(async () => { await ${PLAY({ weeks: 400, until: 's.office.stage === 1 && s.staff.length >= 10', after: IN_OFFICE + 's.cash = Math.max(s.cash, 50000);' })}; ${BUILD_ONLY}; ${NO_SAY}; })()`,
+    // Closer than the fitted view, set before the glide so the spot search sees the final framing.
+    actions: [...CLEAR_EARLY, { at: 0.05, js: '(() => { const R = window.__hitlRender, v = R.view(); R.focusAt(v.x, v.z, 1.7); })()' }, ...BUILD_GLIDE({ itemId: 'foosball', at: 0.6 }), ...CAMLOG(9)],
+    screenshots: [1.2, 2.2, 2.6, 5, 8],
+  },
+  {
+    // Trailer beat 5a: the hire panel open over the Office Floor, a candidate hired, at the first week
+    // there's a free desk and someone to hire.
+    id: 'trail-hire', group: 'trailer', title: 'Trailer: hiring a candidate', query: 'seed=1&speed=1&time=day', seconds: 5, warmup: 1,
+    // Toasts stay, so the hire's own toast lands; the rest of the overlays go.
+    setup: `(async () => { await ${PLAY({ weeks: 400, until: "s.office.stage === 1 && s.staff.length >= 8 && s.candidates.length && s.staff.length < (sim.deskCapacity?.(s) ?? s.office.placed.filter((p) => p.itemId === 'desk').length)", after: IN_OFFICE + 's.cash = Math.max(s.cash, 50000);' })}; ${BUILD_ONLY.replace('#ui .toasts, ', '')}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY, { at: 0.4, js: KEY('s', 'KeyS') }, { at: 0.7, js: CLICK_STARTS('Hire') }, { at: 2.0, js: CLICK('Hire') }, ...CAMLOG(5)],
+    screenshots: [1.5, 2.5, 4],
   },
 ];
