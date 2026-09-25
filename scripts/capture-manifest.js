@@ -66,18 +66,20 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const H = window.__HITL, s = H.state;
-  const from = (s.chatLog ?? []).length;
-  const has = () => (s.chatLog ?? []).slice(from).some((m) => (m.text ?? '').includes(${JSON.stringify(until)}));
+  // New messages by week: the log is capped, so its length stops growing once it is full.
+  const w0 = s.week;
+  const fresh = () => (s.chatLog ?? []).filter((m) => m.week >= w0);
+  const has = () => fresh().some((m) => (m.text ?? '').includes(${JSON.stringify(until)}));
   for (let i = 0; i < ${max} && !has(); i++) { b.botDecide('allHumans', s); b.botTurn('allHumans', s); sim.tick(s); }
   b.botDecide('allHumans', s);
-  H.emit((s.chatLog ?? []).slice(from).filter((m) => ${JSON.stringify(show)}.some((k) => (m.text ?? '').includes(k))));
+  H.emit(fresh().filter((m) => ${JSON.stringify(show)}.some((k) => (m.text ?? '').includes(k))));
 })()`;
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
 const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
 // Eases the camera onto a staged prop, or onto a point between two of them.
 const FOCUS_PROP = (prop, zoom) => `(() => { const R = window.__hitlRender; const p = R.props.current().find((x) => x.prop === '${prop}'); if (p) R.focusAt(p.obj.position.x, p.obj.position.z, ${zoom}); })()`;
-const FOCUS_PRINTER = (zoom) => `(() => { const R = window.__hitlRender; const p = R.moments.printerState; if (!p) return; const a = p.route[0], b = p.route[p.route.length - 1]; R.focusAt((a.x + b.x) / 2, (a.z + b.z) / 2, ${zoom}); })()`;
+const FOCUS_PRINTER = (zoom, end = false) => `(() => { const R = window.__hitlRender; const p = R.moments.printerState; if (!p) return; const a = p.route[0], b = p.route[p.route.length - 1]; if (${end}) R.focusAt(b.x, b.z, ${zoom}); else R.focusAt((a.x + b.x) / 2, (a.z + b.z) / 2, ${zoom}); })()`;
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -393,6 +395,8 @@ export const ITEMS = [
       { at: 3.5, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([4.5, 5.5, 6.5], { escape: false }),
       { at: 4, js: FOCUS_PRINTER(2.0) },
+      // In on the set-down spot as the carry reaches it (the cue's set-down is 8.1 s after its start).
+      { at: 12, js: FOCUS_PRINTER(2.6, true) },
     ],
     screenshots: [2, 12, 20],
   },  {
