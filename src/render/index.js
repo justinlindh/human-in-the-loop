@@ -304,6 +304,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     // Ease the camera to a world point (dev and snap use).
     focusAt(x, z, zoom = 2.5) { rig.focus({ x, y: 0.4, z }, zoom); rig.update(10); },
+    // The same, eased: the camera glides there at `rate` (as the moment camera does) instead of jumping.
+    easeTo(x, z, zoom = 2.5, rate = 2, y = 0.4) { rig.focus({ x, y, z }, zoom, rate); },
+    // Where the camera looks now, and its zoom.
+    view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
@@ -368,6 +372,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     walkOf(id) { return staff?.walkOf(id) ?? null; },
+    // The moment ownership trace (sync.js): trace.on = true, then trace.lines(n).
+    get trace() { return staff?.trace ?? null; },
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },

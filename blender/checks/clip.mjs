@@ -12,6 +12,7 @@
 // and in the garage. Runs through harness.mjs, so the result depends only on the code.
 import { startHarness } from './harness.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { fmtTrace, fmtActor } from './diag.mjs';
 
 const rig = process.argv.includes('--rig') ? '&rig=1' : '';
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -21,7 +22,7 @@ const GROUPS = {
   perks: ['couch:sit', 'couch:nap', 'beanbag:sprawl', 'napPod:lie', 'arcade:stool', 'library:armchair'],
   dance: ['dance:motivational_polka', 'dance:corporate_synthwave', 'dance:aggressive_bossa_nova', 'dance:sad_lofi', 'dance:trackLength'],
   walk: ['walk:dropOnWalk', 'walk:dropOnStand', 'walk:walkers'],
-  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card'],
+  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage'],
   pairs: ['pairs:floor'],
   use: ['use:espresso', 'use:coffee_corner', 'use:plant_wall', 'use:bookshelf'],
   party: ['waffle:crowd'],
@@ -43,6 +44,8 @@ const H = await startHarness();
 const { page, errors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
 const out = await page.evaluate(async (runs) => {
   const R = window.__hitlRender, S = window.__HITL.state;
+  // The ownership trace, for the failure detail (the worst actor's last trace lines).
+  if (R.trace) R.trace.on = true;
   const C = await import('/src/render/checks.js');
   const moods = ['ok', 'coasting', 'burnout', 'tired'];
   S.staff.forEach((p, i) => { const m = moods[i % 4]; if (m === 'tired') { p.mood = 'ok'; p.stamina = 10; } else { p.mood = m; p.stamina = 80; } p.assignment = { type: 'project', targetId: null }; });
@@ -122,8 +125,13 @@ if (ONLY && !shown.length) noMatch();
 let failed = 0;
 for (const r of shown) {
   if (!r.pass) failed++;
-  const { name, pass, ...nums } = r;
+  const { name, pass, worstAt, ...nums } = r;
   console.log(`CLIP ${pass ? 'ok  ' : 'FAIL'} ${name} ${JSON.stringify(nums)}`);
+  // A failure prints the worst actor as it stood at the worst sample, and their last trace lines.
+  if (!pass && worstAt) {
+    console.log(`  worst ${fmtActor(worstAt)}`);
+    for (const l of worstAt.trace ?? []) console.log(`  trace ${fmtTrace(l)}`);
+  }
 }
 if (errors.length) { failed++; console.log(`page errors: ${errors.join('; ')}`); }
 console.log(`clip: ${shown.length - failed} of ${shown.length} passed${ONLY ? ` (--only=${ONLY.join(',')})` : ''}`);

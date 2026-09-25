@@ -4,7 +4,7 @@
 //
 //   node blender/checks/dump.mjs --out <dir> [--mock floor | --seed N [--week W] [--bot balanced|none]]
 //        [--snapshot <path> | --moment '<find query>'] [--patch-js '<js>'] [--event '<json>'] [--warm 60]
-//        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium]
+//        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium] [--trace]
 //
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
@@ -12,6 +12,10 @@
 //   --moment     start from the first indexed moment matching a find query, e.g. 'printer_jam --choice 0'
 //   --event      an event or list of events handed to the renderer with the patch
 //   --frames     frames (at 30 fps, counted from the patch) to dump; default 0
+//   --trace      the moment ownership trace from the start of the warm-up: each frame gets the
+//                entries since the one before (who set a person's temp, and every start, end,
+//                interrupt, replacement, refusal and decision freeze), and each person's temp names
+//                the function that set it
 //   --clip       dump every --every frames (default 15) for this many seconds
 //
 // Writes <dir>/dump.json ({ scene, frames: [{ frame, t, people, items, props, camera }] }), and for
@@ -51,6 +55,7 @@ try {
   if (target) console.log(`dump: ${row ? `${row.id} seed ${row.seed} bot ${row.bot} week ${row.week}` : 'snapshot'} from ${target.file}`);
   await page.evaluate(async (o) => {
     const R = window.__hitlRender, S = window.__HITL.state;
+    if (o.trace && R.trace) R.trace.on = true;
     window.__dump = await import('/blender/checks/dump.js');
     await window.__dump.prepare();
     if (o.bot && !o.loaded) {
@@ -66,7 +71,7 @@ try {
     window.__step(o.warm);
     if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
     if (o.events) R.handleEvents([].concat(o.events), S);
-  }, { warm, patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, bot: opt('seed') && bot !== 'none' ? bot : null, week, loaded: !!target });
+  }, { warm, patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, bot: opt('seed') && bot !== 'none' ? bot : null, week, loaded: !!target, trace: argv.includes('--trace') });
   const canvas = await page.$('canvas');
   const dumped = [];
   let at = 0;
@@ -75,6 +80,8 @@ try {
       window.__step(n);
       const R = window.__hitlRender, S = window.__HITL.state;
       const d = window.__dump.dumpFrame(R, S);
+      // The trace entries since the last dumped frame.
+      if (R.trace?.on) { d.trace = R.trace.lines(600).filter((l) => l.seq > (window.__traceSeen ?? -1)); if (d.trace.length) window.__traceSeen = d.trace[d.trace.length - 1].seq; }
       return { d, annotated: window.__dump.annotate(R, d) };
     }, f - at);
     at = f;
