@@ -1173,6 +1173,20 @@
 .hitl .trendtag.up { background: #c9f0dc; color: #0f5c3c; }
 .hitl .trendtag.down { background: #ffe1df; color: #8f1d22; }
 
+/* Phones: the tray folds into a strip of badges (needs, projects, goals, effects) under the top
+   bar. Open, it sits below the strip and scrolls, so it never runs under the bottom row. */
+.hitl .tray-toggle { display: none; }
+@media (max-width: 480px) {
+  .hitl .tray-toggle {
+    display: flex; align-items: center; gap: 0.55em; position: absolute; left: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.5em);
+    pointer-events: auto; min-height: 44px; padding: 0.2em 0.7em; font: inherit; font-weight: 700; cursor: pointer;
+    background: var(--cream); border: var(--bw) solid var(--ink); border-radius: 0.75em; box-shadow: 0 0.2em 0 var(--ink); color: var(--ink);
+  }
+  .hitl .tray-toggle .tsb { display: inline-flex; align-items: center; gap: 0.2em; font-variant-numeric: tabular-nums; }
+  .hitl .tray-toggle .tsb.hot b { color: var(--bad); }
+  .hitl .tray { top: calc(var(--topbar-h, 4.6em) + 0.5em + 44px + 0.6em); max-height: calc(100% - var(--topbar-h, 4.6em) - 44px - var(--bottom-h, 12em) - 2.3em); overflow-y: auto; overscroll-behavior: contain; }
+  .hitl.tray-shut .tray { display: none; }
+
 /* Yak sizes: S, M, L in the header, a drag handle on the top edge, and a maximize button that
    opens a big overlay (full screen on phones). */
 .hitl .chat { position: relative; }
