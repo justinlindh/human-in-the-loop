@@ -742,7 +742,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
     let item = null, best = Infinity;
     for (const e of office.placed.values()) { const d = Math.hypot(e.target.x - center.x, e.target.z - center.z); if (d < best) { best = d; item = e; } }
-    const box = item ? new THREE.Box3().setFromObject(item.obj) : new THREE.Box3().setFromObject(p.obj);
+    // A prop that brought its own rack (rack_hot with none placed) is the source itself.
+    const solid = p.obj.userData.blockPart;
+    const box = new THREE.Box3().setFromObject(solid ?? item?.obj ?? p.obj);
     box.getCenter(center);
     center.y = 0;
     // Whoever is nearest notices first.
