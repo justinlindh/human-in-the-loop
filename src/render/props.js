@@ -23,10 +23,13 @@ export function createProps(office, screens = null) {
   const gone = [];          // { prop, x, z, at }: props that just went, for a few seconds (a pet leaving its carrier)
   let root = null;
 
+  // What is staged now: the open decision's stage, and those of open Yak prompts (an event delivered
+  // as a prompt stages its prop exactly as behind a card).
+  const stages = (state) => [state.pendingDecision?.stage, ...(state.chatPrompts ?? []).filter((c) => !c.resolved).map((c) => c.stage)].filter((st) => st?.prop);
+
   function wanted(state) {
     const out = [];
-    const st = state.pendingDecision?.stage;
-    if (st?.prop && BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
+    for (const st of stages(state)) if (BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
     for (const p of state.office?.props ?? []) if (BUILDERS[p.prop]) out.push({ key: `prop|${p.id}|${p.prop}`, ...p });
     return out;
   }
@@ -40,9 +43,9 @@ export function createProps(office, screens = null) {
       live.clear();
       root = cur.root;
     }
-    // A 'screens' prop takes over every monitor while its decision is open.
-    const st = state.pendingDecision?.stage;
-    overlay = st?.anchor === 'screens' ? SCREEN_OVERLAYS[st.prop] ?? null : null;
+    // A 'screens' prop takes over every monitor while its decision or prompt is open.
+    const st = stages(state).find((x) => x.anchor === 'screens');
+    overlay = st ? SCREEN_OVERLAYS[st.prop] ?? null : null;
     screens?.setOverlay(overlay);
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));

@@ -200,7 +200,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     if (!hammer) {
       if (!p) { timers.delete('hammer'); return; }
       if (lite()) { if (!timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
-      const subject = state?.pendingDecision?.subjectId;
+      const subject = stagedBy(state, 'sledgehammer')?.subjectId;
       const r = (subject && recs.get(subject) && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1)[0];
       if (!r) return;
       const at = p.obj.position;
@@ -304,6 +304,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     resolved.set(e.eventId, e.choice ?? null);
     resolvedT.set(e.eventId, 20);
     if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3;
+  }
+
+  // The open decision or Yak prompt that stages `prop`: { eventId, subjectId }, or null. A prompt
+  // delivering an event carries the event id as its kind.
+  function stagedBy(state, prop) {
+    const d = state?.pendingDecision;
+    if (d?.stage?.prop === prop) return { eventId: d.eventId, subjectId: d.subjectId ?? null };
+    const c = (state?.chatPrompts ?? []).find((x) => !x.resolved && x.stage?.prop === prop);
+    return c ? { eventId: c.kind, subjectId: c.subjectId ?? null } : null;
   }
 
   // A yaw that faces the camera three-quarters, turned toward a point so it still reads as about it.
@@ -501,7 +510,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     return best ?? [{ x: at.x + 2, z: at.z, yaw: -Math.PI / 2 }, { x: at.x + 2, z: at.z + 0.55, yaw: -Math.PI / 2 }];
   }
   function visitorStart(p, state) {
-    const event = state?.pendingDecision?.stage?.prop === 'visitor_chair' ? state.pendingDecision.eventId : 'first_user_test';
+    const event = stagedBy(state, 'visitor_chair')?.eventId ?? 'first_user_test';
     const o = p.obj;
     const v = visitor = { event, obj: o, at: { x: o.position.x, z: o.position.z }, yaw: o.rotation.y, chars: [], cast: [], resolved: null, t: 0, since: decisionSeq };
     // The user test happens at the desk: the stranger takes its seat, at the monitor, once whoever
@@ -727,7 +736,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   // Pet carrier: the requester bends over it and peers in, now and then while it is down.
   function carrier(p, state, dt) {
     if (!due(`carrier|${p.obj.uuid}`, dt, [1, 2.5], [9, 14])) return;
-    const subject = state?.pendingDecision?.subjectId;
+    const subject = stagedBy(state, 'pet_carrier')?.subjectId;
     const r = (subject && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1, p.obj.position)[0];
     if (!r) return;
     if (lite()) { emote(r, 'heart', 2); return; }
@@ -950,6 +959,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       // Each blow: the swing starts so its downstroke lands on the word; between blows, back on the shoulder.
       if (bat && next != null && pm.swung < pm.hit && t >= next - SWING_HIT) { pm.swung = pm.hit; pm.bat.rotation.set(0, 0, 0); setAnim(bat, 'batswing', true); }
       if (next != null && t >= next) {
+        if (pm.mid) dispatch('hit', 'printer_jam', pm.mid, { hit: pm.hit });
         pm.hit++;
         const c = pm.end;
         wallDust(c.x, c.y + 0.25, c.z);
@@ -1078,9 +1088,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   // Moment captions (ui): hitl:moment { phase, id, key }. A start makes the moment's id and returns it;
   // its end passes the same id back.
   let momentSeq = 0;
-  function dispatch(phase, key, id = null) {
+  // hitl:moment { phase: 'start' | 'end' | 'hit', id, key, ...extra }; 'hit' marks a beat inside a
+  // moment as it lands (the printer's blows: { hit: 0.. }).
+  function dispatch(phase, key, id = null, extra = null) {
     if (phase === 'start') id = `${key}-${++momentSeq}`;
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id, key } }));
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id, key, ...extra } }));
     return id;
   }
 
