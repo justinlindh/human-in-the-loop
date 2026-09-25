@@ -26,10 +26,10 @@ export const teamMeaning = (state) => avg(present(state), (p) => p.meaning);
 // Reaction pills for a message, scaled by its weight. Wins, incidents, farewells and other big posts get a
 // spread of reactions that grows with the team's mood; routine chatter usually gets none, or one or two; replies
 // rarely get any. Once in a while a trivial post gets an absurd pile of one emoji, as a joke.
-export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(state), { reply = false } = {}) {
+export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(state), { reply = false, important = false } = {}) {
   const byChannel = { wins: 'win', incidents: 'incident', random: 'random' };
   const set = REACTIONS[kind] ?? REACTIONS[byChannel[channel]] ?? REACTIONS.normal;
-  const big = !reply && (!!REACTIONS[kind] || channel === 'wins' || channel === 'incidents');
+  const big = !reply && (important || !!REACTIONS[kind] || channel === 'wins' || channel === 'incidents');
   const R = B.reactions;
   if (!big) {
     if (!reply && chance(rng, R.pileOnChance)) return { [pick(rng, set)]: Math.round(range(rng, R.pileOnMin, R.pileOnMax)) };
@@ -57,11 +57,13 @@ function reactionRng(state) {
 }
 
 // Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
-export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null }) {
+export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, important = false }) {
   const msg = {
     type: 'chat', id: id ?? newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
-    reactions: reactions ?? reactionsFor(ctx.state, reactionRng(ctx.state), channel, kind, teamMeaning(ctx.state), { reply: !!replyTo }),
+    reactions: reactions ?? reactionsFor(ctx.state, reactionRng(ctx.state), channel, kind, teamMeaning(ctx.state), { reply: !!replyTo, important }),
   };
+  // A post that matters without being a win, an incident or a bot post (a running joke, a warranted @channel).
+  if (important) msg.important = true;
   ctx.emit(msg);
   const log = ctx.state.chatLog;
   if (Array.isArray(log)) {

@@ -163,7 +163,7 @@ function emit(ctx, ex, planned) {
     }
   } else {
     const kind = ex.channel === 'wins' ? 'win' : ex.channel === 'incidents' ? 'incident' : null;
-    const root = emitChat(ctx, { channel: ex.channel, person: planned.lines[0].person, text: planned.lines[0].text, kind });
+    const root = emitChat(ctx, { channel: ex.channel, person: planned.lines[0].person, text: planned.lines[0].text, kind, important: !!ex.important });
     for (const l of planned.lines.slice(1)) emitChat(ctx, { channel: ex.channel, person: l.person, text: l.text, replyTo: root.id, kind });
   }
 }
@@ -202,7 +202,7 @@ function runJoke(ctx, stream, talk, h) {
     if (joke.eras && !joke.eras.includes(h.era)) continue;
     if (j.next === null) { j.next = state.week + int(rng, ...B.jokeGapWeeks); continue; }
     if (state.week < j.next) continue;
-    const ex = { ...joke, turns: joke.beats[j.step] };
+    const ex = { ...joke, turns: joke.beats[j.step], important: true };
     const planned = plan(ctx, ex, null, talk, j.cast);
     if (!planned) {
       // A cast member left: the joke ends quietly.
@@ -300,7 +300,7 @@ function atChannel(ctx, talk, factor) {
   const beat = warranted ? AT_CHANNEL_WARRANTED : pick(rng, AT_CHANNEL);
   const values = { a: first(offender), product: outage?.name ?? '' };
   const text = (t) => t.replace(/\{(a|product)\}/g, (_, k) => values[k]);
-  const root = emitChat(ctx, { channel: 'general', person: offender, text: text(pick(rng, beat.post)),
+  const root = emitChat(ctx, { channel: 'general', person: offender, text: text(pick(rng, beat.post)), important: !!warranted,
     reactions: { no_at_channel: int(rng, 2, 6), ...(warranted ? {} : { '😂': 1 }) } });
   const others = shuffle(rng, people.filter((p) => p.id !== offender.id));
   const replies = shuffle(rng, beat.replies).slice(0, int(rng, 1, 2));
