@@ -92,13 +92,19 @@ export async function renderScene(H, o) {
     if (o.event) R.handleEvents([].concat(o.event), S);
     if (o.focusOn) { window.__step(3); const f = (0, eval)(o.focusOn); R.focusAt(f[0], f[2], o.zoom ?? 2.5); window.__step(1); }
     if (o.cropAround) { window.__step(3); around = (0, eval)(o.cropAround); }
-    if (o.frames) for (let i = 0; i < o.frames; i++) out.push(grab());
-    else { window.__step(Math.max(0, (o.settle ?? 30) - 1)); out.push(grab()); }
-    const report = o.report ? (0, eval)(o.report) : undefined;
-    return { out, report };
+    if (!o.frames) { window.__step(Math.max(0, (o.settle ?? 30) - 1)); out.push(grab()); }
+    // Clip frames are fetched in batches (below): one call returning every frame can pass the
+    // browser's string size limit.
+    window.__sceneGrab = grab;
+    return { out };
   }, o);
+  const frames = [...images.out];
+  for (let left = o.frames ?? 0; left > 0; left -= 30) {
+    frames.push(...await page.evaluate((n) => Array.from({ length: n }, () => window.__sceneGrab()), Math.min(30, left)));
+  }
+  const report = o.report ? await page.evaluate((r) => (0, eval)(r), o.report) : undefined;
   await page.close();
-  return { images: images.out.map((d) => Buffer.from(d.split(',')[1], 'base64')), errors, report: images.report };
+  return { images: frames.map((d) => Buffer.from(d.split(',')[1], 'base64')), errors, report };
 }
 
 function parse(argv) {

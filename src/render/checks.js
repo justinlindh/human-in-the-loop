@@ -524,7 +524,39 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     S.staff[3].assignment = { type: 'project', targetId: null };
     step(10);
   }
+  // 3. Pizza on a desk: the people who gather to eat stand clear of every piece of furniture and prop.
+  {
+    R.moments.full = true;
+    const desk = [...R.office.placed.values()].find((e) => e.desk);
+    S.office.props.push({ id: 'pizza_prop', prop: 'pizza_boxes', x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
+    let worst = 0, worstWho = null;
+    const eaters = new Set();
+    for (let i = 0; i < 30 * 20; i++) {
+      step(1);
+      if (i % 5) continue;
+      for (const [id, what] of R.moments.active) {
+        if (what !== 'pizza') continue;
+        eaters.add(id);
+        const root = charOf(R.scene, id);
+        // Their own desk (they get up from it) and the pizza desk (they stand at it) are theirs.
+        const own = new Set([R.perks.peek(id)?.seat, desk.id]);
+        for (const e of R.office.placed.values()) {
+          if (own.has(e.id)) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}`; }
+        }
+        for (const p of R.props.current()) {
+          if (p.prop === 'pizza_boxes') continue;
+          const v = bodyInside(root, meshes(p.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} in ${p.prop}`; }
+        }
+      }
+    }
+    results.push({ name: 'moment:pizza', pass: eaters.size > 0 && worst < 0.01, eaters: eaters.size, insidePct: +(100 * worst).toFixed(2), worstWho });
+    S.office.props = S.office.props.filter((p) => p.id !== 'pizza_prop');
+    R.moments.full = false;
+    step(10);
+  }
   R.perks.hold = false;
   return results;
 }
-
