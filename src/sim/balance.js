@@ -3,6 +3,8 @@ export const B = {
   runWeeks: 1040, anniversaryWeek: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
+  // Level-ups in one week that earn a team growth line in #wins.
+  growthDigestMin: 3,
   xpPerLevel: 60, xpPerWeekWorking: 8, promoteMidLevel: 5, promoteSeniorLevel: 10, maxLevel: 20,
   juniorXpAutomationPenalty: 0.7, mentorXpMult: 2.2, mentorOutputMult: 0.6,
   basePoints: 4, pointsPerLevel: 1.1,
