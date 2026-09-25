@@ -256,13 +256,25 @@ case $rc in 0) verdict=PASS; state=success ;; 3) verdict="ERROR (the machine, no
 # setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
 timing_log kind=run tool=ci-pr wall_s=$SECONDS ci_s=$secs setup_s=$(( SECONDS - secs )) exit=$rc
 
+# A machine failure that repeats one from this PR's previous Local CI ERROR may be the code's doing.
+repeat=""
+if [ $rc -eq 3 ] && [ "$comment" = 1 ]; then
+  machine_rows() { grep -oE '\| [^|]+ \| error: machine \([^|]*\)' | sed -E 's/^\| //; s/ +$//' | sort -u; }
+  now_rows="$(cat "$summary" ${own_summary:+"$own_summary"} | machine_rows)"
+  prev_rows="$(gh pr view "$pr" --json comments --jq '[.comments[] | select(.body | startswith("### Local CI: ERROR"))] | last | .body // ""' 2>/dev/null | machine_rows)"
+  [ -n "$prev_rows" ] && repeat="$(comm -12 <(echo "$now_rows") <(echo "$prev_rows") | sed 's/ | error: machine / /' | paste -sd';' - | sed 's/;/; /g')"
+fi
 body="$(mktemp)"
 {
   echo "### Local CI: $verdict"
   echo
   echo "Head \`${head:0:7}\`, tested as \`$sha\` ($what), in ${secs}s."
   echo
-  [ $rc -eq 3 ] && { echo "Steps failed twice on the machine (out of disk, memory or GPU), and nothing failed on the code. Run ci-pr again when the machine is quieter."; echo; }
+  if [ $rc -eq 3 ]; then
+    echo "Steps failed twice on the machine (out of disk, memory or GPU), and nothing failed on the code. Run ci-pr again when the machine is quieter."
+    [ -n "$repeat" ] && echo "The previous run failed the same way ($repeat). A machine failure that repeats may come from the code (a leak, a GPU crash): check with \`npm run ci\` in your worktree."
+    echo
+  fi
   [ -n "$own_summary" ] && { echo "**main's local CI** (the gate):"; echo; }
   cat "$summary"
   if [ -n "$own_summary" ]; then

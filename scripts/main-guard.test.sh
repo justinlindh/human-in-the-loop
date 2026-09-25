@@ -162,7 +162,14 @@ fi
 MACHINE='printf "| step | result | seconds |\n|---|---|---|\n| lifecycle | error: machine (ENOSPC) | 1 |\n" >"$SUMMARY"; exit 3'
 case_root="$tmp/root-machine"; : >"$cl"
 guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
-expect 'local CI failing on the machine gets no verdict' "$cl" "state=error|!state=failure|!issue create|out:no verdict"
+expect 'local CI failing on the machine gets no verdict' "$cl" "state=error|error: machine (ENOSPC)|!state=failure|!issue create|out:no verdict"
+[ -f "$case_root/main-guard/last" ] && fail_last=1 || fail_last=0
+[ $fail_last = 0 ] || { echo "FAIL an unjudged commit must be tried again on the next tick"; fails=$((fails + 1)); }
+# The same commit unjudged twice: recorded as checked, and filed for a person.
+: >"$cl"; guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label main-red|!state=failure"
+[ "$(cat "$case_root/main-guard/last" 2>/dev/null)" = "$(git -C "$REPO" rev-parse HEAD)" ] \
+  || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); }
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]

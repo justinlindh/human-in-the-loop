@@ -42,6 +42,8 @@ eq "silent and instant" "$(infra_failure "$tmp/d.log" 0)" "failed in 0s with no 
 infra_failure "$tmp/d.log" 12 >/dev/null && fail "a silent failure that ran a while is not the machine"
 printf 'AssertionError: expected 3 to equal 4\n' >"$tmp/e.log"
 infra_failure "$tmp/e.log" 0 >/dev/null && fail "an assertion is the code"
+{ echo "stderr | a test printed ENOSPC while mocking the disk"; seq 1 60; echo "AssertionError: expected 3 to equal 4"; } >"$tmp/f.log"
+infra_failure "$tmp/f.log" 30 >/dev/null && fail "a signature far above the end is test output, not why the step stopped"
 
 # ci-local's step(): its own definition, with the summary and timing calls stubbed.
 LOGS="$tmp/logs"; mkdir -p "$LOGS"; NAMES=(); RESULTS=()
