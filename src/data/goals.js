@@ -55,7 +55,7 @@ export const GOALS = [
     id: 'mrr_100k', group: 'Recognition', name: '$100k MRR', trophy: true,
     desc: 'A hundred thousand dollars a month. Your accountant starts returning calls.',
     reward: { cash: 20000, brand: 2 }, done: (s, h) => h.mrr >= 100000,
-    progress: (s, h) => ({ n: Math.min(100000, Math.round(h.mrr)), of: 100000 }),
+    progress: (s, h) => ({ n: Math.min(100000, Math.floor(h.mrr)), of: 100000 }),
   },
   {
     id: 'category_leader', group: 'Recognition', name: 'Lead a category', trophy: true,
