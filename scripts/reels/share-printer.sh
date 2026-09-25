@@ -12,6 +12,6 @@ source "$(dirname "$0")/kit.sh"
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 kit_trim "$IN/share-printer.mp4" "$TMP/body.mp4" 1.2 26.6 1280:720:640:140
 kit_lower "$TMP/body.mp4" "$TMP/titled.mp4" "PC LOAD LETTER" 0.3 2.6
-kit_end "$TMP/end.mp4" "Human in the Loop" 2.5
+kit_end "$TMP/end.mp4" humanintheloopgame.com 2.5
 kit_xfade "$OUT" 0.4 "$TMP/titled.mp4" "$TMP/end.mp4"
 echo "share-printer: $(_kit_dur "$OUT") s -> $OUT"

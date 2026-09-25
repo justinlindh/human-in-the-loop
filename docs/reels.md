@@ -38,11 +38,11 @@ The game is the show. Every effect exists to make a beat easier to read, never t
 | Hard cut (`kit_cut`) | The default between beats. | |
 | Crossfade (`kit_xfade`, 0.4 to 0.6 s) | Passing time: a timelapse stage, an era turning. | Between two jokes; it blurs both. |
 | Push-in or pull-out (in-engine keyframes) | At most one per beat, to land on the payoff (the printer, the empty chairs). | On every shot. Never during a card someone is reading. |
-| Pan (in-engine keyframes) | A slow drift over an office that is the subject (the hero). | To reach a subject; cut to it instead. |
-| Title card (`kit_title`) | Opening a reel, and naming a beat when its name is the joke. | Longer than 2.5 s. |
+| Pan (in-engine keyframes) | Showing an office that is the subject: a bold move that crosses most of the room in 5 to 6 s, eased in and out, after a hold of at least 1.5 s. A drift too small to notice is not a pan. | To reach a subject; cut to it instead. |
+| Title card (`kit_title`, a small logo above the title) | Opening a reel, and naming a beat when its name is the joke. | Longer than 2.5 s. |
 | Lower third (`kit_lower`) | Naming a beat or a stage over the picture, about 2.6 s. | Over a card, or over the subject. |
 | Corner label (`kit_label`) | A running label for a whole clip, such as the era in the growth timelapse. | More than one at a time. |
-| End card (`kit_end`) | Closing a reel or shareable clip: the name and the site. | Mid-reel. |
+| End card (`kit_end`) | Closing a reel or shareable clip: the game's logo and the site. | Mid-reel. |
 | Speed ramp (`kit_ramp`, 0.5 to 1) | Once per reel at most, into a payoff that happens too fast to see. | Below 0.5x: the animation is authored at game speed and stutters when slowed. Not on speech or a card. |
 | Vignette (`kit_vignette`) | A subtle focus on a busy frame. | As a look on everything. |
 | 2D push-in (`kit_push_in_2d`) | A still with no way to re-shoot it. | Anything the capture can move in-engine. |

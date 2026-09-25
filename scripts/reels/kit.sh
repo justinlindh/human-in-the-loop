@@ -4,8 +4,8 @@
 # `camera` keyframes; push_in_2d is the fallback for a flat frame only.
 #
 #   source scripts/reels/kit.sh
-#   kit_title   <out.mp4> <title> [subtitle] [seconds=2.5]           a title card on cream
-#   kit_end     <out.mp4> [line] [seconds=3]                         the end card: name and site
+#   kit_title   <out.mp4> <title> [subtitle] [seconds=2.5]           a title card on cream, a small logo above
+#   kit_end     <out.mp4> [url] [seconds=3]                          the end card: the logo and the site
 #   kit_lower   <in> <out> <text> [start=0.3] [seconds=2.6]          a lower-third caption
 #   kit_label   <in> <out> <text>                                    a corner label for a whole clip (an era); KIT_LABEL_SCALE=26 for a smaller one
 #   kit_trim    <in> <out> <from> <seconds> [crop w:h:x:y]           cut a beat, optionally cropped
@@ -37,18 +37,28 @@ _kit_aenc() { echo -c:a aac -b:a 160k -ar 48000 -ac 2; }
 _kit_txt() { local f; f="$(mktemp --suffix=.txt)"; printf '%s' "$1" > "$f"; echo "$f"; }
 _kit_dur() { ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"; }
 
+# kit_title and kit_end draw on cream with the game's logo (scripts/reels/logo.png, from the site's
+# img/logo.png): small above a title, larger as the end card, where it names the game.
+KIT_LOGO="$KIT_DIR/logo.png"
+_kit_card() {
+  local out="$1" secs="$2" logo_w="$3" logo_y="$4" draw="$5"
+  _kit_ff -f lavfi -i "color=c=${KIT_CREAM}:s=${KIT_W}x${KIT_H}:r=${KIT_FPS}:d=${secs}" -i "$KIT_LOGO" -f lavfi -i "anullsrc=r=48000:cl=stereo" \
+    -filter_complex "[0:v]format=rgb24[b];[1:v]scale=${logo_w}:-1:flags=lanczos,format=rgba[l];[b][l]overlay=format=rgb:x=(W-w)/2:y=${logo_y}${draw:+,${draw}},fade=t=in:st=0:d=0.3,fade=t=out:st=$(awk -v d="$secs" 'BEGIN{print d-0.3}'):d=0.3[v]" \
+    -map "[v]" -map 2:a -t "$secs" $(_kit_venc) $(_kit_aenc) "$out"
+}
+
 kit_title() {
   local out="$1" title="$2" sub="${3:-}" secs="${4:-2.5}" t s
   t="$(_kit_txt "$title")"; s="$(_kit_txt "$sub")"
-  _kit_ff -f lavfi -i "color=c=${KIT_CREAM}:s=${KIT_W}x${KIT_H}:r=${KIT_FPS}:d=${secs}" -f lavfi -i "anullsrc=r=48000:cl=stereo" \
-    -vf "drawtext=fontfile=${KIT_TITLE_FONT}:textfile=${t}:fontsize=$((KIT_H / 10)):fontcolor=${KIT_INK}:x=(w-text_w)/2:y=(h-text_h)/2-$((KIT_H / 22)),drawtext=fontfile=${KIT_BODY_FONT}:textfile=${s}:fontsize=$((KIT_H / 26)):fontcolor=${KIT_SUB_COLOR:-${KIT_INK_SOFT}}:x=(w-text_w)/2:y=(h/2)+$((KIT_H / 18)),fade=t=in:st=0:d=0.3,fade=t=out:st=$(awk -v d="$secs" 'BEGIN{print d-0.3}'):d=0.3" \
-    -t "$secs" $(_kit_venc) $(_kit_aenc) -shortest "$out"
+  _kit_card "$out" "$secs" $((KIT_W / 6)) $((KIT_H / 7)) "drawtext=fontfile=${KIT_TITLE_FONT}:textfile=${t}:fontsize=$((KIT_H / 10)):fontcolor=${KIT_INK}:x=(w-text_w)/2:y=(h-text_h)/2+$((KIT_H / 30)),drawtext=fontfile=${KIT_BODY_FONT}:textfile=${s}:fontsize=$((KIT_H / 26)):fontcolor=${KIT_INK_SOFT}:x=(w-text_w)/2:y=(h/2)+$((KIT_H / 8))"
   local r=$?; rm -f "$t" "$s"; return $r
 }
 
 kit_end() {
-  local out="$1" line="${2:-Human in the Loop}" secs="${3:-3}"
-  KIT_SUB_COLOR=$KIT_ACCENT kit_title "$out" "$line" "humanintheloopgame.com" "$secs"
+  local out="$1" url="${2:-humanintheloopgame.com}" secs="${3:-3}" u
+  u="$(_kit_txt "$url")"
+  _kit_card "$out" "$secs" $((KIT_W * 2 / 5)) $((KIT_H / 4)) "drawtext=fontfile=${KIT_BODY_FONT}:textfile=${u}:fontsize=$((KIT_H / 22)):fontcolor=${KIT_ACCENT}:x=(w-text_w)/2:y=$((KIT_H * 7 / 10))"
+  local r=$?; rm -f "$u"; return $r
 }
 
 kit_lower() {

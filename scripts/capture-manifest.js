@@ -596,4 +596,11 @@ export const ITEMS = [
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
   },
+  {
+    // The reel kit's pan (docs/reels.md): a bold, eased in-engine pan across the HQ, after a hold.
+    id: 'reel-pan-hq', group: 'reels', title: 'Reel kit: a pan across the HQ', query: 'seed=1&speed=1&time=day', seconds: 9, warmup: 6,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`,
+    camera: [{ at: 0, target: [-9, -3], zoom: 1.5 }, { at: 1.5, target: [-9, -3], zoom: 1.5 }, { at: 7.5, target: [7, -6], zoom: 1.5, ease: 'inOut' }],
+    actions: [...CLEAR_EARLY, ...CAMLOG(9)], screenshots: [1, 4.5, 8],
+  },
 ];
