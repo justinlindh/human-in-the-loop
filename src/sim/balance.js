@@ -98,6 +98,16 @@ export const B = {
   rivalMergeBase: 150000, rivalMergePerStrength: 60000,
   beatAgentBillAfter: 45, beatMegaroundAfter: 95, beatFloorNextDoorAfter: 130, megaroundWeeks: 26,
   productNameMax: 20,
+  // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.
+  nods: {
+    bannerStaff: 12, bannerOutput: 0.02, bannerDrain: 0.05, bannerWeeks: 26, bannerStays: 104, bannerIronyMiss: 0.2, bannerReturnFee: 300,
+    coverStaff: 8, coverOutput: -0.02, coverWeeks: 26, coverIk: 3,
+    staplerTenureWeeks: 104, staplerLoss: 25, staplerBack: 10, staplerBackWeeks: 13, staplerKeep: 5, staplerSaving: 200,
+    consultantStaff: 15, consultantFee: 60000, consultantCuts: 2, consultantNewHireWeeks: 13, consultantMinEligible: 3,
+    consultantOutput: 0.05, consultantWeeks: 26, consultantMeaning: -4, layoffGapWeeks: 52,
+    printerCost: 2500, printerMeaning: 6, printerWreckWeeks: 4, printerRepair: 300, printLessOutput: -0.01, printLessWeeks: 13,
+    saturdayStaff: 10, saturdayOutput: 0.08, saturdayWeeks: 2, saturdayStrain: 10, saturdayMeaning: -3, saturdayNoTeam: 2, saturdayNoSubject: -3,
+  },
   // Staff names: the share of draws from the international tier, the share of the US mix that is South
   // Asian, and how often a last name comes from the same tier as the first name.
   intlNameShare: 0.28, southAsianNameShare: 0.18, nameTierMatch: 0.7,
