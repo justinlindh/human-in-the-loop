@@ -2,7 +2,7 @@
 // ownership trace (R.trace, sync.js) and an actor's state from R.walkOf, as printable lines.
 
 // One trace entry: time, who, what happened, from and to which temp, the function behind it, why.
-export const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
+export const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.repeats ? ` x${l.repeats}` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
 
 // An actor's state: { id, pos: [x, z], yaw, walk } with walk from R.walkOf(id).
 export function fmtActor(a) {

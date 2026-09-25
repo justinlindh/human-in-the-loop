@@ -122,6 +122,7 @@ g -C "$repo" checkout -q -b sim/balance
 lane_ok "$repo/src/sim/tick.js" sim
 lane_ok "$repo/tests/sim/a.test.js" sim
 lane_ok "$repo/docs/toolkit.md" sim
+lane_ok "$repo/docs/toolkit/balance.md" sim
 lane_ok "$repo/.claude/agents/sim-engineer.md" sim
 lane_no "$repo/src/ui/hud.js" sim
 [[ "$err" == *"belongs to ui"* ]] || fail "lane-guard should name the owner (got: $err)"
