@@ -130,11 +130,15 @@ export function createLighting(scene, { shadowSize = 2048 } = {}) {
   let baseSun = 3.4;
   let baseHemiI = 1;
   let alarmK = 0;
-  // Era tone: the Plateau fill is a little warmer and the sun a little softer.
+  // Era tone: each era leans the fill toward its own colour; Plateau goes furthest (warm) and its
+  // sun is a little softer.
   const eraWarm = C('lamp_warm');
+  const ERA_TONE = { classic: null, chatgbt: ['screen_cyan', 0.45], agents: ['role_sales', 0.5], consolidation: ['fabric_slate', 0.8], plateau: ['lamp_warm', 1] };
   let warmK = 0;
   function setEraTone(id) {
-    warmK = id === 'plateau' ? 1 : 0;
+    const tone = ERA_TONE[id];
+    warmK = tone ? tone[1] : 0;
+    if (tone) eraWarm.copy(C(tone[0]));
     applyAlarm();
   }
   // Lockdown skeleton crew: the fill and sun drop a little while the office is empty.
