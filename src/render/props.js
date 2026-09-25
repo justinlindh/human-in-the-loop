@@ -983,6 +983,190 @@ function outside(build, scale = 1) {
   };
 }
 
+// The #228 set: reusable props several decisions stage.
+
+// A printed sheet taped up: a one-star review, a heading, lines of text, a bar chart.
+const printout = () => canvasTex('printout', 384, 512, (ctx, W, H) => {
+  ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.fillRect(28, 30, W - 56, 26);
+  ctx.fillStyle = P.fabric_mustard; ctx.font = '700 40px sans-serif'; ctx.textBaseline = 'top';
+  ctx.fillText('★', 28, 74);
+  ctx.fillStyle = P.metal_soft; ctx.fillText('★★★★', 70, 74);
+  for (let i = 0; i < 9; i++) ctx.fillRect(28, 140 + i * 22, W - 56 - (i % 3) * 60, 9);
+  const bars = [0.8, 0.55, 0.35, 0.2];
+  bars.forEach((b, i) => { ctx.fillStyle = i ? P.metal_soft : P.alarm_red; ctx.fillRect(40 + i * 80, H - 40 - b * 110, 56, b * 110); });
+});
+// Marker on a whiteboard: boxes, arrows between them, a scribbled heading and a circled word.
+const scrawl = () => canvasTex('whiteboard_scrawl', 512, 320, (ctx, W, H) => {
+  ctx.clearRect(0, 0, W, H);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pen = (col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; };
+  pen(P.marker_blue, 7);
+  ctx.beginPath(); ctx.moveTo(40, 44); for (let x = 40; x < 300; x += 22) ctx.lineTo(x + 11, 44 + ((x / 22) % 2 ? -8 : 8)); ctx.stroke();
+  pen(P.ink, 6);
+  ctx.strokeRect(50, 110, 120, 70); ctx.strokeRect(310, 90, 140, 80); ctx.strokeRect(300, 220, 150, 70);
+  pen(P.marker_orange, 6);
+  ctx.beginPath(); ctx.moveTo(175, 145); ctx.lineTo(300, 130); ctx.moveTo(285, 118); ctx.lineTo(302, 130); ctx.lineTo(288, 145);
+  ctx.moveTo(380, 175); ctx.lineTo(375, 215); ctx.moveTo(365, 202); ctx.lineTo(375, 217); ctx.lineTo(388, 204); ctx.stroke();
+  pen(P.alarm_red, 10);
+  ctx.beginPath(); ctx.ellipse(110, 250, 78, 40, -0.1, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = P.alarm_red; ctx.font = '900 64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('?!', 110, 252);
+  pen(P.ink, 5);
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(70, 132 + i * 16); ctx.lineTo(150 - i * 18, 132 + i * 16); ctx.stroke(); }
+});
+// Written on the board's face (both faces of a free-standing one); on the back wall without a board.
+function whiteboardScrawl(L, anchor, env) {
+  const { entry } = itemAt(L, anchor, env.office, ['whiteboard']);
+  if (!entry) return wallPrint(scrawl, { w: 0.9, h: 0.56, tilt: 0 })(L, anchor, env);
+  const face = new THREE.Box3();
+  entry.obj.updateMatrixWorld(true);
+  entry.obj.traverse((o) => { if (o.isMesh && /whiteboard/.test(o.material?.name ?? '')) face.expandByObject(o); });
+  if (face.isEmpty()) face.setFromObject(entry.obj);
+  const r = entry.target.rotY, n = [Math.sin(r), Math.cos(r)];
+  const c = face.getCenter(new THREE.Vector3()), size = face.getSize(new THREE.Vector3());
+  // The face's width across the board, its thickness along the facing.
+  const across = Math.abs(n[1]) * size.x + Math.abs(n[0]) * size.z, thick = Math.abs(n[0]) * size.x + Math.abs(n[1]) * size.z;
+  const g = new THREE.Group();
+  g.position.set(c.x, c.y, c.z);
+  g.rotation.y = r;
+  const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), transparent: true, roughness: 0.6 }));
+  for (const side of entry.itemId === 'whiteboard_wall' ? [1] : [1, -1]) {
+    const pl = new THREE.Mesh(plane(across * 0.8, size.y * 0.7), m);
+    pl.position.z = side * (thick / 2 + 0.004);
+    if (side < 0) pl.rotation.y = Math.PI;
+    pl.userData.noAO = true;
+    g.add(pl);
+  }
+  return g;
+}
+function mugMesh(scale = 1, color = 'mug') {
+  const g = new THREE.Group();
+  g.add(mesh(roundedCylinder(0.04 * scale, 0.036 * scale, 0.1 * scale, 0.01 * scale, 14), mat(color), 0, 0, 0));
+  g.add(mesh(roundedCylinder(0.034 * scale, 0.034 * scale, 0.004, 0.001, 14), mat('coffee'), 0, 0.09 * scale, 0));
+  const handle = mesh(new THREE.TorusGeometry(0.024 * scale, 0.007 * scale, 6, 12), mat(color), 0.045 * scale, 0.05 * scale, 0);
+  handle.geometry.userData.own = true;
+  g.add(handle);
+  return g;
+}
+// Mugs nobody took back to the kitchen: four in a huddle, one on its side.
+function mugPile() {
+  const g = new THREE.Group();
+  const spots = [[-0.07, 0, 0.4], [0.02, 0.03, 2.1], [0.1, -0.02, 4], [-0.02, -0.08, 5.2]];
+  const cols = ['mug', 'fabric_teal', 'mug', 'fabric_mustard'];
+  spots.forEach(([x, z, r], i) => { const m = mugMesh(1, cols[i]); m.position.set(x, 0, z); m.rotation.y = r; g.add(m); });
+  const down = mugMesh(1, 'screen_pink');
+  down.rotation.set(0, 0.8, Math.PI / 2);
+  down.position.set(0.06, 0.04, 0.09);
+  g.add(down);
+  return g;
+}
+// One absurdly big mug.
+function mugBucket() { return mugMesh(2.6, 'fabric_teal'); }
+// A small wall shelf with a mug on it, its slogan printed on the side facing the room.
+const MUG_SLOGAN = ['MAKE SOFTWEAR', 'PEOPLE LOVE'];
+const mugLabel = () => canvasTex('mug_typo', 256, 128, (ctx, W, H) => {
+  ctx.fillStyle = P.fabric_mustard; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 34px sans-serif';
+  MUG_SLOGAN.forEach((t, i) => ctx.fillText(t, W / 2, 38 + i * 50));
+});
+function mugShelf() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.42, 0.025, 0.16, 0.008, 2), mat('wood_honey'), 0, 0, 0.08));
+  for (const sx of [-0.15, 0.15]) g.add(mesh(roundedBox(0.02, 0.07, 0.1, 0.005, 1), mat('metal_dark'), sx, -0.045, 0.05));
+  const m = mugMesh(2, 'fabric_mustard');
+  m.position.set(0, 0.012, 0.085);
+  // Handle to the side, so the printed front faces the room.
+  m.rotation.y = Math.PI;
+  g.add(m);
+  // The slogan on a flat band across the mug's front, so it reads.
+  const label = new THREE.Mesh(plane(0.15, 0.075), flatMat(mugLabel(), 0.6));
+  label.position.set(0, 0.012 + 0.1, 0.085 + 0.082);
+  label.userData.noAO = true;
+  g.add(label);
+  return g;
+}
+// A 3D thing on the wall at a height, placed along the wall as a print is.
+function wallThing(build, { w = 0.5, y = 1.3, scale = 1 } = {}) {
+  return (L, anchor, env) => {
+    const spot = wallSpot(L, anchor, env.busy, w);
+    const g = new THREE.Group();
+    g.userData.span = { wall: spot.wall, a: spot.at - w / 2, b: spot.at + w / 2 };
+    const onX = spot.wall === 'x';
+    g.position.set(onX ? -L.W / 2 + 0.03 : spot.at, y, onX ? spot.at : -L.D / 2 + 0.03);
+    if (onX) g.rotation.y = Math.PI / 2;
+    const item = build();
+    item.scale.setScalar(scale);
+    g.add(item);
+    return g;
+  };
+}
+// Two cardboard boxes stacked by the door, the top one open with a monitor peeking out.
+function movingBoxes() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.55, 0.38, 0.42, 0.02, 2), mat('cardboard'), 0, 0.19, 0));
+  const top = mesh(roundedBox(0.48, 0.3, 0.38, 0.02, 2), mat('cardboard'), 0.03, 0.53, 0.01);
+  top.rotation.y = 0.12;
+  g.add(top);
+  for (const [sx, r] of [[-1, 0.9], [1, -0.9]]) {
+    const flap = mesh(roundedBox(0.2, 0.012, 0.36, 0.004, 1), mat('cardboard'), 0.03 + sx * 0.33, 0.7, 0.01);
+    flap.rotation.set(0, 0.12, r);
+    g.add(flap);
+  }
+  const mon = mesh(roundedBox(0.36, 0.24, 0.03, 0.01, 2), mat('plastic_charcoal'), 0.03, 0.72, -0.02);
+  mon.rotation.set(-0.2, 0.12, 0.05);
+  g.add(mon);
+  g.add(mesh(roundedBox(0.4, 0.004, 0.06, 0.001, 1), mat('paper'), 0, 0.38, 0.21));
+  return g;
+}
+// An oversized novelty cheque: the hackathon prize, to the winner, the amount left blank.
+const cheque = () => canvasTex('giant_cheque', 1024, 440, (ctx, W, H) => {
+  ctx.fillStyle = '#e9f1e4'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = P.fabric_teal; ctx.lineWidth = 14; ctx.strokeRect(14, 14, W - 28, H - 28);
+  ctx.fillStyle = P.ink; ctx.textBaseline = 'middle';
+  ctx.font = '700 40px sans-serif'; ctx.fillText('PAY TO THE ORDER OF', 60, 110);
+  ctx.fillStyle = P.metal_soft; ctx.fillRect(520, 128, 440, 6);
+  ctx.fillStyle = P.ink; ctx.font = 'italic 700 56px sans-serif'; ctx.fillText('Winner', 560, 104);
+  ctx.fillStyle = P.ink; ctx.font = '800 120px sans-serif'; ctx.fillText('$', 60, 260);
+  ctx.strokeStyle = P.fabric_teal; ctx.lineWidth = 8; ctx.strokeRect(160, 200, 420, 110);
+  ctx.fillStyle = P.metal_soft; ctx.fillRect(620, 360, 340, 6);
+  ctx.strokeStyle = P.ink; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(640, 350);
+  for (let x = 640; x < 940; x += 30) ctx.quadraticCurveTo(x + 15, 300 + (x % 60), x + 30, 345);
+  ctx.stroke();
+});
+// An open box of stickers and swag, a folded banner leaning on it.
+function swagBox() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.5, 0.26, 0.38, 0.02, 2), mat('cardboard'), 0, 0.13, 0));
+  const cols = ['fabric_mustard', 'fabric_teal', 'screen_pink', 'marker_green', 'marker_orange', 'role_engineer'];
+  for (let i = 0; i < 12; i++) {
+    const st = mesh(roundedBox(0.08, 0.01, 0.08, 0.003, 1), mat(cols[i % cols.length]), -0.18 + (i % 4) * 0.12, 0.26 + (i % 3) * 0.008, -0.12 + Math.floor(i / 4) * 0.12);
+    st.rotation.set(((i * 7) % 5 - 2) * 0.08, i * 0.7, 0);
+    g.add(st);
+  }
+  const banner = mesh(roundedBox(0.5, 0.06, 0.2, 0.02, 2), mat('fabric_teal'), 0.26, 0.24, 0.02);
+  banner.rotation.set(0, 0, 1.25);
+  g.add(banner);
+  return g;
+}
+// A French press on a small round stand.
+function frenchPress() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedCylinder(0.2, 0.2, 0.03, 0.01, 20), mat('wood_honey'), 0, 0.62, 0));
+  g.add(mesh(roundedCylinder(0.025, 0.035, 0.6, 0.008, 10), mat('metal_dark'), 0, 0.02, 0));
+  g.add(mesh(roundedCylinder(0.15, 0.15, 0.02, 0.008, 16), mat('metal_dark'), 0, 0, 0));
+  const top = 0.65;
+  const glass = mesh(roundedCylinder(0.065, 0.065, 0.2, 0.01, 18), mat('glass'), 0, top, 0);
+  g.add(glass);
+  g.add(mesh(roundedCylinder(0.058, 0.058, 0.12, 0.005, 16), mat('coffee'), 0, top + 0.01, 0));
+  g.add(mesh(roundedCylinder(0.07, 0.07, 0.025, 0.008, 18), mat('metal_soft'), 0, top + 0.2, 0));
+  g.add(mesh(roundedCylinder(0.008, 0.008, 0.08, 0.003, 8), mat('metal_soft'), 0, top + 0.22, 0));
+  g.add(mesh(roundedCylinder(0.02, 0.02, 0.018, 0.006, 10), mat('plastic_charcoal'), 0, top + 0.3, 0));
+  const handle = mesh(roundedBox(0.02, 0.14, 0.03, 0.008, 2), mat('plastic_charcoal'), 0.085, top + 0.08, 0);
+  g.add(handle);
+  return g;
+}
+
 const BUILDERS = {
   picture_pingpong: wallPrint(pingPongPicture(false)),
   picture_pingpong_ball: wallPrint(pingPongPicture(true)),
@@ -1013,4 +1197,13 @@ const BUILDERS = {
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
   printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
   printer_wrecked: outside(printerWrecked, 1.2),
+  printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
+  whiteboard_scrawl: whiteboardScrawl,
+  mug_pile: atDesk(mugPile, { x: 0.42, z: -0.3, rot: 0.2, scale: 1.15 }),
+  mug_bucket: atDesk(mugBucket, { x: 0.45, z: -0.3, rot: -0.4, scale: 1 }),
+  mug_typo: wallThing(mugShelf, { w: 0.62, y: 1.25, scale: 1.4 }),
+  moving_boxes: onFloor(movingBoxes, { x: 0.9, z: 0.2, rot: 0.3, scale: 1.1 }),
+  giant_cheque: wallPrint(cheque, { w: 1.6, h: 0.69, tilt: 0.02, y: 1.5 }),
+  swag_box: onFloor(swagBox, { x: 0.9, z: 0.25, rot: -0.3, scale: 1.25 }),
+  french_press: onFloor(frenchPress, { x: 0.9, z: 0.2, rot: 0.2, scale: 1.3 }),
 };
