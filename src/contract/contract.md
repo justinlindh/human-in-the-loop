@@ -344,9 +344,11 @@ The founders can post a ready-made message in Yak. The team reacts, and a post t
 
 ```js
 postOptions(state)   // pure export from src/sim/index.js
-// -> [{ id, label, icon, hint, available, reason, readyWeek }] in a fixed order; [] when B.postsEnabled is false
+// -> [{ id, label, icon, hint, channel, available, reason, readyWeek }] in a fixed order
+// [] when B.postsEnabled is false; ui hides the Post control when the list is empty
 // id: 'pep_talk' | 'who_broke_prod' | 'meme' | 'pizza' | 'announcement'
-// hint states the likely effect; reason says why an unavailable post is greyed out; readyWeek is when its cooldown ends
+// hint states the likely effect; channel is where the post appears; reason says why an unavailable post is greyed out;
+// readyWeek is null when ready, else the week its cooldown ends
 ```
 
 ### Events: Yak quick posts
