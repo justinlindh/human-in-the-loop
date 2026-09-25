@@ -8,7 +8,7 @@ import { ITEMS } from '../../src/data/items.js';
 import { GOALS } from '../../src/data/goals.js';
 import { UNLOCKS_BY_KEY } from '../../src/data/unlocks.js';
 import { TRENDS } from '../../src/data/trends.js';
-import { isAiText } from '../../src/sim/eras.js';
+import { isAiText, isAgentText, eraAtLeast } from '../../src/sim/eras.js';
 
 // The words a Classic-era player must never see. isAiText covers these and more (automation, bots, prompts).
 const TERMS = /\b(AI|models?|agents?|agentic|LLMs?|prompts?|GPT|ChatGBT|Claudius|Gemenai|Grokk|Llamarama|DeepSleep|Mistrale)\b/;
@@ -48,13 +48,23 @@ const cache = new Map();
 export function fullRun(name, seed) {
   const key = `${name}/${seed}`;
   if (cache.has(key)) return cache.get(key);
-  const rec = { violations: [], classic: [], resignsByWeek: [], at: {} };
+  const rec = { violations: [], classic: [], preAgentHits: [], preAgentScanned: 0, resignsByWeek: [], at: {} };
+  const agentScan = (s, strings) => {
+    for (const [where, t] of strings) {
+      rec.preAgentScanned++;
+      const text = String(t ?? '').replaceAll(s.companyName, 'the company');
+      if (isAgentText(text) && rec.preAgentHits.length < 20) rec.preAgentHits.push(`${name}/${seed} week ${s.week} ${s.era.id} ${where}: ${text}`);
+    }
+  };
   let state = null;
   let classic = true;
   const snapshot = (s) => ({ week: s.week, resignations: s.stats.resignations, beats: { ...(s.flags.beats ?? {}) }, agents: s.eraSchedule.agents });
   const result = runBot(name, seed, B.runWeeks, {
     setup: (s) => { state = s; },
-    onEvents: (events) => { if (classic && state.era.id === 'classic') rec.classic.push(...eventStrings(events).map(([w, t]) => [w, String(t ?? '').replaceAll(state.companyName, 'the company'), state.week])); },
+    onEvents: (events) => {
+      if (classic && state.era.id === 'classic') rec.classic.push(...eventStrings(events).map(([w, t]) => [w, String(t ?? '').replaceAll(state.companyName, 'the company'), state.week]));
+      if (!eraAtLeast(state, 'agents')) agentScan(state, eventStrings(events));
+    },
     onWeek: (s, events) => {
       try { assertFinite(s); } catch (e) { rec.violations.push(`${name}/${seed}: ${e.message}`); }
       if (s.staff.length > capacity(s)) rec.violations.push(`${name}/${seed}: ${s.staff.length} staff over capacity at week ${s.week}`);
@@ -63,6 +73,7 @@ export function fullRun(name, seed) {
         if (s.era.id !== 'classic') classic = false;
         else rec.classic.push(...[...eventStrings(events), ...stateStrings(s)].map(([w, t]) => [w, String(t ?? '').replaceAll(s.companyName, 'the company'), s.week]));
       }
+      if (!eraAtLeast(s, 'agents')) agentScan(s, [...eventStrings(events), ...stateStrings(s)]);
       rec.resignsByWeek.push(events.filter((e) => e.type === 'resign' && !e.fired).length);
       for (const w of [780, 800]) if (s.week === w) rec.at[w] = snapshot(s);
     },
