@@ -170,6 +170,35 @@ const DRAW = {
   },
 };
 
+// Office-wide screen takeovers (a staged decision's 'screens' prop): every monitor shows one of
+// these instead of its own content for as long as the decision is open.
+const OVERLAY = {
+  red: DRAW.red,
+  // Ransomware: a grinning skull that bobs, and a wallet address that blinks.
+  skull(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = '#12090c';
+    ctx.fillRect(0, 0, W, H);
+    const bob = Math.sin(t * 5 + v.seed) * 4;
+    const cx = W / 2, cy = 62 + bob;
+    // Screens are drawn brighter than their canvas (brightness); a mid grey lands as bone white.
+    ctx.fillStyle = '#8a857c';
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(cx - 18, cy + 18, 36, 18);
+    ctx.fillStyle = '#12090c';
+    for (const dx of [-12, 12]) { ctx.beginPath(); ctx.arc(cx + dx, cy - 2, 8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.beginPath(); ctx.moveTo(cx, cy + 8); ctx.lineTo(cx - 4, cy + 15); ctx.lineTo(cx + 4, cy + 15); ctx.fill();
+    for (let i = -1; i <= 1; i++) ctx.fillRect(cx + i * 10 - 1, cy + 22, 2, 14);
+    const on = Math.floor(t * 3) % 2 === 0;
+    ctx.fillStyle = on ? P.alarm_red : '#8a2a30';
+    ctx.font = '700 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAY 12 BTC TO', cx, 124);
+    ctx.fillText('0xDEADBEEF...', cx, 142);
+    ctx.textAlign = 'left';
+  },
+};
+
 export const SCREEN_VARIANTS = ['code', 'code', 'code', 'ui', 'chart', 'code', 'ui', 'chart'];
 
 export function createScreens() {
@@ -318,6 +347,18 @@ export function createScreens() {
   }
   drawWindows(1);
 
+  let overlay = null;
+  // kind: 'red' | 'skull' | null. Every pooled screen redraws at once, including static ones.
+  function setOverlay(kind) {
+    const k = OVERLAY[kind] ? kind : null;
+    if (k === overlay) return;
+    overlay = k;
+    for (const v of pool.values()) {
+      (overlay ? OVERLAY[overlay] : DRAW[v.kind])(v, t);
+      v.tex.needsUpdate = true;
+    }
+  }
+
   let acc = 0;
   let t = 0;
   function update(dt, env) {
@@ -335,8 +376,9 @@ export function createScreens() {
     if (acc < RATE) return;
     acc = 0;
     for (const v of pool.values()) {
-      if (v.static) continue;
-      DRAW[v.kind](v, t);
+      if (overlay) OVERLAY[overlay](v, t);
+      else if (v.static) continue;
+      else DRAW[v.kind](v, t);
       v.tex.needsUpdate = true;
     }
     drawWall(t);
@@ -347,5 +389,5 @@ export function createScreens() {
     for (const m of mats) if (m.userData.bright) m.color.setScalar(b * (m.userData.eraGlow ?? 1));
   }
 
-  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra };
+  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra, setOverlay };
 }

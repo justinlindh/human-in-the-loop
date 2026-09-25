@@ -5,6 +5,7 @@
 //   --mock floor | --seed N [--week W]   the mock sim (default floor) or a real seeded game
 //   --patch '<json>'                     applied to the state after warm-up (see applyPatch)
 //   --pre '<json>'                       applied before warm-up (the "before" state)
+//   --patch-js '<js>'                    statements run with S (the state) and R (the renderer) at patch time
 //   --event '<json>'                     an event or list of events handed to the renderer with --patch
 //   --focus x,y,z [--zoom Z]             ease the camera onto a world point
 //   --frames N                           a clip of N frames (30 fps) after the patch; else one still
@@ -71,6 +72,7 @@ export async function renderScene(H, o) {
     const out = [];
     for (let i = 0; i < (o.frames ? o.before ?? 0 : 0); i++) out.push(grab());
     apply(o.patch);
+    if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
     if (o.event) R.handleEvents([].concat(o.event), S);
     if (o.frames) for (let i = 0; i < o.frames; i++) out.push(grab());
     else { window.__step(Math.max(0, (o.settle ?? 30) - 1)); out.push(grab()); }
@@ -98,7 +100,7 @@ function parse(argv) {
     out: a.out, mock: a.mock, seed: num(a.seed), week: num(a.week), size: a.size, quality: a.quality, time: num(a.time),
     patch: json(a.patch), pre: json(a.pre), event: json(a.event), focus: list(a.focus), zoom: num(a.zoom),
     frames: num(a.frames), before: num(a.before), warm: num(a.warm), settle: num(a.settle), crop: list(a.crop),
-    paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300, report: a.report,
+    paused: !!a.paused, gpu: !a.software, timeout: num(a.timeout) ?? 300, report: a.report, patchJs: a['patch-js'],
   };
 }
 
