@@ -27,7 +27,7 @@ jobs:
             git fetch -q origin "$BASE_REF"
             if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
               && git show "origin/$BASE_REF:scripts/ci-skip-paths" >"$RUNNER_TEMP/skip" 2>/dev/null; then
-              mode="$(git diff --name-only "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
             fi
           fi
           echo "mode=$mode" >>"$GITHUB_OUTPUT"
@@ -40,7 +40,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          git diff --name-only "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | grep -E '\.m?js$' | while read -r f; do
+          git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | grep -E '\.m?js$' | while read -r f; do
             if [ -f "$f" ]; then node --check "$f"; fi
           done
       - uses: actions/setup-node@v7
@@ -73,7 +73,7 @@ jobs:
             git fetch -q origin "$BASE_REF"
             if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
               && git show "origin/$BASE_REF:scripts/ci-skip-paths" >"$RUNNER_TEMP/skip" 2>/dev/null; then
-              mode="$(git diff --name-only "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
             fi
           fi
           echo "mode=$mode" >>"$GITHUB_OUTPUT"
@@ -107,7 +107,7 @@ jobs:
             git fetch -q origin "$BASE_REF"
             if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
               && git show "origin/$BASE_REF:scripts/ci-skip-paths" >"$RUNNER_TEMP/skip" 2>/dev/null; then
-              mode="$(git diff --name-only "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/skip")"
             fi
           fi
           echo "mode=$mode" >>"$GITHUB_OUTPUT"

@@ -3,6 +3,7 @@
 # Usage: scripts/ci-classify.sh <skip-list-file> < changed-paths   (one path per line)
 # A missing list, no changed paths, or a change to the list or this script means "full".
 set -uo pipefail
+shopt -s extglob
 list="${1:-}"
 [ -f "$list" ] || { echo full; exit 0; }
 mapfile -t pats < <(tr -d '\r' <"$list" | sed -e 's/#.*//' -e 's/[[:blank:]]*$//' -e 's/^[[:blank:]]*//' | grep -v '^$')

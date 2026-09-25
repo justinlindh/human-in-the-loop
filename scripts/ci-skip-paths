@@ -1,7 +1,8 @@
 # Changed paths that cannot affect the game. A PR whose changed files all match a line here gets the
 # light CI gate (commit check, plus a syntax check of any .js or .mjs it touches); anything else gets
 # the full run. Patterns are shell globs where * also matches /. A line starting with ! excludes
-# paths even when another line matches them. CI reads this file from main, never from the PR,
+# paths even when another line matches them (extglob patterns work, such as !(a|b)). CI reads this
+# file from main, never from the PR,
 # and a PR that changes it (or scripts/ci-classify.sh) always gets the full run.
 docs/*
 *.md
@@ -10,3 +11,5 @@ docs/*
 blender/logo/*
 !src/*
 !public/*
+!.github/!(pull_request_template.md|ISSUE_TEMPLATE/*)
+!*package*.json

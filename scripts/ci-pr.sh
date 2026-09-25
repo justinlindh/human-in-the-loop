@@ -87,7 +87,8 @@ status pending "Local CI running"
 # syntax check of touched .js and .mjs. The list and the classifier come from the base branch, never
 # from the PR, so a PR cannot make itself light.
 mb="$(git -C "$REPO" merge-base "origin/$base" "refs/ci/pr-$pr/head")"
-changed="$(git -C "$REPO" diff --name-only "$mb" "refs/ci/pr-$pr/head")"
+# --no-renames: a moved file lists its old path too, so moving game code into docs/ is not light.
+changed="$(git -C "$REPO" diff --name-only --no-renames "$mb" "refs/ci/pr-$pr/head")"
 skip_list="$(mktemp)"; classify="$(mktemp)"
 git -C "$REPO" show "origin/$base:scripts/ci-skip-paths" >"$skip_list" 2>/dev/null || rm -f "$skip_list"
 if git -C "$REPO" show "origin/$base:scripts/ci-classify.sh" >"$classify" 2>/dev/null; then
