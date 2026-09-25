@@ -1,10 +1,10 @@
 import { B } from './balance.js';
-import { int, range, pick, shuffle, weighted } from './rng.js';
+import { int, range, pick, shuffle, weighted, next } from './rng.js';
 import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS } from '../data/traits.js';
 import { emptyRecord, addToRecord } from './record.js';
-import { FIRST_NAMES, LAST_NAMES, NAME_VOICE } from '../data/names.js';
+import { US_FIRST_NAMES, INTL_FIRST_NAMES, US_LAST_NAMES, INTL_LAST_NAMES, NAME_VOICE } from '../data/names.js';
 import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -77,6 +77,27 @@ export function voiceFor(person) {
   };
 }
 
+// One draw picks a name part: below B.intlNameShare it lands in the international tier, otherwise in the
+// common US tier, and the rest of the draw picks within that tier. Used names are skipped when any are left.
+function tieredPick(r, us, intl, taken) {
+  const free = (list) => { const left = list.filter((n) => !taken(n)); return left.length ? left : list; };
+  const u = next(r);
+  const share = B.intlNameShare;
+  if (u < share) { const pool = free(intl); return pool[Math.min(pool.length - 1, Math.floor((u / share) * pool.length))]; }
+  const pool = free(us);
+  return pool[Math.min(pool.length - 1, Math.floor(((u - share) / (1 - share)) * pool.length))];
+}
+
+// A name nobody at the company (staff or candidates) already has: a first name not in use if one is left,
+// and never a full name in use.
+function freshName(state, r) {
+  const people = [...(state.staff ?? []), ...(state.candidates ?? [])];
+  const firsts = new Set(people.map((p) => p.name.split(' ')[0]));
+  const fulls = new Set(people.map((p) => p.name));
+  const first = tieredPick(r, US_FIRST_NAMES, INTL_FIRST_NAMES, (n) => firsts.has(n));
+  return `${first} ${tieredPick(r, US_LAST_NAMES, INTL_LAST_NAMES, (l) => fulls.has(`${first} ${l}`))}`;
+}
+
 export function generateStaff(state, { role, seniority }) {
   const r = state.rng;
   const top = topStats(role);
@@ -94,7 +115,7 @@ export function generateStaff(state, { role, seniority }) {
     && (!TRAITS[id].era || eraAtLeast(state, TRAITS[id].era)))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
-    name: `${pick(r, FIRST_NAMES)} ${pick(r, LAST_NAMES)}`,
+    name: freshName(state, r),
     role, seniority,
     level: int(r, ...LEVEL_RANGE[seniority]), xp: 0,
     skills, speed: round(range(r, 0.8, 1.2), 2),
