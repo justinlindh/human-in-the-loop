@@ -1,0 +1,30 @@
+/* ---------- Yak quick posts: a Post button at the foot of Yak and its picker ---------- */
+.hitl .ypost { position: relative; display: flex; align-items: center; gap: 0.5em; padding: 0.35em 0.45em; border-top: 0.13em solid var(--ink); background: var(--cream-2); }
+.hitl .chat.collapsed .ypost { display: none !important; }
+.hitl .ypost-btn { font-size: 0.82em; padding: 0.25em 0.75em; }
+.hitl .ypost-status { margin-left: auto; font-size: 0.72em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+.hitl .ypost.none-ready .ypost-btn { opacity: 0.75; }
+.hitl .ypost-pick {
+  position: absolute; left: 0.35em; right: 0.35em; bottom: calc(100% + 0.3em); z-index: 6; pointer-events: auto;
+  display: flex; flex-direction: column; gap: 0.3em; padding: 0.4em; max-height: 26em; overflow-y: auto;
+  background: var(--cream); border: 0.18em solid var(--ink); border-radius: 0.8em; box-shadow: 0 0.25em 0 var(--ink), var(--soft);
+}
+.hitl .ypost-pick.sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; max-height: calc(100dvh - 16px); z-index: 40; font-size: 15px; }
+.hitl .ypost-head { display: flex; align-items: center; justify-content: space-between; padding: 0 0.2em; font-size: 0.8em; color: var(--ink-soft); }
+.hitl .ypost-head b { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.9em; }
+.hitl .ypost-opt {
+  font: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 0.55em; width: 100%;
+  padding: 0.4em 0.5em; border: 0.12em solid rgba(42, 38, 48, 0.2); border-radius: 0.6em; background: #fff; color: var(--ink);
+}
+.hitl .ypost-opt:hover:not(:disabled), .hitl .ypost-opt:focus-visible { border-color: var(--ink); background: #fff8e6; }
+.hitl .ypost-opt.off { cursor: not-allowed; opacity: 0.6; background: #f3eee4; }
+.hitl .ypost-ico { flex: none; width: 1.7em; display: grid; place-items: center; }
+.hitl .ypost-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.hitl .ypost-main b { font-size: 0.9em; }
+.hitl .ypost-hint { font-size: 0.72em; font-weight: 600; color: var(--ink-soft); }
+.hitl .ypost-tag { flex: none; font-size: 0.7em; font-weight: 700; padding: 0.1em 0.5em; border-radius: 0.6em; background: #dff5ea; white-space: nowrap; }
+.hitl .ypost-tag.wait { background: #eee; color: #777; }
+@media (pointer: coarse) {
+  .hitl .ypost-btn { min-height: 36px; }
+  .hitl .ypost-opt { min-height: 48px; }
+}

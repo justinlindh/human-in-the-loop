@@ -6,6 +6,7 @@ import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
 import { loadSettings, saveSetting } from './settings.js';
 import { createPromptView } from './chatPrompts.js';
+import { createPostBar } from './yakPosts.js';
 
 const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
@@ -20,7 +21,7 @@ const BOT_ICON = {
 
 // Yak: the office's team chat. Channels with unread badges, threads, reactions, and names you
 // can click to find the person. Messages stay bounded per channel in memory and in the DOM.
-export function createChat(root, { getState, onName, onMaximize, onAnswer } = {}) {
+export function createChat(root, { getState, onName, onMaximize, onAnswer, onPost } = {}) {
   const store = Object.fromEntries(CHANNELS.map((c) => [c, []]));
   const unread = Object.fromEntries(CHANNELS.map((c) => [c, 0]));
   let current = 'general';
@@ -53,6 +54,13 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer } = {}
   const list = h('div.chat-body');
   const el = h('div.chat.yak', { dataset: { occludes: '' } }, grip, head, tabsEl, quiet, list);
   const prompts = createPromptView({ list, onAnswer });
+  // The founder's quick posts: a successful one shows its channel, scrolled to the new post.
+  const posts = createPostBar({ layer: root.closest('.hitl') ?? root, getState, onPost: (o) => {
+    const res = onPost?.(o.id) ?? { ok: false };
+    if (res.ok) { select(CHANNELS.includes(o.channel) ? o.channel : 'general'); list.scrollTop = list.scrollHeight; }
+    return res;
+  } });
+  el.append(posts.bar);
   root.append(el);
 
   const saved = loadSettings();
@@ -217,6 +225,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer } = {}
   let markSig = '';
   function update(s) {
     prompts.sync(s);
+    posts.update(s);
     const open = prompts.open();
     const sig = `${collapsed ? 1 : 0}|${open.map((p) => p.channel).join(',')}`;
     if (sig !== markSig) {
