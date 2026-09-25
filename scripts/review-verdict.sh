@@ -5,7 +5,7 @@
 # Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>]
 #   <body-file>  the review text; its first line is also the status description
 #   --head       the head that was reviewed; refuses if the PR's head has moved since
-# Exit 0 when posted, 1 when the head moved, 2 on usage or lookup errors.
+# Exit 0 when posted, 1 when the head moved (before posting, or during it), 2 on usage or lookup errors.
 set -uo pipefail
 
 usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>]"
@@ -30,7 +30,7 @@ else line="**Verdict: changes requested** (head $short)"; state=failure; fi
 text="$(mktemp)"; trap 'rm -f "$text"' EXIT
 { echo "$line"; echo; cat "$body"; } >"$text"
 
-# The head can move while the review posts; check again right before and after.
+# The head can move while the review posts: check it right before posting, and again after.
 now="$(gh pr view "$pr" --json headRefOid --jq .headRefOid)"
 [ "$now" = "$head" ] || { echo "review-verdict: #$pr moved to ${now:0:7} while posting; not posted" >&2; exit 1; }
 gh pr review "$pr" --comment --body-file "$text" >/dev/null || exit 2
@@ -41,3 +41,12 @@ desc="$([ "$verdict" = pass ] && echo "Pass" || echo "Changes requested"): ${sum
 gh api "repos/{owner}/{repo}/statuses/$head" -f state="$state" -f context=review -f description="${desc:0:140}" \
   ${url:+-f target_url="$url"} >/dev/null || { echo "review-verdict: review posted, but the status failed" >&2; exit 2; }
 echo "#$pr: review $state on $short${url:+ ($url)}"
+
+# A push that landed while posting leaves a head nobody reviewed: mark it so it cannot pass unseen.
+after="$(gh pr view "$pr" --json headRefOid --jq .headRefOid)"
+if [ "$after" != "$head" ]; then
+  gh api "repos/{owner}/{repo}/statuses/$after" -f state=failure -f context=review \
+    -f description="head moved during review (reviewed $short); review the new head" >/dev/null
+  echo "review-verdict: #$pr moved to ${after:0:7} while the verdict was posted; that head is marked for review" >&2
+  exit 1
+fi
