@@ -341,4 +341,20 @@ describe('audio director', () => {
     for (let t = 0; t <= 900; t += 0.5) n += one.update(s, t, { speed: 1, running: true }).filter((c) => c.op === 'music').length;
     expect(n).toBe(1);
   });
+
+  it('preloads the next bed when a bed starts, and follows the real start of a late bed', () => {
+    const d = createDirector({ seed: 9, beds: { classic: ['classic/a', 'classic/b'] } });
+    const s = state();
+    const startCmds = d.update(s, 0, { speed: 1, running: true });
+    const first = startCmds.find((c) => c.op === 'music');
+    const pre = startCmds.find((c) => c.op === 'preload');
+    expect(pre.ids).toEqual([`music/${first.bed === 'classic/a' ? 'classic/b' : 'classic/a'}`]);
+    // The host could only start the first bed 0.8 s late (its file was still decoding).
+    d.musicStarted(first.bed, 0.8);
+    let sw = null;
+    for (let t = 0.25; t <= 600 && !sw; t += 0.25) sw = d.update(s, t, { speed: 1, running: true }).find((c) => c.op === 'music') ?? null;
+    expect(sw.bed).toBe(pre.ids[0].slice('music/'.length));
+    const loops = (sw.at - 0.8) / bedSeconds('classic', first.bed);
+    expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
+  });
 });
