@@ -1,5 +1,5 @@
 // The team's shared timing log: one JSON line per tool run, CI step, lock wait or cache lookup,
-// appended to $HITL_TIMINGS (default ~/.cache/hitl-ci/timings.jsonl, or under CI_WORKTREE_ROOT).
+// appended to $HITL_TIMINGS (default ~/.cache/hitl-ci/timings.jsonl, one log for the whole machine).
 // scripts/perf/loop-report.js summarizes it. Logging never fails or slows a run: every error is
 // swallowed, and HITL_TIMINGS=off turns it off.
 //
@@ -12,7 +12,7 @@ import { execFileSync } from 'node:child_process';
 
 export function timingsFile(env = process.env) {
   if (env.HITL_TIMINGS) return env.HITL_TIMINGS === 'off' ? null : env.HITL_TIMINGS;
-  return join(env.CI_WORKTREE_ROOT || join(homedir(), '.cache', 'hitl-ci'), 'timings.jsonl');
+  return join(homedir(), '.cache', 'hitl-ci', 'timings.jsonl');
 }
 
 let ctx = null;

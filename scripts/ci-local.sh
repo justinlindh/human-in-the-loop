@@ -87,7 +87,7 @@ VITEST_WORKERS="${VITEST_WORKERS:-$(( $(nproc) / 3 > 4 ? $(nproc) / 3 : 4 ))}"
 # balance test and its worker, the test config, the lockfile and Node. A pass is recorded under that
 # hash, and the same inputs later skip the suite (a retest, or main moving without touching the sim).
 # HITL_NO_CHECK_CACHE=1 turns this off, as it does for the render checks.
-BAL_CACHE="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/balance"
+BAL_CACHE="$HOME/.cache/hitl-ci/balance"
 balance_hash() {
   { node --version
     find src/sim src/data tests/sim/balance.test.js tests/sim/balance-worker.js vite.config.js package-lock.json -type f 2>/dev/null \

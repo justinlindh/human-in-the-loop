@@ -3,7 +3,7 @@
 # Values are logged as numbers when they look like one, else as strings. Never fails the caller.
 timing_file() {
   if [ -n "${HITL_TIMINGS:-}" ]; then [ "$HITL_TIMINGS" = off ] || echo "$HITL_TIMINGS"; return; fi
-  echo "${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}/timings.jsonl"
+  echo "$HOME/.cache/hitl-ci/timings.jsonl"
 }
 timing_log() {
   {
