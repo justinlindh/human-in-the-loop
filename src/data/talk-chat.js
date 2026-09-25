@@ -660,6 +660,35 @@ export const CHAT_EXCHANGES = [
     ] },
 
   // The rival
+  // Jabs: the team ribbing {rival} whenever it is around. Clever, never mean.
+  { id: 'chat_rival_jab', stream: 'chat', channel: 'random', cooldown: 26,
+    when: (s) => s.rival?.status === 'rising' || s.rival?.status === 'stalled',
+    cast: { a: 'any', b: 'any', c: 'any' },
+    turns: [
+      ['a', ['{rival} just shipped dark mode. We are all very happy for their eyes.',
+        'Saw the {rival} launch video. Beautiful drone shots. Of a login page.',
+        '{rival}\'s new tagline is "Work, reimagined". I tried imagining it. Still work.',
+        '{rivalFounder} is on another podcast. At this rate their product will be a podcast.',
+        '{rival} put a billboard across from our office. Never been so motivated to close the blinds.']],
+      ['b', ['Genuinely happy for them. Genuinely.',
+        'Imitation is the sincerest form of roadmap.',
+        'I refuse to look. I have looked twice.',
+        'Their help page links to one of our help articles. I checked.']],
+      ['c', ['Back to work. Ours ships on Friday.',
+        'Printing this for the kitchen. For morale.',
+        'No dunking. We are a no-dunking company. Mostly.']],
+    ] },
+  { id: 'chat_rival_scoreboard', stream: 'chat', channel: 'random', cooldown: 52, rare: true,
+    when: (s) => s.rival?.status === 'rising' || s.rival?.status === 'stalled',
+    cast: { a: 'engineer', b: 'founder' },
+    turns: [
+      ['a', ['Someone updated the kitchen sign: "Days since {rival} copied us: 0".',
+        'New custom emoji just dropped: a tiny countdown timer. For {rival} announcements only.',
+        'Someone taped "{rival}\'s roadmap (actual size)" to the fridge. It is a blank page.']],
+      ['b', ['Leave it up. It is a performance metric.',
+        'Approved. Use it sparingly. Or often. Your call.',
+        'Fine. But we are taking it down the day we lose to them.']],
+    ] },
   { id: 'chat_rival_teaser', stream: 'chat', channel: 'general', on: 'rival',
     cast: { a: 'marketer', b: 'engineer', c: 'founder' },
     turns: [
