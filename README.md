@@ -117,6 +117,10 @@ The one human is the designer and producer, and a veteran professional software 
 
 Anything that needs human eyes or ears goes on a **review desk**: a private page, built as a Claude artifact, with one card per question. A card carries the clip, screenshot or audio, a summary of what changed, and either Good / Needs work / Cut or a set of options to pick from. The human works through it whenever they like, from a desk or a phone. The lead reads the answers from the page's database, dispatches them to the lanes, records each pick on its issue so the reviewer can check the PR against it, and marks the card resolved. Voice lines for the trailer get approved one clip at a time, in chat, before any video uses them.
 
+<p align="center">
+  <img src="docs/readme/review-desk.png" alt="The review desk: a card for the letter, visitor and fumes prop reactions, with a clip player, a summary, and Good, Needs work and Cut buttons" width="800">
+</p>
+
 The result is a loop that looks a lot like the game: the machines do the work, and a human decides whether it's any good.
 
 ### The merge path
