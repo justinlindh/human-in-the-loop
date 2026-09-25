@@ -845,6 +845,27 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(30 * 4);
   }
+  // 10. A desk-staged prop names whose desk it is (stage.staffId): it goes on that person's desk even
+  // when the anchor tile points at another one.
+  {
+    // The mock's staff have no deskId: two of them get the desks they sit at.
+    const withDesk = S.staff.filter((p) => R.perks.peek(p.id)?.seat && R.office.placed.get(R.perks.peek(p.id).seat));
+    const [a, b] = withDesk;
+    const saved = [a, b].map((p) => p && [p, p.deskId]);
+    for (const p of [a, b]) if (p) p.deskId = R.perks.peek(p.id).seat;
+    let onTheirs = false;
+    if (a && b) {
+      const other = R.office.placed.get(a.deskId);
+      S.pendingDecision = { eventId: 'resignation_letter', subjectId: b.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: other.x, y: other.y, staffId: b.id } };
+      step(10);
+      const env = R.props.current().find((x) => x.prop === 'envelope');
+      onTheirs = env?.obj.userData.follow?.deskId === b.deskId && env?.staffId === b.id;
+      S.pendingDecision = null;
+      step(30 * 3);
+    }
+    for (const x of saved) if (x) { if (x[1] === undefined) delete x[0].deskId; else x[0].deskId = x[1]; }
+    results.push({ name: 'prop:stageStaff', pass: onTheirs, staffId: b?.id ?? null, desk: b ? R.perks.peek(b.id)?.seat ?? null : null });
+  }
   R.perks.hold = false;
   return results;
 }
