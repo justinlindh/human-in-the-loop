@@ -334,5 +334,10 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     expect(EVENTS.cover_sheets.choices[EVENTS.cover_sheets.yak.ignore].label).toBe('Quietly lose the memo');
     expect(EVENTS.ai_skeptic_speech.choices[EVENTS.ai_skeptic_speech.yak.ignore].effects.meaning).toBeGreaterThan(0);
     expect(EVENTS.coffee_machine_broke.choices[EVENTS.coffee_machine_broke.yak.ignore].label).toBe('Get it repaired');
+    // A prompt nobody saw never grants an item or a pet.
+    for (const e of Object.values(EVENTS).filter((x) => x.yak && x.yak.ignore !== null)) {
+      const c = e.choices[e.yak.ignore];
+      expect(!c.grant && !c.effects?.adoptPet && !c.effects?.buyItem && !c.effects?.upgradeItem, e.id).toBe(true);
+    }
   });
 });

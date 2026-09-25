@@ -5,7 +5,8 @@ import { OFFICE_NODS } from './office-nods.js';
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
 // funding: only for companies funded that way. yak: { ignore }: a low-stakes event delivered as a Yak reply prompt
 // instead of a popup while prompts are on; ignore is the choice that happens if nobody answers: the mildest one, with
-// the smallest cost to the subject (or overall), so nobody pays for a prompt they did not see (null: nothing).
+// the smallest cost to the subject (or overall), and never one that grants an item or a pet, so nobody pays for or
+// gets saddled with a prompt they did not see (null: nothing).
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
@@ -727,7 +728,7 @@ const list = [
     ],
   },
   {
-    id: 'pet_request', yak: { ignore: 0 }, kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
+    id: 'pet_request', yak: { ignore: 1 }, kind: 'staff', weight: 3, cooldownWeeks: 52, random: true, subject: 'workingStaff',
     when: (s) => s.workPolicy !== null && s.workPolicy !== 'remote' && s.staff.length >= 6 && !s.pets.some((p) => p.species === 'dog'),
     stage: { prop: 'photos_laminated', anchor: 'subjectDesk' },
     title: 'A dog on Fridays?',
