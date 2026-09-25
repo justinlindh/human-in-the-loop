@@ -366,7 +366,11 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     g.userData.blocks = !onTop;
     const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
     if (e) {
-      g.userData.follow = { deskId: e.id, lx, lz, rot, y };
+      // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
+      let spot = onTop ? deskSpot(e, g, lx, lz, rot) : { x: lx, z: lz };
+      for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot); }
+      spot ??= { x: lx, z: lz };
+      g.userData.follow = { deskId: e.id, lx: spot.x, lz: spot.z, rot, y };
       follow(g, e);
     } else {
       const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
@@ -405,6 +409,69 @@ function clearSpot(L, office, g, c) {
   }
   return c;
 }
+// Free desk top, per desk model: a grid over the top marking cells where something already stands
+// (monitor, keyboard, mug, plant, papers, era dressing), found by rasterising the desk's triangles
+// that rise above the top. The sitter's hands keep the front middle clear too.
+const TOP_X = 0.72, TOP_Z0 = -0.66, TOP_Z1 = -0.04, CELL = 0.02;
+const deskGrids = new WeakMap();
+function deskGrid(e) {
+  let grid = deskGrids.get(e.obj);
+  if (grid) return grid;
+  const nx = Math.ceil((2 * TOP_X) / CELL), nz = Math.ceil((TOP_Z1 - TOP_Z0) / CELL);
+  const cells = new Uint8Array(nx * nz);
+  const mark = (x0, x1, z0, z1) => {
+    const i0 = Math.max(0, Math.floor((x0 + TOP_X) / CELL)), i1 = Math.min(nx - 1, Math.floor((x1 + TOP_X) / CELL));
+    const k0 = Math.max(0, Math.floor((z0 - TOP_Z0) / CELL)), k1 = Math.min(nz - 1, Math.floor((z1 - TOP_Z0) / CELL));
+    for (let k = k0; k <= k1; k++) for (let i = i0; i <= i1; i++) cells[i + k * nx] = 1;
+  };
+  e.obj.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(e.obj.matrixWorld).invert();
+  const m = new THREE.Matrix4(), a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  e.obj.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    m.multiplyMatrices(inv, o.matrixWorld);
+    const pos = o.geometry.attributes.position, idx = o.geometry.index;
+    const n = idx ? idx.count : pos.count;
+    for (let t = 0; t < n; t += 3) {
+      const v = (j) => (idx ? idx.getX(t + j) : t + j);
+      a.fromBufferAttribute(pos, v(0)).applyMatrix4(m);
+      b.fromBufferAttribute(pos, v(1)).applyMatrix4(m);
+      c.fromBufferAttribute(pos, v(2)).applyMatrix4(m);
+      // Only what stands on the top: above it, below head height.
+      if (Math.max(a.y, b.y, c.y) < TOP_Y + 0.012 || Math.min(a.y, b.y, c.y) > 1.3) continue;
+      mark(Math.min(a.x, b.x, c.x), Math.max(a.x, b.x, c.x), Math.min(a.z, b.z, c.z), Math.max(a.z, b.z, c.z));
+    }
+  });
+  mark(-0.3, 0.3, -0.2, TOP_Z1);
+  grid = { cells, nx, nz };
+  deskGrids.set(e.obj, grid);
+  return grid;
+}
+// The desk-frame spot nearest (lx, lz) where the prop's footprint lands on free desk top.
+function deskSpot(e, g, lx, lz, rot) {
+  g.position.set(0, 0, 0);
+  g.rotation.y = rot;
+  g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  const { cells, nx, nz } = deskGrid(e);
+  const fits = (x, z) => {
+    if (x + b.min.x < -TOP_X || x + b.max.x > TOP_X || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
+    const i0 = Math.floor((x + b.min.x + TOP_X) / CELL), i1 = Math.floor((x + b.max.x + TOP_X) / CELL);
+    const k0 = Math.floor((z + b.min.z - TOP_Z0) / CELL), k1 = Math.floor((z + b.max.z - TOP_Z0) / CELL);
+    for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return false;
+    return true;
+  };
+  if (fits(lx, lz)) return { x: lx, z: lz };
+  for (let d = CELL; d < 1.4; d += CELL) {
+    const n = Math.max(8, Math.round(d * 60));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2, x = lx + Math.cos(a) * d, z = lz + Math.sin(a) * d;
+      if (fits(x, z)) return { x, z };
+    }
+  }
+  return null;
+}
+
 // Put a desk-following prop where its desk is now (it may be sliding to a new spot).
 function follow(g, e) {
   const f = g.userData.follow, o = e.obj, r = o.rotation.y, cs = Math.cos(r), sn = Math.sin(r);
@@ -702,7 +769,7 @@ const BUILDERS = {
   sticky_notes: atDesk(stickyNotes, { x: 0.4, z: -0.28, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
   smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0 }),
-  pizza_boxes: atDesk(pizzaBoxes, { x: 0.35, z: -0.4, rot: 0.2, scale: 1.2 }),
+  pizza_boxes: atDesk(pizzaBoxes, { x: 0.45, z: -0.4, rot: 0.2, scale: 1.0 }),
   curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
