@@ -2,6 +2,8 @@
 
 Every file under `public/audio/` is listed here. Files marked *candidate* are for review and may be replaced.
 
+Lossless FLAC masters of every shipped file, with a manifest of checksums and sources, are attached to the `audio-masters-1` pre-release on GitHub. Re-encode from those rather than from the lossy files here.
+
 ## Music (candidate beds)
 
 Seeds are listed to identify each take. ACE-Step renders that use its planner are not reproducible run to run (the same seed and settings give a different take), so the files here are the masters. Keep them rather than re-rendering.
