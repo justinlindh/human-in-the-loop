@@ -17,8 +17,14 @@ const directPlay = !!mockScenario || params.has('seed') || params.has('weeks');
 // Ambient day/night runs on real time so higher game speeds never strobe the scene.
 const DAY_SECONDS = 120;
 const AUTOSAVE_WEEKS = 4;
-// Longest a spotlight moment may hold the clock; past it the hold lets go on its own.
+// Longest a spotlight may hold the clock before the hold lets go on its own: its expected length
+// (renderer.spotlight().expectedSeconds) with some slack, or SPOTLIGHT_MAX_S when it gives none.
 const SPOTLIGHT_MAX_S = 60;
+const SPOTLIGHT_SLACK = 1.25;
+const SPOTLIGHT_EXTRA_S = 10;
+// A hard ceiling, so a wrong expectedSeconds (milliseconds by mistake, say) can't hold the clock for long.
+const SPOTLIGHT_CEILING_S = 180;
+const spotlightCap = (s) => (Number(s?.expectedSeconds) > 0 ? Math.min(s.expectedSeconds * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S, SPOTLIGHT_CEILING_S) : SPOTLIGHT_MAX_S);
 
 async function loadOptional(mods) {
   const loader = Object.values(mods)[0];
@@ -227,7 +233,7 @@ async function boot() {
   // no sim ticks run, queued events wait and the day doesn't turn, but the office keeps moving: the
   // hold stops the clock, it doesn't freeze the renderer. It composes with the decision freeze (a
   // spotlight behind its card keeps the clock stopped until the moment ends), and one that holds it
-  // alone for more than SPOTLIGHT_MAX_S is let go. Only frames where nothing else stops the clock
+  // alone for longer than its cap (spotlightCap) is let go. Only frames where nothing else stops the clock
   // (a card, pause, a menu, a hidden tab) count toward that, so reading a card never costs the moment.
   let spot = null;          // { key, kind, heldFor } while a hold is on
   let spotStuck = null;     // the key of a moment let go for running too long
@@ -235,9 +241,13 @@ async function boot() {
     const s = renderer?.spotlight?.() ?? null;
     if (!s || s.key === spotStuck) { spot = null; if (!s) spotStuck = null; return false; }
     const add = alone ? dt : 0;
+    if (spot?.key !== s.key && Number(s.expectedSeconds) * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S > SPOTLIGHT_CEILING_S) {
+      console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} expects ${s.expectedSeconds}s; holding the clock ${SPOTLIGHT_CEILING_S}s at most`);
+    }
     spot = spot?.key === s.key ? { ...spot, heldFor: spot.heldFor + add } : { key: s.key, kind: s.kind, heldFor: add };
-    if (spot.heldFor > SPOTLIGHT_MAX_S) {
-      console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} held the clock over ${SPOTLIGHT_MAX_S}s; letting go`);
+    const cap = spotlightCap(s);
+    if (spot.heldFor > cap) {
+      console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} held the clock over ${cap}s; letting go`);
       spotStuck = s.key; spot = null; return false;
     }
     return true;
@@ -270,9 +280,10 @@ async function boot() {
     }
     ui?.update(sim.state);
     // State-driven music and ambience; the same pause picture the renderer gets.
-    // A spotlight stops the clock, not the sound: audio hears it as running.
+    // A spotlight stops the clock, not the sound: audio hears it as running, with the spotlight
+    // ({ kind, key }) so it keeps that scene's own cues.
     const audible = running || (held && playing && !menuPause && !sim.state.gameOver && !document.hidden);
-    audio?.update?.(sim.state, dt, { speed, running: audible, spotlight: held, menuPause, decision: !!sim.state.pendingDecision, title: !playing, over: !!sim.state.gameOver });
+    audio?.update?.(sim.state, dt, { speed, running: audible, spotlight: held ? { kind: spot.kind, key: spot.key } : null, menuPause, decision: !!sim.state.pendingDecision, title: !playing, over: !!sim.state.gameOver });
     if (firstFrame) {
       firstFrame = false;
       requestAnimationFrame(() => { window.__HITL_READY = true; });

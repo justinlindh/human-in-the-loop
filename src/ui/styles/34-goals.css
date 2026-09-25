@@ -1,0 +1,5 @@
+/* ---------- goal progress: a thin bar with "n/of" under a count goal. */
+.hitl .gprog { display: flex; align-items: center; gap: 0.45em; margin-top: 0.2em; }
+.hitl .gprog .gbar { flex: 1; height: 0.35em; border-radius: 0.2em; background: rgba(42, 38, 48, 0.12); overflow: hidden; }
+.hitl .gprog .gbar i { display: block; height: 100%; background: var(--yellow); border-radius: 0.2em; }
+.hitl .gprog .num { font-size: 0.72em; color: var(--ink-soft); font-weight: 700; }

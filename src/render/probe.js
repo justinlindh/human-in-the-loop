@@ -3,8 +3,9 @@ import * as THREE from 'three';
 // Staging probe (#350): how a character reads on screen this frame, measured from the scene.
 // Shared by the readability checks (blender/checks/stage.mjs) and the scene sweep (#352).
 //
-// createProbe({ scene, camera, office, charOf, stagingOf }) -> { measure(id) }
-//   charOf(id)     -> the character (character.js) for a staff id, or null
+// createProbe({ scene, camera, office, charOf, stagingOf }) -> { measure(id), seen(root, views) }
+//   charOf(id)     -> the character (character.js) for an actor id (a staff id, or a moment's own
+//                     actor such as 'visitor:0'), or null
 //   stagingOf(id)  -> what a moment says about them now (moments.js stage record), or null:
 //                     { moment, beat, target: Vector3 | Object3D, held: Object3D, source: Object3D }
 //
@@ -16,14 +17,23 @@ import * as THREE from 'three';
 //   targetAngle,            // degrees between the face's direction and the direction to the target
 //   faceCam,                // degrees between the face's direction and the direction to the camera
 //   visible,                // share of sample points on the body the camera sees unblocked (0..1)
+//   occluder,               // what hides most of the blocked points ('s12', 'f40 plant', 'prop
+//                           // stapler', 'column', 'wall'), or null when nothing does
 //   fadeOver,               // columns drawn faded over the character's screen box
 //   hands: [[x, y, z], [x, y, z]], handsRel: hands relative to the eyes, in the face's heading
 //   held: { dist, ahead } | null,   // held prop: distance from the eyes; angle off the face's direction
 //   lean,                   // metres the head sits ahead of the feet toward the target (negative: away)
 //   between,                // sprites of the moment's source (smoke) near the line from eyes to target
 // }
+//
+// seen(root, views = [0]) -> [{ view, visible, occluder, blocked: { label: points } }] for any object
+// (a prop, a character): view n is the camera turned n quarter turns, as the E key does. The game
+// cuts away the walls on the camera's side, so in a turned view the shell's walls never count, and
+// only what stands within NEAR_M in front of the object can hide it.
 
 const tmp = new THREE.Vector3();
+const NEAR_M = 3;
+const Y = new THREE.Vector3(0, 1, 0);
 const GAZE_M = 6;        // how far along the line of sight the probe looks
 
 export function createProbe({ scene, camera, office, charOf, stagingOf = () => null }) {
@@ -42,6 +52,60 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
       if (x === office.current?.furniture) return 'furniture';
     }
     return null;
+  }
+
+  // Who a blocking mesh belongs to: a person, a staged prop, a placed item (furniture drawn as a
+  // merged batch is found again from the point it was hit at), a column, or the shell.
+  function occluderOf(h) {
+    for (let x = h.object; x; x = x.parent) {
+      if (x.userData.staffId !== undefined) return String(x.userData.staffId);
+      // A character's baked parts sit under its root; the staff id is on a part below it.
+      if (x.name === 'character') { let id = null; x.traverse((c) => { if (c.userData.staffId !== undefined) id = c.userData.staffId; }); return id != null ? String(id) : 'visitor'; }
+      if (x.userData.propId) return `prop ${x.userData.propId}`;
+      if (x.userData.placedId) return `${x.userData.placedId} ${x.userData.itemId ?? ''}`.trim();
+      if (x === office.current?.furniture) {
+        for (const e of office.placed?.values() ?? []) if (new THREE.Box3().setFromObject(e.obj).expandByScalar(0.01).containsPoint(h.point)) return `${e.id} ${e.itemId}`;
+        return 'furniture';
+      }
+    }
+    const col = (office.current?.columns ?? []).find((c) => Math.hypot(c.x - h.point.x, c.z - h.point.z) < 0.4);
+    return col ? 'column' : 'wall';
+  }
+
+  // Sample points on an object's meshes: a few per mesh, in world space.
+  function samplePoints(root) {
+    root.updateMatrixWorld(true);
+    const pts = [];
+    root.traverse((o) => {
+      if (!o.isMesh || !o.visible || !o.geometry?.attributes?.position || o.userData.pickProxy) return;
+      const pos = o.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 6));
+      for (let i = 0; i < pos.count; i += step) pts.push(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld));
+    });
+    return pts;
+  }
+
+  function seen(root, views = [0], pts = samplePoints(root)) {
+    const camDir = camera.getWorldDirection(new THREE.Vector3());
+    return views.map((view) => {
+      const dir = camDir.clone().applyAxisAngle(Y, (view * Math.PI) / 2);
+      const back = dir.clone().negate();
+      const blocked = {};
+      let n = 0;
+      for (const q of pts) {
+        const from = q.clone().addScaledVector(back, 40);
+        const first = opaqueHits(from, dir, 40.5, new Set()).find((h) => {
+          if (h.distance >= 40 - 0.03 || ownerRoot(h.object, root)) return true;
+          if (view === 0) return true;
+          return h.distance > 40 - NEAR_M && occluderOf(h) !== 'wall';
+        });
+        if (!first || first.distance >= 40 - 0.03 || ownerRoot(first.object, root)) { n++; continue; }
+        const who = occluderOf(first);
+        blocked[who] = (blocked[who] ?? 0) + 1;
+      }
+      const top = Object.entries(blocked).sort((a, b) => b[1] - a[1])[0];
+      return { view, visible: pts.length ? +(n / pts.length).toFixed(3) : 0, occluder: top ? top[0] : null, blocked };
+    });
   }
 
   // skip: objects (and their subtrees) to ignore; allow: a subtree kept even inside a skipped one.
@@ -85,24 +149,12 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
 
     // Visibility: body sample points the camera reaches before anything else. The costliest measure,
     // so it is refreshed every third call per character.
-    const vc = visCache.get(id) ?? { n: 0, v: 0 };
+    const vc = visCache.get(id) ?? { n: 0, v: 0, occluder: null };
     visCache.set(id, vc);
-    c.root.updateMatrixWorld(true);
-    const pts = [];
-    if (vc.n++ % 3 === 0) c.root.traverse((o) => {
-      if (!o.isMesh || !o.visible || !o.geometry?.attributes?.position || o.userData.pickProxy) return;
-      const pos = o.geometry.attributes.position;
-      const step = Math.max(1, Math.floor(pos.count / 6));
-      for (let i = 0; i < pos.count; i += step) pts.push(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld));
-    });
-    let seen = 0;
-    for (const q of pts) {
-      const from = q.clone().addScaledVector(toCam, 40);
-      const hs = opaqueHits(from, camDir, 40.5, new Set());
-      const first = hs[0];
-      if (!first || first.distance >= 40 - 0.03 || self.has(ownerRoot(first.object, c.root))) seen++;
+    if (vc.n++ % 3 === 0) {
+      const pts = samplePoints(c.root);
+      if (pts.length) { const [v0] = seen(c.root, [0], pts); vc.v = v0.visible; vc.occluder = v0.occluder; }
     }
-    if (pts.length) vc.v = seen / pts.length;
     const visible = vc.v;
 
     // Columns drawn faded over the character's screen box.
@@ -150,12 +202,12 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     return {
       anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null,
       eyes: r3(p.eyes), forward: r3(p.forward), headY: +p.head.y.toFixed(3),
-      gaze, targetAngle, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), fadeOver,
+      gaze, targetAngle, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
       hands: p.hands.map(r3), handsRel: handsRel.map(r3), held, lean, between,
     };
   }
 
-  return { measure };
+  return { measure, seen };
 }
 
 function ownerRoot(o, root) {

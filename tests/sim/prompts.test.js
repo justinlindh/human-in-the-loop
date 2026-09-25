@@ -212,11 +212,9 @@ describe('issue #16: Yak reply prompts', () => {
 });
 
 describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
-  const YAK = ['senior_side_project', 'incumbent_copies_flavor', 'big_customer_threat', 'cloud_bill', 'rival_jab', 'vendor_new_version', 'ai_skeptic_speech',
-    'public_complaint', 'app_store_rejection', 'coffee_wanted', 'coffee_wanted_corner', 'coffee_machine_broke', 'press_wrapper_mockery', 'pet_request',
-    'the_stapler', 'cover_sheets'];
+  const YAK = ['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
 
-  it('the sixteen are marked, with an ignore choice that exists', () => {
+  it('the six are marked, with an ignore choice that exists', () => {
     const marked = Object.values(EVENTS).filter((e) => e.yak).map((e) => e.id).sort();
     expect(marked).toEqual([...YAK].sort());
     for (const id of YAK) {
@@ -235,9 +233,9 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     expect(s.chatPrompts).toHaveLength(1);
     expect(ctx.events.map((e) => e.type)).toContain('chatPrompt');
     // With a prompt already open, the event waits instead of stacking a second one.
-    const cd = s.flags.cd_ai_skeptic_speech;
-    expect(fireEvent(makeCtx(s), EVENTS.ai_skeptic_speech, s.staff.find((p) => !p.founder).id)).toBe(false);
-    expect(s.flags.cd_ai_skeptic_speech).toBe(cd);
+    const cd = s.flags.cd_senior_side_project;
+    expect(fireEvent(makeCtx(s), EVENTS.senior_side_project, s.staff.find((p) => !p.founder).id)).toBe(false);
+    expect(s.flags.cd_senior_side_project).toBe(cd);
     const t = strained(20);
     B.chatPromptsEnabled = false;
     try {
@@ -262,18 +260,17 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     const s = strained(21);
     for (const p of s.staff) p.strain = 0;
     s.cash = 50000;
-    s.era = { id: 'classic', since: 0 };
-    const ev = eventPrompt(s, 'cloud_bill');
+    const ev = eventPrompt(s, 'vendor_new_version');
     const p = s.chatPrompts[0];
-    expect(p).toMatchObject({ kind: 'cloud_bill', fromId: null, channel: 'general' });
+    expect(p).toMatchObject({ kind: 'vendor_new_version', fromId: null, channel: 'general' });
     expect(ev.find((e) => e.id === p.chatId)).toMatchObject({ from: '@officebot', fromId: null });
-    expect(p.options.map((o) => o.label)).toEqual(EVENTS.cloud_bill.choices.map((c) => c.label));
-    const res = dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: 1 });
+    expect(p.options.map((o) => o.label)).toEqual(EVENTS.vendor_new_version.choices.map((c) => c.label));
+    const res = dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: 0 });
     expect(res.ok).toBe(true);
-    expect(s.cash).toBe(50000 - 6000);
+    expect(s.cash).toBe(50000 + EVENTS.vendor_new_version.choices[0].effects.cash);
     const thread = res.events.filter((e) => e.type === 'chat' && e.replyTo === p.chatId);
     expect(s.staff.find((x) => x.id === thread[0].fromId).founder).toBe(true);
-    expect(thread.at(-1)).toMatchObject({ from: '@officebot', text: EVENTS.cloud_bill.choices[1].outcome });
+    expect(thread.at(-1)).toMatchObject({ from: '@officebot', text: EVENTS.vendor_new_version.choices[0].outcome });
   });
 
   it('left unanswered, the ignore choice happens, props and all', () => {
@@ -317,23 +314,20 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     expect(t.chatPrompts[0].subjectId).toBe(null);
   });
 
-  it('every default is the mildest choice: an unanswered stapler prompt lets them keep it, on their desk', () => {
+  it('every default is the mildest choice: an unanswered dog request keeps the dog at home', () => {
     const s = strained(27);
-    for (const p of s.staff) { p.strain = 0; p.hiredWeek = 0; }
-    s.week = 200;
-    eventPrompt(s, 'the_stapler');
+    for (const p of s.staff) p.strain = 0;
+    s.week = 60;
+    eventPrompt(s, 'pet_request');
     const p = s.chatPrompts[0];
-    const owner = s.staff.find((x) => x.id === p.subjectId);
     expect(p.subjectId).toBe(s.flags.promptCtx[p.id].subjectId);
-    const meaning = owner.meaning;
+    expect(p.subjectId).toBeTruthy();
+    const pets = (s.pets ?? []).length;
     s.week = p.expiresWeek;
     weekOf(s);
-    expect(owner.meaning).toBe(Math.min(100, meaning + B.nods.staplerKeep));
-    const stapler = s.office.props.find((x) => x.prop === 'stapler');
-    expect(stapler).toMatchObject({ x: p.stage.x, y: p.stage.y });
-    expect(EVENTS.cover_sheets.choices[EVENTS.cover_sheets.yak.ignore].label).toBe('Quietly lose the memo');
-    expect(EVENTS.ai_skeptic_speech.choices[EVENTS.ai_skeptic_speech.yak.ignore].effects.meaning).toBeGreaterThan(0);
-    expect(EVENTS.coffee_machine_broke.choices[EVENTS.coffee_machine_broke.yak.ignore].label).toBe('Get it repaired');
+    expect(p.resolved.choice).toBe(null);
+    expect((s.pets ?? []).length).toBe(pets);
+    expect(EVENTS.pet_request.choices[EVENTS.pet_request.yak.ignore].label).toBe('Not in the office');
     // A prompt nobody saw never grants an item or a pet.
     for (const e of Object.values(EVENTS).filter((x) => x.yak && x.yak.ignore !== null)) {
       const c = e.choices[e.yak.ignore];

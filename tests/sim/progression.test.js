@@ -286,7 +286,7 @@ describe('career paths and legends', () => {
 });
 
 describe('earned traits', () => {
-  it('awards traits at thresholds, with a toast, and caps at 3', () => {
+  it('awards traits at thresholds, with a traitEarned event, and caps at 3', () => {
     const s = game();
     const m = addStaff(s, 'engineer', 'senior', { traits: [] });
     const j = addStaff(s, 'engineer', 'junior', { traits: [] });
@@ -295,7 +295,8 @@ describe('earned traits', () => {
     const ev = once(s, staffUpkeep);
     expect(m.record.mentorWeeks).toBe(20);
     expect(m.traits).toContain('natural_mentor');
-    expect(ev.some((e) => e.type === 'toast' && e.text.includes('Natural Mentor'))).toBe(true);
+    expect(ev.find((e) => e.type === 'traitEarned')).toEqual({ type: 'traitEarned', staffId: m.id, traitId: 'natural_mentor', source: 'record' });
+    expect(ev.some((e) => e.type === 'toast' && e.text.includes('Natural Mentor'))).toBe(false);
     const full = addStaff(s, 'engineer', 'senior', { traits: ['loyal', 'steady', 'cynic'] });
     full.record.catches = 3;
     once(s, staffUpkeep);

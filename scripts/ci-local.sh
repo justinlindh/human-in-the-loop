@@ -173,6 +173,7 @@ tool_step gl node "$SELF/lib/gl.test.mjs"
 tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
 tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
+tool_step capture bash "$SELF/capture.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
@@ -293,6 +294,20 @@ phone_check() {
   fi
   timeout 900 node scripts/phone-check.js --out "$LOGS/phone"
 }
+# Staging readability (blender/checks/stage.mjs, on a GPU slot), for changes that can affect how a
+# character moment reads on screen: the renderer, the models, and the staging check and its helpers.
+# A failing spec, or a role a moment stages with no spec, fails the PR; a rule an open issue tracks
+# (known: <issue>) is reported and passes.
+stage_check() {
+  [ -f blender/checks/stage.mjs ] || { echo "skipped: no blender/checks/stage.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/render/|public/models/|blender/checks/(stage|harness|report|cache)\.mjs$)' <<<"$files"; then
+    echo "skipped: no render, model or staging-check changes"; return 0
+  fi
+  render_step stage gpu "node blender/checks/stage.mjs --out '$LOGS/stage.json'"
+}
 # golden renders in software (SwiftShader, on the CPU), so it runs in the background while the GPU
 # steps run one after another: those open many browsers each, and running them all at once exhausts
 # the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
@@ -303,6 +318,7 @@ step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
 step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' $render_parts"
 step perf-budget perf_budget
 step phone-check phone_check
+step stage stage_check
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits

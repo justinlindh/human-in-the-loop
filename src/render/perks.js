@@ -50,7 +50,7 @@ function perkOf(e) {
 const ASSIGN_W = { idle: 3, maintenance: 1, support: 1, sales: 1, marketing: 1, security: 1, project: 0.5, mentor: 0.5, oversight: 0.3, hardProblem: 0.3 };
 const MOOD_W = { ok: 1, coasting: 1.6, burnout: 1.2 };
 
-export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
+export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low = () => false }) {
   const slots = new Map();      // `${placedId}:${i}` -> rec
   const sessions = [];
   let clock = rnd(2, 4);
@@ -297,8 +297,80 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     sessions.push(s);
   }
 
+  // Foosball in the table's own model space (x along the table, z across, y up): the ball runs
+  // between the rods, a man on the rod it reaches may kick it back (the rod spins), the rods slide to
+  // follow it, and now and then it drops into a goal and comes back to the centre with a pop. On Low
+  // the ball casts no shadow.
+  const Q = new THREE.Quaternion(), Z = new THREE.Vector3(0, 0, 1);
+  // The ball is drawn larger than life and orange, so it reads at play zoom against the white heads.
+  const FOOS = { rods: [-0.3, -0.1, 0.1, 0.3], top: 0.59, r: 0.03, halfL: 0.385, halfW: 0.205, mouth: 0.07, slide: 0.06 };
+  function foosStart(s) {
+    const rods = FOOS.rods.map((_, i) => s.e.obj.getObjectByName(`foosball_rod${i}`));
+    if (rods.some((r) => !r)) return;
+    // The static merge moved the rods into the item's space with the model's fit baked in: the
+    // table's own space is rod 0's transform less its place in the model.
+    rods[0].updateMatrix();
+    const space = new THREE.Object3D();
+    space.matrix.copy(rods[0].matrix).multiply(new THREE.Matrix4().makeTranslation(-FOOS.rods[0], -(FOOS.top + 0.05), 0));
+    space.matrix.decompose(space.position, space.quaternion, space.scale);
+    space.userData.dynamic = true;
+    rods[0].parent.add(space);
+    const ball = new THREE.Mesh(ballGeo, mat('marker_orange'));
+    ball.scale.setScalar(FOOS.r / 0.028);
+    ball.castShadow = !low();
+    space.add(ball);
+    const axis = (r) => new THREE.Vector3(0, 0, 1).applyQuaternion(r.quaternion).multiplyScalar(r.scale.z);
+    s.foos = { ball, space, rods, pos: rods.map((r) => r.position.clone()), quat: rods.map((r) => r.quaternion.clone()), axis: rods.map(axis), turn: [0, 0, 0, 0], slide: [0, 0, 0, 0], spin: [0, 0, 0, 0], x: 0, z: 0, vx: 0, vz: 0, drop: 0, pop: 0, last: null };
+    foosServe(s.foos);
+  }
+  function foosServe(f) {
+    f.x = 0; f.z = rnd(-0.05, 0.05); f.vx = (Math.random() < 0.5 ? -1 : 1) * rnd(0.45, 0.7); f.vz = rnd(-0.25, 0.25); f.drop = 0; f.pop = 0.35; f.last = null;
+  }
+  function foosTick(f, dt) {
+    if (f.drop > 0) {
+      // In the goal: it sinks out of sight, then the next ball is served.
+      f.drop -= dt;
+      f.ball.position.y = FOOS.top + FOOS.r - (0.6 - Math.max(0, f.drop)) * 0.12;
+      if (f.drop <= 0) foosServe(f);
+    } else {
+      const px = f.x;
+      f.x += f.vx * dt; f.z += f.vz * dt;
+      if (Math.abs(f.z) > FOOS.halfW) { f.z = Math.sign(f.z) * FOOS.halfW; f.vz = -f.vz; }
+      // Crossing a rod: its man kicks it back most of the time, with a new angle.
+      FOOS.rods.forEach((rx, i) => {
+        if (f.last === i || (px - rx) * (f.x - rx) > 0) return;
+        f.last = i;
+        if (Math.random() < 0.55) {
+          f.vx = -Math.sign(f.vx) * rnd(0.45, 0.85); f.vz = rnd(-0.45, 0.45);
+          f.spin[i] = Math.sign(f.vx) * 14;
+        }
+      });
+      if (Math.abs(f.x) > FOOS.halfL) {
+        if (Math.abs(f.z) < FOOS.mouth) { f.drop = 0.6; f.x = Math.sign(f.x) * (FOOS.halfL + 0.01); f.vx = f.vz = 0; }
+        else { f.x = Math.sign(f.x) * FOOS.halfL; f.vx = -f.vx; f.last = null; }
+      }
+      f.pop = Math.max(0, f.pop - dt);
+      f.ball.position.y = FOOS.top + FOOS.r + Math.sin((f.pop / 0.35) * Math.PI) * 0.06;
+    }
+    f.ball.position.x = f.x; f.ball.position.z = -f.z;
+    f.rods.forEach((rod, i) => {
+      // A kick whips the rod round and it settles back upright; between kicks it slides after the ball.
+      f.spin[i] *= Math.exp(-dt * 5);
+      f.turn[i] = f.turn[i] * Math.exp(-dt * 6) + f.spin[i] * dt;
+      const want = Math.max(-FOOS.slide, Math.min(FOOS.slide, -f.z));
+      f.slide[i] += (want - f.slide[i]) * (1 - Math.exp(-dt * 8));
+      rod.quaternion.copy(f.quat[i]).multiply(Q.setFromAxisAngle(Z, f.turn[i]));
+      rod.position.copy(f.pos[i]).addScaledVector(f.axis[i], f.slide[i]);
+    });
+  }
+  function foosEnd(f) {
+    f.space.removeFromParent();
+    f.rods.forEach((rod, i) => { rod.quaternion.copy(f.quat[i]); rod.position.copy(f.pos[i]); });
+  }
+
   function endPair(s, played) {
     if (s.ball) { s.ball.removeFromParent(); s.ball = null; }
+    if (s.foos) { foosEnd(s.foos); s.foos = null; }
     const live = [s.a, s.b].filter((r) => r.temp?.pair === s);
     if (played && live.length === 2) {
       const win = Math.random() < 0.5 ? 0 : 1;
@@ -325,6 +397,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
           announceUse(s.e, [s.a.id, s.b.id]);
           s.a.temp.anim = s.b.temp.anim = s.def.anim;
           if (s.def === PERKS.pingpong) { s.ball = new THREE.Mesh(ballGeo, mat('paper')); s.ball.castShadow = true; parent.add(s.ball); }
+          if (s.def === PERKS.foosball) foosStart(s);
         } else if (s.t > s.limit) { endPair(s, false); sessions.splice(i, 1); }
         continue;
       }
@@ -337,6 +410,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
         const hop = Math.abs(Math.sin(k * Math.PI * 2));
         s.ball.position.set(x, 0.62 + hop * 0.22, z);
       }
+      if (s.foos) foosTick(s.foos, dt);
       if (s.t >= s.dur) { endPair(s, true); sessions.splice(i, 1); }
     }
   }
@@ -419,7 +493,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
   }
 
   function reset() {
-    for (const s of sessions) if (s.ball) s.ball.removeFromParent();
+    for (const s of sessions) { if (s.ball) s.ball.removeFromParent(); if (s.foos) foosEnd(s.foos); }
     sessions.length = 0;
     slots.clear();
   }

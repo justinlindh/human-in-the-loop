@@ -1,0 +1,13 @@
+/* Yak's level button stays in the header at every size, collapsed or big, so Off is never a trap. */
+.hitl .chat.collapsed .ysizes .ysz.ylevel, .hitl .chat.max .chat-head .ysz.ylevel { display: inline-grid; }
+.hitl .chat-head .ysz.ylevel { margin-right: 0.3em; }
+.hitl .chat-head .ysz.ylevel[data-level="important"] { background: rgba(255,255,255,0.18); }
+.hitl .chat-head .ysz.ylevel[data-level="off"] { background: var(--ink); border-color: rgba(255,255,255,0.6); opacity: 0.85; }
+/* Touch-sized header buttons do not all fit the small open Yak; the level button stays on the
+   collapsed header, in the big view and in Settings. */
+@media (pointer: coarse) { .hitl .chat:not(.collapsed):not(.max) .ysizes .ysz.ylevel { display: none; } }
+/* Settings choices keep their full labels; the hint beside them wraps instead. */
+.hitl .settings .setrow > .seg { flex-shrink: 0; }
+.hitl .settings .segb { white-space: nowrap; }
+/* Bold Fredoka kerns a space before V, W or Y down to almost nothing ("Parisa Volkov"). */
+.hitl .msg .who { word-spacing: 0.14em; }

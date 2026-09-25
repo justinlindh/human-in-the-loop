@@ -6,6 +6,8 @@
 //   node blender/checks/dump-query.mjs <dir or dump.json> near <thing> [metres]
 //   node blender/checks/dump-query.mjs <dir or dump.json> nav <x,z> [metres]
 //   node blender/checks/dump-query.mjs <dir or dump.json> path <person>
+//   node blender/checks/dump-query.mjs <dir or dump.json> visible <person or prop> [--views 0,1,2,3]
+//   node blender/checks/dump-query.mjs <dir or dump.json> trace [person]
 //
 // A thing is a person's staff id, an item's placed id, or a prop's id (a prop name also works),
 // optionally with a point: .pos (default), .center (of its bounds), .head, .eyes, .hand0, .hand1,
@@ -20,13 +22,22 @@
 //   nav     the walk grid's cells within the radius (default 0.4 m) of a floor point: blocked, free,
 //           or walkable under furniture, and why: the room's edge, the obstacle rects that block it
 //           (an item's, a staged prop's, a pillar's), what stands over it, who is there
+//   visible how much of a person or staged prop the camera sees, per camera turn the dump measured
+//           (dump.mjs --views), and what hides the rest: the person, prop, item, column or wall
+//           in front of most of it. A turned view counts no shell walls (the game cuts them away)
+//   trace   the moment ownership trace (dump.mjs --trace): per frame, every start, end, interrupt,
+//           replacement and refusal of someone's temp with the function behind it, and the
+//           decision freeze; with a person, only theirs
 //   path    a person's walk: every path point, the goal, what sent them (moment, perk, goal key), and
 //           the first furniture their body passes through on the way
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const [src, cmd, a, b] = process.argv.slice(2);
-if (!src || !cmd) { console.error('usage: dump-query.mjs <dir|dump.json> where|dist|rel|near <thing> [thing|metres] | nav <x,z> [metres] | path <person>'); process.exit(2); }
+const args = process.argv.slice(2);
+const viewsAt = args.indexOf('--views');
+const onlyViews = viewsAt >= 0 ? args.splice(viewsAt, 2)[1].split(',').map(Number) : null;
+const [src, cmd, a, b] = args;
+if (!src || !cmd) { console.error('usage: dump-query.mjs <dir|dump.json> where|dist|rel|near <thing> [thing|metres] | nav <x,z> [metres] | path <person> | visible <thing> [--views 0,1,2,3] | trace [person]'); process.exit(2); }
 const file = statSync(src).isDirectory() ? join(src, 'dump.json') : src;
 const dump = JSON.parse(readFileSync(file, 'utf8'));
 
@@ -68,6 +79,7 @@ function navAt(fr, x, z, r) {
   return out;
 }
 
+const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
 for (const fr of dump.frames) {
   const head = `frame ${String(fr.frame).padStart(4)} t=${fr.t.toFixed(2)}s`;
   if (cmd === 'nav') {
@@ -77,13 +89,30 @@ for (const fr of dump.frames) {
     for (const line of navAt(fr, x, z, Number(b ?? 0.4))) console.log(`  ${line}`);
     continue;
   }
+  if (cmd === 'visible') {
+    const p = fr.people.find((q) => q.id === a) ?? fr.props.find((q) => q.id === a || q.prop === a);
+    if (!p) { console.log(`${head}  ${a}: not in this frame`); continue; }
+    const all = p.views ?? [{ view: 0, visible: p.visible, occluder: p.occluder, blocked: null }];
+    const shown = onlyViews ? all.filter((v) => onlyViews.includes(v.view)) : all;
+    const missing = (onlyViews ?? []).filter((v) => !all.some((x) => x.view === v));
+    const line = (v) => `view ${v.view}: ${v.visible == null ? 'not measured' : `${Math.round(v.visible * 100)}% seen`}${v.occluder ? `, hidden by ${v.occluder}` : ''}${v.blocked && Object.keys(v.blocked).length > 1 ? ` (${Object.entries(v.blocked).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}`;
+    const best = shown.filter((v) => v.visible != null).sort((x, y) => y.visible - x.visible)[0];
+    console.log(`${head}  ${a}: ${shown.map(line).join('; ')}${shown.length > 1 && best ? `; best view ${best.view}` : ''}${missing.length ? `; views ${missing.join(',')} not in this dump (dump.mjs --views)` : ''}`);
+    continue;
+  }
+  if (cmd === 'trace') {
+    if (!fr.trace) { console.log(`${head}  no trace in this dump (dump.mjs --trace)`); continue; }
+    const lines = fr.trace.filter((l) => !a || l.id === a || l.id === null);
+    for (const l of lines) console.log(`${head}  ${fmtTrace(l)}`);
+    continue;
+  }
   if (cmd === 'path') {
     const p = fr.people.find((q) => q.id === a);
     if (!p) { console.log(`${head}  ${a}: not in this frame`); continue; }
     const w = p.walk;
     if (!w) { console.log(`${head}  ${a}: no walk data (a visitor, or a dump made before dump.js recorded walks)`); continue; }
     const why = [w.temp?.moment && `moment ${w.temp.moment}`, w.temp?.perk && `perk ${w.temp.perk}`, w.temp && !w.temp.moment && !w.temp.perk && `temp ${w.temp.anim}`, w.goal?.key && `goal ${w.goal.key}`].filter(Boolean).join(', ');
-    console.log(`${head}  ${a} at (${p.pos[0].toFixed(2)}, ${p.pos[2].toFixed(2)}) mode ${w.mode}${w.hidden ? ' hidden' : ''}; ${why || 'no goal'}`);
+    console.log(`${head}  ${a} at (${p.pos[0].toFixed(2)}, ${p.pos[2].toFixed(2)}) mode ${w.mode}${w.hidden ? ' hidden' : ''}; ${why || 'no goal'}${w.temp?.by ? `; temp set by ${w.temp.by}` : ''}`);
     if (w.temp?.goal) console.log(`  temp goal (${w.temp.goal.x.toFixed(2)}, ${w.temp.goal.z.toFixed(2)})${w.temp.delay > 0 ? ` after ${w.temp.delay.toFixed(2)} s` : ''}, ${w.temp.t?.toFixed(2)} s left${w.temp.back ? ', then back' : ''}`);
     if (w.goal) console.log(`  goal (${w.goal.x.toFixed(2)}, ${w.goal.z.toFixed(2)}) ${w.goal.anim ?? ''}${w.goal.seated ? ' seated' : ''}${w.goal.hidden ? ' hidden (out of the office)' : ''}`);
     console.log(`  path: ${w.path.length ? w.path.map((q) => `(${q.x.toFixed(2)}, ${q.z.toFixed(2)})`).join(' ') : 'none (standing, or settling onto the goal)'}`);

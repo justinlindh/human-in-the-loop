@@ -1,4 +1,5 @@
 import { setTip } from '../tooltip.js';
+import { skillName, seniorityName } from '../growth.js';
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
 import { portrait, portraitLive, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
@@ -13,6 +14,13 @@ import { recordStats, recordLine, recordLeaders, hasRecord } from '../record.js'
 import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN, agentsHere } from '../v2content.js';
 
 // Career path picker for a senior with pathPending.
+// What grew since a card was last opened, as short phrases.
+function sinceOf(u) {
+  if (!u) return [];
+  return [u.levels ? `+${u.levels} level${u.levels === 1 ? '' : 's'}` : null, u.promoted ? `promoted to ${seniorityName(u.promoted)}` : null,
+    ...Object.entries(u.gains).filter(([, n]) => n > 0).map(([k, n]) => `${skillName(k)} +${Math.round(n)}`), ...u.traits.map((t) => `earned ${t}`)].filter(Boolean);
+}
+
 export function openPathPicker(ctx, staffId) {
   const p = ctx.getState().staff.find((x) => x.id === staffId);
   if (!p) return;
@@ -104,6 +112,7 @@ function assignSelect(ctx, s, p) {
 export function staffPanel(ctx, arg) {
   let tab = arg?.tab === 'hire' ? 'hire' : 'team';
   let detailId = arg?.staffId ?? null;
+  let sinceFor = null, sinceList = [];
   let sort = { col: 'role', dir: 1 };
 
   const t = tabs([{ id: 'team', icon: 'menu.staff', label: 'Team' }, { id: 'hire', icon: 'hire', label: 'Hire' }], tab, (id) => { tab = id; detailId = null; t.set(id); render(); });
@@ -146,6 +155,9 @@ export function staffPanel(ctx, arg) {
     for (const p of rows) {
       const rec = h('div.recline');
       const top = h('span.pill.tiny.top');
+      // Grew since you last opened their card (#549).
+      const grew = h('span.pill.tiny.grew', { text: 'New', title: 'Grew since you last looked' });
+      grew.style.display = ctx.growth?.hasUnseen(p.id) ? '' : 'none';
       let recWeek = null;
       const tired = h('span.tired', { title: 'Running low on energy' }, icon('battery.low', { size: 16 }));
       const mFill = h('i');
@@ -154,7 +166,7 @@ export function staffPanel(ctx, arg) {
       const kVal = h('span.num');
       const tr = h('tr', { onclick: () => { detailId = p.id; render(); }, title: 'Click for details' },
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null,
-          p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p), top, rec))),
+          p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p), grew, top, rec))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
         h('td.bestcol', null, bestChip(p)),
@@ -204,8 +216,18 @@ export function staffPanel(ctx, arg) {
 
   function renderDetail(s, bind) {
     const p = s.staff.find((x) => x.id === detailId);
-    const back = h('button.btn.small', { onclick: () => { detailId = null; render(); } }, icon('arrow.back'), ' Back to team');
+    const back = h('button.btn.small', { onclick: () => { detailId = null; sinceFor = null; render(); } }, icon('arrow.back'), ' Back to team');
     if (!p) return [back, h('div.empty', { text: 'They are no longer with the company.' })];
+
+    // What grew since the last look, then mark it seen; and this session's growth timeline.
+    // Captured once per opening of this card, so a weekly re-render keeps showing it.
+    if (sinceFor !== p.id) { sinceFor = p.id; sinceList = sinceOf(ctx.growth?.unseen(p.id)); ctx.growth?.markSeen(p.id); }
+    const since = sinceList;
+    const tl = ctx.growth?.timeline(p.id) ?? [];
+    const growthBox = h('div.section.growth', null, h('h3', null, 'Growth'),
+      since.length ? h('div.gsince', null, h('b', { text: 'Since you last looked: ' }), since.join(', ')) : null,
+      h('ul.gtl', null, ...tl.map((x) => h(`li.${x.kind}`, null, h('span.w.num', { text: `W${x.week}` }), ` ${x.text}`)),
+        h('li.joined', null, h('span.w.num', { text: `W${p.hiredWeek ?? 0}` }), p.founder ? ' Founded the company' : ' Joined')));
 
     // Track record: the role's top three stats large, the rest listed below (tap-reachable here).
     const recMain = h('div.recmain');
@@ -320,6 +342,7 @@ export function staffPanel(ctx, arg) {
           h('div.section', null, h('h3', null, 'Traits'),
             p.traits.length ? h('div.grid', null, ...p.traits.map((id) => { const ti = traitInfo(id); return h('div.traitrow', null, h('span.pill.trait', { text: ti.name }), h('span.small.muted', { text: ti.desc })); }))
               : h('span.faint.small', { text: 'No notable traits.' })),
+          growthBox,
           h('div.section', null, h('h3', null, 'Actions'), acts))),
     ];
   }

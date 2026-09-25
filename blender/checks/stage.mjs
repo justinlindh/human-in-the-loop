@@ -6,6 +6,7 @@
 //   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json]
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
+// A rule with known: <issue> fails as KNOWN (not failing the run) while that issue is open.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
@@ -94,9 +95,32 @@ const SPECS = {
     share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
     visibleRule, noFade,
   ] },
+  // The visitor at the desk trying the product: at the screen, and in view. A laptop screen sits a
+  // hand's width in front of the eyes and well below them, so looking at it reads about 30 to 40 deg
+  // off the face's line; looking away from it is 60 and more.
+  'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
+    share('atScreen', 'face within 45 deg of the screen', (x) => x.targetAngle <= 45, 0.8),
+    visibleRule,
+  ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
+  ] },
+  // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
+  'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
+    share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
+    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 600 },
+    { ...visibleRule, known: 600 },
+  ] },
+  // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
+  'screen.recoil': { moment: 'screen', beat: 'recoil', rules: [
+    share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.8),
+  ] },
+  // A pet carrier by the door: whoever comes over peers at its door, face in view.
+  'carrier.peer': { moment: 'carrier', beat: 'peer', rules: [
+    share('atCarrier', 'face within 45 deg of the carrier', (x) => x.targetAngle <= 45, 0.8),
+    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 601 },
+    { ...visibleRule, known: 601 },
   ] },
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
@@ -115,6 +139,9 @@ const SCENARIOS = {
   // The first user test in the garage, both founders there; "Explain everything" 8 s in.
   visitor: { query: 'mock=garage', patch: { pendingDecision: { eventId: 'first_user_test', subjectId: 's1', stage: { prop: 'visitor_chair', anchor: 'subjectDesk', x: 2, y: 2 } } }, seconds: 16,
     steps: [{ at: 240, js: "S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'first_user_test', choice: 1, subjectId: 's1' }], S);" }] },
+  pizza: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'hackathon', subjectId: 's1', stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' } } }, seconds: 16 },
+  screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
+  carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
 };
 
@@ -159,6 +186,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
         for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
         window.__step(1);
         for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
+        // The moment's own actors (visitors) are staged too.
+        for (const e of R.moments.extras?.() ?? []) if (e.stage.moment === moment) actors.add(e.id);
         let live = 0;
         for (const actor of actors) {
           const m = R.probe(actor);
@@ -191,12 +220,21 @@ for (const task of tasks) {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
     if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
+    // wall and still pass. Walking and waiting are between beats and need none.
+    if (view.turns === 0) {
+      const roles = new Set(res.samples.filter((x) => x.beat && !['walk', 'wait'].includes(x.beat)).map((x) => x.role ?? null));
+      for (const role of roles) {
+        const covered = Object.values(SPECS).some((sp) => sp.moment === moment && (!sp.role || sp.role === role));
+        if (!covered) rep.row({ check: `${moment}.lint`, view: view.name, beat: '-', metric: 'roleWithoutSpec', value: role ?? '(no role)', want: 'a spec rule for every staged role', pass: false });
+      }
+    }
     for (const [k, spec] of specs) {
       const xs = res.samples.filter((x) => x.beat === spec.beat && (!spec.role || x.role === spec.role));
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
       for (const rule of spec.rules) {
         const value = rule.test(xs, res.samples);
-        rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value) });
+        rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: rule.known ?? null });
       }
     }
   }
