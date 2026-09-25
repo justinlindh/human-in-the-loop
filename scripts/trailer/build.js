@@ -173,6 +173,18 @@ function videoGraph(vertical) {
   const { square, top } = gfx.vlayout;
   let frameIdx = null;
   if (vertical) { inputs.push('-loop', '1', '-framerate', String(fps), '-t', f(total), '-i', gfx.vframe); frameIdx = n(); }
+  // A punch-in: the view zooms from zoom[0] to zoom[1] over the beat with an ease in and out, toward
+  // `at` (fractions of the frame) and kept inside the picture. zoompan reads a 2x upscale so the
+  // sub-pixel motion stays smooth.
+  const punch = (b) => {
+    if (!b.punch) return '';
+    const [z0, z1] = b.punch.zoom;
+    const [cx, cy] = b.punch.at;
+    const p = `clip(in/${f(b.dur * fps)},0,1)`;
+    const z = `${z0}+(${z1 - z0})*${p}*${p}*(3-2*${p})`;
+    return `scale=${OUTPUT.width * 2}:${OUTPUT.height * 2}:flags=lanczos,`
+      + `zoompan=z='${z}':x='clip(iw*${cx}-iw/zoom/2,0,iw-iw/zoom)':y='clip(ih*${cy}-ih/zoom/2,0,ih-ih/zoom)':d=1:s=${OUTPUT.width}x${OUTPUT.height}:fps=${fps},`;
+  };
   BEATS.forEach((b, i) => {
     const norm = `fps=${fps},setsar=1,format=yuv420p,trim=duration=${f(b.dur)},setpts=PTS-STARTPTS`;
     if (b.card) {
@@ -182,11 +194,11 @@ function videoGraph(vertical) {
       return;
     }
     inputs.push('-ss', f(b.from), '-t', f(b.dur), '-i', join(CLIPS, `trailer-${b.id}.mp4`));
-    if (!vertical) { chains.push(`[${n()}:v]scale=${W}:${H},${norm}[b${i}]`); return; }
+    if (!vertical) { chains.push(`[${n()}:v]setpts=PTS-STARTPTS,${punch(b)}scale=${W}:${H},${norm}[b${i}]`); return; }
     // The vertical cut shows a square window of the gameplay inside its frame.
     const cropW = OUTPUT.height;
     const x = Math.round((OUTPUT.width - cropW) * (b.vx ?? 0.5));
-    chains.push(`[${n()}:v]crop=${cropW}:${OUTPUT.height}:${x}:0,scale=${square}:${square},${norm}[g${i}]`);
+    chains.push(`[${n()}:v]setpts=PTS-STARTPTS,${punch(b)}crop=${cropW}:${OUTPUT.height}:${x}:0,scale=${square}:${square},${norm}[g${i}]`);
     chains.push(`[${frameIdx}:v]trim=start=${f(starts[b.id])}:duration=${f(b.dur)},setpts=PTS-STARTPTS,fps=${fps},format=yuv420p[fr${i}]`);
     chains.push(`[fr${i}][g${i}]overlay=0:${top}:shortest=1,${norm}[b${i}]`);
   });

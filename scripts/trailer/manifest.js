@@ -17,13 +17,16 @@ const BEFORE_EVENT = ({ match, weeks, minWeeks = 0 }) => `(async () => {
   // Everyone is staged in the office each week, before the look-ahead, so the live week plays out
   // exactly as the checked copy did.
   const inOffice = () => { s.lockdown = null; s.workPolicy = 'office'; for (const p of s.staff) { p.remote = false; p.call = null; } };
+  let found = false;
   for (let i = 0; i < ${weeks} && !s.gameOver; i++) {
     b.botDecide('balanced', s);
     b.botTurn('balanced', s);
     inOffice();
-    if (i >= ${minWeeks} && (sim.tick(structuredClone(s)) ?? []).some(match)) break;
+    if (i >= ${minWeeks} && (sim.tick(structuredClone(s)) ?? []).some(match)) { found = true; break; }
     sim.tick(s);
   }
+  // A console error fails the capture, so a seed that no longer reaches its event stops the build.
+  if (!found) console.error('trailer: the seeded game never reached its event; pick another seed');
   window.__HITL.emit((s.chatLog ?? []).slice(-15));
   for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
 })()`;
@@ -35,16 +38,16 @@ const CLOSE_CARDS = Array.from({ length: 14 }, (_, i) => ({ at: 0.2 + i, js: "[.
 const OWN = [
   {
     // An agent-era incident in a real game: an agent breaks something, nobody catches it.
-    id: 'real-incident', title: 'A real uncaught agent incident', query: 'seed=20&speed=1', seconds: 14,
+    id: 'real-incident', title: 'A real uncaught agent incident', query: 'seed=1&speed=1', seconds: 14,
     setup: BEFORE_EVENT({ match: "(e) => e.type === 'incident' && !e.caught && ['db_wipe', 'runaway_spend', 'mass_email', 'pricing_rewrite', 'refund_hallucination', 'prompt_injection_leak'].includes(e.kind)", weeks: 900, minWeeks: 300 }),
     actions: CLOSE_CARDS,
   },
-  {
-    // The Agents era arriving in a real game, card and all.
-    id: 'real-era', title: 'The Agents era arriving in a real game', query: 'seed=1&speed=1', seconds: 14,
-    setup: BEFORE_EVENT({ match: "(e) => e.type === 'era' && e.eraId === 'agents'", weeks: 900 }),
+  // Each era arriving in a real game, with its card and the office dressed for it.
+  ...['chatgbt', 'agents', 'consolidation', 'plateau'].map((era) => ({
+    id: `real-era-${era}`, title: `The ${era} era arriving in a real game`, query: 'seed=1&speed=1', seconds: 12,
+    setup: BEFORE_EVENT({ match: `(e) => e.type === 'era' && e.eraId === '${era}'`, weeks: 1000 }),
     actions: CLOSE_CARDS,
-  },
+  })),
 ];
 
 const byId = new Map([...ITEMS, ...OWN].map((it) => [it.id, it]));
