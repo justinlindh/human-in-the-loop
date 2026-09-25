@@ -186,10 +186,19 @@ try {
       // A spotlight that never ends: let go after the cap, then the weeks move again.
       R.spotlight = () => ({ kind: 'check', key: 'stuck-1', since: 0 });
       const stuck = run(62 * 30 + span);
+      // A long spotlight (a music night) that says how long it plays: held past the 60 s default,
+      // and let go only after its own length with slack (90 s expected: about 122 s).
+      // Cards answered first: time under a card never counts toward the cap.
+      R.spotlight = () => null;
+      clear();
+      R.spotlight = () => ({ kind: 'check', key: 'long-1', since: 0, expectedSeconds: 90 });
+      const longHeld = run(100 * 30);
+      const longGone = run(30 * 30 + span);
       if (had) Object.defineProperty(R, 'spotlight', had); else delete R.spotlight;
-      return { perWeek, span, held, after, card, stuck };
+      return { perWeek, span, held, after, card, stuck, longHeld, longGone };
     });
     const warned = warnings.some((w) => /spotlight .*stuck-1 held the clock/.test(w));
+    const longWarn = warnings.find((w) => /spotlight .*long-1 held the clock/.test(w)) ?? '';
     const cardWarned = warnings.some((w) => /spotlight .*card-1 held the clock/.test(w));
     const c = r.card;
     const checks = [
@@ -199,6 +208,8 @@ try {
       [r.after.weeks >= 2, `the weeks resumed after it ended (${r.after.weeks} in the same span)`],
       [c.found && c.stillOpen && !cardWarned && c.afterCard?.weeks === 0 && c.afterCard?.spot === r.span,
         c.found ? `a spotlight under the ${c.event} card for 62 s still held the clock after the card resolved (${c.afterCard?.weeks} weeks, spotlight on ${c.afterCard?.spot} of ${r.span} frames${cardWarned ? ', but it was let go' : ''})` : 'no decision card came up to hold a spotlight under'],
+      [r.longHeld.weeks === 0 && r.longHeld.spot === r.longHeld.frames && r.longGone.weeks >= 1 && /over 122\.5s/.test(longWarn),
+        `a spotlight expecting 90 s held for 100 s with no week passing (${r.longHeld.weeks}), then was let go at its own cap (${longWarn ? longWarn.replace(/^.*held the clock /, '') : 'no warning'}; ${r.longGone.weeks} weeks after)`],
       [r.stuck.weeks >= 1 && warned, `one held past the cap was let go (${r.stuck.weeks} weeks after, warning ${warned ? 'logged' : 'missing'})`],
     ];
     const pass = checks.every(([ok]) => ok) && !errors.length;

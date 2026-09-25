@@ -6,6 +6,7 @@
 //   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json]
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
+// A rule with known: <issue> fails as KNOWN (not failing the run) while that issue is open.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
@@ -98,6 +99,22 @@ const SPECS = {
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
   ] },
+  // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
+  'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
+    share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
+    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 600 },
+    { ...visibleRule, known: 600 },
+  ] },
+  // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
+  'screen.recoil': { moment: 'screen', beat: 'recoil', rules: [
+    share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.8),
+  ] },
+  // A pet carrier by the door: whoever comes over peers at its door, face in view.
+  'carrier.peer': { moment: 'carrier', beat: 'peer', rules: [
+    share('atCarrier', 'face within 45 deg of the carrier', (x) => x.targetAngle <= 45, 0.8),
+    { ...share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6), known: 601 },
+    { ...visibleRule, known: 601 },
+  ] },
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
     share('notOverHead', 'hammer centre not above the top of the head', (x) => x.heldAbove <= 0.05, 1),
@@ -115,6 +132,9 @@ const SCENARIOS = {
   // The first user test in the garage, both founders there; "Explain everything" 8 s in.
   visitor: { query: 'mock=garage', patch: { pendingDecision: { eventId: 'first_user_test', subjectId: 's1', stage: { prop: 'visitor_chair', anchor: 'subjectDesk', x: 2, y: 2 } } }, seconds: 16,
     steps: [{ at: 240, js: "S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'first_user_test', choice: 1, subjectId: 's1' }], S);" }] },
+  pizza: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'hackathon', subjectId: 's1', stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' } } }, seconds: 16 },
+  screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
+  carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
 };
 
@@ -196,7 +216,7 @@ for (const task of tasks) {
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
       for (const rule of spec.rules) {
         const value = rule.test(xs, res.samples);
-        rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value) });
+        rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: rule.known ?? null });
       }
     }
   }
