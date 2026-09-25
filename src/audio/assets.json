@@ -392,6 +392,28 @@
    "file": "sfx/farewell.ogg",
    "duration": 1.387,
    "candidate": true
+  },
+  "printer_beep": {
+   "file": "sfx/office/printer_beep.ogg",
+   "duration": 2.4,
+   "loopStart": 0,
+   "loopEnd": 115200
+  },
+  "printer_smash": {
+   "file": "sfx/office/printer_smash.ogg",
+   "duration": 1.6
+  },
+  "stapler": {
+   "file": "sfx/office/stapler.ogg",
+   "duration": 0.384
+  },
+  "memo": {
+   "file": "sfx/office/memo.ogg",
+   "duration": 0.49
+  },
+  "banner": {
+   "file": "sfx/office/banner.ogg",
+   "duration": 0.725
   }
  },
  "voice": {
