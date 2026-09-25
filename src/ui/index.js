@@ -362,14 +362,12 @@ export function createUI({ root, getState, dispatch, controls }) {
   // Growth (#549): level-ups only mark Staff as new; a promotion, trait or trained skill gets one
   // toast per person with their portrait, which opens their card.
   const GROWTH = new Set(['levelUp', 'promoted', 'traitEarned', 'skillTrained']);
-  const promotedNames = new Map(); // name -> week promoted, to drop the sim's own promotion toast
   function onGrowth(events, state) {
     const evs = events.filter((e) => GROWTH.has(e.type));
     if (!evs.length) return;
     for (const b of growth.add(evs, state.week)) {
       const p = state.staff.find((x) => x.id === b.staffId);
       if (!p) continue;
-      if (b.promoted) { promotedNames.set(p.name, state.week); if (promotedNames.size > 20) promotedNames.delete(promotedNames.keys().next().value); }
       const text = growthToast(p.name, b, roleName(p.role));
       if (text) toasts.push(text, 'good', { person: p, action: () => menu.open('staff', { staffId: p.id }) });
     }
@@ -384,9 +382,6 @@ export function createUI({ root, getState, dispatch, controls }) {
     for (const e of events) {
       switch (e.type) {
         case 'toast': {
-          // The sim's own promotion line: the growth toast above already says it, with the portrait.
-          // The pacer can deliver it apart from the promoted event, so match recent promotions by name.
-          { const m = /^(.+) is now a (?:Mid|Senior) .+!$/.exec(e.text ?? ''); if (m && state.week - (promotedNames.get(m[1]) ?? -99) <= 2) break; }
           // "X is ready to choose a career path." opens the path picker when clicked.
           const who = /ready to choose a career path/.test(e.text) ? state.staff.find((p) => p.pathPending && e.text.startsWith(p.name)) : null;
           // A new market trend's toast also says what it does to products.

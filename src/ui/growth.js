@@ -61,13 +61,20 @@ export function createGrowth() {
 }
 
 // The toast line for one person's batch, or null when it's only level-ups (those stay quiet).
+//   promoted:     "Priya is now a Senior Engineer. Polish +3, earned Night Owl."
+//   levelled up:  "Priya levelled up. Earned Night Owl."
+//   trained:      "Priya finished training: Reliability +5."
+//   a trait:      "Priya earned Night Owl."
 export function growthToast(name, b, role = '') {
   if (!b.promoted && !b.traits.length && !b.trained.length) return null;
-  const parts = [];
+  const cap = (t) => t.replace(/^./, (c) => c.toUpperCase());
   const gains = Object.entries(b.gains).filter(([, n]) => n > 0).map(([k, n]) => `${skillName(k)} +${Math.round(n)}`);
-  if (b.promoted) parts.push(`${name} is now a ${b.promoted === 'mid' ? 'Mid' : 'Senior'}${role ? ` ${role}` : ''}.`);
-  else if (b.traits.length || b.trained.length) parts.push(`${name} grew.`);
-  const bits = [...gains, ...b.trained, ...b.traits.map((t) => `earned ${t}`)];
-  if (bits.length) parts.push(`${bits.join(', ').replace(/^./, (c) => c.toUpperCase())}.`);
-  return parts.join(' ');
+  const earned = b.traits.map((t) => `earned ${t}`);
+  if (b.promoted) {
+    const bits = [...gains, ...earned];
+    return `${name} is now a ${b.promoted === 'mid' ? 'Mid' : 'Senior'}${role ? ` ${role}` : ''}.${bits.length ? ` ${cap(bits.join(', '))}.` : ''}`;
+  }
+  if (b.level) return `${name} levelled up. ${cap([...b.trained, ...earned].join(', '))}.`;
+  if (b.trained.length) return `${name} finished training: ${[...b.trained, ...earned].join(', ')}.`;
+  return `${name} earned ${b.traits.join(' and ')}.`;
 }
