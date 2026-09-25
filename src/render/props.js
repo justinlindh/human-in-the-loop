@@ -1000,6 +1000,8 @@ const printerScreen = () => cardTex('pcload', 256, 48, (ctx, W, H) => {
 });
 // The printer model on its own (moments.js carries one out the door).
 export function printerModel() { return printerBody(false); }
+// The visitor's chair, for a moment that keeps it after the staged prop has gone.
+export function visitorChairModel() { return visitorChair(); }
 function printerBody(broken = false) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(0.62, 0.36, 0.5, 0.05, 3), mat('pot_cream'), 0, 0.18, 0));

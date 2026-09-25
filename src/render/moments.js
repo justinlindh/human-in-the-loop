@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
-import { printerModel } from './props.js';
+import { printerModel, visitorChairModel } from './props.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -518,6 +518,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       if (f) { f.lx = 0; f.lz = SEAT_LOCAL_Z; } else o.position.set(v.at.x, 0, v.at.z);
     }
     v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit'));
+    // Off a desk, the stranger sits in a chair of the moment's own, standing where the staged one
+    // does: the staged chair leaves with the choice, and nobody may be left sitting on air.
+    if (!v.seat) {
+      v.chair = visitorChairModel();
+      v.chair.position.copy(o.position); v.chair.rotation.y = o.rotation.y; v.chair.scale.setScalar(o.scale.x > 0.5 ? o.scale.x : 1);
+      v.chars[0].root.parent.add(v.chair);
+    }
     const fwd = [Math.sin(v.yaw), Math.cos(v.yaw)], side = [Math.cos(v.yaw), -Math.sin(v.yaw)];
     if (event === 'efficiency_consultants') {
       // The second consultant stands beside the chair with a clipboard; a colleague is interviewed.
@@ -670,7 +677,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       if (p) p.obj.visible = false;
       v.seated ||= ![...recs.values()].some((r) => !r.hidden && Math.hypot(r.pos.x - v.at.x, r.pos.z - v.at.z) < 0.45);
       sitter.root.visible = v.seated;
-    } else sitter.root.visible = p ? p.obj.visible && p.obj.scale.x > 0.5 : true;
+    } else {
+      // Once the staged chair has popped in, the moment's own takes its place until the end.
+      v.shown ||= !p || (p.obj.visible && p.obj.scale.x > 0.5);
+      if (p && v.shown) p.obj.visible = false;
+      sitter.root.visible = v.chair.visible = v.shown;
+    }
     if (rob) {
       rob.root.position.set(v.robAt.x, 0, v.robAt.z);
       rob.root.rotation.y = Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
@@ -686,6 +698,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     visitor = null;
     releaseCast(v);
     for (const c of v.chars) { c.root.removeFromParent(); c.dispose(); }
+    v.chair?.removeFromParent();
     if (v.mid) dispatch('end', v.event, v.mid);
     momentCam?.release('visitor');
   }
