@@ -4,7 +4,7 @@ import { h, setText, toggleClass, dateOf, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
-import { loadSettings, saveSetting } from './settings.js';
+import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './settings.js';
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
 
@@ -14,6 +14,10 @@ const QUIET_WEEKS = 6;
 // Sizes: the feed's height and the panel's width, in em. A dragged height overrides the preset's.
 const SIZES = { small: { h: 12, w: null }, medium: { h: 20, w: 24 }, large: { h: 30, w: 30 } }; // small keeps the layout's width
 const MIN_H = 6, MAX_H = 44;
+// Messages that still count as new at the Important level: incidents, wins, and bot posts
+// (launches, pages, awards, news), or anything the sim marks important.
+const important = (m) => m.important === true || m.channel === 'incidents' || m.channel === 'wins' || (!m.fromId && String(m.from).startsWith('@'));
+const LEVEL_ICON = { all: 'sound.on', important: 'star', off: 'sound.off' };
 const BOT_ICON = {
   '@pagerbot': 'bot.pager', '@vendorbot': 'bot.vendor', '@launchbot': 'bot.launch', '@shipbot': 'bot.launch', '@hr-bot': 'bot.hr',
   '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackerspewsbot': 'bot.hn', '@newsbot': 'bot.news', '@buildbot': 'bot.build',
@@ -37,9 +41,11 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
   const sizeBtns = Object.keys(SIZES).map((k) => h('button.ysz', { title: `${k[0].toUpperCase()}${k.slice(1)} Yak`, 'aria-label': `${k} size`, onclick: stop(() => setSize(k, null)) }, k[0].toUpperCase()));
   const maxBtn = h('button.ysz.ymax', { title: 'Open Yak big', 'aria-label': 'Maximize Yak', onclick: stop(() => setMax(!maximized)) }, icon('expand', { size: 13 }));
+  let level = yakLevel();
+  const levelBtn = h('button.ysz.ylevel', { type: 'button', onclick: stop(() => setYakLevel(YAK_LEVELS[(YAK_LEVELS.findIndex((l) => l.v === level) + 1) % YAK_LEVELS.length].v)) });
   const head = h('div.chat-head', { title: touchUI() ? 'Yak' : 'Yak (C)', onclick: () => { if (!maximized) toggle(); } },
     h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), replyMark, totalBadge,
-    h('span.ysizes', null, ...sizeBtns, maxBtn), caret);
+    h('span.ysizes', null, levelBtn, ...sizeBtns, maxBtn), caret);
   // Drag the top edge to set any height between MIN_H and MAX_H.
   const grip = h('div.ygrip', { title: 'Drag to resize', 'aria-hidden': 'true' });
 
@@ -173,6 +179,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
       toggleClass(tabBadges[c], 'show', n > 0);
       toggleClass(tabBtns[c], 'on', c === current);
     }
+    if (level === 'off') { for (const c of CHANNELS) unread[c] = 0; total = 0; }
     setText(totalBadge, total > 99 ? '99+' : total || '');
     toggleClass(totalBadge, 'show', collapsed && total > 0);
   }
@@ -200,10 +207,12 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     refreshBadges();
   }
 
+  // Whether a new message raises an unread count at the current level.
+  const counts = (m, channel) => level === 'all' || (level === 'important' && important({ ...m, channel }));
   function add(e, week, { quiet: silent = false } = {}) {
     if (e.type === 'say') return;
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
-    const m = { id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
+    const m = { important: e.important === true, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
     const msgs = store[channel];
     msgs.push(m);
     const dropped = msgs.length > MAX_PER_CHANNEL ? msgs.shift() : null;
@@ -215,8 +224,8 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
       place(m, node(m));
       prompts.attach();
       if (nearBottom) list.scrollTop = list.scrollHeight;
-      if (collapsed && !silent) unread[channel]++;
-    } else if (!silent) {
+        if (collapsed && !silent && counts(m, channel)) unread[channel]++;
+    } else if (!silent && counts(m, channel)) {
       unread[channel]++;
     }
     refreshBadges();
@@ -253,7 +262,21 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     refreshBadges();
   }
 
+  function setLevel(v) {
+    level = YAK_LEVELS.some((l) => l.v === v) ? v : 'all';
+    const l = YAK_LEVELS.find((x) => x.v === level);
+    levelBtn.replaceChildren(icon(LEVEL_ICON[level], { size: 13 }));
+    levelBtn.dataset.level = level;
+    setTip(levelBtn, `${l.tip}. Tap to change.`);
+    levelBtn.setAttribute('aria-label', l.tip);
+    el.classList.toggle('yak-off', level === 'off');
+    if (level === 'off' && !maximized) toggle(true);
+    refreshBadges();
+  }
+  window.addEventListener('hitl:yakLevel', (e) => setLevel(e.detail?.level));
+
   renderChannel();
+  setLevel(level);
   refreshBadges();
   // On phones Yak starts collapsed so it does not cover the tray and the office; the header's
   // unread badge still counts new messages.

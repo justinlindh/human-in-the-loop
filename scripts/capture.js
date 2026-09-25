@@ -166,7 +166,8 @@ async function serve() {
 // frame places the camera on the path, so push-ins and pans happen in the render. A target is a world
 // point [x, z], { prop: 'name' } (the first staged prop whose name contains it), { staff: 'id' }, or
 // { js: 'expression giving { x, z }' }; targets are found again every frame, so a key can follow
-// something that moves. A key without a target or zoom keeps the one before. ease shapes the move
+// something that moves. A key without a target or zoom keeps the one before (the first key's zoom is
+// 1.5 when it gives none). Keys must be in order of `at`, or the item fails. ease shapes the move
 // into that key: 'inOut' (the default), 'in', 'out' or 'linear'. Before the first key and after the
 // last the camera holds. The game's own moment camera is off for the item, so it never fights the path.
 const CAMERA_PATH = `(() => {
@@ -256,6 +257,12 @@ let failed = false;
 
 try {
   for (const it of items) {
+    // A camera path with keys out of order fails the item before anything starts for it.
+    const bad = (it.camera ?? []).findIndex((k, i, ks) => !Number.isFinite(k.at) || (i > 0 && k.at < ks[i - 1].at));
+    if (bad >= 0) {
+      console.log(`FAIL ${it.id}: camera key ${bad} (at ${it.camera[bad].at}) is out of order: keys must be in order of \`at\``);
+      failed = true; continue;
+    }
     const t0 = Date.now();
     const FPS = Number(it.fps ?? RUN_FPS);
     const [W, H] = String(it.size ?? RUN_SIZE).split('x').map(Number);

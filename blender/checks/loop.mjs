@@ -207,11 +207,19 @@ try {
       R.spotlight = () => ({ kind: 'check', key: 'long-1', since: 0, expectedSeconds: 90 });
       const longHeld = run(100 * 30);
       const longGone = run(30 * 30 + span);
+      // A wrong expectedSeconds (milliseconds by mistake) is clamped to the ceiling, with a warning.
+      R.spotlight = () => null;
+      clear();
+      R.spotlight = () => ({ kind: 'check', key: 'ms-1', since: 0, expectedSeconds: 90000 });
+      const msHeld = run(170 * 30);
+      const msGone = run(20 * 30 + span);
       if (had) Object.defineProperty(R, 'spotlight', had); else delete R.spotlight;
-      return { perWeek, span, held, after, card, stuck, longHeld, longGone };
+      return { perWeek, span, held, after, card, stuck, longHeld, longGone, msHeld, msGone };
     });
     const warned = warnings.some((w) => /spotlight .*stuck-1 held the clock/.test(w));
     const longWarn = warnings.find((w) => /spotlight .*long-1 held the clock/.test(w)) ?? '';
+    const msClamp = warnings.some((w) => /spotlight .*ms-1 expects 90000s; holding the clock 180s at most/.test(w));
+    const msLet = warnings.some((w) => /spotlight .*ms-1 held the clock over 180s/.test(w));
     const cardWarned = warnings.some((w) => /spotlight .*card-1 held the clock/.test(w));
     const c = r.card;
     const checks = [
@@ -223,6 +231,8 @@ try {
         c.found ? `a spotlight under the ${c.event} card for 62 s still held the clock after the card resolved (${c.afterCard?.weeks} weeks, spotlight on ${c.afterCard?.spot} of ${r.span} frames${cardWarned ? ', but it was let go' : ''})` : 'no decision card came up to hold a spotlight under'],
       [r.longHeld.weeks === 0 && r.longHeld.spot === r.longHeld.frames && r.longGone.weeks >= 1 && /over 122\.5s/.test(longWarn),
         `a spotlight expecting 90 s held for 100 s with no week passing (${r.longHeld.weeks}), then was let go at its own cap (${longWarn ? longWarn.replace(/^.*held the clock /, '') : 'no warning'}; ${r.longGone.weeks} weeks after)`],
+      [msClamp && r.msHeld.weeks === 0 && msLet && r.msGone.weeks >= 1,
+        `a spotlight expecting 90000 s was clamped to 180 s (warning ${msClamp ? 'logged' : 'missing'}), held 170 s (${r.msHeld.weeks} weeks) and let go at 180 s (${msLet ? 'logged' : 'not let go'}; ${r.msGone.weeks} weeks after)`],
       [r.stuck.weeks >= 1 && warned, `one held past the cap was let go (${r.stuck.weeks} weeks after, warning ${warned ? 'logged' : 'missing'})`],
     ];
     const pass = checks.every(([ok]) => ok) && !errors.length;

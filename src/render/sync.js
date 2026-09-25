@@ -7,6 +7,7 @@ import { createPets } from './pets.js';
 import { createIncentives } from './incentives.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
+import { createSpotlights } from './spotlight.js';
 import { holdSeconds } from './reading.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
@@ -277,7 +278,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); moments.reset(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -533,10 +534,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const momentCam = createMomentCamera(rig);
-  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam });
+  const spotlights = createSpotlights();
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam, spotlights });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, spotlights, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -1032,7 +1034,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, setCharacterShadows,
+    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.
     standAt(id, x, z) {

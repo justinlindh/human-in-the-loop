@@ -95,7 +95,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, spotlights = null, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -249,6 +249,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       h.held.rotation.set(0, 0, 0);
       r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
+      h.mid = dispatch('start', 'open_plan_office');
+      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true));
+      momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
     }
     if (h.phase === 'swing') {
       h.swingT += 1 / 30;
@@ -296,6 +299,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     hammer.held?.traverse((o) => o.geometry?.dispose());
     if (hammer.obj) hammer.obj.visible = true;
     if (r.temp?.moment === 'hammer') { r.temp = null; if (walkBack && r.goal) walkTo(r, r.goal); }
+    if (hammer.mid) dispatch('end', 'open_plan_office', hammer.mid);
+    spotlights?.end(hammer.spot);
+    if (hammer.spot) momentCam?.release('hammer');
     hammer = null;
   }
 
@@ -529,6 +535,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // The chair's own desk, or (staged on the floor, the event naming nobody) the desk nearest it.
     const nearest = () => [...office.placed.values()].filter((e) => e.desk?.seat).sort((a, b) => Math.hypot(a.desk.seat.x - o.position.x, a.desk.seat.z - o.position.z) - Math.hypot(b.desk.seat.x - o.position.x, b.desk.seat.z - o.position.z))[0]?.desk ?? null;
     const desk = event === 'first_user_test' ? office.deskById?.(o.userData.follow?.deskId) ?? nearest() : null;
+    v.desk = desk;
     if (desk?.seat) {
       v.seat = desk.seat; v.at = { x: desk.seat.x, z: desk.seat.z }; v.yaw = desk.seat.rotY;
       // The spare chair, hidden, moves into the seat: as a floor prop it blocks the walking grid
@@ -569,6 +576,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
           tick: (rr, d, tp) => { tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = rnd(2.5, 3.5); emote(rr, 'sweat', 2); } return false; } };
         (v.walks ??= []).push([r, spot]);
         v.cast.push(r);
+        v.interviewee = r;
       }
     } else {
       // The founders, or failing that whoever is free, crouch out of sight and peek.
@@ -582,6 +590,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       });
     }
     v.mid = dispatch('start', event);
+    v.spot = spotlights?.begin(event, endVisitor);
     momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
   }
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
@@ -721,6 +730,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     for (const c of v.chars) { c.root.removeFromParent(); c.dispose(); }
     if (v.chair) { v.chair.removeFromParent(); getProps()?.unpin?.(v.chair); }
     if (v.mid) dispatch('end', v.event, v.mid);
+    spotlights?.end(v.spot);
     momentCam?.release('visitor');
   }
 
@@ -809,6 +819,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
       clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
+    pm.spot = spotlights?.begin('printer_jam', printerEnd);
     pm.twists = twists(pm);
     const c = along(route, 0);
     const spots = carrySpots(pm, c);
@@ -1108,6 +1119,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (r.goal) walkTo(r, r.goal);
     }
     if (pm.mid) dispatch('end', 'printer_jam', pm.mid);
+    spotlights?.end(pm.spot);
     momentCam?.release('printer');
   }
   // Moment captions (ui): hitl:moment { phase, id, key }. A start makes the moment's id and returns it;
@@ -1150,12 +1162,26 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
 
   // What a moment says about someone now, for the staging probe (probe.js): the moment, its beat
   // ('walk' while they are on the way), the target they deal with, what they hold, the effect source.
+  // The moment's own actors that are not staff (the visitors), with their stage records, for the
+  // staging probe and checks: [{ id: 'visitor:0', char, stage: { moment, beat, role, target } }].
+  function extras() {
+    const v = visitor;
+    if (!v) return [];
+    const [sitter, rob] = v.chars;
+    const consult = v.event === 'efficiency_consultants';
+    const at = consult ? v.interviewee?.char.root ?? null : v.desk?.screen ?? null;
+    const out = [];
+    if (sitter?.root.visible) out.push({ id: 'visitor:0', char: sitter, stage: { moment: 'visitor', beat: consult ? 'interview' : 'test', role: consult ? 'consultant' : 'visitor', target: at, held: null, source: null } });
+    if (rob?.root.visible) out.push({ id: 'visitor:1', char: rob, stage: { moment: 'visitor', beat: 'interview', role: 'clipboard', target: at, held: null, source: null } });
+    return out;
+  }
   function staging(id) {
+    if (typeof id === 'string' && id.startsWith('visitor:')) return extras().find((e) => e.id === id)?.stage ?? null;
     const r = recs.get(id), tp = r?.temp;
     if (!tp?.moment) return null;
     const st = tp.stage ?? {};
     return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
   }
 
-  return { update, reset, decided, staging, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { update, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }
