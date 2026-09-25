@@ -2,6 +2,24 @@
 
 Every tool the team uses, what it's for, and who reaches for it: `npm run toolkit` prints them as tables by section, from one file per tool in `docs/toolkit/` (`npm run toolkit -- --grep <word>` to find one, `--section <s>` for one section). Each script's header comment has the full usage; the toolkit is the map. A PR that adds, removes or changes a tool adds or edits that tool's own file, `docs/toolkit/<name>.md`, in the same PR: a header of `tool`, `section`, optional `who` and `covers` (the files it documents), then what it does. Local CI's `toolkit` step fails when a script or check has no entry. This page has the guidance around the tools, which changes rarely.
 
+## When you need to...
+
+| Task | Reach for | Page |
+|---|---|---|
+| Know where a person will stand or walk, or what blocks a tile | `dump.mjs --moment '<query>'`, then `dump-query path <id>` or `nav <x,z>` | [dump](toolkit/dump.md) |
+| Know whether a face, prop or person reads on screen, and what hides it | `R.probe(id)` (a staff id, `'visitor:0'`, or a prop; reports `occluder`), `R.probeViews(id)`, `dump.mjs --views 0,1,2,3` then `dump-query visible <thing>` | [probe](toolkit/probe.md), [dump](toolkit/dump.md) |
+| Know why a moment didn't start or was cut short | `dump.mjs --trace`, `dump-query trace <id>`; a failing `loop.mjs` or `clip.mjs` case prints the worst actor and their trace on its own | [dump](toolkit/dump.md), [loop](toolkit/loop.md), [clip](toolkit/clip.md) |
+| Jump to any event or moment in a real game | `node scripts/events/find.js <event>`, then `--moment '<query>'` or `--snapshot <path>` on a tool | [events](toolkit/events.md) |
+| Check a moment plays through the real game loop, or the spotlight hold | `blender/checks/loop.mjs` (queries, `party:<decision>`) | [loop](toolkit/loop.md) |
+| Check a moment reads on screen | `stage.mjs --only=<moment>`: every staged role needs a spec; `known: <issue>` excuses a failure only while the issue is open | [stage](toolkit/stage.md) |
+| Check nothing overlaps, floats, leaves the room or clutters the screen | `sweep.mjs`, `clip.mjs --only=<pattern>` | [sweep](toolkit/sweep.md), [clip](toolkit/clip.md) |
+| Iterate on one moment without half-edited runs | `npm run gates -- --moment <kind>` | [gates](toolkit/gates.md) |
+| Record a clip or still through the real game | `npm run capture` (camera keyframes, per-item size and fps) | [capture](toolkit/capture.md) |
+| Make reels and landing page media | `scripts/reels/` (the kit and `docs/reels.md`), `npm run feature-media` | [reels guide](reels.md), [feature-media](toolkit/feature-media.md) |
+| Keep the feature inventory in step with the data | `docs/features.md`, `node scripts/features-ids.mjs` | [features-ids](toolkit/features-ids.md) |
+| Gate, review and merge a PR | `scripts/ci-pr.sh <pr>`, `scripts/pr-status.sh`, `scripts/review-verdict.sh`; the main guard watches `main` | [ci-pr](toolkit/ci-pr.md), [pr-status](toolkit/pr-status.md), [review-verdict](toolkit/review-verdict.md), [main-guard](toolkit/main-guard.md) |
+| Know what the Claude Code hooks refuse, and record an agreed cross-lane edit | the bash and lane guards; an exception goes in `$(git rev-parse --git-dir)/hitl-lane-allow` | [bash-guard](toolkit/bash-guard.md), [lane-guard](toolkit/lane-guard.md) |
+
 The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser work under a render lock. Stop processes by PID, never with `pkill -f` or `pgrep -f`.
 
 ## GPU or software GL
