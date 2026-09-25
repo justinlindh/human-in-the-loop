@@ -721,7 +721,6 @@ export function createOffice({ parent, screens, lighting }) {
   let dust = null;
   let deskSeed = 0;
   let era = 'classic';
-  let poster = null;
   const lampMat = paletteMaterial('pal_lamp');
   const growMat = paletteMaterial('pal_grow');
 
@@ -790,7 +789,6 @@ export function createOffice({ parent, screens, lighting }) {
     batch = null;
     ledCache = null;
     holder.add(cur.root);
-    poster = null;
     updatePoster();
     lighting?.fitShadow(cur.bounds);
     lighting?.setInteriorLights(cur.L.lights.map((l) => ({ ...l, y: cur.L.wallH - 0.3 })));
@@ -870,7 +868,12 @@ export function createOffice({ parent, screens, lighting }) {
       dying.push({ obj: e.obj, t: 0 });
       dirty = true;
     }
-    if (dirty) { dropBatch(); refresh(); }
+    if (dirty) {
+      dropBatch(); refresh();
+      const key = blockKey;
+      wallBlockers();
+      if (blockKey !== key) updatePoster();
+    }
     return changed;
   }
 
@@ -960,7 +963,7 @@ export function createOffice({ parent, screens, lighting }) {
   let tuck = false;
   function tuckMeetingChairs(on) { tuck = on; }
 
-  // Era dressing: rebuild placed models in place (no pop) and swap the wall poster.
+  // Era dressing: rebuild placed models in place (no pop) and swap the wall dressing.
   function setEra(id) {
     if (!id || id === era) return false;
     era = id;
@@ -989,11 +992,31 @@ export function createOffice({ parent, screens, lighting }) {
   }
 
   function updatePoster() {
-    if (poster) { poster.removeFromParent(); poster = null; }
+    if (dressing) { dressing.removeFromParent(); disposeDressing(dressing); dressing = null; }
     if (!cur) return;
-    if (era === 'chatgbt') poster = makePoster(cur.L);
-    if (era === 'plateau') poster = makeCraftWall(cur.L);
-    if (poster) cur.root.add(poster);
+    dressing = eraDressing(cur.L, era, wallBlockers());
+    cur.root.add(dressing);
+    tintFloors(era);
+  }
+  let dressing = null;
+  let blockKey = '';
+  // Stretches of the back walls hidden behind tall furniture, so wall pieces hang where they show.
+  function wallBlockers() {
+    const out = [];
+    for (const e of placed.values()) {
+      const b = localBox(e);
+      if (b.max.y < 1.25) continue;
+      const t = e.target, c = Math.cos(t.rotY), sn = Math.sin(t.rotY);
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const [lx, lz] of [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]]) {
+        const x = t.x + c * lx + sn * lz, z = t.z - sn * lx + c * lz;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      }
+      if (x0 < -cur.L.W / 2 + 0.8) out.push({ wall: 'x', a: z0 - 0.1, b: z1 + 0.1 });
+      if (z0 < -cur.L.D / 2 + 0.8) out.push({ wall: 'z', a: x0 - 0.1, b: x1 + 0.1 });
+    }
+    blockKey = out.map((o) => `${o.wall}${o.a.toFixed(1)},${o.b.toFixed(1)}`).sort().join('|');
+    return out;
   }
 
   // Team mat under a desk set, tinted by the sitter's role; an empty desk gets a neutral mat.
@@ -1205,43 +1228,289 @@ function pinboardTexture() {
   return t;
 }
 
-// Plateau craft wall: a pinboard of sketches on the left back wall, and a shelf of handmade
-// pottery on the right one.
-function makeCraftWall(L) {
+// Plateau: a shelf of handmade pottery (with the pinboard and the touch-grass poster).
+function plantShelf(L, sl) {
   const g = new THREE.Group();
-  const gx = wallGap(L, 'x');
-  if (gx && gx[1] - gx[0] >= 1.3) {
-    const z = (gx[0] + gx[1]) / 2;
-    g.add(mesh(roundedBox(0.04, 0.82, 1.2, 0.012), mat('wood_dark'), -L.W / 2 + 0.02, 1.5, z));
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.72), new THREE.MeshStandardMaterial({ map: pinboardTexture(), roughness: 0.95 }));
-    face.position.set(-L.W / 2 + 0.045, 1.5, z);
-    face.rotation.y = Math.PI / 2;
-    g.add(face);
+  const onX = sl.wall === 'x';
+  // Built along +x against wall z, then turned onto wall x when needed.
+  for (const y of [1.25, 1.75]) {
+    g.add(mesh(roundedBox(1.1, 0.04, 0.24, 0.012), mat('wood_honey'), 0, y, 0.13));
+    for (const sx of [-0.45, 0.45]) g.add(mesh(roundedBox(0.03, 0.12, 0.2, 0.008), mat('metal_dark'), sx, y - 0.07, 0.11));
   }
-  const gz = wallGap(L, 'z');
-  if (gz && gz[1] - gz[0] >= 1.3) {
-    const x = (gz[0] + gz[1]) / 2, zw = -L.D / 2;
-    for (const y of [1.25, 1.75]) {
-      g.add(mesh(roundedBox(1.1, 0.04, 0.24, 0.012), mat('wood_honey'), x, y, zw + 0.13));
-      for (const sx of [-0.45, 0.45]) g.add(mesh(roundedBox(0.03, 0.12, 0.2, 0.008), mat('metal_dark'), x + sx, y - 0.07, zw + 0.11));
-    }
-    const pots = [[-0.35, 1.27, 0.07, 0.16, 'pot_terracotta'], [-0.08, 1.27, 0.05, 0.1, 'pot_cream'], [0.2, 1.27, 0.08, 0.13, 'fabric_teal'], [0.4, 1.27, 0.04, 0.18, 'pot_cream'],
-      [-0.3, 1.77, 0.06, 0.12, 'pot_cream'], [0.05, 1.77, 0.07, 0.09, 'fabric_mustard'], [0.33, 1.77, 0.05, 0.14, 'pot_terracotta']];
-    for (const [dx, y, r, h, m] of pots) g.add(mesh(roundedCylinder(r * 0.8, r, h, Math.min(0.02, r * 0.3), 10), mat(m), x + dx, y + 0.02, zw + 0.13));
-    const pl = getModel('plant_small');
-    pl.scale.setScalar(0.5);
-    g.add(place(pl, x - 0.1, 1.79, zw + 0.13));
-  }
-  return g.children.length ? g : null;
+  const pots = [[-0.35, 1.27, 0.07, 0.16, 'pot_terracotta'], [-0.08, 1.27, 0.05, 0.1, 'pot_cream'], [0.2, 1.27, 0.08, 0.13, 'fabric_teal'], [0.4, 1.27, 0.04, 0.18, 'pot_cream'],
+    [-0.3, 1.77, 0.06, 0.12, 'pot_cream'], [0.05, 1.77, 0.07, 0.09, 'fabric_mustard'], [0.33, 1.77, 0.05, 0.14, 'pot_terracotta']];
+  for (const [dx, y, r, h, m] of pots) g.add(mesh(roundedCylinder(r * 0.8, r, h, Math.min(0.02, r * 0.3), 10), mat(m), dx, y + 0.02, 0.13));
+  const pl = getModel('plant_small');
+  pl.scale.setScalar(0.5);
+  pl.userData.shared = true;
+  g.add(place(pl, -0.1, 1.79, 0.13));
+  if (onX) { g.rotation.y = Math.PI / 2; g.position.set(-L.W / 2, 0, sl.at); } else g.position.set(sl.at, 0, -L.D / 2);
+  return g;
 }
 
-// "Try AI" poster on the left back wall, in the widest gap between openings.
-function makePoster(L) {
-  const best = wallGap(L, 'x');
-  if (!best || best[1] - best[0] < 0.9) return null;
+// Era identity at a glance: a wainscot band in the era's colour along both back walls (broken at
+// doors and rails) with a rail on top, the era's signature wall pieces (ERA_PIECES), and its emblem.
+const ERA_ACCENT = {
+  classic: ['wood_light', 0.15], chatgbt: ['screen_cyan', 0.45], agents: ['role_sales', 0.5],
+  consolidation: ['fabric_slate', 0.35], plateau: ['pot_terracotta', 0.2],
+};
+const eraMats = new Map();
+function eraAccent(era) {
+  let m = eraMats.get(era);
+  if (!m) {
+    const [key, soften] = ERA_ACCENT[era] ?? ERA_ACCENT.classic;
+    m = new THREE.MeshStandardMaterial({ color: color(key).clone().lerp(color('wall_cream'), soften), roughness: 0.8 });
+    eraMats.set(era, m);
+  }
+  return m;
+}
+const BAND_H = 0.95;
+function bandRuns(L, wall) {
+  const len = wall === 'x' ? L.D : L.W;
+  const cuts = L.openings.filter((o) => o.wall === wall && o.bottom < BAND_H).map((o) => [o.at - o.width / 2, o.at + o.width / 2]).sort((a, b) => a[0] - b[0]);
+  const runs = [];
+  let cur = -len / 2;
+  for (const [a, b] of cuts) { if (a - cur > 0.05) runs.push([cur, a]); cur = Math.max(cur, b); }
+  if (len / 2 - cur > 0.05) runs.push([cur, len / 2]);
+  return runs;
+}
+// Emblems are ui's era glyphs, drawn onto framed paper. All five start loading with this module so
+// they are ready long before the office is first dressed.
+const ERAS = ['classic', 'chatgbt', 'agents', 'consolidation', 'plateau'];
+const emblemTex = new Map();
+for (const era of typeof Image === 'undefined' || typeof document === 'undefined' ? [] : ERAS) {
   const c = document.createElement('canvas');
-  c.width = 256; c.height = 340;
+  c.width = c.height = 256;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
   const ctx = c.getContext('2d');
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 256, 256);
+  const img = new Image();
+  img.onload = () => { ctx.drawImage(img, 24, 24, 208, 208); t.needsUpdate = true; };
+  img.src = `${import.meta.env?.BASE_URL ?? '/'}icons/glyphs/era.${era}.svg`;
+  emblemTex.set(era, t);
+}
+const emblemTexture = (era) => emblemTex.get(era) ?? emblemTex.get('classic') ?? null;
+function eraDressing(L, era, blockers = []) {
+  const g = new THREE.Group();
+  g.name = 'era';
+  const accent = eraAccent(era);
+  const rail = mat('wood_dark');
+  for (const wall of ['z', 'x']) {
+    for (const [a, b] of bandRuns(L, wall)) {
+      const len = b - a, mid = (a + b) / 2;
+      const along = wall === 'z';
+      const x = along ? mid : -L.W / 2 + 0.012, z = along ? -L.D / 2 + 0.012 : mid;
+      g.add(mesh(roundedBox(along ? len : 0.02, BAND_H, along ? 0.02 : len, 0.006, 1), accent, x, BAND_H / 2, z, { cast: false }));
+      g.add(mesh(roundedBox(along ? len : 0.05, 0.05, along ? 0.05 : len, 0.012, 1), rail, x, BAND_H, z, { cast: false }));
+    }
+  }
+  // The era's signature wall pieces and its emblem, each into the wall stretch with the most room
+  // left, then spaced out evenly within their stretch.
+  const pieces = [...(ERA_PIECES[era] ?? []), ...(emblemTexture(era) ? [piece(0.8, 0.8, 1.85, () => emblemTexture(era))] : [])];
+  const slots = wallSlots(L, blockers).map((sl) => ({ ...sl, left: sl.len - 0.3, got: [] }));
+  for (const pc of pieces) {
+    const sl = slots.reduce((a, b) => (b.left > a.left ? b : a), slots[0]);
+    if (!sl || sl.left < pc.w) continue;
+    sl.got.push(pc);
+    sl.left -= pc.w + 0.4;
+  }
+  for (const sl of slots) {
+    const total = sl.got.reduce((n, pc) => n + pc.w, 0);
+    const gap = (sl.len - total) / (sl.got.length + 1);
+    let at = sl.at - sl.len / 2 + gap;
+    for (const pc of sl.got) { g.add(pc.make(L, { wall: sl.wall, at: at + pc.w / 2 })); at += pc.w + gap; }
+  }
+  return g;
+}
+function disposeDressing(o) {
+  if (o.userData.shared) return;
+  if (o.isMesh) { o.geometry?.dispose(); if (o.material?.map) o.material.dispose(); }
+  for (const c of o.children) disposeDressing(c);
+}
+// The floors take a faint wash of the era's accent.
+const floorBase = new Map();
+function tintFloors(era) {
+  const [key] = ERA_ACCENT[era] ?? ERA_ACCENT.classic;
+  const wash = color(key);
+  for (const k of ['wood', 'tile', 'carpet', 'concrete', 'deck']) {
+    const m = texCache.get(`surf|${k}`);
+    if (!m) continue;
+    if (!floorBase.has(k)) floorBase.set(k, m.color.clone());
+    m.color.copy(floorBase.get(k)).lerp(wash, era === 'classic' ? 0 : 0.1);
+  }
+}
+
+// Free stretches of both back walls between windows, doors and blockers ({ wall, a, b }), widest
+// first: { wall, at, len }.
+function wallSlots(L, blockers = []) {
+  const out = [];
+  for (const wall of ['x', 'z']) {
+    const len = wall === 'x' ? L.D : L.W;
+    const ops = L.openings.filter((o) => o.wall === wall).map((o) => [o.at - o.width / 2, o.at + o.width / 2])
+      .concat(blockers.filter((o) => o.wall === wall).map((o) => [o.a, o.b])).sort((a, b) => a[0] - b[0]);
+    let cursor = -len / 2 + 0.4;
+    for (const [a, b] of [...ops, [len / 2 - 0.4, len / 2]]) {
+      if (a - cursor > 0.6) out.push({ wall, at: (a + cursor) / 2, len: a - cursor });
+      cursor = Math.max(cursor, b);
+    }
+  }
+  return out.sort((p, q) => q.len - p.len);
+}
+// A flat piece (a poster, a sign) on a wall slot: a wooden frame and a face, or with glow a lit
+// panel whose face shines.
+function framed(L, sl, tex, w, h, y, { glow: lit = false, frameMat = 'wood_dark' } = {}) {
+  const g = new THREE.Group();
+  const onX = sl.wall === 'x';
+  const wx = onX ? -L.W / 2 : sl.at, wz = onX ? sl.at : -L.D / 2;
+  g.add(mesh(roundedBox(onX ? 0.04 : w + 0.08, h + 0.08, onX ? w + 0.08 : 0.04, 0.012), mat(frameMat), wx + (onX ? 0.02 : 0), y, wz + (onX ? 0 : 0.02)));
+  const m = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+  if (lit) { m.emissive = new THREE.Color(0xffffff); m.emissiveMap = tex; m.emissiveIntensity = 0.9; }
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
+  face.position.set(wx + (onX ? 0.045 : 0), y, wz + (onX ? 0 : 0.045));
+  if (onX) face.rotation.y = Math.PI / 2;
+  face.userData.noAO = true;
+  g.add(face);
+  return g;
+}
+function canvasPiece(w, h, draw) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const texOnce = new Map();
+const once = (k, f) => { if (!texOnce.has(k)) texOnce.set(k, f()); return texOnce.get(k); };
+const FONT = (wt, px) => `${wt} ${px}px Fredoka, sans-serif`;
+function textC(ctx, t, x, y, px, col, wt = 700) { ctx.fillStyle = col; ctx.font = FONT(wt, px); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y); }
+
+// Classic: the motivational cat, and an employee-of-the-month board.
+const catPoster = () => once('cat', () => canvasPiece(256, 340, (ctx) => {
+  ctx.fillStyle = P.sky_day_top ?? '#bcd7e6'; ctx.fillRect(0, 0, 256, 340);
+  ctx.strokeStyle = P.wood_dark; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(0, 70); ctx.lineTo(256, 58); ctx.stroke();
+  ctx.fillStyle = P.fabric_mustard;
+  ctx.beginPath(); ctx.ellipse(128, 170, 44, 60, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(128, 120, 34, 0, Math.PI * 2); ctx.fill();
+  for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(128 + sx * 30, 104); ctx.lineTo(128 + sx * 22, 80); ctx.lineTo(128 + sx * 10, 96); ctx.fill(); }
+  ctx.lineWidth = 12; ctx.strokeStyle = P.fabric_mustard; ctx.lineCap = 'round';
+  for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(128 + sx * 28, 150); ctx.lineTo(128 + sx * 40, 70); ctx.stroke(); }
+  ctx.fillStyle = P.ink; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(128 + sx * 12, 118, 4, 0, Math.PI * 2); ctx.fill(); }
+  textC(ctx, 'HANG IN', 128, 272, 38, P.paper); textC(ctx, 'THERE', 128, 312, 38, P.paper);
+}));
+const monthBoard = () => once('month', () => canvasPiece(384, 256, (ctx) => {
+  ctx.fillStyle = P.wood_light; ctx.fillRect(0, 0, 384, 256);
+  textC(ctx, 'EMPLOYEE OF THE MONTH', 192, 30, 24, P.ink);
+  [P.role_engineer, P.role_designer, P.role_marketer].forEach((c, i) => {
+    const x = 70 + i * 122;
+    ctx.fillStyle = P.paper; ctx.fillRect(x - 46, 62, 92, 120);
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, 110, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(x - 34, 142, 68, 34);
+  });
+  textC(ctx, 'still you, Dave', 192, 222, 22, P.ink, 600);
+}));
+// ChatGBT: the try-AI poster, and a glowing now-with-AI sign.
+const aiSign = () => once('aisign', () => canvasPiece(512, 200, (ctx) => {
+  ctx.fillStyle = P.screen_bg ?? '#1e2333'; ctx.fillRect(0, 0, 512, 200);
+  ctx.strokeStyle = P.screen_cyan; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.roundRect(30, 26, 452, 120, 50); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(110, 146); ctx.lineTo(96, 184); ctx.lineTo(150, 146); ctx.stroke();
+  textC(ctx, 'now with AI!', 256, 88, 62, P.screen_cyan);
+}));
+// Agents: a lit status board of running agents, and a let-them-cook poster.
+const agentBoard = () => once('agents', () => canvasPiece(512, 300, (ctx) => {
+  ctx.fillStyle = P.screen_bg ?? '#1e2333'; ctx.fillRect(0, 0, 512, 300);
+  textC(ctx, 'AGENTS ONLINE: 128', 256, 34, 34, P.screen_cyan);
+  let k = 3;
+  const rnd = () => ((k = (k * 16807) % 2147483647) / 2147483647);
+  for (let r = 0; r < 6; r++) for (let c = 0; c < 16; c++) {
+    const v = rnd();
+    ctx.fillStyle = v < 0.8 ? P.marker_green : v < 0.95 ? P.fabric_mustard : P.role_sales;
+    ctx.beginPath(); ctx.arc(40 + c * 29, 84 + r * 34, 9, 0, Math.PI * 2); ctx.fill();
+  }
+}));
+const cookPoster = () => once('cook', () => canvasPiece(256, 340, (ctx) => {
+  ctx.fillStyle = P.role_sales; ctx.fillRect(0, 0, 256, 340);
+  ctx.fillStyle = P.metal_soft; ctx.beginPath(); ctx.roundRect(78, 110, 100, 84, 18); ctx.fill();
+  ctx.fillStyle = P.paper; ctx.beginPath(); ctx.roundRect(88, 62, 80, 50, 20); ctx.fill();
+  ctx.fillRect(98, 96, 60, 20);
+  ctx.fillStyle = P.screen_cyan; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(128 + sx * 20, 146, 8, 0, Math.PI * 2); ctx.fill(); }
+  textC(ctx, 'LET THE', 128, 250, 38, P.paper); textC(ctx, 'AGENTS COOK', 128, 292, 34, P.paper);
+}));
+// Consolidation: the merger banner, and a compliance notice.
+const mergerBanner = () => once('merger', () => canvasPiece(640, 150, (ctx) => {
+  ctx.fillStyle = P.fabric_slate; ctx.fillRect(0, 0, 640, 150);
+  ctx.fillStyle = P.role_engineer; ctx.beginPath(); ctx.arc(80, 75, 42, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = P.fabric_mustard; ctx.beginPath(); ctx.arc(128, 75, 42, 0, Math.PI * 2); ctx.fill();
+  textC(ctx, 'TWO COMPANIES. ONE SYNERGY.', 390, 58, 32, P.paper);
+  textC(ctx, 'please stop asking about layoffs', 390, 100, 22, P.paper, 500);
+}));
+const compliance = () => once('comply', () => canvasPiece(256, 340, (ctx) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 256, 340);
+  ctx.fillStyle = P.fabric_slate; ctx.fillRect(0, 0, 256, 70);
+  textC(ctx, 'NOTICE', 128, 36, 40, P.paper);
+  textC(ctx, 'All ideas now', 128, 110, 26, P.ink, 600); textC(ctx, 'require legal', 128, 142, 26, P.ink, 600); textC(ctx, 'review.', 128, 174, 26, P.ink, 600);
+  ctx.fillStyle = P.metal_soft; for (let i = 0; i < 5; i++) ctx.fillRect(40, 214 + i * 22, 176 - (i % 2) * 40, 8);
+}));
+
+// Classic's wall clock.
+function wallClock(L, sl) {
+  const g = new THREE.Group();
+  g.add(mesh(roundedCylinder(0.22, 0.22, 0.06, 0.02, 20), mat('wood_dark'), 0, 0, 0.03));
+  const face = new THREE.Mesh(new THREE.CircleGeometry(0.18, 24), new THREE.MeshStandardMaterial({ map: clockTexture(), roughness: 0.7 }));
+  face.position.z = 0.062;
+  g.add(face);
+  g.children[0].rotation.x = Math.PI / 2;
+  if (sl.wall === 'x') { g.rotation.y = Math.PI / 2; g.position.set(-L.W / 2, 2.0, sl.at); } else g.position.set(sl.at, 2.0, -L.D / 2);
+  return g;
+}
+const clockTexture = () => once('clock', () => canvasPiece(128, 128, (ctx) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = P.ink;
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; ctx.beginPath(); ctx.arc(64 + Math.sin(a) * 52, 64 - Math.cos(a) * 52, i % 3 ? 3 : 5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = P.ink; ctx.lineCap = 'round';
+  ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 + 26, 64 - 16); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 - 6, 64 - 42); ctx.stroke();
+}));
+const promptPoster = () => once('prompt', () => canvasPiece(256, 340, (ctx) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 256, 340);
+  textC(ctx, 'PROMPT OF', 128, 36, 30, P.ink); textC(ctx, 'THE DAY', 128, 70, 30, P.ink);
+  ctx.fillStyle = P.screen_cyan; ctx.beginPath(); ctx.roundRect(22, 100, 212, 150, 22); ctx.fill();
+  textC(ctx, '"you are an', 128, 140, 26, P.ink, 600); textC(ctx, 'expert. think', 128, 172, 26, P.ink, 600); textC(ctx, 'step by step."', 128, 204, 26, P.ink, 600);
+  textC(ctx, 'tip jar for tokens', 128, 296, 20, P.ink, 500);
+}));
+const loopPoster = () => once('loop', () => canvasPiece(256, 340, (ctx) => {
+  ctx.fillStyle = P.screen_bg ?? '#1e2333'; ctx.fillRect(0, 0, 256, 340);
+  ctx.strokeStyle = P.screen_cyan; ctx.lineWidth = 12;
+  ctx.beginPath(); ctx.arc(128, 128, 70, 0.6, Math.PI * 2 - 0.2); ctx.stroke();
+  ctx.fillStyle = P.fabric_mustard; ctx.beginPath(); ctx.arc(128 + Math.cos(0.3) * 70, 128 + Math.sin(0.3) * 70, 18, 0, Math.PI * 2); ctx.fill();
+  textC(ctx, 'IS A HUMAN', 128, 250, 30, P.paper); textC(ctx, 'STILL IN', 128, 284, 30, P.paper); textC(ctx, 'THE LOOP?', 128, 318, 30, P.screen_cyan);
+}));
+const orgChart = () => once('org', () => canvasPiece(384, 288, (ctx) => {
+  ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 384, 288);
+  textC(ctx, 'NEW ORG CHART', 192, 28, 26, P.ink);
+  ctx.strokeStyle = P.ink; ctx.lineWidth = 3;
+  const box = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x - 22, y - 14, 44, 28); ctx.strokeRect(x - 22, y - 14, 44, 28); };
+  ctx.beginPath(); ctx.moveTo(192, 76); ctx.lineTo(192, 110); ctx.moveTo(72, 110); ctx.lineTo(312, 110);
+  for (const x of [72, 152, 232, 312]) { ctx.moveTo(x, 110); ctx.lineTo(x, 140); }
+  for (const x of [72, 152, 232, 312]) { ctx.moveTo(x, 154); ctx.lineTo(x, 190); } ctx.stroke();
+  box(192, 64, P.fabric_slate);
+  for (const x of [72, 152, 232, 312]) { box(x, 154, P.fabric_mustard); box(x, 204, P.metal_soft); }
+  textC(ctx, 'you are here, probably', 192, 262, 20, P.ink, 500);
+}));
+const grassPoster = () => once('grass', () => canvasPiece(256, 340, (ctx) => {
+  ctx.fillStyle = P.paper_sheet ?? P.paper; ctx.fillRect(0, 0, 256, 340);
+  ctx.fillStyle = P.marker_green;
+  for (let i = 0; i < 22; i++) { const x = 20 + i * 10; ctx.beginPath(); ctx.moveTo(x - 6, 300); ctx.quadraticCurveTo(x + (i % 2 ? 8 : -8), 250 - (i % 3) * 18, x + 2, 220 - (i % 4) * 12); ctx.lineTo(x + 5, 300); ctx.fill(); }
+  ctx.fillStyle = P.fabric_terracotta; ctx.fillRect(0, 300, 256, 40);
+  textC(ctx, 'TOUCH', 128, 70, 56, P.ink); textC(ctx, 'GRASS', 128, 130, 56, P.ink);
+  textC(ctx, 'handmade here', 128, 180, 22, P.ink, 500);
+}));
+
+function piece(w, h, y, tex, opts) { return { w, make: (L, sl) => framed(L, sl, tex(), w, h, y, opts) }; }
+
+const tryAiTexture = () => once('tryai', () => canvasPiece(256, 340, (ctx) => {
   ctx.fillStyle = P.paper; ctx.fillRect(0, 0, 256, 340);
   ctx.fillStyle = P.screen_cyan; ctx.fillRect(0, 0, 256, 120);
   ctx.fillStyle = P.ink;
@@ -1259,17 +1528,7 @@ function makePoster(L) {
   ctx.beginPath(); ctx.arc(116, 54, 6, 0, Math.PI * 2); ctx.arc(140, 54, 6, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = P.screen_cyan; ctx.lineWidth = 5;
   ctx.beginPath(); ctx.arc(128, 64, 16, 0.2, Math.PI - 0.2); ctx.stroke();
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  const g = new THREE.Group();
-  const z = (best[0] + best[1]) / 2;
-  const frame = mesh(roundedBox(0.03, 0.9, 0.68, 0.01), mat('wood_dark'), -L.W / 2 + 0.015, 1.55, z);
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.8), new THREE.MeshStandardMaterial({ map: t, roughness: 0.8 }));
-  face.position.set(-L.W / 2 + 0.035, 1.55, z);
-  face.rotation.y = Math.PI / 2;
-  g.add(frame, face);
-  return g;
-}
+}));
 
 let dustTex = null;
 function dustTexture() {
@@ -1308,3 +1567,12 @@ function sabbaticalTexture() {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
+
+// Declared last: it references piece textures defined throughout this file.
+const ERA_PIECES = {
+  classic: [piece(0.75, 1.0, 1.8, catPoster), piece(1.4, 0.92, 1.8, monthBoard, { frameMat: 'wood_honey' }), { w: 0.5, make: wallClock }],
+  chatgbt: [piece(0.75, 1.0, 1.8, tryAiTexture), piece(1.5, 0.59, 1.95, aiSign, { glow: true, frameMat: 'metal_dark' }), piece(0.75, 1.0, 1.8, promptPoster)],
+  agents: [piece(1.6, 0.94, 1.8, agentBoard, { glow: true, frameMat: 'metal_dark' }), piece(0.75, 1.0, 1.8, cookPoster), piece(0.75, 1.0, 1.8, loopPoster)],
+  consolidation: [piece(2.4, 0.56, 2.0, mergerBanner, { frameMat: 'metal_soft' }), piece(0.75, 1.0, 1.8, compliance, { frameMat: 'metal_soft' }), piece(1.2, 0.9, 1.8, orgChart, { frameMat: 'metal_soft' })],
+  plateau: [piece(1.4, 0.92, 1.75, () => once('pin', pinboardTexture)), { w: 1.1, make: plantShelf }, piece(0.75, 1.0, 1.8, grassPoster, { frameMat: 'wood_honey' })],
+};
