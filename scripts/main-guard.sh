@@ -72,9 +72,9 @@ someone_waits() {
   done
   return 1
 }
-yield() { # waits (up to an hour) while others queue for the software lock
-  local waited=0
-  while someone_waits && [ $waited -lt 3600 ]; do sleep 30; waited=$((waited + 30)); done
+yield() { # waits (up to an hour, or YIELD_MAX seconds) while others queue for the software lock
+  local waited=0 max="${YIELD_MAX:-3600}"
+  while someone_waits && [ $waited -lt "$max" ]; do sleep 30; waited=$((waited + 30)); done
   [ $waited -gt 0 ] && echo "main-guard: yielded ${waited}s to jobs waiting for the software render lock"
   return 0
 }
@@ -209,48 +209,54 @@ fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
 status failure "Red: $what"
-red_ci_rc=$ci_rc; red_gate_new=$gate_new
+# Report first, so a run stopped later (by the service's time limit, say) cannot lose it: the next
+# tick sees this commit as checked.
+issue=""
+if [ $post = 1 ]; then
+  body="$(mktemp)"
+  {
+    echo "Main guard: \`$short\` ($(git -C "$REPO" log -1 --format=%s "$sha")) is red: **$what**."
+    echo
+    [ -s "$STATE/$short.md" ] && { cat "$STATE/$short.md"; echo; }
+    if [ "$gate_new" != 0 ]; then
+      echo "New sweep violations outside seeded games:"; echo; echo '```'; cat "$STATE/$short.gate-new.txt"; echo '```'
+    fi
+    if [ "$ci_rc" -ne 0 ]; then
+      echo; echo "Local CI, last lines:"; echo; echo '```'; tail -n 25 "$STATE/$short.log"; echo '```'
+    fi
+  } >"$body"
+  gh label create main-red --color b60205 --description "main fails the main guard" >/dev/null 2>&1
+  issue="$(gh issue list --state open --label main-red --json number --jq '.[0].number // ""')"
+  if [ -n "$issue" ]; then
+    gh issue comment "$issue" --body-file "$body" >/dev/null && echo "main-guard: commented on #$issue"
+  else
+    url="$(gh issue create --title "main is red at $short: $what" --label main-red --body-file "$body")" && echo "main-guard: opened $url"
+    issue="${url##*/}"
+  fi
+  rm -f "$body"
+fi
 
-# Merges since the last green commit were skipped: bisect them to name the first red one.
-first_red=""
+# Merges since the last green commit were skipped: bisect them to name the first red one, within
+# MAIN_GUARD_BISECT_BUDGET seconds (waits for the lock included); past it, report the range narrowed so far.
 green="$(cat "$STATE/last-green" 2>/dev/null)"
-if [ -n "$green" ] && git -C "$REPO" merge-base --is-ancestor "$green" "$sha" 2>/dev/null; then
-  mapfile -t range < <(git -C "$REPO" rev-list --first-parent --reverse "$green..$sha")
-  lo=0; hi=$(( ${#range[@]} - 1 ))
-  if [ "$hi" -gt 0 ]; then
-    echo "main-guard: bisecting ${#range[@]} merges since the last green ${green:0:7}"
-    while [ $lo -lt $hi ]; do
-      mid=$(( (lo + hi) / 2 ))
-      gate "${range[$mid]}"
-      if [ -z "$(red_steps "${range[$mid]:0:7}")" ]; then lo=$((mid + 1)); else hi=$mid; fi
-    done
-  fi
-  [ "${#range[@]}" -gt 0 ] && first_red="${range[$lo]}"
-  [ -n "$first_red" ] && echo "main-guard: first red merge ${first_red:0:7}"
-fi
-ci_rc=$red_ci_rc; gate_new=$red_gate_new
-[ $post = 1 ] || exit 1
-body="$(mktemp)"
-{
-  echo "Main guard: \`$short\` ($(git -C "$REPO" log -1 --format=%s "$sha")) is red: **$what**."
-  if [ -n "$first_red" ]; then
-    echo; echo "First red merge since the last green \`${green:0:7}\`: \`${first_red:0:7}\` ($(git -C "$REPO" log -1 --format=%s "$first_red"))."
-  fi
-  echo
-  [ -s "$STATE/$short.md" ] && { cat "$STATE/$short.md"; echo; }
-  if [ "$gate_new" != 0 ]; then
-    echo "New sweep violations outside seeded games:"; echo; echo '```'; cat "$STATE/$short.gate-new.txt"; echo '```'
-  fi
-  if [ "$ci_rc" -ne 0 ]; then
-    echo; echo "Local CI, last lines:"; echo; echo '```'; tail -n 25 "$STATE/$short.log"; echo '```'
-  fi
-} >"$body"
-gh label create main-red --color b60205 --description "main fails the main guard" >/dev/null 2>&1
-open_issue="$(gh issue list --state open --label main-red --json number --jq '.[0].number // ""')"
-if [ -n "$open_issue" ]; then
-  gh issue comment "$open_issue" --body-file "$body" >/dev/null && echo "main-guard: commented on #$open_issue"
+[ -n "$green" ] && git -C "$REPO" merge-base --is-ancestor "$green" "$sha" 2>/dev/null || exit 1
+mapfile -t range < <(git -C "$REPO" rev-list --first-parent --reverse "$green..$sha")
+lo=0; hi=$(( ${#range[@]} - 1 ))
+[ "$hi" -gt 0 ] || exit 1
+deadline=$(( $(date +%s) + ${MAIN_GUARD_BISECT_BUDGET:-2400} ))
+echo "main-guard: bisecting ${#range[@]} merges since the last green ${green:0:7}"
+while [ $lo -lt $hi ] && [ "$(date +%s)" -lt "$deadline" ]; do
+  mid=$(( (lo + hi) / 2 ))
+  YIELD_MAX=$(( deadline - $(date +%s) )) gate "${range[$mid]}"
+  if [ -z "$(red_steps "${range[$mid]:0:7}")" ]; then lo=$((mid + 1)); else hi=$mid; fi
+done
+subject() { git -C "$REPO" log -1 --format=%s "$1"; }
+if [ $lo -eq $hi ]; then
+  note="First red merge since the last green \`${green:0:7}\`: \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}"))."
+  echo "main-guard: first red merge ${range[$lo]:0:7}"
 else
-  url="$(gh issue create --title "main is red at $short: $what" --label main-red --body-file "$body")" && echo "main-guard: opened $url"
+  note="The bisect ran out of time: the first red merge is between \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}")) and \`${range[$hi]:0:7}\` ($(subject "${range[$hi]}"))."
+  echo "main-guard: bisect stopped at ${range[$lo]:0:7}..${range[$hi]:0:7}"
 fi
-rm -f "$body"
+[ -n "$issue" ] && gh issue comment "$issue" --body "$note" >/dev/null
 exit 1

@@ -110,6 +110,15 @@ if [ ${#fp[@]} -eq 5 ]; then
   bl="$tmp/bisect.log"; : >"$bl"
   guard "$bl" /dev/null MAIN_GUARD_SUITE="git merge-base --is-ancestor ${fp[2]} HEAD && { printf '| test:balance | FAIL | 1 |\n' >\"\$SUMMARY\"; exit 1; }; true" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD --no-post
   expect 'a red head bisects to the first red merge' "$bl" "out:bisecting 4 merges|out:first red merge ${fp[2]:0:7}"
+  RED_FROM="git merge-base --is-ancestor ${fp[2]} HEAD && { printf '| test:balance | FAIL | 1 |\n' >\"\$SUMMARY\"; exit 1; }; true"
+  case_root="$tmp/root-bisect2"; mkdir -p "$case_root/main-guard"; echo "${fp[4]}" >"$case_root/main-guard/last-green"
+  : >"$bl"; guard "$bl" /dev/null MAIN_GUARD_SUITE="$RED_FROM" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+  expect 'a posted bisect comments the first red merge on the issue' "$bl" "--label main-red|First red merge since the last green|${fp[2]:0:7}"
+  case_root="$tmp/root-bisect3"; mkdir -p "$case_root/main-guard"; echo "${fp[4]}" >"$case_root/main-guard/last-green"
+  : >"$bl"; guard "$bl" /dev/null MAIN_GUARD_BISECT_BUDGET=0 MAIN_GUARD_SUITE="$RED_FROM" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+  expect 'a bisect out of time still reports red first, then the range' "$bl" "--label main-red|bisect ran out of time|out:bisect stopped"
+  first_post="$(grep -n 'issue create' "$bl" | head -1 | cut -d: -f1)"; first_comment="$(grep -n 'ran out of time' "$bl" | head -1 | cut -d: -f1)"
+  [ -n "$first_post" ] && [ -n "$first_comment" ] && [ "$first_post" -lt "$first_comment" ] || { echo "FAIL the red issue must be posted before the bisect note"; fails=$((fails + 1)); }
 fi
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
