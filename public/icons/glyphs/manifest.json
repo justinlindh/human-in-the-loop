@@ -353,6 +353,15 @@
  "channel.enterprise": {
   "file": "glyphs/channel.enterprise.svg"
  },
+ "channel.documentary": {
+  "file": "glyphs/channel.documentary.svg"
+ },
+ "channel.big_game_ad": {
+  "file": "glyphs/channel.big_game_ad.svg"
+ },
+ "channel.stadium": {
+  "file": "glyphs/channel.stadium.svg"
+ },
  "train.workshop": {
   "file": "glyphs/train.workshop.svg"
  },
