@@ -1259,6 +1259,24 @@
   .hitl.building .toasts, .hitl.popup-open .toasts { display: none; }
 }
 
+/* Phones (narrow, or short in landscape): a docked card (a decision, an era arrival) spans the
+   width between the top bar and the bottom row, and its body scrolls inside. */
+@media (max-width: 480px), (max-height: 500px) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked {
+    place-items: start stretch; justify-content: stretch; align-items: flex-start;
+    padding: calc(var(--topbar-h, 4.6em) + 0.4em) 0.6em calc(var(--bottom-h, 6em) + 0.6em) 0.6em;
+  }
+  .hitl .modal-back.docked .modal.decision, .hitl .announce-back.docked .announce.era { width: 100%; max-height: 100%; }
+  .hitl .announce-back.docked .announce.era { overflow-y: auto; }
+}
+/* Touch has no number keys to press. */
+@media (pointer: coarse) { .hitl .modal.decision .keys { display: none; } }
+/* Short landscape screens: the top bar and bottom row leave no room, so the card covers them (the
+   week waits for the decision anyway). */
+@media (max-height: 500px) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked { padding: 0.4em; }
+}
+
 /* Phones: the New Product form is one column (the team list and summary below the choices). */
 @media (max-width: 480px) {
   .hitl .buildgrid { grid-template-columns: minmax(0, 1fr); }
