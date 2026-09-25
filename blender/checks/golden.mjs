@@ -2,12 +2,18 @@
 //
 //   node blender/checks/golden.mjs            compare; exits 1 if any scene differs
 //   node blender/checks/golden.mjs --update   rewrite the references (commit them deliberately)
+//   --only=a,b    just these scenes      --jobs=N   scenes rendered at once (default 8)
+//
+// Scenes render concurrently, each in its own page with its own seeded random and frozen clock, so
+// the pixels do not depend on the order or the overlap. A full clean pass is recorded against a
+// hash of every input (cache.mjs); a later run with the same inputs skips rendering.
 //
 // Each scene loads the game through harness.mjs (Math.random seeded, the clock frozen, the game
 // loop held) and steps a fixed number of frames by hand, so a render depends only on the code.
 // Differences are counted per pixel (any channel off by more than CHANNEL_TOL); a scene fails when
 // more than MAX_SHARE of pixels differ. Failures write <scene>.actual.png and <scene>.diff.png next to the reference.
 import { startHarness } from './harness.mjs';
+import { inputHash, passedAt, recordPass } from './cache.mjs';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +23,7 @@ const REF = join(HERE, 'golden');
 const OUT = resolve(HERE, '..', '..', 'shots', 'golden');
 const UPDATE = process.argv.includes('--update');
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',');
+const JOBS = Math.max(1, Number(process.argv.find((a) => a.startsWith('--jobs='))?.slice(7)) || 8);
 const CHANNEL_TOL = 24;
 const MAX_SHARE = 0.004;
 const W = 960, H_PX = 640;
@@ -46,15 +53,22 @@ const SCENES = [
   { name: 'couch-nap-procedural', query: 'mock=floor&rig=0', setup: `__HITL.state.office.placed.push({ id: 'g_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }); __nap = 'g_couch';`, steps: 60, zoom: 4.2 },
 ];
 
-const H = await startHarness();
+const FULL = !UPDATE && !ONLY;
+const hash = FULL ? inputHash('golden') : null;
+const before = passedAt('golden', hash);
+if (before) {
+  console.log(`golden: inputs unchanged since ${before}, skipped`);
+  process.exit(0);
+}
+
+const H = await startHarness({ browsers: JOBS });
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
 let failed = 0;
-const results = [];
-for (const sc of SCENES) {
-  if (ONLY && !ONLY.includes(sc.name)) continue;
-  const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX });
+const results = new Map();
+async function runScene(sc, slot) {
+  const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
   const png = await page.evaluate(async ({ setup, steps, zoom, at }) => {
     const R = window.__hitlRender;
     const S = window.__HITL?.state;
@@ -82,9 +96,9 @@ for (const sc of SCENES) {
   const refPath = join(REF, `${sc.name}.png`);
   if (UPDATE || !existsSync(refPath)) {
     writeFileSync(refPath, buf);
-    results.push(`${sc.name}: reference ${UPDATE ? 'updated' : 'created'}`);
+    results.set(sc.name, `${sc.name}: reference ${UPDATE ? 'updated' : 'created'}`);
     await page.close();
-    continue;
+    return;
   }
   // Compare in the page: both images drawn to canvases, pixels counted, a diff image built.
   const cmp = await page.evaluate(async ({ a, b, tol }) => {
@@ -112,10 +126,21 @@ for (const sc of SCENES) {
     writeFileSync(join(OUT, `${sc.name}.actual.png`), buf);
     if (cmp.diff) writeFileSync(join(OUT, `${sc.name}.diff.png`), Buffer.from(cmp.diff.split(',')[1], 'base64'));
   }
-  results.push(`${sc.name}: ${ok ? 'ok' : 'DIFFERS'} ${(cmp.share * 100).toFixed(3)}% of pixels${errors.length ? `, page errors: ${errors.join('; ')}` : ''}`);
+  results.set(sc.name, `${sc.name}: ${ok ? 'ok' : 'DIFFERS'} ${(cmp.share * 100).toFixed(3)}% of pixels${errors.length ? `, page errors: ${errors.join('; ')}` : ''}`);
   await page.close();
 }
+
+// A pool of JOBS workers takes scenes in order; results print in scene order.
+const todo = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
+let next = 0;
+await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, async (_, slot) => {
+  while (next < todo.length) {
+    const sc = todo[next++];
+    try { await runScene(sc, slot); } catch (e) { failed++; results.set(sc.name, `${sc.name}: ERROR ${e.message.split('\n')[0]}`); }
+  }
+}));
 await H.close();
-for (const r of results) console.log(`GOLDEN ${r}`);
+for (const sc of todo) console.log(`GOLDEN ${results.get(sc.name)}`);
+if (!failed && results.size === SCENES.length) recordPass('golden', hash);
 if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended`);
 process.exit(failed ? 1 : 0);
