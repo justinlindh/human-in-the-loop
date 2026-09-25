@@ -10,7 +10,8 @@ g() { git -c user.name=t -c user.email=t@t "$@"; }
 # run <hook> <json>: sets rc, out, err, ms
 run() {
   local t0 t1; t0=$(date +%s%N)
-  out="$(printf '%s' "$2" | bash "$HERE/$1" 2>"$tmp/err")"; rc=$?
+  local h="$1"; case "$h" in /*) ;; *) h="$HERE/$h" ;; esac
+  out="$(printf '%s' "$2" | bash "$h" 2>"$tmp/err")"; rc=$?
   t1=$(date +%s%N); ms=$(( (t1 - t0) / 1000000 )); err="$(cat "$tmp/err")"
   [ "$ms" -lt 200 ] || { echo "SLOW $1: ${ms}ms"; slow=$((slow + 1)); }
 }
@@ -19,7 +20,7 @@ denied() { run bash-guard.sh "$(bashjson "$1" "${2:-}")"; [ $rc -eq 2 ] || fail 
 allowed() { run bash-guard.sh "$(bashjson "$1" "${2:-}")"; [ $rc -eq 0 ] || fail "bash-guard should allow: $1 (rc $rc: $err)"; }
 
 # A repository shaped like this one: the lane map, a main branch and lane branches.
-repo="$tmp/repo"; mkdir -p "$repo/scripts/hooks/claude"; cp "$HERE/lanes.txt" "$repo/scripts/hooks/claude/"
+repo="$tmp/repo"; mkdir -p "$repo/scripts/hooks/claude"; cp "$HERE/lanes.txt" "$HERE/lane-guard.sh" "$repo/scripts/hooks/claude/"
 g -C "$repo" init -q -b main && g -C "$repo" add -A && g -C "$repo" commit -qm base
 
 # bash-guard
@@ -50,11 +51,17 @@ allowed 'B=/tmp/body.md; gh pr create --title t --body-file $B'
 printf 'Clean body with a repo path scripts/ci-pr.sh\n' >"$tmp/clean.md"
 allowed "gh pr create --title t --body-file $tmp/clean.md"
 allowed 'npm test'
+denied 'gh api repos/o/r/issues/5/comments -f body="log at /tmp/run.log"'
+printf 'see /home/justin/x.png\n' >"$tmp/api.md"
+denied "gh api repos/o/r/pulls/5/reviews -F body=@$tmp/api.md -f event=COMMENT"
+denied "gh api -X POST repos/o/r/issues/5/comments --input $tmp/api.md"
+allowed 'gh api repos/o/r/issues/5/comments -f body="all green"'
+allowed 'gh api repos/o/r/pulls/5 --jq .state'
 
 # lane-guard: branch prefix decides
 editjson() { jq -n --arg f "$1" --arg d "$repo" '{hook_event_name: "PreToolUse", tool_name: "Edit", cwd: $d, tool_input: {file_path: $f}}'; }
-lane_ok() { run lane-guard.sh "$(editjson "$1")"; [ $rc -eq 0 ] || fail "lane-guard ($2) should allow $1 (rc $rc: $err)"; }
-lane_no() { run lane-guard.sh "$(editjson "$1")"; [ $rc -eq 2 ] || fail "lane-guard ($2) should deny $1 (rc $rc)"; }
+lane_ok() { run "$repo/scripts/hooks/claude/lane-guard.sh" "$(editjson "$1")"; [ $rc -eq 0 ] || fail "lane-guard ($2) should allow $1 (rc $rc: $err)"; }
+lane_no() { run "$repo/scripts/hooks/claude/lane-guard.sh" "$(editjson "$1")"; [ $rc -eq 2 ] || fail "lane-guard ($2) should deny $1 (rc $rc)"; }
 g -C "$repo" checkout -q -b sim/balance
 lane_ok "$repo/src/sim/tick.js" sim
 lane_ok "$repo/tests/sim/a.test.js" sim
@@ -64,12 +71,27 @@ lane_no "$repo/src/ui/hud.js" sim
 [[ "$err" == *"belongs to ui"* ]] || fail "lane-guard should name the owner (got: $err)"
 lane_no "$repo/scripts/ci-pr.sh" sim
 lane_ok "$tmp/elsewhere/notes.md" sim
+other="$tmp/other"; g init -q -b sim/x "$other"; mkdir -p "$other/src/ui"
+lane_ok "$other/src/ui/x.js" "a checkout of another repository"
 echo "src/ui/hud.js" >>"$(git -C "$repo" rev-parse --absolute-git-dir)/hitl-lane-allow"
 lane_ok "$repo/src/ui/hud.js" "sim with an agreed exception"
 g -C "$repo" checkout -q main
 lane_ok "$repo/CLAUDE.md" main
 lane_ok "$repo/src/contract/contract.md" main
 lane_no "$repo/src/sim/tick.js" main
+g -C "$repo" checkout -q sim/balance
+lane_no "$repo/docs/superpowers/plans/plan.md" "sim, the plan"
+g -C "$repo" checkout -q -b integ/hooks
+lane_ok "$repo/.claude/settings.json" integ
+lane_ok "$repo/scripts/hooks/claude/bash-guard.sh" integ
+lane_no "$repo/CLAUDE.md" "integ, CLAUDE.md"
+g -C "$repo" checkout -q -b tools/sweep
+lane_ok "$repo/docs/toolkit.md" tools
+lane_no "$repo/docs/superpowers/specs/spec.md" "tools, the spec"
+g -C "$repo" checkout -q -b lead/docs
+lane_ok "$repo/CLAUDE.md" lead
+lane_ok "$repo/docs/superpowers/plans/plan.md" lead
+lane_no "$repo/.claude/settings.json" "lead, the hook settings"
 g -C "$repo" checkout -q -b newlane/thing
 lane_ok "$repo/src/sim/tick.js" "an unlisted prefix"
 g -C "$repo" checkout -q --detach
@@ -101,11 +123,17 @@ printf '## What\nx\n\n## Evidence\n- **Gates run:** <!-- fill -->\n\n## Affects\
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file $tmp/good.md && gh pr merge 42 --auto --merge" "$url")"
 [ -z "$out" ] || fail "pr-create-check should be quiet on a complete PR with auto-merge (got: $out)"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file $tmp/bad.md" "$url")"
-for w in 'turning it on' 'Affects section is empty' 'Gates run' 'Fixes #n'; do [[ "$out" == *"$w"* ]] || fail "pr-create-check should mention: $w (got: $out)"; done
+for w in 'turning it on' 'Affects section is missing or empty' 'Gates run' 'Fixes #n'; do [[ "$out" == *"$w"* ]] || fail "pr-create-check should mention: $w (got: $out)"; done
 sleep 0.3; grep -q 'pr merge 42 -R o/r --auto --merge' "$tmp/gh.log" || fail "pr-create-check should turn on auto-merge"
 : >"$tmp/gh.log"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --draft --body-file $tmp/good.md" "$url")"
 sleep 0.3; grep -q 'pr merge' "$tmp/gh.log" && fail "pr-create-check must not turn on auto-merge for a draft"
+printf '## Evidence\n\n- **Tests:** fine\n- **Gates run:**\n  - `npm run test:fast`: "Tests 7 passed (7)".\n  - `clip.mjs`: 51 of 51.\n\n## Affects\n\nNone\n\n## Closes\n\nRefs #406\n' >"$tmp/nested.md"
+PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file $tmp/nested.md && gh pr merge 42 --auto --merge" "$url")"
+[ -z "$out" ] || fail "pr-create-check should accept nested Gates run bullets and Refs #n (got: $out)"
+printf '## Evidence\n- **Gates run:**\n\n## Affects\nNone\n\nFixes #1\n' >"$tmp/emptygates.md"
+PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file $tmp/emptygates.md && gh pr merge 42 --auto --merge" "$url")"
+[[ "$out" == *"Gates run"* ]] || fail "pr-create-check should flag an empty Gates run entry (got: $out)"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "npm test" "ok")"; [ -z "$out" ] || fail "pr-create-check should ignore other commands"
 
 # Every hook fails open on nonsense input.

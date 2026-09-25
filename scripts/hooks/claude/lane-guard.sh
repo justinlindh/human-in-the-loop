@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Claude Code PreToolUse hook for Edit, Write and NotebookEdit: keeps each lane's edits to its own
 # paths. The lane is the branch prefix (<lane>/<topic>); the shared checkout on main is team-lead's.
-# The paths per lane are in lanes.txt next to this script. An edit outside them is denied (exit 2)
+# The paths per lane are in lanes.txt next to this script, for any checkout of this repository. An edit outside them is denied (exit 2)
 # unless the worktree's $(git rev-parse --git-dir)/hitl-lane-allow lists it (for an edit the owning
 # lane agreed to). Files outside this repository, detached checkouts and unlisted prefixes are not
 # checked, and it fails open on its own errors.
@@ -13,8 +13,12 @@ file="$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<<"
 case "$file" in /*) ;; *) cwd="$(jq -r '.cwd // empty' <<<"$input")"; file="$cwd/$file" ;; esac
 dir="$(dirname "$file")"; while [ ! -d "$dir" ] && [ "$dir" != / ]; do dir="$(dirname "$dir")"; done
 top="$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)" || exit 0
-lanes="$top/scripts/hooks/claude/lanes.txt"
+# The lane map next to this script applies to every checkout of this repository (same git common dir).
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+lanes="$here/lanes.txt"
 [ -r "$lanes" ] || exit 0
+same() { local d; d="$(git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && echo "$d"; }
+[ "$(same "$top")" = "$(same "$here")" ] || exit 0
 branch="$(git -C "$top" branch --show-current 2>/dev/null)"
 [ -n "$branch" ] || exit 0
 lane="${branch%%/*}"

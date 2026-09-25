@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Claude Code PostToolUse hook for Bash, after `gh pr create`: turns on auto-merge when the PR isn't a
 # draft and the command didn't (in the background), and warns when the description lacks an Affects
-# section, a Gates run line, or a Fixes #n line. It reads the body from the command's --body/--body-file
+# section, a Gates run entry (inline or as sub-bullets), or a Fixes #n or Refs #n line. It reads the body from the command's --body/--body-file
 # when it can, else from GitHub. Never blocks; fails open on its own errors.
 set -f
 input="$(cat)" || exit 0
@@ -28,9 +28,14 @@ fi
 if [ -n "$body" ]; then
   plain="$(sed -E 's/<!--.*-->//g' <<<"$body")"
   affects="$(awk '/^## Affects/ { on = 1; next } /^## / { on = 0 } on' <<<"$plain" | grep -vE '^[[:space:]]*-?[[:space:]]*$' || true)"
-  [ -n "$affects" ] || notes+=("The Affects section is empty: list the teammates whose tools, checks or conventions this changes, or write None.")
-  grep -qE '\*\*Gates run:\*\*[[:space:]]*[^[:space:]]' <<<"$plain" || notes+=("There is no Gates run line with content: say which gates you ran for this change and their result.")
-  grep -qiE '(fixes|closes|resolves)[[:space:]]+#[0-9]+' <<<"$plain" || notes+=("There is no Fixes #n line. Add one if this PR closes an issue.")
+  [ -n "$affects" ] || notes+=("The Affects section is missing or empty: list the teammates whose tools, checks or conventions this changes, or write None.")
+  # Gates run: text on the same line, or indented sub-bullets under it.
+  gates="$(awk '/\*\*Gates run:\*\*/ { rest = $0; sub(/.*\*\*Gates run:\*\*/, "", rest); if (rest ~ /[^[:space:]]/) { print "ok"; exit } on = 1; next }
+    on && /^[[:space:]]+[-*][[:space:]]+[^[:space:]]/ { print "ok"; exit }
+    on && /^[[:space:]]*$/ { next }
+    on { exit }' <<<"$plain")"
+  [ "$gates" = ok ] || notes+=("There is no Gates run entry with content: say which gates you ran for this change and their result.")
+  grep -qiE '(fixes|closes|resolves|refs)[[:space:]]+#[0-9]+' <<<"$plain" || notes+=("There is no Fixes #n or Refs #n line. Link the issue this PR closes or belongs to.")
 fi
 [ ${#notes[@]} -gt 0 ] || exit 0
 msg="PR #$pr check (scripts/hooks/claude/pr-create-check.sh):"; for n in "${notes[@]}"; do msg+=$'\n'"- $n"; done
