@@ -19,7 +19,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -36,7 +36,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap']);
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil']);
 
 const roleMats = new Map();
 function roleMaterial(role, hex) {
@@ -60,6 +60,9 @@ function ringMaterial(role, hex) {
 }
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
+// Pizza slice: a wedge pointing at the mouth (-z) with a rounded crust along its back.
+const SLICE_GEO = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 3, 1, false, -Math.PI / 6, Math.PI / 3).translate(0, 0, -0.02);
+const CRUST_GEO = new THREE.CapsuleGeometry(0.012, 0.07, 4, 8).rotateZ(Math.PI / 2);
 const pickGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.15, 8).translate(0, 0.58, 0);
 let haloMat = null;
 
@@ -286,6 +289,14 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const mug = P('mug');
   mug.position.set(0, -0.06, 0.04);
   const mugParent = arms[1].wrist;
+  // A slice of pizza for 'eat', held like the mug: a flat wedge, crust out.
+  const slice = new THREE.Group();
+  const cheese = new THREE.Mesh(SLICE_GEO, mat('fabric_mustard'));
+  const crust = new THREE.Mesh(CRUST_GEO, mat('wood_honey'));
+  crust.position.set(0, 0, 0.055);
+  slice.add(cheese, crust);
+  slice.position.set(0, -0.07, 0.05);
+  slice.rotation.set(0.3, 0, 0);
 
   const box = new THREE.Mesh(boxGeo, mat('cardboard'));
   box.position.set(0, TORSO_H * 0.35, 0.24);
@@ -514,6 +525,25 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       }
+      case 'eat': {
+        // Quicker bites than a sip, with a small chew between them.
+        const cyc = (t % 2.4) / 2.4;
+        const up = cyc < 0.4 ? Math.sin((cyc / 0.4) * Math.PI) : 0;
+        tgt.armRX = -0.7 - up * 1.3;
+        tgt.armRZ = -0.25 - up * 0.2;
+        tgt.headX = -up * 0.2 + (cyc > 0.4 ? Math.abs(s(t * 9)) * 0.03 : 0);
+        tgt.bodyY = s(t * 2.2 + phase) * 0.006;
+        break;
+      }
+      case 'recoil':
+        // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
+        tgt.bodyZ = -0.08;
+        tgt.lean = -0.14;
+        tgt.headX = -0.22;
+        tgt.headZ = s(t * 3 + phase) * 0.08;
+        tgt.armLX = tgt.armRX = -0.95;
+        tgt.armLZ = 0.32; tgt.armRZ = -0.32;
+        break;
       case 'carry': {
         const f = 7;
         tgt.legL = Math.sin(t * f) * 0.4;
@@ -692,6 +722,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     anim = name;
     animT = 0;
     attach(mug, mugParent, name === 'sip' || name === 'water');
+    attach(slice, mugParent, name === 'eat');
     // Lying people are lifted onto furniture with their root, and the floor ring would float with them.
     ring.visible = !LYING.has(name);
     attach(box, boxParent, name === 'carry');

@@ -17,7 +17,8 @@ const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 
 export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }
-  const dropped = new Set(); // keys whose desk was sold: not rebuilt while the sim still lists them
+  const dropped = new Set();
+  let overlay = null; // keys whose desk was sold: not rebuilt while the sim still lists them
   let root = null;
 
   function wanted(state) {
@@ -39,7 +40,8 @@ export function createProps(office, screens = null) {
     }
     // A 'screens' prop takes over every monitor while its decision is open.
     const st = state.pendingDecision?.stage;
-    screens?.setOverlay(st?.anchor === 'screens' ? SCREEN_OVERLAYS[st.prop] ?? null : null);
+    overlay = st?.anchor === 'screens' ? SCREEN_OVERLAYS[st.prop] ?? null : null;
+    screens?.setOverlay(overlay);
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));
     for (const [k, e] of live) if (!keys.has(k) && !e.gone) { e.gone = true; e.t = 0; }
@@ -54,7 +56,7 @@ export function createProps(office, screens = null) {
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
-      live.set(w.key, { obj, t: 0, gone: false });
+      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop });
     }
     pushObstacles();
   }
@@ -99,7 +101,10 @@ export function createProps(office, screens = null) {
   // The live object for a lingering prop id (office.props[].id), for checks.
   const objectOf = (id) => [...live.entries()].find(([k, e]) => !e.gone && k.startsWith(`prop|${id}|`))?.[1].obj ?? null;
 
-  return { sync, update, objectOf, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  // What is up now, for staff moments: [{ prop, obj }] and the screen takeover ('red' | 'skull' | null).
+  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj }));
+
+  return { sync, update, objectOf, current, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
