@@ -12,6 +12,7 @@
 <!-- Required. Nothing here may be a local path (/home, /tmp, scratchpad). -->
 - **Tests:** <!-- exact command and result line, e.g. `npm test`: "Tests 493 passed (493)" -->
 - **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh --comment <pr> <files>`; paste the markdown here or reference the comment -->
+- **Gates run:** <!-- the gates that fit this change and their output: sweep and stage specs (render), paired balance runs (sim), a clip of the whole path (motion) -->
 - **Numbers:** <!-- balance tables, perf (draw calls, frame times), pacing, as relevant -->
 
 ## Affects
