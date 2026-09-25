@@ -15,6 +15,8 @@ export function h(tag, props, ...children) {
         }
       }
       else if (k === 'dataset') Object.assign(el.dataset, v);
+      // A title becomes a game-styled tooltip (tooltip.js), never the browser's native one.
+      else if (k === 'title') el.dataset.tip = v;
       else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
       else if (k === 'text') el.textContent = v;
       else if (k === 'html') el.innerHTML = v;
@@ -23,6 +25,8 @@ export function h(tag, props, ...children) {
     }
   }
   append(el, children);
+  // An icon-only control keeps its tooltip text as its accessible name.
+  if (el.dataset.tip && !el.hasAttribute('aria-label') && /^(BUTTON|A)$/.test(el.tagName) && !el.textContent.trim()) el.setAttribute('aria-label', el.dataset.tip);
   return el;
 }
 

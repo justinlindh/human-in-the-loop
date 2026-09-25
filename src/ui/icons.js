@@ -275,7 +275,7 @@ export function icon(name, { size, title } = {}) {
   el.style.setProperty('--is', String(px / 16));
   el.dataset.icon = name;
   fill(el, name);
-  if (title) el.title = title;
+  if (title) el.dataset.tip = title;
   return el;
 }
 

@@ -1024,8 +1024,6 @@
 .hitl .needrow .nquick { flex: none; padding: 0.1em 0.5em; font-size: 0.75em; }
 
 /* ---------- touch ---------- */
-.hitl .taptip { position: absolute; z-index: 60; max-width: 18em; padding: 0.35em 0.6em; border-radius: 0.6em; background: var(--ink); color: var(--cream);
-  font-size: 0.85em; font-weight: 600; line-height: 1.25; box-shadow: var(--soft); pointer-events: none; }
 /* On touch screens every control gets a finger-sized target (about 40 px); the mouse layout is unchanged. */
 @media (pointer: coarse) {
   .hitl .btn, .hitl .btn.small, .hitl .btn.x, .hitl .segb, .hitl .ctab, .hitl .tab, .hitl select, .hitl input.text, .hitl .need,
@@ -1212,3 +1210,20 @@
   .hitl .chat.max { width: 100%; height: 100%; border-radius: 0; }
   .hitl .chat-head .ysz:not(.ymax) { display: none; }
 }
+
+/* Tooltips (tooltip.js): a cream panel with an ink outline, an offset shadow and a pointer. */
+.hitl .gtip {
+  position: absolute; z-index: 70; max-width: 20em; pointer-events: none;
+  background: var(--cream); color: var(--ink); border: 0.16em solid var(--ink); border-radius: 0.7em;
+  box-shadow: 0 0.22em 0 var(--ink), var(--soft); padding: 0.45em 0.7em; font-size: 0.86em; line-height: 1.35;
+  font-variant-numeric: tabular-nums; animation: gtipin 120ms ease-out;
+}
+.hitl .gtip-title { display: block; font-size: 1.02em; margin-bottom: 0.1em; }
+.hitl .gtip-line { white-space: pre-line; }
+.hitl .gtip-arrow {
+  position: absolute; bottom: -0.5em; width: 0.8em; height: 0.8em; margin-left: -0.4em; background: var(--cream);
+  border-right: 0.16em solid var(--ink); border-bottom: 0.16em solid var(--ink); transform: rotate(45deg);
+}
+.hitl .gtip.below .gtip-arrow { bottom: auto; top: -0.5em; transform: rotate(225deg); }
+@keyframes gtipin { from { opacity: 0; transform: translateY(0.2em); } }
+@media (prefers-reduced-motion: reduce) { .hitl .gtip { animation: none; } }

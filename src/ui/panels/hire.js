@@ -1,3 +1,4 @@
+import { setTip } from '../tooltip.js';
 import { h, setText, fmtMoney } from '../dom.js';
 import { B, capacityOf, OFFICE_STAGES } from '../content.js';
 import { portrait, roleChip, seniorityChip, traitChips, liveView } from '../widgets.js';
@@ -38,7 +39,7 @@ export function hireView(ctx) {
           const r = hireBlocker(st, c);
           btn.disabled = !!r;
           setText(why, r ?? '');
-          btn.title = r ?? `Hire ${c.name}`;
+          setTip(btn, r ?? `Hire ${c.name}`);
         });
         grid.append(h('div.card.cand', null,
           h('div.row', null, portrait(c, 64), h('div', null,
