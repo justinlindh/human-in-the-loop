@@ -12,6 +12,7 @@ import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
+import { isSoftwareRenderer } from '../quality.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
@@ -118,7 +119,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   } else {
     office = createOffice({ parent: scene, screens, lighting });
     props = createProps(office, screens);
-    surroundings = createSurroundings({ parent: scene, low: () => q === 'low' });
+    surroundings = createSurroundings({ parent: scene, low: () => q === 'low', lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
@@ -137,8 +138,14 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function size() {
     return { w: canvas.clientWidth || innerWidth, h: canvas.clientHeight || innerHeight };
   }
+  // Software GL draws every pixel on the CPU, so Low renders it at three quarters scale.
+  const softwareGL = (() => {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return isSoftwareRenderer(String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
+  })();
   function pixelRatio() {
-    return q === 'low' ? 1 : Math.min(devicePixelRatio || 1, 2);
+    return q === 'low' ? (softwareGL ? 0.75 : 1) : Math.min(devicePixelRatio || 1, 2);
   }
 
   renderer.setPixelRatio(pixelRatio());
@@ -149,6 +156,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function applyQuality() {
     setRigEnabled(rigWanted());
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
+    lighting.setInteriorBudget(q === 'low' ? 2 : 6);
+    surroundings?.setQuality();
     staff?.setCharacterShadows(q !== 'low');
     setGlowScale(q === 'low' ? 0.45 : 1);
     screens.setBrightness(q === 'low' ? 1.0 : 1.7);
