@@ -283,10 +283,10 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       const dp = !!(hold || stopped);
       if (dp !== music.dancePaused) { music.dancePaused = dp; out.push({ op: 'dancePause', paused: dp }); }
       // The genre pick for a music night: start loading the tracks so the real one plays.
-      if (!music.preloaded && isMusicNightDecision(state?.pendingDecision)) {
-        music.preloaded = true;
-        out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
-      }
+      // Each music night's pick loads them again: the tracks leave memory once one has played.
+      const nightPick = isMusicNightDecision(state?.pendingDecision);
+      if (nightPick && !music.preloaded) out.push({ op: 'preload', ids: Object.keys(MUSIC_NIGHT).map((g) => `musicNight/${g}`) });
+      music.preloaded = nightPick;
       // The typing bed: quiet, scaled by how many people are at their desks working; off while
       // paused, in lockdown, on the title, and on Low.
       const working = (state?.staff ?? []).filter((p) => p.mood !== 'away' && !p.remote && ['project', 'maintenance', 'support', 'security', 'sales', 'marketing'].includes(p.assignment?.type)).length;
