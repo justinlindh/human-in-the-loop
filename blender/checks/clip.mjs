@@ -4,8 +4,8 @@
 //   node blender/checks/clip.mjs --rig    the same with authored clips on (?rig=1)
 //
 // Seated desk poses in every mood, head bounds, and resting perk poses (couch, beanbag, nap pod,
-// arcade stool, library armchair), and pair games (foosball) starting on their own on the floor and
-// in the garage. Runs through harness.mjs, so the result depends only on the code.
+// arcade stool, library armchair), and pair games (foosball) ready to start and playable on the floor
+// and in the garage. Runs through harness.mjs, so the result depends only on the code.
 import { startHarness } from './harness.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
 

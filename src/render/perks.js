@@ -345,6 +345,17 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     for (const [key, r] of slots) if (r.temp?.perkKey !== key || !recs.has(r.id)) slots.delete(key);
   }
 
+  // Whether a pair game could start now, by the same rules maybeStart picks from: room under the
+  // visit cap, a free pair table, someone free to start it and someone else free to join.
+  function pairReady(state) {
+    const people = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && r.staff.mood !== 'away');
+    const max = Math.max(1, Math.round(people.length / 7));
+    if (people.filter((r) => r.temp?.perkKey).length >= max || state?.lockdown) return false;
+    if (!freeSlots().some((s) => s.def.pair)) return false;
+    const starters = people.filter((r) => eligible(r) && r.staff.mood !== 'burnout');
+    return starters.some((r) => people.some((x) => x !== r && x.mode === 'placed' && !x.temp && x.staff.mood !== 'burnout'));
+  }
+
   function maybeStart(state) {
     const people = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && r.staff.mood !== 'away');
     // Alone in a lockdown office, the stayer wanders more and naps on the couch.
@@ -417,6 +428,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     update, reset,
     get visiting() { return [...recs.values()].filter((r) => r.temp?.perkKey).length; },
     get sessions() { return sessions.length; },
+    pairReady,
     // Pair games that got as far as playing, since the renderer started (for checks).
     get played() { return played; },
     set hold(on) { held = !!on; },

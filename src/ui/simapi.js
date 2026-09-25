@@ -18,6 +18,7 @@ export const SIMX = {
   lockedReason: find('lockedReason'),
   automationCap: find('automationCap'),
   retireVia: find('retireVia'),
+  campaignCost: find('campaignCost'),
   ipoBlocker: find('ipoBlocker'),
   acquisitionOpen: find('acquisitionOpen'),
 };
