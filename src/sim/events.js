@@ -98,12 +98,19 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: last + B.decisionGapWeeks, kind: 'event', payload: { eventId, subjectId } });
     return false;
   }
-  // A desk-staged decision about someone who is out this week waits a week rather than stage at an empty desk.
+  // A desk-staged decision about someone who is out waits for them, a week at a time, for up to
+  // B.deskStageWaitWeeks; after that it goes ahead on a present person's desk, so nothing stalls behind it.
   const subject = state.staff.find((p) => p.id === subjectId);
+  const waitKey = `${eventId}:${subjectId}`;
   if (ev.stage?.anchor === 'subjectDesk' && subject && !isIn(subject)) {
-    if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week + 1, kind: 'event', payload: { eventId, subjectId } });
-    return false;
+    const waits = (state.flags.deskWait ??= {});
+    waits[waitKey] ??= state.week;
+    if (state.week - waits[waitKey] < B.deskStageWaitWeeks) {
+      if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week + 1, kind: 'event', payload: { eventId, subjectId } });
+      return false;
+    }
   }
+  if (state.flags.deskWait) delete state.flags.deskWait[waitKey];
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   const vars = decisionVars(state, ctx.rng, subjectId);
