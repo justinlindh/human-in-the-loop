@@ -1,0 +1,33 @@
+// One-line captions the UI shows while the renderer stages a moment. Keys match the hitl:moment key: the
+// decision's event id for decision moments, the moment's own name otherwise. A key with no caption shows none.
+// Captions are plain text with no placeholders, since they show before anyone has chosen anything.
+export const MOMENT_CAPTIONS = {
+  first_user_test: 'A stranger is trying your product. The founders are hiding.',
+  resignation_letter: 'There is an envelope on the desk. It is not a birthday card.',
+  hackathon: 'Pizza boxes are piling up. So is the questionable architecture.',
+  team_offsite: 'A cabin brochure is on the wall. Someone wants a lake.',
+  junior_overwhelmed: 'The sticky notes are multiplying. Someone is panicking, neatly.',
+  open_plan_office: 'Someone brought a sledgehammer. The walls look nervous.',
+  hackathon_week: 'The pizza boxes are back, and so is the talk of a whole week off.',
+  enterprise_rfp: 'A binder has arrived. It has 340 questions and no mercy.',
+  bridge_loan: 'Every screen is red. The accountant has stopped blinking.',
+  agent_runaway_spend: 'The server rack is hot. The bill is hotter.',
+  ransomware: 'Every screen shows a skull. The skull is animated.',
+  phishing_ceo: 'A stack of gift cards. "You" asked for them. You did not.',
+  pet_request: 'Laminated dog photos are on the desk. This is a campaign.',
+  cat_request: 'A cat carrier sits by the door. The cat is unimpressed.',
+  pet_mishap: 'The network cable has been chewed. The demo is now about the pet.',
+  agent_invoice: 'The agent invoice is on the wall. It is itemized. It is long.',
+  floor_next_door: 'Someone is measuring the wall to next door. Again.',
+  hearing_summons: 'A very thick envelope. A committee would like a word.',
+  cloud_bill: 'The hosting bill is here. It mentions egress. Nobody knows what that is.',
+  onprem_bank: 'Another binder. A bank wants your product in its basement.',
+  ping_pong: 'A picture of a ping pong table is taped to the wall. It is a hint.',
+  investor_demo_day: 'A smoothie for courage. Demo day is next week.',
+  coffee_machine_broke: 'The coffee machine is smoking. Productivity is in freefall.',
+  banner_company: 'A banner has gone up. It has a question for everyone.',
+  cover_sheets: 'A fresh stack of TPS cover sheets. There is a memo about them.',
+  the_stapler: 'A red stapler, much loved. Facilities has noticed it.',
+  efficiency_consultants: 'Two consultants named Rob are here. Everyone is being interviewed.',
+  printer_jam: 'The printer says PC LOAD LETTER. Nobody knows what it wants.',
+};

@@ -1174,7 +1174,7 @@
 /* Phones: the tray folds into a strip of badges (needs, projects, goals, effects) under the top
    bar. Open, it sits below the strip and scrolls, so it never runs under the bottom row. */
 .hitl .tray-toggle { display: none; }
-@media (max-width: 480px) {
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
   .hitl .tray-toggle {
     display: flex; align-items: center; gap: 0.55em; position: absolute; left: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.5em);
     pointer-events: auto; min-height: 44px; padding: 0.2em 0.7em; font: inherit; font-weight: 700; cursor: pointer;
@@ -1250,11 +1250,60 @@
 /* Phones (narrow, or short in landscape): at most two toasts, one line each, full width and docked
    above the bottom row; only toasts with an action take taps, so the office stays playable. They
    hide while placing furniture and while a card (a decision, a launch) is up. */
-@media (max-width: 480px), (max-height: 500px) {
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
   .hitl .toasts { top: auto; left: 0.6em; right: 0.6em; width: auto; bottom: calc(var(--bottom-h, 6em) + 0.9em); gap: 0.3em; pointer-events: none; }
   .hitl .toasts .toast { pointer-events: none; padding-top: 0.3em; padding-bottom: 0.3em; }
   .hitl .toasts .toast.clickable, .hitl .toasts .toast-more { pointer-events: auto; }
   .hitl .toasts .toast { align-items: center; }
   .hitl .toasts .toast .tt { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .hitl.building .toasts, .hitl.popup-open .toasts { display: none; }
+}
+
+/* Phones (narrow, or short in landscape): a docked card (a decision, an era arrival) spans the
+   width between the top bar and the bottom row, and its body scrolls inside. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked {
+    place-items: start stretch; justify-content: stretch; align-items: flex-start;
+    padding: calc(var(--topbar-h, 4.6em) + 0.4em) 0.6em calc(var(--bottom-h, 6em) + 0.6em) 0.6em;
+  }
+  .hitl .modal-back.docked .modal.decision, .hitl .announce-back.docked .announce.era { width: 100%; max-height: 100%; }
+  .hitl .announce-back.docked .announce.era { overflow-y: auto; }
+}
+/* Touch has no number keys to press. */
+@media (pointer: coarse) { .hitl .modal.decision .keys { display: none; } }
+/* Short landscape screens: the top bar and bottom row leave no room, so the card covers them (the
+   week waits for the decision anyway). */
+@media (max-height: 500px) and (pointer: coarse) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked { padding: 0.4em; }
+}
+
+/* Phones: the New Product form is one column (the team list and summary below the choices). */
+@media (max-width: 480px) {
+  .hitl .buildgrid { grid-template-columns: minmax(0, 1fr); }
+}
+/* Touch: icon-only buttons grow to 44 px, so their glyphs grow with them (about 45% of the tile). */
+@media (pointer: coarse) {
+  .hitl .chip.speed .btn .ic, .hitl .chip.speed .gear .ic, .hitl .chip.speed .mute .ic, .hitl .chat-head .ysz .ic { font-size: 20px; }
+  .hitl .tray-toggle .tsb .ic { font-size: 16px; }
+}
+
+/* Phones in landscape (500 px tall or less): one compact top-bar row (company, cash, MRR, team,
+   speed; the meters hide), a one-row menu of smaller buttons, and panels and modals that fit
+   between the top bar and the menu and scroll inside. The tray folds and Yak starts collapsed. */
+@media (max-height: 500px) and (pointer: coarse) {
+  .hitl .topbar { flex-wrap: nowrap; }
+  .hitl .topbar > .spacer { order: 2; flex: 1 1 0; height: auto; }
+  .hitl .chip.company, .hitl .chip.cash, .hitl .chip.mrr, .hitl .chip.team { order: 0; flex: none; }
+  .hitl .chip.speed { order: 3; flex: none; }
+  .hitl .chip.meters { display: none; }
+  .hitl .chip { padding: 0.2em 0.55em; }
+  .hitl .chip .val { font-size: 1.1em; }
+  .hitl .chip .sub { display: none; }
+  .hitl .menu { flex-wrap: nowrap; }
+  .hitl .mbtn { width: 3.5em; height: 3.2em; }
+  .hitl .mbtn .lbl { font-size: 0.62em; }
+  .hitl .panel-wrap { top: calc(var(--topbar-h, 4.6em) + 0.3em); bottom: calc(var(--bottom-h, 6em) + 0.9em); }
+  .hitl .panel { max-height: 100%; }
+  .hitl .modal-back { padding: 0.4em; }
+  .hitl .modal { max-height: 100%; }
 }
