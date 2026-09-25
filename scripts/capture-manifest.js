@@ -2,7 +2,8 @@
 // (docs/superpowers/specs/2026-09-24-review-session-plan.md). Each item:
 //   id, title, query (URL params: mock=<scenario> or seed=N, speed, time, ...), seconds, seed (for
 //   the page's Math.random), warmup (seconds run before recording starts), hideUi, gif,
-//   still (screenshots only, no video), setup (page JS run once after boot, may be async),
+//   still (screenshots only, no video), moment (a find query, scripts/events/find.js: the item opens
+//   at that indexed moment, its decision open), setup (page JS run once after boot, may be async),
 //   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG), sound (an
 //   item made for --audio).
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
@@ -52,8 +53,10 @@ const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, 
   ${IDLE};
 })()`;
 
-// Office Space nods (group 'nods', #383): one company (seed 1, the allHumans bot) fast-forwarded to
-// each nod's decision; the card shows, a choice is clicked, and the camera frames what it stages.
+// Office Space nods (group 'nods', #383): each opens at an indexed moment where its decision is
+// raised (the event index follows the sim code, so a history that shifts still finds one); the card
+// shows, a choice is made, and the camera frames what it stages. A nod that stages nothing has no
+// snapshot in the index, so it fast-forwards seed 1 with the allHumans bot to its decision instead.
 const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendingDecision?.eventId === '${eventId}'`, keepDecision: true, minWeeks: 1e9 });
 // Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
 // "Got it"), so the nod's decision card is what shows.
@@ -386,8 +389,7 @@ export const ITEMS = [
   // README (group 'readme'): hero stills at 1920x1080 with the UI, from real seeded games so every
   // shot is internally consistent (date, era, effects, goals), plus one short loop.
   {
-    id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', seconds: 27, warmup: 0.5,
-    setup: NOD('printer_jam', 400),
+    id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor', seconds: 27, warmup: 0.5,
     actions: [
       { at: 0, js: MARK_MOMENTS },
       { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
@@ -400,14 +402,12 @@ export const ITEMS = [
     ],
     screenshots: [2, 12, 20],
   },  {
-    id: 'nods-saturday', group: 'nods', title: 'About Saturday', query: 'seed=1&speed=1', seconds: 9, warmup: 0.5,
-    setup: NOD('saturday_ask', 400),
-    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }],
+    id: 'nods-saturday', group: 'nods', title: 'About Saturday', query: 'seed=1&speed=1', setup: NOD('saturday_ask', 1040), seconds: 9, warmup: 0.5,
+    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }, ...[5.4, 6, 7].map((at) => ({ at, js: CLEAR_CARDS }))],
     screenshots: [3, 7],
   },
   {
-    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', seconds: 12, warmup: 0.5,
-    setup: NOD('the_stapler', 400),
+    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', seconds: 12, warmup: 0.5,
     actions: [
       { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
       { at: 0.1, js: FOCUS_PROP('stapler', 3.2) },
@@ -419,8 +419,7 @@ export const ITEMS = [
     screenshots: [2, 10],
   },
   {
-    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', seconds: 13, warmup: 0.5,
-    setup: NOD('cover_sheets', 520),
+    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', seconds: 13, warmup: 0.5,
     actions: [
       { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
       { at: 0.1, js: FOCUS_PROP('cover_sheets', 3.2) },
@@ -433,14 +432,12 @@ export const ITEMS = [
   },
   {
     // Card only until the visitor restage stages the consultants themselves.
-    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', seconds: 8, warmup: 0.5,
-    setup: NOD('efficiency_consultants', 780),
+    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', seconds: 8, warmup: 0.5,
     actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }],
     screenshots: [3, 7],
   },
   {
-    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', seconds: 10, warmup: 0.5,
-    setup: NOD('banner_company', 820),
+    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', seconds: 10, warmup: 0.5,
     actions: [
       { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
       ...[0.1, 0.6, 1.2].map((at) => ({ at, js: FOCUS_PROP('banner_company', 3) })),
