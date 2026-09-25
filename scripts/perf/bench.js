@@ -1,16 +1,17 @@
 // Headless frame-time benchmark of production builds. Run it under timeout
 // (timeout 1800 node scripts/perf/bench.js ...), not under nice: builds run niced, and so does the
 // browser unless it is pinned to a few cores, where nice would measure the scheduler instead of the
-// game. It takes the machine-wide render lock itself, one scene at a time, so CI render checks can
-// run between scenes.
+// game. It takes a render lock (a GPU slot, or the software lock) through with-render-lock.sh one
+// scene at a time, so CI render checks can run between scenes.
 //
-// node scripts/perf/bench.js [--gl software|gpu] [--scenes garage,floor,hq,music,late]
+// node scripts/perf/bench.js [--gpu|--software] [--scenes garage,floor,hq,music,late]
 //   [--quality low,high] [--runs 3] [--warmup 3] [--seconds 8] [--size 1280x720]
 //   [--cores 2 | --cpus 30-31] [--refs <git-ref>,<git-ref>] [--json out.json] [--profile]
 // --profile samples the main thread with the CPU profiler while recording and prints the functions
 // with the most self time per scene (module and line, from the unminified build).
 // --cores N pins the browser (not the build) to the last N cores, a weak-device proxy; --cpus names them.
-// HITL_GPU=1 picks --gl gpu. Without --refs it measures the working tree. With --refs it builds each
+// GL comes from scripts/lib/gl.js: the GPU unless --software or HITL_GL=software. SwiftShader pinned
+// with --cores 2 stands in for a weak device. Without --refs it measures the working tree. With --refs it builds each
 // ref in a temporary worktree and alternates between them run by run, so machine load hits every
 // build alike; compare builds from the same invocation, not across invocations.
 // Frame rate is uncapped (no vsync), and each frame ends with a one-pixel readback that waits for
@@ -27,11 +28,12 @@ import { execFileSync, spawn } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { cpus, homedir } from 'node:os';
+import { cpus } from 'node:os';
 import { arg, median, quantile } from './stats.js';
+import { glMode, launchChromium } from '../lib/gl.js';
 
 const ROOT = resolve(import.meta.dirname, '../..');
-const GL = String(arg('gl', process.env.HITL_GPU === '1' ? 'gpu' : 'software'));
+const GL = glMode();
 const SCENES = String(arg('scenes', 'garage,floor,hq,music,late')).split(',');
 const QUALITIES = String(arg('quality', 'low,high')).split(',');
 const RUNS = Number(arg('runs', 3));
@@ -43,23 +45,15 @@ const REF_DIR = join(ROOT, '.vite/perf-refs');
 const PROFILE = !!arg('profile', false);
 const CPUS = typeof arg('cpus', null) === 'string' ? arg('cpus')
   : arg('cores', null) ? `${cpus().length - Number(arg('cores'))}-${cpus().length - 1}` : null;
-const LOCK = join(process.env.CI_WORKTREE_ROOT ?? join(homedir(), '.cache/hitl-ci'), 'render-checks.lock');
 
-// Holds the render lock until the returned release() is called, unless an ancestor already holds it.
+// Holds a render lock (a GPU slot, or the software lock for SwiftShader) until release() is called.
+// Inside a caller that already holds a covering lock, with-render-lock.sh runs straight through.
 async function takeRenderLock() {
-  try {
-    execFileSync('bash', [join(ROOT, 'scripts/render-lock-held.sh'), LOCK], { stdio: 'ignore' });
-    return () => {};
-  } catch { /* not held: take it */ }
-  mkdirSync(dirname(LOCK), { recursive: true });
-  const t0 = Date.now();
-  const p = spawn('flock', ['-w', '1800', LOCK, 'sh', '-c', 'echo locked; read _'], { stdio: ['pipe', 'pipe', 'inherit'] });
+  const p = spawn('bash', [join(ROOT, 'scripts/with-render-lock.sh'), `--${GL}`, 'sh', '-c', 'echo locked; read _'], { stdio: ['pipe', 'pipe', 'inherit'] });
   await new Promise((ok, fail) => {
     p.stdout.once('data', ok);
-    p.once('exit', (code) => fail(new Error(`render lock: flock exited ${code}`)));
+    p.once('exit', (code) => fail(new Error(`render lock: with-render-lock.sh exited ${code}`)));
   });
-  const waited = Math.round((Date.now() - t0) / 1000);
-  if (waited > 5) console.error(`perf: waited ${waited}s for the render lock`);
   return () => { p.stdin.end(); };
 }
 
@@ -179,9 +173,6 @@ async function prepare({ label, root }) {
   return { label, root, server, base: server.resolvedUrls.local[0], bundle: bundleSizes(outDir), late, scenes: {} };
 }
 
-const glArgs = GL === 'gpu'
-  ? ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu']
-  : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
 const uncapped = ['--disable-gpu-vsync', '--disable-frame-rate-limit', '--enable-precise-memory-info'];
 
 async function measure(browser, b, scene, quality) {
@@ -221,12 +212,9 @@ async function measure(browser, b, scene, quality) {
   const raw = await page.evaluate(() => {
     const P = window.__perf;
     const ts = [...P.frames.keys()].sort((a, c) => a - c);
-    const gl = document.createElement('canvas').getContext('webgl2');
-    const ext = gl?.getExtension('WEBGL_debug_renderer_info');
     return {
       ts, cpu: ts.map((t) => P.frames.get(t)), render: P.render, mutations: P.mutations,
       info: window.__HITL.controls.renderer?.perf ?? null,
-      glName: gl ? String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)) : null,
     };
   });
   await cdp.send('HeapProfiler.collectGarbage');
@@ -239,7 +227,7 @@ async function measure(browser, b, scene, quality) {
     frames: raw.ts.length, p50: quantile(gaps, 0.5), p95: quantile(gaps, 0.95), cpu: median(raw.cpu), render: median(raw.render),
     calls: raw.info?.calls, triangles: raw.info?.triangles, geometries: raw.info?.geometries, textures: raw.info?.textures,
     programs: raw.info?.programs, meshes: raw.info?.meshes, heapMB: heap.usedSize / 2 ** 20, dom: dom.nodes,
-    mutPerSec: raw.mutations / SECONDS, loadMs, glName: raw.glName, profile: profile && selfTimes(profile),
+    mutPerSec: raw.mutations / SECONDS, loadMs, profile: profile && selfTimes(profile),
   };
 }
 
@@ -269,7 +257,7 @@ function formatRow(label, key, r) {
 const specs = REFS ? REFS.map(checkout) : [{ label: 'worktree', root: ROOT }];
 const builds = [];
 for (const s of specs) builds.push(await prepare(s));
-const browser = await chromium.launch({ args: [...glArgs, ...uncapped], executablePath: browserExecutable() });
+const { browser, renderer: glName } = await launchChromium(chromium, { mode: GL, label: 'perf', args: uncapped, executablePath: browserExecutable() });
 
 const affinity = CPUS ?? 'all';
 const kb = (n) => `${Math.round(n / 1024)}KB`;
@@ -279,7 +267,6 @@ for (const b of builds) {
     + (b.late ? `  late: week ${b.late.week} stage ${b.late.stage} staff ${b.late.staff}${b.late.over ? ' (over)' : ''}` : ''));
 }
 let exitCode = 0;
-let glName = null;
 try {
   for (const scene of SCENES) {
     for (const quality of QUALITIES) {
@@ -300,7 +287,6 @@ try {
         const med = Object.fromEntries(keys.map((k) => [k, median(rs.map((r) => r[k]))]));
         // The fastest run: other jobs on shared cores only ever add time, so it is the steadiest figure.
         med.best = Math.min(...rs.map((r) => r.render));
-        glName ??= rs[0].glName;
         b.scenes[key] = { ...med, spread: { p50: rs.map((r) => +r.p50.toFixed(2)), render: rs.map((r) => +r.render.toFixed(2)) } };
         console.log(formatRow(b.label, key, med));
         if (PROFILE) {
@@ -325,7 +311,6 @@ try {
     rmSync(REF_DIR, { recursive: true, force: true });
   }
 }
-console.log(`gl  ${glName ?? '?'}`);
 const jsonOut = arg('json', null);
 if (typeof jsonOut === 'string') {
   const out = {
