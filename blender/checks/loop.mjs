@@ -14,17 +14,22 @@
 // --seconds with its decision still open, nobody takes the moment or its actors do not move. Pick
 // decisions whose moment plays while the decision is open (the visitor, the hammer fetch, the
 // letter); some moments play only once the choice is made.
+//
+// A query 'party:<decision>' picks the first indexed <decision> raised in the same week as a launch
+// or award, whose company party poses everyone the moment could take just as the game freezes.
+// Which week that is depends on the sim, so it is looked up in the index this run uses; with none,
+// the case is skipped and says so.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
 import { resolveTarget, snapshotEntries } from '../../scripts/events/load.js';
-import { simHash, indexDir } from '../../scripts/events/lib.js';
+import { simHash, indexDir, readIndex } from '../../scripts/events/lib.js';
 import { join } from 'node:path';
 import { fmtTrace, fmtActor, ACTOR_JS } from './diag.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1').split(';').map((q) => q.trim()).filter(Boolean);
+const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1; party:hearing_summons').split(';').map((q) => q.trim()).filter(Boolean);
 const seconds = Number(opt('seconds', 10));
 const MOVE_M = 0.3;
 
@@ -64,7 +69,15 @@ const base = server.resolvedUrls.local[0];
 const { browser } = await launchChromium(chromium, { mode, label: 'loop' });
 let failed = 0;
 try {
-  for (const query of queries) {
+  for (let query of queries) {
+    if (query.startsWith('party:')) {
+      const id = query.slice(6), rows = readIndex(simHash())?.rows ?? [];
+      const key = (r) => `${r.seed}|${r.bot}|${r.week}`;
+      const party = new Set(rows.filter((r) => r.type === 'launch' || r.type === 'award').map(key));
+      const hit = rows.find((r) => r.type === 'decision' && r.id === id && r.preTick && party.has(key(r)));
+      if (!hit) { console.log(`LOOP skip ${query}: no ${id} in a launch or award week in this index`); continue; }
+      query = `${id} --seed ${hit.seed} --bot ${hit.bot} --weeks ${hit.week}-${hit.week}`;
+    }
     // The state just before the tick that raises the decision, so the game's own tick raises it.
     let target;
     try { target = resolveTarget({ event: `${query} --pre` }); } catch (e) { failed++; console.log(`LOOP FAIL ${query}: ${e.message}`); continue; }
