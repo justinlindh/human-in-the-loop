@@ -173,6 +173,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
   - **Low-cash lunch**: "are we a sandwich company now?" `id: lowcash_lunch`
   - **Desk squeeze**: "I am currently sharing a desk with the printer. The printer is winning." `id: desk_squeeze`
   - **Junior PR**: "It is small. It is one line." `id: junior_pr`
+  - **Low-stakes events in Yak**: six small decisions arrive as officebot posts with the event's own choices instead of pausing popups: the two coffee-machine requests, the dog on Fridays, a new model dropping, a senior's weekend side project and the app store rejection. Their staged props show while the prompt is open, and left unanswered, the mildest choice happens (never one that brings in an item or a pet).
 - **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it.
   - **Pep talk**: backfires mid-outage ("Respectfully, the servers are on fire."). `id: pep_talk`
   - **Who broke prod?**: helps during an outage; with nothing broken it just scares people ("Why are you asking. What do you know."). `id: who_broke_prod`

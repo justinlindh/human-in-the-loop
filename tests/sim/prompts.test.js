@@ -7,6 +7,8 @@ import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { PROMPTS } from '../../src/data/prompts.js';
 import { eraAllowsText } from '../../src/sim/eras.js';
+import { EVENTS } from '../../src/data/events.js';
+import { fireEvent, resolveSubjects } from '../../src/sim/events.js';
 import { game, addStaff, addDesks, addProduct } from './helpers.js';
 
 const TRIGGERS = ['strain', 'incident', 'launch', 'rival', 'late', 'agents', 'newhire', 'coasting', 'support', 'lowcash', 'crowded', 'junior'];
@@ -206,5 +208,130 @@ describe('issue #16: Yak reply prompts', () => {
     expect(worst).toBeLessThanOrEqual(B.chatPromptsOpen);
     expect(r.weeks / opened).toBeLessThan(5);
     expect(r.weeks / opened).toBeGreaterThan(1);
+  });
+});
+
+describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
+  const YAK = ['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
+
+  it('the six are marked, with an ignore choice that exists', () => {
+    const marked = Object.values(EVENTS).filter((e) => e.yak).map((e) => e.id).sort();
+    expect(marked).toEqual([...YAK].sort());
+    for (const id of YAK) {
+      const { ignore } = EVENTS[id].yak;
+      expect(ignore === null || (Number.isInteger(ignore) && ignore < EVENTS[id].choices.length), id).toBe(true);
+    }
+  });
+
+  it('when the event roll picks one, it arrives as a prompt instead of a popup; with prompts off it is a popup again', () => {
+    const s = strained(20);
+    for (const p of s.staff) p.strain = 0;
+    s.week = 200;
+    const ctx = makeCtx(s);
+    expect(fireEvent(ctx, EVENTS.vendor_new_version, null)).toBe(true);
+    expect(s.pendingDecision).toBe(null);
+    expect(s.chatPrompts).toHaveLength(1);
+    expect(ctx.events.map((e) => e.type)).toContain('chatPrompt');
+    // With a prompt already open, the event waits instead of stacking a second one.
+    const cd = s.flags.cd_senior_side_project;
+    expect(fireEvent(makeCtx(s), EVENTS.senior_side_project, s.staff.find((p) => !p.founder).id)).toBe(false);
+    expect(s.flags.cd_senior_side_project).toBe(cd);
+    const t = strained(20);
+    B.chatPromptsEnabled = false;
+    try {
+      fireEvent(makeCtx(t), EVENTS.vendor_new_version, null);
+    } finally {
+      B.chatPromptsEnabled = true;
+    }
+    expect(t.pendingDecision?.eventId).toBe('vendor_new_version');
+  });
+
+  // Opens one specific event's prompt the way the weekly event roll would when it picks that event.
+  function eventPrompt(s, id) {
+    const ev = EVENTS[id];
+    if (!s.products.some((p) => !p.killed)) addProduct(s, { name: 'Inboxer' });
+    const subjects = resolveSubjects(s, ev);
+    const ctx = makeCtx(s);
+    expect(fireEvent(ctx, ev, subjects.length ? subjects[0].id : null), id).toBe(true);
+    return ctx.events;
+  }
+
+  it('officebot posts the event; answering applies that choice, with the founder replying and the outcome in the thread', () => {
+    const s = strained(21);
+    for (const p of s.staff) p.strain = 0;
+    s.cash = 50000;
+    const ev = eventPrompt(s, 'vendor_new_version');
+    const p = s.chatPrompts[0];
+    expect(p).toMatchObject({ kind: 'vendor_new_version', fromId: null, channel: 'general' });
+    expect(ev.find((e) => e.id === p.chatId)).toMatchObject({ from: '@officebot', fromId: null });
+    expect(p.options.map((o) => o.label)).toEqual(EVENTS.vendor_new_version.choices.map((c) => c.label));
+    const res = dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: 0 });
+    expect(res.ok).toBe(true);
+    expect(s.cash).toBe(50000 + EVENTS.vendor_new_version.choices[0].effects.cash);
+    const thread = res.events.filter((e) => e.type === 'chat' && e.replyTo === p.chatId);
+    expect(s.staff.find((x) => x.id === thread[0].fromId).founder).toBe(true);
+    expect(thread.at(-1)).toMatchObject({ from: '@officebot', text: EVENTS.vendor_new_version.choices[0].outcome });
+  });
+
+  it('left unanswered, the ignore choice happens, props and all', () => {
+    const s = strained(22);
+    for (const p of s.staff) p.strain = 0;
+    s.week = 60;
+    eventPrompt(s, 'coffee_wanted');
+    const p = s.chatPrompts[0];
+    s.week = p.expiresWeek;
+    weekOf(s);
+    expect(p.resolved).toEqual({ choice: null, week: p.expiresWeek, replyId: null });
+    expect((s.office.props ?? []).some((x) => x.prop === 'french_press')).toBe(true);
+  });
+
+  it('a choice with a requirement shows why it is greyed out, and the pet request still brings a dog', () => {
+    const s = strained(23);
+    for (const p of s.staff) p.strain = 0;
+    s.cash = 0;
+    s.week = 60;
+    eventPrompt(s, 'coffee_wanted');
+    expect(s.chatPrompts[0].options[0]).toMatchObject({ available: false, reason: expect.any(String) });
+    const t = strained(24);
+    for (const p of t.staff) p.strain = 0;
+    t.week = 60;
+    eventPrompt(t, 'pet_request');
+    const pets = (t.pets ?? []).length;
+    dispatch(t, { type: 'answerPrompt', promptId: t.chatPrompts[0].id, choice: 0 });
+    expect(t.pets.length).toBe(pets + 1);
+  });
+
+  it('a prompt from a staged event carries its stage while open; template prompts have none', () => {
+    const s = strained(25);
+    for (const p of s.staff) p.strain = 0;
+    s.week = 60;
+    eventPrompt(s, 'coffee_wanted');
+    expect(s.chatPrompts[0].stage).toMatchObject({ prop: 'french_press', anchor: 'kitchen', x: expect.any(Number), y: expect.any(Number) });
+    expect(s.chatPrompts[0].subjectId).toBe(null);
+    const t = strained(26);
+    openOne(t);
+    expect(t.chatPrompts[0].stage).toBe(null);
+    expect(t.chatPrompts[0].subjectId).toBe(null);
+  });
+
+  it('every default is the mildest choice: an unanswered dog request keeps the dog at home', () => {
+    const s = strained(27);
+    for (const p of s.staff) p.strain = 0;
+    s.week = 60;
+    eventPrompt(s, 'pet_request');
+    const p = s.chatPrompts[0];
+    expect(p.subjectId).toBe(s.flags.promptCtx[p.id].subjectId);
+    expect(p.subjectId).toBeTruthy();
+    const pets = (s.pets ?? []).length;
+    s.week = p.expiresWeek;
+    weekOf(s);
+    expect(p.resolved.choice).toBe(null);
+    expect((s.pets ?? []).length).toBe(pets);
+    expect(EVENTS.pet_request.choices[EVENTS.pet_request.yak.ignore].label).toBe('Not in the office');
+    // A prompt nobody saw never grants an item or a pet.
+    for (const e of Object.values(EVENTS).filter((x) => x.yak && x.yak.ignore !== null)) {
+      const c = e.choices[e.yak.ignore];
+      expect(!c.grant && !c.effects?.adoptPet && !c.effects?.buyItem && !c.effects?.upgradeItem, e.id).toBe(true);
+    }
   });
 });
