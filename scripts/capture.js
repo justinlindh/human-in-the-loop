@@ -257,6 +257,12 @@ let failed = false;
 
 try {
   for (const it of items) {
+    // A camera path with keys out of order fails the item before anything starts for it.
+    const bad = (it.camera ?? []).findIndex((k, i, ks) => !Number.isFinite(k.at) || (i > 0 && k.at < ks[i - 1].at));
+    if (bad >= 0) {
+      console.log(`FAIL ${it.id}: camera key ${bad} (at ${it.camera[bad].at}) is out of order: keys must be in order of \`at\``);
+      failed = true; continue;
+    }
     const t0 = Date.now();
     const FPS = Number(it.fps ?? RUN_FPS);
     const [W, H] = String(it.size ?? RUN_SIZE).split('x').map(Number);
@@ -339,11 +345,6 @@ try {
     const pngs = [];
     const recFrom = await page.evaluate(() => window.__capture.now);
     if (it.camera?.length) {
-      const bad = it.camera.findIndex((k, i) => !Number.isFinite(k.at) || (i > 0 && k.at < it.camera[i - 1].at));
-      if (bad >= 0) {
-        console.log(`FAIL ${it.id}: camera key ${bad} (at ${it.camera[bad].at}) is out of order: keys must be in order of \`at\``);
-        failed = true; await ctx.close(); continue;
-      }
       await page.evaluate(CAMERA_PATH);
       await page.evaluate((keys) => { window.__cameraAt = window.__cameraPath(keys); }, it.camera);
     }
