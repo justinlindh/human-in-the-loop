@@ -56,6 +56,9 @@ printf 'see /home/justin/x.png\n' >"$tmp/api.md"
 denied "gh api repos/o/r/pulls/5/reviews -F body=@$tmp/api.md -f event=COMMENT"
 denied "gh api -X POST repos/o/r/issues/5/comments --input $tmp/api.md"
 allowed 'gh api repos/o/r/issues/5/comments -f body="all green"'
+printf 'All green: scripts/ci-pr.sh passes.\n' >"$tmp/apiclean.md"
+allowed "gh api repos/o/r/pulls/5/reviews -F body=@$tmp/apiclean.md -f event=COMMENT"
+allowed "gh api repos/o/r/issues/5/comments --field body=@$tmp/apiclean.md"
 allowed 'gh api repos/o/r/pulls/5 --jq .state'
 
 # lane-guard: branch prefix decides
@@ -84,6 +87,7 @@ lane_no "$repo/docs/superpowers/plans/plan.md" "sim, the plan"
 g -C "$repo" checkout -q -b integ/hooks
 lane_ok "$repo/.claude/settings.json" integ
 lane_ok "$repo/scripts/hooks/claude/bash-guard.sh" integ
+lane_ok "$repo/src/pacing.test.js" integ
 lane_no "$repo/CLAUDE.md" "integ, CLAUDE.md"
 g -C "$repo" checkout -q -b tools/sweep
 lane_ok "$repo/docs/toolkit.md" tools
