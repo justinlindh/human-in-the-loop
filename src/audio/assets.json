@@ -7,14 +7,37 @@
    "beds": [
     {
      "id": "a",
-     "bars": 10,
-     "candidate": true,
+     "bars": 58,
      "stems": {
       "full": {
        "file": "music/classic/a_full.ogg",
-       "duration": 25.259,
+       "duration": 143.509,
        "loopStart": 0,
-       "loopEnd": 1212416
+       "loopEnd": 6888448
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 58,
+     "stems": {
+      "full": {
+       "file": "music/classic/b_full.ogg",
+       "duration": 145.003,
+       "loopStart": 0,
+       "loopEnd": 6960128
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 58,
+     "stems": {
+      "full": {
+       "file": "music/classic/c_full.ogg",
+       "duration": 143.509,
+       "loopStart": 0,
+       "loopEnd": 6888448
       }
      }
     }
@@ -25,14 +48,25 @@
    "beds": [
     {
      "id": "a",
-     "bars": 8,
-     "candidate": true,
+     "bars": 58,
      "stems": {
       "full": {
        "file": "music/chatgbt/a_full.ogg",
-       "duration": 18.827,
+       "duration": 137.824,
        "loopStart": 0,
-       "loopEnd": 903680
+       "loopEnd": 6615552
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 58,
+     "stems": {
+      "full": {
+       "file": "music/chatgbt/b_full.ogg",
+       "duration": 132.565,
+       "loopStart": 0,
+       "loopEnd": 6363136
       }
      }
     }
