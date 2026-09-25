@@ -546,8 +546,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armLZ = 0.18; tgt.armRZ = -0.18;
         break;
       case 'shoulder':
-        // Something heavy carried over the right shoulder, head end behind.
-        tgt.armRX = -2.75; tgt.armRZ = -0.25;
+        // Something heavy resting on the right shoulder: the hand at the shoulder, the load behind.
+        tgt.armRX = -1.8; tgt.armRZ = -0.45;
         tgt.headX = -0.05;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
