@@ -18,7 +18,7 @@ export const ICONS = {
   'era.agents': I('🤖', 'Era emblem: arrival card and HUD', 24),
   'era.consolidation': I('🧲', 'Era emblem: arrival card and HUD', 24),
   'era.plateau': I('🏔️', 'Era emblem: arrival card and HUD', 24),
-  'menu.policies': I('📜', 'Bottom menu button while it opens Policies', 30),
+  'menu.policies': I('📜', 'Bottom menu button', 30),
   'menu.ops': I('🛡️', 'Bottom menu button', 30),
   'menu.office': I('🏢', 'Bottom menu button', 30),
   'menu.reports': I('📊', 'Bottom menu button', 30),

@@ -127,8 +127,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg) });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
-  const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'automation' };
-  const hostOf = (key) => UNLOCK_HOST[key] ?? (key.startsWith('policy.') ? 'automation' : null);
+  const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'policies' };
+  const hostOf = (key) => UNLOCK_HOST[key] ?? (key.startsWith('policy.') ? 'policies' : null);
   const newMenus = new Set();
   let menuSig = null;
   function syncMenus(state, animate = false) {
@@ -138,10 +138,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (sig === menuSig) return;
     menuSig = sig;
     for (const id of ['marketing', 'ops', 'models']) menu.setVisible(id, !u || u[id] != null, { animate });
-    menu.setVisible('automation', !u || u.automation != null || policiesIn, { animate });
-    const auto = !u || u.automation != null;
-    menu.setLabel('automation', auto ? 'Automation' : 'Policies');
-    menu.setIcon('automation', auto ? 'menu.automation' : 'menu.policies');
+    // Policies and Automation each get their own button once their first unlock arrives.
+    menu.setVisible('policies', !u || policiesIn, { animate });
+    menu.setVisible('automation', !u || u.automation != null, { animate });
   }
   // One tick's unlocks and era arrive together (both are immediate events). An era card lists the
   // unlocks that came with it; several unlocks without an era share one card; a lone one gets its own.
@@ -151,7 +150,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       const host = hostOf(key);
       if (host && menu.current !== host) { newMenus.add(host); menu.setNew(host, true); }
       const label = host ? (MENU.find((m) => m.id === host)?.label ?? host) : null;
-      return { key, menuId: host, menuLabel: host === 'automation' && !state.unlocks?.automation ? 'Policies' : label };
+      return { key, menuId: host, menuLabel: label };
     });
     // Meaning always gets its own reveal card, after the era card when they arrive together.
     const revealMeaning = keys.includes('meaning') || (era?.eraId === 'chatgbt' && !SIM_HAS_MEANING_UNLOCK);
