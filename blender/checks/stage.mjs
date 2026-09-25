@@ -106,7 +106,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
     const res = await page.evaluate(async ({ moment, patch, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
-      const THREE = await import('/node_modules/.vite/deps/three.js');
+      const THREE = R.THREE;
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;

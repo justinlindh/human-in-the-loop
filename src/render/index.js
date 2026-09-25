@@ -349,6 +349,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // Dev and snap hook: perk visits (send people to a placed item, counts).
     get perks() { return staff?.perks ?? null; },
     get moments() { return staff?.moments ?? null; },
+    // Dev and check tools: the page's own three.js, for measuring objects in page scripts.
+    get THREE() { return import.meta.env?.DEV ? THREE : undefined; },
     // Staging probe (probe.js): how staff member `id` reads on screen this frame.
     probe(id) {
       probeImpl ??= createProbe({ scene, camera: rig.camera, office, charOf: (x) => staff?.charOf(x), stagingOf: (x) => staff?.moments?.staging?.(x) });

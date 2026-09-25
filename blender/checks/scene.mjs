@@ -41,7 +41,7 @@ export async function renderScene(H, o) {
     const R = window.__hitlRender, S = window.__HITL.state;
     R.perks.hold = true;
     // three, for expressions (--focus-on, --crop-around, --report) that measure objects.
-    window.THREE ??= await import('/node_modules/.vite/deps/three.js').catch(() => null);
+    window.THREE ??= R.THREE ?? null;
     const merge = (dst, src) => {
       for (const [k, v] of Object.entries(src)) {
         if (v && typeof v === 'object' && !Array.isArray(v) && dst[k] && typeof dst[k] === 'object') merge(dst[k], v);
