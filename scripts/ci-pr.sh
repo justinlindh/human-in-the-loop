@@ -31,6 +31,9 @@ while [ $# -gt 0 ]; do
 done
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
+# The run and every step of it go to the team's timing log, tagged with the PR.
+source "$(dirname "$0")/lib/timing.sh" 2>/dev/null || timing_log() { :; }
+export HITL_PR="$pr"
 
 # A clean checkout on main that is behind origin/main fast-forwards and runs the new copy of this
 # script. git replaces files rather than rewriting them, so runs already going keep their own copy.
@@ -229,6 +232,8 @@ rc=$?
 ci_pid=""
 secs=$(( $(date +%s) - t0 ))
 verdict=$([ $rc -eq 0 ] && echo "PASS" || echo "FAIL")
+# setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
+timing_log kind=run tool=ci-pr wall_s=$SECONDS ci_s=$secs setup_s=$(( SECONDS - secs )) exit=$rc
 
 body="$(mktemp)"
 {

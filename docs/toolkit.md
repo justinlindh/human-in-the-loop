@@ -124,6 +124,22 @@ Run `node blender/checks/stage.mjs --only=<moment>` while staging (under the ren
 
 The machine and the GPU are shared, so single numbers are noisy. Trust relative numbers from one interleaved run, and treat renderer counts (calls, triangles, programs) as exact.
 
+### The team's timing log
+
+Every common tool logs itself to `~/.cache/hitl-ci/timings.jsonl`, one JSON line per event, with no setup:
+- ci-pr runs, with the PR number;
+- each ci-local step, with wall and CPU time;
+- every browser tool that launches through `scripts/lib/gl.js` (snap, lifecycle, soak, capture, the render checks, bench);
+- balance and build-models runs;
+- every render-lock wait, labelled with the job that waited;
+- every render-check cache lookup (hit or miss, with the input hash).
+
+Each line also records the worktree, branch, commit and exit code. The log never fails a run, and `HITL_TIMINGS=off` turns it off (tests do). New tools get it by calling `trackRun` from `scripts/lib/timing.js`, or `timing_log` from `scripts/lib/timing.sh` in shell.
+
+| Tool | Who | What it does |
+|---|---|---|
+| `node scripts/perf/loop-report.js [--since 24h]` | perf, integrator, team-lead | Where the team's time goes: total, median and p90 per tool and CI step; time per worktree; lock waits per job, with timeouts; cache hit rates; repeated runs on identical inputs (the caching candidates); and the slowest runs. `--json` adds the numbers as JSON. |
+
 ## Models and assets
 
 | Tool | Who | What it does |

@@ -27,6 +27,20 @@ SLOTS="${HITL_GPU_SLOTS:-8}"
 gpu_locks=(); for i in $(seq 1 "$SLOTS"); do gpu_locks+=("$DIR/gpu-render-$i.lock"); done
 WAIT="${RENDER_LOCK_WAIT:-1800}"
 mkdir -p "$DIR"
+# Each wait for a lock goes to the team's timing log, labelled with what it was for.
+source "$HERE/lib/timing.sh"
+label() {
+  local a b
+  for a in "$@"; do
+    b="$(basename -- "$a")"
+    case "$b" in node|npm|npx|bash|sh|run|timeout|nice|-*|[0-9]*) continue ;; esac
+    echo "$b"; return
+  done
+  echo "${1:-?}"
+}
+waited() { awk -v a="$EPOCHREALTIME" -v b="$t0" 'BEGIN { printf "%.1f", a - b }'; }
+log_wait() { timing_log kind=lock mode="$mode" for="$(label "${cmd[@]}")" wait_s="$(waited)" "$@"; }
+cmd=()
 
 covered() {
   if [ "$mode" = software ]; then bash "$HERE/render-lock-held.sh" "$SOFT"
@@ -38,26 +52,29 @@ if covered; then
   exec "$@"
 fi
 
+cmd=("$@")
 if [ "$mode" = software ]; then
-  t0=$SECONDS
+  t0=$SECONDS; t0r=$EPOCHREALTIME
   exec 8>"$SOFT"
-  flock -w "$WAIT" 8 || { echo "with-render-lock: no software render lock after ${WAIT}s" >&2; exit 75; }
+  flock -w "$WAIT" 8 || { t0=$t0r; log_wait timed_out=1; echo "with-render-lock: no software render lock after ${WAIT}s" >&2; exit 75; }
   echo "with-render-lock: waited $((SECONDS - t0))s for the software render lock" >&2
+  t0=$t0r; log_wait
   export HITL_RENDER_LOCK_HELD=$$
   exec "$@"
 fi
 
-t0=$SECONDS
+t0=$SECONDS; t0r=$EPOCHREALTIME
 while :; do
   for lock in "${gpu_locks[@]}"; do
     exec 8>"$lock"
     if flock -n 8; then
       slot="${lock##*-}"; echo "with-render-lock: waited $((SECONDS - t0))s for GPU render slot ${slot%.lock}" >&2
+      t0=$t0r; log_wait slot="${slot%.lock}"
       export HITL_RENDER_LOCK_HELD=$$
       exec "$@"
     fi
     exec 8>&-
   done
-  [ $((SECONDS - t0)) -lt "$WAIT" ] || { echo "with-render-lock: no GPU render slot after ${WAIT}s" >&2; exit 75; }
+  [ $((SECONDS - t0)) -lt "$WAIT" ] || { t0=$t0r; log_wait timed_out=1; echo "with-render-lock: no GPU render slot after ${WAIT}s" >&2; exit 75; }
   sleep 1
 done

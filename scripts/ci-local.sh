@@ -19,6 +19,8 @@ done
 
 # Tools come from this script's own checkout; the tree under test is CI_DIR (default: that checkout).
 SELF="$(cd "$(dirname "$0")" && pwd)"
+# Every step's wall and CPU time go to the team's timing log (scripts/lib/timing.sh).
+source "$SELF/lib/timing.sh"
 cd "${CI_DIR:-$SELF/..}"
 # CI_LOGS keeps the step logs in that directory instead of a temporary one removed at the end.
 LOGS="${CI_LOGS:-$(mktemp -d)}"
@@ -27,11 +29,19 @@ now() { date +%s; }
 
 record() { NAMES+=("$1"); RESULTS+=("$2"); TIMES+=("$3"); }
 
+bal_pid=""
+bal_running() { [ -n "$bal_pid" ] && kill -0 "$bal_pid" 2>/dev/null && echo 1 || echo 0; }
 step() {
   local name="$1"; shift
-  local t0; t0=$(now)
-  if "$@" >"$LOGS/$name.log" 2>&1; then record "$name" pass $(( $(now) - t0 ));
-  else record "$name" FAIL $(( $(now) - t0 )); echo "---- $name failed; last lines:"; tail -n 25 "$LOGS/$name.log"; fi
+  local t0 c0 b0 rc=0; t0=$(now); c0=$(timing_child_cpu); b0=$(bal_running)
+  "$@" >"$LOGS/$name.log" 2>&1 || rc=$?
+  local wall=$(( $(now) - t0 ))
+  if [ $rc -eq 0 ]; then record "$name" pass "$wall";
+  else record "$name" FAIL "$wall"; echo "---- $name failed; last lines:"; tail -n 25 "$LOGS/$name.log"; fi
+  # CPU counts only when the background balance run did not finish (and add its own) meanwhile.
+  local cpu=""
+  [ "$b0" = "$(bal_running)" ] && cpu="cpu_s=$(awk -v a="$(timing_child_cpu)" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')"
+  timing_log kind=step tool=ci-local step="$name" wall_s="$wall" $cpu exit=$rc
 }
 
 # Dependencies: a clean install unless node_modules already matches the lockfile.
@@ -71,11 +81,16 @@ fi
 # Vitest defaults to a worker per core, so a few runs at once (several PRs gating, or balance beside
 # test:fast) oversubscribe the machine and slow bot-run tests past their timeout. Each run takes a share.
 VITEST_WORKERS="${VITEST_WORKERS:-$(( $(nproc) / 3 > 4 ? $(nproc) / 3 : 4 ))}"
-bal_t0=$(now); bal_pid=""
+bal_t0=$(now)
 if [ "$bal_mode" = light ]; then
   echo "test:balance: skipped: no sim changes"
 else
-  npm run test:balance >"$LOGS/test:balance.log" 2>&1 &
+  (
+    c0=$(timing_child_cpu); t0=$(now); rc=0
+    npm run test:balance || rc=$?
+    timing_log kind=step tool=ci-local step=test:balance wall_s=$(( $(now) - t0 )) cpu_s="$(awk -v a="$(timing_child_cpu)" -v b="$c0" 'BEGIN { printf "%.2f", a - b }')" exit=$rc
+    exit $rc
+  ) >"$LOGS/test:balance.log" 2>&1 &
   bal_pid=$!
 fi
 
@@ -123,7 +138,7 @@ step golden render_step golden software "node blender/checks/golden.mjs --jobs=$
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
-if [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0;
+if [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 wall_s=0 exit=0;
 elif wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
 else record test:balance FAIL $(( $(now) - bal_t0 )); echo "---- test:balance failed; last lines:"; tail -n 25 "$LOGS/test:balance.log"; fi
 
@@ -142,4 +157,5 @@ echo "vitest: $tests"
 [ -n "$notes" ] && printf '\n%s' "$notes"
 if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; [ -n "$notes" ] && printf '\n%s' "$notes"; } >"$SUMMARY"; fi
 [ -n "${CI_LOGS:-}" ] || rm -rf "$LOGS"
+timing_log kind=run tool=ci-local wall_s=$SECONDS exit="$failed"
 exit "$failed"
