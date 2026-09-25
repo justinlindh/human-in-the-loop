@@ -892,8 +892,17 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   }
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
   step(60);
-  const game = travel > 1 && off === 0 && turn > 0.3;
-  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2) };
+  // A new toy: the same table placed live (visits not held) draws two people as soon as two are free
+  // (at once in a full office; a two-person garage waits for them to get back from the last game).
+  R.perks.hold = false;
+  S.office.placed.push({ id: 'new_table', itemId: 'foosball', level: 1, ...spot, rot: 0 });
+  let newToy = null;
+  for (let t = 0; t < 12 && newToy === null; t += dt) { step(1); if (R.perks.sessions > 0) newToy = +t.toFixed(2); }
+  S.office.placed = S.office.placed.filter((p) => p.id !== 'new_table');
+  step(60);
+  R.perks.hold = true;
+  const game = travel > 1 && off === 0 && turn > 0.3 && newToy !== null;
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2), newToyAt: newToy };
 }
 
 // The sky backdrop redraws at most a few times a second; a change inside that window must still be
