@@ -28,6 +28,25 @@ expect full 'blender/characters/chibi.py'
 expect full ''
 [ "$(echo docs/a.md | bash "$HERE/ci-classify.sh" /nonexistent)" = full ] || { echo "FAIL missing list: want full"; fails=$((fails + 1)); }
 
+# The balance list: light means the balance suite is skipped.
+BAL="$HERE/ci-balance-skip-paths"
+expect_bal() { # <want> <paths separated by |>
+  local got; got="$(printf '%s\n' "$2" | tr '|' '\n' | bash "$HERE/ci-classify.sh" "$BAL")"
+  [ "$got" = "$1" ] || { echo "FAIL balance [$2]: want $1, got $got"; fails=$((fails + 1)); }
+}
+expect_bal light 'src/render/office.js|public/models/desk.glb|blender/characters/chibi.py'
+expect_bal light 'src/ui/hud.js'
+expect_bal full 'src/render/office.js|src/data/items.js'
+expect_bal full 'src/sim/tick.js'
+expect_bal full 'src/save/save.js'
+expect_bal full 'tests/sim/balance.test.js'
+expect_bal full 'scripts/balance.js'
+expect_bal full 'package.json'
+expect_bal full 'vite.config.js'
+expect_bal full 'scripts/ci-balance-skip-paths'
+expect_bal full 'src/ui/hud.js|scripts/ci-skip-paths'
+expect_bal full ''
+
 # Moving game code into docs/ must not come out light: CI lists changes with --no-renames.
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 ( cd "$tmp" && git init -q && mkdir -p src/sim docs && echo 'export function tick() {}' >src/sim/tick.js && echo x >docs/x.md \
