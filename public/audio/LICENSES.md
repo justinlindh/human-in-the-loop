@@ -8,12 +8,16 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 
 | File | Era | Tempo, key | Loop |
 |---|---|---|---|
-| `music/classic/a_full.ogg` | Classic | 96 bpm, F major | 10 bars |
+| `music/classic/a_full.ogg` | Classic (playlist piece A, seed 4101) | 96 bpm, F major | 58 bars, 2:23.5 |
+| `music/classic/b_full.ogg` | Classic (playlist piece B, seed 4102) | 96 bpm, F major | 58 bars, 2:25.0 |
+| `music/classic/c_full.ogg` | Classic (playlist piece C, seed 4105) | 96 bpm, F major | 58 bars, 2:23.5 |
 | `music/chatgbt/a_full.ogg` | ChatGBT | 102 bpm, Bb major | 8 bars |
 | `music/agents/a_full.ogg` | Agents | 108 bpm, D minor | 8 bars |
 | `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
 | `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
 | `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
+
+The Classic playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
 
 ## Music night dance breaks (candidates)
 
