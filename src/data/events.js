@@ -152,7 +152,7 @@ const list = [
     ],
   },
   {
-    id: 'ai_skeptic_speech', yak: { ignore: 0 }, kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
+    id: 'ai_skeptic_speech', kind: 'staff', weight: 2, cooldownWeeks: 30, random: true, subject: 'seniorStaff',
     when: (s) => Object.values(s.automation).some((a) => a.level > 0),
     title: 'A speech at all-hands',
     text: '{name} stands up at all-hands: "Does anyone here still understand what we ship?"',
@@ -204,7 +204,7 @@ const list = [
     ],
   },
   {
-    id: 'public_complaint', yak: { ignore: 2 }, kind: 'staff', weight: 2, cooldownWeeks: 39, random: true, subject: 'randomStaff',
+    id: 'public_complaint', kind: 'staff', weight: 2, cooldownWeeks: 39, random: true, subject: 'randomStaff',
     when: (s) => Object.values(s.automation).some((a) => a.level >= 0.5),
     title: 'A post on LinkedOut',
     text: '{name} wrote a LinkedOut post about being "a human rubber stamp for AI". It has 40,000 likes and a lot of people tagging {company}.',
@@ -358,7 +358,7 @@ const list = [
 
   // Market
   {
-    id: 'incumbent_copies_flavor', yak: { ignore: 1 }, kind: 'market', weight: 2, cooldownWeeks: 30, random: true, subject: 'randomProduct',
+    id: 'incumbent_copies_flavor', kind: 'market', weight: 2, cooldownWeeks: 30, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.length > 0,
     title: 'Suspiciously familiar',
     text: '{incumbent} just shipped "{product} Lite". It is in a sidebar. It is gray.',
@@ -386,7 +386,7 @@ const list = [
     ],
   },
   {
-    id: 'big_customer_threat', yak: { ignore: 0 }, kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
+    id: 'big_customer_threat', kind: 'market', weight: 2, cooldownWeeks: 26, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.customers > 500),
     title: 'Your biggest customer is unhappy',
     text: 'Your largest {product} account says {incumbent} offered them a 40% discount. They want to "talk".',
@@ -396,7 +396,7 @@ const list = [
     ],
   },
   {
-    id: 'press_wrapper_mockery', yak: { ignore: 0 }, kind: 'market', weight: 2, cooldownWeeks: 30, random: true, subject: 'randomProduct',
+    id: 'press_wrapper_mockery', kind: 'market', weight: 2, cooldownWeeks: 30, random: true, subject: 'randomProduct',
     when: (s, h) => h.live.some((p) => p.score < 6),
     title: 'The press is laughing',
     text: 'Hacker Olds has a thread titled "{product} is just an API call with a logo". It has 900 points.',
@@ -772,7 +772,7 @@ const list = [
     ],
   },
   {
-    id: 'rival_jab', yak: { ignore: 0 }, kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    id: 'rival_jab', kind: 'market', weight: 2, cooldownWeeks: 52, random: true, subject: null,
     when: (s) => s.rival?.status === 'rising' || s.rival?.status === 'stalled',
     title: 'Another jab from {rival}',
     text: '{rivalFounder} went on a podcast and called {company} "a nice little lifestyle business". The podcast has eleven listeners. All of them work for you.',
@@ -969,7 +969,7 @@ const list = [
   },
   // Classic era flavor
   {
-    id: 'cloud_bill', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, eras: ['classic'],
+    id: 'cloud_bill', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, eras: ['classic'],
     when: (s, h) => h.live.length > 0,
     stage: { prop: 'invoice', anchor: 'wall' },
     title: 'The hosting bill',
@@ -1169,7 +1169,7 @@ const list = [
 
   // Misc
   {
-    id: 'coffee_machine_broke', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
+    id: 'coffee_machine_broke', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, office: 'espresso',
     when: (s) => s.office.placed.some((i) => i.itemId === 'espresso'),
     stage: { prop: 'smoke_puff', anchor: 'kitchen' },
     chat: 'Coffee machine status: deceased. Please grieve responsibly.',
