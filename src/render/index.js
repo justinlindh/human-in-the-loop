@@ -306,6 +306,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     focusAt(x, z, zoom = 2.5) { rig.focus({ x, y: 0.4, z }, zoom); rig.update(10); },
     // The same, eased: the camera glides there at `rate` (as the moment camera does) instead of jumping.
     easeTo(x, z, zoom = 2.5, rate = 2, y = 0.4) { rig.focus({ x, y, z }, zoom, rate); },
+    // The spotlight moment playing now (spotlight.js): null or { kind, key, since }. main.js holds the
+    // game clock while there is one; endSpotlight() cuts it short (the Skip control).
+    spotlight() { return staff?.spotlights?.current() ?? null; },
+    endSpotlight() { return staff?.spotlights?.cut() ?? false; },
     // Where the camera looks now, and its zoom.
     view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
     focusStaff(id) {
