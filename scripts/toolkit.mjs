@@ -6,7 +6,7 @@
 //   npm run toolkit -- --section render      one section
 //   npm run toolkit -- --grep <text>         entries whose tool or text mentions <text>
 //   npm run toolkit -- --check               every script and check has an entry, and every entry is well formed
-//                                            (scripts/, its tool folders, the git and Claude hooks, blender/checks/)
+//                                            (scripts/, its tool folders, the reel kit, the git and Claude hooks, blender/checks/)
 // Header keys: tool (how it's run, in backticks), section (one of SECTIONS), who (optional), and
 // covers (the files the entry documents, space-separated; --check matches them against the tree).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -31,7 +31,7 @@ export const SECTIONS = {
 const TOOL_GLOBS = [
   ['scripts', /\.(sh|js|mjs)$/], ['scripts/perf', /\.js$/], ['scripts/events', /\.js$/], ['scripts/hooks/claude', /\.sh$/],
   ['scripts/lib', /\.(sh|js|mjs)$/], ['scripts/trailer', /\.js$/], ['scripts/systemd', /\.sh$/], ['scripts/feature-media', /\.(sh|js|mjs)$/],
-  ['scripts/hooks', /^[^.]+$|\.(sh|js)$/], ['scripts/trailer/vo', /\.(sh|py|js)$/],
+  ['scripts/hooks', /^[^.]+$|\.(sh|js)$/], ['scripts/trailer/vo', /\.(sh|py|js)$/], ['scripts/reels', /\.(sh|js|mjs)$/],
   ['blender/checks', /\.(mjs|js)$/],
 ];
 
