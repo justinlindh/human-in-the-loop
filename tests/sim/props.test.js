@@ -98,3 +98,20 @@ describe('lingering props', () => {
     expect(loadGame(store).state.office.props).toEqual([]);
   });
 });
+
+describe('props never change a seeded run', () => {
+  it('a game that leaves props every few weeks matches one that does not, week for week', async () => {
+    const { botDecide, botTurn } = await import('../../src/sim/bots.js');
+    const { tick, createGame } = await import('../../src/sim/index.js');
+    const a = createGame({ seed: 1 });
+    const b = createGame({ seed: 1 });
+    // Only the props themselves, and where a staged prop lands (it avoids tiles props use), may differ.
+    const strip = (s) => { const c = structuredClone(s); c.office.props = []; delete c.flags.propSeq; if (c.pendingDecision?.stage) c.pendingDecision.stage = null; return JSON.stringify(c); };
+    for (let w = 0; w < 260; w++) {
+      if (w % 5 === 0) leaveProp(b, { prop: 'pizza_boxes', until: { weeks: 3 } }, null);
+      for (const s of [a, b]) { botDecide('sensible', s); botTurn('sensible', s); tick(s); }
+      expect(strip(b), `week ${w}`).toBe(strip(a));
+    }
+    expect(b.flags.propSeq).toBeGreaterThan(40);
+  }, 120000);
+});

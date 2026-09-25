@@ -1,6 +1,5 @@
 import { B } from './balance.js';
 import { registerSystem } from './registry.js';
-import { newId } from './util.js';
 import { ITEMS } from '../data/items.js';
 import { purchaseProblem, findSpot, layoutOf, desksOf, seatTile, footprintCells } from './office.js';
 import { officeShape } from '../data/office.js';
@@ -64,7 +63,10 @@ export function grantBlocker(state, c) {
 export function leaveProp(state, leaves, stage) {
   const props = (state.office.props ??= []);
   const tile = stage && stage.x !== null ? { x: stage.x, y: stage.y } : wallTile(state);
-  props.push({ id: newId(state, 'prop'), prop: leaves.prop, x: tile.x, y: tile.y, since: state.week, until: leaves.until ?? null });
+  // Props number themselves apart from the game's shared id counter, so a cosmetic prop never shifts the
+  // ids (and so the seeded course) of everything created after it.
+  state.flags.propSeq = (state.flags.propSeq ?? 0) + 1;
+  props.push({ id: `prop${state.flags.propSeq}`, prop: leaves.prop, x: tile.x, y: tile.y, since: state.week, until: leaves.until ?? null });
   if (props.length > B.officePropsMax) props.splice(0, props.length - B.officePropsMax);
 }
 
