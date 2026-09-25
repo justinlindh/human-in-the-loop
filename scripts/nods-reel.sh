@@ -6,14 +6,15 @@
 #
 # The beats play in the order one company meets them. Each gets a title for its first seconds and
 # a short fade; the printer beat gets its music cue (public/audio/moments/printer_smash.ogg), laid
-# in where the moment starts (PRINTER_CUE_AT seconds into its clip, the hitl:moment start).
+# in where the moment starts (its hitl:moment start, marked in the capture's index.json).
 set -euo pipefail
 IN=${1:?captures dir}; OUT=${2:?output mp4}
 FONT=${3:-$(fc-match -f '%{file}' 'Fredoka:bold' 2>/dev/null || true)}
 [ -f "$FONT" ] || FONT=$(fc-match -f '%{file}' 'DejaVu Sans:bold')
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 CUE="$ROOT/public/audio/moments/printer_smash.ogg"
-PRINTER_CUE_AT=5.767
+# Where the printer moment starts, from the mark its capture saved (hitl:moment start printer_jam).
+PRINTER_CUE_AT=$(node -e "const i = require(process.argv[1]).items['nods-printer']; const m = (i.marks ?? []).find((x) => x.label === 'hitl:moment start printer_jam'); if (!m) { console.error('nods-reel: no printer_jam start mark in the capture index'); process.exit(1); } console.log(m.t)" "$(cd "$IN" && pwd)/index.json")
 BEATS=(
   "nods-printer|PC LOAD LETTER"
   "nods-saturday|About Saturday"
@@ -35,12 +36,12 @@ for b in "${BEATS[@]}"; do
   if [ "$id" = nods-printer ]; then
     ms=$(awk -v s="$PRINTER_CUE_AT" 'BEGIN { printf "%d", s * 1000 }')
     af="[1:a]adelay=$ms|$ms,apad[m];[0:a][m]amix=inputs=2:duration=first:normalize=0,afade=t=in:st=0:d=0.25,afade=t=out:st=$fo:d=0.25[a]"
-    ffmpeg -y -loglevel error -i "$src" -i "$CUE" -filter_complex "[0:v]$vf[v];$af" -map '[v]' -map '[a]' -c:v libx264 -pix_fmt yuv420p -crf 18 -r 30 -c:a aac -ar 48000 -ac 2 -b:a 160k "$TMP/b$i.mp4"
+    timeout 300 nice -n 10 ffmpeg -y -loglevel error -i "$src" -i "$CUE" -filter_complex "[0:v]$vf[v];$af" -map '[v]' -map '[a]' -c:v libx264 -pix_fmt yuv420p -crf 18 -r 30 -c:a aac -ar 48000 -ac 2 -b:a 160k "$TMP/b$i.mp4"
   else
-    ffmpeg -y -loglevel error -i "$src" -vf "$vf" -af "afade=t=in:st=0:d=0.25,afade=t=out:st=$fo:d=0.25" -c:v libx264 -pix_fmt yuv420p -crf 18 -r 30 -c:a aac -ar 48000 -ac 2 -b:a 160k "$TMP/b$i.mp4"
+    timeout 300 nice -n 10 ffmpeg -y -loglevel error -i "$src" -vf "$vf" -af "afade=t=in:st=0:d=0.25,afade=t=out:st=$fo:d=0.25" -c:v libx264 -pix_fmt yuv420p -crf 18 -r 30 -c:a aac -ar 48000 -ac 2 -b:a 160k "$TMP/b$i.mp4"
   fi
   echo "file '$TMP/b$i.mp4'" >> "$LIST"
   i=$((i + 1))
 done
-ffmpeg -y -loglevel error -f concat -safe 0 -i "$LIST" -c copy "$OUT"
+timeout 300 nice -n 10 ffmpeg -y -loglevel error -f concat -safe 0 -i "$LIST" -c copy "$OUT"
 echo "nods-reel: $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT") s -> $OUT"

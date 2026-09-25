@@ -9,7 +9,8 @@
 //   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
 // Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
 // <id>.webm (VP9, CRF 30),
-// optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
+// optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file (with any marks
+// the page pushed to window.__captureMarks: { t, label }, t in seconds into the clip).
 import { chromium } from 'playwright';
 import { holdRenderLock, launchChromium } from './lib/gl.js';
 import { spawn, execSync } from 'node:child_process';
@@ -275,6 +276,8 @@ try {
         audio = { peak: Math.round(a.peak * 1000) / 1000, rms: Math.round(a.rms * 10000) / 10000 };
       }
     }
+    // Marks a clip's page pushed to window.__captureMarks ({ t: seconds into the clip, label }).
+    const marks = await page.evaluate(() => window.__captureMarks ?? null);
     const webmFile = join(OUT, `${it.id}.webm`);
     if (!it.still && !args['no-webm']) await webm(mp4, webmFile);
     let gifFile = null;
@@ -285,7 +288,7 @@ try {
     failed ||= errors.length > 0;
     index.items[it.id] = {
       title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
-      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, build: BUILD, renderer, audio, errors: errors.length, capturedAt: new Date().toISOString(),
+      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, build: BUILD, renderer, audio, marks, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
     await ctx.close();

@@ -58,12 +58,25 @@ const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendin
 // Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
 // "Got it"), so the nod's decision card is what shows.
 const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
+// Runs the sim a week at a time (at most `max`, the bot deciding) straight through, with nothing
+// presented on the way (no launch cards, incidents or toasts), until a Yak message containing `until`
+// is in the log; then shows only the new messages that contain one of `show`. A nod's payoff weeks
+// later lands on screen now, and quietly.
+const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const H = window.__HITL, s = H.state;
+  const from = (s.chatLog ?? []).length;
+  const has = () => (s.chatLog ?? []).slice(from).some((m) => (m.text ?? '').includes(${JSON.stringify(until)}));
+  for (let i = 0; i < ${max} && !has(); i++) { b.botDecide('allHumans', s); b.botTurn('allHumans', s); sim.tick(s); }
+  b.botDecide('allHumans', s);
+  H.emit((s.chatLog ?? []).slice(from).filter((m) => ${JSON.stringify(show)}.some((k) => (m.text ?? '').includes(k))));
+})()`;
+// Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
+// the reel lays music in on the moment's own start signal.
+const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
 // Eases the camera onto a staged prop, or onto a point between two of them.
 const FOCUS_PROP = (prop, zoom) => `(() => { const R = window.__hitlRender; const p = R.props.current().find((x) => x.prop === '${prop}'); if (p) R.focusAt(p.obj.position.x, p.obj.position.z, ${zoom}); })()`;
-// Runs the sim a week at a time (at most `max`) until a Yak message containing `text` is in the log,
-// so a nod's payoff weeks later lands on screen now. Decisions raised on the way take their first
-// choice before they can show.
-const UNTIL_CHAT = (text, max) => `(() => { const H = window.__HITL; for (let i = 0; i < ${max}; i++) { if ((H.state.chatLog ?? []).some((m) => (m.text ?? '').includes(${JSON.stringify(text)}))) break; H.tickN(1); if (H.state.pendingDecision) H.dispatch({ type: 'resolveDecision', choice: 0 }); } })()`;
 const FOCUS_PRINTER = (zoom) => `(() => { const R = window.__hitlRender; const p = R.moments.printerState; if (!p) return; const a = p.route[0], b = p.route[p.route.length - 1]; R.focusAt((a.x + b.x) / 2, (a.z + b.z) / 2, ${zoom}); })()`;
 
 // Three saved companies at different stages, then back to the title.
@@ -374,6 +387,7 @@ export const ITEMS = [
     id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', seconds: 27, warmup: 0.5,
     setup: NOD('printer_jam', 400),
     actions: [
+      { at: 0, js: MARK_MOMENTS },
       { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
       { at: 0.1, js: FOCUS_PROP('printer_jammed', 2.6) },
       { at: 3.5, js: KEY('1', 'Digit1') },
@@ -395,8 +409,8 @@ export const ITEMS = [
       { at: 0.1, js: FOCUS_PROP('stapler', 3.2) },
       { at: 4, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([5, 6], { escape: false }),
-      { at: 7, js: UNTIL_CHAT('lost and found', 60) },
-      ...[7.2, 7.5, 8, 8.5, 9].map((at) => ({ at, js: CLEAR_CARDS })), { at: 7.8, js: CLICK_STARTS('#random') },
+      { at: 7, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
+      { at: 7.4, js: CLICK_STARTS('#random') },
     ],
     screenshots: [2, 10],
   },
@@ -408,22 +422,17 @@ export const ITEMS = [
       { at: 0.1, js: FOCUS_PROP('cover_sheets', 3.2) },
       { at: 4, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([5], { escape: false }),
-      { at: 6, js: UNTIL_CHAT('cover sheet on the TPS', 4) },
-      { at: 8, js: UNTIL_CHAT('printed the memo', 4) },
-      ...[8.2, 8.6, 9.2].map((at) => ({ at, js: CLEAR_CARDS })),
+      { at: 6, js: QUIET_UNTIL_CHAT('cover sheet on the TPS', ['memo', 'cover sheet'], 4) },
+      { at: 8, js: QUIET_UNTIL_CHAT('printed the memo', ['memo'], 4) },
     ],
     screenshots: [2, 11],
   },
   {
-    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', seconds: 12, warmup: 0.5,
+    // Card only until the visitor restage stages the consultants themselves.
+    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', seconds: 8, warmup: 0.5,
     setup: NOD('efficiency_consultants', 780),
-    actions: [
-      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
-      { at: 0.1, js: FOCUS_PROP('visitor_chair', 1.8) },
-      { at: 7, js: KEY('2', 'Digit2') },
-      ...DISMISS_AT([8, 9], { escape: false }),
-    ],
-    screenshots: [3, 6, 10],
+    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }],
+    screenshots: [3, 7],
   },
   {
     id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', seconds: 10, warmup: 0.5,
