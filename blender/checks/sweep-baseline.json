@@ -3,7 +3,7 @@
   {
    "key": "bounds|cable_chewed|room",
    "worst": 0.026,
-   "state": "mock:floor"
+   "state": "moment:pet_mishap"
   },
   {
    "key": "float|binder|desk",
@@ -13,12 +13,12 @@
   {
    "key": "float|desk|envelope",
    "worst": 0.02,
-   "state": "mock:floor"
+   "state": "moment:resignation_letter"
   },
   {
    "key": "float|desk|envelope_thick",
    "worst": 0.02,
-   "state": "mock:floor"
+   "state": "moment:hearing_summons"
   },
   {
    "key": "float|desk|gift_cards",
@@ -28,22 +28,22 @@
   {
    "key": "float|desk|photos_laminated",
    "worst": 0.02,
-   "state": "mock:floor"
+   "state": "moment:pet_request"
   },
   {
    "key": "float|desk|pizza_boxes",
    "worst": 0.02,
-   "state": "mock:floor"
+   "state": "moment:pizza_boxes"
   },
   {
    "key": "float|desk|smoothie",
    "worst": 0.02,
-   "state": "mock:floor"
+   "state": "moment:investor_demo_day"
   },
   {
    "key": "float|desk|sticky_notes",
    "worst": 0.02,
-   "state": "mock:floor"
+   "state": "moment:junior_overwhelmed"
   },
   {
    "key": "overlap|bookshelf/pal_fabric_slate|wall_z/pal_plastic_white",
@@ -236,6 +236,11 @@
    "state": "seed:1:w832"
   },
   {
+   "key": "person|person(walking)/head|pizza_boxes/pal_wood_light",
+   "worst": 0.024,
+   "state": "moment:hackathon"
+  },
+  {
    "key": "person|person(walking)/head|plant/pal_leaf",
    "worst": 0.099,
    "state": "seed:1:w728"
@@ -243,6 +248,21 @@
   {
    "key": "person|person|person",
    "worst": 0.173,
+   "state": "seed:1:w791"
+  },
+  {
+   "key": "self|held/held|own head",
+   "worst": 0.023,
+   "state": "moment:open_plan_office"
+  },
+  {
+   "key": "self|held/held|own torso",
+   "worst": 0.011,
+   "state": "moment:open_plan_office"
+  },
+  {
+   "key": "self|held/pal_cardboard|own torso",
+   "worst": 0.052,
    "state": "seed:1:w791"
   }
  ]

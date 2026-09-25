@@ -36,6 +36,8 @@ function createCollector({ state, known, crops, tol }) {
       if (!v.crop && at && cropped < crops && !known.includes(key)) { v.crop = X.crop(R, at); cropped++; }
       found.set(key, v);
     },
+    // The same collector, recording under another state name (a moment played in this scene).
+    at(other) { const self = this; return { ...self, add: (R, ...a) => { const s0 = state; state = other; try { self.add(R, ...a); } finally { state = s0; } }, tol }; },
     get list() { return [...found.values()]; },
     tol,
   };
@@ -80,6 +82,18 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
   for (const o of X.overlaps(ps, { tol: C.tol.person })) {
     C.add(R, 'person', t, 'person', 'person', o.depth, o.at, `${o.a.id} (${what(o.a)}) in ${o.b.id} (${what(o.b)})`);
   }
+  // What they hold or carry against their own head and torso (a printer through the carrier's head).
+  const byId = new Map(ps.map((p) => [p.id, p]));
+  for (const h of X.carried(R)) {
+    const p = byId.get(h.staffId);
+    const doing = p ? what(p) : 'still';
+    for (const o of X.crossOverlaps([h.thing], [h.body], { tol: C.tol.self })) {
+      for (const q of o.parts) {
+        const [tp, bp] = o.a === h.thing ? [q.a, q.b] : [q.b, q.a];
+        C.add(R, 'self', t, `held/${h.thing.label}`, `own ${bp}`, q.depth, o.at, `${h.staffId} (${doing}) holds ${h.thing.label}[${tp}] ${q.depth.toFixed(3)} m into their own ${bp}`);
+      }
+    }
+  }
 }
 
 // One frame as the game runs it, without drawing: world matrices refresh every frame as render()
@@ -104,7 +118,7 @@ function window_(R, S, C, { seconds, every, t0 = 0 }) {
 }
 
 // Metres. hand: the wrist sits inside the hand, so a held thing's surface is a hand's width away.
-const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02 };
+const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02, self: 0.01 };
 
 // Every staged prop the renderer can draw, put on `desks` different desks one at a time (desk
 // models vary by seat and era: monitor or laptop, plant, papers), and checked once it has popped in.
@@ -123,7 +137,55 @@ function propsPass(R, S, C, desks) {
   }
 }
 
-export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0 }) {
+// Every moment, played on purpose so none depends on a seeded game firing it: each decision event
+// with a caption (src/data/moments.js) or a staged prop opens on a person with a desk, with its prop
+// staged as the sim would, plays for `open` seconds, resolves with each of the first `choices`
+// choices (so a moment that answers the choice plays too) for `after` seconds, and is cleared. Then
+// each ambient prop moment (keyed by its prop) stands in the office for `open` seconds.
+async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every = 1 } = {}) {
+  const { EVENTS } = await import('/src/data/events.js');
+  const { MOMENT_CAPTIONS } = await import('/src/data/moments.js');
+  const { stageTile } = await import('/src/sim/props.js');
+  const ids = Object.keys(EVENTS).filter((id) => EVENTS[id].stage || (MOMENT_CAPTIONS[id] && EVENTS[id].choices));
+  const seated = S.staff.filter((p) => p.mood !== 'away' && R.perks.peek(p.id)?.seat);
+  const played = [];
+  let k = 0;
+  for (const eventId of ids) {
+    const ev = EVENTS[eventId];
+    const subject = seated[k++ % seated.length];
+    let tile = {};
+    if (ev.stage) { try { tile = stageTile(S, ev.stage.anchor, subject.id); } catch { tile = {}; } }
+    if (ev.stage && ev.stage.anchor === 'subjectDesk' && tile.x == null) {
+      const desk = S.office.placed.find((p) => p.id === R.perks.peek(subject.id).seat);
+      tile = { x: desk.x, y: desk.y };
+    }
+    for (let c = 0; c < Math.min(choices, ev.choices?.length ?? 1); c++) {
+      S.pendingDecision = { eventId, subjectId: subject.id, stage: ev.stage ? { ...ev.stage, x: tile.x ?? 4, y: tile.y ?? 0 } : null };
+      R.handleEvents([{ type: 'decision' }], S);
+      const C2 = C.at(`moment:${eventId}${choices > 1 ? `:choice${c}` : ''}`);
+      window_(R, S, C2, { seconds: open, every });
+      S.pendingDecision = null;
+      R.handleEvents([{ type: 'decisionResolved', eventId, choice: c, subjectId: subject.id }], S);
+      window_(R, S, C2, { seconds: after, every, t0: open });
+      stepWorld(R, S, 60);
+      played.push(eventId);
+    }
+  }
+  S.office.props ??= [];
+  for (const prop of Object.keys(MOMENT_CAPTIONS).filter((k2) => !EVENTS[k2] && R.props.ids.includes(k2))) {
+    const subject = seated[k++ % seated.length];
+    const desk = S.office.placed.find((p) => p.id === R.perks.peek(subject.id).seat) ?? S.office.placed[0];
+    const id = `sweep_moment_${prop}`;
+    S.office.props.push({ id, prop, x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
+    window_(R, S, C.at(`moment:${prop}`), { seconds: open, every });
+    S.office.props = S.office.props.filter((p) => p.id !== id);
+    stepWorld(R, S, 60);
+    played.push(prop);
+  }
+  return played;
+}
+
+export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0, moments = null }) {
   const R = window.__hitlRender, S = window.__HITL.state;
   R.moments.full = true;
   const C = createCollector({ state: `mock:${name}`, known, crops, tol: TOL });
@@ -131,7 +193,14 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], cr
   R.render(0);
   if (propDesks) { R.perks.hold = true; propsPass(R, S, C, propDesks); R.perks.hold = false; }
   window_(R, S, C, { seconds, every });
-  return { violations: C.list, windows: [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length }] };
+  const windows = [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length }];
+  if (moments) {
+    R.perks.hold = true;
+    const played = await momentsPass(R, S, C, { ...moments, every });
+    R.perks.hold = false;
+    windows.push({ state: `mock:${name}`, why: 'moments', played });
+  }
+  return { violations: C.list, windows };
 }
 
 export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 60, maxStaged = 6 }) {
