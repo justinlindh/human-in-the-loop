@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { tileCenter, footprint } from './layout.js';
 import { roundedBox, roundedCylinder, mesh } from './prims.js';
 import { getModel } from './models.js';
-import { mat } from './materials.js';
+import { mat, glow } from './materials.js';
 
 // Staged props (contract: Staged props): the open decision's stage prop and the lingering
 // office.props, diffed each sync. New props pop in, gone ones shrink away, on the frame clock.
@@ -1233,6 +1233,116 @@ function movingBoxes() {
   g.add(mesh(roundedBox(0.4, 0.004, 0.06, 0.001, 1), mat('paper'), 0, 0.38, 0.21));
   return g;
 }
+// A would-be mentor's hand-painted sign on a gallows post: INCUBATOR in uneven brush letters.
+const incubatorBoard = () => canvasTex('house_sign', 512, 200, (ctx, W, H) => {
+  ctx.fillStyle = P.wood_honey; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = P.wood_dark; ctx.lineWidth = 3;
+  for (let y = 34; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(W * 0.3, y + 6, W * 0.6, y - 5, W, y + 3); ctx.stroke(); }
+  ctx.fillStyle = P.paper_sheet; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  ctx.font = '900 68px sans-serif';
+  // Letter by letter, each a little off, as if painted by someone confident and in a hurry.
+  const word = 'INCUBATOR';
+  word.split('').forEach((ch, i) => {
+    ctx.save();
+    ctx.translate(46 + i * 52, H * 0.46 + ((i * 7) % 5 - 2) * 3);
+    ctx.rotate(((i * 13) % 7 - 3) * 0.025);
+    ctx.fillText(ch, 0, 0);
+    ctx.restore();
+  });
+  // A drip under the second I, and the underline that ran out of paint.
+  ctx.fillRect(44, H * 0.64, 6, 26);
+  ctx.strokeStyle = P.paper_sheet; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(40, H * 0.84); ctx.lineTo(W * 0.62, H * 0.82); ctx.stroke();
+});
+function houseSign() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.08, 1.35, 0.08, 0.015, 2), mat('wood_dark'), 0, 0.675, 0));
+  g.add(mesh(roundedBox(0.7, 0.06, 0.06, 0.012, 2), mat('wood_dark'), 0.32, 1.3, 0));
+  const board = new THREE.Group();
+  board.position.set(0.36, 1.02, 0);
+  board.rotation.z = 0.04;
+  board.add(mesh(roundedBox(0.66, 0.28, 0.035, 0.012, 2), mat('wood_honey'), 0, 0, 0));
+  for (const sz of [-1, 1]) {
+    const face = new THREE.Mesh(plane(0.62, 0.24), flatMat(incubatorBoard(), 0.8));
+    face.position.z = sz * 0.019;
+    if (sz < 0) face.rotation.y = Math.PI;
+    face.userData.noAO = true;
+    board.add(face);
+  }
+  for (const sx of [-0.26, 0.26]) board.add(mesh(roundedBox(0.012, 0.16, 0.012, 0.004, 1), mat('metal_soft'), sx, 0.2, 0));
+  g.add(board);
+  return g;
+}
+// The rival's keynote poster: a brushed aluminium cube floating on a gradient, and very little else.
+const boxPoster = () => canvasTex('box_poster', 480, 640, (ctx, W, H) => {
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, P.fabric_slate); bg.addColorStop(1, P.ink);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = H * 0.42, s = 120;
+  const face = (pts, a, b) => {
+    const gr = ctx.createLinearGradient(pts[0][0], pts[0][1], pts[2][0], pts[2][1]);
+    gr.addColorStop(0, a); gr.addColorStop(1, b);
+    ctx.fillStyle = gr; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.fill();
+  };
+  const top = [[cx, cy - s], [cx + s * 0.87, cy - s / 2], [cx, cy], [cx - s * 0.87, cy - s / 2]];
+  const left = [[cx - s * 0.87, cy - s / 2], [cx, cy], [cx, cy + s], [cx - s * 0.87, cy + s / 2]];
+  const right = [[cx, cy], [cx + s * 0.87, cy - s / 2], [cx + s * 0.87, cy + s / 2], [cx, cy + s]];
+  face(top, P.plastic_white, P.metal_soft);
+  face(left, P.metal_soft, P.fabric_slate);
+  face(right, P.plastic_white, P.metal_soft);
+  // A soft glow under it, as if it hovers.
+  const glow = ctx.createRadialGradient(cx, cy + s * 1.35, 4, cx, cy + s * 1.35, s);
+  glow.addColorStop(0, 'rgba(242,236,225,0.45)'); glow.addColorStop(1, 'rgba(242,236,225,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, cy + s, W, s * 0.8);
+  ctx.fillStyle = P.plastic_white; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '300 64px sans-serif'; ctx.fillText('The Box', cx, H * 0.82);
+  ctx.font = '400 22px sans-serif'; ctx.globalAlpha = 0.7; ctx.fillText('It is a box.', cx, H * 0.9);
+});
+// A small brushed aluminium cube left on a desk: the company's own box.
+function boxCube() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.13, 0.13, 0.13, 0.018, 3), mat('metal_soft'), 0, 0.065, 0));
+  const led = mesh(roundedBox(0.05, 0.006, 0.004, 0.002, 1), glow('led_green', 3), 0, 0.04, 0.066);
+  led.userData.noAO = true;
+  g.add(led);
+  return g;
+}
+// Pallets of shrink-wrapped oat milk cartons, the kind that fill a lobby: slatted pallets, cartons
+// stacked three high, and a glossy wrap round each stack.
+const cartonsTex = () => canvasTex('oat_cartons', 256, 256, (ctx, W, H) => {
+  ctx.fillStyle = P.plastic_white; ctx.fillRect(0, 0, W, H);
+  const cw = W / 3, ch = H / 3;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    const x = i * cw, y = j * ch;
+    ctx.fillStyle = P.fabric_mustard; ctx.fillRect(x + 6, y + ch * 0.5, cw - 12, ch * 0.28);
+    ctx.fillStyle = P.fabric_teal; ctx.font = '800 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('OAT', x + cw / 2, y + ch * 0.3);
+    ctx.strokeStyle = P.metal_soft; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cw - 3, ch - 3);
+  }
+});
+let wrapMat = null;
+function oatMilk() {
+  const g = new THREE.Group();
+  wrapMat ??= new THREE.MeshStandardMaterial({ color: new THREE.Color(P.glass), roughness: 0.15, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false });
+  for (const [px, pz, rot] of [[-0.44, 0, 0.04], [0.44, 0.06, -0.06]]) {
+    const pal = new THREE.Group();
+    pal.position.set(px, 0, pz);
+    pal.rotation.y = rot;
+    for (const sx of [-0.3, 0, 0.3]) pal.add(mesh(roundedBox(0.12, 0.08, 0.6, 0.012, 1), mat('wood_honey'), sx, 0.04, 0));
+    for (const sz of [-0.25, 0, 0.25]) pal.add(mesh(roundedBox(0.8, 0.03, 0.1, 0.008, 1), mat('wood_honey'), 0, 0.095, sz));
+    const stack = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.66, 0.54), flatMat(cartonsTex(), 0.8));
+    stack.geometry.userData.own = true;
+    stack.position.y = 0.11 + 0.33;
+    stack.castShadow = stack.receiveShadow = true;
+    pal.add(stack);
+    const wrap = mesh(roundedBox(0.77, 0.69, 0.57, 0.04, 2), wrapMat, 0, 0.11 + 0.345, 0);
+    wrap.castShadow = false;
+    wrap.userData.noAO = true;
+    pal.add(wrap);
+    g.add(pal);
+  }
+  return g;
+}
 // An oversized novelty cheque: the hackathon prize, to the winner, the amount left blank.
 const cheque = () => canvasTex('giant_cheque', 1024, 440, (ctx, W, H) => {
   ctx.fillStyle = '#e9f1e4'; ctx.fillRect(0, 0, W, H);
@@ -1317,6 +1427,10 @@ const BUILDERS = {
   mug_bucket: onFloor(mugBucket, { x: 0.95, z: 0.05, rot: -0.4 }),
   mug_typo: wallThing(mugShelf, { w: 1.0, y: 1.15, scale: 1.8 }),
   moving_boxes: onFloor(movingBoxes, { x: 0.9, z: 0.2, rot: 0.3, scale: 1.1 }),
+  house_sign: onFloor(houseSign, { x: 0.9, z: 0.3, rot: Math.PI / 4, scale: 1.3 }),
+  box_poster: wallPrint(boxPoster, { w: 0.84, h: 1.12, tilt: 0, y: 1.55 }),
+  box_cube: atDesk(boxCube, { x: FLAT.x, z: FLAT.z, rot: 0.5, scale: 1.8 }),
+  oat_milk: onFloor(oatMilk, { x: 0.9, z: 0.2, rot: 0.2 }),
   giant_cheque: wallPrint(cheque, { w: 1.6, h: 0.69, tilt: 0.02, y: 1.5 }),
   swag_box: onFloor(swagBox, { x: 0.9, z: 0.25, rot: -0.3, scale: 1.25 }),
   french_press: onFloor(frenchPress, { x: 0.9, z: 0.2, rot: 0.2, scale: 1.3 }),
