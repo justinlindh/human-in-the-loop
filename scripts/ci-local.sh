@@ -63,6 +63,9 @@ if git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null 
   && bal_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)"; then
   bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
 fi
+# Vitest defaults to a worker per core, so a few runs at once (several PRs gating, or balance beside
+# test:fast) oversubscribe the machine and slow bot-run tests past their timeout. Each run takes a share.
+VITEST_WORKERS="${VITEST_WORKERS:-$(( $(nproc) / 3 > 4 ? $(nproc) / 3 : 4 ))}"
 bal_t0=$(now); bal_pid=""
 if [ "$bal_mode" = light ]; then
   echo "test:balance: skipped: no sim changes"
@@ -71,7 +74,7 @@ else
   bal_pid=$!
 fi
 
-step test:fast npm run test:fast
+step test:fast npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 step build npm run build
 step lifecycle npm run lifecycle -- --quality low --no-shots
 step soak npm run soak
