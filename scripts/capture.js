@@ -9,7 +9,8 @@
 //   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
 // Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
 // <id>.webm (VP9, CRF 30),
-// optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file.
+// optional <id>.gif, screenshots <id>-<t>s.png, and index.json describing every file (with any marks
+// the page pushed to window.__captureMarks: { t, label }, t in seconds into the clip).
 import { chromium } from 'playwright';
 import { holdRenderLock, launchChromium } from './lib/gl.js';
 import { spawn, execSync } from 'node:child_process';
@@ -242,6 +243,24 @@ try {
     });
     if (it.hideUi) await page.addStyleTag({ content: '#ui { display: none !important; }' });
     if (audioSeconds) await page.evaluate(() => dispatchEvent(new Event('pointerdown')));   // the engine starts sound on a first input
+    // An item with `moment` (a find query, scripts/events/find.js) opens at that indexed moment: its
+    // snapshot is loaded through the game's own save, decision open and prop staged, before setup runs.
+    // Its query should start a game (seed=N), so the title is not showing when the load takes over.
+    let moment = null;
+    if (it.moment) {
+      const { resolveTarget, snapshotEntries } = await import('./events/load.js');
+      const target = resolveTarget({ event: it.moment });
+      const entries = await snapshotEntries(target.file);
+      const r = await page.evaluate((list) => {
+        for (const [k, v] of list) localStorage.setItem(k, v);
+        const res = window.__HITL.controls.continueGame();
+        // A load does not announce the open decision the way the sim's week did; announce it again.
+        if (res.ok && window.__HITL.state.pendingDecision) window.__HITL.emit([{ type: 'decision' }]);
+        return res;
+      }, entries);
+      if (!r.ok) throw new Error(`${it.id}: could not open the moment "${it.moment}"`);
+      moment = target.row && { query: it.moment, seed: target.row.seed, bot: target.row.bot, week: target.row.week };
+    }
     if (it.setup) await page.evaluate(it.setup);
     for (let i = 0; i < Math.round((it.warmup ?? 1) * FPS); i++) await page.evaluate(() => window.__capture.frame());
 
@@ -275,6 +294,8 @@ try {
         audio = { peak: Math.round(a.peak * 1000) / 1000, rms: Math.round(a.rms * 10000) / 10000 };
       }
     }
+    // Marks a clip's page pushed to window.__captureMarks ({ t: seconds into the clip, label }).
+    const marks = await page.evaluate(() => window.__captureMarks ?? null);
     const webmFile = join(OUT, `${it.id}.webm`);
     if (!it.still && !args['no-webm']) await webm(mp4, webmFile);
     let gifFile = null;
@@ -285,7 +306,7 @@ try {
     failed ||= errors.length > 0;
     index.items[it.id] = {
       title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
-      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, build: BUILD, renderer, audio, errors: errors.length, capturedAt: new Date().toISOString(),
+      seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, moment, build: BUILD, renderer, audio, marks, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
     await ctx.close();

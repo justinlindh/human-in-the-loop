@@ -2,7 +2,8 @@
 // (docs/superpowers/specs/2026-09-24-review-session-plan.md). Each item:
 //   id, title, query (URL params: mock=<scenario> or seed=N, speed, time, ...), seconds, seed (for
 //   the page's Math.random), warmup (seconds run before recording starts), hideUi, gif,
-//   still (screenshots only, no video), setup (page JS run once after boot, may be async),
+//   still (screenshots only, no video), moment (a find query, scripts/events/find.js: the item opens
+//   at that indexed moment, its decision open), setup (page JS run once after boot, may be async),
 //   actions ([{ at: seconds, js }] run during the clip), screenshots ([seconds] saved as PNG), sound (an
 //   item made for --audio).
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
@@ -51,6 +52,37 @@ const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, 
   ${after}
   ${IDLE};
 })()`;
+
+// Office Space nods (group 'nods', #383): each opens at an indexed moment where its decision is
+// raised (the event index follows the sim code, so a history that shifts still finds one); the card
+// shows, a choice is made, and the camera frames what it stages. A nod that stages nothing has no
+// snapshot in the index, so it fast-forwards seed 1 with the allHumans bot to its decision instead.
+const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendingDecision?.eventId === '${eventId}'`, keepDecision: true, minWeeks: 1e9 });
+// Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
+// "Got it"), so the nod's decision card is what shows.
+const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
+// Runs the sim a week at a time (at most `max`, the bot deciding) straight through, with nothing
+// presented on the way (no launch cards, incidents or toasts), until a Yak message containing `until`
+// is in the log; then shows only the new messages that contain one of `show`. A nod's payoff weeks
+// later lands on screen now, and quietly.
+const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const H = window.__HITL, s = H.state;
+  // New messages by week: the log is capped, so its length stops growing once it is full.
+  const w0 = s.week;
+  const fresh = () => (s.chatLog ?? []).filter((m) => m.week >= w0);
+  const has = () => fresh().some((m) => (m.text ?? '').includes(${JSON.stringify(until)}));
+  for (let i = 0; i < ${max} && !has(); i++) { b.botDecide('allHumans', s); b.botTurn('allHumans', s); sim.tick(s); }
+  b.botDecide('allHumans', s);
+  H.emit(fresh().filter((m) => ${JSON.stringify(show)}.some((k) => (m.text ?? '').includes(k))));
+})()`;
+// Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
+// the reel lays music in on the moment's own start signal.
+const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
+// Eases the camera onto a staged prop, or onto a point between two of them.
+const FOCUS_PROP = (prop, zoom) => `(() => { const R = window.__hitlRender; const p = R.props.current().find((x) => x.prop === '${prop}'); if (p) R.focusAt(p.obj.position.x, p.obj.position.z, ${zoom}); })()`;
+const FOCUS_PRINTER = (zoom, end = false) => `(() => { const R = window.__hitlRender; const p = R.moments.printerState; if (!p) return; const a = p.route[0], b = p.route[p.route.length - 1]; if (${end}) R.focusAt(b.x, b.z, ${zoom}); else R.focusAt((a.x + b.x) / 2, (a.z + b.z) / 2, ${zoom}); })()`;
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -356,6 +388,66 @@ export const ITEMS = [
 
   // README (group 'readme'): hero stills at 1920x1080 with the UI, from real seeded games so every
   // shot is internally consistent (date, era, effects, goals), plus one short loop.
+  {
+    id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor', seconds: 27, warmup: 0.5,
+    actions: [
+      { at: 0, js: MARK_MOMENTS },
+      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
+      { at: 0.1, js: FOCUS_PROP('printer_jammed', 2.6) },
+      { at: 3.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([4.5, 5.5, 6.5], { escape: false }),
+      { at: 4, js: FOCUS_PRINTER(2.0) },
+      // In on the set-down spot as the carry reaches it (the cue's set-down is 8.1 s after its start).
+      { at: 12, js: FOCUS_PRINTER(2.6, true) },
+    ],
+    screenshots: [2, 12, 20],
+  },  {
+    id: 'nods-saturday', group: 'nods', title: 'About Saturday', query: 'seed=1&speed=1', setup: NOD('saturday_ask', 1040), seconds: 9, warmup: 0.5,
+    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }, ...[5.4, 6, 7].map((at) => ({ at, js: CLEAR_CARDS }))],
+    screenshots: [3, 7],
+  },
+  {
+    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', seconds: 12, warmup: 0.5,
+    actions: [
+      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
+      { at: 0.1, js: FOCUS_PROP('stapler', 3.2) },
+      { at: 4, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([5, 6], { escape: false }),
+      { at: 7, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
+      { at: 7.4, js: CLICK_STARTS('#random') },
+    ],
+    screenshots: [2, 10],
+  },
+  {
+    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', seconds: 13, warmup: 0.5,
+    actions: [
+      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
+      { at: 0.1, js: FOCUS_PROP('cover_sheets', 3.2) },
+      { at: 4, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([5], { escape: false }),
+      { at: 6, js: QUIET_UNTIL_CHAT('cover sheet on the TPS', ['memo', 'cover sheet'], 4) },
+      { at: 8, js: QUIET_UNTIL_CHAT('printed the memo', ['memo'], 4) },
+    ],
+    screenshots: [2, 11],
+  },
+  {
+    // Card only until the visitor restage stages the consultants themselves.
+    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', seconds: 8, warmup: 0.5,
+    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 5, js: KEY('2', 'Digit2') }],
+    screenshots: [3, 7],
+  },
+  {
+    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', seconds: 10, warmup: 0.5,
+    actions: [
+      { at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS },
+      ...[0.1, 0.6, 1.2].map((at) => ({ at, js: FOCUS_PROP('banner_company', 3) })),
+      { at: 4, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([5, 6], { escape: false }),
+      ...[5.5, 6].map((at) => ({ at, js: FOCUS_PROP('banner_company', 5) })),
+    ],
+    screenshots: [2, 8],
+  },
+
   {
     id: 'readme-garage', group: 'readme', title: 'The garage opening: founders and the first desks', query: 'seed=1&speed=1', still: true,
     setup: PLAY({ weeks: 1 }), warmup: 3,
