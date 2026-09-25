@@ -29,6 +29,7 @@ const PERKS = {
 // in Blender). seat: the seat height to sit on; look: a model-space point to face; yaw: a fixed
 // model-space facing. These override the generic footprint spots for that model.
 const SEAT_HIP_Y = 0.47;
+const GATHER_SLACK = 4;          // seconds a pair game waits past the longer walk before giving up
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const MODEL_SPOTS = {
   arcade_l1: [{ x: 0.55, z: 0.1, anim: 'sprawl', look: [0, -0.1] }],
@@ -281,13 +282,17 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
 
   function startPair(slot, a, b) {
     const { e, def } = slot;
-    const s = { e, def, a, b, phase: 'gather', t: 0, dur: rnd(...def.dur), ball: null };
+    const s = { e, def, a, b, phase: 'gather', t: 0, dur: rnd(...def.dur), ball: null, limit: 0 };
     [a, b].forEach((r, i) => {
       const key = `${e.id}:${i}`;
       slots.set(key, r);
       const spot = spotFor(e, def, i);
       r.temp = { anim: 'idle', t: Infinity, goal: spot, back: true, wander: true, perkKey: key, pair: s };
       walkTo(r, spot);
+      // Long enough for the longer walk there, with room for a detour round someone in the way.
+      let len = 0, at = r.pos;
+      for (const q of r.path) { len += Math.hypot(q.x - at.x, q.z - at.z); at = q; }
+      s.limit = Math.max(s.limit, len / Math.max(0.3, r.speed ?? 1) * 1.5 + GATHER_SLACK);
     });
     sessions.push(s);
   }
@@ -316,11 +321,11 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
       s.t += dt;
       if (s.phase === 'gather') {
         if (!s.a.path.length && !s.b.path.length) {
-          s.phase = 'play'; s.t = 0;
+          s.phase = 'play'; s.t = 0; played++;
           announceUse(s.e, [s.a.id, s.b.id]);
           s.a.temp.anim = s.b.temp.anim = s.def.anim;
           if (s.def === PERKS.pingpong) { s.ball = new THREE.Mesh(ballGeo, mat('paper')); s.ball.castShadow = true; parent.add(s.ball); }
-        } else if (s.t > 12) { endPair(s, false); sessions.splice(i, 1); }
+        } else if (s.t > s.limit) { endPair(s, false); sessions.splice(i, 1); }
         continue;
       }
       if (s.ball) {
@@ -372,18 +377,23 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     const r = pickWeighted(pool, (x) => weightOf(x, crunch));
     let free = freeSlots();
     if (r.staff.mood === 'burnout') free = free.filter((s) => s.def.rest);
-    const partners = pool.filter((x) => x !== r && x.staff.mood !== 'burnout');
-    if (visiting + 1 >= max || !partners.length) free = free.filter((s) => !s.def.pair);
+    // A partner may be on their way back to their seat: the game redirects them to the table.
+    const partners = people.filter((x) => x !== r && x.mode === 'placed' && !x.temp && x.staff.mood !== 'burnout' && x.staff.mood !== 'away');
+    // A pair may take the office one over the cap, so a small team (two founders) still plays.
+    if (!partners.length) free = free.filter((s) => !s.def.pair);
     if (!free.length) return;
     const slot = pickWeighted(free, (s) => s.def.weight);
     if (slot.def.pair) {
-      const b = partners.sort((p, q) => p.pos.distanceToSquared(r.pos) - q.pos.distanceToSquared(r.pos))[0];
+      // The partner nearest the table, so neither walk is a long one.
+      const at = slot.e.obj.position;
+      const b = partners.sort((p, q) => p.pos.distanceToSquared(at) - q.pos.distanceToSquared(at))[0];
       startPair(slot, r, b);
     } else {
       visit(r, slot);
     }
   }
 
+  let played = 0;
   // Test hook: while held, nobody starts a new visit (visits sent with send() still run).
   let held = false;
 
@@ -407,6 +417,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     update, reset,
     get visiting() { return [...recs.values()].filter((r) => r.temp?.perkKey).length; },
     get sessions() { return sessions.length; },
+    // Pair games that got as far as playing, since the renderer started (for checks).
+    get played() { return played; },
     set hold(on) { held = !!on; },
     peek(id) { const r = recs.get(id); return r && { seat: r.seat, yaw: r.yaw, face: r.face ?? null, path: r.path.length, exitFrom: r.exitFrom ?? null, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
     get phases() { return sessions.map((x) => `${x.phase}:${x.t.toFixed(1)}/${x.dur.toFixed(1)}`); },

@@ -674,3 +674,31 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
   R.perks.hold = false;
   return results;
 }
+
+// Pair perks start on their own: a foosball table on a free tile with room round it, and nobody sent
+// there. Passes once a pair game reaches play within maxSeconds of game time.
+export async function runPairCheck(R, S, label, { maxSeconds = 480, dt = 1 / 30 } = {}) {
+  const { footprint } = await import('./layout.js');
+  const L = R.office.current.L;
+  const used = new Set();
+  const mark = (p) => { const f = footprint(p.itemId, p.rot ?? 0); for (let x = 0; x < f.w; x++) for (let y = 0; y < f.h; y++) used.add(`${p.x + x},${p.y + y}`); };
+  S.office.placed.forEach(mark);
+  for (const [x, y] of L.blocked) used.add(`${x},${y}`);
+  const f = footprint('foosball', 0);
+  let spot = null;
+  for (let y = 2; y < L.grid.h - f.h - 1 && !spot; y++) for (let x = 1; x < L.grid.w - f.w - 1 && !spot; x++) {
+    let ok = true;
+    for (let i = -1; i <= f.w && ok; i++) for (let j = -1; j <= f.h && ok; j++) if (used.has(`${x + i},${y + j}`)) ok = false;
+    if (ok) spot = { x, y };
+  }
+  if (!spot) return { name: `pairs:${label}`, pass: false, why: 'no free tile for the table' };
+  S.office.placed.push({ id: 'pair_table', itemId: 'foosball', level: 1, ...spot, rot: 0 });
+  const before = R.perks.played;
+  R.perks.hold = false;
+  let t = 0;
+  for (; t < maxSeconds && R.perks.played === before; t += dt * 5) for (let k = 0; k < 5; k++) { window.__tick?.(1000 * dt); R.sync(S); R.advance(dt); }
+  const played = R.perks.played - before;
+  S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
+  for (let i = 0; i < 30; i++) { R.sync(S); R.advance(dt); }
+  return { name: `pairs:${label}`, pass: played > 0, staff: S.staff.length, startedAfter: played > 0 ? +t.toFixed(1) : null, table: spot };
+}
