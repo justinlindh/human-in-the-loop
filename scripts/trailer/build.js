@@ -3,7 +3,8 @@
 //
 // npm run trailer                                  capture, then build shots/trailer/trailer.mp4
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
-//   [--out shots/trailer] [--reuse] [--vertical] [--no-captions] [--print-vo] [--software]
+//   [--out shots/trailer] [--reuse] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
+// --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -77,7 +78,8 @@ const { ITEMS: CAPTURE_ITEMS } = await import('./manifest.js');
 const keyOf = (b) => createHash('sha256').update(`${commit}\n${JSON.stringify(CAPTURE_ITEMS.find((it) => it.id === `trailer-${b.id}`))}`).digest('hex');
 const keyFile = (b) => join(CLIPS, `trailer-${b.id}.key`);
 const fresh = (b) => { const i = captured()[`trailer-${b.id}`]; return i && i.errors === 0 && existsSync(join(CLIPS, `trailer-${b.id}.mp4`)) && existsSync(keyFile(b)) && readFileSync(keyFile(b), 'utf8') === keyOf(b); };
-const todo = args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
+const AUDIO_ONLY = !!args['audio-only'];
+const todo = AUDIO_ONLY ? [] : args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
   mkdirSync(dirname(RENDER_LOCK), { recursive: true });
@@ -86,7 +88,7 @@ if (todo.length) {
   { timeout: CAPTURE_TIMEOUT_S });
   for (const b of todo) writeFileSync(keyFile(b), keyOf(b));
 }
-for (const b of clipBeats) {
+for (const b of AUDIO_ONLY ? [] : clipBeats) {
   const len = probeSeconds(join(CLIPS, `trailer-${b.id}.mp4`));
   if (b.from + b.dur > len + 1e-3) throw new Error(`trailer: beat ${b.id} cuts ${b.from}s to ${b.from + b.dur}s from a ${len.toFixed(2)}s clip`);
 }
@@ -111,7 +113,8 @@ const gfx = await renderGraphics({ dir: GFX, cards: CARDS, lines, output: VERTIC
 
 // 4. Audio mix: music bed, swaps and stingers, ducked under the voiceover, then loudness-normalized.
 const f = (n) => n.toFixed(3);
-function audioGraph() {
+// With `stem`, the graph also outputs [stem]: the music as it sits in the mix (ducked), without the voice.
+function audioGraph({ stem = false } = {}) {
   const inputs = [];
   const chains = [];
   const music = [];
@@ -138,14 +141,20 @@ function audioGraph() {
   chains.push(`${music.join('')}amix=inputs=${music.length}:normalize=0:duration=first[music]`);
   const voiced = lines.filter((l) => l.file);
   let tail = '[music]';
+  if (stem && !voiced.length) { chains.push('[music]asplit=2[music1][stem]'); tail = '[music1]'; }
   if (voiced.length) {
     voiced.forEach((l, i) => {
       const n = add(['-i', l.file]);
       chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${VO.gain}dB,adelay=${Math.round(l.start * 1000)}:all=1,apad,atrim=0:${f(total)}[vo${i}]`);
     });
-    chains.push(`${voiced.map((_, i) => `[vo${i}]`).join('')}amix=inputs=${voiced.length}:normalize=0:duration=first,asplit=2[vokey][vo]`);
+    chains.push(`${voiced.map((_, i) => `[vo${i}]`).join('')}amix=inputs=${voiced.length}:normalize=0:duration=first[vo]`);
+    // The music dips by duck.db under each line: it ramps down over duck.attack before the line starts
+    // and back up over duck.release after it ends. A gain envelope, not a compressor, so it never pumps.
+    // Without `duck`, the music stays at one constant level under the voice.
     const d = MUSIC.duck;
-    chains.push(`[music][vokey]sidechaincompress=threshold=${d.threshold}:ratio=${d.ratio}:attack=${d.attack}:release=${d.release}[ducked]`);
+    const under = d ? voiced.map((l) => `clip((t-${f(l.start - d.attack)})/${f(d.attack)},0,1)*clip((${f(l.start + l.len + d.release)}-t)/${f(d.release)},0,1)`).join('+') : '';
+    const dip = d ? `volume='1-${(1 - 10 ** (d.db / 20)).toFixed(4)}*min(1,${under})':eval=frame` : 'anull';
+    chains.push(`[music]${dip}${stem ? ',asplit=2[ducked][stem]' : '[ducked]'}`);
     chains.push('[ducked][vo]amix=inputs=2:normalize=0:duration=first[premix]');
     tail = '[premix]';
   }
@@ -160,8 +169,14 @@ const mixWav = join(OUT, 'mix.wav');
   const log = await run('ffmpeg', ['-y', '-hide_banner', '-nostats', ...inputs, '-filter_complex', `${graph};[mix]loudnorm=${target}:print_format=json[out]`, '-map', '[out]', '-f', 'null', '-'], { timeout: FFMPEG_TIMEOUT_S, quiet: true });
   const m = JSON.parse(log.slice(log.lastIndexOf('{'), log.lastIndexOf('}') + 1));
   const second = `loudnorm=${target}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
-  await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...inputs, '-filter_complex', `${graph};[mix]${second},aresample=48000[out]`, '-map', '[out]', '-t', f(total), '-c:a', 'pcm_s16le', mixWav], { timeout: FFMPEG_TIMEOUT_S });
+  // The same gain goes on the music stem (music-stem.wav), for checking the bed on its own.
+  const withStem = audioGraph({ stem: true });
+  const gain = `volume=${(OUTPUT.lufs - Number(m.input_i)).toFixed(2)}dB`;
+  await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...withStem.inputs, '-filter_complex', `${withStem.graph};[mix]${second},aresample=48000[out];[stem]${gain},aresample=48000[stemout]`,
+    '-map', '[out]', '-t', f(total), '-c:a', 'pcm_s16le', mixWav, '-map', '[stemout]', '-t', f(total), '-c:a', 'pcm_s16le', join(OUT, 'music-stem.wav')], { timeout: FFMPEG_TIMEOUT_S });
 }
+
+if (AUDIO_ONLY) { console.log(`trailer: ${mixWav}`); process.exit(0); }
 
 // 5. Video. Each beat becomes one input, normalized, then everything is concatenated and captioned.
 function videoGraph(vertical) {

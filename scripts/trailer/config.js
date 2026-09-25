@@ -45,25 +45,18 @@ export const BEATS = [
 
 // Paths are relative to the repo root. `at` is seconds from the start of the trailer, or
 // { beat, offset } to follow a beat wherever it lands.
+// The music is one bed at a constant level under the whole trailer (looped if the trailer is longer).
+// Optional: `swaps` (tracks that replace the bed for a stretch, crossfaded over `fade`), `stingers`, and
+// `duck` ({ db, attack, release }: a dip under each narrator line).
 export const MUSIC = {
-  bed: { file: 'public/audio/music/title/a_full.ogg', gain: -8, fadeIn: 0.3 },
-  // Tracks that replace the bed for a stretch, crossfaded in and out.
-  swaps: [
-    { file: 'public/audio/music_night/corporate_synthwave.ogg', at: { beat: 'dance', offset: 0 }, until: { beat: 'yak', offset: 0 }, seek: 2.0, gain: -6, fade: 0.25 },
-  ],
-  stingers: [
-    { file: 'public/audio/stingers/office.ogg', at: { beat: 'office', offset: 0.1 }, gain: -6 },
-    { file: 'public/audio/stingers/launch.ogg', at: { beat: 'launch', offset: 0.0 }, gain: -6 },
-    { file: 'public/audio/stingers/era.ogg', at: { beat: 'era-chatgbt', offset: 0.0 }, gain: -8 },
-    { file: 'public/audio/stingers/era.ogg', at: { beat: 'era-agents', offset: 0.0 }, gain: -8 },
-    { file: 'public/audio/stingers/era.ogg', at: { beat: 'era-consolidation', offset: 0.0 }, gain: -8 },
-    { file: 'public/audio/stingers/waffle.ogg', at: { beat: 'waffle', offset: 0.0 }, gain: -8 },
-    { file: 'public/audio/stingers/win.ogg', at: { beat: 'end', offset: 0.0 }, gain: -6 },
-  ],
-  // How far the music drops while the narrator speaks.
-  duck: { threshold: 0.03, ratio: 8, attack: 20, release: 350 },
-  fadeOut: 1.2,
+  bed: { file: 'public/audio/music/title/a_full.ogg', gain: -14, fadeIn: 0.3 },
+  swaps: [],
+  stingers: [],
+  duck: null,
+  fadeOut: 1.5,
 };
+
+
 
 // The narration. `file` is the rendered line in the VO directory (build.js --vo); `text` doubles as
 // the burned-in caption and the TTS script (scripts/trailer/vo.py reads it through `npm run trailer -- --print-vo`).
