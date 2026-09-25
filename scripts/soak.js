@@ -4,7 +4,7 @@
 // npm run soak -- [--weeks 24] [--seed 1] [--quality low]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { launchChromium } from './lib/gl.js';
+import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
 
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
@@ -19,10 +19,13 @@ const RUNS = [
   { name: `real seed ${SEED} 1x`, query: `seed=${SEED}`, speed: 1 },
 ];
 
+// Renders under the render lock for its GL mode (a GPU slot, or the software lock).
+const GL = glMode();
+holdRenderLock(GL);
 const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const { browser } = await launchChromium(chromium, { label: 'soak' });
+const { browser } = await launchChromium(chromium, { mode: GL, label: 'soak' });
 let failed = false;
 
 try {

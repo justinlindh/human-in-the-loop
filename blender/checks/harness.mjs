@@ -6,7 +6,7 @@
 // window.__step(n), which advances the clock by 1/30 s per frame. A run depends only on the code.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { glMode, launchChromium } from '../../scripts/lib/gl.js';
+import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
 
 const INIT = `(() => {
   let s = 1234567;
@@ -39,6 +39,8 @@ async function launch(gpu) {
 // GPU process, so SwiftShader work from concurrent pages queues behind each other; checks that run
 // scenes in parallel pass their job count here. openScene's `slot` picks the browser.
 export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
+  // Every check renders under the render lock for its mode: a GPU slot, or the software lock.
+  holdRenderLock(gpu ? 'gpu' : 'software');
   const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];

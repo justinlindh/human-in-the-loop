@@ -78,6 +78,14 @@ status() {
 }
 
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head"
+# Local CI runs this checkout's scripts, so a checkout whose scripts differ from the base branch would
+# gate the PR with old or unmerged checks. A posting run refuses; a local check only warns.
+if ! git -C "$REPO" diff --quiet HEAD "origin/$base" -- scripts/ .github/; then
+  behind="$(git -C "$REPO" rev-list --count "HEAD..origin/$base")"
+  msg="ci-pr: this checkout's scripts differ from origin/$base ($behind commits behind); update it with git pull --ff-only, or run from a checkout of origin/$base"
+  if [ "$comment" = 1 ]; then echo "$msg; not running it" >&2; exit 2; fi
+  echo "$msg (a local check, so running anyway)" >&2
+fi
 [ "$(git -C "$REPO" rev-parse "refs/ci/pr-$pr/head")" = "$head" ] \
   || { echo "ci-pr: refs/pull/$pr/head is not yet $head; try again shortly" >&2; exit 2; }
 # The head must also be the tip of the PR's branch in this repository, not only a pull ref.
