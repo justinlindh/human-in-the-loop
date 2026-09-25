@@ -107,6 +107,9 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
+    # The runners have no GPU; local runs default to it (scripts/lib/gl.js).
+    env:
+      HITL_GL: software
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
