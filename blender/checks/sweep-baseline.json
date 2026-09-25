@@ -265,18 +265,6 @@
    "issue": 381
   },
   {
-   "key": "screen|bubble|emote",
-   "worst": 1,
-   "state": "seed:1:w520",
-   "issue": 388
-  },
-  {
-   "key": "screen|bubble|face",
-   "worst": 1,
-   "state": "seed:1:w136",
-   "issue": 388
-  },
-  {
    "key": "self|held/held|own head",
    "worst": 0.023,
    "state": "moment:open_plan_office",
