@@ -272,7 +272,8 @@ const CHECKS = {
     // A long toast: if it is cut off, it shows a cue and opens in full after one tap.
     const longText = 'A very long message from the office that will not fit on one line on a phone, so it has to open when tapped.';
     await page.evaluate(() => window.__HITL.setSpeed(0)); await clearDecisions(page); await wait(page, 300);
-    await page.evaluate((text) => window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]), longText); // warn always shows
+    // Held on screen for the check, so a loaded machine cannot time it out before the tap.
+    await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]); }, longText); // warn always shows
     await wait(page, 600);
     const long = page.locator('.toasts .toast', { hasText: 'A very long message' }).first();
     if (!(await long.count())) fails.push('the long test toast never showed');
@@ -281,11 +282,12 @@ const CHECKS = {
       if (overflows && !cut) fails.push('a toast is cut off with no cue and no way to read the rest');
       if (cut) {
         await tap(long); await wait(page, 300);
-        const full = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return e.classList.contains('open') && tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1; }).catch(() => false);
-        if (!full) fails.push('tapping a cut toast does not show it in full');
+        const seen = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { open: e.classList.contains('open'), fits: tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1 }; }).catch(() => ({ gone: true }));
+        if (!seen.open || !seen.fits) fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'})`);
         await shot('toast-long');
       }
     }
+    await page.evaluate(() => window.__HITL_UI?.freezeToasts?.(false));
     if (isPhone(vp)) {
       if (most > 2) fails.push(`${most} toasts at once on a phone (at most 2)`);
       if (blocking) fails.push(`${blocking} toasts take taps without an action`);
