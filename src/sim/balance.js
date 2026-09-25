@@ -105,6 +105,7 @@ export const B = {
   moonshotSuccess: 0.5, moonshotCustomers: 0.15, moonshotStopFame: 3, moonshotFailFame: 8, moonshotFailBrand: 2, moonshotWinFame: 20, moonshotWinBrand: 8,
   lastBetWeek: 900, lastBetCashShare: 0.3, lastBetSuccess: 0.45, lastBetWinFame: 30, lastBetLoseFame: 10, lastBetWinBrand: 10, lastBetLoseBrand: 5,
   foundationCashShare: 0.25, foundationFame: 15, foundationMeaning: 5, keysSeniorMeaning: 8,
+  officePropsMax: 6,
   forSaleWeek: 30, forSaleWeeks: 13, forSalePerRound: 3, forSaleMinArr: 600000, forSaleArrShare: [0.03, 0.12],
   forSalePriceMult: [6, 10], forSaleConsolidationDiscount: 0.8, acquiredScore: [6, 7.8], acquiredBrand: 1,
   epilogueOutcomeLines: 2, epilogueLines: 7,

@@ -982,12 +982,13 @@ const list = [
   },
   {
     id: 'ping_pong', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['classic'],
-    when: (s) => s.staff.length >= 3,
+    when: (s) => s.staff.length >= 3 && s.officeStage >= 1 && !s.office.placed.some((i) => i.itemId === 'ping_pong_table'),
+    stage: { prop: 'picture_pingpong', anchor: 'wall' },
     title: 'The ping pong question',
     text: 'Someone printed a picture of a ping pong table and taped it to the wall where a ping pong table would go.',
     choices: [
-      { label: 'Buy one', hint: '-$1.5k; people recover a bit faster for 26 weeks', effects: { cash: -1500, modifier: { key: 'meaningRecovery', value: 0.1, weeks: 26, label: 'Ping pong' } }, outcome: 'The tournament bracket goes up within the hour. The founders lose in round one.' },
-      { label: 'Not yet', hint: 'Nothing happens', effects: {}, outcome: 'The picture stays up. Someone draws a tiny ball on it.' },
+      { label: 'Buy one', hint: '-$1.5k; a real ping pong table, placed where the picture was', effects: { cash: -1500 }, grant: { item: 'ping_pong_table' }, outcome: 'The tournament bracket goes up within the hour. The founders lose in round one.' },
+      { label: 'Not yet', hint: 'The picture stays up until you buy a table', effects: {}, leaves: { prop: 'picture_pingpong_ball', until: { item: 'ping_pong_table' } }, outcome: 'The picture stays up. Someone draws a tiny ball on it.' },
     ],
   },
   // Funding pressure (only for companies funded that way)

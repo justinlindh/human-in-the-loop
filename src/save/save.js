@@ -141,6 +141,7 @@ function normalize(state) {
   for (const g of GOALS) state.goals[g.id] ??= { done: false, week: null };
   state.market.forSale ??= [];
   state.office.expansion ??= 0;
+  state.office.props ??= [];
   state.fame ??= 0;
   // Saves from before sticky seats: seat everyone in staff order.
   if (state.staff.some((p) => !('deskId' in p))) {

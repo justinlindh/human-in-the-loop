@@ -29,3 +29,4 @@ import './alumni.js';
 import './acquire.js';
 import './beats.js';
 import './moonshot.js';
+import './props.js';
