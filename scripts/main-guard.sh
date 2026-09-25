@@ -106,7 +106,7 @@ gate() {
   local c="$1" cs="${1:0:7}"
   WT="$ROOT/main-guard-$cs-$$"
   # A failed checkout (a full disk, a git lock) says nothing about the commit: retry once, then set
-  # gate_err so no caller counts it as red.
+  # gate_err so no caller counts it as red. So does local CI failing only on the machine (exit 3).
   gate_err=0
   if ! git -C "$REPO" worktree add -q --detach "$WT" "$c"; then
     rm -rf "$WT"; git -C "$REPO" worktree prune
@@ -124,6 +124,7 @@ gate() {
   yield
   run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_SKIP_SWEEP=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
   ci_rc=$?
+  [ "$ci_rc" -eq 3 ] && { gate_err=1; ci_rc=0; }
   run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
   local counts
   counts="$(node -e '
@@ -156,8 +157,8 @@ status pending "Main guard running"
 t0=$(date +%s)
 gate "$sha"
 if [ "$gate_err" = 1 ]; then
-  echo "main-guard: could not check out $short; no verdict"
-  status error "Main guard could not check out this commit"
+  echo "main-guard: could not judge $short (a failed checkout, or local CI failing only on the machine); no verdict"
+  status error "Main guard could not judge this commit: a machine failure, not the code"
   exit 2
 fi
 what="$(red_steps "$short")"
@@ -286,7 +287,7 @@ if [ $lo -eq $hi ]; then
   note="First red merge since the last green \`${green:0:7}\`: \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}"))."
   echo "main-guard: first red merge ${range[$lo]:0:7}"
 else
-  why="ran out of time"; [ -n "${stopped:-}" ] && why="could not check out \`$stopped\`"
+  why="ran out of time"; [ -n "${stopped:-}" ] && why="could not judge \`$stopped\` (a machine failure)"
   note="The bisect $why: the first red merge is between \`${range[$lo]:0:7}\` ($(subject "${range[$lo]}")) and \`${range[$hi]:0:7}\` ($(subject "${range[$hi]}"))."
   echo "main-guard: bisect stopped at ${range[$lo]:0:7}..${range[$hi]:0:7}"
 fi

@@ -2,7 +2,8 @@
 # Local CI for a pull request, posted to the PR as the merge gate. Tests the PR merged into its base
 # (GitHub's merge ref) when there is one, else the PR head, in a throwaway worktree.
 # Besides the comment it sets the commit status "local-ci" on the PR head (pending while it runs,
-# then success or failure), which branch protection can require.
+# then success or failure, or error when local CI failed only on the machine: exit 3 from ci-local),
+# which branch protection can require.
 # Usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>] [--allow-bot]
 #   --no-comment  no comment and no status (a local check)
 #   --head        the head to test, such as the commit just pushed: waits until GitHub reports it
@@ -246,10 +247,12 @@ if [ -n "$ci_changes" ]; then
   own_summary="$(mktemp)"
   run_ci "$WT/scripts/ci-local.sh" "$own_summary"
   own_rc=$?
-  [ $rc -eq 0 ] && rc=$own_rc
+  # A code failure in either run outranks a machine failure (3), which outranks a pass.
+  if [ $rc -ne 0 ] && [ $rc -ne 3 ]; then :; elif [ $own_rc -ne 0 ] && [ $own_rc -ne 3 ]; then rc=$own_rc
+  elif [ $own_rc -eq 3 ]; then rc=3; fi
 fi
 secs=$(( $(date +%s) - t0 ))
-verdict=$([ $rc -eq 0 ] && echo "PASS" || echo "FAIL")
+case $rc in 0) verdict=PASS; state=success ;; 3) verdict="ERROR (the machine, not the code)"; state=error ;; *) verdict=FAIL; state=failure ;; esac
 # setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
 timing_log kind=run tool=ci-pr wall_s=$SECONDS ci_s=$secs setup_s=$(( SECONDS - secs )) exit=$rc
 
@@ -259,6 +262,7 @@ body="$(mktemp)"
   echo
   echo "Head \`${head:0:7}\`, tested as \`$sha\` ($what), in ${secs}s."
   echo
+  [ $rc -eq 3 ] && { echo "Steps failed twice on the machine (out of disk, memory or GPU), and nothing failed on the code. Run ci-pr again when the machine is quieter."; echo; }
   [ -n "$own_summary" ] && { echo "**main's local CI** (the gate):"; echo; }
   cat "$summary"
   if [ -n "$own_summary" ]; then
@@ -270,7 +274,9 @@ body="$(mktemp)"
 } >"$body"
 cat "$body"
 url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
-status "$([ $rc -eq 0 ] && echo success || echo failure)" "Local CI $verdict in ${secs}s on ${sha} ($what)" "$url"; status_final=1
+if [ $rc -eq 3 ]; then status error "Local CI could not judge ${sha}: machine failure (out of disk, memory or GPU); re-run" "$url"
+else status "$state" "Local CI $verdict in ${secs}s on ${sha} ($what)" "$url"; fi
+status_final=1
 rm -f "$summary" "$body" ${own_summary:+"$own_summary"}
 # A head that only merged main keeps the review pass of the head before it.
 [ "$comment" = 1 ] && bash "$TOOLS/scripts/review-carry.sh" "$pr" || true

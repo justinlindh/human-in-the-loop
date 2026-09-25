@@ -156,8 +156,13 @@ expect 'a checkout that fails once is retried and judged' "$cl" "state=failure|-
 if [ ${#fp[@]} -eq 5 ]; then
   case_root="$tmp/root-co3"; mkdir -p "$case_root/main-guard"; echo "${fp[4]}" >"$case_root/main-guard/last-green"; : >"$cl"
   guard "$cl" /dev/null "$gp" GIT_FAIL_CO="${fp[2]:0:7}" GIT_FAIL_COUNT="$tmp/co3.n" MAIN_GUARD_RETRY_WAIT=0 MAIN_GUARD_SUITE="$RED_FROM" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
-  expect 'a bisect stops at a commit it cannot check out' "$cl" "--label main-red|could not check out \`${fp[2]:0:7}\`|!First red merge"
+  expect 'a bisect stops at a commit it cannot check out' "$cl" "--label main-red|could not judge \`${fp[2]:0:7}\`|!First red merge"
 fi
+# Local CI failing only on the machine (exit 3) is no verdict either.
+MACHINE='printf "| step | result | seconds |\n|---|---|---|\n| lifecycle | error: machine (ENOSPC) | 1 |\n" >"$SUMMARY"; exit 3'
+case_root="$tmp/root-machine"; : >"$cl"
+guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'local CI failing on the machine gets no verdict' "$cl" "state=error|!state=failure|!issue create|out:no verdict"
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]
