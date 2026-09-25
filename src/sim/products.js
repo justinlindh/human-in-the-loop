@@ -224,7 +224,8 @@ registerAction('upgradeOffice', (ctx) => {
   // The movers put everything somewhere sensible; anything that does not fit is refunded in full.
   const { placed, left } = autoArrange(state.officeStage, state.office.placed);
   for (const p of left) state.cash += spentOn(p);
-  state.office = { stage: state.officeStage, placed, expansion: 0 };
+  // Lingering props belong to the old layout, so they stay behind.
+  state.office = { stage: state.officeStage, placed, expansion: 0, props: [] };
   state.flags.officeMovedWeek = state.week;
   ctx.emit({ type: 'officeUpgrade', stage: state.officeStage });
   ctx.emit({ type: 'toast', text: `Welcome to the ${next.name}! The movers put everything somewhere. Rearrange as you like.`, tone: 'good' });

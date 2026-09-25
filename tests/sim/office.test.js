@@ -43,7 +43,7 @@ describe('office data', () => {
 describe('placement', () => {
   it('the run starts with an empty garage', () => {
     const s = classicGame();
-    expect(s.office).toEqual({ stage: 0, placed: [], expansion: 0 });
+    expect(s.office).toEqual({ stage: 0, placed: [], expansion: 0, props: [] });
     expect(deskCapacity(s)).toBe(0);
   });
 

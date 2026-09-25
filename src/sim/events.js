@@ -8,6 +8,9 @@ import { totalMrr } from './products.js';
 import { agentSpend, rivalMergePrice, moonshotWeekly } from './economy.js';
 import { MOONSHOT_NAMES } from '../data/forsale.js';
 import { featuredDeal } from './acquire.js';
+import { stageTile, grantBlocker, leaveProp } from './props.js';
+import { placeNow, findSpot, layoutOf } from './office.js';
+import { ITEMS } from '../data/items.js';
 import { automationExposure } from './automation.js';
 import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { EVENTS } from '../data/events.js';
@@ -68,6 +71,12 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 
+// Why a choice cannot be picked right now (its requirement, or a grant that cannot happen), or null.
+function choiceBlocker(state, c, subjectId) {
+  if (c.requires && !checkCondition(state, c.requires, subjectId)) return requireReason(state, c.requires);
+  return grantBlocker(state, c);
+}
+
 // Emergencies always interrupt; everything else respects the gap between decisions.
 const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 
@@ -97,9 +106,10 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     title: fill(ev.title),
     text: fill(ev.text),
     choices: ev.choices.map((c) => {
-      const available = !c.requires || checkCondition(state, c.requires, subjectId);
-      return { label: fill(c.label), hint: fill(c.hint), available, reason: available ? null : requireReason(state, c.requires) };
+      const why = choiceBlocker(state, c, subjectId);
+      return { label: fill(c.label), hint: fill(c.hint), available: !why, reason: why };
     }),
+    stage: ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null,
   };
   ctx.emit({ type: 'decision' });
   return true;
@@ -190,9 +200,16 @@ registerAction('resolveDecision', (ctx, { choice }) => {
   const ev = EVENTS[d.eventId];
   if (!Number.isInteger(choice) || !ev?.choices || choice < 0 || choice >= ev.choices.length) return { ok: false, reason: 'Invalid choice' };
   const c = ev.choices[choice];
-  if (c.requires && !checkCondition(state, c.requires, d.subjectId)) return { ok: false, reason: requireReason(state, c.requires) };
+  const why = choiceBlocker(state, c, d.subjectId);
+  if (why) return { ok: false, reason: why };
   state.pendingDecision = null;
   if (c.outcome) ctx.emit({ type: 'toast', text: fillText(state, ctx.rng, c.outcome, d.subjectId, d.vars), tone: 'info' });
   applyEffects(ctx, c.effects, d.subjectId, d.eventId, d.vars);
+  // A granted item is paid for by the choice's cash when it has any, so it is placed without charging again.
+  if (c.grant) {
+    placeNow(ctx, c.grant.item, findSpot(layoutOf(state), state.office.placed, c.grant.item));
+    if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
+  }
+  if (c.leaves) leaveProp(state, c.leaves, d.stage);
   return { ok: true };
 });
