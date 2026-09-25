@@ -6,6 +6,7 @@ import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createIncentives } from './incentives.js';
 import { createMoments } from './moments.js';
+import { createMomentCamera } from './momentcam.js';
 import { holdSeconds } from './reading.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
@@ -449,10 +450,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
-  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx });
+  const momentCam = createMomentCamera(rig);
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, isBusy: () => !lastState?.pendingDecision && (!!standup || !!incentives.party || !!incentives.dance) });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -844,10 +846,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
     if (paused) {
-      // With a decision open (momentsToo), the moment it stages still plays: its actors and its
-      // visitors. Everything else holds still.
+      // With a decision open (momentsToo), the moment it stages still plays: its actors, its
+      // visitors and the moment camera. Everything else holds still.
       const staging = momentsToo && !!lastState?.pendingDecision;
-      if (staging) moments.update(dt, lastState);
+      if (staging) { moments.update(dt, lastState); momentCam.update(dt); }
       // Nothing else advances, but everyone is still drawn where they are (new arrivals included).
       for (const r of [...recs.values(), ...leavers]) {
         if (staging && r.temp?.moment && recs.has(r.id)) { updateRec(r, dt); continue; }
@@ -866,6 +868,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     pets.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
+    momentCam.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }

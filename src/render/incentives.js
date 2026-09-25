@@ -109,7 +109,7 @@ function bunting(word, len) {
   return g;
 }
 
-export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null }) {
+export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, momentCam = null }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
   let party = null;
@@ -234,19 +234,10 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     };
   }
 
-  // A slow camera ease toward the party, then back, unless the player is steering the camera.
-  const HANDS_OFF_MS = 4000;
-  let ease = null;
-  function easeIn(v) {
-    if (!rig || performance.now() - rig.lastInput < HANDS_OFF_MS) return;
-    ease = { goal: rig.goal, zoom: rig.zoomGoal, at: performance.now() };
-    rig.focus({ x: v.center.x, y: 0.6, z: v.center.z }, Math.max(rig.zoomGoal, 1.6), 1.6);
-  }
-  function easeOut() {
-    if (!ease) return;
-    if (rig.lastInput < ease.at) rig.focus(ease.goal, ease.zoom, 1.6);
-    ease = null;
-  }
+  // The camera eases toward the party and back (momentcam.js: not while the player steers it, and
+  // not with the moment camera setting off).
+  function easeIn(v) { momentCam?.hold('party', { x: v.center.x, z: v.center.z }, { zoom: 1.6 }); }
+  function easeOut() { momentCam?.release('party'); }
 
   // Everyone gets into place within a few seconds (weeks are short); far walkers jog.
   function hurry(r, seconds) {
