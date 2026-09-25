@@ -960,6 +960,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   return {
     // A staff member's character (character.js), for the staging probe.
     charOf(id) { return recs.get(id)?.char ?? null; },
+    // For checks and the scene dump: where someone is headed and why (read only).
+    walkOf(id) {
+      const r = recs.get(id);
+      if (!r) return null;
+      const pt = (p) => p && { x: p.x, z: p.z, ...(p.yaw != null ? { yaw: p.yaw } : {}) };
+      const t = r.temp;
+      return {
+        mode: r.mode, hidden: !!r.hidden, speed: r.speed ?? null, path: r.path.map(pt),
+        goal: r.goal && { ...pt(r.goal), key: r.goal.key ?? null, anim: r.goal.anim ?? null, seated: !!r.goal.seated, hidden: !!r.goal.hidden },
+        temp: t && { anim: t.anim ?? null, t: t.t ?? null, delay: t.delay ?? 0, moment: t.moment ?? null, perk: t.perkKey ?? null, back: !!t.back, keepPos: !!t.keepPos, goal: pt(t.goal) },
+      };
+    },
     // Whether someone is in a seated pose (for checks).
     isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
