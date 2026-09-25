@@ -4,7 +4,8 @@
 #   npm run capture -- --group nods --out shots/nods --size 1280x720 --fps 30 --audio --no-webm
 #   scripts/nods-reel.sh shots/nods shots/nods-reel.mp4 [font.ttf]
 #
-# The beats play in the order one company meets them. Each gets a title for its first seconds and
+# The beats play in the manifest's order (each from its own indexed moment, so from different
+# companies and weeks). Each gets a title for its first seconds and
 # a short fade; the printer beat gets its music cue (public/audio/moments/printer_smash.ogg), laid
 # in where the moment starts (its hitl:moment start, marked in the capture's index.json).
 set -euo pipefail
