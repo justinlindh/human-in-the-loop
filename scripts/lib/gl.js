@@ -6,7 +6,9 @@
 // instead of quietly taking minutes of CPU.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { basename } from 'node:path';
 import { isSoftwareRenderer } from '../../src/quality.js';
+import { trackRun } from './timing.js';
 
 const WITH_RENDER_LOCK = fileURLToPath(new URL('../with-render-lock.sh', import.meta.url));
 
@@ -49,7 +51,10 @@ export function rendererMatches(mode, renderer) {
 
 // Launches Chromium in `mode`, prints "<label>: GL <mode> (<renderer>)", and throws when the GPU was
 // asked for but the browser fell back to software GL (a missing Vulkan driver, a blocked GPU).
+// Every tool that launches here also logs its run (wall and CPU time, GL mode, exit code) to the
+// team's timing log (scripts/lib/timing.js).
 export async function launchChromium(chromium, { mode = glMode(), label = 'browser', args = [], ...opts } = {}) {
+  trackRun(basename(process.argv[1] ?? label).replace(/\.m?js$/, ''), { gl: mode, args: process.argv.slice(2).join(' ').slice(0, 120) });
   const browser = await chromium.launch({ ...opts, args: [...glArgs(mode), ...args] });
   const renderer = await rendererOf(browser);
   console.log(`${label}: GL ${mode} (${renderer ?? 'no WebGL2'})`);

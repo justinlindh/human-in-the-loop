@@ -3,6 +3,9 @@
 # Item scripts (blender/items) write <item>_l1.glb to <item>_l3.glb from one --out path.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The run's wall and CPU time go to the team's timing log.
+source scripts/lib/timing.sh
+trap 'rc=$?; timing_log kind=run tool=build-models wall_s=$SECONDS cpu_s="$(timing_child_cpu)" exit=$rc' EXIT
 BLENDER="${BLENDER:-blender}"
 mkdir -p public/models
 scripts=(blender/props/*.py blender/items/*.py)

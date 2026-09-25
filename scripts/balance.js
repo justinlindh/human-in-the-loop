@@ -2,11 +2,13 @@
 // crises = unrecoverable outages plus bridge loans taken. Prints an era-by-era table after the main one.
 import { runBot, BOTS } from '../src/sim/bots.js';
 import { B } from '../src/sim/balance.js';
+import { trackRun } from './lib/timing.js';
 
 const args = process.argv.slice(2);
 const arg = (name, dflt) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : dflt; };
 const seeds = Number(arg('seeds', 100));
 const bots = arg('bots', Object.keys(BOTS).join(',')).split(',');
+trackRun('balance', { seeds, bots: bots.join(',') });
 
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const fmt = (n) => Math.round(n).toLocaleString('en-US');

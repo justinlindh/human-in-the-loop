@@ -35,7 +35,8 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 
 CI internals, which rarely need touching:
 - `scripts/ci-classify.sh` with `scripts/ci-skip-paths` gives docs-only changes the light gate.
-- `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance.
+- `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance. A pass is also recorded under a hash of the suite's inputs (the sim, its data, the balance test, the test config, the lockfile and Node), so the same inputs skip it later. `HITL_NO_CHECK_CACHE=1` turns this off.
+- `scripts/lib/run-parallel.sh` runs commands side by side, each with its own vite dependency cache (`HITL_VITE_CACHE`), and prints their output in order.
 - `scripts/ci-trusted` is the allowlist of PR authors that local CI will run.
 - `scripts/ci-bot-check.sh` guards the Dependabot path.
 - `scripts/render-lock-held.sh` lets nested jobs share a render lock.
@@ -71,7 +72,7 @@ CI internals, which rarely need touching:
 
 ## Render checks (art owns these; local CI runs them)
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip, standup and the sweep (fast mode) as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip (with and without the rig), standup and the sweep (fast mode) side by side as `render-checks` on one GPU slot, and golden as `golden` under the software lock.
 
 | Check | What it guards |
 |---|---|
@@ -124,6 +125,22 @@ Run `node blender/checks/stage.mjs --only=<moment>` while staging (under the ren
 | `node scripts/perf/sim.js --seeds 5 --weeks 1040` | sim | Times `tick()` alone, bucketed by year, across bot-played seeds. No browser. |
 
 The machine and the GPU are shared, so single numbers are noisy. Trust relative numbers from one interleaved run, and treat renderer counts (calls, triangles, programs) as exact.
+
+### The team's timing log
+
+Every common tool logs itself to `~/.cache/hitl-ci/timings.jsonl`, one JSON line per event, with no setup:
+- ci-pr runs, with the PR number;
+- each ci-local step, with wall and CPU time;
+- every browser tool that launches through `scripts/lib/gl.js` (snap, lifecycle, soak, capture, the render checks, bench);
+- balance and build-models runs;
+- every render-lock wait, labelled with the job that waited;
+- every render-check cache lookup (hit or miss, with the input hash).
+
+Each line also records the worktree, branch, commit and exit code. The log never fails a run, and `HITL_TIMINGS=off` turns it off (tests do). New tools get it by calling `trackRun` from `scripts/lib/timing.js`, or `timing_log` from `scripts/lib/timing.sh` in shell.
+
+| Tool | Who | What it does |
+|---|---|---|
+| `node scripts/perf/loop-report.js [--since 24h]` | perf, integrator, team-lead | Where the team's time goes: total, median and p90 per tool and CI step; time per worktree; lock waits per job, with timeouts; cache hit rates; repeated runs on identical inputs (the caching candidates); and the slowest runs. `--json` adds the numbers as JSON. |
 
 ## Models and assets
 

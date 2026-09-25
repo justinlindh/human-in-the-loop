@@ -8,6 +8,7 @@ tmp="$(mktemp -d)"; bg=""
 stop_holder() { [ -n "$bg" ] || return 0; pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; wait "$bg" 2>/dev/null; bg=""; }
 trap 'stop_holder; rm -rf "$tmp"' EXIT
 export HITL_LOCK_DIR="$tmp"; L="$tmp/render-checks.lock"
+export HITL_TIMINGS=off
 fails=0
 expect() { [ "$2" = "$3" ] || { echo "FAIL $1: want $3, got $2"; fails=$((fails + 1)); }; }
 

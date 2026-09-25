@@ -14,6 +14,7 @@ import { homedir } from 'node:os';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { logTiming } from '../../scripts/lib/timing.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const INPUTS = ['src', 'public', 'index.html', 'vite.config.js', 'package.json', 'package-lock.json', 'blender/checks'];
@@ -58,14 +59,16 @@ function installed() {
 const dir = (check) => join(homedir(), '.cache', 'hitl-ci', check);
 
 // The commit a previous clean pass recorded for this hash, or null.
+// Each lookup goes to the team's timing log as a hit or a miss.
 export function passedAt(check, hash) {
-  if (!hash) return null;
+  if (!hash) { logTiming({ kind: 'cache', tool: check, cache: 'off' }); return null; }
+  let at = null;
   try {
     const f = join(dir(check), `${hash}.pass`);
-    return existsSync(f) ? (readFileSync(f, 'utf8').trim() || 'an earlier run') : null;
-  } catch {
-    return null;
-  }
+    at = existsSync(f) ? (readFileSync(f, 'utf8').trim() || 'an earlier run') : null;
+  } catch { /* unreadable: render */ }
+  logTiming({ kind: 'cache', tool: check, cache: at ? 'hit' : 'miss', input: hash });
+  return at;
 }
 
 export function recordPass(check, hash) {
