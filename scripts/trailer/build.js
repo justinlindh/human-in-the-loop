@@ -7,7 +7,8 @@
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } from './config.js';
 import { renderGraphics } from './cards.js';
@@ -38,7 +39,9 @@ const VO_DIR = typeof args.vo === 'string' ? resolve(args.vo) : null;
 const VERTICAL = !args['no-vertical'] && !!OUTPUT.vertical;
 const CAPTIONS = !args['no-captions'] && VO.captions;
 // Hard ceilings on the child processes, so a hung browser or encoder cannot hold the machine.
-const CAPTURE_TIMEOUT_S = 1800;
+const CAPTURE_TIMEOUT_S = 3600;
+// Headless renders share one machine-wide lock with local CI's render checks.
+const RENDER_LOCK = join(homedir(), '.cache/hitl-ci/render-checks.lock');
 const FFMPEG_TIMEOUT_S = 900;
 mkdirSync(CLIPS, { recursive: true });
 mkdirSync(GFX, { recursive: true });
@@ -76,7 +79,8 @@ const fresh = (b) => { const i = captured()[`trailer-${b.id}`]; return i && i.er
 const todo = args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
-  await run('node', ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
+  mkdirSync(dirname(RENDER_LOCK), { recursive: true });
+  await run('flock', ['-w', '1800', '-E', '75', RENDER_LOCK, 'node', 'scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
     '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])],
   { timeout: CAPTURE_TIMEOUT_S });
   for (const b of todo) writeFileSync(keyFile(b), keyOf(b));

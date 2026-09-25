@@ -27,13 +27,16 @@ export const CARDS = {
 // Page JS for a beat's `actions`: closes a "new things to place" card the way a player would.
 const LATER = (at) => ({ at, js: "[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === 'Later')?.click()" });
 
+// Page JS for a beat's `actions`: presses the visible button with this label.
+const CLICK_AT = (label, at) => ({ at, js: `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()` });
+
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.5 },
   { id: 'garage', item: 'readme-garage', capture: { still: false, seconds: 6, screenshots: [] }, camera: [{ at: 0.2, zoom: 1.6 }], from: 1.5, dur: 3.0, vx: 0.45 },
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1)], camera: [{ at: 2.6, zoom: 1.35 }], from: 2.8, dur: 3.0, vx: 0.5 },
   { id: 'launch', item: '5-1-first-launch', capture: { seconds: 14 }, from: 7.8, dur: 3.0, vx: 0.5 },
-  { id: 'incident', item: '5-2-incident', capture: { seconds: 6 }, camera: [{ at: 0.3, zoom: 1.3 }], from: 1.2, dur: 2.2, vx: 0.5 },
-  { id: 'era', item: '2-5-era-arrival', capture: { seconds: 6 }, from: 1.0, dur: 2.5, vx: 0.5 },
+  { id: 'incident', item: 'real-incident', capture: { seconds: 12 }, actions: [CLICK_AT('Nice!', 8.05), CLICK_AT('Nice!', 8.4)], camera: [{ at: 6.5, zoom: 1.4 }], from: 8.2, dur: 2.2, vx: 0.5 },
+  { id: 'era', item: 'real-era', capture: { seconds: 12 }, camera: [{ at: 6.5, zoom: 1.4 }], from: 7.8, dur: 2.5, vx: 0.7 },
   { id: 'waffle', item: '5-4-waffle-party-real', capture: { seconds: 22 }, from: 16.0, dur: 3.5, vx: 0.5 },
   { id: 'dance', item: '5-4b-music-night-real', capture: { seconds: 30 }, actions: [LATER(0.1), LATER(1.1)], from: 23.0, dur: 3.0, vx: 0.5 },
   { id: 'yak', item: '3-4-conversations-1x', capture: { seconds: 14 }, camera: [{ at: 8.6, zoom: 1.35 }], from: 10.5, dur: 2.5, vx: 0.3 },
@@ -67,9 +70,9 @@ export const VO = {
   captions: true,
   lines: [
     { id: 'l1', at: { beat: 'title', offset: 0.4 }, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
-    { id: 'l2', at: { beat: 'office', offset: 0.6 }, text: 'Hire humans. Ship products. Call the outage a stress test.' },
-    { id: 'l3', at: { beat: 'incident', offset: 1.4 }, text: 'Survive the AI eras: chatbots, then agents, then whatever the agents hire.' },
-    { id: 'l4', at: { beat: 'waffle', offset: 1.2 }, text: 'Reward your team with waffles. And a mandatory dance break.' },
+    { id: 'l2', at: { beat: 'office', offset: 1.9 }, text: 'Hire humans. Ship products. Call the outage a stress test.' },
+    { id: 'l3', at: { beat: 'incident', offset: 1.2 }, text: 'Survive the AI eras: chatbots, then agents, then whatever the agents hire.' },
+    { id: 'l4', at: { beat: 'waffle', offset: 2.4 }, text: 'Reward your team with waffles. And a mandatory dance break.' },
     { id: 'l5', at: { beat: 'end', offset: 0.3 }, text: 'Human in the Loop. Someone has to be.' },
   ],
 };
