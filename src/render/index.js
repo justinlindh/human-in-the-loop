@@ -172,11 +172,12 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function sync(state) {
     if (!office || !ready || !state) return;
     const stage = state.officeStage ?? 0;
-    if (office.setStage(stage, { animate: !firstStage && pendingUpgrade, expansion: state.office?.expansion ?? 0 })) {
+    const moving = !firstStage && pendingUpgrade;
+    if (office.setStage(stage, { animate: moving, expansion: state.office?.expansion ?? 0 })) {
       stageJustBuilt = true;
-      rig.setBounds(office.bounds, true);
+      rig.setBounds(office.bounds, true, moving);
       // The big HQ floor starts a little closer so seated staff read; the whole office is a scroll away.
-      rig.setZoom(STAGE_ZOOM[stage] ?? 1);
+      rig.setZoom(STAGE_ZOOM[stage] ?? 1, moving);
       if (firstStage) applyDebugCamera();
       firstStage = false;
       pendingUpgrade = false;

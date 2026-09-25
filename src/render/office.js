@@ -582,9 +582,9 @@ function makeColumns(L, columns) {
     dispose() { for (const m of [...solid, ...see]) m.geometry.dispose(); fadeWall.dispose(); fadeCap.dispose(); },
   };
 }
-const LEAVE_S = 0.5;           // moving office: the old one drops away
-const ENTER_S = 0.9;           // then the new one lowers in
-const DROP_FROM = 3.5;         // metres above its place the new office starts
+const ENTER_S = 0.9;           // moving office: the new one comes down onto the old one's spot
+const DROP_OVER = 3.0;         // metres above the old office's walls the new one starts
+const LAND_AT = 0.8;           // share of ENTER_S spent falling; the rest is the landing squash
 
 function buildStage(stageIdx, screens, expansion = 0) {
   const L = stageLayout(stageIdx, expansion);
@@ -779,7 +779,10 @@ export function createOffice({ parent, screens, lighting }) {
     const grow = !!cur && cur.stage === stage;
     if (grow) animate = false;
     if (cur && animate) {
-      leaving = { s: cur, t: 0 };
+      if (leaving) disposeStage(leaving.s);
+      leaving = { s: cur };
+      // Under the new floor the old office would sit in solid shadow; it is only there to be squashed.
+      cur.root.traverse((o) => { o.receiveShadow = false; });
     } else if (cur) {
       disposeStage(cur);
     }
@@ -793,9 +796,10 @@ export function createOffice({ parent, screens, lighting }) {
     lighting?.fitShadow(cur.bounds);
     lighting?.setInteriorLights(cur.L.lights.map((l) => ({ ...l, y: cur.L.wallH - 0.3 })));
     if (animate) {
-      // The new office lowers in from above once the old one has dropped away; dust on landing.
-      cur.root.position.y = DROP_FROM;
-      cur.root.visible = false;
+      // The new office comes down onto the old one's spot from just above its roof, pressing it
+      // flat; dust on landing.
+      cur.dropFrom = leaving.s.L.wallH + DROP_OVER;
+      cur.root.position.y = cur.dropFrom;
       cur.enterT = 0;
     } else if (grow) {
       spawnDust(cur.L);
@@ -1116,25 +1120,25 @@ export function createOffice({ parent, screens, lighting }) {
     for (const ch of cur.dyn.meetingChairs) {
       ch.position.lerp(tuck ? ch.userData.tucked : ch.userData.home, 1 - Math.exp(-dt * 6));
     }
-    // Moving office, in sequence so the two never overlap: the old one drops away (LEAVE_S),
-    // then the new one lowers in from above (ENTER_S), squashes a little on landing, and dust puffs out.
-    if (leaving) {
-      leaving.t += dt;
-      const q = Math.min(1, leaving.t / LEAVE_S);
-      leaving.s.root.position.y = -q * q * 6;
-      leaving.s.root.scale.setScalar(1 - q * 0.2);
-      if (q >= 1) { disposeStage(leaving.s); leaving = null; }
-    }
+    // Moving office, one swap in place: the new office comes down (ENTER_S) onto the old one's spot,
+    // and once its floor reaches the old walls it presses the old office flat into the ground
+    // as it lands, then squashes a little and dust puffs out.
     if (cur.enterT !== undefined) {
       cur.enterT += dt;
-      const q = Math.min(1, Math.max(0, (cur.enterT - LEAVE_S) / ENTER_S));
-      cur.root.visible = cur.enterT >= LEAVE_S;
-      const e = 1 - Math.pow(1 - q, 3);
-      cur.root.position.y = DROP_FROM * (1 - e);
-      // A squash on landing, over the last fifth.
-      const land = q > 0.8 ? Math.sin(((q - 0.8) / 0.2) * Math.PI) * 0.04 : 0;
+      const q = Math.min(1, cur.enterT / ENTER_S);
+      // Falls for the first LAND_AT of the time, speeding up, then squashes on the landing.
+      const f = Math.min(1, q / LAND_AT);
+      cur.root.position.y = cur.dropFrom * (1 - f * f);
+      if (leaving) {
+        const top = leaving.s.L.wallH + 0.1;
+        const sy = Math.max(0.001, Math.min(1, cur.root.position.y / top));
+        const spread = 1 + (1 - sy) * 0.06;
+        leaving.s.root.scale.set(spread, sy, spread);
+        if (f >= 1) { disposeStage(leaving.s); leaving = null; }
+      }
+      const land = f >= 1 ? Math.sin(((q - LAND_AT) / (1 - LAND_AT)) * Math.PI) * 0.05 : 0;
       cur.root.scale.set(1 + land * 0.5, 1 - land, 1 + land * 0.5);
-      if (q > 0.8 && !cur.landed) { cur.landed = true; spawnDust(cur.L); }
+      if (f >= 1 && !cur.landed) { cur.landed = true; spawnDust(cur.L); }
       if (q >= 1) { cur.root.position.y = 0; cur.root.scale.setScalar(1); delete cur.enterT; }
     }
     if (dust) {
