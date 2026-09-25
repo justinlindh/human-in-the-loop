@@ -307,6 +307,12 @@
    "issue": 435
   },
   {
+   "key": "person|person(walking)/torso|pizza_boxes/pal_wood_light",
+   "worst": 0.03,
+   "state": "moment:hackathon",
+   "issue": 435
+  },
+  {
    "key": "person|person(walking)/head|plant/pal_leaf",
    "worst": 0.099,
    "state": "seed:1:w728",
