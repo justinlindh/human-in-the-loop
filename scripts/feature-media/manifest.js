@@ -32,6 +32,14 @@ const OFFICE = (weeks, until, time = 'day') => ({
 // Consolidation, run by the automate-everything bot, so headcount peaks at HQ and falls in the
 // Plateau. Each stage is the game played to `week`, then shown live with nothing over the office.
 const GROWTH_STAGES = [['garage', 6, 'Classic'], ['floor', 138, 'Classic'], ['floor-full', 262, 'ChatGBT'], ['hq', 700, 'Consolidation'], ['late', 780, 'Plateau']];
+// Where the camera looks at the start: the stage's own fitted view.
+const VIEW0 = { js: '(window.__view0 ??= window.__hitlRender.view())' };
+// The people's centre, for a tighter frame on a filled room.
+const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
+const GROWTH_CAMERA = {
+  'floor-full': [{ at: 0, target: PEOPLE, zoom: 1.7 }],
+  late: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: [-1.6, -4.1], zoom: 2.5, ease: 'inOut' }],
+};
 const GROW = (week) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
@@ -233,9 +241,15 @@ export const ITEMS = [
     out: [LOOP('visitor', 5, 6, { x: 0.1354, y: 0.0926, w: 2 / 3, h: 2 / 3 }), STILL('visitor', 7, { x: 0.1354, y: 0.0926, w: 2 / 3, h: 2 / 3 })],
   },
 
-  // The growth timelapse, one clip per stage (cut and labelled by scripts/reels/growth.sh).
+  // The growth timelapse, one clip per stage (cut, labelled and joined by scripts/reels/growth.sh). Each
+  // records its headcount as a mark. The filled floor frames a little tighter on the people; the late
+  // HQ pushes in from the wide view onto its row of empty desks.
   ...GROWTH_STAGES.map(([name, week, era]) => ({
     id: `growth-${name}`, title: `Growth timelapse: ${name}, ${era} (week ${week})`, query: 'seed=5&speed=1&time=day', seconds: 6, warmup: 3,
-    setup: GROW(week), actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 1, 6, 1), ...CAMLOG(6)], screenshots: [2],
+    setup: GROW(week),
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 1, 6, 1), ...CAMLOG(6),
+      { at: 0.5, js: `(() => { const s = window.__HITL.state; (window.__captureMarks ??= []).push({ t: 0, label: 'headcount ' + s.staff.filter((p) => p.mood !== 'away').length + ' era ${era}' }); })()` }],
+    ...(GROWTH_CAMERA[name] ? { camera: GROWTH_CAMERA[name] } : {}),
+    screenshots: [2, 5.5],
   })),
 ];
