@@ -1,0 +1,17 @@
+/* Tooltips (tooltip.js): a cream panel with an ink outline, an offset shadow and a pointer. */
+.hitl .gtip {
+  position: absolute; z-index: 70; max-width: 20em; pointer-events: none;
+  background: var(--cream); color: var(--ink); border: 0.16em solid var(--ink); border-radius: 0.7em;
+  box-shadow: 0 0.22em 0 var(--ink), var(--soft); padding: 0.45em 0.7em; font-size: 0.86em; line-height: 1.35;
+  font-variant-numeric: tabular-nums; animation: gtipin 120ms ease-out;
+}
+.hitl .gtip-title { display: block; font-size: 1.02em; margin-bottom: 0.1em; }
+.hitl .gtip-line { white-space: pre-line; }
+.hitl .gtip-arrow {
+  position: absolute; bottom: -0.5em; width: 0.8em; height: 0.8em; margin-left: -0.4em; background: var(--cream);
+  border-right: 0.16em solid var(--ink); border-bottom: 0.16em solid var(--ink); transform: rotate(45deg);
+}
+.hitl .gtip.below .gtip-arrow { bottom: auto; top: -0.5em; transform: rotate(225deg); }
+@keyframes gtipin { from { opacity: 0; transform: translateY(0.2em); } }
+@media (prefers-reduced-motion: reduce) { .hitl .gtip { animation: none; } }
+

@@ -1,0 +1,25 @@
+/* Yak sizes: S, M, L in the header, a drag handle on the top edge, and a maximize button that
+   opens a big overlay (full screen on phones). */
+.hitl .chat { position: relative; }
+.hitl .bottom > .chat .chat-body { max-height: calc(100vh - var(--topbar-h, 4.6em) - 7.5em); }
+.hitl .chat .ygrip { position: absolute; top: -0.35em; left: 0; right: 0; height: 0.9em; cursor: ns-resize; z-index: 2; touch-action: none; }
+.hitl .chat.collapsed .ygrip, .hitl .chat.max .ygrip { display: none; }
+.hitl .chat-head .ysizes { display: inline-flex; gap: 0.2em; margin-left: auto; }
+.hitl .chat-head .count.show + .ysizes { margin-left: 0.4em; }
+.hitl .chat-head .ysz { font: inherit; font-size: 0.72em; font-weight: 700; min-width: 1.9em; height: 1.9em; padding: 0 0.3em; border-radius: 0.45em; border: 0.12em solid rgba(255,255,255,0.35); background: transparent; color: #fff; cursor: pointer; display: inline-grid; place-items: center; }
+.hitl .chat-head .ysz.on { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+.hitl .chat-head .ysz:hover { border-color: #fff; }
+.hitl .chat.collapsed .ysizes .ysz:not(.ymax) { display: none; }
+.hitl .yak-back { position: absolute; inset: 0; z-index: 45; background: rgba(42,38,48,0.45); display: grid; place-items: center; padding: 1.5em; pointer-events: auto; }
+.hitl .chat.max { width: min(56em, 100%); height: min(46em, 100%); }
+.hitl .chat.max .chat-body { height: auto; flex: 1; }
+.hitl .chat.max .chat-head .ysz:not(.ymax), .hitl .chat.max .chat-head .caret { display: none; }
+.hitl .chat.max .chat-head .ysizes { margin-left: auto; }
+.hitl .chat.max .chat-head { cursor: default; }
+@media (pointer: coarse) { .hitl .chat-head .ysz { min-width: 44px; height: 36px; } .hitl .chat .ygrip { height: 1.6em; top: -0.8em; } }
+@media (max-width: 480px) {
+  .hitl .yak-back { padding: 0; }
+  .hitl .chat.max { width: 100%; height: 100%; border-radius: 0; }
+  .hitl .chat-head .ysz:not(.ymax) { display: none; }
+}
+

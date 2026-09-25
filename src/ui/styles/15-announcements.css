@@ -1,0 +1,62 @@
+/* ---------- unlocks, era cards, goals, retire ---------- */
+.hitl .mbtn .newtag {
+  position: absolute; top: -0.7em; right: -0.5em; display: none; padding: 0.05em 0.4em; border-radius: 0.6em;
+  background: var(--yellow); color: var(--ink); border: 0.14em solid var(--ink); font-size: 0.66em; font-weight: 700;
+  transform: rotate(8deg); box-shadow: 0 0.12em 0 var(--ink); animation: hitl-newtag 1.6s ease-in-out infinite;
+}
+.hitl .mbtn .newtag.show { display: block; }
+@keyframes hitl-newtag { 0%, 100% { transform: rotate(8deg) scale(1); } 50% { transform: rotate(8deg) scale(1.12); } }
+.hitl .mbtn.slidein { animation: hitl-slidein 600ms cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes hitl-slidein { 0% { opacity: 0; transform: translateY(2.5em) scale(0.6); } 100% { opacity: 1; transform: none; } }
+.hitl .announce-back { position: absolute; inset: 0; z-index: 40; pointer-events: auto; display: grid; place-items: center; padding: 1em; background: rgba(42, 38, 48, 0.45); animation: hitl-fade 200ms both; }
+.hitl .announce { width: min(30em, 100%); max-height: 100%; overflow-y: auto; background: var(--cream); border: 0.22em solid var(--ink); border-radius: 1.2em; box-shadow: 0 0.4em 0 var(--ink), 0 1.2em 3em rgba(0,0,0,0.35); padding: 1.1em 1.2em; display: flex; flex-direction: column; gap: 0.7em; animation: hitl-modal-in 320ms cubic-bezier(.2,1.5,.4,1) both; }
+.hitl .announce .kicker { font-size: 0.8em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); display: flex; align-items: center; gap: 0.35em; }
+.hitl .announce h2 { margin: 0; font-size: 1.7em; line-height: 1.05; }
+.hitl.announcing > .modal-back { visibility: hidden; }
+.hitl .announce .ablurb { font-size: 1.02em; line-height: 1.35; }
+.hitl .announce .row.acts { justify-content: flex-end; gap: 0.5em; margin-top: 0.2em; }
+.hitl .announce.unlock .kicker { color: var(--warn); }
+.hitl .announce.unlock .uico { width: 3.2em; height: 3.2em; border-radius: 0.9em; display: grid; place-items: center; background: #fff4dc; border: 0.16em solid var(--ink); box-shadow: 0 0.16em 0 var(--ink); font-size: 1.1em; flex: none; }
+.hitl .announce.era { width: min(38em, 100%); padding: 0; overflow: hidden; }
+.hitl .announce.era .erahead { padding: 1.2em 1.3em 1em; background: var(--ink); color: var(--cream); display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .announce.era .erahead .kicker { color: var(--yellow); }
+.hitl .announce.era .erahead h2 { font-size: 2.3em; color: var(--cream); }
+.hitl .announce.era .erahead .year { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: #cfc6d6; }
+.hitl .announce.era .erabody { padding: 1em 1.3em 1.2em; display: flex; flex-direction: column; gap: 0.7em; }
+.hitl .announce.era.chatgbt .erahead { background: #2f5fd0; }
+.hitl .announce.era.agents .erahead { background: #0f7f79; }
+.hitl .announce.era.consolidation .erahead { background: #5b5361; }
+.hitl .changes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4em; }
+.hitl .changes li { display: flex; gap: 0.5em; align-items: flex-start; line-height: 1.3; }
+.hitl .changes li::before { content: ''; flex: none; width: 0.6em; height: 0.6em; margin-top: 0.35em; border-radius: 50%; background: var(--yellow); border: 0.12em solid var(--ink); }
+.hitl .eranote { display: flex; gap: 0.45em; align-items: center; background: #fff4dc; border: 0.14em solid var(--yellow); border-radius: 0.7em; padding: 0.4em 0.65em; font-weight: 600; font-size: 0.92em; }
+.hitl .goallist { display: flex; flex-direction: column; gap: 0.35em; }
+.hitl .goallist .goal { margin: 0; padding: 0.35em 0.5em; border-radius: 0.6em; background: var(--cream-2); font-size: 0.95em; }
+.hitl .goal.done .gbox { background: var(--green); display: grid; place-items: center; }
+.hitl .goal.done .gbox::after { content: '\2713'; color: #fff; font-size: 0.7em; font-weight: 700; }
+.hitl .goal.done b { text-decoration: line-through; text-decoration-thickness: 0.1em; color: var(--ink-soft); }
+.hitl .goal .gwk { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: var(--ink-soft); white-space: nowrap; }
+.hitl .tray-card.goals { cursor: pointer; }
+.hitl .retirecard { display: flex; align-items: center; gap: 0.9em; flex-wrap: wrap; background: #fff4dc; border-color: var(--ink); margin-bottom: 0.8em; }
+.hitl .retirecard .big { font-size: 1.25em; }
+.hitl .scorebig { font-size: 2.6em; font-weight: 700; line-height: 1; }
+.hitl .breakdown { display: grid; grid-template-columns: 1fr auto; gap: 0.2em 1em; font-size: 0.92em; }
+.hitl .breakdown .neg { color: var(--bad); }
+.hitl .fstr { display: flex; gap: 0.25em; flex-wrap: wrap; justify-content: center; }
+.hitl .fund .fpress { color: var(--ink); background: var(--cream); border-radius: 0.5em; padding: 0.2em 0.4em; }
+.hitl .autorow.capped { opacity: 0.6; }
+.hitl .goallist .ggroup { margin-top: 0.4em; font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.hitl .goallist .ggroup:first-child { margin-top: 0; }
+/* Docked cards: a tall card on the right, clear of the tray, over a light dim that keeps the office visible. */
+.hitl .modal-back.docked, .hitl .announce-back.docked {
+  justify-content: flex-end; place-items: center end; padding: 5em 0.8em 6.6em 18.5em;
+  background: linear-gradient(90deg, rgba(42, 38, 48, 0) 40%, rgba(42, 38, 48, 0.28) 100%);
+}
+.hitl .modal-back.docked .modal.decision { width: min(28em, 100%); max-height: 100%; }
+.hitl .announce-back.docked .announce.era { width: min(28em, 100%); }
+.hitl .announce-back.docked .announce.era .erahead h2 { font-size: 1.9em; }
+.hitl .eranew { display: flex; gap: 0.3em; align-items: baseline; flex-wrap: wrap; background: #eef4ff; border: 0.14em solid var(--blue); border-radius: 0.7em; padding: 0.4em 0.65em; font-size: 0.92em; line-height: 1.3; }
+.hitl .announce.multi .ulist { display: flex; flex-direction: column; gap: 0.45em; max-height: 50vh; overflow-y: auto; }
+.hitl .announce.multi .uitem { display: flex; gap: 0.55em; align-items: flex-start; background: var(--cream-2); border-radius: 0.7em; padding: 0.4em 0.55em; }
+.hitl .announce.multi .uico { flex: none; width: 2em; height: 2em; display: grid; place-items: center; background: #fff4dc; border: 0.13em solid var(--ink); border-radius: 0.55em; }
+

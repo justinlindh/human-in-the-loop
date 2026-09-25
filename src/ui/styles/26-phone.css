@@ -1,0 +1,114 @@
+/* Phones (narrow, or short in landscape): at most two toasts, one line each, full width and docked
+   above the bottom row; only toasts with an action take taps, so the office stays playable. They
+   hide while placing furniture and while a card (a decision, a launch) is up. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .toasts { top: auto; left: 0.6em; right: 0.6em; width: auto; bottom: calc(var(--bottom-h, 6em) + 0.9em); gap: 0.3em; pointer-events: none; }
+  .hitl .toasts .toast { pointer-events: none; padding-top: 0.3em; padding-bottom: 0.3em; }
+  .hitl .toasts .toast.clickable, .hitl .toasts .toast-more { pointer-events: auto; }
+  .hitl .toasts .toast { align-items: center; }
+  .hitl .toasts .toast .tt { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .hitl.building .toasts, .hitl.popup-open .toasts { display: none; }
+}
+
+/* Phones (narrow, or short in landscape): a docked card (a decision, an era arrival) spans the
+   width between the top bar and the bottom row, and its body scrolls inside. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked {
+    place-items: start stretch; justify-content: stretch; align-items: flex-start;
+    padding: calc(var(--topbar-h, 4.6em) + 0.4em) 0.6em calc(var(--bottom-h, 6em) + 0.6em) 0.6em;
+  }
+  .hitl .modal-back.docked .modal.decision, .hitl .announce-back.docked .announce.era { width: 100%; max-height: 100%; }
+  .hitl .announce-back.docked .announce.era { overflow-y: auto; }
+}
+/* Touch has no number keys to press. */
+@media (pointer: coarse) { .hitl .modal.decision .keys { display: none; } }
+/* Short landscape screens: the top bar and bottom row leave no room, so the card covers them (the
+   week waits for the decision anyway). */
+@media (max-height: 500px) and (pointer: coarse) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked { padding: 0.4em; }
+}
+
+/* Phones: the New Product form is one column (the team list and summary below the choices). */
+@media (max-width: 480px) {
+  .hitl .buildgrid { grid-template-columns: minmax(0, 1fr); }
+}
+/* Touch: icon-only buttons grow to 44 px, so their glyphs grow with them (about 45% of the tile). */
+@media (pointer: coarse) {
+  .hitl .chip.speed .btn .ic, .hitl .chip.speed .gear .ic, .hitl .chip.speed .mute .ic, .hitl .chat-head .ysz .ic { font-size: 20px; }
+  .hitl .tray-toggle .tsb .ic { font-size: 16px; }
+}
+
+/* Phones in landscape (500 px tall or less): one compact top-bar row (company, cash, MRR, team,
+   speed; the meters hide), a one-row menu of smaller buttons, and panels and modals that fit
+   between the top bar and the menu and scroll inside. The tray folds and Yak starts collapsed. */
+@media (max-height: 500px) and (pointer: coarse) {
+  .hitl .topbar { flex-wrap: nowrap; }
+  .hitl .topbar > .spacer { order: 2; flex: 1 1 0; height: auto; }
+  .hitl .chip.company, .hitl .chip.cash, .hitl .chip.mrr, .hitl .chip.team { order: 0; flex: none; }
+  .hitl .chip.speed { order: 3; flex: none; }
+  .hitl .chip.meters { display: none; }
+  .hitl .chip { padding: 0.2em 0.55em; }
+  .hitl .chip .val { font-size: 1.1em; }
+  .hitl .chip .sub { display: none; }
+  .hitl .menu { flex-wrap: nowrap; }
+  .hitl .mbtn { width: 3.5em; height: 3.2em; }
+  .hitl .mbtn .lbl { font-size: 0.62em; }
+  .hitl .panel-wrap { top: calc(var(--topbar-h, 4.6em) + 0.3em); bottom: calc(var(--bottom-h, 6em) + 0.9em); }
+  .hitl .panel { max-height: 100%; }
+  .hitl .modal-back { padding: 0.4em; }
+  .hitl .modal { max-height: 100%; }
+}
+
+/* Phones: wide panel content scrolls sideways inside the panel, settings rows and panel tabs don't
+   run off the edge, and Reports charts stack. Panels stop above the menu so it stays tappable. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .panel-body { overflow-x: auto; }
+  .hitl .setrow { flex-wrap: wrap; }
+  .hitl .panel-tabs { flex-wrap: wrap; row-gap: 0.25em; }
+  .hitl .charts { grid-template-columns: minmax(0, 1fr); }
+  .hitl .panel-wrap { top: calc(var(--topbar-h, 4.6em) + 0.3em); bottom: calc(var(--bottom-h, 6em) + 0.9em); }
+  .hitl .panel { max-height: 100%; }
+}
+/* Portrait phones: the meters move into the tray strip, and the menu is one sideways-scrolling
+   row of 44 px icon buttons. The speed controls keep their own row so the date never clips. */
+@media (max-width: 480px) {
+  .hitl .chip.meters { display: none; }
+  .hitl .chip.speed .paused-tag.menu { display: none !important; }
+  .hitl .menu { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .hitl .mbtn { flex: none; width: 44px; height: 44px; min-width: 44px; }
+  .hitl .mbtn .lbl, .hitl .mbtn .key { display: none; }
+}
+.hitl .tray-toggle .tsm { display: none; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .tray-toggle .tsm { display: inline-flex; align-items: center; gap: 0.2em; font-size: 0.85em; font-variant-numeric: tabular-nums; }
+  .hitl .tray-toggle .tsm i { width: 0.55em; height: 0.55em; border-radius: 50%; border: 0.1em solid var(--ink); margin-left: 0.25em; }
+  .hitl .tray-toggle .tsm i.brand { background: var(--purple); }
+  .hitl .tray-toggle .tsm i.ik { background: var(--teal); }
+  .hitl .tray-toggle .tsm i.debt { background: var(--yellow); }
+}
+/* Touch: no keyboard hints. */
+@media (pointer: coarse) { .hitl .mbtn .key, .hitl .keyhelp { display: none; } }
+
+/* Phone batch 3. Tray strip readouts: a coloured dot, a letter and the number, spaced apart. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .tray-toggle .tsm { gap: 0.55em; }
+  .hitl .tray-toggle .tsmi { display: inline-flex; align-items: center; gap: 0.15em; font-weight: 700; }
+  .hitl .tray-toggle .tsmi b { font-weight: 600; }
+  /* A sideways-scrolling menu fades on the side with more buttons past its edge. */
+  .hitl .menu.more-right { mask-image: linear-gradient(to right, #000 calc(100% - 3em), transparent); }
+  .hitl .menu.more-left { mask-image: linear-gradient(to left, #000 calc(100% - 3em), transparent); }
+  .hitl .menu.more-left.more-right { mask-image: linear-gradient(to right, transparent, #000 3em, #000 calc(100% - 3em), transparent); }
+}
+/* Short landscape phones: Yak expanded stays below the tray strip, and Staff's summary chips and
+   Hire button share one scrolling line so the table shows. */
+@media (max-height: 500px) and (pointer: coarse) {
+  .hitl .bottom > .chat .chat-body { height: auto; max-height: max(3em, calc(100vh - var(--topbar-h, 4.6em) - 44px - 8em)); }
+  .hitl .summaryline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 0.4em; }
+  .hitl .summaryline > * { flex: none; }
+  /* A panel takes the full height over the top bar (the week waits while it is open); the paused
+     tags make way for the speed buttons. */
+  .hitl .panel-wrap { top: 0.3em; }
+  .hitl .chip.speed .paused-tag { display: none !important; }
+  .hitl .panel-tabs { padding-top: 0.25em; }
+}
+
