@@ -167,7 +167,25 @@ export function createHud({ root, controls, ui }) {
   const tray = h('div.tray');
   // HUD cards over the scene carry data-occludes, so the renderer keeps speech bubbles clear of them.
   for (const c of bar.querySelectorAll('.chip')) c.dataset.occludes = '';
-  root.append(bar, tray);
+  // On phones the tray folds into a slim strip of badges under the top bar; a tap opens it.
+  // It starts shut at 480 px and below, where the open tray would hide most of the office.
+  const stripNeeds = h('span.tsb.needs'), stripWork = h('span.tsb'), stripGoals = h('span.tsb'), stripFx = h('span.tsb');
+  const trayToggle = h('button.tray-toggle', { dataset: { occludes: '' }, 'aria-expanded': 'false', title: 'Show or hide the side cards', onclick: () => setTrayOpen(!trayOpen) },
+    h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx);
+  let trayOpen = !(typeof matchMedia === 'function' && matchMedia('(max-width: 480px)').matches);
+  function setTrayOpen(on) {
+    trayOpen = on;
+    root.classList.toggle('tray-shut', !on);
+    trayToggle.setAttribute('aria-expanded', String(on));
+    trayToggle.querySelector('.tsi').replaceChildren(icon(on ? 'caret.down' : 'caret.right', { size: 12 }));
+  }
+  setTrayOpen(trayOpen);
+  const badge = (el, ico, text, hot = false) => {
+    el.replaceChildren(...(text === null ? [] : [icon(ico, { size: 14 }), h('b', { text })]));
+    el.style.display = text === null ? 'none' : '';
+    el.classList.toggle('hot', hot);
+  };
+  root.append(bar, trayToggle, tray);
 
   let traySig = '';
   let trendOpen = false;
@@ -177,6 +195,13 @@ export function createHud({ root, controls, ui }) {
     clear(tray);
     trayBinds = [];
     const needs = needsYou(s);
+    {
+      const goals = Object.values(s.goals ?? {});
+      badge(stripNeeds, 'warn', needs.length ? String(needs.length) : null, needs.length > 0);
+      badge(stripWork, 'project', s.projects.length ? String(s.projects.length) : null);
+      badge(stripGoals, 'star', goals.length ? `${goals.filter((g) => g.done).length}/${goals.length}` : null);
+      badge(stripFx, 'clock', (s.modifiers ?? []).length ? String(s.modifiers.length) : null);
+    }
     if (needs.length) {
       const shown = needs.slice(0, 4);
       tray.append(h('div.tray-card.needs', null,
