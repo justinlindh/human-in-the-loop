@@ -82,6 +82,45 @@ trap cleanup EXIT
 # A stop signal ends the run through the EXIT trap instead of skipping it.
 trap 'exit 143' TERM INT HUP
 status pending "Local CI running"
+
+# Changes that cannot affect the game (scripts/ci-skip-paths) get a light gate: the commit check and a
+# syntax check of touched .js and .mjs. The list and the classifier come from the base branch, never
+# from the PR, so a PR cannot make itself light.
+mb="$(git -C "$REPO" merge-base "origin/$base" "refs/ci/pr-$pr/head")"
+changed="$(git -C "$REPO" diff --name-only "$mb" "refs/ci/pr-$pr/head")"
+skip_list="$(mktemp)"; classify="$(mktemp)"
+git -C "$REPO" show "origin/$base:scripts/ci-skip-paths" >"$skip_list" 2>/dev/null || rm -f "$skip_list"
+if git -C "$REPO" show "origin/$base:scripts/ci-classify.sh" >"$classify" 2>/dev/null; then
+  mode="$(printf '%s\n' "$changed" | bash "$classify" "$skip_list")"
+else
+  mode=full
+fi
+rm -f "$skip_list" "$classify"
+echo "ci-pr: #$pr gets the $mode gate"
+if [ "$mode" = light ]; then
+  t0=$(date +%s); light_ok=1; table="| step | result |"$'\n'"|---|---|"
+  if "$REPO/scripts/check-commits.sh" "$mb" "refs/ci/pr-$pr/head" "$title" >/dev/null 2>&1; then table+=$'\n'"| commits | pass |"
+  else table+=$'\n'"| commits | FAIL |"; light_ok=0; fi
+  syntax=pass
+  while IFS= read -r f; do
+    case "$f" in *.js|*.mjs) ;; *) continue ;; esac
+    tmp="$(mktemp --suffix=".${f##*.}")"
+    git -C "$REPO" show "refs/ci/pr-$pr/head:$f" >"$tmp" 2>/dev/null && { node --check "$tmp" >/dev/null 2>&1 || syntax=FAIL; }
+    rm -f "$tmp"
+  done <<<"$changed"
+  [ "$syntax" = pass ] || light_ok=0
+  table+=$'\n'"| syntax (touched .js/.mjs) | $syntax |"$'\n'"| tests, build, lifecycle, soak, render checks, balance | skipped: docs-only change |"
+  secs=$(( $(date +%s) - t0 )); verdict=$([ $light_ok = 1 ] && echo PASS || echo FAIL)
+  body="$(mktemp)"
+  { echo "### Local CI: $verdict (light)"; echo; echo "Head \`${head:0:7}\`: every changed file is on scripts/ci-skip-paths, in ${secs}s."; echo; echo "$table"; } >"$body"
+  cat "$body"
+  url=""; [ "$comment" = 1 ] && url="$(gh pr comment "$pr" --body-file "$body")" && echo "ci-pr: posted to #$pr"
+  if [ $light_ok = 1 ]; then status success "skipped: docs-only change (commits and syntax checked)" "$url"
+  else status failure "Local CI $verdict (light): commits or syntax" "$url"; fi
+  status_final=1; rm -f "$body"
+  [ "$comment" = 1 ] && bash "$REPO/scripts/review-carry.sh" "$pr" || true
+  [ $light_ok = 1 ]; exit $?
+fi
 # GitHub rebuilds the merge ref after each push; use it only when it merges this head.
 if git -C "$REPO" fetch -q origin "+refs/pull/$pr/merge:refs/ci/pr-$pr/merge" 2>/dev/null \
   && [ "$(git -C "$REPO" rev-parse "refs/ci/pr-$pr/merge^2" 2>/dev/null)" = "$head" ]; then
