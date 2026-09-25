@@ -28,11 +28,14 @@ TRUSTED="${CI_TRUSTED_FILE:-$REPO/scripts/ci-trusted}"
 pr_trusted() { # <isCrossRepository> <head repo owner> <author> <repo owner>
   [ "$1" = false ] || { echo "ci-pr: #$pr comes from a fork ($2); not running it" >&2; return 1; }
   [ "$2" = "$4" ] || { echo "ci-pr: #$pr head repository belongs to $2, not $4; not running it" >&2; return 1; }
-  grep -qxF -- "$3" <(grep -v '^[[:space:]]*#' "$TRUSTED" 2>/dev/null | tr -d '[:space:]') \
+  grep -qxF -- "$3" <(sed -e 's/#.*//' -e 's/[[:blank:]]//g' "$TRUSTED" 2>/dev/null | grep -v '^$') \
     || { echo "ci-pr: #$pr is by $3, who is not in scripts/ci-trusted; not running it" >&2; return 1; }
 }
-read -r cross owner author branch < <(gh pr view "$pr" --json isCrossRepository,headRepositoryOwner,author,headRefName \
-  --jq '"\(.isCrossRepository) \(.headRepositoryOwner.login) \(.author.login) \(.headRefName)"')
+# Fields are split on the unit separator, which read never merges: an empty field stays empty
+# instead of shifting the next one (such as the branch name) into its place.
+pr_fields="$(gh pr view "$pr" --json isCrossRepository,headRepositoryOwner,author,headRefName \
+  --jq '[.isCrossRepository, (.headRepositoryOwner.login // ""), (.author.login // ""), .headRefName] | map(tostring) | join("\u001f")')"
+IFS=$'\037' read -r cross owner author branch <<<"$pr_fields"
 repo_owner="$(gh repo view --json owner --jq .owner.login)"
 [ -n "${cross:-}" ] && [ -n "$repo_owner" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
 pr_trusted "$cross" "$owner" "$author" "$repo_owner" || exit 2
