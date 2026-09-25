@@ -16,9 +16,9 @@ const args = process.argv.slice(2);
 const OUT = resolve(args.includes('--out') ? args[args.indexOf('--out') + 1] : 'docs/readme');
 mkdirSync(OUT, { recursive: true });
 
-// The engineer from the picked candidate, mid-wave with the hand clear of the head.
+// The engineer in the hoodie, mid-wave with the hand clear of the head.
 const CHARACTER = {
-  person: { id: 'logo-b', role: 'engineer', appearance: { skin: 4, hair: 3, hairColor: '#2a2630', shirt: '#f2c14e', pants: '#2e3440', build: 1, accessory: 'glasses' } },
+  person: { id: 'logo-a', role: 'engineer', appearance: { skin: 2, hair: 1, hairColor: '#4a3222', shirt: '#e8e2d6', pants: '#2e3440', build: 1, accessory: 'none' } },
   pose: { anim: 'wave', animT: 1.6, yaw: -0.3 },
 };
 
