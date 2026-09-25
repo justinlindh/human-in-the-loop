@@ -70,6 +70,17 @@ fi
 
 out="$(cd "$r" && bash scripts/gates.sh --moment nosuch --only test 2>&1)"; rc=$?
 [ $rc -eq 2 ] && [[ "$out" == *"known: printer"* ]] || fail "an unknown moment should exit 2 and list the known ones (rc $rc: $out)"
+# Which sweep --moment picks, from find.js's JSON: a snapshot, none, or an index that can't answer.
+mkdir -p "$r/scripts/events"
+printf 'process.stdout.write(process.env.FIND_OUT ?? "[]");\n' >"$r/scripts/events/find.js"
+for c in '[{"id":"printer_jam","snapshot":"1-a-w5.json.gz"}]|printer_jam from its indexed snapshot' \
+         '[]|no indexed snapshot of printer_jam' \
+         '{"error":"no index for this sim code","kind":"stale-index"}|WARNING the event index couldn'"'"'t answer for printer_jam (error: stale-index (no index for this sim code))' \
+         'not json|WARNING the event index couldn'"'"'t answer for printer_jam (error: find.js gave no JSON)'; do
+  out="$(cd "$r" && FIND_OUT="${c%%|*}" bash scripts/gates.sh --moment printer --only test 2>&1)"
+  [[ "$out" == *"gates: sweep: ${c#*|}"* ]] || fail "find.js answering ${c%%|*} should print: gates: sweep: ${c#*|} (got: $(grep 'gates: sweep' <<<"$out"))"
+done
+
 out="$(cd "$r" && bash scripts/gates.sh --only nosuch 2>&1)"; rc=$?
 [ $rc -eq 2 ] || fail "an unknown gate should exit 2 (rc $rc)"
 
