@@ -280,6 +280,13 @@ export const SAY_EXCHANGES = [
     ] },
 
   // rival
+  { id: 'say_rival_whiteboard', stream: 'say', cooldown: 26,
+    when: (s) => s.rival?.status === 'rising' || s.rival?.status === 'stalled',
+    cast: { a: 'any', b: 'any' },
+    turns: [
+      ['a', ['Who drew the {rival} logo with a countdown timer?', 'The whiteboard says "{rival} architecture". It is one box.', 'Someone wrote "{rival} was here (briefly)" on the board.']],
+      ['b', ['Leave it. It is art.', 'Harsh. Accurate, but harsh.', 'We are above this. Mostly.']],
+    ] },
   { id: 'say_rival_mockup', stream: 'say', on: 'rival', cast: { a: 'sales', b: 'any' },
     turns: [
       ['a', ['{rival} announced our exact feature.', '{rival} is launching the same thing we are.', 'Saw the {rival} demo. It is our roadmap.']],
