@@ -170,7 +170,8 @@ export const ITEMS = [
     setup: `(async () => { await ${RUNAWAY}; ${BARE}; })()`,
     actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...FOLLOW(BOX('rack_hot'), 2.8, 0, 22), ...CAMLOG(22)],
     screenshots: [10, 14, 18],
-    out: [LOOP('automation', 10, 9)],
+    // Cropped round the smoking rack and the bill card, at native pixels.
+    out: [LOOP('automation', 12, 6, { x: 0.2917, y: 0.0556, w: 0.7083, h: 0.7083 }, 29)],
   },
 
   // New on the page: Yak, the Office Space nods, and decisions you can see.
