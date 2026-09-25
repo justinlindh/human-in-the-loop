@@ -185,6 +185,7 @@ function launchNew(ctx, j) {
   for (const c of state.campaigns) if (c.projectId === j.id) { c.projectId = null; c.productId = product.id; }
   state.stats.launches++;
   ctx.emit({ type: 'launch', productId: product.id });
+  ctx.state.flags.lastPauseWeek = ctx.state.week;
   ctx.emit({ type: 'celebrate', staffId: null });
   ctx.emit({ type: 'toast', text: `${product.name} launched! Reviews average ${product.score}.`, tone: product.score >= 6 ? 'good' : 'warn' });
   return product;
@@ -212,6 +213,7 @@ function complete(ctx, j) {
     const reviews = pressReviews(state, target, { update: true, centered: true, rng: shown });
     Object.assign(pr, { score: meanScore(reviews), reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
+    ctx.state.flags.lastPauseWeek = ctx.state.week;
     ctx.emit({ type: 'toast', text: `${pr.name} v${pr.version} shipped. Reviews average ${pr.score}.`, tone: 'good' });
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'migration' && pr && !pr.killed) {

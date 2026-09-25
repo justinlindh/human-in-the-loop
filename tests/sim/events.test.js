@@ -11,7 +11,7 @@ import { MODIFIER_KEYS } from '../../src/data/modifiers.js';
 import { game, addStaff, addProduct, expectFail } from './helpers.js';
 
 const ctxOf = (s) => makeCtx(s);
-const raise = (s, id, subjectId = null) => { const c = ctxOf(s); raiseDecision(c, id, subjectId); return c.events; };
+const raise = (s, id, subjectId = null) => { delete s.flags.lastPauseWeek; const c = ctxOf(s); raiseDecision(c, id, subjectId); return c.events; };
 const resolve = (s, choice) => dispatch(s, { type: 'resolveDecision', choice });
 
 function busy(seed = 1) {

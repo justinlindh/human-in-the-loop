@@ -23,6 +23,7 @@ describe('events follow the real office', () => {
     expect(eligibleEvents(s).map((e) => e.id)).toContain('coffee_wanted');
     s.cash = 1e6;
     expect(dispatch(s, placeAction(s, 'espresso')).ok).toBe(true);
+    delete s.flags.lastPauseWeek;
     expect(eligibleEvents(s).map((e) => e.id)).toContain('coffee_machine_broke');
     expect(eligibleEvents(s).map((e) => e.id)).not.toContain('coffee_wanted');
     raise(s, 'coffee_machine_broke');

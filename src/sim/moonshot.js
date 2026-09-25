@@ -64,6 +64,7 @@ function launchMoonshot(ctx, m) {
   addFame(state, B.moonshotWinFame);
   state.brand = clamp(state.brand + B.moonshotWinBrand, 0, 100);
   ctx.emit({ type: 'launch', productId: state.products.at(-1).id });
+  state.flags.lastPauseWeek = state.week;
   ctx.emit({ type: 'celebrate', staffId: null });
   ctx.emit({ type: 'toast', tone: 'good', text: `Project ${m.name} works. It is a whole new product, and the internet has opinions. Good ones.` });
 }
