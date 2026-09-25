@@ -12,19 +12,19 @@
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
 // Clicks the visible button with this label (a player pressing it).
-const CLICK = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()`;
+export const CLICK = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()`;
 // Clicks the nth visible element matching a CSS selector.
-const CLICK_SEL = (sel, n = 0) => `[...document.querySelectorAll(${JSON.stringify(sel)})].filter((b) => b.getClientRects().length)[${n}]?.click()`;
+export const CLICK_SEL = (sel, n = 0) => `[...document.querySelectorAll(${JSON.stringify(sel)})].filter((b) => b.getClientRects().length)[${n}]?.click()`;
 // A key press as the UI hears it.
-const KEY = (key, code = key) => `dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, bubbles: true }))`;
+export const KEY = (key, code = key) => `dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, bubbles: true }))`;
 // Closes the tutorial, cards, and panels until the UI reports nothing open.
-const IDLE = `(() => { for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) ${KEY('Escape')}; })()`;
+export const IDLE = `(() => { for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) ${KEY('Escape')}; })()`;
 // Clicks the visible button whose label starts with this text (tabs like "Hire (8)").
 const CLICK_STARTS = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith(${JSON.stringify(label)}))?.click()`;
 // Cards that turn up once play resumes (unlocks, tips): a player dismisses them in the first seconds.
 // Unlock cards close with their "Got it" button; panels and tips close with Escape.
 // With escape false only "Got it" is pressed, so popups that close on Escape (launch results) stay.
-const DISMISS_AT = (times, { escape = true } = {}) => times.map((at) => ({ at, js: `(() => { for (let i = 0; i < 12; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && x.textContent.trim() === 'Got it'); if (b) b.click(); else if (${escape} && window.__HITL.clock.busy) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); else break; } })()` }));
+export const DISMISS_AT = (times, { escape = true } = {}) => times.map((at) => ({ at, js: `(() => { for (let i = 0; i < 12; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && x.textContent.trim() === 'Got it'); if (b) b.click(); else if (${escape} && window.__HITL.clock.busy) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); else break; } })()` }));
 // Every second through a clip of live play; decisions get the first choice after a moment to read.
 const DISMISS_EVERY = (seconds) => [
   ...DISMISS_AT([0.1, ...Array.from({ length: Math.floor(seconds) }, (_, i) => i + 1)]),
@@ -39,7 +39,7 @@ const PICK = `(() => { const s = window.__HITL.state; return s.staff.find((p) =>
 // Fast-forwards a real game with a bot, straight through the sim (no presentation), until `until`
 // (a JS condition on s) holds or `weeks` pass. With keepDecision it stops at the first decision
 // raised after minWeeks.
-const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, minWeeks = 0, after = '' }) => `(async () => {
+export const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, minWeeks = 0, after = '' }) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
@@ -63,11 +63,11 @@ const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendin
 // A bare frame for the reel: the side overlays (top bar, tray, Yak, menu, toasts) hidden, so the
 // office and the beat fill the frame; the decision card and the moment caption stay. YAK brings Yak
 // back, at the right where the reel's crop keeps it, for a beat whose payoff is a message.
-const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts { display: none !important; }'; document.head.append(st); })()`;
+export const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts { display: none !important; }'; document.head.append(st); })()`;
 const YAK = `(() => { const st = document.getElementById('reel-bare'); if (st) st.textContent = '#ui .topbar, #ui .tray, #ui .menu, #ui .toasts { display: none !important; } #ui .chat.yak { position: fixed !important; left: auto !important; right: 24px !important; top: 300px !important; bottom: auto !important; width: 380px !important; }'; })()`;
 // Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
 // "Got it"), so the nod's decision card is what shows.
-const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
+export const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [...document.querySelectorAll('button')].find((x) => x.getClientRects().length && ['Later', 'Got it', 'Next', 'Onward', 'Nice!'].includes(x.textContent.trim())); if (!b) break; b.click(); } })()`;
 // Runs the sim a week at a time (at most `max`, the bot deciding) straight through, with nothing
 // presented on the way (no launch cards, incidents or toasts), until a Yak message containing `until`
 // is in the log; then shows only the new messages that contain one of `show`. A nod's payoff weeks
@@ -86,14 +86,15 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 })()`;
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
-const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
+export const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
 // Keeps the camera on what a beat is about from `from` to `to`, re-aimed every frame: a critically
 // damped spring glides the look point onto the staged prop, the printer while it is carried, or the visitors,
 // so the camera never steps. The game's own moment camera stands down while this drives.
-const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
-  const find = () => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
+// `props` is a list of staged prop names, or a JS function source returning the world point to aim at.
+export const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+  const find = ${typeof props === 'string' ? props : `() => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
     const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
-    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; };
+    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; }`};
   const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
   f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift}; f.on = true;
   if (f.running) return; f.running = true;
@@ -111,11 +112,16 @@ const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender;
       R.easeTo(f.x, f.z, f.zoom, 12, f.y); }
     requestAnimationFrame(tick); };
   requestAnimationFrame(tick); })()`;
-const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
+// A person at their desk (on a project, in the office), for FOLLOW: their character's world position.
+export const SEATED = `() => { const R = window.__hitlRender, s = window.__HITL.state;
+  const p = s.staff.find((x) => x.assignment?.type === 'project' && !x.remote && x.mood !== 'away'); if (!p) return null;
+  let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === p.id) o = x.parent; });
+  return o ? o.getWorldPosition(new o.position.constructor()) : null; }`;
+export const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
 // Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
 // most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
 // points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
-const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
+export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
   const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o || window.__viewPicked) return;
   window.__viewPicked = true;
   const box = new T.Box3().setFromObject(o), c = box.getCenter(new T.Vector3()), ray = new T.Raycaster(); ray.camera = R.camera;
@@ -135,6 +141,50 @@ export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 
+// Plays a real game with a bot straight through the sim until the next week would bring what the
+// shot is about (`hit`, tested on a copy ticked one week ahead, given the copy and the week's
+// events), and stops the week before: the game's own tick brings it live, with its card, freeze and
+// staging as in play. `prep` changes state every week before the
+// look-ahead (so the live week matches it); `after` only presents (it must not change state).
+export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '' }) => `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const s = window.__HITL.state;
+  const hit = ${hit};
+  for (let i = 0; i < ${weeks} && !s.gameOver; i++) {
+    b.botDecide('${bot}', s);
+    b.botTurn('${bot}', s);
+    ${prep}
+    const ahead = structuredClone(s);
+    if (hit(ahead, sim.tick(ahead) ?? [])) break;
+    sim.tick(s);
+  }
+  ${after}
+  ${IDLE};
+})()`;
+export const PRE_DECISION = (eventId, weeks, cond = 'true') => PRE_UNTIL({ weeks, hit: `(c) => c.pendingDecision?.eventId === '${eventId}' && (${cond})` });
+// The side overlays hidden (top bar, tray, bottom bar, toasts, tray toggle), Yak included; cards and
+// captions stay. The style element's id is 'clean-shot', for a shot that hides more.
+export const CLEAN = `(() => { const st = document.createElement('style'); st.id = 'clean-shot'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle { display: none !important; }'; document.head.append(st); })()`;
+// Only the office: every overlay is invisible but still laid out, so the cards a fast-forward queues
+// can still be closed (a paused game would freeze the shot).
+export const STAGE_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui > * { visibility: hidden !important; }'; document.head.append(st); })()`;
+// Yak stays, alone, for a shot whose subject is a Yak thread.
+export const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } '; document.head.append(st); })()`;
+// Answers `eventId` (null: any decision) with `choice` once its card has been up `read` seconds, by
+// pressing the choice's number key as a player would; checked every half second from `from` to `to`.
+export const CHOOSE_WHEN = (eventId, choice, from, to, read = 3) => Array.from({ length: Math.round((to - from) * 2) }, (_, i) => ({ at: from + i / 2,
+  js: `(() => { const H = window.__HITL; const d = H.state.pendingDecision; if (!d || (${JSON.stringify(eventId)} && d.eventId !== ${JSON.stringify(eventId)})) return; window.__seen ??= performance.now(); if (performance.now() - window.__seen >= ${read * 1000}) { ${KEY(String(choice + 1), `Digit${choice + 1}`)}; window.__seen = undefined; } })()` }));
+// Hides the decision card, for a still whose subject is what the decision staged.
+export const NO_CARD = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { visibility: hidden !important; }'; document.head.append(st); })()`;
+// Resolves the open decision with a choice after it has been on screen `after` seconds (a player reading it).
+export const CHOOSE = (eventId, choice) => `(() => { const H = window.__HITL; if (H.state.pendingDecision?.eventId === '${eventId}') H.dispatch({ type: 'resolveDecision', choice: ${choice} }); })()`;
+// Closes the unlock and tip cards a fast-forward queues ("Later", "Got it"), as a player would.
+export const CLEAR_EARLY = [0, 0.3, 0.6, 1, 1.5, 2, 3].map((at) => ({ at, js: CLEAR_CARDS }));
+// Records where the camera looks (view()) as a capture mark, for framing a shot.
+const MARK_VIEW = `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'view ' + JSON.stringify(window.__hitlRender.view()) }); })()`;
+export const INCIDENT_ON_FLOOR = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'incident' && !e.caught)";
+
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
   const c = window.__HITL.controls;
@@ -152,33 +202,33 @@ const THREE_SAVES = `(async () => {
 })()`;
 
 // Everyone in the office: no lockdown, and an office work policy (the sim keeps nobody remote).
-const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
+export const IN_OFFICE = 's.lockdown = null; s.workPolicy = "office"; for (const p of s.staff) { p.remote = false; p.call = null; }';
 
 // Presents the recent Yak history the sim kept, since a fast-forward shows nothing as it goes.
-const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
+export const CHAT_HISTORY = 'window.__HITL.emit((s.chatLog ?? []).slice(-15));';
 
 const ERA = (id) => `(() => { const s = window.__HITL.state; s.era = { id: '${id}', since: s.week }; })()`;
 
 // Unstaffed product updates the bot started are dropped, as for readme-hq, so Needs You shows the game.
-const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
+export const DROP_UNSTAFFED = "s.projects = s.projects.filter((j) => j.kind !== 'update' || s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id));";
 // Idle people go onto the projects nobody is on, as a player would.
-const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
+export const STAFF_IDLE = "for (const j of s.projects) { if (s.staff.some((p) => p.assignment?.type === 'project' && p.assignment.targetId === j.id)) continue; const p = s.staff.find((x) => x.assignment?.type === 'idle' && !x.remote && x.mood !== 'away'); if (p) sim.dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } }); }";
 // A real game played to week 176, then the sim's own staging. The sim is deterministic, so a copy of
 // the state is ticked ahead to find the week the reward lands, and the game is advanced to the week
 // before it: the first live week awards it on camera.
-const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
+export const STAGED = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
   sim.stageIncentive(s, '${reward}');
   const ahead = structuredClone(s); let weeks = 0;
   while (weeks < 12) { weeks++; const ev = sim.tick(ahead) ?? []; if (ev.some((e) => e.type === 'incentive' && e.reward === '${reward}')) break; b.botDecide('balanced', ahead); }
   for (let i = 1; i < weeks; i++) { sim.tick(s); b.botDecide('balanced', s); }` });
-const WAFFLE_SETUP = STAGED('waffle_party');
+export const WAFFLE_SETUP = STAGED('waffle_party');
 // Music night comes naturally: the Incentives Program on from its unlock, played until the fifth
 // reward is due next week, so the live week raises the genre decision.
 const MUSIC_DUE = "((s.policies.incentives || sim.dispatch(s, { type: 'setPolicy', id: 'incentives', on: true })), s.flags.incentiveCount === 4 && s.week - s.flags.incentiveWeek >= (await import('/src/sim/balance.js')).B.incentiveEveryWeeks - 1)";
-const MUSIC_SETUP = PLAY({ weeks: 400, until: MUSIC_DUE, after: IN_OFFICE + CHAT_HISTORY + DROP_UNSTAFFED + STAFF_IDLE });
+export const MUSIC_SETUP = PLAY({ weeks: 400, until: MUSIC_DUE, after: IN_OFFICE + CHAT_HISTORY + DROP_UNSTAFFED + STAFF_IDLE });
 // Clicks through the incentive card each second, so the party plays as soon as it is awarded;
 // decisions get the first choice.
-const WAFFLE_ACTIONS = (seconds) => [
+export const WAFFLE_ACTIONS = (seconds) => [
   ...Array.from({ length: Math.floor(seconds) }, (_, i) => ({ at: i + 0.5, js: CLICK('Onward') })),
   ...DISMISS_EVERY(seconds).filter((a) => a.at % 4 === 0),
 ];
@@ -525,4 +575,11 @@ export const ITEMS = [
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
   },
+];
+
+// Logs where the camera looks every frame into the index.json marks ('camlog'), so a cut's largest
+// step and largest change between steps can be measured (scripts/reels/camstats.mjs).
+export const CAMLOG = (seconds) => [
+  { at: 0, js: `(() => { const R = window.__hitlRender; const log = window.__camLog = [], t0 = window.__capture.now; const f = () => { const v = R.view(); log.push([+((window.__capture.now - t0) / 1000).toFixed(4), v.x, v.y, v.z, v.zoom]); requestAnimationFrame(f); }; requestAnimationFrame(f); })()` },
+  { at: seconds - 0.05, js: `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'camlog ' + JSON.stringify(window.__camLog) }); })()` },
 ];
