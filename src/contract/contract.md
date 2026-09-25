@@ -288,7 +288,7 @@ grant:  { item }                   // buys and auto-places a real item (buyItem 
 leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor only when the event has no stage
 
 state.pendingDecision.stage = null | { prop, anchor, x, y, staffId }   // tile resolved when raised; x, y null for 'screens'
-// staffId: 'subjectDesk' only; whose desk it is: the subject if in the office, else someone present (a founder first); absent when it fell back to the back wall
+// staffId: 'subjectDesk' only; whose desk it is: the subject's, or for an event with no subject (or one past its wait) someone present, a founder first; absent when it fell back to the back wall
 state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
 ```
 
@@ -297,7 +297,7 @@ state.office.props = [{ id, prop, x, y, since, until }]       // lingering props
 - `grant` replaces a `buyItem` effect on decisions.
 - `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
-- A desk-staged event whose subject is away or remote isn't raised that week; it waits for the next one.
+- A desk-staged event whose subject is away or remote waits, up to `B.deskStageWaitWeeks`. After that it's raised with someone present's desk instead, so nothing queued behind it stalls.
 - An anchor of `'whiteboard'` resolves to a placed whiteboard or whiteboard_wall, else the back wall as `'wall'` does.
 - `leaves` takes the stage prop's tile when there is one, and otherwise resolves its own `anchor`. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
