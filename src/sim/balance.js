@@ -98,6 +98,8 @@ export const B = {
   rivalMergeBase: 150000, rivalMergePerStrength: 60000,
   beatAgentBillAfter: 45, beatMegaroundAfter: 95, beatFloorNextDoorAfter: 130, megaroundWeeks: 26,
   productNameMax: 20,
+  // Share of staff name parts drawn from the international tier rather than the common US tier.
+  intlNameShare: 0.28,
   fameDecay: 0.3, fameChurnRelief: 0.25, fameHireRelief: 0.4,
   moonshotAfterConsolidation: 100, moonshotRevenueShare: 0.25, moonshotMinWeekly: 50000, moonshotCheckinWeeks: 26, moonshotCheckins: 4,
   moonshotProduct: { stats: { features: 200, polish: 180, reliability: 160, novelty: 120 }, score: 8.6, hype: 60, novelty: 10, health: 90 },
