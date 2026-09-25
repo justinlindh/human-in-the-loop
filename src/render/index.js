@@ -322,7 +322,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       surroundings?.update(dt, lighting.env);
       if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
       screens.update(simDt, lighting.env);
-      staff?.update(dt, { paused });
+      // A decision holds the office still, except the moment it stages (unless the game is paused).
+      staff?.update(dt, { paused, moments: paused && !speedZero });
       floating.update(simDt);
       fx.update(simDt, dt);
       props?.update(dt);
