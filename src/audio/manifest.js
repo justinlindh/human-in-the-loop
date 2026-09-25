@@ -149,7 +149,7 @@ export const OFFICE_PROP_CUES = {
   // so the crash is for Low, where there is no moment and the wreck just appears.
   printer_wrecked: { on: 'sfx.printerSmash', lowOnly: true },
 };
-export const OFFICE_PROP_LOOPS = { printer_jammed: { id: 'sfx/printer_beep', bus: 'sfx', gain: 0.35 } };
+export const OFFICE_PROP_LOOPS = { printer_jammed: { id: 'sfx/printer_beep', bus: 'sfx', gain: 0.5 } };
 export const PLAYLIST_PRELOAD_S = 30;   // how long before a projected switch the next bed starts decoding
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
