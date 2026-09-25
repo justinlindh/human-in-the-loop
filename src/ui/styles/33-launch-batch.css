@@ -1,0 +1,11 @@
+/* ---------- several launches in one results card ---------- */
+.hitl .modal.launch.batch .lbrows { display: flex; flex-direction: column; gap: 0.6em; max-height: min(60vh, 34em); overflow-y: auto; }
+.hitl .modal.launch.batch .lbrow { padding: 0.55em 0.7em; border: 0.13em solid var(--line); border-radius: 0.8em; background: #fff; display: flex; flex-direction: column; gap: 0.35em; }
+.hitl .modal.launch.batch .lbhead { display: flex; align-items: center; gap: 0.45em; }
+.hitl .modal.launch.batch .lbscore { font-size: 1.25em; font-weight: 800; }
+.hitl .modal.launch.batch .lbscore.great { color: var(--good); }
+.hitl .modal.launch.batch .lbscore.ok { color: var(--blue); }
+.hitl .modal.launch.batch .lbscore.meh { color: #c68a00; }
+.hitl .modal.launch.batch .lbscore.bad { color: var(--bad); }
+.hitl .modal.launch.batch .rquote { color: var(--ink-soft); font-style: italic; }
+.hitl .modal.launch.batch .lnext { margin-top: 0.1em; }
