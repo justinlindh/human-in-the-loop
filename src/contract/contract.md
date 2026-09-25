@@ -303,7 +303,7 @@ Some staff posts in Yak carry two or three founder replies. They're small, low-s
 ```js
 state.chatPrompts = [ChatPrompt]   // open prompts, plus resolved ones kept for B.chatPromptsKept weeks so ui can show them as answered
 ChatPrompt = {
-  id,                // 'cp12', from its own sequence (state.flags.promptSeq), so prompts never shift other ids or the seeded course
+  id,                // 'cp12', from its own sequence (state.flags.promptSeq), so prompt ids never shift other ids
   kind,              // template id in src/data/prompts.js
   chatId,            // the chatLog message the options hang under
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
@@ -335,4 +335,5 @@ ChatPrompt = {
 - Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
 - Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
 - Copy follows the voice guide and the era gates.
+- Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
 - Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
