@@ -346,8 +346,8 @@ function staffProjects(s) {
     dispatch(s, { type: 'assign', staffId: p.id, assignment: { type: 'project', targetId: j.id } });
     i++;
   }
-  // A migration cannot wait: it borrows someone from whichever project has the biggest crew.
-  for (const j of s.projects.filter((x) => x.kind === 'migration')) {
+  // A migration, or a new product nobody is on, borrows someone from whichever project has the biggest crew.
+  for (const j of s.projects.filter((x) => x.kind === 'migration' || (x.kind === 'new' && stalled(s, x)))) {
     if (crewOf(s, j).length) continue;
     const donor = s.projects.map((x) => crewOf(s, x)).filter((c) => c.length > 1).sort((a, b) => b.length - a.length)[0];
     const p = donor?.find((x) => !x.founder) ?? donor?.[0];
