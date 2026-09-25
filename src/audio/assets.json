@@ -48,14 +48,25 @@
    "beds": [
     {
      "id": "a",
-     "bars": 8,
-     "candidate": true,
+     "bars": 58,
      "stems": {
       "full": {
        "file": "music/chatgbt/a_full.ogg",
-       "duration": 18.827,
+       "duration": 137.824,
        "loopStart": 0,
-       "loopEnd": 903680
+       "loopEnd": 6615552
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 58,
+     "stems": {
+      "full": {
+       "file": "music/chatgbt/b_full.ogg",
+       "duration": 132.565,
+       "loopStart": 0,
+       "loopEnd": 6363136
       }
      }
     }
