@@ -7,6 +7,7 @@ import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 
 const T = 0.2;            // wall thickness
+const SILL_Z = 0.18;       // a window sill's centre, out from the wall's centre line (0.15 m into the room)
 const SLAB = 0.35;        // floor slab thickness
 const WALL_KEYS = ['x', 'z', 'px', 'pz'];
 const OUTWARD = { x: [-1, 0], z: [0, -1], px: [1, 0], pz: [0, 1] };
@@ -193,11 +194,18 @@ function openingModel(L, o, screens) {
   const wz = o.wall === 'z' ? -L.D / 2 - T / 2 : o.wall === 'pz' ? L.D / 2 + T / 2 : o.at;
   const rot = WALL_ROT[o.wall];
   if (o.kind === 'window') {
+    const g = new THREE.Group();
     const m = getModel('window_frame');
     m.scale.set(o.width / 1.6, (o.top - o.bottom) / 1.3, 1);
-    place(m, wx, o.bottom, wz, rot);
     m.traverse((c) => { if (c.isMesh && c.name.startsWith('window_glass')) { c.material = screens.windowMaterial(); c.castShadow = false; } });
-    return m;
+    g.add(m);
+    // The sill stands out into the room, so it is its own mesh (kept out of the wall's merge) that
+    // hides when tall furniture stands against the wall below it (see sillBlockers).
+    const sill = mesh(roundedBox(o.width + 0.14, 0.05, 0.14, 0.018), mat('plastic_white'), 0, 0, SILL_Z);
+    sill.userData.dynamic = true;
+    sill.userData.sill = { wall: o.wall, a: o.at - o.width / 2 - 0.07, b: o.at + o.width / 2 + 0.07 };
+    g.add(sill);
+    return place(g, wx, o.bottom, wz, rot);
   }
   if (o.kind === 'rail') {
     // Glass balustrade: posts every ~1.5 m, a handrail on top, a glass panel between.
@@ -880,6 +888,7 @@ export function createOffice({ parent, screens, lighting }) {
       dropBatch(); refresh();
       const key = blockKey;
       wallBlockers();
+      updateSills();
       if (blockKey !== key) updatePoster();
     }
     return changed;
@@ -1041,6 +1050,33 @@ export function createOffice({ parent, screens, lighting }) {
     }
     blockKey = out.map((o) => `${o.wall}${o.a.toFixed(1)},${o.b.toFixed(1)}`).sort().join('|');
     return out;
+  }
+
+  // Window sills stand 0.15 m into the room: one with furniture taller than it standing against the
+  // wall below it is hidden, since the furniture would stand in it. Any wall, front walls included.
+  function updateSills() {
+    if (!cur) return;
+    if (!cur.sills) { cur.sills = []; cur.root.traverse((o) => { if (o.userData.sill) cur.sills.push(o); }); }
+    if (!cur.sills.length) return;
+    const L = cur.L, near = [];
+    for (const e of placed.values()) {
+      const b = localBox(e);
+      if (b.max.y < 0.9) continue;
+      const t = e.target, c = Math.cos(t.rotY), sn = Math.sin(t.rotY);
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const [lx, lz] of [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]]) {
+        const x = t.x + c * lx + sn * lz, z = t.z - sn * lx + c * lz;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      }
+      if (x0 < -L.W / 2 + 0.3) near.push({ wall: 'x', a: z0, b: z1 });
+      if (x1 > L.W / 2 - 0.3) near.push({ wall: 'px', a: z0, b: z1 });
+      if (z0 < -L.D / 2 + 0.3) near.push({ wall: 'z', a: x0, b: x1 });
+      if (z1 > L.D / 2 - 0.3) near.push({ wall: 'pz', a: x0, b: x1 });
+    }
+    for (const m of cur.sills) {
+      const w = m.userData.sill;
+      m.visible = !near.some((n) => n.wall === w.wall && n.a < w.b && n.b > w.a);
+    }
   }
 
   // Team mat under a desk set, tinted by the sitter's role; an empty desk gets a neutral mat.
