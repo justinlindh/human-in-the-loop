@@ -64,16 +64,54 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const r of leavers) r.char.setShadows(on);
   }
 
+  // Moment ownership trace, for checks (dump.mjs --trace, loop.mjs, clip.mjs): who sets each
+  // person's temp (the pose or errand that overrides their goal), and when it starts, ends, is cut
+  // short or replaced, with the function that did it; refusals and the decision freeze too. Off
+  // unless a check turns it on.
+  const trace = { on: false, t: 0, lines: [], max: 600, seq: 0 };
+  function traceLine(id, what, detail = {}) {
+    if (!trace.on) return;
+    trace.lines.push({ seq: trace.seq++, t: +trace.t.toFixed(2), id, what, ...detail });
+    if (trace.lines.length > trace.max) trace.lines.splice(0, trace.lines.length - trace.max);
+  }
+  // The function that called into the temp setter: the first stack frame outside the tracer.
+  function callerName() {
+    for (const l of (new Error().stack ?? '').split('\n').slice(1)) {
+      if (/callerName|traceTemp|\bset \[as temp\]|Object\.set\b/.test(l)) continue;
+      const m = /at (?:Object\.|new )?([\w$.<>]+) \(.*?([\w.-]+\.js)/.exec(l) ?? /at .*?([\w.-]+\.js):(\d+)/.exec(l);
+      if (m) return m[2] && !/^\d+$/.test(m[2]) ? `${m[1]} (${m[2]})` : `${m[1]}:${m[2]}`;
+    }
+    return '?';
+  }
+  const tempLabel = (t) => (t ? t.moment ?? t.perkKey ?? (t.standup ? 'standup' : null) ?? t.anim ?? 'temp' : null);
+  function traceTemp(r, old, v) {
+    const by = callerName();
+    if (v) r.tempBy = by;
+    if (!trace.on) return;
+    const what = !old ? 'start' : !v ? (old.t <= 0.05 ? 'end' : 'interrupt') : 'replace';
+    traceLine(r.id, what, { from: tempLabel(old), to: tempLabel(v), by });
+  }
+
   function makeRec(s) {
     const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role, seed: s.id });
     if (!charShadows) char.setShadows(false);
     char.pickProxy.userData.staffId = s.id;
     group.add(char.root);
-    return {
+    const r = {
       id: s.id, char, pos: new THREE.Vector3(), yaw: 0, path: [], speed: WALK,
       goal: null, goalKey: '', seat: null, mode: 'placed', hidden: false,
-      temp: null, emoteT: 0, moodEmoteT: rnd(6, 14), staff: s, walkAnim: 'walk',
+      temp: null, emoteT: 0, moodEmoteT: rnd(6, 14), staff: s, walkAnim: 'walk', tempBy: null,
     };
+    if (trace.on) traceRec(r);
+    return r;
+  }
+  // While the trace is on, temp becomes a property that reports each change; the game never pays
+  // for it otherwise.
+  function traceRec(r) {
+    if (r.traced) return;
+    r.traced = true;
+    let temp = r.temp;
+    Object.defineProperty(r, 'temp', { enumerable: true, get: () => temp, set: (v) => { if (trace.on && v !== temp) traceTemp(r, temp, v); temp = v; } });
   }
 
   function disposeRec(r) {
@@ -449,7 +487,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // Their own good news always shows as a sparkle; the pose needs clear floor around them.
   function celebrate(r, seconds, sparkle) {
     if (sparkle) emote(r, 'sparkle', seconds);
-    if (r.temp?.moment || !roomToCelebrate(r)) return;
+    if (r.temp?.moment) { traceLine(r.id, 'refuse', { by: 'celebrate', why: `in moment ${r.temp.moment}` }); return; }
+    if (!roomToCelebrate(r)) { traceLine(r.id, 'refuse', { by: 'celebrate', why: 'no room' }); return; }
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
@@ -491,13 +530,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
-  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
+  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const momentCam = createMomentCamera(rig);
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -899,8 +938,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     else if (r.goal && !r.goal.seated) Object.assign(r.goal, r.goal && nav.isBlocked(r.goal.x, r.goal.z) ? p : {});
   }
 
+  let frozen = false;
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
+    trace.t += dt;
+    if (paused !== frozen) { frozen = paused; traceLine(null, paused ? 'freeze' : 'unfreeze', { decision: lastState?.pendingDecision?.eventId ?? null }); }
     if (paused) {
       // With a decision open (momentsToo), the moment it stages still plays: its actors, its
       // visitors and the moment camera. Everything else holds still.
@@ -967,6 +1009,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // A staff member's character (character.js), for the staging probe.
     charOf(id) { return recs.get(id)?.char ?? null; },
     // For checks and the scene dump: where someone is headed and why (read only).
+    // The moment ownership trace: trace.on = true starts it; lines(n) are the last n entries.
+    trace: {
+      get on() { return trace.on; },
+      set on(v) { trace.on = !!v; if (v) for (const r of recs.values()) traceRec(r); else trace.lines.length = 0; },
+      lines(n = 50) { return trace.lines.slice(-n); },
+      // Refusals and other notes from the moments module.
+      note(id, what, detail) { traceLine(id, what, detail); },
+    },
     walkOf(id) {
       const r = recs.get(id);
       if (!r) return null;
@@ -975,7 +1025,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       return {
         mode: r.mode, hidden: !!r.hidden, speed: r.speed ?? null, path: r.path.map(pt),
         goal: r.goal && { ...pt(r.goal), key: r.goal.key ?? null, anim: r.goal.anim ?? null, seated: !!r.goal.seated, hidden: !!r.goal.hidden },
-        temp: t && { anim: t.anim ?? null, t: t.t ?? null, delay: t.delay ?? 0, moment: t.moment ?? null, perk: t.perkKey ?? null, back: !!t.back, keepPos: !!t.keepPos, goal: pt(t.goal) },
+        temp: t && { anim: t.anim ?? null, t: t.t ?? null, delay: t.delay ?? 0, moment: t.moment ?? null, perk: t.perkKey ?? null, back: !!t.back, keepPos: !!t.keepPos, goal: pt(t.goal), by: r.tempBy },
       };
     },
     // Whether someone is in a seated pose (for checks).

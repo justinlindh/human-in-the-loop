@@ -1,7 +1,7 @@
 // Decision moments through the real game loop: a check that main.js's own frame loop, UI and decision
 // handling (not the harness's direct stepping) let a staged moment play while its decision is open.
 //
-//   node blender/checks/loop.mjs [--moments 'first_user_test; open_plan_office --seed 3']
+//   node blender/checks/loop.mjs [--moments 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1']
 //                                [--seconds 10] [--gpu | --software]
 //
 // Each moment is an indexed decision (scripts/events). The page loads the state just before the tick
@@ -20,10 +20,11 @@ import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js'
 import { resolveTarget, snapshotEntries } from '../../scripts/events/load.js';
 import { simHash, indexDir } from '../../scripts/events/lib.js';
 import { join } from 'node:path';
+import { fmtTrace, fmtActor, ACTOR_JS } from './diag.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-const queries = opt('moments', 'first_user_test; open_plan_office --seed 3').split(';').map((q) => q.trim()).filter(Boolean);
+const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1').split(';').map((q) => q.trim()).filter(Boolean);
 const seconds = Number(opt('seconds', 10));
 const MOVE_M = 0.3;
 
@@ -84,6 +85,7 @@ try {
     }
     const res = await page.evaluate(({ seconds }) => {
       const H = window.__HITL, R = window.__hitlRender;
+      if (R.trace) R.trace.on = true;
       const loaded = H.controls.continueGame();
       if (!loaded.ok) return { error: `continueGame: ${JSON.stringify(loaded)}` };
       H.setSpeed?.(1);
@@ -108,7 +110,7 @@ try {
           actors.set(id, a);
         }
       }
-      return { eventId, waited: +(waited / 30).toFixed(1), open: !!S().pendingDecision, frames, frozen, actors: [...actors].map(([id, a]) => ({ id, moment: a.what, moved: +a.far.toFixed(2) })) };
+      return { eventId, subject: S().pendingDecision?.subjectId ?? null, trace: R.trace?.lines(20) ?? [], waited: +(waited / 30).toFixed(1), open: !!S().pendingDecision, frames, frozen, actors: [...actors].map(([id, a]) => ({ id, moment: a.what, moved: +a.far.toFixed(2) })) };
     }, { seconds });
     const label = `${row?.id ?? query} (seed ${row?.seed} ${row?.bot} week ${row?.week})`;
     if (res.error) { failed++; console.log(`LOOP FAIL ${label}: ${res.error}`); }
@@ -116,7 +118,14 @@ try {
       const moved = res.actors.filter((a) => a.moved >= MOVE_M);
       const pass = res.eventId && res.actors.length > 0 && moved.length > 0;
       if (!pass) failed++;
+      if (!pass) {
+        // Who should have taken it, and the last of the ownership trace.
+        const ids = [...new Set([res.subject, ...res.actors.map((a) => a.id)].filter((x) => x != null))];
+        const detail = ids.length ? await page.evaluate(`(${ACTOR_JS})(${JSON.stringify(ids)})`) : [];
+        res.detail = [...detail.map((a) => `  actor ${fmtActor(a)}`), ...res.trace.map((l) => `  trace ${fmtTrace(l)}`)];
+      }
       console.log(`LOOP ${pass ? 'ok  ' : 'FAIL'} ${label}: decision ${res.eventId ?? 'none'} raised after ${res.waited} s, open ${res.frames} frames (${res.frozen} with the game frozen); ${res.actors.length ? res.actors.map((a) => `${a.id} ${a.moment} moved ${a.moved} m`).join(', ') : 'nobody took the moment'}`);
+      for (const l of res.detail ?? []) console.log(l);
     }
     if (errors.length) { failed++; console.log(`page errors: ${errors.slice(0, 3).join('; ')}`); }
     await page.close();
@@ -177,10 +186,19 @@ try {
       // A spotlight that never ends: let go after the cap, then the weeks move again.
       R.spotlight = () => ({ kind: 'check', key: 'stuck-1', since: 0 });
       const stuck = run(62 * 30 + span);
+      // A long spotlight (a music night) that says how long it plays: held past the 60 s default,
+      // and let go only after its own length with slack (90 s expected: about 122 s).
+      // Cards answered first: time under a card never counts toward the cap.
+      R.spotlight = () => null;
+      clear();
+      R.spotlight = () => ({ kind: 'check', key: 'long-1', since: 0, expectedSeconds: 90 });
+      const longHeld = run(100 * 30);
+      const longGone = run(30 * 30 + span);
       if (had) Object.defineProperty(R, 'spotlight', had); else delete R.spotlight;
-      return { perWeek, span, held, after, card, stuck };
+      return { perWeek, span, held, after, card, stuck, longHeld, longGone };
     });
     const warned = warnings.some((w) => /spotlight .*stuck-1 held the clock/.test(w));
+    const longWarn = warnings.find((w) => /spotlight .*long-1 held the clock/.test(w)) ?? '';
     const cardWarned = warnings.some((w) => /spotlight .*card-1 held the clock/.test(w));
     const c = r.card;
     const checks = [
@@ -190,6 +208,8 @@ try {
       [r.after.weeks >= 2, `the weeks resumed after it ended (${r.after.weeks} in the same span)`],
       [c.found && c.stillOpen && !cardWarned && c.afterCard?.weeks === 0 && c.afterCard?.spot === r.span,
         c.found ? `a spotlight under the ${c.event} card for 62 s still held the clock after the card resolved (${c.afterCard?.weeks} weeks, spotlight on ${c.afterCard?.spot} of ${r.span} frames${cardWarned ? ', but it was let go' : ''})` : 'no decision card came up to hold a spotlight under'],
+      [r.longHeld.weeks === 0 && r.longHeld.spot === r.longHeld.frames && r.longGone.weeks >= 1 && /over 122\.5s/.test(longWarn),
+        `a spotlight expecting 90 s held for 100 s with no week passing (${r.longHeld.weeks}), then was let go at its own cap (${longWarn ? longWarn.replace(/^.*held the clock /, '') : 'no warning'}; ${r.longGone.weeks} weeks after)`],
       [r.stuck.weeks >= 1 && warned, `one held past the cap was let go (${r.stuck.weeks} weeks after, warning ${warned ? 'logged' : 'missing'})`],
     ];
     const pass = checks.every(([ok]) => ok) && !errors.length;

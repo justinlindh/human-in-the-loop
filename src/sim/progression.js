@@ -4,7 +4,7 @@ import { article } from './util.js';
 import { registerAction } from './registry.js';
 import { emitChat } from './chat.js';
 import { PATHS } from '../data/paths.js';
-import { TRAITS, EARNED_TRAITS } from '../data/traits.js';
+import { EARNED_TRAITS } from '../data/traits.js';
 import { ROLES } from '../data/roles.js';
 import { lockedReason } from './unlocks.js';
 import { purchaseProblem, findSpot, placeNow, upgradeProblem, upgradeNow, layoutOf } from './office.js';
@@ -74,7 +74,6 @@ export function progressRecords(ctx, p) {
   for (const e of EARNED_TRAITS) {
     if (p.record[e.counter] < e.threshold || p.traits.includes(e.trait) || p.traits.length >= 3) continue;
     p.traits.push(e.trait);
-    ctx.emit({ type: 'toast', text: `${p.name} earned the ${TRAITS[e.trait].name} trait.`, tone: 'good' });
     ctx.emit({ type: 'traitEarned', staffId: p.id, traitId: e.trait, source: 'record' });
   }
 }
