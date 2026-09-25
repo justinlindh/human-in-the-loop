@@ -1,0 +1,15 @@
+# The balance suite (test:balance) is skipped for a change that cannot move the game's balance: every
+# changed path must match a line here and no ! line. Same format and rules as scripts/ci-skip-paths,
+# read with scripts/ci-classify.sh from main, never from the PR; a change to either list or the
+# classifier always runs the suite.
+*
+!src/sim/*
+!src/data/*
+!src/save/*
+!tests/sim/*
+!scripts/balance.js
+!*package*.json
+!vite.config.js
+!scripts/ci-balance-skip-paths
+!scripts/ci-skip-paths
+!scripts/ci-classify.sh

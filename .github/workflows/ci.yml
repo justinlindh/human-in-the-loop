@@ -78,15 +78,32 @@ jobs:
           fi
           echo "mode=$mode" >>"$GITHUB_OUTPUT"
           if [ "$mode" = light ]; then echo "skipped: docs-only change" | tee -a "$GITHUB_STEP_SUMMARY"; fi
-      - uses: actions/setup-node@v7
+      - name: Does the change touch balance? (scripts/ci-balance-skip-paths, read from the base branch)
+        id: bal
         if: steps.cls.outputs.mode == 'full'
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mode=full
+          if [ "$EVENT" = pull_request ]; then
+            if git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null \
+              && git show "origin/$BASE_REF:scripts/ci-balance-skip-paths" >"$RUNNER_TEMP/bal-skip" 2>/dev/null; then
+              mode="$(git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" | bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/bal-skip")"
+            fi
+          fi
+          echo "run=$([ "$mode" = light ] && echo false || echo true)" >>"$GITHUB_OUTPUT"
+          if [ "$mode" = light ]; then echo "skipped: no sim changes" | tee -a "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/setup-node@v7
+        if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
         with:
           node-version: 25
           cache: npm
       - run: npm ci
-        if: steps.cls.outputs.mode == 'full'
+        if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
       - run: npm run test:balance
-        if: steps.cls.outputs.mode == 'full'
+        if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
 
   browser:
     runs-on: ubuntu-latest

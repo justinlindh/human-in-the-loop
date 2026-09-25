@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { Worker } from 'node:worker_threads';
 import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { ARCHETYPES, foundingWarning } from '../../src/data/founders.js';
@@ -7,6 +8,15 @@ import { ARCHETYPES, foundingWarning } from '../../src/data/founders.js';
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
 const runs = {};
 const get = (name) => (runs[name] ??= SEEDS.map((seed) => runBot(name, seed)));
+// The five bots' runs are independent and take most of the time, so they run at once, one worker
+// thread each, before the cases below read them through get().
+const BOTS = ['automateAll', 'allHumans', 'balanced', 'sensible', 'recklessHumans'];
+beforeAll(() => Promise.all(BOTS.map((name) => new Promise((resolve, reject) => {
+  const w = new Worker(new URL('./balance-worker.js', import.meta.url), { workerData: { name, seeds: SEEDS } });
+  w.once('message', (r) => { runs[name] = r; resolve(); });
+  w.once('error', reject);
+  w.once('exit', (code) => { if (!runs[name]) reject(new Error(`balance worker for ${name} exited with ${code}`)); });
+}))), 300000);
 const share = (list, pred) => list.filter(pred).length / list.length;
 const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
 

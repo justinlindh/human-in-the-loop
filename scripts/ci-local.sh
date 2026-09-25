@@ -53,9 +53,22 @@ step syntax syntax
 step ci-classify bash "$SELF/ci-classify.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
-bal_t0=$(now)
-npm run test:balance >"$LOGS/test:balance.log" 2>&1 &
-bal_pid=$!
+# ...unless the change cannot move the game's balance: every changed path (commits since the base,
+# uncommitted edits and new files) matches scripts/ci-balance-skip-paths. The list and the classifier
+# come from the base, and any doubt (no list, no classifier, nothing to compare) runs the suite.
+bal_mode=full
+if git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
+  && git show "$BASE:scripts/ci-classify.sh" >"$LOGS/classify.sh" 2>/dev/null \
+  && bal_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)"; then
+  bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
+fi
+bal_t0=$(now); bal_pid=""
+if [ "$bal_mode" = light ]; then
+  echo "test:balance: skipped: no sim changes"
+else
+  npm run test:balance >"$LOGS/test:balance.log" 2>&1 &
+  bal_pid=$!
+fi
 
 step test:fast npm run test:fast
 step build npm run build
@@ -98,14 +111,15 @@ step render-checks render_checks
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
 
-if wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
+if [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0;
+elif wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
 else record test:balance FAIL $(( $(now) - bal_t0 )); echo "---- test:balance failed; last lines:"; tail -n 25 "$LOGS/test:balance.log"; fi
 
 failed=0
 table="| step | result | seconds |"$'\n'"|---|---|---|"
 for i in "${!NAMES[@]}"; do
   table+=$'\n'"| ${NAMES[$i]} | ${RESULTS[$i]} | ${TIMES[$i]} |"
-  [ "${RESULTS[$i]}" = pass ] || failed=1
+  case "${RESULTS[$i]}" in pass|skipped:*) ;; *) failed=1 ;; esac
 done
 tests="$(grep -hE '^ +Tests ' "$LOGS/test:fast.log" "$LOGS/test:balance.log" 2>/dev/null | sed 's/^ *//' | paste -sd ';' -)"
 notes=""
