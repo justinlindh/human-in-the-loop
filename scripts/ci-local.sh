@@ -20,7 +20,8 @@ done
 # Tools come from this script's own checkout; the tree under test is CI_DIR (default: that checkout).
 SELF="$(cd "$(dirname "$0")" && pwd)"
 cd "${CI_DIR:-$SELF/..}"
-LOGS="$(mktemp -d)"
+# CI_LOGS keeps the step logs in that directory instead of a temporary one removed at the end.
+LOGS="${CI_LOGS:-$(mktemp -d)}"
 declare -a NAMES RESULTS TIMES
 now() { date +%s; }
 
@@ -99,6 +100,8 @@ render_step() { # <name> <gpu|software> <command>
   local name="$1" mode="$2" pass="$3" first="$LOGS/$1.first.log"
   render_pass "$mode" "$pass" >"$first" 2>&1; local rc=$?
   cat "$first"
+  local waited; waited="$(grep -o 'waited [0-9]*s for [a-z -]*' "$first" | head -1)"
+  [ -n "$waited" ] && NOTES+=("$name $waited")
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
   if [ $rc -eq 75 ]; then NOTES+=("$name: timed out waiting for the $mode render lock"); return 1; fi
@@ -136,5 +139,5 @@ echo "$table"
 echo "vitest: $tests"
 [ -n "$notes" ] && printf '\n%s' "$notes"
 if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; [ -n "$notes" ] && printf '\n%s' "$notes"; } >"$SUMMARY"; fi
-rm -rf "$LOGS"
+[ -n "${CI_LOGS:-}" ] || rm -rf "$LOGS"
 exit "$failed"
