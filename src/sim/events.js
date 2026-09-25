@@ -17,6 +17,7 @@ import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
+import { openEventPrompt, promptSlotFree } from './prompts.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
 // more than a share of the cash in hand, so paying hurts without ending a careful company.
@@ -163,9 +164,7 @@ export function eligibleEvents(state) {
   // A new company gets a quiet start: no decisions until its first launch or a few weeks in.
   const grace = (state.stats.launches === 0 && state.week < B.eventGraceWeeks)
     || (state.flags.lastDecisionWeek !== undefined && state.week - state.flags.lastDecisionWeek < B.decisionGapWeeks);
-  // Events marked yak are delivered as Yak prompts (src/sim/prompts.js) while prompts are on.
-  const yak = B.chatPromptsEnabled;
-  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices) && !(yak && ev.yak)
+  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && eventFitsEra(state, ev)
     && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
@@ -175,6 +174,14 @@ export function eligibleEvents(state) {
 
 export function fireEvent(ctx, ev, subjectId) {
   const { state } = ctx;
+  // A low-stakes event (yak) arrives as a Yak reply prompt instead of a popup while prompts are on, or waits
+  // for another week when a prompt is already open.
+  if (ev.yak && ev.choices && B.chatPromptsEnabled) {
+    if (!promptSlotFree(state)) return false;
+    state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+    openEventPrompt(ctx, ev, subjectId);
+    return true;
+  }
   state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
   if (ev.chat) emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.chat, subjectId) });
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);

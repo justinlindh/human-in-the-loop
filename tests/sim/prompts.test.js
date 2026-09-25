@@ -8,7 +8,7 @@ import { B } from '../../src/sim/balance.js';
 import { PROMPTS } from '../../src/data/prompts.js';
 import { eraAllowsText } from '../../src/sim/eras.js';
 import { EVENTS } from '../../src/data/events.js';
-import { eligibleEvents } from '../../src/sim/events.js';
+import { fireEvent, resolveSubjects } from '../../src/sim/events.js';
 import { game, addStaff, addDesks, addProduct } from './helpers.js';
 
 const TRIGGERS = ['strain', 'incident', 'launch', 'rival', 'late', 'agents', 'newhire', 'coasting', 'support', 'lowcash', 'crowded', 'junior'];
@@ -22,8 +22,6 @@ function strained(seed = 1) {
   for (const p of s.staff) { p.mood = 'ok'; p.strain = 0; p.meaning = 60; }
   s.staff.find((p) => !p.founder).strain = 80;
   s.flags.lastPromptWeek = undefined;
-  // Only the prompt templates compete here; the events delivered in Yak have their own tests.
-  for (const e of Object.values(EVENTS)) if (e.yak) s.flags[`cd_${e.id}`] = 1e9;
   return s;
 }
 const weekOf = (s) => { const ctx = makeCtx(s); promptsSystem(ctx); return ctx.events; };
@@ -227,31 +225,37 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
     }
   });
 
-  it('never raise a popup while prompts are on, and do again with prompts off', () => {
+  it('when the event roll picks one, it arrives as a prompt instead of a popup; with prompts off it is a popup again', () => {
     const s = strained(20);
     for (const p of s.staff) p.strain = 0;
     s.week = 200;
-    for (const e of Object.values(EVENTS)) delete s.flags[`cd_${e.id}`];
-    delete s.flags.lastDecisionWeek;
-    addProduct(s, { name: 'Inboxer' });
-    expect(eligibleEvents(s).some((e) => e.yak)).toBe(false);
+    const ctx = makeCtx(s);
+    expect(fireEvent(ctx, EVENTS.vendor_new_version, null)).toBe(true);
+    expect(s.pendingDecision).toBe(null);
+    expect(s.chatPrompts).toHaveLength(1);
+    expect(ctx.events.map((e) => e.type)).toContain('chatPrompt');
+    // With a prompt already open, the event waits instead of stacking a second one.
+    const cd = s.flags.cd_ai_skeptic_speech;
+    expect(fireEvent(makeCtx(s), EVENTS.ai_skeptic_speech, s.staff.find((p) => !p.founder).id)).toBe(false);
+    expect(s.flags.cd_ai_skeptic_speech).toBe(cd);
+    const t = strained(20);
     B.chatPromptsEnabled = false;
     try {
-      expect(eligibleEvents(s).some((e) => e.yak)).toBe(true);
+      fireEvent(makeCtx(t), EVENTS.vendor_new_version, null);
     } finally {
       B.chatPromptsEnabled = true;
     }
+    expect(t.pendingDecision?.eventId).toBe('vendor_new_version');
   });
 
-  // Opens one specific event prompt by making it the only candidate.
+  // Opens one specific event's prompt the way the weekly event roll would when it picks that event.
   function eventPrompt(s, id) {
-    for (const t of PROMPTS) s.flags[`pcd_${t.id}`] = 1e9;
-    delete s.flags[`cd_${id}`];
-    // What the events here need: a live product, an office policy, and no coffee machine yet.
+    const ev = EVENTS[id];
     if (!s.products.some((p) => !p.killed)) addProduct(s, { name: 'Inboxer' });
-    s.workPolicy = 'office';
-    s.office.placed = s.office.placed.filter((i) => i.itemId !== 'espresso' && i.itemId !== 'coffee_corner');
-    return openOne(s);
+    const subjects = resolveSubjects(s, ev);
+    const ctx = makeCtx(s);
+    expect(fireEvent(ctx, ev, subjects.length ? subjects[0].id : null), id).toBe(true);
+    return ctx.events;
   }
 
   it('officebot posts the event; answering applies that choice, with the founder replying and the outcome in the thread', () => {

@@ -9,7 +9,7 @@ import { deskCapacity } from './office.js';
 import { mentorOf } from './staff.js';
 import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
-import { eventFitsEra, helpers, resolveSubjects, decisionVars, fillText } from './events.js';
+import { decisionVars, fillText } from './events.js';
 import { grantBlocker, leaveProp } from './props.js';
 import { placeNow, findSpot, layoutOf } from './office.js';
 
@@ -134,20 +134,14 @@ function applyOption(ctx, o, pc) {
 const eventChoiceBlocker = (state, c, subjectId) =>
   (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
 
-export function eventCandidates(state) {
-  const h = helpers(state);
-  return Object.values(EVENTS).filter((ev) => ev.yak && ev.random && ev.choices
-    && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
-    && eventFitsEra(state, ev)
-    && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
-    && ev.when(state, h)
-    && (ev.subject === null || resolveSubjects(state, ev).length > 0));
-}
+// Whether a new prompt can open now: fewer than chatPromptsOpen are open.
+export const promptSlotFree = (state) => (state.chatPrompts ?? []).filter((p) => !p.resolved).length < B.chatPromptsOpen;
 
-function openEventPrompt(ctx, ev) {
+// Opens a prompt for an event the weekly event roll picked, drawing its words from the prompts' stream.
+export function openEventPrompt(outer, ev, subjectId) {
+  const ctx = side(outer, 2);
   const { state } = ctx;
-  const subjects = resolveSubjects(state, ev);
-  const subjectId = subjects.length ? pick(ctx.rng, subjects).id : null;
+  state.chatPrompts ??= [];
   const vars = decisionVars(state, ctx.rng, subjectId);
   const fill2 = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   const msg = emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill2(ev.title)}: ${fill2(ev.text)}` });
@@ -161,7 +155,6 @@ function openEventPrompt(ctx, ev) {
     resolved: null,
   });
   state.flags.lastPromptWeek = state.week;
-  state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
   if (ev.marks) state.flags[ev.marks] = state.week;
   ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
 }
@@ -209,11 +202,8 @@ function openPrompt(ctx) {
     const hit = TRIGGERS[t.on]?.(state, ctx);
     if (hit) found.push({ t, hit });
   }
-  for (const ev of eventCandidates(state)) found.push({ ev });
   if (!found.length) return;
-  const chosen = pick(ctx.rng, found);
-  if (chosen.ev) { openEventPrompt(ctx, chosen.ev); return; }
-  const { t, hit } = chosen;
+  const { t, hit } = pick(ctx.rng, found);
   const pc = { kind: t.id, posterId: hit.poster.id, productId: hit.productId ?? null, projectId: hit.projectId ?? null };
   pc.productName = state.products.find((p) => p.id === pc.productId)?.name ?? null;
   pc.projectName = state.projects.find((j) => j.id === pc.projectId)?.name ?? null;

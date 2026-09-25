@@ -11,7 +11,7 @@ import { ERAS } from '../../src/data/eras.js';
 import { EVENTS } from '../../src/data/events.js';
 import { comboFit } from '../../src/data/combos.js';
 import { B } from '../../src/sim/balance.js';
-import { classicGame as game, addProduct, offeredEvents } from './helpers.js';
+import { classicGame as game, addProduct } from './helpers.js';
 
 const toWeek = (s, w) => { for (const c of [calendarStart]) { while (s.week < w) { s.week++; c(makeCtx(s)); } } return s; };
 
@@ -102,7 +102,7 @@ describe('what each era allows', () => {
     s.stats.launches = 3;
     s.week = 60;
     addProduct(s, { model: null, angle: 'web' });
-    const ids = offeredEvents(s);
+    const ids = eligibleEvents(s).map((e) => e.id);
     for (const id of ids) expect(eraOnlyAllowsText(s, JSON.stringify([EVENTS[id].title, EVENTS[id].text])), id).toBe(true);
     expect(ids).not.toContain('vendor_new_version');
     expect(eraAllowsText(s, 'The agent rewrote pricing')).toBe(false);
@@ -173,10 +173,10 @@ describe('era arrivals', () => {
     s.stats.launches = 3;
     s.week = 60;
     addProduct(s, { model: null, angle: 'web' });
-    const ids = offeredEvents(s);
+    const ids = eligibleEvents(s).map((e) => e.id);
     expect(ids).toEqual(expect.arrayContaining(['cloud_bill', 'app_store_rejection']));
     s.era = { id: 'agents', since: 0 };
-    expect(offeredEvents(s)).not.toContain('cloud_bill');
+    expect(eligibleEvents(s).map((e) => e.id)).not.toContain('cloud_bill');
   });
 });
 

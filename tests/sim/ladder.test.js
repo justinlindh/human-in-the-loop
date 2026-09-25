@@ -9,7 +9,7 @@ import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { staffUpkeep } from '../../src/sim/staff.js';
 import { knowledgeSystem } from '../../src/sim/knowledge.js';
-import { classicGame, addStaff, addProduct, addDesks, offeredEvents } from './helpers.js';
+import { classicGame, addStaff, addProduct, addDesks } from './helpers.js';
 
 const step = (s) => { const c = makeCtx(s); ladderSystem(c); return c.events; };
 const choose = (s, label) => {
@@ -105,9 +105,9 @@ describe('office pets', () => {
     s.week = 150;
     s.stats.launches = 2;
     addProduct(s, { model: null, angle: 'web' });
-    expect(offeredEvents(s)).not.toContain('pet_request');
+    expect(eligibleEvents(s).map((e) => e.id)).not.toContain('pet_request');
     s.workPolicy = 'office';
-    expect(offeredEvents(s)).toContain('pet_request');
+    expect(eligibleEvents(s).map((e) => e.id)).toContain('pet_request');
     const owner = s.staff.find((p) => !p.founder);
     raiseDecision(makeCtx(s), 'pet_request', owner.id);
     choose(s, 'Yes, dogs welcome');
