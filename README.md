@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://justinlindh.github.io/human-in-the-loop/"><b>Play in your browser</b></a>
+  <a href="https://humanintheloopgame.com/"><b>Play in your browser</b></a>
   &nbsp;·&nbsp;
   <a href="https://github.com/justinlindh/human-in-the-loop/releases/latest"><img src="https://img.shields.io/github/v/release/justinlindh/human-in-the-loop?include_prereleases&amp;label=build" alt="Latest build"></a>
 </p>
@@ -29,7 +29,7 @@ A run is a 20-year career, from a garage in 2019 through the AI boom and whateve
 
 ## Running it
 
-The latest tagged build is playable at https://justinlindh.github.io/human-in-the-loop/. Each release deploys there automatically.
+The latest tagged build is playable at https://humanintheloopgame.com/. Each release deploys there automatically.
 
 To run it locally you need Node.js 22 or newer, with npm.
 
