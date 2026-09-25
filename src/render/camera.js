@@ -106,9 +106,22 @@ export function createCameraRig(canvas) {
     clampGoal();
   }
 
-  // Input
+  // Input: one pointer pans; two (a pinch) zoom and pan by their midpoint. The canvas takes touch
+  // gestures itself, so the browser does not zoom the page instead.
+  canvas.style.touchAction = 'none';
+  const pts = new Map();         // pointerId -> { x, y }
   let dragging = false;
   let lastX = 0, lastY = 0;
+  let pinchDist = 0;
+  // After a pointer comes or goes, restart the gesture from where the fingers are now, so lifting one
+  // finger of a pinch does not make the view jump.
+  const regrip = () => {
+    const p = [...pts.values()];
+    if (p.length >= 2) {
+      pinchDist = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y) || 1;
+      lastX = (p[0].x + p[1].x) / 2; lastY = (p[0].y + p[1].y) / 2;
+    } else if (p.length === 1) { lastX = p[0].x; lastY = p[0].y; }
+  };
   // When the player last touched the camera (scripted eases stay out of their way), and how fast
   // the view follows its goal (scripted eases use a slower rate; player input restores the default).
   let lastInput = -1e9;
@@ -116,16 +129,37 @@ export function createCameraRig(canvas) {
   const touched = () => { lastInput = performance.now(); followRate = 10; };
   const onDown = (e) => {
     touched();
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    dragging = true;
+    regrip();
     // Capture can fail (a pointer that already ended); a drag works without it.
     try { canvas.setPointerCapture?.(e.pointerId); } catch { /* not capturable */ }
   };
   const onMove = (e) => {
-    if (!dragging) return;
+    if (!dragging || !pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const p = [...pts.values()];
+    if (p.length >= 2) {
+      // Pinch: the zoom follows the fingers at once, and the midpoint pans.
+      const dist = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y) || 1;
+      const mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
+      zoomGoal = THREE.MathUtils.clamp(zoomGoal * dist / pinchDist, ZOOM_MIN, ZOOM_MAX);
+      zoom = zoomGoal;
+      pinchDist = dist;
+      panScreen(mx - lastX, my - lastY);
+      lastX = mx; lastY = my;
+      touched();
+      return;
+    }
     panScreen(e.clientX - lastX, e.clientY - lastY);
     lastX = e.clientX; lastY = e.clientY;
   };
-  const onUp = (e) => { dragging = false; if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId); };
+  const onUp = (e) => {
+    pts.delete(e.pointerId);
+    dragging = pts.size > 0;
+    regrip();
+    if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  };
   const onWheel = (e) => {
     e.preventDefault();
     touched();
@@ -146,7 +180,7 @@ export function createCameraRig(canvas) {
     } else if (PAN_KEYS.has(k)) keys.add(k);
   };
   const onKeyUp = (e) => keys.delete(e.key.toLowerCase());
-  const onBlur = () => keys.clear();
+  const onBlur = () => { keys.clear(); pts.clear(); dragging = false; };
   const onContext = (e) => e.preventDefault();
 
   canvas.addEventListener('pointerdown', onDown);

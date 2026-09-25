@@ -29,6 +29,22 @@ describe('issue #10: no AI talk before the ChatGBT moment', () => {
   }, 300000);
 });
 
+describe('issue #321: no agent talk before the Agents era', () => {
+  it('every bot, several seeds: nothing a player can read before Agents mentions agents', () => {
+    const hits = [];
+    let scanned = 0;
+    for (const name of Object.keys(BOTS)) {
+      for (const seed of [1, 2, 3, 4]) {
+        const r = fullRun(name, seed);
+        scanned += r.preAgentScanned;
+        hits.push(...r.preAgentHits);
+      }
+    }
+    expect(scanned).toBeGreaterThan(100000);
+    expect(hits.slice(0, 20)).toEqual([]);
+  }, 300000);
+});
+
 describe('beats in real runs', () => {
   it('the agent bill and the first deals land between the eras they fill', () => {
     const weeks = { agent_bill: [], rival_megaround: [], floor_next_door: [], deals_open: [] };
