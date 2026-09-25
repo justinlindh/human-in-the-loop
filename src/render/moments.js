@@ -371,7 +371,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const deskId = p.obj.userData.follow?.deskId;
     const r = [...recs.values()].find((x) => x.seat === deskId);
     // Not at their desk right now: look again shortly rather than after the full interval.
-    if (!r || !free().includes(r) || !r.char.seated) { timers.set(`letter|${p.obj.uuid}`, 1); return; }
+    if (!r || !free().includes(r) || !r.char.seated) {
+      note(r?.id ?? null, 'refuse', { by: 'letter', why: !r ? `nobody sits at ${deskId}` : r.hidden ? 'out of the office' : !free().includes(r) ? `busy (${r.temp?.moment ?? r.temp?.anim ?? (r.path.length ? 'walking' : r.mode)})` : 'not seated' });
+      timers.set(`letter|${p.obj.uuid}`, 1);
+      return;
+    }
     // At Low: just the bad-news emote at the desk. Otherwise the emote comes after reading it.
     if (lite()) { emote(r, 'storm', 2.8); return; }
     // Out of the chair sideways (on the camera's side when both are clear), then back into the aisle
@@ -388,7 +392,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const wide = [1, -1].map((sg) => at(SIDE_OUT * sg)).filter((q) => !nav.isBlocked(q.x, q.z)).sort(camFirst);
     const narrow = [1, -1].map((sg) => at(SIDE_SQUEEZE * sg)).sort(camFirst);
     const side = [...wide, ...narrow].find((q) => { const s = { x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK }; return !nav.isBlocked(s.x, s.z, BODY_R) && !columnInFront(s); });
-    if (!side) return;
+    if (!side) { note(r.id, 'refuse', { by: 'letter', why: 'no clear spot beside the chair' }); return; }
     const spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
     spot.yaw = towardCamera(spot, p.obj.position);
     // Push the chair back to get up; it rolls in again as they sit back down.
