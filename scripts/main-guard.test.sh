@@ -4,7 +4,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 tmp="$(mktemp -d)"; bg=""
-trap '[ -n "$bg" ] && { pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; }; git -C "$REPO" update-ref -d refs/heads/main-guard-test-tip 2>/dev/null; rm -rf "$tmp"; git -C "$REPO" worktree prune' EXIT
+trap '[ -n "$bg" ] && { pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; }; rm -rf "$tmp"; git -C "$REPO" worktree prune' EXIT
 mkdir -p "$tmp/bin"
 # GH_OPEN holds "label number" lines: the open issue per label.
 cat >"$tmp/bin/gh" <<'GH'
@@ -88,10 +88,10 @@ for p in $(pgrep -P "$g"); do pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null; 
 wait 2>/dev/null
 
 # Shared checkout: fast-forwarded when clean and idle, left alone when a ci-pr runs in it.
-shared="$tmp/shared"; git clone -q "$REPO" "$shared" 2>/dev/null
-git -C "$REPO" update-ref refs/heads/main-guard-test-tip HEAD
-git -C "$shared" remote set-url origin "$REPO"
-git -C "$shared" config remote.origin.fetch '+refs/heads/main-guard-test-tip:refs/remotes/origin/main'
+# A bare stand-in origin whose main is this HEAD, and a clone of it one commit behind.
+git init -q --bare "$tmp/origin.git"
+git -C "$REPO" push -q "$tmp/origin.git" "HEAD:refs/heads/main" 2>/dev/null
+shared="$tmp/shared"; git clone -q "$tmp/origin.git" "$shared" 2>/dev/null
 git -C "$shared" checkout -q -B main "$(git -C "$REPO" rev-parse HEAD~1)"
 case_root="$tmp/root-sync"; sl="$tmp/sync.log"; : >"$sl"
 guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
