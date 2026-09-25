@@ -67,9 +67,13 @@ export function createProps(office, screens = null) {
   }
 
   // Props standing on the floor block walking while they are up (office.setPropObstacles).
+  // Objects a staged moment keeps on the floor after their prop has gone block walking too (pin).
+  const pinned = new Map();
   function pushObstacles() {
-    office.setPropObstacles?.([...live.values()].filter((e) => !e.gone && e.obj.userData.rect).map((e) => e.obj.userData.rect));
+    office.setPropObstacles?.([...live.values()].filter((e) => !e.gone && e.obj.userData.rect).map((e) => e.obj.userData.rect).concat([...pinned.values()]));
   }
+  function pin(obj) { pinned.set(obj, floorRect(obj)); pushObstacles(); }
+  function unpin(obj) { if (pinned.delete(obj)) pushObstacles(); }
 
   function update(dt) {
     clock += dt;
@@ -119,7 +123,7 @@ export function createProps(office, screens = null) {
 
   // For checks: a counter's free grids for a prop this tall, one per level, as rows of '.' and '#'.
   const counterMap = (e, tall) => counterGrid(e, tall).map((g) => { const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.free[i + k * g.nx] ? '.' : '#'; rows.push(r); } return { y: g.y, rows }; });
-  return { sync, update, objectOf, current, deskMap, counterMap, goneAt, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  return { sync, update, objectOf, current, deskMap, counterMap, goneAt, pin, unpin, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
@@ -1000,6 +1004,8 @@ const printerScreen = () => cardTex('pcload', 256, 48, (ctx, W, H) => {
 });
 // The printer model on its own (moments.js carries one out the door).
 export function printerModel() { return printerBody(false); }
+// The visitor's chair, for a moment that keeps it after the staged prop has gone.
+export function visitorChairModel() { return visitorChair(); }
 function printerBody(broken = false) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(0.62, 0.36, 0.5, 0.05, 3), mat('pot_cream'), 0, 0.18, 0));
