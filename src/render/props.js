@@ -1050,10 +1050,10 @@ function mugPile() {
 // One absurdly big mug.
 function mugBucket() { return mugMesh(2.6, 'fabric_teal'); }
 // A small wall shelf with a mug on it, its slogan printed on the side facing the room.
-const MUG_SLOGAN = ['WORLD’S', 'BEST BSOS'];
+const MUG_SLOGAN = ['MAKE SOFTWEAR', 'PEOPLE LOVE'];
 const mugLabel = () => canvasTex('mug_typo', 256, 128, (ctx, W, H) => {
   ctx.fillStyle = P.fabric_mustard; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = P.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 44px sans-serif';
+  ctx.fillStyle = P.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 34px sans-serif';
   MUG_SLOGAN.forEach((t, i) => ctx.fillText(t, W / 2, 38 + i * 50));
 });
 function mugShelf() {
@@ -1105,16 +1105,16 @@ function movingBoxes() {
   g.add(mesh(roundedBox(0.4, 0.004, 0.06, 0.001, 1), mat('paper'), 0, 0.38, 0.21));
   return g;
 }
-// An oversized novelty cheque.
+// An oversized novelty cheque: the hackathon prize, to the winner, the amount left blank.
 const cheque = () => canvasTex('giant_cheque', 1024, 440, (ctx, W, H) => {
   ctx.fillStyle = '#e9f1e4'; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = P.fabric_teal; ctx.lineWidth = 14; ctx.strokeRect(14, 14, W - 28, H - 28);
   ctx.fillStyle = P.ink; ctx.textBaseline = 'middle';
   ctx.font = '700 40px sans-serif'; ctx.fillText('PAY TO THE ORDER OF', 60, 110);
   ctx.fillStyle = P.metal_soft; ctx.fillRect(520, 128, 440, 6);
+  ctx.fillStyle = P.ink; ctx.font = 'italic 700 56px sans-serif'; ctx.fillText('Winner', 560, 104);
   ctx.fillStyle = P.ink; ctx.font = '800 120px sans-serif'; ctx.fillText('$', 60, 260);
-  ctx.fillStyle = P.fabric_teal; ctx.fillRect(160, 200, 420, 110);
-  ctx.fillStyle = P.paper_sheet; ctx.font = '800 76px sans-serif'; ctx.fillText('1,000,000', 190, 258);
+  ctx.strokeStyle = P.fabric_teal; ctx.lineWidth = 8; ctx.strokeRect(160, 200, 420, 110);
   ctx.fillStyle = P.metal_soft; ctx.fillRect(620, 360, 340, 6);
   ctx.strokeStyle = P.ink; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(640, 350);
   for (let x = 640; x < 940; x += 30) ctx.quadraticCurveTo(x + 15, 300 + (x % 60), x + 30, 345);
