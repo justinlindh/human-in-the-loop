@@ -139,13 +139,15 @@ export const MOMENT_CUES = {
   printer_jam: { eventId: 'printer_jam', file: 'moments/printer_smash', gain: 0.9 },
 };
 // Office Space nods, from the props the sim stages (state.office.props): a prop arriving or leaving
-// plays its cue. The jammed printer also beeps on a loop while it sits in the kitchen, and is quiet
-// while its smash moment plays.
+// plays its cue. The jammed printer also beeps on a loop while it sits in the kitchen (it leaves props
+// when its decision closes), quiet while paused or while any moment plays.
 export const OFFICE_PROP_CUES = {
   stapler: { on: 'sfx.stapler', off: 'sfx.stapler' },
   cover_sheets: { on: 'sfx.memo' },
   banner_company: { on: 'sfx.banner' },
-  printer_wrecked: { on: 'sfx.printerSmash', unlessMoment: 'printer_jam' },
+  // The wreck is staged at the choice; on Medium and High the smash moment's cue carries the hits,
+  // so the crash is for Low, where there is no moment and the wreck just appears.
+  printer_wrecked: { on: 'sfx.printerSmash', lowOnly: true },
 };
 export const OFFICE_PROP_LOOPS = { printer_jammed: { id: 'sfx/printer_beep', bus: 'sfx', gain: 0.35 } };
 export const PLAYLIST_PRELOAD_S = 30;   // how long before a projected switch the next bed starts decoding

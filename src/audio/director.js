@@ -85,14 +85,14 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   // Office props seen last update, by prop name, and each loop's level.
   let propsSeen = null;
   const loopLevel = {};
-  const momentsOn = new Set(), momentsSeen = new Set();
+  const momentsOn = new Set();
   function officeProps(state, t, quiet) {
     const out = [];
     const now = new Set((state?.office?.props ?? []).map((x) => x.prop));
     if (propsSeen) {
       for (const [prop, c] of Object.entries(OFFICE_PROP_CUES)) {
         const was = propsSeen.has(prop), is = now.has(prop);
-        if (!was && is && c.on && !(c.unlessMoment && momentsSeen.has(c.unlessMoment))) out.push(...playCue(c.on, t));
+        if (!was && is && c.on && !(c.lowOnly && q !== 'low')) out.push(...playCue(c.on, t));
         if (was && !is && c.off) out.push(...playCue(c.off, t));
       }
     }
@@ -370,7 +370,6 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     // hitl:moment from the renderer: a moment with a cue starts it, its end stops it.
     moment(detail, t) {
       if (detail?.key) { if (detail.phase === 'start') momentsOn.add(detail.key); else if (detail.phase === 'end') momentsOn.delete(detail.key); }
-      if (detail?.key && detail.phase === 'start') momentsSeen.add(detail.key);
       const m = MOMENT_CUES[detail?.key];
       if (!m || !detail.id) return [];
       if (detail.phase === 'start') return [{ op: 'moment', cue: `moment.${detail.key}`, file: m.file, id: detail.id, bus: 'sfx', gain: m.gain, at: t, duck: 'dance' }];
