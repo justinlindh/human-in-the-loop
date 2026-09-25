@@ -331,4 +331,4 @@ ChatPrompt = {
 - Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
 - Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
 - Copy follows the voice guide and the era gates.
-- Old saves load with `chatPrompts = []`.
+- Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
