@@ -1161,6 +1161,13 @@ export function createOffice({ parent, screens, lighting }) {
     get current() { return cur; },
     get placed() { return placed; },
     get bounds() { return cur?.bounds; },
+    // Stretches of the back walls already taken, as { wall, a, b } along the wall: windows, doors,
+    // the era's wall pieces, and tall furniture. Staged wall props hang clear of them.
+    get wallBusy() {
+      if (!cur) return [];
+      const ops = cur.L.openings.filter((o) => o.wall === 'x' || o.wall === 'z').map((o) => ({ wall: o.wall, a: o.at - o.width / 2, b: o.at + o.width / 2 }));
+      return ops.concat(dressing?.userData.spans ?? [], wallBlockers());
+    },
     // Bumps whenever the walkable grid is rebuilt (furniture placed, moved or removed).
     get navVersion() { return navVersion; },
     // Columns standing in front of anyone (on screen, nearer the camera) fade to COLUMN_FADE.
@@ -1298,6 +1305,7 @@ const emblemTexture = (era) => emblemTex.get(era) ?? emblemTex.get('classic') ??
 function eraDressing(L, era, blockers = []) {
   const g = new THREE.Group();
   g.name = 'era';
+  g.userData.spans = [];
   const accent = eraAccent(era);
   const rail = mat('wood_dark');
   for (const wall of ['z', 'x']) {
@@ -1323,7 +1331,11 @@ function eraDressing(L, era, blockers = []) {
     const total = sl.got.reduce((n, pc) => n + pc.w, 0);
     const gap = (sl.len - total) / (sl.got.length + 1);
     let at = sl.at - sl.len / 2 + gap;
-    for (const pc of sl.got) { g.add(pc.make(L, { wall: sl.wall, at: at + pc.w / 2 })); at += pc.w + gap; }
+    for (const pc of sl.got) {
+      g.add(pc.make(L, { wall: sl.wall, at: at + pc.w / 2 }));
+      g.userData.spans.push({ wall: sl.wall, a: at, b: at + pc.w });
+      at += pc.w + gap;
+    }
   }
   return g;
 }

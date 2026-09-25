@@ -10,6 +10,7 @@ import { loadModels } from './models.js';
 import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
+import { createProps } from './props.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
@@ -93,6 +94,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
   let office = null;
+  let props = null;
   let staff = null;
   let build = null;
   let rival = null;
@@ -113,6 +115,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
     office = createOffice({ parent: scene, screens, lighting });
+    props = createProps(office);
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i) });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
@@ -190,6 +193,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     firstSync = false;
     const changed = office.setPlaced(state.office?.placed ?? []);
     if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);
+    props?.sync(state);
     // Placement validity depends on cash, the week, and what is placed; recheck when any changes.
     const sig = `${state.week}|${state.cash}|${changed.length}|${state.office?.placed?.length ?? 0}`;
     if (sig !== buildSig) { buildSig = sig; build?.invalidate(); }
@@ -256,7 +260,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get hoverPlaced() { return build?.hoverId ?? null; },
     // Steps characters, labels, and effects without drawing (for headless verification).
     advance(seconds, step = 1 / 30) {
-      for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); }
+      for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); props?.update(step); }
     },
     pick(x, y) {
       const r = staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null };
@@ -285,6 +289,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       staff?.update(dt, { paused });
       floating.update(simDt);
       fx.update(simDt, dt);
+      props?.update(dt);
       build?.update(dt, scene);
       portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);
