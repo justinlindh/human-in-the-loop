@@ -242,6 +242,9 @@ if cmp -s "$REPO/package-lock.json" "$WT/package-lock.json" && [ -d "$REPO/node_
   && (cd "$REPO" && npm ls --depth=0 >/dev/null 2>&1); then
   ln -s "$REPO/node_modules" "$WT/node_modules"
 fi
+# main's self-tests run from the base worktree and import packages (playwright): they resolve them
+# from the tree under test's install, which ci-local makes before any test runs.
+[ -e "$TOOLS/node_modules" ] || ln -s "$WT/node_modules" "$TOOLS/node_modules"
 
 # The gate is main's local CI (from the base worktree) run on the tree under test, so a PR can never
 # loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it

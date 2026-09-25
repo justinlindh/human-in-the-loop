@@ -6,6 +6,7 @@
 //   node blender/checks/dump-query.mjs <dir or dump.json> near <thing> [metres]
 //   node blender/checks/dump-query.mjs <dir or dump.json> nav <x,z> [metres]
 //   node blender/checks/dump-query.mjs <dir or dump.json> path <person>
+//   node blender/checks/dump-query.mjs <dir or dump.json> visible <person or prop> [--views 0,1,2,3]
 //   node blender/checks/dump-query.mjs <dir or dump.json> trace [person]
 //
 // A thing is a person's staff id, an item's placed id, or a prop's id (a prop name also works),
@@ -21,6 +22,9 @@
 //   nav     the walk grid's cells within the radius (default 0.4 m) of a floor point: blocked, free,
 //           or walkable under furniture, and why: the room's edge, the obstacle rects that block it
 //           (an item's, a staged prop's, a pillar's), what stands over it, who is there
+//   visible how much of a person or staged prop the camera sees, per camera turn the dump measured
+//           (dump.mjs --views), and what hides the rest: the person, prop, item, column or wall
+//           in front of most of it. A turned view counts no shell walls (the game cuts them away)
 //   trace   the moment ownership trace (dump.mjs --trace): per frame, every start, end, interrupt,
 //           replacement and refusal of someone's temp with the function behind it, and the
 //           decision freeze; with a person, only theirs
@@ -29,8 +33,11 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const [src, cmd, a, b] = process.argv.slice(2);
-if (!src || !cmd) { console.error('usage: dump-query.mjs <dir|dump.json> where|dist|rel|near <thing> [thing|metres] | nav <x,z> [metres] | path <person> | trace [person]'); process.exit(2); }
+const args = process.argv.slice(2);
+const viewsAt = args.indexOf('--views');
+const onlyViews = viewsAt >= 0 ? args.splice(viewsAt, 2)[1].split(',').map(Number) : null;
+const [src, cmd, a, b] = args;
+if (!src || !cmd) { console.error('usage: dump-query.mjs <dir|dump.json> where|dist|rel|near <thing> [thing|metres] | nav <x,z> [metres] | path <person> | visible <thing> [--views 0,1,2,3] | trace [person]'); process.exit(2); }
 const file = statSync(src).isDirectory() ? join(src, 'dump.json') : src;
 const dump = JSON.parse(readFileSync(file, 'utf8'));
 
@@ -72,7 +79,7 @@ function navAt(fr, x, z, r) {
   return out;
 }
 
-const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
+const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.repeats ? ` x${l.repeats}` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
 for (const fr of dump.frames) {
   const head = `frame ${String(fr.frame).padStart(4)} t=${fr.t.toFixed(2)}s`;
   if (cmd === 'nav') {
@@ -80,6 +87,17 @@ for (const fr of dump.frames) {
     if (!Number.isFinite(x) || !Number.isFinite(z)) { console.error('dump-query: nav wants a floor point as x,z'); process.exit(2); }
     console.log(`${head}  around (${x}, ${z}):`);
     for (const line of navAt(fr, x, z, Number(b ?? 0.4))) console.log(`  ${line}`);
+    continue;
+  }
+  if (cmd === 'visible') {
+    const p = fr.people.find((q) => q.id === a) ?? fr.props.find((q) => q.id === a || q.prop === a);
+    if (!p) { console.log(`${head}  ${a}: not in this frame`); continue; }
+    const all = p.views ?? [{ view: 0, visible: p.visible, occluder: p.occluder, blocked: null }];
+    const shown = onlyViews ? all.filter((v) => onlyViews.includes(v.view)) : all;
+    const missing = (onlyViews ?? []).filter((v) => !all.some((x) => x.view === v));
+    const line = (v) => `view ${v.view}: ${v.visible == null ? 'not measured' : `${Math.round(v.visible * 100)}% seen`}${v.occluder ? `, hidden by ${v.occluder}` : ''}${v.blocked && Object.keys(v.blocked).length > 1 ? ` (${Object.entries(v.blocked).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}`;
+    const best = shown.filter((v) => v.visible != null).sort((x, y) => y.visible - x.visible)[0];
+    console.log(`${head}  ${a}: ${shown.map(line).join('; ')}${shown.length > 1 && best ? `; best view ${best.view}` : ''}${missing.length ? `; views ${missing.join(',')} not in this dump (dump.mjs --views)` : ''}`);
     continue;
   }
   if (cmd === 'trace') {

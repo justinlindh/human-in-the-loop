@@ -155,9 +155,6 @@ export const FOCUS_KEEP = new Set(['ui.click', 'ui.open', 'ui.close', 'ui.confir
 export const SPOTLIGHT_KEEP = {
   waffle_party: { cues: ['stinger.waffle', 'sfx.reward'], cheers: true },
   music_night: { cues: ['music.night', 'sfx.reward'], cheers: true },
-  balloons: { cues: ['sfx.reward'], cheers: true },
-  caricature: { cues: ['sfx.reward'], cheers: true },
-  company_party: { cues: ['sfx.reward'], cheers: true },
   promotion: { cues: ['sfx.promotion', 'sfx.levelUp', 'sfx.trait'], cheers: true },
   legend: { cues: ['sfx.promotion', 'stinger.win'], cheers: true },
 };

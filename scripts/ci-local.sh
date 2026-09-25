@@ -173,6 +173,7 @@ tool_step gl node "$SELF/lib/gl.test.mjs"
 tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
 tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
+tool_step capture bash "$SELF/capture.test.sh"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,

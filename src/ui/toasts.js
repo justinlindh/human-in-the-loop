@@ -26,6 +26,16 @@ export function createToasts(root) {
   let week = null;
   let shownThisWeek = 0;
   let held = [];
+  let frozen = false; // tools hold every toast on screen while they look at it
+  function arm(t, ms) {
+    clearTimeout(t.timer);
+    t.ms = ms;
+    t.timer = frozen ? 0 : setTimeout(() => remove(t), ms);
+  }
+  function freeze(on) {
+    frozen = !!on;
+    for (const t of live) if (frozen) clearTimeout(t.timer); else arm(t, t.ms ?? LIFE[t.tone]);
+  }
   const moreChip = h('button.toast-more', { onclick: () => release() });
   moreChip.style.display = 'none';
   el.append(moreChip);
@@ -33,8 +43,20 @@ export function createToasts(root) {
 
   const toneOf = (t) => (LIFE[t] ? t : 'info');
 
+  // A toast cut short (phones keep them to one line) shows a "more" cue; the first tap opens it in
+  // full and restarts its timer, the next tap acts or dismisses it. An opened toast stays open when
+  // it moves between the corner and a panel's dock.
   function node(t, cls, more = 0) {
-    return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}`, { dataset: { occludes: '' }, onclick: () => { t.action?.(); remove(t); } },
+    return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}${t.open ? '.cut.open' : ''}`, { dataset: { occludes: '' }, onclick: (e) => {
+      const n = e.currentTarget;
+      if (n.classList.contains('cut') && !n.classList.contains('open')) {
+        n.classList.add('open');
+        t.open = true;
+        arm(t, LIFE[t.tone] + 4000);
+        return;
+      }
+      t.action?.(); remove(t);
+    } },
       t.person ? h('span.ico.face', null, portrait(t.person, 24)) : h('span.ico', null, icon(t.glyph ?? `toast.${t.tone}`)), h('span.tt', { text: t.text }),
       more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
   }
@@ -53,6 +75,15 @@ export function createToasts(root) {
     if (dock.firstChild?.dataset?.tid === String(top.id)) n.classList.add('still');
     n.dataset.tid = String(top.id);
     dock.replaceChildren(n);
+    markCut(n);
+  }
+
+  // After layout: does the text fit, or is it cut off?
+  function markCut(n) {
+    requestAnimationFrame(() => {
+      const tt = n.querySelector('.tt');
+      if (tt && n.isConnected && !n.classList.contains('open')) n.classList.toggle('cut', tt.scrollWidth > tt.clientWidth + 1 || tt.scrollHeight > tt.clientHeight + 1);
+    });
   }
 
   function remove(t) {
@@ -157,9 +188,9 @@ export function createToasts(root) {
     lastAt = now;
     const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at };
     live.push(t);
-    t.timer = setTimeout(() => remove(t), LIFE[t.tone]);
+    arm(t, LIFE[t.tone]);
     if (dock) renderDock();
-    else { t.node = node(t, 'toast'); el.insertBefore(t.node, moreChip); }
+    else { t.node = node(t, 'toast'); el.insertBefore(t.node, moreChip); markCut(t.node); }
     while (live.length > maxVisible()) remove(live[0]);
   }
 
@@ -169,9 +200,9 @@ export function createToasts(root) {
     dock = d;
     for (const t of live) if (t.node) { t.node.remove(); t.node = null; }
     if (dock) renderDock();
-    else for (const t of live) { t.node = node(t, 'toast'); t.node.classList.add('still'); el.insertBefore(t.node, moreChip); }
+    else for (const t of live) { t.node = node(t, 'toast'); t.node.classList.add('still'); el.insertBefore(t.node, moreChip); markCut(t.node); }
     refreshMore();
   }
 
-  return { push, setDock, setWeek, setHidden, el };
+  return { push, setDock, setWeek, setHidden, freeze, el };
 }

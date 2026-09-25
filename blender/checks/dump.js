@@ -2,7 +2,9 @@
 // and staged prop on the current frame, and an annotated copy of the frame.
 //
 //   prepare()            loads what the dump reads from the sim; await it once before dumping
-//   dumpFrame(R, S)      -> { people: [...], items: [...], props: [...], nav, spots, camera }
+//   dumpFrame(R, S, { views }) -> { people: [...], items: [...], props: [...], nav, spots, camera }
+//                           views (camera turns, e.g. [0, 1, 2, 3]) adds each person's and prop's
+//                           visible share and occluder per turn, from the staging probe
 //   annotate(R, frame)   -> PNG data URL: the frame with ids, screen boxes, facing arrows, gaze rays,
 //                           the walk grid, paths and goals
 //
@@ -133,13 +135,16 @@ function pathHits(F, pos, walk, seat) {
   return out;
 }
 
+// Every character root by actor id: staff ids, and a moment's own actors by the id the probe knows
+// them by ('visitor:0'), or 'extra:<n>' for anyone else.
 function characters(R) {
   const out = new Map();
+  const extras = new Map((R.moments?.extras?.() ?? []).map((e) => [e.char.root, e.id]));
   R.scene.traverse((o) => {
     if (o.name !== 'character') return;
     let id = null;
     o.traverse((c) => { if (c.userData.staffId !== undefined) id = c.userData.staffId; });
-    out.set(id ?? `visitor:${out.size}`, o);
+    out.set(id ?? extras.get(o) ?? `extra:${out.size}`, o);
   });
   return out;
 }
@@ -153,7 +158,7 @@ function lowest(mesh) {
   return best;
 }
 
-export function dumpFrame(R, S) {
+export function dumpFrame(R, S, { views = null } = {}) {
   const spots = spotsOf(R);
   return ownRandom(() => {
     R.scene.updateMatrixWorld();
@@ -162,9 +167,10 @@ export function dumpFrame(R, S) {
     for (const [id, root] of characters(R)) {
       if (!root.visible) continue;
       const staff = S.staff?.find((p) => p.id === id);
-      const probe = staff ? R.probe?.(id) ?? null : null;
+      const actor = !!staff || String(id).startsWith('visitor:');
+      const probe = actor ? R.probe?.(id) ?? null : null;
       const pk = staff ? R.perks?.peek(id) ?? null : null;
-      const st = staff ? R.moments?.staging?.(id) ?? null : null;
+      const st = actor ? R.moments?.staging?.(id) ?? null : null;
       const box = new THREE.Box3();
       root.traverse((c) => { if (c.isMesh && c.userData.part) { c.geometry.computeBoundingBox(); box.union(c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld)); } });
       const pos = new THREE.Vector3().setFromMatrixPosition(root.matrixWorld);
@@ -187,7 +193,8 @@ export function dumpFrame(R, S) {
         hands: hands.map((h) => ({ world: r3(h), screen: r2(screenOf(R, h)) })),
         feet: feet.map((f) => (f ? { world: r3(f), screen: r2(screenOf(R, f)) } : null)),
         held: held ? { name: held.name || null, world: r3(new THREE.Box3().setFromObject(held).getCenter(new THREE.Vector3())), ...(probe?.held ?? {}) } : null,
-        gaze: probe?.gaze ?? null, faceCam: probe?.faceCam ?? null, visible: probe?.visible ?? null,
+        gaze: probe?.gaze ?? null, faceCam: probe?.faceCam ?? null, visible: probe?.visible ?? null, occluder: probe?.occluder ?? null,
+        views: actor && views ? R.probeViews?.(id, views) ?? null : null, role: st?.role ?? null,
         walk: walk && { ...walk, path: walk.path.map(r2w), goal: r2w(walk.goal), temp: walk.temp && { ...walk.temp, goal: r2w(walk.temp.goal) } },
         pathHits: pathHits(F, pos, walk, pk?.seat),
       });
@@ -204,7 +211,9 @@ export function dumpFrame(R, S) {
     const props = [];
     for (const p of R.props?.current() ?? []) {
       const box = new THREE.Box3().setFromObject(p.obj);
-      props.push({ id: p.obj.userData.propId ?? null, prop: p.prop, pos: r3(p.obj.position), yaw: +p.obj.rotation.y.toFixed(3), bounds: boxJson(box), screen: screenBox(R, box), deskId: p.obj.userData.follow?.deskId ?? null });
+      const seen = R.probeViews?.(p.prop, views ?? [0]) ?? null;
+      props.push({ id: p.obj.userData.propId ?? null, prop: p.prop, pos: r3(p.obj.position), yaw: +p.obj.rotation.y.toFixed(3), bounds: boxJson(box), screen: screenBox(R, box), deskId: p.obj.userData.follow?.deskId ?? null,
+        visible: seen?.[0]?.visible ?? null, occluder: seen?.[0]?.occluder ?? null, views: views ? seen : null });
     }
     const c = document.querySelector('canvas');
     return { people, items, props, nav: navOf(R, F), spots, camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
