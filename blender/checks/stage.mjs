@@ -94,6 +94,11 @@ const SPECS = {
     share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
     visibleRule, noFade,
   ] },
+  // The visitor at the desk trying the product: at the screen, and in view.
+  'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
+    share('atScreen', 'face within 35 deg of the screen', (x) => x.targetAngle <= 35, 0.8),
+    visibleRule,
+  ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
@@ -159,6 +164,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
         for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
         window.__step(1);
         for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
+        // The moment's own actors (visitors) are staged too.
+        for (const e of R.moments.extras?.() ?? []) if (e.stage.moment === moment) actors.add(e.id);
         let live = 0;
         for (const actor of actors) {
           const m = R.probe(actor);
@@ -191,6 +198,15 @@ for (const task of tasks) {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
     if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
+    // wall and still pass. Walking and waiting are between beats and need none.
+    if (view.turns === 0) {
+      const roles = new Set(res.samples.filter((x) => x.beat && !['walk', 'wait'].includes(x.beat)).map((x) => x.role ?? null));
+      for (const role of roles) {
+        const covered = Object.values(SPECS).some((sp) => sp.moment === moment && (!sp.role || sp.role === role));
+        if (!covered) rep.row({ check: `${moment}.lint`, view: view.name, beat: '-', metric: 'roleWithoutSpec', value: role ?? '(no role)', want: 'a spec rule for every staged role', pass: false });
+      }
+    }
     for (const [k, spec] of specs) {
       const xs = res.samples.filter((x) => x.beat === spec.beat && (!spec.role || x.role === spec.role));
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
