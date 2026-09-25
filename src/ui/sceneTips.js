@@ -4,7 +4,7 @@
 // the pointer (pick) and where it is on screen (screenRectOf); the text comes from game state.
 import { MOOD_INFO, roleName } from './content.js';
 import { CATALOG } from './v2content.js';
-import { assignmentText } from './panels/common.js';
+import { doingText } from './panels/common.js';
 import { effectWords } from './panels/office.js';
 
 const HOVER_MS = 300;
@@ -16,7 +16,7 @@ export function sceneTipText(state, hit) {
     const p = state?.staff?.find((x) => x.id === hit.id);
     if (!p) return '';
     const mood = MOOD_INFO[p.mood]?.name;
-    return [p.name, `${roleName(p.role)}, level ${p.level}${mood ? ` · ${mood}` : ''}`, assignmentText(state, p)].join('\n');
+    return [p.name, `${roleName(p.role)}, level ${p.level}${mood ? ` · ${mood}` : ''}`, doingText(state, p)].join('\n');
   }
   if (hit?.kind === 'item') {
     const placed = state?.office?.placed?.find((x) => x.id === hit.id);
