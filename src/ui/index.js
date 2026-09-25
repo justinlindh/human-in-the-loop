@@ -42,7 +42,12 @@ export function createUI({ root, getState, dispatch, controls }) {
   root.append(layer);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
   const tooltips = createTooltips(layer);
-  createMomentCaptions(layer);
+  const captions = createMomentCaptions(layer, {
+    getRenderer: () => controls.renderer ?? controls.getRenderer?.() ?? null,
+    getSpeed: () => controls.getSpeed?.() ?? 1,
+    toast: (text, tone) => toasts.push(text, tone),
+    sfx: (k) => ctx.sfx?.(k),
+  });
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
@@ -335,6 +340,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     lastFrame = frameAt;
     const running = (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
     spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
+    captions.update();
     announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
@@ -473,6 +479,8 @@ export function createUI({ root, getState, dispatch, controls }) {
       return el;
     },
     hideTip: () => tooltips.hide(),
+    // Holds every toast on screen (true) or lets them time out again (false).
+    freezeToasts: (on) => toasts.freeze(on),
     startTutorial: () => tutorial.start(true),
     build: buildMode,
     openGoals: () => goalsModal(),

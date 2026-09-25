@@ -21,7 +21,7 @@ const REQUIRED_KEYS = [
 ];
 
 const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [], chatPrompts: [], lockdown: null, workPolicy: null, pets: [], rival: null, purpose: null });
-const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 }, remote: false, call: null, strain: 0 });
+const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 }, remote: false, call: null, strain: 0, growth: [] });
 
 const store = (storage) => storage ?? globalThis.localStorage;
 

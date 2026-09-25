@@ -1104,28 +1104,37 @@ const printout = () => canvasTex('printout', 384, 512, (ctx, W, H) => {
   bars.forEach((b, i) => { ctx.fillStyle = i ? P.metal_soft : P.alarm_red; ctx.fillRect(40 + i * 80, H - 40 - b * 110, 56, b * 110); });
 });
 // Marker on a whiteboard: boxes, arrows between them, a scribbled heading and a circled word.
-const scrawl = () => canvasTex('whiteboard_scrawl', 512, 320, (ctx, W, H) => {
-  ctx.clearRect(0, 0, W, H);
+// The pivot board: wiped (the board's own writing gone, a smear left over), then "the market has
+// spoken" in big marker over a panicked diagram of boxes, arrows and a circled "?!".
+const scrawl = () => canvasTex('whiteboard_scrawl', 1024, 640, (ctx, W, H) => {
+  ctx.fillStyle = P.plastic_white; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.12; ctx.fillStyle = P.marker_blue;
+  for (let i = 0; i < 5; i++) ctx.fillRect(80 + i * 170, 380 + (i % 2) * 60, 150, 24);
+  ctx.globalAlpha = 1;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const pen = (col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; };
-  pen(P.marker_blue, 7);
-  ctx.beginPath(); ctx.moveTo(40, 44); for (let x = 40; x < 300; x += 22) ctx.lineTo(x + 11, 44 + ((x / 22) % 2 ? -8 : 8)); ctx.stroke();
+  ctx.fillStyle = P.marker_blue; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = '800 92px sans-serif';
+  ctx.save(); ctx.translate(56, 92); ctx.rotate(-0.035); ctx.fillText('the market', 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(96, 200); ctx.rotate(-0.02); ctx.fillText('has spoken', 0, 0); ctx.restore();
+  pen(P.marker_blue, 9);
+  ctx.beginPath(); ctx.moveTo(96, 262); for (let x = 96; x < 600; x += 30) ctx.lineTo(x + 15, 262 + ((x / 30) % 2 ? -9 : 9)); ctx.stroke();
+  pen(P.ink, 8);
+  ctx.strokeRect(90, 340, 170, 100); ctx.strokeRect(380, 330, 180, 100); ctx.strokeRect(680, 440, 200, 100);
+  pen(P.marker_orange, 8);
+  ctx.beginPath(); ctx.moveTo(265, 390); ctx.lineTo(375, 380); ctx.moveTo(355, 364); ctx.lineTo(377, 380); ctx.lineTo(358, 398);
+  ctx.moveTo(560, 400); ctx.lineTo(675, 470); ctx.moveTo(652, 470); ctx.lineTo(677, 472); ctx.lineTo(665, 450); ctx.stroke();
   pen(P.ink, 6);
-  ctx.strokeRect(50, 110, 120, 70); ctx.strokeRect(310, 90, 140, 80); ctx.strokeRect(300, 220, 150, 70);
-  pen(P.marker_orange, 6);
-  ctx.beginPath(); ctx.moveTo(175, 145); ctx.lineTo(300, 130); ctx.moveTo(285, 118); ctx.lineTo(302, 130); ctx.lineTo(288, 145);
-  ctx.moveTo(380, 175); ctx.lineTo(375, 215); ctx.moveTo(365, 202); ctx.lineTo(375, 217); ctx.lineTo(388, 204); ctx.stroke();
-  pen(P.alarm_red, 10);
-  ctx.beginPath(); ctx.ellipse(110, 250, 78, 40, -0.1, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = P.alarm_red; ctx.font = '900 64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('?!', 110, 252);
-  pen(P.ink, 5);
-  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(70, 132 + i * 16); ctx.lineTo(150 - i * 18, 132 + i * 16); ctx.stroke(); }
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(115, 368 + i * 24); ctx.lineTo(235 - i * 26, 368 + i * 24); ctx.stroke(); }
+  pen(P.alarm_red, 14);
+  ctx.beginPath(); ctx.ellipse(850, 170, 110, 90, -0.1, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = P.alarm_red; ctx.font = '900 120px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('?!', 850, 176);
 });
 // Written on the board's face (both faces of a free-standing one); on the back wall without a board.
 function whiteboardScrawl(L, anchor, env) {
   const { entry } = itemAt(L, anchor, env.office, ['whiteboard']);
-  if (!entry) return wallPrint(scrawl, { w: 0.9, h: 0.56, tilt: 0 })(L, anchor, env);
+  if (!entry) return wallPrint(scrawl, { w: 1.0, h: 0.62, tilt: 0 })(L, anchor, env);
   const face = new THREE.Box3();
   entry.obj.updateMatrixWorld(true);
   entry.obj.traverse((o) => { if (o.isMesh && /whiteboard/.test(o.material?.name ?? '')) face.expandByObject(o); });
@@ -1137,10 +1146,12 @@ function whiteboardScrawl(L, anchor, env) {
   const g = new THREE.Group();
   g.position.set(c.x, c.y, c.z);
   g.rotation.y = r;
-  const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), transparent: true, roughness: 0.6 }));
+  const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), roughness: 0.6 }));
   for (const side of entry.itemId === 'whiteboard_wall' ? [1] : [1, -1]) {
-    const pl = new THREE.Mesh(plane(across * 0.8, size.y * 0.7), m);
-    pl.position.z = side * (thick / 2 + 0.004);
+    // Nearly the whole face, so none of the board's own writing shows round it.
+    const pl = new THREE.Mesh(plane(across * 0.94, size.y * 0.9), m);
+    // In front of anything already written on the board (the rival note sits 12 mm out).
+    pl.position.z = side * (thick / 2 + 0.02);
     if (side < 0) pl.rotation.y = Math.PI;
     pl.userData.noAO = true;
     g.add(pl);

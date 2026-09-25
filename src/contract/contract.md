@@ -94,6 +94,8 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
+                                          // important: optional true promotes a post that wouldn't otherwise count as important (a running joke, big news);
+                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, bot posts, or flagged) raise unread counts
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
 { type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
@@ -193,7 +195,8 @@ Grid: OFFICE_STAGES[stage].grid = { w, h }, .door = { x, y }, .blocked = [[x, y]
 Speech bubbles in the office and Yak messages are separate streams.
 
 ```js
-{ type: 'say', id, week, staffId, text, toId, replyTo, tone }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
+{ type: 'say', id, week, staffId, text, toId, replyTo, tone, moment }   // spoken aloud in the office; tone: optional 'happy'|'annoyed'|'tired'|'questioning'|'excited'|'laughing'|'sighing' for voice barks (null lets audio infer it); toId: the person addressed (or null); replyTo: the say id this answers (or null)
+                                          // moment: optional event id; marks the line as that staged moment's own (#627), so the renderer shows it during the moment's spotlight; unmarked lines near the moment are dropped, not delayed
 ```
 - The renderer shows speech bubbles for `say` events only. A `chat` event is Yak only; the renderer may show a small typing emote on the author's character, never a bubble.
 - `say` events are never added to `chatLog` and never appear in Yak.
@@ -284,7 +287,7 @@ Decisions whose text describes something physical show it in the office.
 stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens' | 'whiteboard'
 // Choice data, optional:
 grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
-leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor only when the event has no stage
+leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor optional
 
 state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
 state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
@@ -296,7 +299,7 @@ state.office.props = [{ id, prop, x, y, since, until }]       // lingering props
 - `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
 - An anchor of `'whiteboard'` resolves to a placed whiteboard or whiteboard_wall, else the back wall as `'wall'` does.
-- `leaves` takes the stage prop's tile when there is one, and otherwise resolves its own `anchor`. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
+- `leaves` uses its own `anchor` when it sets one; otherwise it takes the stage prop's tile, or the back wall when there is no stage. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
 
 ## Yak reply prompts (#16)

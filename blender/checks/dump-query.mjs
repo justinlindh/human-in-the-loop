@@ -79,7 +79,7 @@ function navAt(fr, x, z, r) {
   return out;
 }
 
-const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
+const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.repeats ? ` x${l.repeats}` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
 for (const fr of dump.frames) {
   const head = `frame ${String(fr.frame).padStart(4)} t=${fr.t.toFixed(2)}s`;
   if (cmd === 'nav') {

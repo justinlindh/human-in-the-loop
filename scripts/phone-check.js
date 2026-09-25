@@ -14,6 +14,7 @@
 //   panels     every menu panel fits on screen, nothing inside is cut off, and its close button works
 //   decision   a real decision card fits, and its last choice can be reached and tapped
 //   toasts     phones show at most two toasts and they don't block taps
+//   skip       a spotlight moment (the Waffle Party) shows its caption and a Skip a tap ends it with
 //   placement  Office, Place, then furniture goes down: a mouse click; on touch, tap to aim, Rotate,
 //              pan, then Place (the ghost must stay put and turn)
 //   taps       a plain tap on a person opens them; two fingers resting on a person pop no long-press tip
@@ -90,7 +91,7 @@ async function touchPlacement({ page, tap, touch, vp, shot, n0 }) {
   return fails;
 }
 
-const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak'];
+const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak', 'skip'];
 const TOUCH_ONLY = new Set(['pinch', 'toasts', 'taps', 'audio']);
 
 const args = parseArgs(process.argv.slice(2));
@@ -313,7 +314,8 @@ const CHECKS = {
     // A long toast: if it is cut off, it shows a cue and opens in full after one tap.
     const longText = 'A very long message from the office that will not fit on one line on a phone, so it has to open when tapped.';
     await page.evaluate(() => window.__HITL.setSpeed(0)); await clearDecisions(page); await wait(page, 300);
-    await page.evaluate((text) => window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]), longText); // warn always shows
+    // Held on screen for the check, so a loaded machine cannot time it out before the tap.
+    await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]); }, longText); // warn always shows
     await wait(page, 600);
     const long = page.locator('.toasts .toast', { hasText: 'A very long message' }).first();
     if (!(await long.count())) fails.push('the long test toast never showed');
@@ -322,16 +324,36 @@ const CHECKS = {
       if (overflows && !cut) fails.push('a toast is cut off with no cue and no way to read the rest');
       if (cut) {
         await tap(long); await wait(page, 300);
-        const full = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return e.classList.contains('open') && tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1; }).catch(() => false);
-        if (!full) fails.push('tapping a cut toast does not show it in full');
+        const seen = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { open: e.classList.contains('open'), fits: tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1 }; }).catch(() => ({ gone: true }));
+        if (!seen.open || !seen.fits) fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'})`);
         await shot('toast-long');
       }
     }
+    await page.evaluate(() => window.__HITL_UI?.freezeToasts?.(false));
     if (isPhone(vp)) {
       if (most > 2) fails.push(`${most} toasts at once on a phone (at most 2)`);
       if (blocking) fails.push(`${blocking} toasts take taps without an action`);
     }
     return { fails, note: `most at once: ${most}` };
+  },
+
+  async skip({ page, tap, shot }) {
+    const fails = [];
+    await clearDecisions(page);
+    await page.evaluate(() => { const H = window.__HITL; H.setSpeed(1); const p = H.state.staff.find((x) => x.mood !== 'away') ?? H.state.staff[0]; H.emit([{ type: 'incentive', staffId: p.id, reward: 'waffle_party' }]); });
+    await wait(page, 1200);
+    await page.evaluate(() => [...document.querySelectorAll('.announce-back button')].find((b) => b.textContent.trim() === 'Onward')?.click());
+    await wait(page, 400);
+    const spot = () => page.evaluate(() => window.__HITL.controls.renderer?.spotlight?.()?.kind ?? null);
+    if (!(await spot())) { await page.evaluate(() => window.__HITL.setSpeed(0)); return { fails, note: 'no spotlight in this renderer' }; }
+    const cap = await page.evaluate(() => document.querySelector('.moment-cap.spot.show .mcap-text')?.textContent ?? '');
+    if (!cap) fails.push('a spotlight plays with no caption');
+    await shot('skip');
+    try { await tap(page.locator('.moment-cap .mcap-skip')); } catch { fails.push('Skip is not tappable'); }
+    await wait(page, 500);
+    if (await spot()) fails.push('tapping Skip did not end the moment');
+    await page.evaluate(() => window.__HITL.setSpeed(0));
+    return { fails };
   },
 
   async placement({ page, tap, touch, touchy, vp, shot }) {

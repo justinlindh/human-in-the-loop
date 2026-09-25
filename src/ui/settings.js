@@ -136,7 +136,7 @@ export function createSettings({ layer, controls, sfx }) {
           toggleClass(sw, 'on', settings.momentCamera !== false);
           return row('Camera follows big moments', 'Eases to things like a first user test. Any input takes the camera back.', sw);
         })(),
-        row('Yak', 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Replies it needs always show.',
+        row('Yak', 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Prompts that need your reply always show.',
           seg(YAK_LEVELS.map(({ v, label }) => ({ v, label })), yakLevel(), (v) => setYakLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),

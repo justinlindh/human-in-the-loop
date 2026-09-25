@@ -118,7 +118,7 @@ Conventions:
   - **Caricature**: a framed big-head portrait of the winner on the wall under a picture light ("I look like a tired walnut. I love it."). `id: caricature`
   - **Melon bar**: a cheer and confetti; Yak warns everyone off the honeydew. `id: melon_bar`
 - **Moment camera**: during the printer, the user test, the consultants, the walls coming down and the incentive parties, the camera glides in and back out, and lets go as soon as the player steers.
-- **Spotlight**: the fun staged moments (the printer taken out back, the user test, the consultants, the walls coming down, the waffle party, music night) hold the game clock while they play, so no week slips by behind them; the office and the sound carry on. Routine life (standups, coffee, pair games) never holds it.
+- **Spotlight**: the fun staged moments (the printer taken out back, the user test, the consultants, the walls coming down, the waffle party, music night) hold the game clock while they play, so no week slips by behind them; the office and the sound carry on. Routine life (standups, coffee, pair games) never holds it. Its caption carries a Skip button that ends the moment and lets the clock run; at the fastest speed a spotlight skips itself and leaves its caption as a toast.
 
 ## Decisions that show up in the office
 
