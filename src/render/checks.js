@@ -710,6 +710,8 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       results.push({ name: `moment:visitor:${want}`, pass: samples > 0 && beats.has('hide') && beats.has(want) && worst < 0.01, samples, beats: [...beats], insidePct: +(100 * worst).toFixed(2), worstWho });
       step(30 * 8);
     }
+    R.moments.full = false;
+  }
   // 8. Behind a decision card: the game freezes the office while a decision is open (main.js calls
   // setPaused), and the moment the decision stages still plays through it; everyone else holds
   // still. Paused outright (speed 0), the moment holds still too. Stepped through render(), which
