@@ -120,6 +120,7 @@ export function isMusicNightDecision(d) {
 export const MUSIC_BARS = 8;          // placeholder bed length in bars
 export const PLAYLIST_MIN_S = 120;    // an era with several beds switches after this much unpaused listening
 export const PLAYLIST_LOOKAHEAD_S = 0.5; // how early the switch is scheduled before its bar line
+export const PLAYLIST_PRELOAD_S = 30;   // how long before a projected switch the next bed starts decoding
 export const CROSSFADE_BARS = 2;
 export const PAUSE_LOWPASS = 900;     // Hz while a menu, card or decision holds time
 export const LOCKDOWN_LOWPASS = 1800;

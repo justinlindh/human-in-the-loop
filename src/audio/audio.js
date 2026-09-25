@@ -118,9 +118,9 @@ export function createAudio({ quality = 'high' } = {}) {
       old.src.stop(t + cmd.fade * 2);
     }
     music = { src, gain: g, era: cmd.era };
-    // Beds of other eras are done with (eras only move forward); the fading bed keeps its own reference.
-    const era = cmd.bed.split('/')[0];
-    loader.release((id) => id.startsWith('music/') && id.split('/')[1] !== era);
+    // Only the starting bed stays decoded: the fading one keeps its own reference until it stops,
+    // and the director preloads the next bed shortly before its switch.
+    loader.release((id) => id.startsWith('music/') && id !== `music/${cmd.bed}`);
   }
 
   function run(cmds) {
