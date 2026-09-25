@@ -21,7 +21,7 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 
 | Tool | What it does |
 |---|---|
-| `scripts/pr-status.sh` | One live row per open PR: merge state, review verdict and local-ci for the current head, and any failing check. Check it before reporting on or acting on a PR. |
+| `scripts/pr-status.sh` | One live row per open PR: merge state, what holds it (`awaiting-user`, draft), review verdict and local-ci for the current head, and any failing check; then the issues awaiting the user. Check it before reporting on or acting on a PR, and don't build on a held item. Anything waiting on a user decision gets the `awaiting-user` label (a PR also stays a draft). |
 | `scripts/ci-pr.sh <pr>` | Local CI for a PR, run on the PR merged into `main` in a throwaway worktree. Posts the Local CI comment and the `local-ci` status. `--allow-bot` is for reviewed Dependabot PRs only. |
 | `npm run ci` (`scripts/ci-local.sh`) | The same checks in the current worktree, with a summary table. |
 | `scripts/review-verdict.sh <pr> pass\|changes <body> --head <sha>` | The reviewer's verdict: a PR review plus the `review` status on that head. team-lead uses it for lead and integrator PRs. |
