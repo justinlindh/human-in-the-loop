@@ -29,6 +29,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
+- Wrap long-running commands (renders, ffmpeg, captures, balance runs) in `timeout`, and nice heavy batch jobs (`nice -n 10`). The machine is shared: a runaway job blocks your own turn, so you never see messages about it, and it starves every lane's CI.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
 - Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with one short line. team-lead replies with cross-lane news and the go-ahead for the next task.
 - Before a report or an action that depends on a PR's state, check it live (`scripts/pr-status.sh`, or `gh pr view <n>`). Messages cross, so an instruction or a status you received may already be out of date. Report only what changed since your last report: new PRs, new results, and decisions you need.
@@ -56,6 +57,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Small integrator-only changes (main.js, tooling, CI) go through a PR from an `integ/<topic>` branch as well.
   - If PRs start costing real velocity, tell team-lead rather than bypassing them.
   - Never push to a PR's branch after it merges: those commits never reach `main`. Check `gh pr view <n> --json state` before pushing a follow-up, and put post-merge work on a fresh branch from `origin/main` with its own PR.
+- The repo is public. Never fetch, install, build, run or open the code of a PR from a fork or an author outside `scripts/ci-trusted`: check `gh pr view <n> --json isCrossRepository,author` first. Report such PRs to team-lead instead. `scripts/ci-pr.sh` enforces this for local CI.
 - PR descriptions and comments never contain local paths (`/home/...`, `/tmp/...`, scratchpad paths). Evidence media goes on the PR through `scripts/pr-media.sh <pr> <files>`, which stores it on the `pr-media` branch and posts markdown that renders on GitHub.
 - Commits and PR titles follow Conventional Commits: `type(scope): summary`, imperative, lower case after the colon, no trailing period.
   - Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
