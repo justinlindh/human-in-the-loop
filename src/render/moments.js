@@ -524,6 +524,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       v.chair = visitorChairModel();
       v.chair.position.copy(o.position); v.chair.rotation.y = o.rotation.y; v.chair.scale.setScalar(o.scale.x > 0.5 ? o.scale.x : 1);
       v.chars[0].root.parent.add(v.chair);
+      v.chair.updateMatrixWorld(true);
+      getProps()?.pin?.(v.chair);
     }
     const fwd = [Math.sin(v.yaw), Math.cos(v.yaw)], side = [Math.cos(v.yaw), -Math.sin(v.yaw)];
     if (event === 'efficiency_consultants') {
@@ -698,7 +700,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     visitor = null;
     releaseCast(v);
     for (const c of v.chars) { c.root.removeFromParent(); c.dispose(); }
-    v.chair?.removeFromParent();
+    if (v.chair) { v.chair.removeFromParent(); getProps()?.unpin?.(v.chair); }
     if (v.mid) dispatch('end', v.event, v.mid);
     momentCam?.release('visitor');
   }
