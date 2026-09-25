@@ -26,6 +26,30 @@ Generated with ACE-Step 1.5 (MIT code and weights; commercial use of outputs per
 | `music_night/aggressive_bossa_nova.ogg` | Aggressive Bossa Nova | 132 bpm, D minor | 16.4 s |
 | `music_night/sad_lofi.ogg` | Sad Lo-fi | 80 bpm, Eb major | 17.8 s |
 
+## Moments
+
+### `moments/printer_smash.ogg`
+
+A 15.7 s original aggressive rap for the scene where staff wreck the jammed printer outside. It is rapped entirely in the game's invented gibberish lexicon. Nothing comes from any existing song: no melody, lyric or sample.
+
+- **Model:** ACE-Step 1.5 (MIT code and weights; commercial use of outputs permitted), the XL-sft 4B checkpoint plus the 4B planner, 60 steps, CFG 7.0, shift 3.0, 48 kHz.
+- **Settings:** seed 6613, 88 bpm, F minor, vocals on, rendered at 20 s.
+- **Cut and master:** cut just after the hook's final line with a 0.35 s fade, mastered to -18 LUFS.
+- **Caption:** "aggressive 90s hardcore hip hop, hard boom bap drums, deep 808 bass, menacing minor key bassline, gritty and dark, angry male rapper, fast aggressive rap vocals, shouted hook with gang vocals, raw mix, eerie piano stabs, heavy kick, menacing and confrontational".
+- **Lyrics** (structure tags as given to the model):
+
+  ```
+  [Verse - aggressive rap, fast and punchy]
+  Nuffa dolu, nopu ta, tebi ba, no-la
+  Pomi weh? Nopu! Nuffa dolu, ta-ta-ta
+  Yobi yobi, meloo nopu, soomah dolu ba
+  Nuffa! Tebi! Dolu nopu, pomi la!
+
+  [Chorus - shouted gang vocals]
+  Nopu! Nopu! Nuffa dolu ba!
+  Nopu! Nopu! Tebi pomi la!
+  ```
+
 ## Stingers (candidates)
 
 Generated with ACE-Step 1.5 using the same model and settings as the music (XL-sft 4B plus the 4B planner, 60 steps, 48 kHz) and the shared instrument core. Each was rendered at 12 s, then cut at a quiet point near its target length, faded out and mastered to -18 LUFS.
