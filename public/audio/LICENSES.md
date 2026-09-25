@@ -13,6 +13,7 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/agents/a_full.ogg` | Agents | 108 bpm, D minor | 8 bars |
 | `music/consolidation/a_full.ogg` | Consolidation | 90 bpm, A minor | 8 bars |
 | `music/plateau/a_full.ogg` | Plateau | 84 bpm, Eb major | 8 bars |
+| `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
 
 ## Music night dance breaks (candidates)
 

@@ -91,6 +91,23 @@
      }
     }
    ]
+  },
+  "title": {
+   "bpm": 104,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/title/a_full.ogg",
+       "duration": 18.453,
+       "loopStart": 0,
+       "loopEnd": 885760
+      }
+     }
+    }
+   ]
   }
  },
  "stingers": {
