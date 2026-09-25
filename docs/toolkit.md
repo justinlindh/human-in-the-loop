@@ -77,7 +77,7 @@ All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock,
 
 | Check | What it guards |
 |---|---|
-| `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path. |
+| `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path, and pair games (`pairs:floor`, `pairs:garage`): the start rules allow one by a new table, and two people sent there get to play. |
 | `blender/checks/golden.mjs [--update]` | Close-up renders compared with stored reference images. Update the references only deliberately, in the PR that changes the look. |
 | `blender/checks/standup.mjs` | Standups gather everyone inside the walls and clear of furniture, in every office. |
 | `R.probe(id)` (`src/render/probe.js`) | The staging probe (#350), in the page: how staff member `id` reads on screen this frame (gaze, face to camera, visibility, fades, hands, held prop, lean, smoke on the line of sight). Use it in `scene.mjs --report` or a check. |
@@ -93,21 +93,22 @@ Each gets its row here when it lands.
 
 Every new character moment ships with one. Three places change:
 
-1. **Tag the actors (`src/render/moments.js`).** Give the moment's `r.temp` a `stage` record: `{ beat, target, held, source }`.
+1. **Tag the actors (`src/render/moments.js`).** Give the moment's `r.temp` a `stage` record: `{ beat, role, target, held, source }`.
    - `beat` names the part of the moment playing now (`'read'`, `'fan'`); update it from the temp's `tick` as the moment moves on. While the actor walks, `staging()` reports `'walk'` on its own.
    - `target` is what they deal with: a `Vector3` or an `Object3D` (its box centre is used).
    - `held` is a prop in their hand (an `Object3D`).
    - `source` is an effect whose sprites should sit between them and the target (smoke).
+   - `role` tells actors of one moment apart (the printer's `'carrier'` and `'bat'`). Every actor is sampled each frame, and a spec with a `role` reads only that role's samples.
    - Add the moment's name to `KINDS`, so the check knows the build plays it.
-2. **Set it up (`SCENARIOS` in `blender/checks/stage.mjs`).** A mock query, a state `patch` that starts the moment (usually a `pendingDecision` with a `stage` prop), and how many seconds to watch.
-3. **Say what reading means (`SPECS` in the same file).** One entry per beat, `'<moment>.<beat>': { moment, beat, rules }`. Most rules are shares: `share(metric, want, sample => condition, minShare)` passes when enough of the beat's frames meet the condition. Custom rules are `{ metric, want, test(beatSamples, allSamples) -> value, pass(value) }`.
+2. **Set it up (`SCENARIOS` in `blender/checks/stage.mjs`).** A mock query, a state `patch` that starts the moment (usually a `pendingDecision` with a `stage` prop), and how many seconds to watch. `steps: [{ at, js }]` runs a script with `S` and `R` at frame `at`, for a moment that starts on a later event (the printer's `decisionResolved`).
+3. **Say what reading means (`SPECS` in the same file).** One entry per beat, `'<moment>.<beat>': { moment, beat, role?, rules }`. Most rules are shares: `share(metric, want, sample => condition, minShare)` passes when enough of the beat's frames meet the condition. Custom rules are `{ metric, want, test(beatSamples, allSamples) -> value, pass(value) }`.
 
 What `R.probe(id)` measures per frame (`src/render/probe.js` has the full list):
 - `gaze.hit`: what the line of sight from the eyes meets first: `'held'`, a staged prop id, a placed item id, `'furniture'`, `'floor'`, `'wall'` or `'none'`.
 - `targetAngle`: degrees between the face's direction and the target.
 - `faceCam`: degrees between the face's direction and the camera. The face reads within about 60 to 70.
 - `visible`: the share of the body the camera sees unblocked, walls and wall stubs included.
-- `fadeOver`: faded columns drawn over the character.
+- `fadeOver`: faded columns in front of the character whose screen box meets theirs.
 - `held.dist`, `held.ahead`: the held prop's distance from the eyes, and its angle off the face.
 - `handsRel`: the hands relative to the eyes in the face's heading. `stage.mjs`'s `motion()` turns them into a gesture's frequency and amplitude (fanning is fast and small; a wave is slow and wide).
 - `lean`: metres the head sits ahead of the feet toward the target (negative means away).

@@ -4,7 +4,8 @@
 //   node blender/checks/clip.mjs --rig    the same with authored clips on (?rig=1)
 //
 // Seated desk poses in every mood, head bounds, and resting perk poses (couch, beanbag, nap pod,
-// arcade stool, library armchair). Runs through harness.mjs, so the result depends only on the code.
+// arcade stool, library armchair), and pair games (foosball) ready to start and playable on the floor
+// and in the garage. Runs through harness.mjs, so the result depends only on the code.
 import { startHarness } from './harness.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
 
@@ -54,6 +55,8 @@ const out = await page.evaluate(async () => {
   // Counters and wall items, each on free tiles with a clear row in front (the perk items above go first).
   S.office.placed = S.office.placed.filter((p) => !p.id.startsWith('k_'));
   for (let i = 0; i < 60; i++) { R.sync(S); R.advance(1 / 30); }
+  const pairs = await C.runPairCheck(R, S, 'floor');
+  R.perks.hold = true;
   const { footprint } = await import('/src/render/layout.js');
   const L = R.office.current.L;
   const used = new Set();
@@ -76,8 +79,20 @@ const out = await page.evaluate(async () => {
   const u = await C.runUseChecks(R, S, useIds);
   dance.push(await C.runDanceLengthCheck(R, S));
   const party = await C.runPartyCheck(R, S);
-  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u, party];
+  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u, party, pairs];
 });
+// The garage: two founders still get a game of foosball in now and then.
+{
+  const g = await H.openScene(`quality=low&mock=garage${rig}`, { width: 800, height: 500 });
+  out.push(await g.page.evaluate(async () => {
+    const R = window.__hitlRender, S = window.__HITL.state;
+    const C = await import('/src/render/checks.js');
+    for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
+    return C.runPairCheck(R, S, 'garage');
+  }));
+  errors.push(...g.errors);
+  await g.page.close();
+}
 await H.close();
 let failed = 0;
 for (const r of out) {

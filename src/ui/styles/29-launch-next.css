@@ -1,0 +1,10 @@
+/* ---------- launch results: next-step shortcuts beside Nice! ---------- */
+.hitl .modal.launch .lfoot { align-items: center; gap: 0.6em; flex-wrap: wrap; }
+.hitl .modal.launch .lnext { display: flex; flex-wrap: wrap; gap: 0.45em; align-items: center; }
+.hitl .modal.launch .lnext .btn { font-size: 0.85em; }
+.hitl .modal.launch .lnext .lcost { margin-left: 0.5em; font-size: 0.85em; opacity: 0.75; }
+.hitl .modal.launch .lnext .pill { font-size: 0.8em; }
+@media (max-width: 480px) {
+  .hitl .modal.launch .lnext { flex-basis: 100%; }
+  .hitl .modal.launch .lnext .btn { flex: 1 1 100%; justify-content: center; }
+}

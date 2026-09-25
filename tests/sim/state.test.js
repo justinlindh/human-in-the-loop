@@ -5,7 +5,7 @@ import { B } from '../../src/sim/balance.js';
 const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'fame', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'fame', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'chatPrompts', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
   'era', 'eraSchedule', 'unlocks', 'goals', 'lockdown', 'workPolicy', 'pets', 'rival', 'purpose',
 ];

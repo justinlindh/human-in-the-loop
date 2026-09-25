@@ -21,7 +21,7 @@ export const EFFECT_KEYS = [
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
-  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag',
+  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag', 'strain',
 ];
 
 
