@@ -34,13 +34,13 @@ const art = await page.evaluate(async ({ person, pose }) => {
 if (errors.length) { console.error(errors); process.exitCode = 1; }
 
 // The mark: ring centre (CX, CY), radius R. The character stands in the ring, its cut-off bottom
-// rounded by the ring's inside; above the centre it may overlap the ring (the waving hand does).
+// rounded by the ring's inside; higher up it may overlap the ring (the waving hand does).
 const CX = 150, CY = 180, R = 112;
 const pt = (deg, r = R) => [CX + r * Math.cos((deg * Math.PI) / 180), CY + r * Math.sin((deg * Math.PI) / 180)].map((v) => v.toFixed(1));
 const [ax, ay] = pt(-78), [bx, by] = pt(38);
 const artH = 196, artW = (artH * art.width) / art.height;
 const mark = `<g id="mark">
-    <clipPath id="inring"><circle cx="${CX}" cy="${CY}" r="${R - 12}"/><rect x="0" y="0" width="${CX * 2 + R}" height="${CY}"/></clipPath>
+    <clipPath id="inring"><circle cx="${CX}" cy="${CY}" r="${R - 12}"/><rect x="0" y="0" width="${CX * 2 + R}" height="${CY + 45}"/></clipPath>
     <path d="M ${ax} ${ay} A ${R} ${R} 0 1 0 ${bx} ${by}" fill="none" stroke="${BLUE}" stroke-width="26" stroke-linecap="round"/>
     <image href="${art.url}" x="${(CX - artW * 0.42).toFixed(1)}" y="${CY - 94}" width="${artW.toFixed(1)}" height="${artH}" clip-path="url(#inring)"/>
     <g transform="translate(212 74) rotate(-6)">
