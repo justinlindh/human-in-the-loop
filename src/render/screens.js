@@ -203,6 +203,9 @@ export const SCREEN_VARIANTS = ['code', 'code', 'code', 'ui', 'chart', 'code', '
 
 export function createScreens() {
   const pool = new Map();
+  // The takeover on every monitor ('red' | 'skull' | null): a screen made while one is up shows it
+  // too (a decision card holds the office still, so no later redraw would come).
+  let overlay = null;
   const mats = new Set();
   let brightness = 1.7;
 
@@ -219,7 +222,7 @@ export function createScreens() {
     mat.userData.bright = !(kind === 'gray' || kind === 'off');
     mats.add(mat);
     v.mat = mat;
-    DRAW[kind](v, 0);
+    (overlay ? OVERLAY[overlay] : DRAW[kind])(v, 0);
     v.tex.needsUpdate = true;
     pool.set(key, v);
     return v;
@@ -347,7 +350,6 @@ export function createScreens() {
   }
   drawWindows(1);
 
-  let overlay = null;
   // kind: 'red' | 'skull' | null. Every pooled screen redraws at once, including static ones.
   function setOverlay(kind) {
     const k = OVERLAY[kind] ? kind : null;
