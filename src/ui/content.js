@@ -44,6 +44,30 @@ export function trendText(id) {
   return TRENDS[id]?.text ?? '';
 }
 
+// A trend's effects from the sim's TRENDS data: each angle or category it touches, with its
+// multiplier on customer growth and review scores. Biggest boost first, then the cooling ones.
+export function trendEffects(id) {
+  const t = TRENDS[id];
+  if (!t) return [];
+  const out = [
+    ...Object.entries(t.angleMods ?? {}).map(([k, mult]) => ({ kind: 'angle', key: k, name: ANGLE_MAP[k]?.name ?? k, mult })),
+    ...Object.entries(t.categoryMods ?? {}).map(([k, mult]) => ({ kind: 'category', key: k, name: CAT_MAP[k]?.name ?? k, mult })),
+  ].filter((e) => e.mult !== 1);
+  return out.sort((a, b) => b.mult - a.mult);
+}
+export const trendPct = (mult) => `${mult > 1 ? '+' : '-'}${Math.round(Math.abs(mult - 1) * 100)}%`;
+// One line for toasts and tips: "API +35%, Dev Tools +15% on growth and reviews."
+export function trendSummary(id) {
+  const fx = trendEffects(id);
+  if (!fx.length) return 'No effect on any product.';
+  return `${fx.map((e) => `${e.name} ${trendPct(e.mult)}`).join(', ')} on customer growth and reviews.`;
+}
+// The current trend's multiplier for an angle or a category (1 when untouched).
+export function trendMult(state, kind, key) {
+  const t = TRENDS[state?.market?.trend];
+  return (kind === 'angle' ? t?.angleMods?.[key] : t?.categoryMods?.[key]) ?? 1;
+}
+
 export function policyUnlocked(state, p) {
   if (state.unlocks) return call('isUnlocked', state, `policy.${p.id}`) ?? state.unlocks[`policy.${p.id}`] != null;
   try { return !!p.unlock?.(state); } catch { return false; }

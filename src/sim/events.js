@@ -5,7 +5,8 @@ import { newId } from './util.js';
 import { mentorOf } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
-import { agentSpend, rivalMergePrice } from './economy.js';
+import { agentSpend, rivalMergePrice, moonshotWeekly } from './economy.js';
+import { MOONSHOT_NAMES } from '../data/forsale.js';
 import { featuredDeal } from './acquire.js';
 import { automationExposure } from './automation.js';
 import { applyEffects, checkCondition, requireReason } from './effects.js';
@@ -58,6 +59,10 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{auditCost}', money(agentSpend(state, B.agentAuditWeeks)))
     .replaceAll('{agentBill}', money(agentSpend(state, B.agentInvoiceWeeks)))
     .replaceAll('{mergePrice}', money(rivalMergePrice(state)))
+    .replaceAll('{moonshot}', state.flags.moonshot?.name ?? MOONSHOT_NAMES[state.seed % MOONSHOT_NAMES.length])
+    .replaceAll('{moonshotWeekly}', money(state.flags.moonshot?.weekly ?? moonshotWeekly(state)))
+    .replaceAll('{lastBetCost}', money(Math.max(0, state.cash) * B.lastBetCashShare))
+    .replaceAll('{foundationCost}', money(Math.max(0, state.cash) * B.foundationCashShare))
     .replaceAll('{summitSmall}', `$${Math.round(summitCost(state, 'small') / 1000)}k`)
     .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);

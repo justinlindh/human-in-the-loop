@@ -28,3 +28,4 @@ import './incentives.js';
 import './alumni.js';
 import './acquire.js';
 import './beats.js';
+import './moonshot.js';

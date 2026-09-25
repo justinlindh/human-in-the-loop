@@ -183,7 +183,8 @@ registerAction('hire', (ctx, { candidateId }) => {
   const c = state.candidates.find((x) => x.id === candidateId);
   if (!c) return { ok: false, reason: 'No such candidate' };
   if (state.staff.length >= deskCapacity(state)) return { ok: false, reason: 'No free desk' };
-  const fee = c.salary * B.hireFeeWeeks;
+  // Famous companies hire for less: people apply instead of being recruited.
+  const fee = c.salary * B.hireFeeWeeks * (1 - B.fameHireRelief * (state.fame ?? 0) / 100);
   if (state.cash < fee) return { ok: false, reason: 'Not enough cash' };
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
   c.hiredWeek = state.week;

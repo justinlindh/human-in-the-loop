@@ -1158,3 +1158,17 @@
   .hitl .menu { justify-self: stretch; row-gap: 0.35em; }
   .hitl .mbtn { width: calc(25% - 0.3em); min-width: 3.9em; height: 4em; }
 }
+
+/* Market trend: the tray card opens to its effects; New Product tiles show trending or cooling. */
+.hitl .tray-card.trend { cursor: pointer; }
+.hitl .tray-card.trend .tdetail { display: none; margin-top: 0.35em; }
+.hitl .tray-card.trend.open .tdetail { display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .tray-card.trend .tfx { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.15em; font-size: 0.85em; }
+.hitl .tray-card.trend .tdetail .muted { color: #d9d2e0; }
+.hitl .tray-card.trend .tfx .up b { color: #7ee2b0; }
+.hitl .tray-card.trend .tfx .down b { color: #ff9a9a; }
+/* The tray stops above the bottom row and scrolls, so an opened card never sits under Yak. */
+.hitl .tray { max-height: calc(100% - var(--topbar-h, 4.6em) - var(--bottom-h, 16em) - 1.8em); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.hitl .trendtag { display: inline-flex; align-items: center; gap: 0.15em; font-size: 0.68em; font-weight: 700; border-radius: 1em; padding: 0.05em 0.45em; border: 0.12em solid var(--ink); white-space: nowrap; }
+.hitl .trendtag.up { background: #c9f0dc; color: #0f5c3c; }
+.hitl .trendtag.down { background: #ffe1df; color: #8f1d22; }
