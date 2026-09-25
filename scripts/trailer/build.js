@@ -27,7 +27,8 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 if (args['print-vo']) {
-  process.stdout.write(`${JSON.stringify(VO.lines.map(({ id, text }) => ({ id, text })), null, 2)}\n`);
+  // A line's `say` (how the narrator speaks it, e.g. a URL read aloud) is the TTS script when set; `text` stays the caption.
+  process.stdout.write(`${JSON.stringify(VO.lines.map(({ id, text, say }) => ({ id, text: say ?? text })), null, 2)}\n`);
   process.exit(0);
 }
 
