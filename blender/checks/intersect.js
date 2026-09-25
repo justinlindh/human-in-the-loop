@@ -391,19 +391,53 @@ let cropGL = null;
 export function crop(R, at, size, zoom) {
   return tool(() => cropNow(R, at, size, zoom));
 }
-// A close-up around a screen point (client px) with rectangles drawn over it: screen-space finds,
-// whose labels live in the page's DOM and not in the scene. rects: [{ r, color, text }].
+// A close-up around a screen point (client px) for a screen-space finding. The scene is drawn by
+// cropAt; the labels, which are page elements and not in the scene, are drawn over it from their
+// computed style (fill, border, corner radius, font and text) in page order, and then the finding's
+// rectangles. rects: [{ r, color, text }] in client px. Client px are scaled to canvas px by the
+// canvas's own ratio, so a device pixel ratio above 1 crops the same region.
 export function cropScreen(R, x, y, rects, size = 240, zoom = 2) {
   return tool(() => {
-    const cr = document.querySelector('canvas').getBoundingClientRect();
-    const img = cropAt(R, x - cr.left, y - cr.top, size, zoom);
+    const canvas = document.querySelector('canvas');
+    const cr = canvas.getBoundingClientRect();
+    const dpr = canvas.width / cr.width;
+    const img = cropAt(R, (x - cr.left) * dpr, (y - cr.top) * dpr, size * dpr, zoom / dpr);
     const g = img.getContext('2d');
-    const ox = x - cr.left - size / 2, oy = y - cr.top - size / 2;
-    g.lineWidth = 3; g.font = '600 13px sans-serif';
+    const x0 = x - size / 2, y0 = y - size / 2;
+    const map = (r) => ({ x: (r.left - x0) * zoom, y: (r.top - y0) * zoom, w: (r.right - r.left) * zoom, h: (r.bottom - r.top) * zoom });
+    const labels = [...document.querySelectorAll('.hitl-lbl')]
+      .filter((el) => el.style.display !== 'none' && el.isConnected)
+      .map((el) => ({ el, inner: el.querySelector('.in') ?? el, z: Number(el.style.zIndex || 0) }))
+      .sort((p, q) => p.z - q.z);
+    for (const { el, inner } of labels) {
+      const r = inner.getBoundingClientRect();
+      if (r.right < x0 || r.left > x0 + size || r.bottom < y0 || r.top > y0 + size || r.width < 1) continue;
+      const cs = getComputedStyle(inner), m = map(r);
+      g.save();
+      g.globalAlpha = Number(el.style.opacity || 1);
+      g.beginPath();
+      g.roundRect(m.x, m.y, m.w, m.h, (parseFloat(cs.borderTopLeftRadius) || 0) * zoom);
+      g.fillStyle = cs.backgroundColor; g.fill();
+      const bw = parseFloat(cs.borderTopWidth) || 0;
+      if (bw) { g.lineWidth = bw * zoom; g.strokeStyle = cs.borderTopColor; g.stroke(); }
+      g.fillStyle = cs.color;
+      g.font = `${cs.fontWeight} ${parseFloat(cs.fontSize) * zoom}px ${cs.fontFamily}`;
+      g.textBaseline = 'top';
+      const pad = (parseFloat(cs.paddingLeft) || 0) * zoom, lh = (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.25) * zoom;
+      let line = '', ly = m.y + (parseFloat(cs.paddingTop) || 0) * zoom;
+      for (const word of inner.textContent.split(/\s+/)) {
+        const next = line ? `${line} ${word}` : word;
+        if (g.measureText(next).width > m.w - 2 * pad && line) { g.fillText(line, m.x + pad, ly); ly += lh; line = word; } else line = next;
+      }
+      if (line) g.fillText(line, m.x + pad, ly);
+      g.restore();
+    }
+    g.lineWidth = 3; g.font = '600 13px sans-serif'; g.textBaseline = 'alphabetic';
     for (const { r, color, text } of rects) {
+      const m = map(r);
       g.strokeStyle = color; g.fillStyle = color;
-      g.strokeRect((r.left - cr.left - ox) * zoom, (r.top - cr.top - oy) * zoom, (r.right - r.left) * zoom, (r.bottom - r.top) * zoom);
-      if (text) g.fillText(text.slice(0, 36), (r.left - cr.left - ox) * zoom + 4, (r.top - cr.top - oy) * zoom + 15);
+      g.strokeRect(m.x, m.y, m.w, m.h);
+      if (text) g.fillText(text.slice(0, 36), m.x + 4, m.y + 15);
     }
     return img.toDataURL('image/png');
   });
