@@ -28,7 +28,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { cpus } from 'node:os';
+import { cpus, loadavg } from 'node:os';
 import { arg, median, quantile } from './stats.js';
 import { glMode, launchChromium } from '../lib/gl.js';
 
@@ -254,6 +254,17 @@ function formatRow(label, key, r) {
     + `  prog ${pad(r.programs, 3)}  heap ${pad(f1(r.heapMB), 5)}MB  dom ${pad(r.dom, 5)}  mut/s ${pad(f1(r.mutPerSec), 6)}`;
 }
 
+// Ref worktrees go away however the run ends, including timeout's SIGTERM and Ctrl-C.
+function removeRefWorktrees() {
+  if (!REFS || !existsSync(REF_DIR)) return;
+  for (const d of readdirSync(REF_DIR)) {
+    try { execFileSync('git', ['-C', ROOT, 'worktree', 'remove', '--force', join(REF_DIR, d)], { stdio: 'ignore' }); } catch { /* already gone */ }
+  }
+  rmSync(REF_DIR, { recursive: true, force: true });
+  try { execFileSync('git', ['-C', ROOT, 'worktree', 'prune']); } catch { /* nothing to prune */ }
+}
+for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { removeRefWorktrees(); process.exit(130); });
+
 const specs = REFS ? REFS.map(checkout) : [{ label: 'worktree', root: ROOT }];
 const builds = [];
 for (const s of specs) builds.push(await prepare(s));
@@ -261,7 +272,10 @@ const { browser, renderer: glName } = await launchChromium(chromium, { mode: GL,
 
 const affinity = CPUS ?? 'all';
 const kb = (n) => `${Math.round(n / 1024)}KB`;
-console.log(`perf  gl=${GL} size=${W}x${H} runs=${RUNS} warmup=${WARMUP}s seconds=${SECONDS} cpus=${affinity ?? '?'}/${cpus().length}`);
+// Machine load next to every result: timings taken on a busy machine aren't a baseline.
+const load = () => loadavg()[0].toFixed(1);
+const loadAtStart = load();
+console.log(`perf  gl=${GL} size=${W}x${H} runs=${RUNS} warmup=${WARMUP}s seconds=${SECONDS} cpus=${affinity ?? '?'}/${cpus().length} load=${loadAtStart}`);
 for (const b of builds) {
   console.log(`build ${b.label.padEnd(12)}${PROFILE ? " (unminified)" : ""} js ${kb(b.bundle.js.raw)} (gz ${kb(b.bundle.js.gz)})  css ${kb(b.bundle.css.raw)} (gz ${kb(b.bundle.css.gz)})`
     + (b.late ? `  late: week ${b.late.week} stage ${b.late.stage} staff ${b.late.staff}${b.late.over ? ' (over)' : ''}` : ''));
@@ -287,8 +301,9 @@ try {
         const med = Object.fromEntries(keys.map((k) => [k, median(rs.map((r) => r[k]))]));
         // The fastest run: other jobs on shared cores only ever add time, so it is the steadiest figure.
         med.best = Math.min(...rs.map((r) => r.render));
+        med.load = +load();
         b.scenes[key] = { ...med, spread: { p50: rs.map((r) => +r.p50.toFixed(2)), render: rs.map((r) => +r.render.toFixed(2)) } };
-        console.log(formatRow(b.label, key, med));
+        console.log(`${formatRow(b.label, key, med)}  load ${med.load}`);
         if (PROFILE) {
           const total = {};
           for (const r of rs) for (const [k, ms] of Object.entries(r.profile)) total[k] = (total[k] ?? 0) + ms / rs.length;
@@ -306,15 +321,12 @@ try {
 } finally {
   await browser.close();
   for (const b of builds) await b.server.close();
-  if (REFS) {
-    for (const b of builds) execFileSync('git', ['-C', ROOT, 'worktree', 'remove', '--force', b.root]);
-    rmSync(REF_DIR, { recursive: true, force: true });
-  }
+  removeRefWorktrees();
 }
 const jsonOut = arg('json', null);
 if (typeof jsonOut === 'string') {
   const out = {
-    gl: GL, glName, size: `${W}x${H}`, runs: RUNS, warmup: WARMUP, seconds: SECONDS, cpus: affinity, hostCpus: cpus().length,
+    gl: GL, glName, size: `${W}x${H}`, runs: RUNS, warmup: WARMUP, seconds: SECONDS, cpus: affinity, hostCpus: cpus().length, loadAtStart: +loadAtStart,
     builds: builds.map((b) => ({ label: b.label, bundle: b.bundle, late: b.late && { week: b.late.week, stage: b.late.stage, staff: b.late.staff }, scenes: b.scenes })),
   };
   mkdirSync(resolve(jsonOut, '..'), { recursive: true });
