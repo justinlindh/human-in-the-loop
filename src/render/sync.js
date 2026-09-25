@@ -450,7 +450,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx });
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
+  // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
+  // still behind its card, so a standup or party under way would never end).
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, isBusy: () => !lastState?.pendingDecision && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
