@@ -158,17 +158,19 @@ const GAME = /^(src|public)\//;
 const closedIssues = new Set();
 for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) => r.known)).filter(Boolean))) {
   try {
-    const q = 'query($n:Int!){repository(owner:"justinlindh",name:"human-in-the-loop"){issue(number:$n){state timelineItems(itemTypes:[CLOSED_EVENT],last:1){nodes{... on ClosedEvent{closer{__typename ... on PullRequest{number merged} ... on Commit{oid}}}}}}}}';
-    const issue = JSON.parse(gh('api', 'graphql', '-f', `query=${q}`, '-F', `n=${n}`)).data.repository.issue;
+    // gh fills {owner} and {repo} from this checkout's repository.
+    const q = 'query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issue(number:$n){state timelineItems(itemTypes:[CLOSED_EVENT],last:1){nodes{... on ClosedEvent{closer{__typename ... on PullRequest{number merged} ... on Commit{oid}}}}}}}}';
+    const issue = JSON.parse(gh('api', 'graphql', '-f', `query=${q}`, '-F', 'owner={owner}', '-F', 'repo={repo}', '-F', `n=${n}`)).data.repository.issue;
     if (issue.state !== 'CLOSED') continue;
     const closer = issue.timelineItems.nodes[0]?.closer ?? null;
     let files = [], by = 'hand';
     if (closer?.__typename === 'PullRequest' && closer.merged) {
       by = `#${closer.number}`;
-      files = JSON.parse(gh('pr', 'view', String(closer.number), '--json', 'files')).files.map((f) => f.path);
+      // Paged, so a fix with hundreds of files is read whole.
+      files = gh('api', '--paginate', `repos/{owner}/{repo}/pulls/${closer.number}/files`, '--jq', '.[].filename').split('\n');
     } else if (closer?.__typename === 'Commit') {
       by = closer.oid.slice(0, 7);
-      files = JSON.parse(gh('api', `repos/justinlindh/human-in-the-loop/commits/${closer.oid}`)).files.map((f) => f.filename);
+      files = gh('api', '--paginate', `repos/{owner}/{repo}/commits/${closer.oid}`, '--jq', '.files[].filename').split('\n');
     } else if (closer?.__typename === 'PullRequest') by = `#${closer.number} (not merged)`;
     if (files.some((f) => GAME.test(f))) closedIssues.add(n);
     else console.log(`stage: issue #${n} was closed by ${by}, which changed no game code; its known rules still excuse. Reopen #${n} until its fix merges.`);
