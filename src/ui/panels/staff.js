@@ -2,7 +2,7 @@ import { setTip } from '../tooltip.js';
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
 import { portrait, portraitLive, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
-import { assignmentOptions, assignmentText, mentorOf, isAvailable } from './common.js';
+import { assignmentOptions, assignmentText, doingText, mentorOf, isAvailable } from './common.js';
 import { icon } from '../icons.js';
 import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
@@ -305,7 +305,7 @@ export function staffPanel(ctx, arg) {
           p.pathPending ? h('button.btn.primary', { onclick: () => openPathPicker(ctx, p.id) }, icon('path'), ' Choose a career path')
             : p.path ? h('div.pathinfo', null, h('b', null, p.legend ? icon('legend') : icon('path'), ` ${p.legend ? 'Legend ' : ''}${PATHS[p.path]?.name ?? p.path}`),
               h('div.small.muted', { text: PATHS[p.path]?.desc ?? '' })) : null,
-          h('div.small', null, h('b', { text: 'Doing: ' }), assignmentText(s, p)),
+          h('div.small', null, h('b', { text: 'Doing: ' }), doingText(s, p)),
           assignSelect(ctx, s, p)),
         h('div.dmid', null,
           h('div.section', null, h('h3', null, 'Skills', h('span.aside', null, strengthChip(p))),

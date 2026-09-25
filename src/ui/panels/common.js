@@ -12,6 +12,26 @@ export function projectLabel(state, j) {
   return j.name || 'Craft project';
 }
 
+// What someone is doing, as a sentence fragment: project work gets its verb ("Building Legalese",
+// "Updating Inboxer to v3"); anything else reads as assignmentText does.
+const DEFAULT_NAMES = new Set(['The Big Refactor', 'Refactor', 'Craft project']);
+export function doingText(state, p) {
+  const a = p.assignment ?? { type: 'idle' };
+  const j = a.type === 'project' ? state.projects.find((x) => x.id === a.targetId) : null;
+  if (!j) return assignmentText(state, p);
+  const prod = j.productId ? state.products.find((x) => x.id === j.productId) : null;
+  const name = prod?.name ?? j.name;
+  switch (j.kind) {
+    case 'new': return `Building ${j.name || 'a new product'}`;
+    case 'update': return `Updating ${name ?? 'a product'} to v${(prod?.version ?? 1) + 1}`;
+    case 'migration': return `Migrating ${name ?? 'a product'}`;
+    // The sim names these itself ('The Big Refactor', 'Craft project'); those defaults read as no name.
+    case 'refactor': return j.name && !DEFAULT_NAMES.has(j.name) ? `Refactoring ${j.name}` : 'Refactoring the code';
+    case 'research': return `Researching ${j.name || 'an internal tool'}`;
+    default: return j.name && !DEFAULT_NAMES.has(j.name) ? `Crafting ${j.name}` : 'Crafting a side project';
+  }
+}
+
 export function mentorOf(state, junior) {
   return state.staff.find((p) => p.assignment?.type === 'mentor' && p.assignment.targetId === junior.id) ?? null;
 }
