@@ -736,9 +736,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
           for (const e of R.office.placed.values()) {
             if (own.has(e.id)) continue;
             const v = bodyInside(root, meshes(e.obj), false);
-            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id}`; }
+            if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${e.itemId}:${e.id} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)} t ${i} path ${JSON.stringify(R.perks.peek(id)?.path)} goal ${JSON.stringify(R.perks.peek(id)?.temp?.goal)} seat ${R.perks.peek(id)?.seat} vseat ${JSON.stringify(R.moments.visitorState?.seat)} desk ${desk.id}`; }
           }
           for (const p of R.props.current()) {
+            if (!p.obj.visible) continue;
             const v = bodyInside(root, meshes(p.obj), false);
             if (v > worst) { worst = v; worstWho = `${id} (${R.moments.staging(id)?.beat}) in ${p.prop} at ${root.position.x.toFixed(2)},${root.position.z.toFixed(2)}; prop at ${p.obj.position.x.toFixed(2)},${p.obj.position.z.toFixed(2)}; path ${JSON.stringify(R.perks.peek(id)?.path)}; t ${i}`; }
           }
