@@ -23,7 +23,8 @@ The game is the show. Every effect exists to make a beat easier to read, never t
   - Keep the camera's pitch. The fixed isometric angle is the style: no top-down, no low angles.
 - **The diorama look:**
   - Never crop the office's outer walls or floor edge in a hero or establishing shot. The miniature reads from seeing the edges.
-  - Keep the game's tilt-shift on and add no blur in post.
+  - Keep the game's tilt-shift on and add no blur in post. The exception is a wide shot shown large (the landing hero): record it at 3840x2160 with the tilt-shift off and scale down, so the small figures stay crisp on large and HiDPI screens.
+  - Don't over-compress: check a loop at 100% before shipping it. A drifting camera costs bits, so a hero loop needs a lower CRF than a static one.
   - No colour grade: no LUTs, no contrast pushes. The lighting is authored, and a grade turns the cream walls yellow and crushes the soft shadows.
 - **Sound** is the game's own. Say which sounds a clip should have, and check that each is audible and that nothing else chimes over a focus moment.
 
