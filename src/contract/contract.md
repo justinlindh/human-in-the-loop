@@ -271,3 +271,24 @@ staff.record: {
 }
 ```
 - Lifetime totals, starting at 0 on hire and kept when someone becomes an alum. Each counter only moves for work the person actually did, so a role's own numbers are the meaningful ones; ui shows the ones that fit the role.
+
+## Staged props (#228)
+
+Decisions whose text describes something physical show it in the office.
+
+```js
+// Event data (src/data/events.js), optional:
+stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens'
+// Choice data, optional:
+grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
+leaves: { prop, until }            // until: { item } | { weeks } | { flag }
+
+state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
+state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most 6, oldest dropped
+```
+
+- `prop` ids come from one shared prop set that art owns; sim uses only ids art has shipped.
+- `grant` prices from the choice's own `cash` if set, otherwise the item's cost, and applies the item's normal effects. If the item can't be placed, the choice is unavailable with the placement reason ('No room for it', 'Desk limit reached', 'Needs a bigger office'), never granted and refunded.
+- `grant` replaces a `buyItem` effect on decisions.
+- `leaves` takes the stage prop's tile when there is one. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
+- Old saves load with `office.props = []`.
