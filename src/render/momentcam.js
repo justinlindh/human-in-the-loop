@@ -30,14 +30,15 @@ function damp(x, v, goal, dt) {
 export function createMomentCamera(rig) {
   let held = null;   // { key, target, zoom, from: { goal, zoom }, at }
   let back = null;   // gliding back to the player's view: { goal, zoom }
-  let glide = null;  // the gliding look point: { x, z, vx, vz, zoom, vzoom }
+  let glide = null;  // the gliding look point: { x, y, z, vx, vy, vz, zoom, vzoom }
   const now = () => performance.now();
   const point = (t) => {
     const v = typeof t === 'function' ? t() : t;
     if (!v) return null;
     return v.isObject3D ? { x: v.position.x, z: v.position.z } : v;
   };
-  const start = () => { const g = rig.goal; return { x: g.x, z: g.z, vx: 0, vz: 0, zoom: rig.zoomGoal, vzoom: 0 }; };
+  // The glide starts where the camera looks now, not where it was headed, so it never lurches.
+  const start = () => { const t = rig.target ?? rig.goal; return { x: t.x, y: t.y ?? 0.6, z: t.z, vx: 0, vy: 0, vz: 0, zoom: rig.zoom ?? rig.zoomGoal, vzoom: 0 }; };
 
   function hold(key, target, { zoom = 1.8 } = {}) {
     if (!rig || !enabled || now() - rig.lastInput < HANDS_OFF_MS) return false;
@@ -59,9 +60,10 @@ export function createMomentCamera(rig) {
 
   function step(to, zoom, dt) {
     [glide.x, glide.vx] = damp(glide.x, glide.vx, to.x, dt);
+    [glide.y, glide.vy] = damp(glide.y, glide.vy, to.y ?? 0.6, dt);
     [glide.z, glide.vz] = damp(glide.z, glide.vz, to.z, dt);
     [glide.zoom, glide.vzoom] = damp(glide.zoom, glide.vzoom, zoom, dt);
-    rig.focus({ x: glide.x, y: to.y ?? 0.6, z: glide.z }, glide.zoom, RIG_RATE);
+    rig.focus({ x: glide.x, y: glide.y, z: glide.z }, glide.zoom, RIG_RATE);
   }
 
   function update(dt = 1 / 60) {

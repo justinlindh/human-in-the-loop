@@ -86,15 +86,28 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
 const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
-// Keeps the camera on what a beat is about from `from` to `to`: eased onto the staged prop (which
-// appears only once the week raises the decision), and left to the game's moment camera while the
-// printer or the visitor moment plays.
-const AIM = (props, zoom) => `(() => { const R = window.__hitlRender; const pm = R.moments?.printerState; const v = R.moments?.visitorState;
-  // A moment under way: the game's moment camera follows it. Otherwise ease onto the staged prop.
-  if (pm || v) return;
-  const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o) return;
-  const p = o.getWorldPosition(new o.position.constructor());
-  (R.easeTo ?? R.focusAt)(p.x, p.z, ${zoom}); })()`;
+// Keeps the camera on what a beat is about from `from` to `to`, re-aimed every frame: a critically
+// damped spring glides the look point onto the staged prop, or onto the printer while it is carried,
+// so the camera never steps. The game's own moment camera stands down while this drives.
+const AIM = (props, zoom) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+  const find = () => { const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
+    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; };
+  const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
+  f.zoomGoal = ${zoom}; f.find = find; f.on = true;
+  if (f.running) return; f.running = true;
+  const damp = (x, v, goal, dt) => { const w = 2 / 0.6, k = w * dt, e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k), d = x - goal, t = (v + w * d) * dt; return [goal + (d + t) * e, (v - w * t) * e]; };
+  const tick = () => { const now = performance.now(), dt = Math.min(0.1, (now - f.last) / 1000); f.last = now;
+    const p = f.on && f.find();
+    // While the renderer is held (loading, or a frozen frame) the camera does not move: the glide waits
+    // with it instead of running ahead and leaving the camera a jump to catch up.
+    const v = R.view(), held = f.seen && v.x === f.seen.x && v.z === f.seen.z && Math.hypot(f.x - v.x, f.z - v.z) > 1e-3; f.seen = v;
+    if (held) { f.x = v.x; f.y = v.y; f.z = v.z; f.zoom = v.zoom; f.vx = f.vy = f.vz = f.vzoom = 0; }
+    if (p) { if (f.x === null) { f.x = v.x; f.y = v.y; f.z = v.z; f.zoom = v.zoom; }
+      [f.x, f.vx] = damp(f.x, f.vx, p.x, dt); [f.y, f.vy] = damp(f.y, f.vy, 0.4, dt); [f.z, f.vz] = damp(f.z, f.vz, p.z, dt); [f.zoom, f.vzoom] = damp(f.zoom, f.vzoom, f.zoomGoal, dt);
+      R.easeTo(f.x, f.z, f.zoom, 12, f.y); }
+    requestAnimationFrame(tick); };
+  requestAnimationFrame(tick); })()`;
+const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
 // Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
 // most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
 // points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
@@ -114,7 +127,7 @@ const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THRE
     if (n > best) { best = n; turns = i; }
   }
   for (let i = 0; i < turns; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
-const FOLLOW = (props, zoom, from, to) => Array.from({ length: Math.round((to - from) * 4) }, (_, i) => ({ at: from + i / 4, js: AIM(props, zoom) }));
+export const FOLLOW = (props, zoom, from, to) => [{ at: from, js: AIM(props, zoom) }, { at: to, js: UNAIM }];
 
 // Three saved companies at different stages, then back to the title.
 const THREE_SAVES = `(async () => {
@@ -433,11 +446,6 @@ export const ITEMS = [
       ...DISMISS_AT([4, 4.5, 5.5], { escape: false }),
     ],
     screenshots: [2, 14, 20],
-  },
-  {
-    id: 'nods-saturday', group: 'nods', title: 'About Saturday', query: 'seed=1&speed=1', setup: NOD('saturday_ask', 1040) + ';' + BARE, seconds: 7, warmup: 0.5,
-    actions: [{ at: 0.05, js: CLEAR_CARDS }, { at: 0.3, js: CLEAR_CARDS }, { at: 4.5, js: KEY('2', 'Digit2') }, ...[4.9, 5.5].map((at) => ({ at, js: CLEAR_CARDS }))],
-    screenshots: [3],
   },
   {
     id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 11, warmup: 6.5,

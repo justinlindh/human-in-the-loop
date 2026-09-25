@@ -16,7 +16,6 @@ FONT=${3:-$(fc-match -f '%{file}' 'Fredoka:bold' 2>/dev/null || true)}
 # id|title|seconds to trim from the start (the week before the decision is raised)
 BEATS=(
   "nods-printer|PC LOAD LETTER|1.2"
-  "nods-saturday|About Saturday|0"
   "nods-stapler|The red stapler|1.5"
   "nods-cover-sheets|The TPS report cover sheets|1.5"
   "nods-consultants|The consultants|2"
