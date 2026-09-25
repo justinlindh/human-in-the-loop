@@ -675,9 +675,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
   return results;
 }
 
-// Pair perks start on their own: a foosball table on a free tile with room round it, and nobody sent
-// there. Passes once a pair game reaches play within maxSeconds of game time.
-export async function runPairCheck(R, S, label, { maxSeconds = 480, dt = 1 / 30 } = {}) {
+// Pair perks in a small office: a foosball table on a free tile with room round it. The start rules
+// must allow a pair game there (perks.pairReady) within a minute of settling, and two people sent to
+// the table must get as far as playing. Random visits are held off, so nothing depends on a pick.
+export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   const { footprint } = await import('./layout.js');
   const L = R.office.current.L;
   const used = new Set();
@@ -693,12 +694,16 @@ export async function runPairCheck(R, S, label, { maxSeconds = 480, dt = 1 / 30 
   }
   if (!spot) return { name: `pairs:${label}`, pass: false, why: 'no free tile for the table' };
   S.office.placed.push({ id: 'pair_table', itemId: 'foosball', level: 1, ...spot, rot: 0 });
+  const step = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  R.perks.hold = true;
+  let readyAt = null;
+  for (let t = 0; t < 60 && readyAt === null; t += dt * 5) { step(5); if (R.perks.pairReady(S)) readyAt = +t.toFixed(1); }
+  const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).slice(0, 2).map((p) => p.id);
   const before = R.perks.played;
-  R.perks.hold = false;
-  let t = 0;
-  for (; t < maxSeconds && R.perks.played === before; t += dt * 5) for (let k = 0; k < 5; k++) { window.__tick?.(1000 * dt); R.sync(S); R.advance(dt); }
-  const played = R.perks.played - before;
+  R.perks.send(ids, 'pair_table', { dur: 6 });
+  let playedAt = null;
+  for (let t = 0; t < 30 && playedAt === null; t += dt * 5) { step(5); if (R.perks.played > before) playedAt = +t.toFixed(1); }
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
-  for (let i = 0; i < 30; i++) { R.sync(S); R.advance(dt); }
-  return { name: `pairs:${label}`, pass: played > 0, staff: S.staff.length, startedAfter: played > 0 ? +t.toFixed(1) : null, table: spot };
+  step(60);
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null, staff: S.staff.length, readyAt, playedAt, table: spot };
 }
