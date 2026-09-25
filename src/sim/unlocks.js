@@ -32,7 +32,10 @@ export function checkUnlocks(ctx) {
     state.unlocks[key] = state.week;
     if (key === 'paths') offerPaths(state);
     for (const c of CANDIDATES) if (c.with === key && !isUnlocked(state, c.key)) open(c.key, true);
-    if (!quiet) ctx.emit({ type: 'unlock', key });
+    if (!quiet) {
+      ctx.emit({ type: 'unlock', key });
+      ctx.state.flags.lastPauseWeek = ctx.state.week;
+    }
   };
   for (const c of CANDIDATES) if (c.era && !isUnlocked(state, c.key) && c.ready(state, h)) open(c.key);
   const last = state.flags.lastUnlockWeek;

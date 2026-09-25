@@ -58,7 +58,7 @@ describe('the moonshot lab', () => {
     s.era = { id: 'consolidation', since: 0 };
     s.flags.beats = { agent_bill: 0, rival_megaround: 0, floor_next_door: 0, deals_open: 0 };
     s.week = s.eraSchedule.consolidation + B.moonshotAfterConsolidation;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     beatsSystem(makeCtx(s));
     expect(s.pendingDecision?.eventId).toBe('moonshot_pitch');
     const weekly = moonshotWeekly(s);
@@ -66,13 +66,13 @@ describe('the moonshot lab', () => {
     expect(weeklyCosts(s).moonshot).toBe(weekly);
     for (let i = 1; i < B.moonshotCheckins; i++) {
       s.week = s.flags.moonshot.since + i * B.moonshotCheckinWeeks;
-      delete s.flags.lastDecisionWeek;
+      delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
       moonshotSystem(makeCtx(s));
       expect(s.pendingDecision?.eventId).toBe('moonshot_checkin');
       dispatch(s, { type: 'resolveDecision', choice: 0 });
     }
     s.week = s.flags.moonshot.since + B.moonshotCheckins * B.moonshotCheckinWeeks;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     moonshotSystem(makeCtx(s));
     expect(s.pendingDecision?.eventId).toBe('moonshot_result');
   });
@@ -102,7 +102,7 @@ describe("the founders' last bet", () => {
     const s = rich(5);
     s.flags.beats = { agent_bill: 0, rival_megaround: 0, floor_next_door: 0, deals_open: 0, moonshot_pitch: 0 };
     s.week = B.lastBetWeek;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     beatsSystem(makeCtx(s));
     expect(s.pendingDecision?.eventId).toBe('last_bet');
     const cash = s.cash;

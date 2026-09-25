@@ -16,7 +16,7 @@ const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure'
 const PENDING = new Set(['banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked', 'printout', 'whiteboard_scrawl', 'mug_pile', 'mug_bucket', 'mug_typo', 'moving_boxes', 'giant_cheque', 'swag_box', 'french_press']);
 const known = (prop) => SHIPPED.has(prop) || PENDING.has(prop);
 
-const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };
+const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
 
 describe('issue #228: staged props, batch one', () => {

@@ -15,7 +15,7 @@ const floor = (seed = 1) => {
   dispatch(s, { type: 'upgradeOffice' });
   return s;
 };
-const raise = (s, id) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, null); };
+const raise = (s, id) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, null); };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
 const tables = (s) => s.office.placed.filter((i) => i.itemId === 'ping_pong_table').length;
 
