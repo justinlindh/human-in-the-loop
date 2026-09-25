@@ -29,7 +29,7 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pizza', 'screen', 'hammer', 'carrier'];
+const KINDS = ['pizza', 'screen', 'hammer', 'carrier', 'printer'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
@@ -39,7 +39,7 @@ const CARRY_SPEED = [0.5, 3];  // metres a second: the printer carry takes the c
 const PAIR_CLEAR = 0.7;      // metres a printer carry keeps from furniture, either side of its way
 const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer's side
 const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
-const SWING_AT = 0.75;       // and swings from this far off it
+const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
 const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
@@ -553,7 +553,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       near[2].char.setHeld(pm.bat);
     }
     near.forEach((r, i) => {
-      r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', target: obj, held: i < 2 ? obj : pm.bat } };
+      r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', role: i < 2 ? 'carrier' : 'bat', target: obj, held: i < 2 ? obj : pm.bat } };
       walkTo(r, spots[i]);
     });
     return true;
@@ -679,9 +679,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
         // Set it down, step back from it, and the bat comes up to its spot.
         pm.phase = 'down'; pm.t = 0; pm.end = c;
         pm.from = pm.people.map((r) => ({ x: r.pos.x, z: r.pos.z }));
+        pm.swingSpot = swingSpot(pm, c);
         a.temp.stage.beat = b.temp.stage.beat = 'watch';
         setAnim(a, 'idle'); setAnim(b, 'idle');
-        if (bat) { setAnim(bat, 'shoulderwalk'); bat.temp.stage = { beat: 'smash', held: pm.bat, target: pm.obj }; }
+        if (bat) { setAnim(bat, 'shoulderwalk'); bat.temp.stage = { beat: 'smash', role: 'bat', held: pm.bat, target: pm.obj }; }
       }
       return;
     }
@@ -693,7 +694,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
       [a, b].forEach((r, i) => { const k2 = i ? -1 : 1, d = e * 0.45; r.pos.x = pm.from[i].x + perp[0] * d * k2; r.pos.z = pm.from[i].z + perp[1] * d * k2; });
       if (bat) {
-        const to = { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT };
+        const to = pm.swingSpot;
         bat.pos.x = pm.from[2].x + (to.x - pm.from[2].x) * e; bat.pos.z = pm.from[2].z + (to.z - pm.from[2].z) * e;
         bat.yaw = Math.atan2(c.x - bat.pos.x, c.z - bat.pos.z);
         if (k >= 1 && bat.temp.anim !== 'shoulder') setAnim(bat, 'shoulder');
@@ -730,6 +731,45 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       if (t >= CUE.off) { pm.phase = 'off'; pm.t = 0; release(pm); }
       return;
     }
+  }
+  // Where the bat swings from: beside the printer as the camera sees it, so the swing shows in
+  // profile over it, nothing stands in front, and it is clear of furniture, chairs and the carriers.
+  function swingSpot(pm, c) {
+    const nav = office.nav(), away = getYaw() + Math.PI;
+    const chairs = [...office.placed.values()].filter((e) => e.desk?.seat).map((e) => e.desk.seat);
+    const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
+    const carriers = [1, -1].map((k) => ({ x: c.x + perp[0] * (pm.side + 0.45) * k, z: c.z + perp[1] * (pm.side + 0.45) * k }));
+    // The wreck (hidden until the last blow) blocks the nav grid round its spot, and the prop is
+    // placed with room clear around it, so inside its footprint only chairs are tested.
+    const wreckBox = new THREE.Box3().setFromObject(pm.wreck).expandByScalar(0.35);
+    const blocked = (q) => (!wreckBox.containsPoint(_q.set(q.x, 0.1, q.z)) && nav.isBlocked(q.x, q.z, BODY_R)) || chairs.some((h) => Math.hypot(h.x - q.x, h.z - q.z) < CHAIR_CLEAR);
+    for (const d of [1.3, -1.3, 1, -1, 1.7, -1.7, 0.6, -0.6, 2.2, -2.2, 0, Math.PI]) {
+      const q = { x: c.x + Math.sin(away + d) * SWING_AT, z: c.z + Math.cos(away + d) * SWING_AT };
+      if (blocked(q)) continue;
+      if (carriers.some((p) => Math.hypot(p.x - q.x, p.z - q.z) < 0.6)) continue;
+      if (!inView(q)) continue;
+      const blockers = [...(office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: 0.3, top: col.h })), ...carriers.map((p) => ({ ...p, r: 0.3, top: 1.1 })), { x: c.x, z: c.z, r: 0.35, top: 0.55 }];
+      if (screenBlocked(q, blockers)) continue;
+      return q;
+    }
+    return { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT };
+  }
+  // Whether anything in blockers ({ x, z, r, top }) stands in front of a person at q on screen: the
+  // same test the office uses to fade a column over someone.
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Vector3();
+  function screenBlocked(q, blockers) {
+    const cam = getCamera?.();
+    if (!cam) return columnInFront(q);
+    _q.set(q.x, 0.5, q.z);
+    const dq = cam.position.distanceTo(_q);
+    _p.copy(_q).project(cam);
+    return blockers.some((b) => {
+      _a.set(b.x, 0, b.z).project(cam);
+      _b.set(b.x, b.top, b.z).project(cam);
+      const half = (b.r * Math.abs(_b.y - _a.y)) / b.top + 0.02;
+      if (Math.abs(_p.x - _a.x) > half + 0.03 || _p.y < _a.y - 0.02 || _p.y > _b.y + 0.02) return false;
+      return cam.position.distanceTo(_q.set(b.x, 0.5, b.z)) < dq;
+    });
   }
   function angleTo(r, c) { return Math.atan2(c.x - r.pos.x, c.z - r.pos.z); }
   // Everyone back to what they were doing, pleased with themselves; from outside, in through the door.
@@ -802,7 +842,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const r = recs.get(id), tp = r?.temp;
     if (!tp?.moment) return null;
     const st = tp.stage ?? {};
-    return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
+    return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
   }
 
   return { update, reset, decided, staging, kinds: KINDS, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };

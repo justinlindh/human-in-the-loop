@@ -876,7 +876,9 @@ function printerWrecked() {
   return g;
 }
 // Out the door on the ground: the driveway, the campus. The Office Floor is a storey up with its
-// street out of view, so there the pieces lie just inside the door (brought back as a trophy).
+// street out of view, so there the pieces lie inside, a little way in from the door.
+const WRECK_IN = [2.5, 2, 3, 3.5];   // metres in from the door the Office Floor wreck may lie
+const WRECK_COLUMN_GAP = 1.4;         // and how far it keeps from a column when it can
 function outside(build, scale = 1) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
@@ -885,7 +887,17 @@ function outside(build, scale = 1) {
     g.add(item);
     const d = L.doorWorld;
     if (L.name === 'Office Floor') {
-      const p = clearSpot(L, env.office, g, { x: d.x, z: d.z });
+      // In from the door, clear of the cut-away front wall and away from the columns, so the smash
+      // that leaves it shows from either side.
+      const cols = (L.blocked ?? []).map(([bx, by]) => ({ x: bx + 0.5 - L.W / 2, z: by + 0.5 - L.D / 2 }));
+      const l = Math.hypot(d.x, d.z) || 1, inx = -d.x / l, inz = -d.z / l;
+      let p = null, best = -1;
+      search: for (const along of WRECK_IN) for (const side of [0, 1, -1, 2, -2]) {
+        const q = clearSpot(L, env.office, g, { x: d.x + inx * along - inz * side, z: d.z + inz * along + inx * side });
+        const gap = Math.min(Infinity, ...cols.map((c) => Math.hypot(c.x - q.x, c.z - q.z)));
+        if (gap > best) { best = gap; p = q; }
+        if (gap >= WRECK_COLUMN_GAP) break search;
+      }
       g.position.set(p.x, 0, p.z);
       g.userData.blocks = true;
     } else {

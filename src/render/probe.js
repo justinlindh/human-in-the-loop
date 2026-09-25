@@ -108,9 +108,11 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     // Columns drawn faded over the character's screen box.
     const box = new THREE.Box3().setFromObject(c.root);
     const sb = screenBox(box, camera);
+    // Faded columns in front of the character (nearer the camera) whose screen box meets theirs.
     let fadeOver = 0;
+    const own = camera.position.distanceTo(tmp.set(c.root.position.x, 0.5, c.root.position.z));
     for (const col of office.current?.columns ?? []) {
-      if (col.fade >= 0.99) continue;
+      if (col.fade >= 0.99 || camera.position.distanceTo(tmp.set(col.x, 0.5, col.z)) >= own) continue;
       const cb = screenBox(new THREE.Box3(new THREE.Vector3(col.x - 0.3, 0, col.z - 0.3), new THREE.Vector3(col.x + 0.3, col.h, col.z + 0.3)), camera);
       if (cb.x0 < sb.x1 && cb.x1 > sb.x0 && cb.y0 < sb.y1 && cb.y1 > sb.y0) fadeOver++;
     }
