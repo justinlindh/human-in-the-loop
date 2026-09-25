@@ -16,7 +16,7 @@ import { EVENTS } from '../data/events.js';
 //   pizza  pizza_boxes up: two or three idle people gather round the box and eat, then go back.
 //   screen a screen takeover: people at their desks recoil from their monitors with an exclamation.
 //   hammer the sledgehammer (open plan): the subject shoulders it and sizes up the back wall; if the
-//          walls come down (the 'Open-plan buzz' modifier appears) they swing and dust flies.
+//          walls come down (decisionResolved) they swing and dust flies.
 //   letter the envelope on a desk: its sitter sighs over it now and then.
 //   visitor the visitor chair (first user test): a visitor sits in it while someone hovers, sweating.
 //   fumes  smoke or a hot rack: someone comes over and fans it away.
@@ -143,10 +143,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     return null;
   }
   function hammerTick(p, state) {
-    // The walls came down: the decisionResolved event says so; until sim emits it, the fresh
-    // 'Open-plan buzz' modifier is the tell.
-    const knocked = resolved.get('open_plan_office') === 'Knock them down'
-      || (state?.modifiers ?? []).some((mo) => mo.label === 'Open-plan buzz' && (mo.untilWeek ?? 0) > (state.week ?? 0) + 25);
+    // The walls came down (decisionResolved chose 'Knock them down').
+    const knocked = resolved.get('open_plan_office') === 'Knock them down';
     if (!hammer) {
       if (!p) { timers.delete('hammer'); return; }
       if (lite()) { if (!timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
@@ -237,11 +235,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     hammer = null;
   }
 
-  // Choices made, by event id, from decisionResolved ({ eventId, choice }), choice given as an index
-  // or a label. Kept briefly: the moments that act on a choice read it within a few frames.
+  // Choices made, by event id, from decisionResolved ({ eventId, choice }; choice indexes the event's
+  // choices). Kept briefly: the moments that act on a choice read it within a few frames.
   const resolved = new Map(), resolvedT = new Map();
   function decided(e) {
-    const ch = typeof e.choice === 'number' ? EVENTS[e.eventId]?.choices?.[e.choice]?.label : e.choice?.label ?? e.choice;
+    const ch = EVENTS[e.eventId]?.choices?.[e.choice]?.label;
     resolved.set(e.eventId, ch ?? null);
     resolvedT.set(e.eventId, 20);
   }
@@ -351,14 +349,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
     const cur = props.current();
     hammerTick(cur.find((p) => p.prop === 'sledgehammer') ?? null, state);
     visitorTick(cur.find((p) => p.prop === 'visitor_chair') ?? null, dt);
+    // The carrier went (the pet came out, or the answer was no): nobody keeps peering at the floor,
+    // even while a standup or party holds the room.
+    if (!cur.some((p) => p.prop === 'pet_carrier')) {
+      for (const r of recs.values()) if (r.temp?.moment === 'carrier') { r.temp = null; if (r.goal) walkTo(r, r.goal); }
+    }
     if (isBusy()) return;
     for (const p of cur) if (p.prop === 'pet_carrier') carrier(p, state, dt);
     for (const p of cur) if (p.prop === 'envelope' || p.prop === 'envelope_thick') letter(p, dt);
     for (const p of cur) if (p.prop === 'smoke_puff' || p.prop === 'rack_hot') fumes(p, dt);
-    // The carrier went (the pet came out, or the answer was no): nobody keeps peering at the floor.
-    if (!cur.some((p) => p.prop === 'pet_carrier')) {
-      for (const r of recs.values()) if (r.temp?.moment === 'carrier') { r.temp = null; if (r.goal) walkTo(r, r.goal); }
-    }
     for (const p of props.current()) if (p.prop === 'pizza_boxes') pizza(p, dt);
     if (props.overlay) screens(props.overlay, dt);
     else for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k);

@@ -558,13 +558,13 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     step(10);
   }
   // 4. The sledgehammer: whoever fetches it and carries it to the wall stays clear of furniture and
-  // props, and the walls-down choice ends in a swing.
+  // props, and the walls-down choice (decisionResolved) ends in a swing.
   {
     R.moments.full = true;
     S.pendingDecision = { eventId: 'open_plan_office', subjectId: ids[0], stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } };
     let worst = 0, worstWho = null, phases = new Set();
     for (let i = 0; i < 30 * 25; i++) {
-      if (i === 30 * 16) { S.modifiers = [...(S.modifiers ?? []), { id: 'chk', key: 'output', value: 0.08, label: 'Open-plan buzz', untilWeek: S.week + 26, source: 'check' }]; S.pendingDecision = null; }
+      if (i === 30 * 16) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'open_plan_office', choice: 0, subjectId: ids[0] }], S); }
       step(1);
       const h = R.moments.hammer;
       if (!h || i % 5) continue;
@@ -578,7 +578,6 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       }
     }
     results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho });
-    S.modifiers = (S.modifiers ?? []).filter((m) => m.id !== 'chk');
     R.moments.full = false;
     step(10);
   }
