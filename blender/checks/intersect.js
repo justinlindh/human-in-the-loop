@@ -5,6 +5,8 @@
 //   support(R, bodies)   things that should rest on something: the gap to what is under them
 //   held(R)              props in a hand: the gap from the wrist to the prop
 //   bounds(R, bodies)    things outside the room or below the floor
+//   people(R)            every character as a body, with what they may touch (their own desk,
+//                        the item they are using or leaving, the desk of a moment they are in)
 //
 // Depths come from accurate mesh tests (three-mesh-bvh): the triangle meshes are checked for
 // crossing, then points of each mesh found inside the other (both an upward and a downward ray
@@ -74,6 +76,38 @@ export function bodies(R) {
   return out.filter((b) => b.meshes.length && !b.box.isEmpty());
 }
 
+// Body parts tested against the world: head and torso always, legs while walking. Arms swing past
+// edges and legs belong in chairs and on cushions, so neither counts while seated or resting.
+const PARTS_STILL = new Set(['head', 'torso']);
+const PARTS_WALKING = new Set(['head', 'torso', 'legL', 'legR']);
+
+export function people(R, world = []) {
+  const out = [];
+  const moment = new Map(R.moments?.active ?? []);
+  const momentDesks = world.filter((b) => b.deskId).map((b) => b.deskId);
+  R.scene.traverse((o) => {
+    if (o.name !== 'character' || !o.visible) return;
+    let id = null;
+    o.traverse((c) => { if (c.userData.staffId !== undefined) id = c.userData.staffId; });
+    if (id == null || !o.parent) return;
+    const root = o;
+    const pk = R.perks?.peek(id);
+    const walking = !!pk?.path;
+    const parts = walking ? PARTS_WALKING : PARTS_STILL;
+    const meshes = [];
+    root.traverse((c) => { if (c.isMesh && parts.has(c.userData.part)) meshes.push(c); });
+    if (!meshes.length) return;
+    const own = new Set([pk?.seat, pk?.exitFrom, pk?.temp?.key?.split(':')[0]].filter(Boolean).map((x) => `placed:${x}`));
+    if (moment.has(id)) for (const d of momentDesks) own.add(`placed:${d}`);
+    const b = { key: `staff:${id}`, kind: 'person', label: 'person', id, obj: root, meshes, own, walking, anim: pk?.temp?.anim ?? null, moment: moment.get(id) ?? null };
+    root.updateMatrixWorld(true);
+    b.box = new THREE.Box3();
+    for (const m of meshes) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.box.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); }
+    out.push(b);
+  });
+  return out;
+}
+
 // World-space sample points of a mesh: its vertices, at most MAX_POINTS of them.
 function points(mesh) {
   const pos = mesh.geometry.attributes.position;
@@ -93,9 +127,10 @@ function crossings(bvh, origin, dir) {
   return n;
 }
 
-// A mesh's material name, to say which part of a merged model is involved. Screens and LEDs swap
+// A mesh's body part or material name, to say which part of a model is involved. Screens and LEDs swap
 // materials with what they show, so they go by what they are.
 function partName(m) {
+  if (m.userData.part) return m.userData.part;
   const n = (Array.isArray(m.material) ? m.material[0] : m.material)?.name || m.name || 'mesh';
   return /^screen/.test(n) ? 'screen' : /^glow_led/.test(n) ? 'led' : n;
 }
@@ -133,6 +168,12 @@ function touching(a, b) {
     return y.geometry.boundingBox.containsPoint(p) && crossings(by, p, UP) % 2 === 1 && crossings(by, p, DOWN) % 2 === 1;
   };
   return inside(a, b) || inside(b, a);
+}
+
+// Pairs across two lists (people against the world), with the same measure as overlaps().
+export function crossOverlaps(as, bs, opts = {}) {
+  const tag = new Set(as);
+  return overlaps([...as, ...bs], { ...opts, skip: (A, B) => (tag.has(A) === tag.has(B)) || (opts.skip?.(A, B) ?? false) });
 }
 
 // Pairs of bodies that interpenetrate by more than `tol` metres. skip(a, b) leaves out pairs that
@@ -228,20 +269,44 @@ export function bounds(R, list, { tol = 0.02 } = {}) {
   return out;
 }
 
-// A crop of the current frame around a world point, as a PNG data URL (null if off screen).
-export function crop(R, at, size = 200, zoom = 2) {
-  R.render(0);
-  const c = document.querySelector('canvas');
+// A close-up around a world point, as a PNG data URL (null if off screen). It draws the scene with
+// its own renderer and a copy of the camera narrowed to the spot, so taking one never steps the
+// game (the renderer's own render() advances people, moments and effects).
+// three.js draws a UUID from Math.random for every object it makes (the crop renderer, the camera
+// copy), and the page's Math.random is the seeded stream the game runs on: crops use their own.
+let cropGL = null;
+let cropSeed = 99991;
+export function crop(R, at, size, zoom) {
+  const game = Math.random;
+  Math.random = () => { cropSeed = (cropSeed * 16807) % 2147483647; return (cropSeed - 1) / 2147483646; };
+  try { return cropNow(R, at, size, zoom); } finally { Math.random = game; }
+}
+function cropNow(R, at, size = 200, zoom = 2) {
+  const main = document.querySelector('canvas');
+  const px0 = size * zoom;
+  if (!cropGL) {
+    const c = document.createElement('canvas');
+    c.width = px0; c.height = px0;
+    cropGL = new THREE.WebGLRenderer({ canvas: c, antialias: true, preserveDrawingBuffer: true });
+    cropGL.setSize(px0, px0, false);
+    cropGL.outputColorSpace = THREE.SRGBColorSpace;
+    cropGL.toneMapping = THREE.ACESFilmicToneMapping;
+    cropGL.toneMappingExposure = 1.05;
+    cropGL.shadowMap.enabled = true;
+  }
+  const W = main.width, H = main.height;
   const v = at.clone().project(R.camera);
   if (Math.abs(v.x) > 1 || Math.abs(v.y) > 1) return null;
-  const px = ((v.x + 1) / 2) * c.width, py = ((1 - v.y) / 2) * c.height;
-  const x = Math.max(0, Math.min(c.width - size, Math.round(px - size / 2))), y = Math.max(0, Math.min(c.height - size, Math.round(py - size / 2)));
+  const px = ((v.x + 1) / 2) * W, py = ((1 - v.y) / 2) * H;
+  const cam = R.camera.clone();
+  cam.setViewOffset(W, H, px - size / 2, py - size / 2, size, size);
+  cam.updateProjectionMatrix();
+  cropGL.render(R.scene, cam);
   const t = document.createElement('canvas');
-  t.width = size * zoom; t.height = size * zoom;
+  t.width = px0; t.height = px0;
   const g = t.getContext('2d');
-  g.imageSmoothingEnabled = false;
-  g.drawImage(c, x, y, size, size, 0, 0, size * zoom, size * zoom);
+  g.drawImage(cropGL.domElement, 0, 0);
   g.strokeStyle = '#ff2d55'; g.lineWidth = 3;
-  g.beginPath(); g.arc((px - x) * zoom, (py - y) * zoom, 22, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(px0 / 2, px0 / 2, 22, 0, Math.PI * 2); g.stroke();
   return t.toDataURL('image/png');
 }

@@ -5,7 +5,9 @@ import { EVENTS } from '../../src/data/events.js';
 describe('moment captions', () => {
   it('every staged decision has a caption, keyed by its event id', () => {
     for (const e of Object.values(EVENTS)) if (e.stage) expect(MOMENT_CAPTIONS[e.id], e.id).toBeTruthy();
-    for (const key of Object.keys(MOMENT_CAPTIONS)) expect(EVENTS[key], key).toBeTruthy();
+    // Other keys are ambient moments, keyed by a prop some event stages or leaves.
+    const props = new Set(Object.values(EVENTS).flatMap((e) => [e.stage?.prop, ...(e.choices ?? []).map((c) => c.leaves?.prop)]).filter(Boolean));
+    for (const key of Object.keys(MOMENT_CAPTIONS)) expect(EVENTS[key] || props.has(key), key).toBeTruthy();
   });
 
   it('captions are one short line of plain text', () => {

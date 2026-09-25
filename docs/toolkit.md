@@ -2,7 +2,18 @@
 
 Every tool the team uses, what it's for, and who reaches for it. Each script's header comment has the full usage; this page is the map. A PR that adds, removes or changes a tool updates this page in the same PR.
 
-The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser or GPU work under the render lock (`scripts/with-render-lock.sh <cmd>`). Stop processes by PID, never with `pkill -f` or `pgrep -f`.
+The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser work under a render lock. Stop processes by PID, never with `pkill -f` or `pgrep -f`.
+
+## GPU or software GL
+
+Headless browsers render on the GPU by default: `scripts/lib/gl.js` picks the mode (`--software` or `--gpu`, else `HITL_GL=software|gpu`, else the GPU) and every launcher prints it as `<tool>: GL <mode> (<renderer>)`. A run that asked for the GPU and got software GL fails instead of silently burning CPU; set `HITL_GL=software` on a machine without one.
+
+Software GL (SwiftShader) renders on the CPU, often at many times the CPU cost. Use it only where it's needed: the golden images, which compare exact pixels; the GitHub runners, which have no GPU (the workflow sets `HITL_GL=software`); and runs that stand in for a weak device.
+
+Render locks, through `scripts/with-render-lock.sh`:
+- `scripts/with-render-lock.sh --gpu <cmd>` takes one of `HITL_GPU_SLOTS` GPU slots. Lifecycle, soak, snap, clip, standup, scene, capture and the trailer run here.
+- `scripts/with-render-lock.sh --software <cmd>` (the default mode) takes the single software-GL lock. Golden runs here, as does anything forced onto SwiftShader.
+- Nested calls go straight through when a caller already holds a lock that covers them. The software lock covers both kinds.
 
 ## Pull requests and the merge gate
 
@@ -26,7 +37,7 @@ CI internals, which rarely need touching:
 - `scripts/ci-balance-skip-paths` skips the balance suite for changes that can't move balance.
 - `scripts/ci-trusted` is the allowlist of PR authors that local CI will run.
 - `scripts/ci-bot-check.sh` guards the Dependabot path.
-- `scripts/render-lock-held.sh` lets nested jobs share the render lock.
+- `scripts/render-lock-held.sh` lets nested jobs share a render lock.
 - `blender/checks/cache.mjs` skips a render check whose inputs haven't changed since it last passed.
 
 ## Running and watching the game
@@ -57,21 +68,31 @@ CI internals, which rarely need touching:
 
 ## Render checks (art owns these; local CI runs them)
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip and standup as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
 
 | Check | What it guards |
 |---|---|
 | `blender/checks/clip.mjs [--rig]` | Characters against real furniture: seated poses in every mood, perk poses, and named prop moments (`moment:*`) sampled along their whole path. |
 | `blender/checks/golden.mjs [--update]` | Close-up renders compared with stored reference images. Update the references only deliberately, in the PR that changes the look. |
 | `blender/checks/standup.mjs` | Standups gather everyone inside the walls and clear of furniture, in every office. |
-| `blender/checks/sweep.mjs [--full] [--gpu]` | The scene integrity sweep: walks every mock and bot-played seeded games (every few weeks, each stage and era, each staged decision while its moment plays) and tests all pairs with exact mesh intersection (three-mesh-bvh). Reports overlaps, floating props and furniture, held props away from the hand, and anything outside the room, with the state, time, both things, the depth or gap, and a crop of each. New violations fail it; `blender/checks/sweep-baseline.json` lists accepted ones (`--update-baseline` rewrites it). Writes `report.json`, `report.md` and crops to `--out` (default `shots/sweep/`). Fast mode by default; `--full` for more seeds, longer windows and denser sampling. Narrow a run with `--mocks a,b` and `--seeds 1,2`. |
+| `blender/checks/sweep.mjs [--full] [--gpu]` | The scene integrity sweep: walks every mock and bot-played seeded games (every few weeks, each stage and era, each staged decision while its moment plays) and tests all pairs with exact mesh intersection (three-mesh-bvh). Reports overlaps, floating props and furniture, held props away from the hand, anything outside the room, and people inside furniture, walls or each other along real walks and poses, with the state, time, both things, the depth or gap, and a crop of each. New violations fail it, except that in fast mode ones seen only in the seeded game are advisory (any sim change replays it differently; `--full` or `--strict` fails on them). `blender/checks/sweep-baseline.json` lists accepted ones; `--update-baseline` adds what the run found and keeps the rest unless `--prune`. Writes `report.json`, `report.md` and crops to `--out` (default `shots/sweep/`). Fast mode by default; `--full` for more seeds, longer windows and denser sampling. Narrow a run with `--mocks a,b` and `--seeds 1,2`. |
 
 Planned additions to this toolkit:
 - **The staging probe (#350):** gaze, facing, visibility and gesture measured in code, with a readability spec per moment.
-- **More sweep checks (#352):** characters against the world along real walk paths, label and bubble overlap on screen, and the sim's placement grid against render footprints.
-- **The performance harness (`scripts/perf/`):** frame times, draw calls and memory per scene.
+- **More sweep checks (#352):** label and bubble overlap on screen, and the sim's placement grid against render footprints.
 
 Each gets its row here when it lands.
+
+## Performance
+
+| Tool | Who | What it does |
+|---|---|---|
+| `node scripts/perf/bench.js --refs origin/main,<branch>` | art, ui, reviewer | Builds each ref and measures the scenes garage, floor, hq, music (a staged music night) and late (a bot-played save at week 400) at Low and High. It prints one line per build and scene: frame time p50 and p95, main-thread and render time with the GPU wait included, the fastest run, draw calls, triangles, meshes, geometries, textures, programs, JS heap, DOM nodes and DOM mutations per second. Builds alternate run by run, so compare builds from one invocation, never across invocations. Main flags: `--scenes`, `--quality low,high`, `--runs` (default 3), `--size` (default 1280x720), `--json <file>`, `--profile` (top main-thread functions per scene, on an unminified build). |
+| `node scripts/perf/bench.js --software --cores 2 --quality low` | art, reviewer | The weak-device stand-in: SwiftShader with the browser pinned to two cores. GL follows `scripts/lib/gl.js` like every other tool, so without `--software` it runs on the GPU. It takes a GPU slot or the software lock one scene at a time, so run it under `timeout`, not under a lock. |
+| `node scripts/perf/budget.js <result.json>` | reviewer, integrator | Checks a bench result against `scripts/perf/budget.json`. Each scene's draw calls, triangles, programs and textures must stay under their ceilings. With two builds in the result, the head's Low render time in garage and floor may be at most 1.4x the base's. Exits 1 on a breach. |
+| `node scripts/perf/sim.js --seeds 5 --weeks 1040` | sim | Times `tick()` alone, bucketed by year, across bot-played seeds. No browser. |
+
+The machine and the GPU are shared, so single numbers are noisy. Trust relative numbers from one interleaved run, and treat renderer counts (calls, triangles, programs) as exact.
 
 ## Models and assets
 

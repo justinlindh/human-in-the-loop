@@ -61,20 +61,50 @@ function checkFrame(R, C, t, memo) {
   for (const h of X.held(R)) if (h.gap > C.tol.hand) C.add(R, 'hand', t, h.label, 'wrist', h.gap, h.at);
 }
 
-function stepWorld(R, S, n) { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(DT); } }
+// People against the world and each other: nobody's head or torso (or legs, walking) inside
+// furniture, props, walls or another person, except what they are using.
+function checkPeople(R, C, t, list = X.bodies(R)) {
+  const ps = X.people(R, list);
+  const skip = (A, B) => {
+    const [p, w] = A.kind === 'person' ? [A, B] : [B, A];
+    return w.kind !== 'person' && p.own.has(w.key);
+  };
+  const what = (p) => (p.walking ? 'walking' : p.moment ? `moment ${p.moment}` : p.anim ?? 'still');
+  for (const o of X.crossOverlaps(ps, list, { tol: C.tol.person, skip })) {
+    const [p, w] = o.a.kind === 'person' ? [o.a, o.b] : [o.b, o.a];
+    for (const q of o.parts) {
+      const [pp, wp] = o.a === p ? [q.a, q.b] : [q.b, q.a];
+      C.add(R, 'person', t, `person(${what(p)})/${pp}`, `${w.label}/${wp}`, q.depth, o.at, `${p.id} (${what(p)}) ${pp} in ${w.label}${w.id ? `#${w.id}` : ''}[${wp}]`);
+    }
+  }
+  for (const o of X.overlaps(ps, { tol: C.tol.person })) {
+    C.add(R, 'person', t, 'person', 'person', o.depth, o.at, `${o.a.id} (${what(o.a)}) in ${o.b.id} (${what(o.b)})`);
+  }
+}
 
-// A window of office life: `seconds` long, checked every `every` seconds.
+// One frame as the game runs it, without drawing: world matrices refresh every frame as render()
+// would, since game logic reads them (and a crop, which draws, must not change what comes after).
+function stepWorld(R, S, n) { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(DT); R.scene.updateMatrixWorld(); } }
+
+// A window of office life: `seconds` long, things checked every `every` seconds and people every
+// PEOPLE_EVERY (a walk past a desk takes well under a second).
+const PEOPLE_EVERY = 0.2;
 function window_(R, S, C, { seconds, every, t0 = 0 }) {
   const memo = {};
-  const n = Math.round(seconds / every);
+  // One drawn frame settles the camera on the office as it is now, so crops frame the spot.
+  R.render(0);
+  const k = Math.max(1, Math.round(every / PEOPLE_EVERY));
+  const n = Math.round(seconds / every) * k;
   for (let i = 0; i <= n; i++) {
-    if (i) stepWorld(R, S, Math.round(every / DT));
-    checkFrame(R, C, t0 + i * every, memo);
+    if (i) stepWorld(R, S, Math.round(PEOPLE_EVERY / DT));
+    const t = t0 + i * PEOPLE_EVERY;
+    if (i % k === 0) checkFrame(R, C, t, memo);
+    checkPeople(R, C, t);
   }
 }
 
 // Metres. hand: the wrist sits inside the hand, so a held thing's surface is a hand's width away.
-const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02 };
+const TOL = { overlap: 0.01, float: 0.015, hand: 0.08, bounds: 0.02, person: 0.02 };
 
 // Every staged prop the renderer can draw, put on `desks` different desks one at a time (desk
 // models vary by seat and era: monitor or laptop, plant, papers), and checked once it has popped in.
@@ -93,17 +123,18 @@ function propsPass(R, S, C, desks) {
   }
 }
 
-export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 20, propDesks = 0 }) {
+export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0 }) {
   const R = window.__hitlRender, S = window.__HITL.state;
   R.moments.full = true;
   const C = createCollector({ state: `mock:${name}`, known, crops, tol: TOL });
   stepWorld(R, S, 90);
+  R.render(0);
   if (propDesks) { R.perks.hold = true; propsPass(R, S, C, propDesks); R.perks.hold = false; }
   window_(R, S, C, { seconds, every });
   return { violations: C.list, windows: [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length }] };
 }
 
-export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 20, maxStaged = 6 }) {
+export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 60, maxStaged = 6 }) {
   const R = window.__hitlRender, H = window.__HITL;
   const { botDecide, botTurn } = await import('/src/sim/bots.js');
   R.moments.full = true;
