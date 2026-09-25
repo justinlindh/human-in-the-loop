@@ -95,7 +95,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, spotlights = null, isBusy = () => false, low = () => false }) {
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -249,6 +249,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       h.held.rotation.set(0, 0, 0);
       r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
+      h.mid = dispatch('start', 'open_plan_office');
+      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true));
+      momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
     }
     if (h.phase === 'swing') {
       h.swingT += 1 / 30;
@@ -296,6 +299,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     hammer.held?.traverse((o) => o.geometry?.dispose());
     if (hammer.obj) hammer.obj.visible = true;
     if (r.temp?.moment === 'hammer') { r.temp = null; if (walkBack && r.goal) walkTo(r, r.goal); }
+    if (hammer.mid) dispatch('end', 'open_plan_office', hammer.mid);
+    spotlights?.end(hammer.spot);
+    if (hammer.spot) momentCam?.release('hammer');
     hammer = null;
   }
 
@@ -582,6 +588,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       });
     }
     v.mid = dispatch('start', event);
+    v.spot = spotlights?.begin(event, endVisitor);
     momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
   }
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
@@ -721,6 +728,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     for (const c of v.chars) { c.root.removeFromParent(); c.dispose(); }
     if (v.chair) { v.chair.removeFromParent(); getProps()?.unpin?.(v.chair); }
     if (v.mid) dispatch('end', v.event, v.mid);
+    spotlights?.end(v.spot);
     momentCam?.release('visitor');
   }
 
@@ -809,6 +817,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
       clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
+    pm.spot = spotlights?.begin('printer_jam', printerEnd);
     pm.twists = twists(pm);
     const c = along(route, 0);
     const spots = carrySpots(pm, c);
@@ -1108,6 +1117,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (r.goal) walkTo(r, r.goal);
     }
     if (pm.mid) dispatch('end', 'printer_jam', pm.mid);
+    spotlights?.end(pm.spot);
     momentCam?.release('printer');
   }
   // Moment captions (ui): hitl:moment { phase, id, key }. A start makes the moment's id and returns it;
