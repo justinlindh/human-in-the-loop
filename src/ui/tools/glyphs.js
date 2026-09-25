@@ -248,6 +248,10 @@ export const GLYPHS = {
   continue: { d: rr(3.5, 3.5, 17, 17, 2.5, C.blue) + rr(7, 3.5, 10, 6.5, 1, C.cream) + rr(6.5, 13, 11, 7.5, 1, PAPER) + rr(13, 5, 2.5, 3.5, 0.5, C.metalDark) },
   gameover: { d: path('M5 21.5V10a7 7 0 0 1 14 0v11.5Z', C.metal) + rr(3, 20, 18, 2.5, 1, C.leaf) + `<path d="M8.5 10h7M8.5 13.5h7M10 17h4" ${line(1.8)}/>` },
   research: { d: D.testtube },
+  // A file squeezed flat between two clamp jaws.
+  'research.squish': { size: 26, d: rr(3, 2.5, 18, 3.5, 1.2, C.metal) + rr(3, 18, 18, 3.5, 1.2, C.metal)
+    + rr(4.5, 8, 15, 8, 1.5, PAPER) + `<path d="M7 12l2-1.8 2 1.8 2-1.8 2 1.8 2-1.8" stroke="${C.green}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+    + `<path d="M12 6v1.5M12 16.5V18" ${line(2)}/>` },
 
   // automation functions
   'fn.engineering': { d: rr(1.5, 6, 21, 13, 3, C.cream) + [4, 8.5, 13, 17.5].map((x) => `<rect x="${x}" y="8.5" width="3" height="3" rx=".7" fill="${C.metalDark}"/>`).join('')
