@@ -1,3 +1,4 @@
+import { phoneLayout } from './media.js';
 import { setTip } from './tooltip.js';
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
@@ -188,7 +189,7 @@ export function createHud({ root, controls, ui }) {
   const stripNeeds = h('span.tsb.needs'), stripWork = h('span.tsb'), stripGoals = h('span.tsb'), stripFx = h('span.tsb');
   const trayToggle = h('button.tray-toggle', { dataset: { occludes: '' }, 'aria-expanded': 'false', title: 'Show or hide the side cards', onclick: () => setTrayOpen(!trayOpen) },
     h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx);
-  let trayOpen = !(typeof matchMedia === 'function' && matchMedia('(max-width: 480px), (max-height: 500px)').matches);
+  let trayOpen = !phoneLayout();
   function setTrayOpen(on) {
     trayOpen = on;
     root.classList.toggle('tray-shut', !on);
