@@ -1,8 +1,9 @@
 // Skip a render check whose inputs have not changed since it last passed in full.
 //
 // inputHash(check, extra) hashes everything a headless render can depend on: the game's source,
-// public assets, the page shell and build config, the lockfile (three, vite, playwright), these
-// check scripts and their reference images, the Node version, and `extra` (a check's own flags).
+// public assets, the page shell and build config, the lockfile, the versions actually installed
+// (three, vite, playwright, and the Chromium build Playwright launches), these check scripts and
+// their reference images, the Node version, and `extra` (a check's own flags).
 // A clean full pass records <hash>.pass under ~/.cache/hitl-ci/<check>/ with the commit it ran on.
 // Any error reading inputs or the cache means "render": the cache can only skip, never fail.
 // HITL_NO_CHECK_CACHE=1 turns it off.
@@ -12,9 +13,10 @@ import { join, resolve, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const INPUTS = ['src', 'public', 'index.html', 'main.js', 'vite.config.js', 'package.json', 'package-lock.json', 'blender/checks'];
+const INPUTS = ['src', 'public', 'index.html', 'vite.config.js', 'package.json', 'package-lock.json', 'blender/checks'];
 const SKIP = /(^|\/)(node_modules|\.git)(\/|$)|\.(actual|diff)\.png$/;
 
 function files(p, out) {
@@ -33,7 +35,7 @@ export function inputHash(check, extra = '') {
   if (process.env.HITL_NO_CHECK_CACHE === '1') return null;
   try {
     const h = createHash('sha256');
-    h.update(`${check}\n${extra}\n${process.version}\n`);
+    h.update(`${check}\n${extra}\n${process.version}\n${installed()}\n`);
     const list = [];
     for (const p of INPUTS) files(p, list);
     for (const f of list) {
@@ -44,6 +46,13 @@ export function inputHash(check, extra = '') {
   } catch {
     return null;
   }
+}
+
+// What node_modules and the browser cache actually hold, which a stale install can make differ
+// from the lockfile.
+function installed() {
+  const version = (pkg) => JSON.parse(readFileSync(join(ROOT, 'node_modules', pkg, 'package.json'), 'utf8')).version;
+  return ['three', 'vite', 'playwright'].map((p) => `${p}@${version(p)}`).concat(`chromium:${chromium.executablePath()}`).join(' ');
 }
 
 const dir = (check) => join(homedir(), '.cache', 'hitl-ci', check);
