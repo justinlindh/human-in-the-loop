@@ -1,3 +1,4 @@
+import { touchUI } from './media.js';
 import { setTip } from './tooltip.js';
 import { h, toggleClass, setText, clear } from './dom.js';
 import { icon } from './icons.js';
@@ -32,7 +33,8 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     badges[m.id] = badge;
     labels[m.id] = h('span.lbl', { text: m.label });
     newTags[m.id] = h('span.newtag', { text: 'New!' });
-    buttons[m.id] = h('button.mbtn', { title: `${m.label} (${m.key})`, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
+    // The label stays the accessible name when phones show the icon alone.
+    buttons[m.id] = h('button.mbtn', { title: touchUI() ? m.label : `${m.label} (${m.key})`, 'aria-label': m.label, dataset: { menu: m.id }, onclick: () => toggle(m.id) },
       badge, newTags[m.id], h('span.key', { text: m.key }), icos[m.id] = h('span.ico', null, icon(`menu.${m.id}`)), labels[m.id]);
     menu.append(buttons[m.id]);
   }
@@ -114,7 +116,8 @@ export function createMenu({ bottom, panelRoot, panels, ctx, onChange }) {
     const m = MENU.find((x) => x.id === id);
     if (!labels[id] || labels[id].textContent === text) return;
     setText(labels[id], text);
-    setTip(buttons[id], `${text} (${m?.key})`);
+    setTip(buttons[id], touchUI() ? text : `${text} (${m?.key})`);
+    buttons[id].setAttribute('aria-label', text);
   }
 
   // Swaps a menu button's icon (and its panel header's) while the button stands for something else.

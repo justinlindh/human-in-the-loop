@@ -1307,3 +1307,33 @@
   .hitl .modal-back { padding: 0.4em; }
   .hitl .modal { max-height: 100%; }
 }
+
+/* Phones: wide panel content scrolls sideways inside the panel, settings rows and panel tabs don't
+   run off the edge, and Reports charts stack. Panels stop above the menu so it stays tappable. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .panel-body { overflow-x: auto; }
+  .hitl .setrow { flex-wrap: wrap; }
+  .hitl .panel-tabs { flex-wrap: wrap; row-gap: 0.25em; }
+  .hitl .charts { grid-template-columns: minmax(0, 1fr); }
+  .hitl .panel-wrap { top: calc(var(--topbar-h, 4.6em) + 0.3em); bottom: calc(var(--bottom-h, 6em) + 0.9em); }
+  .hitl .panel { max-height: 100%; }
+}
+/* Portrait phones: the meters move into the tray strip, and the menu is one sideways-scrolling
+   row of 44 px icon buttons. The speed controls keep their own row so the date never clips. */
+@media (max-width: 480px) {
+  .hitl .chip.meters { display: none; }
+  .hitl .chip.speed .paused-tag.menu { display: none !important; }
+  .hitl .menu { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .hitl .mbtn { flex: none; width: 44px; height: 44px; min-width: 44px; }
+  .hitl .mbtn .lbl, .hitl .mbtn .key { display: none; }
+}
+.hitl .tray-toggle .tsm { display: none; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .tray-toggle .tsm { display: inline-flex; align-items: center; gap: 0.2em; font-size: 0.85em; font-variant-numeric: tabular-nums; }
+  .hitl .tray-toggle .tsm i { width: 0.55em; height: 0.55em; border-radius: 50%; border: 0.1em solid var(--ink); margin-left: 0.25em; }
+  .hitl .tray-toggle .tsm i.brand { background: var(--purple); }
+  .hitl .tray-toggle .tsm i.ik { background: var(--teal); }
+  .hitl .tray-toggle .tsm i.debt { background: var(--yellow); }
+}
+/* Touch: no keyboard hints. */
+@media (pointer: coarse) { .hitl .mbtn .key, .hitl .keyhelp { display: none; } }

@@ -2,6 +2,7 @@
 // The renderer draws the ghost (setBuildMode) and maps the cursor to a tile (pickTile); this module
 // owns the bar, the cursor tip, keys, and every dispatch. Without those renderer hooks the bar still
 // works through "Place for me".
+import { touchUI } from './media.js';
 import { h, setText, toggleClass, fmtMoney } from './dom.js';
 import { icon } from './icons.js';
 import { CATALOG, isDesk } from './v2content.js';
@@ -115,12 +116,12 @@ export function createBuildMode({ layer, ctx, controls }) {
     setText(sizeEl, `${f.w}x${f.h}`);
     if (!hover) {
       const r = R();
-      return { ok: null, text: r?.pickTile ? 'Point at the floor to place it. R rotates, Esc finishes.' : 'Use "Place for me" to drop it in the first spot that fits.' };
+      return { ok: null, text: r?.pickTile ? (touchUI() ? 'Tap the floor to aim, then tap again to place it.' : 'Point at the floor to place it. R rotates, Esc finishes.') : 'Use "Place for me" to drop it in the first spot that fits.' };
     }
     const chk = checkPlace(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
     if (!chk.ok) return { ok: false, text: chk.reason ?? 'Cannot place here' };
     const prev = adjacencyPreview(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
-    return { ok: true, text: adjacencyWords(prev) || 'Click to place', ids: prev.gives?.ids ?? [] };
+    return { ok: true, text: adjacencyWords(prev) || (touchUI() ? 'Tap again to place' : 'Click to place'), ids: prev.gives?.ids ?? [] };
   }
 
   // Warm plates under the things the item would boost, when the renderer offers them.
