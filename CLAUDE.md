@@ -29,6 +29,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
 | art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
+| video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
 | reviewer | review and playtest | any (read-only) | nothing |
 
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
