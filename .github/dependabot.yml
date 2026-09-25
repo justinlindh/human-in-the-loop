@@ -8,8 +8,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     labels: [dependencies]
+    # Runtime bumps are fixes, so they cut a release and reach the live site; dev-only bumps are builds.
     commit-message:
-      prefix: build
+      prefix: fix
+      prefix-development: build
       include: scope
     groups:
       npm-minor-and-patch:
