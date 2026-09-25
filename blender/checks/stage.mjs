@@ -6,11 +6,14 @@
 //   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json]
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
-// A rule with known: <issue> fails as KNOWN (not failing the run) while that issue is open.
+// A rule with known: <issue> fails as KNOWN (not failing the run) while that issue is open; once the
+// issue is closed, the rule fails again. Issue states come from gh, once per run; if gh can't be
+// reached, markers count as open and the run says so.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { execFileSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const ONLY = args.find((a) => a.startsWith('--only='))?.slice(7).split(',');
@@ -95,6 +98,13 @@ const SPECS = {
     share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
     visibleRule, noFade,
   ] },
+  // The visitor at the desk trying the product: at the screen, and in view. A laptop screen sits a
+  // hand's width in front of the eyes and well below them, so looking at it reads about 30 to 40 deg
+  // off the face's line; looking away from it is 60 and more.
+  'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
+    share('atScreen', 'face within 45 deg of the screen', (x) => x.targetAngle <= 45, 0.8),
+    visibleRule,
+  ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
@@ -139,9 +149,20 @@ const SCENARIOS = {
 };
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
+// The issues known rules point at, and which of them are closed: a closed one no longer excuses.
+const closedIssues = new Set();
+for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) => r.known)).filter(Boolean))) {
+  try {
+    const state = execFileSync('gh', ['issue', 'view', String(n), '--json', 'state', '-q', '.state'], { timeout: 15000, encoding: 'utf8' }).trim();
+    if (state === 'CLOSED') closedIssues.add(n);
+  } catch {
+    console.log(`stage: could not read issue #${n} (gh unavailable?); its known rules count as open`);
+  }
+}
 const rep = createReport('stage');
 // A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
-const hash = ONLY ? null : inputHash('stage');
+// Which marker issues are closed changes what fails, so it is part of the inputs a cached pass covers.
+const hash = ONLY ? null : inputHash('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}`);
 const before = passedAt('stage', hash);
 if (before) { console.log(`stage: inputs unchanged since ${before}, skipped`); process.exit(0); }
 const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice(7)) || 6);
@@ -179,6 +200,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
         for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
         window.__step(1);
         for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
+        // The moment's own actors (visitors) are staged too.
+        for (const e of R.moments.extras?.() ?? []) if (e.stage.moment === moment) actors.add(e.id);
         let live = 0;
         for (const actor of actors) {
           const m = R.probe(actor);
@@ -211,12 +234,22 @@ for (const task of tasks) {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
     if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
+    // wall and still pass. Walking and waiting are between beats and need none.
+    if (view.turns === 0) {
+      const roles = new Set(res.samples.filter((x) => x.beat && !['walk', 'wait'].includes(x.beat)).map((x) => x.role ?? null));
+      for (const role of roles) {
+        const covered = Object.values(SPECS).some((sp) => sp.moment === moment && (!sp.role || sp.role === role));
+        if (!covered) rep.row({ check: `${moment}.lint`, view: view.name, beat: '-', metric: 'roleWithoutSpec', value: role ?? '(no role)', want: 'a spec rule for every staged role', pass: false });
+      }
+    }
     for (const [k, spec] of specs) {
       const xs = res.samples.filter((x) => x.beat === spec.beat && (!spec.role || x.role === spec.role));
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
       for (const rule of spec.rules) {
         const value = rule.test(xs, res.samples);
-        rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: rule.known ?? null });
+        const k2 = rule.known ?? null;
+        rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: k2 && !closedIssues.has(k2) ? k2 : null, closed: k2 && closedIssues.has(k2) ? k2 : null });
       }
     }
   }

@@ -85,8 +85,7 @@ function act(s, actions) {
 
 const fixedName = (s) => `Product ${s.stats.launches + s.projects.length + 1}`;
 
-function pickDecision(s, scorer) {
-  const d = s.pendingDecision;
+function pickDecision(s, scorer, d = s.pendingDecision) {
   const ev = EVENTS[d.eventId];
   let best = null;
   d.choices.forEach((c, i) => {
@@ -485,6 +484,12 @@ export function botDecide(name, s, { onEvents = null } = {}) {
 // is offered, and otherwise everyone takes the first reply that is available.
 function answerPrompts(name, s) {
   for (const p of (s.chatPrompts ?? []).filter((x) => !x.resolved)) {
+    // A low-stakes event delivered in Yak is answered the way the bot answers that decision as a popup.
+    if (EVENTS[p.kind]?.yak) {
+      const d = { eventId: p.kind, subjectId: s.flags.promptCtx?.[p.id]?.subjectId ?? null, choices: p.options };
+      if (p.options.some((o) => o.available)) dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: pickDecision(s, CHOOSERS[name], d) });
+      continue;
+    }
     const open = p.options.map((o, i) => (o.available ? i : -1)).filter((i) => i >= 0);
     const push = open.find((i) => /^Output up/.test(p.options[i].hint));
     const choice = name === 'recklessHumans' && push !== undefined ? push : open[0];

@@ -17,6 +17,7 @@ import { EVENTS } from '../data/events.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
+import { openEventPrompt, promptSlotFree } from './prompts.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
 // more than a share of the cash in hand, so paying hurts without ending a careful company.
@@ -173,6 +174,16 @@ export function eligibleEvents(state) {
 
 export function fireEvent(ctx, ev, subjectId) {
   const { state } = ctx;
+  // A low-stakes event (yak) arrives as a Yak reply prompt instead of a popup while prompts are on, or waits
+  // for another week when a prompt is already open. It keeps the popup's place in the decision cadence, so
+  // how often every other event comes up is unchanged.
+  if (ev.yak && ev.choices && B.chatPromptsEnabled) {
+    if (!promptSlotFree(state)) return false;
+    state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+    state.flags.lastDecisionWeek = state.week;
+    openEventPrompt(ctx, ev, subjectId);
+    return true;
+  }
   state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
   if (ev.chat) emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.chat, subjectId) });
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);

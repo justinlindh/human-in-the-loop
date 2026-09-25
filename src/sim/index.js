@@ -14,3 +14,4 @@ export { scoreRun, retireVia, retireOptions, ipoBlocker } from './endgame.js';
 export { placementCheck, suggestPlacement, adjacencyPreview, footprintCells, seatTile, seatOf, deskCapacity, deskCap, nextExpansion } from './office.js';
 export { stageIncentive } from './incentives.js';
 export { postOptions } from './posts.js';
+export { goalHelpers } from './goals.js';
