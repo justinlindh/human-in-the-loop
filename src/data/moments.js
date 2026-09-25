@@ -25,4 +25,9 @@ export const MOMENT_CAPTIONS = {
   ping_pong: 'A picture of a ping pong table is taped to the wall. It is a hint.',
   investor_demo_day: 'A smoothie for courage. Demo day is next week.',
   coffee_machine_broke: 'The coffee machine is smoking. Productivity is in freefall.',
+  banner_company: 'A banner has gone up. It has a question for everyone.',
+  cover_sheets: 'A fresh stack of TPS cover sheets. There is a memo about them.',
+  the_stapler: 'A red stapler, much loved. Facilities has noticed it.',
+  efficiency_consultants: 'Two consultants named Rob are here. Everyone is being interviewed.',
+  printer_jam: 'The printer says PC LOAD LETTER. Nobody knows what it wants.',
 };
