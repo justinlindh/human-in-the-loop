@@ -1,7 +1,7 @@
 import {
   PLAY, PRE_UNTIL, PRE_DECISION, IN_OFFICE, DROP_UNSTAFFED, STAFF_IDLE, INCIDENT_ON_FLOOR, CHAT_HISTORY,
   BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, KEY,
-  FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS,
+  FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS, MARK_MOMENTS,
 } from '../capture-manifest.js';
 
 // Feature media: capture.js items (see scripts/capture-manifest.js for the item fields) with the files
@@ -27,6 +27,44 @@ const OFFICE = (weeks, until, time = 'day') => ({
   query: `seed=1&speed=1&time=${time}`, warmup: 6,
   setup: `(async () => { await ${PLAY({ weeks, until, after: IN_OFFICE })}; ${STAGE_ONLY}; })()`,
 });
+
+// The growth timelapse (eras section): one company, seed 5, grown by the balanced bot and then, from
+// Consolidation, run by the automate-everything bot, so headcount peaks at HQ and falls in the
+// Plateau. Each stage is the game played to `week`, then shown live with nothing over the office.
+const GROWTH_STAGES = [['garage', 6, 'Classic'], ['floor', 138, 'Classic'], ['floor-full', 262, 'ChatGBT'], ['hq', 700, 'Consolidation'], ['late', 780, 'Plateau']];
+const GROW = (week) => `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const s = window.__HITL.state;
+  while (s.week < ${week} && !s.gameOver) {
+    const bot = s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced';
+    b.botDecide(bot, s); b.botTurn(bot, s); sim.tick(s);
+  }
+  b.botDecide(s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced', s);
+  ${IN_OFFICE}
+  ${STAGE_ONLY};
+})()`;
+
+// Seed 4 grown by the balanced bot until the Agents era at the Office Floor or HQ, then run by the
+// automate-everything bot; stops the week before the runaway cloud bill (tested on a copy ticked ahead).
+const RUNAWAY = `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const s = window.__HITL.state;
+  for (let i = 0; i < 700 && !s.gameOver; i++) {
+    const bot = !['classic', 'chatgbt'].includes(s.era.id) && s.office.stage >= 1 ? 'automateAll' : 'balanced';
+    b.botDecide(bot, s); b.botTurn(bot, s);
+    const ahead = structuredClone(s); sim.tick(ahead);
+    if (ahead.pendingDecision?.eventId === 'agent_runaway_spend') break;
+    sim.tick(s);
+  }
+})()`;
+
+// For FOLLOW: the centre of a staged prop's bounds, for a prop drawn away from its origin (on a wall).
+const BOX = (prop) => `() => { const R = window.__hitlRender, T = R.THREE; const o = R.props.current().find((x) => x.prop === '${prop}')?.obj; return o ? new T.Box3().setFromObject(o).getCenter(new T.Vector3()) : null; }`;
+
+// Speech bubbles and work labels hidden: people in a moment's shot still chat about other things.
+const NO_SAY = `(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()`;
 
 export const ITEMS = [
   // The office, by stage and time.
@@ -93,7 +131,7 @@ export const ITEMS = [
   },
   {
     id: 'site-loop-waffle', title: 'Landing page loop: the Waffle Party', query: 'seed=1&speed=1', seconds: 30,
-    setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: [...WAFFLE_ACTIONS(30), ...CAMLOG(30)], screenshots: [12, 16, 20, 24],
+    setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: [{ at: 0, js: NO_SAY }, ...WAFFLE_ACTIONS(30), ...CAMLOG(30)], screenshots: [12, 16, 20, 24],
     out: [LOOP('waffle', 16, 4.2, MIDDLE, 28)],
   },
   {
@@ -101,7 +139,7 @@ export const ITEMS = [
     // genre is picked by key and the dance break plays.
     id: 'site-loop-music', title: 'Landing page loop: music night', query: 'seed=1&speed=1', seconds: 40, warmup: 0.5,
     setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', 0, 1, 20, 3), ...Array.from({ length: 36 }, (_, i) => ({ at: i + 4.5, js: CLICK('Onward') })), ...CAMLOG(40)],
+    actions: [{ at: 0, js: NO_SAY }, ...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', 0, 1, 20, 3), ...Array.from({ length: 36 }, (_, i) => ({ at: i + 4.5, js: CLICK('Onward') })), ...CAMLOG(40)],
     screenshots: [16, 20, 24, 28],
     out: [LOOP('music', 19, 4.2, MIDDLE, 30)],
   },
@@ -113,17 +151,31 @@ export const ITEMS = [
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
 
+  {
+    // Automate it, and live with it: seed 4 grows to an Agents-era HQ with the balanced bot, then the
+    // automate-everything bot runs it until the live week raises the runaway cloud bill. The office
+    // holds still under the card (the bill), so the camera pushes in on the hot rack.
+    id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=4&speed=1', seconds: 22, warmup: 0.5,
+    setup: `(async () => { await ${RUNAWAY}; ${BARE}; })()`,
+    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...FOLLOW(BOX('rack_hot'), 2.8, 0, 22), ...CAMLOG(22)],
+    screenshots: [10, 14, 18],
+    out: [LOOP('automation', 10, 9)],
+  },
+
   // New on the page: Yak, the Office Space nods, and decisions you can see.
   {
-    // A pep talk posted mid-outage backfires, and the team replies under it. The large Yak keeps the
-    // game running (the maximised one pauses it).
-    id: 'site-yak-backfire', title: 'Landing page: a pep talk mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
+    // A meme posted mid-outage backfires: 😬 reactions and the team's replies under it, in #random.
+    // The large Yak keeps the game running (the maximised one pauses it).
+    id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, prep: IN_OFFICE, after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`,
     actions: [
       ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 34, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
-      { at: 11, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /pep talk/i.test(b.textContent))?.click()` },
+      { at: 11, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent))?.click()` },
+      ...[11.5, 16, 22, 28, 32].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
+      // Newer messages push the thread up: scroll it back to the top of the list for the frame.
+      { at: 32.5, js: `(() => { const posts = [...document.querySelectorAll('.chat.yak *')].filter((e) => e.children.length === 0 && /prod is back/.test(e.textContent)); posts[0]?.scrollIntoView({ block: 'center' }); })()` },
     ],
     screenshots: [14, 20, 26, 33],
     out: [{ path: 'img/yak-backfire.webp', size: '1280x720', from: 33, crop: { x: 0, y: 1 / 3, w: 2 / 3, h: 2 / 3 } }],
@@ -131,7 +183,7 @@ export const ITEMS = [
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
     setup: CLEAN,
-    actions: [...OPEN(), ...FOLLOW(['printer_jammed'], 2.4, 0, 25), { at: 3.5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([4, 4.5, 5.5], { escape: false }), ...CAMLOG(25)],
+    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...FOLLOW(['printer_jammed'], 2.4, 0, 25), { at: 3.5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([4, 4.5, 5.5], { escape: false }), ...CAMLOG(25)],
     screenshots: [17, 20],
     out: [LOOP('printer', 17.5, 6, MIDDLE)],
   },
@@ -179,8 +231,14 @@ export const ITEMS = [
     // "Watch in silence": the founders flinch together behind the visitor.
     id: 'site-visitor', title: 'Landing page loop: the first user test, the founders hiding', query: 'seed=1&speed=1', moment: 'first_user_test', pre: true, seconds: 16, warmup: 6.5,
     setup: BARE,
-    actions: [...OPEN(), ...FOLLOW(['visitor_chair'], 3, 0, 16), { at: 5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([5.5, 6], { escape: false }), ...CAMLOG(16)],
+    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...FOLLOW(['visitor_chair'], 3, 0, 16), { at: 5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([5.5, 6], { escape: false }), ...CAMLOG(16)],
     screenshots: [7],
     out: [LOOP('visitor', 5, 6, { x: 0.1354, y: 0.0926, w: 2 / 3, h: 2 / 3 }), STILL('visitor', 7, { x: 0.1354, y: 0.0926, w: 2 / 3, h: 2 / 3 })],
   },
+
+  // The growth timelapse, one clip per stage (cut and labelled by scripts/reels/growth.sh).
+  ...GROWTH_STAGES.map(([name, week, era]) => ({
+    id: `growth-${name}`, title: `Growth timelapse: ${name}, ${era} (week ${week})`, query: 'seed=5&speed=1&time=day', seconds: 6, warmup: 3,
+    setup: GROW(week), actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 1, 6, 1), ...CAMLOG(6)], screenshots: [2],
+  })),
 ];
