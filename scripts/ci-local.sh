@@ -172,13 +172,14 @@ perf_budget() {
 }
 step perf-budget perf_budget
 # Phone and tablet playability (scripts/phone-check.js, on a GPU slot), for changes that can affect
-# touch play: the UI, audio, the page, the camera, the game loop's input.
+# touch play: the UI, audio, the page, the game loop, quality defaults, and the render code that takes
+# pointer input or picks (build.js places by tap, camera.js drags and pinches, index.js picks).
 phone_check() {
   [ -f scripts/phone-check.js ] || { echo "skipped: no scripts/phone-check.js in this tree"; return 0; }
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/ui/|src/audio/|index\.html$|src/render/camera\.js$|src/main\.js$)' <<<"$files"; then
+  if ! grep -qE '^(src/ui/|src/audio/|index\.html$|src/main\.js$|src/quality\.js$|src/render/(build|camera|index)\.js$)' <<<"$files"; then
     echo "skipped: no UI, audio, page, camera or input changes"; return 0
   fi
   timeout 900 node scripts/phone-check.js --out "$LOGS/phone"

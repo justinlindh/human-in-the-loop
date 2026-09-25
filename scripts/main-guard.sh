@@ -9,7 +9,8 @@
 #     bisects them to name the first red merge. The first green commit after closes the issue.
 #   - Findings never mark main red and go to their own issues: seed-only sweep violations
 #     (sweep-finding, owner art) and timing regressions against the previous main commit
-#     (perf-regression). Timing runs at most once an hour and is filed after two bad runs in a row.
+#     (perf-regression), and phone-check failures (phone-regression). Timing and phone-check run at most
+#     once an hour and are filed after two bad runs in a row.
 # It is built to stay out of the way: one guard at a time, only the newest head (commits merged in
 # between are skipped unless a bisect needs them), and it waits while any other job is queued for the
 # exclusive software render lock. Each tick it also fast-forwards the shared checkout named by
@@ -171,8 +172,8 @@ if [ "$gate_new" = 0 ]; then
     "$([ "$seed_new" = 0 ] && echo 0 || echo 1)" "$STATE/$short.seed-new.txt"
 fi
 
-# Timing against the previous main commit: at most once per PERF_EVERY seconds, filed after two bad
-# runs in a row. perf's bench pins and nices itself, so it runs under timeout only.
+# Timing against the previous main commit, and phone-check: at most once per PERF_EVERY seconds, each
+# filed after two bad runs in a row. perf's bench pins and nices itself, so it runs under timeout only.
 now=$(date +%s)
 if [ $(( now - $(cat "$STATE/perf-at" 2>/dev/null || echo 0) )) -ge "$PERF_EVERY" ] \
   && { [ -n "${MAIN_GUARD_PERF:-}" ] || git -C "$REPO" cat-file -e "$sha:scripts/perf/bench.js" 2>/dev/null; }; then
@@ -184,7 +185,21 @@ if [ $(( now - $(cat "$STATE/perf-at" 2>/dev/null || echo 0) )) -ge "$PERF_EVERY
     summary=""; out=""
     run "${MAIN_GUARD_PERF:-}" "$STATE/$short.perf.log" bash -c "timeout 1200 node scripts/perf/bench.js --software --cores 2 --quality low --scenes garage,floor --runs 3 --seconds 5 --refs '$sha^1,$sha' --json '$STATE/$short.perf.json' > '$STATE/$short.perf.txt' 2>&1; node scripts/perf/budget.js '$STATE/$short.perf.json'"
     perf_rc=$?
+    # Phone and tablet playability on the same cadence, so a touch regression from a change the PR
+    # path filter doesn't catch (render, sim) is found within the hour.
+    phone_rc=0
+    if [ -n "${MAIN_GUARD_PHONE:-}" ] || [ -f "$WT/scripts/phone-check.js" ]; then
+      run "${MAIN_GUARD_PHONE:-}" "$STATE/$short.phone.log" timeout 900 node scripts/phone-check.js --out "$STATE/phone-$short"
+      phone_rc=$?
+    fi
     git -C "$REPO" worktree remove --force "$WT" 2>/dev/null; WT=""
+    if [ $phone_rc -eq 0 ]; then pstreak=0; else pstreak=$(( $(cat "$STATE/phone-streak" 2>/dev/null || echo 0) + 1 )); fi
+    echo "$pstreak" >"$STATE/phone-streak"
+    echo "main-guard: phone-check $([ $phone_rc -eq 0 ] && echo passes || echo "fails, $pstreak run(s) in a row")"
+    phone_body="$STATE/$short.phone.issue"
+    { grep -E 'FAIL|Error|error' "$STATE/$short.phone.log"; tail -n 3 "$STATE/$short.phone.log"; } 2>/dev/null >"$phone_body"
+    if [ $phone_rc -eq 0 ]; then finding phone-regression "Phone and tablet playability failures found by the main guard" "phone-check fails on main" 0 "$phone_body"
+    elif [ "$pstreak" -ge 2 ]; then finding phone-regression "Phone and tablet playability failures found by the main guard" "phone-check fails on main, in $pstreak runs in a row" 1 "$phone_body"; fi
     if [ $perf_rc -eq 0 ]; then streak=0; else streak=$(( $(cat "$STATE/perf-streak" 2>/dev/null || echo 0) + 1 )); fi
     echo "$streak" >"$STATE/perf-streak"
     echo "main-guard: timing $([ $perf_rc -eq 0 ] && echo "within budget" || echo "over budget, $streak run(s) in a row")"
