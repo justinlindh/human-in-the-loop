@@ -96,9 +96,9 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
   }
 }
 
-// One frame as the game runs it, without drawing: world matrices refresh every frame as render()
-// would, since game logic reads them (and a crop, which draws, must not change what comes after).
-function stepWorld(R, S, n) { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(DT); R.scene.updateMatrixWorld(); } }
+// Frames as the game runs them, without drawing (the harness's __advance, which refreshes world
+// matrices as render() would).
+function stepWorld(R, S, n) { window.__advance(n); }
 
 // A window of office life: `seconds` long, things checked every `every` seconds and people every
 // PEOPLE_EVERY (a walk past a desk takes well under a second).

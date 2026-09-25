@@ -70,7 +70,7 @@ CI internals, which rarely need touching:
 
 ## Render checks (art owns these; local CI runs them)
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip, standup and the sweep (fast mode) as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip, standup and the sweep (fast mode) as `render-checks` on a GPU slot, and golden as `golden` under the software lock.
 
 | Check | What it guards |
 |---|---|

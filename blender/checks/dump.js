@@ -6,16 +6,10 @@
 //
 // World coordinates are metres (y up; the floor is y = 0). Screen coordinates are canvas pixels from
 // the top left. Yaw is radians about y; a character with yaw 0 faces +z. Nothing here changes the
-// scene or the game, and three.js objects made here draw from their own random stream, not the
-// game's (three.js takes a UUID from Math.random for each one).
+// scene or the game: it runs on the harness's tool stream (window.__tool), not the game's.
 import * as THREE from 'three';
 
-let toolSeed = 424243;
-function ownRandom(fn) {
-  const game = Math.random;
-  Math.random = () => { toolSeed = (toolSeed * 16807) % 2147483647; return (toolSeed - 1) / 2147483646; };
-  try { return fn(); } finally { Math.random = game; }
-}
+const ownRandom = (fn) => (window.__tool ? window.__tool(fn) : fn());
 
 const r3 = (v) => (v ? [+v.x.toFixed(3), +v.y.toFixed(3), +v.z.toFixed(3)] : null);
 const r2 = (p) => (p ? [+p.x.toFixed(1), +p.y.toFixed(1)] : null);
