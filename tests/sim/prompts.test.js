@@ -90,6 +90,51 @@ describe('issue #16: Yak reply prompts', () => {
     expect(dispatch(s, { type: 'answerPrompt', promptId: 'cp999', choice: 0 }).reason).toBe('No such prompt');
   });
 
+  it('never draws from the game\'s random stream, so prompts cannot reshuffle a seeded game', () => {
+    const s = strained(8);
+    for (let i = 0; i < 40 && !s.chatPrompts.length; i++) {
+      const rng = s.rng.s;
+      weekOf(s);
+      expect(s.rng.s).toBe(rng);
+      s.week++;
+    }
+    const p = s.chatPrompts[0];
+    const rng = s.rng.s;
+    dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: 1 });
+    expect(s.rng.s).toBe(rng);
+  });
+
+  it('the prompted post carries the prompt\'s chatId as its chat event id', () => {
+    const s = strained(11);
+    const ev = openOne(s);
+    const p = s.chatPrompts[0];
+    const post = ev.find((e) => e.type === 'chat' && e.id === p.chatId);
+    expect(post).toBeTruthy();
+    expect(post.fromId).toBe(p.fromId);
+    expect(post.channel).toBe(p.channel);
+  });
+
+  it('answering, even while the game is paused, returns the resolution and the founder\'s reply from the dispatch itself', () => {
+    const s = strained(9);
+    openOne(s);
+    const p = s.chatPrompts[0];
+    const res = dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: 0 });
+    const types = res.events.map((e) => e.type);
+    expect(types).toContain('chatPromptResolved');
+    expect(res.events.some((e) => e.type === 'chat' && e.id === p.resolved.replyId && e.replyTo === p.chatId)).toBe(true);
+  });
+
+  it('switched off, prompts never open', () => {
+    const s = strained(10);
+    B.chatPromptsEnabled = false;
+    try {
+      for (let i = 0; i < 30; i++) { weekOf(s); s.week++; }
+    } finally {
+      B.chatPromptsEnabled = true;
+    }
+    expect(s.chatPrompts).toEqual([]);
+  });
+
   it('rejects an invalid choice without resolving', () => {
     const s = strained(3);
     openOne(s);

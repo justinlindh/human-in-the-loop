@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { chance, pick } from './rng.js';
+import { createRng, chance, pick } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
 import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { emitChat } from './chat.js';
@@ -12,6 +12,14 @@ import { mentorOf } from './staff.js';
 // the option's effects and posts the founder's reply and the poster's answer in the thread; letting it expire
 // applies the template's `ignored` consequence. What set a prompt off lives in flags.promptCtx by prompt id,
 // so the thread can name the same product or project when it resolves.
+
+// Prompts draw from their own stream, seeded from the game seed, the week and the prompt sequence, so with
+// prompts switched off (B.chatPromptsEnabled) a seeded game plays exactly as it would without them.
+function side(ctx, salt) {
+  const { state } = ctx;
+  const seq = state.flags.promptSeq ?? 0;
+  return { ...ctx, rng: createRng(((state.seed >>> 0) * 7919 + state.week * 263 + seq * 7717 + salt) >>> 0) };
+}
 
 const TEMPLATES = Object.fromEntries(PROMPTS.map((t) => [t.id, t]));
 const present = (state) => state.staff.filter((p) => p.mood !== 'away' && !p.remote);
@@ -174,7 +182,9 @@ function resolve(ctx, prompt, choice) {
   ctx.emit({ type: 'chatPromptResolved', promptId: prompt.id, choice });
 }
 
-export function promptsSystem(ctx) {
+export function promptsSystem(outer) {
+  if (!B.chatPromptsEnabled) return;
+  const ctx = side(outer, 1);
   const { state } = ctx;
   state.chatPrompts ??= [];
   for (const p of state.chatPrompts) if (!p.resolved && state.week >= p.expiresWeek) resolve(ctx, p, null);
@@ -192,8 +202,8 @@ export function promptsSystem(ctx) {
 
 registerSystem('prompts', promptsSystem, 89);
 
-registerAction('answerPrompt', (ctx, { promptId, choice }) => {
-  const { state } = ctx;
+registerAction('answerPrompt', (outer, { promptId, choice }) => {
+  const { state } = outer;
   const prompt = (state.chatPrompts ?? []).find((p) => p.id === promptId);
   if (!prompt) return { ok: false, reason: 'No such prompt' };
   if (prompt.resolved?.choice !== undefined && prompt.resolved?.choice !== null) return { ok: false, reason: 'Already answered' };
@@ -202,6 +212,6 @@ registerAction('answerPrompt', (ctx, { promptId, choice }) => {
   if (!Number.isInteger(choice) || choice < 0 || choice >= t.options.length) return { ok: false, reason: 'Invalid choice' };
   const why = optionBlocker(state, t.options[choice], prompt.fromId);
   if (why) return { ok: false, reason: why };
-  resolve(ctx, prompt, choice);
+  resolve(side(outer, 1000 + Number(prompt.id.slice(2)) * 7 + choice), prompt, choice);
   return { ok: true };
 });

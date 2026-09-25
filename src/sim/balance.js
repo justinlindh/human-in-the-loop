@@ -100,7 +100,7 @@ export const B = {
   productNameMax: 20,
   // Yak reply prompts: at most chatPromptsOpen open, a new one at least chatPromptGapWeeks after the last,
   // each open for chatPromptExpiryWeeks, and answered ones kept chatPromptsKept weeks for the thread view.
-  chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
+  chatPromptsEnabled: true, chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
   prompts: {
     strainAt: 40, lateWeeks: 12, newHireWeeks: 3, supportShortfall: 0.2, lateProgress: 0.6, agentLevel: 0.3,
     restStrain: 20, pushStrain: 3, pushOutput: 0.02, launchHype: 4, cakeCost: 300, subtweetBackfire: 0.25,
