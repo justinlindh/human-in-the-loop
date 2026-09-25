@@ -35,7 +35,7 @@ const DISMISS = (times, { escape = true } = {}) => times.map((at) => ({ at, js: 
 // The HQ in the Agents era, well staffed.
 const HQ = "s.office.stage === 2 && s.era.id === 'agents' && s.staff.length >= 28";
 // A review-manifest item's staging (setup, actions, query, moment), to film it another way.
-const from = (id) => { const it = REVIEW.find((x) => x.id === id); if (!it) throw new Error(`feature-media: no capture item ${id}`); const { setup, actions, query, moment, warmup, seconds } = it; return { setup, actions: actions ?? [], query, moment, warmup, seconds }; };
+const from = (id) => { const it = REVIEW.find((x) => x.id === id); if (!it) throw new Error(`feature-media: no capture item ${id}`); const { setup, actions, query, moment, pre, warmup, seconds } = it; return { setup, actions: actions ?? [], query, moment, pre, warmup, seconds }; };
 // Camera onto a staged prop whose name contains `name` (the first one up), or onto a staff member.
 const FOCUS_PROP = (name, zoom) => `(() => { const R = window.__hitlRender; const p = R.props?.current?.().find((x) => x.prop.includes('${name}')); if (p) R.focusAt(p.obj.position.x, p.obj.position.z, ${zoom}); })()`;
 // Camera onto the Waffle Party (its centre), or onto the first dancer of a music night.
@@ -137,20 +137,20 @@ export const ITEMS = [
     out: [STILL('yak-thread', 32, { x: 0.43, y: 0.04, w: 0.56, h: 0.56 })],
   },
   {
-    ...from('nods-printer'), id: 'site-printer', title: 'Landing page loop: the printer taken out back', seconds: 24,
+    ...from('nods-printer'), id: 'site-printer', title: 'Landing page loop: the printer taken out back', seconds: 25,
     actions: [{ at: 0, js: BARE }, ...from('nods-printer').actions], screenshots: [14, 16, 18, 20],
     // The smash happens left of centre; the crop keeps the printer and the bat.
-    out: [LOOP('printer', 15.5, 4.2, { x: 0.2, y: 0.25, w: 0.55, h: 0.55 })],
+    out: [LOOP('printer', 17, 4.2, { x: 0.34, y: 0.22, w: 0.55, h: 0.55 })],
   },
   {
     ...from('nods-stapler'), id: 'site-stapler', title: 'Landing page: the red stapler', still: true,
-    actions: [{ at: 0, js: BARE }, ...from('nods-stapler').actions], screenshots: [2, 3],
-    out: [STILL('stapler', 2)],
+    actions: [{ at: 0, js: BARE }, ...from('nods-stapler').actions], screenshots: [3],
+    out: [STILL('stapler', 3)],
   },
   {
     ...from('nods-cover-sheets'), id: 'site-cover-sheets', title: 'Landing page: the TPS cover sheets', still: true,
-    actions: [{ at: 0, js: BARE }, ...from('nods-cover-sheets').actions], screenshots: [2, 3],
-    out: [STILL('cover-sheets', 2)],
+    actions: [{ at: 0, js: BARE }, ...from('nods-cover-sheets').actions], screenshots: [3],
+    out: [STILL('cover-sheets', 3)],
   },
   {
     id: 'site-rival-sign', title: 'Landing page: the rival sign', query: 'seed=3&speed=1', seconds: 8, warmup: 0.5, still: true,
