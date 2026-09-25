@@ -90,3 +90,18 @@ describe('issue #228: staged props, batch one', () => {
     expect(s.office.props).toEqual([]);
   });
 });
+
+describe('decisionResolved', () => {
+  it('names the event, the chosen index and the subject, once, and only when the choice goes through', () => {
+    const s = passOfficeGates(game(8));
+    s.cash = 1e6;
+    const p = addStaff(s, 'engineer', 'junior');
+    raise(s, 'junior_overwhelmed', p.id);
+    const i = EVENTS.junior_overwhelmed.choices.length - 1;
+    const res = dispatch(s, { type: 'resolveDecision', choice: i });
+    const ev = res.events.filter((e) => e.type === 'decisionResolved');
+    expect(ev).toEqual([{ type: 'decisionResolved', eventId: 'junior_overwhelmed', choice: i, subjectId: p.id }]);
+    raise(s, 'team_offsite');
+    expect(dispatch(s, { type: 'resolveDecision', choice: 99 }).events.some((e) => e.type === 'decisionResolved')).toBe(false);
+  });
+});
