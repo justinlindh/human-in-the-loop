@@ -3,50 +3,50 @@
     "garage/low": {
       "calls": 160,
       "triangles": 70000,
-      "programs": 11,
-      "textures": 18
+      "programs": 14,
+      "textures": 19
     },
     "garage/high": {
-      "calls": 360,
-      "triangles": 155000,
+      "calls": 350,
+      "triangles": 150000,
       "programs": 32,
       "textures": 44
     },
     "floor/low": {
       "calls": 290,
       "triangles": 215000,
-      "programs": 18,
-      "textures": 40
+      "programs": 20,
+      "textures": 39
     },
     "floor/high": {
       "calls": 620,
       "triangles": 465000,
-      "programs": 40,
-      "textures": 65
+      "programs": 39,
+      "textures": 64
     },
     "hq/low": {
       "calls": 530,
       "triangles": 565000,
-      "programs": 17,
-      "textures": 60
+      "programs": 19,
+      "textures": 58
     },
     "hq/high": {
-      "calls": 1220,
+      "calls": 1210,
       "triangles": 1260000,
-      "programs": 38,
-      "textures": 86
+      "programs": 36,
+      "textures": 83
     },
     "music/low": {
-      "calls": 310,
+      "calls": 320,
       "triangles": 225000,
-      "programs": 18,
-      "textures": 42
+      "programs": 20,
+      "textures": 39
     },
     "music/high": {
       "calls": 680,
-      "triangles": 490000,
-      "programs": 40,
-      "textures": 68
+      "triangles": 485000,
+      "programs": 39,
+      "textures": 64
     }
   },
   "ratio": {

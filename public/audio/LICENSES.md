@@ -4,6 +4,8 @@ Every file under `public/audio/` is listed here. Files marked *candidate* are fo
 
 ## Music (candidate beds)
 
+Seeds are listed to identify each take. ACE-Step renders that use its planner are not reproducible run to run (the same seed and settings give a different take), so the files here are the masters. Keep them rather than re-rendering.
+
 Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commercial use of outputs). XL-sft 4B checkpoint with the 4B planner, 60 steps, 48 kHz. Each file is cut to a seamless loop and mastered to -18 LUFS.
 
 | File | Era | Tempo, key | Loop |

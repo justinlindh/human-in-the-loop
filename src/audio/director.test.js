@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createDirector, voiceBank, bedSeconds } from './director.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S } from './manifest.js';
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S, PLAYLIST_PRELOAD_S } from './manifest.js';
 
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
@@ -347,18 +347,27 @@ describe('audio director', () => {
     expect(n).toBe(1);
   });
 
-  it('preloads the next bed when a bed starts, and follows the real start of a late bed', () => {
+  it('preloads the next bed shortly before its switch, and follows the real start of a late bed', () => {
     const d = createDirector({ seed: 9, beds: { classic: ['classic/a', 'classic/b'] } });
     const s = state();
     const startCmds = d.update(s, 0, { speed: 1, running: true });
     const first = startCmds.find((c) => c.op === 'music');
-    const pre = startCmds.find((c) => c.op === 'preload');
-    expect(pre.ids).toEqual([`music/${first.bed === 'classic/a' ? 'classic/b' : 'classic/a'}`]);
+    // Nothing loads at the start: only the playing bed is held decoded.
+    expect(startCmds.some((c) => c.op === 'preload')).toBe(false);
     // The host could only start the first bed 0.8 s late (its file was still decoding).
     d.musicStarted(first.bed, 0.8);
-    let sw = null;
-    for (let t = 0.25; t <= 600 && !sw; t += 0.25) sw = d.update(s, t, { speed: 1, running: true }).find((c) => c.op === 'music') ?? null;
+    let sw = null, pre = null, preAt = null;
+    for (let t = 0.25; t <= 600 && !sw; t += 0.25) {
+      const cmds = d.update(s, t, { speed: 1, running: true });
+      const p = cmds.find((c) => c.op === 'preload');
+      if (p) { expect(pre).toBeNull(); pre = p; preAt = t; }
+      sw = cmds.find((c) => c.op === 'music') ?? null;
+    }
+    expect(pre.ids).toEqual([`music/${first.bed === 'classic/a' ? 'classic/b' : 'classic/a'}`]);
     expect(sw.bed).toBe(pre.ids[0].slice('music/'.length));
+    // It loads about PLAYLIST_PRELOAD_S ahead, not a whole bed ahead.
+    expect(sw.at - preAt).toBeGreaterThan(PLAYLIST_PRELOAD_S - 1);
+    expect(sw.at - preAt).toBeLessThanOrEqual(PLAYLIST_PRELOAD_S + 0.5);
     const loops = (sw.at - 0.8) / bedSeconds('classic', first.bed);
     expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
   });
