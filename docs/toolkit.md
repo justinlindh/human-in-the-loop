@@ -29,6 +29,8 @@ Every new character moment ships with one. Three places change:
    - `source` is an effect whose sprites should sit between them and the target (smoke).
    - `role` tells actors of one moment apart (the printer's `'carrier'` and `'bat'`). Every actor is sampled each frame, and a spec with a `role` reads only that role's samples.
    - Add the moment's name to `KINDS`, so the check knows the build plays it.
+   - Actors who aren't staff (the visitors) are listed by the moments module's `extras()` as `{ id: 'visitor:0', char, stage }`; `staging(id)` and `R.probe(id)` take those ids, and the check samples them too.
+   - Every role the moment stages needs a spec; `stage.mjs` fails a role with none.
 2. **Set it up (`SCENARIOS` in `blender/checks/stage.mjs`).** A mock query, a state `patch` that starts the moment (usually a `pendingDecision` with a `stage` prop), and how many seconds to watch. `steps: [{ at, js }]` runs a script with `S` and `R` at frame `at`, for a moment that starts on a later event (the printer's `decisionResolved`).
 3. **Say what reading means (`SPECS` in the same file).** A spec that fails because of a staging bug nobody has fixed yet lands with `known: <issue>` on the failing rules (`{ ...share(...), known: 601 }`) and an issue naming the numbers; the fix removes the marker. One entry per beat, `'<moment>.<beat>': { moment, beat, role?, rules }`. Most rules are shares: `share(metric, want, sample => condition, minShare)` passes when enough of the beat's frames meet the condition. Custom rules are `{ metric, want, test(beatSamples, allSamples) -> value, pass(value) }`.
 
@@ -36,7 +38,7 @@ What `R.probe(id)` measures per frame (`src/render/probe.js` has the full list):
 - `gaze.hit`: what the line of sight from the eyes meets first: `'held'`, a staged prop id, a placed item id, `'furniture'`, `'floor'`, `'wall'` or `'none'`.
 - `targetAngle`: degrees between the face's direction and the target.
 - `faceCam`: degrees between the face's direction and the camera. The face reads within about 60 to 70.
-- `visible`: the share of the body the camera sees unblocked, walls and wall stubs included.
+- `visible`: the share of the body the camera sees unblocked, walls and wall stubs included; `occluder` names what hides most of the rest (a staff id, `'prop <kind>'`, `'<id> <item>'`, `'column'` or `'wall'`).
 - `fadeOver`: faded columns in front of the character whose screen box meets theirs.
 - `held.dist`, `held.ahead`: the held prop's distance from the eyes, and its angle off the face.
 - `handsRel`: the hands relative to the eyes in the face's heading. `stage.mjs`'s `motion()` turns them into a gesture's frequency and amplitude (fanning is fast and small; a wave is slow and wide).
