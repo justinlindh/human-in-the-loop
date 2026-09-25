@@ -377,7 +377,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy }) {
     const r = pickWeighted(pool, (x) => weightOf(x, crunch));
     let free = freeSlots();
     if (r.staff.mood === 'burnout') free = free.filter((s) => s.def.rest);
-    const partners = pool.filter((x) => x !== r && x.staff.mood !== 'burnout');
+    // A partner may be on their way back to their seat: the game redirects them to the table.
+    const partners = people.filter((x) => x !== r && x.mode === 'placed' && !x.temp && x.staff.mood !== 'burnout' && x.staff.mood !== 'away');
     // A pair may take the office one over the cap, so a small team (two founders) still plays.
     if (!partners.length) free = free.filter((s) => !s.def.pair);
     if (!free.length) return;
