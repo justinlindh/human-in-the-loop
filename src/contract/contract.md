@@ -155,6 +155,8 @@ era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /*
 eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
 unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
+// Count goals in src/data/goals.js also define progress(state, h) -> { n, of }, with n capped at of and never rounded up
+// to of before done. h = goalHelpers(state), exported from src/sim/index.js. ui reads these for progress bars and never recomputes them.
 founding: { founders: [archetypeIds], funding, logoColor, tagline },
 office: {
   stage /* 0|1|2, mirrors officeStage */,
@@ -305,7 +307,7 @@ Some staff posts in Yak carry two or three founder replies. They're small, low-s
 state.chatPrompts = [ChatPrompt]   // open prompts, plus resolved ones kept for B.chatPromptsKept weeks so ui can show them as answered
 ChatPrompt = {
   id,                // 'cp12', from its own sequence (state.flags.promptSeq), so prompt ids never shift other ids
-  kind,              // template id in src/data/prompts.js
+  kind,              // template id in src/data/prompts.js, or the event id for an event delivered as a prompt
   chatId,            // the chatLog message the options hang under
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
@@ -340,7 +342,7 @@ ChatPrompt = {
 - Copy follows the voice guide and the era gates.
 - Prompt randomness (trigger rolls, template and text picks) comes from its own stream, seeded by the game seed, the week and `promptSeq`, so with prompts disabled a seeded game matches one without the feature.
 - An event from `src/data/events.js` delivered as a prompt keeps its `stage`: the prop, and any moment the renderer plays for it, show in the office while the prompt is open, exactly as they would behind its decision card. Its choices' `grant` and `leaves` apply when it's answered, or with the default choice when it expires.
-- For an event delivered as a prompt, the default choice when it expires is its mildest outcome: the smallest cost to the subject, or with no subject the smallest cost overall (no effect, if one choice has none). The player never takes a penalty for a prompt they may not have seen. Template prompts from `src/data/prompts.js` keep their own stated consequence for being ignored.
+- For an event delivered as a prompt, the default choice when it expires is its mildest outcome: the smallest cost to the subject, or with no subject the smallest cost overall (no effect, if one choice has none). The player never takes a penalty for a prompt they may not have seen, and an unanswered prompt never grants an item or a pet: when the mildest choice would grant an item or a pet, the default is the mildest choice that doesn't. Small props a choice leaves behind are fine. Template prompts from `src/data/prompts.js` keep their own stated consequence for being ignored.
 - Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
 
 ## Yak quick posts (#16)

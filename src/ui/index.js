@@ -11,6 +11,9 @@ import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
+import { progressBar, goalsDoneText } from './goalProgress.js';
+import { createGrowth, growthToast } from './growth.js';
+import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
@@ -139,6 +142,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
   const spacing = createSpacing();
   ctx.spacing = spacing;
+  const growth = createGrowth();
+  ctx.growth = growth;
   const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg), canShow: () => spacing.ready() && !popups?.open });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
@@ -208,10 +213,10 @@ export function createUI({ root, getState, dispatch, controls }) {
       const reward = goalReward(g);
       const wk = st.done && st.week != null ? dateOf(st.week) : null;
       return [head, h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
-        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
+        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), st.done ? null : progressBar(s, g), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
         wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null)].filter(Boolean);
     }));
-    ctx.openModal({ title: `Goals (${list.filter((g) => s.goals[g.id].done).length}/${list.length})`, iconName: 'star', body, cls: 'small' });
+    ctx.openModal({ title: `Goals: ${goalsDoneText(list.filter((g) => s.goals[g.id].done).length, list.length)}`, iconName: 'star', body, cls: 'small' });
   }
   ui.openGoals = goalsModal;
   ctx.build = buildMode;
@@ -284,7 +289,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
-      announcer.reset(); spacing.reset(); buildMode.exit(); menuSig = null;
+      announcer.reset(); spacing.reset(); growth.reset(); buildMode.exit(); menuSig = null;
       for (const id of newMenus) menu.setNew(id, false);
       newMenus.clear();
       launchScores.clear();
@@ -355,10 +360,26 @@ export function createUI({ root, getState, dispatch, controls }) {
     }
   }
 
+  // Growth (#549): level-ups only mark Staff as new; a promotion, trait or trained skill gets one
+  // toast per person with their portrait, which opens their card.
+  const GROWTH = new Set(['levelUp', 'promoted', 'traitEarned', 'skillTrained']);
+  function onGrowth(events, state) {
+    const evs = events.filter((e) => GROWTH.has(e.type));
+    if (!evs.length) return;
+    for (const b of growth.add(evs, state.week)) {
+      const p = state.staff.find((x) => x.id === b.staffId);
+      if (!p) continue;
+      const text = growthToast(p.name, b, roleName(p.role));
+      if (text) toasts.push(text, 'good', { person: p, action: () => menu.open('staff', { staffId: p.id }) });
+    }
+    if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); }
+  }
+
   function handleEvents(events, state) {
     const unlockKeys = events.filter((e) => e.type === 'unlock').map((e) => e.key);
     const era = events.find((e) => e.type === 'era') ?? null;
     if (unlockKeys.length || era) onUnlocksAndEra(unlockKeys, era, state);
+    onGrowth(events, state);
     for (const e of events) {
       switch (e.type) {
         case 'toast': {

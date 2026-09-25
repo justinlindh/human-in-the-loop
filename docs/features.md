@@ -38,7 +38,7 @@ Conventions:
   - **HQ perks**: Top-of-Market Pay and Office Upkeep ("chairs that do not squeak"). `id: top_pay` `id: office_upkeep`
   - **Incentives Program**: the reward ladder under Staged moments. `id: incentives`
 - **Unlocks**: Marketing, Ops, Research, Models, Automation, Meaning, Career Paths and Standups each arrive with a one-time explainer card. `capture 4-6-unlock-card`
-- **Goals and trophies**: milestones from "Place two desks" to "Ten years", each with a small reward; trophy goals fill a shelf.
+- **Goals and trophies**: milestones from "Place two desks" to "Ten years", each with a small reward; trophy goals fill a shelf. The goals card and list say "3 of 5 done", and a count goal shows a thin bar with how far along it is.
 - **The rival**: a named rival company appears, jabs at you in Yak, may raise a mega-round, and can die, be acquired or merge with you. `id: rival_appears` `id: rival_merge` `id: rival_megaround` `capture 2-6-rival`
 - **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open`
 - **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result`
@@ -68,7 +68,7 @@ Conventions:
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
 - **Coffee corner**: a kettle, a drip machine and a "World's Okayest Dev" mug in the description; people stop by to sip. `id: coffee_corner` `id: coffee`
 - **Potted plant, bookshelf, couch**: small recovery and learning boosts; people browse the shelf and sit on the couch. `id: plant` `id: bookshelf` `id: couch`
-- ★ **Foosball**: two people play head to head; at the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
+- ★ **Foosball**: two people play head to head. An orange ball runs between the rods, the rods slide after it and whip round when a man kicks it back, and now and then it drops into a goal and a new one pops out at the centre. At the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
 - ★ **Ping pong**: a real volley, the ball arcing paddle to paddle and bouncing once each side, then a winner's cheer and a loser's groan; a ping pong sound plays. `id: ping_pong_table` `id: pingpong`
 - **Espresso machine**: a drip pot on a cart, then a prosumer machine and grinder, then a chrome bar. `id: espresso`
 - **Plant wall**: two pots, a ladder shelf, then a living wall with a grow light; people water it. `id: plant_wall`
@@ -117,7 +117,8 @@ Conventions:
   - **Balloons**: tied to the winner's desk until the next award. `id: balloons`
   - **Caricature**: a framed big-head portrait of the winner on the wall under a picture light ("I look like a tired walnut. I love it."). `id: caricature`
   - **Melon bar**: a cheer and confetti; Yak warns everyone off the honeydew. `id: melon_bar`
-- **Moment camera**: during the printer, the user test, the consultants and the incentive parties, the camera eases in and back out, and lets go as soon as the player steers.
+- **Moment camera**: during the printer, the user test, the consultants, the walls coming down and the incentive parties, the camera glides in and back out, and lets go as soon as the player steers.
+- **Spotlight**: the fun staged moments (the printer taken out back, the user test, the consultants, the walls coming down, the waffle party, music night) hold the game clock while they play, so no week slips by behind them; the office and the sound carry on. Routine life (standups, coffee, pair games) never holds it.
 
 ## Decisions that show up in the office
 
@@ -234,13 +235,14 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **HUD**: cash with the weekly change, the date with the era emblem, brand, know-how, debt and (late) fame meters, speed buttons (1x, 2x, 4x) and a quick mute. `capture 4-1-hud`
 - **Needs strip**: things waiting on the player, most urgent first, each with a click-to-fix and sometimes a one-tap fix.
 - **Panels**: Build, Staff, Marketing, Model Vendors, Automation, Policies, Ops and Security, Office and Reports, unlocking left to right as the game goes. `capture 4-3-build-panel` `capture 4-4-reports`
-- **Decisions and toasts**: decision cards dock right with a light dim; toasts stack top right and dock inside an open panel so they never cover its controls.
+- **Decisions and toasts**: decision cards dock right with a light dim; toasts stack top right and dock inside an open panel so they never cover its controls. A toast too long for its box shows a "more" cue and opens in full on a tap.
 - **Moment captions**: a single fading line near the bottom while the printer, the first user test or the consultants play.
 - **Scene tips**: hover (or long-press) a person or item in the office for a tooltip; clicking a person opens them in Staff, clicking an item opens its card to move, upgrade or sell.
 - **Coach marks**: dismissible tips for the HUD and speed controls.
 - **Game over**: a headline, a score breakdown and epilogue lines revealed one at a time. `?mock=ending`
 - **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
 - **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.
+- **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline.
 
 ## Touch and low-end support
 
