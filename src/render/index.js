@@ -11,6 +11,7 @@ import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
+import { createSurroundings } from './surroundings.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
@@ -95,6 +96,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
 
   let office = null;
   let props = null;
+  let surroundings = null;
   let staff = null;
   let build = null;
   let rival = null;
@@ -116,6 +118,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   } else {
     office = createOffice({ parent: scene, screens, lighting });
     props = createProps(office, screens);
+    surroundings = createSurroundings({ parent: scene, low: () => q === 'low' });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
     build = createBuild({ office, getCamera: () => rig.camera, canvas });
     rival = createRival({ office });
@@ -178,6 +181,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     const moving = !firstStage && pendingUpgrade;
     if (office.setStage(stage, { animate: moving, expansion: state.office?.expansion ?? 0 })) {
       stageJustBuilt = true;
+      surroundings?.setStage(stage, office.current.L);
       rig.setBounds(office.bounds, true, moving);
       // The big HQ floor starts a little closer so seated staff read; the whole office is a scroll away.
       rig.setZoom(STAGE_ZOOM[stage] ?? 1, moving);
@@ -284,6 +288,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const paused = speedZero || menuPaused;
       const simDt = paused ? 0 : dt;
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
+      surroundings?.setViewYaw(rig.yaw);
+      surroundings?.update(dt, lighting.env);
       if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
       screens.update(simDt, lighting.env);
       staff?.update(dt, { paused });

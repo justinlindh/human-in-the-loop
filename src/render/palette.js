@@ -103,8 +103,8 @@ export const PALETTE = {
   tone_bad: '#e5484d',
 
   // Sky and light
-  sky_day_top: '#f4e9d8',
-  sky_day_bottom: '#e6d3b6',
+  sky_day_top: '#bfd8ea',
+  sky_day_bottom: '#f1e6d2',
   sky_dusk_top: '#e9c9b0',
   sky_dusk_bottom: '#c9a7a4',
   sky_night_top: '#1f2445',
