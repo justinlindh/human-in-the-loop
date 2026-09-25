@@ -47,3 +47,24 @@ describe('the standing desks item', () => {
     expect(d.effects[0].staminaDrain).toBeLessThan(0);
   });
 });
+
+describe('the two coffee items', () => {
+  it('the demand for espresso knows about an existing coffee corner, and each item says what it covers', async () => {
+    const { EVENTS } = await import('../../src/data/events.js');
+    const { ITEMS } = await import('../../src/data/items.js');
+    const { game } = await import('./helpers.js');
+    const s = game(1);
+    s.week = 20;
+    s.office.placed = s.office.placed.filter((i) => i.itemId !== 'espresso' && i.itemId !== 'coffee_corner');
+    expect(EVENTS.coffee_wanted.when(s)).toBe(true);
+    expect(EVENTS.coffee_wanted_corner.when(s)).toBe(false);
+    s.office.placed.push({ id: 'fc', itemId: 'coffee_corner', level: 1, x: 0, y: 0, rot: 0 });
+    expect(EVENTS.coffee_wanted.when(s)).toBe(false);
+    expect(EVENTS.coffee_wanted_corner.when(s)).toBe(true);
+    expect(EVENTS.coffee_wanted_corner.text).toMatch(/corner/);
+    s.office.placed.push({ id: 'fe', itemId: 'espresso', level: 1, x: 3, y: 0, rot: 0 });
+    expect(EVENTS.coffee_wanted_corner.when(s)).toBe(false);
+    expect(ITEMS.coffee_corner.desc).toMatch(/next to it/);
+    expect(ITEMS.espresso.desc).toMatch(/whole office/);
+  });
+});
