@@ -91,12 +91,57 @@ Snap and capture drive a headless Chromium through Playwright; run `npx playwrig
 
 ## How it is built
 
-Work is split into lanes that each own a set of paths: simulation, render and art, UI and audio, integration and tooling. Changes land on `main` only through pull requests:
+A game about deciding how much of the work the machines should do, built almost entirely by machines, with one human deciding. Yes, the developer knows this is very meta. So do the machines.
+
+### The team
+
+Every line of code, every model, every sound and most of the words here were written by a team of [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) agents running as an agent team: long-lived sessions that message each other by name. Each one runs Claude Opus. Each lane works in its own git worktree and owns a set of paths:
+
+| Agent | Lane | Owns |
+|---|---|---|
+| team-lead | coordination | talks to the human; the plan, the spec, the contract and `CLAUDE.md`; writes no game code |
+| sim | simulation | `src/sim/`, `src/data/`, `src/save/`, the tests and the balance bots |
+| art | render and art | `src/render/`, the Blender scripts and the models |
+| ui | UI | `src/ui/` and the in-game audio code |
+| audio | sound | generating, curating and mastering music, stingers, barks and the trailer voice |
+| integrator | integration | `main.js`, pacing, CI, capture and trailer tooling, merges |
+| reviewer | review and playtest | nothing: reads every PR, plays the build in a browser, posts verdicts |
+
+Temporary members join for one job and leave (the landing page, for one). Lanes talk to each other directly about the things they share (sim and ui about actions and reason strings, art and ui about fonts and label stacking) and go through the lead for contract changes and disagreements. [`src/contract/contract.md`](src/contract/contract.md) is what lets them work in parallel without stepping on each other: the simulation promises a state shape and a list of events, and everyone else only reads.
+
+`CLAUDE.md` is the team's rulebook. When an agent gets something wrong (a runaway render that starved the machine, a merge that beat its review, a comment that went stale and misled the next agent), the fix is a new rule in that file or a check in a script, not a promise to do better.
+
+### The human in this loop
+
+The one human is the designer and producer, and a veteran professional software engineer. Letting the agents write almost everything is a deliberate choice, not a gap in skills: the experience shows up in how the work is steered, split, gated and reviewed rather than in commits. They talk only to team-lead, in plain language: "the Yak window is still tiny", "this is 2020, why is standup talking about agents?", "make the sledgehammer parody the 1984 ad". The lead turns each note into a GitHub issue, routes it to the lane that owns it, and keeps passing ideas ranked in a pinned backlog issue.
+
+Anything that needs human eyes or ears goes on a **review desk**: a private page, built as a Claude artifact, with one card per question. A card carries the clip, screenshot or audio, a summary of what changed, and either Good / Needs work / Cut or a set of options to pick from. The human works through it whenever they like, from a desk or a phone. The lead reads the answers from the page's database, dispatches them to the lanes, records each pick on its issue so the reviewer can check the PR against it, and marks the card resolved. Voice lines for the trailer get approved one clip at a time, in chat, before any video uses them.
+
+<p align="center">
+  <img src="docs/readme/review-desk.png" alt="The review desk: a card for the letter, visitor and fumes prop reactions, with a clip player, a summary, and Good, Needs work and Cut buttons" width="800">
+</p>
+
+The result is a loop that looks a lot like the game: the machines do the work, and a human decides whether it's any good.
+
+### The merge path
+
+Changes land on `main` only through pull requests:
 
 1. Each change is a branch and a PR with Conventional Commit titles (`type(scope): summary`), following [the PR template](.github/pull_request_template.md). The PR turns on auto-merge.
 2. `scripts/ci-pr.sh <pr>` runs local CI (tests, build, lifecycle and soak runs, headless render checks, commit lint, balance) on the PR merged into `main`, and posts the result as the `local-ci` status and a comment. A PR that only touches docs gets a light gate (the list is `scripts/ci-skip-paths`).
-3. A reviewer posts a verdict with `scripts/review-verdict.sh`, which sets the `review` status.
+3. The reviewer agent posts a verdict with `scripts/review-verdict.sh`, which sets the `review` status. Visual changes are judged from screenshots and motion from clips, and the reviewer measures what it can (positions, frame counts, overlaps) rather than eyeballing it.
 4. GitHub merges once `local-ci`, `review` and the workflow checks pass. A merge with a `feat`, `fix` or `perf` commit tags a release, which deploys the site.
+
+CI runs locally, on the same workstation as the agents, and gates merges through required statuses. It only ever runs same-repo PRs from trusted authors (`scripts/ci-trusted`), since this repo is public.
+
+### Toolkit and hardware
+
+- **Agents:** Claude Code with Claude Opus, as an agent team, plus the [Superpowers](https://github.com/obra/superpowers) skills for brainstorming, planning and review (the spec and plan in `docs/superpowers/` came out of that). The logo and landing page started in Claude Design.
+- **Game:** three.js, Vite and Vitest; plain JavaScript, no framework.
+- **Models:** Blender, run headless from Python scripts. Nothing is modelled by hand; every mesh is code.
+- **Captures:** Playwright driving headless Chromium, with the GPU for trailer and README clips and a software renderer for pixel checks; ffmpeg for encoding.
+- **Audio:** ACE-Step 1.5 for music, Chatterbox-Turbo, Zonos and Qwen3-TTS for voices, all running locally on the GPU.
+- **Hardware:** one desktop with an AMD Ryzen 9 9950X3D and an NVIDIA RTX 5090. The whole team, its CI and all audio generation share it.
 
 Conventions that apply everywhere (no em dashes, what comments may say, the game's wording rules) are in [`CLAUDE.md`](CLAUDE.md). The humor guide is [`docs/superpowers/specs/2026-09-24-humor-notes.md`](docs/superpowers/specs/2026-09-24-humor-notes.md).
 
