@@ -85,7 +85,8 @@ step lifecycle bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --qua
 step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
 # whose wait does not count against the ten minutes:
-#   render-checks  clipping with and without the rig, and standups, on the GPU (a GPU slot). They
+#   render-checks  clipping with and without the rig, standups, and the scene sweep (new violations in
+#                  mocks and props fail; seed-only ones are advisory), on the GPU (a GPU slot). They
 #                  check geometry and behaviour, not exact pixels.
 #   golden         the golden images, on SwiftShader under the software lock: only software GL draws
 #                  the same pixels on every machine. GOLDEN_JOBS browsers render at once.
@@ -117,7 +118,7 @@ render_step() { # <name> <gpu|software> <command>
   NOTES+=("$name failed twice. First pass: ${why:-exit without a message}")
   return 1
 }
-step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs'
+step render-checks render_step render-checks gpu 'node blender/checks/clip.mjs && node blender/checks/clip.mjs --rig && node blender/checks/standup.mjs && node blender/checks/sweep.mjs --gpu --out shots/sweep'
 step golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits

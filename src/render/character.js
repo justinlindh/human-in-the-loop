@@ -59,6 +59,7 @@ function ringMaterial(role, hex) {
   return m;
 }
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
+const HAND_TIP = new THREE.Vector3(0, -0.06, 0);   // the hand's centre below the wrist pivot
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 // Pizza slice: a wedge pointing at the mouth (-z) with a rounded crust along its back.
 const SLICE_GEO = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 3, 1, false, -Math.PI / 6, Math.PI / 3).translate(0, 0, -0.02);
@@ -252,6 +253,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const headParts = [P('head')];
   headGroup.add(headParts[0]);
   const eyes = P('eyes');
+  // Where the eyes are in the head's frame (the part is modelled in place), for staging checks.
+  eyes.geometry.computeBoundingBox();
+  const eyeLocal = eyes.geometry.boundingBox.getCenter(new THREE.Vector3()).add(eyes.position);
   const shine = P('eye_shine');
   const mouths = { ok: P('mouth_smile'), coasting: P('mouth_flat'), burnout: P('mouth_frown') };
   headGroup.add(eyes, shine, mouths.ok, mouths.coasting, mouths.burnout);
@@ -936,6 +940,19 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   return {
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     get anim() { return anim; },
+    // Staging measurements (probe.js), in world space: the eyes, the way the face points, the hands.
+    probe() {
+      root.updateMatrixWorld(true);
+      const q = headGroup.getWorldQuaternion(new THREE.Quaternion());
+      const hand = (a) => a.shoulder.localToWorld(a.wrist.position.clone().add(HAND_TIP));
+      return {
+        eyes: headGroup.localToWorld(eyeLocal.clone()),
+        forward: new THREE.Vector3(0, 0, 1).applyQuaternion(q),
+        head: headGroup.getWorldPosition(new THREE.Vector3()),
+        hands: [hand(arms[0]), hand(arms[1])],
+        anim,
+      };
+    },
     get emote() { return emoteKind; },
     get mood() { return mood; },
     get seated() { return SEATED.has(anim); },
