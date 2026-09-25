@@ -77,6 +77,11 @@ const SPECS = {
     share('visible', 'body >= 70% unblocked', (x) => x.visible >= 0.7, 0.75),
     share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 0.6),
   ] },
+  // Watching the smash while others walk past: a column behind them may fade for a few frames as
+  // someone passes behind it too.
+  'printer.watch': { moment: 'printer', beat: 'watch', role: 'carrier', rules: [
+    visibleRule, share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 0.95),
+  ] },
   'printer.smash': { moment: 'printer', beat: 'smash', role: 'bat', rules: [
     share('batInHand', 'bat centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
     share('facesPrinter', 'face within 45 deg of the printer', (x) => x.targetAngle <= 45, 0.8),

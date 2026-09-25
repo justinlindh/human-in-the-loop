@@ -39,6 +39,8 @@ const CARRY_SPEED = [0.5, 3];  // metres a second: the printer carry takes the c
 const PAIR_CLEAR = 0.7;      // metres a printer carry keeps from furniture, either side of its way
 const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer's side
 const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
+const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: its corner-on width plus a body's
+const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
@@ -679,8 +681,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
         // Set it down, step back from it, and the bat comes up to its spot.
         pm.phase = 'down'; pm.t = 0; pm.end = c;
         pm.from = pm.people.map((r) => ({ x: r.pos.x, z: r.pos.z }));
+        pm.watch = watchSpots(pm, c);
         pm.swingSpot = swingSpot(pm, c);
-        a.temp.stage.beat = b.temp.stage.beat = 'watch';
+        a.temp.stage.beat = b.temp.stage.beat = 'set';
         setAnim(a, 'idle'); setAnim(b, 'idle');
         if (bat) { setAnim(bat, 'shoulderwalk'); bat.temp.stage = { beat: 'ready', role: 'bat', held: pm.bat, target: pm.obj }; }
       }
@@ -692,7 +695,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       pm.obj.position.y = c.y + gripY(pm) * (1 - e);
       pm.obj.scale.setScalar(JAM_SCALE + (pm.scale1 - JAM_SCALE) * e);
       const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
-      [a, b].forEach((r, i) => { const k2 = i ? -1 : 1, d = e * 0.45; r.pos.x = pm.from[i].x + perp[0] * d * k2; r.pos.z = pm.from[i].z + perp[1] * d * k2; });
+      // The carriers step round behind it, as the camera sees it, to watch.
+      const kw = Math.min(1, pm.t / WATCH_S), ew = kw * kw * (3 - 2 * kw);
+      [a, b].forEach((r, i) => {
+        const to = pm.watch?.[i] ?? { x: pm.from[i].x + perp[0] * 0.45 * (i ? -1 : 1), z: pm.from[i].z + perp[1] * 0.45 * (i ? -1 : 1) };
+        r.pos.x = pm.from[i].x + (to.x - pm.from[i].x) * ew; r.pos.z = pm.from[i].z + (to.z - pm.from[i].z) * ew;
+        if (r.temp.anim !== (kw < 1 ? 'walk' : 'idle')) setAnim(r, kw < 1 ? 'walk' : 'idle');
+        if (kw >= 1) r.temp.stage.beat = 'watch';
+      });
       if (bat) {
         const to = pm.swingSpot;
         bat.pos.x = pm.from[2].x + (to.x - pm.from[2].x) * e; bat.pos.z = pm.from[2].z + (to.z - pm.from[2].z) * e;
@@ -701,7 +711,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
       }
       // Both carriers turn to watch it get what it deserves.
       [a, b].forEach((r) => { r.yaw = angleTo(r, c); });
-      if (k >= 1 && t >= CUE.wind) { pm.phase = 'smash'; pm.t = 0; if (bat) bat.temp.stage.beat = 'smash'; }
+      if (k >= 1 && pm.t >= WATCH_S && t >= CUE.wind) { pm.phase = 'smash'; pm.t = 0; if (bat) bat.temp.stage.beat = 'smash'; }
       return;
     }
     if (pm.phase === 'smash') {
@@ -734,18 +744,50 @@ export function createMoments({ office, recs, walkTo, emote, getProps, fx = null
   }
   // Where the bat swings from: beside the printer as the camera sees it, so the swing shows in
   // profile over it, nothing stands in front, and it is clear of furniture, chairs and the carriers.
-  function swingSpot(pm, c) {
-    const nav = office.nav(), away = getYaw() + Math.PI;
+  // Whether someone can stand at q round the set-down printer at c.
+  function standTest(pm) {
+    const nav = office.nav();
     const chairs = [...office.placed.values()].filter((e) => e.desk?.seat).map((e) => e.desk.seat);
-    const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
-    const carriers = [1, -1].map((k) => ({ x: c.x + perp[0] * (pm.side + 0.45) * k, z: c.z + perp[1] * (pm.side + 0.45) * k }));
     // The wreck (hidden until the last blow) blocks the nav grid round its spot, and the prop is
     // placed with room clear around it, so inside its footprint only chairs are tested.
     const wreckBox = new THREE.Box3().setFromObject(pm.wreck).expandByScalar(0.35);
-    const blocked = (q) => (!wreckBox.containsPoint(_q.set(q.x, 0.1, q.z)) && nav.isBlocked(q.x, q.z, BODY_R)) || chairs.some((h) => Math.hypot(h.x - q.x, h.z - q.z) < CHAIR_CLEAR);
+    return (q) => !((!wreckBox.containsPoint(_q.set(q.x, 0.1, q.z)) && nav.isBlocked(q.x, q.z, BODY_R)) || chairs.some((h) => Math.hypot(h.x - q.x, h.z - q.z) < CHAIR_CLEAR));
+  }
+  // Two spots for the carriers to watch from: behind the printer as the camera sees it where there is
+  // room, clear, in view, with nothing in front on screen and apart from each other. Null when there
+  // are no two such spots.
+  function watchSpots(pm, c) {
+    const ok = standTest(pm), away = getYaw() + Math.PI;
+    const front = [...(office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: COLUMN_SCREEN_R, top: col.h })), { x: c.x, z: c.z, r: 0.35, top: 0.55 }];
+    // Out of view or behind something on screen costs 2 each; the pair with the least cost wins.
+    const cost = (q) => (inView(q) ? 0 : 2) + (screenBlocked(q, front) ? 2 : 0);
+    const cands = [];
+    for (const r of [WATCH_AT, WATCH_AT + 0.3]) for (const d of [0.7, -0.7, 0.45, -0.45, 1, -1, 1.3, -1.3, 0.2, -0.2, 1.7, -1.7]) {
+      const q = { x: c.x + Math.sin(away + d) * r, z: c.z + Math.cos(away + d) * r };
+      if (ok(q)) cands.push({ q, cost: cost(q) });
+    }
+    let best = null, bestCost = Infinity;
+    for (let i = 0; i < cands.length; i++) for (let j = i + 1; j < cands.length; j++) {
+      const [p, q] = [cands[i].q, cands[j].q];
+      if (Math.hypot(p.x - q.x, p.z - q.z) < 0.8) continue;
+      const total = cands[i].cost + cands[j].cost + (screenBlocked(p, [{ ...q, r: 0.3, top: 1.1, either: true }]) ? 1 : 0);
+      if (total < bestCost) { best = [p, q]; bestCost = total; }
+      if (!total) break;
+    }
+    if (!best) return null;
+    // Each carrier to the nearer spot.
+    const [p, q] = best, [a, b] = pm.from;
+    const cross = Math.hypot(a.x - p.x, a.z - p.z) + Math.hypot(b.x - q.x, b.z - q.z) > Math.hypot(a.x - q.x, a.z - q.z) + Math.hypot(b.x - p.x, b.z - p.z);
+    return cross ? [q, p] : [p, q];
+  }
+  function swingSpot(pm, c) {
+    const away = getYaw() + Math.PI;
+    const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
+    const carriers = pm.watch ?? [1, -1].map((k) => ({ x: c.x + perp[0] * (pm.side + 0.45) * k, z: c.z + perp[1] * (pm.side + 0.45) * k }));
+    const ok = standTest(pm), blocked = (q) => !ok(q);
     // Anything in the way on screen costs 2 (a column, the printer, or out of view), sharing a screen
     // strip with a carrier costs 1; the first spot with the least cost wins.
-    const cols = (office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: 0.3, top: col.h }));
+    const cols = (office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: COLUMN_SCREEN_R, top: col.h }));
     const strips = carriers.map((p) => ({ ...p, r: 0.3, top: 1.1, either: true }));
     let best = null, bestCost = Infinity;
     for (const d of [1.3, -1.3, 1, -1, 1.7, -1.7, 0.6, -0.6, 2.2, -2.2, 0, Math.PI]) {

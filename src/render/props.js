@@ -880,8 +880,8 @@ function printerWrecked() {
 }
 // Out the door on the ground: the driveway, the campus. The Office Floor is a storey up with its
 // street out of view, so there the pieces lie inside, a little way in from the door.
-const WRECK_IN = [2.5, 2, 3, 3.5];   // metres in from the door the Office Floor wreck may lie
-const WRECK_COLUMN_GAP = 1.4;         // and how far it keeps from a column when it can
+const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
+const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
 function outside(build, scale = 1) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
