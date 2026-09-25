@@ -47,3 +47,4 @@ Then open the local URL Vite prints (usually http://localhost:5173). Add `?seed=
 Copyright (c) 2026 Justin Lindh. All rights reserved.
 
 The source is public so people can read it. No license is granted to use, copy, modify or distribute it; see [LICENSE](LICENSE). Contributions are not being accepted right now.
+- skip test
