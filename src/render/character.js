@@ -304,7 +304,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   slice.rotation.set(0.3, 0, 0);
 
   const box = new THREE.Mesh(boxGeo, mat('cardboard'));
-  box.position.set(0, TORSO_H * 0.35, 0.24);
+  // Held out in front of the chest: its back face just clear of the widest build's torso.
+  box.position.set(0, TORSO_H * 0.35, 0.31);
   box.castShadow = true;
   const boxParent = torso;
 

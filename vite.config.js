@@ -22,7 +22,8 @@ export default defineConfig({
   // The dependency cache lives in each worktree, not in node_modules: worktrees can share one
   // node_modules, and the version define gives every commit a different cache hash, so a shared
   // cache was rebuilt under a running server and its module fetches failed.
-  cacheDir: '.vite',
+  // HITL_VITE_CACHE gives a dev server its own dependency cache, for runs side by side in one tree.
+  cacheDir: process.env.HITL_VITE_CACHE || '.vite',
   server: { port: 5173 },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
   test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 20000 },

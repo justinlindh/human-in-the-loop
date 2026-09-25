@@ -710,6 +710,42 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       results.push({ name: `moment:visitor:${want}`, pass: samples > 0 && beats.has('hide') && beats.has(want) && worst < 0.01, samples, beats: [...beats], insidePct: +(100 * worst).toFixed(2), worstWho });
       step(30 * 8);
     }
+  // 8. Behind a decision card: the game freezes the office while a decision is open (main.js calls
+  // setPaused), and the moment the decision stages still plays through it; everyone else holds
+  // still. Paused outright (speed 0), the moment holds still too. Stepped through render(), which
+  // is where the freeze applies.
+  {
+    R.moments.full = true;
+    const frame = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.render(1 / 30); } };
+    // A desk whose sitter is at it (seated, not off on a hard problem).
+    frame(30 * 3);
+    const occupied = [...R.office.placed.values()].find((e) => e.desk && S.staff.some((p) => R.perks.peek(p.id)?.seat === e.id && p.mood !== 'away' && p.assignment?.type !== 'hardProblem' && R.isSeated(p.id)));
+    const sitter = S.staff.find((p) => R.perks.peek(p.id)?.seat === occupied?.id);
+    S.pendingDecision = { eventId: 'resignation_letter', subjectId: sitter?.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: occupied?.x, y: occupied?.y } };
+    R.setPaused(true);
+    const where = () => new Map([...S.staff].map((p) => { const root = charOf(R.scene, p.id); return [p.id, root ? root.position.clone() : null]; }));
+    frame(1);
+    const before = where();
+    // The letter's poses seen (readpaper is the read beat).
+    const actors = new Set(), beats = new Set();
+    for (let i = 0; i < 30 * 14; i++) {
+      frame(1);
+      for (const [id, what] of R.moments.active) if (what === 'letter') { actors.add(id); beats.add(R.perks.peek(id)?.temp?.anim); }
+    }
+    const after = where();
+    const moved = [...before].filter(([id, p]) => p && after.get(id) && p.distanceTo(after.get(id)) > 0.01).map(([id]) => id);
+    const strays = moved.filter((id) => !actors.has(id));
+    // Paused outright: whoever is in the moment holds still.
+    R.setSpeed(0);
+    const held = where();
+    frame(60);
+    const late = where();
+    const drift = [...actors].filter((id) => held.get(id) && held.get(id).distanceTo(late.get(id)) > 0.001);
+    R.setSpeed(1);
+    R.setPaused(false);
+    S.pendingDecision = null;
+    frame(30 * 4);
+    results.push({ name: 'moment:behind-card', pass: actors.size > 0 && beats.has('readpaper') && strays.length === 0 && drift.length === 0, desk: occupied?.id ?? null, sitter: sitter?.id ?? null, actors: [...actors], beats: [...beats], strays, drift });
     R.moments.full = false;
   }
   R.perks.hold = false;
@@ -747,4 +783,23 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
   step(60);
   return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null, staff: S.staff.length, readyAt, playedAt, table: spot };
+}
+
+// The sky backdrop redraws at most a few times a second; a change inside that window must still be
+// drawn when it ends, so the sky settles on the last time of day asked for even if time then stops.
+export async function runSkyCheck() {
+  const { createBackdrop } = await import('./lighting.js');
+  const b = createBackdrop();
+  const px = () => [...b.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
+  b.update({ daylight: 1, dusk: 0 });
+  const day = px();
+  b.update({ daylight: 0.5, dusk: 1 });
+  b.update({ daylight: 0, dusk: 0 });
+  await new Promise((r) => setTimeout(r, 400));
+  window.__tick?.(400);
+  const last = px();
+  const fresh = createBackdrop();
+  fresh.update({ daylight: 0, dusk: 0 });
+  const night = [...fresh.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
+  return { name: 'sky:trailing', pass: last.join() === night.join() && day.join() !== night.join(), day: day.join(), last: last.join(), night: night.join() };
 }

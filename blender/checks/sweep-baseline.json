@@ -1,33 +1,21 @@
 {
  "accepted": [
   {
-   "key": "grid|espresso@L3/front|footprint",
-   "worst": 0.21,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|server_rack@L3/front",
-   "worst": 0.21,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|standing_desk@L2/front",
-   "worst": 0.21,
-   "state": "mock:floor",
-   "issue": 385
-  },
-  {
-   "key": "grid|footprint|standing_desk@L3/front",
-   "worst": 0.21,
-   "state": "mock:floor",
-   "issue": 385
+   "key": "person|coffee_corner/pal_glass_frame|person(still)/head",
+   "worst": 0.067,
+   "state": "seed:1:w208",
+   "issue": 381
   },
   {
    "key": "person|coffee_corner/pal_metal_soft|person(walking)/torso",
    "worst": 0.045,
    "state": "seed:1:w791",
+   "issue": 381
+  },
+  {
+   "key": "person|coffee_corner/pal_plastic_charcoal|person(still)/head",
+   "worst": 0.025,
+   "state": "seed:1:w208",
    "issue": 381
   },
   {
@@ -37,9 +25,33 @@
    "issue": 381
   },
   {
+   "key": "person|coffee_corner/pal_plastic_white|person(still)/head",
+   "worst": 0.081,
+   "state": "seed:1:w208",
+   "issue": 381
+  },
+  {
+   "key": "person|coffee_corner/pal_plastic_white|person(still)/torso",
+   "worst": 0.179,
+   "state": "seed:1:w208",
+   "issue": 381
+  },
+  {
    "key": "person|coffee_corner/pal_plastic_white|person(walking)/head",
    "worst": 0.039,
    "state": "seed:1:w791",
+   "issue": 381
+  },
+  {
+   "key": "person|coffee_corner/pal_wood_dark|person(still)/torso",
+   "worst": 0.072,
+   "state": "seed:1:w208",
+   "issue": 381
+  },
+  {
+   "key": "person|coffee_corner/pal_wood_light|person(still)/head",
+   "worst": 0.023,
+   "state": "seed:1:w208",
    "issue": 381
   },
   {
@@ -69,19 +81,19 @@
   {
    "key": "person|desk/pal_fabric_slate|person(still)/torso",
    "worst": 0.064,
-   "state": "seed:1:w198",
+   "state": "seed:1:w791",
    "issue": 381
   },
   {
    "key": "person|desk/pal_fabric_slate|person(walking)/head",
    "worst": 0.055,
-   "state": "seed:1:w208",
+   "state": "seed:1:w312",
    "issue": 381
   },
   {
    "key": "person|desk/pal_fabric_slate|person(walking)/torso",
    "worst": 0.076,
-   "state": "seed:1:w208",
+   "state": "seed:1:w198",
    "issue": 381
   },
   {
@@ -135,13 +147,13 @@
   {
    "key": "person|desk/pal_plastic_charcoal|person(walking)/legR",
    "worst": 0.026,
-   "state": "seed:1:w535",
+   "state": "seed:1:w198",
    "issue": 381
   },
   {
    "key": "person|desk/pal_plastic_charcoal|person(walking)/torso",
    "worst": 0.073,
-   "state": "seed:1:w208",
+   "state": "seed:1:w198",
    "issue": 381
   },
   {
@@ -181,12 +193,6 @@
    "issue": 385
   },
   {
-   "key": "person|person(still)/head|pizza_boxes/pal_wood_light",
-   "worst": 0.024,
-   "state": "seed:1:w48",
-   "issue": 435
-  },
-  {
    "key": "person|person(still)/head|plant/pal_leaf",
    "worst": 0.137,
    "state": "seed:1:w624",
@@ -203,12 +209,6 @@
    "worst": 0.114,
    "state": "seed:1:w624",
    "issue": 381
-  },
-  {
-   "key": "person|person(still)/torso|pizza_boxes/pal_wood_light",
-   "worst": 0.024,
-   "state": "seed:1:w48",
-   "issue": 435
   },
   {
    "key": "person|person(still)/torso|plant/pal_leaf",
@@ -241,40 +241,22 @@
    "issue": 381
   },
   {
-   "key": "person|person(walking)/head|pizza_boxes/pal_wood_light",
-   "worst": 0.024,
-   "state": "moment:hackathon",
-   "issue": 435
-  },
-  {
    "key": "person|person(walking)/head|plant/pal_leaf",
    "worst": 0.099,
    "state": "seed:1:w535",
    "issue": 381
   },
   {
-   "key": "person|person(walking)/torso|pizza_boxes/pal_wood_light",
-   "worst": 0.03,
-   "state": "moment:hackathon",
-   "issue": 435
+   "key": "person|person(walking)/head|plant/pal_leaf_dark",
+   "worst": 0.05,
+   "state": "seed:1:w328",
+   "issue": 381
   },
   {
    "key": "person|person|person",
    "worst": 0.173,
-   "state": "seed:1:w728",
+   "state": "seed:1:w416",
    "issue": 381
-  },
-  {
-   "key": "screen|bubble|emote",
-   "worst": 1,
-   "state": "seed:1:w520",
-   "issue": 388
-  },
-  {
-   "key": "screen|bubble|face",
-   "worst": 1,
-   "state": "seed:1:w136",
-   "issue": 388
   },
   {
    "key": "self|held/held|own head",
@@ -287,12 +269,6 @@
    "worst": 0.016,
    "state": "moment:open_plan_office",
    "issue": 433
-  },
-  {
-   "key": "self|held/pal_cardboard|own torso",
-   "worst": 0.052,
-   "state": "seed:1:w728",
-   "issue": 434
   }
  ]
 }

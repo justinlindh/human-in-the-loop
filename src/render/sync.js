@@ -452,7 +452,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const momentCam = createMomentCamera(rig);
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam });
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !!standup || !!incentives.party || !!incentives.dance });
+  // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
+  // still behind its card, so a standup or party under way would never end).
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, isBusy: () => !lastState?.pendingDecision && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -841,11 +843,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
   }
 
-  function update(dt, { paused = false } = {}) {
+  function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
     if (paused) {
-      // Nothing advances, but everyone is still drawn where they are (new arrivals included).
+      // With a decision open (momentsToo), the moment it stages still plays: its actors, its
+      // visitors and the moment camera. Everything else holds still.
+      const staging = momentsToo && !!lastState?.pendingDecision;
+      if (staging) { moments.update(dt, lastState); momentCam.update(dt); }
+      // Nothing else advances, but everyone is still drawn where they are (new arrivals included).
       for (const r of [...recs.values(), ...leavers]) {
+        if (staging && r.temp?.moment && recs.has(r.id)) { updateRec(r, dt); continue; }
         r.char.root.position.copy(r.pos);
         if (r.temp?.lift && !r.path.length) r.char.root.position.y = r.temp.lift;
         r.char.root.rotation.y = r.yaw;

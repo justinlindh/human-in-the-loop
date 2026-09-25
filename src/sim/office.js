@@ -32,6 +32,23 @@ export function footprintCells(itemId, x, y, rot) {
   return cells;
 }
 
+// The tiles an item's front zone covers at a level: the row just past its footprint on the side it faces
+// (+y at rot 0, -x at 1, -y at 2, +x at 3), across its width. Empty below the item's frontFrom level.
+export function frontCells(itemId, x, y, rot, level = 1) {
+  const it = ITEMS[itemId];
+  if (!it?.frontFrom || level < it.frontFrom) return [];
+  const { w, h } = it.footprint;
+  const [rw, rh] = rot % 2 ? [h, w] : [w, h];
+  switch (rot) {
+    case 1: return Array.from({ length: rh }, (_, i) => [x - 1, y + i]);
+    case 2: return Array.from({ length: rw }, (_, i) => [x + i, y - 1]);
+    case 3: return Array.from({ length: rh }, (_, i) => [x + rw, y + i]);
+    default: return Array.from({ length: rw }, (_, i) => [x + i, y + rh]);
+  }
+}
+
+const FRONT_REASON = 'Needs clear floor in front';
+
 // The chair tile of a desk set: its second footprint row, so the sitter faces the desk.
 export function seatTile(placed) {
   const { w, h } = ITEMS[placed.itemId].footprint;
@@ -100,7 +117,7 @@ export function pathsClear(stageIdx, placed) {
 }
 
 // Why an item cannot go at (x, y, rot) on a stage given the other placed items, or null. Layout only.
-function layoutProblem(stageIdx, others, { itemId, x, y, rot }) {
+function layoutProblem(stageIdx, others, { itemId, x, y, rot, level = 1 }) {
   const st = shapeOf(stageIdx);
   if (![x, y, rot].every(Number.isInteger) || rot < 0 || rot > 3) return 'Out of bounds';
   const cells = footprintCells(itemId, x, y, rot);
@@ -113,6 +130,11 @@ function layoutProblem(stageIdx, others, { itemId, x, y, rot }) {
   const taken = new Set();
   for (const p of others) for (const [ox, oy] of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(key(ox, oy));
   if (cells.some(([cx, cy]) => taken.has(key(cx, cy)))) return 'Overlaps something';
+  const front = frontCells(itemId, x, y, rot, level);
+  if (front.some(([fx, fy]) => fx < 0 || fy < 0 || fx >= st.grid.w || fy >= st.grid.h || blocked.has(key(fx, fy)) || taken.has(key(fx, fy)))) return FRONT_REASON;
+  const zones = new Set();
+  for (const p of others) for (const [fx, fy] of frontCells(p.itemId, p.x, p.y, p.rot, p.level)) zones.add(key(fx, fy));
+  if (cells.some(([cx, cy]) => zones.has(key(cx, cy)))) return FRONT_REASON;
   if (!pathsClear(stageIdx, [...others, { itemId, x, y, rot }])) return 'Would block the path to a desk';
   return null;
 }
@@ -148,7 +170,7 @@ export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
   if (!ITEMS[item]) return { ok: false, reason: 'Unknown item' };
   if (state.officeStage < ITEMS[item].minStage) return { ok: false, reason: 'Needs a bigger office' };
   const others = state.office.placed.filter((p) => p !== moving);
-  const problem = layoutProblem(layoutOf(state), others, { itemId: item, x, y, rot });
+  const problem = layoutProblem(layoutOf(state), others, { itemId: item, x, y, rot, level: moving?.level ?? 1 });
   if (problem) return { ok: false, reason: problem };
   if (!moving) {
     const reason = purchaseProblem(state, item);
@@ -334,6 +356,11 @@ export function upgradeProblem(state, placed) {
   if (it.kind !== 'shop') return 'Nothing to upgrade';
   if (placed.level >= it.costs.length) return 'Already max level';
   if (state.cash < it.costs[placed.level]) return 'Not enough cash';
+  // An upgrade that brings a front zone needs that floor clear, like placing it would.
+  if (frontCells(placed.itemId, placed.x, placed.y, placed.rot, placed.level + 1).length && !frontCells(placed.itemId, placed.x, placed.y, placed.rot, placed.level).length) {
+    const others = state.office.placed.filter((p) => p !== placed);
+    if (layoutProblem(layoutOf(state), others, { ...placed, level: placed.level + 1 }) === FRONT_REASON) return FRONT_REASON;
+  }
   return null;
 }
 

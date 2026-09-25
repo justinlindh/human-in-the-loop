@@ -60,6 +60,46 @@ printf 'All green: scripts/ci-pr.sh passes.\n' >"$tmp/apiclean.md"
 allowed "gh api repos/o/r/pulls/5/reviews -F body=@$tmp/apiclean.md -f event=COMMENT"
 allowed "gh api repos/o/r/issues/5/comments --field body=@$tmp/apiclean.md"
 allowed 'gh api repos/o/r/pulls/5 --jq .state'
+# A body built from a file is judged by the file's contents, wherever the file lives.
+allowed "gh pr create --title t --body \"\$(cat $tmp/clean.md)\""
+allowed "gh pr create --title t --body \"\$(<$tmp/clean.md)\""
+allowed "gh pr comment 5 --body \"\`cat $tmp/clean.md\`\""
+allowed "gh pr edit 5 --body-file $tmp/clean.md"
+allowed "gh pr comment 5 --body-file $tmp/clean.md"
+denied "gh pr create --title t --body \"\$(cat $tmp/body.md)\""
+denied "gh pr edit 5 --body-file $tmp/body.md"
+denied "gh pr comment 5 --body-file $tmp/body.md"
+leak="$tmp/leak"
+denied "gh pr create --title t --body \"intro \$(cat $tmp/clean.md) and $leak\""
+# Heredocs are data: a review that talks about gh pr commands and example paths is not PR text for
+# a gh call, but a heredoc that becomes the gh command's body still is.
+allowed "cat > \$R <<'EOF'
+The check refused gh pr create --body \"see $leak\" as intended.
+EOF
+bash scripts/review-verdict.sh 5 pass \$R"
+allowed "python3 - <<'EOF'
+open('$leak/x', 'w').write('scratch')
+EOF
+gh pr create --title t --body-file $tmp/clean.md"
+denied "cat > \$B <<'EOF'
+Evidence in $leak/shot.png
+EOF
+gh pr create --title t --body-file \$B"
+denied "gh pr create --title t --body-file - <<'EOF'
+Evidence in $leak/shot.png
+EOF"
+denied "tee \$B <<'EOF' >/dev/null
+Evidence in $leak/shot.png
+EOF
+gh pr create --title t --body-file \$B"
+denied "tee -a \"\$B\" <<'EOF'
+Evidence in $leak/shot.png
+EOF
+gh pr create --title t --body-file \"\$B\""
+allowed "tee \$R <<'EOF'
+The check refused gh pr create --body \"see $leak\" as intended.
+EOF
+bash scripts/review-verdict.sh 5 pass \$R"
 
 # lane-guard: branch prefix decides
 editjson() { jq -n --arg f "$1" --arg d "$repo" '{hook_event_name: "PreToolUse", tool_name: "Edit", cwd: $d, tool_input: {file_path: $f}}'; }
@@ -132,6 +172,25 @@ sleep 0.3; grep -q 'pr merge 42 -R o/r --auto --merge' "$tmp/gh.log" || fail "pr
 : >"$tmp/gh.log"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --draft --body-file $tmp/good.md" "$url")"
 sleep 0.3; grep -q 'pr merge' "$tmp/gh.log" && fail "pr-create-check must not turn on auto-merge for a draft"
+# Only a real invocation, and only the URL it printed on its own line.
+review="tee \$R <<'EOF'
+The hook ran after gh pr create and enabled auto-merge on $url by mistake.
+EOF
+bash scripts/review-verdict.sh 42 pass \$R"
+for c in "$review" "echo 'next: gh pr create --fill'" "echo \"run gh pr create\"" "grep -n 'gh pr create' notes.md"; do
+  : >"$tmp/gh.log"
+  PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "$c" "$url")"
+  sleep 0.3; [ -s "$tmp/gh.log" ] && fail "pr-create-check must ignore a mention of gh pr create: $c"
+  [ -z "$out" ] || fail "pr-create-check should be silent for a mention: $c (got: $out)"
+done
+: >"$tmp/gh.log"
+PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file $tmp/good.md" "Posted review on $url (pass)")"
+sleep 0.3; [ -s "$tmp/gh.log" ] && fail "pr-create-check must not act on a URL inside other output"
+: >"$tmp/gh.log"
+PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "cd x && GH_DEBUG= gh pr create --title \"a b\" --body-file $tmp/good.md" "Creating pull request for o:x into main in o/r
+
+$url")"
+sleep 0.3; grep -q 'pr merge 42 -R o/r --auto --merge' "$tmp/gh.log" || fail "pr-create-check should act on a real create after && and VAR="
 printf '## Evidence\n\n- **Tests:** fine\n- **Gates run:**\n  - `npm run test:fast`: "Tests 7 passed (7)".\n  - `clip.mjs`: 51 of 51.\n\n## Affects\n\nNone\n\n## Closes\n\nRefs #406\n' >"$tmp/nested.md"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file $tmp/nested.md && gh pr merge 42 --auto --merge" "$url")"
 [ -z "$out" ] || fail "pr-create-check should accept nested Gates run bullets and Refs #n (got: $out)"

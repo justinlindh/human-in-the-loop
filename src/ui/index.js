@@ -121,6 +121,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     getState,
     onName: (id) => { controls.focusStaff?.(id); menu.open('staff', { staffId: id }); },
     onAnswer: (promptId, choice) => { if (act({ type: 'answerPrompt', promptId, choice }).ok) sfx('confirm'); },
+    onPost: (id) => { const r = act({ type: 'postMessage', id }); if (r.ok) sfx('confirm'); return r; },
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,

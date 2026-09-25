@@ -79,7 +79,8 @@ const out = await page.evaluate(async () => {
   const u = await C.runUseChecks(R, S, useIds);
   dance.push(await C.runDanceLengthCheck(R, S));
   const party = await C.runPartyCheck(R, S);
-  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u, party, pairs];
+  const sky = await C.runSkyCheck();
+  return [seatCheck, ...a.results, ...b.results, ...dance, ...w, ...u, party, sky, pairs];
 });
 // The garage: two founders still get a game of foosball in now and then.
 {
