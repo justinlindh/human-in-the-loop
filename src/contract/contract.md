@@ -295,3 +295,40 @@ state.office.props = [{ id, prop, x, y, since, until }]       // lingering props
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
 - `leaves` takes the stage prop's tile when there is one. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
+
+## Yak reply prompts (#16)
+
+Some staff posts in Yak carry two or three founder replies. They're small, low-stakes choices. Big-stakes choices stay as decision popups.
+
+```js
+state.chatPrompts = [ChatPrompt]   // open prompts, plus resolved ones kept for B.chatPromptsKept weeks so ui can show them as answered
+ChatPrompt = {
+  id,                // 'cp12', from its own sequence (state.flags.promptSeq), so prompts never shift other ids or the seeded course
+  kind,              // template id in src/data/prompts.js
+  chatId,            // the chatLog message the options hang under
+  channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
+  week,              // week opened
+  expiresWeek,       // resolves as ignored when state.week reaches it
+  options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
+  resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
+}
+```
+
+```js
+{ type: 'chatPrompt', promptId, chatId }            // a prompt opened; its chat event comes earlier in the same tick
+{ type: 'chatPromptResolved', promptId, choice }    // choice: index, or null when it expired unanswered
+```
+
+```js
+{ type: 'answerPrompt', promptId, choice }
+// { ok: false, reason } with 'No such prompt' | 'Already answered' | 'That has gone quiet' | 'Invalid choice'
+// or the option's own requirement reason (the same strings as decision choices)
+```
+
+- The founder's reply and the poster's follow-up are ordinary chat events with `replyTo = chatId`. The founder's line has `fromId` set to a founder's id.
+- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup.
+- At most `B.chatPromptsOpen` prompts are open at once. A new prompt opens at least `B.chatPromptGapWeeks` after the last one.
+- Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
+- Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
+- Copy follows the voice guide and the era gates.
+- Old saves load with `chatPrompts = []` and `flags.promptSeq = 0`.
