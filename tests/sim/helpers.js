@@ -1,4 +1,6 @@
 import { createGame } from '../../src/sim/index.js';
+import { eligibleEvents } from '../../src/sim/events.js';
+import { eventCandidates } from '../../src/sim/prompts.js';
 import { generateStaff } from '../../src/sim/staff.js';
 import { findSpot, assignSeats } from '../../src/sim/office.js';
 import { offerPaths } from '../../src/sim/progression.js';
@@ -114,3 +116,6 @@ export function withoutGrind(B, fn) {
   B.meaningGrindPerHead = 0;
   try { return fn(); } finally { [B.meaningGrind, B.meaningGrindPerHead] = saved; }
 }
+
+// Every event the game would offer this week: popups, plus the low-stakes events it delivers as Yak prompts.
+export const offeredEvents = (s) => [...eligibleEvents(s), ...eventCandidates(s)].map((e) => e.id);

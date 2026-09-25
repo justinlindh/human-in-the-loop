@@ -8,7 +8,7 @@ import { removeStaff } from '../../src/sim/staff.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { OFFICE_NODS, cuttable, consultantRating } from '../../src/data/office-nods.js';
-import { game, passOfficeGates, addStaff } from './helpers.js';
+import { game, passOfficeGates, addStaff, offeredEvents } from './helpers.js';
 
 const N = B.nods;
 const IDS = OFFICE_NODS.map((e) => e.id);
@@ -60,7 +60,7 @@ describe('issue #339: office classics', () => {
   it('the banner and consultants only run in Consolidation; the rest run in any era', () => {
     const early = company(1, 16, 200);
     const late = company(1, 16, 560);
-    const ids = (s) => eligibleEvents(s).map((e) => e.id).filter((id) => IDS.includes(id));
+    const ids = (s) => offeredEvents(s).filter((id) => IDS.includes(id));
     expect(ids(early).sort()).toEqual(['cover_sheets', 'printer_jam', 'saturday_ask', 'the_stapler']);
     expect(ids(late).sort()).toEqual([...IDS].sort());
   });
@@ -69,7 +69,7 @@ describe('issue #339: office classics', () => {
     const s = company(2, 16, 560);
     s.flags.cd_printer_jam = s.week + EVENTS.printer_jam.cooldownWeeks;
     s.week += 600;
-    expect(eligibleEvents(s).map((e) => e.id)).not.toContain('printer_jam');
+    expect(offeredEvents(s)).not.toContain('printer_jam');
   });
 
   it('banner: hanging it leaves the banner on the wall; ironically sometimes costs a little brand', () => {

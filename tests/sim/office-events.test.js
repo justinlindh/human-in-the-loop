@@ -7,7 +7,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { ITEMS } from '../../src/data/items.js';
-import { game, addProduct, placeAction, setItems } from './helpers.js';
+import { game, addProduct, placeAction, setItems, offeredEvents } from './helpers.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
 
 const eventText = (e) => [e.title, e.text, e.chat ?? '', ...(e.choices ?? []).flatMap((c) => [c.label, c.hint, c.outcome ?? ''])].join(' ');
@@ -19,12 +19,12 @@ describe('events follow the real office', () => {
     s.stats.launches = 1;
     s.week = 30;
     addProduct(s);
-    expect(eligibleEvents(s).map((e) => e.id)).not.toContain('coffee_machine_broke');
-    expect(eligibleEvents(s).map((e) => e.id)).toContain('coffee_wanted');
+    expect(offeredEvents(s)).not.toContain('coffee_machine_broke');
+    expect(offeredEvents(s)).toContain('coffee_wanted');
     s.cash = 1e6;
     expect(dispatch(s, placeAction(s, 'espresso')).ok).toBe(true);
-    expect(eligibleEvents(s).map((e) => e.id)).toContain('coffee_machine_broke');
-    expect(eligibleEvents(s).map((e) => e.id)).not.toContain('coffee_wanted');
+    expect(offeredEvents(s)).toContain('coffee_machine_broke');
+    expect(offeredEvents(s)).not.toContain('coffee_wanted');
     raise(s, 'coffee_machine_broke');
     const cash = s.cash;
     expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);

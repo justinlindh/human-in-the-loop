@@ -7,6 +7,11 @@ import { eraAllowsText, eraLines, currentEra } from './eras.js';
 import { PROMPTS } from '../data/prompts.js';
 import { deskCapacity } from './office.js';
 import { mentorOf } from './staff.js';
+import { EVENTS } from '../data/events.js';
+import { ITEMS } from '../data/items.js';
+import { eventFitsEra, helpers, resolveSubjects, decisionVars, fillText } from './events.js';
+import { grantBlocker, leaveProp } from './props.js';
+import { placeNow, findSpot, layoutOf } from './office.js';
 
 // Yak reply prompts: a staff post with two or three founder replies, open for a few weeks. Answering applies
 // the option's effects and posts the founder's reply and the poster's answer in the thread; letting it expire
@@ -123,6 +128,79 @@ function applyOption(ctx, o, pc) {
   if (o.productEffects && pc.productId) applyEffects(ctx, o.productEffects, pc.productId, `prompt:${pc.kind}`);
 }
 
+// Low-stakes events (those with `yak` in src/data/events.js) are delivered as Yak prompts instead of popups:
+// officebot posts the event, its choices become the replies, and if nobody answers, the choice named by
+// yak.ignore happens (or nothing, when it is null).
+const eventChoiceBlocker = (state, c, subjectId) =>
+  (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
+
+export function eventCandidates(state) {
+  const h = helpers(state);
+  return Object.values(EVENTS).filter((ev) => ev.yak && ev.random && ev.choices
+    && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
+    && eventFitsEra(state, ev)
+    && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
+    && ev.when(state, h)
+    && (ev.subject === null || resolveSubjects(state, ev).length > 0));
+}
+
+function openEventPrompt(ctx, ev) {
+  const { state } = ctx;
+  const subjects = resolveSubjects(state, ev);
+  const subjectId = subjects.length ? pick(ctx.rng, subjects).id : null;
+  const vars = decisionVars(state, ctx.rng, subjectId);
+  const fill2 = (t) => fillText(state, ctx.rng, t, subjectId, vars);
+  const msg = emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill2(ev.title)}: ${fill2(ev.text)}` });
+  state.flags.promptSeq = (state.flags.promptSeq ?? 0) + 1;
+  const id = `cp${state.flags.promptSeq}`;
+  (state.flags.promptCtx ??= {})[id] = { kind: ev.id, event: true, subjectId, vars };
+  state.chatPrompts.push({
+    id, kind: ev.id, chatId: msg.id, channel: 'general', fromId: null, week: state.week,
+    expiresWeek: state.week + B.chatPromptExpiryWeeks,
+    options: ev.choices.map((c) => { const why = eventChoiceBlocker(state, c, subjectId); return { label: fill2(c.label), hint: fill2(c.hint), available: !why, reason: why }; }),
+    resolved: null,
+  });
+  state.flags.lastPromptWeek = state.week;
+  state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+  if (ev.marks) state.flags[ev.marks] = state.week;
+  ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
+}
+
+function botLine(ctx, prompt, text) {
+  return emitChat(ctx, { channel: prompt.channel, from: '@officebot', text, replyTo: prompt.chatId }).id;
+}
+
+// Applies an event prompt's choice (or its ignore choice) the way resolving the decision would.
+function resolveEvent(ctx, prompt, choice) {
+  const { state } = ctx;
+  const ev = EVENTS[prompt.kind];
+  const pc = state.flags.promptCtx?.[prompt.id] ?? { subjectId: null, vars: null };
+  const fill2 = (t) => fillText(state, ctx.rng, t, pc.subjectId, pc.vars);
+  const index = choice ?? ev.yak.ignore;
+  let replyId = null;
+  if (index !== null && index !== undefined) {
+    const c = ev.choices[index];
+    if (choice !== null) {
+      const founder = founderOf(state);
+      if (founder) replyId = emitChat(ctx, { channel: prompt.channel, person: founder, text: fill2(c.label), replyTo: prompt.chatId }).id;
+    }
+    if (choice !== null || !eventChoiceBlocker(state, c, pc.subjectId)) {
+      applyEffects(ctx, c.effects, pc.subjectId, ev.id, pc.vars);
+      if (c.grant) {
+        placeNow(ctx, c.grant.item, findSpot(layoutOf(state), state.office.placed, c.grant.item));
+        if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
+      }
+      if (c.leaves) leaveProp(state, { ...c.leaves, anchor: c.leaves.anchor ?? ev.stage?.anchor }, null, pc.subjectId);
+      if (c.outcome) botLine(ctx, prompt, choice === null ? `Nobody answered, so: ${fill2(c.outcome)}` : fill2(c.outcome));
+    }
+  } else {
+    botLine(ctx, prompt, 'Nobody answered. It sorted itself out, more or less.');
+  }
+  prompt.resolved = { choice, week: state.week, replyId };
+  delete state.flags.promptCtx?.[prompt.id];
+  ctx.emit({ type: 'chatPromptResolved', promptId: prompt.id, choice });
+}
+
 function openPrompt(ctx) {
   const { state } = ctx;
   const found = [];
@@ -131,8 +209,11 @@ function openPrompt(ctx) {
     const hit = TRIGGERS[t.on]?.(state, ctx);
     if (hit) found.push({ t, hit });
   }
+  for (const ev of eventCandidates(state)) found.push({ ev });
   if (!found.length) return;
-  const { t, hit } = pick(ctx.rng, found);
+  const chosen = pick(ctx.rng, found);
+  if (chosen.ev) { openEventPrompt(ctx, chosen.ev); return; }
+  const { t, hit } = chosen;
   const pc = { kind: t.id, posterId: hit.poster.id, productId: hit.productId ?? null, projectId: hit.projectId ?? null };
   pc.productName = state.products.find((p) => p.id === pc.productId)?.name ?? null;
   pc.projectName = state.projects.find((j) => j.id === pc.projectId)?.name ?? null;
@@ -163,6 +244,7 @@ function threadLine(ctx, prompt, person, lines, pc) {
 }
 
 function resolve(ctx, prompt, choice) {
+  if (!TEMPLATES[prompt.kind] && EVENTS[prompt.kind]?.yak) { resolveEvent(ctx, prompt, choice); return; }
   const { state } = ctx;
   const t = TEMPLATES[prompt.kind];
   const pc = state.flags.promptCtx?.[prompt.id] ?? { kind: prompt.kind, posterId: prompt.fromId };
@@ -192,7 +274,11 @@ export function promptsSystem(outer) {
   const open = state.chatPrompts.filter((p) => !p.resolved);
   for (const p of open) {
     const t = TEMPLATES[p.kind];
-    t.options.forEach((o, i) => { const why = optionBlocker(state, o, p.fromId); p.options[i].available = !why; p.options[i].reason = why; });
+    if (t) t.options.forEach((o, i) => { const why = optionBlocker(state, o, p.fromId); p.options[i].available = !why; p.options[i].reason = why; });
+    else {
+      const subjectId = state.flags.promptCtx?.[p.id]?.subjectId ?? null;
+      EVENTS[p.kind].choices.forEach((c, i) => { const why = eventChoiceBlocker(state, c, subjectId); p.options[i].available = !why; p.options[i].reason = why; });
+    }
   }
   if (open.length >= B.chatPromptsOpen || state.week < B.chatPromptFromWeek) return;
   if (state.week - (state.flags.lastPromptWeek ?? -Infinity) < B.chatPromptGapWeeks) return;
@@ -209,8 +295,11 @@ registerAction('answerPrompt', (outer, { promptId, choice }) => {
   if (prompt.resolved?.choice !== undefined && prompt.resolved?.choice !== null) return { ok: false, reason: 'Already answered' };
   if (prompt.resolved) return { ok: false, reason: 'That has gone quiet' };
   const t = TEMPLATES[prompt.kind];
-  if (!Number.isInteger(choice) || choice < 0 || choice >= t.options.length) return { ok: false, reason: 'Invalid choice' };
-  const why = optionBlocker(state, t.options[choice], prompt.fromId);
+  const ev = t ? null : EVENTS[prompt.kind];
+  const count = t ? t.options.length : ev.choices.length;
+  if (!Number.isInteger(choice) || choice < 0 || choice >= count) return { ok: false, reason: 'Invalid choice' };
+  const why = t ? optionBlocker(state, t.options[choice], prompt.fromId)
+    : eventChoiceBlocker(state, ev.choices[choice], state.flags.promptCtx?.[prompt.id]?.subjectId ?? null);
   if (why) return { ok: false, reason: why };
   resolve(side(outer, 1000 + Number(prompt.id.slice(2)) * 7 + choice), prompt, choice);
   return { ok: true };

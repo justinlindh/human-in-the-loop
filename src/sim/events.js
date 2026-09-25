@@ -163,7 +163,9 @@ export function eligibleEvents(state) {
   // A new company gets a quiet start: no decisions until its first launch or a few weeks in.
   const grace = (state.stats.launches === 0 && state.week < B.eventGraceWeeks)
     || (state.flags.lastDecisionWeek !== undefined && state.week - state.flags.lastDecisionWeek < B.decisionGapWeeks);
-  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
+  // Events marked yak are delivered as Yak prompts (src/sim/prompts.js) while prompts are on.
+  const yak = B.chatPromptsEnabled;
+  return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices) && !(yak && ev.yak)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && eventFitsEra(state, ev)
     && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
