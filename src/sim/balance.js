@@ -5,6 +5,8 @@ export const B = {
   candidateRefreshWeeks: 4, candidateCount: 5,
   // Level-ups in one week that earn a team growth line in #wins.
   growthDigestMin: 3,
+  // Level and training entries kept in a person's growth history; milestones are kept for good.
+  growthHistoryMax: 20,
   xpPerLevel: 60, xpPerWeekWorking: 8, promoteMidLevel: 5, promoteSeniorLevel: 10, maxLevel: 20,
   juniorXpAutomationPenalty: 0.7, mentorXpMult: 2.2, mentorOutputMult: 0.6,
   basePoints: 4, pointsPerLevel: 1.1,
