@@ -24,7 +24,7 @@ import { createTooltips } from './tooltip.js';
 import { createSceneTips } from './sceneTips.js';
 import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
-import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK } from './v2content.js';
+import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -155,8 +155,18 @@ export function createUI({ root, getState, dispatch, controls }) {
   }
   // One tick's unlocks and era arrive together (both are immediate events). An era card lists the
   // unlocks that came with it; several unlocks without an era share one card; a lone one gets its own.
+  // A new policy after the first is a toast (the Policies button's NEW tag points the way); the
+  // first one keeps its card, since it brings the Policies menu itself.
+  const inPolicies = (k) => k.startsWith('policy.') || k === 'standups';
   function onUnlocksAndEra(keys, era, state) {
     if (keys.length) syncMenus(state, true);
+    const hadPolicies = Object.keys(state.unlocks ?? {}).some((k) => inPolicies(k) && !keys.includes(k));
+    const quiet = !era && hadPolicies ? keys.filter((k) => k.startsWith('policy.')) : [];
+    for (const key of quiet) {
+      if (menu.current !== 'policies') { newMenus.add('policies'); menu.setNew('policies', true); }
+      toasts.push(`${unlockInfo(key).title}. It's in Policies.`, 'good', { action: () => menu.open('policies') });
+    }
+    keys = keys.filter((k) => !quiet.includes(k));
     const items = keys.map((key) => {
       const host = hostOf(key);
       if (host && menu.current !== host) { newMenus.add(host); menu.setNew(host, true); }
@@ -171,6 +181,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       announcer.era(era.eraId, state.week, own, keys.filter((k) => k !== 'meaning'));
       if (revealMeaning) { if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); } announcer.unlock('meaning', 'staff', 'Staff'); }
     } else if (items.length === 1) announcer.unlock(items[0].key, items[0].menuId, items[0].menuLabel);
+    else if (!items.length) return;
     else if (items.length > 1) announcer.unlocks(items);
   }
 
