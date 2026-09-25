@@ -86,7 +86,15 @@ if [ -n "$moment" ]; then
   if grep -q -- '--only' blender/checks/clip.mjs; then CMD[clip]="$(gpu node blender/checks/clip.mjs --only="$moment")"
   else CMD[clip]="$(gpu node blender/checks/clip.mjs)"; echo "gates: clip.mjs has no --only here; running all of clip"; fi
   CMD[stage]="$(gpu node blender/checks/stage.mjs --only="$sname" --out "$LOGS/stage.json")"
-  CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks none --seeds none --moments "'$sevent'" --out "$LOGS/sweep")"
+  # The sweep plays that decision from an indexed snapshot when the event index has one; some
+  # decisions have none (the letter), and then the floor mock's pass, which plays every staged
+  # moment on purpose, covers it instead.
+  if timeout 120 node scripts/events/find.js "$sevent" --snapshot --limit 1 2>/dev/null | grep -q ' snapshot '; then
+    CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks none --seeds none --moments "'$sevent'" --out "$LOGS/sweep")"
+  else
+    echo "gates: no indexed snapshot of $sevent; the sweep runs the floor mock's pass, which stages every moment"
+    CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks floor --seeds none --out "$LOGS/sweep")"
+  fi
 else
   CMD[clip]="$(gpu node blender/checks/clip.mjs)"
   CMD[stage]="$(gpu node blender/checks/stage.mjs --out "$LOGS/stage.json")"
