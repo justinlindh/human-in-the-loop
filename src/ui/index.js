@@ -473,6 +473,8 @@ export function createUI({ root, getState, dispatch, controls }) {
       return el;
     },
     hideTip: () => tooltips.hide(),
+    // Holds every toast on screen (true) or lets them time out again (false).
+    freezeToasts: (on) => toasts.freeze(on),
     startTutorial: () => tutorial.start(true),
     build: buildMode,
     openGoals: () => goalsModal(),

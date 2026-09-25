@@ -948,7 +948,7 @@ export function createOffice({ parent, screens, lighting }) {
     const d = deskById(id);
     if (!d?.screen || d.screenKind === kind) return;
     d.screenKind = kind;
-    d.screen.material = kind === 'work' ? screens.deskMaterial(d.seed) : screens.material(kind);
+    d.screen.material = kind === 'work' ? screens.deskMaterial(d.seed) : screens.material(kind, d.seed ?? 0);
     rebatchSwaps();
   }
 
