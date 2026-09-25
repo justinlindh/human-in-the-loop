@@ -18,6 +18,7 @@
     "lifecycle": "node scripts/lifecycle.js",
     "soak": "node scripts/soak.js",
     "capture": "node scripts/capture.js",
+    "trailer": "node scripts/trailer/build.js",
     "models": "bash scripts/build-models.sh",
     "hooks": "git config core.hooksPath scripts/hooks"
   },
