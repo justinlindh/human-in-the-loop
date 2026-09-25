@@ -35,6 +35,19 @@ const YAK_HISTORY = (at) => ({ at, js: 'window.__HITL.emit((window.__HITL.state.
 // (VIEW0), or a party's centre (PARTY). In-engine moves only; `punch` (a 2D zoom) is not used.
 const VIEW0 = { js: '(window.__v0 ??= window.__hitlRender.view())' };
 const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
+// Pushes in on the Yak message containing `text` over `secs` (an eased CSS transform the capture
+// steps frame by frame) onto the message and its replies, until they fill most of the frame, then holds.
+const YAK_PUSH = (at, text, secs = 1.4) => ({ at, js: `(() => { const yak = document.querySelector('#ui .chat.yak'); if (!yak) return;
+  const m = [...yak.querySelectorAll('.msg')].find((e) => e.textContent.includes(${JSON.stringify('TEXT')})); if (!m) return;
+  // The message and its thread's replies, framed together.
+  const rs = [...yak.querySelectorAll('.msg[data-root="' + m.dataset.root + '"]')].map((e) => e.getBoundingClientRect());
+  const r = { left: Math.min(...rs.map((x) => x.left)), top: Math.min(...rs.map((x) => x.top)), right: Math.max(...rs.map((x) => x.right)), bottom: Math.max(...rs.map((x) => x.bottom)) };
+  r.width = r.right - r.left; r.height = r.bottom - r.top;
+  const k = Math.min(6, (innerWidth * 0.9) / r.width, (innerHeight * 0.85) / r.height);
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  yak.style.transformOrigin = '0 0'; yak.style.transition = 'transform ${'SECS'}s cubic-bezier(0.65, 0, 0.35, 1)';
+  const yr = yak.getBoundingClientRect();
+  requestAnimationFrame(() => { yak.style.transform = 'translate(' + (innerWidth / 2 - cx * k + (k - 1) * yr.left) + 'px,' + (innerHeight / 2 - cy * k + (k - 1) * yr.top) + 'px) scale(' + k + ')'; }); })()`.replace('TEXT', text).replace('SECS', secs) });
 // Yak at trailer size: the panel scaled up, so the thread and its reactions read.
 const BIG_YAK = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .chat.yak { zoom: 1.6; }'; document.head.append(st); })()" });
 // Speech bubbles and work labels hidden, for a shot about something else.
@@ -60,7 +73,7 @@ export const BEATS = [
   { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
   // A meme posted mid-outage, and the reactions.
   // After the unlock card the week raises is closed (about 31 s in); speech bubbles hidden.
-  { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [BIG_YAK(0), NO_SAY_T(0)], from: 31.6, dur: 3.5 },
+  { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'number of tabs')], from: 31.6, dur: 3.1 },
   // PC LOAD LETTER: the carry, then all four hits, to the rap's last word. No narration.
   { id: 'printer', item: 'share-printer', from: 20.8, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },
@@ -105,7 +118,7 @@ export const VO = {
     { id: 'l7', at: { beat: 'yak', offset: 0.4 }, text: 'Your team talks. Mostly in memes.' },
     { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, text: 'Survive the AI eras. First chatbots.' },
     { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, text: 'Then agents.' },
-    { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, text: 'Automate everything. Read the bill later.' },
+    { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, text: 'Just automate everything. Read the bill later.' },
     { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, text: 'Then whatever the agents hire.' },
     { id: 'l4a', at: { beat: 'waffle', offset: 0.4 }, text: 'Reward your team with waffles.' },
     { id: 'l4b', at: { beat: 'dance', offset: 0.3 }, text: 'And a mandatory dance break.' },
