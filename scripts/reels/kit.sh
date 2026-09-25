@@ -26,7 +26,9 @@ KIT_TITLE_FONT="$KIT_DIR/fonts/Fredoka-Bold.ttf"
 KIT_BODY_FONT="$KIT_DIR/fonts/Fredoka-SemiBold.ttf"
 KIT_MONO_FONT="$KIT_DIR/fonts/JetBrainsMono-Bold.ttf"
 # The game's interface palette (src/ui/styles/01-base.css).
-KIT_INK=0x2a2630 KIT_INK_SOFT=0x5b5361 KIT_CREAM=0xfbf5ea KIT_GOOD=0x25a877
+KIT_INK=0x2a2630 KIT_INK_SOFT=0x5b5361 KIT_CREAM=0xfbf5ea
+# The one accent (src/render/palette.js marker_orange): a site URL or one highlighted word.
+KIT_ACCENT=0xe08a3c
 
 _kit_ff() { timeout 600 nice -n 10 ffmpeg -nostdin -hide_banner -loglevel error -y "$@"; }
 _kit_venc() { if [ "$KIT_ENC" = h264_nvenc ]; then echo -c:v h264_nvenc -preset p5 -cq 20 -pix_fmt yuv420p; else echo -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p; fi; }
@@ -39,14 +41,14 @@ kit_title() {
   local out="$1" title="$2" sub="${3:-}" secs="${4:-2.5}" t s
   t="$(_kit_txt "$title")"; s="$(_kit_txt "$sub")"
   _kit_ff -f lavfi -i "color=c=${KIT_CREAM}:s=${KIT_W}x${KIT_H}:r=${KIT_FPS}:d=${secs}" -f lavfi -i "anullsrc=r=48000:cl=stereo" \
-    -vf "drawtext=fontfile=${KIT_TITLE_FONT}:textfile=${t}:fontsize=$((KIT_H / 10)):fontcolor=${KIT_INK}:x=(w-text_w)/2:y=(h-text_h)/2-$((KIT_H / 22)),drawtext=fontfile=${KIT_BODY_FONT}:textfile=${s}:fontsize=$((KIT_H / 26)):fontcolor=${KIT_INK_SOFT}:x=(w-text_w)/2:y=(h/2)+$((KIT_H / 18)),fade=t=in:st=0:d=0.3,fade=t=out:st=$(awk -v d="$secs" 'BEGIN{print d-0.3}'):d=0.3" \
+    -vf "drawtext=fontfile=${KIT_TITLE_FONT}:textfile=${t}:fontsize=$((KIT_H / 10)):fontcolor=${KIT_INK}:x=(w-text_w)/2:y=(h-text_h)/2-$((KIT_H / 22)),drawtext=fontfile=${KIT_BODY_FONT}:textfile=${s}:fontsize=$((KIT_H / 26)):fontcolor=${KIT_SUB_COLOR:-${KIT_INK_SOFT}}:x=(w-text_w)/2:y=(h/2)+$((KIT_H / 18)),fade=t=in:st=0:d=0.3,fade=t=out:st=$(awk -v d="$secs" 'BEGIN{print d-0.3}'):d=0.3" \
     -t "$secs" $(_kit_venc) $(_kit_aenc) -shortest "$out"
   local r=$?; rm -f "$t" "$s"; return $r
 }
 
 kit_end() {
   local out="$1" line="${2:-Human in the Loop}" secs="${3:-3}"
-  kit_title "$out" "$line" "humanintheloopgame.com" "$secs"
+  KIT_SUB_COLOR=$KIT_ACCENT kit_title "$out" "$line" "humanintheloopgame.com" "$secs"
 }
 
 kit_lower() {
@@ -102,6 +104,7 @@ kit_xfade() {
 
 kit_ramp() {
   local in="$1" out="$2" at="$3" f="$4" a b
+  awk -v f="$f" 'BEGIN{exit !(f >= 0.5 && f <= 1)}' || { echo "kit_ramp: factor $f outside 0.5 to 1 (docs/reels.md)" >&2; return 2; }
   a="$(mktemp --suffix=.mp4)"; b="$(mktemp --suffix=.mp4)"
   _kit_ff -i "$in" -t "$at" $(_kit_venc) $(_kit_aenc) "$a" \
   && _kit_ff -ss "$at" -i "$in" -vf "setpts=PTS/${f},fps=${KIT_FPS}" -af "atempo=${f}" $(_kit_venc) $(_kit_aenc) "$b" \
