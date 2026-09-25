@@ -1173,13 +1173,24 @@ const list = [
   },
   {
     id: 'coffee_wanted', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso'),
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso' || i.itemId === 'coffee_corner'),
     chat: 'The office kettle is doing its best. Its best is not enough.',
     title: 'The team wants a coffee machine',
     text: 'Someone has started bringing a thermos to meetings. Someone else brought a French press and guards it like a dragon.',
     choices: [
       { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
       { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The French press stays on its throne.' },
+    ],
+  },
+  {
+    id: 'coffee_wanted_corner', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'coffee_corner'),
+    chat: 'The coffee corner has a new review taped to it. One star. Written in coffee.',
+    title: 'The coffee corner has been reviewed',
+    text: 'The drip coffee in the corner has been formally reviewed. One star: "Keeps the three desks next to it alive. The rest of us are running on vibes." People want real espresso, for everyone.',
+    choices: [
+      { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
+      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, outcome: 'The drip machine soldiers on. It has heard the review. It does not care.' },
     ],
   },
 ];

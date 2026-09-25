@@ -304,6 +304,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   let lastPanelAt = 0;
   function update(state) {
     checkNewItems(state);
+    // Phones hide toasts while a card is up (the stylesheet reads this class).
+    if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);

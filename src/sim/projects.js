@@ -49,10 +49,13 @@ const meanScore = (reviews) => round(sum(reviews, (r) => r.score) / reviews.leng
 
 // One review per outlet around a target score, each with a different quote that fits a first launch or an
 // update. The product's score is then the mean of these, so what the popup shows always adds up.
-export function pressReviews(state, target, { update = false } = {}) {
+// With centered, the outlets' spread is shifted to average zero, so the scores average to the target.
+export function pressReviews(state, target, { update = false, centered = false } = {}) {
   const used = new Set();
-  return PRESS.map((outlet) => {
-    const score = Math.round(clamp(target + range(state.rng, -B.reviewNoise, B.reviewNoise), 1, 10) * 2) / 2;
+  const offsets = PRESS.map(() => range(state.rng, -B.reviewNoise, B.reviewNoise));
+  const shift = centered ? sum(offsets, (o) => o) / offsets.length : 0;
+  return PRESS.map((outlet, i) => {
+    const score = Math.round(clamp(target + offsets[i] - shift, 1, 10) * 2) / 2;
     const band = score < 5 ? 'low' : score >= 8 ? 'high' : 'mid';
     const all = eraIndex(state) > 0 ? [...REVIEW_QUOTES[band], ...AI_REVIEW_QUOTES[band]] : REVIEW_QUOTES[band];
     const fits = all.filter((q) => typeof q === 'string' || q.when === (update ? 'update' : 'first')).map((q) => (typeof q === 'string' ? q : q.text));
@@ -187,11 +190,11 @@ function complete(ctx, j) {
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'update' && pr && !pr.killed) {
     for (const st of STATS) pr.stats[st] = pr.stats[st] * 0.6 + j.stats[st];
-    // The new version's standing blends its old score with the update's reviews; the outlets then review
-    // the blended product, so the scores shown average to the score the product gets.
-    const fresh = reviewScore(state, j).base;
+    // The new version's standing blends its old score with the update's own reviews, as it always has; the
+    // outlets then review that blended product, so the scores shown average to the score the product gets.
+    const fresh = reviewScore(state, j).score;
     const target = B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * fresh;
-    const reviews = pressReviews(state, target, { update: true });
+    const reviews = pressReviews(state, target, { update: true, centered: true });
     Object.assign(pr, { score: meanScore(reviews), reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
     ctx.emit({ type: 'toast', text: `${pr.name} v${pr.version} shipped. Reviews average ${pr.score}.`, tone: 'good' });

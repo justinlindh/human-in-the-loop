@@ -1246,3 +1246,33 @@
 }
 .hitl .moment-cap.show { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { .hitl .moment-cap { transition: opacity 200ms linear; transform: translate(-50%, 0); } }
+
+/* Phones (narrow, or short in landscape): at most two toasts, one line each, full width and docked
+   above the bottom row; only toasts with an action take taps, so the office stays playable. They
+   hide while placing furniture and while a card (a decision, a launch) is up. */
+@media (max-width: 480px), (max-height: 500px) {
+  .hitl .toasts { top: auto; left: 0.6em; right: 0.6em; width: auto; bottom: calc(var(--bottom-h, 6em) + 0.9em); gap: 0.3em; pointer-events: none; }
+  .hitl .toasts .toast { pointer-events: none; padding-top: 0.3em; padding-bottom: 0.3em; }
+  .hitl .toasts .toast.clickable, .hitl .toasts .toast-more { pointer-events: auto; }
+  .hitl .toasts .toast { align-items: center; }
+  .hitl .toasts .toast .tt { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .hitl.building .toasts, .hitl.popup-open .toasts { display: none; }
+}
+
+/* Phones (narrow, or short in landscape): a docked card (a decision, an era arrival) spans the
+   width between the top bar and the bottom row, and its body scrolls inside. */
+@media (max-width: 480px), (max-height: 500px) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked {
+    place-items: start stretch; justify-content: stretch; align-items: flex-start;
+    padding: calc(var(--topbar-h, 4.6em) + 0.4em) 0.6em calc(var(--bottom-h, 6em) + 0.6em) 0.6em;
+  }
+  .hitl .modal-back.docked .modal.decision, .hitl .announce-back.docked .announce.era { width: 100%; max-height: 100%; }
+  .hitl .announce-back.docked .announce.era { overflow-y: auto; }
+}
+/* Touch has no number keys to press. */
+@media (pointer: coarse) { .hitl .modal.decision .keys { display: none; } }
+/* Short landscape screens: the top bar and bottom row leave no room, so the card covers them (the
+   week waits for the decision anyway). */
+@media (max-height: 500px) {
+  .hitl .modal-back.docked, .hitl .announce-back.docked { padding: 0.4em; }
+}
