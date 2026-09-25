@@ -61,7 +61,7 @@ export function createProps(office, screens = null) {
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk });
       if (!obj) continue;
       obj.userData.propId = w.prop;
-      if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
+      if (obj.userData.blocks) obj.userData.rect = floorRect(obj, obj.userData.blockPart);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
       live.set(w.key, { obj, t: 0, gone: false, prop: w.prop });
@@ -91,7 +91,7 @@ export function createProps(office, screens = null) {
         if (desk) {
           follow(e.obj, desk);
           const r = e.obj.userData.rect;
-          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj); moved = true; }
+          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj, e.obj.userData.blockPart); moved = true; }
         } else { e.gone = true; e.t = 0; dropped.add(k); moved = true; }
       }
       // Effects are built in office coordinates and fade on their own: no pop, no shrink.
@@ -131,13 +131,14 @@ export function createProps(office, screens = null) {
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
 // prims geometry (cached and shared) and loaded models (userData.shared) belong to everyone.
-// A floor prop's footprint in office coordinates, measured at full size, with a little room around
-// it; px, pz remember where it stood so a moving prop can tell when to re-measure.
-function floorRect(obj) {
+// A floor prop's footprint in office coordinates (of `part` alone when given: the solid piece of a
+// prop whose effects spill round it), measured at full size, with a little room around it; px, pz
+// remember where it stood so a moving prop can tell when to re-measure.
+function floorRect(obj, part = null) {
   const s = obj.scale.x;
   obj.scale.setScalar(1);
   obj.updateMatrixWorld(true);
-  const b = new THREE.Box3().setFromObject(obj);
+  const b = new THREE.Box3().setFromObject(part ?? obj);
   obj.scale.setScalar(s);
   obj.updateMatrixWorld(true);
   const pad = 0.05;
@@ -932,10 +933,26 @@ function smokePuff(L, anchor, env) {
   return puffs(itemAt(L, anchor, env.office).box, { color: P.metal_dark, size: 0.5, opacity: 0.75, rise: 1.4 });
 }
 // The server rack is running hot: a pulsing orange glow over its front and heat rising off the top.
+const OWN_RACK_YAW = Math.PI / 4;   // a staged rack of its own faces the default camera
 function rackHot(L, anchor, env) {
-  const { box } = itemAt(L, anchor, env.office, ['rack']);
+  const { box: found, entry } = itemAt(L, anchor, env.office, ['rack']);
   const g = new THREE.Group();
-  const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2, glow: true });
+  let box = found;
+  if (!entry) {
+    // No rack in this office: the staged one brings its own, on clear floor near the anchor, facing
+    // the room three-quarters to the camera, and it blocks walking. The effects follow it round.
+    const rack = getModel('server_rack');
+    rack.userData.shared = true;
+    g.add(rack);
+    const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+    const q = clearSpot(L, env.office, g, { x: c.x, z: c.z });
+    box = new THREE.Box3().setFromObject(rack);
+    g.position.set(q.x, 0, q.z);
+    g.rotation.y = OWN_RACK_YAW;
+    g.userData.blocks = true;
+    g.userData.blockPart = rack;
+  }
+  const heat = puffs(box, { n: 10, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.6, opacity: 0.9, spread: 0.22, glow: true });
   g.add(heat);
   // Smoke pouring out of the rack's front vents into the room.
   const front = new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.4, box.max.z + 0.05);
@@ -954,7 +971,7 @@ function rackHot(L, anchor, env) {
     t += dt;
     heat.userData.tick(dt);
     smoke.userData.tick(dt);
-    glowMat.opacity = 0.45 + 0.25 * Math.sin(t * 4);
+    glowMat.opacity = 0.62 + 0.3 * Math.sin(t * 4);
   };
   g.userData.noPop = true;
   return g;
