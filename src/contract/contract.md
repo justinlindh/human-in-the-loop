@@ -284,7 +284,7 @@ Decisions whose text describes something physical show it in the office.
 stage: { prop, anchor }            // anchor: 'wall' | 'subjectDesk' | 'kitchen' | 'door' | 'screens' | 'whiteboard'
 // Choice data, optional:
 grant:  { item }                   // buys and auto-places a real item (buyItem placement rules)
-leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor only when the event has no stage
+leaves: { prop, until, anchor }    // until: { item } | { weeks } | { flag }; anchor optional
 
 state.pendingDecision.stage = null | { prop, anchor, x, y }   // tile resolved when raised; x, y null for 'screens'
 state.office.props = [{ id, prop, x, y, since, until }]       // lingering props, at most B.officePropsMax (6), oldest dropped
@@ -296,7 +296,7 @@ state.office.props = [{ id, prop, x, y, since, until }]       // lingering props
 - `until: { flag }` means the prop is removed once `state.flags[flag]` is set (truthy). `{ item }` means once an item of that id is placed. `{ weeks }` means that many weeks after `since`.
 - An anchor of `'screens'` has no tile: the renderer shows the prop as an overlay on every monitor in the office, for as long as the decision is open. `leaves` can't use `'screens'`.
 - An anchor of `'whiteboard'` resolves to a placed whiteboard or whiteboard_wall, else the back wall as `'wall'` does.
-- `leaves` takes the stage prop's tile when there is one, and otherwise resolves its own `anchor`. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
+- `leaves` uses its own `anchor` when it sets one; otherwise it takes the stage prop's tile, or the back wall when there is no stage. The sim removes a prop once its `until` is met; the renderer diffs `office.props` and needs no new events.
 - Old saves load with `office.props = []`.
 
 ## Yak reply prompts (#16)
