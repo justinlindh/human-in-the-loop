@@ -313,6 +313,7 @@ ChatPrompt = {
   options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y },            // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
+  subjectId: null | staffId,                       // the event's subject, as pendingDecision.subjectId; moments cast the subject first
 }
 ```
 
@@ -381,7 +382,7 @@ postOptions(state)   // pure export from src/sim/index.js
 
 ## Growth events (#549)
 
-People's growth is announced as events, so render, ui and audio can make it visible. Speech bubbles and the existing toasts and #wins lines stay.
+People's growth is announced as events, so render, ui and audio can make it visible. Speech bubbles and the #wins lines stay. The sim emits no toast for a promotion or an earned trait: ui shows those from `promoted` and `traitEarned`.
 
 ### Events: Growth
 

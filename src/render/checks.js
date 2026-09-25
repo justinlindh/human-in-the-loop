@@ -675,6 +675,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     let worst = 0, worstWho = null, samples = 0, chin = Infinity, chinWho = null;
     const phases = new Set();
     const box = new THREE.Box3(), pbox = new THREE.Box3();
+    // Each blow announces itself (hitl:moment 'hit', numbered from 0), for the sound to land on.
+    const hits = [];
+    const onHit = (e) => { if (e.detail?.phase === 'hit' && e.detail.key === 'printer_jam') hits.push(e.detail.hit); };
+    addEventListener('hitl:moment', onHit);
     for (let i = 0; i < 30 * 30; i++) {
       step(1);
       const pm = R.moments.printerState;
@@ -709,8 +713,10 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       });
     }
     S.office.props = S.office.props.filter((p) => p.id !== 'wreck_prop');
+    removeEventListener('hitl:moment', onHit);
     const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
-    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0, phases: [...phases], samples, insidePct: +(100 * worst).toFixed(2), worstWho, chinGap: +chin.toFixed(3), chinWho });
+    const hitsOk = hits.join() === '0,1,2,3';
+    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk, phases: [...phases], hits, samples, insidePct: +(100 * worst).toFixed(2), worstWho, chinGap: +chin.toFixed(3), chinWho });
     R.moments.full = false;
     step(30);
   }
@@ -788,6 +794,37 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     frame(30 * 4);
     results.push({ name: 'moment:behind-card', pass: actors.size > 0 && beats.has('readpaper') && strays.length === 0 && drift.length === 0, desk: occupied?.id ?? null, sitter: sitter?.id ?? null, actors: [...actors], beats: [...beats], strays, drift });
     R.moments.full = false;
+  }
+  // 9. A Yak prompt that delivers an event stages it as a card would, without pausing anything: the
+  // prop is drawn and its moment plays while the prompt is open (the fumes get fanned), and
+  // answering it (chatPromptResolved) acts on the choice (the walls-down swing).
+  {
+    R.moments.full = true;
+    const prompt = (id, kind, stage) => ({ id, kind, chatId: null, channel: 'general', fromId: null, week: S.week, expiresWeek: S.week + 4, options: [], resolved: null, stage, subjectId: ids[0] });
+    S.chatPrompts = [prompt('cp900', 'coffee_machine_broke', { prop: 'smoke_puff', anchor: 'kitchen', x: 1, y: 1 })];
+    let drawn = false, fanned = false;
+    for (let i = 0; i < 30 * 30 && !fanned; i++) {
+      step(1);
+      drawn ||= R.props.current().some((x) => x.prop === 'smoke_puff');
+      fanned ||= R.moments.active.some(([, what]) => what === 'fumes');
+    }
+    S.chatPrompts = [prompt('cp901', 'open_plan_office', { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 })];
+    // Answered once the hammer is up at the wall (or after 40 s), then given time to swing.
+    const phases = new Set();
+    let answeredAt = null;
+    for (let i = 0; i < 30 * 60 && !phases.has('swing'); i++) {
+      if (answeredAt === null && (R.moments.hammer?.phase === 'hold' || i === 30 * 40)) {
+        answeredAt = i;
+        S.chatPrompts[0].resolved = { choice: 0, week: S.week, replyId: null };
+        R.handleEvents([{ type: 'chatPromptResolved', promptId: 'cp901', choice: 0 }], S);
+      }
+      step(1);
+      if (R.moments.hammer) phases.add(R.moments.hammer.phase);
+    }
+    S.chatPrompts = [];
+    results.push({ name: 'moment:prompt-stage', pass: drawn && fanned && phases.has('swing'), drawn, fanned, phases: [...phases] });
+    R.moments.full = false;
+    step(30 * 4);
   }
   R.perks.hold = false;
   return results;
