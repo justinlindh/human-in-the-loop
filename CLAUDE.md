@@ -29,7 +29,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | sim | simulation | `../gamedev-sim` | `src/sim/`, `src/data/`, `src/save/`, `tests/`, `scripts/balance.js` |
 | art | render and art | `../gamedev-art` | `src/render/`, `blender/`, `public/models/`, `docs/readme/` |
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
-| video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
+| video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`, `docs/reels.md`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
 | audio | sound | `../gamedev-audio` | `public/audio/`, `src/audio/` (shared with ui), `scripts/trailer/`, `docs/trailer/`, `docs/readme/`; music, sound effects, voice and masters |
 | tools | checks | `../gamedev-tools` | `blender/checks/`, `scripts/events/` |
 | perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
