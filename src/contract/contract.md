@@ -397,4 +397,15 @@ People's growth is announced as events, so render, ui and audio can make it visi
 - Founders emit them too.
 - The sim emits every event. Throttling at high speed is the job of render, ui and audio.
 - The big tier uses state, not new events: `p.path` set by `choosePath`, and `p.legend`, which also keeps its existing `celebrate` event.
-- No state or action changes, and old saves are unaffected.
+- Each staff member keeps a growth history, so the staff card's timeline survives a reload:
+
+```js
+p.growth = [{ week, kind, detail }]   // newest last
+// kind: 'level' { level, gains } | 'promoted' { seniority } | 'trait' { traitId, source }
+//     | 'trained' { skill, gain, program } | 'path' { pathId } | 'legend' {}
+```
+
+- Entries are recorded at the same moment as the matching event.
+- Milestones ('promoted', 'trait', 'path', 'legend') are kept for good. 'level' and 'trained' entries are capped at `B.growthHistoryMax`, and the oldest of those drop off first.
+- Candidates start with `[]`. The history leaves with the person.
+- It draws no randomness. Old saves load a missing `growth` as `[]`.
