@@ -23,6 +23,16 @@ const CANDIDATES = [
   ...Object.values(POLICIES).map((p) => ({ key: `policy.${p.id}`, ready: (s) => p.unlock(s), era: !!p.era, with: p.with ? p.with : null })),
 ];
 
+// Whether an unlock shows a pausing card, as the UI decides it: a new policy after the first is only a toast,
+// unless an era arrives the same week (the era card lists it).
+const inPolicies = (k) => k.startsWith('policy.') || k === 'standups';
+export function showsCard(ctx, key) {
+  const { state } = ctx;
+  if (!key.startsWith('policy.') || ctx.events.some((e) => e.type === 'era')) return true;
+  const earlier = Object.entries(state.unlocks).some(([k, week]) => inPolicies(k) && k !== key && week < state.week);
+  return !earlier;
+}
+
 // Opens systems whose triggers are true. Era-bound ones open at once; the rest arrive one at a time,
 // at least B.unlockGapWeeks apart, so the opening introduces one new thing at a time.
 export function checkUnlocks(ctx) {
@@ -34,7 +44,7 @@ export function checkUnlocks(ctx) {
     for (const c of CANDIDATES) if (c.with === key && !isUnlocked(state, c.key)) open(c.key, true);
     if (!quiet) {
       ctx.emit({ type: 'unlock', key });
-      ctx.state.flags.lastPauseWeek = ctx.state.week;
+      if (showsCard(ctx, key)) ctx.state.flags.lastPauseWeek = ctx.state.week;
     }
   };
   for (const c of CANDIDATES) if (c.era && !isUnlocked(state, c.key) && c.ready(state, h)) open(c.key);
