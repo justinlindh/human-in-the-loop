@@ -20,6 +20,7 @@ export function createCameraRig(canvas) {
   let zoom = 1;
   let zoomGoal = 1;
   let fitHeight = 12;
+  let fitShown = 12;       // fitHeight as drawn: eases toward it after an eased setBounds
   let aspect = 1;
   let viewW = 1, viewH = 1;
   let shakeTime = 0;
@@ -65,13 +66,15 @@ export function createCameraRig(canvas) {
     fitHeight = Math.max(needH * viewH / innerH, needW * viewH / innerW);
   }
 
-  function setBounds(box, recenter = true) {
+  // ease: glide the view to the new framing (an office move) instead of cutting to it.
+  function setBounds(box, recenter = true, ease = false) {
     bounds.copy(box);
     refit();
+    if (!ease) fitShown = fitHeight;
     if (recenter) {
       box.getCenter(center);
       goal.copy(center);
-      target.copy(goal);
+      if (!ease) target.copy(goal);
     }
   }
 
@@ -79,6 +82,7 @@ export function createCameraRig(canvas) {
     viewW = Math.max(1, w); viewH = Math.max(1, h);
     aspect = viewW / viewH;
     refit();
+    fitShown = fitHeight;
   }
 
   function clampGoal() {
@@ -178,6 +182,7 @@ export function createCameraRig(canvas) {
     target.lerp(goal, k);
     yaw += (yawGoal - yaw) * (1 - Math.exp(-dt * 8));
     zoom += (zoomGoal - zoom) * k;
+    fitShown += (fitHeight - fitShown) * (1 - Math.exp(-dt * 4));
 
     shakeOffset.set(0, 0, 0);
     if (shakeTime > 0) {
@@ -199,7 +204,7 @@ export function createCameraRig(canvas) {
     camera.position.copy(tmp).addScaledVector(dir, DISTANCE);
     camera.up.set(0, 1, 0);
     camera.lookAt(tmp);
-    const hh = fitHeight / zoom / 2;
+    const hh = fitShown / zoom / 2;
     camera.left = -hh * aspect; camera.right = hh * aspect;
     camera.top = hh; camera.bottom = -hh;
     camera.updateProjectionMatrix();
@@ -221,7 +226,7 @@ export function createCameraRig(canvas) {
     camera, target, setBounds, resize, update, shake, focus, dispose,
     get yaw() { return yaw; },
     get zoom() { return zoom; },
-    setZoom(z) { zoomGoal = zoom = THREE.MathUtils.clamp(z, ZOOM_MIN, ZOOM_MAX); },
+    setZoom(z, ease = false) { zoomGoal = THREE.MathUtils.clamp(z, ZOOM_MIN, ZOOM_MAX); if (!ease) zoom = zoomGoal; },
     get dragging() { return dragging; },
     get lastInput() { return lastInput; },
     get goal() { return goal.clone(); },
