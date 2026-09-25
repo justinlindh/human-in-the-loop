@@ -8,7 +8,7 @@ import { totalMrr } from './products.js';
 import { agentSpend, rivalMergePrice, moonshotWeekly } from './economy.js';
 import { MOONSHOT_NAMES } from '../data/forsale.js';
 import { featuredDeal } from './acquire.js';
-import { stageTile, grantBlocker, leaveProp } from './props.js';
+import { stageTile, grantBlocker, leaveProp, isIn } from './props.js';
 import { placeNow, findSpot, layoutOf } from './office.js';
 import { ITEMS } from '../data/items.js';
 import { automationExposure } from './automation.js';
@@ -98,6 +98,12 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: last + B.decisionGapWeeks, kind: 'event', payload: { eventId, subjectId } });
     return false;
   }
+  // A desk-staged decision about someone who is out this week waits a week rather than stage at an empty desk.
+  const subject = state.staff.find((p) => p.id === subjectId);
+  if (ev.stage?.anchor === 'subjectDesk' && subject && !isIn(subject)) {
+    if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week + 1, kind: 'event', payload: { eventId, subjectId } });
+    return false;
+  }
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   const vars = decisionVars(state, ctx.rng, subjectId);
@@ -123,7 +129,8 @@ const hasResign = (fx) => !!fx && (fx.resign || hasResign(fx.cond?.then) || hasR
 export function resolveSubjects(state, ev) {
   const present = state.staff.filter((p) => p.mood !== 'away');
   const canLeave = (ev.choices ?? [{ effects: ev.auto }]).some((c) => hasResign(c.effects));
-  const people = canLeave ? present.filter((p) => !p.founder) : present;
+  const people = (canLeave ? present.filter((p) => !p.founder) : present)
+    .filter((p) => ev.stage?.anchor !== 'subjectDesk' || !p.remote);
   switch (ev.subject) {
     case null: case undefined: return [];
     case 'randomStaff': return people;
