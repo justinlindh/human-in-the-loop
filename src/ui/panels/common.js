@@ -14,6 +14,7 @@ export function projectLabel(state, j) {
 
 // What someone is doing, as a sentence fragment: project work gets its verb ("Building Legalese",
 // "Updating Inboxer to v3"); anything else reads as assignmentText does.
+const DEFAULT_NAMES = new Set(['The Big Refactor', 'Refactor', 'Craft project']);
 export function doingText(state, p) {
   const a = p.assignment ?? { type: 'idle' };
   const j = a.type === 'project' ? state.projects.find((x) => x.id === a.targetId) : null;
@@ -24,9 +25,10 @@ export function doingText(state, p) {
     case 'new': return `Building ${j.name || 'a new product'}`;
     case 'update': return `Updating ${name ?? 'a product'} to v${(prod?.version ?? 1) + 1}`;
     case 'migration': return `Migrating ${name ?? 'a product'}`;
-    case 'refactor': return j.name && j.name !== 'Refactor' ? `Refactoring ${j.name}` : 'Refactoring the code';
+    // The sim names these itself ('The Big Refactor', 'Craft project'); those defaults read as no name.
+    case 'refactor': return j.name && !DEFAULT_NAMES.has(j.name) ? `Refactoring ${j.name}` : 'Refactoring the code';
     case 'research': return `Researching ${j.name || 'an internal tool'}`;
-    default: return `Crafting ${j.name || 'a side project'}`;
+    default: return j.name && !DEFAULT_NAMES.has(j.name) ? `Crafting ${j.name}` : 'Crafting a side project';
   }
 }
 
