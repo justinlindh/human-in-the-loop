@@ -154,7 +154,8 @@ for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) =>
 }
 const rep = createReport('stage');
 // A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
-const hash = ONLY ? null : inputHash('stage');
+// Which marker issues are closed changes what fails, so it is part of the inputs a cached pass covers.
+const hash = ONLY ? null : inputHash('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}`);
 const before = passedAt('stage', hash);
 if (before) { console.log(`stage: inputs unchanged since ${before}, skipped`); process.exit(0); }
 const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice(7)) || 6);
