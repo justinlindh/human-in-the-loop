@@ -1,5 +1,6 @@
 // Checks a bench.js JSON result against the performance budget; exits 1 on a breach.
-// node scripts/perf/budget.js <result.json> [--budget scripts/perf/budget.json]
+// node scripts/perf/budget.js <result.json> [--budget scripts/perf/budget.json] [--counts-only]
+// --counts-only checks the renderer counts alone (exact on any machine); CI gates PRs on that.
 // The budget file:
 //   counts: { "<scene>/<quality>": { calls, triangles, programs, textures, geometries } }
 //     ceilings for the last build in the result; renderer counts are deterministic, so these hold
@@ -24,12 +25,13 @@ let checked = 0;
 for (const [key, caps] of Object.entries(budget.counts ?? {})) {
   const r = head.scenes[key];
   if (!r) continue;
+  console.log(`${key.padEnd(12)} ${Object.entries(caps).map(([m, cap]) => `${m} ${Math.round(r[m])}/${cap}`).join('  ')}`);
   for (const [metric, cap] of Object.entries(caps)) {
     checked++;
     if (r[metric] > cap) fails.push(`${key} ${metric} ${Math.round(r[metric])} > budget ${cap}`);
   }
 }
-if (base && budget.ratio) {
+if (base && budget.ratio && !arg('counts-only', false)) {
   for (const key of budget.ratio.scenes) {
     const r = head.scenes[key], b = base.scenes[key];
     if (!r || !b) continue;
@@ -42,6 +44,8 @@ if (base && budget.ratio) {
     }
   }
 }
+// A result that holds none of the budgeted scenes (a run that stopped early) is a failure, not a pass.
+if (!checked) fails.push(`no budgeted scene in ${file}`);
 for (const f of fails) console.log(`FAIL ${f}`);
-console.log(`budget: ${checked - fails.length}/${checked} within budget`);
+console.log(`budget: ${Math.max(0, checked - fails.length)}/${checked} within budget`);
 process.exit(fails.length ? 1 : 0);

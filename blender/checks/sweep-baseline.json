@@ -49,10 +49,70 @@
    "issue": 363
   },
   {
-   "key": "overlap|cable_chewed/pal_role_engineer|desk/pal_metal_dark",
-   "worst": 0.015,
+   "key": "grid|espresso@L3/front|footprint",
+   "worst": 0.21,
    "state": "mock:floor",
-   "issue": 363
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|meeting_table@L1/back",
+   "worst": 0.088,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|meeting_table@L1/front",
+   "worst": 0.088,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|monitoring_wall@L1/front",
+   "worst": 0.065,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|nap_pod@L2/front",
+   "worst": 0.11,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|ping_pong_table@L1/back",
+   "worst": 0.065,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|ping_pong_table@L1/front",
+   "worst": 0.065,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|server_rack@L3/front",
+   "worst": 0.21,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|standing_desk@L2/front",
+   "worst": 0.21,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "grid|footprint|standing_desk@L3/front",
+   "worst": 0.21,
+   "state": "mock:floor",
+   "issue": 385
+  },
+  {
+   "key": "person|coffee_corner/pal_plastic_white|person(sip)/head",
+   "worst": 0.052,
+   "state": "seed:1:w832",
+   "issue": 381
   },
   {
    "key": "person|coffee_corner/pal_plastic_white|person(walking)/head",
@@ -73,6 +133,12 @@
    "issue": 381
   },
   {
+   "key": "person|desk/pal_fabric_slate|person(moment pizza)/head",
+   "worst": 0.034,
+   "state": "seed:1:w48",
+   "issue": 381
+  },
+  {
    "key": "person|desk/pal_fabric_slate|person(still)/head",
    "worst": 0.057,
    "state": "seed:1:w832",
@@ -80,20 +146,20 @@
   },
   {
    "key": "person|desk/pal_fabric_slate|person(still)/torso",
-   "worst": 0.055,
-   "state": "seed:1:w832",
+   "worst": 0.064,
+   "state": "seed:1:w33",
    "issue": 381
   },
   {
    "key": "person|desk/pal_fabric_slate|person(walking)/head",
-   "worst": 0.052,
+   "worst": 0.055,
    "state": "seed:1:w48",
    "issue": 381
   },
   {
    "key": "person|desk/pal_fabric_slate|person(walking)/torso",
    "worst": 0.076,
-   "state": "seed:1:w535",
+   "state": "seed:1:w328",
    "issue": 381
   },
   {
@@ -123,7 +189,7 @@
   {
    "key": "person|desk/pal_plastic_charcoal|person(still)/torso",
    "worst": 0.053,
-   "state": "seed:1:w535",
+   "state": "seed:1:w33",
    "issue": 381
   },
   {
@@ -141,7 +207,7 @@
   {
    "key": "person|desk/pal_plastic_charcoal|person(walking)/torso",
    "worst": 0.073,
-   "state": "seed:1:w535",
+   "state": "seed:1:w328",
    "issue": 381
   },
   {
@@ -153,7 +219,7 @@
   {
    "key": "person|desk/pal_wood_honey|person(still)/torso",
    "worst": 0.027,
-   "state": "seed:1:w33",
+   "state": "seed:1:w832",
    "issue": 381
   },
   {
@@ -254,7 +320,7 @@
   },
   {
    "key": "self|held/held|own torso",
-   "worst": 0.011,
+   "worst": 0.012,
    "state": "moment:open_plan_office",
    "issue": 433
   },

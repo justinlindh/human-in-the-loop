@@ -15,7 +15,7 @@
 import { ASSETS } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -80,12 +80,13 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
-  // The playlist's next bed is chosen when the current one starts and preloaded at once, so its
-  // file is decoded by the time its bar line comes round.
+  // The playlist's next bed is chosen when the current one starts. It is preloaded PLAYLIST_PRELOAD_S
+  // before the projected switch, so only one decoded bed is held for most of a bed's run.
   function pickNext(beds) {
     const others = beds.filter((b) => b !== music.bed);
     music.nextBed = others.length ? pick(others) : null;
-    return music.nextBed ? [{ op: 'preload', ids: [`music/${music.nextBed}`] }] : [];
+    music.nextLoading = false;
+    return [];
   }
   const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(rng() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; } return arr; };
 
@@ -268,6 +269,12 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       if (beds.length > 1 && !hold && !stopped) {
         music.heard += dt;
         const len = bedSeconds(music.era, music.bed);
+        // The switch lands on the first loop boundary after PLAYLIST_MIN_S of listening.
+        if (len > 0 && music.nextBed && !music.nextLoading) {
+          const reach = t + Math.max(0, PLAYLIST_MIN_S - music.heard);
+          const switchAt = music.bedAt + Math.ceil((reach - music.bedAt) / len) * len;
+          if (switchAt - t <= PLAYLIST_PRELOAD_S) { music.nextLoading = true; out.push({ op: 'preload', ids: [`music/${music.nextBed}`] }); }
+        }
         if (music.heard >= PLAYLIST_MIN_S && len > 0) {
           const boundary = music.bedAt + Math.ceil((t - music.bedAt) / len) * len;
           if (boundary - t <= PLAYLIST_LOOKAHEAD_S) {

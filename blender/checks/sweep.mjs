@@ -3,9 +3,11 @@
 //
 //   node blender/checks/sweep.mjs            fast mode: the mocks and one seeded game, briefly,
 //                                            every staged prop on a few desks of two mocks, and
-//                                            every moment played on purpose in the floor mock
+//                                            every moment played on purpose in the floor mock,
+//                                            and every item against its sim footprint
 //   node blender/checks/sweep.mjs --full     every mock for longer, several seeds, sampled often
 //   options: --seeds 1,2,3|none  --mocks floor,hq|none  --out <dir>  --timeout <s>  --gpu
+//            --seed-limit <s> (per seed: 300 fast, 1200 full; a seed past it is skipped and fails)
 //            --update-baseline [--prune]  --strict (fail on new seed-only violations in fast mode)
 //            --moments 'printer_jam --choice 0; open_plan_office --stage hq'  indexed moments
 //                     (scripts/events/find.js queries), each loaded from its snapshot and played
@@ -17,6 +19,9 @@
 //            under it; value is the gap
 //   hand     a prop held in the hand is more than 6 cm from the wrist; value is the gap
 //   bounds   something reaches past the room's walls or under the floor; value is how far
+//   grid     an item's model reaches more than 3 cm past its sim footprint tiles on a side (the sim
+//            gives that room to a neighbour), or a desk's seat is off the sim's chair tile; every
+//            item, level and rotation, alone in the floor mock
 //   self     something a person holds or carries is more than 1 cm into their own head or torso
 //   person   a person's head or torso (and legs, walking) is more than 2 cm inside furniture, a
 //            prop, a wall or another person, other than what they are using (their desk, the
@@ -41,13 +46,14 @@ const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const full = argv.includes('--full');
 const MODES = {
-  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
-  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
+  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
+  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
 };
 const M = { ...MODES[full ? 'full' : 'fast'] };
 const list = (v) => (v === 'none' ? [] : v.split(',').filter(Boolean));
 if (opt('seeds')) M.seeds = list(opt('seeds')).map(Number);
 if (opt('mocks')) M.mocks = list(opt('mocks'));
+if (opt('seed-limit')) M.seedLimit = Number(opt('seed-limit'));
 const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
 
@@ -66,7 +72,7 @@ const windows = [];
 try {
   for (const name of M.mocks) {
     const { page, errors: e } = await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null });
+    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) });
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
@@ -90,17 +96,36 @@ try {
     console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
     await page.close();
   }
+  // Each seed runs in a browser of its own, with a time limit, so a slow or stuck seed can neither
+  // slow the ones after it nor use up the whole run; the page reports the week it has reached.
   for (const seed of M.seeds) {
-    const { page, errors: e } = await H.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
-      { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known });
+    const HS = await startHarness({ gpu: wantGpu() });
+    const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
+    let week = 0;
+    page.on('console', (m) => { const w = /^sweep-progress w(\d+)$/.exec(m.text()); if (w) week = Number(w[1]); });
+    const s0 = Date.now();
+    let limit;
+    const r = await Promise.race([
+      page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
+        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known }),
+      new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
+    ]);
+    clearTimeout(limit);
+    if (!r) {
+      errors.push(`seed:${seed}: not done after ${M.seedLimit} s (at week ${week})`);
+      console.log(`sweep: seed:${seed} not done after ${M.seedLimit} s, at week ${week}; skipped`);
+      // The page is still busy, and closing would wait for it: end its browser outright.
+      HS.browser.process?.()?.kill('SIGKILL');
+      await HS.close().catch(() => {});
+      continue;
+    }
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
     console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
     errors.push(...e.map((x) => `seed:${seed}: ${x}`));
-    console.log(`sweep: seed:${seed} ${vs.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
-    await page.close();
+    console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((Date.now() - s0) / 1000)} s (${Math.round((Date.now() - t0) / 1000)} s)`);
+    await HS.close();
   }
 } finally {
   await H.close();
@@ -166,5 +191,5 @@ if (argv.includes('--update-baseline')) {
   console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
-console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'})`);
+console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
 process.exit(fresh.length && !argv.includes('--update-baseline') || errors.length ? 1 : 0);
