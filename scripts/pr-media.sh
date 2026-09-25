@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-# Puts evidence media on a pull request without local paths. Files are committed to the orphan
-# branch pr-media of this repository (never merged; no history shared with the code) under pr-<n>/,
-# or site-<n>/ for a site PR, and the script prints markdown that renders on GitHub.
-# Usage: scripts/pr-media.sh [--comment] [--repo <owner/name>] <pr-number> <file>...
-#   --comment   also posts the markdown as a comment on the PR
-#   --repo      the repository the PR is in: justinlindh/human-in-the-loop (the default) or
-#               justinlindh/humanintheloopgame-site. The PR must exist there.
+# Puts evidence media on a pull request or an issue without local paths. Files are committed to the
+# orphan branch pr-media of this repository (never merged; no history shared with the code) under
+# pr-<n>/ or issue-<n>/ (site-<n>/ or site-issue-<n>/ for the site repository), and the script prints
+# markdown that renders on GitHub.
+# Usage: scripts/pr-media.sh [--comment] [--issue] [--repo <owner/name>] <number> <file>...
+#   --comment   also posts the markdown as a comment on the PR or issue
+#   --issue     the number is an issue, not a PR
+#   --repo      the repository the PR or issue is in: justinlindh/human-in-the-loop (the default) or
+#               justinlindh/humanintheloopgame-site. It must exist there.
 # PNG/JPEG over 1 MB are downscaled to 1600 px wide; files over 25 MB are refused. Videos also get
 # a small GIF preview that shows inline.
 set -euo pipefail
 
-usage="usage: scripts/pr-media.sh [--comment] [--repo <owner/name>] <pr-number> <file>..."
-comment=0; repo=""
+usage="usage: scripts/pr-media.sh [--comment] [--issue] [--repo <owner/name>] <number> <file>..."
+comment=0; repo=""; kind=pr
 while [ $# -gt 0 ]; do
   case "$1" in
     --comment) comment=1; shift ;;
+    --issue) kind=issue; shift ;;
     --repo) repo="${2:?$usage}"; shift 2 ;;
     -*) echo "$usage" >&2; exit 1 ;;
     *) break ;;
@@ -22,7 +25,7 @@ while [ $# -gt 0 ]; do
 done
 pr="${1:?$usage}"; shift
 [ "$#" -gt 0 ] || { echo "pr-media: no files given" >&2; exit 1; }
-case "$pr" in *[!0-9]*) echo "pr-media: PR number must be a number: $pr" >&2; exit 1 ;; esac
+case "$pr" in *[!0-9]*) echo "pr-media: the $kind number must be a number: $pr" >&2; exit 1 ;; esac
 # The script works inside its own worktree, so file arguments are resolved against the caller's directory first.
 files=()
 for f in "$@"; do files+=("$(realpath -m -- "$f")"); done
@@ -32,11 +35,11 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 SLUG="$(cd "$REPO" && gh repo view --json nameWithOwner --jq .nameWithOwner)"
 # The media always lives on this repository's pr-media branch; --repo picks the PR it belongs to.
 case "${repo:-justinlindh/human-in-the-loop}" in
-  justinlindh/human-in-the-loop) target=justinlindh/human-in-the-loop; dir="pr-$pr" ;;
-  justinlindh/humanintheloopgame-site) target=justinlindh/humanintheloopgame-site; dir="site-$pr" ;;
+  justinlindh/human-in-the-loop) target=justinlindh/human-in-the-loop; dir="$kind-$pr" ;;
+  justinlindh/humanintheloopgame-site) target=justinlindh/humanintheloopgame-site; dir="site-$pr"; [ $kind = issue ] && dir="site-issue-$pr" ;;
   *) echo "pr-media: --repo must be justinlindh/human-in-the-loop or justinlindh/humanintheloopgame-site" >&2; exit 1 ;;
 esac
-gh pr view -R "$target" "$pr" --json number >/dev/null 2>&1 || { echo "pr-media: no PR #$pr in $target" >&2; exit 1; }
+gh "$kind" view -R "$target" "$pr" --json number >/dev/null 2>&1 || { echo "pr-media: no $kind #$pr in $target" >&2; exit 1; }
 WT="${PR_MEDIA_WORKTREE:-$HOME/.cache/hitl-pr-media}"
 MAX=$((25 * 1024 * 1024))
 BIG=$((1024 * 1024))
@@ -94,7 +97,7 @@ done
 
 git add "$dir"
 if ! git diff --cached --quiet; then
-  git commit -q -m "Media for $target PR $pr"
+  git commit -q -m "Media for $target $kind $pr"
   git push -q -u origin pr-media 2>/dev/null || { echo "pr-media: push failed" >&2; exit 1; }
 fi
 
@@ -102,6 +105,6 @@ printf '%s' "$md"
 if [ "$comment" = 1 ]; then
   tmp="$(mktemp)"
   printf '%s' "$md" >"$tmp"
-  gh pr comment -R "$target" "$pr" --body-file "$tmp"
+  gh "$kind" comment -R "$target" "$pr" --body-file "$tmp"
   rm -f "$tmp"
 fi

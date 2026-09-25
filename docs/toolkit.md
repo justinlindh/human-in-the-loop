@@ -28,7 +28,7 @@ Everyone uses these. The flow itself is in `CLAUDE.md` under Rules.
 | `scripts/review-verdict.sh <pr> pass\|changes <body> --head <sha>` | The reviewer's verdict: a PR review plus the `review` status on that head. team-lead uses it for lead and integrator PRs. |
 | `scripts/review-carry.sh <pr>` | Carries a review pass to a new head that only merges `main` in (ci-pr runs it). |
 | `scripts/merge-pr.sh <pr> [--check]` | A manual merge that refuses unless both gates pass. Auto-merge normally does this. |
-| `scripts/pr-media.sh [--comment] [--repo <r>] <pr> <files>` | Puts screenshots and clips on a PR without local paths, stored on the `pr-media` branch. |
+| `scripts/pr-media.sh [--comment] [--issue] [--repo <r>] <n> <files>` | Puts screenshots and clips on a PR, or with `--issue` on an issue (a playtest report, say), without local paths, stored on the `pr-media` branch. |
 | `scripts/sheet.sh grid\|pair\|frames ...` | Contact sheets, before-and-after pairs and frame strips sized for a PR comment. |
 | `scripts/check-commits.sh` | The Conventional Commits check that CI runs. |
 | `scripts/hooks/pre-push` (`npm run hooks`) | Refuses pushes to a branch whose PR has already merged or closed. |
