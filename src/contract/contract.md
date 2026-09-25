@@ -94,7 +94,8 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
-                                          // important: optional true on posts that matter (wins, launches, incidents, big news, running jokes); ui's Yak setting shows only these at "Important only"
+                                          // important: optional true promotes a post that wouldn't otherwise count as important (a running joke, big news);
+                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, bot posts, or flagged) raise unread counts
 { type: 'launch', productId }
 { type: 'incident', kind, productId, caught, severity }
 { type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
