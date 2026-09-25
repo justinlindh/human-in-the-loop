@@ -93,7 +93,7 @@ export const UI_CUES = {
 
 // One bed per era. bpm sets the bar length for quantized crossfades; the key picks the placeholder chords.
 export const MUSIC = {
-  title: { bpm: 90, key: 'F', mode: 'major', beds: ['title/a'] },
+  title: { bpm: 104, key: 'F', mode: 'major', beds: ['title/a'] },
   classic: { bpm: 96, key: 'F', mode: 'major', beds: ['classic/a'] },
   chatgbt: { bpm: 102, key: 'Bb', mode: 'major', beds: ['chatgbt/a'] },
   agents: { bpm: 108, key: 'D', mode: 'minor', beds: ['agents/a'] },
