@@ -111,10 +111,11 @@ export function createLabels(parent) {
   }
 
   // Speech bubble for its reading time (or `seconds`); replaces any bubble already on the same person.
-  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45) {
+  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45, { moment = false } = {}) {
     for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     const l = acquire();
     l.kind = 'say';
+    l.moment = moment;
     l.el.className = 'hitl-lbl hitl-say';
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
     l.w = null;
@@ -140,10 +141,10 @@ export function createLabels(parent) {
     l.obj.position.set(tmp.x + l.jit.x, tmp.y + l.offsetY + l.rise * Math.min(1, l.t / l.life) * 1.2, tmp.z + l.jit.z);
   }
 
-  function update(dt) {
+  function update(dt, momentDt = dt) {
     for (let i = live.length - 1; i >= 0; i--) {
       const l = live[i];
-      l.t += dt;
+      l.t += l.kind === 'say' && l.moment ? momentDt : dt;
       if (l.t >= l.life) { live.splice(i, 1); release(l); continue; }
       place(l);
       // Pop in with squash and stretch (0 to 1.15 to 1 over 0.2 s), fade out at the end.

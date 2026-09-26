@@ -1,3 +1,4 @@
+import { emitMomentTalk, momentTalkSystem } from './moment-talk.js';
 import { B } from './balance.js';
 import { chance, pick, weighted } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -140,6 +141,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     stage: ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null,
   };
   ctx.emit({ type: 'decision' });
+  emitMomentTalk(ctx, state.pendingDecision);
   return true;
 }
 
@@ -265,7 +267,7 @@ export function restageSystem(ctx) {
   const { x, y, staffId, ...rest } = st;
   d.stage = { ...rest, ...stageTile(state, st.anchor, d.subjectId) };
 }
-registerSystem('restage', restageSystem, 99);
+registerSystem('restage', ctx => { restageSystem(ctx); momentTalkSystem(ctx); }, 99);
 
 registerAction('resolveDecision', (ctx, { choice }) => {
   const { state } = ctx;
@@ -286,5 +288,6 @@ registerAction('resolveDecision', (ctx, { choice }) => {
     if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
   }
   if (c.leaves) leaveProp(state, c.leaves, d.stage, d.subjectId);
+  emitMomentTalk(ctx, d, choice);
   return { ok: true };
 });

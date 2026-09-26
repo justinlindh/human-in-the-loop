@@ -102,8 +102,9 @@ export function createPacer({ weekSeconds = WEEK_SECONDS } = {}) {
         else { now.push(x.e); released(x.e); }
       }
       paced = carried;
+      // The renderer paces moment dialogue while the decision or spotlight holds the sim clock.
       const later = [];
-      for (const e of events) (IMMEDIATE.has(e.type) ? now : later).push(e);
+      for (const e of events) (IMMEDIATE.has(e.type) || (isSay(e) && e.moment) ? now : later).push(e);
       // Replies wait on the line they answer, so only the rest take slots across the week.
       const slotted = later.filter((e) => !isReply(e));
       let k = 0;

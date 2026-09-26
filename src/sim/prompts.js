@@ -1,3 +1,4 @@
+import { emitMomentTalk } from './moment-talk.js';
 import { B } from './balance.js';
 import { createRng, chance, pick } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -159,6 +160,7 @@ export function openEventPrompt(outer, ev, subjectId) {
   state.flags.lastPromptWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
+  emitMomentTalk(ctx, { ...state.chatPrompts.at(-1), eventId: ev.id });
 }
 
 function botLine(ctx, prompt, text) {
@@ -186,6 +188,7 @@ function resolveEvent(ctx, prompt, choice) {
         if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
       }
       if (c.leaves) leaveProp(state, c.leaves, prompt.stage ?? null, pc.subjectId);
+      emitMomentTalk(ctx, { ...prompt, eventId: ev.id }, index);
       if (c.outcome) botLine(ctx, prompt, choice === null ? `Nobody answered, so: ${fill2(c.outcome)}` : fill2(c.outcome));
     }
   } else {

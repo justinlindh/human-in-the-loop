@@ -57,13 +57,16 @@ function reactionRng(state) {
 }
 
 // Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
-export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, important = false }) {
+export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, image = null, important = false }) {
   const msg = {
     type: 'chat', id: id ?? newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
     reactions: reactions ?? reactionsFor(ctx.state, reactionRng(ctx.state), channel, kind, teamMeaning(ctx.state), { reply: !!replyTo, important }),
   };
+  // An image meme: the UI shows the picture, and text carries its alt caption.
+  if (image) msg.image = image;
   // A post that matters without being a win, an incident or a bot post (a running joke, a warranted @channel).
   if (important) msg.important = true;
+
   ctx.emit(msg);
   const log = ctx.state.chatLog;
   if (Array.isArray(log)) {

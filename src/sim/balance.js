@@ -1,5 +1,11 @@
 // Every tunable number in the simulation. Tune here, nowhere else.
 export const B = {
+  momentTalkRadius: 4,
+  momentTalkLines: 2,
+  momentSpeechQueueMax: 24,
+  momentSpeechMaxAge: 45,
+  momentSpeechGap: 1,
+  momentSpeechStartDelay: 1,
   runWeeks: 1040, anniversaryWeek: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
