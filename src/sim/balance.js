@@ -120,6 +120,14 @@ export const B = {
     restStrain: 20, pushStrain: 3, pushOutput: 0.02, launchHype: 4, cakeCost: 300, subtweetBackfire: 0.25,
     crunchOutput: 0.04, reviewDebt: 3, mergeDebt: 4, lunchCost: 40, teamLunchCost: 400,
   },
+  // Nods to the valley: the incubator house, The Box, oat milk, the kielbasa app, tabs or spaces, the Squish Score.
+  svNods: {
+    incubatorFrom: 8, incubatorUntil: 60, incubatorCash: 12000, incubatorCut: 0.1, incubatorCounterCut: 0.05, incubatorCounterChance: 0.5,
+    incubatorPodcastWeeks: 52, incubatorSignWeeks: 52,
+    boxCost: 40000, boxHype: 12, boxDebt: 4, boxCubeWeeks: 26, boxRecallWeeks: 30, boxMockChance: 0.55,
+    oatOpsLevel: 0.3, oatStaff: 10, oatFee: 3000, oatStamina: 0.1, oatWeeks: 26,
+    kielbasaStaff: 5, kielbasaHype: 15, kielbasaFadeWeeks: 6, kielbasaSale: 25000,
+  },
   // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.
   nods: {
     bannerStaff: 12, bannerOutput: 0.02, bannerDrain: 0.05, bannerWeeks: 26, bannerStays: 104, bannerIronyMiss: 0.2, bannerReturnFee: 300,

@@ -109,6 +109,7 @@ export function requestedFiles(urls) {
   for (const u of urls) {
     let url;
     try { url = new URL(u); } catch { continue; }
+    // Another host (the web fonts) is recorded by address only and always counts as unchanged.
     if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) { out.add(`url:${url.origin}${url.pathname}`); continue; }
     const p = decodeURIComponent(url.pathname);
     // The dev server's client and prebundled dependencies (in its cache dir, .vite by default) follow

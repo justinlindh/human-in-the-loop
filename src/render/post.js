@@ -103,6 +103,16 @@ export function createPost(renderer, scene, camera, quality) {
     composer, gtao, bloom, tiltH, tiltV,
     setQuality(nq) { q = nq; apply(); },
     setTiltShift(on) { tiltOn = on; apply(); },
+    // Draw through another camera (the dev flying camera): the render pass and AO follow it.
+    setCamera(cam) {
+      renderPass.camera = cam;
+      gtao.camera = cam;
+      const persp = cam.isPerspectiveCamera ? 1 : 0;
+      for (const m of [gtao.gtaoMaterial, gtao.pdMaterial]) {
+        if (m?.defines && m.defines.PERSPECTIVE_CAMERA !== persp) { m.defines.PERSPECTIVE_CAMERA = persp; m.needsUpdate = true; }
+      }
+      gtao.updateGtaoMaterial?.({});
+    },
     setSize,
     render(dt) { composer.render(dt); },
     dispose() { composer.dispose(); gtao.dispose?.(); bloom.dispose(); smaa.dispose?.(); },
