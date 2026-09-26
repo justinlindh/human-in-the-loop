@@ -2,7 +2,7 @@
 // handling (not the harness's direct stepping) let a staged moment play while its decision is open.
 //
 //   node blender/checks/loop.mjs [--moments 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1']
-//                                [--seconds 10] [--gpu | --software]
+//                                [--seconds 30] [--gpu | --software]
 //
 // Each moment is an indexed decision (scripts/events). The page loads the state just before the tick
 // that raised it (its preTick snapshot) through the title screen's Continue path
@@ -11,7 +11,9 @@
 // are driven from here one frame (1/30 s) at a time, and Math.random is seeded, so main.js's frame()
 // runs as it does for a player, decision freeze included. Medium quality: at Low, moments are an
 // emote by design. The check fails a moment when, over
-// --seconds with its decision still open, nobody takes the moment or its actors do not move. Pick
+// --seconds with its decision still open, nobody takes the moment or its actors do not move. The
+// window is long enough for someone called from across the office (the letter's reader walking in
+// from the door) and ends 2 s after an actor has moved, so a moment that starts at once costs no more. Pick
 // decisions whose moment plays while the decision is open (the visitor, the hammer fetch, the
 // letter); some moments play only once the choice is made.
 //
@@ -30,7 +32,7 @@ import { fmtTrace, fmtActor, ACTOR_JS } from './diag.mjs';
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1; party:hearing_summons').split(';').map((q) => q.trim()).filter(Boolean);
-const seconds = Number(opt('seconds', 10));
+const seconds = Number(opt('seconds', 30));
 const MOVE_M = 0.3;
 
 // Virtual time for the page. __frame(n) advances n frames: due timers run, then the frames' rAFs.
@@ -96,7 +98,7 @@ try {
       await page.evaluate(() => window.__frame(1));
       await new Promise((r) => setTimeout(r, 50));
     }
-    const res = await page.evaluate(({ seconds }) => {
+    const res = await page.evaluate(({ seconds, moveM }) => {
       const H = window.__HITL, R = window.__hitlRender;
       if (R.trace) R.trace.on = true;
       const loaded = H.controls.continueGame();
@@ -110,7 +112,9 @@ try {
       const eventId = S().pendingDecision?.eventId ?? null;
       const actors = new Map();
       let frozen = 0, frames = 0;
+      let movedAt = null;
       for (let f = 0; f < seconds * 30 && S().pendingDecision; f++) {
+        if (movedAt !== null && f - movedAt >= 60) break;
         window.__frame(1);
         frames++;
         if (H.clock.frozen) frozen++;
@@ -121,10 +125,11 @@ try {
           const a = actors.get(id) ?? { what, first: p.clone(), far: 0 };
           a.far = Math.max(a.far, a.first.distanceTo(p));
           actors.set(id, a);
+          if (a.far >= moveM && movedAt === null) movedAt = f;
         }
       }
-      return { eventId, subject: S().pendingDecision?.subjectId ?? null, trace: R.trace?.lines(20) ?? [], waited: +(waited / 30).toFixed(1), open: !!S().pendingDecision, frames, frozen, actors: [...actors].map(([id, a]) => ({ id, moment: a.what, moved: +a.far.toFixed(2) })) };
-    }, { seconds });
+      return { eventId, subject: S().pendingDecision?.subjectId ?? S().pendingDecision?.stage?.staffId ?? null, trace: R.trace?.lines(20) ?? [], waited: +(waited / 30).toFixed(1), open: !!S().pendingDecision, frames, frozen, actors: [...actors].map(([id, a]) => ({ id, moment: a.what, moved: +a.far.toFixed(2) })) };
+    }, { seconds, moveM: MOVE_M });
     const label = `${row?.id ?? query} (seed ${row?.seed} ${row?.bot} week ${row?.week})`;
     if (res.error) { failed++; console.log(`LOOP FAIL ${label}: ${res.error}`); }
     else {

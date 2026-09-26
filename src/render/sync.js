@@ -994,8 +994,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const staging = momentsToo && !!lastState?.pendingDecision;
       if (staging) { moments.update(dt, lastState); momentCam.update(dt); }
       // Nothing else advances, but everyone is still drawn where they are (new arrivals included).
+      // The person the decision names keeps moving too: caught mid-walk by the freeze, they would
+      // never reach the desk their moment starts from.
+      const subject = staging ? lastState.pendingDecision.stage?.staffId ?? null : null;
       for (const r of [...recs.values(), ...leavers]) {
-        if (staging && r.temp?.moment && recs.has(r.id)) { updateRec(r, dt); continue; }
+        if (staging && (r.temp?.moment || (subject != null && r.id === subject)) && recs.has(r.id)) { updateRec(r, dt); continue; }
         r.char.root.position.copy(r.pos);
         if (r.temp?.lift && !r.path.length) r.char.root.position.y = r.temp.lift;
         r.char.root.rotation.y = r.yaw;
