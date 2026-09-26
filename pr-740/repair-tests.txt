@@ -1,0 +1,151 @@
+PR #740 repair validation
+Head: b90c5acf7c74c962f9699ed1003c97e96b345f89
+
+before-tests.txt (exit 1)
+
+ RUN  v5.0.1 <worktree>
+
+ ❯ tests/sim/standup-queue.test.js (21 tests | 6 failed) 24ms
+   ❯ async standup producer to Yak at 1x (7)
+     × drops a post for a resolved outage below both age ceilings 8ms
+     × drops a post for a replaced outage below both age ceilings 1ms
+   ❯ async standup producer to Yak at 2x (7)
+     × drops a post for a resolved outage below both age ceilings 1ms
+     × drops a post for a replaced outage below both age ceilings 1ms
+   ❯ async standup producer to Yak at 4x (7)
+     × drops a post for a resolved outage below both age ceilings 1ms
+     × drops a post for a replaced outage below both age ceilings 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sim/standup-queue.test.js > async standup producer to Yak at 1x > drops a post for a resolved outage below both age ceilings
+ FAIL  tests/sim/standup-queue.test.js > async standup producer to Yak at 1x > drops a post for a replaced outage below both age ceilings
+ FAIL  tests/sim/standup-queue.test.js > async standup producer to Yak at 2x > drops a post for a resolved outage below both age ceilings
+ FAIL  tests/sim/standup-queue.test.js > async standup producer to Yak at 2x > drops a post for a replaced outage below both age ceilings
+ FAIL  tests/sim/standup-queue.test.js > async standup producer to Yak at 4x > drops a post for a resolved outage below both age ceilings
+ FAIL  tests/sim/standup-queue.test.js > async standup producer to Yak at 4x > drops a post for a replaced outage below both age ceilings
+AssertionError: expected [ { type: 'chat', id: 'm13', …(7) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "channel": "standup",
++     "from": "Eva Williams",
++     "fromId": "s1",
++     "id": "m13",
++     "reactions": {},
++     "replyTo": null,
++     "text": "Still on the Inboxer outage. The logs hate me.",
++     "type": "chat",
++     "week": 0,
++   },
++ ]
+
+ ❯ tests/sim/standup-queue.test.js:47:65
+     45|     expect(6).toBeLessThan(B.yakMaxWaitSeconds);
+     46|     expect(6 * speed).toBeLessThan(B.yakMaxWaitGameSeconds);
+     47|     expect(queue.step(5, true, { state, gameTime: 6 * speed })).toEqua…
+       |                                                                 ^
+     48|     expect(queue.queued).toBe(0);
+     49|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 15 passed (21)
+   Start at  16:31:29
+   Duration  334ms (transform 71%, import 19%, tests 9%, worker 1%)
+
+
+focused-tests.txt (exit 0)
+
+ RUN  v5.0.1 <worktree>
+
+
+ Test Files  5 passed (5)
+      Tests  56 passed (56)
+   Start at  16:32:18
+   Duration  870ms (tests 53%, transform 36%, import 11%)
+
+
+full-tests.txt (exit 0)
+
+> human-in-the-loop@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 <worktree>
+
+
+ Test Files  109 passed (109)
+      Tests  926 passed (926)
+   Start at  16:34:14
+   Duration  35.46s (tests 81%, transform 10%, import 8%)
+
+
+loop-tests.txt (exit 0)
+with-render-lock: waited 0s for GPU render slot 1
+loop: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+LOOP ok   spotlight hold: no week passed in 717 frames of a spotlight (3.0 weeks' worth); the office kept rendering, unfrozen (0 frozen frames); clock.spotlight reported it on every frame (717 of 717); the weeks resumed after it ended (2 in the same span); a spotlight under the incubator_house card for 62 s still held the clock after the card resolved (0 weeks, spotlight on 717 of 717 frames); a spotlight expecting 90 s held for 100 s with no week passing (0), then was let go at its own cap (over 122.5s; letting go; 3 weeks after); a spotlight expecting 90000 s was clamped to 180 s (warning logged), held 170 s (0 weeks) and let go at 180 s (logged; 5 weeks after); one held past the cap was let go (3 weeks after, warning logged)
+events: no index for this sim code (04e5e1bad4df7287); building it
+events: 10/60 runs (5 s)
+events: 20/60 runs (8 s)
+events: 30/60 runs (12 s)
+events: 40/60 runs (15 s)
+events: 50/60 runs (19 s)
+events: 60/60 runs (22 s)
+events: 29035 rows, 4702 snapshots (167.6 MB) from 60 runs in 22 s -> <event-index-cache>
+LOOP ok   real spotlight (printer_jam, seed 2 week 135): the printer_jam spotlight started 0.0 s after the choice; it ended by itself after 19.5 s; no week passed while it played (week 135 to 135); the weeks resumed after it (week 143 by the end of the watch); Skip/4x starts the staged visitor only once (1 keys); the hold was never cut short
+LOOP ok   real spotlight (letter, seed 1 week 485): the letter spotlight started 2.4 s after the choice; it ended by itself after 6.8 s; no week passed while it played (week 485 to 485); the weeks resumed after it (week 495 by the end of the watch); Skip/4x starts the staged visitor only once (1 keys); the hold was never cut short
+LOOP ok   real spotlight (fumes, seed 1 week 238): the fumes spotlight started 2.8 s after the choice; it ended by itself after 5.6 s; no week passed while it played (week 238 to 238); the weeks resumed after it (week 242 by the end of the watch); Skip/4x starts the staged visitor only once (1 keys); the hold was never cut short
+LOOP ok   real spotlight (first_user_test, seed 1 week 5): the first_user_test spotlight started 0.0 s after the choice; it ended by itself after 0.0 s; no week passed while it played (week 5 to 5); the weeks resumed after it (week 10 by the end of the watch); Skip/4x starts the staged visitor only once (1 keys); the hold was never cut short
+LOOP ok   real spotlight (efficiency_consultants, seed 2 week 745): the efficiency_consultants spotlight started 0.0 s after the choice; it ended by itself after 0.0 s; no week passed while it played (week 745 to 745); the weeks resumed after it (week 770 by the end of the watch); Skip/4x starts the staged visitor only once (1 keys); the hold was never cut short
+loop: 6 of 6 checks passed through the game loop
+
+build.txt (exit 0)
+
+> human-in-the-loop@1.0.0 build
+> vite build
+
+vite v8.3.0 building client environment for production...
+transforming...
+✓ 271 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/assets/portraitEncoder-ytYabdI8.js       0.48 kB
+dist/index.html                               1.18 kB │ gzip:   0.59 kB
+dist/assets/ui-DtUdeF4b.css                  96.79 kB │ gzip:  18.24 kB
+dist/assets/rolldown-runtime-DK3Fl9T5.js      0.15 kB │ gzip:   0.15 kB
+dist/assets/iconboard-CF-Ghk3J.js             0.63 kB │ gzip:   0.40 kB
+dist/assets/sim-B3eOOsEh.js                   1.39 kB │ gzip:   0.78 kB
+dist/assets/save-DXsiSFzC.js                  4.61 kB │ gzip:   2.03 kB
+dist/assets/look-BA6oT9MY.js                  4.62 kB │ gzip:   2.21 kB
+dist/assets/office-C9beRl9i.js                5.78 kB │ gzip:   2.43 kB
+dist/assets/index-CyhMVG1B.js                43.53 kB │ gzip:  18.41 kB
+dist/assets/audio-_08OToBZ.js                50.12 kB │ gzip:  17.42 kB
+dist/assets/ui-BD03W5te.js                  282.88 kB │ gzip: 100.87 kB
+dist/assets/tick-cVMoYXFJ.js                487.90 kB │ gzip: 170.44 kB
+dist/assets/render-DySIPjyC.js            1,086.49 kB │ gzip: 333.98 kB
+
+✓ built in 320ms
+
+features.txt (exit 0)
+features-ids: ok: 206 ids in the file, all defined; 110 required ids covered (7 named as left out)
+
+producer-equivalence.txt (exit 0)
+PASS: 200 seeds per mode, 10 standups each; complete events and state identical excluding outageChat
+
+independent-checks.txt (exit 0)
+PASS actual killProduct removes pending outage chatter
+PASS historical notice and queued parent retained beyond both age ceilings
+PASS actual old-save load, default occurrence, bounded metadata, round trip and unchanged game RNG
+Independent checks: 3 passing groups; 0 failing acceptance cases
+
+capture-assertions.txt (exit 0)
+PASS before: 1 stale outage arrivals, 0 ordinary async arrivals, zero browser errors
+PASS after: 0 stale outage arrivals, 1 ordinary async arrivals, zero browser errors
+

@@ -1,0 +1,150 @@
+{
+  "before": {
+    "build": "86517b1e",
+    "marks": [
+      {
+        "t": 0.033,
+        "label": "shown capture-reading",
+        "week": 1,
+        "outage": false
+      },
+      {
+        "t": 0.2,
+        "label": "standup producer",
+        "posts": [
+          {
+            "type": "chat",
+            "id": "m11",
+            "week": 1,
+            "channel": "standup",
+            "from": "Pavel Kagame",
+            "fromId": "s2",
+            "text": "Still on the Inboxer outage. The logs hate me.",
+            "replyTo": null,
+            "reactions": {}
+          },
+          {
+            "type": "chat",
+            "id": "m12",
+            "week": 1,
+            "channel": "standup",
+            "from": "Eva Williams",
+            "fromId": "s1",
+            "text": "Found the Inboxer bug. Not the person who understands it.",
+            "replyTo": null,
+            "reactions": {}
+          }
+        ],
+        "contexts": {}
+      },
+      {
+        "t": 0.2,
+        "label": "ordinary producer",
+        "posts": [
+          {
+            "type": "chat",
+            "id": "m13",
+            "week": 1,
+            "channel": "standup",
+            "from": "Eva Williams",
+            "fromId": "s1",
+            "text": "Reading docs and waiting for the next project. Point me somewhere.",
+            "replyTo": null,
+            "reactions": {}
+          }
+        ],
+        "contexts": {}
+      },
+      {
+        "t": 1,
+        "label": "outage resolved",
+        "week": 1
+      },
+      {
+        "t": 6.033,
+        "label": "shown m11",
+        "week": 4,
+        "outage": false
+      }
+    ],
+    "errors": 0,
+    "provenance": "86517b1e2f56eba416d9b92c52e954591efd9a8b with main 811d8765 merged and the spotlight conflict reconciled, before the standup producer repair"
+  },
+  "after": {
+    "build": "b90c5acf",
+    "marks": [
+      {
+        "t": 0.033,
+        "label": "shown capture-reading",
+        "week": 1,
+        "outage": false
+      },
+      {
+        "t": 0.2,
+        "label": "standup producer",
+        "posts": [
+          {
+            "type": "chat",
+            "id": "m11",
+            "week": 1,
+            "channel": "standup",
+            "from": "Pavel Kagame",
+            "fromId": "s2",
+            "text": "Still on the Inboxer outage. The logs hate me.",
+            "replyTo": null,
+            "reactions": {}
+          },
+          {
+            "type": "chat",
+            "id": "m12",
+            "week": 1,
+            "channel": "standup",
+            "from": "Eva Williams",
+            "fromId": "s1",
+            "text": "Found the Inboxer bug. Not the person who understands it.",
+            "replyTo": null,
+            "reactions": {}
+          }
+        ],
+        "contexts": {
+          "m11": 1,
+          "m12": 1
+        }
+      },
+      {
+        "t": 0.2,
+        "label": "ordinary producer",
+        "posts": [
+          {
+            "type": "chat",
+            "id": "m13",
+            "week": 1,
+            "channel": "standup",
+            "from": "Eva Williams",
+            "fromId": "s1",
+            "text": "Reading docs and waiting for the next project. Point me somewhere.",
+            "replyTo": null,
+            "reactions": {}
+          }
+        ],
+        "contexts": {
+          "m11": 1,
+          "m12": 1
+        }
+      },
+      {
+        "t": 1,
+        "label": "outage resolved",
+        "week": 1
+      },
+      {
+        "t": 6.033,
+        "label": "shown m13",
+        "week": 4,
+        "outage": false
+      }
+    ],
+    "errors": 0,
+    "provenance": "Clean source at b90c5acf7c74c962f9699ed1003c97e96b345f89"
+  }
+}
