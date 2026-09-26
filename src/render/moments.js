@@ -413,14 +413,19 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const deskId = p.obj.userData.follow?.deskId;
     // The person the stage names (whose desk it is), else whoever sits at the desk it landed on.
     const r = (p.staffId && recs.get(p.staffId)) || [...recs.values()].find((x) => x.seat === deskId);
+    // The named reader is always castable: whatever pose, standup or walk the decision's freeze
+    // caught them in gives way, and they go to their seat (claim). Someone the sim has out of the
+    // office, or already in another moment, isn't taken.
+    if (r && p.staffId === r.id && !r.temp?.claim && !(free().includes(r) && r.char.seated)) claim(r, deskId, p.obj);
+    const ready = r && (r.temp?.claim ? !r.path.length && r.char.seated : free().includes(r) && r.char.seated);
     // Not at their desk right now: look again shortly rather than after the full interval.
-    if (!r || !free().includes(r) || !r.char.seated) {
+    if (!ready) {
       note(r?.id ?? null, 'refuse', { by: 'letter', why: !r ? `nobody sits at ${deskId}` : r.hidden ? 'out of the office' : !free().includes(r) ? `busy (${r.temp?.moment ?? r.temp?.anim ?? (r.path.length ? 'walking' : r.mode)})` : 'not seated' });
       timers.set(`letter|${p.obj.uuid}`, 1);
       return;
     }
     // At Low: just the bad-news emote at the desk. Otherwise the emote comes after reading it.
-    if (lite()) { emote(r, 'storm', 2.8); return; }
+    if (lite()) { emote(r, 'storm', 2.8); if (r.temp?.claim) r.temp = null; return; }
     // Out of the chair sideways (on the camera's side when both are clear), then back into the aisle
     // to read it; the chair's back and the desk row are in the way of any straight route. They come
     // back the same way.
@@ -435,18 +440,25 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const wide = [1, -1].map((sg) => at(SIDE_OUT * sg)).filter((q) => !nav.isBlocked(q.x, q.z)).sort(camFirst);
     const narrow = [1, -1].map((sg) => at(SIDE_SQUEEZE * sg)).sort(camFirst);
     const side = [...wide, ...narrow].find((q) => { const s = { x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK }; return !nav.isBlocked(s.x, s.z, BODY_R) && !columnInFront(s); });
-    if (!side) { note(r.id, 'refuse', { by: 'letter', why: 'no clear spot beside the chair' }); return; }
-    const spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
+    // No way out sideways (a tight row of desks): they stand up behind their chair, or at the
+    // nearest free floor.
+    let spot;
+    if (side) spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
+    else {
+      const behind = [1.0, 1.3, 1.6].map((d) => ({ x: seat.x + back[0] * d, z: seat.z + back[1] * d })).find((q) => !nav.isBlocked(q.x, q.z, BODY_R));
+      spot = behind ?? nav.freePoint(seat.x + back[0], seat.z + back[1]);
+      note(r.id, 'fallback', { by: 'letter', why: 'no clear spot beside the chair: reads behind it' });
+    }
     spot.yaw = towardCamera(spot, p.obj.position);
     // Push the chair back to get up; it rolls in again as they sit back down.
     const chair = office.freeChair?.(deskId, true);
-    const route = [{ x: side.x, z: side.z }, { x: spot.x, z: spot.z }];
+    const route = side ? [{ x: side.x, z: side.z }, { x: spot.x, z: spot.z }] : [{ x: spot.x, z: spot.z }];
     if (chair) rolls.push({ r, deskId, chair, z0: chair.position.z, k: 0, seat, sat: 0, route });
     // Read, then react: the letter goes up in front of their face for a beat, then down on the desk
     // and they slump over the news.
     const env = p.obj;
     r.temp = {
-      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', el: 0, stage: { beat: 'getup', target: env },
+      anim: 'readpaper', t: READ_S + SLUMP_S, goal: spot, back: false, moment: 'letter', envelope: env, el: 0, stage: { beat: 'getup', target: env },
       side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 6 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
       tick: (rr, d, tp) => {
         tp.el += d;
@@ -458,8 +470,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         if (tp.t <= d * 1.5) {
           if (tp.sheet) { tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true; }
           // Back the way they came: to the side of the chair, then in.
-          rr.temp = null;
-          rr.path = [{ x: side.x, z: side.z }, { x: seat.x, z: seat.z }];
+          rr.temp = { anim: 'typing', t: 0.1, goal: rr.goal, moment: 'letter', envelope: env, stage: { beat: 'return' } };
+          rr.path = [...(side ? [{ x: side.x, z: side.z }] : []), { x: seat.x, z: seat.z }];
           return true;
         }
         rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
@@ -495,6 +507,37 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
 
   // The letter in hand: a sheet held low and tipped up square to the reader's line of sight, below
   // the face as the camera sees it, a red stamp showing through it.
+  // Takes the letter's named reader for it: out of any pose, standup or walk, to their own seat,
+  // where the letter finds them. A moment actor, so they move through the decision's freeze.
+  function claim(r, deskId, envelope) {
+    if (r.hidden || r.goal?.hidden || r.staff.mood === 'away' || (r.temp?.moment && !r.temp.claim)) {
+      note(r.id, 'refuse', { by: 'letter', why: r.hidden || r.goal?.hidden || r.staff.mood === 'away' ? 'out of the office' : `in moment ${r.temp.moment}` });
+      return;
+    }
+    const d = office.deskById?.(deskId) ?? (r.seat != null ? office.deskById?.(r.seat) : null);
+    if (!d?.seat) { note(r.id, 'refuse', { by: 'letter', why: 'no seat to go to' }); return; }
+    const goal = { x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: 'typing', seated: true };
+    note(r.id, 'claim', { by: 'letter', from: r.temp?.anim ?? (r.path.length ? 'walking' : 'idle') });
+    r.temp = { anim: 'typing', t: Infinity, goal, moment: 'letter', claim: true, envelope, stage: { beat: 'wait' } };
+    walkTo(r, goal);
+  }
+  function releaseLetter(r) {
+    const tp = r.temp;
+    tp.sheet?.removeFromParent();
+    if (tp.envelope) tp.envelope.visible = true;
+    r.temp = null;
+    for (const q of rolls) if (q.r === r) q.route = null;
+    if (r.goal) walkTo(r, r.goal);
+  }
+  // Ownership follows the prop, even when the clock is paused or another moment holds the room.
+  function releaseLetters() {
+    const cur = getProps()?.current() ?? [];
+    for (const r of recs.values()) {
+      const tp = r.temp;
+      if (tp?.moment !== 'letter') continue;
+      if (r.staff.mood === 'away' || r.goal?.hidden || (tp.claim && !cur.some((p) => p.obj === tp.envelope))) releaseLetter(r);
+    }
+  }
   function letterSheet() {
     const g = new THREE.Mesh(SHEET_GEO, sheetMat());
     g.position.set(0, 0.65, 0.40);
@@ -1260,5 +1303,5 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
   }
 
-  return { update, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

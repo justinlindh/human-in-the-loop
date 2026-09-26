@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { raiseDecision, resolveSubjects } from '../../src/sim/events.js';
-import { propsSystem, leaveProp, stageTile } from '../../src/sim/props.js';
+import { raiseDecision, resolveSubjects, restageSystem } from '../../src/sim/events.js';
+import { propsSystem, leaveProp, stageTile, isIn } from '../../src/sim/props.js';
 import { suggestPlacement, footprintCells, frontCells } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
@@ -15,7 +15,7 @@ const floor = (seed = 1) => {
   dispatch(s, { type: 'upgradeOffice' });
   return s;
 };
-const raise = (s, id) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, null); };
+const raise = (s, id) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, null); };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
 const tables = (s) => s.office.placed.filter((i) => i.itemId === 'ping_pong_table').length;
 
@@ -243,6 +243,29 @@ describe('desk-staged props never wait on an empty chair', () => {
     remote.remote = true;
     expect(resolveSubjects(s, EVENTS.junior_overwhelmed).some((p) => p.id === remote.id)).toBe(false);
     expect(stageTile(s, 'subjectDesk', remote.id).staffId).not.toBe(remote.id);
+  });
+
+  it('someone sent home later in the same week hands the staged prop to someone who stays in', () => {
+    const s = setup(34);
+    raise(s, 'hearing_summons');
+    const first = s.staff.find((p) => p.id === s.pendingDecision.stage.staffId);
+    first.remote = true;
+    restageSystem(makeCtx(s));
+    const who = s.staff.find((p) => p.id === s.pendingDecision.stage.staffId);
+    expect(who.id).not.toBe(first.id);
+    expect(isIn(who)).toBe(true);
+    expect(s.pendingDecision.stage).toMatchObject({ prop: 'envelope_thick', anchor: 'subjectDesk' });
+    const before = JSON.stringify(s.pendingDecision.stage);
+    restageSystem(makeCtx(s));
+    expect(JSON.stringify(s.pendingDecision.stage)).toBe(before);
+  });
+
+  it('a person on sabbatical is never in the office', () => {
+    const s = setup(35);
+    const p = s.staff.find((x) => !x.founder);
+    expect(isIn(p)).toBe(true);
+    p.assignment = { type: 'sabbatical' };
+    expect(isIn(p)).toBe(false);
   });
 });
 

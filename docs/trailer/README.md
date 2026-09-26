@@ -1,6 +1,6 @@
 # The trailer
 
-A 25 to 30 second trailer built entirely from the current tree: seeded real games (and a few staged
+A one-minute trailer built entirely from the current tree: seeded real games (and a few staged
 mock scenes) recorded through the deterministic capture path, the game's own music and stingers, cards
 rendered in the game's font and palette, and a narrated voiceover.
 
@@ -67,6 +67,23 @@ ffmpeg -i shots/trailer/trailer.mp4 -vf "fps=2,scale=480:-1,tile=6x10" -frames:v
 ```
 
 If a beat's `from + dur` runs past its capture, the build stops and says which beat.
+
+## Launch and Yak shots
+
+`trail-launch` plays seed 37 to a first-version hit on the Office Floor. The setup validates the
+look-ahead and keeps only that new-product project, so subsequent updates cannot bundle into its
+results card. The launch beat starts after the reviews finish appearing.
+
+`yak` and `yak-react` both replay `site-yak-backfire`, seed 2. Its bot stops expanding once eight staff
+have moved to the Office Floor, then waits for an outage. Daily standups stay off during the search
+and recording so the same simulation reaches the outage and the people are free to react. The Yak
+shot frames the meme and its reply; the reaction shot returns to the instant the same post lands,
+finds the facepalmer with `R.probe(id).anim`, and eases the isometric camera onto them. Speech bubbles
+and work labels stay hidden, and the interface hides after the post is clicked.
+
+Scene 7b (`yak-react`) is excluded from `BEATS` pending an art pose/staging fix: the seated
+facepalmer's monitor and bowed head obscure the hand and face. Its capture remains available as
+`trailer-yak-react` through `DEFERRED_CAPTURES`; it is not included in the delivered cut.
 
 ## The voiceover
 
