@@ -103,10 +103,16 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const subject = state.staff.find((p) => p.id === subjectId);
   const waitKey = `${eventId}:${subjectId}`;
   if (ev.stage?.anchor === 'subjectDesk' && subject && !isIn(subject)) {
+    // A roll that will not be retried (queue is false) never gets another look at this waitKey, so
+    // recording a start week for it here would leave a marker nothing ever clears.
+    if (!queue) {
+      if (state.flags.deskWait) delete state.flags.deskWait[waitKey];
+      return false;
+    }
     const waits = (state.flags.deskWait ??= {});
     waits[waitKey] ??= state.week;
     if (state.week - waits[waitKey] < B.deskStageWaitWeeks) {
-      if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week + 1, kind: 'event', payload: { eventId, subjectId } });
+      state.scheduled.push({ id: newId(state, 'sch'), week: state.week + 1, kind: 'event', payload: { eventId, subjectId } });
       return false;
     }
   }
