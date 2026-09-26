@@ -19,7 +19,7 @@
 **Human in the Loop** is a management sim about running a software company through the AI era, in the spirit of Kairosoft's Game Dev Story. It is a Three.js isometric diorama in the browser, driven by a pure, deterministic JavaScript simulation.
 
 <p align="center">
-  <a href="https://humanintheloopgame.com/#trailer"><img src="docs/readme/trailer-preview.gif" alt="Trailer preview: the team's music night dance break" width="400"></a>
+  <a href="https://humanintheloopgame.com/#trailer"><img src="docs/readme/trailer-poster.webp" alt="Trailer poster: the Waffle Party" width="400"></a>
   <br>
   <a href="https://humanintheloopgame.com/#trailer"><b>Watch the trailer</b></a>
 </p>
@@ -30,8 +30,8 @@
 
 | | |
 |---|---|
-| ![Two founders at their first desks in a garage](docs/readme/garage.png) | ![Lockdown: the office nearly empty while everyone is on a video call](docs/readme/lockdown.png) |
-| ![A busy headquarters with bookcases, plant walls and office pets](docs/readme/hq.png) | ![The Waffle Party: the winner at a spotlit waffle table while the team watches](docs/readme/waffle.png) |
+| ![Two founders at their first desks in a garage](docs/readme/garage.webp) | ![Lockdown: the office nearly empty while the team is on a video call](docs/readme/lockdown.webp) |
+| ![A busy headquarters with bookcases, plants and rows of desks](docs/readme/hq.webp) | ![The Waffle Party: the winner at a spotlit waffle table while the team watches](docs/readme/waffle.webp) |
 
 ## Architecture
 
@@ -83,7 +83,7 @@ Everything else:
 | `npm run test:fast` | The tests without the slow balance suite |
 | `npm run balance -- --seeds 100` | Plays 100 seeded games with the bots and prints a win and loss table |
 | `npm run snap -- --scenario floor --out shots/floor.png` | Headless screenshot of a scene; exits non-zero on console errors |
-| `npm run capture -- --group readme` | Deterministic stills and clips from `scripts/capture-manifest.js` (the images in this README come from it) |
+| `npm run capture -- --group readme` | Deterministic gameplay stills and clips from `scripts/capture-manifest.js` (the gameplay images in this README come from it; the trailer poster comes from the website) |
 | `npm run trailer` | Builds the trailer from captures, cards and the game's own music; see [`docs/trailer/README.md`](docs/trailer/README.md) |
 | `npm run models` | Rebuilds `public/models/*.glb` from the `blender/` scripts (needs Blender on the path, runs headless) |
 | `npm run ci` | The full local CI run described below |

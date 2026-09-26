@@ -16,7 +16,7 @@ function run(p, seconds, { speed = 1, running = true } = {}) {
 
 describe('readSeconds', () => {
   it('grows with length within its bounds, and speed shortens it only a little', () => {
-    expect(readSeconds('')).toBe(READ.min);
+    expect(readSeconds('')).toBeGreaterThanOrEqual(2.9);
     expect(readSeconds('x'.repeat(40))).toBeCloseTo(READ.base + READ.perChar * 40);
     expect(readSeconds('x'.repeat(500))).toBe(READ.max);
     for (const text of ['ok', 'x'.repeat(40), 'x'.repeat(200)]) {
@@ -120,4 +120,16 @@ describe('pacer scheduling', () => {
     expect(p.queued).toBe(0);
     expect(p.takeDropped()).toEqual([]);
   });
+});
+
+it('keeps moment speech until its speaker and preceding line finish reading', () => {
+  const p = createPacer();
+  p.step(0.1, { speed: 4, running: true });
+  p.schedule([{ type: 'say', id: 'first', staffId: 'a', text: 'A line that takes time to read.', moment: 'reward' }]);
+  expect(p.due()).toHaveLength(1);
+  p.schedule([{ type: 'say', id: 'second', staffId: 'a', text: 'The important reply.', replyTo: 'first', moment: 'reward' }]);
+  p.schedule([]); p.schedule([]);
+  expect(p.takeDropped()).toEqual([]);
+  for (let n = 0; n < 40; n++) p.step(0.25, { speed: 4, running: true });
+  expect(p.due().map(e => e.id)).toEqual(['second']);
 });

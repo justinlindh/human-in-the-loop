@@ -10,6 +10,7 @@
 // a merged PR or commit that changed game code. Then the rule fails again. Issue states come from gh,
 // once per run; if gh can't be reached, markers count as open and the run says so.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
+import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
@@ -260,7 +261,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
         }
         if (samples.length && !live) break;
       }
-      return { actors: [...actors], samples };
+      return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
     }, { moment, patch: sc.patch, steps: sc.steps, seconds: sc.seconds, turns: view.turns });
     await page.close();
     results.set(task, { res, errors });
@@ -274,6 +275,7 @@ for (const task of tasks) {
   {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
+    const firstRow = rep.rows.length;
     if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
     // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
     // wall and still pass. Walking and waiting are between beats and need none.
@@ -292,6 +294,9 @@ for (const task of tasks) {
         const k2 = rule.known ?? null;
         rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: k2 && !closedIssues.has(k2) ? k2 : null, closed: k2 && closedIssues.has(k2) ? k2 : null });
       }
+    }
+    if (rep.rows.slice(firstRow).some((row) => !row.pass)) {
+      for (const line of spotReasons(res.spots)) console.log(`spots (${moment}/${view.name}): ${line}`);
     }
   }
 }
