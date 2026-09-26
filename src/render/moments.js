@@ -31,7 +31,7 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter'];
+const KINDS = ['pet', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
