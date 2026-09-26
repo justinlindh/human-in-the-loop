@@ -1154,14 +1154,27 @@ const scrawl = () => canvasTex('whiteboard_scrawl', 1024, 640, (ctx, W, H) => {
   ctx.fillStyle = P.alarm_red; ctx.font = '900 120px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText('?!', 850, 176);
 });
+// The writing on a back wall, as a wall-mounted whiteboard: a brushed frame, a marker tray, and
+// the sheet lit a touch so the white and the ink read like the real board.
+function wallBoard(L, anchor, env) {
+  const { w, h } = WALL_SCRAWL;
+  const g = wallPrint(scrawl, WALL_SCRAWL)(L, anchor, env);
+  // A board has no tape.
+  for (const c of g.children) if (!c.material?.map) c.visible = false;
+  const sheet = g.children.find((c) => c.material?.map);
+  if (sheet) { sheet.material.emissive = new THREE.Color(P.plastic_white); sheet.material.emissiveIntensity = 0.18; sheet.material.emissiveMap = sheet.material.map; sheet.position.z = 0.02; }
+  g.add(mesh(roundedBox(w + 0.07, h + 0.07, 0.03, 0.012, 2), mat('metal_soft'), 0, 0, 0));
+  g.add(mesh(roundedBox(w * 0.5, 0.03, 0.07, 0.01, 1), mat('metal_soft'), 0, -h / 2 - 0.04, 0.04));
+  return g;
+}
 // Written on the board's face (both faces of a free-standing one); on the back wall without a board.
 const DEFAULT_CAM = [Math.SQRT1_2, Math.SQRT1_2];   // the default camera's side of the room, as a floor direction
-// Without a readable board the writing goes up big on a back wall, like a sheet of whiteboard film.
+// Without a readable board the writing goes up big on a back wall as a wall-mounted board.
 const WALL_SCRAWL = { w: 1.5, h: 0.94, tilt: 0, y: 1.55 };
 const BOARD_ROOM = 1.2;      // metres of open floor a written board face needs in front of it to count as facing the room
 function whiteboardScrawl(L, anchor, env) {
   const { entry } = itemAt(L, anchor, env.office, ['whiteboard']);
-  if (!entry) return wallPrint(scrawl, WALL_SCRAWL)(L, anchor, env);
+  if (!entry) return wallBoard(L, anchor, env);
   const face = new THREE.Box3();
   entry.obj.updateMatrixWorld(true);
   entry.obj.traverse((o) => { if (o.isMesh && /whiteboard/.test(o.material?.name ?? '')) face.expandByObject(o); });
@@ -1178,7 +1191,7 @@ function whiteboardScrawl(L, anchor, env) {
     const room = Math.min(nx > 0 ? (L.W / 2 - c.x) / nx : nx < 0 ? (-L.W / 2 - c.x) / nx : Infinity, nz > 0 ? (L.D / 2 - c.z) / nz : nz < 0 ? (-L.D / 2 - c.z) / nz : Infinity);
     return toCam > 0.2 && room > BOARD_ROOM;
   });
-  if (!readable) return wallPrint(scrawl, WALL_SCRAWL)(L, anchor, env);
+  if (!readable) return wallBoard(L, anchor, env);
   // The face's width across the board, its thickness along the facing.
   const across = Math.abs(n[1]) * size.x + Math.abs(n[0]) * size.z, thick = Math.abs(n[0]) * size.x + Math.abs(n[1]) * size.z;
   const g = new THREE.Group();
