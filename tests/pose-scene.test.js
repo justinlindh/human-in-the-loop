@@ -34,6 +34,16 @@ describe('scene pose thresholds', () => {
     expect(judgeScene(rows, [0, 30], null, [{ ...rule, value: 15 }]).pass).toBe(false);
     expect(judgeScene(rows, [], ['s3'], [rule]).pass).toBe(false);
   });
+
+  it('does not treat an absent prop as zero penetration', () => {
+    const depth = { ...rule, measure: 'heldHeadDepth', op: '<=', value: 0.000001 };
+    const held = [{ id: 's3', frame: 0, heldHeadDepth: 0 }, { id: 's3', frame: 30, heldHeadDepth: null }];
+    expect(judgeScene(held, [0, 30], ['s3'], [depth]).pass).toBe(false);
+    held[1].heldHeadDepth = 0.023;
+    expect(judgeScene(held, [0, 30], ['s3'], [depth]).pass).toBe(false);
+    held[1].heldHeadDepth = 0;
+    expect(judgeScene(held, [0, 30], ['s3'], [depth]).pass).toBe(true);
+  });
 });
 
 it.each(['--scene', '--check-browser'])('rejects a different root before starting %s', (mode) => {

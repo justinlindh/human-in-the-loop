@@ -7,13 +7,26 @@
 //   faceCovered  the largest share of the face's screen rectangle under one bubble, label or emote
 //                (theirs or anyone's), 0..1
 //   facePx       the face's height on screen, in canvas pixels
-import { screen } from './intersect.js';
+import { screen, carried, held, overlaps } from './intersect.js';
 
 const area = (r) => Math.max(0, r.right - r.left) * Math.max(0, r.bottom - r.top);
+
+// Sweep geometry, without its collision tolerance. Absent props stay null so a missing grip fails.
+export function measureHeld(R, id, loads = carried(R), grips = held(R)) {
+  const own = loads.filter((l) => String(l.staffId) === String(id));
+  const grip = grips.filter((g) => String(g.staffId) === String(id));
+  const depths = own.flatMap(({ thing, body }) => overlaps([thing, body], { tol: 0 }).flatMap((o) => o.parts));
+  const depth = (part) => own.length ? Math.max(0, ...depths.filter((p) => p.b === part).map((p) => p.depth)) : null;
+  return {
+    heldHeadDepth: depth('head'), heldTorsoDepth: depth('torso'),
+    heldGap: grip.length ? Math.max(...grip.map((g) => g.gap)) : null,
+  };
+}
 
 export function measureScene(R, S, { who = null } = {}) {
   R.scene.updateMatrixWorld();
   const sc = screen(R);
+  const loads = carried(R), grips = held(R);
   const covers = [...sc.labels.map((l) => ({ what: `${l.kind} "${l.text}"`, r: l.r })), ...sc.emotes.map((e) => ({ what: `emote over ${e.id}`, r: e.r }))];
   const out = [];
   for (const f of sc.faces) {
@@ -30,6 +43,7 @@ export function measureScene(R, S, { who = null } = {}) {
       id: String(f.id), faceCovered: +covered.toFixed(3), coveredBy: covered > 0 ? by : null,
       faceVisible: p.visible ?? null, occluder: p.occluder ?? null, faceCam: p.faceCam ?? null,
       facePx: +(f.r.bottom - f.r.top).toFixed(1), anim: p.anim ?? null, moment: st?.moment ?? null, beat: st?.beat ?? null,
+      ...measureHeld(R, f.id, loads, grips),
     });
   }
   return out;

@@ -269,18 +269,6 @@
    "worst": 0.173,
    "state": "event:hearing_summons:s2allHumansw476",
    "issue": 381
-  },
-  {
-   "key": "self|held/held|own head",
-   "worst": 0.023,
-   "state": "moment:open_plan_office",
-   "issue": 433
-  },
-  {
-   "key": "self|held/held|own torso",
-   "worst": 0.016,
-   "state": "moment:open_plan_office",
-   "issue": 433
   }
  ]
 }
