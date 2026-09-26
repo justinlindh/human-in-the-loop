@@ -22,7 +22,9 @@ export function scoreRun(state) {
   const raw = sum(Object.values(breakdown));
   const won = !!state.gameOver?.won;
   const funding = B.funding[state.founding?.funding]?.scoreMult ?? 1;
-  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding);
+  // The incubator house's cut, if the founders took the free rent.
+  const incubator = 1 - (state.flags.incubatorCut ?? 0);
+  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding * incubator);
   return { score, valuation, breakdown };
 }
 

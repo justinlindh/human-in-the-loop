@@ -40,6 +40,9 @@ export const MOMENT_CAPTIONS = {
   coffee_wanted: 'A French press has appeared. It has a guard.',
   coffee_wanted_corner: 'A one-star review is taped to the coffee corner.',
   pivot_pitch: 'The whiteboard says "the market has spoken". Nobody knows what it said.',
+  incubator_house: 'A hand-painted INCUBATOR sign by the door. The mentor awaits an answer.',
+  the_box: 'The rival made a very shiny cube. Everyone is staring at the poster.',
+  oat_milk: 'Four thousand pounds of oat milk in the lobby. The agent is very proud.',
   // Incentive parties, keyed by the reward.
   waffle_party: 'The waffle cart has rolled in. The lights are down. Nobody is working.',
   music_night: 'Music night. The winner picked the genre. Everyone else is being brave.',

@@ -1,5 +1,6 @@
 import { B } from '../sim/balance.js';
 import { OFFICE_NODS } from './office-nods.js';
+import { SV_NODS } from './sv-nods.js';
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
@@ -1207,7 +1208,7 @@ const list = [
   },
 ];
 
-export const EVENTS = Object.fromEntries([...list, ...OFFICE_NODS].map((e) => [e.id, e]));
+export const EVENTS = Object.fromEntries([...list, ...OFFICE_NODS, ...SV_NODS].map((e) => [e.id, e]));
 
 export const INCIDENT_EVENT = {
   db_wipe: 'agent_db_wipe', runaway_spend: 'agent_runaway_spend', mass_email: 'agent_mass_email',
