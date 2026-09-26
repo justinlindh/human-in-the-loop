@@ -3,8 +3,8 @@ import { chance, int, pick, shuffle } from './rng.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { mentorOf } from './staff.js';
-import { STANDUP } from '../data/standup.js';
-import { eraLines } from './eras.js';
+import { STANDUP, STANDUP_EXCHANGES } from '../data/standup.js';
+import { eraAllowsText, eraLines } from './eras.js';
 
 export const standupMode = (state) => (state.policies.daily_standups ? 'daily' : state.policies.async_standups ? 'async' : null);
 
@@ -70,6 +70,40 @@ function lineFor(ctx, p) {
   return fill(choose(byRole, liveName), { product: liveName });
 }
 
+// Dialogue selection has its own bounded memory and draws no RNG, leaving work and async rolls alone.
+export function standupConversation(state, speakers, updates) {
+  const active = speakers.filter(p => !['burnout', 'coasting', 'away'].includes(p.mood));
+  if (active.length < 2) return updates;
+  const projects = active.map(p => ({ person: p, project: state.projects.find(j => p.assignment.type === 'project' && j.id === p.assignment.targetId) })).filter(x => x.project);
+  const outage = state.outage && state.products.find(p => p.id === state.outage.productId && !p.killed);
+  const engineer = active.find(p => p.role === 'engineer' && p.assignment.type !== 'project');
+  const overseer = active.find(p => p.assignment.type === 'oversight');
+  const context = {
+    general: { person: active[1], vars: {} },
+    ...(projects.length ? { project: { person: projects[0].person, vars: { project: projects[0].project.name, pct: Math.floor(100 * projects[0].project.progress / projects[0].project.pointsNeeded) } } } : {}),
+    ...(outage && engineer ? { outage: { person: engineer, vars: { product: outage.name } } } : {}),
+    ...(overseer ? { oversight: { person: overseer, vars: {} } } : {}),
+  };
+  const recent = (state.flags.standupConversationRecent ??= []);
+  const priority = ['outage', 'project', 'oversight', 'general'];
+  const fill = (text, vars) => text.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? ''));
+  const pool = STANDUP_EXCHANGES.filter(e => context[e.topic] && e.lines.every(t => eraAllowsText(state, t) && fill(t, context[e.topic].vars).length <= 70));
+  if (!pool.length) return updates;
+  const fresh = pool.filter(e => !recent.includes(e.id));
+  const chosen = fresh.length
+    ? fresh.sort((a, b) => priority.indexOf(a.topic) - priority.indexOf(b.topic))[0]
+    : pool.reduce((a, b) => recent.lastIndexOf(a.id) <= recent.lastIndexOf(b.id) ? a : b);
+  const { person, vars } = context[chosen.topic];
+  // The second line is the work update. The other attendees ask and respond around its owner.
+  const others = active.filter(p => p !== person);
+  const cast = [others[0], person, ...others.slice(1)];
+  const lines = cast.map((p, i) => ({ staffId: p.id, text: fill(chosen.lines[i], vars) }));
+  lines.push(...updates.filter(l => !active.some(p => p.id === l.staffId)));
+  recent.push(chosen.id);
+  if (recent.length > B.standupConversationMemory) recent.splice(0, recent.length - B.standupConversationMemory);
+  return lines;
+}
+
 // Weekly standup when a standup policy is on: 3 to 5 people give an update. Daily standups also lift
 // the speakers' meaning a little; async updates are posted to #standup instead.
 export function standupSystem(ctx) {
@@ -79,7 +113,8 @@ export function standupSystem(ctx) {
   const present = state.staff.filter((p) => p.mood !== 'away');
   if (!present.length) return;
   const speakers = shuffle(ctx.rng, present).slice(0, Math.min(present.length, int(ctx.rng, 3, 5)));
-  const lines = speakers.map((p) => ({ staffId: p.id, text: lineFor(ctx, p) }));
+  const updates = speakers.map((p) => ({ staffId: p.id, text: lineFor(ctx, p) }));
+  const lines = mode === 'daily' ? standupConversation(state, speakers, updates) : updates;
   const by = state.flags.standupRecentBy ?? {};
   for (const id of Object.keys(by)) if (!state.staff.some((p) => p.id === id)) delete by[id];
   ctx.emit({ type: 'standup', mode, lines });

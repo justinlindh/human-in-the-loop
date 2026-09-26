@@ -9,6 +9,8 @@ const CASES = [];
 for (const mock of ['garage', 'floor', 'hq']) for (const strip of ['none', 'meeting', 'meeting+whiteboard']) CASES.push({ mock, strip });
 // The review desk's case: a real garage (seed 26, bot-played to week 110) whose whiteboard faces a wall.
 CASES.push({ seed: 26, weeks: 110, strip: 'none' });
+for (const speed of [1, 2, 4]) CASES.push({ mock: 'floor', strip: 'none', speech: { speed } });
+for (const path of ['denied', 'pause', 'menu', 'speed', 'departure', 'away', 'empty']) CASES.push({ mock: 'floor', strip: 'none', speech: { path } });
 
 // Cases run concurrently (--jobs=N, default 8), each in its own seeded page; a full pass is
 // recorded against a hash of every input (cache.mjs) and unchanged inputs skip the run.
@@ -24,8 +26,12 @@ let failed = 0;
 const lines = new Map();
 async function runCase(c, slot) {
   const { page, errors } = await H.openScene(c.seed ? `quality=low&seed=${c.seed}` : `quality=low&mock=${c.mock}`, { width: 640, height: 400, slot });
-  const res = await page.evaluate(async ({ strip, weeks }) => {
+  const res = await page.evaluate(async ({ strip, weeks, speech }) => {
     const R = window.__hitlRender, S = window.__HITL.state;
+    if (speech) {
+      const { checkStandupSpeech } = await import('/blender/checks/standup-speech.mjs');
+      return checkStandupSpeech(R, S, speech);
+    }
     const C = await import('/src/render/checks.js');
     if (weeks) {
       const sim = await import('/src/sim/index.js');

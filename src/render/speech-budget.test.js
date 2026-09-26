@@ -21,6 +21,17 @@ describe('office speech attention', () => {
     b.admit('a', 6, 0);
     expect(b.admit('a', 6, 4, { moment: 'waffle_party' })).toBe(true);
   });
+  it('lets an ordered standup reply use a free slot without weakening ambient cooldowns', () => {
+    const b = createSpeechBudget();
+    expect(b.admit('a', 3, 0)).toBe(true);
+    expect(b.admit('a', 3, 1, { standup: true })).toBe(false);
+    b.step(3);
+    expect(b.admit('a', 3, 0, { standup: true })).toBe(true);
+    b.step(3);
+    expect(b.admit('b', 3, 0)).toBe(false);
+    b.step(6);
+    expect(b.admit('b', 3, 0)).toBe(true);
+  });
   it.each([1, 2, 4])('allows the reading minimum plus fading at %ix', speed => {
     for (const text of ['Hi.', Array(40).fill('word').join(' ')]) {
       expect(readSeconds(text, speed) - 0.4).toBeGreaterThanOrEqual(Math.max(2.5, text.split(/\s+/).length * 0.25));

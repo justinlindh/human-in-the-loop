@@ -1,6 +1,7 @@
 import { B } from '../sim/balance.js';
 import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
+import { createStandupSpeech } from './standup-speech.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { ROLE_COLORS } from './palette.js';
@@ -47,9 +48,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const speech = createSpeechBudget();
   const momentSpeech = createMomentSpeech();
   function speak(text, r, e = {}, checked = false) {
-    if (!r || r.hidden || !text || (!checked && quieted(e, r))) return;
+    if (!r || r.hidden || !text || (!checked && quieted(e, r))) return 0;
+    if (standup && !e.standup && !e.moment) return 0;
     const seconds = holdSeconds(text, speed);
-    if (speech.admit(r.id, seconds, labels.speechCount?.() ?? 0, { moment: e.moment })) labels.say(text, r.char.root, seconds, 1.45, { moment: !!e.moment });
+    if (!speech.admit(r.id, seconds, labels.speechCount?.() ?? 0, e)) return 0;
+    labels.say(text, r.char.root, seconds, 1.45, { moment: !!e.moment });
+    return seconds;
   }
   const group = new THREE.Group();
   group.name = 'staff';
@@ -927,18 +931,6 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (said) speak(said.text, recs.get(said.staffId));
   }
 
-  const MAX_STANDUP_LINES = 3;
-  const NOD_S = 0.5;
-  const GAP_S = 0.3;
-  const SILENT_S = 1.3;
-  function interest(l) {
-    const t = l.text ?? '';
-    if (!t) return 3;                                           // a burned-out silence says a lot
-    if (/block|stuck|flaky|broke|outage|incident|help/i.test(t)) return 4;
-    if (/[!?]|lol|pun|sorry|somehow|again/i.test(t)) return 2;
-    return 1;
-  }
-
   function startStandup(e, state) {
     if (!office.current) return;
     const week = Number.isFinite(state?.week) ? state.week : standupCount;
@@ -946,19 +938,17 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (week < lastStagedWeek) { lastStagedWeek = -Infinity; lastStagedAt = -Infinity; }   // a new or loaded game
     // In person only now and then (by real play time, so speed doesn't change how often); a
     // standup still talking is never cut off, and the weeks between stay at the desks.
-    const stage = speed < 4 && !standup && playTime - lastStagedAt >= STAGE_GAP_S;
+    const stage = !standup && playTime - lastStagedAt >= STAGE_GAP_S;
     const present = (l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !taken(r); };
     if (!stage) { deskStandup((e.lines ?? []).filter(present)); return; }
     const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !r.temp?.moment; });
     if (!lines.length) return;
     lastStagedWeek = week;
     lastStagedAt = playTime;
-    // Only the most interesting few speak (blockers, jokes, silences); the rest just nod.
-    // The most interesting few speak (blockers, silences, jokes); the rest nod.
-    const speaking = new Set(lines.map((l, i) => ({ l, i, s: interest(l) })).sort((a, b) => b.s - a.s || a.i - b.i)
-      .slice(0, MAX_STANDUP_LINES).map((x) => x.l));
-    const spots = ringSpots(lines.length);
-    const people = lines.map((l, i) => {
+    // A speaker can take several turns, but occupies one place in the ring.
+    const attendees = [...new Map(lines.map(l => [l.staffId, l])).values()];
+    const spots = ringSpots(attendees.length);
+    const people = attendees.map((l, i) => {
       const r = recs.get(l.staffId);
       const sp = spots[i];
       const spot = { x: sp.x, z: sp.z, yaw: Math.atan2(sp.cx - sp.x, sp.cz - sp.z), anim: 'idle' };
@@ -970,14 +960,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       for (const q of r.path) { len += Math.hypot(q.x - px, q.z - pz); px = q.x; pz = q.z; }
       const need = len / (GATHER / (speed >= 2 ? 2 : 1));
       if (need > r.speed) { r.speed = need; r.walkAnim = need > 2 ? 'run' : 'walk'; }
-      return { r, text: speaking.has(l) ? l.text : null, nod: !speaking.has(l) };
+      return { r };
     });
-    standup = { people, phase: 'gather', t: 0, i: 0 };
+    standup = { people, phase: 'gather', t: 0, speech: createStandupSpeech(lines) };
     office.tuckMeetingChairs(true);
   }
-
-  // A nodder waves briefly, then goes back to standing in the ring.
-  function setTimeoutFree(r) { r.nodT = NOD_S; }
 
   function endStandup() {
     office.tuckMeetingChairs(false);
@@ -993,30 +980,28 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!standup) return;
     const st = standup;
     st.t += dt;
-    for (const p of st.people) if (p.r.nodT > 0 && (p.r.nodT -= dt) <= 0 && p.r.temp?.standup) p.r.temp.anim = 'idle';
-    const live = st.people.filter((p) => recs.has(p.r.id) && p.r.temp?.standup);
-    if (!live.length) { standup = null; office.tuckMeetingChairs(false); return; }
-    if (speed >= 4) { endStandup(); return; }
+    // An attendee sent away follows the door goal instead of keeping the meeting's idle pose.
+    for (const { r } of st.people) if (r.goal?.hidden && r.temp?.standup) { r.temp = null; labels.clearFor(r.char.root); }
+    const live = st.people.filter((p) => recs.has(p.r.id) && !p.r.hidden && p.r.temp?.standup);
+    if (!live.length) { endStandup(); return; }
     if (st.phase === 'gather') {
       // Talking starts once most of the ring is in place; stragglers finish walking in.
       const arrived = live.filter((p) => !p.r.path.length).length;
-      if (arrived >= Math.ceil(live.length * 0.6) || st.t > GATHER / (speed >= 2 ? 2 : 1)) { st.phase = 'talk'; st.t = 0.2; st.i = -1; }
+      if (arrived >= Math.ceil(live.length * 0.6) || st.t > GATHER / (speed >= 2 ? 2 : 1)) { st.phase = 'talk'; st.t = 0; }
       return;
     }
     if (st.phase === 'talk') {
-      // Each speaker holds the floor for the full reading time of their line, then a short pause.
-      const beat = (p) => (p.nod ? NOD_S : p.text ? holdSeconds(p.text, speed) + GAP_S : SILENT_S * (speed >= 2 ? 0.75 : 1));
-      const cur = st.i >= 0 ? st.people[st.i] : null;
-      if (st.i < 0 || st.t >= beat(cur)) {
-        st.i++;
-        st.t = 0;
-        if (st.i >= st.people.length) { st.phase = 'close'; st.t = 0; return; }
-        const p = st.people[st.i];
-        if (!recs.has(p.r.id) || !p.r.temp?.standup) return;
-        if (p.nod) { p.r.temp.anim = 'wave'; emote(p.r, 'lightbulb', 0.9); setTimeoutFree(p.r); }
-        else if (p.text) speak(p.text, p.r);
-        else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
-      }
+      st.speech.step(dt, l => {
+        const r = recs.get(l.staffId);
+        if (!r || r.hidden || !r.temp?.standup) return 'drop';
+        return r.path.length ? 'wait' : 'play';
+      }, l => {
+        const r = recs.get(l.staffId);
+        if (l.text) return speak(l.text, r, { standup: true });
+        emote(r, r.staff.mood === 'burnout' ? 'zzz' : 'sweat', B.standupSilenceSeconds);
+        return B.standupSilenceSeconds;
+      });
+      if (st.speech.done) { st.phase = 'close'; st.t = 0; }
       return;
     }
     if (st.phase === 'close' && st.t > 0.3) endStandup();
@@ -1195,7 +1180,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.pos.set(x, 0, z);
       return true;
     },
-    get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.i } : null; },
+    get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.speech.index } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },
   };

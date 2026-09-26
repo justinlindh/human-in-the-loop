@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
-import { standupSystem } from '../../src/sim/standup.js';
+import { standupSystem, standupConversation } from '../../src/sim/standup.js';
 import { outputMult } from '../../src/sim/staff.js';
 import { institutionalKnowledge } from '../../src/sim/knowledge.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
-import { STANDUP } from '../../src/data/standup.js';
+import { STANDUP, STANDUP_EXCHANGES } from '../../src/data/standup.js';
 import { POLICIES } from '../../src/data/policies.js';
 import { game, addStaff, addProduct } from './helpers.js';
 
@@ -133,6 +133,69 @@ describe('an async standup', () => {
 });
 
 describe('standup variety', () => {
+  const daily = s => { s.policies.daily_standups = true; return run(s).find(e => e.type === 'standup').lines; };
+  it('uses different complete exchanges across successive meetings and save round trips', () => {
+    const s = office(9), sequences = [];
+    for (let i = 0; i < 12; i++) {
+      const clone = JSON.parse(JSON.stringify(s));
+      const lines = daily(s);
+      expect(daily(clone)).toEqual(lines);
+      expect(new Set(lines.map(l => l.staffId)).size).toBeGreaterThanOrEqual(3);
+      const signature = lines.map(l => l.text).join('|');
+      expect(sequences).not.toContain(signature);
+      sequences.push(signature);
+      expect(lines.every(l => l.text.length <= 70 && !/[{}]/.test(l.text))).toBe(true);
+    }
+    expect(s.flags.standupConversationRecent.length).toBeLessThanOrEqual(B.standupConversationMemory);
+  });
+  it('uses the assigned project and current outage, then drops resolved context immediately', () => {
+    const s = office(2), speakers = s.staff;
+    const fallback = speakers.map(p => ({ staffId: p.id, text: 'Update.' }));
+    s.projects[0].progress = s.projects[0].pointsNeeded * 0.45;
+    const project = standupConversation(s, speakers, fallback);
+    expect(project.some(l => /Loopo.*45%/.test(l.text))).toBe(true);
+    s.outage = { productId: s.products[0].id };
+    const outage = standupConversation(s, speakers, fallback);
+    expect(outage.some(l => /Jotly.*down/.test(l.text))).toBe(true);
+    s.outage = null;
+    s.products[0].killed = true;
+    s.projects = [];
+    for (let i = 0; i < 20; i++) {
+      const lines = standupConversation(s, speakers, fallback);
+      expect(lines.map(l => l.text).join(' ')).not.toMatch(/Jotly|Loopo|outage|still down/);
+    }
+  });
+  it('does not invent launches, incidents, AI, furniture, or absent speakers in a new company', () => {
+    const s = game(5);
+    s.era = { id: 'classic', since: 0 };
+    s.products = []; s.projects = []; s.office.placed = [];
+    for (const p of s.staff) p.assignment = { type: 'idle', targetId: null };
+    for (let i = 0; i < 20; i++) {
+      const lines = daily(s);
+      expect(lines.map(l => l.text).join(' ')).not.toMatch(/\b(customer|launch|outage|incident|agent|AI|whiteboard|shipped)\b/i);
+    }
+    const away = s.staff[0]; away.mood = 'away';
+    expect(daily(s).some(l => l.staffId === away.id)).toBe(false);
+  });
+  it('preserves quiet moods and the selected attendees without drawing simulation randomness', () => {
+    const s = office(2), speakers = s.staff;
+    speakers[0].mood = 'burnout';
+    speakers[1].mood = 'coasting';
+    const fallback = speakers.map(p => ({ staffId: p.id, text: p.mood === 'burnout' ? '' : p.mood === 'coasting' ? 'Still on it.' : 'Update.' }));
+    const rng = JSON.stringify(s.rng);
+    const lines = standupConversation(s, speakers, fallback);
+    expect(lines.find(l => l.staffId === speakers[0].id).text).toBe('');
+    expect(lines.find(l => l.staffId === speakers[1].id).text).toBe('Still on it.');
+    expect(new Set(lines.map(l => l.staffId))).toEqual(new Set(speakers.map(p => p.id)));
+    expect(JSON.stringify(s.rng)).toBe(rng);
+  });
+  it('has unique exchange ids and complete short scripts with strict context topics', () => {
+    expect(new Set(STANDUP_EXCHANGES.map(e => e.id)).size).toBe(STANDUP_EXCHANGES.length);
+    for (const e of STANDUP_EXCHANGES) {
+      expect(e.lines).toHaveLength(5);
+      for (const line of e.lines) expect(line.replaceAll('{project}', 'A long project name').replaceAll('{product}', 'A long product name').replaceAll('{pct}', '100').length).toBeLessThanOrEqual(70);
+    }
+  });
   it('async updates almost never repeat a line within 30 posts over a long run', async () => {
     const { runBot } = await import('../../src/sim/bots.js');
     for (const seed of [1, 2]) {
