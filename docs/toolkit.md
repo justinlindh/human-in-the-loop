@@ -6,6 +6,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 
 | Task | Reach for | Page |
 |---|---|---|
+| Monitor worker tasks and submit owner decisions | `node scripts/queue-dashboard/server.mjs` | [queue-dashboard](toolkit/queue-dashboard.md) |
 | Know where a person will stand or walk, or what blocks a tile | `dump.mjs --moment '<query>'`, then `dump-query path <id>` or `nav <x,z>` | [dump](toolkit/dump.md) |
 | Know whether a face, prop or person reads on screen, and what hides it | `R.probe(id)` (a staff id, `'visitor:0'`, or a prop; reports `occluder`), `R.probeViews(id)`, `dump.mjs --views 0,1,2,3` then `dump-query visible <thing>` | [probe](toolkit/probe.md), [dump](toolkit/dump.md) |
 | Know why a moment didn't start or was cut short | `dump.mjs --trace`, `dump-query trace <id>`; a failing `loop.mjs` or `clip.mjs` case prints the worst actor and their trace on its own | [dump](toolkit/dump.md), [loop](toolkit/loop.md), [clip](toolkit/clip.md) |
