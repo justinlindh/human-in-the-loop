@@ -4,6 +4,8 @@ import { createSceneGraph } from './scene.js';
 import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
+import { createFly } from './fly.js';
+import { setRingsShown } from './character.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
 import { loadModels } from './models.js';
@@ -58,6 +60,10 @@ const DEBUG_VIEWS = {
 };
 
 let labelsElRef = null;
+
+const BLOOM = 0.55;          // the bloom pass's strength (post.js)
+const FLY_BLOOM = 0.3;       // its strength while the flying camera is on
+const FLY_NEAR = 1.5;        // metres from the flying camera within which a person is warned about
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   labelsElRef = labelsEl;
@@ -158,6 +164,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const s0 = size();
   renderer.setSize(s0.w, s0.h, false);
   const post = createPost(renderer, scene, rig.camera, q);
+  // The dev flying camera (fly.js): a keyframed perspective camera for trailer shots.
+  const fly = createFly({ getWallH: () => office?.current?.L?.wallH ?? 3 });
+  let tiltWanted = true, flyCamOn = false;
 
   function applyQuality() {
     setRigEnabled(rigWanted());
@@ -177,6 +186,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     post.setSize(w, h);
     labels.setSize(w, h);
     rig.resize(w, h);
+    fly.camera.aspect = w / h;
+    fly.camera.updateProjectionMatrix();
   }
   resize();
 
@@ -251,7 +262,15 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       post.setQuality(q);
       resize();
     },
-    setTiltShift(on) { post.setTiltShift(!!on); },
+    setTiltShift(on) { tiltWanted = !!on; if (!fly.active) post.setTiltShift(tiltWanted); },
+    // Dev only: fly the perspective camera along a keyframed path (fly.js), or null to hand back.
+    fly(path) {
+      fly.set(path);
+      post.setTiltShift(fly.active ? !!path.tilt : tiltWanted);
+      labels.domElement.style.display = fly.active && !path.labels ? 'none' : '';
+      setRingsShown(!fly.active || !!path.rings);
+    },
+    get flying() { return fly.active ? { t: +fly.t.toFixed(2), warnings: fly.warnings.slice() } : null; },
     setRig(on) { setRigEnabled(on); },
     // Speed 0 or a menu pause freezes the diorama (camera and build mode keep working).
     setSpeed(k) { speedZero = k === 0; if (k > 0) staff?.setSpeed(k); },
@@ -329,6 +348,20 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const t0 = performance.now();
       renderer.info.reset();
       rig.update(dt);
+      const flying = fly.step(dt);
+      const cam = flying ? fly.camera : rig.camera;
+      if (flying !== flyCamOn) {
+        flyCamOn = flying;
+        post.setCamera(cam);
+        // Up close a lamp or a glowing stack fills more of the frame: bloom is held lower in flight.
+        post.bloom.strength = flying ? FLY_BLOOM : BLOOM;
+      }
+      // Someone standing right by the flying camera fills the frame edge as a big soft head.
+      if (flying && staff) {
+        for (const p of staff.positions()) {
+          if (Math.hypot(p.x - cam.position.x, p.z - cam.position.z) < FLY_NEAR && cam.position.y < 2.6) { fly.warn('near', { x: +p.x.toFixed(2), z: +p.z.toFixed(2) }); break; }
+        }
+      }
       lighting.setViewYaw(rig.yaw);
       debugRoot.userData.update?.(dt);
       const paused = speedZero || menuPaused;
@@ -336,7 +369,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
       surroundings?.setViewYaw(rig.yaw);
       surroundings?.update(dt, lighting.env);
-      if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
+      if (staff && office && (!flying || fly.path.fade)) office.fadeColumns(cam, staff.positions(), dt);
       // A screen takeover is a staged moment: it plays on behind a decision card.
       screens.update(screens.overlay && !speedZero ? dt : simDt, lighting.env);
       // A decision holds the office still, except the moment it stages (unless the game is paused).
@@ -350,9 +383,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       scene.updateMatrixWorld();
       // Skipping the draw is exact only while post keeps no state between frames (golden checks this).
       if (draw) post.render(dt);
-      labels.render(scene, rig.camera);
+      labels.render(scene, cam);
       const ls = labels.getSize();
-      floating.layout(dt, rig.camera, ls.width, ls.height, labels.domElement);
+      floating.layout(dt, cam, ls.width, ls.height, labels.domElement);
       perf.calls = renderer.info.render.calls;
       perf.triangles = renderer.info.render.triangles;
       perf.ms = perf.frames ? perf.ms * 0.9 + (performance.now() - t0) * 0.1 : performance.now() - t0;
