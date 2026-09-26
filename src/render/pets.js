@@ -100,9 +100,11 @@ function buildPet(species, look) {
   return { root, body, legs, neck, head, ears, tail, emote };
 }
 
-export function createPets({ office, recs, emote: staffEmote, parent, getProps = () => null }) {
+export function createPets({ office, recs, emote: staffEmote, parent, getProps = () => null, resumeWalk, low = () => false }) {
   const pets = new Map();       // pet id -> rec
   const pens = [];
+  const staffCooldown = new Map();
+  let scanIn = 0;
   const penGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.17, 8);
   let lastState = null;
 
@@ -128,6 +130,8 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
 
   function sync(state) {
     lastState = state;
+    if (state.pendingDecision || state.outage) for (const r of pets.values()) releasePetter(r);
+    for (const id of staffCooldown.keys()) if (!recs.has(id)) staffCooldown.delete(id);
     if (!office.current) return;
     const want = new Set();
     for (const p of state.pets ?? []) {
@@ -140,7 +144,48 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
       const pos = spawnAt(p.species);
       pets.set(p.id, { id: p.id, data: p, species: p.species === 'cat' ? 'cat' : 'dog', rig, pos, yaw: 0, path: [], mode: 'idle', t: rnd(1, 3), y: 0, pose: 'stand', emoteT: 0, phase: Math.random() * 6 });
     }
-    for (const [id, r] of pets) if (!want.has(id)) { r.rig.root.removeFromParent(); pets.delete(id); }
+    for (const [id, r] of pets) if (!want.has(id)) { releasePetter(r); r.rig.root.removeFromParent(); pets.delete(id); }
+  }
+
+  function releasePetter(r) {
+    const p = r.petter;
+    if (!p) return;
+    p.who.char.setPetTarget(null);
+    if (p.who.temp === p.temp) {
+      p.who.temp = null;
+      if (!p.who.path.length && p.who.goal && recs.has(p.who.id)) resumeWalk(p.who, p.who.goal);
+    }
+    r.petter = null;
+    r.cooldown = clock + 18;
+    r.mode = 'idle'; r.t = 2; r.arrived = false;
+    petEmote(r, 'heart', 1.2);
+  }
+
+  function greetPasser(r) {
+    if (lastState?.pendingDecision || lastState?.outage || low() || r.petter || r.hop || r.y > 0.01 || r.pose === 'lie' || r.cooldown > clock || ['chase', 'flee'].includes(r.mode)) return;
+    for (const who of recs.values()) {
+      if (who.hidden || who.goal?.hidden || who.mode !== 'placed' || who.temp || !who.path.length || who.exitFrom || who.char.seated || (staffCooldown.get(who.id) ?? 0) > clock) continue;
+      const d = Math.hypot(who.pos.x - r.pos.x, who.pos.z - r.pos.z);
+      if (d < 0.56 || d > 0.72) continue;
+      // Both actors stay on their own floor points. Reject furniture between them or beside
+      // the reaching arm, rather than pulling either actor through a desk to make contact.
+      const nav = office.nav();
+      if (![0.25, 0.5, 0.75].every(k => !nav.isBlocked(who.pos.x + (r.pos.x - who.pos.x) * k, who.pos.z + (r.pos.z - who.pos.z) * k, 0.2))) continue;
+      const target = new THREE.Vector3();
+      const temp = { anim: 'pet', t: 3, back: true, moment: 'pet',
+        goal: { x: who.pos.x, z: who.pos.z, yaw: Math.atan2(r.pos.x - who.pos.x, r.pos.z - who.pos.z) - 0.8 },
+        stage: { beat: 'stroke', role: r.species, target },
+      };
+      who.path = [];
+      who.face = null;
+      who.temp = temp;
+      r.path = []; r.mode = 'petted'; r.pose = 'sit'; r.arrived = true;
+      r.yaw = Math.atan2(who.pos.x - r.pos.x, who.pos.z - r.pos.z) - 0.65;
+      r.petter = { who, temp, target };
+      staffCooldown.set(who.id, clock + 25);
+      r.emoteT = 0; r.rig.emote.visible = false;
+      return;
+    }
   }
 
   function walkTo(r, x, z, run = false) {
@@ -207,7 +252,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     r.who = null; r.target = null; r.perch = null; r.spot = null;
     const people = [...recs.values()].filter((p) => !p.hidden && p.mode === 'placed');
     if (r.species === 'dog') {
-      const cat = [...pets.values()].find((x) => x.species === 'cat' && x.y === 0 && !x.hop);
+      const cat = [...pets.values()].find((x) => x.species === 'cat' && x.y === 0 && !x.hop && !x.petter);
       const roll = Math.random();
       if (cat && roll < 0.15) {
         r.mode = 'chase'; r.t = 5; r.target = cat;
@@ -300,8 +345,13 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
   function update(dt) {
     if (!office.current) return;
     clock += dt;
+    scanIn -= dt;
+    const scan = scanIn <= 0;
+    if (scan) scanIn = 0.15;
     for (const r of pets.values()) {
       const g = r.rig;
+      if (r.petter && (low() || r.petter.who.hidden || r.petter.who.goal?.hidden || !recs.has(r.petter.who.id) || r.petter.who.temp !== r.petter.temp || r.petter.temp.t <= 0 || r.petter.who.path.length)) releasePetter(r);
+      if (scan) greetPasser(r);
       if (r.emoteT > 0) {
         r.emoteT -= dt;
         // Same squash-and-stretch pop as people's emotes.
@@ -326,7 +376,9 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
           } else r.path = [];
         }
       }
-      if (r.hop) {
+      if (r.petter) {
+        r.pose = 'sit';
+      } else if (r.hop) {
         // A short arc onto or off a perch.
         r.hop.t += dt / 0.45;
         const q = Math.min(1, r.hop.t);
@@ -357,6 +409,11 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
       pose(r, dt, clock);
       g.root.position.set(r.pos.x, r.y, r.pos.z);
       g.root.rotation.y = r.yaw;
+      if (r.petter) {
+        g.root.updateMatrixWorld(true);
+        r.petter.target.set(0, 0.17, 0.015).applyMatrix4(g.head.matrixWorld);
+        r.petter.who.char.setPetTarget(r.petter.target);
+      }
     }
     for (let i = pens.length - 1; i >= 0; i--) {
       const p = pens[i];
@@ -414,7 +471,8 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
   }
 
   function reset() {
-    for (const r of pets.values()) r.rig.root.removeFromParent();
+    for (const r of pets.values()) { releasePetter(r); r.rig.root.removeFromParent(); }
+    staffCooldown.clear();
     pets.clear();
     for (const p of pens) p.m.removeFromParent();
     pens.length = 0;
@@ -423,6 +481,15 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
   return {
     sync, update, reset,
     get count() { return pets.size; },
+    // Checks place an idle pet beside a walking route; the greeting still uses proximity.
+    standAt(id, x, z) {
+      const r = pets.get(id);
+      if (!r) return false;
+      releasePetter(r);
+      r.pos.set(x, 0, z); r.y = 0; r.hop = null; r.path = [];
+      r.mode = 'idle'; r.pose = 'sit'; r.t = 30; r.arrived = true; r.cooldown = 0; scanIn = 0;
+      return true;
+    },
     // Test hook: force a plan now ('visit' | 'nap' | 'chase' | 'sleep' | 'knock').
     force(id, mode) {
       const r = pets.get(id);
@@ -438,7 +505,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
         const target = r.who ? { staffId: r.who.id } : r.target ? { petId: r.target.id } : r.perch ? { x: +r.perch.x.toFixed(2), z: +r.perch.z.toFixed(2), y: +r.perch.y.toFixed(2) }
           : r.spot ? { x: +r.spot.x.toFixed(2), z: +r.spot.z.toFixed(2) } : last ? { x: +last.x.toFixed(2), z: +last.z.toFixed(2) } : null;
         const plan = r.mode === 'sleep' ? 'perch' : r.mode;
-        return { id: r.id, species: r.species, plan, pose: r.pose, y: +r.y.toFixed(2), path: r.path.length, pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)], target };
+        return { petter: r.petter?.who.id ?? null, contact: r.petter?.target.toArray() ?? null, id: r.id, species: r.species, plan, pose: r.pose, y: +r.y.toFixed(2), path: r.path.length, pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)], target };
       };
       if (id === undefined) return [...pets.values()].map(one);
       const r = pets.get(id);

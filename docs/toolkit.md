@@ -87,3 +87,5 @@ The machine and the GPU are shared, so single numbers are noisy. Trust relative 
 | Role briefs and skills | `.claude/agents/` and `.claude/skills/` |
 | Ideas and priorities | GitHub issues labelled `idea` with `when:*`, ranked in #6. `tooling` marks toolkit work, and `fork-idea` marks separate projects. |
 | Anything the user must see or decide | Send it to team-lead with the media; team-lead puts it on the user's review desk. |
+
+For a staged actor or prop that keeps landing at the same fallback, inspect `R.debug.spots[moment][search]`. `src/render/spots.js` supplies the shared `pickSpot(center, { ring, needs, checks, score, fallback })` search: caller-owned geometry checks return true or a rejection reason, ordered rings or explicit candidates define the search, and the lowest finite score wins when supplied. Moment searches provide `clear`, `chairClear`, `inView`, `noColumn`, and `bothViews` checks; `bothViews` tests the current camera direction and one quarter turn. Existing scenes choose the requirements they need. The dump records the candidates and prints rejection summaries; staging failures print those summaries too.

@@ -10,6 +10,7 @@
 // a merged PR or commit that changed game code. Then the rule fails again. Issue states come from gh,
 // once per run; if gh can't be reached, markers count as open and the run says so.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
+import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
@@ -47,6 +48,16 @@ function motion(xs) {
 }
 
 const SPECS = {
+  'pet.stroke': { moment: 'pet', beat: 'stroke', role: 'dog', rules: [
+    share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
+    share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'petcat.stroke': { moment: 'pet', scenario: 'petcat', beat: 'stroke', role: 'cat', rules: [
+    share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
+    share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
@@ -151,6 +162,10 @@ const SPECS = {
 
 // How each moment is set up in the mock floor, and how long to watch it.
 const SCENARIOS = {
+  pet: { query: 'mock=floor', patch: {}, seconds: 6,
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog')" },
+  petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat')" },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
@@ -222,7 +237,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { moment, view } = task;
     const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, steps, seconds, turns }) => {
+    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
@@ -233,6 +248,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
       window.__step(90);
       Object.assign(S, JSON.parse(JSON.stringify(patch)));
+      if (setup) await new Function('R', 'S', `return (async () => { ${setup}; })()`)(R, S);
+      const petProbe = moment === 'pet' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
       const samples = [];
       // Everyone the moment takes part, each sampled every frame until the moment is over for all.
       const actors = new Set();
@@ -255,12 +272,21 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             m.heldAbove = c.y - (m.headY + 0.3);
             m.heldDrop = m.headY - c.y;
           }
+          if (moment === 'pet') {
+            const pet = R.pets.peek().find(p => p.petter === actor);
+            let root = null, petRoot = null, head = null;
+            R.scene.traverse(o => { if (o.userData.staffId === actor) root = o.parent; if (o.name === 'pet') petRoot = o; });
+            root?.traverse(o => { if (o.userData.part === 'head') head = o; });
+            m.petHeadVisible = head ? petProbe.seen(head)[0].visible : 0;
+            m.petVisible = petRoot ? petProbe.seen(petRoot)[0].visible : 0;
+            m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
+          }
           samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
         }
         if (samples.length && !live) break;
       }
-      return { actors: [...actors], samples };
-    }, { moment, patch: sc.patch, steps: sc.steps, seconds: sc.seconds, turns: view.turns });
+      return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
+    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns });
     await page.close();
     results.set(task, { res, errors });
   }
@@ -273,6 +299,7 @@ for (const task of tasks) {
   {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
+    const firstRow = rep.rows.length;
     if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
     // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
     // wall and still pass. Walking and waiting are between beats and need none.
@@ -291,6 +318,9 @@ for (const task of tasks) {
         const k2 = rule.known ?? null;
         rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: k2 && !closedIssues.has(k2) ? k2 : null, closed: k2 && closedIssues.has(k2) ? k2 : null });
       }
+    }
+    if (rep.rows.slice(firstRow).some((row) => !row.pass)) {
+      for (const line of spotReasons(res.spots)) console.log(`spots (${moment}/${view.name}): ${line}`);
     }
   }
 }

@@ -397,7 +397,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           toasts.push(text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
           break;
         }
-        case 'chat': chat.add(e, state.week); break;
+        case 'chat': chat.add(e, e.week ?? state.week); break;
         case 'say': callGrid.say(e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
