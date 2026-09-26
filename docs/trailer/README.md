@@ -81,9 +81,10 @@ shot frames the meme and its reply; the reaction shot returns to the instant the
 finds the facepalmer with `R.probe(id).anim`, and eases the isometric camera onto them. Speech bubbles
 and work labels stay hidden, and the interface hides after the post is clicked.
 
-Scene 7b (`yak-react`) is excluded from `BEATS` pending an art pose/staging fix: the seated
-facepalmer's monitor and bowed head obscure the hand and face. Its capture remains available as
-`trailer-yak-react` through `DEFERRED_CAPTURES`; it is not included in the delivered cut.
+Scene 7b (`yak-react`) follows the Yak thread with a standing facepalm. The renderer picks an
+unobstructed actor and keeps the face turned toward the camera during the gesture. A walking
+actor pauses and then resumes their route. The reaction cut holds the raised hand and squint
+before the printer scene.
 
 ## The voiceover
 
