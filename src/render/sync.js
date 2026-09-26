@@ -3,7 +3,7 @@ import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
-import { ROLE_COLORS } from './palette.js';
+import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
@@ -11,6 +11,8 @@ import { createIncentives } from './incentives.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
+import { createGrowthMoments } from './growth-moments.js';
+import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
@@ -258,6 +260,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function sync(state) {
     lastState = state;
+    growth.sync(state);
     const cur = office.current;
     if (!cur) return;
     const key = cur.key ?? cur.stage;
@@ -538,25 +541,27 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // over whatever they're doing), the two nearest turn to look, and a couple more sweat. Landed: a
   // couple of people light up. Nobody in a staged moment reacts.
   function postReaction(outcome) {
-    const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && !r.path.length);
+    const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && (outcome === 'backfired' || !r.path.length));
     if (!here.length) return;
     if (outcome === 'landed') {
       for (let i = 0; i < 2 && here.length; i++) emote(here.splice(Math.floor(Math.random() * here.length), 1)[0], 'sparkle', 2);
       return;
     }
     if (outcome !== 'backfired') return;
-    // The facepalm goes to someone nobody stands in front of on screen (the front of a group), and
-    // of those whoever faces the camera most squarely, so the hand at the forehead reads.
+    // Prefer a clear standing actor: a seated actor's monitor can hide the temple hand.
     const yaw = rig?.yaw ?? Math.PI / 4, cx = Math.sin(yaw), cz = Math.cos(yaw);
-    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.5; };
+    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.8; };
     const pillar = (r) => (office.current?.columns ?? []).some((c) => { const dx = c.x - r.pos.x, dz = c.z - r.pos.z, along = dx * cx + dz * cz; return along > 0 && along < 3 && Math.abs(dx * cz - dz * cx) < 0.55; });
     const clear = (r) => !pillar(r) && !here.some((x) => x !== r && hides(x, r));
-    // Clear and facing the camera both matter: in a standup ring the clear front row has its back
-    // to the camera, so someone facing it from elsewhere wins.
-    const facing = (r) => { const f = Math.cos(r.yaw - yaw); return f + (clear(r) ? 2 : 0) + (f > 0.3 ? 2 : 0); };
+    // Clear actors win first, then standing actors, then the most camera-facing heading.
+    const facing = (r) => Math.cos(r.yaw - yaw) + (clear(r) ? 8 : 0) + (!r.char.seated ? 4 : 0) + (!r.temp ? 2 : 0);
     here.sort((a, b) => facing(b) - facing(a));
     const palm = here.shift();
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
+    // Bring the temple hand toward the camera instead of behind the far cheek.
+    if (!palm.char.seated) palm.face = { yaw: yaw + 0.35, t: POST_REACT_S, post: true };
+    palm.char.setEmote(null);
+    palm.emoteT = 0;
     palm.char.gesture('facepalm', POST_REACT_S);
     const near = here.sort((a, b) => a.pos.distanceToSquared(palm.pos) - b.pos.distanceToSquared(palm.pos));
     // The nearest two turn to look. Nobody standing in front of the facepalmer on screen gets a
@@ -568,6 +573,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
   function faceToward(a, b) {
+    if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit') return;
     let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
     if (a.goal?.seated && !a.path.length && !a.temp) {
       let d = ((yaw - a.goal.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
@@ -616,6 +622,52 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
+  const growth = createGrowthMoments();
+  let growthGlow = null;
+  let growthCast = [];
+  function startGrowth() {
+    if (spotlights.current() || standup || incentives.party || incentives.dance) return;
+    let spot;
+    const beat = growth.take((id) => {
+      const r = recs.get(id);
+      return r && !r.hidden && !r.goal?.hidden && !r.temp && !r.path.length && !!(spot = moments.growthSpot(r));
+    });
+    if (!beat) return;
+    if (!growthGlow) {
+      growthGlow = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: P.gold, transparent: true, opacity: 0.22, depthWrite: false }));
+      growthGlow.rotation.x = -Math.PI / 2;
+      group.add(growthGlow);
+    }
+    const star = recs.get(beat.staffId), seconds = MOMENT_KINDS[beat.kind].seconds;
+    const crowd = [...recs.values()].filter((r) => r !== star && !r.hidden && !taken(r) && !r.path.length && roomToCelebrate(r) && r.pos.distanceTo(star.pos) < 3).slice(0, 2);
+    growthCast = [star, ...crowd];
+    star.face = null;
+    walkTo(star, spot);
+    for (const r of growthCast) {
+      const seated = r.char.seated;
+      r.temp = {
+        anim: 'celebrate', t: seconds, keepPos: true, back: r === star, moment: 'growth',
+        stage: { beat: 'cheer', role: r === star ? 'honoree' : 'coworker', target: star.char.root },
+        tick: (rr, dt) => {
+          if (rr !== star && seated) return false;
+          const yaw = rr === star ? rig?.yaw ?? Math.PI / 4 : Math.atan2(star.pos.x - rr.pos.x, star.pos.z - rr.pos.z);
+          if (rr === star) growthGlow.visible = !low();
+          rr.yaw = angleLerp(rr.yaw, yaw, 1 - Math.exp(-dt * 8));
+          return false;
+        },
+      };
+      emote(r, r === star ? 'sparkle' : 'heart', seconds);
+    }
+    growthGlow.position.set(spot.x, 0.025, spot.z);
+    growthGlow.visible = false;
+    if (!low()) fx.confetti(star.pos.x, 1.2, star.pos.z, { spread: 0.5, power: 0.5 });
+    const cast = [...growthCast];
+    spotlights.begin(beat.kind, () => {
+      for (const r of cast) if (r.temp?.moment === 'growth') { r.temp = null; if (r === star && r.goal) walkTo(r, r.goal); }
+      growthGlow.visible = false;
+    }, seconds + 8, () => star.pos, () => cast.some((r) => r.temp?.moment === 'growth'));
+  }
+
   let lastParty = -1e9;
   function companyParty() {
     const cur = office.current;
@@ -627,10 +679,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const L = cur.L;
     for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
+    const cast = [];
     for (const r of recs.values()) {
       if (r.hidden || r.mode !== 'placed' || taken(r) || !roomToCelebrate(r)) continue;
-      r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08 };
+      r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08, moment: 'company_party', stage: { beat: 'cheer' } };
+      cast.push(r);
     }
+    if (cast.length) spotlights.begin('company_party', () => {
+      for (const r of cast) if (r.temp?.moment === 'company_party') r.temp = null;
+    }, 3, () => ({ x: cast.reduce((v, r) => v + r.pos.x, 0) / cast.length, z: cast.reduce((v, r) => v + r.pos.z, 0) / cast.length }), () => cast.some((r) => r.temp?.moment === 'company_party'));
   }
 
   function incident(e) {
@@ -655,13 +712,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
-  const pets = createPets({ office, recs, emote, parent: group, getProps });
+  const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
   const momentCam = createMomentCamera(rig);
-  const spotlights = createSpotlights();
-  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam, spotlights });
+  const spotlights = createSpotlights({ camera: momentCam });
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, spotlights, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, spotlights, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -675,7 +732,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     } else {
       dir.multiplyScalar(1 / d);
       r.pos.addScaledVector(dir, step);
-      r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
+      r.yaw = angleLerp(r.yaw, r.temp?.walkYaw ?? Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
     }
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
@@ -707,7 +764,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
     }
 
-    if (r.path.length) {
+    // Pause a walking reactor without discarding their route or errand.
+    if (c.anim === 'facepalm' && r.face?.post && !r.temp?.moment) {
+      r.yaw = angleLerp(r.yaw, r.face.yaw, 1 - Math.exp(-dt * 8));
+    } else if (r.path.length) {
       stepWalker(r, dt, r.walkAnim);
       // Stepping off an item lasts until they reach the side they got on from.
       if (r.exitFrom && !r.path.includes(r.exitSide)) { r.exitFrom = null; r.exitSide = null; }
@@ -1067,6 +1127,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
     moments.releaseLetters();
+    spotlights.update();
+    if (growthGlow && !growthCast.some((r) => r.temp?.moment === 'growth')) growthGlow.visible = false;
     trace.t += dt;
     if (paused !== frozen) { frozen = paused; traceLine(null, paused ? 'freeze' : 'unfreeze', { decision: lastState?.pendingDecision?.eventId ?? null }); }
     // A spotlight just began: bubbles already up round it go, so only the moment's own lines follow.
@@ -1080,10 +1142,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       // With a decision open (momentsToo), the moment it stages still plays: its actors, its
       // visitors and the moment camera. Everything else holds still.
       const staging = momentsToo && !!lastState?.pendingDecision;
-      if (staging) { moments.update(dt, lastState); momentCam.update(dt); }
+      if (staging) {
+        if (incentives.party || incentives.dance) incentives.update(dt);
+        moments.update(dt, lastState); momentCam.update(dt);
+      }
       // Nothing else advances, but everyone is still drawn where they are (new arrivals included).
       for (const r of [...recs.values(), ...leavers]) {
-        if (staging && r.temp?.moment && recs.has(r.id)) { updateRec(r, dt); continue; }
+        if (staging && (r.temp?.moment || r.temp?.party) && recs.has(r.id)) { updateRec(r, dt); continue; }
         r.char.root.position.copy(r.pos);
         if (r.temp?.lift && !r.path.length) r.char.root.position.y = r.temp.lift;
         r.char.root.rotation.y = r.yaw;
@@ -1092,6 +1157,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (staging) updateMomentSpeech(dt);
       return;
     }
+    startGrowth();
     playTime += dt;
     speech.step(dt);
     if (office.navVersion !== navSeen) { navSeen = office.navVersion; repath(); }
@@ -1135,6 +1201,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   function dispose() {
+    spotlights.clear();
+    growthGlow?.geometry.dispose(); growthGlow?.material.dispose();
     for (const r of recs.values()) disposeRec(r);
     for (const r of leavers) disposeRec(r);
     recs.clear();

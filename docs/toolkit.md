@@ -13,6 +13,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Check a moment plays through the real game loop, or the spotlight hold | `blender/checks/loop.mjs` (queries, `party:<decision>`) | [loop](toolkit/loop.md) |
 | Tune a pose or gesture on numbers, without rendering (a hand reaching an eye or brow, the face's angle to the camera) | `node blender/checks/pose.mjs --gesture <name> --under <anim> --expect '...'`, `--root <worktree>` | [pose](toolkit/pose.md) |
 | Check a bubble or emote doesn't cover a face, and who hides whom, in a staged scene | `node blender/checks/pose.mjs --scene --moment '<query>' --who <ids> --expect 's3:faceCovered<=0.1'` | [pose](toolkit/pose.md) |
+| Estimate the extra time spent watching spotlights | `node scripts/pace.js --weeks 1040 --speed 1` | [pace](toolkit/pace.md) |
 | Check a moment reads on screen | `stage.mjs --only=<moment>`: every staged role needs a spec; `known: <issue>` excuses a failure only while the issue is open | [stage](toolkit/stage.md) |
 | Check nothing overlaps, floats, leaves the room or clutters the screen | `sweep.mjs`, `clip.mjs --only=<pattern>` | [sweep](toolkit/sweep.md), [clip](toolkit/clip.md) |
 | Iterate on one moment without half-edited runs | `npm run gates -- --moment <kind>` | [gates](toolkit/gates.md) |
@@ -24,7 +25,9 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 
 The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser work under a render lock. Stop processes by PID, never with `pkill -f` or `pgrep -f`.
 
-Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
+Scene pose checks measure `faceVisible` at seven named facial surface landmarks on each requested frame, with its own occluder; `bodyVisible` retains the separately cached whole-character probe. `faceCovered` and `facePx` describe the projected drawn-head rectangle. See [pose metric definitions and limitations](toolkit/pose.md#scene-metrics). Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
+
+For held-prop contact and penetration, use scene pose rules `heldGap`, `heldHeadDepth` and `heldTorsoDepth` with `--every 1` through the entire carry and hold. See [pose](toolkit/pose.md) for units and missing-prop behavior.
 
 ## GPU or software GL
 

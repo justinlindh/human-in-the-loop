@@ -48,6 +48,27 @@ function motion(xs) {
 }
 
 const SPECS = {
+  'growth.honoree': { moment: 'growth', beat: 'cheer', role: 'honoree', rules: [
+    share('celebrating', 'honoree celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('faceVisible', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
+    visibleRule, noFade,
+  ] },
+  'growth.coworker': { moment: 'growth', beat: 'cheer', role: 'coworker', rules: [
+    share('celebrating', 'nearby coworkers celebrate throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
+  'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
+    share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
+  'pet.stroke': { moment: 'pet', beat: 'stroke', role: 'dog', rules: [
+    share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
+    share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'petcat.stroke': { moment: 'pet', scenario: 'petcat', beat: 'stroke', role: 'cat', rules: [
+    share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
+    share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
@@ -143,15 +164,25 @@ const SPECS = {
     share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
-  'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
-    share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
-    share('notOverHead', 'hammer centre not above the top of the head', (x) => x.heldAbove <= 0.05, 1),
-    visibleRule,
-  ] },
+  ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
+    ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6], ['heldPalmGap', 0.02], ['heldSupportGap', 0.02], ['heldHeadDistance', 0.6], ['heldHeadJoint', 0.08], ['heldScreenDistance', 0.6]].map(([metric, limit]) =>
+      share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
+    share('headReach', 'head at least 0.35 m along the shaft from the palm', (x) => x.heldHeadDistance >= 0.35, 1),
+    share('shaftVisible', 'at least half the shaft visible', (x) => x.heldHandleVisible >= 0.5, beat === 'carry' ? 0.85 : 1),
+    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, beat === 'carry' ? 0.85 : 1),
+    share('shaftSilhouette', 'shaft projects at least 60% of its length', (x) => x.heldShaftProjection >= 0.6, 0.95),
+    share('headSilhouette', 'head crosses shaft by at least 25% of shaft length', (x) => x.heldHeadCross >= 0.25, 0.95),
+  ] }]))
 };
 
 // How each moment is set up in the mock floor, and how long to watch it.
 const SCENARIOS = {
+  growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
+  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
+  pet: { query: 'mock=floor', patch: {}, seconds: 6,
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog')" },
+  petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat')" },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
@@ -163,7 +194,8 @@ const SCENARIOS = {
   pizza: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'hackathon', subjectId: 's1', stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' } } }, seconds: 16 },
   screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
-  hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
+  hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
+    steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
   // The consultants at the HQ door, where the sim stages their chair.
   consultants: { query: 'mock=hq', patch: {}, seconds: 16,
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
@@ -223,9 +255,11 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { moment, view } = task;
     const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, steps, seconds, turns }) => {
+    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
+      // The held-prop module allocates three.js objects, so loading it affects the seeded scene.
+      const measureHeld = moment === 'hammer' ? (await import('/blender/checks/pose-scene.js')).measureHeld : null;
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;
@@ -234,6 +268,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
       window.__step(90);
       Object.assign(S, JSON.parse(JSON.stringify(patch)));
+      if (setup) await new Function('R', 'S', `return (async () => { ${setup}; })()`)(R, S);
+      const petProbe = moment === 'pet' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
       const samples = [];
       // Everyone the moment takes part, each sampled every frame until the moment is over for all.
       const actors = new Set();
@@ -250,18 +286,31 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
           live++;
           // Held prop against the hands and the head, for the hold rules.
           const st = R.moments.staging(actor);
+          if (moment === 'hammer' && R.moments.hammer?.phase !== 'fetch') {
+            Object.assign(m, measureHeld(R, actor, undefined, undefined, m));
+            if (R.moments.hammer?.phase === 'carry') m.beat = 'carry';
+          }
           if (m.held) {
             const c = new THREE.Box3().setFromObject(st.held).getCenter(new THREE.Vector3());
             m.heldHand = Math.min(...m.hands.map((h) => Math.hypot(h[0] - c.x, h[1] - c.y, h[2] - c.z)));
             m.heldAbove = c.y - (m.headY + 0.3);
             m.heldDrop = m.headY - c.y;
           }
+          if (moment === 'pet') {
+            const pet = R.pets.peek().find(p => p.petter === actor);
+            let root = null, petRoot = null, head = null;
+            R.scene.traverse(o => { if (o.userData.staffId === actor) root = o.parent; if (o.name === 'pet') petRoot = o; });
+            root?.traverse(o => { if (o.userData.part === 'head') head = o; });
+            m.petHeadVisible = head ? petProbe.seen(head)[0].visible : 0;
+            m.petVisible = petRoot ? petProbe.seen(petRoot)[0].visible : 0;
+            m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
+          }
           samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
         }
         if (samples.length && !live) break;
       }
       return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
-    }, { moment, patch: sc.patch, steps: sc.steps, seconds: sc.seconds, turns: view.turns });
+    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns });
     await page.close();
     results.set(task, { res, errors });
   }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
@@ -17,7 +18,7 @@ import { printerModel, visitorChairModel } from './props.js';
 // Moments:
 //   pizza  pizza_boxes up: two or three idle people gather round the box and eat, then go back.
 //   screen a screen takeover: people at their desks recoil from their monitors with an exclamation.
-//   hammer the sledgehammer (open plan): the subject shoulders it and sizes up the back wall; if the
+//   hammer the sledgehammer (open plan): the subject holds it across both palms and sizes up the back wall; if the
 //          walls come down (decisionResolved) they swing and dust flies.
 //   letter the envelope on a desk: its sitter sighs over it now and then.
 //   visitor the visitor chair (first user test): a visitor sits in it while someone hovers, sweating.
@@ -31,7 +32,7 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter'];
+const KINDS = ['pet', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
@@ -101,7 +102,7 @@ const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
-export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, spotlights = null, isBusy = () => false, low = () => false }) {
+export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, spotlights = null, isBusy = () => false, low = () => false }) {
   const debug = spotDebug(office);
   const choose = (at, moment, search, options) => pickSpot(at, {
     debug, moment, search,
@@ -173,7 +174,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     };
     if (far) {
       const open = collect(cands, `${search}:open`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 });
-      const seen = collect(open, `${search}:view`, ['inView'], { inView: (q) => inView(q, { body: true }) });
+      const seen = collect(open, `${search}:view`, ['inView'], { inView: (q) => inView(q, { body: true, walls: true }) });
       list = (seen.length >= Math.min(2, n) ? seen : open).sort((a, b) => side(a) - side(b) || a.i - b.i);
     }
     for (let i = 0; i < n; i++) {
@@ -190,6 +191,26 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return out;
   }
 
+  const spotlighted = new WeakSet();
+  let screenSpotlight = null;
+  // A lingering prop gets one spotlight, even when its ambient animation repeats.
+  function spotlightActors(kind, source, actors) {
+    if (!actors.length || spotlighted.has(source)) return;
+    spotlighted.add(source);
+    const live = () => actors.filter((r) => recs.has(r.id) && r.temp?.moment === kind);
+    const at = () => {
+      const people = live();
+      if (!people.length) return actors[0].pos;
+      return { x: people.reduce((v, r) => v + r.pos.x, 0) / people.length, z: people.reduce((v, r) => v + r.pos.z, 0) / people.length };
+    };
+    spotlights?.begin(kind, () => {
+      for (const r of live()) {
+        if (kind === 'letter') releaseLetter(r);
+        else { r.temp = null; if (r.goal) walkTo(r, r.goal); }
+      }
+    }, 30, at, () => live().length > 0);
+  }
+
   function pizza(p, dt) {
     if (!due(`pizza|${p.obj.uuid}`, dt, PIZZA.first, PIZZA.every)) return;
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
@@ -201,6 +222,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       walkTo(r, spots[i]);
       if (Math.random() < 0.5) emote(r, 'heart', 1.8);
     });
+    spotlightActors('pizza', p.obj, people.filter((r) => r.temp?.moment === 'pizza'));
   }
 
   function screens(kind, dt) {
@@ -211,6 +233,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       emote(r, 'exclamation', 2);
       if (!lite()) r.temp = { anim: 'recoil', t: rnd(...SCREEN.dur), keepPos: true, delay: rnd(0, 0.8), moment: 'screen', stage: { beat: 'recoil' } };
     }
+    screenSpotlight ??= {};
+    spotlightActors('screen', screenSpotlight, seated.filter((r) => r.temp?.moment === 'screen'));
   }
 
   // Sledgehammer. One run per decision: fetch it, carry it to the back wall, hold it there; swing
@@ -218,12 +242,16 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   let hammer = null;      // { r, phase, wall, obj, held }
   function hammerHead() {
     const g = new THREE.Group();
-    // Hangs from the hand: carried at the side the head just clears the floor.
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.46, 8), HANDLE_MAT);
-    handle.position.y = -0.17;
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.12, 0.26), HEAD_MAT);
-    head.position.y = -0.4;
+    // The shaft runs through both palms, with the head beyond the supporting hand.
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.6, 8), HANDLE_MAT);
+    handle.position.y = -0.24;
+    handle.name = 'hammer-handle';
+    const head = new THREE.Mesh(new RoundedBoxGeometry(0.13, 0.12, 0.26, 2, 0.012), HEAD_MAT);
+    head.position.y = -0.5;
+    head.name = 'hammer-head';
     g.add(handle, head);
+    g.userData.handSpan = true;
+    g.name = 'sledgehammer';
     return g;
   }
   // A clear spot facing a wall, nearest the hammer, on the far side from the camera (the near walls
@@ -232,11 +260,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   function wallSpot(from) {
     const L = office.current.L, yaw = getYaw?.() ?? Math.PI / 4;
     const cam = [Math.sin(yaw), Math.cos(yaw)];
+    const furniture = [...office.placed.values()].map((e) => new THREE.Box3().setFromObject(e.obj));
+    const roomForLoad = (x, z) => furniture.every((b) => b.max.y < 0.35 || b.min.y > 1.4 || x < b.min.x - 0.65 || x > b.max.x + 0.65 || z < b.min.z - 0.65 || z > b.max.z + 0.65);
     const walls = [[-1, 0], [0, -1], [1, 0], [0, 1]].filter(([nx, nz]) => nx * cam[0] + nz * cam[1] < -0.2);
     function* candidates() {
       for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
         const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
-        const start = along ? from.x : from.z;
+        // Leave room beside the pickup for the two-handed load and its approach.
+        const start = (along ? from.x : from.z) - Math.sign(along ? cam[0] : cam[1]) * 1.2;
         for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
           const u = start + s * d;
           if (Math.abs(u) > half - 0.6) continue;
@@ -245,7 +276,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         }
       }
     }
-    return choose(from, 'hammer', 'wall', { candidates: candidates(), needs: ['clear'] });
+    return choose(from, 'hammer', 'wall', {
+      candidates: candidates(), needs: ['loadClear', 'clear', 'approachClear'],
+      checks: {
+        loadClear: (q) => roomForLoad(q.x, q.z),
+        approachClear: (q) => !office.nav().isBlocked(q.x - q.n[0] * 0.8, q.z - q.n[1] * 0.8, BODY_R),
+      },
+    });
   }
   function hammerTick(p, state) {
     // The walls came down: decisionResolved chose KNOCK_DOWN of open_plan_office.
@@ -282,24 +319,32 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       r.char.setHeld(h.held);
       const w = wallSpot(r.pos);
       if (!w) { stopHammer(); return; }
+      // Put the head toward the wall while the chest faces the open aisle.
+      const leftSide = w.n[1] * Math.sin(getYaw?.() ?? Math.PI / 4) - w.n[0] * Math.cos(getYaw?.() ?? Math.PI / 4);
+      h.held.userData.primaryHand = leftSide >= 0 ? 1 : 0;
+      h.facing = Math.atan2(w.n[1], -w.n[0]) + (leftSide >= 0 ? 0 : Math.PI);
       h.phase = 'carry';
-      r.temp = { anim: 'shoulder', t: 1e6, goal: w, moment: 'hammer', stage: { beat: 'carry', held: h.held, target: new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7) } };
+      r.temp = { anim: 'shoulder', t: 1e6, goal: w, walkYaw: h.facing, moment: 'hammer', stage: { beat: 'carry', held: h.held, target: new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7) } };
       walkTo(r, w);
+      // Approach the wall from the aisle, keeping the head away from wall-side furniture.
+      const nav = office.nav(), approach = { x: w.x - w.n[0] * 0.8, z: w.z - w.n[1] * 0.8 };
+      if (!nav.isBlocked(approach.x, approach.z, BODY_R)) {
+        r.path = [...nav.path(r.pos, approach, 0.35, { soft: true }).slice(1), { x: w.x, z: w.z }];
+      }
       h.wall = w;
     } else if (h.phase === 'carry' && !r.path.length) {
       h.phase = 'hold';
       if (r.temp?.stage) r.temp.stage.beat = 'hold';
-      // On the shoulder: the handle across it and the head down behind the back.
-      h.held.rotation.set(2.7, 0, 0.45);
+      // Face the aisle so both palms and the shaft stay visible beside the wall.
+      r.temp.goal = { ...h.wall, yaw: h.facing };
       emote(r, 'lightbulb', 2);
     }
     if (knocked && h.phase === 'hold') {
       h.phase = 'swing';
       h.held.rotation.set(0, 0, 0);
-      r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
+      r.temp = { anim: 'swing', t: 3.3, goal: { ...h.wall, yaw: h.facing }, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
       h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3, () => h.wall);
-      momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
     }
     if (h.phase === 'swing') {
       h.swingT += 1 / 30;
@@ -349,7 +394,6 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (r.temp?.moment === 'hammer') { r.temp = null; if (walkBack && r.goal) walkTo(r, r.goal); }
     if (hammer.mid) dispatch('end', 'open_plan_office', hammer.mid);
     spotlights?.end(hammer.spot);
-    if (hammer.spot) momentCam?.release('hammer');
     hammer = null;
   }
 
@@ -386,9 +430,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // column between a standing person there (legs, chest, head) and the camera.
   const ray = new THREE.Raycaster();
   // With `body`, the whole standing body: shoulders and head too, and both sides of it.
-  function inView(at, { body = false, turn = 0 } = {}) {
+  function inView(at, { body = false, turn = 0, walls = false } = {}) {
     const cam = getCamera?.();
     if (!cam || !office.current) return !columnInFront(at, getYaw() + turn);
+    ray.camera = cam;
     const dir = new THREE.Vector3();
     cam.getWorldDirection(dir).negate();
     if (turn) dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), turn);
@@ -398,7 +443,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     for (const y of ys) for (const a of across) {
       ray.set(new THREE.Vector3(at.x + (sx / sl) * a, y, at.z + (sz / sl) * a), dir);
       ray.far = 12;
-      if (ray.intersectObject(office.current.furniture, true).length) return false;
+      const blockers = walls ? office.current.root : office.current.furniture;
+      if (ray.intersectObject(blockers, true).some((hit) => {
+        if (!hit.object.isMesh) return false;
+        for (let o = hit.object; o; o = o.parent) if (!o.visible) return false;
+        return ![].concat(hit.object.material).every((m) => m?.transparent && m.opacity < 0.5);
+      })) return false;
     }
     if (body && personInFront(at, getYaw() + turn)) return false;
     return !columnInFront(at, getYaw() + turn);
@@ -511,6 +561,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     };
     // They wait in the chair until it has rolled back (updateRolls), then step out.
     if (chair) r.temp.delay = 99; else r.path = route;
+    spotlightActors('letter', p.obj, [r]);
   }
   // Chairs pushed back for a moment: out while the sitter is up, in once they have sat down again,
   // then merged into the desk.
@@ -649,6 +700,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   }
 
   function visitorStart(p, state) {
+    if (spotlighted.has(p.obj)) return;
     const event = stagedBy(state, 'visitor_chair')?.eventId ?? 'first_user_test';
     const o = p.obj;
     const v = visitor = { event, obj: o, at: { x: o.position.x, z: o.position.z }, yaw: o.rotation.y, chars: [], cast: [], resolved: null, t: 0, since: decisionSeq };
@@ -694,7 +746,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       for (const d of [1.3, 1.1, 1.5]) for (const sgn of [1, -1]) for (const back of [0.2, 0.05, 0.35]) {
         candidates.push({ x: v.at.x + across[0] * sgn * d - cam[0] * back, z: v.at.z + across[1] * sgn * d - cam[1] * back });
       }
-      const spot = choose(v.at, 'visitor', 'interview', { candidates, needs: ['clear', 'inView'], checks: { inView: (q) => inView(q, { body: true }) },
+      const spot = choose(v.at, 'visitor', 'interview', { candidates, needs: ['clear', 'inView'], checks: { inView: (q) => inView(q, { body: true, walls: true }) },
         fallback: () => choose(v.at, 'visitor', 'interviewFallback', { candidates: [1, -1].map((sgn) => ({ x: v.at.x + across[0] * sgn * 1.1, z: v.at.z + across[1] * sgn * 1.1 })), needs: ['clear'] }),
       });
       const toward = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
@@ -730,8 +782,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       });
     }
     v.mid = dispatch('start', event);
-    v.spot = spotlights?.begin(event, endVisitor, VISITOR_EXPECT_S, () => v.at);
-    momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
+    v.spot = spotlights?.begin(event, () => { spotlighted.add(p.obj); endVisitor(); }, VISITOR_EXPECT_S, () => v.at);
   }
   // A spot in from the door and to one side of its path, with room across the view for a person
   // either side of a chair, that the camera sees; null when `at` isn't by the door or nothing fits.
@@ -747,7 +798,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     }
     return choose(at, 'visitor', 'offDoor', { candidates: candidates(), needs: ['interviewRoom', 'inView'], checks: {
       interviewRoom: (q) => [[0, 0], [across[0] * 1.3, across[1] * 1.3], [-across[0] * 1.3, -across[1] * 1.3]].every(([ax, az]) => !nav.isBlocked(q.x + ax, q.z + az, BODY_R)),
-      inView: (q) => inView(q, { body: true }),
+      inView: (q) => inView(q, { body: true, walls: true }),
     } });
   }
 
@@ -883,7 +934,6 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (v.chair) { v.chair.removeFromParent(); getProps()?.unpin?.(v.chair); }
     if (v.mid) dispatch('end', v.event, v.mid);
     spotlights?.end(v.spot);
-    momentCam?.release('visitor');
   }
 
   // Smoke or a hot rack: someone comes over and fans it away.
@@ -908,18 +958,22 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const yaw = getYaw();
     // Nearest ring round the item with a spot the camera sees clearly (not behind a desk's monitor).
     let cands = [];
-    for (let k = 0; k < 5 && !cands.some(inView); k++) cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55 + k * 0.3, 12, { moment: 'fumes', search: `ring${k}` });
-    const want = [Math.sin(yaw + 0.95), Math.cos(yaw + 0.95)], want2 = [Math.sin(yaw - 0.95), Math.cos(yaw - 0.95)];
+    for (let k = 0; k < 5 && !cands.some((q) => inView(q, { body: true, walls: true })); k++) cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55 + k * 0.3, 12, { moment: 'fumes', search: `ring${k}` });
+    const want = [Math.sin(yaw + 1.8), Math.cos(yaw + 1.8)], want2 = [Math.sin(yaw - 1.8), Math.cos(yaw - 1.8)];
     const score = (s) => { const dx = s.x - center.x, dz = s.z - center.z, l = Math.hypot(dx, dz) || 1; return Math.max((dx * want[0] + dz * want[1]) / l, (dx * want2[0] + dz * want2[1]) / l); };
-    const spot = choose(center, 'fumes', 'visible', { candidates: cands, needs: ['inView'], score: (q) => -score(q), fallback: () => choose(center, 'fumes', 'fallback', { candidates: cands, score: (q) => -score(q) }) });
+    const spot = choose(center, 'fumes', 'visible', { candidates: cands, needs: ['inView'], checks: { inView: (q) => inView(q, { body: true, walls: true }) }, score: (q) => -score(q), fallback: () => choose(center, 'fumes', 'fallback', { candidates: cands, score: (q) => -score(q) }) });
     if (!spot) return;
     // Facing the room, three-quarters to the camera, waving the fumes off behind them.
-    spot.yaw = towardCamera(spot, center);
+    const toSource = Math.atan2(center.x - spot.x, center.z - spot.z);
+    const toCamera = Math.atan2(Math.sin(yaw - toSource), Math.cos(yaw - toSource));
+    spot.yaw = toSource + Math.sign(toCamera || 1) * 1.0;
+    r.face = null;
     r.temp = {
-      anim: 'fanfrantic', t: rnd(3.5, 4.5), goal: spot, back: true, moment: 'fumes', emoteT: 0.2,
-      tick: (rr, d, tp) => { tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = 1.4; emote(rr, rr.char.emote === 'exclamation' ? 'sweat' : 'exclamation', 1.3); } return false; },
+      anim: 'fanfrantic', t: rnd(3.5, 4.5), goal: spot, back: true, moment: 'fumes', emoteT: 0.2, stage: { beat: 'fan', target: new THREE.Vector3(center.x, box.max.y, center.z), source: p.obj },
+      tick: (rr, d, tp) => { tp.stage.beat = Math.abs(Math.atan2(Math.sin(rr.yaw - tp.goal.yaw), Math.cos(rr.yaw - tp.goal.yaw))) < 0.1 ? 'fan' : 'turn'; tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = 1.4; emote(rr, rr.char.emote === 'exclamation' ? 'sweat' : 'exclamation', 1.3); } return false; },
     };
     walkTo(r, spot);
+    spotlightActors('fumes', p.obj, [r]);
   }
 
   // Pet carrier: the requester bends over it and peers in, now and then while it is down.
@@ -936,6 +990,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     r.temp = { anim: 'peer', t: rnd(3.5, 5), goal: spot, back: true, moment: 'carrier', stage: { beat: 'peer', target: p.obj } };
     walkTo(r, spot);
     emote(r, 'heart', 2.2);
+    spotlightActors('carrier', p.obj, [r]);
   }
 
   // "Take it out back" (printer_jam), staged to its music cue (public/audio/moments/printer_smash.ogg).
@@ -1039,7 +1094,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   }
   function batHeld() {
     const g = new THREE.Group();
-    // Hangs from the hand like the sledgehammer: the handle in the fist, the barrel beyond it.
+    // Hangs from the hand: the handle in the fist, the barrel beyond it.
     const bat = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.042, 0.78, 10), HANDLE_MAT);
     bat.position.y = -0.33;
     g.add(bat);
@@ -1095,7 +1150,6 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         pm.speed = Math.min(CARRY_SPEED[1], Math.max(CARRY_SPEED[0], pm.len / CUE.down));
         pm.people.forEach((r, i) => { r.temp.stage.beat = 'carry'; setAnim(r, i < 2 ? 'carry' : 'shoulderwalk'); });
         pm.mid = dispatch('start', 'printer_jam');
-        momentCam?.hold('printer', pm.obj, { zoom: 1.8 });
       }
       return;
     }
@@ -1274,7 +1328,6 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     }
     if (pm.mid) dispatch('end', 'printer_jam', pm.mid);
     spotlights?.end(pm.spot);
-    momentCam?.release('printer');
   }
   // Moment captions (ui): hitl:moment { phase, id, key }. A start makes the moment's id and returns it;
   // its end passes the same id back.
@@ -1309,7 +1362,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     for (const p of cur) if (p.prop === 'smoke_puff' || p.prop === 'rack_hot') fumes(p, dt);
     for (const p of props.current()) if (p.prop === 'pizza_boxes') pizza(p, dt);
     if (props.overlay) screens(props.overlay, dt);
-    else for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k);
+    else { screenSpotlight = null; for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k); }
   }
 
   function reset() { printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
@@ -1339,5 +1392,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
   }
 
-  return { update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  function growthSpot(r) {
+    return choose(r.pos, 'growth', 'honoree', {
+      ring: { radii: [0.7, 1.1, 1.5, 2, 2.5], count: 16 },
+      needs: ['clear', 'chairClear', 'inView'],
+      checks: { inView: (q) => inView(q, { body: true, walls: true }) },
+    });
+  }
+  return { growthSpot, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

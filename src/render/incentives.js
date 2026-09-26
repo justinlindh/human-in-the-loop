@@ -109,7 +109,7 @@ function bunting(word, len) {
   return g;
 }
 
-export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, momentCam = null, spotlights = null }) {
+export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, spotlights = null }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
   let party = null;
@@ -236,8 +236,6 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
 
   // The camera eases toward the party and back (momentcam.js: not while the player steers it, and
   // not with the moment camera setting off).
-  function easeIn(v) { momentCam?.hold('party', { x: v.center.x, z: v.center.z }, { zoom: 1.6 }); }
-  function easeOut() { momentCam?.release('party'); }
 
   // Everyone gets into place within a few seconds (weeks are short); far walkers jog.
   function hurry(r, seconds) {
@@ -275,7 +273,6 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     // The winner walks to the lone seat; three colleagues gather to watch.
     const seat = { x: v.seat.x, z: v.seat.z, yaw: v.seat.yaw, anim: 'idle' };
     r.temp = { anim: v.sit ? 'sit' : 'sip', t: PARTY_S, goal: seat, back: true, party: true };
-    easeIn(v);
     walkTo(r, seat);
     hurry(r, 3);
     const others = [...recs.values()].filter((o) => o !== r && !o.hidden && o.mode === 'placed' && !o.temp)
@@ -299,7 +296,6 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setDim(0);
     setAccent(null);
     p.props.removeFromParent();
-    easeOut();
     spotlights?.end(p.spot);
     if (recs.has(p.r.id)) hangCaricature(p.r);
   }
@@ -441,7 +437,6 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     cart.group.position.set(door.x, 0, door.z);
     props.add(cart.group);
     const cartAt = at(0, -1.7);
-    easeIn({ center });
     dance = { genre, genreId: ev.genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
     // A dance fitted to its track (fitToTrack) plays as long as the music.
     const d0 = dance;
@@ -456,7 +451,6 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setAccent(null);
     d.props.removeFromParent();
     for (const r of d.dancers) r.char.setAnimRate(1);
-    easeOut();
     spotlights?.end(d.spot);
   }
 

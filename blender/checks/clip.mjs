@@ -18,6 +18,7 @@ const rig = process.argv.includes('--rig') ? '&rig=1' : '';
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
 // Each group of checks and the names of its cases (the fixed part; desk, head and use cases add ids).
 const GROUPS = {
+  pets: ['moment:pet:'],
   seats: ['desks:all-seated', 'desk:', 'head:'],
   perks: ['couch:sit', 'couch:nap', 'beanbag:sprawl', 'napPod:lie', 'arcade:stool', 'library:armchair'],
   dance: ['dance:motivational_polka', 'dance:corporate_synthwave', 'dance:aggressive_bossa_nova', 'dance:sad_lofi', 'dance:trackLength'],
@@ -28,6 +29,7 @@ const GROUPS = {
   party: ['waffle:crowd'],
   sky: ['sky:trailing'],
   garage: ['pairs:garage'],
+  celebrations: ['moment:growth', 'moment:company_party'],
 };
 const noMatch = () => { console.log(`clip: no case matches --only=${ONLY.join(',')}`); process.exit(1); };
 const wanted = (name) => !ONLY || ONLY.some((p) => name.includes(p));
@@ -75,7 +77,9 @@ const out = await page.evaluate(async (runs) => {
   await (await import('/src/render/rig.js')).loadRig();
   const dance = [];
   if (runs.dance) for (const g of ['motivational_polka', 'corporate_synthwave', 'aggressive_bossa_nova', 'sad_lofi']) dance.push(await C.runDanceCheck(R, S, g));
+  const pet = runs.pets ? await C.runPetChecks(R, S) : [];
   const w = runs.walk ? await C.runWalkChecks(R, S) : [];
+  w.push(...pet);
   if (runs.props) w.push(...await C.runPropChecks(R, S));
   // Counters and wall items, each on free tiles with a clear row in front (the perk items above go first).
   S.office.placed = S.office.placed.filter((p) => !p.id.startsWith('k_'));
@@ -115,6 +119,15 @@ if (runs.garage) {
     const C = await import('/src/render/checks.js');
     for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
     return C.runPairCheck(R, S, 'garage');
+  }));
+  errors.push(...g.errors);
+  await g.page.close();
+}
+if (runs.celebrations) {
+  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
+  out.push(...await g.page.evaluate(async () => {
+    const C = await import('/src/render/checks.js');
+    return C.runCelebrationChecks(window.__hitlRender, window.__HITL.state);
   }));
   errors.push(...g.errors);
   await g.page.close();

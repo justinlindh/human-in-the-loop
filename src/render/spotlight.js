@@ -13,15 +13,27 @@
 //   cut()  ends the current one early; false when none plays.
 // Every start and end is announced: window event hitl:spotlight { active, kind, key }.
 
-export function createSpotlights() {
+import { MOMENT_KINDS } from './spotlight-kinds.js';
+
+export function createSpotlights({ camera = null } = {}) {
   const live = new Map();
   let seq = 0;
+  let cameraKey = null;
+  function focus() {
+    const s = live.values().next().value;
+    if (cameraKey === (s?.key ?? null)) return;
+    if (cameraKey) camera?.release(cameraKey);
+    cameraKey = s?.key ?? null;
+    if (s?.at) camera?.hold(s.key, s.at, { zoom: MOMENT_KINDS[s.kind]?.zoom ?? 1.8 });
+  }
   const announce = (active, s) => {
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:spotlight', { detail: { active, kind: s.kind, key: s.key } }));
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:spotlight', { detail: { active, kind: s.kind, key: s.key, caption: MOMENT_KINDS[s.kind]?.caption } }));
   };
-  function begin(kind, cut = null, expect = null, at = null) {
-    const s = { kind, key: `${kind}-${++seq}`, since: typeof performance !== 'undefined' ? performance.now() : 0, cut, expect, at };
+  function begin(kind, cut = null, expect = null, at = null, alive = null) {
+    if (!MOMENT_KINDS[kind]?.spotlight) return null;
+    const s = { kind, key: `${kind}-${++seq}`, since: typeof performance !== 'undefined' ? performance.now() : 0, cut, expect, at, alive };
     live.set(s.key, s);
+    focus();
     announce(true, s);
     return s.key;
   }
@@ -29,13 +41,14 @@ export function createSpotlights() {
     const s = key && live.get(key);
     if (!s) return;
     live.delete(key);
+    focus();
     announce(false, s);
   }
   function current() {
     const s = live.values().next().value;
     if (!s) return null;
     const e = typeof s.expect === 'function' ? s.expect() : s.expect;
-    return { kind: s.kind, key: s.key, since: s.since, ...(Number.isFinite(e) ? { expectedSeconds: e } : {}) };
+    return { kind: s.kind, key: s.key, since: s.since, caption: MOMENT_KINDS[s.kind]?.caption, ...(Number.isFinite(e) ? { expectedSeconds: e } : {}) };
   }
   function where() {
     const s = live.values().next().value;
@@ -48,6 +61,7 @@ export function createSpotlights() {
     end(s.key);
     return true;
   }
+  function update() { for (const s of [...live.values()]) if (s.alive && !s.alive()) end(s.key); }
   function clear() { for (const k of [...live.keys()]) end(k); }
-  return { begin, end, current, where, cut, clear };
+  return { begin, end, current, where, cut, clear, update };
 }
