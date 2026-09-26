@@ -130,7 +130,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.fitShadow(b);
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
-    office = createOffice({ parent: scene, screens, lighting });
+    office = createOffice({ parent: scene, screens, lighting, low: () => q === 'low' });
     props = createProps(office, screens);
     surroundings = createSurroundings({ parent: scene, low: () => q === 'low', lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
@@ -202,7 +202,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let menuPaused = false;
   let firstSync = true;
 
+  let decisionOpen = false;
   function sync(state) {
+    decisionOpen = !!state?.pendingDecision;
     if (!office || !ready || !state) return;
     const stage = state.officeStage ?? 0;
     const moving = !firstStage && pendingUpgrade;
@@ -261,6 +263,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       q = nq;
       applyQuality();
       post.setQuality(q);
+      office?.setQuality();
       resize();
     },
     setTiltShift(on) { tiltWanted = !!on; if (!fly.active) post.setTiltShift(tiltWanted); },
@@ -336,7 +339,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // The spotlight moment playing now (spotlight.js): null or { kind, key, since }. main.js holds the
     // game clock while there is one; endSpotlight() cuts it short (the Skip control).
     spotlight() { return staff?.spotlights?.current() ?? null; },
-    endSpotlight() { return staff?.spotlights?.cut() ?? false; },
+    endSpotlight() { return staff?.endSpotlight() ?? false; },
     // Where the camera looks now, and its zoom.
     view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
     focusStaff(id) {
@@ -375,7 +378,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       screens.update(screens.overlay && !speedZero ? dt : simDt, lighting.env);
       // A decision holds the office still, except the moment it stages (unless the game is paused).
       staff?.update(dt, { paused, moments: paused && !speedZero });
-      floating.update(simDt);
+      floating.update(simDt, decisionOpen && !speedZero ? dt : simDt);
       fx.update(simDt, dt);
       props?.update(dt);
       build?.update(dt, scene);
