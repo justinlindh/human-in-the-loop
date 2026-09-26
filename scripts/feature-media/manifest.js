@@ -212,10 +212,10 @@ export const ITEMS = [
       ...[11.5, 16, 22, 28, 32, 48, 59].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
       { at: 59.5, js: "(async () => { const m = document.querySelector('.chat.yak .msg[data-id=\"' + CSS.escape(window.__yakMeme.id) + '\"]'); m?.scrollIntoView({ block: 'start' }); const img = m?.querySelector('.ymeme-img'); if (!img) throw new Error('yak: missing displayed image'); await img.decode(); })()" },
       { at: 60, js: 'window.__frameYak()' },
-      YAK_CHECK(60.1),
+      YAK_CHECK(60.1, { crop: [410 / 1920, 214 / 1080, 1120 / 1920, 700 / 1080] }),
     ],
     screenshots: [11.1, 60.1],
-    out: [{ path: 'img/yak-backfire.webp', size: '1280x720', from: 60.1 }],
+    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 410 / 1920, y: 214 / 1080, w: 1120 / 1920, h: 700 / 1080 } }],
   },
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
