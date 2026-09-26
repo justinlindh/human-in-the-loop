@@ -15,6 +15,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Check a bubble or emote doesn't cover a face, and who hides whom, in a staged scene | `node blender/checks/pose.mjs --scene --moment '<query>' --who <ids> --expect 's3:faceCovered<=0.1'` | [pose](toolkit/pose.md) |
 | Check a moment reads on screen | `stage.mjs --only=<moment>`: every staged role needs a spec; `known: <issue>` excuses a failure only while the issue is open | [stage](toolkit/stage.md) |
 | Check nothing overlaps, floats, leaves the room or clutters the screen | `sweep.mjs`, `clip.mjs --only=<pattern>` | [sweep](toolkit/sweep.md), [clip](toolkit/clip.md) |
+| Count walking collisions through the game's frame loop | `walkers.mjs --cases 1:104,1:328,1:535,3:204` | [walkers](toolkit/walkers.md) |
 | Iterate on one moment without half-edited runs | `npm run gates -- --moment <kind>` | [gates](toolkit/gates.md) |
 | Record a clip or still through the real game | `npm run capture` (camera keyframes, per-item size and fps) | [capture](toolkit/capture.md) |
 | Make reels and landing page media | `scripts/reels/` (the kit and `docs/reels.md`), `npm run feature-media` | [reels guide](reels.md), [feature-media](toolkit/feature-media.md) |

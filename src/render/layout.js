@@ -186,7 +186,8 @@ export function placedTransform(L, p) {
 
 // Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters.
 const NEAR_COST = 3;   // extra cost of a cell inside a soft clearance (one cell's move costs 1)
-export function createNav(L, obstacles, cell = 0.35) {
+const WALK_RADIUS = 0.23; // head and torso clearance from solid furniture
+export function createNav(L, obstacles, cell = 0.2) {
   const nx = Math.ceil(L.W / cell), nz = Math.ceil(L.D / cell);
   const blocked = new Uint8Array(nx * nz);
   const ix = (x) => Math.floor((x + L.W / 2) / cell);
@@ -195,7 +196,7 @@ export function createNav(L, obstacles, cell = 0.35) {
     for (let k = 0; k < nz; k++) {
       const x = -L.W / 2 + (i + 0.5) * cell, z = -L.D / 2 + (k + 0.5) * cell;
       const edge = x < -L.W / 2 + 0.35 || z < -L.D / 2 + 0.35 || x > L.W / 2 - 0.2 || z > L.D / 2 - 0.2;
-      if (edge || obstacles.some((r) => x > r.x0 - 0.12 && x < r.x1 + 0.12 && z > r.z0 - 0.12 && z < r.z1 + 0.12)) blocked[i + k * nx] = 1;
+      if (edge || obstacles.some((r) => x > r.x0 - WALK_RADIUS && x < r.x1 + WALK_RADIUS && z > r.z0 - WALK_RADIUS && z < r.z1 + WALK_RADIUS)) blocked[i + k * nx] = 1;
     }
   }
   const N0 = nx * nz, grid0 = blocked;
@@ -274,31 +275,36 @@ export function createNav(L, obstacles, cell = 0.35) {
         }
       }
     }
-    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 && !near ? null : [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
+    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 && !near ? null : [{ x: from.x, z: from.z }];
     const cells = [];
     for (let n = goal; n !== -1; n = came[n]) cells.push(n);
     cells.reverse();
     const pts = [{ x: from.x, z: from.z }];
+    // Endpoints need their grid centres too: joining an off-centre point straight to a distant
+    // turn cuts across the furniture the intervening cells went around.
+    pts.push(center(si, sk));
     // Keep only turning points so walkers move in long straight runs.
     for (let j = 1; j < cells.length - 1; j++) {
       const a = cells[j - 1], b = cells[j], c = cells[j + 1];
       if (b - a !== c - b) pts.push(center(b % nx, Math.floor(b / nx)));
     }
-    pts.push({ x: to.x, z: to.z });
+    pts.push(center(gi, gk), { x: to.x, z: to.z });
     return pts;
   }
 
   // The point itself when it is walkable, else the center of the nearest walkable cell.
   function freePoint(x, z) {
     const i = Math.max(0, Math.min(nx - 1, ix(x))), k = Math.max(0, Math.min(nz - 1, iz(z)));
-    if (!blocked[i + k * nx]) return { x, z };
+    if (!blocked[i + k * nx] && !insideObstacle(x, z)) return { x, z };
     const [a, b] = nearestFree(i, k);
     return center(a, b);
   }
-  // r > 0 tests a body's footprint (its center and four points r out), not just the center.
+  const insideObstacle = (x, z, radius = WALK_RADIUS) => obstacles.some((b) => x > b.x0 - radius && x < b.x1 + radius && z > b.z0 - radius && z < b.z1 + radius);
+  // Check the exact point as well as its grid cell: an off-centre goal can lie past the cell's
+  // safe edge. Larger bodies also check the surrounding cells.
   const isBlocked = (x, z, r = 0) => {
     const one = (px, pz) => { const i = ix(px), k = iz(pz); return i < 0 || k < 0 || i >= nx || k >= nz || !!blocked[i + k * nx]; };
-    return one(x, z) || (r > 0 && (one(x + r, z) || one(x - r, z) || one(x, z + r) || one(x, z - r)));
+    return one(x, z) || insideObstacle(x, z) || (r > 0 && (one(x + r, z) || one(x - r, z) || one(x, z + r) || one(x, z - r)));
   };
 
   return { path, blocked, nx, nz, cell, freePoint, isBlocked };

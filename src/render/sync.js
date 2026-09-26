@@ -221,8 +221,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // A seat is reached from behind its chair; the last step onto it happens once they arrive.
     let to = goal;
     if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
-    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
+    const seat = r.seat && office.deskById(r.seat)?.seat;
+    const from = seat && Math.hypot(r.pos.x - seat.x, r.pos.z - seat.z) < 0.3
+      ? { x: seat.x - Math.sin(seat.rotY) * CHAIR_BACK_M, z: seat.z - Math.cos(seat.rotY) * CHAIR_BACK_M }
+      : { x: r.pos.x, z: r.pos.z };
+    r.path = nav.path(from, { x: to.x, z: to.z });
     r.path.shift();
+    r.routeBlocked = !r.path.length;
+    // Leave a seat by the same side used to enter it, before following the aisle route.
+    if (seat && Math.hypot(r.pos.x - seat.x, r.pos.z - seat.z) < 0.3) r.path.unshift(from);
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
     if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
@@ -240,6 +247,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.pos.set(goal.x, 0, goal.z);
     r.yaw = goal.yaw;
     r.path = [];
+    r.routeBlocked = false;
   }
 
   function emote(r, kind, seconds = 2.5) {
@@ -612,17 +620,23 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
-    const target = r.path[0];
-    dir.set(target.x - r.pos.x, 0, target.z - r.pos.z);
-    const d = dir.length();
-    const step = r.speed * dt;
-    if (d <= step) {
-      r.pos.set(target.x, 0, target.z);
-      r.path.shift();
-    } else {
-      dir.multiplyScalar(1 / d);
-      r.pos.addScaledVector(dir, step);
-      r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
+    let step = r.speed * dt;
+    // A short grid segment uses only its share of this frame's travel, so turns do not slow a
+    // person down merely because the route has more waypoints.
+    while (r.path.length && step > 0) {
+      const target = r.path[0];
+      dir.set(target.x - r.pos.x, 0, target.z - r.pos.z);
+      const d = dir.length();
+      if (d <= step) {
+        r.pos.set(target.x, 0, target.z);
+        r.path.shift();
+        step -= d;
+      } else {
+        dir.multiplyScalar(1 / d);
+        r.pos.addScaledVector(dir, step);
+        r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
+        step = 0;
+      }
     }
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
@@ -701,7 +715,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         if (d > GLIDE_M && r.walkedTo !== g) { r.walkedTo = g; walkTo(r, g); }
         if (r.path.length) stepWalker(r, dt, r.walkAnim);
         else {
-          if (d > 0.05) r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8));
+          if (d > 0.05 && !r.routeBlocked) r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8));
           r.yaw = angleLerp(r.yaw, r.face?.yaw ?? g.yaw, 1 - Math.exp(-dt * 8));
           c.setAnim(g.anim);
         }
@@ -977,6 +991,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const nav = office.nav();
     for (const r of recs.values()) {
       if (r.hidden || r.mode !== 'placed' && r.mode !== 'enter') continue;
+      if (r.routeBlocked && (r.temp?.goal || r.goal)) {
+        walkTo(r, r.temp?.goal ?? r.goal);
+        continue;
+      }
       if (r.path.length) {
         const end = r.path[r.path.length - 1];
         const goal = r.temp?.goal && !r.temp.enter ? r.temp.goal : r.goal;

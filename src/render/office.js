@@ -754,7 +754,7 @@ export function createOffice({ parent, screens, lighting }) {
     return cur.nav;
   }
 
-  // Floor rectangles a placed item blocks. Desk chairs stay walkable so people can reach the seat.
+  // Floor rectangles a placed item blocks, including chair backs and overhanging leaves.
   function obstaclesOf(e) {
     const t = e.target;
     const kind = kindOf(e.itemId);
@@ -763,18 +763,18 @@ export function createOffice({ parent, screens, lighting }) {
       const a = rot(x0, z0), b = rot(x1, z1);
       return { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z) };
     };
-    const f = footprint(e.itemId, 0);
     // A desk blocks its top and its chair: only the sitter goes in, from behind the chair.
-    if (kind === 'desk') return [rect(-0.75, DESK_Z - 0.35, 0.75, DESK_Z + 0.35), rect(-0.3, SEAT_Z - 0.15, 0.3, SEAT_Z + 0.42)];
+    if (kind === 'desk') return [rect(-0.48, DESK_Z - 0.35, 0.48, DESK_Z + 0.35), rect(-0.3, SEAT_Z - 0.15, 0.3, SEAT_Z + 0.42)];
     if (kind === 'meeting') {
       const tb = e.obj.userData.table;
       return [rect(-tb.L / 2, -tb.D / 2, tb.L / 2, tb.D / 2)];
     }
-    // Blocked where the model actually stands (a little past its footprint at most), so people walk
-    // round what they can see and a use spot just in front stays walkable.
+    // The model's full extent matters for heads passing leaves and counter edges, even where
+    // that geometry extends past its placement tile.
     const b = localBox(e);
-    const cl = (v, lim) => Math.max(-lim, Math.min(lim, v));
-    return [rect(cl(b.min.x, f.w / 2 + 0.1), cl(b.min.z, f.h / 2), cl(b.max.x, f.w / 2 + 0.1), cl(b.max.z, f.h / 2))];
+    // A runner's forward lean reaches farther than the standing body at leaf height.
+    if (e.itemId === 'plant') return [rect(b.min.x - 0.05, b.min.z - 0.05, b.max.x + 0.05, b.max.z + 0.05)];
+    return [rect(b.min.x, b.min.z, b.max.x, b.max.z)];
   }
 
   // A few free spots spread over the room for idle wandering.
