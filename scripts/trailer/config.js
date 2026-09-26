@@ -52,11 +52,30 @@ const YAK_PUSH = (at, text, secs = 1.4) => ({ at, js: `(() => { const yak = docu
 const BIG_YAK = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .chat.yak { zoom: 1.6; }'; document.head.append(st); })()" });
 // Speech bubbles and work labels hidden, for a shot about something else.
 const NO_SAY_T = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
+// The post's facepalmer, found through the renderer and held for the reaction shot.
+const FACEPALMER = { js: `(() => {
+  const R = window.__hitlRender;
+  if (!window.__facepalmer) {
+    const p = window.__HITL.state.staff.find((p) => R.probe(p.id)?.anim?.startsWith('facepalm'));
+    if (!p) return null;
+    window.__facepalmer = p.id;
+  }
+  let o = null;
+  R.scene.traverse((x) => { if (!o && x.userData.staffId === window.__facepalmer) o = x.parent; });
+  if (!o) return null;
+  const v = o.getWorldPosition(new o.position.constructor());
+  return { x: v.x, z: v.z };
+})()` };
 // The first dancer of a music night.
 const DANCER = { js: "(() => { const R = window.__hitlRender, id = R.incentives?.dance?.dancers?.[0]; if (id == null) return null; let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === id) o = x.parent; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; })()" };
 const PARTY = { js: '(() => { const R = window.__hitlRender; const c = R.incentives?.party?.center ?? R.incentivesFrame; return c ? { x: c.x, z: c.z } : null; })()' };
 // Hides the docked era card, so an era beat shows the office redressing itself.
 const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .announce-back.docked, #ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, .hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
+
+// Scene 7b remains capturable while its facepalm pose/staging awaits an art fix.
+export const DEFERRED_CAPTURES = [
+  { id: 'yak-react', item: 'site-yak-backfire', capture: { still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
+];
 
 // The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
 export const BEATS = [
@@ -69,11 +88,11 @@ export const BEATS = [
   // The hire panel: a candidate hired.
   { id: 'hire', item: 'trail-hire', from: 0.6, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
-  { id: 'launch', item: 'trail-launch', from: 77.3, dur: 2.4 },
+  { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
   { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
   // A meme posted mid-outage, and the reactions.
-  // After the unlock card the week raises is closed (about 31 s in); speech bubbles hidden.
-  { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'number of tabs')], from: 31.6, dur: 3.1 },
+  // The thread includes the backfired post and its reply; speech bubbles stay hidden.
+  { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'me in standup')], from: 31.6, dur: 3.1 },
   // PC LOAD LETTER from the flying camera: the carry ending, then the hits, to the rap's last word. No narration.
   { id: 'printer', item: 'trail-fly-printer', from: 20.0, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },

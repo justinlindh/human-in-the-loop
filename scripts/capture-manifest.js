@@ -135,14 +135,15 @@ const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320
 // events), and stops the week before: the game's own tick brings it live, with its card, freeze and
 // staging as in play. `prep` changes state every week before the
 // look-ahead (so the live week matches it); `after` only presents (it must not change state).
-export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '' }) => `(async () => {
+// `turn` controls whether the bot manages projects and expansion that week.
+export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '', turn = 'true' }) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
   const hit = ${hit};
   for (let i = 0; i < ${weeks} && !s.gameOver; i++) {
     b.botDecide('${bot}', s);
-    b.botTurn('${bot}', s);
+    if (${turn}) b.botTurn('${bot}', s);
     ${prep}
     const ahead = structuredClone(s);
     if (hit(ahead, sim.tick(ahead) ?? [])) break;
@@ -656,15 +657,14 @@ export const ITEMS = [
     screenshots: [1.5, 2.5, 4],
   },
   {
-    // Trailer beat 5b: a hit (9+) launched on the Office Floor, seed 14, and its reviews card (an update gets
-    // a card only when its score moves). The results card waits out the UI's spacing after the
-    // last card closes (4 weeks here), so it lands about 50 s in.
-    id: 'trail-launch', group: 'trailer', title: 'Trailer: a launch on the Office Floor', query: 'seed=14&speed=1', seconds: 100, warmup: 0.5,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'launch' && ((p) => p?.version === 1 && p.score >= 9)(c.products.find((p) => p.id === e.productId)))" })}; ${BARE}; ${NO_SAY}; })()`,
+    // A first-version hit launched on the Office Floor, with its reviews card.
+    // Unlock cards close while the launch card stays visible.
+    id: 'trail-launch', group: 'trailer', title: 'Trailer: a launch on the Office Floor', query: 'seed=37&speed=1', seconds: 75, warmup: 0.5,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'launch' && ((p) => p?.version === 1 && p.score >= 9)(c.products.find((p) => p.id === e.productId)))" })}; const sim = await import('/src/sim/index.js'); const s = window.__HITL.state, c = structuredClone(s); const ev = sim.tick(c); const p = c.products.find((p) => p.version === 1 && p.score >= 9 && ev.some((e) => e.type === 'launch' && e.productId === p.id)); if (!p || c.office.stage !== 1) throw new Error('trailer: no first-version hit on the Office Floor'); s.projects = s.projects.filter((j) => j.kind === 'new' && j.name === p.name); ${BARE}; ${NO_SAY}; })()`,
     // Unlock and "new things to place" cards close as a player would ("Got it", "Later"); the launch
     // card ("Nice!") stays up.
     actions: [...Array.from({ length: 96 }, (_, i) => ({ at: 0.1 + i, js: "[...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && ['Got it', 'Later'].includes(b.textContent.trim())).forEach((b) => b.click())" })), ...CHOOSE_WHEN(null, 0, 1, 96, 2)],
-    screenshots: [60, 66, 72, 78, 84, 90, 96],
+    screenshots: [72, 73.2, 74.4],
   },
   {
     // Trailer scene 8: the printer smash from the flying camera, orbiting in as the carry ends and
