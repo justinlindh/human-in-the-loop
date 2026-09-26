@@ -1,3 +1,4 @@
+import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG } from '../capture-manifest.js';
 
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
@@ -37,21 +38,6 @@ const YAK_HISTORY = (at) => ({ at, js: 'window.__HITL.emit((window.__HITL.state.
 // (VIEW0), or a party's centre (PARTY). In-engine moves only; `punch` (a 2D zoom) is not used.
 const VIEW0 = { js: '(window.__v0 ??= window.__hitlRender.view())' };
 const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
-// Pushes in on the Yak message containing `text` over `secs` (an eased CSS transform the capture
-// steps frame by frame) onto the message and its replies, until they fill most of the frame, then holds.
-const YAK_PUSH = (at, text, secs = 1.4) => ({ at, js: `(() => { const yak = document.querySelector('#ui .chat.yak'); if (!yak) return;
-  const m = [...yak.querySelectorAll('.msg')].find((e) => e.textContent.includes(${JSON.stringify('TEXT')})); if (!m) return;
-  // The message and its thread's replies, framed together.
-  const rs = [...yak.querySelectorAll('.msg[data-root="' + m.dataset.root + '"]')].map((e) => e.getBoundingClientRect());
-  const r = { left: Math.min(...rs.map((x) => x.left)), top: Math.min(...rs.map((x) => x.top)), right: Math.max(...rs.map((x) => x.right)), bottom: Math.max(...rs.map((x) => x.bottom)) };
-  r.width = r.right - r.left; r.height = r.bottom - r.top;
-  const k = Math.min(6, (innerWidth * 0.9) / r.width, (innerHeight * 0.85) / r.height);
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-  yak.style.transformOrigin = '0 0'; yak.style.transition = 'transform ${'SECS'}s cubic-bezier(0.65, 0, 0.35, 1)';
-  const yr = yak.getBoundingClientRect();
-  requestAnimationFrame(() => { yak.style.transform = 'translate(' + (innerWidth / 2 - cx * k + (k - 1) * yr.left) + 'px,' + (innerHeight / 2 - cy * k + (k - 1) * yr.top) + 'px) scale(' + k + ')'; }); })()`.replace('TEXT', text).replace('SECS', secs) });
-// Yak at trailer size: the panel scaled up, so the thread and its reactions read.
-const BIG_YAK = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .chat.yak { zoom: 1.6; }'; document.head.append(st); })()" });
 // Speech bubbles and work labels hidden, for a shot about something else.
 const NO_SAY_T = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
 // The post's facepalmer, found through the renderer and held for the reaction shot.
@@ -78,7 +64,7 @@ const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createEleme
 export const DEFERRED_CAPTURES = [];
 
 // The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
-const YAK_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY + "const check = structuredClone(s); sim.tick(check); if (check.office.stage !== 1 || check.outage?.weeks !== 0) throw new Error('trailer: no seed-2 outage found');", hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`;
+const YAK_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY + "const check = structuredClone(s); sim.tick(check); if (check.office.stage !== 1 || check.outage?.weeks !== 0) throw new Error('trailer: no seed-2 outage found');", hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
 
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
@@ -94,7 +80,7 @@ export const BEATS = [
   { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
-  { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'me in standup')], from: 31.6, dur: 3.1 },
+  { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
   { id: 'yak-react', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(13), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
   // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
   { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 29 }, from: 22 + 17 / 30, dur: 5.7 },

@@ -27,6 +27,7 @@ Flags:
 - `--vo <dir>`: the voiceover, one WAV per line named by line id (`l1.wav`, `l2.wav`, ...). Without it the
   trailer is built with music and captions only, which is handy while editing cuts.
 - `--reuse`: keep clips already captured from the same commit and capture only the rest.
+- `--reuse-from <clips>`: reuse inspected footage from a prior capture directory when the capture specification matches and its subject checks passed. The capture index records the original build and content hash. Both Yak shots are recaptured.
 - `--vertical`: also build the 1080x1920 cut.
 - `--no-captions`: skip the burned-in captions.
 - `--print-vo`: print the voiceover lines as JSON (the input the voice script reads), using each line's `say` when it has one.
@@ -77,7 +78,7 @@ results card. The launch beat starts after the reviews finish appearing.
 `yak` and `yak-react` both replay `site-yak-backfire`, seed 2. The balanced bot stops expanding once eight staff
 have moved to the Office Floor, then waits for an outage. Daily standups stay off during the search
 and recording so the same simulation reaches the outage and the people are free to react. The Yak
-shot frames the meme and its reply; the reaction shot returns to the instant the same post lands,
+shot frames the decoded outage image and its live replies, selected by the clicked post ID. It waits for the paced replies to reach the UI and checks the image and thread against the frame and scroll bounds; the reaction shot returns to the instant the same post lands,
 finds the facepalmer with `R.probe(id).anim`, and eases the isometric camera onto them. Speech bubbles
 and work labels stay hidden, and the interface hides after the post is clicked.
 
