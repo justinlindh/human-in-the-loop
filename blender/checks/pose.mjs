@@ -15,7 +15,8 @@
 // metres, face angle to the camera in degrees) and a summary over the gesture's frames. --expect
 // rules hold a measure to a bound on a share of the gesture's frames (the whole run without a
 // gesture): '<measure><op><value>@<share>', measure one of hand0Face, hand0Head, hand0HeadTop,
-// hand1Face, hand1Head, hand1HeadTop (hand0 is the rig's armL) and faceCam; exit 1 if any fails.
+// hand1Face, hand1Head, hand1HeadTop, hand{0,1}{EyeLeft,EyeRight,Eye,Brow,Forehead,Mouth,Chin}
+// (hand0 is the rig's armL) and faceCam; exit 1 if any fails.
 // --rig off plays the procedural poses Low quality uses; the default, on, plays the authored clips
 // as Medium and High do. --root measures another checkout's render code (a lane's worktree or a
 // PR's) with this checkout's tool. --check-browser runs the same measures in a harness page and
@@ -33,6 +34,7 @@
 // model files from public/. pose-measure.js holds the measuring; --check-browser runs it in a
 // harness page as well and compares every number, which is how the stand-ins are kept honest.
 import { createServer } from 'vite';
+import { LANDMARKS } from './pose-landmarks.js';
 import { judgeScene } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -46,7 +48,7 @@ const OPTS = {
   warm: Number(opt('warm', 1)), yawToCamera: Number(opt('yaw-to-camera', 0)), view: Number(opt('view', 0)), fps: 30, rig: opt('rig', 'on') !== 'off',
 };
 const EVERY = Number(opt('every', 6));
-const MEASURES = ['hand0Face', 'hand0Head', 'hand0HeadTop', 'hand1Face', 'hand1Head', 'hand1HeadTop', 'faceCam'];
+const MEASURES = ['hand0Face', 'hand0Head', 'hand0HeadTop', 'hand1Face', 'hand1Head', 'hand1HeadTop', ...[0, 1].flatMap(h => LANDMARKS.map(n => `hand${h}${n}`)), 'faceCam'];
 const valueOf = (f, m) => (m === 'faceCam' ? f.faceCam : f.contact[m]);
 
 // The stand-ins for what a page gives: a canvas, fetch of public files, and the event types three's

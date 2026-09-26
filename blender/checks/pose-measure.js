@@ -18,7 +18,8 @@
 import * as THREE from 'three';
 import { MeshBVH } from 'three-mesh-bvh';
 import { createCharacter } from '/src/render/character.js';
-import { loadModels } from '/src/render/models.js';
+import { faceLandmarks, landmarkContacts } from './pose-landmarks.js';
+import { loadModels, getTemplate } from '/src/render/models.js';
 import { setRigEnabled } from '/src/render/rig.js';
 
 const PITCH = Math.atan(1 / Math.SQRT2);   // the game camera's pitch (camera.js)
@@ -69,6 +70,7 @@ const dist = (bvh, p) => (bvh ? bvh.closestPointToPoint(p, target) && +target.di
 export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, warm = 1, fps = 30, yawToCamera = 0, view = 0, rig = true, look = {}, seed = 'pose' } = {}) {
   await loadModels(['chibi']);
   await setRigEnabled(rig);
+  const landmarks = faceLandmarks(getTemplate('chibi'));
   const c = createCharacter(look, undefined, { seed });
   if (gesture && typeof c.gesture !== 'function') throw new Error("pose: this checkout's characters have no gesture()");
   const toCam = toCamera(view);
@@ -90,7 +92,7 @@ export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, 
       t, phase, anim: p.anim,
       eyes: p.eyes.toArray().map((v) => +v.toFixed(4)), forward: p.forward.toArray().map((v) => +v.toFixed(4)),
       head: p.head.toArray().map((v) => +v.toFixed(4)), hands: p.hands.map((h) => h.toArray().map((v) => +v.toFixed(4))),
-      contact: Object.fromEntries([0, 1].flatMap((h) => [[`hand${h}Face`, dist(S.face, p.hands[h])], [`hand${h}Head`, dist(S.head, p.hands[h])], [`hand${h}HeadTop`, dist(S.headTop, p.hands[h])]])),
+      contact: { ...landmarkContacts(landmarks, c.head.matrixWorld, p.hands), ...Object.fromEntries([0, 1].flatMap((h) => [[`hand${h}Face`, dist(S.face, p.hands[h])], [`hand${h}Head`, dist(S.head, p.hands[h])], [`hand${h}HeadTop`, dist(S.headTop, p.hands[h])]])) },
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(toCam)).toFixed(1),
     });
   }
