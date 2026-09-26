@@ -1,0 +1,8199 @@
+[
+ {
+  "seed": 1,
+  "week": 104,
+  "seconds": 30,
+  "weekEnd": 108,
+  "buckets": {
+   "chairs": {
+    "count": 11,
+    "walking": 11,
+    "max": 0.03454649540308009
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 4,
+    "walking": 4,
+    "max": 0.08625604694568412
+   },
+   "people": {
+    "count": 26,
+    "walking": 26,
+    "max": 0.1167991865845874
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [
+   {
+    "frame": 132,
+    "week": 104,
+    "category": "chairs",
+    "person": "s1",
+    "other": "f10",
+    "walking": true,
+    "depth": 0.028957328893567547,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.8250000000000002,
+       "z": -2.2750000000000004
+      },
+      {
+       "x": -0.125,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": 0.22499999999999964,
+       "z": 0.875
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": 2.625
+      },
+      {
+       "x": -0.85,
+       "z": 2.589999997615814
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": -1.68,
+      "yaw": 0,
+      "key": "desk--3.00,-1.68,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 5.144222507387607,
+      "delay": 0,
+      "moment": null,
+      "perk": "f211:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -0.85,
+       "z": 2.589999997615814,
+       "yaw": 2.6061731098799736
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 138,
+    "week": 104,
+    "category": "chairs",
+    "person": "s1",
+    "other": "f10",
+    "walking": true,
+    "depth": 0.027285393408701758,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.8250000000000002,
+       "z": -2.2750000000000004
+      },
+      {
+       "x": -0.125,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": 0.22499999999999964,
+       "z": 0.875
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": 2.625
+      },
+      {
+       "x": -0.85,
+       "z": 2.589999997615814
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": -1.68,
+      "yaw": 0,
+      "key": "desk--3.00,-1.68,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 5.144222507387607,
+      "delay": 0,
+      "moment": null,
+      "perk": "f211:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -0.85,
+       "z": 2.589999997615814,
+       "yaw": 2.6061731098799736
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 105,
+    "category": "chairs",
+    "person": "s2",
+    "other": "f91",
+    "walking": true,
+    "depth": 0.03176516561455175,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 105,
+    "category": "chairs",
+    "person": "s80",
+    "other": "f98",
+    "walking": true,
+    "depth": 0.027573279355525348,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 2.728565720395793,
+     "path": [
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": -1.225
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": 0.9249999999999998,
+       "z": -1.925
+      },
+      {
+       "x": 0.9257523710158286,
+       "z": -2.4249996670222025
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 0.9257523710158286,
+       "z": -2.4249996670222025,
+       "yaw": -0.0008851424871448
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 264,
+    "week": 105,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.02197162654596022,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 270,
+    "week": 105,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.044148395757041436,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 282,
+    "week": 105,
+    "category": "people",
+    "person": "s2",
+    "other": "s79",
+    "walking": true,
+    "depth": 0.030884932790547517,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 282,
+    "week": 105,
+    "category": "people",
+    "person": "s80",
+    "other": "s79",
+    "walking": true,
+    "depth": 0.06357454803524001,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 2.728565720395793,
+     "path": [
+      {
+       "x": 0.5749999999999993,
+       "z": -1.225
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": 0.9249999999999998,
+       "z": -1.925
+      },
+      {
+       "x": 0.9257523710158286,
+       "z": -2.4249996670222025
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 0.9257523710158286,
+       "z": -2.4249996670222025,
+       "yaw": -0.0008851424871448
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 288,
+    "week": 105,
+    "category": "people",
+    "person": "s1",
+    "other": "s60",
+    "walking": true,
+    "depth": 0.05887521793140011,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": 0.11683477325978986,
+       "z": -1.8383798896801828
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": -1.68,
+      "yaw": 0,
+      "key": "desk--3.00,-1.68,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 0.11683477325978986,
+       "z": -1.8383798896801828,
+       "yaw": 1.2557519189487725
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 288,
+    "week": 105,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.039068950469907396,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 294,
+    "week": 105,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.06969397647433069,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 300,
+    "week": 105,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07539350637213382,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 3.242273683273589,
+     "path": [
+      {
+       "x": 1.2749999999999995,
+       "z": -1.925
+      },
+      {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 1.7336302176001421,
+       "z": -1.8369487949656316,
+       "yaw": -1.257522203923062
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 744,
+    "week": 107,
+    "category": "people",
+    "person": "s1",
+    "other": "s60",
+    "walking": true,
+    "depth": 0.1167991865845874,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.22499999999999964,
+       "z": -0.875
+      },
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": 0.22499999999999964,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.43663307682419844,
+       "z": 2.8088648530198506
+      }
+     ],
+     "goal": {
+      "x": 0.43663307682419844,
+      "z": 2.8088648530198506,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 0.11683477325978986,
+       "z": -1.8383798896801828,
+       "yaw": 1.2557519189487725
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 750,
+    "week": 107,
+    "category": "people",
+    "person": "s1",
+    "other": "s60",
+    "walking": true,
+    "depth": 0.025634481455919445,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": 0.22499999999999964,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.5749999999999993,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.43663307682419844,
+       "z": 2.8088648530198506
+      }
+     ],
+     "goal": {
+      "x": 0.43663307682419844,
+      "z": 2.8088648530198506,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 0.11683477325978986,
+       "z": -1.8383798896801828,
+       "yaw": 1.2557519189487725
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 822,
+    "week": 107,
+    "category": "coffee",
+    "person": "s1",
+    "other": "f211",
+    "walking": true,
+    "depth": 0.06146245140811435,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.43663307682419844,
+       "z": 2.8088648530198506
+      }
+     ],
+     "goal": {
+      "x": 0.43663307682419844,
+      "z": 2.8088648530198506,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 828,
+    "week": 107,
+    "category": "coffee",
+    "person": "s1",
+    "other": "f211",
+    "walking": true,
+    "depth": 0.0831164936324813,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.43663307682419844,
+       "z": 2.8088648530198506
+      }
+     ],
+     "goal": {
+      "x": 0.43663307682419844,
+      "z": 2.8088648530198506,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 834,
+    "week": 107,
+    "category": "coffee",
+    "person": "s1",
+    "other": "f211",
+    "walking": true,
+    "depth": 0.08625604694568412,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.43663307682419844,
+       "z": 2.8088648530198506
+      }
+     ],
+     "goal": {
+      "x": 0.43663307682419844,
+      "z": 2.8088648530198506,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 846,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.04275775304975617,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 852,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07848445105672801,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": -0.5250000000000004
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 858,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.06833199349816467,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 864,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07587834944594239,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 870,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07186122961549617,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 876,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07557965992693481,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 882,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07265720429071795,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 888,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.0664024076423168,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 894,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07361614972085284,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 900,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07740569438299962,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.47500000000000053,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 906,
+    "week": 107,
+    "category": "chairs",
+    "person": "s80",
+    "other": "f98",
+    "walking": true,
+    "depth": 0.028325338175436855,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -2,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 906,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07222567078031172,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 912,
+    "week": 107,
+    "category": "chairs",
+    "person": "s2",
+    "other": "f98",
+    "walking": true,
+    "depth": 0.03324835079740585,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 912,
+    "week": 107,
+    "category": "chairs",
+    "person": "s80",
+    "other": "f98",
+    "walking": true,
+    "depth": 0.03415683019462,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -2,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 912,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07536933204147005,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 918,
+    "week": 107,
+    "category": "chairs",
+    "person": "s2",
+    "other": "f98",
+    "walking": true,
+    "depth": 0.033879057561754036,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 918,
+    "week": 107,
+    "category": "chairs",
+    "person": "s80",
+    "other": "f98",
+    "walking": true,
+    "depth": 0.03454649540308009,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -2,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 918,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.0731474768312378,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 924,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07651074369678548,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 930,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.0710936627145351,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 936,
+    "week": 107,
+    "category": "chairs",
+    "person": "s2",
+    "other": "f91",
+    "walking": true,
+    "depth": 0.03418265536191213,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 936,
+    "week": 107,
+    "category": "people",
+    "person": "s2",
+    "other": "s80",
+    "walking": true,
+    "depth": 0.07532048363009848,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 942,
+    "week": 107,
+    "category": "chairs",
+    "person": "s2",
+    "other": "f91",
+    "walking": true,
+    "depth": 0.03419896049485579,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3,
+       "z": 1.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": 0.6799999999999999,
+      "yaw": 3.141592653589793,
+      "key": "desk--3.00,0.68,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 990,
+    "week": 108,
+    "category": "coffee",
+    "person": "s1",
+    "other": "f211",
+    "walking": true,
+    "depth": 0.027650626721981375,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.5749999999999993,
+       "z": 1.2249999999999996
+      },
+      {
+       "x": 0.22499999999999964,
+       "z": 0.875
+      },
+      {
+       "x": -0.125,
+       "z": 0.875
+      },
+      {
+       "x": -0.125,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": -0.47500000000000053,
+       "z": -1.5750000000000002
+      },
+      {
+       "x": -0.8250000000000002,
+       "z": -1.925
+      },
+      {
+       "x": -1.1750000000000003,
+       "z": -1.925
+      },
+      {
+       "x": -1.5250000000000004,
+       "z": -2.2750000000000004
+      },
+      {
+       "x": -3,
+       "z": -2.23
+      }
+     ],
+     "goal": {
+      "x": -3,
+      "z": -1.68,
+      "yaw": 0,
+      "key": "desk--3.00,-1.68,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   }
+  ],
+  "walkingSamples": 194,
+  "errors": []
+ },
+ {
+  "seed": 1,
+  "week": 328,
+  "seconds": 30,
+  "weekEnd": 332,
+  "buckets": {
+   "chairs": {
+    "count": 25,
+    "walking": 25,
+    "max": 0.06817128583080719
+   },
+   "plants": {
+    "count": 3,
+    "walking": 3,
+    "max": 0.0693079704635766
+   },
+   "coffee": {
+    "count": 1,
+    "walking": 1,
+    "max": 0.021166720712875398
+   },
+   "people": {
+    "count": 32,
+    "walking": 32,
+    "max": 0.09966192185690777
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [
+   {
+    "frame": 120,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f712",
+    "walking": true,
+    "depth": 0.04937812158250459,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 126,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f712",
+    "walking": true,
+    "depth": 0.039119519158359706,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 126,
+    "week": 328,
+    "category": "people",
+    "person": "s669",
+    "other": "s693",
+    "walking": true,
+    "depth": 0.07409008424148456,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 132,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f712",
+    "walking": true,
+    "depth": 0.06817128583080719,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 132,
+    "week": 328,
+    "category": "people",
+    "person": "s669",
+    "other": "s693",
+    "walking": true,
+    "depth": 0.04691011302716169,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 168,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f720",
+    "walking": true,
+    "depth": 0.03834689848484352,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 174,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f720",
+    "walking": true,
+    "depth": 0.039287314003403406,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 174,
+    "week": 328,
+    "category": "people",
+    "person": "s669",
+    "other": "s695",
+    "walking": true,
+    "depth": 0.0376074814851915,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 180,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f720",
+    "walking": true,
+    "depth": 0.06556451286617378,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 186,
+    "week": 328,
+    "category": "people",
+    "person": "s1705",
+    "other": "s1791",
+    "walking": true,
+    "depth": 0.02004213913449101,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": -6.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s1791--7.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 192,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.030172281746257006,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 192,
+    "week": 328,
+    "category": "people",
+    "person": "s1705",
+    "other": "s1791",
+    "walking": true,
+    "depth": 0.060288917574364574,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": -6.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s1791--7.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 198,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.036034598632256665,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 198,
+    "week": 328,
+    "category": "people",
+    "person": "s1705",
+    "other": "s1791",
+    "walking": true,
+    "depth": 0.05687660610878055,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": -6.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s1791--7.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 204,
+    "week": 328,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.0650124552089737,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.625,
+       "z": -6.775
+      },
+      {
+       "x": 2.9749999999999996,
+       "z": -6.425
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -6.425
+      },
+      {
+       "x": 3.674999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.024999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.725
+      },
+      {
+       "x": 4.725,
+       "z": -5.725
+      },
+      {
+       "x": 5.074999999999999,
+       "z": -5.375
+      },
+      {
+       "x": 5.410000002384185,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.079315241034436,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 5.410000002384185,
+       "z": -5.35,
+       "yaw": 1.0353767830850777
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 246,
+    "week": 329,
+    "category": "chairs",
+    "person": "s2",
+    "other": "f91",
+    "walking": true,
+    "depth": 0.02954084206835002,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 6.038620407029213,
+     "path": [
+      {
+       "x": -8.225,
+       "z": -2.575
+      },
+      {
+       "x": -7.175000000000001,
+       "z": -1.5250000000000004
+      },
+      {
+       "x": -7.175000000000001,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -6.125,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -2.625000000000001,
+       "z": 0.22499999999999964
+      },
+      {
+       "x": -2.625000000000001,
+       "z": 0.5749999999999993
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": 0.9249999999999989
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": 1.2749999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.9831652267402107,
+       "z": 4.1616201103198165
+      }
+     ],
+     "goal": {
+      "x": -9,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--9.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -0.9831652267402107,
+       "z": 4.1616201103198165,
+       "yaw": 1.2557519189487727
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 246,
+    "week": 329,
+    "category": "plants",
+    "person": "s669",
+    "other": "f1647",
+    "walking": true,
+    "depth": 0.024133410135415895,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 5.435286417548461,
+     "path": [
+      {
+       "x": 1.5749999999999993,
+       "z": -5.375
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -5.025
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -3.625
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -2.575
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": 3.375
+      },
+      {
+       "x": -0.1742476289841719,
+       "z": 3.5750003329777966
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--4.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -0.1742476289841719,
+       "z": 3.5750003329777966,
+       "yaw": -0.0008851424871448
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 246,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.034875039211319306,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 252,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.031040302160977484,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 258,
+    "week": 329,
+    "category": "people",
+    "person": "s117",
+    "other": "s1791",
+    "walking": true,
+    "depth": 0.04195919161141085,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 5.7160722217084174,
+     "path": [
+      {
+       "x": -5.075,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -3.325,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -2.625000000000001,
+       "z": 0.22499999999999964
+      },
+      {
+       "x": -2.625000000000001,
+       "z": 0.5749999999999993
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": 0.9249999999999989
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": 1.625
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -0.5250000000000004,
+       "z": 4.074999999999999
+      },
+      {
+       "x": -0.6752259496670447,
+       "z": 5.1122219432466505
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -0.6752259496670447,
+       "z": 5.1122219432466505,
+       "yaw": 2.5123889803846895
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 258,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.03398623892950696,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 264,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.034250939103128875,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 270,
+    "week": 329,
+    "category": "people",
+    "person": "s60",
+    "other": "s1539",
+    "walking": true,
+    "depth": 0.059484604601547406,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 270,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.03325337238496144,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 276,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.03489276408894576,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 282,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.03236515080608961,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 288,
+    "week": 329,
+    "category": "people",
+    "person": "s60",
+    "other": "s669",
+    "walking": true,
+    "depth": 0.03620543409641559,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 288,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.03809497511711308,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 5.125
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 294,
+    "week": 329,
+    "category": "people",
+    "person": "s694",
+    "other": "s1634",
+    "walking": true,
+    "depth": 0.035973928792913105,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -0.1750000000000007,
+       "z": 4.774999999999999
+      },
+      {
+       "x": -0.1750000000000007,
+       "z": 4.424999999999999
+      },
+      {
+       "x": -0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": -0.875,
+       "z": 3.375
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": -1.2250000000000014,
+       "z": 2.674999999999999
+      },
+      {
+       "x": -1.575000000000001,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 312,
+    "week": 329,
+    "category": "people",
+    "person": "s1634",
+    "other": "s1701",
+    "walking": true,
+    "depth": 0.029189314147004732,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.5249999999999986,
+       "z": 4.074999999999999
+      },
+      {
+       "x": 0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": 0.875,
+       "z": 3.375
+      },
+      {
+       "x": 1.2249999999999996,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": 1.2249999999999996,
+       "z": 2.674999999999999
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": 1.924999999999999,
+       "z": 1.625
+      },
+      {
+       "x": 1.924999999999999,
+       "z": 1.2749999999999986
+      },
+      {
+       "x": 2.2749999999999986,
+       "z": 0.9249999999999989
+      },
+      {
+       "x": 2.2749999999999986,
+       "z": 0.22499999999999964
+      },
+      {
+       "x": 2.625,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 2.625,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": 4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 318,
+    "week": 329,
+    "category": "people",
+    "person": "s1634",
+    "other": "s1701",
+    "walking": true,
+    "depth": 0.06186438355097406,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.5249999999999986,
+       "z": 4.074999999999999
+      },
+      {
+       "x": 0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": 0.875,
+       "z": 3.375
+      },
+      {
+       "x": 1.2249999999999996,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": 1.2249999999999996,
+       "z": 2.674999999999999
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": 1.924999999999999,
+       "z": 1.625
+      },
+      {
+       "x": 1.924999999999999,
+       "z": 1.2749999999999986
+      },
+      {
+       "x": 2.2749999999999986,
+       "z": 0.9249999999999989
+      },
+      {
+       "x": 2.2749999999999986,
+       "z": 0.22499999999999964
+      },
+      {
+       "x": 2.625,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 2.625,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": 4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 324,
+    "week": 329,
+    "category": "people",
+    "person": "s2",
+    "other": "s694",
+    "walking": true,
+    "depth": 0.040979085332789024,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 6.038620407029213,
+     "path": [],
+     "goal": {
+      "x": -9,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--9.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -0.9831652267402107,
+       "z": 4.1616201103198165,
+       "yaw": 1.2557519189487727
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 324,
+    "week": 329,
+    "category": "people",
+    "person": "s1634",
+    "other": "s1701",
+    "walking": true,
+    "depth": 0.03464199608154755,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.875,
+       "z": 3.7249999999999996
+      },
+      {
+       "x": 0.875,
+       "z": 3.375
+      },
+      {
+       "x": 1.2249999999999996,
+       "z": 3.0249999999999986
+      },
+      {
+       "x": 1.2249999999999996,
+       "z": 2.674999999999999
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": 2.3249999999999993
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": 1.924999999999999,
+       "z": 1.625
+      },
+      {
+       "x": 1.924999999999999,
+       "z": 1.2749999999999986
+      },
+      {
+       "x": 2.2749999999999986,
+       "z": 0.9249999999999989
+      },
+      {
+       "x": 2.2749999999999986,
+       "z": 0.22499999999999964
+      },
+      {
+       "x": 2.625,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 2.625,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": 3.3249999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 4,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": 4,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-4.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 330,
+    "week": 329,
+    "category": "people",
+    "person": "s2",
+    "other": "s694",
+    "walking": true,
+    "depth": 0.027864313849878176,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 6.038620407029213,
+     "path": [],
+     "goal": {
+      "x": -9,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--9.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -0.9831652267402107,
+       "z": 4.1616201103198165,
+       "yaw": 1.2557519189487727
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 342,
+    "week": 329,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.03404644963163446,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -2.625000000000001,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -4.325
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -6.425
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -6.775
+      },
+      {
+       "x": 1.15,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.181490165816145,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 1.15,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 348,
+    "week": 329,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.031379648062993225,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3.325,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -2.625000000000001,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -4.325
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -6.425
+      },
+      {
+       "x": -1.575000000000001,
+       "z": -6.775
+      },
+      {
+       "x": 1.15,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.181490165816145,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 1.15,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 486,
+    "week": 330,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f720",
+    "walking": true,
+    "depth": 0.027384042331564988,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.15,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.181490165816145,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 1.15,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 504,
+    "week": 330,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.03431677487065679,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.15,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.181490165816145,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 1.15,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 510,
+    "week": 330,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.034722465167818205,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.15,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.181490165816145,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 1.15,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 762,
+    "week": 331,
+    "category": "people",
+    "person": "s117",
+    "other": "s697",
+    "walking": true,
+    "depth": 0.028090116525855947,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 5.7160722217084174,
+     "path": [],
+     "goal": {
+      "x": -7,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -0.6752259496670447,
+       "z": 5.1122219432466505,
+       "yaw": 2.5123889803846895
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 774,
+    "week": 331,
+    "category": "plants",
+    "person": "s736",
+    "other": "f1647",
+    "walking": true,
+    "depth": 0.0693079704635766,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.5749999999999993,
+       "z": -5.375
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -5.025
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -3.625
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -2.575
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": 6.524999999999999
+      },
+      {
+       "x": 0.40783850416649237,
+       "z": 7.009821782216685
+      }
+     ],
+     "goal": {
+      "x": 0.40783850416649237,
+      "z": 7.009821782216685,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 774,
+    "week": 331,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.03133710874422991,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -1.575000000000001,
+       "z": -6.775
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -6.425
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -5.025
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -4.675000000000001
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4.7250000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -5.775,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -5.775,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -6.125,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -6.125,
+       "z": 1.625
+      },
+      {
+       "x": -6.4750000000000005,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -7,
+       "z": 1.73
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 780,
+    "week": 331,
+    "category": "plants",
+    "person": "s736",
+    "other": "f1647",
+    "walking": true,
+    "depth": 0.025587747185026266,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.5749999999999993,
+       "z": -5.375
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -5.025
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -3.625
+      },
+      {
+       "x": 1.5749999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -2.575
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": 6.524999999999999
+      },
+      {
+       "x": 0.40783850416649237,
+       "z": 7.009821782216685
+      }
+     ],
+     "goal": {
+      "x": 0.40783850416649237,
+      "z": 7.009821782216685,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 780,
+    "week": 331,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.03439866943067424,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -1.575000000000001,
+       "z": -6.775
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -6.425
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -5.025
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -4.675000000000001
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4.7250000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -5.775,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -5.775,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -6.125,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -6.125,
+       "z": 1.625
+      },
+      {
+       "x": -6.4750000000000005,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -7,
+       "z": 1.73
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 786,
+    "week": 331,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f739",
+    "walking": true,
+    "depth": 0.03445379896621984,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -1.575000000000001,
+       "z": -6.775
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -6.425
+      },
+      {
+       "x": -1.9250000000000007,
+       "z": -5.025
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -4.675000000000001
+      },
+      {
+       "x": -2.2750000000000004,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": -2.9750000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4.7250000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -5.775,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -5.775,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -6.125,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -6.125,
+       "z": 1.625
+      },
+      {
+       "x": -6.4750000000000005,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -7,
+       "z": 1.73
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 846,
+    "week": 331,
+    "category": "chairs",
+    "person": "s736",
+    "other": "f1553",
+    "walking": true,
+    "depth": 0.02647428086910331,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.5249999999999986,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -2.575
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": 6.524999999999999
+      },
+      {
+       "x": 0.40783850416649237,
+       "z": 7.009821782216685
+      }
+     ],
+     "goal": {
+      "x": 0.40783850416649237,
+      "z": 7.009821782216685,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 852,
+    "week": 331,
+    "category": "chairs",
+    "person": "s736",
+    "other": "f1553",
+    "walking": true,
+    "depth": 0.026779859019620617,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.5249999999999986,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -2.575
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": 6.524999999999999
+      },
+      {
+       "x": 0.40783850416649237,
+       "z": 7.009821782216685
+      }
+     ],
+     "goal": {
+      "x": 0.40783850416649237,
+      "z": 7.009821782216685,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 858,
+    "week": 331,
+    "category": "chairs",
+    "person": "s736",
+    "other": "f1553",
+    "walking": true,
+    "depth": 0.027976705752221824,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.5249999999999986,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.5249999999999986,
+       "z": -2.575
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": 0.17499999999999893,
+       "z": 6.524999999999999
+      },
+      {
+       "x": 0.40783850416649237,
+       "z": 7.009821782216685
+      }
+     ],
+     "goal": {
+      "x": 0.40783850416649237,
+      "z": 7.009821782216685,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 882,
+    "week": 331,
+    "category": "people",
+    "person": "s60",
+    "other": "s697",
+    "walking": true,
+    "depth": 0.030622223195933454,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 888,
+    "week": 331,
+    "category": "people",
+    "person": "s60",
+    "other": "s697",
+    "walking": true,
+    "depth": 0.024619377466377976,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 906,
+    "week": 331,
+    "category": "people",
+    "person": "s60",
+    "other": "s1539",
+    "walking": true,
+    "depth": 0.09966192185690777,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 924,
+    "week": 331,
+    "category": "people",
+    "person": "s736",
+    "other": "s1539",
+    "walking": true,
+    "depth": 0.025412188762185133,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 0.17499999999999893,
+       "z": 6.524999999999999
+      },
+      {
+       "x": 0.40783850416649237,
+       "z": 7.009821782216685
+      }
+     ],
+     "goal": {
+      "x": 0.40783850416649237,
+      "z": 7.009821782216685,
+      "yaw": 0,
+      "key": "away",
+      "anim": "idle",
+      "seated": false,
+      "hidden": true
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 942,
+    "week": 331,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.033610851988326515,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -4.7250000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -5.775,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -5.775,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -6.125,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -6.125,
+       "z": 1.625
+      },
+      {
+       "x": -6.4750000000000005,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -7,
+       "z": 1.73
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "celebrate",
+      "t": 2.4,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": true,
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 948,
+    "week": 331,
+    "category": "chairs",
+    "person": "s1791",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.02879878279454911,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -4.7250000000000005,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -5.775,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -5.775,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -6.125,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": -6.125,
+       "z": 1.625
+      },
+      {
+       "x": -6.4750000000000005,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -7,
+       "z": 1.73
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": 1.18,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,1.18,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "celebrate",
+      "t": 2.4,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": true,
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 948,
+    "week": 331,
+    "category": "people",
+    "person": "s60",
+    "other": "s736",
+    "walking": true,
+    "depth": 0.06032791578650569,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 954,
+    "week": 331,
+    "category": "people",
+    "person": "s60",
+    "other": "s736",
+    "walking": true,
+    "depth": 0.026479832911609748,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 966,
+    "week": 332,
+    "category": "chairs",
+    "person": "s1705",
+    "other": "f1553",
+    "walking": true,
+    "depth": 0.03447605214937692,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.5749999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -3.625
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -5.025
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.025
+      },
+      {
+       "x": 5.424999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 7.524999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 7.875,
+       "z": -6.425
+      },
+      {
+       "x": 8.224999999999998,
+       "z": -6.425
+      },
+      {
+       "x": 8.575,
+       "z": -6.775
+      },
+      {
+       "x": 9,
+       "z": -6.7299999999999995
+      }
+     ],
+     "goal": {
+      "x": 9,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk-9.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 972,
+    "week": 332,
+    "category": "chairs",
+    "person": "s1705",
+    "other": "f1553",
+    "walking": true,
+    "depth": 0.03344221423754189,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.5749999999999993,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -3.625
+      },
+      {
+       "x": 1.924999999999999,
+       "z": -5.025
+      },
+      {
+       "x": 4.374999999999998,
+       "z": -5.025
+      },
+      {
+       "x": 5.424999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 7.524999999999999,
+       "z": -6.075
+      },
+      {
+       "x": 7.875,
+       "z": -6.425
+      },
+      {
+       "x": 8.224999999999998,
+       "z": -6.425
+      },
+      {
+       "x": 8.575,
+       "z": -6.775
+      },
+      {
+       "x": 9,
+       "z": -6.7299999999999995
+      }
+     ],
+     "goal": {
+      "x": 9,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk-9.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 972,
+    "week": 332,
+    "category": "people",
+    "person": "s60",
+    "other": "s736",
+    "walking": true,
+    "depth": 0.03875067539257354,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 978,
+    "week": 332,
+    "category": "people",
+    "person": "s60",
+    "other": "s736",
+    "walking": true,
+    "depth": 0.03470833868601052,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 984,
+    "week": 332,
+    "category": "coffee",
+    "person": "s117",
+    "other": "f1659",
+    "walking": true,
+    "depth": 0.021166720712875398,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5.775,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -5.775,
+       "z": -2.2250000000000005
+      },
+      {
+       "x": -7,
+       "z": -3.2699999999999996
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--7.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   }
+  ],
+  "walkingSamples": 678,
+  "errors": []
+ },
+ {
+  "seed": 1,
+  "week": 535,
+  "seconds": 30,
+  "weekEnd": 539,
+  "buckets": {
+   "chairs": {
+    "count": 11,
+    "walking": 11,
+    "max": 0.04797404522055988
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 1,
+    "walking": 1,
+    "max": 0.03423655693580052
+   },
+   "people": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [
+   {
+    "frame": 120,
+    "week": 535,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f661",
+    "walking": true,
+    "depth": 0.031084561046303534,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -8.775,
+       "z": -6.775
+      },
+      {
+       "x": -9.125,
+       "z": -6.425
+      },
+      {
+       "x": -9.125,
+       "z": -3.625
+      },
+      {
+       "x": -8.775,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -8.775,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -8.425,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -8.075,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -7.85,
+       "z": -0.9100000023841858
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--7.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 5.011472456167892,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1659:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -7.85,
+       "z": -0.9100000023841858,
+       "yaw": 2.606173109879974
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 126,
+    "week": 535,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f661",
+    "walking": true,
+    "depth": 0.04347848158775343,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -8.775,
+       "z": -6.775
+      },
+      {
+       "x": -9.125,
+       "z": -6.425
+      },
+      {
+       "x": -9.125,
+       "z": -3.625
+      },
+      {
+       "x": -8.775,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -8.775,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -8.425,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -8.075,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -7.85,
+       "z": -0.9100000023841858
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--7.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 5.011472456167892,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1659:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -7.85,
+       "z": -0.9100000023841858,
+       "yaw": 2.606173109879974
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 132,
+    "week": 535,
+    "category": "chairs",
+    "person": "s669",
+    "other": "f661",
+    "walking": true,
+    "depth": 0.04797404522055988,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -8.775,
+       "z": -6.775
+      },
+      {
+       "x": -9.125,
+       "z": -6.425
+      },
+      {
+       "x": -9.125,
+       "z": -3.625
+      },
+      {
+       "x": -8.775,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -8.775,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -8.425,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -8.075,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -7.85,
+       "z": -0.9100000023841858
+      }
+     ],
+     "goal": {
+      "x": -7,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--7.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 5.011472456167892,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1659:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -7.85,
+       "z": -0.9100000023841858,
+       "yaw": 2.606173109879974
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 288,
+    "week": 536,
+    "category": "chairs",
+    "person": "s117",
+    "other": "f666",
+    "walking": true,
+    "depth": 0.021148411590435436,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5.275,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -3.875,
+       "z": -1.875
+      },
+      {
+       "x": -3.5250000000000004,
+       "z": -1.875
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.375,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 0,
+       "z": 0
+      }
+     ],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 294,
+    "week": 536,
+    "category": "chairs",
+    "person": "s117",
+    "other": "f666",
+    "walking": true,
+    "depth": 0.03451753980860708,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5.275,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -3.875,
+       "z": -1.875
+      },
+      {
+       "x": -3.5250000000000004,
+       "z": -1.875
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.375,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 0,
+       "z": 0
+      }
+     ],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 312,
+    "week": 536,
+    "category": "chairs",
+    "person": "s117",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.028827382251052795,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5.275,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -3.875,
+       "z": -1.875
+      },
+      {
+       "x": -3.5250000000000004,
+       "z": -1.875
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.375,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 0,
+       "z": 0
+      }
+     ],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 318,
+    "week": 536,
+    "category": "chairs",
+    "person": "s117",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.033834608672023245,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5.275,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -3.875,
+       "z": -1.875
+      },
+      {
+       "x": -3.5250000000000004,
+       "z": -1.875
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.375,
+       "z": -0.1250000000000009
+      },
+      {
+       "x": 0,
+       "z": 0
+      }
+     ],
+     "goal": {
+      "x": 0,
+      "z": 0,
+      "yaw": 3.141592653589793,
+      "key": "ov-0",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 876,
+    "week": 538,
+    "category": "chairs",
+    "person": "s1703",
+    "other": "f1682",
+    "walking": true,
+    "depth": 0.03414206049572971,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 3.474999999999998,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 2.7749999999999986,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -4.325
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -5.025
+      },
+      {
+       "x": 1.7249999999999996,
+       "z": -5.025
+      },
+      {
+       "x": 1.3749999999999982,
+       "z": -5.375
+      },
+      {
+       "x": 1.0249999999999986,
+       "z": -5.375
+      },
+      {
+       "x": 0.6749999999999989,
+       "z": -5.725
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -5.725
+      },
+      {
+       "x": -0.025000000000000355,
+       "z": -6.075
+      },
+      {
+       "x": -0.375,
+       "z": -6.075
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -6.425
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -6.425
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -6.775
+      },
+      {
+       "x": -1.85,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.95431789844699,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -1.85,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 882,
+    "week": 538,
+    "category": "chairs",
+    "person": "s1703",
+    "other": "f1682",
+    "walking": true,
+    "depth": 0.03490508831677597,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 3.474999999999998,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 2.7749999999999986,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -4.325
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -5.025
+      },
+      {
+       "x": 1.7249999999999996,
+       "z": -5.025
+      },
+      {
+       "x": 1.3749999999999982,
+       "z": -5.375
+      },
+      {
+       "x": 1.0249999999999986,
+       "z": -5.375
+      },
+      {
+       "x": 0.6749999999999989,
+       "z": -5.725
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -5.725
+      },
+      {
+       "x": -0.025000000000000355,
+       "z": -6.075
+      },
+      {
+       "x": -0.375,
+       "z": -6.075
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -6.425
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -6.425
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -6.775
+      },
+      {
+       "x": -1.85,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.95431789844699,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -1.85,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 900,
+    "week": 538,
+    "category": "chairs",
+    "person": "s1703",
+    "other": "f1658",
+    "walking": true,
+    "depth": 0.033094676688580175,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 3.474999999999998,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 2.7749999999999986,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -4.325
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -5.025
+      },
+      {
+       "x": 1.7249999999999996,
+       "z": -5.025
+      },
+      {
+       "x": 1.3749999999999982,
+       "z": -5.375
+      },
+      {
+       "x": 1.0249999999999986,
+       "z": -5.375
+      },
+      {
+       "x": 0.6749999999999989,
+       "z": -5.725
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -5.725
+      },
+      {
+       "x": -0.025000000000000355,
+       "z": -6.075
+      },
+      {
+       "x": -0.375,
+       "z": -6.075
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -6.425
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -6.425
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -6.775
+      },
+      {
+       "x": -1.85,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.95431789844699,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -1.85,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 906,
+    "week": 538,
+    "category": "chairs",
+    "person": "s1703",
+    "other": "f1658",
+    "walking": true,
+    "depth": 0.03499804771644908,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 3.474999999999998,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 2.7749999999999986,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -4.325
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -5.025
+      },
+      {
+       "x": 1.7249999999999996,
+       "z": -5.025
+      },
+      {
+       "x": 1.3749999999999982,
+       "z": -5.375
+      },
+      {
+       "x": 1.0249999999999986,
+       "z": -5.375
+      },
+      {
+       "x": 0.6749999999999989,
+       "z": -5.725
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -5.725
+      },
+      {
+       "x": -0.025000000000000355,
+       "z": -6.075
+      },
+      {
+       "x": -0.375,
+       "z": -6.075
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -6.425
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -6.425
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -6.775
+      },
+      {
+       "x": -1.85,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.95431789844699,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -1.85,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 942,
+    "week": 538,
+    "category": "coffee",
+    "person": "s1703",
+    "other": "f1751",
+    "walking": true,
+    "depth": 0.03423655693580052,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 2.7749999999999986,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -4.325
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -5.025
+      },
+      {
+       "x": 1.7249999999999996,
+       "z": -5.025
+      },
+      {
+       "x": 1.3749999999999982,
+       "z": -5.375
+      },
+      {
+       "x": 1.0249999999999986,
+       "z": -5.375
+      },
+      {
+       "x": 0.6749999999999989,
+       "z": -5.725
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -5.725
+      },
+      {
+       "x": -0.025000000000000355,
+       "z": -6.075
+      },
+      {
+       "x": -0.375,
+       "z": -6.075
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -6.425
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -6.425
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -6.775
+      },
+      {
+       "x": -1.85,
+       "z": -6.65
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.95431789844699,
+      "delay": 0,
+      "moment": null,
+      "perk": "f66:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -1.85,
+       "z": -7.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   }
+  ],
+  "walkingSamples": 390,
+  "errors": []
+ },
+ {
+  "seed": 3,
+  "week": 204,
+  "seconds": 30,
+  "weekEnd": 208,
+  "buckets": {
+   "chairs": {
+    "count": 4,
+    "walking": 4,
+    "max": 0.034764367992500454
+   },
+   "plants": {
+    "count": 1,
+    "walking": 1,
+    "max": 0.02080379016522647
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 3,
+    "walking": 3,
+    "max": 0.05798246109529777
+   },
+   "other": {
+    "count": 1,
+    "walking": 1,
+    "max": 0.020933210027728164
+   }
+  },
+  "hits": [
+   {
+    "frame": 156,
+    "week": 204,
+    "category": "chairs",
+    "person": "s84",
+    "other": "f9",
+    "walking": true,
+    "depth": 0.03421815403295392,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -6.625,
+       "z": -1.2750000000000004
+      },
+      {
+       "x": -6.975,
+       "z": -1.625
+      },
+      {
+       "x": -6.975,
+       "z": -3.0250000000000004
+      },
+      {
+       "x": -3.125,
+       "z": -3.0250000000000004
+      },
+      {
+       "x": -3.125,
+       "z": -4.075
+      },
+      {
+       "x": -2.7750000000000004,
+       "z": -4.425
+      },
+      {
+       "x": -2.85,
+       "z": -4.65
+      }
+     ],
+     "goal": {
+      "x": -5,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--5.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.91169104670332,
+      "delay": 0,
+      "moment": null,
+      "perk": "f132:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -2.85,
+       "z": -5.063915456086397,
+       "yaw": 2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 205,
+    "category": "chairs",
+    "person": "s677",
+    "other": "f671",
+    "walking": true,
+    "depth": 0.034764367992500454,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.294850763283584,
+     "path": [
+      {
+       "x": 1.424999999999999,
+       "z": -4.775
+      },
+      {
+       "x": 1.0749999999999993,
+       "z": -4.425
+      },
+      {
+       "x": 1.0749999999999993,
+       "z": -1.625
+      },
+      {
+       "x": -2.075,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -4.175000000000001,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -5.228100670353207,
+       "z": 2.710097842291754
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -4.18,
+      "yaw": 0,
+      "key": "desk-6.00,-4.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -5.228100670353207,
+       "z": 2.710097842291754,
+       "yaw": 2.5123889803846904
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 300,
+    "week": 205,
+    "category": "people",
+    "person": "s1",
+    "other": "s632",
+    "walking": true,
+    "depth": 0.05165806334583045,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 4.619064270399464,
+     "path": [
+      {
+       "x": -4.525,
+       "z": 1.1749999999999998
+      },
+      {
+       "x": -4.525,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -4.175000000000001,
+       "z": 1.8749999999999991
+      },
+      {
+       "x": -4.27834261007772,
+       "z": 2.288245229473315
+      }
+     ],
+     "goal": {
+      "x": -6,
+      "z": -4.18,
+      "yaw": 0,
+      "key": "desk--6.00,-4.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -4.27834261007772,
+       "z": 2.288245229473315,
+       "yaw": -1.676401224401701
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 354,
+    "week": 205,
+    "category": "plants",
+    "person": "s706",
+    "other": "f692",
+    "walking": true,
+    "depth": 0.02080379016522647,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 1.0749999999999993,
+       "z": -3.0250000000000004
+      },
+      {
+       "x": 0.3749999999999991,
+       "z": -3.725
+      },
+      {
+       "x": 0.024999999999999467,
+       "z": -3.725
+      },
+      {
+       "x": -0.3250000000000002,
+       "z": -4.075
+      },
+      {
+       "x": -0.6750000000000007,
+       "z": -4.075
+      },
+      {
+       "x": -1.0250000000000004,
+       "z": -4.425
+      },
+      {
+       "x": -1.375,
+       "z": -4.425
+      },
+      {
+       "x": -1.7250000000000005,
+       "z": -4.775
+      },
+      {
+       "x": -2.15,
+       "z": -4.65
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 5.969260036451053,
+      "delay": 0,
+      "moment": null,
+      "perk": "f132:1",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -2.15,
+       "z": -5.063915456086397,
+       "yaw": -2.4652703842242434
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 618,
+    "week": 206,
+    "category": "other",
+    "person": "s84",
+    "other": "f651",
+    "walking": true,
+    "depth": 0.020933210027728164,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -3.125,
+       "z": -3.0250000000000004
+      },
+      {
+       "x": -6.975,
+       "z": -3.0250000000000004
+      },
+      {
+       "x": -6.975,
+       "z": -1.625
+      },
+      {
+       "x": -6.625,
+       "z": -1.2750000000000004
+      },
+      {
+       "x": -5,
+       "z": -1.27
+      }
+     ],
+     "goal": {
+      "x": -5,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--5.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 786,
+    "week": 207,
+    "category": "chairs",
+    "person": "s84",
+    "other": "f9",
+    "walking": true,
+    "depth": 0.02533893848836876,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5,
+       "z": -1.27
+      }
+     ],
+     "goal": {
+      "x": -5,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--5.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 792,
+    "week": 207,
+    "category": "chairs",
+    "person": "s84",
+    "other": "f9",
+    "walking": true,
+    "depth": 0.034244818287032644,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -5,
+       "z": -1.27
+      }
+     ],
+     "goal": {
+      "x": -5,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--5.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 828,
+    "week": 207,
+    "category": "people",
+    "person": "s1",
+    "other": "s632",
+    "walking": true,
+    "depth": 0.05798246109529777,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -4.875,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -4.875,
+       "z": 1.1749999999999998
+      },
+      {
+       "x": -5.225,
+       "z": 0.8249999999999993
+      },
+      {
+       "x": -5.225,
+       "z": 0.125
+      },
+      {
+       "x": -6.975,
+       "z": -1.625
+      },
+      {
+       "x": -6.975,
+       "z": -4.425
+      },
+      {
+       "x": -6.625,
+       "z": -4.775
+      },
+      {
+       "x": -6,
+       "z": -4.7299999999999995
+      }
+     ],
+     "goal": {
+      "x": -6,
+      "z": -4.18,
+      "yaw": 0,
+      "key": "desk--6.00,-4.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   },
+   {
+    "frame": 834,
+    "week": 207,
+    "category": "people",
+    "person": "s1",
+    "other": "s677",
+    "walking": true,
+    "depth": 0.028136040417060026,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -4.875,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -4.875,
+       "z": 1.1749999999999998
+      },
+      {
+       "x": -5.225,
+       "z": 0.8249999999999993
+      },
+      {
+       "x": -5.225,
+       "z": 0.125
+      },
+      {
+       "x": -6.975,
+       "z": -1.625
+      },
+      {
+       "x": -6.975,
+       "z": -4.425
+      },
+      {
+       "x": -6.625,
+       "z": -4.775
+      },
+      {
+       "x": -6,
+       "z": -4.7299999999999995
+      }
+     ],
+     "goal": {
+      "x": -6,
+      "z": -4.18,
+      "yaw": 0,
+      "key": "desk--6.00,-4.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": null
+    }
+   }
+  ],
+  "walkingSamples": 301,
+  "errors": []
+ },
+ {
+  "seed": 1,
+  "week": 533,
+  "seconds": 30,
+  "weekEnd": 535,
+  "buckets": {
+   "chairs": {
+    "count": 4,
+    "walking": 4,
+    "max": 0.033994898872447825
+   },
+   "plants": {
+    "count": 2,
+    "walking": 2,
+    "max": 0.0964343768361389
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 10,
+    "walking": 10,
+    "max": 0.12893427705732086
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [
+   {
+    "frame": 180,
+    "week": 533,
+    "category": "plants",
+    "person": "s1576",
+    "other": "f1718",
+    "walking": true,
+    "depth": 0.06462930414758682,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -1.4250000000000007,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.5,
+       "z": -0.65
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "browse",
+      "t": 8.027510122421672,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1768:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -0.5,
+       "z": -1.1999999940395356,
+       "yaw": 3.141592653589793
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 186,
+    "week": 533,
+    "category": "plants",
+    "person": "s1576",
+    "other": "f1718",
+    "walking": true,
+    "depth": 0.0964343768361389,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": -1.4250000000000007,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -0.47500000000000053
+      },
+      {
+       "x": -0.5,
+       "z": -0.65
+      }
+     ],
+     "goal": {
+      "x": -2,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--2.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "browse",
+      "t": 8.027510122421672,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1768:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": -0.5,
+       "z": -1.1999999940395356,
+       "yaw": 3.141592653589793
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 246,
+    "week": 534,
+    "category": "chairs",
+    "person": "s693",
+    "other": "f720",
+    "walking": true,
+    "depth": 0.03172336675486783,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 8.161513147341022,
+     "path": [
+      {
+       "x": -2.4750000000000014,
+       "z": -6.775
+      },
+      {
+       "x": -1.7750000000000004,
+       "z": -6.075
+      },
+      {
+       "x": -1.4250000000000007,
+       "z": -6.075
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -5.725
+      },
+      {
+       "x": -1.075000000000001,
+       "z": -3.625
+      },
+      {
+       "x": -0.7250000000000014,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -0.375,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -2.575
+      },
+      {
+       "x": 0.3249999999999993,
+       "z": -1.875
+      },
+      {
+       "x": 0.6749999999999989,
+       "z": -1.5250000000000004
+      },
+      {
+       "x": 1.3749999999999982,
+       "z": -1.5250000000000004
+      },
+      {
+       "x": 1.7249999999999996,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": 2.0749999999999993,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": 6.124777554597321,
+       "z": 3.075180759733634
+      }
+     ],
+     "goal": {
+      "x": -6,
+      "z": -6.18,
+      "yaw": 0,
+      "key": "desk--6.00,-6.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 6.124777554597321,
+       "z": 3.075180759733634,
+       "yaw": -2.1999999999999997
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 246,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.12893427705732086,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": -9.125,
+       "z": 1.9749999999999996
+      },
+      {
+       "x": -7.7250000000000005,
+       "z": 3.375
+      },
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 534,
+    "category": "chairs",
+    "person": "s117",
+    "other": "f684",
+    "walking": true,
+    "depth": 0.031809694347467714,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 8.459394915728586,
+     "path": [
+      {
+       "x": -5.275,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": -4.925000000000001,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -4.575000000000001,
+       "z": -2.9250000000000007
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -1.1750000000000007
+      },
+      {
+       "x": -2.825000000000001,
+       "z": -0.8250000000000002
+      },
+      {
+       "x": -0.375,
+       "z": 1.625
+      },
+      {
+       "x": 5.574999999999999,
+       "z": 1.625
+      },
+      {
+       "x": 5.975180759733634,
+       "z": 2.1252224454026774
+      }
+     ],
+     "goal": {
+      "x": -10,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--10.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.975180759733634,
+       "z": 2.1252224454026774,
+       "yaw": -0.629203673205103
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 534,
+    "category": "chairs",
+    "person": "s1701",
+    "other": "f1658",
+    "walking": true,
+    "depth": 0.0335526652835818,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 3.125,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.410000002384186,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": 5,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-5.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.457172187936653,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 2.410000002384186,
+       "z": -5.35,
+       "yaw": 1.0353767830850773
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.027767433367622295,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": -7.7250000000000005,
+       "z": 3.375
+      },
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 258,
+    "week": 534,
+    "category": "chairs",
+    "person": "s1701",
+    "other": "f1658",
+    "walking": true,
+    "depth": 0.033994898872447825,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 1.25,
+     "path": [
+      {
+       "x": 3.125,
+       "z": -3.2750000000000004
+      },
+      {
+       "x": 2.424999999999999,
+       "z": -3.9750000000000005
+      },
+      {
+       "x": 2.410000002384186,
+       "z": -5.35
+      }
+     ],
+     "goal": {
+      "x": 5,
+      "z": -3.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-5.00,-3.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "sip",
+      "t": 6.457172187936653,
+      "delay": 0,
+      "moment": null,
+      "perk": "f1751:0",
+      "back": true,
+      "keepPos": false,
+      "goal": {
+       "x": 2.410000002384186,
+       "z": -5.35,
+       "yaw": 1.0353767830850773
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 258,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.08483828278684984,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 264,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.03159577360938766,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 270,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.03186776000006156,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 276,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.02309289749030142,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 282,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.023947547622948796,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 288,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.024009416295454642,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 294,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.031233611984404323,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 300,
+    "week": 534,
+    "category": "people",
+    "person": "s60",
+    "other": "s3490",
+    "walking": true,
+    "depth": 0.08098755956545618,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.801081952525021,
+     "path": [
+      {
+       "x": 3.8249999999999993,
+       "z": 3.375
+      },
+      {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636
+      }
+     ],
+     "goal": {
+      "x": -10.45,
+      "z": 1.3299999999999998,
+      "yaw": 3.8415926535897933,
+      "key": "mentor-s3490--11.00,1.18",
+      "anim": "idle",
+      "seated": false,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.025222445402678,
+       "z": 2.2748192402663636,
+       "yaw": 0.9415926535897932
+      },
+      "by": null
+     }
+    }
+   }
+  ],
+  "walkingSamples": 436,
+  "errors": []
+ },
+ {
+  "seed": 3,
+  "week": 202,
+  "seconds": 30,
+  "weekEnd": 204,
+  "buckets": {
+   "chairs": {
+    "count": 2,
+    "walking": 2,
+    "max": 0.03538454003956698
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 1,
+    "walking": 1,
+    "max": 0.052065704098762794
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [
+   {
+    "frame": 252,
+    "week": 203,
+    "category": "chairs",
+    "person": "s677",
+    "other": "f671",
+    "walking": true,
+    "depth": 0.03538454003956698,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.339167569932073,
+     "path": [
+      {
+       "x": 1.424999999999999,
+       "z": -4.775
+      },
+      {
+       "x": 1.0749999999999993,
+       "z": -4.425
+      },
+      {
+       "x": 1.0749999999999993,
+       "z": -1.625
+      },
+      {
+       "x": -2.075,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -5.225,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -5.6831652267402095,
+       "z": 1.961620110319817
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -4.18,
+      "yaw": 0,
+      "key": "desk-6.00,-4.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -5.6831652267402095,
+       "z": 1.961620110319817,
+       "yaw": 1.2557519189487722
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 252,
+    "week": 203,
+    "category": "chairs",
+    "person": "s706",
+    "other": "f691",
+    "walking": true,
+    "depth": 0.027300208713211923,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 5.999199851111553,
+     "path": [
+      {
+       "x": 3.5249999999999986,
+       "z": -1.2750000000000004
+      },
+      {
+       "x": 2.8249999999999993,
+       "z": -0.5750000000000002
+      },
+      {
+       "x": 2.125,
+       "z": -0.5750000000000002
+      },
+      {
+       "x": 1.7749999999999986,
+       "z": -0.22500000000000053
+      },
+      {
+       "x": 1.424999999999999,
+       "z": -0.22500000000000053
+      },
+      {
+       "x": 0.7249999999999996,
+       "z": 0.47499999999999964
+      },
+      {
+       "x": 0.024999999999999467,
+       "z": 0.47499999999999964
+      },
+      {
+       "x": -0.3250000000000002,
+       "z": 0.8249999999999993
+      },
+      {
+       "x": -0.6750000000000007,
+       "z": 0.8249999999999993
+      },
+      {
+       "x": -1.0250000000000004,
+       "z": 1.1749999999999998
+      },
+      {
+       "x": -1.7250000000000005,
+       "z": 1.1749999999999998
+      },
+      {
+       "x": -2.075,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -2.4250000000000007,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -2.7750000000000004,
+       "z": 1.8749999999999991
+      },
+      {
+       "x": -3.125,
+       "z": 1.8749999999999991
+      },
+      {
+       "x": -3.4750000000000005,
+       "z": 2.2249999999999996
+      },
+      {
+       "x": -4.525,
+       "z": 2.2249999999999996
+      },
+      {
+       "x": -5.375225949667044,
+       "z": 2.912221943246651
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk-6.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -5.375225949667044,
+       "z": 2.912221943246651,
+       "yaw": 2.5123889803846895
+      },
+      "by": null
+     }
+    }
+   },
+   {
+    "frame": 294,
+    "week": 203,
+    "category": "people",
+    "person": "s677",
+    "other": "s706",
+    "walking": true,
+    "depth": 0.052065704098762794,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 7.339167569932073,
+     "path": [
+      {
+       "x": -5.225,
+       "z": 1.5249999999999995
+      },
+      {
+       "x": -5.6831652267402095,
+       "z": 1.961620110319817
+      }
+     ],
+     "goal": {
+      "x": 6,
+      "z": -4.18,
+      "yaw": 0,
+      "key": "desk-6.00,-4.18,0.00-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": -5.6831652267402095,
+       "z": 1.961620110319817,
+       "yaw": 1.2557519189487722
+      },
+      "by": null
+     }
+    }
+   }
+  ],
+  "walkingSamples": 207,
+  "errors": []
+ },
+ {
+  "seed": 1,
+  "week": 398,
+  "seconds": 30,
+  "weekEnd": 399,
+  "buckets": {
+   "chairs": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [],
+  "walkingSamples": 640,
+  "errors": []
+ }
+]

@@ -1,0 +1,599 @@
+Head: 8b8a3aae5428ff706e846effaa0db7ed0643c351
+Base: 51ec494f
+Full sweep exits 1 for the disclosed screen and held-prop findings. All requested fast gates exit 0. Counterfactual controls intentionally fail.
+
+tests-final
+
+> human-in-the-loop@1.0.0 test:fast
+> vitest run --exclude tests/sim/balance.test.js
+
+
+ RUN  v5.0.1 checkout
+
+
+ Test Files  101 passed (101)
+      Tests  847 passed (847)
+   Start at  05:01:03
+   Duration  29.29s (tests 79%, transform 13%, import 8%)
+
+
+nav-control
+
+ RUN  v5.0.1 checkout
+
+ ❯ tests/render-nav.test.js (5 tests | 5 failed) 9ms
+   ❯ walking clearance (5)
+     × keeps a body clear of a counter on the last segment to an off-centre goal 3ms
+     × keeps the same clearance when leaving the off-centre point 0ms
+     × does not return a straight walk through an impassable wall 4ms
+     × moves an unsafe exact goal even when its cell centre is clear 1ms
+     × checks a larger body without adding its radius to the default body twice 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/render-nav.test.js > walking clearance > keeps a body clear of a counter on the last segment to an off-centre goal
+AssertionError: expected 0.18149296087786096 to be greater than or equal to 0.23
+ ❯ tests/render-nav.test.js:26:40
+     24|     expect(path[0]).toEqual(start);
+     25|     expect(path.at(-1)).toEqual(goal);
+     26|     expect(minClearance(path, corner)).toBeGreaterThanOrEqual(0.23);
+       |                                        ^
+     27|   });
+     28|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/render-nav.test.js > walking clearance > keeps the same clearance when leaving the off-centre point
+AssertionError: expected 0.1814929608778609 to be greater than or equal to 0.23
+ ❯ tests/render-nav.test.js:31:40
+     29|   it('keeps the same clearance when leaving the off-centre point', () …
+     30|     const path = createNav(room, [corner]).path({ x: 0.437, z: 2.809 }…
+     31|     expect(minClearance(path, corner)).toBeGreaterThanOrEqual(0.23);
+       |                                        ^
+     32|   });
+     33|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/render-nav.test.js > walking clearance > does not return a straight walk through an impassable wall
+AssertionError: expected [ { x: -2, z: +0 }, { x: 2, z: +0 } ] to deeply equal [ { x: -2, z: +0 } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "x": -2,
+      "z": 0,
+    },
++   {
++     "x": 2,
++     "z": 0,
++   },
+  ]
+
+ ❯ tests/render-nav.test.js:37:35
+     35|     const start = { x: -2, z: 0 }, goal = { x: 2, z: 0 };
+     36|     const nav = createNav(room, [{ x0: -0.2, x1: 0.2, z0: -3.5, z1: 3.…
+     37|     expect(nav.path(start, goal)).toEqual([start]);
+       |                                   ^
+     38|     expect(nav.path(start, goal, 0.5)).toBeNull();
+     39|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/render-nav.test.js > walking clearance > moves an unsafe exact goal even when its cell centre is clear
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/render-nav.test.js:44:43
+     42|     const nav = createNav(room, [corner]);
+     43|     const goal = { x: 0.52, z: 2 };
+     44|     expect(nav.isBlocked(goal.x, goal.z)).toBe(true);
+       |                                           ^
+     45|     const free = nav.freePoint(goal.x, goal.z);
+     46|     expect(nav.isBlocked(free.x, free.z)).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/render-nav.test.js > walking clearance > checks a larger body without adding its radius to the default body twice
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/render-nav.test.js:52:41
+     50|     const nav = createNav(room, [{ x0: -1, x1: 0.1, z0: -1, z1: 1 }]);
+     51|     expect(nav.isBlocked(0.4, 0, 0.28)).toBe(false);
+     52|     expect(nav.isBlocked(0.4, 0, 0.32)).toBe(true);
+       |                                         ^
+     53|   });
+     54| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed (5)
+   Start at  04:54:39
+   Duration  96ms (transform 50%, tests 27%, import 18%, worker 5%)
+
+
+standing-control
+with-render-lock: waited 0s for GPU render slot 6
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP FAIL walk:standingPerkObstacle {"browsing":true,"insidePct":32.63}
+clip: 0 of 1 passed (--only=walk:standingPerkObstacle)
+
+standing-regression
+with-render-lock: waited 0s for GPU render slot 1
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   walk:standingPerkObstacle {"browsing":true,"insidePct":0}
+clip: 1 of 1 passed (--only=walk:standingPerkObstacle)
+
+clip-final
+with-render-lock: waited 0s for GPU render slot 4
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.016,"handGapMax":0.022,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.203,"handGapMax":0.255,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:tired {"handGapMin":0.01,"handGapMax":0.026,"insidePct":0.26,"byPart":{"head":0,"torso":16,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.019,"handGapMax":0.028,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.203,"handGapMax":0.211,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.01,"handGapMax":0.026,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.02,"handGapMax":0.027,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.99}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0.009,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":5.73,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":5.82,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0.05,"headInsidePct":0.08,"floatGap":0.005,"walkInsidePct":0,"enterUpperInsidePct":1.07}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.35}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:repeatReturn {"trips":[{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716},{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716}]}
+CLIP ok   walk:awayPerk {"trips":[{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666699},{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666711}]}
+CLIP ok   walk:standingPerkObstacle {"browsing":true,"insidePct":0}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[3,4],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.75,"z":-1.13,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":137}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[7,5]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":3,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":900,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","end printer_jam"]},"samples":303,"insidePct":0,"worstWho":null,"chinGap":0.112,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":141,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:floor {"staff":10,"readyAt":0,"playedAt":10.7,"table":{"x":11,"y":5},"ballTravel":2.97,"offPitch":0,"rodTurn":1.07,"newToyAt":0.4}
+CLIP ok   pairs:garage {"staff":2,"readyAt":9,"playedAt":4.8,"table":{"x":6,"y":2},"ballTravel":3.31,"offPitch":0,"rodTurn":1.01,"newToyAt":5.73}
+clip: 63 of 63 passed
+
+rig-final
+with-render-lock: waited 0s for GPU render slot 2
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.009,"handGapMax":0.034,"insidePct":0.04,"byPart":{"head":2,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.006,"handGapMax":0.187,"insidePct":0.03,"byPart":{"head":0,"torso":2,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.202,"handGapMax":0.205,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:tired {"handGapMin":0.003,"handGapMax":0.226,"insidePct":0.23,"byPart":{"head":0,"torso":14,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.011,"handGapMax":0.045,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.01,"handGapMax":0.19,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.2,"handGapMax":0.235,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.008,"handGapMax":0.226,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.012,"handGapMax":0.045,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.012,"handGapMax":0.19,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.99}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0.012,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":5.73,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":5.82,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0.05,"headInsidePct":0.08,"floatGap":0.005,"walkInsidePct":0,"enterUpperInsidePct":1.07}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.35}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:repeatReturn {"trips":[{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716},{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716}]}
+CLIP ok   walk:awayPerk {"trips":[{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666699},{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666711}]}
+CLIP ok   walk:standingPerkObstacle {"browsing":true,"insidePct":0}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[3,4],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.75,"z":-1.13,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":120}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[7,4]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":2,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":905,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","end printer_jam"]},"samples":303,"insidePct":0,"worstWho":null,"chinGap":0.112,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":141,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:floor {"staff":10,"readyAt":14.5,"playedAt":10.7,"table":{"x":11,"y":5},"ballTravel":3.09,"offPitch":0,"rodTurn":0.95,"newToyAt":0.4}
+CLIP ok   pairs:garage {"staff":2,"readyAt":11.5,"playedAt":5.8,"table":{"x":6,"y":2},"ballTravel":3.17,"offPitch":0,"rodTurn":1.03,"newToyAt":5.53}
+clip: 63 of 63 passed
+
+stage-final
+with-render-lock: waited 0s for GPU render slot 1
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+STAGE      check                    view     beat              metric         value  want                                                                        
+STAGE ok   letter.read              default  read (2.2s)       gazeOnLetter   0.985  >= 0.8 of frames (line of sight meets the letter)                           
+STAGE ok   letter.read              default  read (2.2s)       letterNear     0.923  >= 0.8 of frames (letter <= 0.25 m from the eyes, within 30 deg of the face)
+STAGE ok   letter.read              default  read (2.2s)       faceVisible    1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.read              default  read (2.2s)       visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.read              default  read (2.2s)       noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   letter.slump             default  slump (2.0s)      faceVisible    1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.slump             default  slump (2.0s)      headDrop       0.04   >= 0.03 m below the reading head height                                     
+STAGE ok   letter.slump             default  slump (2.0s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.slump             default  slump (2.0s)      noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   letter.read              turned   read (2.2s)       gazeOnLetter   0.985  >= 0.8 of frames (line of sight meets the letter)                           
+STAGE ok   letter.read              turned   read (2.2s)       letterNear     0.923  >= 0.8 of frames (letter <= 0.25 m from the eyes, within 30 deg of the face)
+STAGE ok   letter.read              turned   read (2.2s)       faceVisible    0.969  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.read              turned   read (2.2s)       visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.read              turned   read (2.2s)       noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   letter.slump             turned   slump (2.0s)      faceVisible    1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.slump             turned   slump (2.0s)      headDrop       0.04   >= 0.03 m below the reading head height                                     
+STAGE ok   letter.slump             turned   slump (2.0s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.slump             turned   slump (2.0s)      noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   printer.carry            default  carry (16.3s)     inHands        1      >= 1 of frames (printer centre within 0.5 m of a hand)                      
+STAGE ok   printer.carry            default  carry (16.3s)     heldLow        1      >= 1 of frames (printer centre >= 0.3 m below the head centre)              
+STAGE ok   printer.carry            default  carry (16.3s)     visible        0.902  >= 0.75 of frames (body >= 70% unblocked)                                   
+STAGE ok   printer.carry            default  carry (16.3s)     noFade         0.795  >= 0.6 of frames (no faded column over them)                                
+STAGE ok   printer.watch            default  watch (10.5s)     visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   printer.watch            default  watch (10.5s)     noFade         1      >= 0.95 of frames (no faded column over them)                               
+STAGE ok   printer.smash            default  smash (5.3s)      batInHand      1      >= 1 of frames (bat centre within 0.6 m of a hand)                          
+STAGE ok   printer.smash            default  smash (5.3s)      facesPrinter   1      >= 0.8 of frames (face within 45 deg of the printer)                        
+STAGE ok   printer.smash            default  smash (5.3s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   printer.smash            default  smash (5.3s)      noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   printer.carry            turned   carry (16.3s)     inHands        1      >= 1 of frames (printer centre within 0.5 m of a hand)                      
+STAGE ok   printer.carry            turned   carry (16.3s)     heldLow        1      >= 1 of frames (printer centre >= 0.3 m below the head centre)              
+STAGE ok   printer.carry            turned   carry (16.3s)     visible        0.93   >= 0.75 of frames (body >= 70% unblocked)                                   
+STAGE ok   printer.carry            turned   carry (16.3s)     noFade         0.656  >= 0.6 of frames (no faded column over them)                                
+STAGE ok   printer.watch            turned   watch (10.5s)     visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   printer.watch            turned   watch (10.5s)     noFade         0.975  >= 0.95 of frames (no faded column over them)                               
+STAGE ok   printer.smash            turned   smash (5.3s)      batInHand      1      >= 1 of frames (bat centre within 0.6 m of a hand)                          
+STAGE ok   printer.smash            turned   smash (5.3s)      facesPrinter   1      >= 0.8 of frames (face within 45 deg of the printer)                        
+STAGE ok   printer.smash            turned   smash (5.3s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   printer.smash            turned   smash (5.3s)      noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   visitor.hide             default  hide (18.5s)      faceVisible    0.968  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   visitor.hide             default  hide (18.5s)      watching       0.937  >= 0.8 of frames (face within 60 deg of the visitor)                        
+STAGE ok   visitor.hide             default  hide (18.5s)      visible        0.973  >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   visitor.hide             default  hide (18.5s)      noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   visitor.test             default  test (13.4s)      atScreen       1      >= 0.8 of frames (face within 45 deg of the screen)                         
+STAGE ok   visitor.test             default  test (13.4s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   visitor.explain          default  explain (4.8s)    atScreen       0.931  >= 0.8 of frames (face within 45 deg of the screen in front of the visitor) 
+STAGE ok   visitor.explain          default  explain (4.8s)    visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   visitor.explain          default  explain (4.8s)    noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   visitor.hide             turned   hide (19.1s)      faceVisible    0.981  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   visitor.hide             turned   hide (19.1s)      watching       0.93   >= 0.8 of frames (face within 60 deg of the visitor)                        
+STAGE ok   visitor.hide             turned   hide (19.1s)      visible        0.953  >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   visitor.hide             turned   hide (19.1s)      noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   visitor.test             turned   test (13.4s)      atScreen       1      >= 0.8 of frames (face within 45 deg of the screen)                         
+STAGE ok   visitor.test             turned   test (13.4s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   visitor.explain          turned   explain (5.0s)    atScreen       0.94   >= 0.8 of frames (face within 45 deg of the screen in front of the visitor) 
+STAGE ok   visitor.explain          turned   explain (5.0s)    visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   visitor.explain          turned   explain (5.0s)    noFade         1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   consultants.consultant   default  interview (6.0s)  faceVisible    0.989  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   consultants.consultant   default  interview (6.0s)  atInterviewee  0.933  >= 0.8 of frames (face within 60 deg of the interviewee)                    
+STAGE ok   consultants.consultant   default  interview (6.0s)  visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   consultants.clipboard    default  interview (6.0s)  faceVisible    1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   consultants.clipboard    default  interview (6.0s)  visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   consultants.interviewee  default  interview (6.1s)  faceVisible    0.835  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   consultants.interviewee  default  interview (6.1s)  atConsultant   0.852  >= 0.75 of frames (face within 60 deg of the consultant)                    
+STAGE ok   consultants.interviewee  default  interview (6.1s)  visible        0.934  >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   consultants.consultant   turned   interview (7.5s)  faceVisible    0.991  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   consultants.consultant   turned   interview (7.5s)  atInterviewee  1      >= 0.8 of frames (face within 60 deg of the interviewee)                    
+STAGE ok   consultants.consultant   turned   interview (7.5s)  visible        0.96   >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   consultants.clipboard    turned   interview (7.5s)  faceVisible    1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   consultants.clipboard    turned   interview (7.5s)  visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   consultants.interviewee  turned   interview (7.6s)  faceVisible    0.802  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   consultants.interviewee  turned   interview (7.6s)  atConsultant   0.885  >= 0.75 of frames (face within 60 deg of the consultant)                    
+STAGE ok   consultants.interviewee  turned   interview (7.6s)  visible        0.947  >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   pizza.eat                default  eat (6.4s)        facesPizza     0.974  >= 0.8 of frames (face within 60 deg of the boxes)                          
+STAGE ok   pizza.eat                default  eat (6.4s)        faceVisible    0.969  >= 0.6 of frames (face within 80 deg of the camera)                         
+STAGE ok   pizza.eat                default  eat (6.4s)        visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   pizza.eat                turned   eat (18.6s)       facesPizza     0.977  >= 0.8 of frames (face within 60 deg of the boxes)                          
+STAGE ok   pizza.eat                turned   eat (18.6s)       faceVisible    0.978  >= 0.6 of frames (face within 80 deg of the camera)                         
+STAGE ok   pizza.eat                turned   eat (18.6s)       visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   screen.recoil            default  recoil (4.3s)     visible        1      >= 0.8 of frames (body >= 50% unblocked (seated behind a desk))             
+STAGE ok   screen.recoil            turned   recoil (4.3s)     visible        1      >= 0.8 of frames (body >= 50% unblocked (seated behind a desk))             
+STAGE ok   carrier.peer             default  peer (3.9s)       atCarrier      0.957  >= 0.8 of frames (face within 45 deg of the carrier)                        
+STAGE ok   carrier.peer             default  peer (3.9s)       faceVisible    0.974  >= 0.6 of frames (face within 80 deg of the camera)                         
+STAGE ok   carrier.peer             default  peer (3.9s)       visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   carrier.peer             turned   peer (3.9s)       atCarrier      0.94   >= 0.8 of frames (face within 45 deg of the carrier)                        
+STAGE ok   carrier.peer             turned   peer (3.9s)       faceVisible    0.966  >= 0.6 of frames (face within 80 deg of the camera)                         
+STAGE ok   carrier.peer             turned   peer (3.9s)       visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   hammer.hold              default  hold (15.8s)      inHand         1      >= 1 of frames (hammer centre within 0.6 m of a hand)                       
+STAGE ok   hammer.hold              default  hold (15.8s)      notOverHead    1      >= 1 of frames (hammer centre not above the top of the head)                
+STAGE ok   hammer.hold              default  hold (15.8s)      visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   hammer.hold              turned   hold (4.7s)       inHand         1      >= 1 of frames (hammer centre within 0.6 m of a hand)                       
+STAGE ok   hammer.hold              turned   hold (4.7s)       notOverHead    1      >= 1 of frames (hammer centre not above the top of the head)                
+STAGE ok   hammer.hold              turned   hold (4.7s)       visible        1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE skip fumes.fan: the fumes moment is not in this build
+stage: 92 of 92 passed, 1 skipped
+
+fast-final
+with-render-lock: waited 0s for GPU render slot 1
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+sweep: mock:garage 0 violation(s) (1 s)
+sweep: mock:floor played 43 moments: resignation_letter, hackathon, team_offsite, no_show, junior_overwhelmed, pivot_pitch, open_plan_office, hackathon_week, founder_burnout, enterprise_rfp, bridge_loan, agent_runaway_spend, ransomware, phishing_ceo, first_user_test, lockdown_start, pet_request, cat_request, pet_mishap, agent_invoice, floor_next_door, mission_test_support, hearing_summons, cloud_bill, onprem_bank, ping_pong, investor_demo_day, moonshot_pitch, conference_expo, coffee_machine_broke, coffee_wanted, coffee_wanted_corner, banner_company, cover_sheets, the_stapler, efficiency_consultants, printer_jam, incubator_house, the_box, oat_milk, pizza_boxes, smoke_puff, rack_hot
+sweep: mock:floor 1 violation(s) (35 s)
+sweep: mock:hq 0 violation(s) (73 s)
+sweep: mock:night 0 violation(s) (74 s)
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+sweep: seed:1 played to week 806 (retired); windows: w0 stage 0, w5 decision first_user_test, w25 decision team_offsite, w33 decision onprem_bank, w104 every, w119 stage 1, w198 era chatgbt, w208 every, w261 stage 2, w312 every, w328 era agents, w416 every, w520 every, w535 era consolidation, w624 every, w728 every, w791 era plateau
+sweep: seed:1 12 violation(s) in 26 s (102 s)
+SWEEP base person s693 (walking) in s695 (walking) 0.15 m at seed:1:w198 t=1.4s [2.77,0.87,-0.35] x496 in 13 state(s) (#381)
+sweep: baseline entry not seen this run: person|bookshelf/pal_cardboard|person(walking)/head
+sweep: baseline entry not seen this run: person|coffee_corner/pal_glass_frame|person(still)/head
+sweep: baseline entry not seen this run: person|coffee_corner/pal_metal_soft|person(walking)/torso
+sweep: baseline entry not seen this run: person|coffee_corner/pal_plastic_charcoal|person(still)/head
+sweep: baseline entry not seen this run: person|coffee_corner/pal_plastic_white|person(still)/head
+sweep: baseline entry not seen this run: person|coffee_corner/pal_plastic_white|person(still)/torso
+sweep: baseline entry not seen this run: person|coffee_corner/pal_plastic_white|person(walking)/head
+sweep: baseline entry not seen this run: person|coffee_corner/pal_role_marketer|person(still)/head
+sweep: baseline entry not seen this run: person|coffee_corner/pal_wood_dark|person(still)/torso
+sweep: baseline entry not seen this run: person|coffee_corner/pal_wood_light|person(still)/head
+sweep: baseline entry not seen this run: person|desk/pal_fabric_slate|person(moment pizza)/head
+sweep: baseline entry not seen this run: person|desk/pal_fabric_slate|person(still)/head
+sweep: baseline entry not seen this run: person|desk/pal_fabric_slate|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_fabric_slate|person(walking)/head
+sweep: baseline entry not seen this run: person|desk/pal_fabric_slate|person(walking)/torso
+sweep: baseline entry not seen this run: person|desk/pal_leaf_dark|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_leaf|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_metal_dark|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_metal_soft|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_paper_sheet|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_plastic_charcoal|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_plastic_charcoal|person(walking)/torso
+sweep: baseline entry not seen this run: person|desk/pal_pot_cream|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_soil|person(still)/torso
+sweep: baseline entry not seen this run: person|desk/pal_wood_honey|person(still)/torso
+sweep: baseline entry not seen this run: person|espresso/pal_fabric_terracotta|person(walking)/torso
+sweep: baseline entry not seen this run: person|espresso/pal_metal_soft|person(walking)/legR
+sweep: baseline entry not seen this run: person|monitoring_wall/pal_wood_honey|person(walking)/torso
+sweep: baseline entry not seen this run: person|person(still)/head|plant/pal_leaf
+sweep: baseline entry not seen this run: person|person(still)/head|plant/pal_leaf_dark
+sweep: baseline entry not seen this run: person|person(still)/head|plant/pal_leaf_light
+sweep: baseline entry not seen this run: person|person(still)/torso|plant/pal_leaf_dark
+sweep: baseline entry not seen this run: person|person(still)/torso|whiteboard/pal_fabric_sage
+sweep: baseline entry not seen this run: person|person(still)/torso|whiteboard/pal_metal_soft
+sweep: baseline entry not seen this run: person|person(still)/torso|whiteboard/pal_role_designer
+sweep: baseline entry not seen this run: person|person(walking)/head|plant/pal_leaf
+sweep: baseline entry not seen this run: person|person(walking)/head|plant/pal_leaf_dark
+sweep: baseline entry not seen this run: person|person(walking)/head|plant/pal_leaf_light
+sweep: baseline entry not seen this run: self|held/held|own head
+sweep: baseline entry not seen this run: self|held/held|own torso
+sweep: 1 distinct violation(s), 0 new, 0 new in seeds only (advisory), 40 not seen; 102 s (fast)
+
+loop-gate-final
+with-render-lock: waited 0s for GPU render slot 5
+loop: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+events: no index for this sim code (6d7247e911843e8e); building it
+events: 10/60 runs (6 s)
+events: 20/60 runs (10 s)
+events: 30/60 runs (13 s)
+events: 40/60 runs (18 s)
+events: 50/60 runs (23 s)
+events: 60/60 runs (27 s)
+events: 29035 rows, 4702 snapshots (167.5 MB) from 60 runs in 27 s -> checkout
+LOOP ok   first_user_test (seed 1 allHumans week 5): decision first_user_test raised after 8 s, open 76 frames (76 with the game frozen); s1 visitor moved 1.6 m, s2 visitor moved 3.37 m
+LOOP ok   open_plan_office (seed 3 allHumans week 136): decision open_plan_office raised after 8 s, open 68 frames (68 with the game frozen); s2 hammer moved 2 m
+LOOP ok   hearing_summons (seed 1 allHumans week 485): decision hearing_summons raised after 8 s, open 193 frames (193 with the game frozen); s1 letter moved 0.47 m
+LOOP ok   hearing_summons (seed 8 allHumans week 418): decision hearing_summons raised after 8 s, open 139 frames (139 with the game frozen); s1 letter moved 1.18 m
+LOOP ok   spotlight hold: no week passed in 717 frames of a spotlight (3.0 weeks' worth); the office kept rendering, unfrozen (0 frozen frames); clock.spotlight reported it on every frame (717 of 717); the weeks resumed after it ended (2 in the same span); a spotlight under the incubator_house card for 62 s still held the clock after the card resolved (0 weeks, spotlight on 717 of 717 frames); a spotlight expecting 90 s held for 100 s with no week passing (0), then was let go at its own cap (over 122.5s; letting go; 3 weeks after); a spotlight expecting 90000 s was clamped to 180 s (warning logged), held 170 s (0 weeks) and let go at 180 s (logged; 5 weeks after); one held past the cap was let go (3 weeks after, warning logged)
+LOOP ok   real spotlight (printer_jam, seed 2 week 135): the printer spotlight started 0.0 s after the choice; it ended by itself after 23.7 s; no week passed while it played (week 135 to 135); the weeks resumed after it (week 143 by the end of the watch); the hold was never cut short
+loop: 6 of 6 checks passed through the game loop
+
+standup-final
+with-render-lock: waited 0s for GPU render slot 1
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+STANDUP ok   garage:none {"pass":true,"people":2,"outside":0,"insideFurniture":0,"minGap":1.2}
+STANDUP ok   garage:meeting {"pass":true,"people":2,"outside":0,"insideFurniture":0,"minGap":1.2}
+STANDUP ok   garage:meeting+whiteboard {"pass":true,"people":2,"outside":0,"insideFurniture":0,"minGap":1.2}
+STANDUP ok   floor:none {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+STANDUP ok   floor:meeting {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+STANDUP ok   floor:meeting+whiteboard {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+STANDUP ok   hq:none {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+STANDUP ok   hq:meeting {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+STANDUP ok   hq:meeting+whiteboard {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+STANDUP ok   seed26-w110:none {"pass":true,"people":8,"outside":0,"insideFurniture":0,"minGap":1.04}
+standup: 10 of 10 passed
+
+golden-final
+with-render-lock: waited 0s for the software render lock
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+harness: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+GOLDEN char-lineup: ok 0.122% of pixels
+GOLDEN prop-lineup: ok 0.044% of pixels
+GOLDEN item-lineup: ok 0.000% of pixels
+GOLDEN desk-typing: ok 0.000% of pixels
+GOLDEN desk-moods: ok 0.277% of pixels
+GOLDEN couch-nap: ok 0.290% of pixels
+GOLDEN nap-pod: ok 0.000% of pixels
+GOLDEN combo-curly-headphones: ok 0.000% of pixels
+GOLDEN combo-longhair-hood: ok 0.000% of pixels
+GOLDEN combo-support-hat: ok 0.000% of pixels
+GOLDEN combo-security: ok 0.000% of pixels
+GOLDEN combo-headphones-side: ok 0.000% of pixels
+GOLDEN hq-exp2: ok 0.266% of pixels
+GOLDEN hq-exp3: ok 0.248% of pixels
+GOLDEN char-lineup-procedural: ok 0.122% of pixels
+GOLDEN desk-typing-procedural: ok 0.000% of pixels
+GOLDEN desk-moods-procedural: ok 0.277% of pixels
+GOLDEN couch-nap-procedural: ok 0.060% of pixels
+golden: char-lineup is byte-identical drawn frame by frame and final frame only
+golden: rendered 18 of 18 scenes; 0 unchanged, skipped
+
+perf-final
+perf: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+perf  gl=gpu size=1280x720 runs=3 warmup=2s seconds=2 cpus=all/32 load=15.0
+build 51ec494f     js 1890KB (gz 617KB)  css 94KB (gz 18KB)
+build 8b8a3aae     js 1891KB (gz 617KB)  css 94KB (gz 18KB)
+with-render-lock: waited 0s for GPU render slot 7
+51ec494f     garage/low  p50    1.2  p95    2.2  cpu   1.1  render    1.0  best    0.9  calls  128  tris   56k  meshes   91  geo  120  tex  15  prog  10  heap  11.4MB  dom   623  mut/s    0.0  load 18
+8b8a3aae     garage/low  p50    1.0  p95    1.8  cpu   0.9  render    0.8  best    0.8  calls  128  tris   56k  meshes   91  geo  120  tex  15  prog  10  heap  11.4MB  dom   623  mut/s    0.0  load 18
+with-render-lock: waited 0s for GPU render slot 7
+51ec494f     garage/high p50    1.7  p95    2.5  cpu   1.6  render    1.5  best    1.4  calls  290  tris  124k  meshes   96  geo  124  tex  36  prog  26  heap  12.6MB  dom   635  mut/s    0.0  load 17.2
+8b8a3aae     garage/high p50    1.6  p95    2.6  cpu   1.6  render    1.5  best    1.4  calls  290  tris  124k  meshes   96  geo  124  tex  36  prog  26  heap  12.6MB  dom   719  mut/s    0.0  load 17.2
+with-render-lock: waited 0s for GPU render slot 5
+51ec494f     floor/low   p50    1.5  p95    3.0  cpu   1.4  render    1.3  best    1.0  calls  242  tris  178k  meshes  202  geo  311  tex  32  prog  16  heap  13.8MB  dom   929  mut/s    0.0  load 26.6
+8b8a3aae     floor/low   p50    1.6  p95    4.6  cpu   1.5  render    1.4  best    1.0  calls  242  tris  178k  meshes  202  geo  311  tex  32  prog  16  heap  13.7MB  dom   929  mut/s    0.0  load 26.6
+with-render-lock: waited 0s for GPU render slot 2
+51ec494f     floor/high  p50    2.6  p95    3.9  cpu   2.5  render    2.4  best    2.4  calls  520  tris  386k  meshes  208  geo  311  tex  53  prog  32  heap  15.1MB  dom   930  mut/s    0.0  load 24.6
+8b8a3aae     floor/high  p50    2.3  p95    3.3  cpu   2.2  render    2.2  best    2.2  calls  520  tris  386k  meshes  208  geo  311  tex  53  prog  32  heap  15.1MB  dom   715  mut/s    0.0  load 24.6
+with-render-lock: waited 0s for GPU render slot 2
+51ec494f     hq/low      p50    1.7  p95    2.4  cpu   1.6  render    1.6  best    1.5  calls  442  tris  470k  meshes  403  geo  680  tex  48  prog  15  heap  16.7MB  dom   749  mut/s    0.0  load 22.7
+8b8a3aae     hq/low      p50    1.9  p95    2.5  cpu   1.8  render    1.7  best    1.4  calls  442  tris  470k  meshes  403  geo  680  tex  48  prog  15  heap  16.7MB  dom   749  mut/s    0.0  load 22.7
+with-render-lock: waited 0s for GPU render slot 2
+51ec494f     hq/high     p50    3.3  p95    4.1  cpu   3.2  render    3.1  best    2.9  calls 1020  tris 1047k  meshes  409  geo  685  tex  69  prog  30  heap  19.0MB  dom   750  mut/s    0.0  load 21.1
+8b8a3aae     hq/high     p50    3.5  p95    4.8  cpu   3.4  render    3.3  best    3.0  calls 1020  tris 1047k  meshes  409  geo  685  tex  69  prog  30  heap  19.0MB  dom   750  mut/s    0.0  load 21.1
+with-render-lock: waited 0s for GPU render slot 2
+51ec494f     music/low   p50    1.4  p95    2.0  cpu   1.3  render    1.3  best    1.2  calls  266  tris  187k  meshes  218  geo  321  tex  34  prog  17  heap  14.4MB  dom   716  mut/s    0.0  load 20.2
+8b8a3aae     music/low   p50    1.5  p95    2.3  cpu   1.4  render    1.3  best    1.1  calls  267  tris  186k  meshes  220  geo  321  tex  35  prog  17  heap  14.4MB  dom   717  mut/s    0.0  load 20.2
+with-render-lock: waited 0s for GPU render slot 2
+51ec494f     music/high  p50    2.2  p95    3.8  cpu   2.1  render    2.0  best    2.0  calls  569  tris  405k  meshes  224  geo  321  tex  56  prog  33  heap  15.4MB  dom   718  mut/s    0.0  load 18.7
+8b8a3aae     music/high  p50    2.3  p95    3.2  cpu   2.1  render    2.1  best    1.9  calls  569  tris  403k  meshes  226  geo  321  tex  56  prog  33  heap  15.4MB  dom   718  mut/s    0.0  load 18.7
+
+budget-final
+garage/low   calls 128/160  triangles 56156/70000  programs 10/14  textures 15/19
+garage/high  calls 290/350  triangles 124153/150000  programs 26/32  textures 36/44
+floor/low    calls 242/290  triangles 178062/215000  programs 16/20  textures 32/39
+floor/high   calls 520/620  triangles 386435/465000  programs 32/39  textures 53/64
+hq/low       calls 442/530  triangles 470084/565000  programs 15/19  textures 48/58
+hq/high      calls 1020/1210  triangles 1047461/1260000  programs 30/36  textures 69/83
+music/low    calls 267/320  triangles 185718/225000  programs 17/20  textures 35/39
+music/high   calls 569/680  triangles 402883/485000  programs 33/39  textures 56/64
+ok   garage/low render 8b8a3aae 0.8ms vs 51ec494f 1.0ms (x0.80)
+ok   floor/low render 8b8a3aae 1.4ms vs 51ec494f 1.3ms (x1.08)
+budget: 34/34 within budget
+
+full-final
+with-render-lock: waited 0s for GPU render slot 3
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+sweep: seed:1 played to week 806 (retired); windows: w0 stage 0, w5 decision first_user_test, w13 every, w25 decision team_offsite, w26 every, w33 decision onprem_bank, w39 every, w43 decision conference_expo, w48 decision junior_overwhelmed, w52 every, w58 decision incubator_house, w63 decision lockdown_start, w65 every, w78 every, w91 every, w92 decision conference_expo, w104 every, w113 decision the_stapler, w117 every, w119 stage 1, w130 every, w134 decision open_plan_office, w140 decision cloud_bill, w143 every, w145 decision conference_expo, w156 every, w159 decision hackathon, w169 every, w182 every, w195 every, w197 decision conference_expo, w198 era chatgbt, w208 decision hackathon_week, w221 every, w234 every, w247 every, w250 decision conference_expo, w260 every, w261 stage 2, w273 every, w286 every, w291 decision cover_sheets, w295 decision enterprise_rfp, w298 decision pet_mishap, w299 every, w301 decision conference_expo, w312 every, w315 decision phishing_ceo, w325 every, w328 era agents, w338 every, w350 decision oat_milk, w351 every, w353 decision conference_expo, w360 decision pet_mishap, w364 every, w377 every, w390 every, w400 decision mission_test_support, w403 every, w407 decision conference_expo, w416 every, w429 every, w434 decision the_box, w442 decision hearing_summons, w446 decision pet_mishap, w454 decision cat_request, w455 every, w461 decision conference_expo, w468 every, w481 every, w494 decision junior_overwhelmed, w507 every, w511 decision conference_expo, w520 every, w525 decision hackathon_week, w533 every, w535 era consolidation, w546 every, w559 every, w560 decision conference_expo, w563 decision printer_jam, w572 every, w576 decision enterprise_rfp, w583 decision hackathon_week, w585 every, w589 decision banner_company, w592 decision team_offsite, w598 every, w611 every, w624 every, w637 every, w650 every, w663 every, w676 every, w689 every, w702 every, w715 every, w728 every, w741 every, w754 every, w767 every, w780 every, w791 era plateau, w793 every, w806 every
+sweep: seed:1 107 violation(s) in 238 s (240 s)
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+sweep: seed:3 played to week 797 (retired); windows: w0 stage 0, w6 decision first_user_test, w13 every, w26 every, w39 every, w40 decision conference_expo, w51 decision no_show, w52 every, w60 decision pivot_pitch, w63 decision lockdown_start, w65 every, w77 decision hackathon, w78 every, w82 decision cloud_bill, w91 every, w92 decision conference_expo, w104 every, w105 stage 1, w109 decision onprem_bank, w115 decision printer_jam, w117 every, w121 decision cover_sheets, w128 decision team_offsite, w130 every, w136 decision open_plan_office, w142 decision cat_request, w143 every, w145 decision conference_expo, w156 every, w169 every, w176 decision onprem_bank, w182 every, w185 decision pivot_pitch, w190 decision cloud_bill, w195 every, w197 decision conference_expo, w204 era chatgbt, w208 every, w221 every, w234 every, w247 every, w249 decision conference_expo, w260 every, w261 stage 2, w273 every, w286 every, w299 every, w300 decision conference_expo, w306 decision the_stapler, w312 every, w323 era agents, w325 every, w338 every, w351 every, w355 decision conference_expo, w364 every, w377 every, w390 decision enterprise_rfp, w400 decision phishing_ceo, w403 every, w405 decision conference_expo, w409 decision team_offsite, w416 every, w420 decision hearing_summons, w429 every, w442 every, w448 decision mission_test_support, w455 every, w456 decision conference_expo, w468 every, w481 every, w494 every, w507 every, w508 decision conference_expo, w513 decision ransomware, w520 every, w530 era consolidation, w533 every, w546 every, w559 every, w560 decision conference_expo, w572 every, w585 every, w595 decision pet_mishap, w598 decision banner_company, w606 decision coffee_machine_broke, w611 every, w612 decision conference_expo, w622 decision mission_test_support, w624 every, w630 decision moonshot_pitch, w634 decision hackathon_week, w637 every, w650 every, w663 every, w676 every, w689 every, w702 every, w715 every, w728 every, w741 every, w754 every, w767 every, w772 era plateau, w780 every, w793 every
+sweep: seed:3 113 violation(s) in 211 s (452 s)
+SWEEP base person s632 (walking) in s4548 (walking) 0.164 m at seed:3:w650 t=3.6s [-11.79,0.85,0.93] x5201 in 188 state(s) (#381)
+SWEEP base person s694 (walking) head in coffee_corner#f3928[pal_plastic_white] 0.023 m at seed:1:w589 t=16.6s [-4.77,0.85,0.81] x1 in 1 state(s) (#381)
+SWEEP NEW  screen bubble "Chasing a big account. They want SSO, a " over s2867's face (likely its speaker) 1 of the smaller at seed:1:w585 t=0.9s null x117 in 3 state(s) crop checkout
+SWEEP base self s631 (walking) holds held[mesh] 0.032 m into their own head 0.032 m at seed:3:w117 t=0.4s [-0.62,1,-3.87] x10 in 2 state(s) (#433)
+SWEEP NEW  self s736 (sip) holds mug[pal_mug] 0.026 m into their own torso 0.026 m at seed:1:w143 t=7.8s [-0.25,0.39,-4.92] x24 in 22 state(s) crop checkout
+SWEEP base self s631 (moment printer) holds held[mesh] 0.025 m into their own torso 0.025 m at seed:3:w117 t=0.8s [-0.71,0.59,-3.87] x61 in 3 state(s) (#433)
+SWEEP NEW  self s632 (moment printer) holds pal_pot_cream[pal_metal_soft] 0.016 m into their own torso 0.016 m at seed:3:w117 t=1.2s [-0.89,0.45,-3.61] x1 in 1 state(s) crop checkout
+sweep: 7 distinct violation(s), 3 new, 0 new in seeds only (advisory), 37 not seen; 452 s (full, strict)
+
+loop-final
+with-render-lock: waited 0s for GPU render slot 6
+walkers: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+walkers seed 1 weeks 104-108: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":43,"walking":43,"max":0.13114712008828516},"other":{"count":0,"walking":0,"max":0}}; 229 walking samples; 0 errors
+walkers seed 1 weeks 328-332: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":18,"walking":18,"max":0.09414376865264697},"other":{"count":0,"walking":0,"max":0}}; 708 walking samples; 0 errors
+walkers seed 1 weeks 535-539: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":5,"walking":5,"max":0.07062188164475187},"other":{"count":0,"walking":0,"max":0}}; 413 walking samples; 0 errors
+walkers seed 3 weeks 204-208: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":20,"walking":20,"max":0.07573626847142208},"other":{"count":0,"walking":0,"max":0}}; 347 walking samples; 0 errors
+walkers seed 1 weeks 533-535: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":85,"walking":85,"max":0.05769827378799363},"other":{"count":0,"walking":0,"max":0}}; 437 walking samples; 0 errors
+walkers seed 3 weeks 202-204: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":1,"walking":1,"max":0.06693857298991733},"other":{"count":0,"walking":0,"max":0}}; 203 walking samples; 0 errors
+walkers seed 1 weeks 398-399: {"chairs":{"count":0,"walking":0,"max":0},"plants":{"count":0,"walking":0,"max":0},"coffee":{"count":0,"walking":0,"max":0},"people":{"count":0,"walking":0,"max":0},"other":{"count":0,"walking":0,"max":0}}; 641 walking samples; 0 errors
+walkers: 172 pair samples above 0.02 m; PASS
+
+regressions-before
+with-render-lock: waited 0s for GPU render slot 2
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP FAIL walk:repeatReturn {"trips":[{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716},{"maxStep":3.2552156716102094,"walking":0,"distance":0.03938854777894817}]}
+CLIP FAIL walk:awayPerk {"trips":[{"started":true,"cancelled":false,"hidden":false,"returned":false,"maxStep":0.4693741630887125},{"started":true,"cancelled":false,"hidden":false,"returned":false,"maxStep":0.11619972809599681}]}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[3,7],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.75,"z":-1.13,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":99}
+clip: 3 of 5 passed (--only=walk:)
+
+regressions
+with-render-lock: waited 0s for GPU render slot 2
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   walk:repeatReturn {"trips":[{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716},{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716}]}
+CLIP ok   walk:awayPerk {"trips":[{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666699},{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666711}]}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[3,4],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.75,"z":-1.13,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":101}
+clip: 5 of 5 passed (--only=walk:)

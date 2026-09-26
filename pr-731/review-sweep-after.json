@@ -1,0 +1,2284 @@
+{
+ "windows": [
+  {
+   "state": "seed:1:w0",
+   "why": "stage 0",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 4,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w5",
+   "why": "decision first_user_test",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 8,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w13",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 9,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w25",
+   "why": "decision team_offsite",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 13,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w26",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 13,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w33",
+   "why": "decision onprem_bank",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 14,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w39",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w43",
+   "why": "decision conference_expo",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 17,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w48",
+   "why": "decision junior_overwhelmed",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 17,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w52",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w58",
+   "why": "decision incubator_house",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 17,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w63",
+   "why": "decision lockdown_start",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 18,
+   "staff": 6,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w65",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 17,
+   "staff": 6,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w78",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w91",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w92",
+   "why": "decision conference_expo",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 17,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w104",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w113",
+   "why": "decision the_stapler",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w117",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w119",
+   "why": "stage 1",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w130",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w134",
+   "why": "decision open_plan_office",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w140",
+   "why": "decision cloud_bill",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w143",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w145",
+   "why": "decision conference_expo",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w156",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w159",
+   "why": "decision hackathon",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w169",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w182",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w195",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w197",
+   "why": "decision conference_expo",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w198",
+   "why": "era chatgbt",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w208",
+   "why": "decision hackathon_week",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w221",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w234",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w247",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w250",
+   "why": "decision conference_expo",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w260",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w261",
+   "why": "stage 2",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 28,
+   "staff": 14,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w273",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 33,
+   "staff": 16,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w286",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 43,
+   "staff": 23,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w291",
+   "why": "decision cover_sheets",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 50,
+   "staff": 24,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w295",
+   "why": "decision enterprise_rfp",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 51,
+   "staff": 26,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w298",
+   "why": "decision pet_mishap",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w299",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w301",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w312",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w315",
+   "why": "decision phishing_ceo",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w325",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w328",
+   "why": "era agents",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w338",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w350",
+   "why": "decision oat_milk",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w351",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w353",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w360",
+   "why": "decision pet_mishap",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w364",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w377",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w390",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w400",
+   "why": "decision mission_test_support",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w403",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w407",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w416",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w429",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w434",
+   "why": "decision the_box",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w442",
+   "why": "decision hearing_summons",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w446",
+   "why": "decision pet_mishap",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w454",
+   "why": "decision cat_request",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 64,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w455",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w461",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 64,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w468",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w481",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w494",
+   "why": "decision junior_overwhelmed",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 65,
+   "staff": 32,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w507",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 64,
+   "staff": 32,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w511",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 65,
+   "staff": 32,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w520",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w525",
+   "why": "decision hackathon_week",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 64,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w533",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w535",
+   "why": "era consolidation",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w546",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w559",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 66,
+   "staff": 34,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w560",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 67,
+   "staff": 34,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w563",
+   "why": "decision printer_jam",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 68,
+   "staff": 34,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w572",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 65,
+   "staff": 34,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w576",
+   "why": "decision enterprise_rfp",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 70,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w583",
+   "why": "decision hackathon_week",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 72,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w585",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 72,
+   "staff": 37,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w589",
+   "why": "decision banner_company",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 72,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w592",
+   "why": "decision team_offsite",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w598",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w611",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 74,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w624",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w637",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 74,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w650",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w663",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 77,
+   "staff": 40,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w676",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 76,
+   "staff": 40,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w689",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 76,
+   "staff": 40,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w702",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 39,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w715",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 38,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w728",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w741",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w754",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w767",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 80,
+   "staff": 42,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w780",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 81,
+   "staff": 42,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w791",
+   "why": "era plateau",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 81,
+   "staff": 42,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w793",
+   "why": "every",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 81,
+   "staff": 42,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w806",
+   "why": "every",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 82,
+   "staff": 42,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w0",
+   "why": "stage 0",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 4,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w6",
+   "why": "decision first_user_test",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 8,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w13",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 8,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w26",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 12,
+   "staff": 5,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w39",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 12,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w40",
+   "why": "decision conference_expo",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 13,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w51",
+   "why": "decision no_show",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 13,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w52",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 12,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w60",
+   "why": "decision pivot_pitch",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w63",
+   "why": "decision lockdown_start",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w65",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w77",
+   "why": "decision hackathon",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w78",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w82",
+   "why": "decision cloud_bill",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w91",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w92",
+   "why": "decision conference_expo",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w104",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w105",
+   "why": "stage 1",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w109",
+   "why": "decision onprem_bank",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 17,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w115",
+   "why": "decision printer_jam",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 25,
+   "staff": 12,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w117",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 28,
+   "staff": 13,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w121",
+   "why": "decision cover_sheets",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w128",
+   "why": "decision team_offsite",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w130",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w136",
+   "why": "decision open_plan_office",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w142",
+   "why": "decision cat_request",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w143",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w145",
+   "why": "decision conference_expo",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w156",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w169",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w176",
+   "why": "decision onprem_bank",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 31,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w182",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w185",
+   "why": "decision pivot_pitch",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w190",
+   "why": "decision cloud_bill",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w195",
+   "why": "every",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w197",
+   "why": "decision conference_expo",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w204",
+   "why": "era chatgbt",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w208",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w221",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w234",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 29,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w247",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w249",
+   "why": "decision conference_expo",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 31,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w260",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w261",
+   "why": "stage 2",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 28,
+   "staff": 14,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w273",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 47,
+   "staff": 25,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w286",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w299",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w300",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w306",
+   "why": "decision the_stapler",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 54,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:3:w312",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w323",
+   "why": "era agents",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w325",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w338",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w351",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w355",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 56,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w364",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w377",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w390",
+   "why": "decision enterprise_rfp",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w400",
+   "why": "decision phishing_ceo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w403",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 54,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w405",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w409",
+   "why": "decision team_offsite",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 56,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w416",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w420",
+   "why": "decision hearing_summons",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 56,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w429",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w442",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 55,
+   "staff": 27,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w448",
+   "why": "decision mission_test_support",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 57,
+   "staff": 28,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w455",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 61,
+   "staff": 30,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w456",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 62,
+   "staff": 30,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w468",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 64,
+   "staff": 32,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w481",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 64,
+   "staff": 32,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w494",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 65,
+   "staff": 32,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w507",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 67,
+   "staff": 35,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w508",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 68,
+   "staff": 35,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w513",
+   "why": "decision ransomware",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 67,
+   "staff": 35,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w520",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 66,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w530",
+   "why": "era consolidation",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 66,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w533",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 66,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w546",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 66,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w559",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 66,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w560",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 67,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w572",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 66,
+   "staff": 35,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w585",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 72,
+   "staff": 37,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w595",
+   "why": "decision pet_mishap",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w598",
+   "why": "decision banner_company",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w606",
+   "why": "decision coffee_machine_broke",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w611",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w612",
+   "why": "decision conference_expo",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 74,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w622",
+   "why": "decision mission_test_support",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 74,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w624",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w630",
+   "why": "decision moonshot_pitch",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 74,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w634",
+   "why": "decision hackathon_week",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 37,
+   "props": 3
+  },
+  {
+   "state": "seed:3:w637",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 74,
+   "staff": 37,
+   "props": 3
+  },
+  {
+   "state": "seed:3:w650",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 37,
+   "props": 4
+  },
+  {
+   "state": "seed:3:w663",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 79,
+   "staff": 38,
+   "props": 4
+  },
+  {
+   "state": "seed:3:w676",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 78,
+   "staff": 37,
+   "props": 3
+  },
+  {
+   "state": "seed:3:w689",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 78,
+   "staff": 37,
+   "props": 3
+  },
+  {
+   "state": "seed:3:w702",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 79,
+   "staff": 37,
+   "props": 3
+  },
+  {
+   "state": "seed:3:w715",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 77,
+   "staff": 40,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w728",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 77,
+   "staff": 40,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w741",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 82,
+   "staff": 42,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w754",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 82,
+   "staff": 42,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w767",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 82,
+   "staff": 42,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w772",
+   "why": "era plateau",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 83,
+   "staff": 42,
+   "props": 2
+  },
+  {
+   "state": "seed:3:w780",
+   "why": "every",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 82,
+   "staff": 42,
+   "props": 1
+  },
+  {
+   "state": "seed:3:w793",
+   "why": "every",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 82,
+   "staff": 42,
+   "props": 1
+  }
+ ],
+ "violations": [
+  {
+   "check": "person",
+   "key": "person|person|person",
+   "state": "seed:3:w650",
+   "t": 3.6,
+   "a": "person",
+   "b": "person",
+   "value": 0.164,
+   "at": [
+    -11.79,
+    0.85,
+    0.93
+   ],
+   "seen": 42,
+   "detail": "s632 (walking) in s4548 (walking)",
+   "why": "every",
+   "states": [
+    "seed:1:w25",
+    "seed:1:w33",
+    "seed:1:w52",
+    "seed:1:w58",
+    "seed:1:w63",
+    "seed:1:w78",
+    "seed:1:w92",
+    "seed:1:w104",
+    "seed:1:w113",
+    "seed:1:w130",
+    "seed:1:w134",
+    "seed:1:w140",
+    "seed:1:w143",
+    "seed:1:w145",
+    "seed:1:w156",
+    "seed:1:w159",
+    "seed:1:w169",
+    "seed:1:w182",
+    "seed:1:w195",
+    "seed:1:w197",
+    "seed:1:w198",
+    "seed:1:w208",
+    "seed:1:w221",
+    "seed:1:w234",
+    "seed:1:w247",
+    "seed:1:w250",
+    "seed:1:w260",
+    "seed:1:w273",
+    "seed:1:w286",
+    "seed:1:w291",
+    "seed:1:w295",
+    "seed:1:w298",
+    "seed:1:w299",
+    "seed:1:w301",
+    "seed:1:w312",
+    "seed:1:w315",
+    "seed:1:w325",
+    "seed:1:w328",
+    "seed:1:w338",
+    "seed:1:w350",
+    "seed:1:w351",
+    "seed:1:w353",
+    "seed:1:w360",
+    "seed:1:w364",
+    "seed:1:w377",
+    "seed:1:w390",
+    "seed:1:w400",
+    "seed:1:w403",
+    "seed:1:w407",
+    "seed:1:w416",
+    "seed:1:w429",
+    "seed:1:w434",
+    "seed:1:w442",
+    "seed:1:w446",
+    "seed:1:w454",
+    "seed:1:w455",
+    "seed:1:w461",
+    "seed:1:w468",
+    "seed:1:w481",
+    "seed:1:w494",
+    "seed:1:w507",
+    "seed:1:w511",
+    "seed:1:w520",
+    "seed:1:w525",
+    "seed:1:w533",
+    "seed:1:w535",
+    "seed:1:w546",
+    "seed:1:w559",
+    "seed:1:w560",
+    "seed:1:w563",
+    "seed:1:w572",
+    "seed:1:w576",
+    "seed:1:w583",
+    "seed:1:w585",
+    "seed:1:w589",
+    "seed:1:w592",
+    "seed:1:w598",
+    "seed:1:w611",
+    "seed:1:w624",
+    "seed:1:w637",
+    "seed:1:w650",
+    "seed:1:w663",
+    "seed:1:w676",
+    "seed:1:w689",
+    "seed:1:w702",
+    "seed:1:w715",
+    "seed:1:w728",
+    "seed:1:w741",
+    "seed:1:w754",
+    "seed:1:w767",
+    "seed:1:w780",
+    "seed:1:w791",
+    "seed:1:w793",
+    "seed:1:w806",
+    "seed:3:w26",
+    "seed:3:w40",
+    "seed:3:w51",
+    "seed:3:w52",
+    "seed:3:w60",
+    "seed:3:w63",
+    "seed:3:w77",
+    "seed:3:w91",
+    "seed:3:w92",
+    "seed:3:w104",
+    "seed:3:w109",
+    "seed:3:w115",
+    "seed:3:w117",
+    "seed:3:w121",
+    "seed:3:w128",
+    "seed:3:w130",
+    "seed:3:w136",
+    "seed:3:w142",
+    "seed:3:w145",
+    "seed:3:w156",
+    "seed:3:w169",
+    "seed:3:w176",
+    "seed:3:w182",
+    "seed:3:w185",
+    "seed:3:w190",
+    "seed:3:w195",
+    "seed:3:w197",
+    "seed:3:w221",
+    "seed:3:w234",
+    "seed:3:w247",
+    "seed:3:w249",
+    "seed:3:w260",
+    "seed:3:w273",
+    "seed:3:w286",
+    "seed:3:w299",
+    "seed:3:w300",
+    "seed:3:w306",
+    "seed:3:w312",
+    "seed:3:w323",
+    "seed:3:w325",
+    "seed:3:w338",
+    "seed:3:w351",
+    "seed:3:w355",
+    "seed:3:w364",
+    "seed:3:w377",
+    "seed:3:w390",
+    "seed:3:w400",
+    "seed:3:w403",
+    "seed:3:w405",
+    "seed:3:w409",
+    "seed:3:w416",
+    "seed:3:w420",
+    "seed:3:w429",
+    "seed:3:w442",
+    "seed:3:w448",
+    "seed:3:w455",
+    "seed:3:w456",
+    "seed:3:w468",
+    "seed:3:w481",
+    "seed:3:w494",
+    "seed:3:w507",
+    "seed:3:w508",
+    "seed:3:w513",
+    "seed:3:w520",
+    "seed:3:w530",
+    "seed:3:w533",
+    "seed:3:w546",
+    "seed:3:w559",
+    "seed:3:w560",
+    "seed:3:w572",
+    "seed:3:w585",
+    "seed:3:w595",
+    "seed:3:w598",
+    "seed:3:w606",
+    "seed:3:w611",
+    "seed:3:w612",
+    "seed:3:w622",
+    "seed:3:w624",
+    "seed:3:w630",
+    "seed:3:w634",
+    "seed:3:w637",
+    "seed:3:w650",
+    "seed:3:w663",
+    "seed:3:w676",
+    "seed:3:w689",
+    "seed:3:w702",
+    "seed:3:w715",
+    "seed:3:w728",
+    "seed:3:w741",
+    "seed:3:w754",
+    "seed:3:w767",
+    "seed:3:w772",
+    "seed:3:w780",
+    "seed:3:w793"
+   ],
+   "count": 5201,
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "person",
+   "key": "person|coffee_corner/pal_plastic_white|person(walking)/head",
+   "state": "seed:1:w589",
+   "t": 16.6,
+   "a": "coffee_corner/pal_plastic_white",
+   "b": "person(walking)/head",
+   "value": 0.023,
+   "at": [
+    -4.77,
+    0.85,
+    0.81
+   ],
+   "seen": 1,
+   "detail": "s694 (walking) head in coffee_corner#f3928[pal_plastic_white]",
+   "why": "decision banner_company",
+   "states": [
+    "seed:1:w589"
+   ],
+   "count": 1,
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "screen",
+   "key": "screen|bubble|face",
+   "state": "seed:1:w585",
+   "t": 0.9,
+   "a": "bubble",
+   "b": "face",
+   "value": 1,
+   "at": null,
+   "seen": 48,
+   "detail": "bubble \"Chasing a big account. They want SSO, a \" over s2867's face (likely its speaker)",
+   "why": "every",
+   "states": [
+    "seed:1:w585",
+    "seed:3:w622",
+    "seed:3:w754"
+   ],
+   "count": 117,
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "self",
+   "key": "self|held/held|own head",
+   "state": "seed:3:w117",
+   "t": 0.4,
+   "a": "held/held",
+   "b": "own head",
+   "value": 0.032,
+   "at": [
+    -0.62,
+    1,
+    -3.87
+   ],
+   "seen": 7,
+   "detail": "s631 (walking) holds held[mesh] 0.032 m into their own head",
+   "why": "every",
+   "states": [
+    "seed:3:w117",
+    "seed:3:w121"
+   ],
+   "count": 10,
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "self",
+   "key": "self|held/mug|own torso",
+   "state": "seed:1:w143",
+   "t": 7.8,
+   "a": "held/mug",
+   "b": "own torso",
+   "value": 0.026,
+   "at": [
+    -0.25,
+    0.39,
+    -4.92
+   ],
+   "seen": 1,
+   "detail": "s736 (sip) holds mug[pal_mug] 0.026 m into their own torso",
+   "why": "every",
+   "states": [
+    "seed:1:w104",
+    "seed:1:w143",
+    "seed:1:w208",
+    "seed:1:w291",
+    "seed:1:w295",
+    "seed:1:w298",
+    "seed:1:w328",
+    "seed:1:w434",
+    "seed:1:w446",
+    "seed:1:w560",
+    "seed:1:w563",
+    "seed:3:w51",
+    "seed:3:w60",
+    "seed:3:w77",
+    "seed:3:w190",
+    "seed:3:w300",
+    "seed:3:w306",
+    "seed:3:w325",
+    "seed:3:w448",
+    "seed:3:w508",
+    "seed:3:w606",
+    "seed:3:w772"
+   ],
+   "count": 24,
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "self",
+   "key": "self|held/held|own torso",
+   "state": "seed:3:w117",
+   "t": 0.8,
+   "a": "held/held",
+   "b": "own torso",
+   "value": 0.025,
+   "at": [
+    -0.71,
+    0.59,
+    -3.87
+   ],
+   "seen": 49,
+   "detail": "s631 (moment printer) holds held[mesh] 0.025 m into their own torso",
+   "why": "every",
+   "states": [
+    "seed:3:w117",
+    "seed:3:w121",
+    "seed:3:w136"
+   ],
+   "count": 61,
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "self",
+   "key": "self|held/pal_pot_cream|own torso",
+   "state": "seed:3:w117",
+   "t": 1.2,
+   "a": "held/pal_pot_cream",
+   "b": "own torso",
+   "value": 0.016,
+   "at": [
+    -0.89,
+    0.45,
+    -3.61
+   ],
+   "seen": 1,
+   "detail": "s632 (moment printer) holds pal_pot_cream[pal_metal_soft] 0.016 m into their own torso",
+   "why": "every",
+   "states": [
+    "seed:3:w117"
+   ],
+   "count": 1,
+   "status": "baseline",
+   "owner": "art"
+  }
+ ]
+}
