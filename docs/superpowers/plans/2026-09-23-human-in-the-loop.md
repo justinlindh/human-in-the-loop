@@ -345,6 +345,7 @@ Blurbs in the spec's voice (Claudius "will politely decline to delete prod", Gro
 85 staff-upkeep    xp, levels, candidates, stamina, sabbaticals     S3
 90 endgame         win and lose                                     S12
 95 history         weekly snapshot                                  S12
+99 restage         a desk-staged decision whose reader left re-picks S11
 ```
 
 `createGame`: every Contract State field present. `cash = B.startCash`, `brand = B.startBrand`, `institutionalKnowledge = 60`, `comprehensionDebt = 0`, automation levels 0 on `chatgbt`, `ops` zeros, market categories from incumbents, unlocked lists from 2026 data, models from data (`available = releaseYear <= 2026`), trend `steady` with 13 weeks left, empty `incidentLog`. Two founders: a senior engineer and a mid designer with `knowledge 70`, `meaning 85`, `founder: true`, both assigned to `idle` until the first project. Then `refreshCandidates`.
