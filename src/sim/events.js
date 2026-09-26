@@ -78,6 +78,14 @@ function choiceBlocker(state, c, subjectId) {
   return grantBlocker(state, c);
 }
 
+// The last week something paused the game: a decision, a launch or an unlock card. Decisions keep
+// B.decisionGapWeeks away from it, so two pausing moments never land back to back.
+export function lastPauseWeek(state) {
+  const a = state.flags.lastDecisionWeek;
+  const b = state.flags.lastPauseWeek;
+  return a === undefined ? b : b === undefined ? a : Math.max(a, b);
+}
+
 // Emergencies always interrupt; everything else respects the gap between decisions.
 const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 
@@ -93,7 +101,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   }
   // Decisions that are not emergencies wait for a breather after the last one.
   const spaced = !IMMEDIATE_KINDS.has(ev.kind);
-  const last = state.flags.lastDecisionWeek;
+  const last = lastPauseWeek(state);
   if (spaced && last !== undefined && state.week - last < B.decisionGapWeeks) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: last + B.decisionGapWeeks, kind: 'event', payload: { eventId, subjectId } });
     return false;
@@ -183,7 +191,7 @@ export function eligibleEvents(state) {
   const h = helpers(state);
   // A new company gets a quiet start: no decisions until its first launch or a few weeks in.
   const grace = (state.stats.launches === 0 && state.week < B.eventGraceWeeks)
-    || (state.flags.lastDecisionWeek !== undefined && state.week - state.flags.lastDecisionWeek < B.decisionGapWeeks);
+    || (lastPauseWeek(state) !== undefined && state.week - lastPauseWeek(state) < B.decisionGapWeeks);
   return Object.values(EVENTS).filter((ev) => ev.random && !(grace && ev.choices)
     && (state.flags[`cd_${ev.id}`] ?? -1) <= state.week
     && eventFitsEra(state, ev)
@@ -213,9 +221,29 @@ export function fireEvent(ctx, ev, subjectId) {
   return true;
 }
 
+// Whether a launch or an unlock card (not a decision) is what keeps decisions waiting this week.
+function launchPause(state) {
+  const p = state.flags.lastPauseWeek;
+  const d = state.flags.lastDecisionWeek;
+  const recent = (w) => w !== undefined && state.week - w < B.decisionGapWeeks;
+  return recent(p) && !recent(d);
+}
+
 export function eventsSystem(ctx) {
   const { state } = ctx;
-  if (state.pendingDecision || !chance(ctx.rng, B.randomEventChance)) return;
+  if (state.pendingDecision) return;
+  const rolled = chance(ctx.rng, B.randomEventChance);
+  const held = state.flags.heldRolls ?? 0;
+  // A roll that lands while a launch or unlock is keeping decisions waiting is held (up to heldRollsMax) and
+  // spent once the gap clears, so the spacing never lowers how often events come up.
+  if (launchPause(state)) {
+    if (rolled) state.flags.heldRolls = Math.min(B.heldRollsMax, held + 1);
+    return;
+  }
+  if (!rolled) {
+    if (!held) return;
+    state.flags.heldRolls = held - 1;
+  }
   const pool = eligibleEvents(state);
   if (!pool.length) return;
   const ev = weighted(ctx.rng, pool, (e) => e.weight);

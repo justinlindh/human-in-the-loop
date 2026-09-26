@@ -22,9 +22,10 @@ function company(seed, n, week = 200) {
   while (s.staff.length < n) addStaff(s, 'engineer', 'mid', { hiredWeek: 0 });
   for (const p of s.staff) { p.hiredWeek = 0; p.mood = 'ok'; }
   s.era = { id: week >= 526 ? 'consolidation' : 'classic', since: week };
+  delete s.flags.lastPauseWeek;
   return s;
 }
-const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; return raiseDecision(makeCtx(s), id, subjectId); };
+const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; return raiseDecision(makeCtx(s), id, subjectId); };
 const choose = (s, label) => {
   const i = EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label);
   expect(i).toBeGreaterThanOrEqual(0);
