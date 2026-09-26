@@ -74,6 +74,8 @@ export const B = {
   // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
+  readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
+  yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {

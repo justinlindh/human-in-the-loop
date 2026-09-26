@@ -1,3 +1,4 @@
+import { importantChat as important } from '../yak-pacing.js';
 import { phoneLayout, touchUI } from './media.js';
 import { setTip } from './tooltip.js';
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
@@ -17,7 +18,6 @@ const SIZES = { small: { h: 12, w: null }, medium: { h: 20, w: 24 }, large: { h:
 const MIN_H = 6, MAX_H = 44;
 // Messages that still count as new at the Important level: incidents, wins, and bot posts
 // (launches, pages, awards, news), or anything the sim marks important.
-const important = (m) => m.important === true || m.channel === 'incidents' || m.channel === 'wins' || (!m.fromId && String(m.from).startsWith('@'));
 const LEVEL_ICON = { all: 'sound.on', important: 'star', off: 'sound.off' };
 const BOT_ICON = {
   '@pagerbot': 'bot.pager', '@vendorbot': 'bot.vendor', '@launchbot': 'bot.launch', '@shipbot': 'bot.launch', '@hr-bot': 'bot.hr',
