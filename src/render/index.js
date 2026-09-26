@@ -130,7 +130,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.fitShadow(b);
     lighting.setInteriorLights([{ x: -2, y: 2.4, z: -2 }, { x: 2, y: 2.4, z: 2 }]);
   } else {
-    office = createOffice({ parent: scene, screens, lighting });
+    office = createOffice({ parent: scene, screens, lighting, low: () => q === 'low' });
     props = createProps(office, screens);
     surroundings = createSurroundings({ parent: scene, low: () => q === 'low', lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
@@ -261,6 +261,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       q = nq;
       applyQuality();
       post.setQuality(q);
+      office?.setQuality();
       resize();
     },
     setTiltShift(on) { tiltWanted = !!on; if (!fly.active) post.setTiltShift(tiltWanted); },
