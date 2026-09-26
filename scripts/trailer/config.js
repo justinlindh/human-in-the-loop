@@ -86,9 +86,9 @@ export const BEATS = [
   { id: 'garage', item: 'growth-garage', capture: { seconds: 8, camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 2.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
-  { id: 'build', item: 'trail-build', capture: { seconds: 7 }, from: 0.5, dur: 4.0 },
+  { id: 'build', item: 'trail-build', capture: { seconds: 7 }, from: 0.9, dur: 4.0 },
   // The hire panel: a candidate hired.
-  { id: 'hire', item: 'trail-hire', from: 0.6, dur: 2.2 },
+  { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
   { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
   { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
@@ -96,19 +96,19 @@ export const BEATS = [
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
   { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'me in standup')], from: 31.6, dur: 3.1 },
   { id: 'yak-react', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(13), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
-  // PC LOAD LETTER from the flying camera: the carry ending, then the hits, to the rap's last word. No narration.
-  { id: 'printer', item: 'trail-fly-printer', from: 20.0, dur: 5.7 },
-  { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },
-  { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 2.4 },
+  // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
+  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 29 }, from: 22 + 17 / 30, dur: 5.7 },
+  { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
+  { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
   { id: 'cloud-bill', item: 'site-loop-automation', from: 10.0, dur: 4.0 },
   // Consolidation's redress is mostly cleanup: the beat frames the crowd, the busiest HQ.
-  { id: 'era-consolidation', item: 'real-era-consolidation', actions: [NO_ERA_CARD(0)], capture: { camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 7.9, dur: 2.8 },
+  { id: 'era-consolidation', item: 'real-era-consolidation', actions: [NO_ERA_CARD(0)], capture: { camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 9.0, dur: 2.8 },
   // The flying camera's orbit onto the waffle table.
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
-  // The Plateau: 18 people left, pushing in on the empty desks.
-  { id: 'plateau', item: 'growth-late', from: 0.5, dur: 5.0 },
+  // A live Plateau office, pushing in on the empty desks.
+  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=2&speed=1&time=day' }, from: 0.5, dur: 5.0 },
   { id: 'end', card: 'end', dur: 8.0 },
 ];
 

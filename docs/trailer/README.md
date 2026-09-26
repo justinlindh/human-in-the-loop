@@ -135,3 +135,18 @@ unavailable; there is no CPU path. Never clone an identifiable living person's v
 
 The cards read `docs/readme/logo.png` fresh on every build (they are never reused), so a new logo shows
 up on the next `npm run trailer`, even with `--reuse`.
+
+## Capture subject checks
+
+Each clip beat has a predicate in `scripts/trailer/assertions.js`, evaluated at its `from` time.
+The capture saves that frame and a `beat-check` mark in `clips/index.json`. A game-over state or
+missing subject logs a capture error and stops the build. Build and hire also check the placed
+foosball table and added staff member after their clicks.
+
+The cloud-bill item uses seed 5, stops before the real `agent_runaway_spend` tick, and checks the
+active decision, rendered hot rack and visible bill card during the recording. Era cuts begin
+after the live era transition. The Plateau shot uses seed 2 to reach a live HQ with empty desks.
+
+The printer cut starts with the renderer’s cue clock at 9.9 seconds, matching the music seek.
+It checks both that clock and the later strikes, so a changed gathering or carry duration cannot
+silently separate the bat hits from the soundtrack.

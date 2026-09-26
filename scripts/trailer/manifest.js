@@ -6,6 +6,7 @@
 // rig) and its `actions` list adds page JS, both on the clip's own clock.
 import { ITEMS } from '../capture-manifest.js';
 import { ITEMS as FEATURE_MEDIA } from '../feature-media/manifest.js';
+import { beatAssertions } from './assertions.js';
 import { BEATS, DEFERRED_CAPTURES } from './config.js';
 
 // Plays a real game with the balanced bot until the next week would raise an event matching `match`
@@ -94,7 +95,7 @@ const OWN = [
   },
   // Each era arriving in a real game, with its card and the office dressed for it.
   ...['chatgbt', 'agents', 'consolidation', 'plateau'].map((era) => ({
-    id: `real-era-${era}`, title: `The ${era} era arriving in a real game`, query: 'seed=1&speed=1', seconds: 12,
+    id: `real-era-${era}`, title: `The ${era} era arriving in a real game`, query: 'seed=1&speed=1', seconds: 14,
     setup: BEFORE_EVENT({ match: `(e) => e.type === 'era' && e.eraId === '${era}'`, weeks: 1000 }),
     actions: CLOSE_CARDS,
   })),
@@ -112,6 +113,8 @@ const items = [...BEATS, ...DEFERRED_CAPTURES].filter((b) => b.item).map((b) => 
   const item = { ...rest, ...b.capture, id: `trailer-${b.id}`, title: `Trailer: ${b.id} (${base.title})` };
   const extra = [...(b.camera ?? []).map((c) => ({ at: c.at, js: ZOOM(c.zoom) })), ...(b.actions ?? [])];
   if (extra.length) item.actions = [...(item.actions ?? []), ...extra];
+  item.actions = [...(item.actions ?? []), ...beatAssertions(b)];
+  item.screenshots = [...new Set([...(item.screenshots ?? []), b.from, b.from + b.dur - 1 / 30])];
   return item;
 });
 
