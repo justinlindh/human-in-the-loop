@@ -704,8 +704,8 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         R.handleEvents([{ type: 'say', id: 'q-amb', week: S.week, staffId: id, text: 'Hello? Did I freeze?' }], S);
         step(2);
         const ambient = R.isSpeaking(id);
-        R.handleEvents([{ type: 'say', id: 'q-mom', week: S.week, staffId: id, text: 'PC LOAD LETTER?', moment: 'printer_jam' }], S);
-        step(2);
+        R.handleEvents([{ type: 'say', id: 'q-mom', week: S.week, staffId: id, text: 'The printer has promoted itself to blocker.', moment: 'printer_jam' }], S);
+        step(35);
         quiet = !ambient && R.isSpeaking(id);
       }
       if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {

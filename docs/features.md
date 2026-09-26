@@ -5,7 +5,7 @@ This file catalogues everything Human in the Loop does today, with the fun detai
 Conventions:
 - A star at the start of a bullet marks a reel-worthy highlight.
 - "How to see it" hints: `?mock=<scenario>` is a canned scene (`garage`, `floor`, `hq`, `incident`, `night`, `ending`); `find.js <event> --choice N` is `node scripts/events/find.js`, whose snapshot `scene.mjs --moment '<query>'` stages; `capture <id>` is `npm run capture -- --only <id>`.
-- A bullet backed by data ends with its ids, one code span each: `id: printer_jam`.
+- A bullet backed by data ends with its ids, one code span each: Spoken: "It has paper. I checked its demands." `id: printer_jam`.
 
 ## Company and progression
 
@@ -19,7 +19,7 @@ Conventions:
 - **Market trends**: timed trends such as Agents Are Hot, AI Fatigue, Mobile Rush and Made by Humans lift or sink angles and categories; the HUD shows the current one with its flavour line.
 - **Hiring, training and careers**: hire from candidates, send people to a workshop, conference or course, and let freshly promoted seniors pick a career path (Architect, AI Wrangler, Community Manager, Incident Commander and more).
 - **Traits**: people arrive with traits (Vibe Coder, Old Guard, Job Hopper, Night Owl, Caffeinated) and earn some by doing the work (Natural Mentor, Paranoid, Visionary).
-- **Meaning, strain and Purpose**: automation drains meaning, load builds strain, and a mission picked in the Agents era sets a Purpose that later decisions test. `id: mission_statement` `id: mission_test_support` `id: mission_test_demo`
+- **Meaning, strain and Purpose**: automation drains meaning, load builds strain, and a mission picked in the Agents era sets a Purpose that later decisions test. Spoken: "The spreadsheet does not have to answer the phone." `id: mission_statement` `id: mission_test_support` `id: mission_test_demo`
 - **Automation and oversight**: from the ChatGBT era, dial automation per function and pick the model that runs it; from Agents, overseers watch the agents and catch rogue behaviour.
 - **Rogue agent incidents**: from the Agents era, each ends in a decision that offers a public postmortem.
   - "The agent dropped the production database". `id: agent_db_wipe`
@@ -61,7 +61,7 @@ Conventions:
 - **Garage**: a suburban lot with lawn, driveway, picket fences, houses behind, a roll-up garage door and a water heater in the corner. `?mock=garage`
 - **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
-- **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. `id: floor_next_door`
+- **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. Spoken: "They have measured that wall more than our product." `id: floor_next_door`
 - **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
 - **New toys**: something to use (a table game, a couch, the coffee corner, an arcade) that's just been placed draws the nearest free people straight away: a pair table's first game starts within a second, even during a standup.
 - **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
@@ -92,27 +92,31 @@ Conventions:
 - **Arrivals and departures**: a hire walks in from the door with a sparkle; a leaver waves goodbye with a heart, or a storm cloud when fired, and walks out.
 - **Assignments you can see**: mentors stand at their mentee's desk with hearts; hard-problem people think at the whiteboard; people away, remote or on sabbatical leave by the door, and a desk gets an "ON SABBATICAL" sign.
 - **Legends**: someone who reaches level 20 wears a gold halo.
-- **Conversations**: a spoken exchange turns two people to face each other (a far speaker walks over) while the listener types "..." until the reply; people also mutter solo lines to nobody. Ordinary speech, including standups, shares one bubble slot, a quiet beat between lines and a cooldown for each person. Reading time stays long enough at every game speed; moment lines bypass the ambient limits.
+- **Conversations**: a spoken exchange turns two people to face each other (a far speaker walks over) while the listener types "..." until the reply; people also mutter solo lines to nobody. Ordinary speech, including standups, shares one bubble slot, a quiet beat between lines and a cooldown for each person. Reading time stays long enough at every game speed; moment lines bypass the ambient cooldowns and take turns in a queue. Launches, awards and company celebrations draw their own spoken pools.
 - **Yak typing**: posting in Yak shows a short typing emote, never a bubble.
 - **Standups**: everyone gathers round the meeting table or whiteboard, the most interesting few speak (blockers, silences, jokes), the rest nod and wave. `capture 3-5-standup` `id: daily_standups`
 - **Incident rush**: the nearest few people sprint to the servers with exclamation marks; a caught incident sends just one. `?mock=incident` `capture 5-2-incident`
 - **Launch and award parties**: confetti bursts and everyone with room celebrates on the spot.
 - **Pets**: a dog makes rounds leaving hearts, naps in a sunny spot or on a couch and chases the cat; a cat sleeps on a rack or a desk, knocks a pen off a desk and only visits its favourite person. A passer near a floor-level pet pauses for a short head scratch, then resumes walking. Busy staff, sleeping pets and chases are left alone; Low quality keeps the pet emotes without the pause. Names include Kernel, Waffles, Null and Sudo. `capture 2-4-pets` `id: pet` `id: pet_request` `id: cat_request`
+- **Launch and award parties**: confetti bursts and everyone with room celebrates on the spot. People talk about the launch or award, such as "We shipped it. I am taking my hands off the keyboard."
+- **Pets**: a dog makes rounds leaving hearts, naps in a sunny spot or on a couch and chases the cat; a cat sleeps on a rack or a desk, knocks a pen off a desk and only visits its favourite person. Names include Kernel, Waffles, Null and Sudo. `capture 2-4-pets` Spoken: "The dog has a laminated portfolio." Spoken: "The carrier is conducting a silent interview." `id: pet_request` `id: cat_request`
 - **Voice barks**: clicking a person plays a short voice bark with an emotion that fits their state.
 
 ## Staged moments
 
-- ★ **Pizza**: pizza boxes on a desk draw two or three idle people to eat round them, some with hearts; the boxes stay two weeks after "Host it". `id: pizza` `id: hackathon` `id: hackathon_week` `find.js hackathon --choice 0`
-- ★ **Screen takeover**: every monitor turns red (bridge loan) or shows a bobbing skull with "PAY 12 BTC TO 0xDEADBEEF..." (ransomware), and seated staff recoil with exclamation marks. `id: screen` `id: bridge_loan` `id: ransomware`
-- ★ **Sledgehammer**: someone fetches the sledgehammer, shoulders it and sizes up the back wall; on "Knock them down" they swing and dust bursts off the wall; otherwise they carry nothing back. `id: hammer` `id: open_plan_office` `find.js open_plan_office --choice 0`
+Staged decisions have short spoken pools in `src/data/moment-talk.js`: the subject, the staged reader and nearby colleagues discuss the prop while its card or Yak prompt is open, then respond to the chosen outcome. Lines play one at a time even while the decision holds the clock. A spotlight drops unrelated bubbles nearby and on screen, and halves distant ambient chatter. Skip discards its queued dialogue.
+
+- ★ **Pizza**: pizza boxes on a desk draw two or three idle people to eat round them, some with hearts; the boxes stay two weeks after "Host it". Spoken: "The pizza has a clearer roadmap than we do." Spoken: "A whole week. We could finish naming the prototype." `id: pizza` `id: hackathon` `id: hackathon_week` `find.js hackathon --choice 0`
+- ★ **Screen takeover**: every monitor turns red (bridge loan) or shows a bobbing skull with "PAY 12 BTC TO 0xDEADBEEF..." (ransomware), and seated staff recoil with exclamation marks. Spoken: "The red screens are being unusually consistent." Spoken: "The skull has better animation than our loading screen." `id: screen` `id: bridge_loan` `id: ransomware`
+- ★ **Sledgehammer**: someone fetches the sledgehammer, shoulders it and sizes up the back wall; on "Knock them down" they swing and dust bursts off the wall; otherwise they carry nothing back. Spoken: "That is a very physical collaboration tool." `id: hammer` `id: open_plan_office` `find.js open_plan_office --choice 0`
 - **Pet carrier**: the requester bends over the carrier by the door and peers in; on "Fine. One cat." the cat steps out of it. `id: carrier` `id: cat_request`
-- ★ **The printer**: on "Take it out back", two people carry the jammed printer low between them while a third follows with a bat on the shoulder, all in time with a music cue; they set it down, the bat lands on each shouted word, and the wreck is left outside (just inside the door on the Office Floor). The camera follows it and a caption runs. `id: printer` `id: printer_jam` `find.js printer_jam --choice 0 --stage floor` `capture nods-printer`
-- ★ **The first user test**: halfway through the first product a stranger sits at a desk trying it while the two founders crouch out of sight, peeking; "Watch in silence" makes them flinch together, "Explain everything" sends one bursting out to point at the screen, "Skip it" sends them back. Camera and caption follow. `id: visitor` `id: first_user_test` `find.js first_user_test --snapshot`
-- ★ **The consultants**: two consultants in suits and glasses, one seated interviewing, one standing with a clipboard, with a nervous colleague in front of them. `id: visitor` `id: efficiency_consultants` `capture nods-consultants`
-- **The letter**: its named reader leaves a walk, standup or celebration to sit at their desk, then gets up, reads the sheet (red stamp showing through), slumps, and sits back down, chair rolling out and in. Tight desk rows use a clear spot behind the chair or nearby. Pending reader claims release when the envelope disappears or the Low-quality emote starts. Staff the simulation marks away leave the letter and stay away. `id: resignation_letter` `id: hearing_summons`
-- **Fumes**: smoke from the coffee machine or a server rack glowing orange with rising heat brings someone over to fan it frantically. `id: coffee_machine_broke` `id: agent_runaway_spend`
-- ★ **The Waffle Party**: the top incentive reward; a cart rolls in, the room goes dark round one warm pool of light, the winner eats a towering stack alone under bunting while colleagues crowd in to watch, whisper, point and shake their heads; a stinger and group cheer play, and the winner's caricature goes up after. `id: waffle_party` `capture 5-4-waffle-party-real`
-- ★ **Music night**: a speaker cart rolls in, the room dims under a pool of the genre's colour pulsing on the beat, the winner commits fully to the genre's dance while others bob or shuffle stiffly, and the dance ends when the track does. `id: music_night` `id: music_night_genre` `capture 5-4b-music-night-real`
+- ★ **The printer**: on "Take it out back", two people carry the jammed printer low between them while a third follows with a bat on the shoulder, all in time with a music cue; they set it down, the bat lands on each shouted word, and the wreck is left outside (just inside the door on the Office Floor). The camera follows it and a caption runs. The relief line waits for the final blow. `id: printer` `id: printer_jam` `find.js printer_jam --choice 0 --stage floor` `capture nods-printer`
+- ★ **The first user test**: halfway through the first product a stranger sits at a desk trying it while the two founders crouch out of sight, peeking; "Watch in silence" makes them flinch together, "Explain everything" sends one bursting out to point at the screen, "Skip it" sends them back. Camera and caption follow. Spoken: "They found a button we forgot about." `id: visitor` `id: first_user_test` `find.js first_user_test --snapshot`
+- ★ **The consultants**: two consultants in suits and glasses, one seated interviewing, one standing with a clipboard, with a nervous colleague in front of them. Spoken: "Both clipboards are writing the same thing." `id: visitor` `id: efficiency_consultants` `capture nods-consultants`
+- **The letter**: its named reader leaves a walk, standup or celebration to sit at their desk, then gets up, reads the sheet (red stamp showing through), slumps, and sits back down, chair rolling out and in. Tight desk rows use a clear spot behind the chair or nearby. Pending reader claims release when the envelope disappears or the Low-quality emote starts. Staff the simulation marks away leave the letter and stay away. Spoken: "That envelope looks heavier than paper." Spoken: "That paper has its own legal department." `id: resignation_letter` `id: hearing_summons`
+- **Fumes**: smoke from the coffee machine or a server rack glowing orange with rising heat brings someone over to fan it frantically. Spoken: "That rack is working harder than our business model." Spoken: "That is not steam with a positive outlook." `id: coffee_machine_broke` `id: agent_runaway_spend`
+- ★ **The Waffle Party**: the top incentive reward; a cart rolls in, the room goes dark round one warm pool of light, the winner eats a towering stack alone under bunting while colleagues crowd in to watch, whisper, point and shake their heads; their whispers and the winner's thank-you take turns in bubbles; a stinger and group cheer play, and the winner's caricature goes up after. `id: waffle_party` `capture 5-4-waffle-party-real`
+- ★ **Music night**: a speaker cart rolls in, the room dims under a pool of the genre's colour pulsing on the beat, the winner commits fully to the genre's dance while others bob or shuffle stiffly, the winner and onlookers take turns speaking about the music, and the dance ends when the track does. `id: music_night` `id: music_night_genre` `capture 5-4b-music-night-real`
 - **Minor incentive rewards**: the Incentives Program climbs a ladder every couple of months. `id: incentives`
   - **Finger traps**: a quick cheer, a sparkle and a puff of confetti ("I cannot get my fingers out. Thank you, though."). `id: finger_traps`
   - **Balloons**: tied to the winner's desk until the next award. `id: balloons`
@@ -127,33 +131,33 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 
 - **The resignation letter**: an envelope on the burnt-out person's desk. `id: resignation_letter`
 - **The hackathon**: pizza boxes; "Host it" leaves them two weeks. `id: hackathon` `id: hackathon_week`
-- **Team offsite**: a lakeside cabin brochure ("zero wifi. zero Yak."); "Book the cabin" leaves a lake photo of the team, one mid-splash, captioned "best offsite ever", for a year. `id: team_offsite`
-- **The no-show and the overwhelmed junior**: sticky notes on the desk. `id: no_show` `id: junior_overwhelmed`
-- **The pivot**: marker boxes, arrows and a circled "?!" on the whiteboard; "Pivot" leaves sticky notes. `id: pivot_pitch`
+- **Team offsite**: a lakeside cabin brochure ("zero wifi. zero Yak."); "Book the cabin" leaves a lake photo of the team, one mid-splash, captioned "best offsite ever", for a year. Spoken: "The lake has no status indicator." `id: team_offsite`
+- **The no-show and the overwhelmed junior**: sticky notes on the desk. Spoken: "The sticky note is doing all the communicating." Spoken: "Those notes could use another pair of eyes." `id: no_show` `id: junior_overwhelmed`
+- **The pivot**: marker boxes, arrows and a circled "?!" on the whiteboard; "Pivot" leaves sticky notes. Spoken: "The whiteboard has changed industries again." `id: pivot_pitch`
 - **Open plan**: a sledgehammer on the floor by the wall. `id: open_plan_office`
-- **Founder burnout**: a leaning tower of mugs on the founder's desk; "Push through" leaves one absurd bin-sized mug on the floor for months. `id: founder_burnout`
-- **Enterprise RFP and the bank install**: a thick binder on the desk. `id: enterprise_rfp` `id: onprem_bank`
+- **Founder burnout**: a leaning tower of mugs on the founder's desk; "Push through" leaves one absurd bin-sized mug on the floor for months. Spoken: "That is too many mugs for one person." `id: founder_burnout`
+- **Enterprise RFP and the bank install**: a thick binder on the desk. Spoken: "The questionnaire needs its own onboarding." Spoken: "The bank sent a binder with hosting requirements." `id: enterprise_rfp` `id: onprem_bank`
 - **Red screens and the skull**: office-wide screen takeovers. `id: bridge_loan` `id: ransomware`
 - **The cloud bill has feelings**: a server rack running hot. `id: agent_runaway_spend`
-- **The CEO wants gift cards**: a stack of gift cards on the desk. `id: phishing_ceo`
+- **The CEO wants gift cards**: a stack of gift cards on the desk. Spoken: "The gift cards are a strange enterprise feature." `id: phishing_ceo`
 - **The first user test and the consultants**: a visitor chair pulled up. `id: first_user_test` `id: efficiency_consultants`
-- ★ **Lockdown**: moving boxes by the door, a monitor peeking out, then the office empties. `id: lockdown_start`
-- **Pets**: laminated dog photos on a desk; a cat carrier by the door; a chewed network cable after a pet mishap. `id: pet_request` `id: cat_request` `id: pet_mishap`
+- ★ **Lockdown**: moving boxes by the door, a monitor peeking out, then the office empties. Spoken: "My monitor is coming home before my desk." `id: lockdown_start`
+- **Pets**: laminated dog photos on a desk; a cat carrier by the door; a chewed network cable after a pet mishap. Spoken: "The network cable lost a very short argument." `id: pet_request` `id: cat_request` `id: pet_mishap`
 - **Days since the rival copied us**: "Rise above it" hangs a sign with the rival's name and a flip counter stuck on 0, until the rival is gone. `id: rival_jab`
-- **The invoices**: an itemised agent invoice stamped PAST DUE with a total of "$$$$$$"; the classic-era hosting bill uses the same sheet. `id: agent_invoice` `id: cloud_bill`
+- **The invoices**: an itemised agent invoice stamped PAST DUE with a total of "$$$$$$"; the classic-era hosting bill uses the same sheet. Spoken: "The invoice has an appendix for thinking." Spoken: "The bill charges us for leaving." `id: agent_invoice` `id: cloud_bill`
 - **The floor next door**: a tape measure run out across the floor. `id: floor_next_door`
 - **The mission**: "Make software people love" hangs a shelf mug reading SOFTWEAR, the swapped letters in red, for a year. `id: mission_statement`
-- **The printout**: a one-star review with a red bar chart, taped up for the support test, the moonshot pitch, SaaSCon and the coffee corner review. `id: mission_test_support` `id: moonshot_pitch` `id: conference_expo` `id: coffee_wanted_corner`
+- **The printout**: a one-star review with a red bar chart, taped up for the support test, the moonshot pitch, SaaSCon and the coffee corner review. Spoken: "The logo is ahead of the feasibility study." Spoken: "The expo flyer lists coffee as a strategic opportunity." Spoken: "The coffee review is harsher than our product reviews." `id: mission_test_support` `id: moonshot_pitch` `id: conference_expo` `id: coffee_wanted_corner`
 - **SaaSCon booth**: a box of swag with a folded banner, for a few weeks. `id: conference_expo`
 - **The hackathon prize**: sponsoring the AI Summit hackathon hangs a giant novelty cheque made out to "Winner". `id: ai_summit_hackathon`
 - **The hearing**: a very thick envelope. `id: hearing_summons`
 - **The reunion**: hosting it hangs the old pre-rebrand sign, "the old logo. we miss it." `id: alumni_reunion`
-- ★ **Ping pong**: a taped-up print, "PING PONG? morale +100%* (*citation needed)"; "Buy one" grants a real table, "Not yet" adds a ball someone drew on in marker until one arrives. `id: ping_pong`
-- **Demo day**: a smoothie for courage on the desk. `id: investor_demo_day`
+- ★ **Ping pong**: a taped-up print, "PING PONG? morale +100%* (*citation needed)"; "Buy one" grants a real table, "Not yet" adds a ball someone drew on in marker until one arrives. Spoken: "The table in the picture is very quiet." `id: ping_pong`
+- **Demo day**: a smoothie for courage on the desk. Spoken: "The blender is rehearsing louder than the pitch." `id: investor_demo_day`
 - **The moonshot**: "Fund the moonshot" puts up a curtain on a rod until the unveiling. `id: moonshot_pitch`
 - **The last bet**: "One last moonshot" covers the whiteboard in scrawl. `id: last_bet`
-- **Coffee**: a smoking coffee machine (the fancy option upgrades the espresso machine); a French press "with a guard" that stays until an espresso machine arrives; a one-star coffee review. `id: coffee_machine_broke` `id: coffee_wanted` `id: coffee_wanted_corner`
-- ★ **Office Space set**: the banner, the TPS cover sheets, the red stapler, the consultants and the jammed printer (see Nods). `id: banner_company` `id: cover_sheets` `id: the_stapler` `id: efficiency_consultants` `id: printer_jam`
+- **Coffee**: a smoking coffee machine (the fancy option upgrades the espresso machine); a French press "with a guard" that stays until an espresso machine arrives; a one-star coffee review. Spoken: "The French press has a dedicated security team." `id: coffee_machine_broke` `id: coffee_wanted` `id: coffee_wanted_corner`
+- ★ **Office Space set**: the banner, the TPS cover sheets, the red stapler, the consultants and the jammed printer (see Nods). Spoken: "The banner has a question and no answer box." Spoken: "The cover sheet has acquired a cover memo." Spoken: "That stapler has a stronger sense of belonging than I do." `id: banner_company` `id: cover_sheets` `id: the_stapler` `id: efficiency_consultants` `id: printer_jam`
 
 ## Yak
 
@@ -200,9 +204,9 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - ★ **The two Robs**: "So what would you say you do here?" `id: efficiency_consultants`
 - ★ **PC LOAD LETTER**: a printer with a blinking light and a screen reading PC LOAD LETTER that beeps on a loop while it sits in the kitchen; "Print less" puts up an OUT OF ORDER. FOREVER. sign. `id: printer_jam` `npm run capture -- --group nods`
 - **"Yeahhh, Saturday"**: a senior leans on your desk with a mug; the refusal is "No. Mmkay?". `id: saturday_ask` `capture nods-saturday`
-- ★ **The incubator house**: early on, a would-be mentor offers free rent in his house for a cut of the company; a hand-painted INCUBATOR sign by the door; move in (and a year later he's on a podcast calling himself your founder), keep the garage, or counter. `id: incubator_house`
-- ★ **The Box**: the rival's brushed-aluminium cube that does less for four times the price; build your own (a little cube lands on a desk), stay software (the Box gets recalled), or mock it. `id: the_box`
-- ★ **Four thousand pounds of oat milk**: during the first 26 weeks of the Agents era, a company with at least eight staff and 25% ops automation can get pallets in the lobby when its procurement agent fixes the Thursday shortage; once per run, send it back, keep it, or donate it. `id: oat_milk`
+- ★ **The incubator house**: early on, a would-be mentor offers free rent in his house for a cut of the company; a hand-painted INCUBATOR sign by the door; move in (and a year later he's on a podcast calling himself your founder), keep the garage, or counter. Spoken: "The sign says mentor. The fine print says equity." `id: incubator_house`
+- ★ **The Box**: the rival's brushed-aluminium cube that does less for four times the price; build your own (a little cube lands on a desk), stay software (the Box gets recalled), or mock it. Spoken: "The poster makes software look very heavy." `id: the_box`
+- ★ **Four thousand pounds of oat milk**: during the first 26 weeks of the Agents era, a company with at least eight staff and 25% ops automation can get pallets in the lobby when its procurement agent fixes the Thursday shortage; once per run, send it back, keep it, or donate it. Spoken: "The lobby has become a dairy alternative." `id: oat_milk`
 - ★ **Tabs or spaces**: a running joke between two engineers that escalates over weeks to two whiteboards and ends in a ruling. `id: tabs_or_spaces`
 - **Is it kielbasa?**: a junior's weekend app that is extremely confident and right half the time; ship it, sell it, or keep it as the office party trick. `id: is_it_kielbasa`
 - **The Squish Score**: a compression research node whose launch post cites a score of 5.2 on a scale nobody can explain. `id: squish`
@@ -221,7 +225,8 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Agents**: green status lights on desks, a lit "AGENTS ONLINE: 128" board, "LET THE AGENTS COOK" and "IS A HUMAN STILL IN THE LOOP?" posters. `id: agents` `id: era_agents`
 - **Consolidation**: compliance binders on desks, lawyer-grey boardrooms, a "TWO COMPANIES. ONE SYNERGY." banner ("please stop asking about layoffs"), "All ideas now require legal review.", and a "NEW ORG CHART" ("you are here, probably"). `id: consolidation` `id: era_consolidation`
 - **The Plateau**: notebooks and hand-thrown cups on desks, a pinboard of sketches joined by yarn, a shelf of pottery, and a "TOUCH GRASS: handmade here" poster; warmer light. `id: plateau` `id: era_plateau`
-- **Era colour**: each era adds a wainscot band and emblem in its colour, a faint floor wash, a tint on the skyline and its own light tone.
+- **Era colour**: each era adds a wainscot band and emblem in its colour, a faint wash on hard floors, a tint on the skyline and its own light tone.
+- **Era carpets**: the Office Floor and HQ annex use sand checks for Classic, teal diagonal ribbons for ChatGBT, lilac nested squares for Agents, slate paired stripes for Consolidation and clay diamonds for Plateau. Low quality keeps the broad patterns and colours with smaller textures and no fibre weave. The garage concrete, HQ wood and tile, and terrace decking keep their material identity. See `?mock=floor` in each era, or the HQ with expansion 3.
 - **Day and night**: a real-time day cycle; the sky gradient shifts, windows show a skyline blended by daylight, lit windows appear across the city at night, and interior lamps come on. `?mock=night` `?time=night`
 - **Surroundings**: drifting clouds, trees, cars and street lamps round the diorama board, placed so a turned view never hides the office.
 - **Lockdown light**: the office dims, plants wilt over the weeks and recover after, and one stayer wanders and naps on the couch. `capture 5-3-lockdown`
