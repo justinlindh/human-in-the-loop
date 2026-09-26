@@ -29,6 +29,7 @@ const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFin
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const MAX_SPEECH = 6;
 const QUIET_R = 4;          // metres round a spotlight moment where only its own lines are spoken
+const POST_REACT_S = 2.2;    // how long the office reacts to a Yak post that backfired
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
@@ -408,6 +409,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           break;
         }
         case 'launch': companyParty(); break;
+        case 'posted': postReaction(e.outcome); break;
         case 'award': {
           const L = cur?.L;
           if (L) fx.confetti(0, 1.2, 0, { spread: 2.2, power: 1.25 });
@@ -477,6 +479,38 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!staged) return;
     faceToward(r, other);
     if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
+  }
+
+  // A Yak post lands in the office. Backfired: someone drops their face into their hand (a gesture
+  // over whatever they're doing), the two nearest turn to look, and a couple more sweat. Landed: a
+  // couple of people light up. Nobody in a staged moment reacts.
+  function postReaction(outcome) {
+    const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && !r.path.length);
+    if (!here.length) return;
+    if (outcome === 'landed') {
+      for (let i = 0; i < 2 && here.length; i++) emote(here.splice(Math.floor(Math.random() * here.length), 1)[0], 'sparkle', 2);
+      return;
+    }
+    if (outcome !== 'backfired') return;
+    // The facepalm goes to someone nobody stands in front of on screen (the front of a group), and
+    // of those whoever faces the camera most squarely, so the hand at the forehead reads.
+    const yaw = rig?.yaw ?? Math.PI / 4, cx = Math.sin(yaw), cz = Math.cos(yaw);
+    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.5; };
+    const pillar = (r) => (office.current?.columns ?? []).some((c) => { const dx = c.x - r.pos.x, dz = c.z - r.pos.z, along = dx * cx + dz * cz; return along > 0 && along < 3 && Math.abs(dx * cz - dz * cx) < 0.55; });
+    const clear = (r) => !pillar(r) && !here.some((x) => x !== r && hides(x, r));
+    // Clear and facing the camera both matter: in a standup ring the clear front row has its back
+    // to the camera, so someone facing it from elsewhere wins.
+    const facing = (r) => { const f = Math.cos(r.yaw - yaw); return f + (clear(r) ? 2 : 0) + (f > 0.3 ? 2 : 0); };
+    here.sort((a, b) => facing(b) - facing(a));
+    const palm = here.shift();
+    // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
+    palm.char.gesture('facepalm', POST_REACT_S);
+    const near = here.sort((a, b) => a.pos.distanceToSquared(palm.pos) - b.pos.distanceToSquared(palm.pos));
+    // The nearest two turn to look. Nobody standing in front of the facepalmer on screen gets a
+    // bubble, since it would sit over their face.
+    near.slice(0, 2).forEach((r, i) => { faceToward(r, palm); if (!hides(r, palm)) emote(r, i ? 'sweat' : 'exclamation', POST_REACT_S); });
+    const rest = near.slice(2).filter((r) => !hides(r, palm));
+    for (let i = 0; i < 2 && rest.length; i++) emote(rest.splice(Math.floor(Math.random() * rest.length), 1)[0], 'sweat', POST_REACT_S);
   }
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
