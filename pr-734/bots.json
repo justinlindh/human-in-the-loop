@@ -1,0 +1,3115 @@
+{
+  "groups": [
+    {
+      "bot": "sensible",
+      "era": "classic",
+      "stage": 0,
+      "weeks": 23236,
+      "runs": 200,
+      "events": {
+        "goal": 1748,
+        "hire": 810,
+        "chat": 64840,
+        "toast": 18274,
+        "bubble": 58873,
+        "say": 39340,
+        "decision": 3011,
+        "decisionResolved": 3004,
+        "launch": 1516,
+        "celebrate": 5245,
+        "unlock": 1426,
+        "chatPrompt": 7116,
+        "chatPromptResolved": 7028,
+        "levelUp": 2220,
+        "award": 403,
+        "standup": 11466,
+        "traitEarned": 136,
+        "promoted": 303,
+        "officeUpgrade": 200,
+        "incident": 174,
+        "resign": 10
+      },
+      "actions": {
+        "placeItem": 218,
+        "hire": 810,
+        "startProject": 1825,
+        "resolveDecision": 3004,
+        "answerPrompt": 7028,
+        "runCampaign": 2743,
+        "cancelProject": 212,
+        "setPolicy": 200,
+        "upgradeOffice": 200,
+        "buyAudit": 163,
+        "assign": 61,
+        "callConsultants": 8
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "classic",
+      "stage": 1,
+      "weeks": 15927,
+      "runs": 200,
+      "events": {
+        "toast": 23180,
+        "standup": 15927,
+        "chat": 67403,
+        "bubble": 71975,
+        "say": 25682,
+        "chatPrompt": 7266,
+        "chatPromptResolved": 7272,
+        "hire": 1647,
+        "decision": 2279,
+        "levelUp": 5233,
+        "decisionResolved": 2162,
+        "unlock": 1595,
+        "goal": 387,
+        "incident": 228,
+        "launch": 1498,
+        "celebrate": 5626,
+        "traitEarned": 307,
+        "promoted": 878,
+        "award": 410,
+        "era": 200,
+        "resign": 48
+      },
+      "actions": {
+        "setPolicy": 600,
+        "runCampaign": 8136,
+        "answerPrompt": 7272,
+        "hire": 1647,
+        "resolveDecision": 2162,
+        "startProject": 1756,
+        "buyAudit": 287,
+        "choosePath": 226,
+        "cancelProject": 164,
+        "placeItem": 192,
+        "callConsultants": 16,
+        "assign": 66
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "chatgbt",
+      "stage": 1,
+      "weeks": 13640,
+      "runs": 200,
+      "events": {
+        "decisionResolved": 2238,
+        "toast": 23991,
+        "standup": 13640,
+        "chat": 50624,
+        "bubble": 59269,
+        "say": 20959,
+        "decision": 2116,
+        "chatPrompt": 3748,
+        "chatPromptResolved": 3772,
+        "levelUp": 3606,
+        "award": 496,
+        "celebrate": 5140,
+        "launch": 1337,
+        "incident": 230,
+        "goal": 448,
+        "officeUpgrade": 196,
+        "unlock": 335,
+        "promoted": 357,
+        "resign": 70,
+        "hire": 69,
+        "era": 5,
+        "traitEarned": 11
+      },
+      "actions": {
+        "resolveDecision": 2238,
+        "setPolicy": 200,
+        "runCampaign": 7402,
+        "answerPrompt": 3772,
+        "startProject": 1398,
+        "buyAudit": 309,
+        "upgradeOffice": 196,
+        "choosePath": 607,
+        "cancelProject": 159,
+        "hire": 69,
+        "assign": 39,
+        "callConsultants": 16,
+        "setAutomation": 1
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "chatgbt",
+      "stage": 2,
+      "weeks": 12278,
+      "runs": 195,
+      "events": {
+        "hire": 2606,
+        "chat": 56274,
+        "toast": 22359,
+        "standup": 12278,
+        "bubble": 81938,
+        "say": 20552,
+        "chatPrompt": 4780,
+        "chatPromptResolved": 4782,
+        "incident": 195,
+        "decision": 1976,
+        "levelUp": 8400,
+        "decisionResolved": 1852,
+        "unlock": 231,
+        "celebrate": 6239,
+        "promoted": 1739,
+        "launch": 986,
+        "traitEarned": 516,
+        "award": 310,
+        "era": 195,
+        "resign": 83,
+        "goal": 2
+      },
+      "actions": {
+        "hire": 2606,
+        "startProject": 1681,
+        "setPolicy": 390,
+        "answerPrompt": 4782,
+        "runCampaign": 6630,
+        "resolveDecision": 1852,
+        "cancelProject": 290,
+        "placeItem": 171,
+        "choosePath": 866,
+        "buyAudit": 246,
+        "callConsultants": 12,
+        "assign": 3
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "agents",
+      "stage": 2,
+      "weeks": 40010,
+      "runs": 200,
+      "events": {
+        "toast": 105717,
+        "standup": 40010,
+        "chat": 187045,
+        "bubble": 235756,
+        "say": 64278,
+        "decision": 7209,
+        "decisionResolved": 7209,
+        "launch": 12916,
+        "celebrate": 34256,
+        "chatPrompt": 16130,
+        "chatPromptResolved": 16111,
+        "levelUp": 19751,
+        "resign": 401,
+        "hire": 1354,
+        "promoted": 2820,
+        "award": 879,
+        "incident": 806,
+        "officeUpgrade": 155,
+        "goal": 149,
+        "era": 200,
+        "traitEarned": 244,
+        "unlock": 9
+      },
+      "actions": {
+        "startProject": 16002,
+        "runCampaign": 24329,
+        "resolveDecision": 7209,
+        "answerPrompt": 16111,
+        "hire": 858,
+        "choosePath": 2098,
+        "buyAudit": 877,
+        "callConsultants": 109,
+        "acquire": 248,
+        "upgradeOffice": 134,
+        "cancelProject": 110,
+        "setPolicy": 10,
+        "placeItem": 4,
+        "assign": 42
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "consolidation",
+      "stage": 2,
+      "weeks": 50376,
+      "runs": 200,
+      "events": {
+        "toast": 168777,
+        "standup": 50375,
+        "chat": 255783,
+        "launch": 23295,
+        "bubble": 365257,
+        "say": 75222,
+        "chatPrompt": 21874,
+        "chatPromptResolved": 21864,
+        "decision": 8821,
+        "decisionResolved": 8830,
+        "levelUp": 27434,
+        "celebrate": 47244,
+        "promoted": 4096,
+        "hire": 2868,
+        "incident": 964,
+        "officeUpgrade": 411,
+        "traitEarned": 928,
+        "award": 1541,
+        "resign": 822,
+        "era": 192,
+        "goal": 86,
+        "gameOver": 8
+      },
+      "actions": {
+        "runCampaign": 32536,
+        "answerPrompt": 21864,
+        "startProject": 28808,
+        "resolveDecision": 8830,
+        "buyAudit": 1082,
+        "choosePath": 2976,
+        "cancelProject": 114,
+        "acquire": 559,
+        "upgradeOffice": 389,
+        "hire": 1673,
+        "assign": 12,
+        "callConsultants": 173,
+        "ipo": 1
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "plateau",
+      "stage": 2,
+      "weeks": 21810,
+      "runs": 192,
+      "events": {
+        "chat": 111390,
+        "chatPromptResolved": 10037,
+        "decision": 3530,
+        "standup": 21760,
+        "bubble": 192165,
+        "levelUp": 11771,
+        "say": 29951,
+        "chatPrompt": 10027,
+        "decisionResolved": 3637,
+        "toast": 77329,
+        "celebrate": 18017,
+        "launch": 8823,
+        "promoted": 1374,
+        "resign": 510,
+        "hire": 660,
+        "incident": 350,
+        "award": 852,
+        "traitEarned": 521,
+        "goal": 196,
+        "gameOver": 192,
+        "officeUpgrade": 19
+      },
+      "actions": {
+        "answerPrompt": 10037,
+        "resolveDecision": 3637,
+        "startProject": 11600,
+        "runCampaign": 13233,
+        "hire": 411,
+        "buyAudit": 491,
+        "cancelProject": 53,
+        "choosePath": 911,
+        "ipo": 50,
+        "acquire": 130,
+        "upgradeOffice": 19,
+        "callConsultants": 47
+      }
+    },
+    {
+      "bot": "sensible",
+      "era": "agents",
+      "stage": 1,
+      "weeks": 109,
+      "runs": 4,
+      "events": {
+        "decisionResolved": 22,
+        "toast": 204,
+        "standup": 109,
+        "chat": 426,
+        "bubble": 327,
+        "say": 164,
+        "chatPrompt": 43,
+        "chatPromptResolved": 41,
+        "officeUpgrade": 4,
+        "unlock": 4,
+        "goal": 4,
+        "decision": 20,
+        "launch": 16,
+        "celebrate": 18,
+        "levelUp": 21,
+        "award": 2,
+        "incident": 1,
+        "promoted": 3,
+        "resign": 1,
+        "hire": 1,
+        "traitEarned": 1
+      },
+      "actions": {
+        "resolveDecision": 22,
+        "startProject": 29,
+        "answerPrompt": 41,
+        "runCampaign": 58,
+        "upgradeOffice": 4,
+        "buyAudit": 3,
+        "choosePath": 3,
+        "hire": 1
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "classic",
+      "stage": 0,
+      "weeks": 23995,
+      "runs": 200,
+      "events": {
+        "goal": 1753,
+        "toast": 18369,
+        "bubble": 56139,
+        "say": 40373,
+        "decision": 3211,
+        "chat": 49295,
+        "decisionResolved": 3204,
+        "launch": 1029,
+        "celebrate": 4327,
+        "unlock": 1413,
+        "chatPrompt": 6975,
+        "chatPromptResolved": 6896,
+        "hire": 820,
+        "standup": 17867,
+        "levelUp": 2650,
+        "award": 388,
+        "promoted": 385,
+        "incident": 190,
+        "officeUpgrade": 199,
+        "traitEarned": 208,
+        "resign": 20,
+        "gameOver": 1
+      },
+      "actions": {
+        "placeItem": 254,
+        "startProject": 1255,
+        "resolveDecision": 3204,
+        "runCampaign": 3589,
+        "answerPrompt": 6896,
+        "hire": 820,
+        "setPolicy": 200,
+        "cancelProject": 160,
+        "buyAudit": 134,
+        "upgradeOffice": 199,
+        "assign": 37,
+        "callConsultants": 3
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "classic",
+      "stage": 1,
+      "weeks": 15016,
+      "runs": 199,
+      "events": {
+        "toast": 21073,
+        "hire": 1637,
+        "chat": 41981,
+        "standup": 15016,
+        "bubble": 63050,
+        "say": 25652,
+        "chatPrompt": 6734,
+        "chatPromptResolved": 6736,
+        "levelUp": 4949,
+        "unlock": 1582,
+        "goal": 377,
+        "decision": 2213,
+        "decisionResolved": 2109,
+        "traitEarned": 289,
+        "launch": 1001,
+        "celebrate": 4326,
+        "promoted": 780,
+        "award": 393,
+        "incident": 232,
+        "era": 199,
+        "resign": 47
+      },
+      "actions": {
+        "setPolicy": 597,
+        "hire": 1637,
+        "answerPrompt": 6736,
+        "resolveDecision": 2109,
+        "runCampaign": 7516,
+        "buyAudit": 282,
+        "startProject": 1277,
+        "choosePath": 207,
+        "placeItem": 185,
+        "cancelProject": 168,
+        "assign": 81,
+        "callConsultants": 12
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "chatgbt",
+      "stage": 1,
+      "weeks": 14703,
+      "runs": 199,
+      "events": {
+        "toast": 24925,
+        "standup": 14703,
+        "bubble": 63275,
+        "say": 23528,
+        "decision": 2272,
+        "decisionResolved": 2375,
+        "chat": 33224,
+        "chatPrompt": 3997,
+        "chatPromptResolved": 4016,
+        "levelUp": 3748,
+        "celebrate": 4971,
+        "promoted": 417,
+        "award": 454,
+        "launch": 1189,
+        "goal": 434,
+        "incident": 210,
+        "officeUpgrade": 185,
+        "unlock": 338,
+        "resign": 59,
+        "hire": 61,
+        "era": 14,
+        "traitEarned": 8
+      },
+      "actions": {
+        "setPolicy": 199,
+        "runCampaign": 7895,
+        "resolveDecision": 2375,
+        "answerPrompt": 4016,
+        "choosePath": 685,
+        "startProject": 1263,
+        "buyAudit": 302,
+        "upgradeOffice": 185,
+        "cancelProject": 169,
+        "hire": 61,
+        "assign": 29,
+        "callConsultants": 9
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "chatgbt",
+      "stage": 2,
+      "weeks": 11079,
+      "runs": 185,
+      "events": {
+        "hire": 2431,
+        "chat": 35444,
+        "toast": 19888,
+        "standup": 11079,
+        "bubble": 74578,
+        "levelUp": 7502,
+        "say": 19669,
+        "chatPrompt": 4372,
+        "chatPromptResolved": 4374,
+        "unlock": 223,
+        "launch": 749,
+        "celebrate": 5142,
+        "decision": 1736,
+        "decisionResolved": 1620,
+        "incident": 202,
+        "traitEarned": 437,
+        "promoted": 1490,
+        "award": 288,
+        "era": 185,
+        "goal": 7,
+        "resign": 67
+      },
+      "actions": {
+        "hire": 2431,
+        "setPolicy": 367,
+        "answerPrompt": 4374,
+        "runCampaign": 5932,
+        "placeItem": 164,
+        "startProject": 1409,
+        "resolveDecision": 1620,
+        "buyAudit": 247,
+        "choosePath": 840,
+        "cancelProject": 257,
+        "callConsultants": 8,
+        "assign": 4
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "agents",
+      "stage": 2,
+      "weeks": 39459,
+      "runs": 199,
+      "events": {
+        "decisionResolved": 7002,
+        "toast": 97554,
+        "standup": 39459,
+        "bubble": 231910,
+        "chat": 125829,
+        "chatPrompt": 15805,
+        "chatPromptResolved": 15781,
+        "say": 67025,
+        "decision": 7014,
+        "levelUp": 19270,
+        "celebrate": 31746,
+        "promoted": 2871,
+        "launch": 10645,
+        "award": 933,
+        "hire": 1324,
+        "officeUpgrade": 126,
+        "traitEarned": 337,
+        "incident": 714,
+        "goal": 145,
+        "resign": 404,
+        "era": 199,
+        "unlock": 18
+      },
+      "actions": {
+        "resolveDecision": 7002,
+        "startProject": 13371,
+        "runCampaign": 23617,
+        "answerPrompt": 15781,
+        "choosePath": 1878,
+        "buyAudit": 860,
+        "acquire": 168,
+        "upgradeOffice": 108,
+        "hire": 987,
+        "assign": 49,
+        "placeItem": 12,
+        "cancelProject": 94,
+        "callConsultants": 80,
+        "setPolicy": 31
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "consolidation",
+      "stage": 2,
+      "weeks": 50440,
+      "runs": 199,
+      "events": {
+        "toast": 157887,
+        "decision": 8679,
+        "standup": 50439,
+        "bubble": 352581,
+        "chat": 178517,
+        "say": 80843,
+        "chatPrompt": 20970,
+        "decisionResolved": 8683,
+        "chatPromptResolved": 20966,
+        "levelUp": 26954,
+        "launch": 20302,
+        "celebrate": 45153,
+        "promoted": 4026,
+        "hire": 2681,
+        "resign": 775,
+        "award": 1480,
+        "officeUpgrade": 377,
+        "incident": 941,
+        "traitEarned": 763,
+        "era": 194,
+        "goal": 83,
+        "gameOver": 5
+      },
+      "actions": {
+        "runCampaign": 32177,
+        "resolveDecision": 8683,
+        "answerPrompt": 20966,
+        "startProject": 25470,
+        "acquire": 487,
+        "buyAudit": 1097,
+        "choosePath": 2869,
+        "upgradeOffice": 343,
+        "hire": 1622,
+        "callConsultants": 159,
+        "cancelProject": 128,
+        "assign": 15,
+        "ipo": 1
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "plateau",
+      "stage": 2,
+      "weeks": 28958,
+      "runs": 194,
+      "events": {
+        "decisionResolved": 4736,
+        "toast": 95553,
+        "standup": 28928,
+        "bubble": 242707,
+        "chat": 103529,
+        "levelUp": 15569,
+        "celebrate": 23020,
+        "promoted": 1774,
+        "say": 42699,
+        "chatPrompt": 12833,
+        "chatPromptResolved": 12847,
+        "decision": 4624,
+        "resign": 606,
+        "hire": 977,
+        "launch": 10179,
+        "goal": 179,
+        "gameOver": 194,
+        "award": 1108,
+        "incident": 341,
+        "traitEarned": 660,
+        "officeUpgrade": 58
+      },
+      "actions": {
+        "resolveDecision": 4736,
+        "runCampaign": 17515,
+        "answerPrompt": 12847,
+        "hire": 619,
+        "startProject": 13532,
+        "choosePath": 1153,
+        "buyAudit": 614,
+        "ipo": 30,
+        "acquire": 181,
+        "cancelProject": 77,
+        "upgradeOffice": 58,
+        "callConsultants": 64
+      }
+    },
+    {
+      "bot": "balanced",
+      "era": "agents",
+      "stage": 1,
+      "weeks": 484,
+      "runs": 14,
+      "events": {
+        "decisionResolved": 101,
+        "toast": 949,
+        "standup": 484,
+        "bubble": 1593,
+        "say": 794,
+        "chat": 1347,
+        "chatPrompt": 202,
+        "chatPromptResolved": 201,
+        "levelUp": 101,
+        "launch": 101,
+        "celebrate": 162,
+        "decision": 94,
+        "promoted": 25,
+        "officeUpgrade": 14,
+        "unlock": 14,
+        "goal": 16,
+        "incident": 5,
+        "award": 4,
+        "resign": 4,
+        "hire": 3
+      },
+      "actions": {
+        "resolveDecision": 101,
+        "startProject": 143,
+        "answerPrompt": 201,
+        "runCampaign": 254,
+        "buyAudit": 11,
+        "choosePath": 19,
+        "upgradeOffice": 14,
+        "hire": 3
+      }
+    }
+  ],
+  "runs": [
+    {
+      "bot": "sensible",
+      "seed": 1,
+      "weeks": 859,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 2,
+      "weeks": 781,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 3,
+      "weeks": 937,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 4,
+      "weeks": 934,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 5,
+      "weeks": 890,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 6,
+      "weeks": 800,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 7,
+      "weeks": 788,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 8,
+      "weeks": 804,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 9,
+      "weeks": 899,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 10,
+      "weeks": 975,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 11,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 12,
+      "weeks": 785,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 13,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 14,
+      "weeks": 788,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 15,
+      "weeks": 892,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 16,
+      "weeks": 798,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 17,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 18,
+      "weeks": 859,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 19,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 20,
+      "weeks": 929,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 21,
+      "weeks": 796,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 22,
+      "weeks": 882,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 23,
+      "weeks": 794,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 24,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 25,
+      "weeks": 820,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 26,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 27,
+      "weeks": 852,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 28,
+      "weeks": 848,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 29,
+      "weeks": 789,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 30,
+      "weeks": 807,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 31,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 32,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 33,
+      "weeks": 789,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 34,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 35,
+      "weeks": 822,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 36,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 37,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 38,
+      "weeks": 800,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 39,
+      "weeks": 739,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 40,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 41,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 42,
+      "weeks": 931,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 43,
+      "weeks": 883,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 44,
+      "weeks": 785,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 45,
+      "weeks": 891,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 46,
+      "weeks": 816,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 47,
+      "weeks": 815,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 48,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 49,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 50,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 51,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 52,
+      "weeks": 805,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 53,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 54,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 55,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 56,
+      "weeks": 795,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 57,
+      "weeks": 795,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 58,
+      "weeks": 991,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 59,
+      "weeks": 631,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 60,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 61,
+      "weeks": 781,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 62,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 63,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 64,
+      "weeks": 878,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 65,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 66,
+      "weeks": 857,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 67,
+      "weeks": 801,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 68,
+      "weeks": 567,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 69,
+      "weeks": 866,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 70,
+      "weeks": 785,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 71,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 72,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 73,
+      "weeks": 864,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 74,
+      "weeks": 841,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 75,
+      "weeks": 827,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 76,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 77,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 78,
+      "weeks": 777,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 79,
+      "weeks": 983,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 80,
+      "weeks": 1005,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 81,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 82,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 83,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 84,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 85,
+      "weeks": 785,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 86,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 87,
+      "weeks": 817,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 88,
+      "weeks": 817,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 89,
+      "weeks": 852,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 90,
+      "weeks": 809,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 91,
+      "weeks": 781,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 92,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 93,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 94,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 95,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 96,
+      "weeks": 609,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 97,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 98,
+      "weeks": 846,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 99,
+      "weeks": 862,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 100,
+      "weeks": 868,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 101,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 102,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 103,
+      "weeks": 940,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 104,
+      "weeks": 878,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 105,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 106,
+      "weeks": 835,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 107,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 108,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 109,
+      "weeks": 837,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 110,
+      "weeks": 764,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 111,
+      "weeks": 790,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 112,
+      "weeks": 896,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 113,
+      "weeks": 933,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 114,
+      "weeks": 966,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 115,
+      "weeks": 860,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 116,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 117,
+      "weeks": 827,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 118,
+      "weeks": 807,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 119,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 120,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 121,
+      "weeks": 723,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 122,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 123,
+      "weeks": 829,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 124,
+      "weeks": 834,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 125,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 126,
+      "weeks": 792,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 127,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 128,
+      "weeks": 894,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 129,
+      "weeks": 880,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 130,
+      "weeks": 782,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 131,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 132,
+      "weeks": 846,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 133,
+      "weeks": 988,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 134,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 135,
+      "weeks": 931,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 136,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 137,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 138,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 139,
+      "weeks": 790,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 140,
+      "weeks": 838,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 141,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 142,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 143,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 144,
+      "weeks": 807,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 145,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 146,
+      "weeks": 1017,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 147,
+      "weeks": 818,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 148,
+      "weeks": 804,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 149,
+      "weeks": 827,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 150,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 151,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 152,
+      "weeks": 835,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 153,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 154,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 155,
+      "weeks": 775,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 156,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 157,
+      "weeks": 818,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 158,
+      "weeks": 945,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 159,
+      "weeks": 780,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 160,
+      "weeks": 798,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 161,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 162,
+      "weeks": 819,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 163,
+      "weeks": 890,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 164,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 165,
+      "weeks": 758,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 166,
+      "weeks": 775,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 167,
+      "weeks": 920,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 168,
+      "weeks": 801,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 169,
+      "weeks": 790,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 170,
+      "weeks": 797,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 171,
+      "weeks": 787,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 172,
+      "weeks": 827,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 173,
+      "weeks": 804,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 174,
+      "weeks": 838,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 175,
+      "weeks": 816,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 176,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 177,
+      "weeks": 807,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 178,
+      "weeks": 821,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 179,
+      "weeks": 826,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 180,
+      "weeks": 778,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 181,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 182,
+      "weeks": 863,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 183,
+      "weeks": 807,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 184,
+      "weeks": 828,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 185,
+      "weeks": 873,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 186,
+      "weeks": 788,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 187,
+      "weeks": 781,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 188,
+      "weeks": 806,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 189,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 190,
+      "weeks": 805,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 191,
+      "weeks": 775,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 192,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 193,
+      "weeks": 914,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 194,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "sensible",
+      "seed": 195,
+      "weeks": 914,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 196,
+      "weeks": 747,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 197,
+      "weeks": 791,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 198,
+      "weeks": 1022,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 199,
+      "weeks": 817,
+      "reason": "retired"
+    },
+    {
+      "bot": "sensible",
+      "seed": 200,
+      "weeks": 798,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 1,
+      "weeks": 806,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 2,
+      "weeks": 788,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 3,
+      "weeks": 797,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 4,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 5,
+      "weeks": 814,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 6,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 7,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 8,
+      "weeks": 877,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 9,
+      "weeks": 870,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 10,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 11,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 12,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 13,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 14,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 15,
+      "weeks": 868,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 16,
+      "weeks": 945,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 17,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 18,
+      "weeks": 818,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 19,
+      "weeks": 796,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 20,
+      "weeks": 954,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 21,
+      "weeks": 800,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 22,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 23,
+      "weeks": 790,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 24,
+      "weeks": 780,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 25,
+      "weeks": 979,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 26,
+      "weeks": 826,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 27,
+      "weeks": 790,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 28,
+      "weeks": 797,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 29,
+      "weeks": 883,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 30,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 31,
+      "weeks": 806,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 32,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 33,
+      "weeks": 789,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 34,
+      "weeks": 969,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 35,
+      "weeks": 821,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 36,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 37,
+      "weeks": 909,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 38,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 39,
+      "weeks": 883,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 40,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 41,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 42,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 43,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 44,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 45,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 46,
+      "weeks": 852,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 47,
+      "weeks": 872,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 48,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 49,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 50,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 51,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 52,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 53,
+      "weeks": 870,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 54,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 55,
+      "weeks": 877,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 56,
+      "weeks": 976,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 57,
+      "weeks": 940,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 58,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 59,
+      "weeks": 774,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 60,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 61,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 62,
+      "weeks": 805,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 63,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 64,
+      "weeks": 966,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 65,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 66,
+      "weeks": 942,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 67,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 68,
+      "weeks": 870,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 69,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 70,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 71,
+      "weeks": 933,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 72,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 73,
+      "weeks": 868,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 74,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 75,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 76,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 77,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 78,
+      "weeks": 856,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 79,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 80,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 81,
+      "weeks": 652,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 82,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 83,
+      "weeks": 891,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 84,
+      "weeks": 856,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 85,
+      "weeks": 726,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 86,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 87,
+      "weeks": 799,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 88,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 89,
+      "weeks": 660,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 90,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 91,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 92,
+      "weeks": 940,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 93,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 94,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 95,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 96,
+      "weeks": 786,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 97,
+      "weeks": 882,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 98,
+      "weeks": 927,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 99,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 100,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 101,
+      "weeks": 810,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 102,
+      "weeks": 796,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 103,
+      "weeks": 950,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 104,
+      "weeks": 994,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 105,
+      "weeks": 861,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 106,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 107,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 108,
+      "weeks": 782,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 109,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 110,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 111,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 112,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 113,
+      "weeks": 811,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 114,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 115,
+      "weeks": 799,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 116,
+      "weeks": 778,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 117,
+      "weeks": 797,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 118,
+      "weeks": 867,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 119,
+      "weeks": 1015,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 120,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 121,
+      "weeks": 786,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 122,
+      "weeks": 1033,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 123,
+      "weeks": 927,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 124,
+      "weeks": 790,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 125,
+      "weeks": 807,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 126,
+      "weeks": 836,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 127,
+      "weeks": 817,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 128,
+      "weeks": 828,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 129,
+      "weeks": 871,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 130,
+      "weeks": 776,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 131,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 132,
+      "weeks": 836,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 133,
+      "weeks": 50,
+      "reason": "runway"
+    },
+    {
+      "bot": "balanced",
+      "seed": 134,
+      "weeks": 908,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 135,
+      "weeks": 820,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 136,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 137,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 138,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 139,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 140,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 141,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 142,
+      "weeks": 942,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 143,
+      "weeks": 867,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 144,
+      "weeks": 808,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 145,
+      "weeks": 940,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 146,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 147,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 148,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 149,
+      "weeks": 803,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 150,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 151,
+      "weeks": 856,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 152,
+      "weeks": 800,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 153,
+      "weeks": 795,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 154,
+      "weeks": 786,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 155,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 156,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 157,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 158,
+      "weeks": 780,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 159,
+      "weeks": 852,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 160,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 161,
+      "weeks": 840,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 162,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 163,
+      "weeks": 868,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 164,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 165,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 166,
+      "weeks": 789,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 167,
+      "weeks": 858,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 168,
+      "weeks": 877,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 169,
+      "weeks": 795,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 170,
+      "weeks": 812,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 171,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 172,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 173,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 174,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 175,
+      "weeks": 732,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 176,
+      "weeks": 778,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 177,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 178,
+      "weeks": 803,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 179,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 180,
+      "weeks": 899,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 181,
+      "weeks": 825,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 182,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 183,
+      "weeks": 968,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 184,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 185,
+      "weeks": 792,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 186,
+      "weeks": 918,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 187,
+      "weeks": 947,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 188,
+      "weeks": 797,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 189,
+      "weeks": 815,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 190,
+      "weeks": 791,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 191,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 192,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 193,
+      "weeks": 847,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 194,
+      "weeks": 813,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 195,
+      "weeks": 795,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 196,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 197,
+      "weeks": 818,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 198,
+      "weeks": 1040,
+      "reason": "anniversary"
+    },
+    {
+      "bot": "balanced",
+      "seed": 199,
+      "weeks": 811,
+      "reason": "retired"
+    },
+    {
+      "bot": "balanced",
+      "seed": 200,
+      "weeks": 816,
+      "reason": "retired"
+    }
+  ]
+}

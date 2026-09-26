@@ -1,0 +1,2 @@
+PASS: 400 unique bot runs; 34 valid browser windows, 68 virtual minutes; 2 immediate-retirement windows excluded; 0 browser errors; table counts reconcile.
+PASS: 84 template prompts, 2 event prompts, 363 displayed toasts, 79 Conference Booth confirmations at 1x.
