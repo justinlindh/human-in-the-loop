@@ -7,6 +7,7 @@ import { CHAT_CHANNELS } from '../contract/events.js';
 import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './settings.js';
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
+import { memeView, createMemeBox } from './memes.js';
 
 const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
@@ -70,6 +71,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   head.insertBefore(posts.headBtn, head.querySelector('.ysizes'));
   root.append(el);
 
+  const memeBox = createMemeBox(root.closest('.hitl') ?? root);
   const saved = loadSettings();
   let size = SIZES[saved.yakSize] ? saved.yakSize : 'small';
   let height = Number.isFinite(saved.yakHeight) ? saved.yakHeight : null;
@@ -147,7 +149,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
       avatar(m),
       h('div.mcol', null,
         h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${dateOf(m.week).week}` })),
-        h('div.mtext', null, ...withMentions(m.text)),
+        m.image ? (memeView(m.image, { onOpen: (im) => memeBox.open(im) }) ?? h('div.mtext', null, ...withMentions(m.text))) : h('div.mtext', null, ...withMentions(m.text)),
         reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
   }
 
@@ -212,7 +214,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   function add(e, week, { quiet: silent = false } = {}) {
     if (e.type === 'say') return;
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
-    const m = { important: e.important === true, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
+    const m = { important: e.important === true, image: e.image?.id ? { id: e.image.id, alt: e.image.alt ?? e.text ?? '' } : null, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
     const msgs = store[channel];
     msgs.push(m);
     const dropped = msgs.length > MAX_PER_CHANNEL ? msgs.shift() : null;
@@ -283,5 +285,9 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   if (phoneLayout()) toggle(true);
   applySize();
   return { add, toggle, update, reset, el, setMax, get maximized() { return maximized; },
-    onKey(e) { if (maximized && e.key === 'Escape') { e.preventDefault(); setMax(false); return true; } return false; } };
+    onKey(e) {
+      if (e.key === 'Escape' && memeBox.close()) { e.preventDefault(); return true; }
+      if (maximized && e.key === 'Escape') { e.preventDefault(); setMax(false); return true; }
+      return false;
+    } };
 }

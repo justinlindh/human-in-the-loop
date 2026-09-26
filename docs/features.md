@@ -163,6 +163,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Layout**: drag the top edge to resize, maximise into a large overlay, or collapse it (collapsed by default on phones).
 - **Mentions**: "@channel" and "@here" render as mention pills.
 - **Bots**: @launchbot, @pagerbot (SEV lines), @vendorbot, @newsbot, @dealbot, @saasies, @facilities, @officebot, @buildbot and @hackerspewsbot ("Show HS: Notes but with AI").
+- **Image memes**: a Yak post that carries a picture shows it framed in the message, larger in the big Yak; a tap opens it over the game and a tap or Esc closes it. A picture that fails to load reads as its caption instead.
 - **Reply prompts**: a staff post with two or three founder replies, each with its effect hint; a flag on the Yak header points to an open one, and ignoring it has its own consequence.
   - **Strain vent**: "Is it just me or has this sprint been three sprints?" Friday off, or ship Friday then rest. `id: strain_vent`
   - **Incident blame**: "Okay, who pushed to prod on a Friday?" A blameless postmortem, or fix it and talk later. `id: incident_blame`
