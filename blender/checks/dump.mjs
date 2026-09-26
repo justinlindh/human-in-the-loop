@@ -26,6 +26,7 @@
 // <dir>/NNNN-annotated.png (ids, boxes, facing arrows, gaze rays, hands). Query it with
 // dump-query.mjs. Units and fields are described in dump.js. Renders on the GPU (--software for
 // SwiftShader), under the render lock the harness takes.
+import { spotReasons } from '../../src/render/spots.js';
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -96,6 +97,7 @@ try {
   }
   writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: target ? { snapshot: target.file, row } : Object.fromEntries(q), warm, frames: dumped }, null, 1));
   const last = dumped[dumped.length - 1];
+  for (const line of spotReasons(last.spotSearches)) console.log(`spots: ${line}`);
   console.log(`dump: ${dumped.length} frame(s), ${last.people.length} people, ${last.items.length} items, ${last.props.length} props -> ${out}/dump.json (${H.renderer})`);
   if (errors.length) { console.error(`dump: page errors: ${errors.slice(0, 3).join('; ')}`); process.exitCode = 1; }
 } finally {

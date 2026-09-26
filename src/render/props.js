@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { tileCenter, footprint } from './layout.js';
 import { roundedBox, roundedCylinder, mesh } from './prims.js';
@@ -389,6 +390,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
   // Defaults read at call time: the constants are declared further down.
   return (L, anchor, env) => {
     const g = new THREE.Group();
+    g.userData.spotMoment = anchor.prop;
     // Oversized, like the rest of the furniture, so a small thing still reads at gameplay zoom.
     const item = build();
     item.scale.setScalar(scale);
@@ -414,8 +416,8 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         for (const d of near) {
           const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
           item.scale.setScalar(scale);
-          spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl);
-          for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl); }
+          spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl, spotDebug(env.office), anchor.prop);
+          for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl, spotDebug(env.office), anchor.prop); }
           if (spot) { desk = d; break; }
         }
         // Still no room on its own desk: it may take the sitter's hand zone (the thing is theirs,
@@ -424,8 +426,8 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         if (!spot && mine) {
           const others = (env.onDesk ?? []).filter((r) => r.deskId === e.id);
           item.scale.setScalar(scale);
-          spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false);
-          for (let k = 0; !spot && k < 6; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false); }
+          spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false, spotDebug(env.office), anchor.prop);
+          for (let k = 0; !spot && k < 6; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(e, g, lx, lz, rot, overhang, around, others, false, spotDebug(env.office), anchor.prop); }
         }
       }
       if (spot) {
@@ -467,24 +469,20 @@ function clearSpot(L, office, g, c) {
   // can put a floor prop against it.
   const furniture = [...(office.placed?.values() ?? [])].filter((o) => o.obj).map((o) => new THREE.Box3().setFromObject(o.obj)).filter((f) => f.min.y < b.max.y);
   const fits = (x, z) => {
-    if (x + b.min.x < -L.W / 2 + 0.15 || x + b.max.x > L.W / 2 - 0.15 || z + b.min.z < -L.D / 2 + 0.15 || z + b.max.z > L.D / 2 - 0.15) return false;
-    if (door && Math.hypot(x - door.x, z - door.z) < DOOR_CLEAR) return false;
-    if (furniture.some((f) => x + b.min.x < f.max.x + 0.02 && x + b.max.x > f.min.x - 0.02 && z + b.min.z < f.max.z + 0.02 && z + b.max.z > f.min.z - 0.02)) return false;
+    if (x + b.min.x < -L.W / 2 + 0.15 || x + b.max.x > L.W / 2 - 0.15 || z + b.min.z < -L.D / 2 + 0.15 || z + b.max.z > L.D / 2 - 0.15) return 'room bounds';
+    if (door && Math.hypot(x - door.x, z - door.z) < DOOR_CLEAR) return 'door clearance';
+    if (furniture.some((f) => x + b.min.x < f.max.x + 0.02 && x + b.max.x > f.min.x - 0.02 && z + b.min.z < f.max.z + 0.02 && z + b.max.z > f.min.z - 0.02)) return 'furniture footprint';
     for (let sx = b.min.x - WALK_ROOM; sx <= b.max.x + WALK_ROOM + 1e-6; sx += 0.2) {
-      for (let sz = b.min.z - WALK_ROOM; sz <= b.max.z + WALK_ROOM + 1e-6; sz += 0.2) if (nav.isBlocked(x + sx, z + sz)) return false;
+      for (let sz = b.min.z - WALK_ROOM; sz <= b.max.z + WALK_ROOM + 1e-6; sz += 0.2) if (nav.isBlocked(x + sx, z + sz)) return 'walk clearance';
     }
     return true;
   };
-  if (fits(c.x, c.z)) return c;
-  for (let d = 0.25; d < 8; d += 0.25) {
-    const n = Math.max(8, Math.round(d * 12));
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2, x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
-      if (fits(x, z)) return { x, z };
-    }
-  }
-  return c;
+  return pickSpot(c, { ring: { centerFirst: true, radii: Array.from({ length: 31 }, (_, i) => (i + 1) * 0.25), count: (d) => Math.max(8, Math.round(d * 12)) },
+    needs: ['clear'], checks: { clear: (q) => fits(q.x, q.z) }, fallback: c,
+    debug: spotDebug(office), moment: g.userData.spotMoment ?? 'props', search: 'floor',
+  });
 }
+
 // Free desk top, per desk model: a grid over the top marking cells where something already stands
 // (monitor, keyboard, mug, plant, papers, era dressing), found by rasterising the desk's triangles
 // that rise above the top. The sitter's hands keep the front middle clear too.
@@ -544,18 +542,18 @@ function deskGrid(e, hands = true) {
 // `others` (desk-frame rects of the props already on this desk); with that rect.
 // overhang: how far past the desk's side edges the prop may stick out (a stack of boxes), and only
 // where none of `around` (world boxes of the items near the desk) is under the part that sticks out.
-function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = [], hands = true) {
+function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = [], hands = true, debug, moment) {
   g.position.set(0, 0, 0);
   g.rotation.y = rot;
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
   const { cells, nx, nz } = deskGrid(e, hands);
   const fits = (x, z) => {
-    if (x + b.min.x < -TOP_X - overhang || x + b.max.x > TOP_X + overhang || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return false;
-    if (others.some((r) => x + b.min.x < r.x1 + 0.01 && x + b.max.x > r.x0 - 0.01 && z + b.min.z < r.z1 + 0.01 && z + b.max.z > r.z0 - 0.01)) return false;
+    if (x + b.min.x < -TOP_X - overhang || x + b.max.x > TOP_X + overhang || z + b.min.z < TOP_Z0 || z + b.max.z > TOP_Z1) return 'desk bounds';
+    if (others.some((r) => x + b.min.x < r.x1 + 0.01 && x + b.max.x > r.x0 - 0.01 && z + b.min.z < r.z1 + 0.01 && z + b.max.z > r.z0 - 0.01)) return 'another desk prop';
     const i0 = Math.floor((x + b.min.x + TOP_X) / CELL), i1 = Math.floor((x + b.max.x + TOP_X) / CELL);
     const k0 = Math.floor((z + b.min.z - TOP_Z0) / CELL), k1 = Math.floor((z + b.max.z - TOP_Z0) / CELL);
-    for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return false;
+    for (let k = Math.max(0, k0); k <= Math.min(nz - 1, k1); k++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) if (cells[i + k * nx]) return 'desk clutter or hand zone';
     if (around.length && (x + b.min.x < -TOP_X || x + b.max.x > TOP_X)) {
       // The overhanging part, sampled on a 4 cm grid, in world space at the desk top's height.
       const x0 = x + b.min.x, x1 = x + b.max.x, z0 = z + b.min.z, z1 = z + b.max.z;
@@ -563,22 +561,18 @@ function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = [], han
         if (px >= -TOP_X && px <= TOP_X) continue;
         for (let pz = z0; pz <= z1 + 1e-6; pz += 0.04) {
           const w = OVER.set(px, TOP_Y + 0.05, pz).applyMatrix4(e.obj.matrixWorld);
-          if (around.some((a) => a.containsPoint(w))) return false;
+          if (around.some((a) => a.containsPoint(w))) return 'overhang blocked';
         }
       }
     }
     return true;
   };
   const at = (x, z) => ({ x, z, rect: { x0: x + b.min.x, x1: x + b.max.x, z0: z + b.min.z, z1: z + b.max.z } });
-  if (fits(lx, lz)) return at(lx, lz);
-  for (let d = CELL; d < 1.4; d += CELL) {
-    const n = Math.max(8, Math.round(d * 60));
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2, x = lx + Math.cos(a) * d, z = lz + Math.sin(a) * d;
-      if (fits(x, z)) return at(x, z);
-    }
-  }
-  return null;
+  function* radii() { for (let d = CELL; d < 1.4; d += CELL) yield d; }
+  const spot = pickSpot({ x: lx, z: lz }, { ring: { centerFirst: true, radii: radii(), count: (d) => Math.max(8, Math.round(d * 60)) },
+    needs: ['clear'], checks: { clear: (q) => fits(q.x, q.z) }, debug, moment, search: 'desk',
+  });
+  return spot && at(spot.x, spot.z);
 }
 
 // Put a desk-following prop where its desk is now (it may be sliding to a new spot).
@@ -609,17 +603,21 @@ function counterSpot(office, g, near) {
   const nw = Math.ceil((b.max.x - b.min.x) / CELL), nd = Math.ceil((b.max.z - b.min.z) / CELL);
   const items = [...(office.placed?.values() ?? [])].filter((o) => COUNTERS.has(o.itemId) && o.target)
     .sort((a, c) => Math.hypot(a.target.x - near.target.x, a.target.z - near.target.z) - Math.hypot(c.target.x - near.target.x, c.target.z - near.target.z));
-  for (const it of items.slice(0, 4)) for (const grid of counterGrid(it, tall)) {
-    const { free, nx, nz, x0, z0, y } = grid;
-    for (let i = 0; i + nw <= nx; i++) {
-      for (let k = 0; k + nd <= nz; k++) {
-        let ok = true;
-        for (let a = 0; a < nw && ok; a++) for (let c = 0; c < nd; c++) if (!free[i + a + (k + c) * nx]) { ok = false; break; }
-        if (ok) return { x: x0 + (i + nw / 2) * CELL, y, z: z0 + (k + nd / 2) * CELL };
+  function* candidates() {
+    for (const it of items.slice(0, 4)) for (const grid of counterGrid(it, tall)) {
+      const { nx, nz, x0, z0, y } = grid;
+      for (let i = 0; i + nw <= nx; i++) for (let k = 0; k + nd <= nz; k++) {
+        yield { x: x0 + (i + nw / 2) * CELL, y, z: z0 + (k + nd / 2) * CELL, grid, i, k };
       }
     }
   }
-  return null;
+  const spot = pickSpot(near.target, { candidates: candidates(), needs: ['clear'], checks: {
+    clear: ({ grid: { free, nx }, i, k }) => {
+      for (let a = 0; a < nw; a++) for (let c = 0; c < nd; c++) if (!free[i + a + (k + c) * nx]) return 'counter footprint blocked';
+      return true;
+    },
+  }, debug: spotDebug(office), moment: g.userData.spotMoment ?? 'props', search: 'counter' });
+  return spot && { x: spot.x, y: spot.y, z: spot.z };
 }
 
 // A table or counter top as grids of CELL cells in world space, one per surface level: flat, upward
@@ -951,6 +949,7 @@ function rackHot(L, anchor, env) {
     rack.userData.shared = true;
     g.add(rack);
     const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+    g.userData.spotMoment = anchor.prop;
     const q = clearSpot(L, env.office, g, { x: c.x, z: c.z });
     box = new THREE.Box3().setFromObject(rack);
     g.position.set(q.x, 0, q.z);
@@ -1089,6 +1088,7 @@ const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when
 function byDoor(build, scale = 1, rot = 0.4) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
+    g.userData.spotMoment = anchor.prop;
     const item = build();
     item.scale.setScalar(scale);
     g.add(item);
@@ -1098,13 +1098,15 @@ function byDoor(build, scale = 1, rot = 0.4) {
       // that leaves it shows from either side.
       const cols = (L.blocked ?? []).map(([bx, by]) => ({ x: bx + 0.5 - L.W / 2, z: by + 0.5 - L.D / 2 }));
       const l = Math.hypot(d.x, d.z) || 1, inx = -d.x / l, inz = -d.z / l;
-      let p = null, best = -1;
-      search: for (const along of WRECK_IN) for (const side of [0, 1, -1, 2, -2]) {
-        const q = clearSpot(L, env.office, g, { x: d.x + inx * along - inz * side, z: d.z + inz * along + inx * side });
-        const gap = Math.min(Infinity, ...cols.map((c) => Math.hypot(c.x - q.x, c.z - q.z)));
-        if (gap > best) { best = gap; p = q; }
-        if (gap >= WRECK_COLUMN_GAP) break search;
+      function* candidates() {
+        for (const along of WRECK_IN) for (const side of [0, 1, -1, 2, -2]) {
+          yield clearSpot(L, env.office, g, { x: d.x + inx * along - inz * side, z: d.z + inz * along + inx * side });
+        }
       }
+      const p = pickSpot(d, { candidates: candidates(), minScore: -WRECK_COLUMN_GAP,
+        score: (q) => -Math.min(WRECK_COLUMN_GAP, ...cols.map((c) => Math.hypot(c.x - q.x, c.z - q.z))),
+        debug: spotDebug(env.office), moment: anchor.prop, search: 'doorColumns',
+      });
       g.position.set(p.x, 0, p.z);
       g.userData.blocks = true;
     }
