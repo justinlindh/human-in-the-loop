@@ -6,9 +6,9 @@
 //   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json]
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
-// A rule with known: <issue> fails as KNOWN (not failing the run) while that issue is open; once the
-// issue is closed, the rule fails again. Issue states come from gh, once per run; if gh can't be
-// reached, markers count as open and the run says so.
+// A rule with known: <issue> fails as KNOWN (not failing the run) until that issue is fixed: closed by
+// a merged PR or commit that changed game code. Then the rule fails again. Issue states come from gh,
+// once per run; if gh can't be reached, markers count as open and the run says so.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
@@ -109,6 +109,23 @@ const SPECS = {
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
     visibleRule, noFade,
   ] },
+  // The efficiency consultants: the seated one and the nervous colleague face each other across the
+  // view, both turned three-quarters to the camera; the one with the clipboard stands behind, in view.
+  // (Their own scenario: the moment is the visitor one.)
+  'consultants.consultant': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'consultant', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('atInterviewee', 'face within 60 deg of the interviewee', (x) => x.targetAngle <= 60, 0.8),
+    visibleRule,
+  ] },
+  'consultants.clipboard': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'clipboard', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    visibleRule,
+  ] },
+  'consultants.interviewee': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'interviewee', rules: [
+    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.8),
+    visibleRule,
+  ] },
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
@@ -146,15 +163,37 @@ const SCENARIOS = {
   screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
+  // The consultants at the HQ door, where the sim stages their chair.
+  consultants: { query: 'mock=hq', patch: {}, seconds: 16,
+    steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
-// The issues known rules point at, and which of them are closed: a closed one no longer excuses.
+// The issues known rules point at, and which of them are fixed: closed by a merged PR (or a commit)
+// that changed game code (src/ or public/: a staging fix may be in render, sim or data). A fixed issue
+// no longer excuses its rules. An issue closed any other way (by hand, or by a PR that only mentions
+// it) still excuses them, with a note to reopen it, so closing an issue early never turns every PR red.
+const gh = (...a) => execFileSync('gh', a, { timeout: 15000, encoding: 'utf8' }).trim();
+const GAME = /^(src|public)\//;
 const closedIssues = new Set();
 for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) => r.known)).filter(Boolean))) {
   try {
-    const state = execFileSync('gh', ['issue', 'view', String(n), '--json', 'state', '-q', '.state'], { timeout: 15000, encoding: 'utf8' }).trim();
-    if (state === 'CLOSED') closedIssues.add(n);
+    // gh fills {owner} and {repo} from this checkout's repository.
+    const q = 'query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issue(number:$n){state timelineItems(itemTypes:[CLOSED_EVENT],last:1){nodes{... on ClosedEvent{closer{__typename ... on PullRequest{number merged} ... on Commit{oid}}}}}}}}';
+    const issue = JSON.parse(gh('api', 'graphql', '-f', `query=${q}`, '-F', 'owner={owner}', '-F', 'repo={repo}', '-F', `n=${n}`)).data.repository.issue;
+    if (issue.state !== 'CLOSED') continue;
+    const closer = issue.timelineItems.nodes[0]?.closer ?? null;
+    let files = [], by = 'hand';
+    if (closer?.__typename === 'PullRequest' && closer.merged) {
+      by = `#${closer.number}`;
+      // Paged, so a fix with hundreds of files is read whole.
+      files = gh('api', '--paginate', `repos/{owner}/{repo}/pulls/${closer.number}/files`, '--jq', '.[].filename').split('\n');
+    } else if (closer?.__typename === 'Commit') {
+      by = closer.oid.slice(0, 7);
+      files = gh('api', '--paginate', `repos/{owner}/{repo}/commits/${closer.oid}`, '--jq', '.files[].filename').split('\n');
+    } else if (closer?.__typename === 'PullRequest') by = `#${closer.number} (not merged)`;
+    if (files.some((f) => GAME.test(f))) closedIssues.add(n);
+    else console.log(`stage: issue #${n} was closed by ${by}, which changed no game code; its known rules still excuse. Reopen #${n} until its fix merges.`);
   } catch {
     console.log(`stage: could not read issue #${n} (gh unavailable?); its known rules count as open`);
   }
@@ -169,18 +208,19 @@ const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice
 const H = await startHarness({ browsers: JOBS });
 const wanted = Object.entries(SPECS).filter(([k]) => !ONLY || ONLY.some((o) => k === o || k.startsWith(`${o}.`)));
 const byMoment = new Map();
-for (const [k, s] of wanted) byMoment.set(s.moment, [...(byMoment.get(s.moment) ?? []), [k, s]]);
+// Grouped by scenario: a spec runs in its moment's scenario unless it names its own.
+for (const [k, s] of wanted) { const key = s.scenario ?? s.moment; byMoment.set(key, [...(byMoment.get(key) ?? []), [k, s]]); }
 
 // Each moment in each view is its own page, run a few at a time on separate browsers.
 const tasks = [];
-for (const [moment, specs] of byMoment) for (const view of views) tasks.push({ moment, specs, view });
+for (const [scenario, specs] of byMoment) for (const view of views) tasks.push({ moment: specs[0][1].moment, scenario, specs, view });
 const results = new Map();
 let next = 0;
 await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_, slot) => {
   while (next < tasks.length) {
     const task = tasks[next++];
     const { moment, view } = task;
-    const sc = SCENARIOS[moment];
+    const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
     const res = await page.evaluate(async ({ moment, patch, steps, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;

@@ -62,7 +62,7 @@ Conventions:
 - **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
 - **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. `id: floor_next_door`
-- **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. `capture 2-1-build-mode`
+- **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
 - **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
 - **Meeting table**: standups gather round it and tuck the chairs in. `id: meeting_table`
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
@@ -243,7 +243,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, how much Yak asks for attention, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
 - **Yak level**: All, Important or Off, in Settings and on a button in Yak's header. Important counts only incidents, wins and bot posts as new; Off keeps Yak shut with no unread count. A reply prompt still shows its Reply mark at every level.
 - **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.
-- **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline.
+- **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline (levels, promotions, traits, training, a chosen path, becoming a legend) that is saved with the game.
 
 ## Touch and low-end support
 
