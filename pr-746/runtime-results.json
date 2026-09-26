@@ -1,0 +1,1663 @@
+[
+  {
+    "kind": "normal1",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 110,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 11.4,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 12.033333333333333,
+        "week": 111,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 16.033333333333335,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 16.666666666666668,
+        "week": 112,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 20.666666666666668,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 21.6,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "normal2",
+    "startedWeek": 110,
+    "endedWeek": 114,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 1.3666666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 4.5,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 5.1,
+        "week": 111,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 9.2,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 9.833333333333334,
+        "week": 112,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 13.266666666666667,
+        "week": 113,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 13.933333333333334,
+        "week": 113,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 17.4,
+        "week": 114,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 18.333333333333332,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "normal4",
+    "startedWeek": 110,
+    "endedWeek": 119,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 1.3666666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 4.5,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 5.1,
+        "week": 112,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 9.2,
+        "week": 114,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 9.833333333333334,
+        "week": 114,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 13.266666666666667,
+        "week": 116,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 13.933333333333334,
+        "week": 116,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 17.4,
+        "week": 118,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 18.333333333333332,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "speed",
+    "startedWeek": 110,
+    "endedWeek": 119,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 112,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 10.9,
+        "week": 114,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 11.533333333333333,
+        "week": 114,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 15,
+        "week": 116,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 15.633333333333333,
+        "week": 116,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 19.1,
+        "week": 118,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 20.033333333333335,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "pause",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 110,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 11.4,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 12.033333333333333,
+        "week": 111,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 16.033333333333335,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 16.666666666666668,
+        "week": 112,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 20.666666666666668,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 21.6,
+    "resolvedAt": null,
+    "pauseStable": true,
+    "menuBusy": false,
+    "errors": []
+  },
+  {
+    "kind": "menu",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 110,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 11.4,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 12.033333333333333,
+        "week": 111,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 16.033333333333335,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 16.666666666666668,
+        "week": 112,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 20.666666666666668,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 21.6,
+    "resolvedAt": null,
+    "pauseStable": true,
+    "menuBusy": true,
+    "errors": []
+  },
+  {
+    "kind": "priority",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 2.5,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 5.233333333333333,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 8.933333333333334,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 9.566666666666666,
+        "week": 110,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 14.166666666666666,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 14.8,
+        "week": 111,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 18.8,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 19.433333333333334,
+        "week": 112,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 23.433333333333334,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 24.366666666666667,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "depart",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 110,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 10.8,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 11.433333333333334,
+        "week": 111,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 15.433333333333334,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 16.366666666666667,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "remote",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 110,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 10.8,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 11.433333333333334,
+        "week": 111,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 15.433333333333334,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 16.366666666666667,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "sabbatical",
+    "startedWeek": 110,
+    "endedWeek": 112,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.466666666666667,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.166666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 6.8,
+        "week": 110,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 10.8,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 11.433333333333334,
+        "week": 111,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 15.433333333333334,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 16.366666666666667,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "outage4",
+    "startedWeek": 110,
+    "endedWeek": 122,
+    "lines": [
+      {
+        "staffId": "s555",
+        "text": "Where do we start with the outage?"
+      },
+      {
+        "staffId": "s163",
+        "text": "Product 1 is still down. Start with the logs."
+      },
+      {
+        "staffId": "s2",
+        "text": "I will keep the questions in one place while you look."
+      },
+      {
+        "staffId": "s1",
+        "text": "Include what we tried, so nobody tries it twice."
+      },
+      {
+        "staffId": "s552",
+        "text": "And mark guesses as guesses. Even confident ones."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "gather",
+          "n": 5,
+          "i": 0
+        },
+        "outage": true
+      },
+      {
+        "t": 1.5333333333333334,
+        "week": 110,
+        "texts": [
+          "Where do we start with the outage?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 1
+        },
+        "outage": true
+      },
+      {
+        "t": 4.8,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 5.4,
+        "week": 112,
+        "texts": [
+          "Product 1 is still down. Start with the logs."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 9.366666666666667,
+        "week": 114,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 10,
+        "week": 115,
+        "texts": [
+          "I will keep the questions in one place while you look."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 14.6,
+        "week": 117,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 15.233333333333333,
+        "week": 117,
+        "texts": [
+          "Include what we tried, so nobody tries it twice."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 19.433333333333334,
+        "week": 119,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 20.066666666666666,
+        "week": 120,
+        "texts": [
+          "And mark guesses as guesses. Even confident ones."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 5
+        },
+        "outage": false
+      },
+      {
+        "t": 24.366666666666667,
+        "week": 122,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 5,
+          "i": 5
+        },
+        "outage": false
+      }
+    ],
+    "ended": 25.3,
+    "resolvedAt": 2,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  },
+  {
+    "kind": "denied",
+    "startedWeek": 110,
+    "endedWeek": 113,
+    "lines": [
+      {
+        "staffId": "s1",
+        "text": "What needs another pair of eyes?"
+      },
+      {
+        "staffId": "s2",
+        "text": "The plan. I have three answers to one question."
+      },
+      {
+        "staffId": "s89",
+        "text": "Let us try the smallest answer first."
+      },
+      {
+        "staffId": "s1",
+        "text": "Good. I will bring one question back."
+      }
+    ],
+    "trace": [
+      {
+        "t": 0,
+        "week": 110,
+        "texts": [
+          "Please wait while I check the priority question."
+        ],
+        "standup": {
+          "phase": "gather",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 2.2333333333333334,
+        "week": 110,
+        "texts": [
+          "Please wait while I check the priority question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 4.666666666666667,
+        "week": 110,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 0
+        },
+        "outage": false
+      },
+      {
+        "t": 4.7,
+        "week": 110,
+        "texts": [
+          "What needs another pair of eyes?"
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 8.4,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 1
+        },
+        "outage": false
+      },
+      {
+        "t": 9.033333333333333,
+        "week": 111,
+        "texts": [
+          "The plan. I have three answers to one question."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 13.633333333333333,
+        "week": 111,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 2
+        },
+        "outage": false
+      },
+      {
+        "t": 14.266666666666667,
+        "week": 111,
+        "texts": [
+          "Let us try the smallest answer first."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 18.266666666666666,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 3
+        },
+        "outage": false
+      },
+      {
+        "t": 18.9,
+        "week": 112,
+        "texts": [
+          "Good. I will bring one question back."
+        ],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 22.9,
+        "week": 112,
+        "texts": [],
+        "standup": {
+          "phase": "talk",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      },
+      {
+        "t": 23.533333333333335,
+        "week": 113,
+        "texts": [],
+        "standup": {
+          "phase": "close",
+          "n": 3,
+          "i": 4
+        },
+        "outage": false
+      }
+    ],
+    "ended": 23.833333333333332,
+    "resolvedAt": null,
+    "pauseStable": null,
+    "menuBusy": null,
+    "errors": []
+  }
+]

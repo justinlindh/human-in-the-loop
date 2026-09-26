@@ -1,0 +1,14 @@
+PASS normal1: order, full reading holds, single slot, lifecycle
+PASS normal2: order, full reading holds, single slot, lifecycle
+PASS normal4: order, full reading holds, single slot, lifecycle
+PASS speed: order, full reading holds, single slot, lifecycle
+PASS pause: order, full reading holds, single slot, lifecycle
+PASS menu: order, full reading holds, single slot, lifecycle
+PASS priority: order, full reading holds, single slot, lifecycle
+PASS depart: order, full reading holds, single slot, lifecycle
+PASS remote: order, full reading holds, single slot, lifecycle
+PASS sabbatical: order, full reading holds, single slot, lifecycle
+FAIL outage4: stale outage claim at 5.4s after recovery at 2s
+PASS denied: order, full reading holds, single slot, lifecycle
+FAIL two-attendees: opening question and follow-up question have no answer before meeting completion.
+Acceptance failures: 2

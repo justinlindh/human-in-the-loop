@@ -1,0 +1,129 @@
+{
+  "lines": [
+    {
+      "staffId": "s1",
+      "text": "Any questions we are avoiding?"
+    },
+    {
+      "staffId": "s2",
+      "text": "What does done mean for this week?"
+    }
+  ],
+  "trace": [
+    {
+      "t": 0.5666666666666667,
+      "week": 110,
+      "outage": false,
+      "texts": [],
+      "standup": null
+    },
+    {
+      "t": 4.56666666666667,
+      "week": 110,
+      "outage": false,
+      "texts": [],
+      "standup": {
+        "phase": "gather",
+        "n": 2,
+        "i": 0
+      }
+    },
+    {
+      "t": 6.76666666666665,
+      "week": 110,
+      "outage": false,
+      "texts": [],
+      "standup": {
+        "phase": "talk",
+        "n": 2,
+        "i": 0
+      }
+    },
+    {
+      "t": 6.966666666666648,
+      "week": 110,
+      "outage": false,
+      "texts": [
+        "Any questions we are avoiding?"
+      ],
+      "standup": {
+        "phase": "talk",
+        "n": 2,
+        "i": 1
+      }
+    },
+    {
+      "t": 8.566666666666645,
+      "week": 111,
+      "outage": false,
+      "texts": [
+        "Any questions we are avoiding?"
+      ],
+      "standup": {
+        "phase": "talk",
+        "n": 2,
+        "i": 1
+      }
+    },
+    {
+      "t": 10.533333333333347,
+      "week": 111,
+      "outage": false,
+      "texts": [],
+      "standup": {
+        "phase": "talk",
+        "n": 2,
+        "i": 1
+      }
+    },
+    {
+      "t": 11.166666666666691,
+      "week": 111,
+      "outage": false,
+      "texts": [
+        "What does done mean for this week?"
+      ],
+      "standup": {
+        "phase": "talk",
+        "n": 2,
+        "i": 2
+      }
+    },
+    {
+      "t": 15.000000000000094,
+      "week": 111,
+      "outage": false,
+      "texts": [],
+      "standup": {
+        "phase": "talk",
+        "n": 2,
+        "i": 2
+      }
+    },
+    {
+      "t": 15.63333333333344,
+      "week": 111,
+      "outage": false,
+      "texts": [],
+      "standup": {
+        "phase": "close",
+        "n": 2,
+        "i": 2
+      }
+    },
+    {
+      "t": 15.933333333333445,
+      "week": 111,
+      "outage": false,
+      "texts": [],
+      "standup": null
+    },
+    {
+      "t": 16.56666666666678,
+      "week": 112,
+      "outage": false,
+      "texts": [],
+      "standup": null
+    }
+  ]
+}
