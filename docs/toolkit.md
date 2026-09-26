@@ -25,7 +25,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 
 The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser work under a render lock. Stop processes by PID, never with `pkill -f` or `pgrep -f`.
 
-Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
+Scene pose checks measure `faceVisible` at seven named facial surface landmarks on each requested frame, with its own occluder; `bodyVisible` retains the separately cached whole-character probe. `faceCovered` and `facePx` describe the projected drawn-head rectangle. See [pose metric definitions and limitations](toolkit/pose.md#scene-metrics). Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
 
 For held-prop contact and penetration, use scene pose rules `heldGap`, `heldHeadDepth` and `heldTorsoDepth` with `--every 1` through the entire carry and hold. See [pose](toolkit/pose.md) for units and missing-prop behavior.
 

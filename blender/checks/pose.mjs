@@ -24,8 +24,8 @@
 //
 // --scene measures people in a staged scene, in a harness page (it renders, so it takes a render
 // slot): for each person, the largest share of their face a bubble, label or emote covers and which,
-// the share of them the camera sees and what hides the rest, the face's angle to the camera and its
-// height on screen in pixels. Its rules use faceCovered, faceVisible, faceCam and facePx, over the
+// the share of seven facial landmarks the camera sees and what hides them, the face's angle to the camera and its
+// drawn head height in pixels. Rules use faceCovered, faceVisible, bodyVisible, faceCam and facePx over the
 // requested frames, for every person listed (or one, with an 'id:' prefix). Missing samples fail.
 // heldHeadDepth and heldTorsoDepth are mesh penetration in metres; heldGap is wrist-to-prop surface
 // distance. An absent prop has null measures and fails these rules. Use --every 1 for a whole hold.
@@ -110,13 +110,13 @@ async function sceneMode() {
       let at = 0;
       for (const f of o.frames) {
         window.__step(Math.max(0, f - at)); at = f;
-        for (const r of M.measureScene(R, S, { who: o.who })) out.push({ frame: f, ...r });
+        for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who }))) out.push({ frame: f, ...r });
       }
       return out;
     }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who });
     const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);
-    console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'visible'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
-    for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
+    console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'faceVis'.padStart(8)} ${'bodyVis'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
+    for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.bodyVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
     const ids = [...new Set(rows.map((r) => r.id))];
     const judged = judgeScene(rows, frames, who, rules);
     if (!judged.pass) code = 1;
@@ -154,7 +154,7 @@ async function checkBrowser(frames) {
   }
 }
 
-const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx', 'heldGap', 'heldHeadDepth', 'heldTorsoDepth', ...HELD_READ_MEASURES];
+const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'bodyVisible', 'faceCam', 'facePx', 'heldGap', 'heldHeadDepth', 'heldTorsoDepth', ...HELD_READ_MEASURES];
 
 // The page a browser check opens serves this checkout, so it can only check this checkout's code.
 const browserMode = argv.includes('--scene') ? '--scene' : argv.includes('--check-browser') ? '--check-browser' : null;
