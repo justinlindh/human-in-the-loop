@@ -204,14 +204,14 @@ export const BUILD_ONLY = `(() => { const st = document.createElement('style'); 
 // A flying-camera swoop (the renderer's fly(), dev only): once `ready` (JS giving the subject's
 // { x, z } or null) first returns a point, orbits in on it from `keys` ([t, angle deg, radius, height,
 // fov], seconds from the start and metres from the subject), looking at it at `lookY` the whole way.
-// Column fade on; labels, tilt-shift and floor rings off. The fly's ceiling and near-camera warnings
-// are pushed as capture marks ('FLYWARN').
+// Column fade on; labels, tilt-shift and floor rings off. New ceiling and near-camera warnings from
+// the fly are pushed as capture marks ('FLYWARN'), each once.
 export const SWOOP = (ready, keys, lookY) => `(() => { const R = window.__hitlRender; if (!R.fly) { console.error('capture: this build has no flying camera'); return; }
   let done = false; const K = ${JSON.stringify(keys.map(([t, a, r, h, fov]) => ({ t, a: (a * Math.PI) / 180, r, h, fov })))};
   const tick = () => { const P = !done && (${ready})(); if (P) { done = true;
     R.fly({ keys: K.map((k) => ({ t: k.t, pos: [P.x + k.r * Math.cos(k.a), k.h, P.z + k.r * Math.sin(k.a)], look: [P.x, ${lookY}, P.z], fov: k.fov })), fade: true, labels: false, tilt: false, rings: false }); }
     if (!done) requestAnimationFrame(tick); }; tick();
-  setInterval(() => { const w = R.flying?.warnings; if (w?.length) (window.__captureMarks ??= []).push({ t: 0, label: 'FLYWARN ' + JSON.stringify(w.slice(0, 3)) }); }, 2000); })()`;
+  let seen = 0; setInterval(() => { const w = R.flying?.warnings ?? []; if (w.length > seen) { (window.__captureMarks ??= []).push({ t: 0, label: 'FLYWARN ' + JSON.stringify(w.slice(seen, seen + 3)) }); seen = w.length; } }, 2000); })()`;
 // Where the printer is set down once the carry nears its end, and the Waffle Party's centre.
 export const PRINTER_DOWN = `() => { const pm = window.__hitlRender.moments.printerState; if (!pm || pm.cue < 8.9) return null; const e = pm.route[pm.route.length - 1]; return { x: e.x, z: e.z }; }`;
 export const PARTY_CENTER = `() => { const c = window.__hitlRender.incentives?.party?.center; return c ? { x: c.x, z: c.z } : null; }`;
