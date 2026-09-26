@@ -288,6 +288,57 @@ export async function runWalkChecks(R, S, { dt = 1 / 30 } = {}) {
   const ids = S.staff.map((p) => p.id);
   const deskOf = (id) => R.perks.peek(id)?.seat;
 
+  // Return twice to the same goal after a pose elsewhere. Each return needs a fresh route,
+  // even though the desk and its goal object are unchanged.
+  {
+    R.perks.hold = true;
+    const who = ids[0], root = charOf(R.scene, who), nav = R.office.nav();
+    const desk = R.office.deskById(deskOf(who));
+    const L = R.office.current.L;
+    const at = nav.freePoint(L.W / 2 - 1, L.D / 2 - 1);
+    const trips = [];
+    for (let trip = 0; trip < 2; trip++) {
+      R.standAt(who, at.x, at.z);
+      R.catchFor(who, { anim: 'celebrate', t: 0.1, keepPos: true });
+      step();
+      let maxStep = 0, walking = 0;
+      for (let f = 0; f < 900; f++) {
+        const before = root.position.clone();
+        step();
+        maxStep = Math.max(maxStep, before.distanceTo(root.position));
+        walking += Number(!!R.perks.peek(who)?.path);
+      }
+      const distance = Math.hypot(root.position.x - desk.seat.x, root.position.z - desk.seat.z);
+      trips.push({ maxStep, walking, distance });
+    }
+    results.push({ name: 'walk:repeatReturn', pass: trips.every((t) => t.maxStep < 0.3 && t.walking > 0 && t.distance < 0.2), trips });
+  }
+
+  // Going away cancels a perk both while approaching it and while resting on it. Returning
+  // must not revive a stale entry point or send the person back across furniture.
+  {
+    R.perks.hold = true;
+    const who = ids[0], person = S.staff.find((p) => p.id === who), root = charOf(R.scene, who);
+    const mood = person.mood, trips = [];
+    for (const settle of [1, 600]) {
+      R.perks.send([who], 'k_couch', { dur: 60 });
+      step(settle);
+      const started = !!R.perks.peek(who)?.temp;
+      person.mood = 'away'; step();
+      const cancelled = !R.perks.peek(who)?.temp;
+      let maxStep = 0;
+      for (let f = 0; f < 900; f++) {
+        const before = root.position.clone(); step();
+        maxStep = Math.max(maxStep, before.distanceTo(root.position));
+      }
+      const hidden = R.walkOf(who).hidden;
+      person.mood = mood; step(900);
+      const returned = !R.walkOf(who).hidden && R.isSeated(who) && !R.perks.peek(who)?.temp;
+      trips.push({ started, cancelled, hidden, returned, maxStep });
+    }
+    results.push({ name: 'walk:awayPerk', pass: trips.every((t) => t.started && t.cancelled && t.hidden && t.returned && t.maxStep < 0.3), trips });
+  }
+
   // 1. A desk dropped across an active walk.
   {
     const who = ids[0];

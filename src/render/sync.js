@@ -15,8 +15,8 @@ import { holdSeconds } from './reading.js';
 // Characters are keyed by staff id; removed staff walk out and are disposed.
 
 const WALK = 1.25;
-const CHAIR_BACK_M = 0.55;
-const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
+const CHAIR_BACK_M = 0.55;     // where a sitter stops before sliding onto the chair
+const BODY_R = 0.2;            // a standing person's footprint radius
 const CELEBRATE_ROOM = 0.25;   // clear floor around someone who stops to celebrate
 const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
 const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
@@ -354,7 +354,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.goalKey = g.key;
         r.goal = g;
         if (g.hidden && !r.hidden) {
+          // An away trip owns the route. A suspended perk must not resume its entry or exit
+          // from the door when the person returns to the office.
+          const tp = r.temp;
+          if (tp && !tp.moment) r.temp = null;
           walkTo(r, g);           // head for the door, then disappear
+          if (tp && !tp.moment) leaveItem(r, tp);
         } else if (!g.hidden && r.hidden) {
           const d = cur.zones.door;
           r.pos.set(d.x, 0, d.z);
@@ -701,13 +706,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           r.temp = null;
           if (tp.back && r.goal) walkTo(r, r.goal);
           // Off the furniture the way they got on: back to the side they came from, then onward.
-          if (tp.enter?.side) {
-            const side = tp.enter.side;
-            const rest = r.path.length ? office.nav().path(side, r.path[r.path.length - 1]) : [];
-            r.path = [side, ...rest.slice(1)];
-            r.exitFrom = tp.enter.item;
-            r.exitSide = side;
-          }
+          leaveItem(r, tp);
         }
       }
     } else if (r.goal) {
@@ -719,10 +718,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const d = Math.hypot(r.pos.x - g.x, r.pos.z - g.z);
         // Left away from their spot with no route (a pose that kept them where it caught them, a
         // goal that changed meanwhile): they walk back rather than glide there, once per goal.
-        if (d > GLIDE_M && r.walkedTo !== g) { r.walkedTo = g; walkTo(r, g); }
+        if (d > GLIDE_M && (r.walkedTo !== g || !r.routeBlocked)) { r.walkedTo = g; walkTo(r, g); }
         if (r.path.length) stepWalker(r, dt, r.walkAnim);
         else {
-          if (d > 0.05 && !r.routeBlocked) r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8));
+          if (d > 0.05 && d <= GLIDE_M && !r.routeBlocked) r.pos.lerp(dir.set(g.x, 0, g.z), 1 - Math.exp(-dt * 8));
           r.yaw = angleLerp(r.yaw, r.face?.yaw ?? g.yaw, 1 - Math.exp(-dt * 8));
           c.setAnim(g.anim);
         }
@@ -743,6 +742,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (sy === null) c.root.visible = false;
     else if (!r.hidden) { c.root.visible = true; c.root.position.y += sy; }
     c.update(dt);
+  }
+
+  function leaveItem(r, tp) {
+    const en = tp.enter;
+    // Only a person who reached the item needs its exit step. An interrupted approach is
+    // already on the walk grid and must not cut across the room to the item's side.
+    if (!en?.side || !en.t || !tp.goal || Math.hypot(r.pos.x - tp.goal.x, r.pos.z - tp.goal.z) > 0.5) return;
+    const side = en.side;
+    const rest = r.path.length ? office.nav().path(side, r.path[r.path.length - 1]) : [];
+    r.path = [side, ...rest.slice(1)];
+    r.exitFrom = en.item;
+    r.exitSide = side;
   }
 
   function updateLeaver(r, dt) {
