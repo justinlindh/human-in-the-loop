@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { measureScene } from '../blender/checks/pose-scene.js';
 import { judgeScene } from '../blender/checks/pose-rules.js';
+import { bakeParts } from '../src/render/bake.js';
 import { createProbe } from '../src/render/probe.js';
 
 let template;
@@ -27,6 +28,14 @@ function fixture() {
   const head = template.getObjectByName('head').clone();
   head.material = new THREE.MeshBasicMaterial();
   head.userData = { part: 'head' }; pivot.add(head);
+  for (const [side, x] of [['armL', -0.5], ['armR', 0.5]]) {
+    const shoulder = new THREE.Group(), wrist = new THREE.Group();
+    shoulder.position.set(x, 2.5, 0); wrist.position.y = -0.2;
+    root.add(shoulder); shoulder.add(wrist);
+    const arm = template.getObjectByName('arm').clone(), hand = template.getObjectByName('hand').clone();
+    shoulder.add(arm); wrist.add(hand);
+    bakeParts([arm, hand], shoulder, new THREE.MeshBasicMaterial(), () => false).userData.part = side;
+  }
   const proxy = new THREE.Mesh(new THREE.BoxGeometry(1, 4, 1), new THREE.MeshBasicMaterial());
   proxy.visible = false; proxy.userData.staffId = 's1'; root.add(proxy);
   for (let i = 0; i < 11; i++) {
@@ -103,7 +112,7 @@ it('honors hidden ancestors and transparent blockers, but includes self hands', 
   parent.visible = false; expect(f.measure().faceVisible).toBe(1);
   parent.visible = true; f.mask.material.transparent = true; f.mask.material.opacity = 0.4;
   expect(f.measure().faceVisible).toBe(1);
-  f.mask.material.opacity = 1; f.mask.userData = { staffId: 's1', part: 'armL' }; f.root.add(f.mask);
+  f.mask.material.opacity = 1; f.mask.userData = { staffId: 's1', part: 'self-hand-blocker' }; f.root.add(f.mask);
   expect(f.measure().faceVisible).toBe(0);
   expect(f.measure().occluder).toBe('s1');
 });
