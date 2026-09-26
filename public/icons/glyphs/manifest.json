@@ -1,4 +1,20 @@
 {
+ "press.techcrunchy": {
+  "file": "glyphs/press.techcrunchy.svg",
+  "size": 32
+ },
+ "press.vergence": {
+  "file": "glyphs/press.vergence.svg",
+  "size": 32
+ },
+ "press.hackerolds": {
+  "file": "glyphs/press.hackerolds.svg",
+  "size": 32
+ },
+ "press.wiredish": {
+  "file": "glyphs/press.wiredish.svg",
+  "size": 32
+ },
  "era.classic": {
   "file": "glyphs/era.classic.svg"
  },

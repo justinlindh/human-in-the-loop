@@ -2,6 +2,7 @@ import { h, setText, setWidth, fmtMoney, fmtNum, setClass, dateOf } from '../dom
 import { categoryName, angleName, modelName, CATEGORY, ANGLE } from '../content.js';
 import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
+import { pressOutlet } from '../press.js';
 import { lineChart, stackedChart, sample } from '../charts.js';
 import { wrapperRisk } from './marketing.js';
 import { retireOptions, retireBanner } from '../retire.js';
@@ -160,7 +161,7 @@ export function reportsPanel(ctx) {
             h('div', { style: { minWidth: 0 } }, h('b.pname', { text: `${p.name} v${p.version}` }),
               h('div.small.muted', { text: `${categoryName(p.category)} × ${angleName(p.angle)} · ${modelName(p.model)}` }))),
           h('div.reviews', null, ...(p.reviews ?? []).slice(0, 4).map((r) => h('div.review', { title: r.quote },
-            h('span.outlet', { text: r.outlet }), h(`b.num.${scoreClass(r.score)}`, { text: String(r.score) }), h('span.quote', { text: `"${r.quote}"` })))),
+            pressOutlet(r.outlet, { compact: true }), h(`b.num.${scoreClass(r.score)}`, { text: String(r.score) }), h('span.quote', { text: `"${r.quote}"` })))),
           h('div.pnums', null,
             h('div', null, h('span.small.muted', { text: 'Customers' }), cust),
             h('div', null, h('span.small.muted', { text: 'MRR' }), mrr),
