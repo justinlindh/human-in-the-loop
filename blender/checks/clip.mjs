@@ -28,6 +28,7 @@ const GROUPS = {
   party: ['waffle:crowd'],
   sky: ['sky:trailing'],
   garage: ['pairs:garage'],
+  celebrations: ['moment:growth', 'moment:company_party'],
 };
 const noMatch = () => { console.log(`clip: no case matches --only=${ONLY.join(',')}`); process.exit(1); };
 const wanted = (name) => !ONLY || ONLY.some((p) => name.includes(p));
@@ -115,6 +116,15 @@ if (runs.garage) {
     const C = await import('/src/render/checks.js');
     for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
     return C.runPairCheck(R, S, 'garage');
+  }));
+  errors.push(...g.errors);
+  await g.page.close();
+}
+if (runs.celebrations) {
+  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
+  out.push(...await g.page.evaluate(async () => {
+    const C = await import('/src/render/checks.js');
+    return C.runCelebrationChecks(window.__hitlRender, window.__HITL.state);
   }));
   errors.push(...g.errors);
   await g.page.close();

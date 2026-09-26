@@ -62,7 +62,7 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
   addEventListener('hitl:moment', (e) => {
     const d = e.detail ?? {};
     if (d.phase === 'end') { hide(d.id); return; }
-    if (d.phase !== 'start') return;
+    if (d.phase !== 'start' || spot) return;
     const line = lineFor(d.key, d.caption);
     if (!line) return;
     cur = d.id ?? d.key;
@@ -73,24 +73,34 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
     show();
   });
 
-  addEventListener('hitl:spotlight', (e) => {
-    const d = e.detail ?? {};
-    if (d.active) {
-      spot = { kind: d.kind, key: d.key };
-      if (!cur) { const line = momentCaption(d.kind); if (line) setText(text, line); else setText(text, ''); }
-      place();
-    } else if (spot?.key === d.key) spot = null;
+  function syncSpotlight() {
+    const next = getRenderer()?.spotlight?.() ?? null;
+    if (next?.key === spot?.key) return;
+    spot = next;
+    if (spot) { setText(text, spot.caption || momentCaption(spot.kind)); place(); }
+    else { cur = null; clearTimeout(timer); setText(text, ''); }
     show();
-  });
+  }
+  addEventListener('hitl:spotlight', syncSpotlight);
 
-  // Once a frame: the top speed skips a spotlight as soon as it plays, leaving its caption as a toast.
+  // At top speed, end every overlapping spotlight and keep each caption as a toast.
   function update() {
-    if (!spot || spot.key === autoSkipped || getSpeed() < TOP_SPEED) return;
-    autoSkipped = spot.key;
-    const line = momentCaption(spot.kind) || (cur ? text.textContent : '');
-    getRenderer()?.endSpotlight?.();
-    if (line) toast(line, 'info');
+    syncSpotlight();
+    for (let n = 0; spot && getSpeed() >= TOP_SPEED && n < 32; n++) {
+      if (spot.key === autoSkipped) break;
+      autoSkipped = spot.key;
+      const line = spot.caption || momentCaption(spot.kind);
+      getRenderer()?.endSpotlight?.();
+      syncSpotlight();
+      if (line) toast(line, 'info');
+    }
   }
 
-  return { hide: () => hide(), update, skip, get spotlight() { return spot; }, get shown() { return el.classList.contains('show') ? text.textContent : null; } };
+  function cancel() {
+    const renderer = getRenderer();
+    for (let n = 0; n < 32 && renderer?.spotlight?.(); n++) renderer.endSpotlight();
+    syncSpotlight();
+  }
+
+  return { cancel, hide: () => hide(), update, skip, get spotlight() { return spot; }, get shown() { return el.classList.contains('show') ? text.textContent : null; } };
 }

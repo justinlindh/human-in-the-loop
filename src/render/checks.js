@@ -741,7 +741,8 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     removeEventListener('hitl:spotlight', onSpot);
     const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
     const hitsOk = hits.join() === '0,1,2,3';
-    const spotOk = spotSeen && spots.length === 2 && spots[0].active && !spots[1].active && spots[0].key === spots[1].key && spots[0].kind === 'printer_jam' && !R.spotlight();
+    const printerSpots = spots.filter((x) => x.kind === 'printer_jam');
+    const spotOk = spotSeen && printerSpots.length === 2 && printerSpots[0].active && !printerSpots[1].active && printerSpots[0].key === printerSpots[1].key && !R.spotlight();
     results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk && spotOk && quiet === true, phases: [...phases], hits, quiet, spotlight: { seen: spotSeen, events: spots.map((x) => `${x.active ? 'start' : 'end'} ${x.kind}`) }, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
     R.moments.full = false;
     step(30);
@@ -957,6 +958,37 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
 // Pair perks in a small office: a foosball table on a free tile with room round it. The start rules
 // must allow a pair game there (perks.pairReady) within a minute of settling, and two people sent to
 // the table must get as far as playing. Random visits are held off, so nothing depends on a pick.
+// Growth walks to a clear spot; company cheers stay at each participant's own desk.
+export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
+  const results = [];
+  R.perks.hold = true;
+  const step = () => { window.__tick(dt * 1000); R.sync(S); R.render(dt, { draw: false }); };
+  for (let i = 0; i < 180; i++) step();
+  for (const kind of ['growth', 'company_party']) {
+    if (kind === 'growth') S.staff.find((p) => p.id === 's6').legend = true;
+    else R.handleEvents([{ type: 'celebrate', staffId: null }], S);
+    let worst = 0, worstWho = null, samples = 0, seen = false, ended = false;
+    for (let i = 0; i < 30 * 25; i++) {
+      step();
+      const actors = R.moments.active.filter(([, m]) => m === kind);
+      if (actors.length) seen = true;
+      if (seen && !actors.length) { ended = true; break; }
+      if (i % 3) continue;
+      for (const [id] of actors) {
+        const root = charOf(R.scene, id), st = R.moments.staging(id), rec = R.perks.peek(id);
+        // Seated cheers and the first steps away from a seat may occupy their own chair.
+        const own = kind === 'company_party' || st.role === 'coworker' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
+        const overlap = bodyInside(root, furnitureOf(R, own), false);
+        samples++;
+        if (overlap > worst) { worst = overlap; worstWho = id; }
+      }
+    }
+    results.push({ name: 'moment:' + kind, pass: seen && ended && samples > 0 && worst < 0.01, seen, ended, samples, insidePct: +(100 * worst).toFixed(2), worstWho });
+    for (let i = 0; i < 180; i++) step();
+  }
+  return results;
+}
+
 export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   const { footprint } = await import('./layout.js');
   const L = R.office.current.L;

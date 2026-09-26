@@ -345,13 +345,27 @@ const CHECKS = {
     await page.evaluate(() => [...document.querySelectorAll('.announce-back button')].find((b) => b.textContent.trim() === 'Onward')?.click());
     await wait(page, 400);
     const spot = () => page.evaluate(() => window.__HITL.controls.renderer?.spotlight?.()?.kind ?? null);
-    if (!(await spot())) { await page.evaluate(() => window.__HITL.setSpeed(0)); return { fails, note: 'no spotlight in this renderer' }; }
+    if (!(await spot())) { await page.evaluate(() => window.__HITL.setSpeed(0)); return { fails: ['the Waffle Party did not start a spotlight'] }; }
     const cap = await page.evaluate(() => document.querySelector('.moment-cap.spot.show .mcap-text')?.textContent ?? '');
     if (!cap) fails.push('a spotlight plays with no caption');
+    await page.evaluate(() => {
+      dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase: 'start', id: 'overlap-check', key: 'printer_jam', caption: 'Wrong overlapping caption' } }));
+      window.__HITL.emit([{ type: 'toast', tone: 'warn', text: 'Spotlight queue check' }]);
+    });
+    await wait(page, 900);
+    if (await page.locator('.mcap-text').textContent() !== cap) fails.push('an overlapping moment replaced the spotlight caption');
+    if (await page.locator('.toast .tt').filter({ hasText: 'Spotlight queue check' }).count()) fails.push('a queued warning interrupted the spotlight');
     await shot('skip');
     try { await tap(page.locator('.moment-cap .mcap-skip')); } catch { fails.push('Skip is not tappable'); }
     await wait(page, 500);
     if (await spot()) fails.push('tapping Skip did not end the moment');
+    await wait(page, 900);
+    if (!await page.locator('.toast .tt').filter({ hasText: 'Spotlight queue check' }).count()) fails.push('the queued warning did not resume after Skip');
+    await page.evaluate(() => { const H = window.__HITL; const p = H.state.staff.find((x) => x.mood !== 'away'); H.emit([{ type: 'incentive', staffId: p.id, reward: 'waffle_party' }]); });
+    if (!await spot()) fails.push('no spotlight before menu cancellation');
+    await page.evaluate(() => window.__HITL_UI.openStaff(window.__HITL.state.staff[0].id));
+    if (await spot()) fails.push('opening a menu did not end the spotlight');
+    await page.keyboard.press('Escape');
     await page.evaluate(() => window.__HITL.setSpeed(0));
     return { fails };
   },

@@ -1,7 +1,7 @@
 import { createSpeechBudget } from './speech-budget.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
-import { ROLE_COLORS } from './palette.js';
+import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
@@ -9,6 +9,8 @@ import { createIncentives } from './incentives.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
+import { createGrowthMoments } from './growth-moments.js';
+import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
@@ -255,6 +257,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function sync(state) {
     lastState = state;
+    growth.sync(state);
     const cur = office.current;
     if (!cur) return;
     const key = cur.key ?? cur.stage;
@@ -568,6 +571,52 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
+  const growth = createGrowthMoments();
+  let growthGlow = null;
+  let growthCast = [];
+  function startGrowth() {
+    if (spotlights.current() || standup || incentives.party || incentives.dance) return;
+    let spot;
+    const beat = growth.take((id) => {
+      const r = recs.get(id);
+      return r && !r.hidden && !r.goal?.hidden && !r.temp && !r.path.length && !!(spot = moments.growthSpot(r));
+    });
+    if (!beat) return;
+    if (!growthGlow) {
+      growthGlow = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: P.gold, transparent: true, opacity: 0.22, depthWrite: false }));
+      growthGlow.rotation.x = -Math.PI / 2;
+      group.add(growthGlow);
+    }
+    const star = recs.get(beat.staffId), seconds = MOMENT_KINDS[beat.kind].seconds;
+    const crowd = [...recs.values()].filter((r) => r !== star && !r.hidden && !taken(r) && !r.path.length && roomToCelebrate(r) && r.pos.distanceTo(star.pos) < 3).slice(0, 2);
+    growthCast = [star, ...crowd];
+    star.face = null;
+    walkTo(star, spot);
+    for (const r of growthCast) {
+      const seated = r.char.seated;
+      r.temp = {
+        anim: 'celebrate', t: seconds, keepPos: true, back: r === star, moment: 'growth',
+        stage: { beat: 'cheer', role: r === star ? 'honoree' : 'coworker', target: star.char.root },
+        tick: (rr, dt) => {
+          if (rr !== star && seated) return false;
+          const yaw = rr === star ? rig?.yaw ?? Math.PI / 4 : Math.atan2(star.pos.x - rr.pos.x, star.pos.z - rr.pos.z);
+          if (rr === star) growthGlow.visible = !low();
+          rr.yaw = angleLerp(rr.yaw, yaw, 1 - Math.exp(-dt * 8));
+          return false;
+        },
+      };
+      emote(r, r === star ? 'sparkle' : 'heart', seconds);
+    }
+    growthGlow.position.set(spot.x, 0.025, spot.z);
+    growthGlow.visible = false;
+    if (!low()) fx.confetti(star.pos.x, 1.2, star.pos.z, { spread: 0.5, power: 0.5 });
+    const cast = [...growthCast];
+    spotlights.begin(beat.kind, () => {
+      for (const r of cast) if (r.temp?.moment === 'growth') { r.temp = null; if (r === star && r.goal) walkTo(r, r.goal); }
+      growthGlow.visible = false;
+    }, seconds + 8, () => star.pos, () => cast.some((r) => r.temp?.moment === 'growth'));
+  }
+
   let lastParty = -1e9;
   function companyParty() {
     const cur = office.current;
@@ -579,10 +628,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const L = cur.L;
     for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
+    const cast = [];
     for (const r of recs.values()) {
       if (r.hidden || r.mode !== 'placed' || taken(r) || !roomToCelebrate(r)) continue;
-      r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08 };
+      r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08, moment: 'company_party', stage: { beat: 'cheer' } };
+      cast.push(r);
     }
+    if (cast.length) spotlights.begin('company_party', () => {
+      for (const r of cast) if (r.temp?.moment === 'company_party') r.temp = null;
+    }, 3, () => ({ x: cast.reduce((v, r) => v + r.pos.x, 0) / cast.length, z: cast.reduce((v, r) => v + r.pos.z, 0) / cast.length }), () => cast.some((r) => r.temp?.moment === 'company_party'));
   }
 
   function incident(e) {
@@ -609,11 +663,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps });
   const momentCam = createMomentCamera(rig);
-  const spotlights = createSpotlights();
-  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, momentCam, spotlights });
+  const spotlights = createSpotlights({ camera: momentCam });
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
-  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, momentCam, spotlights, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
+  const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, spotlights, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
@@ -1019,6 +1073,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
     moments.releaseLetters();
+    spotlights.update();
+    if (growthGlow && !growthCast.some((r) => r.temp?.moment === 'growth')) growthGlow.visible = false;
     trace.t += dt;
     if (paused !== frozen) { frozen = paused; traceLine(null, paused ? 'freeze' : 'unfreeze', { decision: lastState?.pendingDecision?.eventId ?? null }); }
     // A spotlight just began: bubbles already up round it go, so only the moment's own lines follow.
@@ -1032,10 +1088,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       // With a decision open (momentsToo), the moment it stages still plays: its actors, its
       // visitors and the moment camera. Everything else holds still.
       const staging = momentsToo && !!lastState?.pendingDecision;
-      if (staging) { moments.update(dt, lastState); momentCam.update(dt); }
+      if (staging) {
+        if (incentives.party || incentives.dance) incentives.update(dt);
+        moments.update(dt, lastState); momentCam.update(dt);
+      }
       // Nothing else advances, but everyone is still drawn where they are (new arrivals included).
       for (const r of [...recs.values(), ...leavers]) {
-        if (staging && r.temp?.moment && recs.has(r.id)) { updateRec(r, dt); continue; }
+        if (staging && (r.temp?.moment || r.temp?.party) && recs.has(r.id)) { updateRec(r, dt); continue; }
         r.char.root.position.copy(r.pos);
         if (r.temp?.lift && !r.path.length) r.char.root.position.y = r.temp.lift;
         r.char.root.rotation.y = r.yaw;
@@ -1043,6 +1102,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       return;
     }
+    startGrowth();
     playTime += dt;
     speech.step(dt);
     if (office.navVersion !== navSeen) { navSeen = office.navVersion; repath(); }
@@ -1085,6 +1145,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   function dispose() {
+    spotlights.clear();
+    growthGlow?.geometry.dispose(); growthGlow?.material.dispose();
     for (const r of recs.values()) disposeRec(r);
     for (const r of leavers) disposeRec(r);
     recs.clear();

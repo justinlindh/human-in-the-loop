@@ -48,6 +48,17 @@ function motion(xs) {
 }
 
 const SPECS = {
+  'growth.honoree': { moment: 'growth', beat: 'cheer', role: 'honoree', rules: [
+    share('celebrating', 'honoree celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('faceVisible', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
+    visibleRule, noFade,
+  ] },
+  'growth.coworker': { moment: 'growth', beat: 'cheer', role: 'coworker', rules: [
+    share('celebrating', 'nearby coworkers celebrate throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
+  'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
+    share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
@@ -152,6 +163,8 @@ const SPECS = {
 
 // How each moment is set up in the mock floor, and how long to watch it.
 const SCENARIOS = {
+  growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
+  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
