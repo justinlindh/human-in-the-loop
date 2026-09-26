@@ -161,7 +161,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 
 - **Picture meme art**: six office parodies in Fredoka: This is fine, Two buttons, Tabs chart, Always config, Reject/approve tests and Expanding review. Renderer captures live in `public/memes/` at 480x360 and 1200x900; regenerate them with `scripts/reels/memes.mjs`.
 
-- **Feed pacing**: messages arrive with reading time between them at every game speed. Important posts take priority; prompts and the player's own replies arrive immediately. Stale ambient backlog is skipped in the live feed, with the full recent history kept in the save.
+- **Feed pacing**: messages arrive with reading time between them at every game speed. Important posts take priority; prompts and the player's own replies arrive immediately. Ordinary posts wait at most 30 active real seconds or 30 game seconds (7.5 active seconds at 4x). Queued outage chatter is skipped once its specific outage ends, including when another outage starts. Important notices are exempt from age limits. The full recent history stays in the save.
 - **Channels**: #general, #incidents, #wins, #random and #standup, with unread badges; threads stay together, reactions show counts, names are clickable to find the person.
 - **Layout**: drag the top edge to resize, maximise into a large overlay, or collapse it (collapsed by default on phones).
 - **Mentions**: "@channel" and "@here" render as mention pills.
