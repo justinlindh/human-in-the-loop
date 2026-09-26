@@ -283,7 +283,7 @@ async function boot() {
     // The renderer freezes, the day does not turn, and queued events wait for play to resume.
     frozen = speed === 0 || menuPause || !!sim.state.pendingDecision || !playing;
     if (running) route(pacer.due(), sim.state);
-    present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !document.hidden), sim.state);
+    present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !held && !document.hidden), sim.state);
     if (!frozen && !held) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     renderer?.setPaused?.(frozen);
     if (renderer) {

@@ -221,7 +221,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     ctx.sfx('close');
   }
 
-  function update(s) {
+  function update(s, { holdLaunch = false } = {}) {
     remember(s);
     const d = s.pendingDecision;
     if (d && d !== shown) {
@@ -232,7 +232,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
       return;
     }
     if (!d && shown) hide();
-    if (!shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
+    if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));
     }

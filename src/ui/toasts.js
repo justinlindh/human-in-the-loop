@@ -16,7 +16,7 @@ const GAP_MS = 700;
 
 // Toasts stack top-right when no panel is open. While a panel is open they show one at a
 // time in a strip reserved at the bottom of the panel, so they never cover its controls.
-export function createToasts(root) {
+export function createToasts(root, { canShow = () => true } = {}) {
   const el = h('div.toasts', { 'aria-live': 'polite' });
   root.append(el);
   let live = [];
@@ -134,7 +134,7 @@ export function createToasts(root) {
   const weight = (q) => (q.opts.always ? 4 : 0) + (q.opts.action ? 2 : 0) + (toneOf(q.tone) === 'good' ? 1 : 0);
   function push(text, tone = 'info', opts = {}) {
     const t0 = toneOf(tone);
-    if (t0 === 'warn' || t0 === 'bad') { shownThisWeek++; show(text, tone, opts); return; }
+    if (canShow() && (t0 === 'warn' || t0 === 'bad')) { shownThisWeek++; show(text, tone, opts); return; }
     queue.push({ text, tone, opts, n: ++qSeq });
     if (queue.length > 16) { queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n); hold(queue.pop()); }
     if (!qTimer) qTimer = setTimeout(drain, Math.max(0, nextAt - performance.now()));
@@ -147,9 +147,10 @@ export function createToasts(root) {
   function drain() {
     qTimer = 0;
     if (!queue.length) return;
+    if (!canShow()) { qTimer = setTimeout(drain, GAP_MS); return; }
     queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n);
     const q = queue.shift();
-    if (!q.opts.always && !q.released && shownThisWeek >= WEEK_BUDGET) hold(q);
+    if (!['warn', 'bad'].includes(q.tone) && !q.opts.always && !q.released && shownThisWeek >= WEEK_BUDGET) hold(q);
     else { shownThisWeek++; show(q.text, q.tone, q.opts); nextAt = performance.now() + GAP_MS; }
     if (queue.length) qTimer = setTimeout(drain, Math.max(0, nextAt - performance.now()));
   }
@@ -177,6 +178,7 @@ export function createToasts(root) {
 
   function show(text, tone = 'info', { action, glyph, person } = {}, at = performance.now()) {
     if (!text) return;
+    if (!canShow()) { push(text, tone, { action, glyph, person }); return; }
     if (hidden) {
       waiting.push({ text, tone: toneOf(tone), opts: { action, glyph, person }, at });
       if (waiting.length > MAX_WAITING) waiting.shift();
