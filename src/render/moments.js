@@ -44,6 +44,7 @@ const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the
 const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: its corner-on width plus a body's
 const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
 const CHEAT_TURN = 0.5;      // radians the consultants' scene turns off face-to-face toward the camera
+const OFF_DOOR_NEAR = 2.5;   // metres from the door within which a staged interview moves in off its path
 const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its centre toward the camera
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
@@ -590,11 +591,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (f) { f.lx = 0; f.lz = SEAT_LOCAL_Z; } else o.position.set(v.at.x, 0, v.at.z);
     }
     v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit'));
-    // Off a desk, the stranger sits in a chair of the moment's own, standing where the staged one
-    // does: the staged chair leaves with the choice, and nobody may be left sitting on air.
+    // The consultants' chair is staged at the door; their interview sets up a few metres in and to
+    // one side, off the path everyone walks in and out by.
+    if (event === 'efficiency_consultants') { const q = offDoor(v.at); if (q) v.at = q; }
+    // Off a desk, the stranger sits in a chair of the moment's own, where the staged one stands (or
+    // where the interview moved to): the staged chair leaves with the choice, and nobody may be left
+    // sitting on air.
     if (!v.seat) {
       v.chair = visitorChairModel();
-      v.chair.position.copy(o.position); v.chair.rotation.y = o.rotation.y; v.chair.scale.setScalar(o.scale.x > 0.5 ? o.scale.x : 1);
+      v.chair.position.set(v.at.x, o.position.y, v.at.z); v.chair.rotation.y = o.rotation.y; v.chair.scale.setScalar(o.scale.x > 0.5 ? o.scale.x : 1);
       v.chars[0].root.parent.add(v.chair);
       v.chair.updateMatrixWorld(true);
       getProps()?.pin?.(v.chair);
@@ -622,7 +627,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (spot) {
         v.yaw = cheat(toward(v.at, spot));
         // The nervous one plays a little more to the room.
-        spot.yaw = cheat(toward(spot, v.at), CHEAT_TURN * 1.1);
+        spot.yaw = cheat(toward(spot, v.at), CHEAT_TURN * 1.2);
       }
       // The clipboard consultant stands at the seated one's shoulder, on the side away from the
       // interviewee and a little behind, clear of the chair so the camera sees all of them.
@@ -652,6 +657,20 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     v.mid = dispatch('start', event);
     v.spot = spotlights?.begin(event, endVisitor, VISITOR_EXPECT_S, () => v.at);
     momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
+  }
+  // A spot in from the door and to one side of its path, with room across the view for a person
+  // either side of a chair, that the camera sees; null when `at` isn't by the door or nothing fits.
+  function offDoor(at) {
+    const L = office.current?.L, d = L?.doorWorld;
+    if (!d || Math.hypot(at.x - d.x, at.z - d.z) > OFF_DOOR_NEAR) return null;
+    const l = Math.hypot(d.x, d.z) || 1, inx = -d.x / l, inz = -d.z / l;
+    const nav = office.nav(), yaw = getYaw(), across = [Math.cos(yaw), -Math.sin(yaw)];
+    for (const along of [2.4, 3, 3.6]) for (const s of [1.6, -1.6, 2.2, -2.2]) {
+      const q = { x: d.x + inx * along - inz * s, z: d.z + inz * along + inx * s };
+      const room = [[0, 0], [across[0] * 1.3, across[1] * 1.3], [-across[0] * 1.3, -across[1] * 1.3]].every(([ax, az]) => !nav.isBlocked(q.x + ax, q.z + az, BODY_R));
+      if (room && inView(q, { body: true })) return q;
+    }
+    return null;
   }
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
   // straight line from them keeps clear of the chair, the one farthest from it; the way on is planned
