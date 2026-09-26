@@ -25,12 +25,6 @@
    "issue": 381
   },
   {
-   "key": "person|coffee_corner/pal_plastic_white|person(sip)/head",
-   "worst": 0.052,
-   "state": "seed:1:w832",
-   "issue": 381
-  },
-  {
    "key": "person|coffee_corner/pal_plastic_white|person(still)/head",
    "worst": 0.081,
    "state": "seed:1:w208",
@@ -64,12 +58,6 @@
    "key": "person|coffee_corner/pal_wood_light|person(still)/head",
    "worst": 0.023,
    "state": "seed:1:w208",
-   "issue": 381
-  },
-  {
-   "key": "person|coffee_corner/pal_wood_light|person(walking)/head",
-   "worst": 0.025,
-   "state": "event:hearing_summons:s2allHumansw476",
    "issue": 381
   },
   {
@@ -127,12 +115,6 @@
    "issue": 381
   },
   {
-   "key": "person|desk/pal_metal_soft|person(walking)/legR",
-   "worst": 0.027,
-   "state": "seed:1:w535",
-   "issue": 381
-  },
-  {
    "key": "person|desk/pal_paper_sheet|person(still)/torso",
    "worst": 0.029,
    "state": "seed:1:w535",
@@ -142,18 +124,6 @@
    "key": "person|desk/pal_plastic_charcoal|person(still)/torso",
    "worst": 0.053,
    "state": "seed:1:w791",
-   "issue": 381
-  },
-  {
-   "key": "person|desk/pal_plastic_charcoal|person(walking)/legL",
-   "worst": 0.025,
-   "state": "seed:1:w208",
-   "issue": 381
-  },
-  {
-   "key": "person|desk/pal_plastic_charcoal|person(walking)/legR",
-   "worst": 0.026,
-   "state": "seed:1:w198",
    "issue": 381
   },
   {
@@ -213,12 +183,6 @@
   {
    "key": "person|person(still)/head|plant/pal_leaf_light",
    "worst": 0.114,
-   "state": "seed:1:w624",
-   "issue": 381
-  },
-  {
-   "key": "person|person(still)/torso|plant/pal_leaf",
-   "worst": 0.06,
    "state": "seed:1:w624",
    "issue": 381
   },

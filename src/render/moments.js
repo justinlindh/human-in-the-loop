@@ -676,7 +676,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       const cheat = (y, k = CHEAT_TURN) => { const d = Math.atan2(Math.sin(yaw - y), Math.cos(yaw - y)); return y + Math.sign(d) * Math.min(Math.abs(d), k); };
       if (spot) {
         v.yaw = cheat(toward(v.at, spot));
-        spot.yaw = cheat(toward(spot, v.at));
+        spot.yaw = cheat(toward(spot, v.at), CHEAT_TURN * 1.1);
       }
       // The clipboard consultant stands at the seated one's shoulder, on the side away from the
       // interviewee and a little behind, clear of the chair so the camera sees all of them.
