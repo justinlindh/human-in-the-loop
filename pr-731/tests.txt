@@ -1,0 +1,11 @@
+
+> human-in-the-loop@1.0.0 test:fast
+> vitest run --exclude tests/sim/balance.test.js
+
+
+
+
+ Test Files  98 passed (98)
+      Tests  828 passed (828)
+   Duration  26.74s (tests 78%, transform 13%, import 9%)
+
