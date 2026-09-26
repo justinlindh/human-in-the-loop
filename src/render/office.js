@@ -5,6 +5,7 @@ import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
+import { carpetTexture } from './carpet.js';
 
 const T = 0.2;            // wall thickness
 const SILL_Z = 0.18;       // a window sill's centre, out from the wall's centre line (0.15 m into the room)
@@ -50,15 +51,7 @@ const FLOORS = {
     ctx.strokeRect(1, 1, s - 2, s - 2);
     ctx.globalAlpha = 1;
   }, 3),
-  carpet: () => canvasTex('carpet', 256, (ctx, s) => {
-    const h = s / 2;
-    [[0, 0], [1, 1]].forEach(([a, b]) => { ctx.fillStyle = P.floor_carpet; ctx.fillRect(a * h, b * h, h, h); });
-    [[1, 0], [0, 1]].forEach(([a, b]) => { ctx.fillStyle = P.floor_carpet_alt; ctx.fillRect(a * h, b * h, h, h); });
-    speckle(ctx, s, 1600, ['#8b92a0', '#b3b8c2'], 0.9, 3);
-    ctx.strokeStyle = '#868d9a'; ctx.lineWidth = 2; ctx.globalAlpha = 0.6;
-    for (const v of [0, h]) { ctx.beginPath(); ctx.moveTo(v, 0); ctx.lineTo(v, s); ctx.moveTo(0, v); ctx.lineTo(s, v); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-  }, 2),
+  carpet: () => carpetTexture(),
   tile: () => canvasTex('tile', 256, (ctx, s) => {
     ctx.fillStyle = P.floor_tile; ctx.fillRect(0, 0, s, s);
     ctx.fillStyle = P.floor_tile_alt;
@@ -727,7 +720,7 @@ function boardSide(e, L = e.L) {
 }
 
 // The office: current stage shell, placed furniture, cutaway, night lamps, and stage transitions.
-export function createOffice({ parent, screens, lighting }) {
+export function createOffice({ parent, screens, lighting, low = () => false }) {
   const holder = new THREE.Group();
   holder.name = 'officeHolder';
   parent.add(holder);
@@ -1035,8 +1028,9 @@ export function createOffice({ parent, screens, lighting }) {
     if (!cur) return;
     dressing = eraDressing(cur.L, era, wallBlockers());
     cur.root.add(dressing);
-    tintFloors(era);
+    setQuality();
   }
+  function setQuality() { tintFloors(era, low()); }
   let dressing = null;
   let blockKey = '';
   // Stretches of the back walls hidden behind tall furniture, so wall pieces hang where they show.
@@ -1241,7 +1235,7 @@ export function createOffice({ parent, screens, lighting }) {
   }
 
   return {
-    setStage, setPlaced, freeChair, setDeskScreen, setDeskSign, setDeskRole, setEra, leds, update, nav, tuckMeetingChairs, deskById,
+    setStage, setPlaced, freeChair, setDeskScreen, setDeskSign, setDeskRole, setEra, setQuality, leds, update, nav, tuckMeetingChairs, deskById,
     get era() { return era; },
     get current() { return cur; },
     get placed() { return placed; },
@@ -1452,12 +1446,14 @@ function disposeDressing(o) {
   if (o.isMesh) { if (o.geometry?.type === 'PlaneGeometry' || o.geometry?.type === 'CircleGeometry') o.geometry.dispose(); if (o.material?.map) o.material.dispose(); }
   for (const c of o.children) disposeDressing(c);
 }
-// The floors take a faint wash of the era's accent.
+// Hard floors take a faint accent wash; carpet carries its own era palette and motif.
 const floorBase = new Map();
-function tintFloors(era) {
+function tintFloors(era, low) {
+  const carpet = texCache.get('surf|carpet');
+  if (carpet) carpet.map = carpetTexture(era, low);
   const [key] = ERA_ACCENT[era] ?? ERA_ACCENT.classic;
   const wash = color(key);
-  for (const k of ['wood', 'tile', 'carpet', 'concrete', 'deck']) {
+  for (const k of ['wood', 'tile', 'concrete', 'deck']) {
     const m = texCache.get(`surf|${k}`);
     if (!m) continue;
     if (!floorBase.has(k)) floorBase.set(k, m.color.clone());

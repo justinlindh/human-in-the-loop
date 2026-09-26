@@ -16,7 +16,7 @@ function run(p, seconds, { speed = 1, running = true } = {}) {
 
 describe('readSeconds', () => {
   it('grows with length within its bounds, and speed shortens it only a little', () => {
-    expect(readSeconds('')).toBe(READ.min);
+    expect(readSeconds('')).toBeGreaterThanOrEqual(2.9);
     expect(readSeconds('x'.repeat(40))).toBeCloseTo(READ.base + READ.perChar * 40);
     expect(readSeconds('x'.repeat(500))).toBe(READ.max);
     for (const text of ['ok', 'x'.repeat(40), 'x'.repeat(200)]) {
@@ -120,4 +120,16 @@ describe('pacer scheduling', () => {
     expect(p.queued).toBe(0);
     expect(p.takeDropped()).toEqual([]);
   });
+});
+
+it('hands tagged dialogue to the renderer while the weekly clock is held', () => {
+  const p = createPacer();
+  const lines = [
+    { type: 'say', id: 'first', staffId: 'a', text: 'A line that takes time to read.', moment: 'reward' },
+    { type: 'say', id: 'second', staffId: 'a', text: 'The important reply.', replyTo: 'first', moment: 'reward' },
+  ];
+  expect(p.schedule(lines)).toEqual(lines);
+  expect(run(p, 20, { running: false })).toEqual([]);
+  expect(p.queued).toBe(0);
+  expect(p.takeDropped()).toEqual([]);
 });

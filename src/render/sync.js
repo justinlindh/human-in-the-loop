@@ -1,3 +1,6 @@
+import { B } from '../sim/balance.js';
+import { createMomentSpeech } from './moment-speech.js';
+import { createSpeechBudget } from './speech-budget.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { ROLE_COLORS } from './palette.js';
@@ -27,7 +30,6 @@ const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
 const TIRED_STAMINA = 25;           // below this a person shows the exhaustion warning signs
 const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
-const MAX_SPEECH = 6;
 const QUIET_R = 4;          // metres round a spotlight moment where only its own lines are spoken
 const POST_REACT_S = 2.2;    // how long the office reacts to a Yak post that backfired
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
@@ -42,6 +44,13 @@ function angleLerp(a, b, k) {
 }
 
 export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {}, setPictureLight = () => {}, getProps = () => null, low = () => false }) {
+  const speech = createSpeechBudget();
+  const momentSpeech = createMomentSpeech();
+  function speak(text, r, e = {}, checked = false) {
+    if (!r || r.hidden || !text || (!checked && quieted(e, r))) return;
+    const seconds = holdSeconds(text, speed);
+    if (speech.admit(r.id, seconds, labels.speechCount?.() ?? 0, { moment: e.moment })) labels.say(text, r.char.root, seconds, 1.45, { moment: !!e.moment });
+  }
   const group = new THREE.Group();
   group.name = 'staff';
   parent.add(group);
@@ -293,7 +302,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0 };
@@ -373,10 +382,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function handleEvents(events, state) {
     const cur = office.current;
+    if (state?.pendingDecision?.stage && events?.some(e => e.type === 'decision')) {
+      // Old ambient bubbles would otherwise remain frozen behind the decision card.
+      for (const r of recs.values()) if (onScreen(r) || r.temp?.moment) labels.clearFor(r.char.root);
+    }
     for (const e of events ?? []) {
       switch (e.type) {
         case 'hire': if (e.staffId) hired.add(e.staffId); break;
-        case 'decisionResolved': moments.decided(e); break;
+        case 'decisionResolved': momentSpeech.clear(e.eventId); moments.decided(e); break;
         case 'chatPromptResolved': {
           // A prompt that delivered an event resolves it as its card would have.
           const c = state?.chatPrompts?.find((x) => x.id === e.promptId);
@@ -398,7 +411,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           emote(r, 'typing', 1.6);
           break;
         }
-        case 'say': sayLine(e); break;
+        case 'say': {
+          if (!e.moment) { sayLine(e); break; }
+          const resolved = events.find(x => x.type === 'decisionResolved' && x.eventId === e.moment);
+          const prompt = state?.chatPrompts?.find(x => x.kind === e.moment);
+          const choice = resolved?.choice ?? prompt?.resolved?.choice;
+          const open = state?.pendingDecision?.eventId === e.moment || (prompt && !prompt.resolved);
+          momentSpeech.add(e, { open: !!open, choice });
+          break;
+        }
         case 'celebrate': {
           if (e.staffId) {
             const r = recs.get(e.staffId);
@@ -444,11 +465,43 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return Math.abs(quietNdc.x) < 1 && Math.abs(quietNdc.y) < 1;
   }
   function quieted(e, r) {
-    if (e.moment || !spotlights.current()) return false;
+    const active = spotlights.current();
+    if (e.moment) return !!active && e.moment !== active.kind;
+    if (!active) return false;
     const at = spotlights.where();
     const near = (x) => x && (x.temp?.moment || x.temp?.party || (at && Math.hypot(x.pos.x - at.x, x.pos.z - at.z) < QUIET_R) || onScreen(x));
     if (near(r) || near(e.toId && recs.get(e.toId))) return true;
     return (farLines++ % 2) === 1;
+  }
+
+  function updateMomentSpeech(dt) {
+    const active = spotlights.current();
+    momentSpeech.step(dt, q => {
+      const e = q.event, r = recs.get(e.staffId);
+      if (!r || r.hidden) return 'drop';
+      const pending = lastState?.pendingDecision?.eventId === e.moment
+        || lastState?.chatPrompts?.some(p => p.kind === e.moment && !p.resolved);
+      if (q.open && !pending) return 'drop';
+      if (q.spot && q.spot !== active?.key) return 'drop';
+      if (active && active.kind !== e.moment) return 'wait';
+      if (active) q.spot = active.key;
+      if (q.age < B.momentSpeechStartDelay) return 'wait';
+      if (e.moment === 'waffle_party' && !incentives.party) return 'wait';
+      if (e.moment === 'music_night' && !incentives.dance) return 'wait';
+      if (e.moment === 'printer_jam' && q.choice === 0 && !low()) {
+        // The relief belongs after the final blow, never over the carry or wind-up.
+        if (!moments.printerState?.smashed) return 'wait';
+      }
+      if (e.moment === 'open_plan_office' && q.choice === 0 && !low()
+        && moments.hammer?.phase !== 'swing') return 'wait';
+      if (q.open && r.path.length && r.temp?.moment) return 'wait';
+      if (labels.speechCount?.() > 0) return 'wait';
+      return 'play';
+    }, e => {
+      // Speaking does not turn or move someone out of the pose the moment owns.
+      speak(e.text, recs.get(e.staffId), e);
+      return holdSeconds(e.text, speed);
+    });
   }
 
   function sayLine(e) {
@@ -460,22 +513,22 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     sayIds.set(e.id, { root, staffId: e.staffId });
     if (sayIds.size > 300) sayIds.delete(sayIds.keys().next().value);
     const exchange = !!(e.toId || e.replyTo);
-    if (speed >= 4 && exchange) { fastQ.set(root, { e, t: FAST_HOLD }); return; }
-    showLine(e, parent);
+    if (!e.moment && speed >= 4 && exchange) { fastQ.set(root, { e, t: FAST_HOLD }); return; }
+    showLine(e, parent, true);
   }
 
-  function showLine(e, parent = e.replyTo ? sayIds.get(e.replyTo) : null) {
+  function showLine(e, parent = e.replyTo ? sayIds.get(e.replyTo) : null, checked = false) {
     const r = recs.get(e.staffId);
     if (!r || r.hidden) return;
+    if (!checked && quieted(e, r)) return;
     const otherId = e.toId ?? parent?.staffId ?? null;
     const other = otherId && otherId !== e.staffId ? recs.get(otherId) : null;
     const staged = other && !other.hidden && other.mode === 'placed';
-    if (!staged && labels.speechCount?.() >= MAX_SPEECH) return;
     if (r.char.emote === 'typing') { r.char.setEmote(null); r.emoteT = 0; }
     if (staged) faceToward(other, r);
     // Only the opening line may walk over, and only a short way; its bubble then shows on arrival.
     if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text, e.moment)) return;
-    labels.say(e.text, r.char.root, holdSeconds(e.text, speed));
+    speak(e.text, r, e, true);
     if (!staged) return;
     faceToward(r, other);
     if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
@@ -672,7 +725,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.yaw = angleLerp(r.yaw, tp.goal.yaw, 1 - Math.exp(-dt * 10));
         c.setAnim(LIE_ANIMS.has(tp.anim) ? 'sit' : tp.anim);
       } else {
-        if (tp.sayText) { if (!quieted({ moment: tp.sayMoment }, r)) labels.say(tp.sayText, c.root, holdSeconds(tp.sayText, speed)); tp.sayText = null; }
+        if (tp.sayText) { speak(tp.sayText, r, { moment: tp.sayMoment }); tp.sayText = null; }
         tp.t -= dt;
         if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
@@ -871,7 +924,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // While a staged standup is still talking, the desk week stays silent so bubbles never overlap.
     if (speed >= 4 || standup) return;
     const said = lines.filter((l) => l.text).sort((a, b) => a.text.length - b.text.length)[0];
-    if (said && !(labels.speechCount?.() >= MAX_SPEECH) && !quieted(said, recs.get(said.staffId))) labels.say(said.text, recs.get(said.staffId).char.root, holdSeconds(said.text, speed));
+    if (said) speak(said.text, recs.get(said.staffId));
   }
 
   const MAX_STANDUP_LINES = 3;
@@ -961,7 +1014,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const p = st.people[st.i];
         if (!recs.has(p.r.id) || !p.r.temp?.standup) return;
         if (p.nod) { p.r.temp.anim = 'wave'; emote(p.r, 'lightbulb', 0.9); setTimeoutFree(p.r); }
-        else if (p.text && !quieted({}, p.r)) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
+        else if (p.text) speak(p.text, p.r);
         else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
       }
       return;
@@ -1036,9 +1089,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.char.root.rotation.y = r.yaw;
         if (!r.hidden) r.char.breathe(dt);
       }
+      if (staging) updateMomentSpeech(dt);
       return;
     }
     playTime += dt;
+    speech.step(dt);
     if (office.navVersion !== navSeen) { navSeen = office.navVersion; repath(); }
     updateStandup(dt);
     updateFast(dt);
@@ -1046,6 +1101,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     pets.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
+    updateMomentSpeech(dt);
     momentCam.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
     for (let i = leavers.length - 1; i >= 0; i--) {
@@ -1119,6 +1175,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.temp = temp ? { ...temp } : null;
       if (walk) { const d = office.current.zones.door; walkTo(r, office.nav().freePoint(d.x, d.z)); }
       return true;
+    },
+    endSpotlight() {
+      const kind = spotlights.current()?.kind;
+      if (kind) {
+        momentSpeech.clear(kind);
+        for (const r of recs.values()) labels.clearFor(r.char.root);
+      }
+      return spotlights.cut();
     },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },

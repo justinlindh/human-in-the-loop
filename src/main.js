@@ -1,3 +1,4 @@
+import { createYakPacer } from './yak-pacing.js';
 import { createMockSim } from './dev/mockSim.js';
 import { createPacer, MAX_STEP } from './pacing.js';
 import { autoQuality, deviceTraits, glRendererName } from './quality.js';
@@ -73,18 +74,27 @@ async function boot() {
   const audio = audioMod?.createAudio({ quality, renderer }) ?? null;
   renderer?.setSpeed?.(speed);
 
-  const route = (events, state) => {
+  const yakPacer = createYakPacer();
+  const present = (events, state) => {
     if (!events?.length) return;
     renderer?.handleEvents(events, state);
     ui?.handleEvents(events, state);
     audio?.onEvents(events, state);
   };
 
+  const route = (events, state, direct = false) => {
+    if (!events?.length) return;
+    const urgentIds = new Set((state.chatPrompts ?? []).filter(p => !p.resolved).map(p => p.chatId));
+    if (direct) for (const e of events) if (e.type === 'chat') urgentIds.add(e.id);
+    present(yakPacer.enqueue(events, { urgentIds }), state);
+    present(events.filter(e => e.type !== 'chat'), state);
+  };
+
   // A tick's non-urgent events trickle out over the week instead of arriving in one frame.
   const pacer = createPacer();
   const dispatch = (action) => {
     const res = sim.dispatch(action);
-    route(res.events, sim.state);
+    route(res.events, sim.state, true);
     return res;
   };
 
@@ -100,6 +110,7 @@ async function boot() {
 
   function startPlaying(state) {
     pacer.reset();
+    yakPacer.reset();
     if (realSim) useState(state);
     playing = true;
   }
@@ -107,6 +118,7 @@ async function boot() {
   function showTitle() {
     playing = false;
     pacer.reset();
+    yakPacer.reset();
     if (realSim) useState(simMod.createGame({ seed: randomSeed() }));
     ui?.showTitle();
   }
@@ -271,6 +283,7 @@ async function boot() {
     // The renderer freezes, the day does not turn, and queued events wait for play to resume.
     frozen = speed === 0 || menuPause || !!sim.state.pendingDecision || !playing;
     if (running) route(pacer.due(), sim.state);
+    present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !document.hidden), sim.state);
     if (!frozen && !held) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     renderer?.setPaused?.(frozen);
     if (renderer) {
