@@ -25,13 +25,15 @@
 // slot): for each person, the largest share of their face a bubble, label or emote covers and which,
 // the share of them the camera sees and what hides the rest, the face's angle to the camera and its
 // height on screen in pixels. Its rules use faceCovered, faceVisible, faceCam and facePx, over the
-// frames sampled, for every person listed (or one, with an 'id:' prefix).
+// requested frames, for every person listed (or one, with an 'id:' prefix). Missing samples fail.
+// Scene mode serves this checkout and rejects a differing --root.
 //
 // It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
 // a canvas whose 2D context does nothing (cheek and emote textures only), and fetch reading the
 // model files from public/. pose-measure.js holds the measuring; --check-browser runs it in a
 // harness page as well and compares every number, which is how the stand-ins are kept honest.
 import { createServer } from 'vite';
+import { judgeScene } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -111,14 +113,12 @@ async function sceneMode() {
     console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'visible'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
     for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
     const ids = [...new Set(rows.map((r) => r.id))];
-    for (const rule of rules) {
-      for (const id of rule.id ? [rule.id] : ids) {
-        const mine = rows.filter((r) => r.id === id);
-        const ok = mine.filter((r) => r[rule.measure] != null && cmp[rule.op](r[rule.measure], rule.value)).length / Math.max(1, mine.length);
-        const pass = mine.length > 0 && ok >= rule.share;
-        if (!pass) code = 1;
-        console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${mine.length ? `${(ok * 100).toFixed(0)}% of ${mine.length} frames` : 'not on screen'} (want ${(rule.share * 100).toFixed(0)}%)`);
-      }
+    const judged = judgeScene(rows, frames, who, rules);
+    if (!judged.pass) code = 1;
+    if (!ids.length) console.log('POSE FAIL no subjects measured');
+    for (const missing of judged.missing) console.log(`POSE FAIL ${missing.id}: missing samples at frames ${missing.frames.join(', ')}`);
+    for (const { id, rule, share, pass } of judged.verdicts) {
+      console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${(share * 100).toFixed(0)}% of ${frames.length} requested frames (want ${(rule.share * 100).toFixed(0)}%)`);
     }
     if (opt('json')) writeFileSync(opt('json'), JSON.stringify(rows, null, 1));
     if (errors.length) { code = Math.max(code, 1); console.log(`pose: page errors: ${errors.slice(0, 3).join('; ')}`); }
@@ -148,13 +148,15 @@ async function checkBrowser(frames) {
 }
 
 const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx'];
-if (argv.includes('--scene')) process.exit(await sceneMode());
 
 // The page a browser check opens serves this checkout, so it can only check this checkout's code.
-if (argv.includes('--check-browser') && ROOT !== resolve(join(import.meta.dirname, '../..'))) {
-  console.error(`pose: --check-browser measures the page's own checkout, not --root; run pose.mjs from ${ROOT} (copy blender/checks/pose*.js there) to check it`);
+const browserMode = argv.includes('--scene') ? '--scene' : argv.includes('--check-browser') ? '--check-browser' : null;
+if (browserMode && ROOT !== resolve(join(import.meta.dirname, '../..'))) {
+  console.error(`pose: ${browserMode} measures the page's own checkout, not --root; run pose.mjs from ${ROOT} (copy blender/checks/pose*.js there) to check it`);
   process.exit(2);
 }
+if (argv.includes('--scene')) process.exit(await sceneMode());
+
 // The browser check renders, so it takes a render slot first; taking one re-runs this script under
 // the lock, which must happen before anything is printed.
 if (argv.includes('--check-browser')) {

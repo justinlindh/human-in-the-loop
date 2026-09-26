@@ -24,6 +24,8 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 
 The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser work under a render lock. Stop processes by PID, never with `pkill -f` or `pgrep -f`.
 
+Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
+
 ## GPU or software GL
 
 Headless browsers render on the GPU by default: `scripts/lib/gl.js` picks the mode (`--software` or `--gpu`, else `HITL_GL=software|gpu`, else the GPU) and every launcher prints it as `<tool>: GL <mode> (<renderer>)`. A run that asked for the GPU and got software GL fails instead of silently burning CPU; set `HITL_GL=software` on a machine without one.
