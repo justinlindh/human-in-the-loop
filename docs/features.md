@@ -157,6 +157,8 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 
 ## Yak
 
+- **Picture meme art**: six office parodies in Fredoka: This is fine, Two buttons, Tabs chart, Always config, Reject/approve tests and Expanding review. Renderer captures live in `public/memes/` at 480x360 and 1200x900; regenerate them with `scripts/reels/memes.mjs`.
+
 - **Channels**: #general, #incidents, #wins, #random and #standup, with unread badges; threads stay together, reactions show counts, names are clickable to find the person.
 - **Layout**: drag the top edge to resize, maximise into a large overlay, or collapse it (collapsed by default on phones).
 - **Mentions**: "@channel" and "@here" render as mention pills.
