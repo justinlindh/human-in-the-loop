@@ -425,7 +425,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       return;
     }
     // At Low: just the bad-news emote at the desk. Otherwise the emote comes after reading it.
-    if (lite()) { emote(r, 'storm', 2.8); if (r.temp?.claim) releaseLetter(r); return; }
+    if (lite()) { emote(r, 'storm', 2.8); if (r.temp?.claim) r.temp = null; return; }
     // Out of the chair sideways (on the camera's side when both are clear), then back into the aisle
     // to read it; the chair's back and the desk row are in the way of any straight route. They come
     // back the same way.

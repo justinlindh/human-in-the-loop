@@ -928,6 +928,12 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
           if (name === 'away-read') read = waitFor(() => R.moments.staging(who.id)?.beat === 'read');
           if (name === 'away' || name === 'away-read') who.mood = 'away';
           released = waitFor(() => R.walkOf(who.id)?.temp?.moment !== 'letter');
+          if (name === 'low') {
+            for (let i = 0; i < 900; i++) {
+              frame(1);
+              released &&= !R.walkOf(who.id)?.temp?.moment && !R.walkOf(who.id)?.path.length;
+            }
+          }
           if (name === 'cancel-away') who.mood = 'away';
           if (name.includes('away')) { R.setPaused(false); hidden = waitFor(() => R.walkOf(who.id)?.hidden); }
         }
