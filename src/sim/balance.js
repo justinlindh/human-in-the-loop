@@ -125,7 +125,7 @@ export const B = {
     incubatorFrom: 8, incubatorUntil: 60, incubatorCash: 12000, incubatorCut: 0.1, incubatorCounterCut: 0.05, incubatorCounterChance: 0.5,
     incubatorPodcastWeeks: 52, incubatorSignWeeks: 52,
     boxCost: 40000, boxHype: 12, boxDebt: 4, boxCubeWeeks: 26, boxRecallWeeks: 30, boxMockChance: 0.55,
-    oatOpsLevel: 0.3, oatStaff: 10, oatFee: 3000, oatStamina: 0.1, oatWeeks: 26,
+    oatOpsLevel: 0.25, oatStaff: 8, oatWindowWeeks: 26, oatFee: 3000, oatStamina: 0.1, oatWeeks: 26,
     kielbasaStaff: 5, kielbasaHype: 15, kielbasaFadeWeeks: 6, kielbasaSale: 25000,
   },
   // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.
