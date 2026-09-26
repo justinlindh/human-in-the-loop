@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { raiseDecision } from '../../src/sim/events.js';
+import { eligibleEvents, fireEvent, raiseDecision } from '../../src/sim/events.js';
 import { stageTile } from '../../src/sim/props.js';
 import { processScheduled } from '../../src/sim/effects.js';
 import { scoreRun } from '../../src/sim/endgame.js';
@@ -60,8 +60,49 @@ describe('issue #338: nods to the valley', () => {
     expect(s.office.props.at(-1)).toMatchObject({ prop: 'box_cube', until: { weeks: N.boxCubeWeeks }, x: seat.x, y: seat.y });
   });
 
+  it('oat milk admits a mixed team but excludes small teams, low ops automation, early eras and repeats', () => {
+    const s = game(3);
+    s.week = s.eraSchedule.agents;
+    while (s.staff.length < 8) addStaff(s, 'engineer', 'mid');
+    s.automation.ops.level = 0.25;
+    const eligible = () => eligibleEvents(s).some((e) => e.id === 'oat_milk');
+    expect(eligible()).toBe(true);
+
+    const person = s.staff.pop();
+    expect(eligible()).toBe(false);
+    s.staff.push(person);
+    for (const level of [0, 0.24]) {
+      s.automation.ops.level = level;
+      expect(eligible()).toBe(false);
+    }
+    s.automation.ops.level = 0.25;
+    for (const era of ['classic', 'chatgbt']) {
+      s.era.id = era;
+      expect(eligible()).toBe(false);
+    }
+    s.era.id = 'agents';
+    expect(eligible()).toBe(true);
+
+    s.week = s.eraSchedule.agents - 1;
+    expect(eligible()).toBe(false);
+    s.week = s.eraSchedule.agents + 25;
+    expect(eligible()).toBe(true);
+    s.week++;
+    expect(eligible()).toBe(false);
+    s.week = s.eraSchedule.agents;
+
+    expect(fireEvent(makeCtx(s), EVENTS.oat_milk, null)).toBe(true);
+    expect(s.pendingDecision.eventId).toBe('oat_milk');
+    expect(choose(s, 'Keep it').ok).toBe(true);
+    s.week += B.decisionGapWeeks;
+    expect(eligible()).toBe(false);
+    s.week = B.runWeeks - 1;
+    expect(eligible()).toBe(false);
+  });
+
   it('the oat milk needs ops agents and a team; keeping it lingers in the lobby', () => {
     const s = game(3);
+    s.week = s.eraSchedule.agents;
     for (let i = 0; i < N.oatStaff; i++) addStaff(s, 'engineer', 'mid');
     s.automation.ops.level = 0;
     expect(EVENTS.oat_milk.when(s)).toBe(false);
