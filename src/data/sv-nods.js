@@ -46,7 +46,8 @@ export const SV_NODS = [
   },
   {
     id: 'oat_milk', kind: 'vendor', weight: 2, cooldownWeeks: ONCE, random: true, subject: null, eras: ['agents', 'consolidation', 'plateau'],
-    when: (s) => s.automation.ops.level >= N.oatOpsLevel && s.staff.length >= N.oatStaff,
+    when: (s) => s.automation.ops.level >= N.oatOpsLevel && s.staff.length >= N.oatStaff
+      && s.week >= s.eraSchedule.agents && s.week < s.eraSchedule.agents + N.oatWindowWeeks,
     title: 'Four thousand pounds of oat milk',
     text: 'The procurement agent noticed oat milk runs out on Thursdays. It fixed that. There are now four thousand pounds of oat milk in the lobby.',
     stage: { prop: 'oat_milk', anchor: 'door' },
