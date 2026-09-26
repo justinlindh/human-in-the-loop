@@ -219,6 +219,20 @@ export function eventsSystem(ctx) {
 
 registerSystem('events', eventsSystem, 70);
 
+// Systems later in the week can send the person a desk prop was staged for home (the remote roll, a
+// burnout leave). At the end of the week the prop moves to someone who is still in, so the moment has a cast.
+export function restageSystem(ctx) {
+  const { state } = ctx;
+  const d = state.pendingDecision;
+  const st = d?.stage;
+  if (!st?.staffId || st.anchor !== 'subjectDesk') return;
+  const who = state.staff.find((p) => p.id === st.staffId);
+  if (who && isIn(who)) return;
+  const { x, y, staffId, ...rest } = st;
+  d.stage = { ...rest, ...stageTile(state, st.anchor, d.subjectId) };
+}
+registerSystem('restage', restageSystem, 99);
+
 registerAction('resolveDecision', (ctx, { choice }) => {
   const { state } = ctx;
   const d = state.pendingDecision;
