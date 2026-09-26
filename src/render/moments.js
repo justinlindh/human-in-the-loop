@@ -275,7 +275,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       h.held.rotation.set(0, 0, 0);
       r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
-      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3);
+      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3, () => h.wall);
       momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
     }
     if (h.phase === 'swing') {
@@ -410,7 +410,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   function letter(p, dt) {
     if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [12, 18])) return;
     const deskId = p.obj.userData.follow?.deskId;
-    const r = [...recs.values()].find((x) => x.seat === deskId);
+    // The person the stage names (whose desk it is), else whoever sits at the desk it landed on.
+    const r = (p.staffId && recs.get(p.staffId)) || [...recs.values()].find((x) => x.seat === deskId);
     // Not at their desk right now: look again shortly rather than after the full interval.
     if (!r || !free().includes(r) || !r.char.seated) {
       note(r?.id ?? null, 'refuse', { by: 'letter', why: !r ? `nobody sits at ${deskId}` : r.hidden ? 'out of the office' : !free().includes(r) ? `busy (${r.temp?.moment ?? r.temp?.anim ?? (r.path.length ? 'walking' : r.mode)})` : 'not seated' });
@@ -649,7 +650,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       });
     }
     v.mid = dispatch('start', event);
-    v.spot = spotlights?.begin(event, endVisitor, VISITOR_EXPECT_S);
+    v.spot = spotlights?.begin(event, endVisitor, VISITOR_EXPECT_S, () => v.at);
     momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
   }
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
@@ -874,7 +875,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
     // Gathering and the lift, then the cue from the carry to the walk-off.
-    pm.spot = spotlights?.begin('printer_jam', printerEnd, PRINTER_GATHER_S + CUE.end);
+    pm.spot = spotlights?.begin('printer_jam', printerEnd, PRINTER_GATHER_S + CUE.end, () => pm.obj.visible ? pm.obj.getWorldPosition(new THREE.Vector3()) : pm.end);
     pm.twists = twists(pm);
     const c = along(route, 0);
     const spots = carrySpots(pm, c);

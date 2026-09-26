@@ -1,5 +1,6 @@
 // One-line captions the UI shows while the renderer stages a moment. Keys match the hitl:moment key: the
-// decision's event id for decision moments, the moment's own name otherwise. A key with no caption shows none.
+// decision's event id for decision moments, the reward id for incentive parties, the moment's own name
+// otherwise. A key with no caption shows none.
 // Captions are plain text with no placeholders, since they show before anyone has chosen anything.
 export const MOMENT_CAPTIONS = {
   first_user_test: 'A stranger is trying your product. The founders are hiding.',
@@ -42,6 +43,9 @@ export const MOMENT_CAPTIONS = {
   incubator_house: 'A hand-painted INCUBATOR sign by the door. The mentor awaits an answer.',
   the_box: 'The rival made a very shiny cube. Everyone is staring at the poster.',
   oat_milk: 'Four thousand pounds of oat milk in the lobby. The agent is very proud.',
+  // Incentive parties, keyed by the reward.
+  waffle_party: 'The waffle cart has rolled in. The lights are down. Nobody is working.',
+  music_night: 'Music night. The winner picked the genre. Everyone else is being brave.',
   // Ambient moments, keyed by the prop that sets them off.
   pizza_boxes: 'The hackathon pizza boxes are still here. Nobody says whose turn it is.',
   smoke_puff: 'A puff of smoke from the coffee machine. Everyone pretends not to see.',

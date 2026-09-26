@@ -691,13 +691,23 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     const spots = [];
     const onSpot = (e) => spots.push(e.detail);
     addEventListener('hitl:spotlight', onSpot);
-    let spotSeen = false;
+    let spotSeen = false, quiet = null;
     for (let i = 0; i < 30 * 30; i++) {
       step(1);
       const pm = R.moments.printerState;
       if (!pm) { if (phases.size) break; continue; }
       phases.add(pm.phase);
       if (pm.phase === 'carry') spotSeen ||= R.spotlight?.()?.kind === 'printer_jam' && R.spotlight().expectedSeconds > 10;
+      // Mid-carry: an unrelated line from a carrier is dropped, the moment's own line shows.
+      if (pm.phase === 'carry' && pm.cue > 2 && quiet === null) {
+        const id = pm.people[0].id;
+        R.handleEvents([{ type: 'say', id: 'q-amb', week: S.week, staffId: id, text: 'Hello? Did I freeze?' }], S);
+        step(2);
+        const ambient = R.isSpeaking(id);
+        R.handleEvents([{ type: 'say', id: 'q-mom', week: S.week, staffId: id, text: 'PC LOAD LETTER?', moment: 'printer_jam' }], S);
+        step(2);
+        quiet = !ambient && R.isSpeaking(id);
+      }
       if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
         pm.interrupted = true;
         R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
@@ -732,7 +742,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     const done = ['carry', 'down', 'smash', 'off'].every((x) => phases.has(x));
     const hitsOk = hits.join() === '0,1,2,3';
     const spotOk = spotSeen && spots.length === 2 && spots[0].active && !spots[1].active && spots[0].key === spots[1].key && spots[0].kind === 'printer_jam' && !R.spotlight();
-    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk && spotOk, phases: [...phases], hits, spotlight: { seen: spotSeen, events: spots.map((x) => `${x.active ? 'start' : 'end'} ${x.kind}`) }, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
+    results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk && spotOk && quiet === true, phases: [...phases], hits, quiet, spotlight: { seen: spotSeen, events: spots.map((x) => `${x.active ? 'start' : 'end'} ${x.kind}`) }, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
     R.moments.full = false;
     step(30);
   }
@@ -844,6 +854,27 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     results.push({ name: 'moment:prompt-stage', pass: drawn && fanned && phases.has('swing') && swingSpot === 'open_plan_office' && skipped, drawn, fanned, phases: [...phases], swingSpot, skipped });
     R.moments.full = false;
     step(30 * 4);
+  }
+  // 10. A desk-staged prop names whose desk it is (stage.staffId): it goes on that person's desk even
+  // when the anchor tile points at another one.
+  {
+    // The mock's staff have no deskId: two of them get the desks they sit at.
+    const withDesk = S.staff.filter((p) => R.perks.peek(p.id)?.seat && R.office.placed.get(R.perks.peek(p.id).seat));
+    const [a, b] = withDesk;
+    const saved = [a, b].map((p) => p && [p, p.deskId]);
+    for (const p of [a, b]) if (p) p.deskId = R.perks.peek(p.id).seat;
+    let onTheirs = false;
+    if (a && b) {
+      const other = R.office.placed.get(a.deskId);
+      S.pendingDecision = { eventId: 'resignation_letter', subjectId: b.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: other.x, y: other.y, staffId: b.id } };
+      step(10);
+      const env = R.props.current().find((x) => x.prop === 'envelope');
+      onTheirs = env?.obj.userData.follow?.deskId === b.deskId && env?.staffId === b.id;
+      S.pendingDecision = null;
+      step(30 * 3);
+    }
+    for (const x of saved) if (x) { if (x[1] === undefined) delete x[0].deskId; else x[0].deskId = x[1]; }
+    results.push({ name: 'prop:stageStaff', pass: onTheirs, staffId: b?.id ?? null, desk: b ? R.perks.peek(b.id)?.seat ?? null : null });
   }
   R.perks.hold = false;
   return results;

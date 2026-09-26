@@ -17,7 +17,7 @@
 
 ## Affects
 
-<!-- Teammates whose work this changes (a tool, check, harness, shared helper, CI, contract or convention they use), and what each should do. Message each of them when this merges. Write "None" if nothing outside your lane changes. -->
+<!-- Teammates whose work this changes (a tool, check, harness, shared helper, CI, contract or convention they use), and what each should do. Message each of them when this merges. Write "None" if nothing outside your lane changes. Never write a closing keyword with an issue number here or anywhere outside Closes ("close #n", "fixes #n", "resolves #n"): GitHub closes the issue when this PR merges, even mid-sentence. Write "closes when the fix merges" instead. -->
 -
 
 ## Checklist

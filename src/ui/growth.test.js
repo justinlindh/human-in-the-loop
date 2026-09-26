@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createGrowth, growthToast } from './growth.js';
+import { createGrowth, growthToast, timelineFrom } from './growth.js';
 
 describe('growth', () => {
   it('keeps level-ups quiet, and writes one toast per person for a promotion, trait or trained skill', () => {
@@ -25,6 +25,36 @@ describe('growth', () => {
     expect(g.timeline('s1')[0].text).toBe('Level 16');
     g.markSeen('s1');
     expect(g.hasUnseen('s1')).toBe(false);
+  });
+});
+
+describe('timeline from saved history', () => {
+  it('reads p.growth newest first, and falls back to the session log without it', () => {
+    const p = { growth: [
+      { week: 10, kind: 'level', detail: { level: 5, gains: { polish: 2 } } },
+      { week: 20, kind: 'trained', detail: { skill: 'reliability', gain: 3, program: 'workshop' } },
+      { week: 22, kind: 'trained', detail: { skill: null, gain: 0, program: 'conference' } },
+      { week: 30, kind: 'promoted', detail: { seniority: 'senior' } },
+      { week: 31, kind: 'trait', detail: { traitId: 'night_owl', source: 'record' } },
+      { week: 40, kind: 'legend', detail: {} },
+      { week: 41, kind: 'mystery', detail: {} },
+    ] };
+    const tl = timelineFrom(p);
+    expect(tl.map((x) => x.text)).toEqual(['Became a legend', 'Earned Night Owl', 'Promoted to Senior', 'Finished a conference', 'Trained Reliability +3 (Workshop)', 'Level 5']);
+    expect(tl[0]).toMatchObject({ week: 40, kind: 'legend' });
+    expect(timelineFrom({ growth: [] })).toEqual([]);
+    const log = [{ week: 3, kind: 'level', text: 'Level 2' }];
+    expect(timelineFrom({}, log)).toBe(log);
+  });
+
+  it('shows every kind the sim records in a real game', async () => {
+    const { createGame, tick } = await import('../sim/index.js');
+    const bots = await import('../sim/bots.js');
+    const s = createGame({ seed: 3, companyName: 'Loopworks' });
+    for (let w = 0; w < 300 && !s.gameOver; w++) { bots.botDecide('balanced', s); bots.botTurn('balanced', s); tick(s); }
+    const lines = s.staff.flatMap((p) => timelineFrom(p));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const x of lines) expect(x.text).not.toMatch(/undefined|null|NaN/);
   });
 });
 

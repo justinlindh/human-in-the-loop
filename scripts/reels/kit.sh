@@ -15,12 +15,17 @@
 #   kit_vignette <in> <out> [strength=0.35]                          a subtle focus vignette
 #   kit_push_in_2d <in> <out> [zoom=1.12]                            a 2D push-in over the whole clip
 #
-# Clips are 1280x720 at 30 fps (KIT_W, KIT_H, KIT_FPS), H.264 through NVENC (KIT_ENC=libx264 to
-# use the CPU) with AAC. Every ffmpeg call runs under timeout and nice. Functions return ffmpeg's status.
+# Clips are 1280x720 at 30 fps (KIT_W, KIT_H, KIT_FPS), H.264 through NVENC when the machine has
+# it, else libx264 (KIT_ENC picks one), with AAC. Every ffmpeg call runs under timeout and nice.
+# Functions return ffmpeg's status.
 
 KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KIT_W=${KIT_W:-1280} KIT_H=${KIT_H:-720} KIT_FPS=${KIT_FPS:-30}
-KIT_ENC=${KIT_ENC:-h264_nvenc}
+# The GPU encoder when it works on this machine (a one-frame test encode), else libx264; KIT_ENC
+# overrides either way.
+if [ -z "${KIT_ENC:-}" ]; then
+  if timeout 20 ffmpeg -nostdin -hide_banner -loglevel error -f lavfi -i color=c=black:s=256x256:d=0.1 -frames:v 1 -c:v h264_nvenc -f null - 2>/dev/null; then KIT_ENC=h264_nvenc; else KIT_ENC=libx264; fi
+fi
 # Fredoka's static weights are instanced from the variable Fredoka (Google Fonts) with fontTools.
 KIT_TITLE_FONT="$KIT_DIR/fonts/Fredoka-Bold.ttf"
 KIT_BODY_FONT="$KIT_DIR/fonts/Fredoka-SemiBold.ttf"

@@ -48,13 +48,21 @@ function nearestFree(state, x, y) {
   return null;
 }
 
+// In the office this week: not away (sabbatical, leave) and not remote.
+export const isIn = (p) => p.mood !== 'away' && !p.remote;
+
 // Where a staged prop goes for an anchor; null for 'screens', which has no tile.
 export function stageTile(state, anchor, subjectId) {
   if (anchor === 'screens') return { x: null, y: null };
   if (anchor === 'subjectDesk') {
-    const p = state.staff.find((x) => x.id === subjectId);
-    const desk = p?.deskId ? desksOf(state.office.placed).find((d) => d.id === p.deskId) : null;
-    if (desk) { const [x, y] = seatTile(desk); return { x, y }; }
+    // The subject's desk when they are in; otherwise the desk of someone who is (a founder first), so the
+    // prop never waits on an empty chair. staffId says whose desk it is, for the renderer to cast them.
+    const desks = desksOf(state.office.placed);
+    const deskOf = (p) => (p?.deskId ? desks.find((d) => d.id === p.deskId) : null);
+    const subject = state.staff.find((x) => x.id === subjectId);
+    const inOffice = state.staff.filter((p) => isIn(p) && deskOf(p));
+    const who = subject && isIn(subject) && deskOf(subject) ? subject : inOffice.find((p) => p.founder) ?? inOffice[0] ?? null;
+    if (who) { const [x, y] = seatTile(deskOf(who)); return { x, y, staffId: who.id }; }
   }
   if (anchor === 'kitchen') {
     const corner = state.office.placed.find((i) => i.itemId === 'coffee_corner' || i.itemId === 'espresso');
