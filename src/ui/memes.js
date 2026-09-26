@@ -26,9 +26,14 @@ export function createMemeBox(layer) {
   back.style.display = 'none';
   layer.append(back);
   let small = '';
-  img.addEventListener('error', () => { if (small && img.src !== small) img.src = small; });
+  img.addEventListener('error', () => {
+    if (!small) return;
+    if (img.getAttribute('src') !== small) img.src = small;
+    else img.hidden = true;
+  });
   function open(image) {
     small = memeUrl(image.id);
+    img.hidden = false;
     img.src = memeUrl(image.id, true);
     img.alt = image.alt ?? '';
     setText(cap, image.alt ?? '');
@@ -37,6 +42,7 @@ export function createMemeBox(layer) {
   function close() {
     if (back.style.display === 'none') return false;
     back.style.display = 'none';
+    small = '';
     img.removeAttribute('src');
     return true;
   }
