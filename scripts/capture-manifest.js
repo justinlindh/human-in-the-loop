@@ -119,24 +119,13 @@ export const SEATED = `() => { const R = window.__hitlRender, s = window.__HITL.
   return o ? o.getWorldPosition(new o.position.constructor()) : null; }`;
 export const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
 // Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
-// most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
-// points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
-export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
-  const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o || window.__viewPicked) return;
+// most clearly, by the renderer's staging probe (probeViews: how much of it each turn sees). Runs
+// once per clip; the turn eases in on screen.
+export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender; if (window.__viewPicked) return;
+  const views = ${JSON.stringify(props)}.map((p) => R.probeViews(p)).find(Boolean); if (!views) return;
   window.__viewPicked = true;
-  const box = new T.Box3().setFromObject(o), c = box.getCenter(new T.Vector3()), ray = new T.Raycaster(); ray.camera = R.camera;
-  const pts = [c, ...[[0.3, 0.8, 0.3], [0.7, 0.8, 0.7], [0.3, 0.8, 0.7], [0.7, 0.8, 0.3]].map(([a, b, d]) => new T.Vector3(box.min.x + (box.max.x - box.min.x) * a, box.min.y + (box.max.y - box.min.y) * b, box.min.z + (box.max.z - box.min.z) * d))];
-  const own = (h) => { for (let x = h.object; x; x = x.parent) if (x === o) return true; return false; };
-  const off = R.camera.position.clone().sub(c);
-  let best = -1, turns = 0;
-  for (let i = 0; i < 4; i++) {
-    const eye = off.clone().applyAxisAngle(new T.Vector3(0, 1, 0), i * Math.PI / 2).add(c);
-    let n = 0;
-    // Only what stands near the prop can hide it (the backdrop and the cutaway lie far off the line).
-    for (const p of pts) { const far = eye.distanceTo(p); ray.set(eye, p.clone().sub(eye).normalize()); const h = ray.intersectObject(R.scene, true).find((x) => x.object.visible && x.object.isMesh && x.distance > far - 3); if (h && own(h)) n++; }
-    if (n > best) { best = n; turns = i; }
-  }
-  for (let i = 0; i < turns; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
+  const best = views.reduce((a, v) => (v.visible > a.visible ? v : a));
+  for (let i = 0; i < best.view; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
 export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM(props, zoom, shift) }, { at: to, js: UNAIM }];
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
@@ -175,6 +164,14 @@ export const YAK_ONLY = `(() => { const st = document.createElement('style'); st
 // pressing the choice's number key as a player would; checked every half second from `from` to `to`.
 export const CHOOSE_WHEN = (eventId, choice, from, to, read = 3) => Array.from({ length: Math.round((to - from) * 2) }, (_, i) => ({ at: from + i / 2,
   js: `(() => { const H = window.__HITL; const d = H.state.pendingDecision; if (!d || (${JSON.stringify(eventId)} && d.eventId !== ${JSON.stringify(eventId)})) return; window.__seen ??= performance.now(); if (performance.now() - window.__seen >= ${read * 1000}) { ${KEY(String(choice + 1), `Digit${choice + 1}`)}; window.__seen = undefined; } })()` }));
+// Logs where the camera looks every frame into the index.json marks ('camlog'), so a cut's largest
+// step and largest change between steps can be measured (scripts/reels/camstats.mjs).
+export const CAMLOG = (seconds) => [
+  { at: 0, js: `(() => { const R = window.__hitlRender; const log = window.__camLog = [], t0 = window.__capture.now; const f = () => { const v = R.view(); log.push([+((window.__capture.now - t0) / 1000).toFixed(4), v.x, v.y, v.z, v.zoom]); requestAnimationFrame(f); }; requestAnimationFrame(f); })()` },
+  { at: seconds - 0.05, js: `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'camlog ' + JSON.stringify(window.__camLog) }); })()` },
+];
+// Speech bubbles and work labels hidden: people in a moment's shot still chat about other things.
+export const NO_SAY = `(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()`;
 // Hides the decision card, for a still whose subject is what the decision staged.
 export const NO_CARD = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { visibility: hidden !important; }'; document.head.append(st); })()`;
 // Resolves the open decision with a choice after it has been on screen `after` seconds (a player reading it).
@@ -493,8 +490,21 @@ export const ITEMS = [
   // tick raises it, card and freeze as in play); the warm-up skips most of that week, so the card is
   // up a second into the clip. The moment camera follows staged moments; props get a close focus.
   {
+    // The shareable printer clip: the nods-printer beat with the card held about 6 s before the choice.
+    id: 'share-printer', group: 'share', title: 'PC LOAD LETTER (shareable)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 28.5, warmup: 6.5,
+    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    actions: [
+      { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 28.5),
+      { at: 7, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([7.5, 8, 9], { escape: false }),
+      ...CAMLOG(28.5),
+    ],
+    screenshots: [4, 17, 23],
+  },
+  {
     id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
-    setup: BARE,
+    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
     actions: [
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 25),
@@ -505,7 +515,7 @@ export const ITEMS = [
   },
   {
     id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 11, warmup: 6.5,
-    setup: BARE,
+    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })),
@@ -519,7 +529,7 @@ export const ITEMS = [
   },
   {
     id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 7, warmup: 6.5,
-    setup: BARE,
+    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })),
@@ -531,13 +541,13 @@ export const ITEMS = [
   },
   {
     id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 13, warmup: 6.5,
-    setup: BARE,
+    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
     actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
     screenshots: [5, 11],
   },
   {
     id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 9, warmup: 6.5,
-    setup: BARE,
+    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...NODS_FOLLOW(['banner_company'], 3, 0, 5),
@@ -575,11 +585,11 @@ export const ITEMS = [
     id: 'readme-loop', group: 'readme', title: 'The office in motion (loop)', query: 'seed=1&speed=1&time=day', seconds: 7, warmup: 6, hideUi: true,
     setup: PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE }),
   },
-];
-
-// Logs where the camera looks every frame into the index.json marks ('camlog'), so a cut's largest
-// step and largest change between steps can be measured (scripts/reels/camstats.mjs).
-export const CAMLOG = (seconds) => [
-  { at: 0, js: `(() => { const R = window.__hitlRender; const log = window.__camLog = [], t0 = window.__capture.now; const f = () => { const v = R.view(); log.push([+((window.__capture.now - t0) / 1000).toFixed(4), v.x, v.y, v.z, v.zoom]); requestAnimationFrame(f); }; requestAnimationFrame(f); })()` },
-  { at: seconds - 0.05, js: `(() => { (window.__captureMarks ??= []).push({ t: 0, label: 'camlog ' + JSON.stringify(window.__camLog) }); })()` },
+  {
+    // The reel kit's pan (docs/reels.md): a bold, eased in-engine pan across the HQ, after a hold.
+    id: 'reel-pan-hq', group: 'reels', title: 'Reel kit: a pan across the HQ', query: 'seed=1&speed=1&time=day', seconds: 9, warmup: 6,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: "s.office.stage === 2 && s.era.id === 'agents'", after: IN_OFFICE })}; ${STAGE_ONLY}; })()`,
+    camera: [{ at: 0, target: [-9, -3], zoom: 1.5 }, { at: 1.5, target: [-9, -3], zoom: 1.5 }, { at: 7.5, target: [7, -6], zoom: 1.5, ease: 'inOut' }],
+    actions: [...CLEAR_EARLY, ...CAMLOG(9)], screenshots: [1, 4.5, 8],
+  },
 ];

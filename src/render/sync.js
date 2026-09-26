@@ -28,6 +28,7 @@ const TIRED_STAMINA = 25;           // below this a person shows the exhaustion 
 const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const MAX_SPEECH = 6;
+const QUIET_R = 4;          // metres round a spotlight moment where only its own lines are spoken
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
@@ -70,8 +71,21 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // short or replaced, with the function that did it; refusals and the decision freeze too. Off
   // unless a check turns it on.
   const trace = { on: false, t: 0, lines: [], max: 600, seq: 0 };
+  // A refusal repeated for the same person within REFUSE_FOLD_S (a moment retrying every second) is
+  // counted on the first line rather than logged again.
+  const REFUSE_FOLD_S = 5;
+  const lastRefuse = new Map();
   function traceLine(id, what, detail = {}) {
     if (!trace.on) return;
+    if (what === 'refuse') {
+      const k = `${id}|${detail.by}|${detail.why}`, prev = lastRefuse.get(id);
+      if (prev?.k === k && trace.t - prev.at < REFUSE_FOLD_S) { prev.line.repeats = (prev.line.repeats ?? 1) + 1; prev.at = trace.t; return; }
+      const line = { seq: trace.seq++, t: +trace.t.toFixed(2), id, what, ...detail };
+      lastRefuse.set(id, { k, at: trace.t, line });
+      trace.lines.push(line);
+      if (trace.lines.length > trace.max) trace.lines.splice(0, trace.lines.length - trace.max);
+      return;
+    }
     trace.lines.push({ seq: trace.seq++, t: +trace.t.toFixed(2), id, what, ...detail });
     if (trace.lines.length > trace.max) trace.lines.splice(0, trace.lines.length - trace.max);
   }
@@ -414,9 +428,31 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // typing "..." until their reply, and at 4x only the last line of an exchange is shown.
   const sayIds = new Map();     // say id -> { root, staffId }
   const fastQ = new Map();      // root id -> { e, t } lines held at 4x
+  // While a spotlight moment plays, speech in and round it is about the moment: a line not marked
+  // as the moment's own (say.moment) from anyone in a moment or party, near where the spotlight
+  // plays or on screen, is dropped, and one addressed to them too. Off screen every other line
+  // still shows.
+  let farLines = 0, quietKey = null;
+  const quietNdc = new THREE.Vector3();
+  // In the camera's frame (the moment camera is on the moment, so anyone seen is round it).
+  function onScreen(x) {
+    const cam = rig?.camera;
+    if (!cam) return false;
+    quietNdc.set(x.pos.x, 1, x.pos.z).project(cam);
+    return Math.abs(quietNdc.x) < 1 && Math.abs(quietNdc.y) < 1;
+  }
+  function quieted(e, r) {
+    if (e.moment || !spotlights.current()) return false;
+    const at = spotlights.where();
+    const near = (x) => x && (x.temp?.moment || x.temp?.party || (at && Math.hypot(x.pos.x - at.x, x.pos.z - at.z) < QUIET_R) || onScreen(x));
+    if (near(r) || near(e.toId && recs.get(e.toId))) return true;
+    return (farLines++ % 2) === 1;
+  }
+
   function sayLine(e) {
     const r = recs.get(e.staffId);
     if (!r || r.hidden || !e.text) return;
+    if (quieted(e, r)) return;
     const parent = e.replyTo ? sayIds.get(e.replyTo) : null;
     const root = parent?.root ?? e.id;
     sayIds.set(e.id, { root, staffId: e.staffId });
@@ -436,7 +472,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (r.char.emote === 'typing') { r.char.setEmote(null); r.emoteT = 0; }
     if (staged) faceToward(other, r);
     // Only the opening line may walk over, and only a short way; its bubble then shows on arrival.
-    if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text)) return;
+    if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text, e.moment)) return;
     labels.say(e.text, r.char.root, holdSeconds(e.text, speed));
     if (!staged) return;
     faceToward(r, other);
@@ -454,13 +490,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     a.face = { yaw, t: 3.6 };
   }
 
-  function approach(r, other, text) {
+  function approach(r, other, text, moment = null) {
     if (r.temp || r.path.length || r.mode !== 'placed' || r.staff.mood === 'burnout') return false;
     const dx = r.pos.x - other.pos.x, dz = r.pos.z - other.pos.z;
     const d = Math.hypot(dx, dz);
     if (d < NEAR_M || d - 1.0 > WALK * WALK_MAX_S) return false;
     const spot = { x: other.pos.x + (dx / d) * 1.0, z: other.pos.z + (dz / d) * 1.0, yaw: Math.atan2(-dx, -dz), anim: 'idle' };
-    r.temp = { anim: 'idle', t: 5, goal: spot, back: true, talk: true, sayText: text };
+    r.temp = { anim: 'idle', t: 5, goal: spot, back: true, talk: true, sayText: text, sayMoment: moment };
     walkTo(r, spot);
     return true;
   }
@@ -602,7 +638,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.yaw = angleLerp(r.yaw, tp.goal.yaw, 1 - Math.exp(-dt * 10));
         c.setAnim(LIE_ANIMS.has(tp.anim) ? 'sit' : tp.anim);
       } else {
-        if (tp.sayText) { labels.say(tp.sayText, c.root, holdSeconds(tp.sayText, speed)); tp.sayText = null; }
+        if (tp.sayText) { if (!quieted({ moment: tp.sayMoment }, r)) labels.say(tp.sayText, c.root, holdSeconds(tp.sayText, speed)); tp.sayText = null; }
         tp.t -= dt;
         if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
@@ -801,7 +837,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // While a staged standup is still talking, the desk week stays silent so bubbles never overlap.
     if (speed >= 4 || standup) return;
     const said = lines.filter((l) => l.text).sort((a, b) => a.text.length - b.text.length)[0];
-    if (said && !(labels.speechCount?.() >= MAX_SPEECH)) labels.say(said.text, recs.get(said.staffId).char.root, holdSeconds(said.text, speed));
+    if (said && !(labels.speechCount?.() >= MAX_SPEECH) && !quieted(said, recs.get(said.staffId))) labels.say(said.text, recs.get(said.staffId).char.root, holdSeconds(said.text, speed));
   }
 
   const MAX_STANDUP_LINES = 3;
@@ -891,7 +927,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const p = st.people[st.i];
         if (!recs.has(p.r.id)) return;
         if (p.nod) { p.r.temp.anim = 'wave'; emote(p.r, 'lightbulb', 0.9); setTimeoutFree(p.r); }
-        else if (p.text) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
+        else if (p.text && !quieted({}, p.r)) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
         else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
       }
       return;
@@ -945,6 +981,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!office.current) return;
     trace.t += dt;
     if (paused !== frozen) { frozen = paused; traceLine(null, paused ? 'freeze' : 'unfreeze', { decision: lastState?.pendingDecision?.eventId ?? null }); }
+    // A spotlight just began: bubbles already up round it go, so only the moment's own lines follow.
+    const spot = spotlights.current();
+    if (spot && spot.key !== quietKey) {
+      const at = spotlights.where();
+      for (const r of recs.values()) if (r.temp?.moment || r.temp?.party || (at && Math.hypot(r.pos.x - at.x, r.pos.z - at.z) < QUIET_R) || onScreen(r)) labels.clearFor(r.char.root);
+    }
+    quietKey = spot?.key ?? null;
     if (paused) {
       // With a decision open (momentsToo), the moment it stages still plays: its actors, its
       // visitors and the moment camera. Everything else holds still.

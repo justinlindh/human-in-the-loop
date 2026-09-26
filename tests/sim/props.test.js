@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { raiseDecision } from '../../src/sim/events.js';
+import { raiseDecision, resolveSubjects } from '../../src/sim/events.js';
 import { propsSystem, leaveProp, stageTile } from '../../src/sim/props.js';
 import { suggestPlacement, footprintCells, frontCells } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
@@ -189,5 +189,79 @@ describe('staged prop tiles keep off items and their front zones', () => {
       const k = stageTile(s, 'kitchen', null);
       expect(Math.max(Math.abs(k.x - corner.x), Math.abs(k.y - corner.y)), `seed ${seed}`).toBeLessThanOrEqual(3);
     }
+  });
+});
+
+describe('desk-staged props never wait on an empty chair', () => {
+  const setup = (seed) => {
+    const s = floor(seed);
+    for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'mid');
+    for (const p of s.staff) { p.mood = 'ok'; p.remote = false; }
+    return s;
+  };
+
+  it('with no subject, a desk prop goes to a present person\'s desk (a founder first) and names them', () => {
+    const s = setup(31);
+    const founder = s.staff.find((p) => p.founder);
+    raise(s, 'hearing_summons');
+    expect(s.pendingDecision.stage).toMatchObject({ prop: 'envelope_thick', anchor: 'subjectDesk', staffId: founder.id });
+    for (const p of s.staff.filter((x) => x.founder)) p.mood = 'away';
+    raise(s, 'hearing_summons');
+    const who = s.staff.find((p) => p.id === s.pendingDecision.stage.staffId);
+    expect(who.mood).not.toBe('away');
+    expect(who.founder).toBe(false);
+  });
+
+  it('a decision about someone who is away waits a week instead of staging at their empty desk', () => {
+    const s = setup(32);
+    const p = s.staff.find((x) => !x.founder);
+    p.mood = 'away';
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null;
+    expect(raiseDecision(makeCtx(s), 'junior_overwhelmed', p.id, { queue: true })).toBe(false);
+    expect(s.pendingDecision).toBe(null);
+    expect(s.scheduled.at(-1)).toMatchObject({ kind: 'event', week: s.week + 1, payload: { eventId: 'junior_overwhelmed', subjectId: p.id } });
+  });
+
+  it('the wait is bounded: after deskStageWaitWeeks it goes ahead on a present person\'s desk', () => {
+    const s = setup(34);
+    const p = s.staff.find((x) => !x.founder);
+    p.mood = 'away';
+    const tryRaise = () => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; return raiseDecision(makeCtx(s), 'junior_overwhelmed', p.id, { queue: true }); };
+    for (let w = 0; w < B.deskStageWaitWeeks; w++) { expect(tryRaise(), `week ${w}`).toBe(false); s.week++; }
+    expect(tryRaise()).toBe(true);
+    const who = s.staff.find((x) => x.id === s.pendingDecision.stage.staffId);
+    expect(who.id).not.toBe(p.id);
+    expect(who.mood).not.toBe('away');
+    expect(s.flags.deskWait['junior_overwhelmed:' + p.id]).toBeUndefined();
+  });
+
+  it('a remote subject is not picked for a desk-staged event, and an out-of-office subject hands the prop to someone in', () => {
+    const s = setup(33);
+    const remote = s.staff.find((x) => !x.founder);
+    remote.seniority = 'junior';
+    expect(resolveSubjects(s, EVENTS.junior_overwhelmed).some((p) => p.id === remote.id)).toBe(true);
+    remote.remote = true;
+    expect(resolveSubjects(s, EVENTS.junior_overwhelmed).some((p) => p.id === remote.id)).toBe(false);
+    expect(stageTile(s, 'subjectDesk', remote.id).staffId).not.toBe(remote.id);
+  });
+});
+
+describe('a desk prop with no subject goes to someone who is in', () => {
+  it('skips an away sitter and prefers a founder', () => {
+    const s = floor(1);
+    for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'mid');
+    const withDesk = s.staff.filter((p) => p.deskId);
+    expect(withDesk.length).toBeGreaterThan(1);
+    const seatOf = (p) => { const t = stageTile(s, 'subjectDesk', p.id); return `${t.x},${t.y}`; };
+    const pick = () => { const t = stageTile(s, 'subjectDesk', null); return `${t.x},${t.y}`; };
+    const founder = withDesk.find((p) => p.founder);
+    expect(pick()).toBe(seatOf(founder ?? withDesk[0]));
+    const first = founder ?? withDesk[0];
+    const firstSeat = seatOf(first);
+    const otherSeats = withDesk.filter((p) => p !== first).map(seatOf);
+    first.mood = 'away';
+    const other = pick();
+    expect(other).not.toBe(firstSeat);
+    expect(otherSeats).toContain(other);
   });
 });

@@ -5,6 +5,8 @@ export const B = {
   candidateRefreshWeeks: 4, candidateCount: 5,
   // Level-ups in one week that earn a team growth line in #wins.
   growthDigestMin: 3,
+  // Level and training entries kept in a person's growth history; milestones are kept for good.
+  growthHistoryMax: 20,
   xpPerLevel: 60, xpPerWeekWorking: 8, promoteMidLevel: 5, promoteSeniorLevel: 10, maxLevel: 20,
   juniorXpAutomationPenalty: 0.7, mentorXpMult: 2.2, mentorOutputMult: 0.6,
   basePoints: 4, pointsPerLevel: 1.1,
@@ -66,7 +68,7 @@ export const B = {
   postureSecurityPerSkill: 3.2, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageComplexityPerProduct: 0.2, fixersCounted: 3, outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
-  gpuWeeklySelfHost: 1200, randomEventChance: 0.22, heldRollsMax: 2,
+  gpuWeeklySelfHost: 1200, randomEventChance: 0.22, heldRollsMax: 2, deskStageWaitWeeks: 4,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,

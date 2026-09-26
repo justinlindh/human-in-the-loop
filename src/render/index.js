@@ -271,6 +271,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     set validate(fn) { if (build) build.validator = fn; },
     get validate() { return build?.validator ?? null; },
     pickTile(x, y) { return build?.pickTile(x, y) ?? null; },
+    // Touch build mode: aim the ghost at the tile under a screen point; returns the placement corner.
+    aimBuild(x, y) { return build?.aim(x, y) ?? null; },
+    get buildGrabbing() { return !!build?.grabbing; },
     pickPlaced(x, y) { return build?.pickPlaced(x, y) ?? null; },
     // Warm plates under these placed ids (adjacency preview); null clears.
     highlightItems(ids) { build?.highlightItems(ids); },
@@ -321,7 +324,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
     },
     resize,
-    render(dt) {
+    // draw: false runs every update of a frame without drawing it (stepping a check to a pose).
+    render(dt, { draw = true } = {}) {
       const t0 = performance.now();
       renderer.info.reset();
       rig.update(dt);
@@ -333,7 +337,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       surroundings?.setViewYaw(rig.yaw);
       surroundings?.update(dt, lighting.env);
       if (staff && office) office.fadeColumns(rig.camera, staff.positions(), dt);
-      screens.update(simDt, lighting.env);
+      // A screen takeover is a staged moment: it plays on behind a decision card.
+      screens.update(screens.overlay && !speedZero ? dt : simDt, lighting.env);
       // A decision holds the office still, except the moment it stages (unless the game is paused).
       staff?.update(dt, { paused, moments: paused && !speedZero });
       floating.update(simDt);
@@ -343,7 +348,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);
       scene.updateMatrixWorld();
-      post.render(dt);
+      if (draw) post.render(dt);
       labels.render(scene, rig.camera);
       const ls = labels.getSize();
       floating.layout(dt, rig.camera, ls.width, ls.height, labels.domElement);
@@ -360,6 +365,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
+    // Whether someone has a speech bubble up now (checks).
+    isSpeaking(id) { const root = staff?.charOf(id)?.root; return !!root && floating.speaking(root); },
     // Staged props (props.js), for checks.
     get props() { return props; },
     // Draw calls and triangles for the last frame (all passes) and a smoothed CPU frame time.
