@@ -1,0 +1,52 @@
+{
+  "before": {
+    "build": "da4bf3ac",
+    "seconds": 28,
+    "fps": 30,
+    "errors": 0,
+    "marks": [
+      {
+        "t": 0.033,
+        "label": "shown capture-reading",
+        "week": 20,
+        "outage": false
+      },
+      {
+        "t": 1,
+        "label": "outage resolved",
+        "week": 20
+      },
+      {
+        "t": 16.467,
+        "label": "shown capture-outage",
+        "week": 28,
+        "outage": false
+      },
+      {
+        "t": 22.5,
+        "label": "shown capture-routine",
+        "week": 31,
+        "outage": false
+      }
+    ]
+  },
+  "after": {
+    "build": "86517b1e",
+    "seconds": 28,
+    "fps": 30,
+    "errors": 0,
+    "marks": [
+      {
+        "t": 0.033,
+        "label": "shown capture-reading",
+        "week": 20,
+        "outage": false
+      },
+      {
+        "t": 1,
+        "label": "outage resolved",
+        "week": 20
+      }
+    ]
+  }
+}

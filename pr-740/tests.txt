@@ -1,0 +1,15 @@
+
+> human-in-the-loop@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 feature branch
+
+
+ Test Files  104 passed (104)
+      Tests  882 passed (882)
+   Start at  15:25:30
+   Duration  36.65s (tests 79%, transform 13%, import 8%)
+
+
+Exit code: 0
