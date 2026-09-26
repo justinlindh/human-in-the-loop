@@ -1,9 +1,11 @@
 // The capture manifest for the trailer: the items its beats name, with each beat's overrides.
-// A beat's `item` is an id from scripts/capture-manifest.js, or one of the trailer's own items below.
+// A beat's `item` is an id from scripts/capture-manifest.js or scripts/feature-media/manifest.js, or one
+// of the trailer's own items below.
 // Item ids are prefixed `trailer-<beat>` so their files never collide with review captures.
 // A beat's `camera` list adds zooms ({ at, zoom } multiplies the current zoom, eased by the camera
 // rig) and its `actions` list adds page JS, both on the clip's own clock.
 import { ITEMS } from '../capture-manifest.js';
+import { ITEMS as FEATURE_MEDIA } from '../feature-media/manifest.js';
 import { BEATS } from './config.js';
 
 // Plays a real game with the balanced bot until the next week would raise an event matching `match`
@@ -94,7 +96,7 @@ const OWN = [
   })),
 ];
 
-const byId = new Map([...ITEMS, ...OWN].map((it) => [it.id, it]));
+const byId = new Map([...ITEMS, ...FEATURE_MEDIA, ...OWN].map((it) => [it.id, it]));
 
 // The camera rig zooms by exp(-deltaY * 0.0015) per wheel event.
 const ZOOM = (factor) => `document.getElementById('scene').dispatchEvent(new WheelEvent('wheel', { deltaY: ${(-Math.log(factor) / 0.0015).toFixed(1)}, cancelable: true }))`;
@@ -102,7 +104,7 @@ const ZOOM = (factor) => `document.getElementById('scene').dispatchEvent(new Whe
 const items = BEATS.filter((b) => b.item).map((b) => {
   const base = byId.get(b.item);
   if (!base) throw new Error(`trailer: beat ${b.id} names unknown capture item ${b.item}`);
-  const { group, ...rest } = base;
+  const { group, out, record, ...rest } = base;
   const item = { ...rest, ...b.capture, id: `trailer-${b.id}`, title: `Trailer: ${b.id} (${base.title})` };
   const extra = [...(b.camera ?? []).map((c) => ({ at: c.at, js: ZOOM(c.zoom) })), ...(b.actions ?? [])];
   if (extra.length) item.actions = [...(item.actions ?? []), ...extra];
