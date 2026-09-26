@@ -11,6 +11,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Know why a moment didn't start or was cut short | `dump.mjs --trace`, `dump-query trace <id>`; a failing `loop.mjs` or `clip.mjs` case prints the worst actor and their trace on its own | [dump](toolkit/dump.md), [loop](toolkit/loop.md), [clip](toolkit/clip.md) |
 | Jump to any event or moment in a real game | `node scripts/events/find.js <event>`, then `--moment '<query>'` or `--snapshot <path>` on a tool | [events](toolkit/events.md) |
 | Check a moment plays through the real game loop, or the spotlight hold | `blender/checks/loop.mjs` (queries, `party:<decision>`) | [loop](toolkit/loop.md) |
+| Tune a pose or gesture on numbers, without rendering (a hand reaching the face, the face's angle to the camera) | `node blender/checks/pose.mjs --gesture <name> --under <anim> --expect '...'`, `--root <worktree>` | [pose](toolkit/pose.md) |
 | Check a moment reads on screen | `stage.mjs --only=<moment>`: every staged role needs a spec; `known: <issue>` excuses a failure only while the issue is open | [stage](toolkit/stage.md) |
 | Check nothing overlaps, floats, leaves the room or clutters the screen | `sweep.mjs`, `clip.mjs --only=<pattern>` | [sweep](toolkit/sweep.md), [clip](toolkit/clip.md) |
 | Iterate on one moment without half-edited runs | `npm run gates -- --moment <kind>` | [gates](toolkit/gates.md) |
