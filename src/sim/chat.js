@@ -40,11 +40,13 @@ export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(st
 }
 
 // Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
-export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null }) {
+export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, image = null }) {
   const msg = {
     type: 'chat', id: id ?? newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
     reactions: reactions ?? reactionsFor(ctx.state, ctx.rng, channel, kind),
   };
+  // An image meme: the UI shows the picture, and text carries its alt caption.
+  if (image) msg.image = image;
   ctx.emit(msg);
   const log = ctx.state.chatLog;
   if (Array.isArray(log)) {
