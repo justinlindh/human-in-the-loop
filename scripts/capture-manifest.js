@@ -119,24 +119,13 @@ export const SEATED = `() => { const R = window.__hitlRender, s = window.__HITL.
   return o ? o.getWorldPosition(new o.position.constructor()) : null; }`;
 export const UNAIM = `(() => { if (window.__follow) window.__follow.on = false; })()`;
 // Turns the view (as the player's E key does) to whichever of the four angles sees the staged prop
-// most clearly. Each angle is tried on a copy of the camera turned about the prop; rays from it to
-// points on the prop count those that reach the prop first. The chosen turn then eases in on screen.
-export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender, T = R.THREE;
-  const o = R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; if (!o || window.__viewPicked) return;
+// most clearly, by the renderer's staging probe (probeViews: how much of it each turn sees). Runs
+// once per clip; the turn eases in on screen.
+export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender; if (window.__viewPicked) return;
+  const views = ${JSON.stringify(props)}.map((p) => R.probeViews(p)).find(Boolean); if (!views) return;
   window.__viewPicked = true;
-  const box = new T.Box3().setFromObject(o), c = box.getCenter(new T.Vector3()), ray = new T.Raycaster(); ray.camera = R.camera;
-  const pts = [c, ...[[0.3, 0.8, 0.3], [0.7, 0.8, 0.7], [0.3, 0.8, 0.7], [0.7, 0.8, 0.3]].map(([a, b, d]) => new T.Vector3(box.min.x + (box.max.x - box.min.x) * a, box.min.y + (box.max.y - box.min.y) * b, box.min.z + (box.max.z - box.min.z) * d))];
-  const own = (h) => { for (let x = h.object; x; x = x.parent) if (x === o) return true; return false; };
-  const off = R.camera.position.clone().sub(c);
-  let best = -1, turns = 0;
-  for (let i = 0; i < 4; i++) {
-    const eye = off.clone().applyAxisAngle(new T.Vector3(0, 1, 0), i * Math.PI / 2).add(c);
-    let n = 0;
-    // Only what stands near the prop can hide it (the backdrop and the cutaway lie far off the line).
-    for (const p of pts) { const far = eye.distanceTo(p); ray.set(eye, p.clone().sub(eye).normalize()); const h = ray.intersectObject(R.scene, true).find((x) => x.object.visible && x.object.isMesh && x.distance > far - 3); if (h && own(h)) n++; }
-    if (n > best) { best = n; turns = i; }
-  }
-  for (let i = 0; i < turns; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
+  const best = views.reduce((a, v) => (v.visible > a.visible ? v : a));
+  for (let i = 0; i < best.view; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
 export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM(props, zoom, shift) }, { at: to, js: UNAIM }];
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);

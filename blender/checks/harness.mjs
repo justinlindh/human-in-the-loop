@@ -71,6 +71,9 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
     async openScene(query, { width = 960, height = 640, time = 0.45, slot = 0 } = {}) {
       const page = await launched[slot % launched.length].browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
       const errors = [];
+      // Every path the page requests, so a check can key a cache on exactly what the scene loaded.
+      const requests = new Set();
+      page.on('request', (r) => requests.add(r.url()));
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
       await page.addInitScript(INIT);
@@ -85,13 +88,16 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
         R.setTimeOfDay?.(tod);
         // The state is read on each frame: a loaded save (continueGame) replaces it.
         window.__step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30); } };
+        // The same n frames, drawing only the last: every update still runs each frame, so the final
+        // picture is identical to __step(n), without paying for the frames nobody looks at.
+        window.__settle = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30, { draw: i === n - 1 }); } };
         // Stepping without drawing. R.advance() moves people, moments and effects but, unlike render(),
         // never refreshes world matrices; game logic reads them (paths, gaze, props that follow a desk),
         // so a stepper that skipped the refresh would play differently from the game, and any tool that
         // later refreshed them (a crop, a probe) would change what comes after.
         window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
       }, time);
-      return { page, errors };
+      return { page, errors, requests };
     },
     async close() { await Promise.all(launched.map((l) => l.browser.close())); await server.close(); },
   };

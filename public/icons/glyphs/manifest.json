@@ -311,6 +311,10 @@
  "research": {
   "file": "glyphs/research.svg"
  },
+ "research.squish": {
+  "file": "glyphs/research.squish.svg",
+  "size": 26
+ },
  "fn.engineering": {
   "file": "glyphs/fn.engineering.svg"
  },

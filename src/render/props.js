@@ -61,10 +61,10 @@ export function createProps(office, screens = null) {
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk });
       if (!obj) continue;
       obj.userData.propId = w.prop;
-      if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
+      if (obj.userData.blocks) obj.userData.rect = floorRect(obj, obj.userData.blockPart);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
-      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop });
+      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop, staffId: w.staffId ?? null });
     }
     pushObstacles();
   }
@@ -91,7 +91,7 @@ export function createProps(office, screens = null) {
         if (desk) {
           follow(e.obj, desk);
           const r = e.obj.userData.rect;
-          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj); moved = true; }
+          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj, e.obj.userData.blockPart); moved = true; }
         } else { e.gone = true; e.t = 0; dropped.add(k); moved = true; }
       }
       // Effects are built in office coordinates and fade on their own: no pop, no shrink.
@@ -116,7 +116,8 @@ export function createProps(office, screens = null) {
   const objectOf = (id) => [...live.entries()].find(([k, e]) => !e.gone && k.startsWith(`prop|${id}|`))?.[1].obj ?? null;
 
   // What is up now, for staff moments: [{ prop, obj }] and the screen takeover ('red' | 'skull' | null).
-  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj }));
+  // What is up now: { prop, obj, staffId } (staffId: whose desk a desk-staged prop is on, or null).
+  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj, staffId: e.staffId }));
 
   // For checks: the free-top grid of a placed desk entry, as rows of '.' (free) and '#' (taken).
   const deskMap = (e) => { const g = deskGrid(e); const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.cells[i + k * g.nx] ? '#' : '.'; rows.push(r); } return rows; };
@@ -131,13 +132,14 @@ export function createProps(office, screens = null) {
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
 // prims geometry (cached and shared) and loaded models (userData.shared) belong to everyone.
-// A floor prop's footprint in office coordinates, measured at full size, with a little room around
-// it; px, pz remember where it stood so a moving prop can tell when to re-measure.
-function floorRect(obj) {
+// A floor prop's footprint in office coordinates (of `part` alone when given: the solid piece of a
+// prop whose effects spill round it), measured at full size, with a little room around it; px, pz
+// remember where it stood so a moving prop can tell when to re-measure.
+function floorRect(obj, part = null) {
   const s = obj.scale.x;
   obj.scale.setScalar(1);
   obj.updateMatrixWorld(true);
-  const b = new THREE.Box3().setFromObject(obj);
+  const b = new THREE.Box3().setFromObject(part ?? obj);
   obj.scale.setScalar(s);
   obj.updateMatrixWorld(true);
   const pad = 0.05;
@@ -370,8 +372,13 @@ const rivalCopied = (state) => {
 // desk, or for other anchors, it stands on the anchor tile's floor.
 const deskList = (office) => [...(office.placed?.values() ?? [])].filter((o) => o.desk && o.target);
 const dist = (a, b) => Math.hypot(a.target.x - b.target.x, a.target.z - b.target.z);
-function deskFor(L, anchor, office, nearest) {
+// The desk a prop goes on: the named person's own (anchor.staffId, with their deskId in state),
+// else the one covering the anchor tile, else (nearest) the closest.
+function deskFor(L, anchor, office, nearest, state = null) {
   const desks = [...(office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
+  const own = anchor.staffId && state?.staff?.find((p) => p.id === anchor.staffId)?.deskId;
+  const theirs = own && desks.find((e) => e.id === own);
+  if (theirs) return theirs;
   const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
   const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
@@ -391,7 +398,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
     g.userData.blocks = !onTop;
-    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
+    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop, env.state) : null;
     if (e) {
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
       // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.
@@ -932,10 +939,26 @@ function smokePuff(L, anchor, env) {
   return puffs(itemAt(L, anchor, env.office).box, { color: P.metal_dark, size: 0.5, opacity: 0.75, rise: 1.4 });
 }
 // The server rack is running hot: a pulsing orange glow over its front and heat rising off the top.
+const OWN_RACK_YAW = Math.PI / 4;   // a staged rack of its own faces the default camera
 function rackHot(L, anchor, env) {
-  const { box } = itemAt(L, anchor, env.office, ['rack']);
+  const { box: found, entry } = itemAt(L, anchor, env.office, ['rack']);
   const g = new THREE.Group();
-  const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2, glow: true });
+  let box = found;
+  if (!entry) {
+    // No rack in this office: the staged one brings its own, on clear floor near the anchor, facing
+    // the room three-quarters to the camera, and it blocks walking. The effects follow it round.
+    const rack = getModel('server_rack');
+    rack.userData.shared = true;
+    g.add(rack);
+    const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+    const q = clearSpot(L, env.office, g, { x: c.x, z: c.z });
+    box = new THREE.Box3().setFromObject(rack);
+    g.position.set(q.x, 0, q.z);
+    g.rotation.y = OWN_RACK_YAW;
+    g.userData.blocks = true;
+    g.userData.blockPart = rack;
+  }
+  const heat = puffs(box, { n: 10, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.6, opacity: 0.9, spread: 0.22, glow: true });
   g.add(heat);
   // Smoke pouring out of the rack's front vents into the room.
   const front = new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.4, box.max.z + 0.05);
@@ -954,7 +977,7 @@ function rackHot(L, anchor, env) {
     t += dt;
     heat.userData.tick(dt);
     smoke.userData.tick(dt);
-    glowMat.opacity = 0.45 + 0.25 * Math.sin(t * 4);
+    glowMat.opacity = 0.62 + 0.3 * Math.sin(t * 4);
   };
   g.userData.noPop = true;
   return g;

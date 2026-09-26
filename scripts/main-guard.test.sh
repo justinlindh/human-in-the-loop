@@ -31,7 +31,7 @@ guard() { # <gh log> <open file> [env assignments...] -- [guard args...]
   local log="$1" open="$2"; shift 2
   local envs=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
   env GH_LOG="$log" GH_OPEN="$open" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$case_root" HITL_LOCK_DIR="$tmp/locks" \
-    MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
+    MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
 }
 expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x looks in the guard's output>
   local w want; IFS='|' read -ra want <<<"$3"
@@ -158,6 +158,16 @@ if [ ${#fp[@]} -eq 5 ]; then
   guard "$cl" /dev/null "$gp" GIT_FAIL_CO="${fp[2]:0:7}" GIT_FAIL_COUNT="$tmp/co3.n" MAIN_GUARD_RETRY_WAIT=0 MAIN_GUARD_SUITE="$RED_FROM" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
   expect 'a bisect stops at a commit it cannot check out' "$cl" "--label main-red|could not judge \`${fp[2]:0:7}\`|!First red merge"
 fi
+# The uncached golden run: a failure marks main red, one that fails on the machine gives no verdict.
+case_root="$tmp/root-golden"; gl="$tmp/golden.log"; : >"$gl"
+guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
+expect 'an uncached golden failure marks main red' "$gl" "state=failure|golden-uncached|--label main-red"
+case_root="$tmp/root-golden2"; : >"$gl"
+guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "Error: ENOSPC: no space left on device"; exit 1' -- --sha HEAD
+expect 'an uncached golden run that fails on the machine gives no verdict' "$gl" "state=error|golden: ENOSPC|!state=failure|!--label main-red"
+case_root="$tmp/root-golden3"; : >"$gl"
+guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+expect 'a passing uncached golden run leaves main green' "$gl" "state=success|!golden-uncached"
 # Local CI failing only on the machine (exit 3) is no verdict either.
 MACHINE='printf "| step | result | seconds |\n|---|---|---|\n| lifecycle | error: machine (ENOSPC) | 1 |\n" >"$SUMMARY"; exit 3'
 case_root="$tmp/root-machine"; : >"$cl"

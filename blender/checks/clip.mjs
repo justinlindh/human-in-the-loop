@@ -22,7 +22,7 @@ const GROUPS = {
   perks: ['couch:sit', 'couch:nap', 'beanbag:sprawl', 'napPod:lie', 'arcade:stool', 'library:armchair'],
   dance: ['dance:motivational_polka', 'dance:corporate_synthwave', 'dance:aggressive_bossa_nova', 'dance:sad_lofi', 'dance:trackLength'],
   walk: ['walk:dropOnWalk', 'walk:dropOnStand', 'walk:walkers'],
-  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage'],
+  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage', 'prop:stageStaff'],
   pairs: ['pairs:floor'],
   use: ['use:espresso', 'use:coffee_corner', 'use:plant_wall', 'use:bookshelf'],
   party: ['waffle:crowd'],
