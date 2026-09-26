@@ -691,15 +691,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       case 'facepalm': case 'facepalmsit':
-        // Head dropped into the right hand: the hand up at the forehead, the other arm limp.
-        // The elbow juts out sideways so the gesture reads in silhouette from above.
-        tgt.lean = 0.22;
-        tgt.headX = 0.28 + s(t * 1.2 + phase) * 0.03;
-        tgt.headZ = -0.16 + s(t * 0.8) * 0.04;
-        tgt.armRX = -2.15;
-        tgt.armRZ = -0.95;
-        tgt.armLX = -0.35;
-        tgt.armLZ = 0.08;
+        // Head tipped into the left hand at the temple, the other arm limp: a bow deep enough to
+        // read, shallow enough that the big head hides neither the face nor the hand from above.
+        tgt.lean = 0.25;
+        tgt.headX = 0.36 + s(t * 1.2 + phase) * 0.03;
+        tgt.headZ = 0.24 + s(t * 0.8) * 0.04;
+        tgt.armLX = -2.3;
+        tgt.armLZ = 0.7;
+        tgt.armRX = -0.35;
+        tgt.armRZ = -0.08;
         break;
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
