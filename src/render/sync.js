@@ -487,6 +487,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         || lastState?.chatPrompts?.some(p => p.kind === e.moment && !p.resolved);
       if (q.open && !pending) return 'drop';
       if (q.spot && q.spot !== active?.key) return 'drop';
+      // Routine celebration lines wait their turn outside an ordered meeting; a spotlight keeps priority.
+      if (standup && !active && !q.open) return 'wait';
       if (active && active.kind !== e.moment) return 'wait';
       if (active) q.spot = active.key;
       if (q.age < B.momentSpeechStartDelay) return 'wait';
@@ -932,7 +934,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   function startStandup(e, state) {
-    if (!office.current) return;
+    // A spotlight owns the room's speech. Do not assemble a meeting that must wait silently for it.
+    if (!office.current || spotlights.current()) return;
     const week = Number.isFinite(state?.week) ? state.week : standupCount;
     standupCount++;
     if (week < lastStagedWeek) { lastStagedWeek = -Infinity; lastStagedAt = -Infinity; }   // a new or loaded game

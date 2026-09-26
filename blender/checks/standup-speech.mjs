@@ -25,6 +25,13 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
   const shown = [], dwell = new Map();
   let blocked = false, paused = false, changed = false, departed = false, pauseStable = true, max = 0;
   for (let frame = 0; frame < 1800; frame++) {
+    if (path === 'ambient' && shown.length === 1 && !blocked) {
+      R.handleEvents([
+        { id: 'ambient-one', type: 'say', staffId: S.staff[3].id, text: 'Unrelated chatter.' },
+        { id: 'ambient-two', type: 'say', staffId: S.staff[3].id, text: 'Unrelated celebration.', moment: 'launch' },
+      ], S);
+      blocked = true;
+    }
     if (['pause', 'menu'].includes(path) && shown.length === 1 && !paused) {
       if (path === 'pause') R.setSpeed(0); else R.setPaused(true);
       const before = JSON.stringify(R.stats.standup);
@@ -50,6 +57,7 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
     max = Math.max(max, bubbles.length);
     for (const el of bubbles) {
       const text = el.textContent;
+      if (path === 'ambient' && R.stats.standup && text.startsWith('Unrelated')) throw Error('unrelated speech interrupted the meeting');
       if (!lines.some(l => l.text === text)) continue;
       if (!shown.includes(text)) shown.push(text);
       dwell.set(text, (dwell.get(text) ?? 0) + 1 / 30);
