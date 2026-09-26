@@ -48,6 +48,17 @@ function motion(xs) {
 }
 
 const SPECS = {
+  'growth.honoree': { moment: 'growth', beat: 'cheer', role: 'honoree', rules: [
+    share('celebrating', 'honoree celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('faceVisible', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
+    visibleRule, noFade,
+  ] },
+  'growth.coworker': { moment: 'growth', beat: 'cheer', role: 'coworker', rules: [
+    share('celebrating', 'nearby coworkers celebrate throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
+  'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
+    share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
   'pet.stroke': { moment: 'pet', beat: 'stroke', role: 'dog', rules: [
     share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
     share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
@@ -162,6 +173,8 @@ const SPECS = {
 
 // How each moment is set up in the mock floor, and how long to watch it.
 const SCENARIOS = {
+  growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
+  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog')" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,

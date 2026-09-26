@@ -25,6 +25,11 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
   const shown = [], dwell = new Map();
   let blocked = false, paused = false, changed = false, departed = false, pauseStable = true, max = 0;
   for (let frame = 0; frame < 1800; frame++) {
+    if (path === 'priority' && shown.length === 1 && !blocked) {
+      R.handleEvents([{ type: 'launch' }], S);
+      if (!R.spotlight()) throw Error('priority scene did not start');
+      blocked = true;
+    }
     if (path === 'ambient' && shown.length === 1 && !blocked) {
       R.handleEvents([
         { id: 'ambient-one', type: 'say', staffId: S.staff[3].id, text: 'Unrelated chatter.' },

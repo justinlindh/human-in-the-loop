@@ -12,6 +12,8 @@
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
 // 'eager' acts every week exactly like the balance harness, so the game matches runBot.
+import { MOMENT_KINDS } from '../src/render/spotlight-kinds.js';
+import { createGrowthMoments } from '../src/render/growth-moments.js';
 import { createGame, tick, dispatch } from '../src/sim/index.js';
 import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
@@ -167,7 +169,7 @@ const pct = (arr, p) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(p 
 const r1 = (x) => (x === null || x === undefined ? null : Math.round(x * 10) / 10);
 const r2 = (x) => (x === null || x === undefined ? null : Math.round(x * 100) / 100);
 
-export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player = 'batch', minutes = null, weeks = null, frame = 1 / 30, weekSeconds = WEEK_SECONDS } = {}) {
+export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player = 'batch', minutes = null, weeks = null, frame = 1 / 30, weekSeconds = WEEK_SECONDS, spotlights = true } = {}) {
   if (!['batch', 'eager'].includes(player)) throw new Error(`Unknown player "${player}". Players: batch, eager`);
   if (!bots.BOTS[bot]) throw new Error(`Unknown bot "${bot}". Bots: ${Object.keys(bots.BOTS).join(', ')}`);
   const limitSeconds = minutes !== null ? minutes * 60 : weeks === null ? 30 * 60 : Infinity;
@@ -267,10 +269,40 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   let playT = 0; // real seconds while the game is running (the renderer's play clock)
   const counts = { chat: 0, chatBot: 0, sayDropped: 0, says: 0, standupsStaged: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
 
+  const spotlight = { model: 'estimated presentation durations; excludes manual skips and camera travel', count: 0, skipped: 0, addedSeconds: 0, byKind: {} };
+  const activeSpots = new Map(), stagedSpots = new Set();
+  const growth = createGrowthMoments();
+  growth.sync(state);
+  function beginSpotlight(kind, key) {
+    const spec = MOMENT_KINDS[kind];
+    if (!spec?.spotlight || stagedSpots.has(key)) return;
+    stagedSpots.add(key);
+    spotlight.count++;
+    spotlight.byKind[kind] = (spotlight.byKind[kind] ?? 0) + 1;
+    if (speed >= 4) { spotlight.skipped++; return; }
+    if (spotlights) activeSpots.set(key, spec.seconds);
+    log('spotlight', kind);
+  }
+  const propKind = { envelope: 'letter', envelope_thick: 'letter', smoke_puff: 'fumes', rack_hot: 'fumes', pizza_boxes: 'pizza', pet_carrier: 'carrier', screens_red: 'screen', screens_skull: 'screen', visitor_chair: 'first_user_test' };
+  function stageSpotlight(d, key) {
+    const kind = d?.eventId ?? d?.kind;
+    const mapped = propKind[d?.stage?.prop];
+    if (mapped) beginSpotlight(kind === 'efficiency_consultants' ? kind : mapped, key);
+  }
   function route(events) {
+    growth.sync(state);
     if (!events?.length) return;
     refreshPresent();
     for (const e of events) {
+      if (e.type === 'decision') stageSpotlight(state.pendingDecision, `decision:${state.week}:${state.pendingDecision?.eventId}`);
+      if (e.type === 'chatPrompt') stageSpotlight(state.chatPrompts.find((p) => p.id === e.promptId), `prompt:${e.promptId}`);
+      if (e.type === 'decisionResolved' || e.type === 'chatPromptResolved') {
+        const d = e.type === 'decisionResolved' ? e : { ...e, eventId: state.chatPrompts.find((p) => p.id === e.promptId)?.kind };
+        if (d.eventId === 'printer_jam' && d.choice === 0) beginSpotlight('printer_jam', `printer:${state.week}`);
+        if (d.eventId === 'open_plan_office' && d.choice === 0) beginSpotlight('open_plan_office', `hammer:${state.week}`);
+      }
+      if (e.type === 'incentive') beginSpotlight(e.reward, `reward:${state.week}:${e.staffId}:${e.reward}`);
+      if (e.type === 'launch' || e.type === 'award' || (e.type === 'celebrate' && !e.staffId)) beginSpotlight('company_party', `party:${state.week}`);
       switch (e.type) {
         case 'toast': toast(e.text, e.tone, /ready to choose a career path/.test(e.text)); break;
         case 'hire': {
@@ -378,10 +410,10 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
         }
         reading = null;
       }
-    } else if (!menu && cards.length) {
+    } else if (!menu && !activeSpots.size && cards.length) {
       const c = cards.shift();
       menu = { until: t + c.seconds, kind: `${c.kind} card` };
-    } else if (!menu && launchQueue.length) {
+    } else if (!menu && !activeSpots.size && launchQueue.length) {
       launchQueue.shift();
       counts.launchPopups++;
       menu = { until: t + draw(HUMAN.launch), kind: 'launch' };
@@ -406,7 +438,17 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
 
     // One frame of main.js.
     const menuPause = !!menu;
-    const running = !menuPause && !state.pendingDecision && !state.gameOver;
+    const free = !menuPause && !state.pendingDecision && !state.gameOver;
+    if (free && !activeSpots.size) {
+      const g = growth.take(() => true);
+      if (g) beginSpotlight(g.kind, `growth:${g.staffId}:${g.kind}`);
+    }
+    const held = activeSpots.size > 0;
+    const running = free && !held;
+    if (free && held) { spotlight.addedSeconds += frame; touch(); }
+    if (!menuPause) for (const [key, left] of activeSpots) {
+      if (left <= frame) activeSpots.delete(key); else activeSpots.set(key, left - frame);
+    }
     if (menuPause || state.pendingDecision) touch();
     if (running) playT += frame;
     if (menuPause) { paused.menu += frame; if (menu.kind === 'menu') paused.sessions += frame; }
@@ -422,7 +464,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
         firsts.era[lastEra] ??= t;
       }
     }
-    if (!menuPause) route(pacer.due());
+    if (running) route(pacer.due());
     t += frame;
   }
 
@@ -446,7 +488,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     seed, speed, bot, player, playerEvents: sinkApi ? 'all' : 'hires only', weekSeconds: weekSeconds / speed,
     minutesPerYear: r1((t / 60) / Math.max(1e-9, state.week / 52)),
     realMinutes: r1(minutesPlayed), weeks: state.week, gameOver: state.gameOver ? { won: state.gameOver.won, reason: state.gameOver.reason } : null,
-    pausedShare: { decision: r2(paused.decision / t), menu: r2(paused.menu / t), menuSessions: r2(paused.sessions / t) },
+    spotlight: { ...spotlight, addedSeconds: r1(spotlight.addedSeconds), addedMinutes: r2(spotlight.addedSeconds / 60) },
+    pausedShare: { spotlight: r2(spotlight.addedSeconds / t), decision: r2(paused.decision / t), menu: r2(paused.menu / t), menuSessions: r2(paused.sessions / t) },
     menuSessions: sessionCount(timeline),
     popupsPerMinute: perMin(popups),
     decisions: {
@@ -481,6 +524,7 @@ function printSummary(m, overlaps) {
   console.log(`pacing: seed ${m.seed}, bot ${m.bot}, ${m.player} player, ${m.speed}x (${m.weekSeconds}s per week); player's own events: ${m.playerEvents}`);
   L('played', `${m.realMinutes} real min, ${m.weeks} weeks${m.gameOver ? `, game over (${m.gameOver.won ? 'won' : 'lost'}: ${m.gameOver.reason})` : ''}`);
   L('time paused', `decisions ${Math.round(m.pausedShare.decision * 100)}%, menus and popups ${Math.round(m.pausedShare.menu * 100)}% (menu sessions alone ${Math.round(m.pausedShare.menuSessions * 100)}%)`);
+  L('spotlights (estimated)', `${m.spotlight.count} scenes, ${m.spotlight.skipped} skipped; ${m.spotlight.addedSeconds}s (${m.spotlight.addedMinutes} min) added outside cards and menus`);
   L('menu sessions (w/ changes)', Object.entries(m.menuSessions).map(([k, v]) => `${k} ${v}`).join('  '));
   L('real minutes per game year', m.minutesPerYear);
   L('longest quiet stretch', `${m.longestQuiet.seconds}s from minute ${m.longestQuiet.fromMinute} (week ${m.longestQuiet.week}); after minute 10: ${m.longestQuiet.afterTenMinutes}s; stretches over 45s: ${m.longestQuiet.over45s}`);
@@ -515,7 +559,7 @@ if (isMain) {
   const num = (k) => (a[k] === undefined || a[k] === true ? null : Number(a[k]));
   const players = a.player === 'both' ? ['batch', 'eager'] : [typeof a.player === 'string' ? a.player : 'batch'];
   const runs = players.map((player) => simulatePacing({
-    seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player,
+    spotlights: !a['no-spotlights'], seed: num('seed') ?? 1, speed: num('speed') ?? 1, bot: typeof a.bot === 'string' ? a.bot : 'sensible', player,
     minutes: num('minutes'), weeks: num('weeks'), frame: num('frame') ?? 1 / 30, weekSeconds: num('week-seconds') ?? WEEK_SECONDS,
   }));
   if (a.check) {

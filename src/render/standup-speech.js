@@ -4,6 +4,9 @@ import { B } from '../sim/balance.js';
 export function createStandupSpeech(lines) {
   let index = 0, wait = 0;
   return {
+    interrupt() {
+      if (wait > 0) { index--; wait = 0; }
+    },
     step(dt, status, show) {
       if (dt <= 0) return;
       wait = Math.max(0, wait - dt);
@@ -20,6 +23,7 @@ export function createStandupSpeech(lines) {
       }
     },
     get index() { return index; },
+    get current() { return wait > 0 ? lines[index - 1] : null; },
     get done() { return index === lines.length && wait === 0; },
   };
 }

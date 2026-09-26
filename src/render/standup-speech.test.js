@@ -35,4 +35,19 @@ describe('ordered standup turns', () => {
     q.step(0, () => 'play', () => { throw Error('paused'); });
     expect(q.index).toBe(0);
   });
+  it('replays a line whose bubble a priority scene interrupted, then continues in order', () => {
+    const q = createStandupSpeech(lines), shown = [];
+    const show = l => { shown.push(l.text); return 4; };
+    q.interrupt();
+    expect(q.index).toBe(0);
+    q.step(0.1, () => 'play', show);
+    expect(q.current).toEqual(lines[0]);
+    q.interrupt();
+    expect(q.index).toBe(0);
+    q.step(0.1, () => 'wait', show);
+    expect(shown).toEqual(['Question?']);
+    for (let i = 0; i < 4; i++) q.step(5, () => 'play', show);
+    expect(shown).toEqual(['Question?', 'Question?', 'Answer.', 'Thanks.']);
+    expect(q.done).toBe(true);
+  });
 });

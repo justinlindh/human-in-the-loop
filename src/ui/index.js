@@ -49,7 +49,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     sfx: (k) => ctx.sfx?.(k),
   });
 
-  const toasts = createToasts(layer);
+  const spotlightActive = () => !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.();
+  const toasts = createToasts(layer, { canShow: () => !spotlightActive() });
   let lastSpeed = 1;
 
   const ui = {
@@ -134,7 +135,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
+    onChange: (id) => { if (id) captions.cancel(); if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
@@ -149,7 +150,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   ctx.spacing = spacing;
   const growth = createGrowth();
   ctx.growth = growth;
-  const announcer = createAnnouncer({ layer, sfx, openMenu: (id, arg) => menu.open(id, arg), canShow: () => spacing.ready() && !popups?.open });
+  const announcer = createAnnouncer({ layer, sfx, held: spotlightActive, openMenu: (id, arg) => menu.open(id, arg), canShow: () => !spotlightActive() && spacing.ready() && !popups?.open });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
   const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'policies' };
@@ -338,10 +339,10 @@ export function createUI({ root, getState, dispatch, controls }) {
     const frameAt = performance.now();
     const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
     lastFrame = frameAt;
-    const running = (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
+    const running = !spotlightActive() && (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
     spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
     captions.update();
-    announcer.pump();
+    if (!spotlightActive()) announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
@@ -349,11 +350,11 @@ export function createUI({ root, getState, dispatch, controls }) {
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);
-    popups.update(state);
+    popups.update(state, { holdLaunch: spotlightActive() });
     buildMode.update(state);
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
-    tutorial.setHeld(!!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
+    tutorial.setHeld(!!(spotlightActive() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
