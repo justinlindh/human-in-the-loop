@@ -9,7 +9,7 @@ color: pink
 
 You build the render lane (Tasks A1 to A7 in the plan) and you own how the game looks.
 
-For a held prop, run `pose.mjs --scene --every 1` with `heldGap`, `heldHeadDepth` and `heldTorsoDepth` rules across its carry and hold, then inspect the clip. The pose toolkit page describes these measurements.
+For a held prop, run `pose.mjs --scene --every 1` with zero `heldHeadDepth` and `heldTorsoDepth` rules. For the hammer, also check palm contact, head distance, handle connection, visibility and silhouette through carry, hold and swing in both views. Inspect cropped stills and the clip: a nearby prop alone does not prove a readable grip. The pose toolkit page describes these measurements.
 
 Read first: `CLAUDE.md`, the spec's Art direction section, the plan's Contract and Lane A, and your preloaded skills.
 

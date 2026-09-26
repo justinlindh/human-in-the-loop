@@ -142,19 +142,15 @@ const SPECS = {
     share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
-  'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
-    share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
-    share('notOverHead', 'hammer centre not above the top of the head', (x) => x.heldAbove <= 0.05, 1),
-    ...['heldHeadDepth', 'heldTorsoDepth', 'heldGap'].map((metric) => ({
-      metric, want: metric === 'heldGap' ? 'wrist gap <= 0.04 m throughout carry and hold' : 'no penetration throughout carry and hold',
-      test: (_hold, all) => {
-        const xs = all.filter((x) => x.held);
-        return xs.length && xs.every((x) => Number.isFinite(x[metric])) ? Math.max(...xs.map((x) => x[metric])) : Infinity;
-      },
-      pass: (value) => value <= (metric === 'heldGap' ? 0.04 : 1e-6),
-    })),
-    visibleRule,
-  ] },
+  ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
+    ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6], ['heldPalmGap', 0.02], ['heldSupportGap', 0.02], ['heldHeadDistance', 0.6], ['heldHeadJoint', 0.08], ['heldScreenDistance', 0.6]].map(([metric, limit]) =>
+      share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
+    share('headReach', 'head at least 0.35 m along the shaft from the palm', (x) => x.heldHeadDistance >= 0.35, 1),
+    share('shaftVisible', 'at least half the shaft visible', (x) => x.heldHandleVisible >= 0.5, beat === 'carry' ? 0.85 : 1),
+    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, beat === 'carry' ? 0.85 : 1),
+    share('shaftSilhouette', 'shaft projects at least 60% of its length', (x) => x.heldShaftProjection >= 0.6, 0.95),
+    share('headSilhouette', 'head crosses shaft by at least 25% of shaft length', (x) => x.heldHeadCross >= 0.25, 0.95),
+  ] }]))
 };
 
 // How each moment is set up in the mock floor, and how long to watch it.
@@ -170,7 +166,8 @@ const SCENARIOS = {
   pizza: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'hackathon', subjectId: 's1', stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' } } }, seconds: 16 },
   screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
-  hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 16 },
+  hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
+    steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
   // The consultants at the HQ door, where the sim stages their chair.
   consultants: { query: 'mock=hq', patch: {}, seconds: 16,
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
@@ -258,8 +255,11 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
           live++;
           // Held prop against the hands and the head, for the hold rules.
           const st = R.moments.staging(actor);
+          if (moment === 'hammer' && R.moments.hammer?.phase !== 'fetch') {
+            Object.assign(m, measureHeld(R, actor, undefined, undefined, m));
+            if (R.moments.hammer?.phase === 'carry') m.beat = 'carry';
+          }
           if (m.held) {
-            if (moment === 'hammer') Object.assign(m, measureHeld(R, actor));
             const c = new THREE.Box3().setFromObject(st.held).getCenter(new THREE.Vector3());
             m.heldHand = Math.min(...m.hands.map((h) => Math.hypot(h[0] - c.x, h[1] - c.y, h[2] - c.z)));
             m.heldAbove = c.y - (m.headY + 0.3);

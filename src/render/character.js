@@ -887,6 +887,20 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
     }
     blendIn(dt);
+    if (held?.userData.handSpan) {
+      // Keep both palms on the shaft while the legs retain their walking animation.
+      const stroke = anim === 'swing' ? Math.sin(animT * Math.PI * 2 / 1.1) : 0;
+      const primary = held.userData.primaryHand ?? 1;
+      arms[1].shoulder.rotation.set((primary === 1 ? -1.25 : -1.65) + stroke * 0.55, 0, -0.18);
+      arms[0].shoulder.rotation.set((primary === 0 ? -1.25 : -1.65) + stroke * 0.55, 0, 0.18);
+      root.updateMatrixWorld(true);
+      const palm = (a) => a.shoulder.localToWorld(a.wrist.position.clone().add(HAND_TIP));
+      const grip = mugParent.worldToLocal(palm(arms[primary]));
+      const support = mugParent.worldToLocal(palm(arms[1 - primary]));
+      held.position.copy(grip);
+      const aim = support.sub(grip).normalize();
+      held.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), aim);
+    }
   }
 
   // A gesture plays over whatever the person is doing for a few seconds (gesture()), then their own

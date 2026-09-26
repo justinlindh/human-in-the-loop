@@ -37,6 +37,7 @@
 // harness page as well and compares every number, which is how the stand-ins are kept honest.
 import { createServer } from 'vite';
 import { LANDMARKS } from './pose-landmarks.js';
+import { HELD_READ_MEASURES } from './pose-held.js';
 import { judgeScene } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -153,7 +154,7 @@ async function checkBrowser(frames) {
   }
 }
 
-const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx', 'heldGap', 'heldHeadDepth', 'heldTorsoDepth'];
+const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx', 'heldGap', 'heldHeadDepth', 'heldTorsoDepth', ...HELD_READ_MEASURES];
 
 // The page a browser check opens serves this checkout, so it can only check this checkout's code.
 const browserMode = argv.includes('--scene') ? '--scene' : argv.includes('--check-browser') ? '--check-browser' : null;

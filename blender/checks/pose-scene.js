@@ -8,11 +8,12 @@
 //                (theirs or anyone's), 0..1
 //   facePx       the face's height on screen, in canvas pixels
 import { screen, carried, held, overlaps } from './intersect.js';
+import { measureHeldRead } from './pose-held.js';
 
 const area = (r) => Math.max(0, r.right - r.left) * Math.max(0, r.bottom - r.top);
 
 // Sweep geometry, without its collision tolerance. Absent props stay null so a missing grip fails.
-export function measureHeld(R, id, loads = carried(R), grips = held(R)) {
+export function measureHeld(R, id, loads = carried(R), grips = held(R), pose = null) {
   const own = loads.filter((l) => String(l.staffId) === String(id));
   const grip = grips.filter((g) => String(g.staffId) === String(id));
   const depths = own.flatMap(({ thing, body }) => overlaps([thing, body], { tol: 0 }).flatMap((o) => o.parts));
@@ -20,6 +21,7 @@ export function measureHeld(R, id, loads = carried(R), grips = held(R)) {
   return {
     heldHeadDepth: depth('head'), heldTorsoDepth: depth('torso'),
     heldGap: grip.length ? Math.max(...grip.map((g) => g.gap)) : null,
+    ...measureHeldRead(R, id, pose),
   };
 }
 
@@ -43,7 +45,7 @@ export function measureScene(R, S, { who = null } = {}) {
       id: String(f.id), faceCovered: +covered.toFixed(3), coveredBy: covered > 0 ? by : null,
       faceVisible: p.visible ?? null, occluder: p.occluder ?? null, faceCam: p.faceCam ?? null,
       facePx: +(f.r.bottom - f.r.top).toFixed(1), anim: p.anim ?? null, moment: st?.moment ?? null, beat: st?.beat ?? null,
-      ...measureHeld(R, f.id, loads, grips),
+      ...measureHeld(R, f.id, loads, grips, p),
     });
   }
   return out;

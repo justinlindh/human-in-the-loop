@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
 import { printerModel, visitorChairModel } from './props.js';
@@ -16,7 +17,7 @@ import { printerModel, visitorChairModel } from './props.js';
 // Moments:
 //   pizza  pizza_boxes up: two or three idle people gather round the box and eat, then go back.
 //   screen a screen takeover: people at their desks recoil from their monitors with an exclamation.
-//   hammer the sledgehammer (open plan): the subject shoulders it and sizes up the back wall; if the
+//   hammer the sledgehammer (open plan): the subject holds it across both palms and sizes up the back wall; if the
 //          walls come down (decisionResolved) they swing and dust flies.
 //   letter the envelope on a desk: its sitter sighs over it now and then.
 //   visitor the visitor chair (first user test): a visitor sits in it while someone hovers, sweating.
@@ -198,14 +199,16 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   let hammer = null;      // { r, phase, wall, obj, held }
   function hammerHead() {
     const g = new THREE.Group();
-    // Hangs from the hand: carried at the side the head just clears the floor.
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.46, 8), HANDLE_MAT);
-    handle.position.y = -0.17;
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.12, 0.26), HEAD_MAT);
-    head.position.y = -0.4;
+    // The shaft runs through both palms, with the head beyond the supporting hand.
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.6, 8), HANDLE_MAT);
+    handle.position.y = -0.24;
+    handle.name = 'hammer-handle';
+    const head = new THREE.Mesh(new RoundedBoxGeometry(0.13, 0.12, 0.26, 2, 0.012), HEAD_MAT);
+    head.position.y = -0.5;
+    head.name = 'hammer-head';
     g.add(handle, head);
-    // Grip beside the wrist centre, keeping the load outside the torso as the arm swings.
-    g.position.x = 0.06;
+    g.userData.handSpan = true;
+    g.name = 'sledgehammer';
     return g;
   }
   // A clear spot facing a wall, nearest the hammer, on the far side from the camera (the near walls
@@ -214,15 +217,18 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   function wallSpot(from) {
     const L = office.current.L, nav = office.nav(), yaw = getYaw?.() ?? Math.PI / 4;
     const cam = [Math.sin(yaw), Math.cos(yaw)];
+    const furniture = [...office.placed.values()].map((e) => new THREE.Box3().setFromObject(e.obj));
+    const roomForLoad = (x, z) => furniture.every((b) => b.max.y < 0.35 || b.min.y > 1.4 || x < b.min.x - 0.65 || x > b.max.x + 0.65 || z < b.min.z - 0.65 || z > b.max.z + 0.65);
     const walls = [[-1, 0], [0, -1], [1, 0], [0, 1]].filter(([nx, nz]) => nx * cam[0] + nz * cam[1] < -0.2);
     for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
       const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
-      const start = along ? from.x : from.z;
+      // Leave room beside the pickup for the two-handed load and its approach.
+      const start = (along ? from.x : from.z) - Math.sign(along ? cam[0] : cam[1]) * 1.2;
       for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
         const u = start + s * d;
         if (Math.abs(u) > half - 0.6) continue;
         const x = along ? u : fixed, z = along ? fixed : u;
-        if (!nav.isBlocked(x, z, BODY_R)) return { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
+        if (roomForLoad(x, z) && !nav.isBlocked(x, z, BODY_R) && !nav.isBlocked(x - nx * 0.8, z - nz * 0.8, BODY_R)) return { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
       }
     }
     return null;
@@ -262,21 +268,30 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       r.char.setHeld(h.held);
       const w = wallSpot(r.pos);
       if (!w) { stopHammer(); return; }
+      // Put the head toward the wall while the chest faces the open aisle.
+      const leftSide = w.n[1] * Math.sin(getYaw?.() ?? Math.PI / 4) - w.n[0] * Math.cos(getYaw?.() ?? Math.PI / 4);
+      h.held.userData.primaryHand = leftSide >= 0 ? 1 : 0;
+      h.facing = Math.atan2(w.n[1], -w.n[0]) + (leftSide >= 0 ? 0 : Math.PI);
       h.phase = 'carry';
-      r.temp = { anim: 'shoulder', t: 1e6, goal: w, moment: 'hammer', stage: { beat: 'carry', held: h.held, target: new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7) } };
+      r.temp = { anim: 'shoulder', t: 1e6, goal: w, walkYaw: h.facing, moment: 'hammer', stage: { beat: 'carry', held: h.held, target: new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7) } };
       walkTo(r, w);
+      // Approach the wall from the aisle, keeping the head away from wall-side furniture.
+      const nav = office.nav(), approach = { x: w.x - w.n[0] * 0.8, z: w.z - w.n[1] * 0.8 };
+      if (!nav.isBlocked(approach.x, approach.z, BODY_R)) {
+        r.path = [...nav.path(r.pos, approach, 0.35, { soft: true }).slice(1), { x: w.x, z: w.z }];
+      }
       h.wall = w;
     } else if (h.phase === 'carry' && !r.path.length) {
       h.phase = 'hold';
       if (r.temp?.stage) r.temp.stage.beat = 'hold';
-      // On the shoulder: the handle across it and the head down behind the back.
-      h.held.rotation.set(2.7, 0, 0.65);
+      // Face the aisle so both palms and the shaft stay visible beside the wall.
+      r.temp.goal = { ...h.wall, yaw: h.facing };
       emote(r, 'lightbulb', 2);
     }
     if (knocked && h.phase === 'hold') {
       h.phase = 'swing';
       h.held.rotation.set(0, 0, 0);
-      r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
+      r.temp = { anim: 'swing', t: 3.3, goal: { ...h.wall, yaw: h.facing }, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
       h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3, () => h.wall);
       momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
@@ -1005,7 +1020,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   }
   function batHeld() {
     const g = new THREE.Group();
-    // Hangs from the hand like the sledgehammer: the handle in the fist, the barrel beyond it.
+    // Hangs from the hand: the handle in the fist, the barrel beyond it.
     const bat = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.042, 0.78, 10), HANDLE_MAT);
     bat.position.y = -0.33;
     g.add(bat);

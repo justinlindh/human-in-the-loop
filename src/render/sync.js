@@ -622,7 +622,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     } else {
       dir.multiplyScalar(1 / d);
       r.pos.addScaledVector(dir, step);
-      r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
+      r.yaw = angleLerp(r.yaw, r.temp?.walkYaw ?? Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
     }
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
