@@ -133,7 +133,7 @@
 .hitl .score.bad { background: var(--bad); }
 .hitl .reviews { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25em 0.6em; }
 .hitl .review { display: grid; grid-template-columns: 1fr auto; font-size: 0.78em; background: var(--cream-2); border-radius: 0.5em; padding: 0.2em 0.45em; }
-.hitl .review .outlet { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .review .outlet-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hitl .review .quote { grid-column: 1 / span 2; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
 .hitl .review b.great { color: var(--good); } .hitl .review b.ok { color: var(--blue); } .hitl .review b.meh { color: var(--warn); } .hitl .review b.bad { color: var(--bad); }
 .hitl .pnums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4em; }
