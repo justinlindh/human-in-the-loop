@@ -45,4 +45,10 @@ describe('walking clearance', () => {
     const free = nav.freePoint(goal.x, goal.z);
     expect(nav.isBlocked(free.x, free.z)).toBe(false);
   });
+
+  it('checks a larger body without adding its radius to the default body twice', () => {
+    const nav = createNav(room, [{ x0: -1, x1: 0.1, z0: -1, z1: 1 }]);
+    expect(nav.isBlocked(0.4, 0, 0.28)).toBe(false);
+    expect(nav.isBlocked(0.4, 0, 0.32)).toBe(true);
+  });
 });

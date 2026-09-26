@@ -234,7 +234,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // clear point first, then on from there.
     if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
       const p = clearOf(r, nav);
-      r.path = [p, ...nav.path(p, { x: to.x, z: to.z }).slice(1)];
+      const onward = nav.path(p, { x: to.x, z: to.z }).slice(1);
+      r.routeBlocked = !onward.length;
+      r.path = [p, ...onward];
     }
     r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';

@@ -213,17 +213,24 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const L = office.current.L, nav = office.nav(), yaw = getYaw?.() ?? Math.PI / 4;
     const cam = [Math.sin(yaw), Math.cos(yaw)];
     const walls = [[-1, 0], [0, -1], [1, 0], [0, 1]].filter(([nx, nz]) => nx * cam[0] + nz * cam[1] < -0.2);
+    let best = null, bestDistance = Infinity;
     for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
       const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
       const start = along ? from.x : from.z;
-      for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
+      search: for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
         const u = start + s * d;
         if (Math.abs(u) > half - 0.6) continue;
         const x = along ? u : fixed, z = along ? fixed : u;
-        if (!nav.isBlocked(x, z, BODY_R)) return { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
+        if (nav.isBlocked(x, z, BODY_R)) continue;
+        const route = nav.path(from, { x, z });
+        if (route.length < 2) continue;
+        const distance = route.slice(1).reduce((sum, q, i) => sum + Math.hypot(q.x - route[i].x, q.z - route[i].z), 0);
+        // Both far walls can read clearly; use the one reached by the shorter clear route.
+        if (distance < bestDistance) { bestDistance = distance; best = { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] }; }
+        break search;
       }
     }
-    return null;
+    return best;
   }
   function hammerTick(p, state) {
     // The walls came down: decisionResolved chose KNOCK_DOWN of open_plan_office.
@@ -669,8 +676,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       const cheat = (y, k = CHEAT_TURN) => { const d = Math.atan2(Math.sin(yaw - y), Math.cos(yaw - y)); return y + Math.sign(d) * Math.min(Math.abs(d), k); };
       if (spot) {
         v.yaw = cheat(toward(v.at, spot));
-        // The nervous one plays a little more to the room.
-        spot.yaw = cheat(toward(spot, v.at), CHEAT_TURN * 1.2);
+        spot.yaw = cheat(toward(spot, v.at));
       }
       // The clipboard consultant stands at the seated one's shoulder, on the side away from the
       // interviewee and a little behind, clear of the chair so the camera sees all of them.

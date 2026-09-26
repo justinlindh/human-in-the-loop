@@ -301,10 +301,10 @@ export function createNav(L, obstacles, cell = 0.2) {
   }
   const insideObstacle = (x, z, radius = WALK_RADIUS) => obstacles.some((b) => x > b.x0 - radius && x < b.x1 + radius && z > b.z0 - radius && z < b.z1 + radius);
   // Check the exact point as well as its grid cell: an off-centre goal can lie past the cell's
-  // safe edge. Larger bodies also check the surrounding cells.
+  // safe edge. An explicit body radius replaces the default clearance, rather than adding to it.
   const isBlocked = (x, z, r = 0) => {
     const one = (px, pz) => { const i = ix(px), k = iz(pz); return i < 0 || k < 0 || i >= nx || k >= nz || !!blocked[i + k * nx]; };
-    return one(x, z) || insideObstacle(x, z) || (r > 0 && (one(x + r, z) || one(x - r, z) || one(x, z + r) || one(x, z - r)));
+    return one(x, z) || insideObstacle(x, z, Math.max(WALK_RADIUS, r)) || (r > 0 && (x - r < -L.W / 2 || x + r > L.W / 2 || z - r < -L.D / 2 || z + r > L.D / 2));
   };
 
   return { path, blocked, nx, nz, cell, freePoint, isBlocked };
