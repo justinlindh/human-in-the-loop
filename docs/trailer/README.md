@@ -70,20 +70,21 @@ If a beat's `from + dur` runs past its capture, the build stops and says which b
 
 ## Launch and Yak shots
 
-`trail-launch` plays seed 37 to a first-version hit on the Office Floor. The setup validates the
+`trail-launch` selects a seed that reaches a first-version hit on the Office Floor. The setup validates the
 look-ahead and keeps only that new-product project, so subsequent updates cannot bundle into its
 results card. The launch beat starts after the reviews finish appearing.
 
-`yak` and `yak-react` both replay `site-yak-backfire`, seed 2. Its bot stops expanding once eight staff
+`yak` and `yak-react` both replay `site-yak-backfire`, seed 2. The balanced bot stops expanding once eight staff
 have moved to the Office Floor, then waits for an outage. Daily standups stay off during the search
 and recording so the same simulation reaches the outage and the people are free to react. The Yak
 shot frames the meme and its reply; the reaction shot returns to the instant the same post lands,
 finds the facepalmer with `R.probe(id).anim`, and eases the isometric camera onto them. Speech bubbles
 and work labels stay hidden, and the interface hides after the post is clicked.
 
-Scene 7b (`yak-react`) is excluded from `BEATS` pending an art pose/staging fix: the seated
-facepalmer's monitor and bowed head obscure the hand and face. Its capture remains available as
-`trailer-yak-react` through `DEFERRED_CAPTURES`; it is not included in the delivered cut.
+Scene 7b (`yak-react`) follows the Yak thread with a standing facepalm. The renderer picks an
+unobstructed actor and keeps the face turned toward the camera during the gesture. A walking
+actor pauses and then resumes their route. The reaction cut holds the palm over the camera-side eye and brow, with eyes squeezed shut
+before the printer scene.
 
 ## The voiceover
 
@@ -134,3 +135,18 @@ unavailable; there is no CPU path. Never clone an identifiable living person's v
 
 The cards read `docs/readme/logo.png` fresh on every build (they are never reused), so a new logo shows
 up on the next `npm run trailer`, even with `--reuse`.
+
+## Capture subject checks
+
+Each clip beat has a predicate in `scripts/trailer/assertions.js`, evaluated at its `from` time.
+The capture saves that frame and a `beat-check` mark in `clips/index.json`. A game-over state or
+missing subject logs a capture error and stops the build. Build and hire also check the placed
+foosball table and added staff member after their clicks.
+
+The cloud-bill item uses seed 5, stops before the real `agent_runaway_spend` tick, and checks the
+active decision, rendered hot rack and visible bill card during the recording. Era cuts begin
+after the live era transition. The Plateau shot uses seed 2 to reach a live HQ with empty desks.
+
+The printer cut starts with the renderer’s cue clock at 9.9 seconds, matching the music seek.
+It checks both that clock and the later strikes, so a changed gathering or carry duration cannot
+silently separate the bat hits from the soundtrack.

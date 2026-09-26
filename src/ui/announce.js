@@ -6,12 +6,13 @@ import { ERA, CATALOG, unlockInfo, unlockShort } from './v2content.js';
 
 const MAX_QUEUE = 8;
 
-export function createAnnouncer({ layer, sfx, openMenu, canShow = () => true }) {
+export function createAnnouncer({ layer, sfx, openMenu, canShow = () => true, held = () => false }) {
   const queue = [];
   let cur = null; // { back, item }
 
   // Era cards go at once; the others wait until canShow() says the last popup was long enough ago.
   function show() {
+    if (held()) return;
     if (cur || !queue.length) return;
     if (queue[0].kind !== 'era' && !canShow()) return;
     const item = queue.shift();
