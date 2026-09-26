@@ -20,7 +20,7 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake',
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
@@ -36,7 +36,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh']);
+const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
 function roleMaterial(role, hex) {
@@ -690,6 +690,17 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.06;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
+      case 'facepalm': case 'facepalmsit':
+        // Head dropped into the right hand: the hand up at the forehead, the other arm limp.
+        // The elbow juts out sideways so the gesture reads in silhouette from above.
+        tgt.lean = 0.22;
+        tgt.headX = 0.28 + s(t * 1.2 + phase) * 0.03;
+        tgt.headZ = -0.16 + s(t * 0.8) * 0.04;
+        tgt.armRX = -2.15;
+        tgt.armRZ = -0.95;
+        tgt.armLX = -0.35;
+        tgt.armLZ = 0.08;
+        break;
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
         tgt.bodyZ = -0.08;
@@ -872,8 +883,23 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     blendIn(dt);
   }
 
+  // A gesture plays over whatever the person is doing for a few seconds (gesture()), then their own
+  // animation comes back; setAnim meanwhile only records what that is.
+  let gesture = null, wanted = anim;
   function setAnim(name) {
-    if (!ANIMS.includes(name) || name === anim) return;
+    if (!ANIMS.includes(name)) return;
+    wanted = name;
+    if (!gesture) applyAnim(name);
+  }
+  // A gesture has a standing form and a seated one (name + 'sit'), picked by what they're doing.
+  function playGesture(name, seconds) {
+    const sit = SEATED.has(wanted) && ANIMS.includes(`${name}sit`) ? `${name}sit` : name;
+    if (!ANIMS.includes(sit)) return;
+    gesture = { t: seconds };
+    applyAnim(sit);
+  }
+  function applyAnim(name) {
+    if (name === anim) return;
     anim = name;
     animT = 0;
     attach(mug, mugParent, name === 'sip' || name === 'water');
@@ -933,6 +959,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function update(dt) {
     t += dt;
+    if (gesture && (gesture.t -= dt) <= 0) { gesture = null; applyAnim(wanted); }
     // Cheeks flush only as an expression (celebrating, a warm emote), fading in and out.
     flushFor = Math.max(0, flushFor - dt);
     const want = CHEEK_FLUSH && (anim === 'celebrate' || flushFor > 0) ? 1 : 0;
@@ -1001,6 +1028,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
   update(0);
   return {
+    gesture: playGesture,
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     // Both wrists in world space, left then right (shared vectors: copy them to keep them).
     hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
