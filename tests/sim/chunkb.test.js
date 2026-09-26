@@ -81,7 +81,7 @@ describe('meaning and purpose (issue #7)', () => {
     choose(s, 'A place where people grow');
     expect(s.purpose).toEqual({ value: B.purposeStart.people, mission: 'people', tests: [] });
     s.week += 10;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     addStaff(s, 'support', 'mid');
     raiseDecision(makeCtx(s), 'mission_test_support');
     choose(s, 'Hand support to the agents');
