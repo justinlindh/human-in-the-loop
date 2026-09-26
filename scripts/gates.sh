@@ -88,13 +88,28 @@ if [ -n "$moment" ]; then
   CMD[stage]="$(gpu node blender/checks/stage.mjs --only="$sname" --out "$LOGS/stage.json")"
   # The sweep plays that decision from an indexed snapshot when the event index has one; some
   # decisions have none (the letter), and then the floor mock's pass, which plays every staged
-  # moment on purpose, covers it instead.
-  if timeout 120 node scripts/events/find.js "$sevent" --snapshot --limit 1 2>/dev/null | grep -q ' snapshot '; then
-    CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks none --seeds none --moments "'$sevent'" --out "$LOGS/sweep")"
-  else
-    echo "gates: no indexed snapshot of $sevent; the sweep runs the floor mock's pass, which stages every moment"
-    CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks floor --seeds none --out "$LOGS/sweep")"
-  fi
+  # moment on purpose, covers it instead. find.js --json answers with the matching rows (an empty
+  # list for none) or, exiting 2, { error, kind } when it can't (an index it couldn't build or
+  # read); --build refreshes a stale index first. A refusal stops gates: a sweep of the wrong thing
+  # would pass for the wrong reason. Which path the sweep took is printed on every run.
+  found="$(timeout 300 node scripts/events/find.js "$sevent" --snapshot --json --limit 1 --build 2>/dev/null)"; frc=$?
+  path="$(node -e '
+    let v; try { v = JSON.parse(process.argv[1]); } catch { console.log("error: find.js gave no JSON"); process.exit(0); }
+    if (Array.isArray(v)) console.log(v.some((r) => r.snapshot) ? "snapshot" : "none");
+    else console.log(`error: ${v.kind ?? "refused"}${v.error ? ` (${v.error})` : ""}`);
+  ' "$found")"
+  case "$path" in
+    snapshot)
+      echo "gates: sweep: $sevent from its indexed snapshot"
+      CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks none --seeds none --moments "'$sevent'" --out "$LOGS/sweep")" ;;
+    none)
+      echo "gates: sweep: no indexed snapshot of $sevent, so the floor mock's pass, which stages every moment"
+      CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks floor --seeds none --out "$LOGS/sweep")" ;;
+    *)
+      echo "gates: the event index couldn't answer for $sevent ($path; find.js exit $frc); fix the index (node scripts/events/build.js) and run gates again" >&2
+      exit 2 ;;
+  esac
+  [ "$frc" -eq 2 ] && { echo "gates: find.js refused for $sevent (exit 2); fix the index and run gates again" >&2; exit 2; }
 else
   CMD[clip]="$(gpu node blender/checks/clip.mjs)"
   CMD[stage]="$(gpu node blender/checks/stage.mjs --out "$LOGS/stage.json")"

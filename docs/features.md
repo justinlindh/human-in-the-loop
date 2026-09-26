@@ -63,6 +63,7 @@ Conventions:
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
 - **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. `id: floor_next_door`
 - **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
+- **New toys**: something to use (a table game, a couch, the coffee corner, an arcade) that's just been placed draws the nearest free people straight away: a pair table's first game starts within a second, even during a standup.
 - **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
 - **Meeting table**: standups gather round it and tuck the chairs in. `id: meeting_table`
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
@@ -195,6 +196,12 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - ★ **The two Robs**: "So what would you say you do here?" `id: efficiency_consultants`
 - ★ **PC LOAD LETTER**: a printer with a blinking light and a screen reading PC LOAD LETTER that beeps on a loop while it sits in the kitchen; "Print less" puts up an OUT OF ORDER. FOREVER. sign. `id: printer_jam` `npm run capture -- --group nods`
 - **"Yeahhh, Saturday"**: a senior leans on your desk with a mug; the refusal is "No. Mmkay?". `id: saturday_ask` `capture nods-saturday`
+- ★ **The incubator house**: early on, a would-be mentor offers free rent in his house for a cut of the company; a hand-painted INCUBATOR sign by the door; move in (and a year later he's on a podcast calling himself your founder), keep the garage, or counter. `id: incubator_house`
+- ★ **The Box**: the rival's brushed-aluminium cube that does less for four times the price; build your own (a little cube lands on a desk), stay software (the Box gets recalled), or mock it. `id: the_box`
+- ★ **Four thousand pounds of oat milk**: the procurement agent fixes the Thursday shortage with pallets in the lobby; send it back, keep it, or donate it. `id: oat_milk`
+- ★ **Tabs or spaces**: a running joke between two engineers that escalates over weeks to two whiteboards and ends in a ruling. `id: tabs_or_spaces`
+- **Is it kielbasa?**: a junior's weekend app that is extremely confident and right half the time; ship it, sell it, or keep it as the office party trick. `id: is_it_kielbasa`
+- **The Squish Score**: a compression research node whose launch post cites a score of 5.2 on a scale nobody can explain. `id: squish`
 - **Model vendors**: Claudius (declines to delete prod, at length), ChatGBT ("Great question!"), Gemenai, Grokk, Llamarama, DeepSleep and Mistrale (comes with a small baguette). `id: claudius` `id: chatgbt` `id: gemenai` `id: grokk` `id: llamarama` `id: deepsleep` `id: mistrale`
 - **Incumbents**: Notian, Gmale, Jirra, Zendisk, Salesfarce, Lookerish, Figmo, GitHug, Workdai, LinkedOut, Quickbucks, Adobo Premiere, LexisNaxis and CrowdStrife. `id: notian` `id: gmale` `id: jirra` `id: zendisk` `id: salesfarce` `id: lookerish` `id: figmo` `id: githug` `id: workdai` `id: linkedout` `id: quickbucks` `id: adobo` `id: lexisnaxis` `id: crowdstrife`
 - **Industry parody**: Product Hunch Day, Hacker Spews, SaaSCon, the Saasies, a Grokk PR scandal, the blockchain pitch and "Mint a coin". `id: grokk_pr_scandal` `id: blockchain_pitch`
