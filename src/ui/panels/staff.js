@@ -1,5 +1,5 @@
 import { setTip } from '../tooltip.js';
-import { skillName, seniorityName } from '../growth.js';
+import { skillName, seniorityName, timelineFrom } from '../growth.js';
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { B, MOOD_INFO, capacityOf, traitInfo, roleName } from '../content.js';
 import { portrait, portraitLive, roleChip, seniorityChip, traitChips, liveView, tabs, confirmButton, sparkline, moodColor } from '../widgets.js';
@@ -219,11 +219,11 @@ export function staffPanel(ctx, arg) {
     const back = h('button.btn.small', { onclick: () => { detailId = null; sinceFor = null; render(); } }, icon('arrow.back'), ' Back to team');
     if (!p) return [back, h('div.empty', { text: 'They are no longer with the company.' })];
 
-    // What grew since the last look, then mark it seen; and this session's growth timeline.
+    // What grew since the last look, then mark it seen; and the person's growth timeline.
     // Captured once per opening of this card, so a weekly re-render keeps showing it.
     if (sinceFor !== p.id) { sinceFor = p.id; sinceList = sinceOf(ctx.growth?.unseen(p.id)); ctx.growth?.markSeen(p.id); }
     const since = sinceList;
-    const tl = ctx.growth?.timeline(p.id) ?? [];
+    const tl = timelineFrom(p, ctx.growth?.timeline(p.id) ?? []);
     const growthBox = h('div.section.growth', null, h('h3', null, 'Growth'),
       since.length ? h('div.gsince', null, h('b', { text: 'Since you last looked: ' }), since.join(', ')) : null,
       h('ul.gtl', null, ...tl.map((x) => h(`li.${x.kind}`, null, h('span.w.num', { text: `W${x.week}` }), ` ${x.text}`)),

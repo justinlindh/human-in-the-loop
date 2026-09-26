@@ -1,7 +1,10 @@
-// People's growth as the UI remembers it: a short timeline per person from this session's growth
-// events (levelUp, promoted, traitEarned, skillTrained), and what grew since you last opened their
-// card. State has no dated history, so a loaded game starts each timeline at "joined".
+// People's growth: the staff card's timeline comes from each person's saved history (p.growth),
+// and this module also remembers what grew since you last opened their card, from this session's
+// growth events (levelUp, promoted, traitEarned, skillTrained), plus a session log for a state that
+// carries no history.
 import { traitInfo } from './content.js';
+import { PATHS } from '../data/paths.js';
+import { TRAINING } from '../data/training.js';
 
 const KEEP = 12; // timeline entries per person
 const SKILL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
@@ -58,6 +61,37 @@ export function createGrowth() {
     markSeen: (id) => unseen.delete(id),
     reset: () => { log.clear(); unseen.clear(); },
   };
+}
+
+// One saved history entry (p.growth) as a timeline line.
+function historyText(e) {
+  const d = e.detail ?? {};
+  switch (e.kind) {
+    case 'level': return `Level ${d.level}`;
+    case 'promoted': return `Promoted to ${seniorityName(d.seniority)}`;
+    case 'trait': return `Earned ${traitInfo(d.traitId).name}`;
+    case 'trained': {
+      const prog = TRAINING[d.program]?.name;
+      if (d.skill) return `Trained ${skillName(d.skill)} +${Math.round(d.gain ?? 0)}${prog ? ` (${prog})` : ''}`;
+      return prog ? `Finished a ${prog.toLowerCase()}` : 'Finished training';
+    }
+    case 'path': return `Took the ${PATHS[d.pathId]?.name ?? d.pathId} path`;
+    case 'legend': return 'Became a legend';
+    default: return null;
+  }
+}
+
+// A person's timeline, newest first: their saved history when the state has one, else the
+// session log (fallback).
+export function timelineFrom(p, fallback = []) {
+  if (!Array.isArray(p?.growth)) return fallback;
+  const out = [];
+  for (let i = p.growth.length - 1; i >= 0; i--) {
+    const e = p.growth[i];
+    const text = historyText(e);
+    if (text) out.push({ week: e.week, kind: e.kind, text });
+  }
+  return out;
 }
 
 // The toast line for one person's batch, or null when it's only level-ups (those stay quiet).
