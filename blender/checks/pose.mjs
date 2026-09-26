@@ -27,6 +27,8 @@
 // the share of them the camera sees and what hides the rest, the face's angle to the camera and its
 // height on screen in pixels. Its rules use faceCovered, faceVisible, faceCam and facePx, over the
 // requested frames, for every person listed (or one, with an 'id:' prefix). Missing samples fail.
+// heldHeadDepth and heldTorsoDepth are mesh penetration in metres; heldGap is wrist-to-prop surface
+// distance. An absent prop has null measures and fails these rules. Use --every 1 for a whole hold.
 // Scene mode serves this checkout and rejects a differing --root.
 //
 // It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
@@ -35,6 +37,7 @@
 // harness page as well and compares every number, which is how the stand-ins are kept honest.
 import { createServer } from 'vite';
 import { LANDMARKS } from './pose-landmarks.js';
+import { HELD_READ_MEASURES } from './pose-held.js';
 import { judgeScene } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -94,7 +97,7 @@ async function sceneMode() {
   let code = 0;
   try {
     const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
-    const { page, errors } = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${opt('mock', 'floor')}`, { width: 1280, height: 800 });
+    const { page, errors } = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${opt('mock', 'floor')}&rig=${OPTS.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const who = opt('who') ? opt('who').split(',') : null;
     const rows = await page.evaluate(async (o) => {
       const R = window.__hitlRender, S = window.__HITL.state;
@@ -120,7 +123,9 @@ async function sceneMode() {
     if (!ids.length) console.log('POSE FAIL no subjects measured');
     for (const missing of judged.missing) console.log(`POSE FAIL ${missing.id}: missing samples at frames ${missing.frames.join(', ')}`);
     for (const { id, rule, share, pass } of judged.verdicts) {
-      console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${(share * 100).toFixed(0)}% of ${frames.length} requested frames (want ${(rule.share * 100).toFixed(0)}%)`);
+      const values = rows.filter((r) => r.id === id).map((r) => r[rule.measure]).filter(Number.isFinite);
+      const range = values.length ? `; min ${Math.min(...values).toFixed(6)}, max ${Math.max(...values).toFixed(6)}` : '';
+      console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${(share * 100).toFixed(0)}% of ${frames.length} requested frames (want ${(rule.share * 100).toFixed(0)}%)${range}`);
     }
     if (opt('json')) writeFileSync(opt('json'), JSON.stringify(rows, null, 1));
     if (errors.length) { code = Math.max(code, 1); console.log(`pose: page errors: ${errors.slice(0, 3).join('; ')}`); }
@@ -149,7 +154,7 @@ async function checkBrowser(frames) {
   }
 }
 
-const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx'];
+const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx', 'heldGap', 'heldHeadDepth', 'heldTorsoDepth', ...HELD_READ_MEASURES];
 
 // The page a browser check opens serves this checkout, so it can only check this checkout's code.
 const browserMode = argv.includes('--scene') ? '--scene' : argv.includes('--check-browser') ? '--check-browser' : null;

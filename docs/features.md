@@ -102,6 +102,9 @@ Conventions:
 
 ## Staged moments
 
+- ★ **Pizza**: pizza boxes on a desk draw two or three idle people to eat round them, some with hearts; the boxes stay two weeks after "Host it". `id: pizza` `id: hackathon` `id: hackathon_week` `find.js hackathon --choice 0`
+- ★ **Screen takeover**: every monitor turns red (bridge loan) or shows a bobbing skull with "PAY 12 BTC TO 0xDEADBEEF..." (ransomware), and seated staff recoil with exclamation marks. `id: screen` `id: bridge_loan` `id: ransomware`
+- ★ **Sledgehammer**: someone fetches the sledgehammer, carries and holds it across both palms in front of their chest while sizing up the back wall; on "Knock them down" they swing and dust bursts off the wall; otherwise they carry nothing back. `id: hammer` `id: open_plan_office` `find.js open_plan_office --choice 0`
 Staged decisions have short spoken pools in `src/data/moment-talk.js`: the subject, the staged reader and nearby colleagues discuss the prop while its card or Yak prompt is open, then respond to the chosen outcome. Lines play one at a time even while the decision holds the clock. A spotlight drops unrelated bubbles nearby and on screen, and halves distant ambient chatter. Skip discards its queued dialogue.
 
 - ★ **Pizza**: pizza boxes on a desk draw two or three idle people to eat round them, some with hearts; the boxes stay two weeks after "Host it". Spoken: "The pizza has a clearer roadmap than we do." Spoken: "A whole week. We could finish naming the prototype." `id: pizza` `id: hackathon` `id: hackathon_week` `find.js hackathon --choice 0`
