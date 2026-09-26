@@ -1,0 +1,519 @@
+[
+ {
+  "check": "person",
+  "key": "person|coffee_corner/pal_plastic_white|person(still)/torso",
+  "state": "seed:1:w400",
+  "t": 10.8,
+  "a": "coffee_corner/pal_plastic_white",
+  "b": "person(still)/torso",
+  "value": 0.223,
+  "at": [
+   6.21,
+   0.58,
+   -5.08
+  ],
+  "seen": 1,
+  "detail": "s1705 (still) torso in coffee_corner#f1751[pal_plastic_white]",
+  "why": "decision mission_test_support",
+  "states": [
+   "seed:1:w400",
+   "seed:3:w533"
+  ],
+  "count": 2,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|coffee_corner/pal_plastic_white|person(still)/head",
+  "state": "seed:1:w400",
+  "t": 10.8,
+  "a": "coffee_corner/pal_plastic_white",
+  "b": "person(still)/head",
+  "value": 0.145,
+  "at": [
+   6.21,
+   0.58,
+   -5.08
+  ],
+  "seen": 1,
+  "detail": "s1705 (still) head in coffee_corner#f1751[pal_plastic_white]",
+  "why": "decision mission_test_support",
+  "states": [
+   "seed:1:w400",
+   "seed:3:w533",
+   "seed:3:w780"
+  ],
+  "count": 3,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|person(still)/head|plant/pal_leaf_light",
+  "state": "seed:1:w507",
+  "t": 6.6,
+  "a": "person(still)/head",
+  "b": "plant/pal_leaf_light",
+  "value": 0.142,
+  "at": [
+   -1.87,
+   1.06,
+   -5.36
+  ],
+  "seen": 2,
+  "detail": "s694 (still) head in plant#f1647[pal_leaf_light]",
+  "why": "every",
+  "states": [
+   "seed:1:w507",
+   "seed:3:w364",
+   "seed:3:w420"
+  ],
+  "count": 4,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|person(still)/head|plant/pal_leaf_dark",
+  "state": "seed:3:w630",
+  "t": 3,
+  "a": "person(still)/head",
+  "b": "plant/pal_leaf_dark",
+  "value": 0.096,
+  "at": [
+   3.93,
+   1.07,
+   -5.5
+  ],
+  "seen": 1,
+  "detail": "s3049 (still) head in plant#f3079[pal_leaf_dark]",
+  "why": "decision moonshot_pitch",
+  "states": [
+   "seed:1:w360",
+   "seed:1:w507",
+   "seed:3:w630"
+  ],
+  "count": 3,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|coffee_corner/pal_role_marketer|person(still)/head",
+  "state": "seed:1:w400",
+  "t": 10.8,
+  "a": "coffee_corner/pal_role_marketer",
+  "b": "person(still)/head",
+  "value": 0.071,
+  "at": [
+   6.21,
+   0.58,
+   -5.08
+  ],
+  "seen": 1,
+  "detail": "s1705 (still) head in coffee_corner#f1751[pal_role_marketer]",
+  "why": "decision mission_test_support",
+  "states": [
+   "seed:1:w400"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|coffee_corner/pal_fabric_teal|person(still)/head",
+  "state": "seed:1:w400",
+  "t": 10.8,
+  "a": "coffee_corner/pal_fabric_teal",
+  "b": "person(still)/head",
+  "value": 0.041,
+  "at": [
+   6.21,
+   0.58,
+   -5.08
+  ],
+  "seen": 1,
+  "detail": "s1705 (still) head in coffee_corner#f1751[pal_fabric_teal]",
+  "why": "decision mission_test_support",
+  "states": [
+   "seed:1:w400"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/mesh|person(still)/torso",
+  "state": "seed:1:w350",
+  "t": 10,
+  "a": "desk/mesh",
+  "b": "person(still)/torso",
+  "value": 0.037,
+  "at": [
+   -4.18,
+   0.58,
+   -4.15
+  ],
+  "seen": 1,
+  "detail": "s632 (still) torso in desk#f684[mesh]",
+  "why": "decision oat_milk",
+  "states": [
+   "seed:1:w350",
+   "seed:1:w511"
+  ],
+  "count": 2,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_plastic_charcoal|person(browse)/torso",
+  "state": "seed:3:w634",
+  "t": 1,
+  "a": "desk/pal_plastic_charcoal",
+  "b": "person(browse)/torso",
+  "value": 0.033,
+  "at": [
+   2.89,
+   0.57,
+   -4.59
+  ],
+  "seen": 1,
+  "detail": "s3015 (browse) torso in desk#f1713[pal_plastic_charcoal]",
+  "why": "decision hackathon_week",
+  "states": [
+   "seed:3:w634"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|bookshelf/pal_fabric_teal|person(still)/torso",
+  "state": "seed:3:w650",
+  "t": 0,
+  "a": "bookshelf/pal_fabric_teal",
+  "b": "person(still)/torso",
+  "value": 0.033,
+  "at": [
+   2.13,
+   0.58,
+   -1.64
+  ],
+  "seen": 1,
+  "detail": "s1707 (still) torso in bookshelf#f3069[pal_fabric_teal]",
+  "why": "every",
+  "states": [
+   "seed:3:w650"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_metal_soft|person(browse)/torso",
+  "state": "seed:3:w634",
+  "t": 1,
+  "a": "desk/pal_metal_soft",
+  "b": "person(browse)/torso",
+  "value": 0.031,
+  "at": [
+   2.89,
+   0.57,
+   -4.59
+  ],
+  "seen": 1,
+  "detail": "s3015 (browse) torso in desk#f1713[pal_metal_soft]",
+  "why": "decision hackathon_week",
+  "states": [
+   "seed:3:w634"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_paper_sheet|person(still)/torso",
+  "state": "seed:3:w533",
+  "t": 9.4,
+  "a": "desk/pal_paper_sheet",
+  "b": "person(still)/torso",
+  "value": 0.03,
+  "at": [
+   -2.34,
+   0.57,
+   -4.59
+  ],
+  "seen": 1,
+  "detail": "s677 (still) torso in desk#f1638[pal_paper_sheet]",
+  "why": "every",
+  "states": [
+   "seed:1:w350",
+   "seed:1:w546",
+   "seed:3:w533"
+  ],
+  "count": 3,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|bookshelf/pal_fabric_slate|person(still)/torso",
+  "state": "seed:3:w650",
+  "t": 0,
+  "a": "bookshelf/pal_fabric_slate",
+  "b": "person(still)/torso",
+  "value": 0.027,
+  "at": [
+   2.13,
+   0.58,
+   -1.64
+  ],
+  "seen": 1,
+  "detail": "s1707 (still) torso in bookshelf#f3069[pal_fabric_slate]",
+  "why": "every",
+  "states": [
+   "seed:3:w650"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|person(still)/torso|whiteboard/pal_role_designer",
+  "state": "seed:3:w780",
+  "t": 0.8,
+  "a": "person(still)/torso",
+  "b": "whiteboard/pal_role_designer",
+  "value": 0.027,
+  "at": [
+   -4.11,
+   0.68,
+   -5.62
+  ],
+  "seen": 1,
+  "detail": "s1615 (still) torso in whiteboard#f1688[pal_role_designer]",
+  "why": "every",
+  "states": [
+   "seed:3:w780"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|bookshelf/pal_fabric_mustard|person(sip)/torso",
+  "state": "seed:3:w185",
+  "t": 2.2,
+  "a": "bookshelf/pal_fabric_mustard",
+  "b": "person(sip)/torso",
+  "value": 0.025,
+  "at": [
+   -2.51,
+   0.46,
+   -3.65
+  ],
+  "seen": 1,
+  "detail": "s632 (sip) torso in bookshelf#f651[pal_fabric_mustard]",
+  "why": "decision pivot_pitch",
+  "states": [
+   "seed:3:w185"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|bookshelf/pal_fabric_slate|person(sip)/torso",
+  "state": "seed:3:w185",
+  "t": 2.2,
+  "a": "bookshelf/pal_fabric_slate",
+  "b": "person(sip)/torso",
+  "value": 0.025,
+  "at": [
+   -2.51,
+   0.46,
+   -3.65
+  ],
+  "seen": 1,
+  "detail": "s632 (sip) torso in bookshelf#f651[pal_fabric_slate]",
+  "why": "decision pivot_pitch",
+  "states": [
+   "seed:3:w185"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_wood_honey|person(browse)/head",
+  "state": "seed:3:w634",
+  "t": 1,
+  "a": "desk/pal_wood_honey",
+  "b": "person(browse)/head",
+  "value": 0.025,
+  "at": [
+   2.89,
+   0.57,
+   -4.59
+  ],
+  "seen": 1,
+  "detail": "s3015 (browse) head in desk#f1713[pal_wood_honey]",
+  "why": "decision hackathon_week",
+  "states": [
+   "seed:3:w634"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_wood_honey|person(still)/head",
+  "state": "seed:1:w754",
+  "t": 3.8,
+  "a": "desk/pal_wood_honey",
+  "b": "person(still)/head",
+  "value": 0.024,
+  "at": [
+   -9.68,
+   0.47,
+   0.49
+  ],
+  "seen": 1,
+  "detail": "s1794 (still) head in desk#f1817[pal_wood_honey]",
+  "why": "every",
+  "states": [
+   "seed:1:w754"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|coffee_corner/pal_wood_light|person(still)/head",
+  "state": "seed:1:w400",
+  "t": 10.8,
+  "a": "coffee_corner/pal_wood_light",
+  "b": "person(still)/head",
+  "value": 0.023,
+  "at": [
+   6.21,
+   0.58,
+   -5.08
+  ],
+  "seen": 1,
+  "detail": "s1705 (still) head in coffee_corner#f1751[pal_wood_light]",
+  "why": "decision mission_test_support",
+  "states": [
+   "seed:1:w400",
+   "seed:3:w533"
+  ],
+  "count": 2,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_plastic_charcoal|person(still)/head",
+  "state": "seed:1:w350",
+  "t": 2,
+  "a": "desk/pal_plastic_charcoal",
+  "b": "person(still)/head",
+  "value": 0.021,
+  "at": [
+   -7.89,
+   0.58,
+   0.4
+  ],
+  "seen": 1,
+  "detail": "s1734 (still) head in desk#f1750[pal_plastic_charcoal]",
+  "why": "decision oat_milk",
+  "states": [
+   "seed:1:w350"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|bookshelf/pal_fabric_terracotta|person(walking)/head",
+  "state": "seed:3:w136",
+  "t": 20,
+  "a": "bookshelf/pal_fabric_terracotta",
+  "b": "person(walking)/head",
+  "value": 0.021,
+  "at": [
+   -2.12,
+   0.99,
+   -3.79
+  ],
+  "seen": 1,
+  "detail": "s635 (walking) head in bookshelf#f651[pal_fabric_terracotta]",
+  "why": "decision open_plan_office",
+  "states": [
+   "seed:3:w136"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|bookshelf/pal_cardboard|person(sip)/torso",
+  "state": "seed:3:w185",
+  "t": 2.2,
+  "a": "bookshelf/pal_cardboard",
+  "b": "person(sip)/torso",
+  "value": 0.021,
+  "at": [
+   -2.51,
+   0.46,
+   -3.65
+  ],
+  "seen": 1,
+  "detail": "s632 (sip) torso in bookshelf#f651[pal_cardboard]",
+  "why": "decision pivot_pitch",
+  "states": [
+   "seed:3:w185"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ },
+ {
+  "check": "person",
+  "key": "person|desk/pal_plastic_charcoal|person(walking)/head",
+  "state": "seed:3:w442",
+  "t": 9.2,
+  "a": "desk/pal_plastic_charcoal",
+  "b": "person(walking)/head",
+  "value": 0.021,
+  "at": [
+   -4.02,
+   0.54,
+   0.37
+  ],
+  "seen": 1,
+  "detail": "s1 (walking) head in desk#f1769[pal_plastic_charcoal]",
+  "why": "every",
+  "states": [
+   "seed:3:w442"
+  ],
+  "count": 1,
+  "status": "baseline",
+  "owner": "art"
+ }
+]

@@ -1,0 +1,294 @@
+{
+ "windows": [
+  {
+   "state": "mock:garage",
+   "why": "mock",
+   "bodies": 8,
+   "staff": 2,
+   "tooltips": 29
+  },
+  {
+   "state": "mock:floor",
+   "why": "mock",
+   "bodies": 20,
+   "staff": 10,
+   "tooltips": 29
+  },
+  {
+   "state": "mock:floor",
+   "why": "moments",
+   "played": [
+    "resignation_letter",
+    "hackathon",
+    "team_offsite",
+    "no_show",
+    "junior_overwhelmed",
+    "pivot_pitch",
+    "open_plan_office",
+    "hackathon_week",
+    "founder_burnout",
+    "enterprise_rfp",
+    "bridge_loan",
+    "agent_runaway_spend",
+    "ransomware",
+    "phishing_ceo",
+    "first_user_test",
+    "lockdown_start",
+    "pet_request",
+    "cat_request",
+    "pet_mishap",
+    "agent_invoice",
+    "floor_next_door",
+    "mission_test_support",
+    "hearing_summons",
+    "cloud_bill",
+    "onprem_bank",
+    "ping_pong",
+    "investor_demo_day",
+    "moonshot_pitch",
+    "conference_expo",
+    "coffee_machine_broke",
+    "coffee_wanted",
+    "coffee_wanted_corner",
+    "banner_company",
+    "cover_sheets",
+    "the_stapler",
+    "efficiency_consultants",
+    "printer_jam",
+    "incubator_house",
+    "the_box",
+    "oat_milk",
+    "pizza_boxes",
+    "smoke_puff",
+    "rack_hot"
+   ]
+  },
+  {
+   "state": "mock:hq",
+   "why": "mock",
+   "bodies": 44,
+   "staff": 28,
+   "tooltips": 29
+  },
+  {
+   "state": "mock:night",
+   "why": "mock",
+   "bodies": 20,
+   "staff": 10,
+   "tooltips": 29
+  },
+  {
+   "state": "seed:1:w0",
+   "why": "stage 0",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 4,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w5",
+   "why": "decision first_user_test",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 8,
+   "staff": 2,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w25",
+   "why": "decision team_offsite",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 13,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w33",
+   "why": "decision onprem_bank",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 14,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w104",
+   "why": "every",
+   "stage": 0,
+   "era": "classic",
+   "bodies": 16,
+   "staff": 6,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w119",
+   "why": "stage 1",
+   "stage": 1,
+   "era": "classic",
+   "bodies": 15,
+   "staff": 6,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w198",
+   "why": "era chatgbt",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w208",
+   "why": "every",
+   "stage": 1,
+   "era": "chatgbt",
+   "bodies": 30,
+   "staff": 14,
+   "props": 1
+  },
+  {
+   "state": "seed:1:w261",
+   "why": "stage 2",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 28,
+   "staff": 14,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w312",
+   "why": "every",
+   "stage": 2,
+   "era": "chatgbt",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w328",
+   "why": "era agents",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w416",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 53,
+   "staff": 27,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w520",
+   "why": "every",
+   "stage": 2,
+   "era": "agents",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w535",
+   "why": "era consolidation",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 63,
+   "staff": 32,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w624",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 73,
+   "staff": 37,
+   "props": 2
+  },
+  {
+   "state": "seed:1:w728",
+   "why": "every",
+   "stage": 2,
+   "era": "consolidation",
+   "bodies": 75,
+   "staff": 37,
+   "props": 0
+  },
+  {
+   "state": "seed:1:w791",
+   "why": "era plateau",
+   "stage": 2,
+   "era": "plateau",
+   "bodies": 81,
+   "staff": 42,
+   "props": 0
+  }
+ ],
+ "violations": [
+  {
+   "check": "person",
+   "key": "person|person|person",
+   "state": "seed:1:w198",
+   "t": 1.4,
+   "a": "person",
+   "b": "person",
+   "value": 0.15,
+   "at": [
+    2.77,
+    0.87,
+    -0.35
+   ],
+   "seen": 35,
+   "detail": "s693 (walking) in s695 (walking)",
+   "states": [
+    "mock:floor",
+    "seed:1:w25",
+    "seed:1:w104",
+    "seed:1:w198",
+    "seed:1:w208",
+    "seed:1:w312",
+    "seed:1:w328",
+    "seed:1:w416",
+    "seed:1:w520",
+    "seed:1:w535",
+    "seed:1:w624",
+    "seed:1:w728",
+    "seed:1:w791"
+   ],
+   "count": 708,
+   "why": "era chatgbt",
+   "status": "baseline",
+   "owner": "art"
+  },
+  {
+   "check": "self",
+   "key": "self|held/mug|own torso",
+   "state": "seed:1:w25",
+   "t": 1.4,
+   "a": "held/mug",
+   "b": "own torso",
+   "value": 0.021,
+   "at": [
+    0.04,
+    0.4,
+    -2.11
+   ],
+   "seen": 1,
+   "detail": "s117 (sip) holds mug[pal_mug] 0.021 m into their own torso",
+   "why": "decision team_offsite",
+   "states": [
+    "seed:1:w25"
+   ],
+   "count": 1,
+   "status": "baseline",
+   "owner": "art"
+  }
+ ]
+}

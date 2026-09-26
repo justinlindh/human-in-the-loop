@@ -1,0 +1,425 @@
+{
+  "gl": "gpu",
+  "glName": "ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA)",
+  "size": "1280x720",
+  "runs": 3,
+  "warmup": 3,
+  "seconds": 8,
+  "cpus": "all",
+  "hostCpus": 32,
+  "loadAtStart": 17.9,
+  "builds": [
+    {
+      "label": "3b86414b",
+      "bundle": {
+        "js": {
+          "raw": 1927863,
+          "gz": 628669
+        },
+        "css": {
+          "raw": 95602,
+          "gz": 17982
+        }
+      },
+      "late": {
+        "week": 400,
+        "stage": 2,
+        "staff": 27
+      },
+      "scenes": {
+        "floor/low": {
+          "frames": 6796,
+          "p50": 1.1000000000003638,
+          "p95": 1.7000000000007276,
+          "cpu": 1,
+          "render": 1,
+          "calls": 243,
+          "triangles": 177920,
+          "geometries": 312,
+          "textures": 33,
+          "programs": 17,
+          "meshes": 202,
+          "heapMB": 14.204174041748047,
+          "dom": 713,
+          "mutPerSec": 410,
+          "loadMs": 212,
+          "best": 0.9000000059604645,
+          "load": 12.8,
+          "spread": {
+            "p50": [
+              1.3,
+              1,
+              1.1
+            ],
+            "render": [
+              1.1,
+              0.9,
+              1
+            ]
+          }
+        },
+        "floor/high": {
+          "frames": 3780,
+          "p50": 1.9000000000005457,
+          "p95": 3.100000000000364,
+          "cpu": 1.899999976158142,
+          "render": 1.800000011920929,
+          "calls": 525,
+          "triangles": 388645,
+          "geometries": 315,
+          "textures": 54,
+          "programs": 33,
+          "meshes": 214,
+          "heapMB": 15.457469940185547,
+          "dom": 715,
+          "mutPerSec": 218.25,
+          "loadMs": 278,
+          "best": 1.699999988079071,
+          "load": 15.1,
+          "spread": {
+            "p50": [
+              1.8,
+              2.1,
+              1.9
+            ],
+            "render": [
+              1.7,
+              1.9,
+              1.8
+            ]
+          }
+        },
+        "hq/low": {
+          "frames": 4599,
+          "p50": 1.6999999999989086,
+          "p95": 2.3000000000010914,
+          "cpu": 1.5,
+          "render": 1.5,
+          "calls": 446,
+          "triangles": 470020,
+          "geometries": 681,
+          "textures": 51,
+          "programs": 16,
+          "meshes": 403,
+          "heapMB": 17.209800720214844,
+          "dom": 753,
+          "mutPerSec": 361,
+          "loadMs": 255,
+          "best": 1.4000000059604645,
+          "load": 13.4,
+          "spread": {
+            "p50": [
+              1.6,
+              1.7,
+              1.7
+            ],
+            "render": [
+              1.4,
+              1.5,
+              1.5
+            ]
+          }
+        },
+        "hq/high": {
+          "frames": 3003,
+          "p50": 2.599999999998545,
+          "p95": 3,
+          "cpu": 2.5,
+          "render": 2.4000000059604645,
+          "calls": 1024,
+          "triangles": 1047325,
+          "geometries": 687,
+          "textures": 72,
+          "programs": 31,
+          "meshes": 409,
+          "heapMB": 19.391132354736328,
+          "dom": 755,
+          "mutPerSec": 234.375,
+          "loadMs": 236,
+          "best": 2.300000011920929,
+          "load": 8.7,
+          "spread": {
+            "p50": [
+              2.7,
+              2.6,
+              2.5
+            ],
+            "render": [
+              2.6,
+              2.4,
+              2.3
+            ]
+          }
+        },
+        "late/low": {
+          "frames": 4808,
+          "p50": 1.5999999999994543,
+          "p95": 2.300000000000182,
+          "cpu": 1.5,
+          "render": 1.4000000059604645,
+          "calls": 482,
+          "triangles": 491542,
+          "geometries": 754,
+          "textures": 51,
+          "programs": 18,
+          "meshes": 400,
+          "heapMB": 19.253917694091797,
+          "dom": 1291,
+          "mutPerSec": 46.25,
+          "loadMs": 220,
+          "best": 1.4000000059604645,
+          "load": 6.9,
+          "spread": {
+            "p50": [
+              1.8,
+              1.6,
+              1.5
+            ],
+            "render": [
+              1.6,
+              1.4,
+              1.4
+            ]
+          }
+        },
+        "late/high": {
+          "frames": 2775,
+          "p50": 2.800000000000182,
+          "p95": 3.3000000000010914,
+          "cpu": 2.7999999821186066,
+          "render": 2.699999988079071,
+          "calls": 1137,
+          "triangles": 1088749,
+          "geometries": 760,
+          "textures": 72,
+          "programs": 34,
+          "meshes": 406,
+          "heapMB": 21.53736114501953,
+          "dom": 1293,
+          "mutPerSec": 30.25,
+          "loadMs": 245,
+          "best": 2.699999988079071,
+          "load": 5.3,
+          "spread": {
+            "p50": [
+              3.3,
+              2.8,
+              2.8
+            ],
+            "render": [
+              3.1,
+              2.7,
+              2.7
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "47e2167a",
+      "bundle": {
+        "js": {
+          "raw": 1928549,
+          "gz": 628959
+        },
+        "css": {
+          "raw": 95602,
+          "gz": 17982
+        }
+      },
+      "late": {
+        "week": 400,
+        "stage": 2,
+        "staff": 27
+      },
+      "scenes": {
+        "floor/low": {
+          "frames": 6805,
+          "p50": 1.1000000000003638,
+          "p95": 1.6000000000003638,
+          "cpu": 1,
+          "render": 1,
+          "calls": 243,
+          "triangles": 177920,
+          "geometries": 312,
+          "textures": 32,
+          "programs": 16,
+          "meshes": 202,
+          "heapMB": 14.175891876220703,
+          "dom": 712,
+          "mutPerSec": 396.625,
+          "loadMs": 225,
+          "best": 0.9000000059604645,
+          "load": 12.8,
+          "spread": {
+            "p50": [
+              1.2,
+              1.1,
+              1.1
+            ],
+            "render": [
+              1.1,
+              1,
+              0.9
+            ]
+          }
+        },
+        "floor/high": {
+          "frames": 3756,
+          "p50": 2,
+          "p95": 3,
+          "cpu": 1.899999976158142,
+          "render": 1.800000011920929,
+          "calls": 527,
+          "triangles": 388933,
+          "geometries": 316,
+          "textures": 54,
+          "programs": 33,
+          "meshes": 215,
+          "heapMB": 15.434577941894531,
+          "dom": 714,
+          "mutPerSec": 250.125,
+          "loadMs": 283,
+          "best": 1.800000011920929,
+          "load": 15.1,
+          "spread": {
+            "p50": [
+              2.6,
+              2,
+              2
+            ],
+            "render": [
+              2.3,
+              1.8,
+              1.8
+            ]
+          }
+        },
+        "hq/low": {
+          "frames": 4610,
+          "p50": 1.6999999999989086,
+          "p95": 2.399999999999636,
+          "cpu": 1.5,
+          "render": 1.5,
+          "calls": 448,
+          "triangles": 470024,
+          "geometries": 681,
+          "textures": 52,
+          "programs": 16,
+          "meshes": 403,
+          "heapMB": 17.259082794189453,
+          "dom": 754,
+          "mutPerSec": 367,
+          "loadMs": 249,
+          "best": 1.4000000059604645,
+          "load": 13.4,
+          "spread": {
+            "p50": [
+              1.7,
+              1.7,
+              1.6
+            ],
+            "render": [
+              1.5,
+              1.5,
+              1.4
+            ]
+          }
+        },
+        "hq/high": {
+          "frames": 3110,
+          "p50": 2.5,
+          "p95": 3,
+          "cpu": 2.4000000059604645,
+          "render": 2.4000000059604645,
+          "calls": 1027,
+          "triangles": 1047259,
+          "geometries": 687,
+          "textures": 71,
+          "programs": 31,
+          "meshes": 409,
+          "heapMB": 19.417888641357422,
+          "dom": 754,
+          "mutPerSec": 248.375,
+          "loadMs": 226,
+          "best": 2.399999976158142,
+          "load": 8.7,
+          "spread": {
+            "p50": [
+              2.7,
+              2.5,
+              2.5
+            ],
+            "render": [
+              2.5,
+              2.4,
+              2.4
+            ]
+          }
+        },
+        "late/low": {
+          "frames": 5142,
+          "p50": 1.5,
+          "p95": 2,
+          "cpu": 1.4000000059604645,
+          "render": 1.4000000059604645,
+          "calls": 481,
+          "triangles": 491398,
+          "geometries": 753,
+          "textures": 51,
+          "programs": 18,
+          "meshes": 399,
+          "heapMB": 19.349681854248047,
+          "dom": 1294,
+          "mutPerSec": 48.375,
+          "loadMs": 226,
+          "best": 1.300000011920929,
+          "load": 6.9,
+          "spread": {
+            "p50": [
+              1.5,
+              1.5,
+              1.5
+            ],
+            "render": [
+              1.3,
+              1.4,
+              1.4
+            ]
+          }
+        },
+        "late/high": {
+          "frames": 2701,
+          "p50": 2.899999999999636,
+          "p95": 3.400000000001455,
+          "cpu": 2.800000011920929,
+          "render": 2.7999999821186066,
+          "calls": 1137,
+          "triangles": 1088533,
+          "geometries": 759,
+          "textures": 72,
+          "programs": 34,
+          "meshes": 405,
+          "heapMB": 21.528003692626953,
+          "dom": 1448,
+          "mutPerSec": 29.875,
+          "loadMs": 227,
+          "best": 2.699999988079071,
+          "load": 5.3,
+          "spread": {
+            "p50": [
+              2.9,
+              2.9,
+              2.8
+            ],
+            "render": [
+              2.8,
+              2.8,
+              2.7
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
