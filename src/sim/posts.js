@@ -14,13 +14,13 @@ import { MEMES } from '../data/memes.js';
 const BY_ID = Object.fromEntries(POSTS.map((p) => [p.id, p]));
 
 // The memes that fit the moment: an outage's own meme during one, else the everyday ones plus any that the
-// era, a recent launch or an office pet make fit. Filtered for the era's words like any other line.
+// era, a recent launch or an office dog make fit. Filtered for the era's words like any other line.
 const MEME_FITS = {
   any: () => true,
   outage: (s) => !!s.outage,
   launch: (s) => s.products.some((p) => !p.killed && p.launchedWeek >= s.week - B.posts.newsWeeks),
   agents: (s) => eraAtLeast(s, 'agents'),
-  pet: (s) => (s.pets ?? []).length > 0,
+  dog: (s) => (s.pets ?? []).some((p) => p.species === 'dog'),
 };
 function pickMeme(state, rng) {
   const fit = MEMES.filter((m) => MEME_FITS[m.when]?.(state) && eraAllowsText(state, m.alt));

@@ -1,7 +1,7 @@
 // Image memes for Yak: classic formats redrawn with the game's own characters. The UI maps `image` to its
 // files; `alt` is the post's text, for the event stream, accessibility, and when an image is missing.
 //   when  the moment a meme fits: 'any', 'outage' (an outage is on), 'launch' (a launch in the last weeks),
-//         'agents' (the Agents era or later), 'pet' (the office has a pet)
+//         'agents' (the Agents era or later), 'dog' (the office has a dog)
 export const MEMES = [
   { id: 'this_is_fine', image: 'this_is_fine', when: 'outage',
     alt: 'A founder calmly sips coffee while the whole office burns: "SEV-1. Everything is fine."' },
@@ -11,7 +11,7 @@ export const MEMES = [
     alt: 'A chart going up and to the right, labelled "tabs I have open", and a very proud designer.' },
   { id: 'always_config', image: 'always_config', when: 'any',
     alt: 'Two engineers at a screen: "Wait, it\'s all config?" "Always has been."' },
-  { id: 'dog_standup', image: 'dog_standup', when: 'pet',
+  { id: 'dog_standup', image: 'dog_standup', when: 'dog',
     alt: 'The office dog in a tiny headset at a laptop: "me in standup".' },
   { id: 'launch_day', image: 'launch_day', when: 'launch',
     alt: 'Two teammates high-five under a launch banner: "it works on prod".' },

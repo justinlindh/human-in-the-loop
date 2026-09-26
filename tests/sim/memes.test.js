@@ -44,7 +44,7 @@ describe('issue #671: image memes in Yak', () => {
     for (let i = 0; i < 5; i++) { s.week += 3; expect(meme(s).image.id).toBe('this_is_fine'); }
   });
 
-  it('the Classic era never gets an agent meme, and the dog meme needs a pet', () => {
+  it('the Classic era never gets an agent meme, and the dog meme needs a dog', () => {
     const s = office(classicGame(3));
     const seen = new Set();
     for (let i = 0; i < 40; i++) { s.week += 3; seen.add(meme(s).image.id); }
@@ -54,5 +54,17 @@ describe('issue #671: image memes in Yak', () => {
       expect(eraAllowsText(s, m.alt), id).toBe(true);
     }
     expect(seen.has('dog_standup')).toBe(false);
+  });
+
+  it('the office dog meme needs a dog: a cat does not count', () => {
+    const s = office(game(4));
+    const seenWith = (pets) => {
+      s.pets = pets;
+      const seen = new Set();
+      for (let i = 0; i < 60; i++) { s.week += 3; seen.add(meme(s).image.id); }
+      return seen;
+    };
+    expect(seenWith([{ id: 'pet1', species: 'cat', name: 'Byte', ownerId: null, arrivedWeek: 0 }]).has('dog_standup')).toBe(false);
+    expect(seenWith([{ id: 'pet2', species: 'dog', name: 'Kernel', ownerId: s.staff[0].id, arrivedWeek: 0 }]).has('dog_standup')).toBe(true);
   });
 });
