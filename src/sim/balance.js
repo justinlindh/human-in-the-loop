@@ -68,7 +68,7 @@ export const B = {
   postureSecurityPerSkill: 3.2, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageComplexityPerProduct: 0.2, fixersCounted: 3, outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
-  gpuWeeklySelfHost: 1200, randomEventChance: 0.22,
+  gpuWeeklySelfHost: 1200, randomEventChance: 0.22, deskStageWaitWeeks: 4,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
@@ -116,6 +116,14 @@ export const B = {
     strainAt: 40, lateWeeks: 12, newHireWeeks: 3, supportShortfall: 0.2, lateProgress: 0.6, agentLevel: 0.3,
     restStrain: 20, pushStrain: 3, pushOutput: 0.02, launchHype: 4, cakeCost: 300, subtweetBackfire: 0.25,
     crunchOutput: 0.04, reviewDebt: 3, mergeDebt: 4, lunchCost: 40, teamLunchCost: 400,
+  },
+  // Nods to the valley: the incubator house, The Box, oat milk, the kielbasa app, tabs or spaces, the Squish Score.
+  svNods: {
+    incubatorFrom: 8, incubatorUntil: 60, incubatorCash: 12000, incubatorCut: 0.1, incubatorCounterCut: 0.05, incubatorCounterChance: 0.5,
+    incubatorPodcastWeeks: 52, incubatorSignWeeks: 52,
+    boxCost: 40000, boxHype: 12, boxDebt: 4, boxCubeWeeks: 26, boxRecallWeeks: 30, boxMockChance: 0.55,
+    oatOpsLevel: 0.3, oatStaff: 10, oatFee: 3000, oatStamina: 0.1, oatWeeks: 26,
+    kielbasaStaff: 5, kielbasaHype: 15, kielbasaFadeWeeks: 6, kielbasaSale: 25000,
   },
   // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.
   nods: {

@@ -48,13 +48,21 @@ function nearestFree(state, x, y) {
   return null;
 }
 
+// In the office this week: not away (sabbatical, leave) and not remote.
+export const isIn = (p) => p.mood !== 'away' && !p.remote;
+
 // Where a staged prop goes for an anchor; null for 'screens', which has no tile.
 export function stageTile(state, anchor, subjectId) {
   if (anchor === 'screens') return { x: null, y: null };
   if (anchor === 'subjectDesk') {
-    const p = state.staff.find((x) => x.id === subjectId);
-    const desk = p?.deskId ? desksOf(state.office.placed).find((d) => d.id === p.deskId) : null;
-    if (desk) { const [x, y] = seatTile(desk); return { x, y }; }
+    // The subject's desk when they are in; otherwise the desk of someone who is (a founder first), so the
+    // prop never waits on an empty chair. staffId says whose desk it is, for the renderer to cast them.
+    const desks = desksOf(state.office.placed);
+    const deskOf = (p) => (p?.deskId ? desks.find((d) => d.id === p.deskId) : null);
+    const subject = state.staff.find((x) => x.id === subjectId);
+    const inOffice = state.staff.filter((p) => isIn(p) && deskOf(p));
+    const who = subject && isIn(subject) && deskOf(subject) ? subject : inOffice.find((p) => p.founder) ?? inOffice[0] ?? null;
+    if (who) { const [x, y] = seatTile(deskOf(who)); return { x, y, staffId: who.id }; }
   }
   if (anchor === 'kitchen') {
     const corner = state.office.placed.find((i) => i.itemId === 'coffee_corner' || i.itemId === 'espresso');
@@ -88,12 +96,12 @@ export function grantBlocker(state, c) {
   return findSpot(layoutOf(state), state.office.placed, item) ? null : 'No room for it';
 }
 
-// Leaves a prop at the decision's stage tile, or where its own anchor (else the back wall) resolves when the
-// event has no stage, keeping at most officePropsMax.
+// Leaves a prop where its own anchor resolves when it sets one; otherwise at the decision's stage tile, or on
+// the back wall when there is no stage. Keeps at most officePropsMax.
 export function leaveProp(state, leaves, stage, subjectId = null) {
   const props = (state.office.props ??= []);
-  const own = stageTile(state, leaves.anchor ?? 'wall', subjectId);
-  const tile = stage && stage.x !== null ? { x: stage.x, y: stage.y } : own.x !== null ? own : wallTile(state);
+  const own = leaves.anchor ? stageTile(state, leaves.anchor, subjectId) : null;
+  const tile = own && own.x !== null ? { x: own.x, y: own.y } : stage && stage.x !== null ? { x: stage.x, y: stage.y } : wallTile(state);
   // Props number themselves apart from the game's shared id counter, so a cosmetic prop never shifts the
   // ids (and so the seeded course) of everything created after it.
   // Props from older saves were numbered off the shared counter, so start above any id still in use.
