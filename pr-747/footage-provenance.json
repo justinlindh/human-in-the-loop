@@ -1,0 +1,114 @@
+[
+  {
+    "id": "trailer-garage",
+    "build": "a21e1081",
+    "sha256": "7915fec6b3160a4feb51c9760488fc7da21aeb3869105d8b178d8a06f0bdc0fb",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-office",
+    "build": "a21e1081",
+    "sha256": "109f5983950369ea5af45ad5439715fe963f97a213f89c61db46aa49ccc9e8b0",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-build",
+    "build": "a21e1081",
+    "sha256": "f90b67d715d0720f7e76c41fafe323d8c7afd967d7478ce34319a6ffcb126376",
+    "reused": true,
+    "checks": 2
+  },
+  {
+    "id": "trailer-hire",
+    "build": "a21e1081",
+    "sha256": "163d6ca37f1a200a317ec8389d71c0eb6a575b67cc0f79972755f168706bcd4f",
+    "reused": true,
+    "checks": 2
+  },
+  {
+    "id": "trailer-launch",
+    "build": "a21e1081",
+    "sha256": "d3e50f9cb49da1ce73a3efb38658e1160df1f040ffabb452a2829c119abd1252",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-incident",
+    "build": "a21e1081",
+    "sha256": "1040a80b20868dac37ca0d5c7345ea6310d85f4565f8e568c9012efe7a0c2c08",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-yak",
+    "build": "66a5de35",
+    "sha256": "8e54c32e476857b9456d5d407af0845c46bc3017600aafb1ab410ff029698a28",
+    "reused": false,
+    "checks": 1
+  },
+  {
+    "id": "trailer-yak-react",
+    "build": "66a5de35",
+    "sha256": "aadb5a0823cc4ffa028b1c1c21b22698775aa5bb4123cc1954a7b6bfe8e619b6",
+    "reused": false,
+    "checks": 1
+  },
+  {
+    "id": "trailer-printer",
+    "build": "a21e1081",
+    "sha256": "f5e09f78e2f97498d565af9b3f6b421e6bf57072633c2c496c3f1746e6610ecb",
+    "reused": true,
+    "checks": 2
+  },
+  {
+    "id": "trailer-era-chatgbt",
+    "build": "a21e1081",
+    "sha256": "13d3a01a75a7e57ed86a564c2330a3b46c715ec8de514ca2526aa119eeac2246",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-era-agents",
+    "build": "a21e1081",
+    "sha256": "e5dab2b66df7154854963ac0d25afc244b17ff419255b2298334966f367973ff",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-cloud-bill",
+    "build": "a21e1081",
+    "sha256": "0c320bde50b8ca08125dbb6a080525d4358c7767ed7b0b3458ecfa947fb8d080",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-era-consolidation",
+    "build": "a21e1081",
+    "sha256": "2258f918a947c56f17f5a449447c526d15b393bf2925dbdbfc2c816e882395a6",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-waffle",
+    "build": "a21e1081",
+    "sha256": "03ec129e61d93d00864111d5e6cef16a4f290a886ca91bef3c783f10dcf952e2",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-dance",
+    "build": "a21e1081",
+    "sha256": "b28cc8ccdfc7cd0f3686473172ed7c1562d7f746dc7dcfc08862316ce691ee0d",
+    "reused": true,
+    "checks": 1
+  },
+  {
+    "id": "trailer-plateau",
+    "build": "a21e1081",
+    "sha256": "139312bcc9ce0ab576f419039db48746c7597737b72efe0561624087d1c1dfa5",
+    "reused": true,
+    "checks": 1
+  }
+]
