@@ -178,7 +178,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it. Sharing a meme posts a picture: classic formats redrawn with the game's own characters ("This is fine" during an outage, two buttons, the tabs chart, and agent-era ones later), picked for the moment.
   - **Pep talk**: backfires mid-outage ("Respectfully, the servers are on fire."). `id: pep_talk`
   - **Who broke prod?**: helps during an outage; with nothing broken it just scares people ("Why are you asking. What do you know."). `id: who_broke_prod`
-  - **Share a meme**: "[a cat knocking a mug off a desk, captioned "me, merging on a Friday"]". `id: meme`
+  - **Share a meme**: posts a picture meme that fits the week: an outage always gets the office on fire ("SEV-1. Everything is fine."), a recent launch or an office dog have their own, and the Classic era never sees an agent joke. The post's text is the picture's alt text. `id: meme` `id: this_is_fine` `id: two_buttons` `id: tabs_chart` `id: always_config` `id: dog_standup` `id: launch_day` `id: distracted_dev` `id: yes_no_tests` `id: expanding_review`
   - **Pizza's here**: costs per head, lifts meaning and stamina ("There is a vegetarian one, and it is being guarded."). `id: pizza`
   - **Announcement**: with real news it lands; with none, "Is this a layoffs thing?". `id: announcement`
 - ★ **The @channel offender**: one over-notifier per run pings everyone about their yogurt, "happy friday" on a Thursday or a typo at 2 a.m.; once, during a real outage, it is warranted.
