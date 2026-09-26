@@ -70,7 +70,10 @@ export const B = {
   outageComplexityPerProduct: 0.2, fixersCounted: 3, outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22, deskStageWaitWeeks: 4,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
-  chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
+  // Emoji reactions by a post's weight: routine chatter and replies rarely get any (one or two when they do),
+  // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
+  reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
+  chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {
