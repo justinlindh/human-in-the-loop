@@ -348,6 +348,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       portraits.update(dt);
       lighting.setAlarm(fx.alarmLevel);
       scene.updateMatrixWorld();
+      // Skipping the draw is exact only while post keeps no state between frames (golden checks this).
       if (draw) post.render(dt);
       labels.render(scene, rig.camera);
       const ls = labels.getSize();
