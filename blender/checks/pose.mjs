@@ -82,6 +82,11 @@ async function checkBrowser(frames) {
   }
 }
 
+// The page a browser check opens serves this checkout, so it can only check this checkout's code.
+if (argv.includes('--check-browser') && ROOT !== resolve(join(import.meta.dirname, '../..'))) {
+  console.error(`pose: --check-browser measures the page's own checkout, not --root; run pose.mjs from ${ROOT} (copy blender/checks/pose*.js there) to check it`);
+  process.exit(2);
+}
 // The browser check renders, so it takes a render slot first; taking one re-runs this script under
 // the lock, which must happen before anything is printed.
 if (argv.includes('--check-browser')) {

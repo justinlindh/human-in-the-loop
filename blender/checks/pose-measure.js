@@ -34,7 +34,7 @@ function toCamera(view) {
 function headSurfaces(c, headCenter, forward) {
   const pos = [], front = [], top = [];
   let maxY = -Infinity, minY = Infinity;
-  const a = new THREE.Vector3(), b = new THREE.Vector3(), d = new THREE.Vector3();
+  const a = new THREE.Vector3(), d = new THREE.Vector3();
   const tris = [];
   c.head.updateMatrixWorld(true);
   c.head.traverse((m) => {
@@ -61,7 +61,6 @@ function headSurfaces(c, headCenter, forward) {
     g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
     return new MeshBVH(g);
   };
-  b.set(0, 0, 0);
   return { head: bvh(pos), face: bvh(front), headTop: bvh(top) };
 }
 const target = { point: new THREE.Vector3(), distance: 0 };
