@@ -129,6 +129,21 @@ const EMBLEM = {
 };
 
 export const GLYPHS = {
+  // A bitten chip, a cross-eyed V, an elderly terminal and a loose W-shaped cable.
+  'press.techcrunchy': { size: 32, d:
+    path('M6 2v3M11 2v3M2 8h3M2 13h3M8 19v3M13 19v3M19 15h3', 'none') +
+    path('M6 5h8a3 3 0 0 0 5 4v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z', C.green) +
+    path('M8 9h5M10.5 9v6') + dot(19, 3, 1.3, C.green) + dot(22, 7, 1, C.green) },
+  'press.vergence': { size: 32, d:
+    path('M2 5h6l4 10 4-10h6L12 22Z', C.purple) +
+    circ(8, 6, 4, PAPER) + circ(16, 6, 4, PAPER) + dot(10, 6) + dot(14, 6) },
+  'press.hackerolds': { size: 32, d:
+    rr(2, 3, 20, 17, 3, C.yellow) +
+    rr(4, 7, 6, 5, 2, PAPER) + rr(14, 7, 6, 5, 2, PAPER) + path('M10 9h4M7 16l2 1-2 1M12 17h4') },
+  'press.wiredish': { size: 32, d:
+    rr(2, 2, 20, 20, 4, C.glass) +
+    path('M5 7l3 11 4-7 4 7 2-7') +
+    rr(15, 6, 6, 5, 1.5, C.teal) + path('M16.5 4v2M19.5 4v2') },
   // era emblems
   'era.classic': { d: EMBLEM.classic },
   'era.chatgbt': { d: EMBLEM.chatgbt },

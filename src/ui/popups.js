@@ -3,6 +3,7 @@ import { CHANNEL } from './content.js';
 import { SIMX } from './simapi.js';
 import { EVENTS } from '../data/events.js';
 import { icon } from './icons.js';
+import { pressOutlet } from './press.js';
 import { portrait, portraitLive, roleChip } from './widgets.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
@@ -158,7 +159,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
     ctx.controls.setSpeed?.(0);
     const reviews = (p.reviews ?? []).slice(0, 4);
     const cards = reviews.map((r) => h('div.rev', null,
-      h('div.rev-top', null, h('b.outlet', { text: r.outlet }), h(`span.rscore.num.${tier(r.score)}`, { text: String(r.score) })),
+      h('div.rev-top', null, pressOutlet(r.outlet), h(`span.rscore.num.${tier(r.score)}`, { text: String(r.score) })),
       h('div.rquote', { text: `"${r.quote}"` })));
     const verdict = VERDICT.find(([min]) => p.score >= min)?.[1] ?? '';
     const final = h(`div.final.${tier(p.score)}`, null, h('span.small', { text: 'Review average' }), h('b.num', { text: p.score.toFixed(1) }), h('span.verdict', { text: verdict }));
@@ -193,7 +194,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
         h('div.lbhead', null, icon('launch', { size: 18 }), h('b', { text: p.version > 1 ? `${p.name} v${p.version}` : p.name }),
           h('span.small.muted', { text: p.version > 1 ? 'update' : 'new' }), h('span.spacer'),
           h(`span.lbscore.num.${tier(p.score)}`, { text: p.score.toFixed(1) }), h('span.verdict.small', { text: verdict })),
-        best ? h('div.rquote.small', { text: `"${best.quote}" (${best.outlet})` }) : null,
+        best ? h('div.batch-review', null, pressOutlet(best.outlet, { compact: true }), h('div.rquote.small', { text: `"${best.quote}"` })) : null,
         nextSteps(s, p));
     });
     const ok = h('button.btn.go.big', { onclick: () => closeLaunch() }, 'Nice!');
