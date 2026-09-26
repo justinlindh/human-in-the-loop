@@ -7,6 +7,10 @@ import { REACTION_GLYPH } from './tools/glyphs.js';
 const I = (glyph, where, size = 16) => ({ glyph, where, size });
 
 export const ICONS = {
+  'press.techcrunchy': I('TC', 'TechCrunchy review logo', 32),
+  'press.vergence': I('V', 'The Vergence review logo', 32),
+  'press.hackerolds': I('HO', 'Hacker Olds review logo', 32),
+  'press.wiredish': I('W', 'Wired-ish review logo', 32),
   // bottom menu
   'menu.build': I('🔨', 'Bottom menu button', 30),
   'menu.staff': I('🧑‍💻', 'Bottom menu button', 30),
