@@ -19,7 +19,7 @@ describe('resign events say why someone left', () => {
     expect(poached).toMatchObject({ staffId: b.id, fired: false, reason: 'poached' });
 
     const c = addStaff(s, 'engineer', 'mid');
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     raiseDecision(makeCtx(s), 'resignation_letter', c.id);
     const j = EVENTS.resignation_letter.choices.findIndex((x) => x.effects.resign);
     const quit = dispatch(s, { type: 'resolveDecision', choice: j }).events.find((e) => e.type === 'resign');

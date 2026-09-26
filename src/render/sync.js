@@ -965,7 +965,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         st.t = 0;
         if (st.i >= st.people.length) { st.phase = 'close'; st.t = 0; return; }
         const p = st.people[st.i];
-        if (!recs.has(p.r.id)) return;
+        if (!recs.has(p.r.id) || !p.r.temp?.standup) return;
         if (p.nod) { p.r.temp.anim = 'wave'; emote(p.r, 'lightbulb', 0.9); setTimeoutFree(p.r); }
         else if (p.text && !quieted({}, p.r)) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
         else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
@@ -1019,6 +1019,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   let frozen = false;
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
+    moments.releaseLetters();
     trace.t += dt;
     if (paused !== frozen) { frozen = paused; traceLine(null, paused ? 'freeze' : 'unfreeze', { decision: lastState?.pendingDecision?.eventId ?? null }); }
     // A spotlight just began: bubbles already up round it go, so only the moment's own lines follow.
@@ -1117,6 +1118,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
+    // Checks: put someone in a temp and optionally set them walking across the office.
+    catchFor(id, temp, { walk = false } = {}) {
+      const r = recs.get(id);
+      if (!r) return false;
+      r.temp = temp ? { ...temp } : null;
+      if (walk) { const d = office.current.zones.door; walkTo(r, office.nav().freePoint(d.x, d.z)); }
+      return true;
+    },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.

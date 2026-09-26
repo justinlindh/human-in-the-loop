@@ -13,7 +13,7 @@ import { game, addStaff, addProduct, addDesks, passOfficeGates, expectFail } fro
 
 const run = (s) => { const c = makeCtx(s); beatsSystem(c); return c.events; };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
-const raise = (s, id) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, null); expect(s.pendingDecision?.eventId).toBe(id); };
+const raise = (s, id) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, null); expect(s.pendingDecision?.eventId).toBe(id); };
 
 describe('the agent bill', () => {
   it('arrives once, 45 weeks into the Agents era', () => {
@@ -65,7 +65,7 @@ describe('the rival mega-round', () => {
     s.rival = { name: 'Rivalry', founderName: 'Pat Rival', logoColor: '#fff', categoryId: 'crm', strength: 40, status: 'rising' };
     s.flags.beats = { agent_bill: 0 };
     s.pendingDecision = null;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     run(s);
     expect(s.pendingDecision?.eventId).toBe('rival_megaround');
     const p = addStaff(s, 'engineer', 'mid', { meaning: 80 });
@@ -125,12 +125,12 @@ describe('the floor next door and the first deals', () => {
     expect(offer).toMatchObject({ available: false, reason: 'No desks for their team' });
     expectFail(expect, dispatch, s, { type: 'resolveDecision', choice: 0 }, 'No desks for their team');
     s.cash = 10;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     s.pendingDecision = null;
     raiseDecision(makeCtx(s), 'deals_open', null);
     expect(s.pendingDecision.choices[0].reason).toBe('Not enough cash');
     s.pendingDecision = null;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     raiseDecision(makeCtx(s), 'floor_next_door', null);
     expect(s.pendingDecision.choices[0]).toMatchObject({ available: false });
   });
