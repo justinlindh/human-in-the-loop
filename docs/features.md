@@ -96,10 +96,8 @@ Conventions:
 - **Yak typing**: posting in Yak shows a short typing emote, never a bubble.
 - **Standups**: everyone gathers round the meeting table or whiteboard, the most interesting few speak (blockers, silences, jokes), the rest nod and wave. `capture 3-5-standup` `id: daily_standups`
 - **Incident rush**: the nearest few people sprint to the servers with exclamation marks; a caught incident sends just one. `?mock=incident` `capture 5-2-incident`
-- **Launch and award parties**: confetti bursts and everyone with room celebrates on the spot.
-- **Pets**: a dog makes rounds leaving hearts, naps in a sunny spot or on a couch and chases the cat; a cat sleeps on a rack or a desk, knocks a pen off a desk and only visits its favourite person. A passer near a floor-level pet pauses for a short head scratch, then resumes walking. Busy staff, sleeping pets and chases are left alone; Low quality keeps the pet emotes without the pause. Names include Kernel, Waffles, Null and Sudo. `capture 2-4-pets` `id: pet` `id: pet_request` `id: cat_request`
 - **Launch and award parties**: confetti bursts and everyone with room celebrates on the spot. People talk about the launch or award, such as "We shipped it. I am taking my hands off the keyboard."
-- **Pets**: a dog makes rounds leaving hearts, naps in a sunny spot or on a couch and chases the cat; a cat sleeps on a rack or a desk, knocks a pen off a desk and only visits its favourite person. Names include Kernel, Waffles, Null and Sudo. `capture 2-4-pets` Spoken: "The dog has a laminated portfolio." Spoken: "The carrier is conducting a silent interview." `id: pet_request` `id: cat_request`
+- **Pets**: a dog makes rounds leaving hearts, naps in a sunny spot or on a couch and chases the cat; a cat sleeps on a rack or a desk, knocks a pen off a desk and only visits its favourite person. A passer near a floor-level pet pauses for a short head scratch, then resumes walking. Busy staff, sleeping pets and chases are left alone; Low quality keeps the pet emotes without the pause. Names include Kernel, Waffles, Null and Sudo. `capture 2-4-pets` `id: pet` Spoken: "The dog has a laminated portfolio." Spoken: "The carrier is conducting a silent interview." `id: pet_request` `id: cat_request`
 - **Voice barks**: clicking a person plays a short voice bark with an emotion that fits their state.
 
 ## Staged moments
