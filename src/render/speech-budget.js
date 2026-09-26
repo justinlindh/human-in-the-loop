@@ -1,5 +1,7 @@
+import { B } from '../sim/balance.js';
+
 // Ambient speech shares the room's attention. Ordered standups keep the cap with their own gaps.
-export const SPEECH = { max: 1, gap: 6, personGap: 20 };
+export const SPEECH = { max: B.bubbleMaxOnScreen, gap: B.bubbleGapSeconds, personGap: B.bubblePersonGapSeconds };
 
 export function createSpeechBudget() {
   let now = 0, next = 0;
