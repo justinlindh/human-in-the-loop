@@ -92,7 +92,7 @@ Conventions:
 - **Arrivals and departures**: a hire walks in from the door with a sparkle; a leaver waves goodbye with a heart, or a storm cloud when fired, and walks out.
 - **Assignments you can see**: mentors stand at their mentee's desk with hearts; hard-problem people think at the whiteboard; people away, remote or on sabbatical leave by the door, and a desk gets an "ON SABBATICAL" sign.
 - **Legends**: someone who reaches level 20 wears a gold halo.
-- **Conversations**: a spoken exchange turns two people to face each other (a far speaker walks over) while the listener types "..." until the reply; people also mutter solo lines to nobody.
+- **Conversations**: a spoken exchange turns two people to face each other (a far speaker walks over) while the listener types "..." until the reply; people also mutter solo lines to nobody. Ordinary speech, including standups, shares one bubble slot, a quiet beat between lines and a cooldown for each person. Reading time stays long enough at every game speed; moment lines bypass the ambient limits.
 - **Yak typing**: posting in Yak shows a short typing emote, never a bubble.
 - **Standups**: everyone gathers round the meeting table or whiteboard, the most interesting few speak (blockers, silences, jokes), the rest nod and wave. `capture 3-5-standup` `id: daily_standups`
 - **Incident rush**: the nearest few people sprint to the servers with exclamation marks; a caught incident sends just one. `?mock=incident` `capture 5-2-incident`
@@ -159,6 +159,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 
 - **Picture meme art**: six office parodies in Fredoka: This is fine, Two buttons, Tabs chart, Always config, Reject/approve tests and Expanding review. Renderer captures live in `public/memes/` at 480x360 and 1200x900; regenerate them with `scripts/reels/memes.mjs`.
 
+- **Feed pacing**: messages arrive with reading time between them at every game speed. Important posts take priority; prompts and the player's own replies arrive immediately. Stale ambient backlog is skipped in the live feed, with the full recent history kept in the save.
 - **Channels**: #general, #incidents, #wins, #random and #standup, with unread badges; threads stay together, reactions show counts, names are clickable to find the person.
 - **Layout**: drag the top edge to resize, maximise into a large overlay, or collapse it (collapsed by default on phones).
 - **Mentions**: "@channel" and "@here" render as mention pills.
