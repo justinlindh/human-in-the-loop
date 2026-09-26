@@ -1,0 +1,7 @@
+PASS actual killProduct removes pending outage chatter
+PASS historical notice and queued parent retained beyond both age ceilings
+PASS actual old-save load, default occurrence, bounded metadata, round trip and unchanged game RNG
+FAIL 1x: recovered outage, 6 active seconds, 6 game seconds; delivered ["Inboxer is down. We have a theory. It is also down."]; context {}
+FAIL 2x: recovered outage, 6 active seconds, 12 game seconds; delivered ["Inboxer is down. We have a theory. It is also down."]; context {}
+FAIL 4x: recovered outage, 6 active seconds, 24 game seconds; delivered ["Inboxer is down. We have a theory. It is also down."]; context {}
+Independent checks: 3 passing groups; 3 failing acceptance cases

@@ -1,0 +1,55 @@
+{
+  "build": "86517b1e",
+  "seconds": 8,
+  "fps": 30,
+  "errors": 0,
+  "query": "seed=1&speed=4&time=day",
+  "marks": [
+    {
+      "t": 0.033,
+      "label": "shown capture-reading",
+      "week": 1,
+      "outage": false
+    },
+    {
+      "t": 0.2,
+      "label": "standup producer",
+      "posts": [
+        {
+          "type": "chat",
+          "id": "m11",
+          "week": 1,
+          "channel": "standup",
+          "from": "Pavel Kagame",
+          "fromId": "s2",
+          "text": "Still on the Inboxer outage. The logs hate me.",
+          "replyTo": null,
+          "reactions": {}
+        },
+        {
+          "type": "chat",
+          "id": "m12",
+          "week": 1,
+          "channel": "standup",
+          "from": "Eva Williams",
+          "fromId": "s1",
+          "text": "Found the Inboxer bug. Not the person who understands it.",
+          "replyTo": null,
+          "reactions": {}
+        }
+      ],
+      "contexts": {}
+    },
+    {
+      "t": 1,
+      "label": "outage resolved",
+      "week": 1
+    },
+    {
+      "t": 6.033,
+      "label": "shown m11",
+      "week": 4,
+      "outage": false
+    }
+  ]
+}
