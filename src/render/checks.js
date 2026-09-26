@@ -876,6 +876,33 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     for (const x of saved) if (x) { if (x[1] === undefined) delete x[0].deskId; else x[0].deskId = x[1]; }
     results.push({ name: 'prop:stageStaff', pass: onTheirs, staffId: b?.id ?? null, desk: b ? R.perks.peek(b.id)?.seat ?? null : null });
   }
+  // 11. The pivot board's writing reads from the default camera and faces the room. A whiteboard
+  // standing at the cut-away front edge doesn't get it (the camera would see the face against that
+  // wall): the writing goes up on a back wall instead. A board by a back wall keeps it.
+  {
+    const { footprint } = await import('./layout.js');
+    const L = R.office.current.L, f = footprint('whiteboard', 0);
+    const used = new Set();
+    for (const p of S.office.placed) { const g = footprint(p.itemId, p.rot ?? 0); for (let x = 0; x < g.w; x++) for (let y = 0; y < g.h; y++) used.add(`${p.x + x},${p.y + y}`); }
+    for (const [x, y] of L.blocked) used.add(`${x},${y}`);
+    const free = (x, y) => { for (let i = 0; i < f.w; i++) for (let j = 0; j < f.h; j++) if (used.has(`${x + i},${y + j}`)) return false; return true; };
+    const row = (y) => { for (let x = 1; x < L.grid.w - f.w - 1; x++) if (free(x, y)) return { x, y }; return null; };
+    const scrawlOn = (at) => {
+      S.office.placed = S.office.placed.filter((p) => p.id !== 'wb_test');
+      S.office.placed.push({ id: 'wb_test', itemId: 'whiteboard', level: 1, ...at, rot: 0 });
+      S.pendingDecision = { eventId: 'pivot_pitch', subjectId: ids[0], stage: { prop: 'whiteboard_scrawl', anchor: 'whiteboard', x: at.x, y: at.y } };
+      step(10);
+      const o = R.props.current().find((x) => x.prop === 'whiteboard_scrawl')?.obj;
+      const onWall = !!o?.userData.span;
+      S.pendingDecision = null;
+      S.office.placed = S.office.placed.filter((p) => p.id !== 'wb_test');
+      step(20);
+      return onWall;
+    };
+    const front = row(L.grid.h - f.h), back = row(1);
+    const frontOnWall = front ? scrawlOn(front) : null, backOnWall = back ? scrawlOn(back) : null;
+    results.push({ name: 'prop:pivotBoard', pass: frontOnWall === true && backOnWall === false, front, frontOnWall, back, backOnWall });
+  }
   R.perks.hold = false;
   return results;
 }
