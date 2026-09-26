@@ -71,19 +71,25 @@ const RUNAWAY = `(async () => {
 // For FOLLOW: the centre of a staged prop's bounds, for a prop drawn away from its origin (on a wall).
 const BOX = (prop) => `() => { const R = window.__hitlRender, T = R.THREE; const o = R.props.current().find((x) => x.prop === '${prop}')?.obj; return o ? new T.Box3().setFromObject(o).getCenter(new T.Vector3()) : null; }`;
 
+// A point offset from the staff's centre (found once per clip), for the hero's drift.
+const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return n ? { x: x / n, z: z / n } : null; })(); return c && { x: c.x + ${dx}, z: c.z + ${dz} }; })()` });
+
 export const ITEMS = [
   // The office, by stage and time.
   {
-    // A slow pan across the HQ from the staff's centre; the still is taken from it.
-    id: 'site-hero', title: 'Landing page hero: the HQ by day, and a drift over it', ...OFFICE(500, HQ), seconds: 15,
-    actions: [
-      ...CLEAR_EARLY,
-      { at: 0, js: `(() => { const R = window.__hitlRender; let n = 0, x = 0, z = 0; R.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); window.__drift = n ? { x: x / n, z: z / n } : { x: 0, z: 0 }; })()` },
-      ...Array.from({ length: 15 * 30 }, (_, i) => ({ at: i / 30, js: `(() => { const d = window.__drift; if (d) window.__hitlRender.focusAt(d.x - 1.5 + ${(3 * i) / (15 * 30)}, d.z + 0.75 - ${(1.5 * i) / (15 * 30)}, 0.85); })()` })),
-      ...CAMLOG(15),
+    // The hero: recorded at 4K with the tilt-shift off, so it stays crisp on large and HiDPI screens.
+    // The camera drifts across the staff's centre and back along an eased path, so the loop's two
+    // ends frame the same and the join shows no ghost. The still is taken from it.
+    id: 'site-hero', title: 'Landing page hero: the HQ by day, and a drift over it', ...OFFICE(500, HQ), seconds: 14.5, record: '3840x2160',
+    camera: [{ at: 0, target: HERO_AT(-1.8, 0.9), zoom: 1.2 }, { at: 7, target: HERO_AT(1.8, -0.9), zoom: 1.2, ease: 'inOut' }, { at: 14, target: HERO_AT(-1.8, 0.9), zoom: 1.2, ease: 'inOut' }],
+    actions: [{ at: 0, js: 'window.__hitlRender.setTiltShift(false)' }, ...CLEAR_EARLY, ...CAMLOG(14.5)],
+    screenshots: [3.5],
+    out: [
+      { path: 'img/hero.webp', size: '1920x1080', from: 3.5, quality: 88 },
+      { path: 'img/hero-2560.webp', size: '2560x1440', from: 3.5, quality: 86 },
+      { path: 'media/loops/hero.mp4', size: '1600x900', from: 0, seconds: 14, fps: 24, webm: true, xfade: 0.4, crf: 30, webmCrf: 40 },
+      { path: 'media/loops/hero-2560.mp4', size: '2560x1440', from: 0, seconds: 14, fps: 24, webm: true, xfade: 0.4, crf: 31, webmCrf: 42 },
     ],
-    screenshots: [4],
-    out: [{ path: 'img/hero.webp', size: '1920x1080', from: 4 }, { path: 'media/loops/hero.mp4', size: '1600x900', from: 0.5, seconds: 14, fps: 24, webm: true, xfade: 1, crf: 31, webmCrf: 44 }],
   },
   {
     id: 'site-hq-night', title: 'Landing page: the HQ at night', ...OFFICE(500, HQ, 'night'), still: true,
@@ -174,7 +180,7 @@ export const ITEMS = [
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, prep: IN_OFFICE, after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`,
     actions: [
-      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 34, 1),
+      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 34, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
       { at: 11, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent))?.click()` },
