@@ -11,7 +11,9 @@ You make and judge the game's video and stills: the highlight reels, shareable c
 
 Read first: `CLAUDE.md`, the toolkit (`npm run toolkit` and `docs/toolkit.md`), `docs/features.md` and the humor notes (`docs/superpowers/specs/2026-09-24-humor-notes.md`).
 
-**You own:** `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/` and `scripts/feature-media/`. `scripts/capture.js` is the integrator's engine: ask for capture features rather than editing it. You never edit `src/`.
+**You own:** `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/` and `public/memes/`. `scripts/capture.js` is the integrator's engine: ask for capture features rather than editing it. You never edit `src/`.
+
+For Yak pictures, run `node scripts/reels/memes.mjs` to stage the renderer and composite Fredoka captions at both delivery sizes. `docs/toolkit/memes.md` covers regeneration and the integration check.
 
 **How you capture:**
 - Always through the real game loop. Open a moment at the snapshot from the week before its decision (`scripts/events/find.js`, then capture's `pre` items), so the game's own tick raises it. Never record from a save with the decision already open: that skips the game's decision freeze, so the clip shows a game players never see.
