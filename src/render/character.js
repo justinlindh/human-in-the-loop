@@ -340,16 +340,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       let geo = FACE_GEOS.get(key);
       if (!geo) {
         const e = eyes.clone();
-        e.scale.y = k === 'wince' ? 0.45 : closed ? 0.15 : 1;
+        e.scale.y = closed ? 0.15 : 1;
         const parts = [e, mouths[k === 'wince' ? 'burnout' : k].clone()];
-        if (!closed || k === 'wince') {
-          const glint = shine.clone();
-          if (k === 'wince') {
-            glint.scale.y = e.scale.y;
-            glint.position.y = eyes.position.y + (shine.position.y - eyes.position.y) * e.scale.y;
-          }
-          parts.push(glint);
-        }
+        if (!closed) parts.push(shine.clone());
         headGroup.add(...parts);
         const once = bakeParts(parts, headGroup, bm, tintable);
         once.removeFromParent();
@@ -707,13 +700,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       case 'facepalm': case 'facepalmsit':
-        // A shallow bow keeps the wince and the left hand at the temple visible from above.
+        // The raised palm covers the camera-side eye and brow while the face stays visible.
         tgt.lean = 0.05;
-        tgt.headX = -0.5 + s(t * 1.2 + phase) * 0.03;
-        tgt.headZ = 0.24 + s(t * 0.8) * 0.04;
-        tgt.armLX = -2.65;
-        tgt.armLY = 0.08;
-        tgt.armLZ = 0.4;
+        tgt.headX = -0.425 + s(t * 1.2 + phase) * 0.03;
+        tgt.headZ = 0.15 + s(t * 0.8) * 0.04;
+        tgt.armLX = -2.77;
+        tgt.armLY = 0.09;
+        tgt.armLZ = 0.265;
         tgt.armRX = -0.35;
         tgt.armRZ = -0.08;
         break;
