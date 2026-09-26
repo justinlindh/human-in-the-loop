@@ -13,7 +13,7 @@ function assertAllFinite(v, path) {
 const PLAN_ORDER = [
   ['calendar-start', 10], ['ladder', 11], ['standup', 12], ['purpose', 13], ['beats', 14], ['moonshot', 15], ['props', 16], ['work', 20], ['projects', 30], ['products', 40], ['marketing', 45], ['vacation', 48], ['strain', 49], ['meaning', 50], ['incentives', 51], ['move-on', 52], ['attrition', 53],
   ['knowledge', 55], ['market', 60], ['for-sale', 62], ['incidents', 65], ['events', 70], ['annual', 75], ['economy', 80],
-  ['staff-upkeep', 85], ['unlocks', 86], ['goals', 87], ['chat', 88], ['prompts', 89], ['endgame', 90], ['posts', 91], ['history', 95], ['restage', 99],
+  ['staff-upkeep', 85], ['unlocks', 86], ['goals', 87], ['chat', 88], ['prompts', 89], ['endgame', 90], ['posts', 91], ['history', 95],
 ];
 
 function midGame(seed) {
@@ -89,6 +89,6 @@ describe('system order', () => {
     const got = getSystems().map((x) => [x.name, x.order]);
     for (const [name, order] of got) expect(plan[name], name).toBe(order);
     expect(got.map(([, o]) => o)).toEqual([...got.map(([, o]) => o)].sort((a, b) => a - b));
-    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'ladder', 'standup', 'purpose', 'beats', 'moonshot', 'props', 'work', 'projects', 'products', 'marketing', 'vacation', 'strain', 'meaning', 'incentives', 'move-on', 'attrition', 'knowledge', 'market', 'for-sale', 'incidents', 'events', 'annual', 'economy', 'staff-upkeep', 'unlocks', 'goals', 'chat', 'prompts', 'endgame', 'posts', 'history', 'restage']);
+    expect(got.map(([n]) => n)).toEqual(['calendar-start', 'ladder', 'standup', 'purpose', 'beats', 'moonshot', 'props', 'work', 'projects', 'products', 'marketing', 'vacation', 'strain', 'meaning', 'incentives', 'move-on', 'attrition', 'knowledge', 'market', 'for-sale', 'incidents', 'events', 'annual', 'economy', 'staff-upkeep', 'unlocks', 'goals', 'chat', 'prompts', 'endgame', 'posts', 'history']);
   });
 });
