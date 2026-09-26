@@ -8,3 +8,5 @@ Characters against real furniture: seated poses in every mood, perk poses, and n
 `moment:letter-claim` checks that a letter's named reader reaches the reading pose when the decision freeze catches them walking, in a standup, or celebrating.
 
 `moment:letter-lifecycle` checks claim release on cancellation, Low-quality completion, and away transitions, plus the full tight-row fallback read, slump, and return under the decision freeze. Both letter fixtures arrange a reader per case and run with and without the rig.
+
+`moment:pet:` checks dog and cat greetings through proximity, furniture clearance and the return to walking, plus removal, absence, interruption and Low-quality release. `setupPetPasser` in the render checks places an idle pet beside a walker without forcing the greeting.

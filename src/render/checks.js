@@ -1028,3 +1028,80 @@ export async function runSkyCheck() {
   const night = [...fresh.texture.image.getContext('2d').getImageData(128, 20, 1, 1).data].slice(0, 3);
   return { name: 'sky:trailing', pass: last.join() === night.join() && day.join() !== night.join(), day: day.join(), last: last.join(), night: night.join() };
 }
+
+// A passer on open floor beside an idle pet. Only the fixture positions actors; the
+// production greeting must notice the walker and release them back to their goal.
+export function setupPetPasser(R, S, species = 'dog') {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  S.pets = [{ id: 'check_pet', species, name: 'Kernel', ownerId: null }];
+  R.sync(S);
+  const nav = R.office.nav(), L = R.office.current.L;
+  let at = null;
+  for (let z = 0; z < L.D / 2 - 1 && !at; z += 0.5) for (let x = L.W / 2 - 1.5; x > 0; x -= 0.5) {
+    if ([-0.8, 0, 0.8].every(dx => [-0.8, 0, 0.8].every(dz => !nav.isBlocked(x + dx, z + dz)))) { at = { x, z }; break; }
+  }
+  if (!at) throw new Error('pet fixture needs open floor');
+  const id = S.staff.find(s => s.mood !== 'away' && !s.remote).id;
+  R.standAt(id, at.x, at.z);
+  R.catchFor(id, null, { walk: true });
+  window.__advance(1);
+  const pos = charOf(R.scene, id).position;
+  R.pets.standAt('check_pet', pos.x, pos.z + 0.65);
+  return { id, at };
+}
+
+export async function runPetChecks(R, S) {
+  const results = [];
+  for (const species of ['dog', 'cat']) {
+    R.pets.reset(); R.setQuality('medium');
+    const { id } = setupPetPasser(R, S, species);
+    const root = charOf(R.scene, id);
+    let samples = 0, worst = 0, petInside = 0, resumed = false;
+    let petRoot = null; R.scene.traverse(o => { if (o.name === 'pet') petRoot = o; });
+    for (let f = 0; f < 160; f++) {
+      window.__advance(1);
+      if (R.walkOf(id)?.temp?.moment === 'pet') {
+        samples++;
+        if (f % 3 === 0) {
+          worst = Math.max(worst, bodyInside(root, furnitureOf(R)));
+          petInside = Math.max(petInside, bodyInside(root, meshes(petRoot), false));
+        }
+      } else if (samples && R.walkOf(id)?.path.length) resumed = true;
+    }
+    results.push({ name: `moment:pet:${species}`, pass: samples >= 80 && resumed && worst < 0.01 && petInside < 0.01, samples, resumed, petInsidePct: +(petInside * 100).toFixed(2), insidePct: +(worst * 100).toFixed(2) });
+  }
+  for (const interrupt of ['remove', 'away', 'priority', 'decision', 'low']) {
+    R.pets.reset(); R.setQuality('medium');
+    const { id } = setupPetPasser(R, S);
+    for (let f = 0; f < 30 && !R.pets.peek('check_pet')?.petter; f++) window.__advance(1);
+    const started = R.pets.peek('check_pet')?.petter === id;
+    const staff = S.staff.find(s => s.id === id), mood = staff.mood;
+    if (interrupt === 'remove') S.pets = [];
+    if (interrupt === 'away') staff.mood = 'away';
+    if (interrupt === 'priority') R.catchFor(id, { anim: 'celebrate', t: 10, keepPos: true });
+    if (interrupt === 'decision') S.pendingDecision = { eventId: 'pet_check', choices: [] };
+    if (interrupt === 'low') R.setQuality('low');
+    window.__advance(3);
+    const ended = !R.pets.peek('check_pet')?.petter && R.walkOf(id)?.temp?.moment !== 'pet';
+    const priority = interrupt !== 'priority' || R.walkOf(id)?.temp?.anim === 'celebrate';
+    results.push({ name: `moment:pet:${interrupt}`, pass: started && ended && priority, started, ended, priority });
+    staff.mood = mood; S.pendingDecision = null;
+  }
+  for (const blocked of ['busy', 'stationary', 'distant']) {
+    R.pets.reset(); R.setQuality('medium');
+    const { id, at } = setupPetPasser(R, S);
+    if (blocked === 'busy') R.catchFor(id, { anim: 'idle', t: 5, moment: 'other' });
+    if (blocked === 'stationary') { R.standAt(id, at.x, at.z); R.catchFor(id, null); }
+    if (blocked === 'distant') R.pets.standAt('check_pet', at.x - 3, at.z + 2);
+    window.__advance(1);
+    results.push({ name: `moment:pet:skip-${blocked}`, pass: !R.pets.peek('check_pet')?.petter });
+  }
+  R.pets.reset(); R.setQuality('low');
+  const { id } = setupPetPasser(R, S);
+  window.__advance(20);
+  const skipped = !R.pets.peek('check_pet')?.petter && R.walkOf(id)?.temp?.moment !== 'pet';
+  results.push({ name: 'moment:pet:low-skip', pass: skipped });
+  S.pets = []; R.sync(S);
+  return results;
+}
