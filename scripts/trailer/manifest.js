@@ -29,8 +29,8 @@ const BEFORE_EVENT = ({ match, weeks, minWeeks = 0, clean = false, first = false
       // With first, only the first matching week counts.
       const ahead = structuredClone(s);
       const ev = sim.tick(ahead) ?? [];
-      const hit = ev.some(match);
-      const isClean = !ahead.pendingDecision && !ev.some((e) => e.type === 'launch' && !match(e));
+      const hit = ev.some(e => match(e, ahead));
+      const isClean = !ahead.pendingDecision && !ev.some((e) => e.type === 'launch' && !match(e, ahead));
       if (hit && (!${clean} || isClean)) { found = true; break; }
       if (hit && ${first}) break;
     }
@@ -61,8 +61,8 @@ async function firstSeed({ match, weeks, minWeeks = 0, clean = false, first = fa
       b.botTurn('balanced', s);
       s.lockdown = null; s.workPolicy = 'office'; for (const p of s.staff) { p.remote = false; p.call = null; }
       const ev = sim.tick(s) ?? [];
-      if (i < minWeeks || !ev.some(test)) continue;
-      if (!clean || (!s.pendingDecision && !ev.some((e) => e.type === 'launch' && !test(e)))) return seed;
+      if (i < minWeeks || !ev.some(e => test(e, s))) continue;
+      if (!clean || (!s.pendingDecision && !ev.some((e) => e.type === 'launch' && !test(e, s)))) return seed;
       if (first) break;
     }
   }
@@ -75,7 +75,11 @@ const INCIDENT_SEED = await firstSeed({ match: AGENT_INCIDENT, weeks: 1000, minW
 const FIRST_LAUNCH = "(e) => e.type === 'launch'";
 const LAUNCH_SEED = await firstSeed({ match: FIRST_LAUNCH, weeks: 300, clean: true, first: true, seeds: Array.from({ length: 80 }, (_, i) => i + 1) });
 
+const FLOOR_HIT = "(e, s) => s.office.stage === 1 && e.type === 'launch' && s.products.some(p => p.id === e.productId && p.version === 1 && p.score >= 9)";
+const FLOOR_SEED = await firstSeed({ match: FLOOR_HIT, weeks: 400, seeds: Array.from({ length: 80 }, (_, i) => i + 1) });
+
 const OWN = [
+  { ...ITEMS.find(i => i.id === 'trail-launch'), query: `seed=${FLOOR_SEED}&speed=1` },
   {
     // The first product launch in a real game, with its reviews and nothing else on screen.
     id: 'real-first-launch', title: 'The first launch in a real game', query: `seed=${LAUNCH_SEED}&speed=1`, seconds: 14,

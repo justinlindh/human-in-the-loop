@@ -1,4 +1,4 @@
-import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY } from '../capture-manifest.js';
+import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG } from '../capture-manifest.js';
 
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
 // the music and stingers, and when each voiceover line lands. Change the trailer here; build.js only
@@ -95,7 +95,7 @@ export const BEATS = [
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
   { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'me in standup')], from: 31.6, dur: 3.1 },
-  { id: 'yak-react', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
+  { id: 'yak-react', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(13), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
   // PC LOAD LETTER from the flying camera: the carry ending, then the hits, to the rap's last word. No narration.
   { id: 'printer', item: 'trail-fly-printer', from: 20.0, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },
