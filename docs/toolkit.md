@@ -26,6 +26,8 @@ The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 
 
 Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
 
+For held-prop contact and penetration, use scene pose rules `heldGap`, `heldHeadDepth` and `heldTorsoDepth` with `--every 1` through the entire carry and hold. See [pose](toolkit/pose.md) for units and missing-prop behavior.
+
 ## GPU or software GL
 
 Headless browsers render on the GPU by default: `scripts/lib/gl.js` picks the mode (`--software` or `--gpu`, else `HITL_GL=software|gpu`, else the GPU) and every launcher prints it as `<tool>: GL <mode> (<renderer>)`. A run that asked for the GPU and got software GL fails instead of silently burning CPU; set `HITL_GL=software` on a machine without one.

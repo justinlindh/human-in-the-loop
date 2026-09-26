@@ -145,6 +145,14 @@ const SPECS = {
   'hammer.hold': { moment: 'hammer', beat: 'hold', rules: [
     share('inHand', 'hammer centre within 0.6 m of a hand', (x) => x.held && x.heldHand <= 0.6, 1),
     share('notOverHead', 'hammer centre not above the top of the head', (x) => x.heldAbove <= 0.05, 1),
+    ...['heldHeadDepth', 'heldTorsoDepth', 'heldGap'].map((metric) => ({
+      metric, want: metric === 'heldGap' ? 'wrist gap <= 0.04 m throughout carry and hold' : 'no penetration throughout carry and hold',
+      test: (_hold, all) => {
+        const xs = all.filter((x) => x.held);
+        return xs.length && xs.every((x) => Number.isFinite(x[metric])) ? Math.max(...xs.map((x) => x[metric])) : Infinity;
+      },
+      pass: (value) => value <= (metric === 'heldGap' ? 0.04 : 1e-6),
+    })),
     visibleRule,
   ] },
 };
@@ -225,6 +233,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const res = await page.evaluate(async ({ moment, patch, steps, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
+      const { measureHeld } = await import('/blender/checks/pose-scene.js');
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;
@@ -250,6 +259,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
           // Held prop against the hands and the head, for the hold rules.
           const st = R.moments.staging(actor);
           if (m.held) {
+            if (moment === 'hammer') Object.assign(m, measureHeld(R, actor));
             const c = new THREE.Box3().setFromObject(st.held).getCenter(new THREE.Vector3());
             m.heldHand = Math.min(...m.hands.map((h) => Math.hypot(h[0] - c.x, h[1] - c.y, h[2] - c.z)));
             m.heldAbove = c.y - (m.headY + 0.3);

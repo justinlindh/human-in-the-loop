@@ -204,6 +204,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.12, 0.26), HEAD_MAT);
     head.position.y = -0.4;
     g.add(handle, head);
+    // Grip beside the wrist centre, keeping the load outside the torso as the arm swings.
+    g.position.x = 0.06;
     return g;
   }
   // A clear spot facing a wall, nearest the hammer, on the far side from the camera (the near walls
@@ -268,7 +270,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       h.phase = 'hold';
       if (r.temp?.stage) r.temp.stage.beat = 'hold';
       // On the shoulder: the handle across it and the head down behind the back.
-      h.held.rotation.set(2.7, 0, 0.45);
+      h.held.rotation.set(2.7, 0, 0.65);
       emote(r, 'lightbulb', 2);
     }
     if (knocked && h.phase === 'hold') {

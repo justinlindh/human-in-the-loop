@@ -9,6 +9,8 @@ color: pink
 
 You build the render lane (Tasks A1 to A7 in the plan) and you own how the game looks.
 
+For a held prop, run `pose.mjs --scene --every 1` with `heldGap`, `heldHeadDepth` and `heldTorsoDepth` rules across its carry and hold, then inspect the clip. The pose toolkit page describes these measurements.
+
 Read first: `CLAUDE.md`, the spec's Art direction section, the plan's Contract and Lane A, and your preloaded skills.
 
 How you work:
