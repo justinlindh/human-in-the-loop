@@ -36,7 +36,12 @@
 .hitl .revs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55em; }
 .hitl .rev { background: #fffaf1; border: 0.15em solid var(--ink); border-radius: 0.8em; padding: 0.5em 0.7em; box-shadow: 0 0.16em 0 var(--ink); opacity: 0; transform: scale(0.8) rotate(-2deg); transition: opacity 200ms, transform 320ms cubic-bezier(.2,1.7,.4,1); }
 .hitl .rev.in { opacity: 1; transform: none; }
-.hitl .rev-top { display: flex; justify-content: space-between; align-items: center; }
+.hitl .rev-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5em; }
+.hitl .outlet { display: inline-flex; align-items: center; gap: 0.4em; min-width: 0; font-weight: 700; }
+.hitl .outlet .ic { flex-shrink: 0; }
+.hitl .outlet-name { min-width: 0; overflow-wrap: anywhere; }
+.hitl .rev-top .rscore { flex-shrink: 0; }
+.hitl .batch-review { display: flex; flex-direction: column; gap: 0.2em; }
 .hitl .rscore { font-size: 1.5em; font-weight: 700; }
 .hitl .rscore.great, .hitl .final.great b { color: var(--good); }
 .hitl .rscore.ok, .hitl .final.ok b { color: var(--blue); }

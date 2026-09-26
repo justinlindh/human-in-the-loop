@@ -189,6 +189,18 @@ describe('standup variety', () => {
     expect(new Set(lines.map(l => l.staffId))).toEqual(new Set(speakers.map(p => p.id)));
     expect(JSON.stringify(s.rng)).toBe(rng);
   });
+  it('keeps the connected exchange with office attendees when others are remote or on sabbatical', () => {
+    const s = office(2), speakers = s.staff;
+    for (const p of speakers) p.assignment = { type: 'idle', targetId: null };
+    speakers[0].remote = true;
+    speakers[1].assignment = { type: 'sabbatical', targetId: null };
+    const fallback = speakers.map(p => ({ staffId: p.id, text: `Update ${p.id}.` }));
+    const lines = standupConversation(s, speakers, fallback);
+    const inOffice = speakers.filter(p => !p.remote && p.assignment.type !== 'sabbatical');
+    expect(lines.slice(0, inOffice.length).map(l => l.staffId)).toEqual(inOffice.map(p => p.id));
+    expect(lines.slice(inOffice.length)).toEqual(fallback.slice(0, 2));
+    expect(lines.slice(0, inOffice.length).every(l => !l.text.startsWith('Update '))).toBe(true);
+  });
   it('has unique exchange ids and complete short scripts with strict context topics', () => {
     expect(new Set(STANDUP_EXCHANGES.map(e => e.id)).size).toBe(STANDUP_EXCHANGES.length);
     for (const e of STANDUP_EXCHANGES) {
