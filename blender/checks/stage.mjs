@@ -123,7 +123,7 @@ const SPECS = {
   ] },
   'consultants.interviewee': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'interviewee', rules: [
     share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
-    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.8),
+    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.75),
     visibleRule,
   ] },
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.

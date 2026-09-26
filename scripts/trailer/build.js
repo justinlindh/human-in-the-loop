@@ -112,6 +112,8 @@ for (const [i, l] of lines.entries()) {
 const gfx = await renderGraphics({ dir: GFX, cards: CARDS, lines, output: VERTICAL ? OUTPUT : { ...OUTPUT, vertical: null }, logoPath: join(ROOT, 'docs/readme/logo.png'), url: PLAY_URL.replace(/^https:\/\//, '').replace(/\/$/, '') });
 
 // 4. Audio mix: music bed, swaps and stingers, ducked under the voiceover, then loudness-normalized.
+// adelay only shifts timestamps; aresample (async, from 0) turns the shift into real silence, so
+// every later filter and the mix see each sound at its place.
 const f = (n) => n.toFixed(3);
 // With `stem`, the graph also outputs [stem]: the music as it sits in the mix (ducked), without the voice.
 function audioGraph({ stem = false } = {}) {
@@ -130,12 +132,12 @@ function audioGraph({ stem = false } = {}) {
   MUSIC.swaps.forEach((s, i) => {
     const n = add(['-i', s.file]);
     const e = swapEnv[i];
-    chains.push(`[${n}:a]atrim=start=${f(s.seek ?? 0)}:duration=${f(e.b - e.a + e.fd)},asetpts=N/SR/TB,aformat=sample_rates=48000:channel_layouts=stereo,volume=${s.gain}dB,adelay=${Math.round(e.a * 1000)}:all=1,apad,atrim=0:${f(total)},volume='${e.env}':eval=frame[sw${i}]`);
+    chains.push(`[${n}:a]atrim=start=${f(s.seek ?? 0)}:duration=${f(e.b - e.a + e.fd)},asetpts=N/SR/TB,aformat=sample_rates=48000:channel_layouts=stereo,volume=${s.gain}dB,adelay=${Math.round(e.a * 1000)}:all=1,aresample=async=1:first_pts=0,apad,atrim=0:${f(total)},volume='${e.env}':eval=frame[sw${i}]`);
     music.push(`[sw${i}]`);
   });
   MUSIC.stingers.forEach((s, i) => {
     const n = add(['-i', s.file]);
-    chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${s.gain}dB,adelay=${Math.round(at(s.at) * 1000)}:all=1,apad,atrim=0:${f(total)}[st${i}]`);
+    chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${s.gain}dB,adelay=${Math.round(at(s.at) * 1000)}:all=1,aresample=async=1:first_pts=0,apad,atrim=0:${f(total)}[st${i}]`);
     music.push(`[st${i}]`);
   });
   chains.push(`${music.join('')}amix=inputs=${music.length}:normalize=0:duration=first[music]`);
@@ -145,7 +147,7 @@ function audioGraph({ stem = false } = {}) {
   if (voiced.length) {
     voiced.forEach((l, i) => {
       const n = add(['-i', l.file]);
-      chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${VO.gain}dB,adelay=${Math.round(l.start * 1000)}:all=1,apad,atrim=0:${f(total)}[vo${i}]`);
+      chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${VO.gain}dB,adelay=${Math.round(l.start * 1000)}:all=1,aresample=async=1:first_pts=0,apad,atrim=0:${f(total)}[vo${i}]`);
     });
     chains.push(`${voiced.map((_, i) => `[vo${i}]`).join('')}amix=inputs=${voiced.length}:normalize=0:duration=first[vo]`);
     // The music dips by duck.db under each line: it ramps down over duck.attack before the line starts

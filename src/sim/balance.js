@@ -68,9 +68,12 @@ export const B = {
   postureSecurityPerSkill: 3.2, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageComplexityPerProduct: 0.2, fixersCounted: 3, outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
-  gpuWeeklySelfHost: 1200, randomEventChance: 0.22, deskStageWaitWeeks: 4,
+  gpuWeeklySelfHost: 1200, randomEventChance: 0.22, heldRollsMax: 2, deskStageWaitWeeks: 4,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
-  chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, everydayReactChance: 0.7, chatMemory: 24,
+  // Emoji reactions by a post's weight: routine chatter and replies rarely get any (one or two when they do),
+  // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
+  reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
+  chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {
@@ -122,7 +125,7 @@ export const B = {
     incubatorFrom: 8, incubatorUntil: 60, incubatorCash: 12000, incubatorCut: 0.1, incubatorCounterCut: 0.05, incubatorCounterChance: 0.5,
     incubatorPodcastWeeks: 52, incubatorSignWeeks: 52,
     boxCost: 40000, boxHype: 12, boxDebt: 4, boxCubeWeeks: 26, boxRecallWeeks: 30, boxMockChance: 0.55,
-    oatOpsLevel: 0.3, oatStaff: 10, oatFee: 3000, oatStamina: 0.1, oatWeeks: 26,
+    oatOpsLevel: 0.25, oatStaff: 8, oatWindowWeeks: 26, oatFee: 3000, oatStamina: 0.1, oatWeeks: 26,
     kielbasaStaff: 5, kielbasaHype: 15, kielbasaFadeWeeks: 6, kielbasaSale: 25000,
   },
   // The office classics: banner, cover sheets, stapler, consultants, printer and the Saturday ask.

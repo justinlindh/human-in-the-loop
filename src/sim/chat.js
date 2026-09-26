@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { avg, newId, article, clamp } from './util.js';
-import { chance, pick, range, shuffle } from './rng.js';
+import { createRng, chance, pick, range, shuffle } from './rng.js';
 import { registerSystem } from './registry.js';
 import { automationExposure } from './automation.js';
 import { CHATTER } from '../data/chatter.js';
@@ -23,12 +23,22 @@ const present = (state) => state.staff.filter((p) => p.mood !== 'away');
 const liveProducts = (state) => state.products.filter((p) => !p.killed);
 export const teamMeaning = (state) => avg(present(state), (p) => p.meaning);
 
-// Reaction pills for a message: more of them, and more varied, when the team is doing well.
-export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(state)) {
+// Reaction pills for a message, scaled by its weight. Wins, incidents, farewells and other big posts get a
+// spread of reactions that grows with the team's mood; routine chatter usually gets none, or one or two; replies
+// rarely get any. Once in a while a trivial post gets an absurd pile of one emoji, as a joke.
+export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(state), { reply = false, important = false } = {}) {
   const byChannel = { wins: 'win', incidents: 'incident', random: 'random' };
   const set = REACTIONS[kind] ?? REACTIONS[byChannel[channel]] ?? REACTIONS.normal;
-  const everyday = !REACTIONS[kind] && channel !== 'wins' && channel !== 'incidents';
-  if (everyday && !chance(rng, (meaning / 100) * B.everydayReactChance)) return {};
+  const big = !reply && (important || !!REACTIONS[kind] || channel === 'wins' || channel === 'incidents');
+  const R = B.reactions;
+  if (!big) {
+    if (!reply && chance(rng, R.pileOnChance)) return { [pick(rng, set)]: Math.round(range(rng, R.pileOnMin, R.pileOnMax)) };
+    if (!chance(rng, (reply ? R.replyChance : R.routineChance) * clamp(meaning / 70, 0.3, 1.2))) return {};
+    const n = 1 + (chance(rng, R.routineSecond) ? 1 : 0);
+    const out = {};
+    for (let i = 0; i < n; i++) { const e = pick(rng, set); out[e] = (out[e] ?? 0) + 1; }
+    return out;
+  }
   let count = Math.round((meaning / 100) * B.reactionMax * range(rng, 0.3, 1.3));
   if (kind === 'farewell') count = Math.max(1, count);
   if (count <= 0) return {};
@@ -39,14 +49,24 @@ export function reactionsFor(state, rng, channel, kind, meaning = teamMeaning(st
   return out;
 }
 
+// Reactions draw from a stream of their own, seeded by the game seed and the message's place in the log, so
+// how many emoji a post gets never shifts anything else in the game.
+function reactionRng(state) {
+  state.flags.reactSeq = (state.flags.reactSeq ?? 0) + 1;
+  return createRng(((state.seed >>> 0) * 104729 + state.flags.reactSeq * 7919 + state.week * 31) >>> 0);
+}
+
 // Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
-export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, image = null }) {
+export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, image = null, important = false }) {
   const msg = {
     type: 'chat', id: id ?? newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
-    reactions: reactions ?? reactionsFor(ctx.state, ctx.rng, channel, kind),
+    reactions: reactions ?? reactionsFor(ctx.state, reactionRng(ctx.state), channel, kind, teamMeaning(ctx.state), { reply: !!replyTo, important }),
   };
   // An image meme: the UI shows the picture, and text carries its alt caption.
   if (image) msg.image = image;
+  // A post that matters without being a win, an incident or a bot post (a running joke, a warranted @channel).
+  if (important) msg.important = true;
+
   ctx.emit(msg);
   const log = ctx.state.chatLog;
   if (Array.isArray(log)) {

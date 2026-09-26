@@ -11,7 +11,7 @@ import { MODIFIER_KEYS } from '../../src/data/modifiers.js';
 import { game, addStaff, addProduct, expectFail } from './helpers.js';
 
 const ctxOf = (s) => makeCtx(s);
-const raise = (s, id, subjectId = null) => { const c = ctxOf(s); raiseDecision(c, id, subjectId); return c.events; };
+const raise = (s, id, subjectId = null) => { delete s.flags.lastPauseWeek; const c = ctxOf(s); raiseDecision(c, id, subjectId); return c.events; };
 const resolve = (s, choice) => dispatch(s, { type: 'resolveDecision', choice });
 
 function busy(seed = 1) {
@@ -188,6 +188,27 @@ describe('decisions', () => {
     raise(s, 'agent_mass_email', old.id);
     resolve(s, 0);
     expect(old.customers).toBe(Math.floor(before * 0.97));
+  });
+});
+
+describe('desk-stage wait marker', () => {
+  it('a declined roll for an away subject leaves no wait marker', () => {
+    const s = busy();
+    const p = s.staff.find((x) => x.seniority === 'senior');
+    p.mood = 'away';
+    const fired = raiseDecision(ctxOf(s), 'resignation_letter', p.id);
+    expect(fired).toBe(false);
+    expect(s.flags.deskWait?.[`resignation_letter:${p.id}`]).toBeUndefined();
+  });
+
+  it('a genuinely queued wait for an away subject keeps its marker', () => {
+    const s = busy();
+    const p = s.staff.find((x) => x.seniority === 'senior');
+    p.mood = 'away';
+    const fired = raiseDecision(ctxOf(s), 'resignation_letter', p.id, { queue: true });
+    expect(fired).toBe(false);
+    expect(s.flags.deskWait[`resignation_letter:${p.id}`]).toBe(s.week);
+    expect(s.scheduled.some((x) => x.kind === 'event' && x.payload.eventId === 'resignation_letter' && x.payload.subjectId === p.id)).toBe(true);
   });
 });
 

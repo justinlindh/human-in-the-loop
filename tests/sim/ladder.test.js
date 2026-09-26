@@ -145,7 +145,7 @@ describe('the rival', () => {
     expect(rivalPressure(s, 'email')).toBe(0);
     const strength = s.rival.strength;
     s.pendingDecision = null;
-    delete s.flags.lastDecisionWeek;
+    delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek;
     raiseDecision(makeCtx(s), 'rival_jab');
     choose(s, 'Poach one of their people');
     expect(s.rival.strength).toBe(Math.max(0, strength - 15));
