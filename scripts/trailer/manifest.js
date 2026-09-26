@@ -6,6 +6,7 @@
 // rig) and its `actions` list adds page JS, both on the clip's own clock.
 import { ITEMS } from '../capture-manifest.js';
 import { ITEMS as FEATURE_MEDIA } from '../feature-media/manifest.js';
+import { beatAssertions } from './assertions.js';
 import { BEATS, DEFERRED_CAPTURES } from './config.js';
 
 // Plays a real game with the balanced bot until the next week would raise an event matching `match`
@@ -29,8 +30,8 @@ const BEFORE_EVENT = ({ match, weeks, minWeeks = 0, clean = false, first = false
       // With first, only the first matching week counts.
       const ahead = structuredClone(s);
       const ev = sim.tick(ahead) ?? [];
-      const hit = ev.some(match);
-      const isClean = !ahead.pendingDecision && !ev.some((e) => e.type === 'launch' && !match(e));
+      const hit = ev.some(e => match(e, ahead));
+      const isClean = !ahead.pendingDecision && !ev.some((e) => e.type === 'launch' && !match(e, ahead));
       if (hit && (!${clean} || isClean)) { found = true; break; }
       if (hit && ${first}) break;
     }
@@ -61,8 +62,8 @@ async function firstSeed({ match, weeks, minWeeks = 0, clean = false, first = fa
       b.botTurn('balanced', s);
       s.lockdown = null; s.workPolicy = 'office'; for (const p of s.staff) { p.remote = false; p.call = null; }
       const ev = sim.tick(s) ?? [];
-      if (i < minWeeks || !ev.some(test)) continue;
-      if (!clean || (!s.pendingDecision && !ev.some((e) => e.type === 'launch' && !test(e)))) return seed;
+      if (i < minWeeks || !ev.some(e => test(e, s))) continue;
+      if (!clean || (!s.pendingDecision && !ev.some((e) => e.type === 'launch' && !test(e, s)))) return seed;
       if (first) break;
     }
   }
@@ -75,7 +76,11 @@ const INCIDENT_SEED = await firstSeed({ match: AGENT_INCIDENT, weeks: 1000, minW
 const FIRST_LAUNCH = "(e) => e.type === 'launch'";
 const LAUNCH_SEED = await firstSeed({ match: FIRST_LAUNCH, weeks: 300, clean: true, first: true, seeds: Array.from({ length: 80 }, (_, i) => i + 1) });
 
+const FLOOR_HIT = "(e, s) => s.office.stage === 1 && e.type === 'launch' && s.products.some(p => p.id === e.productId && p.version === 1 && p.score >= 9)";
+const FLOOR_SEED = await firstSeed({ match: FLOOR_HIT, weeks: 400, seeds: Array.from({ length: 80 }, (_, i) => i + 1) });
+
 const OWN = [
+  { ...ITEMS.find(i => i.id === 'trail-launch'), query: `seed=${FLOOR_SEED}&speed=1` },
   {
     // The first product launch in a real game, with its reviews and nothing else on screen.
     id: 'real-first-launch', title: 'The first launch in a real game', query: `seed=${LAUNCH_SEED}&speed=1`, seconds: 14,
@@ -90,7 +95,7 @@ const OWN = [
   },
   // Each era arriving in a real game, with its card and the office dressed for it.
   ...['chatgbt', 'agents', 'consolidation', 'plateau'].map((era) => ({
-    id: `real-era-${era}`, title: `The ${era} era arriving in a real game`, query: 'seed=1&speed=1', seconds: 12,
+    id: `real-era-${era}`, title: `The ${era} era arriving in a real game`, query: 'seed=1&speed=1', seconds: 14,
     setup: BEFORE_EVENT({ match: `(e) => e.type === 'era' && e.eraId === '${era}'`, weeks: 1000 }),
     actions: CLOSE_CARDS,
   })),
@@ -108,6 +113,8 @@ const items = [...BEATS, ...DEFERRED_CAPTURES].filter((b) => b.item).map((b) => 
   const item = { ...rest, ...b.capture, id: `trailer-${b.id}`, title: `Trailer: ${b.id} (${base.title})` };
   const extra = [...(b.camera ?? []).map((c) => ({ at: c.at, js: ZOOM(c.zoom) })), ...(b.actions ?? [])];
   if (extra.length) item.actions = [...(item.actions ?? []), ...extra];
+  item.actions = [...(item.actions ?? []), ...beatAssertions(b)];
+  item.screenshots = [...new Set([...(item.screenshots ?? []), b.from, b.from + b.dur - 1 / 30])];
   return item;
 });
 

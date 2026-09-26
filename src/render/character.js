@@ -361,7 +361,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   for (const o of [eyes, shine, ...Object.values(mouths)]) o.removeFromParent();
   let faceMood = 'ok';
   let faceClosed = false;
-  const showFace = () => { for (const [k, o] of Object.entries(faces)) attach(o, headGroup, k === `${faceMood}${faceClosed ? ':closed' : ''}`); };
+  const showFace = () => {
+    const key = anim === 'facepalm' || anim === 'facepalmsit' ? 'burnout:closed' : `${faceMood}${faceClosed ? ':closed' : ''}`;
+    for (const [k, o] of Object.entries(faces)) attach(o, headGroup, k === key);
+  };
   // Wrists hold nothing once the hands are baked into the arms; only the right one carries the mug.
   arms[0].wrist.removeFromParent();
 
@@ -397,7 +400,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let tired = false;
   let flush = 0;
   let flushFor = 0;
-  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
+  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = rand() * Math.PI * 2;
 
@@ -456,7 +459,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function pose(dt) {
     const s = Math.sin;
-    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
+    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
     const seated = SEATED.has(anim);
     if (seated) {
       tgt.bodyY = SEAT_HIP_Y - HIP_Y;
@@ -547,6 +550,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       }
+      case 'pet':
+        tgt.lean = 0.08;
+        tgt.headX = 0.05;
+        tgt.armLX = -0.4;
+        break;
       case 'peer':
         // Crouched over something on the floor, hands on knees, the head up enough to show the face.
         tgt.bodyY = -0.12;
@@ -697,13 +705,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       case 'facepalm': case 'facepalmsit':
-        // Head tipped into the left hand at the temple, the other arm limp: a bow deep enough to
-        // read, shallow enough that the big head hides neither the face nor the hand from above.
-        tgt.lean = 0.25;
-        tgt.headX = 0.36 + s(t * 1.2 + phase) * 0.03;
-        tgt.headZ = 0.24 + s(t * 0.8) * 0.04;
-        tgt.armLX = -2.3;
-        tgt.armLZ = 0.7;
+        // The raised palm covers the camera-side eye and brow while the face stays visible.
+        tgt.lean = 0.05;
+        tgt.headX = -0.425 + s(t * 1.2 + phase) * 0.03;
+        tgt.headZ = 0.15 + s(t * 0.8) * 0.04;
+        tgt.armLX = -2.77;
+        tgt.armLY = 0.09;
+        tgt.armLZ = 0.265;
         tgt.armRX = -0.35;
         tgt.armRZ = -0.08;
         break;
@@ -883,17 +891,33 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       headGroup.rotation.set(cur.headX, 0, cur.headZ);
       legs[0].rotation.set(cur.legL, 0, 0);
       legs[1].rotation.set(cur.legR, 0, 0);
+      arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
       arms[0].shoulder.rotation.set(cur.armLX, 0, cur.armLZ);
       arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
     }
     blendIn(dt);
+    if (anim === 'pet' && petTarget) {
+      headGroup.rotation.y = 0.5 * Math.min(1, animT / 0.3);
+      // Aim the short arm at the crown; a small fore-and-aft stroke reads as petting.
+      root.updateMatrixWorld(true);
+      const arm = arms[1].shoulder;
+      petAim.copy(petTarget);
+      petAim.z += Math.cos(root.rotation.y) * Math.sin(t * 7) * 0.035;
+      petAim.x += Math.sin(root.rotation.y) * Math.sin(t * 7) * 0.035;
+      arm.parent.worldToLocal(petAim).sub(arm.position).normalize();
+      petRotation.setFromUnitVectors(petDown, petAim);
+      arm.quaternion.slerp(petRotation, Math.min(1, animT / 0.3));
+    }
   }
 
   // A gesture plays over whatever the person is doing for a few seconds (gesture()), then their own
   // animation comes back; setAnim meanwhile only records what that is.
   let gesture = null, wanted = anim;
+  let petTarget = null;
+  const petAim = new THREE.Vector3(), petDown = new THREE.Vector3(0, -1, 0), petRotation = new THREE.Quaternion();
   function setAnim(name) {
-    if (!ANIMS.includes(name)) return;
+    // Petting aims at an animal in the world, so it is not a standalone lineup pose.
+    if (name !== 'pet' && !ANIMS.includes(name)) return;
     wanted = name;
     if (!gesture) applyAnim(name);
   }
@@ -907,6 +931,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function applyAnim(name) {
     if (name === anim) return;
     anim = name;
+    showFace();
     animT = 0;
     attach(mug, mugParent, name === 'sip' || name === 'water');
     attach(slice, mugParent, name === 'eat');
@@ -1036,6 +1061,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   return {
     gesture: playGesture,
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    setPetTarget(target) { petTarget = target; },
     // Both wrists in world space, left then right (shared vectors: copy them to keep them).
     hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
     get anim() { return anim; },
