@@ -8,3 +8,5 @@ The staging probe (#350): does each character moment read on screen? Plays every
 When a readability spec fails, the check prints spot-search summaries from `R.debug.spots`: rejected requirements with counts, the chosen point, and whether it was a fallback. Use the dump's `spotSearches` for the individual candidates. This also prints for failures excused by a known issue.
 
 The `fumes` specs measure its fanning beat from both views. `growth` checks the honoree and coworkers during a career celebration; `company_party` checks the company cheer.
+
+`--only=pet,petcat` measures dog and cat head-scratch contact and visibility from both views. Scenario `setup` expressions can await fixture imports before sampling.

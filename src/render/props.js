@@ -1156,23 +1156,64 @@ const scrawl = () => canvasTex('whiteboard_scrawl', 1024, 640, (ctx, W, H) => {
   ctx.fillStyle = P.alarm_red; ctx.font = '900 120px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText('?!', 850, 176);
 });
+// The writing on a back wall, as a wall-mounted whiteboard: a brushed frame, a marker tray, and
+// the sheet lit a touch so the white and the ink read like the real board.
+function wallBoard(L, anchor, env) {
+  const { w, h } = WALL_SCRAWL;
+  const g = wallPrint(scrawl, WALL_SCRAWL)(L, anchor, env);
+  // A board has no tape.
+  for (const c of g.children) if (!c.material?.map) c.visible = false;
+  const sheet = g.children.find((c) => c.material?.map);
+  if (sheet) { sheet.material.emissive = new THREE.Color(P.plastic_white); sheet.material.emissiveIntensity = 0.18; sheet.material.emissiveMap = sheet.material.map; sheet.position.z = 0.02; }
+  g.add(mesh(roundedBox(w + 0.07, h + 0.07, 0.03, 0.012, 2), mat('metal_soft'), 0, 0, 0));
+  g.add(mesh(roundedBox(w * 0.5, 0.03, 0.07, 0.01, 1), mat('metal_soft'), 0, -h / 2 - 0.04, 0.04));
+  return g;
+}
 // Written on the board's face (both faces of a free-standing one); on the back wall without a board.
+const DEFAULT_CAM = [Math.SQRT1_2, Math.SQRT1_2];   // the default camera's side of the room, as a floor direction
+// Without a readable board the writing goes up big on a back wall as a wall-mounted board.
+const WALL_SCRAWL = { w: 1.5, h: 0.94, tilt: 0, y: 1.55 };
+const BOARD_ROOM = 1.2;      // metres of open floor a written board face needs in front of it to count as facing the room
 function whiteboardScrawl(L, anchor, env) {
+  const selection = {
+    debug: spotDebug(env.office), moment: 'whiteboard_scrawl', search: 'face',
+    fallback: () => {
+      const obj = wallBoard(L, anchor, env);
+      return { x: obj.position.x, y: obj.position.y, z: obj.position.z, yaw: obj.rotation.y, obj };
+    },
+  };
   const { entry } = itemAt(L, anchor, env.office, ['whiteboard']);
-  if (!entry) return wallPrint(scrawl, { w: 1.0, h: 0.62, tilt: 0 })(L, anchor, env);
+  if (!entry) return pickSpot(null, { ...selection, candidates: [] }).obj;
   const face = new THREE.Box3();
   entry.obj.updateMatrixWorld(true);
   entry.obj.traverse((o) => { if (o.isMesh && /whiteboard/.test(o.material?.name ?? '')) face.expandByObject(o); });
   if (face.isEmpty()) face.setFromObject(entry.obj);
   const r = entry.target.rotY, n = [Math.sin(r), Math.cos(r)];
   const c = face.getCenter(new THREE.Vector3()), size = face.getSize(new THREE.Vector3());
+  // A written face has to face the default camera with open room in front of it. A board against
+  // the cut-away front wall shows the camera the face that looks at that wall, and the room its back:
+  // then the writing goes up on the back wall instead, where everyone reads it.
+  const sides = entry.itemId === 'whiteboard_wall' ? [1] : [1, -1];
+  const readable = pickSpot(c, {
+    ...selection,
+    candidates: sides.map((sd) => ({ x: c.x, y: c.y, z: c.z, yaw: r + (sd < 0 ? Math.PI : 0), nx: n[0] * sd, nz: n[1] * sd })),
+    needs: ['facesCamera', 'openRoom'],
+    checks: {
+      facesCamera: ({ nx, nz }) => nx * DEFAULT_CAM[0] + nz * DEFAULT_CAM[1] > 0.2 || 'face points away from camera',
+      openRoom: ({ nx, nz }) => {
+        const room = Math.min(nx > 0 ? (L.W / 2 - c.x) / nx : nx < 0 ? (-L.W / 2 - c.x) / nx : Infinity, nz > 0 ? (L.D / 2 - c.z) / nz : nz < 0 ? (-L.D / 2 - c.z) / nz : Infinity);
+        return room > BOARD_ROOM || 'insufficient room in front of face';
+      },
+    },
+  });
+  if (readable.obj) return readable.obj;
   // The face's width across the board, its thickness along the facing.
   const across = Math.abs(n[1]) * size.x + Math.abs(n[0]) * size.z, thick = Math.abs(n[0]) * size.x + Math.abs(n[1]) * size.z;
   const g = new THREE.Group();
   g.position.set(c.x, c.y, c.z);
   g.rotation.y = r;
   const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), roughness: 0.6 }));
-  for (const side of entry.itemId === 'whiteboard_wall' ? [1] : [1, -1]) {
+  for (const side of sides) {
     // Nearly the whole face, so none of the board's own writing shows round it.
     const pl = new THREE.Mesh(plane(across * 0.94, size.y * 0.9), m);
     // In front of anything already written on the board (the rival note sits 12 mm out).

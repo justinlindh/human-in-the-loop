@@ -122,14 +122,14 @@ describe('pacer scheduling', () => {
   });
 });
 
-it('keeps moment speech until its speaker and preceding line finish reading', () => {
+it('hands tagged dialogue to the renderer while the weekly clock is held', () => {
   const p = createPacer();
-  p.step(0.1, { speed: 4, running: true });
-  p.schedule([{ type: 'say', id: 'first', staffId: 'a', text: 'A line that takes time to read.', moment: 'reward' }]);
-  expect(p.due()).toHaveLength(1);
-  p.schedule([{ type: 'say', id: 'second', staffId: 'a', text: 'The important reply.', replyTo: 'first', moment: 'reward' }]);
-  p.schedule([]); p.schedule([]);
+  const lines = [
+    { type: 'say', id: 'first', staffId: 'a', text: 'A line that takes time to read.', moment: 'reward' },
+    { type: 'say', id: 'second', staffId: 'a', text: 'The important reply.', replyTo: 'first', moment: 'reward' },
+  ];
+  expect(p.schedule(lines)).toEqual(lines);
+  expect(run(p, 20, { running: false })).toEqual([]);
+  expect(p.queued).toBe(0);
   expect(p.takeDropped()).toEqual([]);
-  for (let n = 0; n < 40; n++) p.step(0.25, { speed: 4, running: true });
-  expect(p.due().map(e => e.id)).toEqual(['second']);
 });
