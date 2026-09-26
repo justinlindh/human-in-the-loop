@@ -1,0 +1,163 @@
+[
+ {
+  "seed": 1,
+  "week": 533,
+  "seconds": 30,
+  "weekEnd": 535,
+  "buckets": {
+   "chairs": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [],
+  "walkingSamples": 460,
+  "errors": []
+ },
+ {
+  "seed": 3,
+  "week": 202,
+  "seconds": 30,
+  "weekEnd": 204,
+  "buckets": {
+   "chairs": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 1,
+    "walking": 1,
+    "max": 0.06693857298991657
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [
+   {
+    "frame": 300,
+    "week": 203,
+    "category": "people",
+    "person": "s84",
+    "other": "s706",
+    "walking": true,
+    "depth": 0.06693857298991657,
+    "path": {
+     "mode": "placed",
+     "hidden": false,
+     "speed": 5.774918519565148,
+     "path": [
+      {
+       "x": 5,
+       "z": 1.3000000000000007
+      },
+      {
+       "x": 5.4,
+       "z": 1.7000000000000002
+      },
+      {
+       "x": 5.499008587791283,
+       "z": 1.7881064084213651
+      }
+     ],
+     "goal": {
+      "x": -5,
+      "z": -1.82,
+      "yaw": 3.141592653589793,
+      "key": "desk--5.00,-1.82,3.14-ok-",
+      "anim": "typing",
+      "seated": true,
+      "hidden": false
+     },
+     "temp": {
+      "anim": "idle",
+      "t": null,
+      "delay": 0,
+      "moment": null,
+      "perk": null,
+      "back": false,
+      "keepPos": false,
+      "goal": {
+       "x": 5.499008587791283,
+       "z": 1.7881064084213651,
+       "yaw": -2.514159265358979
+      },
+      "by": null
+     }
+    }
+   }
+  ],
+  "walkingSamples": 203,
+  "errors": []
+ },
+ {
+  "seed": 1,
+  "week": 398,
+  "seconds": 30,
+  "weekEnd": 399,
+  "buckets": {
+   "chairs": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "plants": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "coffee": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "people": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   },
+   "other": {
+    "count": 0,
+    "walking": 0,
+    "max": 0
+   }
+  },
+  "hits": [],
+  "walkingSamples": 642,
+  "errors": []
+ }
+]
