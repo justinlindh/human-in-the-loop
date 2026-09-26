@@ -1,7 +1,7 @@
 import test from 'node:test';
 import { request } from 'node:http';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, appendFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,22 +42,32 @@ test('feedback is pinned and note text cannot switch a revision to approval', ()
 });
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'dashboard-http-')); let liveHead = head, comments = [], mutations = 0;
+  const root = await mkdtemp(join(tmpdir(), 'dashboard-http-')); let liveHead = head, comments = [], mutations = 0, eligible = true, prState = 'OPEN', loseResponse = false;
   const run = async (args, input) => {
     if (args[0] === 'systemctl') return '[]';
     if (args[1] === 'api') return JSON.stringify([comments]);
-    if (args[1] === 'pr' && args[2] === 'view') return JSON.stringify({ headRefOid: liveHead, state: 'OPEN', labels: [{ name: 'awaiting-user' }] });
-    if (args[1] === 'pr' && args[2] === 'comment') { mutations++; comments.push({ body: input, html_url: 'https://github.com/a/b/pull/1#issuecomment-1' }); return comments.at(-1).html_url; }
+    if (args[1] === 'pr' && args[2] === 'view') return JSON.stringify({ headRefOid: liveHead, state: prState, labels: eligible ? [{ name: 'awaiting-user' }] : [] });
+    if (args[1] === 'pr' && args[2] === 'comment') {
+      mutations++; comments.push({ body: input, html_url: 'https://github.com/a/b/pull/1#issuecomment-1' });
+      if (loseResponse) { loseResponse = false; throw new Error('Response lost after GitHub committed the comment'); }
+      return comments.at(-1).html_url;
+    }
     if (args[1] === 'pr' && args[2] === 'list') return '[]';
     throw new Error('Unexpected command');
   };
-  const app = createDashboard({ token, queue: root, repos: ['a/b'], hosts: ['127.0.0.1'] }, run);
-  await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve)); t.after(() => app.close());
-  const base = `http://127.0.0.1:${app.server.address().port}`;
-  const login = await fetch(base + '/api/session', { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
-  const cookie = login.headers.get('set-cookie').split(';')[0];
+  let app, base, cookie;
+  const launch = async () => {
+    app = createDashboard({ token, queue: root, repos: ['a/b'], hosts: ['127.0.0.1'] }, run);
+    await app.start(); await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
+    base = `http://127.0.0.1:${app.server.address().port}`;
+    const login = await fetch(base + '/api/session', { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+    cookie = login.headers.get('set-cookie').split(';')[0];
+  };
+  await launch(); t.after(() => app.close());
   const send = (input, headers = {}) => fetch(base + '/api/feedback', { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json', Cookie: cookie, ...headers }, body: JSON.stringify(input) });
-  return { app, root, base, cookie, send, run, mutations: () => mutations, setHead: value => { liveHead = value; } };
+  return { get app() { return app; }, root, get base() { return base; }, get cookie() { return cookie; }, send, run, mutations: () => mutations,
+    setHead: value => { liveHead = value; }, setEligible: value => { eligible = value; }, setState: value => { prState = value; },
+    loseResponse: () => { loseResponse = true; }, restart: async () => { app.close(); await launch(); }, setComments: value => { comments = value; } };
 }
 test('HTTP state needs authentication; writes reject foreign origins', async t => {
   const f = await fixture(t);
@@ -80,4 +90,53 @@ test('SSE sends state and queue changes without a page reload', async t => {
   const reader = response.body.getReader(); assert.match(new TextDecoder().decode((await reader.read()).value), /"running":\[\]/);
   await mkdir(join(f.root, 'todo')); await writeFile(join(f.root, 'todo/next.md'), '# New queued task'); await f.app.refreshQueue();
   assert.match(new TextDecoder().decode((await reader.read()).value), /New queued task/); controller.abort();
+});
+
+test('uncertain delivery reconciles after eligibility, head or merge state changes and restart', async t => {
+  for (const change of [f => f.setEligible(false), f => f.setHead('b'.repeat(40)), f => f.setState('MERGED')]) {
+    const f = await fixture(t), input = { id: 'uncertain-request', repo: 'a/b', number: 1, head, action: 'ship', notes: '' };
+    f.loseResponse(); assert.equal((await f.send(input)).status, 502); assert.equal(f.mutations(), 1);
+    change(f); await f.restart();
+    const retry = await f.send(input); assert.equal(retry.status, 200); assert.match((await retry.json()).url, /issuecomment-1/);
+    assert.equal(f.mutations(), 1);
+    const journal = (await readFile(join(f.root, 'control/dashboard-feedback.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(journal.filter(record => record.url).length, 1); assert.equal(journal.at(-1).action, 'ship');
+    assert.equal((await f.send({ ...input, id: 'new-request' })).status, 409); assert.equal(f.mutations(), 1);
+  }
+});
+
+test('request identity survives restart for delivered and uncertain comments', async t => {
+  for (const uncertain of [false, true]) {
+    const f = await fixture(t), input = { id: 'durable-request', repo: 'a/b', number: 1, head, action: 'revise', notes: 'Keep the note' };
+    if (uncertain) f.loseResponse();
+    assert.equal((await f.send(input)).status, uncertain ? 502 : 200); await f.restart();
+    for (const changes of [{ action: 'ship' }, { notes: 'Different note' }, { number: 2 }]) assert.equal((await f.send({ ...input, ...changes })).status, 409);
+    assert.equal((await f.send(input)).status, 200); assert.equal(f.mutations(), 1);
+    const journal = (await readFile(join(f.root, 'control/dashboard-feedback.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.ok(journal.every(record => record.action === 'revise' && record.notes === 'Keep the note'));
+  }
+});
+
+test('an external marker without a local journal cannot impersonate a different decision', async t => {
+  const f = await fixture(t), input = { id: 'external-request', repo: 'a/b', number: 1, head, action: 'ship', notes: '' };
+  f.setComments([{ body: `${feedbackCommand('revise', head, 'Fix this')}\n\n<!-- dashboard-feedback:${input.id} -->\n`, html_url: 'https://github.com/a/b/pull/1#issuecomment-1' }]);
+  assert.equal((await f.send(input)).status, 409); assert.equal(f.mutations(), 0);
+  assert.equal((await f.send({ ...input, action: 'revise', notes: 'Fix this' })).status, 200); assert.equal(f.mutations(), 0);
+});
+
+test('cold activity lookup crosses large tool results without exposing their contents', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dashboard-long-rollout-')), sessions = join(root, 'sessions'), dir = join(sessions, '2026/01/01');
+  await Promise.all(['running', 'logs', 'sessions/2026/01/01'].map(name => mkdir(join(root, name), { recursive: true })));
+  await writeFile(join(root, 'running/task.md'), '# Track public progress');
+  await writeFile(join(root, 'logs/task.20260101-120000.log'), 'session id: example\n');
+  const record = payload => JSON.stringify({ type: 'response_item', payload }) + '\n', rollout = join(dir, 'rollout-example.jsonl');
+  const progress = text => record({ type: 'message', role: 'assistant', phase: 'commentary', content: [{ type: 'output_text', text }] });
+  await writeFile(rollout, progress('Checking the latest results.') + record({ type: 'custom_tool_call', name: 'exec', arguments: 'private arguments' }) + record({ type: 'function_call_output', output: 'private output'.repeat(90000) }));
+  const units = [{ unit: 'codex-task-1-task.service', active: 'active' }];
+  let activity = (await readQueue(root, sessions, units)).running[0].activity;
+  assert.equal(activity.message, 'Checking the latest results.'); assert.equal(activity.action, 'Running a command'); assert.ok(!JSON.stringify(activity).includes('private'));
+  await appendFile(rollout, progress('Results checked.') + record({ type: 'function_call_output', output: 'private output'.repeat(90000) }));
+  activity = (await readQueue(root, sessions, units)).running[0].activity;
+  assert.equal(activity.message, 'Results checked.'); assert.equal(activity.action, 'Running a command');
+  assert.ok(!JSON.stringify(activity).includes('private'));
 });

@@ -35,6 +35,29 @@ export function publicActivity(jsonl) {
   return { message, action, at };
 }
 
+async function readActivity(path) {
+  const file = await open(path, 'r');
+  try {
+    const info = await file.stat();
+    const cached = activityCache.get(path);
+    if (cached?.size === info.size && cached.mtime === info.mtimeMs) return cached.activity;
+    let offset = info.size, remainder = Buffer.alloc(0), activity = {};
+    // Read complete records backwards; a large tool result must not hide public progress.
+    while (offset > 0 && (!activity.message || !activity.action)) {
+      const count = Math.min(offset, 256 * 1024); offset -= count;
+      const chunk = Buffer.alloc(count); await file.read(chunk, 0, count, offset);
+      const bytes = Buffer.concat([chunk, remainder]);
+      const boundary = offset === 0 ? 0 : bytes.indexOf(10) + 1;
+      if (boundary === 0 && offset > 0) { remainder = bytes; continue; }
+      const older = publicActivity(bytes.subarray(boundary).toString('utf8'));
+      activity = { message: activity.message || older.message, action: activity.action || older.action, at: activity.at || older.at };
+      remainder = bytes.subarray(0, boundary);
+    }
+    activityCache.set(path, { size: info.size, mtime: info.mtimeMs, activity });
+    return activity;
+  } finally { await file.close(); }
+}
+
 export function queueEvents(text) {
   const runs = new Map();
   for (const line of text.split('\n')) {
@@ -76,10 +99,7 @@ export async function readQueue(root, sessionsRoot, activeUnits = []) {
         if (!sessionCache.has(dir)) sessionCache.set(dir, await files(dir));
         const rollout = sessionCache.get(dir).find(n => n.endsWith(`${id}.jsonl`));
         if (rollout) {
-          const next = publicActivity(await tail(join(dir, rollout), 256 * 1024));
-          const prior = activityCache.get(id) || {};
-          activity = { message: next.message || prior.message || '', action: next.action || prior.action || '', at: next.at || prior.at };
-          activityCache.set(id, activity);
+          activity = await readActivity(join(dir, rollout));
         }
       }
     }

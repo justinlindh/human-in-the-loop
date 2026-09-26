@@ -20,6 +20,8 @@ export function command(args, input = '') {
 }
 const fields = 'number,title,url,body,comments,headRefOid,isDraft,labels,state,statusCheckRollup,updatedAt';
 const json = (res, status, value) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); };
+const identity = input => JSON.stringify([input.repo, input.number, input.head, input.action, String(input.notes || '').trim()]);
+const delivered = record => ({ ok: true, url: record.url, message: record.action === 'hold' ? 'Hold recorded on GitHub.' : 'Sent to GitHub. The owner-command worker will pick it up shortly.' });
 async function body(req) {
   if (!req.headers['content-type']?.startsWith('application/json')) throw Object.assign(new Error('JSON required'), { status: 415 });
   let text = '';
@@ -35,6 +37,10 @@ export function createDashboard(config, run = command) {
   let queueBusy = false, githubBusy = false, closed = false;
   const broadcast = () => { const event = `data: ${JSON.stringify(state)}\n\n`; for (const res of streams) res.write(event); };
   const gh = async (...args) => JSON.parse(await run(['gh', ...args]));
+  async function journal(record) {
+    await mkdir(join(config.queue, 'control'), { recursive: true });
+    await appendFile(join(config.queue, 'control/dashboard-feedback.jsonl'), JSON.stringify(record) + '\n');
+  }
   async function refreshQueue() {
     if (queueBusy || closed) return;
     queueBusy = true;
@@ -87,31 +93,39 @@ export function createDashboard(config, run = command) {
           const input = await body(req);
           if (!config.repos.includes(input.repo) || !Number.isInteger(input.number) || input.number < 1 || !/^[a-zA-Z0-9-]{8,100}$/.test(input.id || '')) return json(res, 400, { error: 'Invalid review request' });
           const key = `${input.repo}#${input.number}`;
-          const fingerprint = JSON.stringify([input.repo, input.number, input.head, input.action, input.notes]);
+          const fingerprint = identity(input);
           const prior = submissions.get(input.id);
-          if (prior) return json(res, prior.fingerprint === fingerprint ? 200 : 409, prior.fingerprint === fingerprint ? prior.result : { error: 'Request ID already used' });
-          if (inFlight.has(key)) return json(res, 409, { error: 'A decision is already being submitted for this PR' });
-          inFlight.add(key);
+          if (prior && prior.fingerprint !== fingerprint) return json(res, 409, { error: 'Request ID already used' });
+          if (prior?.result) return json(res, 200, prior.result);
+          if (inFlight.has(key) || inFlight.has(input.id)) return json(res, 409, { error: 'A decision is already being submitted for this PR or request' });
+          inFlight.add(key); inFlight.add(input.id);
           try {
             let message;
             try { message = feedbackCommand(input.action, input.head, String(input.notes || '')); }
             catch (error) { return json(res, 400, { error: error.message }); }
-            const pr = await gh('pr', 'view', String(input.number), '-R', input.repo, '--json', 'headRefOid,state,labels');
-            if (pr.state !== 'OPEN' || pr.headRefOid !== input.head) return json(res, 409, { error: 'This PR changed. Refresh and review the new commit before submitting.' });
-            if (!pr.labels.some(l => l.name === 'awaiting-user')) return json(res, 409, { error: 'This PR is no longer awaiting a decision.' });
             // A marker lets a retry find a submitted comment after a lost HTTP response or restart.
             const marker = `<!-- dashboard-feedback:${input.id} -->`;
+            const commentBody = `${message}\n\n${marker}\n`;
             const comments = await gh('api', `repos/${input.repo}/issues/${input.number}/comments`, '--paginate', '--slurp');
-            let url = comments.flat().find(c => c.body?.includes(marker))?.html_url;
-            if (!url) url = (await run(['gh', 'pr', 'comment', String(input.number), '-R', input.repo, '--body-file', '-'], `${message}\n\n${marker}\n`)).trim();
-            const result = { ok: true, url, message: input.action === 'hold' ? 'Hold recorded on GitHub.' : 'Sent to GitHub. The owner-command worker will pick it up shortly.' };
+            const existing = comments.flat().find(c => c.body?.includes(marker));
+            if (existing && existing.body.trim() !== commentBody.trim()) return json(res, 409, { error: 'Request ID already used for a different decision' });
+            const record = { id: input.id, repo: input.repo, number: input.number, head: input.head, action: input.action, notes: String(input.notes || '').trim(), at: new Date().toISOString() };
+            let url = existing?.html_url;
+            if (!url) {
+              const pr = await gh('pr', 'view', String(input.number), '-R', input.repo, '--json', 'headRefOid,state,labels');
+              if (pr.state !== 'OPEN' || pr.headRefOid !== input.head) return json(res, 409, { error: 'This PR changed. Refresh and review the new commit before submitting.' });
+              if (!pr.labels.some(l => l.name === 'awaiting-user')) return json(res, 409, { error: 'This PR is no longer awaiting a decision.' });
+              // Persist identity before the write so an uncertain response cannot change its meaning.
+              if (!prior) { await journal(record); submissions.set(input.id, { fingerprint }); }
+              url = (await run(['gh', 'pr', 'comment', String(input.number), '-R', input.repo, '--body-file', '-'], commentBody)).trim();
+            }
+            record.url = url;
+            await journal(record);
+            const result = delivered(record);
             submissions.set(input.id, { fingerprint, result });
-            const record = { id: input.id, repo: input.repo, number: input.number, head: input.head, action: input.action, notes: String(input.notes || ''), url, at: new Date().toISOString() };
             state.feedback.unshift(record); state.feedback = state.feedback.slice(0, 50);
-            await mkdir(join(config.queue, 'control'), { recursive: true });
-            await appendFile(join(config.queue, 'control/dashboard-feedback.jsonl'), JSON.stringify(record) + '\n');
             broadcast(); void refreshGithub(); return json(res, 200, result);
-          } finally { inFlight.delete(key); }
+          } finally { inFlight.delete(key); inFlight.delete(input.id); }
         }
         return json(res, 404, { error: 'Not found' });
       }
@@ -126,7 +140,9 @@ export function createDashboard(config, run = command) {
     server, refreshQueue, refreshGithub,
     async start() {
       const journal = await readFile(join(config.queue, 'control/dashboard-feedback.jsonl'), 'utf8').catch(() => '');
-      state.feedback = journal.split('\n').filter(Boolean).flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } }).slice(-50).reverse();
+      const records = journal.split('\n').filter(Boolean).flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
+      for (const record of records) submissions.set(record.id, { fingerprint: identity(record), ...(record.url ? { result: delivered(record) } : {}) });
+      state.feedback = records.filter(record => record.url).slice(-50).reverse();
       void refreshQueue(); void refreshGithub();
       timers.push(setInterval(refreshQueue, 2000), setInterval(refreshGithub, 30000), setInterval(() => { for (const res of streams) res.write(': heartbeat\n\n'); }, 15000));
     },
@@ -138,6 +154,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const args = process.argv.slice(2); const opt = (name, fallback) => { const i = args.indexOf(`--${name}`); return i < 0 ? fallback : args[i + 1]; };
   const config = { token: process.env.DASHBOARD_TOKEN, queue: opt('queue', join(homedir(), 'codex-queue')), sessions: opt('sessions', join(homedir(), '.codex/sessions')), repos: opt('repos', 'justinlindh/human-in-the-loop').split(',') };
   const app = createDashboard(config); const port = Number(opt('port', '8787')); const host = opt('host', '127.0.0.1');
-  app.server.listen(port, host, () => { console.log(`Dashboard listening on ${host}:${port}`); app.start(); });
+  await app.start();
+  app.server.listen(port, host, () => { console.log(`Dashboard listening on ${host}:${port}`); });
   process.on('SIGTERM', () => app.close()); process.on('SIGINT', () => app.close());
 }
