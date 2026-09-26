@@ -1,7 +1,7 @@
 import test from 'node:test';
 import { request } from 'node:http';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, appendFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, appendFile, chmod, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -122,6 +122,55 @@ test('an external marker without a local journal cannot impersonate a different 
   f.setComments([{ body: `${feedbackCommand('revise', head, 'Fix this')}\n\n<!-- dashboard-feedback:${input.id} -->\n`, html_url: 'https://github.com/a/b/pull/1#issuecomment-1' }]);
   assert.equal((await f.send(input)).status, 409); assert.equal(f.mutations(), 0);
   assert.equal((await f.send({ ...input, action: 'revise', notes: 'Fix this' })).status, 200); assert.equal(f.mutations(), 0);
+});
+
+test('startup rejects unreadable, incomplete, malformed and conflicting journals without any external command', async t => {
+  const record = { id: 'reserved-request', repo: 'a/b', number: 1, head, action: 'revise', notes: 'Keep this identity' };
+  const line = JSON.stringify(record) + '\n';
+  for (const [name, content, mode] of [
+    ['unreadable', line, 0o200],
+    ['partial tail', line + '{"id":"torn', 0o600],
+    ['missing newline', JSON.stringify(record), 0o600],
+    ['malformed line', line + 'broken\n', 0o600],
+    ['invalid record', line + 'null\n', 0o600],
+    ['missing identity', line + '{}\n', 0o600],
+    ['conflicting identity', line + JSON.stringify({ ...record, number: 2, action: 'ship' }) + '\n', 0o600],
+  ]) await t.test(name, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dashboard-journal-'));
+    const file = join(root, 'control/dashboard-feedback.jsonl');
+    await mkdir(join(root, 'control')); await writeFile(file, content, { mode });
+    let calls = 0;
+    const app = createDashboard({ token, queue: root, repos: ['a/b'] }, async () => { calls++; return '[]'; });
+    try {
+      await assert.rejects(app.start());
+      assert.equal(app.server.listening, false); assert.equal(calls, 0);
+      await chmod(file, 0o600); assert.equal(await readFile(file, 'utf8'), content);
+    } finally { app.close(); await chmod(file, 0o600); await rm(root, { recursive: true, force: true }); }
+  });
+});
+
+test('a failed append blocks later external writes until a clean restart', async t => {
+  const f = await fixture(t), file = join(f.root, 'control/dashboard-feedback.jsonl');
+  const input = { id: 'append-failure-request', repo: 'a/b', number: 1, head, action: 'ship', notes: '' };
+  await mkdir(join(f.root, 'control'), { recursive: true }); await writeFile(file, '', { mode: 0o400 });
+  t.after(() => chmod(file, 0o600));
+  assert.equal((await f.send(input)).status, 502); assert.equal(f.mutations(), 0);
+  await chmod(file, 0o600);
+  assert.equal((await f.send({ ...input, id: 'following-request' })).status, 502); assert.equal(f.mutations(), 0);
+  assert.equal(await readFile(file, 'utf8'), '');
+  await f.restart(); assert.equal((await f.send(input)).status, 200); assert.equal(f.mutations(), 1);
+});
+
+test('concurrent submissions retain separate request identities across restart', async t => {
+  const f = await fixture(t);
+  const requests = Array.from({ length: 6 }, (_, n) => ({ id: 'concurrent-request-' + n, repo: 'a/b', number: n + 1, head, action: 'ship', notes: '' }));
+  const responses = await Promise.all(requests.map(input => f.send(input)));
+  assert.ok(responses.every(r => r.status === 200)); assert.equal(f.mutations(), 6);
+  const records = (await readFile(join(f.root, 'control/dashboard-feedback.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+  for (const input of requests) assert.equal(records.filter(r => r.id === input.id).length, 2);
+  await f.restart();
+  for (const input of requests) assert.equal((await f.send({ ...input, action: 'revise', notes: 'Change identity' })).status, 409);
+  assert.equal(f.mutations(), 6);
 });
 
 test('cold activity lookup crosses large tool results without exposing their contents', async () => {

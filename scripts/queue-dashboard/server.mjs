@@ -35,11 +35,18 @@ export function createDashboard(config, run = command) {
   const hosts = new Set(config.hosts || ['localhost', '127.0.0.1', '[::1]', ...Object.values(networkInterfaces()).flat().map(n => n.family === 'IPv6' ? `[${n.address}]` : n.address)]);
   let state = { queue: { running: [], pending: [], recent: [] }, prs: [], githubAt: null, githubError: null, feedback: [] };
   let queueBusy = false, githubBusy = false, closed = false;
+  let journalError = null, journalWrites = Promise.resolve();
   const broadcast = () => { const event = `data: ${JSON.stringify(state)}\n\n`; for (const res of streams) res.write(event); };
   const gh = async (...args) => JSON.parse(await run(['gh', ...args]));
-  async function journal(record) {
-    await mkdir(join(config.queue, 'control'), { recursive: true });
-    await appendFile(join(config.queue, 'control/dashboard-feedback.jsonl'), JSON.stringify(record) + '\n');
+  function journal(record) {
+    // Serialize durable appends. A failed write may leave a partial record, so stop until recovery.
+    const write = journalWrites.then(async () => {
+      if (journalError) throw journalError;
+      await mkdir(join(config.queue, 'control'), { recursive: true });
+      await appendFile(join(config.queue, 'control/dashboard-feedback.jsonl'), JSON.stringify(record) + '\n', { flush: true });
+    }).catch(error => { journalError = error; throw error; });
+    journalWrites = write.catch(() => {});
+    return write;
   }
   async function refreshQueue() {
     if (queueBusy || closed) return;
@@ -139,9 +146,24 @@ export function createDashboard(config, run = command) {
   return {
     server, refreshQueue, refreshGithub,
     async start() {
-      const journal = await readFile(join(config.queue, 'control/dashboard-feedback.jsonl'), 'utf8').catch(() => '');
-      const records = journal.split('\n').filter(Boolean).flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
-      for (const record of records) submissions.set(record.id, { fingerprint: identity(record), ...(record.url ? { result: delivered(record) } : {}) });
+      const journal = await readFile(join(config.queue, 'control/dashboard-feedback.jsonl'), 'utf8').catch(error => {
+        if (error.code === 'ENOENT') return '';
+        throw error;
+      });
+      // Never discard unknown intent: even a terminal fragment may reserve a submitted request ID.
+      if (journal && !journal.endsWith('\n')) throw new Error('Feedback journal has an incomplete terminal record; restore it before starting');
+      const records = journal.split('\n').filter(Boolean).map(line => JSON.parse(line));
+      const restored = new Map();
+      for (const record of records) {
+        if (!record || !/^[a-zA-Z0-9-]{8,100}$/.test(record.id || '') || typeof record.repo !== 'string' ||
+            !Number.isInteger(record.number) || record.number < 1 || typeof record.notes !== 'string' ||
+            (record.url !== undefined && (typeof record.url !== 'string' || !record.url))) throw new Error('Invalid feedback journal record');
+        feedbackCommand(record.action, record.head, record.notes);
+        const fingerprint = identity(record), prior = restored.get(record.id);
+        if (prior && prior.fingerprint !== fingerprint) throw new Error('Conflicting request identity in feedback journal');
+        restored.set(record.id, { fingerprint, ...(record.url ? { result: delivered(record) } : prior?.result ? { result: prior.result } : {}) });
+      }
+      for (const [id, entry] of restored) submissions.set(id, entry);
       state.feedback = records.filter(record => record.url).slice(-50).reverse();
       void refreshQueue(); void refreshGithub();
       timers.push(setInterval(refreshQueue, 2000), setInterval(refreshGithub, 30000), setInterval(() => { for (const res of streams) res.write(': heartbeat\n\n'); }, 15000));
