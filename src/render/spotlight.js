@@ -2,12 +2,14 @@
 // (renderer.spotlight()) and stops ticking while one plays; the office, the moment and the sound go on.
 // Routine life (standups, coffee, pair games) never spotlights.
 //
-// createSpotlights() -> { begin(kind, cut, expect), end(key), current(), cut(), clear() }
+// createSpotlights() -> { begin(kind, cut, expect, at), end(key), current(), where(), cut(), clear() }
 //   begin  a moment starts: kind is its hitl:moment key ('printer_jam', 'waffle_party'), cut ends it
 //          early (the Skip control), expect is how long it should play in seconds (a number, or a
-//          function for a moment whose length changes as it goes). Returns the spotlight's own key.
+//          function for a moment whose length changes as it goes), at where it plays (a function
+//          returning { x, z }). Returns the spotlight's own key.
 //   end    it ended (its own end, or cut): safe to call twice.
 //   current() -> null | { kind, key, since, expectedSeconds }: the oldest spotlight still playing.
+//   where() -> null | { x, z }: where the current one plays, for quieting chatter round it.
 //   cut()  ends the current one early; false when none plays.
 // Every start and end is announced: window event hitl:spotlight { active, kind, key }.
 
@@ -17,8 +19,8 @@ export function createSpotlights() {
   const announce = (active, s) => {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:spotlight', { detail: { active, kind: s.kind, key: s.key } }));
   };
-  function begin(kind, cut = null, expect = null) {
-    const s = { kind, key: `${kind}-${++seq}`, since: typeof performance !== 'undefined' ? performance.now() : 0, cut, expect };
+  function begin(kind, cut = null, expect = null, at = null) {
+    const s = { kind, key: `${kind}-${++seq}`, since: typeof performance !== 'undefined' ? performance.now() : 0, cut, expect, at };
     live.set(s.key, s);
     announce(true, s);
     return s.key;
@@ -35,6 +37,10 @@ export function createSpotlights() {
     const e = typeof s.expect === 'function' ? s.expect() : s.expect;
     return { kind: s.kind, key: s.key, since: s.since, ...(Number.isFinite(e) ? { expectedSeconds: e } : {}) };
   }
+  function where() {
+    const s = live.values().next().value;
+    return s?.at?.() ?? null;
+  }
   function cut() {
     const s = live.values().next().value;
     if (!s) return false;
@@ -43,5 +49,5 @@ export function createSpotlights() {
     return true;
   }
   function clear() { for (const k of [...live.keys()]) end(k); }
-  return { begin, end, current, cut, clear };
+  return { begin, end, current, where, cut, clear };
 }
