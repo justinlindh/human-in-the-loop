@@ -4,6 +4,7 @@
 //   node blender/checks/standup.mjs      prints one line per case; exits 1 if any fails
 import { startHarness } from './harness.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { spawnSync } from 'node:child_process';
 
 const CASES = [];
 for (const mock of ['garage', 'floor', 'hq']) for (const strip of ['none', 'meeting', 'meeting+whiteboard']) CASES.push({ mock, strip });
@@ -61,5 +62,10 @@ await Promise.all(Array.from({ length: Math.min(JOBS, CASES.length) }, async (_,
 await H.close();
 for (const c of CASES) console.log(lines.get(c));
 console.log(`standup: ${CASES.length - failed} of ${CASES.length} passed`);
+if (!failed) {
+  const live = spawnSync('timeout', ['540', 'nice', '-n', '10', 'node', 'blender/checks/standup-live.mjs', ...process.argv.filter(a => a === '--gpu' || a === '--software')], { stdio: 'inherit' });
+  if (live.status !== 0) failed++;
+  console.log(`standup: live conversations ${live.status === 0 ? 'passed' : 'FAILED'}`);
+}
 if (!failed) recordPass('standup', hash);
 process.exit(failed ? 1 : 0);

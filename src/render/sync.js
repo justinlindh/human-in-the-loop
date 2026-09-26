@@ -1,7 +1,7 @@
 import { B } from '../sim/balance.js';
 import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
-import { createStandupSpeech } from './standup-speech.js';
+import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
@@ -743,7 +743,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     } else {
       dir.multiplyScalar(1 / d);
       r.pos.addScaledVector(dir, step);
-      r.yaw = angleLerp(r.yaw, Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
+      r.yaw = angleLerp(r.yaw, r.temp?.walkYaw ?? Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
     }
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
@@ -1030,7 +1030,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (need > r.speed) { r.speed = need; r.walkAnim = need > 2 ? 'run' : 'walk'; }
       return { r };
     });
-    standup = { people, phase: 'gather', t: 0, speech: createStandupSpeech(lines) };
+    standup = { people, phase: 'gather', t: 0, speech: createStandupSpeech(lines), context: standupContext(state, e.lines), spoken: null };
     office.tuckMeetingChairs(true);
   }
 
@@ -1066,7 +1066,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         return r.path.length ? 'wait' : 'play';
       }, l => {
         const r = recs.get(l.staffId);
-        if (l.text) return speak(l.text, r, { standup: true });
+        if (l.text) {
+          const text = standupText(l, st.context, lastState);
+          const seconds = speak(text, r, { standup: true });
+          if (seconds > 0) st.spoken = { root: r.char.root, text };
+          return seconds;
+        }
         emote(r, r.staff.mood === 'burnout' ? 'zzz' : 'sweat', B.standupSilenceSeconds);
         return B.standupSilenceSeconds;
       });
@@ -1074,6 +1079,20 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       return;
     }
     if (st.phase === 'close' && st.t > 0.3) endStandup();
+  }
+
+  function refreshStandupContext() {
+    if (!standup || !lastState) return;
+    const revision = standupRevision(standup.context, lastState);
+    if (!revision) return;
+    const st = standup;
+    if (st.spoken) labels.clearSpeech(st.spoken.root, st.spoken.text);
+    const active = st.people.map(p => p.r).filter(r => recs.has(r.id) && !r.hidden && r.temp?.standup &&
+      !['away', 'burnout', 'coasting'].includes(r.staff.mood) && !r.staff.remote && r.staff.assignment.type !== 'sabbatical');
+    const texts = active.length > 1 ? [revision, 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'] : [revision];
+    st.speech = createStandupSpeech(active.length ? texts.map((text, i) => ({ staffId: active[i % active.length].id, text })) : []);
+    st.context = null; st.spoken = null;
+    if (st.phase === 'close') { st.phase = 'talk'; st.t = 0; }
   }
 
   // paused: nothing moves, plans, or times out; people only breathe.
@@ -1120,6 +1139,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   let frozen = false;
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
+    refreshStandupContext();
     moments.releaseLetters();
     spotlights.update();
     if (growthGlow && !growthCast.some((r) => r.temp?.moment === 'growth')) growthGlow.visible = false;

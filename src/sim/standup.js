@@ -72,6 +72,7 @@ function lineFor(ctx, p) {
 
 // Dialogue selection has its own bounded memory and draws no RNG, leaving work and async rolls alone.
 export function standupConversation(state, speakers, updates) {
+  delete state.flags.standupConversation;
   const active = speakers.filter(p => !['burnout', 'coasting', 'away'].includes(p.mood) && !p.remote && p.assignment.type !== 'sabbatical');
   if (active.length < 2) return updates;
   const projects = active.map(p => ({ person: p, project: state.projects.find(j => p.assignment.type === 'project' && j.id === p.assignment.targetId) })).filter(x => x.project);
@@ -97,8 +98,14 @@ export function standupConversation(state, speakers, updates) {
   // The second line is the work update. The other attendees ask and respond around its owner.
   const others = active.filter(p => p !== person);
   const cast = [others[0], person, ...others.slice(1)];
-  const lines = cast.map((p, i) => ({ staffId: p.id, text: fill(chosen.lines[i], vars) }));
+  const lines = chosen.lines.map((text, i) => ({ staffId: cast[i % cast.length].id, text: fill(text, vars) }));
   lines.push(...updates.filter(l => !active.some(p => p.id === l.staffId)));
+  // One bounded snapshot ties the event lines to their subject for live presentation.
+  state.flags.standupConversation = {
+    script: chosen.id, topic: chosen.topic, personId: person.id, lines: lines.map(l => ({ ...l })),
+    ...(chosen.topic === 'project' ? { subjectId: person.assignment.targetId, name: vars.project } : {}),
+    ...(chosen.topic === 'outage' ? { subjectId: outage.id, name: outage.name, kind: state.outage.kind ?? null, startedWeek: state.week - (state.outage.weeks ?? 0) } : {}),
+  };
   recent.push(chosen.id);
   if (recent.length > B.standupConversationMemory) recent.splice(0, recent.length - B.standupConversationMemory);
   return lines;

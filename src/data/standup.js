@@ -333,4 +333,32 @@ export const STANDUP_EXCHANGES = [
     'Without us standing behind them giving hints.',
     'The hints were doing a lot of work.',
   ] },
+  { id: 'standup_handoff', topic: 'general', lines: [
+    'What should we include when handing work over?',
+    'Where to start, and how to tell whether it worked.',
+    'Also the thing that looks broken but is meant to happen.',
+    'Can we make that list shorter?',
+    'That sounds like the next task.',
+  ] },
+  { id: 'standup_blocker', topic: 'general', lines: [
+    'When should we say that we are stuck?',
+    'Before the same question gets its own notebook.',
+    'Bring the smallest example. We can work through it.',
+    'Does the notebook count as progress?',
+    'Only if someone else can read it.',
+  ] },
+  { id: 'standup_agenda', topic: 'general', lines: [
+    'What belongs in this meeting?',
+    'Something another person can help decide.',
+    'The rest can be a short note.',
+    'How short?',
+    'Shorter than the meeting about the note.',
+  ] },
+  { id: 'standup_assumption', topic: 'general', lines: [
+    'Which assumption should we check first?',
+    'The one we all agreed with before asking why.',
+    'Write down what would prove it wrong.',
+    'That makes the plan sound less certain.',
+    'Good. Now it sounds more like a plan.',
+  ] },
 ];

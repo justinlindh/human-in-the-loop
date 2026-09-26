@@ -197,15 +197,33 @@ describe('standup variety', () => {
     const fallback = speakers.map(p => ({ staffId: p.id, text: `Update ${p.id}.` }));
     const lines = standupConversation(s, speakers, fallback);
     const inOffice = speakers.filter(p => !p.remote && p.assignment.type !== 'sabbatical');
-    expect(lines.slice(0, inOffice.length).map(l => l.staffId)).toEqual(inOffice.map(p => p.id));
-    expect(lines.slice(inOffice.length)).toEqual(fallback.slice(0, 2));
-    expect(lines.slice(0, inOffice.length).every(l => !l.text.startsWith('Update '))).toBe(true);
+    expect(lines.slice(0, 5).map(l => l.staffId)).toEqual(Array.from({ length: 5 }, (_, i) => inOffice[i % inOffice.length].id));
+    expect(lines.slice(5)).toEqual(fallback.slice(0, 2));
+    expect(lines.slice(0, 5).every(l => !l.text.startsWith('Update '))).toBe(true);
   });
   it('has unique exchange ids and complete short scripts with strict context topics', () => {
     expect(new Set(STANDUP_EXCHANGES.map(e => e.id)).size).toBe(STANDUP_EXCHANGES.length);
     for (const e of STANDUP_EXCHANGES) {
       expect(e.lines).toHaveLength(5);
       for (const line of e.lines) expect(line.replaceAll('{project}', 'A long project name').replaceAll('{product}', 'A long product name').replaceAll('{pct}', '100').length).toBeLessThanOrEqual(70);
+    }
+  });
+  it('completes all five turns with two active speakers while quiet and absent colleagues keep their updates', () => {
+    const s = office(2), speakers = s.staff;
+    for (const p of speakers) p.assignment = { type: 'idle', targetId: null };
+    for (const unavailable of ['remote', 'sabbatical', 'burnout', 'coasting']) {
+      for (const p of speakers) { p.remote = false; p.mood = 'ok'; p.assignment = { type: 'idle', targetId: null }; }
+      for (const p of speakers.slice(2)) {
+        if (unavailable === 'remote') p.remote = true;
+        else if (unavailable === 'sabbatical') p.assignment.type = 'sabbatical';
+        else p.mood = unavailable;
+      }
+      s.flags.standupConversationRecent = [];
+      const updates = speakers.map(p => ({ staffId: p.id, text: p.mood === 'burnout' ? '' : 'Still on it.' }));
+      const lines = standupConversation(s, speakers, updates);
+      expect(lines.slice(0, 5).map(l => l.text)).toEqual(STANDUP_EXCHANGES.find(e => e.id === 'standup_question').lines);
+      expect(lines.slice(0, 5).map(l => l.staffId)).toEqual([speakers[0].id, speakers[1].id, speakers[0].id, speakers[1].id, speakers[0].id]);
+      expect(lines.slice(5)).toEqual(updates.slice(2));
     }
   });
   it('async updates almost never repeat a line within 30 posts over a long run', async () => {
