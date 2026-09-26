@@ -7,6 +7,9 @@
 //        [--root <checkout>]
 //        [--expect 'hand0Face<=0.05@0.8'] [--expect 'faceCam<=70@0.8'] [--check-browser]
 //   node blender/checks/pose.mjs --under idle --seconds 2          (an animation alone)
+//   node blender/checks/pose.mjs --scene [--mock floor | --moment '<query>' | --snapshot <path>]
+//        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
+//        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
 //
 // Prints a row every --every frames (t, phase, animation, hand-to-face and hand-to-head distances in
 // metres, face angle to the camera in degrees) and a summary over the gesture's frames. --expect
@@ -17,6 +20,12 @@
 // as Medium and High do. --root measures another checkout's render code (a lane's worktree or a
 // PR's) with this checkout's tool. --check-browser runs the same measures in a harness page and
 // compares every number.
+//
+// --scene measures people in a staged scene, in a harness page (it renders, so it takes a render
+// slot): for each person, the largest share of their face a bubble, label or emote covers and which,
+// the share of them the camera sees and what hides the rest, the face's angle to the camera and its
+// height on screen in pixels. Its rules use faceCovered, faceVisible, faceCam and facePx, over the
+// frames sampled, for every person listed (or one, with an 'id:' prefix).
 //
 // It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
 // a canvas whose 2D context does nothing (cheek and emote textures only), and fetch reading the
@@ -64,6 +73,62 @@ const cmp = { '<=': (a, b) => a <= b, '>=': (a, b) => a >= b, '<': (a, b) => a <
 
 // The same run in a harness page (the real canvas, fetch and loaders), compared number by number:
 // the stand-ins are only right while the two agree.
+async function sceneMode() {
+  const { holdRenderLock, glMode } = await import('../../scripts/lib/gl.js');
+  holdRenderLock(glMode({ argv }));
+  const t0 = performance.now();
+  const { startHarness } = await import('./harness.mjs');
+  const { resolveTarget, openAt } = await import('../../scripts/events/load.js');
+  const rules = all('expect').map((txt) => {
+    const m = /^(?:([\w:]+?):)?(\w+)\s*(<=|>=|<|>)\s*(-?[\d.]+)(?:@([\d.]+))?$/.exec(txt.replace(/\s+/g, ''));
+    if (!m || !SCENE_MEASURES.includes(m[2])) throw new Error(`pose: can't read scene rule "${txt}" (want e.g. s3:faceCovered<=0.1@0.8, measure one of ${SCENE_MEASURES.join(', ')})`);
+    return { text: txt, id: m[1] ?? null, measure: m[2], op: m[3], value: Number(m[4]), share: m[5] ? Number(m[5]) : 1 };
+  });
+  const every = Number(opt('every', 6));
+  const frames = opt('clip') ? Array.from({ length: Math.floor((Number(opt('clip')) * 30) / every) + 1 }, (_, i) => i * every) : String(opt('frames', '0')).split(',').map(Number).sort((a, b) => a - b);
+  const H = await startHarness();
+  let code = 0;
+  try {
+    const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
+    const { page, errors } = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${opt('mock', 'floor')}`, { width: 1280, height: 800 });
+    const who = opt('who') ? opt('who').split(',') : null;
+    const rows = await page.evaluate(async (o) => {
+      const R = window.__hitlRender, S = window.__HITL.state;
+      const M = await import('/blender/checks/pose-scene.js');
+      for (let i = 0; i < o.view; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
+      window.__settle(o.warm);
+      if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
+      if (o.events) R.handleEvents([].concat(o.events), S);
+      const out = [];
+      let at = 0;
+      for (const f of o.frames) {
+        window.__step(Math.max(0, f - at)); at = f;
+        for (const r of M.measureScene(R, S, { who: o.who })) out.push({ frame: f, ...r });
+      }
+      return out;
+    }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who });
+    const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);
+    console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'covered'.padStart(8)} ${'visible'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
+    for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
+    const ids = [...new Set(rows.map((r) => r.id))];
+    for (const rule of rules) {
+      for (const id of rule.id ? [rule.id] : ids) {
+        const mine = rows.filter((r) => r.id === id);
+        const ok = mine.filter((r) => r[rule.measure] != null && cmp[rule.op](r[rule.measure], rule.value)).length / Math.max(1, mine.length);
+        const pass = mine.length > 0 && ok >= rule.share;
+        if (!pass) code = 1;
+        console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${mine.length ? `${(ok * 100).toFixed(0)}% of ${mine.length} frames` : 'not on screen'} (want ${(rule.share * 100).toFixed(0)}%)`);
+      }
+    }
+    if (opt('json')) writeFileSync(opt('json'), JSON.stringify(rows, null, 1));
+    if (errors.length) { code = Math.max(code, 1); console.log(`pose: page errors: ${errors.slice(0, 3).join('; ')}`); }
+    console.log(`pose: scene, ${ids.length} people, ${frames.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
+  } finally {
+    await H.close();
+  }
+  return code;
+}
+
 async function checkBrowser(frames) {
   const { startHarness } = await import('./harness.mjs');
   const H = await startHarness();
@@ -81,6 +146,9 @@ async function checkBrowser(frames) {
     await H.close();
   }
 }
+
+const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'faceCam', 'facePx'];
+if (argv.includes('--scene')) process.exit(await sceneMode());
 
 // The page a browser check opens serves this checkout, so it can only check this checkout's code.
 if (argv.includes('--check-browser') && ROOT !== resolve(join(import.meta.dirname, '../..'))) {
