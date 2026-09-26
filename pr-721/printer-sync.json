@@ -1,0 +1,31 @@
+{
+  "printerCueAtCut": 9.9,
+  "strikes": [
+    {
+      "strike": 1,
+      "visualOffset": 0.5663333333333327,
+      "audioOffset": 0.5600000000000005,
+      "error": 0.006333333333332192
+    },
+    {
+      "strike": 2,
+      "visualOffset": 1.3663333333333334,
+      "audioOffset": 1.3399999999999999,
+      "error": 0.026333333333333542
+    },
+    {
+      "strike": 3,
+      "visualOffset": 3.100333333333335,
+      "audioOffset": 3.08,
+      "error": 0.02033333333333509
+    },
+    {
+      "strike": 4,
+      "visualOffset": 4.066333333333333,
+      "audioOffset": 4.039999999999999,
+      "error": 0.026333333333333542
+    }
+  ],
+  "maxError": 0.026333333333333542,
+  "pass": true
+}

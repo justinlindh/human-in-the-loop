@@ -1,0 +1,116 @@
+{
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "r_frame_rate": "30/1",
+        "duration": "67.100000",
+        "nb_read_frames": "2013"
+      },
+      {
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "duration": "67.100000",
+        "nb_read_frames": "3146"
+      }
+    ],
+    "format": {
+      "duration": "67.100000",
+      "size": "34651018"
+    }
+  },
+  "approved_vo_hashes_match": true,
+  "narration": [
+    {
+      "id": "l1",
+      "last_nonzero_seconds": 4.771979166666667,
+      "clearance_seconds": 0.8280208333333325,
+      "wav_clearance_seconds": 0.6299999999999999
+    },
+    {
+      "id": "l2a1",
+      "last_nonzero_seconds": 0.9918541666666667,
+      "clearance_seconds": 0.9081458333333319,
+      "wav_clearance_seconds": 0.7100000000000002
+    },
+    {
+      "id": "l2a2",
+      "last_nonzero_seconds": 1.0169583333333334,
+      "clearance_seconds": 1.0830416666666645,
+      "wav_clearance_seconds": 0.885
+    },
+    {
+      "id": "l2b",
+      "last_nonzero_seconds": 1.7119791666666666,
+      "clearance_seconds": 1.188020833333332,
+      "wav_clearance_seconds": 0.9900000000000004
+    },
+    {
+      "id": "l7",
+      "last_nonzero_seconds": 2.0819375,
+      "clearance_seconds": 0.6180625000000028,
+      "wav_clearance_seconds": 0.4200000000000004
+    },
+    {
+      "id": "l3",
+      "last_nonzero_seconds": 3.2119791666666666,
+      "clearance_seconds": 0.688020833333332,
+      "wav_clearance_seconds": 0.4899999999999993
+    },
+    {
+      "id": "l3b",
+      "last_nonzero_seconds": 0.9619583333333334,
+      "clearance_seconds": 1.138041666666668,
+      "wav_clearance_seconds": 0.9400000000000002
+    },
+    {
+      "id": "l9",
+      "last_nonzero_seconds": 3.3169375,
+      "clearance_seconds": 0.38306250000000297,
+      "wav_clearance_seconds": 0.18500000000000005
+    },
+    {
+      "id": "l3c",
+      "last_nonzero_seconds": 1.5616875,
+      "clearance_seconds": 1.0383124999999944,
+      "wav_clearance_seconds": 0.8399999999999996
+    },
+    {
+      "id": "l4a",
+      "last_nonzero_seconds": 1.801875,
+      "clearance_seconds": 1.9981250000000044,
+      "wav_clearance_seconds": 1.8000000000000003
+    },
+    {
+      "id": "l4b",
+      "last_nonzero_seconds": 1.7419791666666666,
+      "clearance_seconds": 0.9580208333333362,
+      "wav_clearance_seconds": 0.7600000000000002
+    },
+    {
+      "id": "l10",
+      "last_nonzero_seconds": 2.801833333333333,
+      "clearance_seconds": 1.6981666666666668,
+      "wav_clearance_seconds": 1.5
+    },
+    {
+      "id": "l5",
+      "last_nonzero_seconds": 2.4019791666666666,
+      "clearance_seconds": 0.7980208333333363,
+      "wav_clearance_seconds": 5.0
+    },
+    {
+      "id": "l6",
+      "last_nonzero_seconds": 3.6618125,
+      "clearance_seconds": 0.7381874999999916,
+      "wav_clearance_seconds": 0.5400000000000005
+    }
+  ],
+  "minimum_narration_clearance": 0.38306250000000297,
+  "printer_start": 27.9,
+  "expected_frames": 2013
+}

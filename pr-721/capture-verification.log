@@ -1,0 +1,17 @@
+PASS garage from=1.000 seed=5&speed=1&time=day: 1 subject checks
+PASS office from=2.800 seed=23&speed=1: 1 subject checks
+PASS build from=0.900 seed=1&speed=1&time=day: 2 subject checks
+PASS hire from=0.900 seed=1&speed=1&time=day: 2 subject checks
+PASS launch from=72.000 seed=3&speed=1: 1 subject checks
+PASS incident from=8.800 seed=2&speed=1: 1 subject checks
+PASS yak from=31.600 seed=2&speed=1: 1 subject checks
+PASS yak-react from=11.000 seed=2&speed=1: 1 subject checks
+PASS printer from=22.567 seed=1&speed=1: 2 subject checks
+PASS era-chatgbt from=9.000 seed=1&speed=1: 1 subject checks
+PASS era-agents from=9.000 seed=1&speed=1: 1 subject checks
+PASS cloud-bill from=10.000 seed=5&speed=1: 1 subject checks
+PASS era-consolidation from=9.000 seed=1&speed=1: 1 subject checks
+PASS waffle from=14.300 seed=1&speed=1: 1 subject checks
+PASS dance from=19.000 seed=1&speed=1: 1 subject checks
+PASS plateau from=0.500 seed=2&speed=1&time=day: 1 subject checks
+PASS 16 captures, zero browser errors, all cut assertions and stills present
