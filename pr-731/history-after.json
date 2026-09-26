@@ -1,0 +1,6269 @@
+{
+ "frames": [],
+ "report": {
+  "violations": [
+   {
+    "check": "self",
+    "key": "self|held/mug|own torso",
+    "state": "seed:1:w25",
+    "t": 1.4,
+    "a": "held/mug",
+    "b": "own torso",
+    "value": 0.021,
+    "at": [
+     0.04,
+     0.4,
+     -2.11
+    ],
+    "seen": 1,
+    "detail": "s117 (sip) holds mug[pal_mug] 0.021 m into their own torso",
+    "why": "decision team_offsite"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w25",
+    "t": 10.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.067,
+    "at": [
+     0.5,
+     0.42,
+     1.49
+    ],
+    "seen": 2,
+    "detail": "s2 (walking) in s117 (walking)",
+    "why": "decision team_offsite"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w33",
+    "t": 1.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.068,
+    "at": [
+     -0.49,
+     0.45,
+     1.5
+    ],
+    "seen": 1,
+    "detail": "s2 (walking) in s80 (walking)",
+    "why": "decision onprem_bank"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w43",
+    "t": 14,
+    "a": "person",
+    "b": "person",
+    "value": 0.056,
+    "at": [
+     0.88,
+     0.5,
+     2.15
+    ],
+    "seen": 1,
+    "detail": "s60 (walking) in s117 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w48",
+    "t": 12.4,
+    "a": "person",
+    "b": "person",
+    "value": 0.056,
+    "at": [
+     0.91,
+     0.5,
+     2.04
+    ],
+    "seen": 2,
+    "detail": "s80 (walking) in s79 (walking)",
+    "why": "decision junior_overwhelmed"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w58",
+    "t": 17,
+    "a": "person",
+    "b": "person",
+    "value": 0.076,
+    "at": [
+     -1.7,
+     0.44,
+     2.33
+    ],
+    "seen": 3,
+    "detail": "s2 (walking) in s79 (walking)",
+    "why": "decision incubator_house"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w63",
+    "t": 3.4,
+    "a": "person",
+    "b": "person",
+    "value": 0.062,
+    "at": [
+     2.12,
+     0.47,
+     2.98
+    ],
+    "seen": 2,
+    "detail": "s1 (walking) in s79 (walking)",
+    "why": "decision lockdown_start"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w78",
+    "t": 0,
+    "a": "person",
+    "b": "person",
+    "value": 0.06,
+    "at": [
+     1.37,
+     0.41,
+     -0.65
+    ],
+    "seen": 18,
+    "detail": "s1 (walking) in s60 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w92",
+    "t": 3.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.073,
+    "at": [
+     0.7,
+     0.42,
+     2.32
+    ],
+    "seen": 2,
+    "detail": "s80 (walking) in s79 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w104",
+    "t": 0,
+    "a": "person",
+    "b": "person",
+    "value": 0.059,
+    "at": [
+     0.69,
+     0.45,
+     1.45
+    ],
+    "seen": 25,
+    "detail": "s80 (idle) in s79 (idle)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w113",
+    "t": 16.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.074,
+    "at": [
+     -0.84,
+     0.51,
+     2.52
+    ],
+    "seen": 5,
+    "detail": "s80 (sip) in s79 (walking)",
+    "why": "decision the_stapler"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w130",
+    "t": 7.4,
+    "a": "person",
+    "b": "person",
+    "value": 0.075,
+    "at": [
+     0.52,
+     0.44,
+     -1.59
+    ],
+    "seen": 78,
+    "detail": "s1 (walking) in s669 (still)",
+    "why": "every"
+   },
+   {
+    "check": "self",
+    "key": "self|held/mug|own torso",
+    "state": "seed:1:w130",
+    "t": 8.4,
+    "a": "held/mug",
+    "b": "own torso",
+    "value": 0.01,
+    "at": [
+     -3.01,
+     0.4,
+     -4.65
+    ],
+    "seen": 1,
+    "detail": "s2 (sip) holds mug[pal_mug] 0.010 m into their own torso",
+    "why": "every"
+   },
+   {
+    "check": "self",
+    "key": "self|held/held|own torso",
+    "state": "seed:1:w134",
+    "t": 4,
+    "a": "held/held",
+    "b": "own torso",
+    "value": 0.019,
+    "at": [
+     -0.68,
+     0.41,
+     -4.73
+    ],
+    "seen": 8,
+    "detail": "s635 (walking) holds held[mesh] 0.019 m into their own torso",
+    "why": "decision open_plan_office"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w134",
+    "t": 6.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.073,
+    "at": [
+     0.63,
+     0.44,
+     -1.74
+    ],
+    "seen": 20,
+    "detail": "s2 (walking) in s669 (still)",
+    "why": "decision open_plan_office"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w140",
+    "t": 9.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.113,
+    "at": [
+     1.18,
+     0.89,
+     -0.87
+    ],
+    "seen": 12,
+    "detail": "s694 (walking) in s736 (walking)",
+    "why": "decision cloud_bill"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w143",
+    "t": 8.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.125,
+    "at": [
+     -3.53,
+     0.78,
+     0.14
+    ],
+    "seen": 11,
+    "detail": "s2 (walking) in s60 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w145",
+    "t": 2,
+    "a": "person",
+    "b": "person",
+    "value": 0.09,
+    "at": [
+     -0.33,
+     0.76,
+     -4.35
+    ],
+    "seen": 16,
+    "detail": "s60 (walking) in s694 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w159",
+    "t": 0.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.077,
+    "at": [
+     -5.5,
+     0.44,
+     -0.25
+    ],
+    "seen": 24,
+    "detail": "s2 (walking) in s80 (walking)",
+    "why": "decision hackathon"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w169",
+    "t": 1.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.088,
+    "at": [
+     6.8,
+     0.85,
+     -2.84
+    ],
+    "seen": 16,
+    "detail": "s694 (walking) in s697 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w182",
+    "t": 1.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.055,
+    "at": [
+     2.83,
+     0.38,
+     -0.51
+    ],
+    "seen": 8,
+    "detail": "s693 (walking) in s697 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w195",
+    "t": 3.4,
+    "a": "person",
+    "b": "person",
+    "value": 0.074,
+    "at": [
+     -6.87,
+     0.91,
+     -2.09
+    ],
+    "seen": 11,
+    "detail": "s1 (walking) in s60 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w197",
+    "t": 6.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.067,
+    "at": [
+     -2.05,
+     0.49,
+     0.07
+    ],
+    "seen": 2,
+    "detail": "s79 (sip) in s695 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w208",
+    "t": 6,
+    "a": "person",
+    "b": "person",
+    "value": 0.088,
+    "at": [
+     -4.32,
+     0.78,
+     0.16
+    ],
+    "seen": 10,
+    "detail": "s1 (walking) in s694 (walking)",
+    "why": "decision hackathon_week"
+   },
+   {
+    "check": "self",
+    "key": "self|held/mug|own torso",
+    "state": "seed:1:w208",
+    "t": 26.4,
+    "a": "held/mug",
+    "b": "own torso",
+    "value": 0.012,
+    "at": [
+     -2.75,
+     0.4,
+     -4.78
+    ],
+    "seen": 1,
+    "detail": "s79 (sip) holds mug[pal_mug] 0.012 m into their own torso",
+    "why": "decision hackathon_week"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w221",
+    "t": 4,
+    "a": "person",
+    "b": "person",
+    "value": 0.074,
+    "at": [
+     0.09,
+     0.41,
+     3.38
+    ],
+    "seen": 7,
+    "detail": "s632 (walking) in s669 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w234",
+    "t": 7.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.025,
+    "at": [
+     0.22,
+     0.59,
+     4.59
+    ],
+    "seen": 2,
+    "detail": "s79 (walking) in s697 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w247",
+    "t": 0,
+    "a": "person",
+    "b": "person",
+    "value": 0.077,
+    "at": [
+     4.95,
+     0.76,
+     0.57
+    ],
+    "seen": 10,
+    "detail": "s693 (idle) in s697 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w250",
+    "t": 21.4,
+    "a": "person",
+    "b": "person",
+    "value": 0.047,
+    "at": [
+     0.76,
+     0.38,
+     -1.77
+    ],
+    "seen": 1,
+    "detail": "s1 (walking) in s635 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w260",
+    "t": 3,
+    "a": "person",
+    "b": "person",
+    "value": 0.056,
+    "at": [
+     0.03,
+     0.5,
+     4.61
+    ],
+    "seen": 4,
+    "detail": "s117 (walking) in s632 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w273",
+    "t": 8.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.065,
+    "at": [
+     1.26,
+     0.51,
+     -3.03
+    ],
+    "seen": 5,
+    "detail": "s2 (walking) in s79 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w286",
+    "t": 0,
+    "a": "person",
+    "b": "person",
+    "value": 0.136,
+    "at": [
+     2.71,
+     0.8,
+     3.3
+    ],
+    "seen": 126,
+    "detail": "s1701 (walking) in s1703 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "screen",
+    "key": "screen|bubble|face",
+    "state": "seed:1:w291",
+    "t": 0.87,
+    "a": "bubble",
+    "b": "face",
+    "value": 0.253,
+    "at": null,
+    "seen": 37,
+    "detail": "bubble \"I'd recommend writing the tests first. I\" over s1633's face",
+    "why": "decision cover_sheets"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w291",
+    "t": 24.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.078,
+    "at": [
+     4.45,
+     0.46,
+     -1.42
+    ],
+    "seen": 29,
+    "detail": "s80 (walking) in s1670 (walking)",
+    "why": "decision cover_sheets"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w295",
+    "t": 26.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.116,
+    "at": [
+     4.75,
+     0.88,
+     -3.71
+    ],
+    "seen": 30,
+    "detail": "s669 (still) in s1576 (walking)",
+    "why": "decision enterprise_rfp"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w298",
+    "t": 22,
+    "a": "person",
+    "b": "person",
+    "value": 0.097,
+    "at": [
+     -3.12,
+     0.77,
+     3.22
+    ],
+    "seen": 31,
+    "detail": "s60 (walking) in s1701 (walking)",
+    "why": "decision pet_mishap"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w299",
+    "t": 3.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.075,
+    "at": [
+     7.91,
+     0.91,
+     -3.21
+    ],
+    "seen": 17,
+    "detail": "s1705 (still) in s1703 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w301",
+    "t": 17.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.073,
+    "at": [
+     -4.31,
+     0.46,
+     -0.62
+    ],
+    "seen": 9,
+    "detail": "s79 (walking) in s1793 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "screen",
+    "key": "screen|bubble|face",
+    "state": "seed:1:w312",
+    "t": 0.33,
+    "a": "bubble",
+    "b": "face",
+    "value": 1,
+    "at": null,
+    "seen": 34,
+    "detail": "bubble \"It ended with 'let me know if you'd like\" over s2's face (likely its speaker)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w312",
+    "t": 3,
+    "a": "person",
+    "b": "person",
+    "value": 0.069,
+    "at": [
+     2.95,
+     0.44,
+     -0.78
+    ],
+    "seen": 11,
+    "detail": "s2 (walking) in s695 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "self",
+    "key": "self|held/mug|own torso",
+    "state": "seed:1:w312",
+    "t": 7,
+    "a": "held/mug",
+    "b": "own torso",
+    "value": 0.024,
+    "at": [
+     3.09,
+     0.39,
+     -3.2
+    ],
+    "seen": 1,
+    "detail": "s1633 (sip) holds mug[pal_mug] 0.024 m into their own torso",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w315",
+    "t": 6.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.089,
+    "at": [
+     2.01,
+     0.85,
+     -0.6
+    ],
+    "seen": 18,
+    "detail": "s60 (walking) in s1703 (walking)",
+    "why": "decision phishing_ceo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w325",
+    "t": 4.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.098,
+    "at": [
+     -8.98,
+     0.81,
+     1.79
+    ],
+    "seen": 57,
+    "detail": "s117 (still) in s1736 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "screen",
+    "key": "screen|bubble|face",
+    "state": "seed:1:w328",
+    "t": 0.57,
+    "a": "bubble",
+    "b": "face",
+    "value": 0.329,
+    "at": null,
+    "seen": 8,
+    "detail": "bubble \"A customer said thank you. I am keeping \" over s1633's face (likely its speaker)",
+    "why": "era agents"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w328",
+    "t": 6,
+    "a": "person",
+    "b": "person",
+    "value": 0.13,
+    "at": [
+     4.82,
+     0.81,
+     -4.01
+    ],
+    "seen": 14,
+    "detail": "s60 (walking) in s1736 (walking)",
+    "why": "era agents"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w338",
+    "t": 2.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.119,
+    "at": [
+     -1.42,
+     0.8,
+     -0.94
+    ],
+    "seen": 13,
+    "detail": "s694 (walking) in s697 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w350",
+    "t": 0.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.079,
+    "at": [
+     0.42,
+     0.43,
+     6.88
+    ],
+    "seen": 40,
+    "detail": "s79 (celebrate) in s736 (celebrate)",
+    "why": "decision oat_milk"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w351",
+    "t": 7,
+    "a": "person",
+    "b": "person",
+    "value": 0.079,
+    "at": [
+     -0.02,
+     0.44,
+     -0.01
+    ],
+    "seen": 3,
+    "detail": "s2 (walking) in s79 (still)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w353",
+    "t": 10.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.128,
+    "at": [
+     4.99,
+     0.8,
+     -4.32
+    ],
+    "seen": 31,
+    "detail": "s1539 (walking) in s1703 (walking)",
+    "why": "decision conference_expo"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w360",
+    "t": 12.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.058,
+    "at": [
+     -4.77,
+     0.44,
+     -0.86
+    ],
+    "seen": 39,
+    "detail": "s1734 (sip) in s1793 (walking)",
+    "why": "decision pet_mishap"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w364",
+    "t": 6.6,
+    "a": "person",
+    "b": "person",
+    "value": 0.07,
+    "at": [
+     -0.28,
+     0.51,
+     -1.91
+    ],
+    "seen": 6,
+    "detail": "s669 (walking) in s1539 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w377",
+    "t": 8.2,
+    "a": "person",
+    "b": "person",
+    "value": 0.075,
+    "at": [
+     5.46,
+     0.39,
+     -4.58
+    ],
+    "seen": 7,
+    "detail": "s1539 (walking) in s1670 (sip)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w390",
+    "t": 6.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.068,
+    "at": [
+     0.34,
+     0.4,
+     -0.65
+    ],
+    "seen": 12,
+    "detail": "s669 (walking) in s1539 (walking)",
+    "why": "every"
+   },
+   {
+    "check": "person",
+    "key": "person|person|person",
+    "state": "seed:1:w400",
+    "t": 15.8,
+    "a": "person",
+    "b": "person",
+    "value": 0.155,
+    "at": [
+     -1.25,
+     0.81,
+     -2.09
+    ],
+    "seen": 16,
+    "detail": "s1 (walking) in s695 (walking)",
+    "why": "decision mission_test_support"
+   },
+   {
+    "check": "self",
+    "key": "self|held/mug|own torso",
+    "state": "seed:1:w400",
+    "t": 18.6,
+    "a": "held/mug",
+    "b": "own torso",
+    "value": 0.026,
+    "at": [
+     3.06,
+     0.39,
+     -6.87
+    ],
+    "seen": 1,
+    "detail": "s632 (sip) holds mug[pal_mug] 0.026 m into their own torso",
+    "why": "decision mission_test_support"
+   }
+  ],
+  "windows": [
+   {
+    "state": "seed:1:w0",
+    "why": "stage 0",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 4,
+    "staff": 2,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w5",
+    "why": "decision first_user_test",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 8,
+    "staff": 2,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w13",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 9,
+    "staff": 2,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w25",
+    "why": "decision team_offsite",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 13,
+    "staff": 6,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w26",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 13,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w33",
+    "why": "decision onprem_bank",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 14,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w39",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w43",
+    "why": "decision conference_expo",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 17,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w48",
+    "why": "decision junior_overwhelmed",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 17,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w52",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w58",
+    "why": "decision incubator_house",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 17,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w63",
+    "why": "decision lockdown_start",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 18,
+    "staff": 6,
+    "props": 2
+   },
+   {
+    "state": "seed:1:w65",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 17,
+    "staff": 6,
+    "props": 2
+   },
+   {
+    "state": "seed:1:w78",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w91",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w92",
+    "why": "decision conference_expo",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 17,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w104",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w113",
+    "why": "decision the_stapler",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w117",
+    "why": "every",
+    "stage": 0,
+    "era": "classic",
+    "bodies": 16,
+    "staff": 6,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w119",
+    "why": "stage 1",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 15,
+    "staff": 6,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w130",
+    "why": "every",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w134",
+    "why": "decision open_plan_office",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w140",
+    "why": "decision cloud_bill",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w143",
+    "why": "every",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w145",
+    "why": "decision conference_expo",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w156",
+    "why": "every",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w159",
+    "why": "decision hackathon",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w169",
+    "why": "every",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w182",
+    "why": "every",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w195",
+    "why": "every",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w197",
+    "why": "decision conference_expo",
+    "stage": 1,
+    "era": "classic",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w198",
+    "why": "era chatgbt",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 30,
+    "staff": 14,
+    "props": 2
+   },
+   {
+    "state": "seed:1:w208",
+    "why": "decision hackathon_week",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w221",
+    "why": "every",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w234",
+    "why": "every",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w247",
+    "why": "every",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w250",
+    "why": "decision conference_expo",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 30,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w260",
+    "why": "every",
+    "stage": 1,
+    "era": "chatgbt",
+    "bodies": 29,
+    "staff": 14,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w261",
+    "why": "stage 2",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 28,
+    "staff": 14,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w273",
+    "why": "every",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 33,
+    "staff": 16,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w286",
+    "why": "every",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 43,
+    "staff": 23,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w291",
+    "why": "decision cover_sheets",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 50,
+    "staff": 24,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w295",
+    "why": "decision enterprise_rfp",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 51,
+    "staff": 26,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w298",
+    "why": "decision pet_mishap",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 54,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w299",
+    "why": "every",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w301",
+    "why": "decision conference_expo",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 54,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w312",
+    "why": "every",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w315",
+    "why": "decision phishing_ceo",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 54,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w325",
+    "why": "every",
+    "stage": 2,
+    "era": "chatgbt",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w328",
+    "why": "era agents",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w338",
+    "why": "every",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 54,
+    "staff": 27,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w350",
+    "why": "decision oat_milk",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 55,
+    "staff": 27,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w351",
+    "why": "every",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 54,
+    "staff": 27,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w353",
+    "why": "decision conference_expo",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 55,
+    "staff": 27,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w360",
+    "why": "decision pet_mishap",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 55,
+    "staff": 27,
+    "props": 1
+   },
+   {
+    "state": "seed:1:w364",
+    "why": "every",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w377",
+    "why": "every",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w390",
+    "why": "every",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 53,
+    "staff": 27,
+    "props": 0
+   },
+   {
+    "state": "seed:1:w400",
+    "why": "decision mission_test_support",
+    "stage": 2,
+    "era": "agents",
+    "bodies": 54,
+    "staff": 27,
+    "props": 0
+   }
+  ],
+  "end": {
+   "week": 401,
+   "over": null
+  }
+ },
+ "history": [
+  {
+   "week": 390,
+   "frame": 6,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 12,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 18,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 24,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 30,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 36,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 42,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 48,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 54,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 60,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 66,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 72,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 78,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 84,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 90,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 96,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 102,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 108,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 114,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 120,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 126,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 132,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 138,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 144,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 150,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 156,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 162,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 168,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 174,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 180,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 186,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 192,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 198,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 204,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 210,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 216,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 222,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 228,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 234,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 240,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 246,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 252,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 258,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 264,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 270,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 276,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 282,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 390,
+   "frame": 288,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 294,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 300,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 306,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 312,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 318,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 324,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 330,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 336,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 342,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 348,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 354,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 360,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 366,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 372,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 378,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 384,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 390,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 396,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 402,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 408,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 414,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 420,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 426,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 432,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 438,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 444,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 450,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 456,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 462,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 468,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 474,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 480,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 486,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 492,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 498,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 504,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 510,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 516,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 522,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 528,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 534,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 540,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 546,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 552,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 558,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 564,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 570,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 576,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 582,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 588,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 594,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 600,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 606,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 612,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 618,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 624,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 630,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 636,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 642,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 648,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 654,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 660,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 666,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 672,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 678,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 684,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 690,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 696,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 702,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 708,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 714,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 720,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 726,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 732,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 738,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 744,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 750,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 756,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 762,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 768,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 774,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 780,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 786,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 792,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 798,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 804,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 810,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 816,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 822,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 828,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 834,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 840,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 846,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 852,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 858,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 864,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 870,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 876,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 882,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 888,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 894,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 900,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 906,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 912,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 918,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 924,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 930,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 936,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 942,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 948,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 954,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 960,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 966,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 972,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 978,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 984,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 990,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 996,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1002,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1008,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1014,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1020,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1026,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1032,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1038,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1044,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1050,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1056,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1062,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1068,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1074,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1080,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1086,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1092,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1098,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1104,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1110,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1116,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1122,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1128,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1134,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1140,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1146,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  },
+  {
+   "week": 400,
+   "frame": 1152,
+   "walk": {
+    "mode": "placed",
+    "hidden": false,
+    "speed": 1.25,
+    "path": [],
+    "goal": {
+     "x": 9,
+     "z": -6.18,
+     "yaw": 0,
+     "key": "desk-9.00,-6.18,0.00-ok-",
+     "anim": "typing",
+     "seated": true,
+     "hidden": false
+    },
+    "temp": null
+   },
+   "pos": [
+    9,
+    0,
+    -6.229894874309176
+   ]
+  }
+ ]
+}
