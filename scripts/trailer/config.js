@@ -69,7 +69,7 @@ export const BEATS = [
   // The hire panel: a candidate hired.
   { id: 'hire', item: 'trail-hire', from: 0.6, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
-  { id: 'launch', item: 'trail-launch', from: 49.6, dur: 2.4 },
+  { id: 'launch', item: 'trail-launch', from: 77.3, dur: 2.4 },
   { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
   // A meme posted mid-outage, and the reactions.
   // After the unlock card the week raises is closed (about 31 s in); speech bubbles hidden.

@@ -642,14 +642,14 @@ export const ITEMS = [
     screenshots: [1.5, 2.5, 4],
   },
   {
-    // Trailer beat 5b: a new product's launch on the Office Floor and its reviews card (an update gets
+    // Trailer beat 5b: a hit (9+) launched on the Office Floor, seed 14, and its reviews card (an update gets
     // a card only when its score moves). The results card waits out the UI's spacing after the
     // last card closes (4 weeks here), so it lands about 50 s in.
-    id: 'trail-launch', group: 'trailer', title: 'Trailer: a launch on the Office Floor', query: 'seed=1&speed=1', seconds: 64, warmup: 0.5,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'launch' && c.products.find((p) => p.id === e.productId)?.version === 1)" })}; ${BARE}; ${NO_SAY}; })()`,
+    id: 'trail-launch', group: 'trailer', title: 'Trailer: a launch on the Office Floor', query: 'seed=14&speed=1', seconds: 100, warmup: 0.5,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'launch' && ((p) => p?.version === 1 && p.score >= 9)(c.products.find((p) => p.id === e.productId)))" })}; ${BARE}; ${NO_SAY}; })()`,
     // Unlock and "new things to place" cards close as a player would ("Got it", "Later"); the launch
     // card ("Nice!") stays up.
-    actions: [...Array.from({ length: 60 }, (_, i) => ({ at: 0.1 + i, js: "[...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && ['Got it', 'Later'].includes(b.textContent.trim())).forEach((b) => b.click())" })), ...CHOOSE_WHEN(null, 0, 1, 60, 2)],
-    screenshots: [44, 48, 50, 52, 56, 60],
+    actions: [...Array.from({ length: 96 }, (_, i) => ({ at: 0.1 + i, js: "[...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && ['Got it', 'Later'].includes(b.textContent.trim())).forEach((b) => b.click())" })), ...CHOOSE_WHEN(null, 0, 1, 96, 2)],
+    screenshots: [60, 66, 72, 78, 84, 90, 96],
   },
 ];
