@@ -172,12 +172,14 @@ export const ITEMS = [
     // holds still under the card (the bill), so the camera pushes in on the hot rack.
     id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=4&speed=1', seconds: 22, warmup: 0.5,
     setup: `(async () => { await ${RUNAWAY}; ${BARE}; ${CARD_IN} })()`,
-    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...FOLLOW(BOX('rack_hot'), 2.8, 0, 22), ...CAMLOG(22)],
+    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...CAMLOG(22)],
+    // The camera holds still on the rack, so the loop's two ends frame the same.
+    // The rack's bounds grow with its smoke, so the aim point is taken once, when it appears.
+    camera: [{ at: 0, target: { js: `(window.__rackAt ??= (${BOX('rack_hot')})() ?? undefined)` }, zoom: 2.8 }],
     screenshots: [10, 14, 18],
     // Cropped round the smoking rack and the bill card at native pixels, from the stretch where the
-    // card keeps its incident footer, cut straight with no crossfade (the card changes height at the
-    // blend otherwise).
-    out: [{ ...LOOP('automation', 10.4, 6, { x: 0.2396, y: 0.0185, w: 0.7083, h: 0.7083 }, 29), loop: 'none' }],
+    // card keeps its incident footer (so the blend at the loop point never changes the card).
+    out: [{ ...LOOP('automation', 11.0, 4.3, { x: 0.2396, y: 0.0185, w: 0.7083, h: 0.7083 }, 29), xfade: 0.8 }],
   },
 
   // New on the page: Yak, the Office Space nods, and decisions you can see.
