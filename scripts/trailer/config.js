@@ -72,7 +72,7 @@ const PARTY = { js: '(() => { const R = window.__hitlRender; const c = R.incenti
 // Hides the docked era card, so an era beat shows the office redressing itself.
 const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '#ui .announce-back.docked, #ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, .hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
 
-// Scene 7b remains capturable while its facepalm pose/staging awaits an art fix.
+// Scene 7b is available in the capture manifest but excluded from the trailer cut.
 export const DEFERRED_CAPTURES = [
   { id: 'yak-react', item: 'site-yak-backfire', capture: { still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
 ];
