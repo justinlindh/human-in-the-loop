@@ -165,6 +165,8 @@ export function createBuildMode({ layer, ctx, controls }) {
     toggleClass(tip, 'bad', st.ok === false);
     tip.style.display = hover ? '' : 'none';
     placeBtn.style.display = !mouseAim && hover ? '' : 'none';
+    // Dim and inert while the aimed spot is blocked; the status line says why.
+    placeBtn.disabled = st.ok === false;
     toggleClass(bar, 'aimed', !mouseAim && !!hover);
     highlight(st.ok ? st.ids : null);
   }

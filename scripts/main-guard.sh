@@ -35,6 +35,8 @@ if [ -n "$loop" ]; then
 fi
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+# infra_failure: tells a machine failure (out of disk, memory or GPU) from a real one.
+source "$REPO/scripts/lib/ci-capacity.sh"
 ROOT="${CI_WORKTREE_ROOT:-$HOME/.cache/hitl-ci}"
 LOCKS="${HITL_LOCK_DIR:-$HOME/.cache/hitl-ci}"
 STATE="$ROOT/main-guard"
@@ -93,7 +95,8 @@ status() { # <state> <description>
 }
 
 # Each run can be replaced for tests (scripts/main-guard.test.sh): MAIN_GUARD_SUITE (writes $SUMMARY),
-# MAIN_GUARD_STRICT (writes $OUT/report.json) and MAIN_GUARD_PERF (prints budget lines, exit 1 on a breach).
+# MAIN_GUARD_STRICT (writes $OUT/report.json), MAIN_GUARD_GOLDEN (the uncached golden run) and
+# MAIN_GUARD_PERF (prints budget lines, exit 1 on a breach).
 run() { # <override> <log> <command...>, in the worktree $WT
   local override="$1" log="$2"; shift 2
   if [ -n "$override" ]; then (cd "$WT" && SUMMARY="$summary" OUT="$out" bash -c "$override") >"$log" 2>&1
@@ -107,7 +110,7 @@ gate() {
   WT="$ROOT/main-guard-$cs-$$"
   # A failed checkout (a full disk, a git lock) says nothing about the commit: retry once, then set
   # gate_err so no caller counts it as red. So does local CI failing only on the machine (exit 3).
-  gate_err=0; gate_why=""
+  gate_err=0; gate_why=""; golden_rc=0
   if ! git -C "$REPO" worktree add -q --detach "$WT" "$c"; then
     rm -rf "$WT"; git -C "$REPO" worktree prune
     sleep "${MAIN_GUARD_RETRY_WAIT:-30}"
@@ -129,6 +132,13 @@ gate() {
     gate_why="$(grep -oE 'error: machine \([^|]*\)' "$summary" 2>/dev/null | sed 's/ *$//' | sort -u | paste -sd';' -)"
   fi
   run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
+  # Golden with no cache: local CI's golden skips scenes whose inputs it has seen pass, so a cache bug
+  # would quietly stop it catching regressions. Here every scene renders, on every commit checked.
+  run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --software timeout 900 nice -n 10 node blender/checks/golden.mjs --jobs=4
+  golden_rc=$?
+  if [ "$golden_rc" -ne 0 ] && gwhy="$(infra_failure "$STATE/$cs.golden.log" 999)"; then
+    gate_err=1; golden_rc=0; gate_why="${gate_why:+$gate_why; }golden: $gwhy"
+  fi
   local counts
   counts="$(node -e '
     const fs = require("fs"); let r;
@@ -149,6 +159,7 @@ red_steps() { # <short>: the failing parts of the gate just run
   local cs="$1" parts=()
   [ "$ci_rc" -eq 0 ] || parts+=("$(grep -E '\| (FAIL|error)' "$STATE/$cs.md" 2>/dev/null | cut -d'|' -f2 | tr -d ' ' | paste -sd, - | sed 's/^$/local-ci/')")
   [ "$gate_new" = 0 ] || parts+=("sweep")
+  [ "$golden_rc" = 0 ] || parts+=("golden-uncached")
   local IFS=', '; echo "${parts[*]}"
 }
 
