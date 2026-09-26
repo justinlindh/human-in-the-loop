@@ -249,7 +249,8 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (fx.ownerFlag && person) (state.flags.owners ??= {})[fx.ownerFlag] = person.id;
   for (const c of [fx.chat].flat().filter(Boolean)) {
     if (c.text.includes('{first}') && !person) continue;
-    const text = c.text.replaceAll('{first}', person?.name.split(' ')[0] ?? '').replaceAll('{name}', person?.name ?? '');
+    const text = c.text.replaceAll('{first}', person?.name.split(' ')[0] ?? '').replaceAll('{name}', person?.name ?? '')
+      .replaceAll('{company}', state.companyName).replaceAll('{rival}', state.rival?.name ?? 'A rival');
     emitChat(ctx, { channel: c.channel ?? 'general', from: c.from, text });
   }
   if (fx.ransom) state.cash -= vars?.ransom ?? ransomFor(state);

@@ -215,6 +215,10 @@ function runJoke(ctx, stream, talk, h) {
     remember(talk, planned.lines);
     j.step++;
     j.next = state.week + int(rng, ...B.jokeGapWeeks);
+    // A joke that ends in a decision raises it the week after its last beat, with its first cast member as subject.
+    if (joke.then && j.step >= joke.beats.length) {
+      state.scheduled.push({ id: newId(state, 'sch'), week: state.week + 1, kind: 'event', payload: { eventId: joke.then, subjectId: j.cast.a ?? null } });
+    }
     return true;
   }
   return false;

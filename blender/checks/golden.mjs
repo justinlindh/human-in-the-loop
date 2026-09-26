@@ -82,14 +82,14 @@ mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
 let failed = 0;
-async function runScene(sc, slot) {
-  const { page, errors, requests } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
-  const png = await page.evaluate(async ({ setup, steps, zoom, at }) => {
+// A scene's page script: set it up, step it to its pose, and return the canvas as a PNG data URL.
+// settle draws only each run of frames' last (__settle); false draws every frame (__step).
+const POSE = async ({ setup, steps, zoom, at, settle }) => {
     const R = window.__hitlRender;
     const S = window.__HITL?.state;
     window.__focus = null; window.__nap = null;
     if (setup) (0, eval)(setup);
-    const step = window.__settle;
+    const step = settle ? window.__settle : window.__step;
     step(10);
     if (window.__nap) {
       const who = S.staff[0].id;
@@ -106,7 +106,12 @@ async function runScene(sc, slot) {
     step(steps);
     const c = document.querySelector('canvas');
     return c.toDataURL('image/png');
-  }, { setup: sc.setup ?? '', steps: sc.steps, zoom: sc.zoom ?? 1, at: sc.at ?? null });
+  };
+const poseArgs = (sc, settle) => ({ setup: sc.setup ?? '', steps: sc.steps, zoom: sc.zoom ?? 1, at: sc.at ?? null, settle });
+
+async function runScene(sc, slot) {
+  const { page, errors, requests } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
+  const png = await page.evaluate(POSE, poseArgs(sc, true));
   const buf = Buffer.from(png.split(',')[1], 'base64');
   const refPath = join(REF, `${sc.name}.png`);
   if (UPDATE || !existsSync(refPath)) {
@@ -155,8 +160,27 @@ await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, async (_, 
     try { await runScene(sc, slot); } catch (e) { failed++; results.set(sc.name, `${sc.name}: ERROR ${e.message.split('\n')[0]}`); }
   }
 }));
+// Drawing only the final frame is exact only while nothing in the draw path carries state from one
+// frame to the next (history buffers, accumulation, trails in post). Whenever golden renders, one
+// scene is also drawn frame by frame and must match its settled render byte for byte, so such an
+// effect fails here instead of drifting every reference.
+const IDENTITY = SCENES.find((sc) => sc.name === 'char-lineup');
+async function identity() {
+  const shot = async (settle) => {
+    const { page } = await H.openScene(`quality=medium&${IDENTITY.query}`, { width: W, height: H_PX });
+    try { return await page.evaluate(POSE, poseArgs(IDENTITY, settle)); } finally { await page.close(); }
+  };
+  const [stepped, settled] = [await shot(false), await shot(true)];
+  return stepped === settled;
+}
+let identical = true;
+try { identical = await identity(); } catch (e) { identical = false; console.log(`golden: identity check failed to run: ${e.message.split('\n')[0]}`); }
 await H.close();
 for (const sc of selected) console.log(`GOLDEN ${results.get(sc.name)}`);
+if (!identical) {
+  failed++;
+  console.log(`golden: ${IDENTITY.name} drawn frame by frame differs from its final-frame render; something in the draw path now keeps state between frames, so __settle is no longer exact`);
+} else console.log(`golden: ${IDENTITY.name} is byte-identical drawn frame by frame and final frame only`);
 console.log(`golden: rendered ${todo.length} of ${selected.length} scenes; ${selected.length - todo.length} unchanged, skipped`);
 if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended`);
 process.exit(failed ? 1 : 0);

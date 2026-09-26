@@ -70,6 +70,22 @@ fi
 
 out="$(cd "$r" && bash scripts/gates.sh --moment nosuch --only test 2>&1)"; rc=$?
 [ $rc -eq 2 ] && [[ "$out" == *"known: printer"* ]] || fail "an unknown moment should exit 2 and list the known ones (rc $rc: $out)"
+# Which sweep --moment picks, from find.js's JSON: a snapshot, none, or an index that can't answer.
+mkdir -p "$r/scripts/events"
+printf 'process.stdout.write(process.env.FIND_OUT ?? "[]"); process.exit(Number(process.env.FIND_RC ?? 0));\n' >"$r/scripts/events/find.js"
+for c in '[{"id":"printer_jam","snapshot":"1-a-w5.json.gz"}]|0|gates: sweep: printer_jam from its indexed snapshot' \
+         '[]|1|gates: sweep: no indexed snapshot of printer_jam'; do
+  IFS='|' read -r fo frc want <<<"$c"
+  out="$(cd "$r" && FIND_OUT="$fo" FIND_RC="$frc" bash scripts/gates.sh --moment printer --only test 2>&1)"; rc=$?
+  [ $rc -eq 0 ] && [[ "$out" == *"$want"* ]] || fail "find.js answering $fo (exit $frc) should print: $want and pass (rc $rc: $(grep 'gates:' <<<"$out" | tail -2))"
+done
+# A refusal (exit 2 with { error, kind }, or no JSON) stops gates before any gate runs.
+for c in '{"error":"no index for this sim code","kind":"no-index"}|2|no-index' 'not json|0|find.js gave no JSON'; do
+  IFS='|' read -r fo frc want <<<"$c"
+  out="$(cd "$r" && FIND_OUT="$fo" FIND_RC="$frc" bash scripts/gates.sh --moment printer --only test 2>&1)"; rc=$?
+  [ $rc -eq 2 ] && [[ "$out" == *"couldn't answer for printer_jam"*"$want"* ]] && [[ "$out" != *"| test |"* ]] || fail "find.js refusing ($fo, exit $frc) should stop gates with exit 2 naming $want (rc $rc: $(tail -2 <<<"$out"))"
+done
+
 out="$(cd "$r" && bash scripts/gates.sh --only nosuch 2>&1)"; rc=$?
 [ $rc -eq 2 ] || fail "an unknown gate should exit 2 (rc $rc)"
 
