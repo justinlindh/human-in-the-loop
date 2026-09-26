@@ -49,7 +49,7 @@ function nearestFree(state, x, y) {
 }
 
 // In the office this week: not away (sabbatical, leave) and not remote.
-export const isIn = (p) => p.mood !== 'away' && !p.remote;
+export const isIn = (p) => p.mood !== 'away' && !p.remote && p.assignment?.type !== 'sabbatical';
 
 // Where a staged prop goes for an anchor; null for 'screens', which has no tile.
 export function stageTile(state, anchor, subjectId) {
