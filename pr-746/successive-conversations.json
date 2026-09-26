@@ -1,0 +1,326 @@
+{
+  "standup-successive-1": {
+    "seconds": 32,
+    "errors": 0,
+    "origin": "origin 6.433333333333313",
+    "meetings": [
+      {
+        "start": 8.433333333333321,
+        "week": 111,
+        "lines": [
+          {
+            "staffId": "s552",
+            "text": "Any questions we are avoiding?",
+            "name": "Rachel Aziz"
+          },
+          {
+            "staffId": "s114",
+            "text": "What does done mean for this week?",
+            "name": "Kevin Rossi"
+          },
+          {
+            "staffId": "s2",
+            "text": "Something small that another person can check.",
+            "name": "Aarav Singh"
+          },
+          {
+            "staffId": "s556",
+            "text": "I like that. Harder to hide behind a percentage.",
+            "name": "Amina Jackson"
+          },
+          {
+            "staffId": "s198",
+            "text": "My percentage feels personally attacked.",
+            "name": "Femi Varga"
+          }
+        ],
+        "shown": [
+          {
+            "text": "Any questions we are avoiding?",
+            "at": 10.833333333333364
+          },
+          {
+            "text": "What does done mean for this week?",
+            "at": 15.03333333333344
+          },
+          {
+            "text": "Something small that another person can check.",
+            "at": 19.499999999999986
+          },
+          {
+            "text": "I like that. Harder to hide behind a percentage.",
+            "at": 24.666666666666462
+          },
+          {
+            "text": "My percentage feels personally attacked.",
+            "at": 29.96666666666627
+          }
+        ],
+        "end": 35.06666666666641
+      }
+    ]
+  },
+  "standup-successive-2": {
+    "seconds": 23,
+    "errors": 0,
+    "origin": "origin 179.46666666667332",
+    "meetings": [
+      {
+        "start": 8.433333333333321,
+        "week": 111,
+        "lines": [
+          {
+            "staffId": "s552",
+            "text": "Any questions we are avoiding?",
+            "name": "Rachel Aziz"
+          },
+          {
+            "staffId": "s114",
+            "text": "What does done mean for this week?",
+            "name": "Kevin Rossi"
+          },
+          {
+            "staffId": "s2",
+            "text": "Something small that another person can check.",
+            "name": "Aarav Singh"
+          },
+          {
+            "staffId": "s556",
+            "text": "I like that. Harder to hide behind a percentage.",
+            "name": "Amina Jackson"
+          },
+          {
+            "staffId": "s198",
+            "text": "My percentage feels personally attacked.",
+            "name": "Femi Varga"
+          }
+        ],
+        "shown": [
+          {
+            "text": "Any questions we are avoiding?",
+            "at": 10.833333333333364
+          },
+          {
+            "text": "What does done mean for this week?",
+            "at": 15.033333333333442
+          },
+          {
+            "text": "Something small that another person can check.",
+            "at": 19.499999999999982
+          },
+          {
+            "text": "I like that. Harder to hide behind a percentage.",
+            "at": 24.666666666666462
+          },
+          {
+            "text": "My percentage feels personally attacked.",
+            "at": 29.966666666666267
+          }
+        ],
+        "end": 35.06666666666641
+      },
+      {
+        "start": 181.46666666667392,
+        "week": 131,
+        "lines": [
+          {
+            "staffId": "s592",
+            "text": "How much of Product 7 are we taking on?",
+            "name": "David Ferreira"
+          },
+          {
+            "staffId": "s163",
+            "text": "Product 7: 26%. Keeping the first version small.",
+            "name": "Deepa Rao"
+          },
+          {
+            "staffId": "s556",
+            "text": "Good. Small enough that we can explain it.",
+            "name": "Amina Jackson"
+          }
+        ],
+        "shown": [
+          {
+            "text": "We shipped it. I am taking my hands off the keyboard.",
+            "at": 181.46666666667392
+          },
+          {
+            "text": "How much of Product 7 are we taking on?",
+            "at": 183.9333333333413
+          },
+          {
+            "text": "Product 7: 26%. Keeping the first version small.",
+            "at": 188.70000000000934
+          },
+          {
+            "text": "Good. Small enough that we can explain it.",
+            "at": 194.00000000001089
+          },
+          {
+            "text": "A small cheer before we look at support.",
+            "at": 199.23333333334574
+          }
+        ],
+        "end": 199.23333333334574
+      }
+    ]
+  },
+  "standup-successive-3": {
+    "seconds": 34,
+    "errors": 0,
+    "origin": "origin 370.7333333333003",
+    "meetings": [
+      {
+        "start": 8.43333333333332,
+        "week": 111,
+        "lines": [
+          {
+            "staffId": "s552",
+            "text": "Any questions we are avoiding?",
+            "name": "Rachel Aziz"
+          },
+          {
+            "staffId": "s114",
+            "text": "What does done mean for this week?",
+            "name": "Kevin Rossi"
+          },
+          {
+            "staffId": "s2",
+            "text": "Something small that another person can check.",
+            "name": "Aarav Singh"
+          },
+          {
+            "staffId": "s556",
+            "text": "I like that. Harder to hide behind a percentage.",
+            "name": "Amina Jackson"
+          },
+          {
+            "staffId": "s198",
+            "text": "My percentage feels personally attacked.",
+            "name": "Femi Varga"
+          }
+        ],
+        "shown": [
+          {
+            "text": "Any questions we are avoiding?",
+            "at": 10.833333333333362
+          },
+          {
+            "text": "What does done mean for this week?",
+            "at": 15.03333333333344
+          },
+          {
+            "text": "Something small that another person can check.",
+            "at": 19.499999999999986
+          },
+          {
+            "text": "I like that. Harder to hide behind a percentage.",
+            "at": 24.666666666666465
+          },
+          {
+            "text": "My percentage feels personally attacked.",
+            "at": 29.966666666666274
+          }
+        ],
+        "end": 35.0666666666664
+      },
+      {
+        "start": 181.46666666667386,
+        "week": 131,
+        "lines": [
+          {
+            "staffId": "s592",
+            "text": "How much of Product 7 are we taking on?",
+            "name": "David Ferreira"
+          },
+          {
+            "staffId": "s163",
+            "text": "Product 7: 26%. Keeping the first version small.",
+            "name": "Deepa Rao"
+          },
+          {
+            "staffId": "s556",
+            "text": "Good. Small enough that we can explain it.",
+            "name": "Amina Jackson"
+          }
+        ],
+        "shown": [
+          {
+            "text": "We shipped it. I am taking my hands off the keyboard.",
+            "at": 181.46666666667386
+          },
+          {
+            "text": "How much of Product 7 are we taking on?",
+            "at": 183.93333333334127
+          },
+          {
+            "text": "Product 7: 26%. Keeping the first version small.",
+            "at": 188.7000000000093
+          },
+          {
+            "text": "Good. Small enough that we can explain it.",
+            "at": 194.00000000001086
+          },
+          {
+            "text": "A small cheer before we look at support.",
+            "at": 199.2333333333457
+          }
+        ],
+        "end": 199.2333333333457
+      },
+      {
+        "start": 372.7333333332992,
+        "week": 152,
+        "lines": [
+          {
+            "staffId": "s163",
+            "text": "What makes a useful review request?",
+            "name": "Deepa Rao"
+          },
+          {
+            "staffId": "s114",
+            "text": "A small change and a question I can answer.",
+            "name": "Kevin Rossi"
+          },
+          {
+            "staffId": "s592",
+            "text": "Send the risky part early, while it is easy to change.",
+            "name": "David Ferreira"
+          },
+          {
+            "staffId": "s596",
+            "text": "Before we become emotionally attached to it.",
+            "name": "Yael Ibrahim"
+          }
+        ],
+        "shown": [
+          {
+            "text": "What makes a useful review request?",
+            "at": 375.06666666663114
+          },
+          {
+            "text": "A small change and a question I can answer.",
+            "at": 379.5999999999618
+          },
+          {
+            "text": "Send the risky part early, while it is easy to change.",
+            "at": 384.5999999999589
+          },
+          {
+            "text": "Before we become emotionally attached to it.",
+            "at": 390.2666666666223
+          },
+          {
+            "text": "Before we become emotionally attached to it.",
+            "at": 395.9999999999523
+          },
+          {
+            "text": "A small cheer before we look at support.",
+            "at": 401.39999999994916
+          }
+        ],
+        "end": 401.39999999994916
+      }
+    ]
+  }
+}
