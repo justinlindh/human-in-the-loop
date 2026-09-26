@@ -1,3 +1,5 @@
+import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY } from '../capture-manifest.js';
+
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
 // the music and stingers, and when each voiceover line lands. Change the trailer here; build.js only
 // executes this file.
@@ -76,6 +78,8 @@ const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createEleme
 export const DEFERRED_CAPTURES = [];
 
 // The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
+const YAK_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY + "const check = structuredClone(s); sim.tick(check); if (check.office.stage !== 1 || check.outage?.weeks !== 0) throw new Error('trailer: no seed-2 outage found');", hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`;
+
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
@@ -90,8 +94,8 @@ export const BEATS = [
   { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
-  { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'me in standup')], from: 31.6, dur: 3.1 },
-  { id: 'yak-react', item: 'site-yak-backfire', capture: { still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
+  { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'me in standup')], from: 31.6, dur: 3.1 },
+  { id: 'yak-react', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 13, screenshots: [11.2, 11.6, 12.4], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.0, dur: 1.5 },
   // PC LOAD LETTER from the flying camera: the carry ending, then the hits, to the rap's last word. No narration.
   { id: 'printer', item: 'trail-fly-printer', from: 20.0, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },

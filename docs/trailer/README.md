@@ -74,7 +74,7 @@ If a beat's `from + dur` runs past its capture, the build stops and says which b
 look-ahead and keeps only that new-product project, so subsequent updates cannot bundle into its
 results card. The launch beat starts after the reviews finish appearing.
 
-`yak` and `yak-react` both replay `site-yak-backfire`, seed 2. Its bot stops expanding once eight staff
+`yak` and `yak-react` both replay `site-yak-backfire`, seed 2. The balanced bot stops expanding once eight staff
 have moved to the Office Floor, then waits for an outage. Daily standups stay off during the search
 and recording so the same simulation reaches the outage and the people are free to react. The Yak
 shot frames the meme and its reply; the reaction shot returns to the instant the same post lands,
@@ -83,7 +83,7 @@ and work labels stay hidden, and the interface hides after the post is clicked.
 
 Scene 7b (`yak-react`) follows the Yak thread with a standing facepalm. The renderer picks an
 unobstructed actor and keeps the face turned toward the camera during the gesture. A walking
-actor pauses and then resumes their route. The reaction cut holds the raised hand and squint
+actor pauses and then resumes their route. The reaction cut holds the palm over the camera-side eye and brow, with eyes squeezed shut
 before the printer scene.
 
 ## The voiceover
