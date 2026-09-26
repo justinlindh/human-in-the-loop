@@ -6,7 +6,7 @@
 // rig) and its `actions` list adds page JS, both on the clip's own clock.
 import { ITEMS } from '../capture-manifest.js';
 import { ITEMS as FEATURE_MEDIA } from '../feature-media/manifest.js';
-import { BEATS } from './config.js';
+import { BEATS, DEFERRED_CAPTURES } from './config.js';
 
 // Plays a real game with the balanced bot until the next week would raise an event matching `match`
 // (a JS predicate on e), checked on a copy of the state so the game itself stops the week before.
@@ -101,7 +101,7 @@ const byId = new Map([...ITEMS, ...FEATURE_MEDIA, ...OWN].map((it) => [it.id, it
 // The camera rig zooms by exp(-deltaY * 0.0015) per wheel event.
 const ZOOM = (factor) => `document.getElementById('scene').dispatchEvent(new WheelEvent('wheel', { deltaY: ${(-Math.log(factor) / 0.0015).toFixed(1)}, cancelable: true }))`;
 
-const items = BEATS.filter((b) => b.item).map((b) => {
+const items = [...BEATS, ...DEFERRED_CAPTURES].filter((b) => b.item).map((b) => {
   const base = byId.get(b.item);
   if (!base) throw new Error(`trailer: beat ${b.id} names unknown capture item ${b.item}`);
   const { group, out, record, ...rest } = base;

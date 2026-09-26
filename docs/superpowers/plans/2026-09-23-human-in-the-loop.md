@@ -330,21 +330,25 @@ Blurbs in the spec's voice (Claudius "will politely decline to delete prod", Gro
 `tick(state)`: return `[]` if `gameOver` or `pendingDecision`; otherwise run systems in ascending `order`, stop early once `gameOver` is set, then `state.week++`. Order:
 
 ```
-10 calendar-start  unlocks, trend countdown, vendor releases        S9
-20 work            people and automation output                     S4
-30 projects        progress, completion, launch                     S4
-40 products        customers, churn, mrr, health, uptime            S5
-45 marketing       campaigns, hype, brand                           S6
-50 meaning         drain, recovery, moods, resignations             S7
-55 knowledge       staff knowledge, IK, comprehension debt          S8
-60 market          clones, incumbents copy                          S9
-65 incidents       rogue agents, cyber, outages                     S10
-70 events          random events, decisions                         S11
-75 annual          expo, awards, year summary                       S11
-80 economy         costs, revenue, runway                           S5
-85 staff-upkeep    xp, levels, candidates, stamina, sabbaticals     S3
-90 endgame         win and lose                                     S12
-95 history         weekly snapshot                                  S12
+10 calendar-start  unlocks, trend countdown, vendor releases          S9
+20 work            people and automation output                       S4
+30 projects        progress, completion, launch                       S4
+40 products        customers, churn, mrr, health, uptime              S5
+45 marketing       campaigns, hype, brand                             S6
+50 meaning         drain, recovery, moods, resignations               S7
+55 knowledge       staff knowledge, IK, comprehension debt            S8
+60 market          clones, incumbents copy                            S9
+65 incidents       rogue agents, cyber, outages                       S10
+70 events          random events, decisions                           S11
+75 annual          expo, awards, year summary                         S11
+80 economy         costs, revenue, runway                             S5
+85 staff-upkeep    xp, levels, candidates, stamina, sabbaticals       S3
+88 chat            Yak announcements, conversations, mood chatter     S12c
+89 prompts         open, refresh and expire Yak reply prompts         -
+90 endgame         win and lose                                       S12
+91 posts           deliver queued replies to founder Yak posts        -
+95 history         weekly snapshot                                    S12
+99 restage         a desk-staged decision whose reader left re-picks  S11
 ```
 
 `createGame`: every Contract State field present. `cash = B.startCash`, `brand = B.startBrand`, `institutionalKnowledge = 60`, `comprehensionDebt = 0`, automation levels 0 on `chatgbt`, `ops` zeros, market categories from incumbents, unlocked lists from 2026 data, models from data (`available = releaseYear <= 2026`), trend `steady` with 13 weeks left, empty `incidentLog`. Two founders: a senior engineer and a mid designer with `knowledge 70`, `meaning 85`, `founder: true`, both assigned to `idle` until the first project. Then `refreshCandidates`.
