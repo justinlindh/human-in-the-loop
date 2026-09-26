@@ -264,6 +264,16 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
     stepWorld(R, S, 60);
     played.push(prop);
   }
+  const { setupPetPasser } = await import('/src/render/checks.js');
+  const savedPets = S.pets;
+  R.setQuality('medium');
+  for (const species of ['dog', 'cat']) {
+    R.pets.reset();
+    setupPetPasser(R, S, species);
+    window_(R, S, C.at(`moment:pet:${species}`), { seconds: 5, every });
+    played.push(`pet:${species}`);
+  }
+  S.pets = savedPets; R.sync(S); R.setQuality('low');
   return played;
 }
 
