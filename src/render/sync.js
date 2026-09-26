@@ -925,7 +925,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         st.t = 0;
         if (st.i >= st.people.length) { st.phase = 'close'; st.t = 0; return; }
         const p = st.people[st.i];
-        if (!recs.has(p.r.id)) return;
+        if (!recs.has(p.r.id) || !p.r.temp?.standup) return;
         if (p.nod) { p.r.temp.anim = 'wave'; emote(p.r, 'lightbulb', 0.9); setTimeoutFree(p.r); }
         else if (p.text && !quieted({}, p.r)) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
         else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
