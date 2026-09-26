@@ -53,19 +53,21 @@ const GROW = (week) => `(async () => {
   ${STAGE_ONLY};
 })()`;
 
-// Seed 4 grown by the balanced bot until the Agents era at the Office Floor or HQ, then run by the
+// A seeded game grown by the balanced bot until the Agents era at the Office Floor or HQ, then run by the
 // automate-everything bot; stops the week before the runaway cloud bill (tested on a copy ticked ahead).
 const RUNAWAY = `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
+  let found = false;
   for (let i = 0; i < 700 && !s.gameOver; i++) {
     const bot = !['classic', 'chatgbt'].includes(s.era.id) && s.office.stage >= 1 ? 'automateAll' : 'balanced';
     b.botDecide(bot, s); b.botTurn(bot, s);
     const ahead = structuredClone(s); sim.tick(ahead);
-    if (ahead.pendingDecision?.eventId === 'agent_runaway_spend') break;
+    if (!ahead.gameOver && ahead.pendingDecision?.eventId === 'agent_runaway_spend' && ahead.pendingDecision.stage?.prop === 'rack_hot') { found = true; break; }
     sim.tick(s);
   }
+  if (!found || s.gameOver) throw new Error('capture: no live runaway cloud bill found');
 })()`;
 
 // For FOLLOW: the centre of a staged prop's bounds, for a prop drawn away from its origin (on a wall).
@@ -167,12 +169,16 @@ export const ITEMS = [
   },
 
   {
-    // Automate it, and live with it: seed 4 grows to an Agents-era HQ with the balanced bot, then the
+    // Automate it, and live with it: seed 5 grows to an Agents-era HQ with the balanced bot, then the
     // automate-everything bot runs it until the live week raises the runaway cloud bill. The office
     // holds still under the card (the bill), so the camera pushes in on the hot rack.
-    id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=4&speed=1', seconds: 22, warmup: 0.5,
+    id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=5&speed=1', seconds: 22, warmup: 0.5,
     setup: `(async () => { await ${RUNAWAY}; ${BARE}; ${CARD_IN} })()`,
-    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...CAMLOG(22)],
+    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...CAMLOG(22), ...[10, 14, 18, 21].map(at => ({ at, js: `(() => {
+      const s = window.__HITL.state, R = window.__hitlRender;
+      const card = document.querySelector('#ui .modal.decision');
+      if (s.gameOver || s.pendingDecision?.eventId !== 'agent_runaway_spend' || s.pendingDecision.stage?.prop !== 'rack_hot' || !R.props.current().some(p => p.prop === 'rack_hot') || !card?.getClientRects().length || !card.innerText.includes('The cloud bill has feelings')) throw new Error('capture: runaway cloud bill and hot rack must be up in a live office');
+    })()` }))],
     // The camera holds still on the rack, so the loop's two ends frame the same.
     // The rack's bounds grow with its smoke, so the aim point is taken once, when it appears.
     camera: [{ at: 0, target: { js: `(window.__rackAt ??= (${BOX('rack_hot')})() ?? undefined)` }, zoom: 2.8 }],
