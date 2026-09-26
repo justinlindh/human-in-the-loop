@@ -339,6 +339,24 @@ export async function runWalkChecks(R, S, { dt = 1 / 30 } = {}) {
     results.push({ name: 'walk:awayPerk', pass: trips.every((t) => t.started && t.cancelled && t.hidden && t.returned && t.maxStep < 0.3), trips });
   }
 
+  // A plant placed at a standing perk's destination must move the destination, rather than
+  // letting the furniture-entry slide carry the browser into the plant after the walk.
+  {
+    const who = ids[0], root = charOf(R.scene, who), L = R.office.current.L;
+    R.perks.hold = true;
+    R.perks.send([who], 'k_lib', { dur: 60, slot: 0 });
+    const goal = R.perks.peek(who).temp.goal;
+    const tile = { x: Math.floor(goal.x + L.W / 2), y: Math.floor(goal.z + L.D / 2) };
+    S.office.placed.push({ id: 'standing_perk_drop', itemId: 'plant', level: 1, ...tile, rot: 0 });
+    step(900);
+    const drop = R.office.placed.get('standing_perk_drop');
+    const inside = bodyInside(root, meshes(drop.obj), false);
+    const browsing = R.perks.peek(who)?.temp?.anim === 'browse' && !R.perks.peek(who)?.path;
+    results.push({ name: 'walk:standingPerkObstacle', pass: browsing && inside === 0, browsing, insidePct: +(inside * 100).toFixed(2) });
+    S.office.placed = S.office.placed.filter((p) => p.id !== 'standing_perk_drop');
+    R.catchFor(who, null); step(900);
+  }
+
   // 1. A desk dropped across an active walk.
   {
     const who = ids[0];

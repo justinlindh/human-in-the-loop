@@ -717,7 +717,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const g = r.goal;
         const d = Math.hypot(r.pos.x - g.x, r.pos.z - g.z);
         // Left away from their spot with no route (a pose that kept them where it caught them, a
-        // goal that changed meanwhile): they walk back rather than glide there, once per goal.
+        // goal that changed meanwhile): they walk back rather than glide there. Failed routes
+        // wait for a new goal or a navigation rebuild; a successful trip does not skip the next.
         if (d > GLIDE_M && (r.walkedTo !== g || !r.routeBlocked)) { r.walkedTo = g; walkTo(r, g); }
         if (r.path.length) stepWalker(r, dt, r.walkAnim);
         else {

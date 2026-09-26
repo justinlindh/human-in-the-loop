@@ -104,6 +104,9 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     return sides[0] ?? front;
   }
   function walkToSpot(r, e, spot) {
+    // Standing activities stay on the walk grid. Only a resting pose needs the direct slide
+    // onto its furniture; a model-authored standing spot may be inside a neighboring item.
+    if (!RESTING.has(r.temp.anim)) { walkTo(r, spot); return; }
     const a = approachFor(r, e, spot);
     if (a) {
       r.temp.enter = { from: null, t: 0, side: { x: a.x, z: a.z }, item: e.id };

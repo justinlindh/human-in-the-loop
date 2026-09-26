@@ -10,3 +10,5 @@ Characters against real furniture: seated poses in every mood, perk poses, and n
 `moment:letter-lifecycle` checks claim release on cancellation, Low-quality completion, and away transitions, plus the full tight-row fallback read, slump, and return under the decision freeze. Both letter fixtures arrange a reader per case and run with and without the rig.
 
 `walk:repeatReturn` sends a person back to the same desk after two celebrations and bounds each frame's movement. `walk:awayPerk` checks away trips during a perk approach and while resting on the item, including the return to the office. Run both with `--only=walk:`.
+
+`walk:standingPerkObstacle` places a plant at a browser's destination while they approach and checks that their standing pose stays outside it. Standing perks use the walking grid instead of the slide used to enter seats.
