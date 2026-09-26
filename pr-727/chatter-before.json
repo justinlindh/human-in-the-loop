@@ -11,7 +11,7 @@
       "overlapFrames": 1203,
       "pairFrames": 259,
       "visibleFrames": 4191,
-      "yakMax": 3
+      "yakMax": 4
     },
     "bubbles": [
       {
@@ -373,7 +373,7 @@
             "☕": 1
           }
         },
-        "visible": 25.0000000000004,
+        "visible": 2.7,
         "lastVisible": false
       },
       {
@@ -389,7 +389,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 30.300000000000665,
+        "visible": 25.6666666666671,
         "lastVisible": false
       },
       {
@@ -467,7 +467,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.466666666666661,
+        "visible": 5.59999999999999,
         "lastVisible": false
       },
       {
@@ -515,7 +515,7 @@
           "replyTo": "m88",
           "reactions": {}
         },
-        "visible": 5.733333333333323,
+        "visible": 6.866666666666652,
         "lastVisible": false
       },
       {
@@ -582,7 +582,7 @@
             "🙃": 1
           }
         },
-        "visible": 7.36666666666665,
+        "visible": 3.5333333333333306,
         "lastVisible": false
       },
       {
@@ -749,7 +749,7 @@
             "😂": 1
           }
         },
-        "visible": 17.600000000000033,
+        "visible": 9.966666666666642,
         "lastVisible": false
       },
       {
@@ -770,7 +770,7 @@
           },
           "important": true
         },
-        "visible": 11.19999999999997,
+        "visible": 15.699999999999955,
         "lastVisible": false
       },
       {
@@ -914,7 +914,7 @@
           "replyTo": "m139",
           "reactions": {}
         },
-        "visible": 1.700000000000002,
+        "visible": 7.633333333333316,
         "lastVisible": false
       },
       {
@@ -1012,8 +1012,8 @@
           "replyTo": "m153",
           "reactions": {}
         },
-        "visible": 1.5000000000000013,
-        "lastVisible": false
+        "visible": 7.266666666666651,
+        "lastVisible": true
       },
       {
         "t": 113.76666666666156,
@@ -2417,7 +2417,7 @@
       "overlapFrames": 1717,
       "pairFrames": 464,
       "visibleFrames": 5186,
-      "yakMax": 3
+      "yakMax": 4
     },
     "bubbles": [
       {
@@ -2915,7 +2915,7 @@
             "☕": 1
           }
         },
-        "visible": 11.999999999999968,
+        "visible": 1.3333333333333341,
         "lastVisible": false
       },
       {
@@ -2931,7 +2931,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 14.666666666666625,
+        "visible": 12.3333333333333,
         "lastVisible": false
       },
       {
@@ -3009,7 +3009,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 2.2666666666666684,
+        "visible": 2.833333333333333,
         "lastVisible": false
       },
       {
@@ -3057,7 +3057,7 @@
           "replyTo": "m88",
           "reactions": {}
         },
-        "visible": 2.8666666666666663,
+        "visible": 3.433333333333331,
         "lastVisible": false
       },
       {
@@ -3124,7 +3124,7 @@
             "🙃": 1
           }
         },
-        "visible": 3.6666666666666634,
+        "visible": 2.7333333333333334,
         "lastVisible": false
       },
       {
@@ -3291,7 +3291,7 @@
             "😂": 1
           }
         },
-        "visible": 9.299999999999978,
+        "visible": 5.49999999999999,
         "lastVisible": false
       },
       {
@@ -3312,7 +3312,7 @@
           },
           "important": true
         },
-        "visible": 5.59999999999999,
+        "visible": 7.833333333333315,
         "lastVisible": false
       },
       {
@@ -3456,7 +3456,7 @@
           "replyTo": "m139",
           "reactions": {}
         },
-        "visible": 0.8666666666666666,
+        "visible": 5.333333333333324,
         "lastVisible": false
       },
       {
@@ -3554,7 +3554,7 @@
           "replyTo": "m153",
           "reactions": {}
         },
-        "visible": 0.7666666666666666,
+        "visible": 4.233333333333328,
         "lastVisible": false
       },
       {
@@ -3702,7 +3702,7 @@
             "💯": 1
           }
         },
-        "visible": 8.166666666666648,
+        "visible": 5.766666666666656,
         "lastVisible": false
       },
       {
@@ -3829,7 +3829,7 @@
           "replyTo": "m190",
           "reactions": {}
         },
-        "visible": 2.4000000000000012,
+        "visible": 10.699999999999973,
         "lastVisible": false
       },
       {
@@ -3894,7 +3894,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 14.599999999999959,
+        "visible": 12.299999999999967,
         "lastVisible": false
       },
       {
@@ -3928,7 +3928,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 3.9666666666666623,
+        "visible": 4.533333333333327,
         "lastVisible": false
       },
       {
@@ -3960,7 +3960,7 @@
           "replyTo": "m202",
           "reactions": {}
         },
-        "visible": 2.233333333333335,
+        "visible": 5.899999999999989,
         "lastVisible": false
       },
       {
@@ -3976,7 +3976,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.233333333333328,
+        "visible": 4.699999999999993,
         "lastVisible": false
       },
       {
@@ -4106,7 +4106,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 9.63333333333331,
+        "visible": 8.299999999999981,
         "lastVisible": false
       },
       {
@@ -7123,7 +7123,6 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 6.333333333333321,
         "lastVisible": false
       },
       {
@@ -7251,7 +7250,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.0666666666666667,
+        "visible": 1.3666666666666676,
         "lastVisible": false
       },
       {
@@ -7299,7 +7298,7 @@
           "replyTo": "m88",
           "reactions": {}
         },
-        "visible": 1.4333333333333345,
+        "visible": 1.700000000000002,
         "lastVisible": false
       },
       {
@@ -7366,7 +7365,7 @@
             "🙃": 1
           }
         },
-        "visible": 1.8666666666666691,
+        "visible": 0.9333333333333332,
         "lastVisible": false
       },
       {
@@ -7533,7 +7532,7 @@
             "😂": 1
           }
         },
-        "visible": 5.133333333333325,
+        "visible": 3.2333333333333316,
         "lastVisible": false
       },
       {
@@ -7554,7 +7553,7 @@
           },
           "important": true
         },
-        "visible": 2.833333333333333,
+        "visible": 3.933333333333329,
         "lastVisible": false
       },
       {
@@ -7698,7 +7697,7 @@
           "replyTo": "m139",
           "reactions": {}
         },
-        "visible": 0.4333333333333333,
+        "visible": 2.200000000000002,
         "lastVisible": false
       },
       {
@@ -7796,7 +7795,7 @@
           "replyTo": "m153",
           "reactions": {}
         },
-        "visible": 0.36666666666666664,
+        "visible": 2.1000000000000023,
         "lastVisible": false
       },
       {
@@ -7944,7 +7943,7 @@
             "💯": 1
           }
         },
-        "visible": 4.066666666666662,
+        "visible": 2.8999999999999995,
         "lastVisible": false
       },
       {
@@ -8071,7 +8070,7 @@
           "replyTo": "m190",
           "reactions": {}
         },
-        "visible": 1.166666666666667,
+        "visible": 5.299999999999991,
         "lastVisible": false
       },
       {
@@ -8136,7 +8135,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 9.833333333333309,
+        "visible": 6.133333333333321,
         "lastVisible": false
       },
       {
@@ -8170,7 +8169,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.533333333333327,
+        "visible": 4.799999999999993,
         "lastVisible": false
       },
       {
@@ -8202,7 +8201,7 @@
           "replyTo": "m202",
           "reactions": {}
         },
-        "visible": 1.1,
+        "visible": 2.966666666666666,
         "lastVisible": false
       },
       {
@@ -8218,7 +8217,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 2.1333333333333355,
+        "visible": 2.366666666666668,
         "lastVisible": false
       },
       {
@@ -8348,7 +8347,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.799999999999993,
+        "visible": 4.133333333333328,
         "lastVisible": false
       },
       {
@@ -8791,7 +8790,7 @@
             "💯": 1
           }
         },
-        "visible": 2.033333333333336,
+        "visible": 1.7333333333333354,
         "lastVisible": false
       },
       {
@@ -8883,7 +8882,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.799999999999993,
+        "visible": 3.6999999999999966,
         "lastVisible": false
       },
       {
@@ -8899,7 +8898,7 @@
           "replyTo": "m295",
           "reactions": {}
         },
-        "visible": 1.1,
+        "visible": 5.433333333333324,
         "lastVisible": false
       },
       {
@@ -8967,7 +8966,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 2.0000000000000027,
+        "visible": 3.2333333333333316,
         "lastVisible": false
       },
       {
@@ -9086,7 +9085,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.3333333333333341,
+        "visible": 0.7333333333333333,
         "lastVisible": false
       },
       {
@@ -9206,6 +9205,7 @@
           "replyTo": "m329",
           "reactions": {}
         },
+        "visible": 1.1,
         "lastVisible": false
       },
       {
@@ -9338,7 +9338,7 @@
             "👍": 1
           }
         },
-        "visible": 1.2666666666666673,
+        "visible": 1.1,
         "lastVisible": false
       },
       {
@@ -9374,7 +9374,7 @@
           "replyTo": "m348",
           "reactions": {}
         },
-        "visible": 0.36666666666666664,
+        "visible": 1.1,
         "lastVisible": false
       },
       {
@@ -9408,7 +9408,7 @@
             "💯": 1
           }
         },
-        "visible": 1.9000000000000026,
+        "visible": 0.7333333333333333,
         "lastVisible": false
       },
       {
@@ -9424,7 +9424,7 @@
           "replyTo": "m355",
           "reactions": {}
         },
-        "visible": 1.166666666666667,
+        "visible": 5.166666666666658,
         "lastVisible": false
       },
       {
@@ -13742,7 +13742,7 @@
           "replyTo": "m675",
           "reactions": {}
         },
-        "visible": 4.499999999999994,
+        "visible": 24.00000000000035,
         "lastVisible": false
       },
       {
@@ -13825,7 +13825,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 8.233333333333315,
+        "visible": 7.3999999999999835,
         "lastVisible": false
       },
       {
@@ -13841,7 +13841,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 5.066666666666658,
+        "visible": 5.933333333333322,
         "lastVisible": false
       },
       {
@@ -13905,6 +13905,7 @@
           "replyTo": "m711",
           "reactions": {}
         },
+        "visible": 2.033333333333336,
         "lastVisible": false
       },
       {
@@ -14272,7 +14273,7 @@
           "replyTo": "m752",
           "reactions": {}
         },
-        "visible": 3.5333333333333306,
+        "visible": 4.266666666666661,
         "lastVisible": false
       },
       {
@@ -14325,7 +14326,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 7.266666666666651,
+        "visible": 3.73333333333333,
         "lastVisible": false
       },
       {
@@ -14389,7 +14390,7 @@
           "replyTo": "m768",
           "reactions": {}
         },
-        "visible": 2.7666666666666666,
+        "visible": 3.5333333333333306,
         "lastVisible": false
       },
       {
@@ -14408,7 +14409,7 @@
             "☕": 1
           }
         },
-        "visible": 3.5333333333333306,
+        "visible": 4.266666666666661,
         "lastVisible": false
       },
       {
@@ -15752,617 +15753,617 @@
     "seed": 1,
     "initialWeek": 119,
     "week": 147,
-    "start": 0.23333333333333336,
+    "start": 0.20000000000000004,
     "stats": {
       "max": 4,
       "overlapFrames": 2884,
       "pairFrames": 1215,
       "visibleFrames": 7185,
-      "yakMax": 3
+      "yakMax": 4
     },
     "bubbles": [
       {
-        "start": 5.366666666666663,
+        "start": 5.3333333333333295,
         "text": "Reviewed who has admin. Too many people. Fewer now.",
         "source": "    at updateStandup (/src/render/sync.js:964:54);     at Object.update (/src/render/sync.js:1043:5)",
         "visible": 4.199999999999995,
-        "end": 9.733333333333333,
+        "end": 9.699999999999998,
         "done": true
       },
       {
-        "start": 6.799999999999983,
+        "start": 6.76666666666665,
         "text": "The first office was a garage, you know.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.466666666666664,
-        "end": 10.433333333333344,
+        "end": 10.400000000000011,
         "done": true
       },
       {
-        "start": 9.933333333333335,
+        "start": 9.900000000000002,
         "text": "I will write the tests after. I say this every time, with feeling.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 0.13333333333333333,
-        "end": 10.066666666666672,
+        "end": 10.033333333333337,
         "done": true
       },
       {
-        "start": 10.066666666666672,
+        "start": 10.033333333333337,
         "text": "Started Product 7. First commit: a README.",
         "source": "    at updateStandup (/src/render/sync.js:964:54);     at Object.update (/src/render/sync.js:1043:5)",
         "visible": 3.599999999999997,
-        "end": 13.833333333333407,
+        "end": 13.800000000000074,
         "done": true
       },
       {
-        "start": 10.500000000000012,
+        "start": 10.46666666666668,
         "text": "Better or worse?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.8666666666666691,
-        "end": 12.566666666666716,
+        "end": 12.533333333333383,
         "done": true
       },
       {
-        "start": 12.233333333333377,
+        "start": 12.200000000000044,
         "text": "I miss it. I do not miss the rats.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.0666666666666655,
-        "end": 15.46666666666677,
+        "end": 15.433333333333437,
         "done": true
       },
       {
-        "start": 14.166666666666746,
+        "start": 14.133333333333413,
         "text": "Tuned the slowest page in Product 2. It is now merely slow.",
         "source": "    at updateStandup (/src/render/sync.js:964:54);     at Object.update (/src/render/sync.js:1043:5)",
         "visible": 4.633333333333327,
-        "end": 19.100000000000023,
+        "end": 19.06666666666669,
         "done": true
       },
       {
-        "start": 15.366666666666768,
+        "start": 15.333333333333433,
         "text": "We both edited the Product 7 config, didn't we.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.933333333333329,
-        "end": 19.500000000000007,
+        "end": 19.466666666666676,
         "done": true
       },
       {
-        "start": 19.06666666666669,
+        "start": 19.033333333333356,
         "text": "So what are the perks here, exactly?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.999999999999999,
-        "end": 22.466666666666566,
+        "end": 22.433333333333234,
         "done": true
       },
       {
-        "start": 20.233333333333313,
+        "start": 20.19999999999998,
         "text": "Great. I'll rewrite mine from memory.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.266666666666665,
-        "end": 23.699999999999854,
+        "end": 23.666666666666522,
         "done": true
       },
       {
-        "start": 22.19999999999991,
+        "start": 22.166666666666575,
         "text": "Someone taped the wifi password to the door. Facing out.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.333333333333328,
-        "end": 26.93333333333307,
+        "end": 26.89999999999974,
         "done": true
       },
       {
-        "start": 22.499999999999897,
+        "start": 22.466666666666566,
         "text": "There is a kettle.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.8000000000000023,
-        "end": 24.699999999999818,
+        "end": 24.666666666666487,
         "done": true
       },
       {
-        "start": 24.266666666666502,
+        "start": 24.233333333333167,
         "text": "Only the kettle?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.7666666666666688,
-        "end": 26.33333333333309,
+        "end": 26.29999999999976,
         "done": true
       },
       {
-        "start": 24.266666666666502,
+        "start": 24.233333333333167,
         "text": "Product 7: 18%. The plan survived. Barely.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.599999999999997,
-        "end": 28.06666666666636,
+        "end": 28.03333333333303,
         "done": true
       },
       {
-        "start": 25.966666666666438,
+        "start": 25.933333333333106,
         "text": "Deleted two hundred lines. Best work I have done all week.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.66666666666666,
-        "end": 30.833333333332927,
+        "end": 30.799999999999596,
         "done": true
       },
       {
-        "start": 28.266666666666357,
+        "start": 28.23333333333302,
         "text": "Product 7 at 22%. All the variables have names.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.933333333333329,
-        "end": 32.26666666666621,
+        "end": 32.23333333333288,
         "done": true
       },
       {
-        "start": 29.966666666666292,
+        "start": 29.93333333333296,
         "text": "The listing wanted a decade in a five-year-old framework.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.399999999999994,
-        "end": 34.733333333333,
+        "end": 34.69999999999966,
         "done": true
       },
       {
-        "start": 32.26666666666621,
+        "start": 32.23333333333288,
         "text": "Product 7: 26%. One blocker. It is me.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.3333333333333313,
-        "end": 35.76666666666641,
+        "end": 35.73333333333307,
         "done": true
       },
       {
-        "start": 34.76666666666634,
+        "start": 34.733333333333,
         "text": "And do you?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.666666666666667,
-        "end": 37.63333333333321,
+        "end": 37.59999999999987,
         "done": true
       },
       {
-        "start": 35.266666666666374,
+        "start": 35.233333333333036,
         "text": "Button update: it has a queue and an audit log.",
         "source": "    at updateRec (/src/render/sync.js:675:77);     at Object.update (/src/render/sync.js:1050:36)",
         "visible": 0.9999999999999999,
-        "end": 36.266666666666445,
+        "end": 36.23333333333311,
         "done": true
       },
       {
-        "start": 36.266666666666445,
+        "start": 36.23333333333311,
         "text": "Nobody does. I applied anyway.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.7999999999999963,
-        "end": 40.2333333333334,
+        "end": 40.20000000000007,
         "done": true
       },
       {
-        "start": 36.266666666666445,
+        "start": 36.23333333333311,
         "text": "Product 7 at 29%. The one-day part: halfway.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 4.733333333333326,
+        "end": 41.13333333333347,
+        "done": true
+      },
+      {
+        "start": 39.266666666666666,
+        "text": "What's it for, though?",
+        "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
+        "visible": 2.1666666666666687,
+        "end": 41.70000000000017,
+        "done": true
+      },
+      {
+        "start": 39.90000000000004,
+        "text": "Went through all the docs this weekend.",
+        "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
+        "visible": 1.2666666666666673,
         "end": 41.1666666666668,
         "done": true
       },
       {
-        "start": 39.3,
-        "text": "What's it for, though?",
-        "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
-        "visible": 2.1666666666666687,
-        "end": 41.73333333333351,
-        "done": true
-      },
-      {
-        "start": 39.93333333333338,
-        "text": "Went through all the docs this weekend.",
-        "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
-        "visible": 1.2666666666666673,
-        "end": 41.20000000000014,
-        "done": true
-      },
-      {
-        "start": 41.20000000000014,
+        "start": 41.1666666666668,
         "text": "We decide that next sprint.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.6000000000000005,
-        "end": 43.96666666666701,
+        "end": 43.93333333333367,
         "done": true
       },
       {
-        "start": 41.20000000000014,
+        "start": 41.1666666666668,
         "text": "Product 7 at 33%. On track. Suspicious.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.3999999999999977,
-        "end": 44.766666666667064,
+        "end": 44.73333333333373,
         "done": true
       },
       {
-        "start": 43.533333333333644,
+        "start": 43.500000000000306,
         "text": "Oh no.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.6666666666666685,
-        "end": 45.400000000000446,
+        "end": 45.36666666666711,
         "done": true
       },
       {
-        "start": 45.20000000000043,
+        "start": 45.16666666666709,
         "text": "Some of it was wrong.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.200000000000002,
-        "end": 47.56666666666727,
+        "end": 47.533333333333935,
         "done": true
       },
       {
-        "start": 45.20000000000043,
+        "start": 45.16666666666709,
         "text": "Merged the big piece of Product 7. 37%.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.3999999999999977,
-        "end": 48.766666666667355,
+        "end": 48.733333333334016,
         "done": true
       },
       {
-        "start": 49.20000000000072,
+        "start": 49.16666666666738,
         "text": "Keeping the lights on. Patched two things, broke zero. Yet.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 4.733333333333326,
-        "end": 54.100000000001074,
+        "end": 54.06666666666774,
         "done": true
       },
       {
-        "start": 50.733333333334166,
+        "start": 50.70000000000083,
         "text": "Found the bug. Also found its family.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.266666666666665,
-        "end": 54.16666666666775,
+        "end": 54.13333333333441,
         "done": true
       },
       {
-        "start": 53.20000000000101,
+        "start": 53.16666666666767,
         "text": "Deleted more than I wrote. Product 7: 46%.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.599999999999997,
-        "end": 56.966666666667955,
+        "end": 56.933333333334616,
         "done": true
       },
       {
-        "start": 54.900000000001135,
+        "start": 54.8666666666678,
         "text": "If we call it a platform, it's a platform.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.599999999999997,
-        "end": 58.66666666666808,
+        "end": 58.63333333333474,
         "done": true
       },
       {
-        "start": 57.2000000000013,
+        "start": 57.166666666667965,
         "text": "Product 7: 51%. One blocker. It is me.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.3333333333333313,
-        "end": 60.70000000000156,
+        "end": 60.66666666666822,
         "done": true
       },
       {
-        "start": 58.73333333333475,
+        "start": 58.70000000000141,
         "text": "I'd recommend writing the tests first. I recommend lots of things.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 8.166666666666648,
-        "end": 67.16666666666835,
+        "end": 67.13333333333502,
         "done": true
       },
       {
-        "start": 61.200000000001594,
+        "start": 61.166666666668256,
         "text": "Product 7 is 56% done and 100% in my dreams.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 6.799999999999986,
-        "end": 68.20000000000152,
+        "end": 68.1666666666682,
         "done": true
       },
       {
-        "start": 67.06666666666835,
+        "start": 67.03333333333504,
         "text": "Product 7 is going great. My parts, anyway.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.6666666666666634,
-        "end": 70.93333333333446,
+        "end": 70.90000000000113,
         "done": true
       },
       {
-        "start": 68.23333333333485,
+        "start": 68.20000000000152,
         "text": "Product 7: 61%. The long middle.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 2.9333333333333327,
-        "end": 71.36666666666774,
+        "end": 71.33333333333441,
         "done": true
       },
       {
-        "start": 69.93333333333462,
+        "start": 69.90000000000128,
         "text": "You wrote 'maybe consider' fourteen times.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.599999999999997,
-        "end": 73.73333333333406,
+        "end": 73.70000000000073,
         "done": true
       },
       {
-        "start": 72.23333333333427,
+        "start": 72.20000000000094,
         "text": "Product 7 at 67%. On track. Suspicious.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.3999999999999977,
-        "end": 75.83333333333375,
+        "end": 75.80000000000042,
         "done": true
       },
       {
-        "start": 73.76666666666739,
+        "start": 73.73333333333406,
         "text": "The code looked sad.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.1333333333333355,
-        "end": 76.10000000000038,
+        "end": 76.06666666666705,
         "done": true
       },
       {
-        "start": 73.93333333333403,
+        "start": 73.9000000000007,
         "text": "Nobody breached us this week. That is what worries me.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.399999999999994,
-        "end": 78.53333333333336,
+        "end": 78.50000000000003,
         "done": true
       },
       {
-        "start": 76.13333333333371,
+        "start": 76.10000000000038,
         "text": "People get kindness. Code gets the truth.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.5333333333333306,
-        "end": 79.8666666666665,
+        "end": 79.83333333333317,
         "done": true
       },
       {
-        "start": 76.23333333333369,
+        "start": 76.20000000000036,
         "text": "Product 7: 72%. Net lines today: negative.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.599999999999997,
-        "end": 80.03333333333313,
+        "end": 79.99999999999982,
         "done": true
       },
       {
-        "start": 79.09999999999994,
+        "start": 79.06666666666662,
         "text": "Wrote 'revolutionary' again. It's a settings page.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.133333333333328,
-        "end": 83.43333333333264,
+        "end": 83.39999999999931,
         "done": true
       },
       {
-        "start": 80.26666666666644,
+        "start": 80.2333333333331,
         "text": "Deleted more than I wrote. Product 7: 77%.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.599999999999997,
-        "end": 84.06666666666588,
+        "end": 84.03333333333256,
         "done": true
       },
       {
-        "start": 83.46666666666597,
+        "start": 83.43333333333264,
         "text": "Someone launched a CRM clone of us.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.133333333333332,
-        "end": 86.79999999999882,
+        "end": 86.76666666666549,
         "done": true
       },
       {
-        "start": 84.26666666666586,
+        "start": 84.23333333333252,
         "text": "Final stretch: Product 7, 83%. No refactors.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.5333333333333306,
-        "end": 88.19999999999862,
+        "end": 88.1666666666653,
         "done": true
       },
       {
-        "start": 86.83333333333215,
+        "start": 86.79999999999882,
         "text": "Is it any good?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.833333333333333,
-        "end": 89.83333333333171,
+        "end": 89.79999999999839,
         "done": true
       },
       {
-        "start": 88.26666666666527,
+        "start": 88.23333333333194,
         "text": "They even copied the typo on our pricing page.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.866666666666659,
-        "end": 93.3333333333312,
+        "end": 93.29999999999788,
         "done": true
       },
       {
-        "start": 88.26666666666527,
+        "start": 88.23333333333194,
         "text": "Product 7: 88%. The changelog apologises.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 4.533333333333327,
-        "end": 92.99999999999793,
+        "end": 92.9666666666646,
         "done": true
       },
       {
-        "start": 90.73333333333159,
+        "start": 90.69999999999825,
         "text": "We have more services than customers now.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.5333333333333306,
-        "end": 94.46666666666437,
+        "end": 94.43333333333105,
         "done": true
       },
       {
-        "start": 93.23333333333122,
+        "start": 93.19999999999789,
         "text": "Almost there: Product 7, 94%.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 2.7333333333333334,
-        "end": 96.16666666666413,
+        "end": 96.1333333333308,
         "done": true
       },
       {
-        "start": 94.4999999999977,
+        "start": 94.46666666666437,
         "text": "Did it help?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.700000000000002,
-        "end": 96.3666666666641,
+        "end": 96.33333333333077,
         "done": true
       },
       {
-        "start": 95.49999999999756,
+        "start": 95.46666666666422,
         "text": "Don't forget the retro this afternoon.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.3333333333333313,
-        "end": 99.03333333333038,
+        "end": 98.99999999999704,
         "done": true
       },
       {
-        "start": 96.39999999999742,
+        "start": 96.3666666666641,
         "text": "It's modern.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.700000000000002,
-        "end": 98.26666666666382,
+        "end": 98.23333333333049,
         "done": true
       },
       {
-        "start": 97.23333333333063,
+        "start": 97.1999999999973,
         "text": "Product 7: 99%. So many weird cases.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.1999999999999984,
-        "end": 100.63333333333014,
+        "end": 100.59999999999681,
         "done": true
       },
       {
-        "start": 99.0666666666637,
+        "start": 99.03333333333038,
         "text": "What are we reflecting on?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.533333333333334,
-        "end": 101.79999999999664,
+        "end": 101.76666666666331,
         "done": true
       },
       {
-        "start": 100.06666666666355,
+        "start": 100.03333333333023,
         "text": "Launch day and nothing is broken.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.8999999999999995,
-        "end": 103.2666666666631,
+        "end": 103.23333333332977,
         "done": true
       },
       {
-        "start": 101.23333333333005,
+        "start": 101.19999999999672,
         "text": "Why the last retro ran over.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.666666666666667,
-        "end": 104.0999999999963,
+        "end": 104.06666666666298,
         "done": true
       },
       {
-        "start": 101.23333333333005,
+        "start": 101.19999999999672,
         "text": "On call. Quiet night. I do not trust it.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.466666666666664,
-        "end": 104.89999999999618,
+        "end": 104.86666666666287,
         "done": true
       },
       {
-        "start": 103.29999999999642,
+        "start": 103.2666666666631,
         "text": "Is the signup page up?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.2666666666666684,
-        "end": 105.76666666666273,
+        "end": 105.7333333333294,
         "done": true
       },
       {
-        "start": 105.23333333332947,
+        "start": 105.19999999999614,
         "text": "Define up.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.6666666666666685,
-        "end": 107.09999999999587,
+        "end": 107.06666666666254,
         "done": true
       },
       {
-        "start": 105.23333333332947,
+        "start": 105.19999999999614,
         "text": "Started Product 8. First commit: a README.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 1.8666666666666691,
-        "end": 107.09999999999587,
+        "end": 107.06666666666254,
         "done": true
       },
       {
-        "start": 107.09999999999587,
+        "start": 107.06666666666254,
         "text": "Lookerish copied our feature. In gray.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.3666666666666645,
-        "end": 110.66666666666201,
+        "end": 110.6333333333287,
         "done": true
       },
       {
-        "start": 109.23333333332889,
+        "start": 109.19999999999555,
         "text": "Started Product 8. So far: a folder and hope.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.8333333333333295,
-        "end": 113.26666666666164,
+        "end": 113.2333333333283,
         "done": true
       },
       {
-        "start": 110.66666666666201,
+        "start": 110.6333333333287,
         "text": "Is it better?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.7333333333333354,
-        "end": 112.59999999999506,
+        "end": 112.56666666666173,
         "done": true
       },
       {
-        "start": 111.63333333332854,
+        "start": 111.59999999999522,
         "text": "That would be much safer in Rust.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.999999999999999,
-        "end": 114.83333333332807,
+        "end": 114.79999999999475,
         "done": true
       },
       {
-        "start": 112.6333333333284,
+        "start": 112.59999999999506,
         "text": "It is in a sidebar, behind three menus.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.3999999999999977,
-        "end": 116.23333333332788,
+        "end": 116.19999999999455,
         "done": true
       },
       {
-        "start": 113.2333333333283,
+        "start": 113.19999999999499,
         "text": "Tuned the slowest page in Product 5. It is now merely slow.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 4.733333333333326,
-        "end": 118.16666666666093,
+        "end": 118.1333333333276,
         "done": true
       },
       {
-        "start": 114.8666666666614,
+        "start": 114.83333333332807,
         "text": "It's a text file.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.933333333333336,
-        "end": 116.99999999999443,
+        "end": 116.9666666666611,
         "done": true
       },
       {
-        "start": 115.49999999999464,
+        "start": 115.46666666666131,
         "text": "New brand goes live Monday.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 2.6000000000000005,
-        "end": 118.29999999999424,
+        "end": 118.26666666666091,
         "done": true
       },
       {
-        "start": 117.03333333332776,
+        "start": 116.99999999999443,
         "text": "Especially that.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.8666666666666691,
-        "end": 119.09999999999413,
+        "end": 119.0666666666608,
         "done": true
       },
       {
-        "start": 117.23333333332772,
+        "start": 117.1999999999944,
         "text": "Product 8, 4%. Three people, four answers.",
         "source": "    at deskStandup (/src/render/sync.js:874:107);     at startStandup (/src/render/sync.js:898:19);     at Object.handleEvents (/src/render/sync.js:420:49)",
         "visible": 3.0333333333333323,
-        "end": 120.2333333333273
+        "end": 120.19999999999396
       },
       {
-        "start": 119.13333333332744,
+        "start": 119.09999999999413,
         "text": "What changed?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 1.1333333333333335,
-        "end": 120.2333333333273
+        "end": 120.19999999999396
       }
     ],
     "yak": [
       {
-        "t": 0.23333333333333336,
+        "t": 0.20000000000000004,
         "e": {
           "type": "chat",
           "id": "m662",
@@ -16378,7 +16379,7 @@
         "lastVisible": false
       },
       {
-        "t": 4.23333333333334,
+        "t": 4.200000000000006,
         "e": {
           "type": "chat",
           "id": "m668",
@@ -16396,7 +16397,7 @@
         "lastVisible": false
       },
       {
-        "t": 9.233333333333324,
+        "t": 9.199999999999989,
         "e": {
           "type": "chat",
           "id": "m678",
@@ -16412,7 +16413,7 @@
         "lastVisible": false
       },
       {
-        "t": 9.233333333333324,
+        "t": 9.199999999999989,
         "e": {
           "type": "chat",
           "id": "m679",
@@ -16424,11 +16425,11 @@
           "replyTo": "m675",
           "reactions": {}
         },
-        "visible": 1.2333333333333338,
+        "visible": 10.999999999999972,
         "lastVisible": false
       },
       {
-        "t": 9.233333333333324,
+        "t": 9.199999999999989,
         "e": {
           "type": "chat",
           "id": "m680",
@@ -16447,7 +16448,7 @@
         "lastVisible": false
       },
       {
-        "t": 10.500000000000012,
+        "t": 10.46666666666668,
         "e": {
           "type": "chat",
           "id": "m675",
@@ -16463,7 +16464,7 @@
         "lastVisible": false
       },
       {
-        "t": 20.233333333333313,
+        "t": 20.19999999999998,
         "e": {
           "type": "chat",
           "id": "m691",
@@ -16479,7 +16480,7 @@
         "lastVisible": false
       },
       {
-        "t": 20.233333333333313,
+        "t": 20.19999999999998,
         "e": {
           "type": "chat",
           "id": "m692",
@@ -16495,7 +16496,7 @@
         "lastVisible": false
       },
       {
-        "t": 22.666666666666558,
+        "t": 22.633333333333226,
         "e": {
           "type": "chat",
           "id": "m690",
@@ -16507,11 +16508,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.133333333333328,
+        "visible": 3.6999999999999966,
         "lastVisible": false
       },
       {
-        "t": 25.23333333333313,
+        "t": 25.1999999999998,
         "e": {
           "type": "chat",
           "id": "m702",
@@ -16523,11 +16524,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.5333333333333348,
+        "visible": 1.9666666666666694,
         "lastVisible": false
       },
       {
-        "t": 26.366666666666426,
+        "t": 26.33333333333309,
         "e": {
           "type": "chat",
           "id": "m699",
@@ -16543,7 +16544,7 @@
         "lastVisible": false
       },
       {
-        "t": 26.79999999999974,
+        "t": 26.76666666666641,
         "e": {
           "type": "chat",
           "id": "m700",
@@ -16559,7 +16560,7 @@
         "lastVisible": false
       },
       {
-        "t": 27.23333333333306,
+        "t": 27.199999999999726,
         "e": {
           "type": "chat",
           "id": "m701",
@@ -16575,7 +16576,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.233333333332986,
+        "t": 29.199999999999655,
         "e": {
           "type": "chat",
           "id": "m713",
@@ -16590,7 +16591,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.233333333332986,
+        "t": 29.199999999999655,
         "e": {
           "type": "chat",
           "id": "m714",
@@ -16608,7 +16609,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.233333333332986,
+        "t": 29.199999999999655,
         "e": {
           "type": "chat",
           "id": "m715",
@@ -16624,7 +16625,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.266666666666318,
+        "t": 29.233333333332986,
         "e": {
           "type": "chat",
           "id": "m703",
@@ -16643,7 +16644,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.59999999999964,
+        "t": 29.566666666666308,
         "e": {
           "type": "chat",
           "id": "m704",
@@ -16659,7 +16660,7 @@
         }
       },
       {
-        "t": 30.299999999999613,
+        "t": 30.266666666666282,
         "e": {
           "type": "chat",
           "id": "m709",
@@ -16673,7 +16674,7 @@
         }
       },
       {
-        "t": 30.633333333332935,
+        "t": 30.599999999999604,
         "e": {
           "type": "chat",
           "id": "m710",
@@ -16687,7 +16688,7 @@
         }
       },
       {
-        "t": 30.966666666666256,
+        "t": 30.933333333332925,
         "e": {
           "type": "chat",
           "id": "m711",
@@ -16703,7 +16704,7 @@
         "lastVisible": false
       },
       {
-        "t": 33.233333333332894,
+        "t": 33.199999999999555,
         "e": {
           "type": "chat",
           "id": "m722",
@@ -16719,7 +16720,7 @@
         "lastVisible": false
       },
       {
-        "t": 33.233333333332894,
+        "t": 33.199999999999555,
         "e": {
           "type": "chat",
           "id": "m723",
@@ -16737,7 +16738,7 @@
         "lastVisible": false
       },
       {
-        "t": 33.233333333332894,
+        "t": 33.199999999999555,
         "e": {
           "type": "chat",
           "id": "m724",
@@ -16753,7 +16754,7 @@
         "lastVisible": false
       },
       {
-        "t": 34.66666666666633,
+        "t": 34.63333333333299,
         "e": {
           "type": "chat",
           "id": "m719",
@@ -16769,7 +16770,7 @@
         "lastVisible": false
       },
       {
-        "t": 37.233333333333185,
+        "t": 37.19999999999985,
         "e": {
           "type": "chat",
           "id": "m732",
@@ -16785,7 +16786,7 @@
         "lastVisible": false
       },
       {
-        "t": 39.266666666666666,
+        "t": 39.23333333333333,
         "e": {
           "type": "chat",
           "id": "m725",
@@ -16801,7 +16802,7 @@
         "lastVisible": false
       },
       {
-        "t": 41.233333333333476,
+        "t": 41.20000000000014,
         "e": {
           "type": "chat",
           "id": "m741",
@@ -16815,7 +16816,7 @@
         }
       },
       {
-        "t": 41.233333333333476,
+        "t": 41.20000000000014,
         "e": {
           "type": "chat",
           "id": "m742",
@@ -16829,7 +16830,7 @@
         }
       },
       {
-        "t": 41.233333333333476,
+        "t": 41.20000000000014,
         "e": {
           "type": "chat",
           "id": "m743",
@@ -16845,7 +16846,7 @@
         "lastVisible": false
       },
       {
-        "t": 43.46666666666697,
+        "t": 43.433333333333636,
         "e": {
           "type": "chat",
           "id": "m738",
@@ -16859,7 +16860,7 @@
         }
       },
       {
-        "t": 45.23333333333377,
+        "t": 45.20000000000043,
         "e": {
           "type": "chat",
           "id": "m746",
@@ -16875,7 +16876,7 @@
         "lastVisible": false
       },
       {
-        "t": 45.23333333333377,
+        "t": 45.20000000000043,
         "e": {
           "type": "chat",
           "id": "m747",
@@ -16891,7 +16892,7 @@
         "lastVisible": false
       },
       {
-        "t": 46.90000000000055,
+        "t": 46.866666666667214,
         "e": {
           "type": "chat",
           "id": "m744",
@@ -16909,7 +16910,7 @@
         "lastVisible": false
       },
       {
-        "t": 47.46666666666726,
+        "t": 47.43333333333393,
         "e": {
           "type": "chat",
           "id": "m745",
@@ -16925,7 +16926,7 @@
         "lastVisible": false
       },
       {
-        "t": 49.23333333333406,
+        "t": 49.20000000000072,
         "e": {
           "type": "chat",
           "id": "m753",
@@ -16941,7 +16942,7 @@
         "lastVisible": false
       },
       {
-        "t": 49.23333333333406,
+        "t": 49.20000000000072,
         "e": {
           "type": "chat",
           "id": "m754",
@@ -16953,11 +16954,11 @@
           "replyTo": "m752",
           "reactions": {}
         },
-        "visible": 2.200000000000002,
+        "visible": 2.6000000000000005,
         "lastVisible": false
       },
       {
-        "t": 51.10000000000086,
+        "t": 51.06666666666752,
         "e": {
           "type": "chat",
           "id": "m750",
@@ -16976,7 +16977,7 @@
         "lastVisible": false
       },
       {
-        "t": 51.46666666666755,
+        "t": 51.43333333333422,
         "e": {
           "type": "chat",
           "id": "m751",
@@ -16994,7 +16995,7 @@
         "lastVisible": false
       },
       {
-        "t": 51.866666666667584,
+        "t": 51.833333333334245,
         "e": {
           "type": "chat",
           "id": "m752",
@@ -17006,11 +17007,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 3.599999999999997,
+        "visible": 1.400000000000001,
         "lastVisible": false
       },
       {
-        "t": 53.23333333333435,
+        "t": 53.20000000000101,
         "e": {
           "type": "chat",
           "id": "m757",
@@ -17026,7 +17027,7 @@
         "lastVisible": false
       },
       {
-        "t": 53.23333333333435,
+        "t": 53.20000000000101,
         "e": {
           "type": "chat",
           "id": "m758",
@@ -17042,7 +17043,7 @@
         "lastVisible": false
       },
       {
-        "t": 55.46666666666784,
+        "t": 55.43333333333451,
         "e": {
           "type": "chat",
           "id": "m756",
@@ -17058,7 +17059,7 @@
         "lastVisible": false
       },
       {
-        "t": 57.23333333333464,
+        "t": 57.2000000000013,
         "e": {
           "type": "chat",
           "id": "m769",
@@ -17070,11 +17071,11 @@
           "replyTo": "m768",
           "reactions": {}
         },
-        "visible": 1.8333333333333357,
+        "visible": 2.200000000000002,
         "lastVisible": false
       },
       {
-        "t": 57.23333333333464,
+        "t": 57.2000000000013,
         "e": {
           "type": "chat",
           "id": "m770",
@@ -17089,11 +17090,11 @@
             "☕": 1
           }
         },
-        "visible": 2.200000000000002,
+        "visible": 2.6000000000000005,
         "lastVisible": false
       },
       {
-        "t": 59.100000000001444,
+        "t": 59.066666666668105,
         "e": {
           "type": "chat",
           "id": "m766",
@@ -17112,7 +17113,7 @@
         "lastVisible": false
       },
       {
-        "t": 59.46666666666813,
+        "t": 59.4333333333348,
         "e": {
           "type": "chat",
           "id": "m767",
@@ -17128,7 +17129,7 @@
         "lastVisible": false
       },
       {
-        "t": 59.866666666668166,
+        "t": 59.83333333333483,
         "e": {
           "type": "chat",
           "id": "m768",
@@ -17140,11 +17141,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 11.366666666666637,
+        "visible": 10.933333333333305,
         "lastVisible": false
       },
       {
-        "t": 70.36666666666788,
+        "t": 70.33333333333455,
         "e": {
           "type": "chat",
           "id": "m778",
@@ -17160,7 +17161,7 @@
         "lastVisible": false
       },
       {
-        "t": 70.80000000000115,
+        "t": 70.76666666666782,
         "e": {
           "type": "chat",
           "id": "m779",
@@ -17172,11 +17173,11 @@
           "replyTo": "m778",
           "reactions": {}
         },
-        "visible": 1.466666666666668,
+        "visible": 3.6999999999999966,
         "lastVisible": false
       },
       {
-        "t": 71.23333333333441,
+        "t": 71.2000000000011,
         "e": {
           "type": "chat",
           "id": "m780",
@@ -17192,7 +17193,7 @@
         "lastVisible": false
       },
       {
-        "t": 72.23333333333427,
+        "t": 72.20000000000094,
         "e": {
           "type": "chat",
           "id": "m783",
@@ -17208,7 +17209,7 @@
         "lastVisible": false
       },
       {
-        "t": 72.23333333333427,
+        "t": 72.20000000000094,
         "e": {
           "type": "chat",
           "id": "m784",
@@ -17220,11 +17221,11 @@
           "replyTo": "m782",
           "reactions": {}
         },
-        "visible": 6.366666666666654,
+        "visible": 10.533333333333307,
         "lastVisible": false
       },
       {
-        "t": 74.50000000000061,
+        "t": 74.46666666666728,
         "e": {
           "type": "chat",
           "id": "m782",
@@ -17238,11 +17239,11 @@
             "😂": 8
           }
         },
-        "visible": 14.766666666666625,
+        "visible": 8.733333333333313,
         "lastVisible": false
       },
       {
-        "t": 81.53333333333292,
+        "t": 81.49999999999959,
         "e": {
           "type": "chat",
           "id": "m792",
@@ -17258,7 +17259,7 @@
         }
       },
       {
-        "t": 82.7999999999994,
+        "t": 82.76666666666607,
         "e": {
           "type": "chat",
           "id": "m796",
@@ -17274,7 +17275,7 @@
         "lastVisible": false
       },
       {
-        "t": 83.23333333333268,
+        "t": 83.19999999999935,
         "e": {
           "type": "chat",
           "id": "m797",
@@ -17290,7 +17291,7 @@
         "lastVisible": false
       },
       {
-        "t": 89.2333333333318,
+        "t": 89.19999999999847,
         "e": {
           "type": "chat",
           "id": "m807",
@@ -17302,11 +17303,11 @@
           "replyTo": "m804",
           "reactions": {}
         },
-        "visible": 2.233333333333335,
+        "visible": 2.6000000000000005,
         "lastVisible": false
       },
       {
-        "t": 89.2333333333318,
+        "t": 89.19999999999847,
         "e": {
           "type": "chat",
           "id": "m808",
@@ -17322,7 +17323,7 @@
         "lastVisible": false
       },
       {
-        "t": 91.09999999999819,
+        "t": 91.06666666666487,
         "e": {
           "type": "chat",
           "id": "m802",
@@ -17334,11 +17335,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 0.7666666666666666,
+        "visible": 2.1666666666666687,
         "lastVisible": false
       },
       {
-        "t": 91.49999999999814,
+        "t": 91.4666666666648,
         "e": {
           "type": "chat",
           "id": "m803",
@@ -17354,7 +17355,7 @@
         "lastVisible": false
       },
       {
-        "t": 91.86666666666476,
+        "t": 91.83333333333142,
         "e": {
           "type": "chat",
           "id": "m804",
@@ -17370,7 +17371,7 @@
         "lastVisible": false
       },
       {
-        "t": 93.23333333333122,
+        "t": 93.19999999999789,
         "e": {
           "type": "chat",
           "id": "m820",
@@ -17386,7 +17387,7 @@
         "lastVisible": false
       },
       {
-        "t": 93.23333333333122,
+        "t": 93.19999999999789,
         "e": {
           "type": "chat",
           "id": "m821",
@@ -17402,7 +17403,7 @@
         "lastVisible": false
       },
       {
-        "t": 94.36666666666439,
+        "t": 94.33333333333105,
         "e": {
           "type": "chat",
           "id": "m810",
@@ -17420,7 +17421,7 @@
         "lastVisible": false
       },
       {
-        "t": 95.86666666666417,
+        "t": 95.83333333333084,
         "e": {
           "type": "chat",
           "id": "m819",
@@ -17434,11 +17435,11 @@
             "🙃": 1
           }
         },
-        "visible": 7.066666666666651,
+        "visible": 5.399999999999991,
         "lastVisible": false
       },
       {
-        "t": 97.23333333333063,
+        "t": 97.1999999999973,
         "e": {
           "type": "chat",
           "id": "m828",
@@ -17452,7 +17453,7 @@
         }
       },
       {
-        "t": 97.23333333333063,
+        "t": 97.1999999999973,
         "e": {
           "type": "chat",
           "id": "m829",
@@ -17466,7 +17467,7 @@
         }
       },
       {
-        "t": 99.89999999999692,
+        "t": 99.86666666666359,
         "e": {
           "type": "chat",
           "id": "m823",
@@ -17484,7 +17485,7 @@
         }
       },
       {
-        "t": 100.26666666666353,
+        "t": 100.2333333333302,
         "e": {
           "type": "chat",
           "id": "m827",
@@ -17501,7 +17502,7 @@
         }
       },
       {
-        "t": 101.23333333333005,
+        "t": 101.19999999999672,
         "e": {
           "type": "chat",
           "id": "m836",
@@ -17517,7 +17518,7 @@
         "lastVisible": false
       },
       {
-        "t": 101.23333333333005,
+        "t": 101.19999999999672,
         "e": {
           "type": "chat",
           "id": "m837",
@@ -17533,7 +17534,7 @@
         "lastVisible": false
       },
       {
-        "t": 102.93333333332981,
+        "t": 102.89999999999648,
         "e": {
           "type": "chat",
           "id": "m834",
@@ -17549,7 +17550,7 @@
         "lastVisible": false
       },
       {
-        "t": 103.49999999999639,
+        "t": 103.46666666666306,
         "e": {
           "type": "chat",
           "id": "m835",
@@ -17565,7 +17566,7 @@
         "lastVisible": false
       },
       {
-        "t": 106.36666666666264,
+        "t": 106.3333333333293,
         "e": {
           "type": "chat",
           "id": "m838",
@@ -17581,7 +17582,7 @@
         "lastVisible": false
       },
       {
-        "t": 107.49999999999581,
+        "t": 107.46666666666248,
         "e": {
           "type": "chat",
           "id": "m843",
@@ -17600,7 +17601,7 @@
         "lastVisible": false
       },
       {
-        "t": 107.86666666666243,
+        "t": 107.8333333333291,
         "e": {
           "type": "chat",
           "id": "m844",
@@ -17616,7 +17617,7 @@
         "lastVisible": false
       },
       {
-        "t": 112.13333333332847,
+        "t": 112.09999999999513,
         "e": {
           "type": "chat",
           "id": "m854",
@@ -17632,7 +17633,7 @@
         "lastVisible": false
       },
       {
-        "t": 113.2333333333283,
+        "t": 113.19999999999499,
         "e": {
           "type": "chat",
           "id": "m859",
@@ -17646,7 +17647,7 @@
         }
       },
       {
-        "t": 113.2333333333283,
+        "t": 113.19999999999499,
         "e": {
           "type": "chat",
           "id": "m860",
@@ -17660,7 +17661,7 @@
         }
       },
       {
-        "t": 115.86666666666126,
+        "t": 115.83333333332793,
         "e": {
           "type": "chat",
           "id": "m858",
@@ -17674,7 +17675,7 @@
         }
       },
       {
-        "t": 117.23333333332772,
+        "t": 117.1999999999944,
         "e": {
           "type": "chat",
           "id": "m863",
@@ -17692,7 +17693,7 @@
         "lastVisible": false
       },
       {
-        "t": 117.23333333332772,
+        "t": 117.1999999999944,
         "e": {
           "type": "chat",
           "id": "m864",
@@ -17710,7 +17711,7 @@
         "lastVisible": true
       },
       {
-        "t": 119.49999999999406,
+        "t": 119.46666666666073,
         "e": {
           "type": "chat",
           "id": "m862",
@@ -20058,419 +20059,419 @@
     "seed": 1,
     "initialWeek": 119,
     "week": 170,
-    "start": 0.26666666666666666,
+    "start": 0.23333333333333336,
     "stats": {
       "max": 4,
       "overlapFrames": 1886,
       "pairFrames": 463,
       "visibleFrames": 5380,
-      "yakMax": 3
+      "yakMax": 4
     },
     "bubbles": [
       {
-        "start": 4.46666666666667,
+        "start": 4.433333333333338,
         "text": "The first office was a garage, you know.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.466666666666664,
-        "end": 8.133333333333304,
+        "end": 8.099999999999971,
         "done": true
       },
       {
-        "start": 5.133333333333331,
+        "start": 5.099999999999998,
         "text": "I will write the tests after. I say this every time, with feeling.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 5.199999999999991,
-        "end": 10.500000000000012,
+        "end": 10.46666666666668,
         "done": true
       },
       {
-        "start": 7.199999999999979,
+        "start": 7.166666666666646,
         "text": "Better or worse?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.8666666666666691,
-        "end": 9.233333333333324,
+        "end": 9.199999999999989,
         "done": true
       },
       {
-        "start": 10.56666666666668,
+        "start": 10.533333333333347,
         "text": "So what are the perks here, exactly?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.1999999999999984,
-        "end": 13.933333333333408,
+        "end": 13.900000000000075,
         "done": true
       },
       {
-        "start": 11.266666666666694,
+        "start": 11.23333333333336,
         "text": "Someone taped the wifi password to the door. Facing out.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.533333333333327,
-        "end": 15.966666666666779,
+        "end": 15.933333333333445,
         "done": true
       },
       {
-        "start": 13.133333333333393,
+        "start": 13.10000000000006,
         "text": "Deleted two hundred lines. Best work I have done all week.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.66666666666666,
-        "end": 17.96666666666673,
+        "end": 17.933333333333398,
         "done": true
       },
       {
-        "start": 13.133333333333393,
+        "start": 13.10000000000006,
         "text": "There is a kettle.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.0000000000000027,
-        "end": 15.3000000000001,
+        "end": 15.266666666666767,
         "done": true
       },
       {
-        "start": 16.000000000000114,
+        "start": 15.966666666666779,
         "text": "The listing wanted a decade in a five-year-old framework.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 7.433333333333317,
-        "end": 23.833333333333183,
+        "end": 23.79999999999985,
         "done": true
       },
       {
-        "start": 21.666666666666597,
+        "start": 21.633333333333262,
         "text": "Button update: it has a queue and an audit log.",
         "source": "    at updateRec (/src/render/sync.js:675:77);     at Object.update (/src/render/sync.js:1050:36)",
         "visible": 3.933333333333329,
-        "end": 25.799999999999777,
+        "end": 25.766666666666445,
         "done": true
       },
       {
-        "start": 22.19999999999991,
+        "start": 22.166666666666575,
         "text": "And do you?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.5333333333333348,
-        "end": 23.93333333333318,
+        "end": 23.899999999999846,
         "done": true
       },
       {
-        "start": 23.533333333333193,
+        "start": 23.49999999999986,
         "text": "Went through all the docs this weekend.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.299999999999998,
-        "end": 27.133333333333063,
+        "end": 27.09999999999973,
         "done": true
       },
       {
-        "start": 24.199999999999836,
+        "start": 24.166666666666504,
         "text": "What's it for, though?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.1666666666666687,
-        "end": 26.666666666666412,
+        "end": 26.63333333333308,
         "done": true
       },
       {
-        "start": 26.199999999999765,
+        "start": 26.16666666666643,
         "text": "Oh no.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.3000000000000007,
-        "end": 27.699999999999708,
+        "end": 27.666666666666377,
         "done": true
       },
       {
-        "start": 28.03333333333303,
+        "start": 27.999999999999698,
         "text": "Found the bug. Also found its family.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.266666666666665,
-        "end": 31.49999999999957,
+        "end": 31.46666666666624,
         "done": true
       },
       {
-        "start": 30.133333333332953,
+        "start": 30.09999999999962,
         "text": "If we call it a platform, it's a platform.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 7.599999999999983,
-        "end": 37.93333333333323,
+        "end": 37.8999999999999,
         "done": true
       },
       {
-        "start": 32.033333333332884,
+        "start": 31.999999999999552,
         "text": "I'd recommend writing the tests first. I recommend lots of things.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 9.099999999999978,
-        "end": 41.400000000000155,
+        "end": 41.366666666666816,
         "done": true
       },
       {
-        "start": 38.66666666666662,
+        "start": 38.63333333333328,
         "text": "Product 7 is going great. My parts, anyway.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.6666666666666634,
-        "end": 42.500000000000234,
+        "end": 42.466666666666896,
         "done": true
       },
       {
-        "start": 40.96666666666679,
+        "start": 40.93333333333345,
         "text": "You wrote 'maybe consider' fourteen times.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.599999999999997,
-        "end": 44.73333333333373,
+        "end": 44.700000000000394,
         "done": true
       },
       {
-        "start": 42.1000000000002,
+        "start": 42.06666666666687,
         "text": "Nobody breached us this week. That is what worries me.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.399999999999994,
-        "end": 46.666666666667204,
+        "end": 46.633333333333866,
         "done": true
       },
       {
-        "start": 44.10000000000035,
+        "start": 44.06666666666701,
         "text": "The code looked sad.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.1333333333333355,
-        "end": 46.40000000000052,
+        "end": 46.36666666666718,
         "done": true
       },
       {
-        "start": 44.666666666667055,
+        "start": 44.633333333333724,
         "text": "Wrote 'revolutionary' again. It's a settings page.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.033333333333329,
-        "end": 48.96666666666737,
+        "end": 48.93333333333403,
         "done": true
       },
       {
-        "start": 53.16666666666767,
+        "start": 53.13333333333434,
         "text": "Is it any good?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.8000000000000023,
-        "end": 55.133333333334484,
+        "end": 55.10000000000115,
         "done": true
       },
       {
-        "start": 53.900000000001064,
+        "start": 53.866666666667726,
         "text": "We have more services than customers now.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.5333333333333306,
-        "end": 57.60000000000133,
+        "end": 57.566666666668,
         "done": true
       },
       {
-        "start": 56.2666666666679,
+        "start": 56.23333333333456,
         "text": "Don't forget the retro this afternoon.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.3333333333333313,
-        "end": 59.76666666666816,
+        "end": 59.73333333333482,
         "done": true
       },
       {
-        "start": 57.13333333333463,
+        "start": 57.100000000001295,
         "text": "Did it help?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.5000000000000013,
-        "end": 58.90000000000143,
+        "end": 58.86666666666809,
         "done": true
       },
       {
-        "start": 58.56666666666807,
+        "start": 58.53333333333473,
         "text": "Launch day and nothing is broken.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.999999999999999,
-        "end": 61.73333333333497,
+        "end": 61.70000000000163,
         "done": true
       },
       {
-        "start": 59.133333333334775,
+        "start": 59.100000000001444,
         "text": "What are we reflecting on?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.533333333333334,
-        "end": 61.83333333333497,
+        "end": 61.80000000000164,
         "done": true
       },
       {
-        "start": 61.133333333334924,
+        "start": 61.100000000001586,
         "text": "Is the signup page up?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 4.2999999999999945,
-        "end": 65.60000000000191,
+        "end": 65.56666666666858,
         "done": true
       },
       {
-        "start": 62.10000000000166,
+        "start": 62.066666666668326,
         "text": "Lookerish copied our feature. In gray.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 5.366666666666657,
-        "end": 67.66666666666828,
+        "end": 67.63333333333495,
         "done": true
       },
       {
-        "start": 66.4000000000018,
+        "start": 66.36666666666846,
         "text": "That would be much safer in Rust.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.999999999999999,
-        "end": 69.60000000000133,
+        "end": 69.566666666668,
         "done": true
       },
       {
-        "start": 67.16666666666835,
+        "start": 67.13333333333502,
         "text": "Is it better?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.6666666666666685,
-        "end": 69.03333333333474,
+        "end": 69.0000000000014,
         "done": true
       },
       {
-        "start": 68.30000000000152,
+        "start": 68.26666666666819,
         "text": "New brand goes live Monday.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.6000000000000005,
-        "end": 71.1000000000011,
+        "end": 71.06666666666777,
         "done": true
       },
       {
-        "start": 69.16666666666805,
+        "start": 69.13333333333472,
         "text": "It's a text file.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.8333333333333357,
-        "end": 71.30000000000108,
+        "end": 71.26666666666775,
         "done": true
       },
       {
-        "start": 71.16666666666777,
+        "start": 71.13333333333443,
         "text": "The gradient. And the confidence.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.9333333333333327,
-        "end": 74.40000000000063,
+        "end": 74.3666666666673,
         "done": true
       },
       {
-        "start": 77.00000000000024,
+        "start": 76.96666666666692,
         "text": "Rebranded Product 4. Same app. The font is more confident.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 7.666666666666649,
-        "end": 84.86666666666576,
+        "end": 84.83333333333245,
         "done": true
       },
       {
-        "start": 83.29999999999933,
+        "start": 83.266666666666,
         "text": "So I got promoted.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.0000000000000027,
-        "end": 85.499999999999,
+        "end": 85.46666666666569,
         "done": true
       },
       {
-        "start": 86.16666666666558,
+        "start": 86.13333333333225,
         "text": "I get invited to the meeting before the meeting.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.9999999999999956,
-        "end": 90.36666666666497,
+        "end": 90.33333333333164,
         "done": true
       },
       {
-        "start": 87.46666666666539,
+        "start": 87.43333333333206,
         "text": "Sent the award photo to my family.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.966666666666666,
-        "end": 90.73333333333159,
+        "end": 90.69999999999825,
         "done": true
       },
       {
-        "start": 89.13333333333182,
+        "start": 89.09999999999849,
         "text": "I think I actually like my job.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.7666666666666666,
-        "end": 92.19999999999804,
+        "end": 92.16666666666471,
         "done": true
       },
       {
-        "start": 90.166666666665,
+        "start": 90.13333333333166,
         "text": "Were they impressed?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.1333333333333355,
-        "end": 92.499999999998,
+        "end": 92.46666666666466,
         "done": true
       },
       {
-        "start": 90.26666666666499,
+        "start": 90.23333333333166,
         "text": "I type 'sorry for the trouble' so often it's my signature.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.56666666666666,
-        "end": 95.13333333333094,
+        "end": 95.0999999999976,
         "done": true
       },
       {
-        "start": 92.16666666666471,
+        "start": 92.13333333333138,
         "text": "Keep your voice down. It can hear you.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 5.366666666666657,
-        "end": 97.73333333333056,
+        "end": 97.69999999999723,
         "done": true
       },
       {
-        "start": 99.299999999997,
+        "start": 99.26666666666367,
         "text": "We need a name for the new part of Product 8.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.7999999999999963,
-        "end": 103.29999999999642,
+        "end": 103.2666666666631,
         "done": true
       },
       {
-        "start": 100.79999999999679,
+        "start": 100.76666666666345,
         "text": "I wrote this file in my first month here.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.5333333333333306,
-        "end": 104.53333333332958,
+        "end": 104.49999999999625,
         "done": true
       },
       {
-        "start": 102.16666666666325,
+        "start": 102.13333333332993,
         "text": "Just call it Manager. Everyone does.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.1999999999999984,
-        "end": 105.56666666666275,
+        "end": 105.53333333332942,
         "done": true
       },
       {
-        "start": 104.16666666666296,
+        "start": 104.13333333332963,
         "text": "What if I just rename one variable?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.133333333333332,
-        "end": 107.49999999999581,
+        "end": 107.46666666666248,
         "done": true
       },
       {
-        "start": 106.29999999999599,
+        "start": 106.26666666666266,
         "text": "Found the bug. Also found its family.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.266666666666665,
-        "end": 109.76666666666215,
+        "end": 109.73333333332882,
         "done": true
       },
       {
-        "start": 111.56666666666189,
+        "start": 111.53333333332856,
         "text": "Quick check. What's your password?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.0666666666666655,
-        "end": 114.83333333332807,
+        "end": 114.79999999999475,
         "done": true
       },
       {
-        "start": 112.69999999999506,
+        "start": 112.66666666666173,
         "text": "I will write the tests after. I say this every time, with feeling.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 5.199999999999991,
-        "end": 118.09999999999427,
+        "end": 118.06666666666094,
         "done": true
       },
       {
-        "start": 114.1666666666615,
+        "start": 114.13333333332818,
         "text": "Hang on, it's on a sticky note.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.8666666666666663,
-        "end": 117.23333333332772,
+        "end": 117.1999999999944,
         "done": true
       }
     ],
     "yak": [
       {
-        "t": 0.26666666666666666,
+        "t": 0.23333333333333336,
         "e": {
           "type": "chat",
           "id": "m662",
@@ -20486,7 +20487,7 @@
         "lastVisible": false
       },
       {
-        "t": 3.26666666666667,
+        "t": 3.2333333333333365,
         "e": {
           "type": "chat",
           "id": "m668",
@@ -20504,7 +20505,7 @@
         "lastVisible": false
       },
       {
-        "t": 4.266666666666673,
+        "t": 4.23333333333334,
         "e": {
           "type": "chat",
           "id": "m678",
@@ -20520,7 +20521,7 @@
         "lastVisible": false
       },
       {
-        "t": 4.266666666666673,
+        "t": 4.23333333333334,
         "e": {
           "type": "chat",
           "id": "m679",
@@ -20532,11 +20533,11 @@
           "replyTo": "m675",
           "reactions": {}
         },
-        "visible": 1.1333333333333335,
+        "visible": 6.999999999999985,
         "lastVisible": false
       },
       {
-        "t": 4.266666666666673,
+        "t": 4.23333333333334,
         "e": {
           "type": "chat",
           "id": "m680",
@@ -20555,7 +20556,7 @@
         "lastVisible": false
       },
       {
-        "t": 5.433333333333328,
+        "t": 5.399999999999995,
         "e": {
           "type": "chat",
           "id": "m675",
@@ -20571,7 +20572,7 @@
         "lastVisible": false
       },
       {
-        "t": 11.266666666666694,
+        "t": 11.23333333333336,
         "e": {
           "type": "chat",
           "id": "m691",
@@ -20587,7 +20588,7 @@
         "lastVisible": false
       },
       {
-        "t": 11.266666666666694,
+        "t": 11.23333333333336,
         "e": {
           "type": "chat",
           "id": "m692",
@@ -20603,7 +20604,7 @@
         "lastVisible": false
       },
       {
-        "t": 11.50000000000003,
+        "t": 11.466666666666697,
         "e": {
           "type": "chat",
           "id": "m690",
@@ -20615,11 +20616,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 2.066666666666669,
+        "visible": 1.8333333333333357,
         "lastVisible": false
       },
       {
-        "t": 12.266666666666712,
+        "t": 12.233333333333377,
         "e": {
           "type": "chat",
           "id": "m702",
@@ -20631,11 +20632,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.2666666666666673,
+        "visible": 1.466666666666668,
         "lastVisible": false
       },
       {
-        "t": 13.333333333333398,
+        "t": 13.300000000000063,
         "e": {
           "type": "chat",
           "id": "m699",
@@ -20651,7 +20652,7 @@
         "lastVisible": false
       },
       {
-        "t": 13.566666666666736,
+        "t": 13.5333333333334,
         "e": {
           "type": "chat",
           "id": "m700",
@@ -20667,7 +20668,7 @@
         "lastVisible": false
       },
       {
-        "t": 13.766666666666739,
+        "t": 13.733333333333405,
         "e": {
           "type": "chat",
           "id": "m701",
@@ -20683,7 +20684,7 @@
         "lastVisible": false
       },
       {
-        "t": 14.266666666666747,
+        "t": 14.233333333333414,
         "e": {
           "type": "chat",
           "id": "m713",
@@ -20695,10 +20696,11 @@
           "replyTo": "m711",
           "reactions": {}
         },
+        "visible": 0.49999999999999994,
         "lastVisible": false
       },
       {
-        "t": 14.266666666666747,
+        "t": 14.233333333333414,
         "e": {
           "type": "chat",
           "id": "m714",
@@ -20717,7 +20719,7 @@
         "lastVisible": false
       },
       {
-        "t": 14.266666666666747,
+        "t": 14.233333333333414,
         "e": {
           "type": "chat",
           "id": "m715",
@@ -20733,7 +20735,7 @@
         "lastVisible": false
       },
       {
-        "t": 14.800000000000091,
+        "t": 14.766666666666756,
         "e": {
           "type": "chat",
           "id": "m703",
@@ -20752,7 +20754,7 @@
         "lastVisible": false
       },
       {
-        "t": 14.966666666666761,
+        "t": 14.933333333333426,
         "e": {
           "type": "chat",
           "id": "m704",
@@ -20768,7 +20770,7 @@
         }
       },
       {
-        "t": 15.3000000000001,
+        "t": 15.266666666666767,
         "e": {
           "type": "chat",
           "id": "m709",
@@ -20782,7 +20784,7 @@
         }
       },
       {
-        "t": 15.46666666666677,
+        "t": 15.433333333333437,
         "e": {
           "type": "chat",
           "id": "m710",
@@ -20796,7 +20798,7 @@
         }
       },
       {
-        "t": 15.63333333333344,
+        "t": 15.600000000000106,
         "e": {
           "type": "chat",
           "id": "m711",
@@ -20812,7 +20814,7 @@
         "lastVisible": false
       },
       {
-        "t": 16.266666666666783,
+        "t": 16.23333333333345,
         "e": {
           "type": "chat",
           "id": "m722",
@@ -20828,7 +20830,7 @@
         "lastVisible": false
       },
       {
-        "t": 16.266666666666783,
+        "t": 16.23333333333345,
         "e": {
           "type": "chat",
           "id": "m723",
@@ -20846,7 +20848,7 @@
         "lastVisible": false
       },
       {
-        "t": 16.266666666666783,
+        "t": 16.23333333333345,
         "e": {
           "type": "chat",
           "id": "m724",
@@ -20862,7 +20864,7 @@
         "lastVisible": false
       },
       {
-        "t": 17.50000000000008,
+        "t": 17.466666666666747,
         "e": {
           "type": "chat",
           "id": "m719",
@@ -20878,7 +20880,7 @@
         "lastVisible": false
       },
       {
-        "t": 21.26666666666661,
+        "t": 21.233333333333277,
         "e": {
           "type": "chat",
           "id": "m732",
@@ -20894,7 +20896,7 @@
         "lastVisible": false
       },
       {
-        "t": 22.299999999999905,
+        "t": 22.266666666666573,
         "e": {
           "type": "chat",
           "id": "m725",
@@ -20910,7 +20912,7 @@
         "lastVisible": false
       },
       {
-        "t": 24.266666666666502,
+        "t": 24.233333333333167,
         "e": {
           "type": "chat",
           "id": "m741",
@@ -20924,7 +20926,7 @@
         }
       },
       {
-        "t": 24.266666666666502,
+        "t": 24.233333333333167,
         "e": {
           "type": "chat",
           "id": "m742",
@@ -20938,7 +20940,7 @@
         }
       },
       {
-        "t": 24.266666666666502,
+        "t": 24.233333333333167,
         "e": {
           "type": "chat",
           "id": "m743",
@@ -20954,7 +20956,7 @@
         "lastVisible": false
       },
       {
-        "t": 24.43333333333316,
+        "t": 24.399999999999828,
         "e": {
           "type": "chat",
           "id": "m738",
@@ -20968,7 +20970,7 @@
         }
       },
       {
-        "t": 26.1333333333331,
+        "t": 26.099999999999767,
         "e": {
           "type": "chat",
           "id": "m744",
@@ -20986,7 +20988,7 @@
         "lastVisible": false
       },
       {
-        "t": 26.266666666666428,
+        "t": 26.233333333333096,
         "e": {
           "type": "chat",
           "id": "m746",
@@ -20998,11 +21000,11 @@
           "replyTo": "m745",
           "reactions": {}
         },
-        "visible": 0.13333333333333333,
+        "visible": 1.933333333333336,
         "lastVisible": false
       },
       {
-        "t": 26.266666666666428,
+        "t": 26.233333333333096,
         "e": {
           "type": "chat",
           "id": "m747",
@@ -21018,7 +21020,7 @@
         "lastVisible": false
       },
       {
-        "t": 26.43333333333309,
+        "t": 26.399999999999757,
         "e": {
           "type": "chat",
           "id": "m745",
@@ -21034,7 +21036,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.23333333333302,
+        "t": 28.19999999999969,
         "e": {
           "type": "chat",
           "id": "m750",
@@ -21053,7 +21055,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.266666666666357,
+        "t": 28.23333333333302,
         "e": {
           "type": "chat",
           "id": "m753",
@@ -21069,7 +21071,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.266666666666357,
+        "t": 28.23333333333302,
         "e": {
           "type": "chat",
           "id": "m754",
@@ -21085,7 +21087,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.433333333333017,
+        "t": 28.399999999999682,
         "e": {
           "type": "chat",
           "id": "m751",
@@ -21103,7 +21105,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.599999999999675,
+        "t": 28.566666666666343,
         "e": {
           "type": "chat",
           "id": "m752",
@@ -21115,11 +21117,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.8333333333333357,
+        "visible": 1.700000000000002,
         "lastVisible": false
       },
       {
-        "t": 30.266666666666282,
+        "t": 30.23333333333295,
         "e": {
           "type": "chat",
           "id": "m757",
@@ -21135,7 +21137,7 @@
         "lastVisible": false
       },
       {
-        "t": 30.266666666666282,
+        "t": 30.23333333333295,
         "e": {
           "type": "chat",
           "id": "m758",
@@ -21151,7 +21153,7 @@
         "lastVisible": false
       },
       {
-        "t": 30.433333333332943,
+        "t": 30.39999999999961,
         "e": {
           "type": "chat",
           "id": "m756",
@@ -21167,7 +21169,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.23333333333288,
+        "t": 32.19999999999955,
         "e": {
           "type": "chat",
           "id": "m766",
@@ -21186,7 +21188,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.26666666666621,
+        "t": 32.23333333333288,
         "e": {
           "type": "chat",
           "id": "m769",
@@ -21198,11 +21200,11 @@
           "replyTo": "m768",
           "reactions": {}
         },
-        "visible": 0.3,
+        "visible": 7.999999999999981,
         "lastVisible": false
       },
       {
-        "t": 32.26666666666621,
+        "t": 32.23333333333288,
         "e": {
           "type": "chat",
           "id": "m770",
@@ -21221,7 +21223,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.43333333333287,
+        "t": 32.39999999999954,
         "e": {
           "type": "chat",
           "id": "m767",
@@ -21237,7 +21239,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.59999999999953,
+        "t": 32.5666666666662,
         "e": {
           "type": "chat",
           "id": "m768",
@@ -21249,11 +21251,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 8.133333333333315,
+        "visible": 7.933333333333315,
         "lastVisible": false
       },
       {
-        "t": 40.300000000000075,
+        "t": 40.26666666666674,
         "e": {
           "type": "chat",
           "id": "m778",
@@ -21269,7 +21271,7 @@
         "lastVisible": false
       },
       {
-        "t": 40.533333333333424,
+        "t": 40.500000000000085,
         "e": {
           "type": "chat",
           "id": "m779",
@@ -21281,11 +21283,11 @@
           "replyTo": "m778",
           "reactions": {}
         },
-        "visible": 0.7666666666666666,
+        "visible": 1.8333333333333357,
         "lastVisible": false
       },
       {
-        "t": 40.73333333333344,
+        "t": 40.7000000000001,
         "e": {
           "type": "chat",
           "id": "m780",
@@ -21301,7 +21303,7 @@
         "lastVisible": false
       },
       {
-        "t": 41.26666666666681,
+        "t": 41.233333333333476,
         "e": {
           "type": "chat",
           "id": "m783",
@@ -21317,7 +21319,7 @@
         "lastVisible": false
       },
       {
-        "t": 41.26666666666681,
+        "t": 41.233333333333476,
         "e": {
           "type": "chat",
           "id": "m784",
@@ -21329,11 +21331,11 @@
           "replyTo": "m782",
           "reactions": {}
         },
-        "visible": 3.2333333333333316,
+        "visible": 5.2333333333333245,
         "lastVisible": false
       },
       {
-        "t": 42.36666666666689,
+        "t": 42.333333333333556,
         "e": {
           "type": "chat",
           "id": "m782",
@@ -21347,11 +21349,11 @@
             "😂": 8
           }
         },
-        "visible": 9.933333333333309,
+        "visible": 4.366666666666661,
         "lastVisible": false
       },
       {
-        "t": 45.90000000000048,
+        "t": 45.86666666666714,
         "e": {
           "type": "chat",
           "id": "m792",
@@ -21367,7 +21369,7 @@
         }
       },
       {
-        "t": 46.53333333333386,
+        "t": 46.500000000000526,
         "e": {
           "type": "chat",
           "id": "m796",
@@ -21383,7 +21385,7 @@
         "lastVisible": false
       },
       {
-        "t": 46.733333333333874,
+        "t": 46.700000000000536,
         "e": {
           "type": "chat",
           "id": "m797",
@@ -21399,7 +21401,7 @@
         "lastVisible": false
       },
       {
-        "t": 52.26666666666761,
+        "t": 52.23333333333427,
         "e": {
           "type": "chat",
           "id": "m807",
@@ -21411,11 +21413,11 @@
           "replyTo": "m804",
           "reactions": {}
         },
-        "visible": 1.1,
+        "visible": 1.3000000000000007,
         "lastVisible": false
       },
       {
-        "t": 52.26666666666761,
+        "t": 52.23333333333427,
         "e": {
           "type": "chat",
           "id": "m808",
@@ -21431,7 +21433,7 @@
         "lastVisible": false
       },
       {
-        "t": 53.23333333333435,
+        "t": 53.20000000000101,
         "e": {
           "type": "chat",
           "id": "m802",
@@ -21443,11 +21445,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 0.36666666666666664,
+        "visible": 1.0666666666666667,
         "lastVisible": false
       },
       {
-        "t": 53.40000000000103,
+        "t": 53.36666666666769,
         "e": {
           "type": "chat",
           "id": "m803",
@@ -21463,7 +21465,7 @@
         "lastVisible": false
       },
       {
-        "t": 53.60000000000104,
+        "t": 53.56666666666771,
         "e": {
           "type": "chat",
           "id": "m804",
@@ -21479,7 +21481,7 @@
         "lastVisible": false
       },
       {
-        "t": 54.26666666666775,
+        "t": 54.23333333333442,
         "e": {
           "type": "chat",
           "id": "m820",
@@ -21495,7 +21497,7 @@
         "lastVisible": false
       },
       {
-        "t": 54.26666666666775,
+        "t": 54.23333333333442,
         "e": {
           "type": "chat",
           "id": "m821",
@@ -21511,7 +21513,7 @@
         "lastVisible": false
       },
       {
-        "t": 54.833333333334465,
+        "t": 54.80000000000113,
         "e": {
           "type": "chat",
           "id": "m810",
@@ -21529,7 +21531,7 @@
         "lastVisible": false
       },
       {
-        "t": 55.60000000000119,
+        "t": 55.56666666666785,
         "e": {
           "type": "chat",
           "id": "m819",
@@ -21543,11 +21545,11 @@
             "🙃": 1
           }
         },
-        "visible": 3.5333333333333306,
+        "visible": 2.7,
         "lastVisible": false
       },
       {
-        "t": 56.2666666666679,
+        "t": 56.23333333333456,
         "e": {
           "type": "chat",
           "id": "m828",
@@ -21561,7 +21563,7 @@
         }
       },
       {
-        "t": 56.2666666666679,
+        "t": 56.23333333333456,
         "e": {
           "type": "chat",
           "id": "m829",
@@ -21575,7 +21577,7 @@
         }
       },
       {
-        "t": 57.63333333333467,
+        "t": 57.60000000000133,
         "e": {
           "type": "chat",
           "id": "m823",
@@ -21593,7 +21595,7 @@
         }
       },
       {
-        "t": 57.80000000000135,
+        "t": 57.76666666666801,
         "e": {
           "type": "chat",
           "id": "m827",
@@ -21610,7 +21612,7 @@
         }
       },
       {
-        "t": 58.266666666668044,
+        "t": 58.23333333333471,
         "e": {
           "type": "chat",
           "id": "m836",
@@ -21626,7 +21628,7 @@
         "lastVisible": false
       },
       {
-        "t": 58.266666666668044,
+        "t": 58.23333333333471,
         "e": {
           "type": "chat",
           "id": "m837",
@@ -21642,7 +21644,7 @@
         "lastVisible": false
       },
       {
-        "t": 59.133333333334775,
+        "t": 59.100000000001444,
         "e": {
           "type": "chat",
           "id": "m834",
@@ -21658,7 +21660,7 @@
         "lastVisible": false
       },
       {
-        "t": 59.40000000000146,
+        "t": 59.366666666668124,
         "e": {
           "type": "chat",
           "id": "m835",
@@ -21674,7 +21676,7 @@
         "lastVisible": false
       },
       {
-        "t": 60.8333333333349,
+        "t": 60.80000000000157,
         "e": {
           "type": "chat",
           "id": "m838",
@@ -21690,7 +21692,7 @@
         "lastVisible": false
       },
       {
-        "t": 61.40000000000161,
+        "t": 61.36666666666827,
         "e": {
           "type": "chat",
           "id": "m843",
@@ -21709,7 +21711,7 @@
         "lastVisible": false
       },
       {
-        "t": 61.60000000000162,
+        "t": 61.56666666666829,
         "e": {
           "type": "chat",
           "id": "m844",
@@ -21725,7 +21727,7 @@
         "lastVisible": false
       },
       {
-        "t": 65.73333333333522,
+        "t": 65.70000000000189,
         "e": {
           "type": "chat",
           "id": "m854",
@@ -21741,7 +21743,7 @@
         "lastVisible": false
       },
       {
-        "t": 66.26666666666847,
+        "t": 66.23333333333515,
         "e": {
           "type": "chat",
           "id": "m859",
@@ -21755,7 +21757,7 @@
         }
       },
       {
-        "t": 66.26666666666847,
+        "t": 66.23333333333515,
         "e": {
           "type": "chat",
           "id": "m860",
@@ -21769,7 +21771,7 @@
         }
       },
       {
-        "t": 67.60000000000161,
+        "t": 67.56666666666828,
         "e": {
           "type": "chat",
           "id": "m858",
@@ -21783,7 +21785,7 @@
         }
       },
       {
-        "t": 68.26666666666819,
+        "t": 68.23333333333485,
         "e": {
           "type": "chat",
           "id": "m863",
@@ -21801,7 +21803,7 @@
         "lastVisible": false
       },
       {
-        "t": 68.26666666666819,
+        "t": 68.23333333333485,
         "e": {
           "type": "chat",
           "id": "m864",
@@ -21819,7 +21821,7 @@
         "lastVisible": false
       },
       {
-        "t": 69.40000000000136,
+        "t": 69.36666666666802,
         "e": {
           "type": "chat",
           "id": "m862",
@@ -21833,11 +21835,11 @@
             "💯": 1
           }
         },
-        "visible": 3.63333333333333,
+        "visible": 2.8999999999999995,
         "lastVisible": false
       },
       {
-        "t": 72.2666666666676,
+        "t": 72.23333333333427,
         "e": {
           "type": "chat",
           "id": "m875",
@@ -21849,11 +21851,11 @@
           "replyTo": "m874",
           "reactions": {}
         },
-        "visible": 0.7333333333333333,
+        "visible": 0.9333333333333332,
         "lastVisible": false
       },
       {
-        "t": 72.2666666666676,
+        "t": 72.23333333333427,
         "e": {
           "type": "chat",
           "id": "m876",
@@ -21865,11 +21867,11 @@
           "replyTo": "m874",
           "reactions": {}
         },
-        "visible": 0.9333333333333332,
+        "visible": 1.1,
         "lastVisible": false
       },
       {
-        "t": 73.03333333333416,
+        "t": 73.00000000000082,
         "e": {
           "type": "chat",
           "id": "m871",
@@ -21888,7 +21890,7 @@
         "lastVisible": false
       },
       {
-        "t": 73.23333333333413,
+        "t": 73.2000000000008,
         "e": {
           "type": "chat",
           "id": "m872",
@@ -21904,7 +21906,7 @@
         "lastVisible": false
       },
       {
-        "t": 73.40000000000077,
+        "t": 73.36666666666744,
         "e": {
           "type": "chat",
           "id": "m873",
@@ -21920,7 +21922,7 @@
         "lastVisible": false
       },
       {
-        "t": 73.60000000000075,
+        "t": 73.56666666666742,
         "e": {
           "type": "chat",
           "id": "m874",
@@ -21932,11 +21934,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.9000000000000026,
+        "visible": 0.7,
         "lastVisible": false
       },
       {
-        "t": 74.2666666666673,
+        "t": 74.23333333333399,
         "e": {
           "type": "chat",
           "id": "m881",
@@ -21948,11 +21950,11 @@
           "replyTo": "m880",
           "reactions": {}
         },
-        "visible": 1.2000000000000004,
+        "visible": 11.333333333333304,
         "lastVisible": false
       },
       {
-        "t": 74.2666666666673,
+        "t": 74.23333333333399,
         "e": {
           "type": "chat",
           "id": "m882",
@@ -21968,7 +21970,7 @@
         "lastVisible": false
       },
       {
-        "t": 75.50000000000047,
+        "t": 75.46666666666714,
         "e": {
           "type": "chat",
           "id": "m880",
@@ -21984,7 +21986,7 @@
         "lastVisible": false
       },
       {
-        "t": 77.26666666666688,
+        "t": 77.23333333333355,
         "e": {
           "type": "chat",
           "id": "m885",
@@ -21998,7 +22000,7 @@
         }
       },
       {
-        "t": 77.50000000000017,
+        "t": 77.46666666666684,
         "e": {
           "type": "chat",
           "id": "m886",
@@ -22012,7 +22014,7 @@
         }
       },
       {
-        "t": 77.73333333333348,
+        "t": 77.70000000000014,
         "e": {
           "type": "chat",
           "id": "m887",
@@ -22026,7 +22028,7 @@
         }
       },
       {
-        "t": 81.66666666666623,
+        "t": 81.6333333333329,
         "e": {
           "type": "chat",
           "id": "m888",
@@ -22042,7 +22044,7 @@
         }
       },
       {
-        "t": 81.96666666666619,
+        "t": 81.93333333333287,
         "e": {
           "type": "chat",
           "id": "m889",
@@ -22060,7 +22062,7 @@
         }
       },
       {
-        "t": 82.53333333333278,
+        "t": 82.49999999999945,
         "e": {
           "type": "chat",
           "id": "m893",
@@ -22077,7 +22079,7 @@
         }
       },
       {
-        "t": 82.66666666666609,
+        "t": 82.63333333333276,
         "e": {
           "type": "chat",
           "id": "m894",
@@ -22094,7 +22096,7 @@
         }
       },
       {
-        "t": 82.7999999999994,
+        "t": 82.76666666666607,
         "e": {
           "type": "chat",
           "id": "m895",
@@ -22108,7 +22110,7 @@
         }
       },
       {
-        "t": 85.63333333333233,
+        "t": 85.599999999999,
         "e": {
           "type": "chat",
           "id": "m902",
@@ -22124,7 +22126,7 @@
         "lastVisible": false
       },
       {
-        "t": 86.16666666666558,
+        "t": 86.13333333333225,
         "e": {
           "type": "chat",
           "id": "m903",
@@ -22142,7 +22144,7 @@
         }
       },
       {
-        "t": 86.43333333333221,
+        "t": 86.39999999999888,
         "e": {
           "type": "chat",
           "id": "m904",
@@ -22159,7 +22161,7 @@
         }
       },
       {
-        "t": 86.69999999999884,
+        "t": 86.6666666666655,
         "e": {
           "type": "chat",
           "id": "m908",
@@ -22177,7 +22179,7 @@
         }
       },
       {
-        "t": 86.83333333333215,
+        "t": 86.79999999999882,
         "e": {
           "type": "chat",
           "id": "m909",
@@ -22191,7 +22193,7 @@
         }
       },
       {
-        "t": 87.26666666666542,
+        "t": 87.2333333333321,
         "e": {
           "type": "chat",
           "id": "m915",
@@ -22207,7 +22209,7 @@
         "lastVisible": false
       },
       {
-        "t": 87.26666666666542,
+        "t": 87.2333333333321,
         "e": {
           "type": "chat",
           "id": "m916",
@@ -22223,7 +22225,7 @@
         "lastVisible": false
       },
       {
-        "t": 88.46666666666525,
+        "t": 88.43333333333192,
         "e": {
           "type": "chat",
           "id": "m914",
@@ -22237,11 +22239,11 @@
             "💯": 7
           }
         },
-        "visible": 1.9666666666666694,
+        "visible": 0.8333333333333333,
         "lastVisible": false
       },
       {
-        "t": 89.26666666666513,
+        "t": 89.2333333333318,
         "e": {
           "type": "chat",
           "id": "m920",
@@ -22257,7 +22259,7 @@
         "lastVisible": false
       },
       {
-        "t": 89.26666666666513,
+        "t": 89.2333333333318,
         "e": {
           "type": "chat",
           "id": "m921",
@@ -22269,11 +22271,11 @@
           "replyTo": "m919",
           "reactions": {}
         },
-        "visible": 1.3000000000000007,
+        "visible": 7.999999999999981,
         "lastVisible": false
       },
       {
-        "t": 90.43333333333163,
+        "t": 90.3999999999983,
         "e": {
           "type": "chat",
           "id": "m918",
@@ -22289,7 +22291,7 @@
         "lastVisible": false
       },
       {
-        "t": 90.59999999999827,
+        "t": 90.56666666666494,
         "e": {
           "type": "chat",
           "id": "m919",
@@ -22305,7 +22307,7 @@
         "lastVisible": false
       },
       {
-        "t": 92.29999999999802,
+        "t": 92.26666666666469,
         "e": {
           "type": "chat",
           "id": "m923",
@@ -22323,7 +22325,7 @@
         }
       },
       {
-        "t": 97.26666666666397,
+        "t": 97.23333333333063,
         "e": {
           "type": "chat",
           "id": "m934",
@@ -22341,7 +22343,7 @@
         "lastVisible": false
       },
       {
-        "t": 97.26666666666397,
+        "t": 97.23333333333063,
         "e": {
           "type": "chat",
           "id": "m935",
@@ -22357,7 +22359,7 @@
         "lastVisible": false
       },
       {
-        "t": 98.56666666666378,
+        "t": 98.53333333333045,
         "e": {
           "type": "chat",
           "id": "m933",
@@ -22371,11 +22373,11 @@
             "😂": 1
           }
         },
-        "visible": 1.5333333333333348,
+        "visible": 0.7333333333333333,
         "lastVisible": false
       },
       {
-        "t": 99.26666666666367,
+        "t": 99.23333333333035,
         "e": {
           "type": "chat",
           "id": "m940",
@@ -22391,7 +22393,7 @@
         "lastVisible": false
       },
       {
-        "t": 99.26666666666367,
+        "t": 99.23333333333035,
         "e": {
           "type": "chat",
           "id": "m941",
@@ -22407,7 +22409,7 @@
         "lastVisible": false
       },
       {
-        "t": 100.09999999999688,
+        "t": 100.06666666666355,
         "e": {
           "type": "chat",
           "id": "m939",
@@ -22421,11 +22423,11 @@
             "🙃": 1
           }
         },
-        "visible": 1.8000000000000023,
+        "visible": 1.2000000000000004,
         "lastVisible": false
       },
       {
-        "t": 101.26666666666338,
+        "t": 101.23333333333005,
         "e": {
           "type": "chat",
           "id": "m951",
@@ -22443,7 +22445,7 @@
         "lastVisible": false
       },
       {
-        "t": 101.26666666666338,
+        "t": 101.23333333333005,
         "e": {
           "type": "chat",
           "id": "m952",
@@ -22455,11 +22457,11 @@
           "replyTo": "m950",
           "reactions": {}
         },
-        "visible": 0.7999999999999999,
+        "visible": 1.2333333333333338,
         "lastVisible": false
       },
       {
-        "t": 101.89999999999662,
+        "t": 101.86666666666329,
         "e": {
           "type": "chat",
           "id": "m943",
@@ -22475,7 +22477,7 @@
         "lastVisible": false
       },
       {
-        "t": 102.0999999999966,
+        "t": 102.06666666666327,
         "e": {
           "type": "chat",
           "id": "m944",
@@ -22487,11 +22489,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 0.4333333333333333,
+        "visible": 1.2000000000000004,
         "lastVisible": false
       },
       {
-        "t": 102.53333333332986,
+        "t": 102.49999999999653,
         "e": {
           "type": "chat",
           "id": "m950",
@@ -22505,11 +22507,11 @@
             "👀": 1
           }
         },
-        "visible": 1.933333333333336,
+        "visible": 0.7666666666666666,
         "lastVisible": false
       },
       {
-        "t": 103.2666666666631,
+        "t": 103.23333333332977,
         "e": {
           "type": "chat",
           "id": "m954",
@@ -22521,11 +22523,11 @@
           "replyTo": "m953",
           "reactions": {}
         },
-        "visible": 1.166666666666667,
+        "visible": 2.6000000000000005,
         "lastVisible": false
       },
       {
-        "t": 103.2666666666631,
+        "t": 103.23333333332977,
         "e": {
           "type": "chat",
           "id": "m955",
@@ -22541,7 +22543,7 @@
         "lastVisible": false
       },
       {
-        "t": 104.46666666666292,
+        "t": 104.43333333332959,
         "e": {
           "type": "chat",
           "id": "m953",
@@ -22557,7 +22559,7 @@
         "lastVisible": false
       },
       {
-        "t": 105.2666666666628,
+        "t": 105.23333333332947,
         "e": {
           "type": "chat",
           "id": "m961",
@@ -22571,7 +22573,7 @@
         }
       },
       {
-        "t": 105.2666666666628,
+        "t": 105.23333333332947,
         "e": {
           "type": "chat",
           "id": "m962",
@@ -22585,7 +22587,7 @@
         }
       },
       {
-        "t": 105.89999999999604,
+        "t": 105.86666666666271,
         "e": {
           "type": "chat",
           "id": "m957",
@@ -22601,7 +22603,7 @@
         "lastVisible": false
       },
       {
-        "t": 106.09999999999602,
+        "t": 106.06666666666268,
         "e": {
           "type": "chat",
           "id": "m958",
@@ -22619,7 +22621,7 @@
         "lastVisible": false
       },
       {
-        "t": 106.53333333332928,
+        "t": 106.49999999999595,
         "e": {
           "type": "chat",
           "id": "m960",
@@ -22633,7 +22635,7 @@
         }
       },
       {
-        "t": 107.26666666666252,
+        "t": 107.23333333332918,
         "e": {
           "type": "chat",
           "id": "m964",
@@ -22649,7 +22651,7 @@
         "lastVisible": false
       },
       {
-        "t": 107.26666666666252,
+        "t": 107.23333333332918,
         "e": {
           "type": "chat",
           "id": "m965",
@@ -22665,7 +22667,7 @@
         "lastVisible": false
       },
       {
-        "t": 108.46666666666233,
+        "t": 108.433333333329,
         "e": {
           "type": "chat",
           "id": "m963",
@@ -22679,11 +22681,11 @@
             "👍": 1
           }
         },
-        "visible": 4.833333333333326,
+        "visible": 1.933333333333336,
         "lastVisible": false
       },
       {
-        "t": 110.09999999999543,
+        "t": 110.0666666666621,
         "e": {
           "type": "chat",
           "id": "m967",
@@ -22701,7 +22703,7 @@
         "lastVisible": false
       },
       {
-        "t": 110.39999999999539,
+        "t": 110.36666666666206,
         "e": {
           "type": "chat",
           "id": "m968",
@@ -22717,7 +22719,7 @@
         "lastVisible": false
       },
       {
-        "t": 113.26666666666164,
+        "t": 113.2333333333283,
         "e": {
           "type": "chat",
           "id": "m980",
@@ -22735,7 +22737,7 @@
         "lastVisible": false
       },
       {
-        "t": 113.26666666666164,
+        "t": 113.2333333333283,
         "e": {
           "type": "chat",
           "id": "m981",
@@ -22747,11 +22749,11 @@
           "replyTo": "m979",
           "reactions": {}
         },
-        "visible": 3.9666666666666623,
+        "visible": 5.9999999999999885,
         "lastVisible": false
       },
       {
-        "t": 114.2666666666615,
+        "t": 114.23333333332816,
         "e": {
           "type": "chat",
           "id": "m979",
@@ -22765,11 +22767,11 @@
             "👍": 1
           }
         },
-        "visible": 5.9999999999999885,
+        "visible": 5.033333333333325,
         "lastVisible": false
       },
       {
-        "t": 119.26666666666077,
+        "t": 119.23333333332744,
         "e": {
           "type": "chat",
           "id": "m989",
@@ -22785,7 +22787,7 @@
         "lastVisible": true
       },
       {
-        "t": 119.26666666666077,
+        "t": 119.23333333332744,
         "e": {
           "type": "chat",
           "id": "m990",
@@ -22801,7 +22803,7 @@
         "lastVisible": true
       },
       {
-        "t": 120.26666666666061,
+        "t": 120.2333333333273,
         "e": {
           "type": "chat",
           "id": "m988",
@@ -26949,7 +26951,7 @@
             "🙃": 1
           }
         },
-        "visible": 4.7666666666666595,
+        "visible": 2.7333333333333334,
         "lastVisible": false
       },
       {
@@ -27018,7 +27020,7 @@
             "😂": 1
           }
         },
-        "visible": 2.066666666666669,
+        "visible": 1.3666666666666676,
         "lastVisible": false
       },
       {
@@ -27082,7 +27084,7 @@
           "replyTo": "m1568",
           "reactions": {}
         },
-        "visible": 1.9000000000000026,
+        "visible": 4.799999999999993,
         "lastVisible": false
       },
       {
@@ -27114,7 +27116,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 9.933333333333309,
+        "visible": 6.099999999999988,
         "lastVisible": false
       },
       {
@@ -27130,7 +27132,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 7.033333333333318,
+        "visible": 7.999999999999981,
         "lastVisible": false
       },
       {
@@ -27323,7 +27325,7 @@
           "replyTo": "m1610",
           "reactions": {}
         },
-        "visible": 16.133333333333294,
+        "visible": 20.766666666666858,
         "lastVisible": false
       },
       {
@@ -27536,7 +27538,7 @@
           "replyTo": "m1645",
           "reactions": {}
         },
-        "visible": 5.066666666666658,
+        "visible": 7.999999999999981,
         "lastVisible": false
       },
       {
@@ -29725,7 +29727,7 @@
             "😂": 1
           }
         },
-        "visible": 1.0333333333333332,
+        "visible": 0.7,
         "lastVisible": false
       },
       {
@@ -29789,7 +29791,7 @@
           "replyTo": "m1568",
           "reactions": {}
         },
-        "visible": 1.4333333333333345,
+        "visible": 2.8999999999999995,
         "lastVisible": false
       },
       {
@@ -29821,7 +29823,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.966666666666659,
+        "visible": 2.5666666666666673,
         "lastVisible": false
       },
       {
@@ -29837,7 +29839,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 3.4999999999999973,
+        "visible": 3.9999999999999956,
         "lastVisible": false
       },
       {
@@ -30030,7 +30032,7 @@
           "replyTo": "m1610",
           "reactions": {}
         },
-        "visible": 7.5666666666666496,
+        "visible": 9.899999999999975,
         "lastVisible": false
       },
       {
@@ -30243,7 +30245,7 @@
           "replyTo": "m1645",
           "reactions": {}
         },
-        "visible": 2.533333333333334,
+        "visible": 3.9999999999999956,
         "lastVisible": false
       },
       {
@@ -30385,7 +30387,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 3.6999999999999966,
+        "visible": 1.2333333333333338,
         "lastVisible": false
       },
       {
@@ -30453,7 +30455,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.266666666666661,
+        "visible": 3.933333333333329,
         "lastVisible": false
       },
       {
@@ -30469,7 +30471,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 3.0333333333333323,
+        "visible": 6.999999999999985,
         "lastVisible": false
       },
       {
@@ -30586,7 +30588,7 @@
           "replyTo": "m1688",
           "reactions": {}
         },
-        "visible": 8.999999999999979,
+        "visible": 9.933333333333309,
         "lastVisible": false
       },
       {
@@ -30646,7 +30648,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 7.46666666666665,
+        "visible": 7.233333333333317,
         "lastVisible": false
       },
       {
@@ -30927,7 +30929,7 @@
             "☕": 1
           }
         },
-        "visible": 4.199999999999995,
+        "visible": 2.9333333333333327,
         "lastVisible": false
       },
       {
@@ -31042,7 +31044,7 @@
             "☕": 1
           }
         },
-        "visible": 4.56666666666666,
+        "visible": 1.7666666666666688,
         "lastVisible": false
       },
       {
@@ -31060,7 +31062,7 @@
             "😂": 1
           }
         },
-        "visible": 5.833333333333322,
+        "visible": 3.9666666666666623,
         "lastVisible": false
       },
       {
@@ -33925,7 +33927,7 @@
     "seed": 1,
     "initialWeek": 261,
     "week": 314,
-    "start": 0.23333333333333336,
+    "start": 0.20000000000000004,
     "stats": {
       "max": 4,
       "overlapFrames": 2019,
@@ -33935,455 +33937,455 @@
     },
     "bubbles": [
       {
-        "start": 4.23333333333334,
+        "start": 4.200000000000006,
         "text": "Remember the old place? No heating.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.133333333333332,
-        "end": 7.5666666666666424,
+        "end": 7.533333333333309,
         "done": true
       },
       {
-        "start": 5.833333333333325,
+        "start": 5.799999999999992,
         "text": "This office is so big.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.2666666666666684,
-        "end": 8.299999999999972,
+        "end": 8.266666666666639,
         "done": true
       },
       {
-        "start": 9.13333333333332,
+        "start": 9.099999999999987,
         "text": "We will fill it up.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.066666666666669,
-        "end": 11.366666666666696,
+        "end": 11.33333333333336,
         "done": true
       },
       {
-        "start": 10.066666666666672,
+        "start": 10.033333333333337,
         "text": "Product 11 is going great. My parts, anyway.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.73333333333333,
-        "end": 13.966666666666743,
+        "end": 13.933333333333408,
         "done": true
       },
       {
-        "start": 12.466666666666715,
+        "start": 12.433333333333382,
         "text": "I read every page of the onboarding doc.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.466666666666664,
-        "end": 16.100000000000115,
+        "end": 16.06666666666678,
         "done": true
       },
       {
-        "start": 14.400000000000084,
+        "start": 14.366666666666749,
         "text": "So what are the perks here, exactly?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.999999999999999,
-        "end": 17.800000000000068,
+        "end": 17.766666666666737,
         "done": true
       },
       {
-        "start": 15.100000000000096,
+        "start": 15.066666666666762,
         "text": "All of it?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.466666666666668,
-        "end": 16.73333333333344,
+        "end": 16.70000000000011,
         "done": true
       },
       {
-        "start": 16.40000000000012,
+        "start": 16.366666666666784,
         "text": "Never plug in a stick you found in the car park.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.9999999999999956,
-        "end": 20.599999999999966,
+        "end": 20.566666666666634,
         "done": true
       },
       {
-        "start": 17.133333333333425,
+        "start": 17.100000000000094,
         "text": "The perk is the kettle.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.233333333333335,
-        "end": 19.666666666666668,
+        "end": 19.633333333333336,
         "done": true
       },
       {
-        "start": 17.233333333333423,
+        "start": 17.20000000000009,
         "text": "This regex worked yesterday. This regex has moods.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.133333333333328,
-        "end": 21.5666666666666,
+        "end": 21.533333333333267,
         "done": true
       },
       {
-        "start": 19.133333333333354,
+        "start": 19.100000000000023,
         "text": "Obviously.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.466666666666668,
-        "end": 20.79999999999996,
+        "end": 20.766666666666627,
         "done": true
       },
       {
-        "start": 25.36666666666646,
+        "start": 25.33333333333313,
         "text": "It's live. I keep refreshing the signup count.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.8666666666666627,
-        "end": 29.43333333333298,
+        "end": 29.399999999999647,
         "done": true
       },
       {
-        "start": 26.49999999999975,
+        "start": 26.46666666666642,
         "text": "Found a USB stick in the car park. I will not plug it in. Probably.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 5.266666666666658,
-        "end": 31.96666666666622,
+        "end": 31.93333333333289,
         "done": true
       },
       {
-        "start": 28.133333333333027,
+        "start": 28.099999999999696,
         "text": "Any signups?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.6000000000000016,
-        "end": 29.93333333333296,
+        "end": 29.89999999999963,
+        "done": true
+      },
+      {
+        "start": 29.93333333333296,
+        "text": "Your posting asked for twelve years in one tool.",
+        "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
+        "visible": 3.9999999999999956,
+        "end": 34.099999999999625,
         "done": true
       },
       {
         "start": 29.966666666666292,
-        "text": "Your posting asked for twelve years in one tool.",
-        "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
-        "visible": 3.9999999999999956,
-        "end": 34.133333333332956,
-        "done": true
-      },
-      {
-        "start": 29.999999999999627,
         "text": "The newsletter has an open rate. It is very honest.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.9999999999999956,
-        "end": 34.366666666666305,
+        "end": 34.33333333333297,
         "done": true
       },
       {
-        "start": 32.13333333333288,
+        "start": 32.09999999999955,
         "text": "Did you meet that?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.0000000000000027,
-        "end": 34.299999999999635,
+        "end": 34.2666666666663,
         "done": true
       },
       {
-        "start": 32.29999999999954,
+        "start": 32.26666666666621,
         "text": "Deleted two hundred lines. Best work I have done all week.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 6.599999999999986,
-        "end": 39.16666666666666,
+        "end": 39.13333333333332,
         "done": true
       },
       {
-        "start": 39.400000000000006,
+        "start": 39.366666666666674,
         "text": "Someone launched a Project Management clone of us.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 5.199999999999991,
-        "end": 44.766666666667064,
+        "end": 44.73333333333373,
         "done": true
       },
       {
-        "start": 39.90000000000004,
+        "start": 39.86666666666671,
         "text": "Wrote 'revolutionary' again. It's a settings page.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 5.199999999999991,
-        "end": 45.2666666666671,
+        "end": 45.23333333333377,
         "done": true
       },
       {
-        "start": 42.1000000000002,
+        "start": 42.06666666666687,
         "text": "Is it any good?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.8666666666666663,
-        "end": 45.13333333333376,
+        "end": 45.10000000000042,
         "done": true
       },
       {
-        "start": 44.600000000000385,
+        "start": 44.56666666666705,
         "text": "My name was on that sandwich. In marker.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 5.2333333333333245,
-        "end": 50.26666666666746,
+        "end": 50.23333333333413,
         "done": true
       },
       {
-        "start": 49.13333333333405,
+        "start": 49.10000000000071,
         "text": "I thought it was a company resource.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.1999999999999984,
-        "end": 52.50000000000096,
+        "end": 52.46666666666763,
         "done": true
       },
       {
-        "start": 49.50000000000074,
+        "start": 49.46666666666741,
         "text": "Every campaign is a moonshot until the invoice arrives.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.366666666666661,
-        "end": 54.13333333333441,
+        "end": 54.100000000001074,
         "done": true
       },
       {
-        "start": 52.40000000000095,
+        "start": 52.36666666666762,
         "text": "Nugget came to standup today.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.7333333333333334,
-        "end": 55.30000000000116,
+        "end": 55.26666666666783,
         "done": true
       },
       {
-        "start": 54.16666666666775,
+        "start": 54.13333333333441,
         "text": "Put 'AI' in the headline. Nothing else changed. Everything changed.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 5.299999999999991,
-        "end": 59.63333333333481,
+        "end": 59.60000000000148,
         "done": true
       },
       {
-        "start": 59.76666666666816,
+        "start": 59.73333333333482,
         "text": "Rule nine of my prompt file is 'read rule one'.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.933333333333329,
-        "end": 63.86666666666845,
+        "end": 63.83333333333512,
         "done": true
       },
       {
-        "start": 61.333333333334934,
+        "start": 61.3000000000016,
         "text": "I'd recommend writing the tests first. I recommend lots of things.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 7.233333333333317,
-        "end": 68.73333333333478,
+        "end": 68.70000000000145,
         "done": true
       },
       {
-        "start": 65.36666666666856,
+        "start": 65.33333333333523,
         "text": "One small change to Product 12. Four ago.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 5.566666666666657,
-        "end": 71.13333333333443,
+        "end": 71.1000000000011,
         "done": true
       },
       {
-        "start": 69.20000000000138,
+        "start": 69.16666666666805,
         "text": "The spec says 'simple'. The spec was written by an optimist.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.799999999999993,
-        "end": 74.20000000000066,
+        "end": 74.16666666666733,
         "done": true
       },
       {
-        "start": 72.60000000000089,
+        "start": 72.56666666666756,
         "text": "I've started thanking the chatbot.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.0666666666666655,
-        "end": 75.86666666666707,
+        "end": 75.83333333333375,
         "done": true
       },
       {
-        "start": 74.23333333333399,
+        "start": 74.20000000000066,
         "text": "Product 12 is going great. My parts, anyway.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.766666666666663,
-        "end": 78.20000000000007,
+        "end": 78.16666666666674,
         "done": true
       },
       {
-        "start": 75.13333333333385,
+        "start": 75.10000000000052,
         "text": "Did that work?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.7666666666666688,
-        "end": 77.10000000000024,
+        "end": 77.0666666666669,
         "done": true
       },
       {
-        "start": 77.43333333333352,
+        "start": 77.40000000000019,
         "text": "Whoever wrote this was clearly exhausted. It was me.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.266666666666661,
-        "end": 81.89999999999954,
+        "end": 81.8666666666662,
         "done": true
       },
       {
-        "start": 82.16666666666616,
+        "start": 82.13333333333283,
         "text": "Who do I ask about the invoice service?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 6.399999999999987,
-        "end": 88.7666666666652,
+        "end": 88.73333333333187,
         "done": true
       },
       {
-        "start": 86.36666666666555,
+        "start": 86.33333333333222,
         "text": "The chatbot promised a refund. The chatbot does not have a wallet.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 7.233333333333317,
-        "end": 93.79999999999781,
+        "end": 93.76666666666448,
         "done": true
       },
       {
-        "start": 88.0666666666653,
+        "start": 88.03333333333198,
         "text": "Asked the model to rename one variable. It has notes on all of them.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 7.36666666666665,
-        "end": 95.63333333333087,
+        "end": 95.59999999999754,
         "done": true
       },
       {
-        "start": 88.13333333333196,
+        "start": 88.09999999999863,
         "text": "Not mine. Vusi's. They're on a beach somewhere.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 5.966666666666655,
-        "end": 94.29999999999772,
+        "end": 94.2666666666644,
         "done": true
       },
       {
-        "start": 90.53333333333161,
+        "start": 90.49999999999828,
         "text": "It works on my machine. My machine is being very supportive.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 6.833333333333319,
-        "end": 97.56666666666392,
+        "end": 97.53333333333059,
         "done": true
       },
       {
-        "start": 95.69999999999753,
+        "start": 95.6666666666642,
         "text": "Guess who is senior now.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.4000000000000012,
-        "end": 98.29999999999714,
+        "end": 98.26666666666382,
         "done": true
       },
       {
-        "start": 97.13333333333065,
+        "start": 97.09999999999732,
         "text": "Someone cloned us. Thoughts?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.666666666666667,
-        "end": 99.9999999999969,
+        "end": 99.96666666666357,
         "done": true
       },
       {
-        "start": 98.13333333333051,
+        "start": 98.09999999999718,
         "text": "What changes?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.6666666666666685,
-        "end": 99.9999999999969,
+        "end": 99.96666666666357,
         "done": true
       },
       {
-        "start": 98.49999999999712,
+        "start": 98.46666666666378,
         "text": "Four hundred packages to center one button.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.6666666666666634,
-        "end": 102.36666666666322,
+        "end": 102.33333333332989,
         "done": true
       },
       {
-        "start": 100.13333333333021,
+        "start": 100.09999999999688,
         "text": "Good. Nobody slow down.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.333333333333335,
-        "end": 102.66666666666318,
+        "end": 102.63333333332984,
         "done": true
       },
       {
-        "start": 101.1666666666634,
+        "start": 101.13333333333007,
         "text": "Heard about the promotion. Well earned.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.3999999999999977,
-        "end": 104.76666666666287,
+        "end": 104.73333333332954,
         "done": true
       },
       {
-        "start": 104.13333333332963,
+        "start": 104.0999999999963,
         "text": "Thanks. My calendar already has opinions.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.5333333333333306,
-        "end": 107.86666666666243,
+        "end": 107.8333333333291,
         "done": true
       },
       {
-        "start": 104.36666666666294,
+        "start": 104.3333333333296,
         "text": "Product 12 is ninety percent done. Since spring.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.9999999999999956,
-        "end": 108.56666666666231,
+        "end": 108.533333333329,
         "done": true
       },
       {
-        "start": 109.29999999999555,
+        "start": 109.26666666666222,
         "text": "Don't forget the retro this afternoon.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.3333333333333313,
-        "end": 112.83333333332837,
+        "end": 112.79999999999504,
         "done": true
       },
       {
-        "start": 111.66666666666187,
+        "start": 111.63333333332854,
         "text": "Did ChatGBT write your email?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.7666666666666666,
-        "end": 114.63333333332811,
+        "end": 114.59999999999478,
         "done": true
       },
       {
-        "start": 112.13333333332847,
+        "start": 112.09999999999513,
         "text": "Retro on what?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.6666666666666685,
-        "end": 114.09999999999485,
+        "end": 114.06666666666152,
         "done": true
       },
       {
-        "start": 113.56666666666159,
+        "start": 113.53333333332826,
         "text": "Sent the award photo to my family.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 3.0666666666666655,
-        "end": 116.83333333332779,
+        "end": 116.79999999999445,
         "done": true
       },
       {
-        "start": 114.1666666666615,
+        "start": 114.13333333332818,
         "text": "I wrote that myself.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 2.1333333333333355,
-        "end": 116.4999999999945,
+        "end": 116.46666666666117,
         "done": true
       },
       {
-        "start": 114.69999999999476,
+        "start": 114.66666666666143,
         "text": "The fix is one line. Finding the line took the week.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 4.266666666666661,
-        "end": 119.16666666666077,
+        "end": 119.13333333332744,
         "done": true
       },
       {
-        "start": 116.13333333332788,
+        "start": 116.09999999999455,
         "text": "And?",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 1.3000000000000007,
-        "end": 117.63333333332767,
+        "end": 117.59999999999434,
         "done": true
       },
       {
-        "start": 116.4999999999945,
+        "start": 116.46666666666117,
         "text": "Two-factor is on. Both factors are the same sticky note.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at sayLine (/src/render/sync.js:464:5);     at Object.handleEvents (/src/render/sync.js:401:21)",
         "visible": 3.766666666666663,
-        "end": 120.2333333333273
+        "end": 120.19999999999396
       },
       {
-        "start": 119.43333333332741,
+        "start": 119.39999999999408,
         "text": "Launch day and nothing is broken.",
         "source": "    at showLine (/src/render/sync.js:478:12);     at updateFast (/src/render/sync.js:541:43);     at Object.update (/src/render/sync.js:1044:5)",
         "visible": 0.8333333333333333,
-        "end": 120.2333333333273
+        "end": 120.19999999999396
       }
     ],
     "yak": [
       {
-        "t": 0.23333333333333336,
+        "t": 0.20000000000000004,
         "e": {
           "type": "chat",
           "id": "m1548",
@@ -34399,7 +34401,7 @@
         "lastVisible": false
       },
       {
-        "t": 3.2333333333333365,
+        "t": 3.2000000000000033,
         "e": {
           "type": "chat",
           "id": "m1555",
@@ -34415,7 +34417,7 @@
         "lastVisible": false
       },
       {
-        "t": 3.2333333333333365,
+        "t": 3.2000000000000033,
         "e": {
           "type": "chat",
           "id": "m1556",
@@ -34431,7 +34433,7 @@
         "lastVisible": false
       },
       {
-        "t": 3.5666666666666713,
+        "t": 3.533333333333338,
         "e": {
           "type": "chat",
           "id": "m1552",
@@ -34445,11 +34447,11 @@
             "🙃": 1
           }
         },
-        "visible": 1.2000000000000004,
+        "visible": 0.7,
         "lastVisible": false
       },
       {
-        "t": 4.23333333333334,
+        "t": 4.200000000000006,
         "e": {
           "type": "chat",
           "id": "m1566",
@@ -34465,7 +34467,7 @@
         "lastVisible": false
       },
       {
-        "t": 4.23333333333334,
+        "t": 4.200000000000006,
         "e": {
           "type": "chat",
           "id": "m1567",
@@ -34481,7 +34483,7 @@
         "lastVisible": false
       },
       {
-        "t": 4.7666666666666675,
+        "t": 4.733333333333335,
         "e": {
           "type": "chat",
           "id": "m1558",
@@ -34499,7 +34501,7 @@
         "lastVisible": false
       },
       {
-        "t": 5.099999999999998,
+        "t": 5.0666666666666655,
         "e": {
           "type": "chat",
           "id": "m1562",
@@ -34514,11 +34516,11 @@
             "😂": 1
           }
         },
-        "visible": 0.49999999999999994,
+        "visible": 0.3333333333333333,
         "lastVisible": false
       },
       {
-        "t": 5.266666666666663,
+        "t": 5.233333333333331,
         "e": {
           "type": "chat",
           "id": "m1563",
@@ -34534,7 +34536,7 @@
         "lastVisible": false
       },
       {
-        "t": 5.433333333333328,
+        "t": 5.399999999999995,
         "e": {
           "type": "chat",
           "id": "m1564",
@@ -34550,7 +34552,7 @@
         "lastVisible": false
       },
       {
-        "t": 5.599999999999993,
+        "t": 5.56666666666666,
         "e": {
           "type": "chat",
           "id": "m1565",
@@ -34566,7 +34568,7 @@
         "lastVisible": false
       },
       {
-        "t": 6.966666666666648,
+        "t": 6.933333333333315,
         "e": {
           "type": "chat",
           "id": "m1568",
@@ -34578,11 +34580,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 0.7333333333333333,
+        "visible": 0.6,
         "lastVisible": false
       },
       {
-        "t": 7.233333333333312,
+        "t": 7.199999999999979,
         "e": {
           "type": "chat",
           "id": "m1570",
@@ -34598,7 +34600,7 @@
         "lastVisible": false
       },
       {
-        "t": 7.233333333333312,
+        "t": 7.199999999999979,
         "e": {
           "type": "chat",
           "id": "m1571",
@@ -34614,7 +34616,7 @@
         "lastVisible": false
       },
       {
-        "t": 7.699999999999974,
+        "t": 7.666666666666641,
         "e": {
           "type": "chat",
           "id": "m1569",
@@ -34626,11 +34628,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.7666666666666688,
+        "visible": 2.0000000000000027,
         "lastVisible": false
       },
       {
-        "t": 9.233333333333324,
+        "t": 9.199999999999989,
         "e": {
           "type": "chat",
           "id": "m1584",
@@ -34648,7 +34650,7 @@
         "lastVisible": false
       },
       {
-        "t": 9.466666666666661,
+        "t": 9.433333333333326,
         "e": {
           "type": "chat",
           "id": "m1582",
@@ -34664,7 +34666,7 @@
         "lastVisible": false
       },
       {
-        "t": 9.699999999999998,
+        "t": 9.666666666666664,
         "e": {
           "type": "chat",
           "id": "m1583",
@@ -34680,7 +34682,7 @@
         "lastVisible": false
       },
       {
-        "t": 11.266666666666694,
+        "t": 11.23333333333336,
         "e": {
           "type": "chat",
           "id": "m1585",
@@ -34697,7 +34699,7 @@
         }
       },
       {
-        "t": 16.23333333333345,
+        "t": 16.200000000000117,
         "e": {
           "type": "chat",
           "id": "m1607",
@@ -34715,7 +34717,7 @@
         "lastVisible": false
       },
       {
-        "t": 16.23333333333345,
+        "t": 16.200000000000117,
         "e": {
           "type": "chat",
           "id": "m1608",
@@ -34731,7 +34733,7 @@
         "lastVisible": false
       },
       {
-        "t": 17.466666666666747,
+        "t": 17.433333333333415,
         "e": {
           "type": "chat",
           "id": "m1606",
@@ -34747,7 +34749,7 @@
         "lastVisible": false
       },
       {
-        "t": 20.899999999999956,
+        "t": 20.866666666666625,
         "e": {
           "type": "chat",
           "id": "m1610",
@@ -34763,7 +34765,7 @@
         "lastVisible": false
       },
       {
-        "t": 21.099999999999948,
+        "t": 21.066666666666617,
         "e": {
           "type": "chat",
           "id": "m1611",
@@ -34779,7 +34781,7 @@
         "lastVisible": false
       },
       {
-        "t": 21.233333333333277,
+        "t": 21.199999999999946,
         "e": {
           "type": "chat",
           "id": "m1614",
@@ -34793,7 +34795,7 @@
         }
       },
       {
-        "t": 21.233333333333277,
+        "t": 21.199999999999946,
         "e": {
           "type": "chat",
           "id": "m1615",
@@ -34807,7 +34809,7 @@
         }
       },
       {
-        "t": 21.29999999999994,
+        "t": 21.26666666666661,
         "e": {
           "type": "chat",
           "id": "m1612",
@@ -34819,11 +34821,11 @@
           "replyTo": "m1610",
           "reactions": {}
         },
-        "visible": 4.7666666666666595,
+        "visible": 5.966666666666655,
         "lastVisible": false
       },
       {
-        "t": 21.533333333333267,
+        "t": 21.499999999999936,
         "e": {
           "type": "chat",
           "id": "m1613",
@@ -34839,7 +34841,7 @@
         }
       },
       {
-        "t": 23.233333333333206,
+        "t": 23.19999999999987,
         "e": {
           "type": "chat",
           "id": "m1626",
@@ -34853,7 +34855,7 @@
         }
       },
       {
-        "t": 23.233333333333206,
+        "t": 23.19999999999987,
         "e": {
           "type": "chat",
           "id": "m1627",
@@ -34869,7 +34871,7 @@
         }
       },
       {
-        "t": 24.266666666666502,
+        "t": 24.233333333333167,
         "e": {
           "type": "chat",
           "id": "m1617",
@@ -34885,7 +34887,7 @@
         }
       },
       {
-        "t": 24.399999999999828,
+        "t": 24.366666666666497,
         "e": {
           "type": "chat",
           "id": "m1618",
@@ -34902,7 +34904,7 @@
         }
       },
       {
-        "t": 24.533333333333157,
+        "t": 24.499999999999826,
         "e": {
           "type": "chat",
           "id": "m1622",
@@ -34920,7 +34922,7 @@
         }
       },
       {
-        "t": 24.633333333333155,
+        "t": 24.59999999999982,
         "e": {
           "type": "chat",
           "id": "m1623",
@@ -34936,7 +34938,7 @@
         }
       },
       {
-        "t": 24.699999999999818,
+        "t": 24.666666666666487,
         "e": {
           "type": "chat",
           "id": "m1624",
@@ -34953,7 +34955,7 @@
         }
       },
       {
-        "t": 24.76666666666648,
+        "t": 24.73333333333315,
         "e": {
           "type": "chat",
           "id": "m1625",
@@ -34970,7 +34972,7 @@
         }
       },
       {
-        "t": 25.23333333333313,
+        "t": 25.1999999999998,
         "e": {
           "type": "chat",
           "id": "m1639",
@@ -34988,7 +34990,7 @@
         "lastVisible": false
       },
       {
-        "t": 26.066666666666436,
+        "t": 26.033333333333104,
         "e": {
           "type": "chat",
           "id": "m1632",
@@ -35004,7 +35006,7 @@
         "lastVisible": false
       },
       {
-        "t": 27.23333333333306,
+        "t": 27.199999999999726,
         "e": {
           "type": "chat",
           "id": "m1648",
@@ -35020,7 +35022,7 @@
         "lastVisible": false
       },
       {
-        "t": 27.23333333333306,
+        "t": 27.199999999999726,
         "e": {
           "type": "chat",
           "id": "m1649",
@@ -35032,11 +35034,11 @@
           "replyTo": "m1645",
           "reactions": {}
         },
-        "visible": 1.2333333333333338,
+        "visible": 2.0000000000000027,
         "lastVisible": false
       },
       {
-        "t": 27.23333333333306,
+        "t": 27.199999999999726,
         "e": {
           "type": "chat",
           "id": "m1650",
@@ -35052,7 +35054,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.49999999999968,
+        "t": 28.46666666666635,
         "e": {
           "type": "chat",
           "id": "m1645",
@@ -35068,7 +35070,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.233333333332986,
+        "t": 29.199999999999655,
         "e": {
           "type": "chat",
           "id": "m1660",
@@ -35084,7 +35086,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.233333333332986,
+        "t": 29.199999999999655,
         "e": {
           "type": "chat",
           "id": "m1661",
@@ -35100,7 +35102,7 @@
         "lastVisible": false
       },
       {
-        "t": 29.833333333332966,
+        "t": 29.79999999999963,
         "e": {
           "type": "chat",
           "id": "m1652",
@@ -35116,7 +35118,7 @@
         "lastVisible": false
       },
       {
-        "t": 30.133333333332953,
+        "t": 30.09999999999962,
         "e": {
           "type": "chat",
           "id": "m1654",
@@ -35132,7 +35134,7 @@
         }
       },
       {
-        "t": 30.299999999999613,
+        "t": 30.266666666666282,
         "e": {
           "type": "chat",
           "id": "m1655",
@@ -35148,7 +35150,7 @@
         }
       },
       {
-        "t": 30.466666666666274,
+        "t": 30.433333333332943,
         "e": {
           "type": "chat",
           "id": "m1656",
@@ -35162,7 +35164,7 @@
         }
       },
       {
-        "t": 30.599999999999604,
+        "t": 30.566666666666272,
         "e": {
           "type": "chat",
           "id": "m1657",
@@ -35174,11 +35176,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.8666666666666691,
+        "visible": 0.6666666666666666,
         "lastVisible": false
       },
       {
-        "t": 31.233333333332915,
+        "t": 31.19999999999958,
         "e": {
           "type": "chat",
           "id": "m1666",
@@ -35196,7 +35198,7 @@
         "lastVisible": false
       },
       {
-        "t": 31.233333333332915,
+        "t": 31.19999999999958,
         "e": {
           "type": "chat",
           "id": "m1667",
@@ -35212,7 +35214,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.4666666666662,
+        "t": 32.43333333333287,
         "e": {
           "type": "chat",
           "id": "m1663",
@@ -35230,7 +35232,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.59999999999953,
+        "t": 32.5666666666662,
         "e": {
           "type": "chat",
           "id": "m1664",
@@ -35242,11 +35244,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 2.1333333333333355,
+        "visible": 1.9666666666666694,
         "lastVisible": false
       },
       {
-        "t": 33.233333333332894,
+        "t": 33.199999999999555,
         "e": {
           "type": "chat",
           "id": "m1676",
@@ -35258,11 +35260,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.466666666666668,
+        "visible": 5.466666666666657,
         "lastVisible": false
       },
       {
-        "t": 34.39999999999964,
+        "t": 34.366666666666305,
         "e": {
           "type": "chat",
           "id": "mg1",
@@ -35279,7 +35281,7 @@
         }
       },
       {
-        "t": 34.56666666666632,
+        "t": 34.53333333333298,
         "e": {
           "type": "chat",
           "id": "m1674",
@@ -35295,7 +35297,7 @@
         "lastVisible": false
       },
       {
-        "t": 34.733333333333,
+        "t": 34.69999999999966,
         "e": {
           "type": "chat",
           "id": "m1675",
@@ -35313,7 +35315,7 @@
         "lastVisible": false
       },
       {
-        "t": 37.96666666666657,
+        "t": 37.93333333333323,
         "e": {
           "type": "chat",
           "id": "m1677",
@@ -35329,7 +35331,7 @@
         }
       },
       {
-        "t": 38.73333333333329,
+        "t": 38.69999999999995,
         "e": {
           "type": "chat",
           "id": "m1681",
@@ -35347,7 +35349,7 @@
         "lastVisible": false
       },
       {
-        "t": 39.23333333333333,
+        "t": 39.199999999999996,
         "e": {
           "type": "chat",
           "id": "m1689",
@@ -35363,7 +35365,7 @@
         "lastVisible": false
       },
       {
-        "t": 39.23333333333333,
+        "t": 39.199999999999996,
         "e": {
           "type": "chat",
           "id": "m1690",
@@ -35375,11 +35377,11 @@
           "replyTo": "m1688",
           "reactions": {}
         },
-        "visible": 4.999999999999992,
+        "visible": 5.466666666666657,
         "lastVisible": false
       },
       {
-        "t": 40.06666666666672,
+        "t": 40.03333333333339,
         "e": {
           "type": "chat",
           "id": "m1685",
@@ -35393,7 +35395,7 @@
         }
       },
       {
-        "t": 40.2333333333334,
+        "t": 40.20000000000007,
         "e": {
           "type": "chat",
           "id": "m1686",
@@ -35407,7 +35409,7 @@
         }
       },
       {
-        "t": 40.40000000000008,
+        "t": 40.366666666666745,
         "e": {
           "type": "chat",
           "id": "m1687",
@@ -35423,7 +35425,7 @@
         }
       },
       {
-        "t": 40.56666666666676,
+        "t": 40.533333333333424,
         "e": {
           "type": "chat",
           "id": "m1688",
@@ -35435,11 +35437,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 4.2999999999999945,
+        "visible": 4.166666666666662,
         "lastVisible": false
       },
       {
-        "t": 44.23333333333369,
+        "t": 44.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1711",
@@ -35453,7 +35455,7 @@
         }
       },
       {
-        "t": 44.23333333333369,
+        "t": 44.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1712",
@@ -35467,7 +35469,7 @@
         }
       },
       {
-        "t": 44.23333333333369,
+        "t": 44.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1713",
@@ -35483,7 +35485,7 @@
         "lastVisible": false
       },
       {
-        "t": 44.73333333333373,
+        "t": 44.700000000000394,
         "e": {
           "type": "chat",
           "id": "m1696",
@@ -35499,7 +35501,7 @@
         "lastVisible": false
       },
       {
-        "t": 44.86666666666707,
+        "t": 44.833333333333734,
         "e": {
           "type": "chat",
           "id": "m1697",
@@ -35515,7 +35517,7 @@
         "lastVisible": false
       },
       {
-        "t": 44.96666666666708,
+        "t": 44.93333333333374,
         "e": {
           "type": "chat",
           "id": "m1698",
@@ -35533,7 +35535,7 @@
         }
       },
       {
-        "t": 45.10000000000042,
+        "t": 45.06666666666709,
         "e": {
           "type": "chat",
           "id": "m1699",
@@ -35551,7 +35553,7 @@
         }
       },
       {
-        "t": 45.23333333333377,
+        "t": 45.20000000000043,
         "e": {
           "type": "chat",
           "id": "m1706",
@@ -35567,7 +35569,7 @@
         "lastVisible": false
       },
       {
-        "t": 45.33333333333377,
+        "t": 45.30000000000044,
         "e": {
           "type": "chat",
           "id": "m1707",
@@ -35583,7 +35585,7 @@
         "lastVisible": false
       },
       {
-        "t": 45.466666666667116,
+        "t": 45.43333333333378,
         "e": {
           "type": "chat",
           "id": "m1708",
@@ -35599,7 +35601,7 @@
         "lastVisible": false
       },
       {
-        "t": 45.600000000000456,
+        "t": 45.566666666667125,
         "e": {
           "type": "chat",
           "id": "m1709",
@@ -35615,7 +35617,7 @@
         "lastVisible": false
       },
       {
-        "t": 45.700000000000465,
+        "t": 45.66666666666713,
         "e": {
           "type": "chat",
           "id": "m1710",
@@ -35633,7 +35635,7 @@
         }
       },
       {
-        "t": 48.23333333333398,
+        "t": 48.20000000000065,
         "e": {
           "type": "chat",
           "id": "m1719",
@@ -35649,7 +35651,7 @@
         "lastVisible": false
       },
       {
-        "t": 48.23333333333398,
+        "t": 48.20000000000065,
         "e": {
           "type": "chat",
           "id": "m1720",
@@ -35668,7 +35670,7 @@
         "lastVisible": false
       },
       {
-        "t": 48.23333333333398,
+        "t": 48.20000000000065,
         "e": {
           "type": "chat",
           "id": "m1721",
@@ -35686,7 +35688,7 @@
         "lastVisible": false
       },
       {
-        "t": 48.86666666666736,
+        "t": 48.833333333334025,
         "e": {
           "type": "chat",
           "id": "m1714",
@@ -35702,7 +35704,7 @@
         "lastVisible": false
       },
       {
-        "t": 49.633333333334086,
+        "t": 49.60000000000075,
         "e": {
           "type": "chat",
           "id": "m1716",
@@ -35716,11 +35718,11 @@
             "☕": 1
           }
         },
-        "visible": 2.1000000000000023,
+        "visible": 1.466666666666668,
         "lastVisible": false
       },
       {
-        "t": 50.23333333333413,
+        "t": 50.20000000000079,
         "e": {
           "type": "chat",
           "id": "m1729",
@@ -35736,7 +35738,7 @@
         "lastVisible": false
       },
       {
-        "t": 51.10000000000086,
+        "t": 51.06666666666752,
         "e": {
           "type": "chat",
           "id": "m1723",
@@ -35752,7 +35754,7 @@
         "lastVisible": false
       },
       {
-        "t": 51.73333333333424,
+        "t": 51.700000000000905,
         "e": {
           "type": "chat",
           "id": "m1727",
@@ -35768,7 +35770,7 @@
         "lastVisible": false
       },
       {
-        "t": 54.23333333333442,
+        "t": 54.20000000000108,
         "e": {
           "type": "chat",
           "id": "m1739",
@@ -35784,7 +35786,7 @@
         "lastVisible": false
       },
       {
-        "t": 54.23333333333442,
+        "t": 54.20000000000108,
         "e": {
           "type": "chat",
           "id": "m1740",
@@ -35800,7 +35802,7 @@
         "lastVisible": false
       },
       {
-        "t": 54.23333333333442,
+        "t": 54.20000000000108,
         "e": {
           "type": "chat",
           "id": "m1741",
@@ -35816,7 +35818,7 @@
         "lastVisible": false
       },
       {
-        "t": 55.36666666666783,
+        "t": 55.3333333333345,
         "e": {
           "type": "chat",
           "id": "m1738",
@@ -35831,11 +35833,11 @@
             "☕": 1
           }
         },
-        "visible": 2.3000000000000016,
+        "visible": 0.8999999999999999,
         "lastVisible": false
       },
       {
-        "t": 56.23333333333456,
+        "t": 56.20000000000123,
         "e": {
           "type": "chat",
           "id": "m1745",
@@ -35849,11 +35851,11 @@
             "😂": 1
           }
         },
-        "visible": 2.9333333333333327,
+        "visible": 1.9666666666666694,
         "lastVisible": false
       },
       {
-        "t": 57.666666666668,
+        "t": 57.63333333333467,
         "e": {
           "type": "chat",
           "id": "m1742",
@@ -35869,7 +35871,7 @@
         "lastVisible": false
       },
       {
-        "t": 58.23333333333471,
+        "t": 58.200000000001374,
         "e": {
           "type": "chat",
           "id": "m1747",
@@ -35885,7 +35887,7 @@
         "lastVisible": false
       },
       {
-        "t": 59.200000000001445,
+        "t": 59.166666666668114,
         "e": {
           "type": "chat",
           "id": "m1748",
@@ -35901,7 +35903,7 @@
         "lastVisible": false
       },
       {
-        "t": 60.233333333334855,
+        "t": 60.20000000000152,
         "e": {
           "type": "chat",
           "id": "m1757",
@@ -35919,7 +35921,7 @@
         "lastVisible": false
       },
       {
-        "t": 60.233333333334855,
+        "t": 60.20000000000152,
         "e": {
           "type": "chat",
           "id": "m1758",
@@ -35935,7 +35937,7 @@
         "lastVisible": false
       },
       {
-        "t": 60.86666666666824,
+        "t": 60.8333333333349,
         "e": {
           "type": "chat",
           "id": "m1752",
@@ -35953,7 +35955,7 @@
         "lastVisible": false
       },
       {
-        "t": 61.50000000000161,
+        "t": 61.46666666666828,
         "e": {
           "type": "chat",
           "id": "m1754",
@@ -35969,7 +35971,7 @@
         "lastVisible": false
       },
       {
-        "t": 61.63333333333496,
+        "t": 61.60000000000162,
         "e": {
           "type": "chat",
           "id": "m1755",
@@ -35987,7 +35989,7 @@
         "lastVisible": false
       },
       {
-        "t": 62.233333333335004,
+        "t": 62.200000000001666,
         "e": {
           "type": "chat",
           "id": "m1769",
@@ -36003,7 +36005,7 @@
         "lastVisible": false
       },
       {
-        "t": 62.233333333335004,
+        "t": 62.200000000001666,
         "e": {
           "type": "chat",
           "id": "m1770",
@@ -36019,7 +36021,7 @@
         "lastVisible": false
       },
       {
-        "t": 62.93333333333505,
+        "t": 62.90000000000172,
         "e": {
           "type": "chat",
           "id": "m1760",
@@ -36033,7 +36035,7 @@
         }
       },
       {
-        "t": 63.43333333333509,
+        "t": 63.400000000001754,
         "e": {
           "type": "chat",
           "id": "m1766",
@@ -36051,7 +36053,7 @@
         "lastVisible": false
       },
       {
-        "t": 63.60000000000177,
+        "t": 63.56666666666843,
         "e": {
           "type": "chat",
           "id": "m1767",
@@ -36067,7 +36069,7 @@
         "lastVisible": false
       },
       {
-        "t": 64.23333333333515,
+        "t": 64.20000000000181,
         "e": {
           "type": "chat",
           "id": "m1773",
@@ -36081,7 +36083,7 @@
         }
       },
       {
-        "t": 64.23333333333515,
+        "t": 64.20000000000181,
         "e": {
           "type": "chat",
           "id": "m1774",
@@ -36095,7 +36097,7 @@
         }
       },
       {
-        "t": 65.56666666666858,
+        "t": 65.53333333333524,
         "e": {
           "type": "chat",
           "id": "m1772",
@@ -36109,7 +36111,7 @@
         }
       },
       {
-        "t": 68.23333333333485,
+        "t": 68.20000000000152,
         "e": {
           "type": "chat",
           "id": "m1784",
@@ -36125,7 +36127,7 @@
         "lastVisible": false
       },
       {
-        "t": 68.23333333333485,
+        "t": 68.20000000000152,
         "e": {
           "type": "chat",
           "id": "m1785",
@@ -36141,7 +36143,7 @@
         "lastVisible": false
       },
       {
-        "t": 69.0000000000014,
+        "t": 68.96666666666809,
         "e": {
           "type": "chat",
           "id": "m1776",
@@ -36159,7 +36161,7 @@
         "lastVisible": false
       },
       {
-        "t": 69.36666666666802,
+        "t": 69.33333333333469,
         "e": {
           "type": "chat",
           "id": "m1778",
@@ -36175,7 +36177,7 @@
         "lastVisible": false
       },
       {
-        "t": 69.566666666668,
+        "t": 69.53333333333467,
         "e": {
           "type": "chat",
           "id": "m1779",
@@ -36191,7 +36193,7 @@
         "lastVisible": false
       },
       {
-        "t": 72.23333333333427,
+        "t": 72.20000000000094,
         "e": {
           "type": "chat",
           "id": "m1790",
@@ -36209,7 +36211,7 @@
         "lastVisible": false
       },
       {
-        "t": 72.23333333333427,
+        "t": 72.20000000000094,
         "e": {
           "type": "chat",
           "id": "m1798",
@@ -36221,11 +36223,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.9666666666666694,
+        "visible": 2.0000000000000027,
         "lastVisible": false
       },
       {
-        "t": 73.73333333333406,
+        "t": 73.70000000000073,
         "e": {
           "type": "chat",
           "id": "m1797",
@@ -36241,7 +36243,7 @@
         "lastVisible": false
       },
       {
-        "t": 74.23333333333399,
+        "t": 74.20000000000066,
         "e": {
           "type": "chat",
           "id": "m1799",
@@ -36257,7 +36259,7 @@
         "lastVisible": false
       },
       {
-        "t": 74.23333333333399,
+        "t": 74.20000000000066,
         "e": {
           "type": "chat",
           "id": "m1804",
@@ -36273,7 +36275,7 @@
         "lastVisible": false
       },
       {
-        "t": 74.23333333333399,
+        "t": 74.20000000000066,
         "e": {
           "type": "chat",
           "id": "m1805",
@@ -36289,7 +36291,7 @@
         "lastVisible": false
       },
       {
-        "t": 74.23333333333399,
+        "t": 74.20000000000066,
         "e": {
           "type": "chat",
           "id": "m1806",
@@ -36305,7 +36307,7 @@
         "lastVisible": false
       },
       {
-        "t": 75.03333333333387,
+        "t": 75.00000000000054,
         "e": {
           "type": "chat",
           "id": "m1800",
@@ -36323,7 +36325,7 @@
         "lastVisible": false
       },
       {
-        "t": 75.50000000000047,
+        "t": 75.46666666666714,
         "e": {
           "type": "chat",
           "id": "m1801",
@@ -36339,7 +36341,7 @@
         "lastVisible": false
       },
       {
-        "t": 75.63333333333378,
+        "t": 75.60000000000045,
         "e": {
           "type": "chat",
           "id": "m1802",
@@ -36357,7 +36359,7 @@
         "lastVisible": false
       },
       {
-        "t": 76.23333333333369,
+        "t": 76.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1808",
@@ -36373,7 +36375,7 @@
         "lastVisible": false
       },
       {
-        "t": 76.23333333333369,
+        "t": 76.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1813",
@@ -36389,7 +36391,7 @@
         "lastVisible": false
       },
       {
-        "t": 76.23333333333369,
+        "t": 76.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1814",
@@ -36405,7 +36407,7 @@
         "lastVisible": false
       },
       {
-        "t": 76.23333333333369,
+        "t": 76.20000000000036,
         "e": {
           "type": "chat",
           "id": "m1815",
@@ -36421,7 +36423,7 @@
         "lastVisible": false
       },
       {
-        "t": 77.60000000000016,
+        "t": 77.56666666666683,
         "e": {
           "type": "chat",
           "id": "m1810",
@@ -36435,11 +36437,11 @@
             "😂": 1
           }
         },
-        "visible": 8.933333333333312,
+        "visible": 7.666666666666649,
         "lastVisible": false
       },
       {
-        "t": 81.43333333333294,
+        "t": 81.39999999999961,
         "e": {
           "type": "chat",
           "id": "m1827",
@@ -36456,7 +36458,7 @@
         }
       },
       {
-        "t": 81.59999999999958,
+        "t": 81.56666666666625,
         "e": {
           "type": "chat",
           "id": "m1828",
@@ -36470,7 +36472,7 @@
         }
       },
       {
-        "t": 81.76666666666623,
+        "t": 81.7333333333329,
         "e": {
           "type": "chat",
           "id": "m1829",
@@ -36484,7 +36486,7 @@
         }
       },
       {
-        "t": 85.23333333333238,
+        "t": 85.19999999999905,
         "e": {
           "type": "chat",
           "id": "m1833",
@@ -36500,7 +36502,7 @@
         "lastVisible": false
       },
       {
-        "t": 85.23333333333238,
+        "t": 85.19999999999905,
         "e": {
           "type": "chat",
           "id": "m1834",
@@ -36516,7 +36518,7 @@
         "lastVisible": false
       },
       {
-        "t": 86.5333333333322,
+        "t": 86.49999999999886,
         "e": {
           "type": "chat",
           "id": "m1831",
@@ -36528,11 +36530,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 1.6666666666666685,
+        "visible": 0.7333333333333333,
         "lastVisible": false
       },
       {
-        "t": 87.2333333333321,
+        "t": 87.19999999999877,
         "e": {
           "type": "chat",
           "id": "m1841",
@@ -36544,11 +36546,11 @@
           "replyTo": "m1840",
           "reactions": {}
         },
-        "visible": 0.9333333333333332,
+        "visible": 1.1,
         "lastVisible": false
       },
       {
-        "t": 87.2333333333321,
+        "t": 87.19999999999877,
         "e": {
           "type": "chat",
           "id": "m1842",
@@ -36566,7 +36568,7 @@
         "lastVisible": false
       },
       {
-        "t": 88.19999999999862,
+        "t": 88.1666666666653,
         "e": {
           "type": "chat",
           "id": "m1837",
@@ -36582,7 +36584,7 @@
         "lastVisible": false
       },
       {
-        "t": 88.36666666666525,
+        "t": 88.33333333333194,
         "e": {
           "type": "chat",
           "id": "m1838",
@@ -36594,11 +36596,11 @@
           "replyTo": "m1837",
           "reactions": {}
         },
-        "visible": 0.26666666666666666,
+        "visible": 1.8000000000000023,
         "lastVisible": false
       },
       {
-        "t": 88.49999999999858,
+        "t": 88.46666666666525,
         "e": {
           "type": "chat",
           "id": "m1839",
@@ -36614,7 +36616,7 @@
         "lastVisible": false
       },
       {
-        "t": 88.63333333333189,
+        "t": 88.59999999999856,
         "e": {
           "type": "chat",
           "id": "m1840",
@@ -36630,7 +36632,7 @@
         "lastVisible": false
       },
       {
-        "t": 90.166666666665,
+        "t": 90.13333333333166,
         "e": {
           "type": "chat",
           "id": "m1843",
@@ -36646,7 +36648,7 @@
         "lastVisible": false
       },
       {
-        "t": 94.19999999999774,
+        "t": 94.16666666666441,
         "e": {
           "type": "chat",
           "id": "m1847",
@@ -36664,7 +36666,7 @@
         }
       },
       {
-        "t": 94.66666666666434,
+        "t": 94.63333333333101,
         "e": {
           "type": "chat",
           "id": "mg2",
@@ -36681,7 +36683,7 @@
         }
       },
       {
-        "t": 95.23333333333093,
+        "t": 95.1999999999976,
         "e": {
           "type": "chat",
           "id": "m1865",
@@ -36697,7 +36699,7 @@
         "lastVisible": false
       },
       {
-        "t": 95.23333333333093,
+        "t": 95.1999999999976,
         "e": {
           "type": "chat",
           "id": "m1866",
@@ -36713,7 +36715,7 @@
         "lastVisible": false
       },
       {
-        "t": 95.73333333333086,
+        "t": 95.69999999999753,
         "e": {
           "type": "chat",
           "id": "m1856",
@@ -36727,7 +36729,7 @@
         }
       },
       {
-        "t": 96.33333333333077,
+        "t": 96.29999999999744,
         "e": {
           "type": "chat",
           "id": "m1860",
@@ -36743,7 +36745,7 @@
         }
       },
       {
-        "t": 96.43333333333075,
+        "t": 96.39999999999742,
         "e": {
           "type": "chat",
           "id": "m1861",
@@ -36757,7 +36759,7 @@
         }
       },
       {
-        "t": 96.53333333333075,
+        "t": 96.49999999999741,
         "e": {
           "type": "chat",
           "id": "m1862",
@@ -36776,7 +36778,7 @@
         "lastVisible": false
       },
       {
-        "t": 96.63333333333073,
+        "t": 96.5999999999974,
         "e": {
           "type": "chat",
           "id": "m1863",
@@ -36788,11 +36790,11 @@
           "replyTo": "m1862",
           "reactions": {}
         },
-        "visible": 2.066666666666669,
+        "visible": 2.6333333333333337,
         "lastVisible": false
       },
       {
-        "t": 96.7333333333307,
+        "t": 96.69999999999737,
         "e": {
           "type": "chat",
           "id": "m1864",
@@ -36808,7 +36810,7 @@
         "lastVisible": false
       },
       {
-        "t": 98.69999999999709,
+        "t": 98.66666666666376,
         "e": {
           "type": "chat",
           "id": "m1869",
@@ -36824,7 +36826,7 @@
         "lastVisible": false
       },
       {
-        "t": 99.23333333333035,
+        "t": 99.19999999999702,
         "e": {
           "type": "chat",
           "id": "m1879",
@@ -36836,11 +36838,11 @@
           "replyTo": "m1878",
           "reactions": {}
         },
-        "visible": 0.4666666666666666,
+        "visible": 1.4333333333333345,
         "lastVisible": false
       },
       {
-        "t": 99.23333333333035,
+        "t": 99.19999999999702,
         "e": {
           "type": "chat",
           "id": "m1880",
@@ -36856,7 +36858,7 @@
         "lastVisible": false
       },
       {
-        "t": 99.73333333333028,
+        "t": 99.69999999999695,
         "e": {
           "type": "chat",
           "id": "m1870",
@@ -36874,7 +36876,7 @@
         "lastVisible": false
       },
       {
-        "t": 99.96666666666357,
+        "t": 99.93333333333024,
         "e": {
           "type": "chat",
           "id": "m1871",
@@ -36892,7 +36894,7 @@
         }
       },
       {
-        "t": 100.39999999999684,
+        "t": 100.36666666666352,
         "e": {
           "type": "chat",
           "id": "m1875",
@@ -36910,7 +36912,7 @@
         }
       },
       {
-        "t": 100.49999999999683,
+        "t": 100.4666666666635,
         "e": {
           "type": "chat",
           "id": "m1876",
@@ -36924,7 +36926,7 @@
         }
       },
       {
-        "t": 100.59999999999681,
+        "t": 100.56666666666348,
         "e": {
           "type": "chat",
           "id": "m1877",
@@ -36938,7 +36940,7 @@
         }
       },
       {
-        "t": 100.6999999999968,
+        "t": 100.66666666666347,
         "e": {
           "type": "chat",
           "id": "m1878",
@@ -36950,11 +36952,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 6.566666666666653,
+        "visible": 5.966666666666655,
         "lastVisible": false
       },
       {
-        "t": 102.06666666666327,
+        "t": 102.03333333332994,
         "e": {
           "type": "chat",
           "id": "m1882",
@@ -36972,7 +36974,7 @@
         }
       },
       {
-        "t": 102.63333333332984,
+        "t": 102.59999999999653,
         "e": {
           "type": "chat",
           "id": "m1888",
@@ -36986,7 +36988,7 @@
         }
       },
       {
-        "t": 102.76666666666317,
+        "t": 102.73333333332984,
         "e": {
           "type": "chat",
           "id": "m1889",
@@ -37003,7 +37005,7 @@
         }
       },
       {
-        "t": 103.23333333332977,
+        "t": 103.19999999999644,
         "e": {
           "type": "chat",
           "id": "m1892",
@@ -37017,7 +37019,7 @@
         }
       },
       {
-        "t": 103.23333333332977,
+        "t": 103.19999999999644,
         "e": {
           "type": "chat",
           "id": "m1893",
@@ -37031,7 +37033,7 @@
         }
       },
       {
-        "t": 104.53333333332958,
+        "t": 104.49999999999625,
         "e": {
           "type": "chat",
           "id": "m1891",
@@ -37045,7 +37047,7 @@
         }
       },
       {
-        "t": 106.4333333333293,
+        "t": 106.39999999999597,
         "e": {
           "type": "chat",
           "id": "m1895",
@@ -37061,7 +37063,7 @@
         "lastVisible": false
       },
       {
-        "t": 106.66666666666259,
+        "t": 106.63333333332926,
         "e": {
           "type": "chat",
           "id": "m1896",
@@ -37077,7 +37079,7 @@
         "lastVisible": false
       },
       {
-        "t": 107.23333333332918,
+        "t": 107.19999999999585,
         "e": {
           "type": "chat",
           "id": "m1901",
@@ -37089,11 +37091,11 @@
           "replyTo": "m1900",
           "reactions": {}
         },
-        "visible": 1.3000000000000007,
+        "visible": 2.666666666666667,
         "lastVisible": false
       },
       {
-        "t": 107.23333333332918,
+        "t": 107.19999999999585,
         "e": {
           "type": "chat",
           "id": "m1902",
@@ -37109,7 +37111,7 @@
         "lastVisible": false
       },
       {
-        "t": 108.56666666666231,
+        "t": 108.533333333329,
         "e": {
           "type": "chat",
           "id": "m1900",
@@ -37125,7 +37127,7 @@
         "lastVisible": false
       },
       {
-        "t": 109.93333333332879,
+        "t": 109.89999999999546,
         "e": {
           "type": "chat",
           "id": "m1904",
@@ -37143,7 +37145,7 @@
         "lastVisible": false
       },
       {
-        "t": 110.19999999999541,
+        "t": 110.16666666666208,
         "e": {
           "type": "chat",
           "id": "m1905",
@@ -37160,7 +37162,7 @@
         }
       },
       {
-        "t": 111.86666666666184,
+        "t": 111.83333333332851,
         "e": {
           "type": "chat",
           "id": "m1914",
@@ -37178,7 +37180,7 @@
         }
       },
       {
-        "t": 112.06666666666182,
+        "t": 112.03333333332849,
         "e": {
           "type": "chat",
           "id": "m1915",
@@ -37196,7 +37198,7 @@
         }
       },
       {
-        "t": 112.36666666666177,
+        "t": 112.33333333332844,
         "e": {
           "type": "chat",
           "id": "m1916",
@@ -37213,7 +37215,7 @@
         }
       },
       {
-        "t": 112.73333333332837,
+        "t": 112.69999999999506,
         "e": {
           "type": "chat",
           "id": "m1920",
@@ -37231,7 +37233,7 @@
         }
       },
       {
-        "t": 112.83333333332837,
+        "t": 112.79999999999504,
         "e": {
           "type": "chat",
           "id": "m1921",
@@ -37245,7 +37247,7 @@
         }
       },
       {
-        "t": 114.2666666666615,
+        "t": 114.23333333332816,
         "e": {
           "type": "chat",
           "id": "m1923",
@@ -37259,11 +37261,11 @@
             "😂": 1
           }
         },
-        "visible": 2.366666666666668,
+        "visible": 0.9999999999999999,
         "lastVisible": false
       },
       {
-        "t": 115.23333333332802,
+        "t": 115.19999999999469,
         "e": {
           "type": "chat",
           "id": "m1927",
@@ -37279,7 +37281,7 @@
         "lastVisible": false
       },
       {
-        "t": 115.23333333332802,
+        "t": 115.19999999999469,
         "e": {
           "type": "chat",
           "id": "m1928",
@@ -37295,7 +37297,7 @@
         "lastVisible": false
       },
       {
-        "t": 116.63333333332781,
+        "t": 116.59999999999448,
         "e": {
           "type": "chat",
           "id": "m1926",
@@ -37307,11 +37309,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 2.6333333333333337,
+        "visible": 1.7333333333333354,
         "lastVisible": false
       },
       {
-        "t": 117.23333333332772,
+        "t": 117.1999999999944,
         "e": {
           "type": "chat",
           "id": "m1946",
@@ -37325,7 +37327,7 @@
         }
       },
       {
-        "t": 117.23333333332772,
+        "t": 117.1999999999944,
         "e": {
           "type": "chat",
           "id": "m1947",
@@ -37339,7 +37341,7 @@
         }
       },
       {
-        "t": 117.26666666666105,
+        "t": 117.23333333332772,
         "e": {
           "type": "chat",
           "id": "m1930",
@@ -37355,7 +37357,7 @@
         "lastVisible": false
       },
       {
-        "t": 118.36666666666089,
+        "t": 118.33333333332756,
         "e": {
           "type": "chat",
           "id": "m1932",
@@ -37371,7 +37373,7 @@
         "lastVisible": true
       },
       {
-        "t": 118.46666666666088,
+        "t": 118.43333333332755,
         "e": {
           "type": "chat",
           "id": "m1938",
@@ -37389,7 +37391,7 @@
         }
       },
       {
-        "t": 118.5999999999942,
+        "t": 118.56666666666086,
         "e": {
           "type": "chat",
           "id": "m1942",
@@ -37407,7 +37409,7 @@
         }
       },
       {
-        "t": 118.66666666666084,
+        "t": 118.63333333332753,
         "e": {
           "type": "chat",
           "id": "m1943",
@@ -37421,7 +37423,7 @@
         }
       },
       {
-        "t": 118.73333333332751,
+        "t": 118.69999999999418,
         "e": {
           "type": "chat",
           "id": "m1944",
@@ -37435,7 +37437,7 @@
         }
       },
       {
-        "t": 118.79999999999417,
+        "t": 118.76666666666084,
         "e": {
           "type": "chat",
           "id": "m1945",
@@ -37453,7 +37455,7 @@
         }
       },
       {
-        "t": 119.23333333332744,
+        "t": 119.1999999999941,
         "e": {
           "type": "chat",
           "id": "m1953",
@@ -37471,7 +37473,7 @@
         "lastVisible": true
       },
       {
-        "t": 119.23333333332744,
+        "t": 119.1999999999941,
         "e": {
           "type": "chat",
           "id": "m1954",

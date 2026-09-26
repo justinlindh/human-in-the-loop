@@ -116,7 +116,7 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 33.53333333333399,
+        "visible": 8.533333333333314,
         "lastVisible": false
       },
       {
@@ -1749,99 +1749,99 @@
     "seed": 1,
     "initialWeek": 12,
     "week": 40,
-    "start": 0.26666666666666666,
+    "start": 0.20000000000000004,
     "stats": {
       "max": 1,
       "overlapFrames": 0,
       "pairFrames": 0,
-      "visibleFrames": 1137,
+      "visibleFrames": 1128,
       "yakMax": 3
     },
     "bubbles": [
       {
-        "start": 6.9999999999999805,
+        "start": 6.933333333333315,
         "text": "Early on, I did support from my car.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 3.1999999999999984,
-        "end": 10.366666666666678,
+        "end": 10.30000000000001,
         "done": true
       },
       {
-        "start": 16.800000000000104,
+        "start": 16.73333333333344,
         "text": "I have been stress-testing the Espresso Machine.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 3.9999999999999956,
-        "end": 20.999999999999954,
+        "end": 20.933333333333287,
         "done": true
       },
       {
-        "start": 28.299999999999688,
+        "start": 28.23333333333302,
         "text": "I have four. I rounded.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.7,
-        "end": 31.19999999999958,
+        "end": 31.133333333332917,
         "done": true
       },
       {
-        "start": 42.36666666666689,
+        "start": 42.30000000000022,
         "text": "Product 2: 44%. The long middle.",
         "source": "    at speak (/src/render/sync.js:49:96);     at updateStandup (/src/render/sync.js:969:26);     at Object.update (/src/render/sync.js:1049:5)",
         "visible": 2.9333333333333327,
-        "end": 45.466666666667116,
+        "end": 45.400000000000446,
         "done": true
       },
       {
-        "start": 53.26666666666768,
+        "start": 53.20000000000101,
         "text": "Moved us to the new framework yesterday. Moving back today.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 7.766666666666649,
-        "end": 61.200000000001594,
+        "end": 61.133333333334924,
         "done": true
       },
       {
-        "start": 68.26666666666819,
+        "start": 68.20000000000152,
         "text": "Product 2: 97%. The last 10% takes 90%.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.3999999999999977,
-        "end": 71.86666666666765,
+        "end": 71.800000000001,
         "done": true
       },
       {
-        "start": 78.26666666666674,
+        "start": 78.20000000000007,
         "text": "What if we just stopped watching?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.999999999999999,
-        "end": 81.46666666666627,
+        "end": 81.39999999999961,
         "done": true
       },
       {
-        "start": 88.2999999999986,
+        "start": 88.23333333333194,
         "text": "Product 3 at 33%. On track. Suspicious.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
-        "visible": 4.399999999999994,
-        "end": 92.89999999999793,
+        "visible": 4.199999999999995,
+        "end": 92.83333333333128,
         "done": true
       },
       {
-        "start": 101.26666666666338,
+        "start": 101.19999999999672,
         "text": "Product 3: 60%. The long middle.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
-        "visible": 2.966666666666666,
-        "end": 104.43333333332959,
+        "visible": 2.8666666666666663,
+        "end": 104.36666666666294,
         "done": true
       },
       {
-        "start": 113.26666666666164,
+        "start": 113.19999999999499,
         "text": "Product 3: 86%. Two bugs left. Never two.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.5333333333333306,
-        "end": 116.99999999999443,
+        "end": 116.93333333332777,
         "done": true
       }
     ],
     "yak": [
       {
-        "t": 4.300000000000005,
+        "t": 4.23333333333334,
         "e": {
           "type": "chat",
           "id": "m67",
@@ -1857,7 +1857,7 @@
         }
       },
       {
-        "t": 10.333333333333343,
+        "t": 10.266666666666675,
         "e": {
           "type": "chat",
           "id": "m56",
@@ -1869,11 +1869,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 33.600000000000655,
+        "visible": 8.999999999999979,
         "lastVisible": false
       },
       {
-        "t": 18.866666666666696,
+        "t": 18.800000000000033,
         "e": {
           "type": "chat",
           "id": "m68",
@@ -1891,7 +1891,7 @@
         "lastVisible": false
       },
       {
-        "t": 24.89999999999981,
+        "t": 24.833333333333147,
         "e": {
           "type": "chat",
           "id": "m65",
@@ -1907,7 +1907,7 @@
         "lastVisible": false
       },
       {
-        "t": 30.933333333332925,
+        "t": 30.866666666666262,
         "e": {
           "type": "chat",
           "id": "m75",
@@ -1923,7 +1923,7 @@
         }
       },
       {
-        "t": 36.93333333333316,
+        "t": 36.86666666666649,
         "e": {
           "type": "chat",
           "id": "m110",
@@ -1942,7 +1942,7 @@
         }
       },
       {
-        "t": 43.93333333333367,
+        "t": 43.866666666667,
         "e": {
           "type": "chat",
           "id": "m125",
@@ -1959,11 +1959,11 @@
           },
           "important": true
         },
-        "visible": 11.999999999999968,
+        "visible": 18.000000000000053,
         "lastVisible": false
       },
       {
-        "t": 49.933333333334105,
+        "t": 49.866666666667435,
         "e": {
           "type": "chat",
           "id": "m92",
@@ -1979,7 +1979,7 @@
         "lastVisible": false
       },
       {
-        "t": 55.933333333334545,
+        "t": 55.866666666667875,
         "e": {
           "type": "chat",
           "id": "m97",
@@ -1998,7 +1998,7 @@
         "lastVisible": false
       },
       {
-        "t": 61.93333333333498,
+        "t": 61.86666666666831,
         "e": {
           "type": "chat",
           "id": "m112",
@@ -2016,7 +2016,7 @@
         "lastVisible": true
       },
       {
-        "t": 68.43333333333483,
+        "t": 68.36666666666817,
         "e": {
           "type": "chat",
           "id": "m176",
@@ -2030,7 +2030,7 @@
         }
       },
       {
-        "t": 74.46666666666728,
+        "t": 74.40000000000063,
         "e": {
           "type": "chat",
           "id": "m175",
@@ -2048,7 +2048,7 @@
         }
       },
       {
-        "t": 80.49999999999974,
+        "t": 80.43333333333308,
         "e": {
           "type": "chat",
           "id": "m177",
@@ -2062,7 +2062,7 @@
         }
       },
       {
-        "t": 86.5333333333322,
+        "t": 86.46666666666553,
         "e": {
           "type": "chat",
           "id": "m168",
@@ -2080,7 +2080,7 @@
         }
       },
       {
-        "t": 92.56666666666464,
+        "t": 92.499999999998,
         "e": {
           "type": "chat",
           "id": "m172",
@@ -2097,7 +2097,7 @@
         }
       },
       {
-        "t": 99.09999999999704,
+        "t": 99.03333333333038,
         "e": {
           "type": "chat",
           "id": "m173",
@@ -2113,7 +2113,7 @@
         }
       },
       {
-        "t": 105.13333333332949,
+        "t": 105.06666666666283,
         "e": {
           "type": "chat",
           "id": "m174",
@@ -2127,7 +2127,7 @@
         }
       },
       {
-        "t": 111.16666666666194,
+        "t": 111.09999999999529,
         "e": {
           "type": "chat",
           "id": "m188",
@@ -2146,7 +2146,7 @@
         }
       },
       {
-        "t": 117.1999999999944,
+        "t": 117.13333333332774,
         "e": {
           "type": "chat",
           "id": "m228",
@@ -4551,7 +4551,7 @@
       "overlapFrames": 0,
       "pairFrames": 0,
       "visibleFrames": 1196,
-      "yakMax": 3
+      "yakMax": 2
     },
     "bubbles": [
       {
@@ -4648,8 +4648,8 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 83.16666666666451,
-        "lastVisible": false
+        "lastVisible": false,
+        "visible": 28.100000000000556
       },
       {
         "t": 12.400000000000047,
@@ -4682,8 +4682,8 @@
             "☕": 1
           }
         },
-        "visible": 101.83333333333012,
-        "lastVisible": true
+        "visible": 67.66666666666539,
+        "lastVisible": false
       },
       {
         "t": 25.466666666666455,
@@ -8805,7 +8805,7 @@
     "seed": 1,
     "initialWeek": 119,
     "week": 133,
-    "start": 0.26666666666666666,
+    "start": 0.23333333333333336,
     "stats": {
       "max": 1,
       "overlapFrames": 0,
@@ -8815,81 +8815,81 @@
     },
     "bubbles": [
       {
-        "start": 10.46666666666668,
+        "start": 10.433333333333344,
         "text": "Reviewed who has admin. Too many people. Fewer now.",
         "source": "    at speak (/src/render/sync.js:49:96);     at updateStandup (/src/render/sync.js:969:26);     at Object.update (/src/render/sync.js:1049:5)",
         "visible": 4.66666666666666,
-        "end": 15.3000000000001,
+        "end": 15.266666666666767,
         "done": true
       },
       {
-        "start": 29.399999999999647,
+        "start": 29.366666666666315,
         "text": "We both edited the Product 7 config, didn't we.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 4.033333333333329,
-        "end": 33.999999999999616,
+        "end": 33.96666666666628,
         "done": true
       },
       {
-        "start": 40.26666666666674,
+        "start": 40.2333333333334,
         "text": "Product 7, 14%. Three people, four answers.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 4.199999999999995,
-        "end": 44.633333333333724,
+        "end": 44.600000000000385,
         "done": true
       },
       {
-        "start": 51.66666666666757,
+        "start": 51.63333333333423,
         "text": "Deleted two hundred lines. Best work I have done all week.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 5.099999999999992,
-        "end": 56.933333333334616,
+        "end": 56.90000000000128,
         "done": true
       },
       {
-        "start": 64.26666666666848,
+        "start": 64.23333333333515,
         "text": "Product 7: 26%. One blocker. It is me.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.599999999999997,
-        "end": 68.33333333333483,
+        "end": 68.30000000000152,
         "done": true
       },
       {
-        "start": 75.26666666666716,
+        "start": 75.23333333333383,
         "text": "What's it for, though?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.9333333333333327,
-        "end": 78.36666666666672,
+        "end": 78.33333333333339,
         "done": true
       },
       {
-        "start": 84.83333333333245,
+        "start": 84.79999999999912,
         "text": "Some of it was wrong.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.8666666666666663,
-        "end": 87.86666666666534,
+        "end": 87.833333333332,
         "done": true
       },
       {
-        "start": 96.29999999999744,
+        "start": 96.26666666666411,
         "text": "Product 7: 41%. Net lines today: negative.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 4.133333333333328,
-        "end": 100.59999999999681,
+        "end": 100.56666666666348,
         "done": true
       },
       {
-        "start": 107.69999999999578,
+        "start": 107.66666666666245,
         "text": "If we call it a platform, it's a platform.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 4.133333333333328,
-        "end": 111.99999999999515,
+        "end": 111.96666666666182,
         "done": true
       }
     ],
     "yak": [
       {
-        "t": 0.3,
+        "t": 0.26666666666666666,
         "e": {
           "type": "chat",
           "id": "m662",
@@ -8905,7 +8905,7 @@
         "lastVisible": false
       },
       {
-        "t": 8.299999999999972,
+        "t": 8.266666666666639,
         "e": {
           "type": "chat",
           "id": "m668",
@@ -8923,7 +8923,7 @@
         "lastVisible": false
       },
       {
-        "t": 16.300000000000118,
+        "t": 16.266666666666783,
         "e": {
           "type": "chat",
           "id": "m678",
@@ -8939,7 +8939,7 @@
         "lastVisible": false
       },
       {
-        "t": 22.333333333333236,
+        "t": 22.299999999999905,
         "e": {
           "type": "chat",
           "id": "m675",
@@ -8955,7 +8955,7 @@
         "lastVisible": false
       },
       {
-        "t": 28.36666666666635,
+        "t": 28.33333333333302,
         "e": {
           "type": "chat",
           "id": "m679",
@@ -8971,7 +8971,7 @@
         "lastVisible": false
       },
       {
-        "t": 34.366666666666305,
+        "t": 34.33333333333297,
         "e": {
           "type": "chat",
           "id": "m680",
@@ -8990,7 +8990,7 @@
         "lastVisible": false
       },
       {
-        "t": 40.366666666666745,
+        "t": 40.33333333333341,
         "e": {
           "type": "chat",
           "id": "m691",
@@ -9006,7 +9006,7 @@
         "lastVisible": false
       },
       {
-        "t": 46.36666666666718,
+        "t": 46.33333333333385,
         "e": {
           "type": "chat",
           "id": "m690",
@@ -9018,11 +9018,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 24.033333333333687,
+        "visible": 11.999999999999968,
         "lastVisible": false
       },
       {
-        "t": 52.36666666666762,
+        "t": 52.33333333333428,
         "e": {
           "type": "chat",
           "id": "m692",
@@ -9038,7 +9038,7 @@
         "lastVisible": false
       },
       {
-        "t": 58.36666666666805,
+        "t": 58.33333333333472,
         "e": {
           "type": "chat",
           "id": "m702",
@@ -9050,11 +9050,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 18.066666666666723,
+        "visible": 24.100000000000357,
         "lastVisible": false
       },
       {
-        "t": 64.3666666666685,
+        "t": 64.33333333333516,
         "e": {
           "type": "chat",
           "id": "m704",
@@ -9070,7 +9070,7 @@
         }
       },
       {
-        "t": 70.40000000000121,
+        "t": 70.36666666666788,
         "e": {
           "type": "chat",
           "id": "m699",
@@ -9086,7 +9086,7 @@
         "lastVisible": false
       },
       {
-        "t": 76.43333333333366,
+        "t": 76.40000000000033,
         "e": {
           "type": "chat",
           "id": "m700",
@@ -9102,7 +9102,7 @@
         "lastVisible": false
       },
       {
-        "t": 82.46666666666611,
+        "t": 82.4333333333328,
         "e": {
           "type": "chat",
           "id": "m701",
@@ -9118,7 +9118,7 @@
         "lastVisible": false
       },
       {
-        "t": 88.49999999999858,
+        "t": 88.46666666666525,
         "e": {
           "type": "chat",
           "id": "m709",
@@ -9132,7 +9132,7 @@
         }
       },
       {
-        "t": 94.76666666666434,
+        "t": 94.733333333331,
         "e": {
           "type": "chat",
           "id": "m719",
@@ -9148,7 +9148,7 @@
         "lastVisible": false
       },
       {
-        "t": 100.79999999999679,
+        "t": 100.76666666666345,
         "e": {
           "type": "chat",
           "id": "m732",
@@ -9164,7 +9164,7 @@
         "lastVisible": false
       },
       {
-        "t": 106.83333333332924,
+        "t": 106.7999999999959,
         "e": {
           "type": "chat",
           "id": "m738",
@@ -9178,7 +9178,7 @@
         }
       },
       {
-        "t": 112.8666666666617,
+        "t": 112.83333333332837,
         "e": {
           "type": "chat",
           "id": "m745",
@@ -9194,7 +9194,7 @@
         "lastVisible": true
       },
       {
-        "t": 118.89999999999415,
+        "t": 118.86666666666082,
         "e": {
           "type": "chat",
           "id": "m746",
@@ -13248,7 +13248,7 @@
     "seed": 1,
     "initialWeek": 119,
     "week": 170,
-    "start": 0.26666666666666666,
+    "start": 0.23333333333333336,
     "stats": {
       "max": 1,
       "overlapFrames": 0,
@@ -13258,81 +13258,81 @@
     },
     "bubbles": [
       {
-        "start": 4.46666666666667,
+        "start": 4.433333333333338,
         "text": "The first office was a garage, you know.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.466666666666664,
-        "end": 8.133333333333304,
+        "end": 8.099999999999971,
         "done": true
       },
       {
-        "start": 16.000000000000114,
+        "start": 15.966666666666779,
         "text": "The listing wanted a decade in a five-year-old framework.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 7.533333333333316,
-        "end": 23.833333333333183,
+        "end": 23.79999999999985,
         "done": true
       },
       {
-        "start": 30.133333333332953,
+        "start": 30.09999999999962,
         "text": "If we call it a platform, it's a platform.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 7.599999999999983,
-        "end": 37.93333333333323,
+        "end": 37.8999999999999,
         "done": true
       },
       {
-        "start": 44.10000000000035,
+        "start": 44.06666666666701,
         "text": "The code looked sad.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 2.6000000000000005,
-        "end": 46.96666666666722,
+        "end": 46.93333333333389,
         "done": true
       },
       {
-        "start": 56.2666666666679,
+        "start": 56.23333333333456,
         "text": "Don't forget the retro this afternoon.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.3333333333333313,
-        "end": 59.76666666666816,
+        "end": 59.73333333333482,
         "done": true
       },
       {
-        "start": 68.30000000000152,
+        "start": 68.26666666666819,
         "text": "New brand goes live Monday.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 2.7,
-        "end": 71.2000000000011,
+        "end": 71.16666666666777,
         "done": true
       },
       {
-        "start": 83.29999999999933,
+        "start": 83.266666666666,
         "text": "So I got promoted.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 2.7,
-        "end": 86.19999999999891,
+        "end": 86.16666666666558,
         "done": true
       },
       {
-        "start": 99.299999999997,
+        "start": 99.26666666666367,
         "text": "We need a name for the new part of Product 8.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.7999999999999963,
-        "end": 103.29999999999642,
+        "end": 103.2666666666631,
         "done": true
       },
       {
-        "start": 111.56666666666189,
+        "start": 111.53333333332856,
         "text": "Quick check. What's your password?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.0666666666666655,
-        "end": 114.83333333332807,
+        "end": 114.79999999999475,
         "done": true
       }
     ],
     "yak": [
       {
-        "t": 0.3,
+        "t": 0.26666666666666666,
         "e": {
           "type": "chat",
           "id": "m662",
@@ -13348,7 +13348,7 @@
         "lastVisible": false
       },
       {
-        "t": 6.299999999999987,
+        "t": 6.266666666666654,
         "e": {
           "type": "chat",
           "id": "m668",
@@ -13366,7 +13366,7 @@
         "lastVisible": false
       },
       {
-        "t": 12.33333333333338,
+        "t": 12.300000000000045,
         "e": {
           "type": "chat",
           "id": "m675",
@@ -13382,7 +13382,7 @@
         "lastVisible": false
       },
       {
-        "t": 18.366666666666717,
+        "t": 18.333333333333382,
         "e": {
           "type": "chat",
           "id": "m704",
@@ -13398,7 +13398,7 @@
         }
       },
       {
-        "t": 24.399999999999828,
+        "t": 24.366666666666497,
         "e": {
           "type": "chat",
           "id": "m678",
@@ -13414,7 +13414,7 @@
         "lastVisible": false
       },
       {
-        "t": 30.433333333332943,
+        "t": 30.39999999999961,
         "e": {
           "type": "chat",
           "id": "m679",
@@ -13430,7 +13430,7 @@
         "lastVisible": false
       },
       {
-        "t": 36.433333333333124,
+        "t": 36.39999999999979,
         "e": {
           "type": "chat",
           "id": "m690",
@@ -13446,7 +13446,7 @@
         "lastVisible": false
       },
       {
-        "t": 42.433333333333564,
+        "t": 42.400000000000226,
         "e": {
           "type": "chat",
           "id": "m699",
@@ -13462,7 +13462,7 @@
         "lastVisible": true
       },
       {
-        "t": 48.433333333334,
+        "t": 48.40000000000066,
         "e": {
           "type": "chat",
           "id": "m792",
@@ -13478,7 +13478,7 @@
         }
       },
       {
-        "t": 54.43333333333443,
+        "t": 54.4000000000011,
         "e": {
           "type": "chat",
           "id": "m744",
@@ -13496,7 +13496,7 @@
         "lastVisible": true
       },
       {
-        "t": 60.43333333333487,
+        "t": 60.40000000000153,
         "e": {
           "type": "chat",
           "id": "m827",
@@ -13513,7 +13513,7 @@
         }
       },
       {
-        "t": 66.70000000000175,
+        "t": 66.66666666666842,
         "e": {
           "type": "chat",
           "id": "m828",
@@ -13527,7 +13527,7 @@
         }
       },
       {
-        "t": 72.7333333333342,
+        "t": 72.70000000000087,
         "e": {
           "type": "chat",
           "id": "m829",
@@ -13541,7 +13541,7 @@
         }
       },
       {
-        "t": 78.76666666666665,
+        "t": 78.73333333333333,
         "e": {
           "type": "chat",
           "id": "m823",
@@ -13559,7 +13559,7 @@
         }
       },
       {
-        "t": 84.79999999999912,
+        "t": 84.76666666666578,
         "e": {
           "type": "chat",
           "id": "m888",
@@ -13575,7 +13575,7 @@
         }
       },
       {
-        "t": 90.83333333333157,
+        "t": 90.79999999999824,
         "e": {
           "type": "chat",
           "id": "m889",
@@ -13593,7 +13593,7 @@
         }
       },
       {
-        "t": 96.86666666666402,
+        "t": 96.8333333333307,
         "e": {
           "type": "chat",
           "id": "m893",
@@ -13610,7 +13610,7 @@
         }
       },
       {
-        "t": 102.89999999999648,
+        "t": 102.86666666666315,
         "e": {
           "type": "chat",
           "id": "m894",
@@ -13627,7 +13627,7 @@
         }
       },
       {
-        "t": 108.93333333332893,
+        "t": 108.8999999999956,
         "e": {
           "type": "chat",
           "id": "m895",
@@ -13641,7 +13641,7 @@
         }
       },
       {
-        "t": 114.96666666666138,
+        "t": 114.93333333332806,
         "e": {
           "type": "chat",
           "id": "m903",
@@ -17391,91 +17391,91 @@
     "seed": 1,
     "initialWeek": 261,
     "week": 275,
-    "start": 0.23333333333333336,
+    "start": 0.26666666666666666,
     "stats": {
       "max": 1,
       "overlapFrames": 0,
       "pairFrames": 0,
-      "visibleFrames": 1017,
+      "visibleFrames": 1014,
       "yakMax": 3
     },
     "bubbles": [
       {
-        "start": 10.433333333333344,
+        "start": 10.46666666666668,
         "text": "Product 11: 60%. Found a shortcut. It was not.",
         "source": "    at speak (/src/render/sync.js:49:96);     at updateStandup (/src/render/sync.js:969:26);     at Object.update (/src/render/sync.js:1049:5)",
         "visible": 4.366666666666661,
-        "end": 14.966666666666761,
+        "end": 15.000000000000094,
         "done": true
       },
       {
-        "start": 22.766666666666556,
+        "start": 22.799999999999887,
         "text": "I heard an echo earlier.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 3.0333333333333323,
-        "end": 25.99999999999977,
+        "end": 26.033333333333104,
         "done": true
       },
       {
-        "start": 32.26666666666621,
+        "start": 32.29999999999954,
         "text": "Pairing with Eva on Product 11. 70%.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.766666666666663,
-        "end": 36.199999999999775,
+        "end": 36.23333333333311,
         "done": true
       },
       {
-        "start": 45.700000000000465,
+        "start": 45.7333333333338,
         "text": "I read every page of the onboarding doc.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 3.9999999999999956,
-        "end": 49.866666666667435,
+        "end": 49.90000000000077,
         "done": true
       },
       {
-        "start": 56.23333333333456,
+        "start": 56.2666666666679,
         "text": "Product 11: 82%. So many weird cases.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.8333333333333295,
-        "end": 60.233333333334855,
+        "end": 60.26666666666819,
         "done": true
       },
       {
-        "start": 68.13333333333487,
+        "start": 68.1666666666682,
         "text": "This regex worked yesterday. This regex has moods.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 4.599999999999993,
-        "end": 72.93333333333418,
+        "end": 72.9666666666675,
         "done": true
       },
       {
-        "start": 80.2333333333331,
+        "start": 80.26666666666644,
         "text": "Almost there: Product 11, 94%.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.3999999999999977,
-        "end": 83.83333333333259,
+        "end": 83.86666666666592,
         "done": true
       },
       {
-        "start": 98.79999999999707,
+        "start": 98.8333333333304,
         "text": "Any signups?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.7,
-        "end": 101.69999999999665,
+        "end": 101.73333333332998,
         "done": true
       },
       {
-        "start": 113.2333333333283,
+        "start": 113.26666666666164,
         "text": "Started Product 12. First commit: a README.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
-        "visible": 4.199999999999995,
-        "end": 117.59999999999434,
+        "visible": 4.099999999999995,
+        "end": 117.63333333332767,
         "done": true
       }
     ],
     "yak": [
       {
-        "t": 0.26666666666666666,
+        "t": 0.3,
         "e": {
           "type": "chat",
           "id": "m1548",
@@ -17491,7 +17491,7 @@
         "lastVisible": false
       },
       {
-        "t": 8.266666666666639,
+        "t": 8.299999999999972,
         "e": {
           "type": "chat",
           "id": "m1555",
@@ -17507,7 +17507,7 @@
         "lastVisible": false
       },
       {
-        "t": 14.300000000000082,
+        "t": 14.333333333333416,
         "e": {
           "type": "chat",
           "id": "m1552",
@@ -17521,11 +17521,11 @@
             "🙃": 1
           }
         },
-        "visible": 18.600000000000083,
+        "visible": 12.566666666666633,
         "lastVisible": false
       },
       {
-        "t": 20.833333333333293,
+        "t": 20.866666666666625,
         "e": {
           "type": "chat",
           "id": "m1556",
@@ -17537,11 +17537,11 @@
           "replyTo": "m1552",
           "reactions": {}
         },
-        "visible": 12.066666666666634,
+        "visible": 18.066666666666723,
         "lastVisible": false
       },
       {
-        "t": 26.866666666666404,
+        "t": 26.89999999999974,
         "e": {
           "type": "chat",
           "id": "m1571",
@@ -17557,7 +17557,7 @@
         "lastVisible": false
       },
       {
-        "t": 32.89999999999954,
+        "t": 32.93333333333287,
         "e": {
           "type": "chat",
           "id": "m1568",
@@ -17569,11 +17569,11 @@
           "replyTo": null,
           "reactions": {}
         },
-        "visible": 24.00000000000035,
+        "visible": 18.533333333333413,
         "lastVisible": false
       },
       {
-        "t": 38.89999999999997,
+        "t": 38.93333333333331,
         "e": {
           "type": "chat",
           "id": "m1565",
@@ -17589,7 +17589,7 @@
         "lastVisible": false
       },
       {
-        "t": 44.90000000000041,
+        "t": 44.93333333333374,
         "e": {
           "type": "chat",
           "id": "m1585",
@@ -17606,7 +17606,7 @@
         }
       },
       {
-        "t": 50.900000000000844,
+        "t": 50.93333333333418,
         "e": {
           "type": "chat",
           "id": "m1570",
@@ -17622,7 +17622,7 @@
         "lastVisible": false
       },
       {
-        "t": 56.90000000000128,
+        "t": 56.933333333334616,
         "e": {
           "type": "chat",
           "id": "m1569",
@@ -17638,7 +17638,7 @@
         "lastVisible": false
       },
       {
-        "t": 62.90000000000172,
+        "t": 62.93333333333505,
         "e": {
           "type": "chat",
           "id": "m1584",
@@ -17656,7 +17656,7 @@
         "lastVisible": false
       },
       {
-        "t": 68.93333333333476,
+        "t": 68.96666666666809,
         "e": {
           "type": "chat",
           "id": "m1607",
@@ -17670,11 +17670,11 @@
             "💯": 1
           }
         },
-        "visible": 27.100000000000506,
+        "visible": 26.966666666667166,
         "lastVisible": true
       },
       {
-        "t": 74.96666666666721,
+        "t": 75.00000000000054,
         "e": {
           "type": "chat",
           "id": "m1606",
@@ -17690,7 +17690,7 @@
         "lastVisible": true
       },
       {
-        "t": 80.99999999999966,
+        "t": 81.03333333333299,
         "e": {
           "type": "chat",
           "id": "m1608",
@@ -17706,7 +17706,7 @@
         "lastVisible": true
       },
       {
-        "t": 87.03333333333212,
+        "t": 87.06666666666545,
         "e": {
           "type": "chat",
           "id": "m1613",
@@ -17722,7 +17722,7 @@
         }
       },
       {
-        "t": 94.0333333333311,
+        "t": 94.06666666666443,
         "e": {
           "type": "chat",
           "id": "m1626",
@@ -17736,7 +17736,7 @@
         }
       },
       {
-        "t": 100.06666666666355,
+        "t": 100.09999999999688,
         "e": {
           "type": "chat",
           "id": "m1625",
@@ -17753,7 +17753,7 @@
         }
       },
       {
-        "t": 106.09999999999602,
+        "t": 106.13333333332935,
         "e": {
           "type": "chat",
           "id": "m1627",
@@ -17769,7 +17769,7 @@
         }
       },
       {
-        "t": 112.13333333332847,
+        "t": 112.1666666666618,
         "e": {
           "type": "chat",
           "id": "m1617",
@@ -17785,7 +17785,7 @@
         }
       },
       {
-        "t": 118.16666666666093,
+        "t": 118.19999999999425,
         "e": {
           "type": "chat",
           "id": "m1618",
@@ -19151,7 +19151,7 @@
     "seed": 1,
     "initialWeek": 261,
     "week": 290,
-    "start": 0.23333333333333336,
+    "start": 0.20000000000000004,
     "stats": {
       "max": 1,
       "overlapFrames": 0,
@@ -19161,96 +19161,96 @@
     },
     "bubbles": [
       {
-        "start": 5.366666666666663,
+        "start": 5.3333333333333295,
         "text": "Product 11: 60%. Found a shortcut. It was not.",
         "source": "    at speak (/src/render/sync.js:49:96);     at updateStandup (/src/render/sync.js:969:26);     at Object.update (/src/render/sync.js:1049:5)",
         "visible": 3.8666666666666627,
-        "end": 9.399999999999993,
+        "end": 9.366666666666658,
         "done": true
       },
       {
-        "start": 18.200000000000056,
+        "start": 18.16666666666672,
         "text": "Product 11 is going great. My parts, anyway.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 3.73333333333333,
-        "end": 22.133333333333244,
+        "end": 22.099999999999913,
         "done": true
       },
       {
-        "start": 28.266666666666357,
+        "start": 28.23333333333302,
         "text": "Some of it was wrong.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.7,
-        "end": 31.16666666666625,
+        "end": 31.133333333332917,
         "done": true
       },
       {
-        "start": 40.2333333333334,
+        "start": 40.20000000000007,
         "text": "Almost there: Product 11, 94%.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 2.8,
-        "end": 43.20000000000029,
+        "end": 43.16666666666695,
         "done": true
       },
       {
-        "start": 50.800000000000836,
+        "start": 50.766666666667504,
         "text": "Found a USB stick in the car park. I will not plug it in. Probably.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 5.266666666666658,
-        "end": 56.23333333333456,
+        "end": 56.20000000000123,
         "done": true
       },
       {
-        "start": 62.40000000000168,
+        "start": 62.366666666668344,
         "text": "Deleted two hundred lines. Best work I have done all week.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 4.66666666666666,
-        "end": 67.26666666666833,
+        "end": 67.20000000000168,
         "done": true
       },
       {
-        "start": 73.60000000000075,
+        "start": 73.56666666666742,
         "text": "Wrote 'revolutionary' again. It's a settings page.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 4.133333333333328,
-        "end": 77.93333333333345,
+        "end": 77.90000000000012,
         "done": true
       },
       {
-        "start": 85.23333333333238,
+        "start": 85.19999999999905,
         "text": "I'm filing a ticket.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.7333333333333334,
-        "end": 88.1666666666653,
+        "end": 88.13333333333196,
         "done": true
       },
       {
-        "start": 94.733333333331,
+        "start": 94.69999999999767,
         "text": "Any feedback?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 2.7,
-        "end": 97.63333333333058,
+        "end": 97.59999999999725,
         "done": true
       },
       {
-        "start": 105.23333333332947,
+        "start": 105.19999999999614,
         "text": "Started Product 13. First commit: a README.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.6666666666666634,
-        "end": 109.09999999999557,
+        "end": 109.06666666666224,
         "done": true
       },
       {
-        "start": 117.23333333332772,
+        "start": 117.1999999999944,
         "text": "Merged the big piece of Product 12. 32%.",
         "source": "    at speak (/src/render/sync.js:49:96);     at deskStandup (/src/render/sync.js:879:15);     at startStandup (/src/render/sync.js:903:19);     at Object.handleEvents (/src/render/sync.js:426:49)",
         "visible": 3.0333333333333323,
-        "end": 120.2333333333273
+        "end": 120.19999999999396
       }
     ],
     "yak": [
       {
-        "t": 0.26666666666666666,
+        "t": 0.23333333333333336,
         "e": {
           "type": "chat",
           "id": "m1548",
@@ -19266,7 +19266,7 @@
         "lastVisible": false
       },
       {
-        "t": 6.266666666666654,
+        "t": 6.233333333333321,
         "e": {
           "type": "chat",
           "id": "m1555",
@@ -19282,7 +19282,7 @@
         "lastVisible": false
       },
       {
-        "t": 12.300000000000045,
+        "t": 12.266666666666712,
         "e": {
           "type": "chat",
           "id": "m1571",
@@ -19298,7 +19298,7 @@
         "lastVisible": false
       },
       {
-        "t": 18.333333333333382,
+        "t": 18.30000000000005,
         "e": {
           "type": "chat",
           "id": "m1568",
@@ -19314,7 +19314,7 @@
         "lastVisible": false
       },
       {
-        "t": 24.366666666666497,
+        "t": 24.333333333333165,
         "e": {
           "type": "chat",
           "id": "m1585",
@@ -19331,7 +19331,7 @@
         }
       },
       {
-        "t": 30.39999999999961,
+        "t": 30.36666666666628,
         "e": {
           "type": "chat",
           "id": "m1552",
@@ -19349,7 +19349,7 @@
         "lastVisible": true
       },
       {
-        "t": 36.89999999999983,
+        "t": 36.86666666666649,
         "e": {
           "type": "chat",
           "id": "m1565",
@@ -19365,7 +19365,7 @@
         "lastVisible": true
       },
       {
-        "t": 42.90000000000026,
+        "t": 42.86666666666692,
         "e": {
           "type": "chat",
           "id": "m1569",
@@ -19381,7 +19381,7 @@
         "lastVisible": true
       },
       {
-        "t": 48.9000000000007,
+        "t": 48.86666666666736,
         "e": {
           "type": "chat",
           "id": "m1625",
@@ -19398,7 +19398,7 @@
         }
       },
       {
-        "t": 54.900000000001135,
+        "t": 54.8666666666678,
         "e": {
           "type": "chat",
           "id": "m1626",
@@ -19412,7 +19412,7 @@
         }
       },
       {
-        "t": 60.90000000000157,
+        "t": 60.86666666666824,
         "e": {
           "type": "chat",
           "id": "m1627",
@@ -19428,7 +19428,7 @@
         }
       },
       {
-        "t": 66.90000000000171,
+        "t": 66.8666666666684,
         "e": {
           "type": "chat",
           "id": "m1617",
@@ -19444,7 +19444,7 @@
         }
       },
       {
-        "t": 72.93333333333418,
+        "t": 72.90000000000084,
         "e": {
           "type": "chat",
           "id": "m1618",
@@ -19461,7 +19461,7 @@
         }
       },
       {
-        "t": 78.96666666666663,
+        "t": 78.9333333333333,
         "e": {
           "type": "chat",
           "id": "m1622",
@@ -19479,7 +19479,7 @@
         }
       },
       {
-        "t": 84.99999999999908,
+        "t": 84.96666666666576,
         "e": {
           "type": "chat",
           "id": "m1623",
@@ -19495,7 +19495,7 @@
         }
       },
       {
-        "t": 91.03333333333154,
+        "t": 90.99999999999821,
         "e": {
           "type": "chat",
           "id": "m1624",
@@ -19512,7 +19512,7 @@
         }
       },
       {
-        "t": 97.06666666666399,
+        "t": 97.03333333333066,
         "e": {
           "type": "chat",
           "id": "mg1",
@@ -19529,7 +19529,7 @@
         }
       },
       {
-        "t": 103.09999999999646,
+        "t": 103.06666666666312,
         "e": {
           "type": "chat",
           "id": "m1677",
@@ -19545,7 +19545,7 @@
         }
       },
       {
-        "t": 109.1333333333289,
+        "t": 109.09999999999557,
         "e": {
           "type": "chat",
           "id": "m1710",
@@ -19563,7 +19563,7 @@
         }
       },
       {
-        "t": 115.16666666666136,
+        "t": 115.13333333332803,
         "e": {
           "type": "chat",
           "id": "m1711",
@@ -22182,7 +22182,7 @@
     "seed": 1,
     "initialWeek": 261,
     "week": 314,
-    "start": 0.26666666666666666,
+    "start": 0.23333333333333336,
     "stats": {
       "max": 1,
       "overlapFrames": 0,
@@ -22192,88 +22192,88 @@
     },
     "bubbles": [
       {
-        "start": 4.266666666666673,
+        "start": 4.23333333333334,
         "text": "Remember the old place? No heating.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.133333333333332,
-        "end": 7.599999999999976,
+        "end": 7.5666666666666424,
         "done": true
       },
       {
-        "start": 14.433333333333417,
+        "start": 14.400000000000084,
         "text": "So what are the perks here, exactly?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 2.999999999999999,
-        "end": 17.8333333333334,
+        "end": 17.800000000000068,
         "done": true
       },
       {
-        "start": 25.399999999999793,
+        "start": 25.36666666666646,
         "text": "It's live. I keep refreshing the signup count.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.8666666666666627,
-        "end": 29.46666666666631,
+        "end": 29.43333333333298,
         "done": true
       },
       {
-        "start": 39.433333333333344,
+        "start": 39.400000000000006,
         "text": "Someone launched a Project Management clone of us.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 5.199999999999991,
-        "end": 44.8000000000004,
+        "end": 44.766666666667064,
         "done": true
       },
       {
-        "start": 59.80000000000149,
+        "start": 59.76666666666816,
         "text": "Rule nine of my prompt file is 'read rule one'.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at sayLine (/src/render/sync.js:470:5);     at Object.handleEvents (/src/render/sync.js:407:21)",
         "visible": 3.933333333333329,
-        "end": 63.90000000000179,
+        "end": 63.86666666666845,
         "done": true
       },
       {
-        "start": 72.63333333333422,
+        "start": 72.60000000000089,
         "text": "I've started thanking the chatbot.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.0666666666666655,
-        "end": 75.9000000000004,
+        "end": 75.86666666666707,
         "done": true
       },
       {
-        "start": 82.19999999999949,
+        "start": 82.16666666666616,
         "text": "Who do I ask about the invoice service?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 6.399999999999987,
-        "end": 88.79999999999853,
+        "end": 88.7666666666652,
         "done": true
       },
       {
-        "start": 97.16666666666399,
+        "start": 97.13333333333065,
         "text": "Someone cloned us. Thoughts?",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 2.7,
-        "end": 100.06666666666355,
+        "end": 100.03333333333023,
         "done": true
       },
       {
-        "start": 109.33333333332888,
+        "start": 109.29999999999555,
         "text": "Don't forget the retro this afternoon.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 3.3333333333333313,
-        "end": 112.8666666666617,
+        "end": 112.83333333332837,
         "done": true
       },
       {
-        "start": 119.46666666666073,
+        "start": 119.43333333332741,
         "text": "Launch day and nothing is broken.",
         "source": "    at speak (/src/render/sync.js:49:96);     at showLine (/src/render/sync.js:483:5);     at updateFast (/src/render/sync.js:546:43);     at Object.update (/src/render/sync.js:1050:5)",
         "visible": 0.8333333333333333,
-        "end": 120.26666666666061
+        "end": 120.2333333333273
       }
     ],
     "yak": [
       {
-        "t": 0.3,
+        "t": 0.26666666666666666,
         "e": {
           "type": "chat",
           "id": "m1548",
@@ -22289,7 +22289,7 @@
         "lastVisible": false
       },
       {
-        "t": 6.299999999999987,
+        "t": 6.266666666666654,
         "e": {
           "type": "chat",
           "id": "m1552",
@@ -22303,11 +22303,11 @@
             "🙃": 1
           }
         },
-        "visible": 106.33333333332986,
+        "visible": 1.4333333333333345,
         "lastVisible": false
       },
       {
-        "t": 6.9999999999999805,
+        "t": 6.966666666666648,
         "e": {
           "type": "chat",
           "id": "m1568",
@@ -22323,7 +22323,7 @@
         "lastVisible": true
       },
       {
-        "t": 13.000000000000059,
+        "t": 12.966666666666724,
         "e": {
           "type": "chat",
           "id": "m1571",
@@ -22339,7 +22339,7 @@
         "lastVisible": true
       },
       {
-        "t": 19.033333333333356,
+        "t": 19.000000000000025,
         "e": {
           "type": "chat",
           "id": "m1585",
@@ -22356,7 +22356,7 @@
         }
       },
       {
-        "t": 26.033333333333104,
+        "t": 25.99999999999977,
         "e": {
           "type": "chat",
           "id": "m1625",
@@ -22373,7 +22373,7 @@
         }
       },
       {
-        "t": 32.066666666666215,
+        "t": 32.033333333332884,
         "e": {
           "type": "chat",
           "id": "m1626",
@@ -22387,7 +22387,7 @@
         }
       },
       {
-        "t": 38.06666666666658,
+        "t": 38.03333333333324,
         "e": {
           "type": "chat",
           "id": "m1627",
@@ -22403,7 +22403,7 @@
         }
       },
       {
-        "t": 44.06666666666701,
+        "t": 44.03333333333368,
         "e": {
           "type": "chat",
           "id": "m1617",
@@ -22419,7 +22419,7 @@
         }
       },
       {
-        "t": 50.06666666666745,
+        "t": 50.03333333333411,
         "e": {
           "type": "chat",
           "id": "m1618",
@@ -22436,7 +22436,7 @@
         }
       },
       {
-        "t": 56.066666666667885,
+        "t": 56.033333333334554,
         "e": {
           "type": "chat",
           "id": "m1622",
@@ -22454,7 +22454,7 @@
         }
       },
       {
-        "t": 62.066666666668326,
+        "t": 62.03333333333499,
         "e": {
           "type": "chat",
           "id": "m1623",
@@ -22470,7 +22470,7 @@
         }
       },
       {
-        "t": 68.06666666666821,
+        "t": 68.03333333333488,
         "e": {
           "type": "chat",
           "id": "m1624",
@@ -22487,7 +22487,7 @@
         }
       },
       {
-        "t": 74.10000000000068,
+        "t": 74.06666666666734,
         "e": {
           "type": "chat",
           "id": "mg1",
@@ -22504,7 +22504,7 @@
         }
       },
       {
-        "t": 80.13333333333313,
+        "t": 80.0999999999998,
         "e": {
           "type": "chat",
           "id": "m1677",
@@ -22520,7 +22520,7 @@
         }
       },
       {
-        "t": 86.16666666666558,
+        "t": 86.13333333333225,
         "e": {
           "type": "chat",
           "id": "m1710",
@@ -22538,7 +22538,7 @@
         }
       },
       {
-        "t": 92.19999999999804,
+        "t": 92.16666666666471,
         "e": {
           "type": "chat",
           "id": "m1711",
@@ -22552,7 +22552,7 @@
         }
       },
       {
-        "t": 98.23333333333049,
+        "t": 98.19999999999716,
         "e": {
           "type": "chat",
           "id": "m1712",
@@ -22566,7 +22566,7 @@
         }
       },
       {
-        "t": 104.26666666666294,
+        "t": 104.23333333332961,
         "e": {
           "type": "chat",
           "id": "m1698",
@@ -22584,7 +22584,7 @@
         }
       },
       {
-        "t": 110.2999999999954,
+        "t": 110.26666666666208,
         "e": {
           "type": "chat",
           "id": "m1699",
@@ -22602,7 +22602,7 @@
         }
       },
       {
-        "t": 116.33333333332786,
+        "t": 116.29999999999453,
         "e": {
           "type": "chat",
           "id": "m1747",
