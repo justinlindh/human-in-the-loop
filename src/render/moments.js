@@ -234,16 +234,16 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const cam = [Math.sin(yaw), Math.cos(yaw)];
     const walls = [[-1, 0], [0, -1], [1, 0], [0, 1]].filter(([nx, nz]) => nx * cam[0] + nz * cam[1] < -0.2);
     function* candidates() {
-    for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
-      const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
-      const start = along ? from.x : from.z;
-      for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
-        const u = start + s * d;
-        if (Math.abs(u) > half - 0.6) continue;
-        const x = along ? u : fixed, z = along ? fixed : u;
-        yield { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
+      for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
+        const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
+        const start = along ? from.x : from.z;
+        for (let d = 0; d < 2 * half; d += 0.35) for (const s of [1, -1]) {
+          const u = start + s * d;
+          if (Math.abs(u) > half - 0.6) continue;
+          const x = along ? u : fixed, z = along ? fixed : u;
+          yield { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
+        }
       }
-    }
     }
     return choose(from, 'hammer', 'wall', { candidates: candidates(), needs: ['clear'] });
   }
@@ -460,10 +460,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // their chair and the next one and straight back to the aisle.
     const at = (u) => ({ x: seat.x + ax[0] * u + back[0] * 0.2, z: seat.z + ax[1] * u + back[1] * 0.2 });
     const camFirst = (a, b) => (b.x * Math.sin(yaw) + b.z * Math.cos(yaw)) - (a.x * Math.sin(yaw) + a.z * Math.cos(yaw));
-    const wide = [1, -1].map((sg) => at(SIDE_OUT * sg)).filter((q) => !nav.isBlocked(q.x, q.z)).sort(camFirst);
+    const wide = [1, -1].map((sg) => ({ ...at(SIDE_OUT * sg), wide: true })).sort(camFirst);
     const narrow = [1, -1].map((sg) => at(SIDE_SQUEEZE * sg)).sort(camFirst);
     const standing = (q) => ({ x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK });
-    const side = choose(seat, 'letter', 'side', { candidates: [...wide, ...narrow], needs: ['clear', 'noColumn'], checks: {
+    const side = choose(seat, 'letter', 'side', { candidates: [...wide, ...narrow], needs: ['exitClear', 'clear', 'noColumn'], checks: {
+      exitClear: (q) => !q.wide || !nav.isBlocked(q.x, q.z),
       clear: (q) => { const s = standing(q); return !nav.isBlocked(s.x, s.z, BODY_R); },
       noColumn: (q) => !columnInFront(standing(q)),
     } });

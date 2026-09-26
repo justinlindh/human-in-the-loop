@@ -23,7 +23,7 @@ const point = (q) => q == null ? null : Object.fromEntries(['x', 'y', 'z', 'yaw'
 
 // Checks return true or a reason (false uses the check's name). Candidates may carry extra fields
 // such as a partner or a desk rectangle; the selected object is returned intact. Lower scores win,
-// ties keep input order. Unvisited candidates after a first-fit success are not evaluated.
+// ties keep input order. A first-fit success or a declared minimum score stops enumeration.
 export function pickSpot(center, { candidates, ring, needs = [], checks = {}, score = null, minScore = -Infinity, fallback = null, debug, moment, search = 'spot' }) {
   for (const need of needs) if (typeof checks[need] !== 'function') throw new Error(`Unknown spot requirement: ${need}`);
   const record = { search, center: point(center), candidates: [], selected: null, fallback: false };
