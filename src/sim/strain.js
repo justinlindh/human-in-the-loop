@@ -73,7 +73,8 @@ export function vacationSystem(ctx) {
   const { state, rng } = ctx;
   const due = (state.flags.vacationDue ??= {});
   // Spread by the person's name, which is fixed when they are hired, rather than by an id from the shared counter.
-  const spread = (p) => [...p.name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0);
+  // Two people with the same name are told apart by their place on the staff list when the date is set.
+  const spread = (p) => ([...p.name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0) + state.staff.indexOf(p) * 101) >>> 0;
   for (const id of Object.keys(due)) if (!state.staff.some((p) => p.id === id)) delete due[id];
   const away = state.staff.filter((p) => p.mood === 'away').length;
   let leaving = 0;

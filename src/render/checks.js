@@ -894,14 +894,93 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       step(10);
       const o = R.props.current().find((x) => x.prop === 'whiteboard_scrawl')?.obj;
       const onWall = !!o?.userData.span;
+      const search = R.debug.spots.whiteboard_scrawl?.face;
+      const reasons = search?.candidates.flatMap((q) => q.reasons) ?? [];
+      const recorded = search?.selected != null && search.fallback === onWall && (onWall
+        ? reasons.includes('face points away from camera') && reasons.includes('insufficient room in front of face')
+        : search.selectedIndex >= 0 && search.candidates[search.selectedIndex].reasons.length === 0);
       S.pendingDecision = null;
       S.office.placed = S.office.placed.filter((p) => p.id !== 'wb_test');
       step(20);
-      return onWall;
+      return { onWall, recorded, reasons };
     };
     const front = row(L.grid.h - f.h), back = row(1);
-    const frontOnWall = front ? scrawlOn(front) : null, backOnWall = back ? scrawlOn(back) : null;
-    results.push({ name: 'prop:pivotBoard', pass: frontOnWall === true && backOnWall === false, front, frontOnWall, back, backOnWall });
+    const frontResult = front ? scrawlOn(front) : null, backResult = back ? scrawlOn(back) : null;
+    results.push({ name: 'prop:pivotBoard', pass: frontResult?.onWall === true && backResult?.onWall === false && frontResult.recorded && backResult.recorded, front, frontResult, back, backResult });
+  }
+  // 12. The letter's named reader is always castable under the decision freeze: caught in a
+  // standup, a party pose or mid-walk, they go to their seat and read it (#704).
+  {
+    R.moments.full = true;
+    const frame = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.render(1 / 30); } };
+    frame(30 * 2);
+    const cases = {};
+    for (const [name, catchThem] of [
+      ['standup', (id) => R.catchFor(id, { anim: 'idle', t: Infinity, standup: true }, { walk: true })],
+      ['party', (id) => R.catchFor(id, { anim: 'celebrate', t: 1.8, keepPos: true }, { walk: false })],
+      ['walking', (id) => R.catchFor(id, null, { walk: true })],
+    ]) {
+      const who = S.staff.find((p) => R.perks.peek(p.id)?.seat && R.isSeated(p.id) && p.mood !== 'away' && !R.walkOf(p.id)?.temp?.moment);
+      if (!who) { cases[name] = { id: null, read: false }; continue; }
+      const deskId = R.perks.peek(who.id).seat, d = R.office.placed.get(deskId);
+      catchThem(who.id);
+      S.pendingDecision = { eventId: 'hearing_summons', subjectId: who.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: d.x, y: d.y, staffId: who.id } };
+      R.setPaused(true);
+      let read = false;
+      for (let i = 0; i < 30 * 25 && !read; i++) { frame(1); read = R.perks.peek(who.id)?.temp?.anim === 'readpaper'; }
+      R.setPaused(false);
+      S.pendingDecision = null;
+      frame(30 * 8);
+      cases[name] = { id: who.id, read };
+    }
+    results.push({ name: 'moment:letter-claim', pass: Object.values(cases).every((c) => c.read), ...cases });
+    const lifecycle = {};
+    const waitFor = (test, frames = 900) => { for (let i = 0; i < frames; i++) { frame(1); if (test()) return true; } return false; };
+    for (const name of ['cancel', 'low', 'away', 'away-read', 'cancel-away', 'fallback']) {
+      R.moments.full = name !== 'low';
+      const who = S.staff.find((p) => R.perks.peek(p.id)?.seat && p.mood !== 'away' && !R.walkOf(p.id)?.temp?.moment);
+      if (!who) { lifecycle[name] = { pass: false, why: 'no reader' }; continue; }
+      const mood = who.mood, desk = R.office.placed.get(R.perks.peek(who.id).seat);
+      R.catchFor(who.id, { anim: 'idle', t: Infinity, standup: true }, { walk: true });
+      S.pendingDecision = { eventId: 'hearing_summons', subjectId: who.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: desk.x, y: desk.y, staffId: who.id } };
+      R.setPaused(true);
+      const claimed = waitFor(() => R.moments.staging(who.id)?.moment === 'letter');
+      const nav = R.office.nav(), blocked = nav.isBlocked;
+      let fallback = false, read = false, slump = false, returned = false, released = false, hidden = false;
+      try {
+        if (name === 'fallback') {
+          nav.isBlocked = (x, z, radius) => radius != null || blocked(x, z, radius);
+          read = waitFor(() => R.moments.staging(who.id)?.beat === 'read');
+          fallback = R.trace.lines(200).some((x) => x.id === who.id && x.what === 'fallback');
+          nav.isBlocked = blocked;
+          slump = waitFor(() => R.moments.staging(who.id)?.beat === 'slump');
+          returned = waitFor(() => !R.walkOf(who.id)?.temp?.moment && !R.walkOf(who.id)?.path.length && R.isSeated(who.id));
+        } else {
+          if (name.startsWith('cancel')) S.pendingDecision = null;
+          if (name === 'away-read') read = waitFor(() => R.moments.staging(who.id)?.beat === 'read');
+          if (name === 'away' || name === 'away-read') who.mood = 'away';
+          released = waitFor(() => R.walkOf(who.id)?.temp?.moment !== 'letter');
+          if (name === 'low') {
+            for (let i = 0; i < 900; i++) {
+              frame(1);
+              released &&= !R.walkOf(who.id)?.temp?.moment && !R.walkOf(who.id)?.path.length;
+            }
+          }
+          if (name === 'cancel-away') who.mood = 'away';
+          if (name.includes('away')) { R.setPaused(false); hidden = waitFor(() => R.walkOf(who.id)?.hidden); }
+        }
+      } finally {
+        nav.isBlocked = blocked;
+        S.pendingDecision = null;
+        who.mood = mood;
+        R.setPaused(false);
+        frame(30 * 12);
+      }
+      const pass = claimed && (name === 'fallback' ? fallback && read && slump && returned : released && (!name.includes('away') || hidden) && (name !== 'away-read' || read));
+      lifecycle[name] = { pass, claimed, released, hidden, fallback, read, slump, returned };
+    }
+    results.push({ name: 'moment:letter-lifecycle', pass: Object.values(lifecycle).every((c) => c.pass), ...lifecycle });
+    R.moments.full = false;
   }
   R.perks.hold = false;
   return results;
@@ -950,8 +1029,17 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   }
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
   step(60);
-  const game = travel > 1 && off === 0 && turn > 0.3;
-  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2) };
+  // A new toy: the same table placed live (visits not held) draws two people as soon as two are free
+  // (at once in a full office; a two-person garage waits for them to get back from the last game).
+  R.perks.hold = false;
+  S.office.placed.push({ id: 'new_table', itemId: 'foosball', level: 1, ...spot, rot: 0 });
+  let newToy = null;
+  for (let t = 0; t < 12 && newToy === null; t += dt) { step(1); if (R.perks.sessions > 0) newToy = +t.toFixed(2); }
+  S.office.placed = S.office.placed.filter((p) => p.id !== 'new_table');
+  step(60);
+  R.perks.hold = true;
+  const game = travel > 1 && off === 0 && turn > 0.3 && newToy !== null;
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2), newToyAt: newToy };
 }
 
 // The sky backdrop redraws at most a few times a second; a change inside that window must still be

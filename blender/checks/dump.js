@@ -216,7 +216,7 @@ export function dumpFrame(R, S, { views = null } = {}) {
         visible: seen?.[0]?.visible ?? null, occluder: seen?.[0]?.occluder ?? null, views: views ? seen : null });
     }
     const c = document.querySelector('canvas');
-    return { people, items, props, nav: navOf(R, F), spots, camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
+    return { people, items, props, nav: navOf(R, F), spots, spotSearches: JSON.parse(JSON.stringify(R.debug?.spots ?? {})), camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
   });
 }
 

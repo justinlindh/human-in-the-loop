@@ -63,6 +63,7 @@ Conventions:
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
 - **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. `id: floor_next_door`
 - **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
+- **New toys**: something to use (a table game, a couch, the coffee corner, an arcade) that's just been placed draws the nearest free people straight away: a pair table's first game starts within a second, even during a standup.
 - **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
 - **Meeting table**: standups gather round it and tuck the chairs in. `id: meeting_table`
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
@@ -91,7 +92,7 @@ Conventions:
 - **Arrivals and departures**: a hire walks in from the door with a sparkle; a leaver waves goodbye with a heart, or a storm cloud when fired, and walks out.
 - **Assignments you can see**: mentors stand at their mentee's desk with hearts; hard-problem people think at the whiteboard; people away, remote or on sabbatical leave by the door, and a desk gets an "ON SABBATICAL" sign.
 - **Legends**: someone who reaches level 20 wears a gold halo.
-- **Conversations**: a spoken exchange turns two people to face each other (a far speaker walks over) while the listener types "..." until the reply; people also mutter solo lines to nobody.
+- **Conversations**: a spoken exchange turns two people to face each other (a far speaker walks over) while the listener types "..." until the reply; people also mutter solo lines to nobody. Ordinary speech, including standups, shares one bubble slot, a quiet beat between lines and a cooldown for each person. Reading time stays long enough at every game speed; moment lines bypass the ambient limits.
 - **Yak typing**: posting in Yak shows a short typing emote, never a bubble.
 - **Standups**: everyone gathers round the meeting table or whiteboard, the most interesting few speak (blockers, silences, jokes), the rest nod and wave. `capture 3-5-standup` `id: daily_standups`
 - **Incident rush**: the nearest few people sprint to the servers with exclamation marks; a caught incident sends just one. `?mock=incident` `capture 5-2-incident`
@@ -108,7 +109,7 @@ Conventions:
 - ★ **The printer**: on "Take it out back", two people carry the jammed printer low between them while a third follows with a bat on the shoulder, all in time with a music cue; they set it down, the bat lands on each shouted word, and the wreck is left outside (just inside the door on the Office Floor). The camera follows it and a caption runs. `id: printer` `id: printer_jam` `find.js printer_jam --choice 0 --stage floor` `capture nods-printer`
 - ★ **The first user test**: halfway through the first product a stranger sits at a desk trying it while the two founders crouch out of sight, peeking; "Watch in silence" makes them flinch together, "Explain everything" sends one bursting out to point at the screen, "Skip it" sends them back. Camera and caption follow. `id: visitor` `id: first_user_test` `find.js first_user_test --snapshot`
 - ★ **The consultants**: two consultants in suits and glasses, one seated interviewing, one standing with a clipboard, with a nervous colleague in front of them. `id: visitor` `id: efficiency_consultants` `capture nods-consultants`
-- **The letter**: whoever sits at a desk with an envelope gets up, reads the sheet (red stamp showing through), slumps, then sits back down, chair rolling out and in. `id: resignation_letter` `id: hearing_summons`
+- **The letter**: its named reader leaves a walk, standup or celebration to sit at their desk, then gets up, reads the sheet (red stamp showing through), slumps, and sits back down, chair rolling out and in. Tight desk rows use a clear spot behind the chair or nearby. Pending reader claims release when the envelope disappears or the Low-quality emote starts. Staff the simulation marks away leave the letter and stay away. `id: resignation_letter` `id: hearing_summons`
 - **Fumes**: smoke from the coffee machine or a server rack glowing orange with rising heat brings someone over to fan it frantically. `id: coffee_machine_broke` `id: agent_runaway_spend`
 - ★ **The Waffle Party**: the top incentive reward; a cart rolls in, the room goes dark round one warm pool of light, the winner eats a towering stack alone under bunting while colleagues crowd in to watch, whisper, point and shake their heads; a stinger and group cheer play, and the winner's caricature goes up after. `id: waffle_party` `capture 5-4-waffle-party-real`
 - ★ **Music night**: a speaker cart rolls in, the room dims under a pool of the genre's colour pulsing on the beat, the winner commits fully to the genre's dance while others bob or shuffle stiffly, and the dance ends when the track does. `id: music_night` `id: music_night_genre` `capture 5-4b-music-night-real`
@@ -156,10 +157,14 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 
 ## Yak
 
+- **Picture meme art**: six office parodies in Fredoka: This is fine, Two buttons, Tabs chart, Always config, Reject/approve tests and Expanding review. Renderer captures live in `public/memes/` at 480x360 and 1200x900; regenerate them with `scripts/reels/memes.mjs`.
+
+- **Feed pacing**: messages arrive with reading time between them at every game speed. Important posts take priority; prompts and the player's own replies arrive immediately. Stale ambient backlog is skipped in the live feed, with the full recent history kept in the save.
 - **Channels**: #general, #incidents, #wins, #random and #standup, with unread badges; threads stay together, reactions show counts, names are clickable to find the person.
 - **Layout**: drag the top edge to resize, maximise into a large overlay, or collapse it (collapsed by default on phones).
 - **Mentions**: "@channel" and "@here" render as mention pills.
 - **Bots**: @launchbot, @pagerbot (SEV lines), @vendorbot, @newsbot, @dealbot, @saasies, @facilities, @officebot, @buildbot and @hackerspewsbot ("Show HS: Notes but with AI").
+- **Image memes**: a Yak post that carries a picture shows it framed in the message, larger in the big Yak; a tap opens it over the game and a tap or Esc closes it. A picture that fails to load reads as its caption instead.
 - **Reply prompts**: a staff post with two or three founder replies, each with its effect hint; a flag on the Yak header points to an open one, and ignoring it has its own consequence.
   - **Strain vent**: "Is it just me or has this sprint been three sprints?" Friday off, or ship Friday then rest. `id: strain_vent`
   - **Incident blame**: "Okay, who pushed to prod on a Friday?" A blameless postmortem, or fix it and talk later. `id: incident_blame`
@@ -174,7 +179,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
   - **Desk squeeze**: "I am currently sharing a desk with the printer. The printer is winning." `id: desk_squeeze`
   - **Junior PR**: "It is small. It is one line." `id: junior_pr`
   - **Low-stakes events in Yak**: six small decisions arrive as officebot posts with the event's own choices instead of pausing popups: the two coffee-machine requests, the dog on Fridays, a new model dropping, a senior's weekend side project and the app store rejection. Their staged props show while the prompt is open, and left unanswered, the mildest choice happens (never one that brings in an item or a pet).
-- **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it.
+- **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it. The office reacts too: a backfire gets a facepalm from whoever faces you, the two nearest turn to look and a couple more sweat; a post that lands gets a sparkle or two.
   - **Pep talk**: backfires mid-outage ("Respectfully, the servers are on fire."). `id: pep_talk`
   - **Who broke prod?**: helps during an outage; with nothing broken it just scares people ("Why are you asking. What do you know."). `id: who_broke_prod`
   - **Share a meme**: "[a cat knocking a mug off a desk, captioned "me, merging on a Friday"]". `id: meme`
@@ -195,6 +200,12 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - ★ **The two Robs**: "So what would you say you do here?" `id: efficiency_consultants`
 - ★ **PC LOAD LETTER**: a printer with a blinking light and a screen reading PC LOAD LETTER that beeps on a loop while it sits in the kitchen; "Print less" puts up an OUT OF ORDER. FOREVER. sign. `id: printer_jam` `npm run capture -- --group nods`
 - **"Yeahhh, Saturday"**: a senior leans on your desk with a mug; the refusal is "No. Mmkay?". `id: saturday_ask` `capture nods-saturday`
+- ★ **The incubator house**: early on, a would-be mentor offers free rent in his house for a cut of the company; a hand-painted INCUBATOR sign by the door; move in (and a year later he's on a podcast calling himself your founder), keep the garage, or counter. `id: incubator_house`
+- ★ **The Box**: the rival's brushed-aluminium cube that does less for four times the price; build your own (a little cube lands on a desk), stay software (the Box gets recalled), or mock it. `id: the_box`
+- ★ **Four thousand pounds of oat milk**: during the first 26 weeks of the Agents era, a company with at least eight staff and 25% ops automation can get pallets in the lobby when its procurement agent fixes the Thursday shortage; once per run, send it back, keep it, or donate it. `id: oat_milk`
+- ★ **Tabs or spaces**: a running joke between two engineers that escalates over weeks to two whiteboards and ends in a ruling. `id: tabs_or_spaces`
+- **Is it kielbasa?**: a junior's weekend app that is extremely confident and right half the time; ship it, sell it, or keep it as the office party trick. `id: is_it_kielbasa`
+- **The Squish Score**: a compression research node whose launch post cites a score of 5.2 on a scale nobody can explain. `id: squish`
 - **Model vendors**: Claudius (declines to delete prod, at length), ChatGBT ("Great question!"), Gemenai, Grokk, Llamarama, DeepSleep and Mistrale (comes with a small baguette). `id: claudius` `id: chatgbt` `id: gemenai` `id: grokk` `id: llamarama` `id: deepsleep` `id: mistrale`
 - **Incumbents**: Notian, Gmale, Jirra, Zendisk, Salesfarce, Lookerish, Figmo, GitHug, Workdai, LinkedOut, Quickbucks, Adobo Premiere, LexisNaxis and CrowdStrife. `id: notian` `id: gmale` `id: jirra` `id: zendisk` `id: salesfarce` `id: lookerish` `id: figmo` `id: githug` `id: workdai` `id: linkedout` `id: quickbucks` `id: adobo` `id: lexisnaxis` `id: crowdstrife`
 - **Industry parody**: Product Hunch Day, Hacker Spews, SaaSCon, the Saasies, a Grokk PR scandal, the blockchain pitch and "Mint a coin". `id: grokk_pr_scandal` `id: blockchain_pitch`

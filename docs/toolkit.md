@@ -11,6 +11,8 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Know why a moment didn't start or was cut short | `dump.mjs --trace`, `dump-query trace <id>`; a failing `loop.mjs` or `clip.mjs` case prints the worst actor and their trace on its own | [dump](toolkit/dump.md), [loop](toolkit/loop.md), [clip](toolkit/clip.md) |
 | Jump to any event or moment in a real game | `node scripts/events/find.js <event>`, then `--moment '<query>'` or `--snapshot <path>` on a tool | [events](toolkit/events.md) |
 | Check a moment plays through the real game loop, or the spotlight hold | `blender/checks/loop.mjs` (queries, `party:<decision>`) | [loop](toolkit/loop.md) |
+| Tune a pose or gesture on numbers, without rendering (a hand reaching an eye or brow, the face's angle to the camera) | `node blender/checks/pose.mjs --gesture <name> --under <anim> --expect '...'`, `--root <worktree>` | [pose](toolkit/pose.md) |
+| Check a bubble or emote doesn't cover a face, and who hides whom, in a staged scene | `node blender/checks/pose.mjs --scene --moment '<query>' --who <ids> --expect 's3:faceCovered<=0.1'` | [pose](toolkit/pose.md) |
 | Check a moment reads on screen | `stage.mjs --only=<moment>`: every staged role needs a spec; `known: <issue>` excuses a failure only while the issue is open | [stage](toolkit/stage.md) |
 | Check nothing overlaps, floats, leaves the room or clutters the screen | `sweep.mjs`, `clip.mjs --only=<pattern>` | [sweep](toolkit/sweep.md), [clip](toolkit/clip.md) |
 | Iterate on one moment without half-edited runs | `npm run gates -- --moment <kind>` | [gates](toolkit/gates.md) |
@@ -21,6 +23,8 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Know what the Claude Code hooks refuse, and record an agreed cross-lane edit | the bash and lane guards; an exception goes in `$(git rev-parse --git-dir)/hitl-lane-allow` | [bash-guard](toolkit/bash-guard.md), [lane-guard](toolkit/lane-guard.md) |
 
 The machine is shared by every lane's CI. Wrap long runs in `timeout`, `nice -n 10` heavy ones, and run any headless browser work under a render lock. Stop processes by PID, never with `pkill -f` or `pgrep -f`.
+
+Scene pose checks require every selected subject at every requested frame. Run `pose.mjs --scene` from the checkout being measured; it rejects a differing `--root`.
 
 ## GPU or software GL
 
@@ -83,3 +87,5 @@ The machine and the GPU are shared, so single numbers are noisy. Trust relative 
 | Role briefs and skills | `.claude/agents/` and `.claude/skills/` |
 | Ideas and priorities | GitHub issues labelled `idea` with `when:*`, ranked in #6. `tooling` marks toolkit work, and `fork-idea` marks separate projects. |
 | Anything the user must see or decide | Send it to team-lead with the media; team-lead puts it on the user's review desk. |
+
+For a staged actor or prop that keeps landing at the same fallback, inspect `R.debug.spots[moment][search]`. `src/render/spots.js` supplies the shared `pickSpot(center, { ring, needs, checks, score, fallback })` search: caller-owned geometry checks return true or a rejection reason, ordered rings or explicit candidates define the search, and the lowest finite score wins when supplied. Moment searches provide `clear`, `chairClear`, `inView`, `noColumn`, and `bothViews` checks; `bothViews` tests the current camera direction and one quarter turn. Existing scenes choose the requirements they need. The dump records the candidates and prints rejection summaries; staging failures print those summaries too.

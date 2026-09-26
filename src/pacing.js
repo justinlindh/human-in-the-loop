@@ -1,3 +1,5 @@
+import { B } from './sim/balance.js';
+
 // The game's real-time clock and event pacing. Pure (no DOM), shared by main.js and scripts/pace.js
 // so the pacing simulator measures exactly what players experience.
 
@@ -19,7 +21,8 @@ export function readSeconds(text, speed = 1) {
   const n = typeof text === 'string' ? text.length : 0;
   const at1x = Math.min(READ.max, Math.max(READ.min, READ.base + READ.perChar * n));
   const reading = Math.min(READ.max, READ.floorBase + n / READ.charsPerSecond);
-  return Math.max(at1x * READ_SPEED_FACTOR(speed), reading);
+  const words = typeof text === 'string' ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+  return Math.max(at1x * READ_SPEED_FACTOR(speed), reading, B.readMinimumSeconds + B.readFadeSeconds, words * B.readSecondsPerWord + B.readFadeSeconds);
 }
 
 // Spoken lines (`say`) are paced as conversation; everything else is spread across the week.
@@ -94,7 +97,7 @@ export function createPacer({ weekSeconds = WEEK_SECONDS } = {}) {
       const now = [];
       const carried = [];
       for (const x of paced) {
-        if (isSay(x.e) && !x.carried) carried.push({ ...x, at: 0, carried: true });
+        if (isSay(x.e) && (x.e.moment || !x.carried)) carried.push({ ...x, at: 0, carried: true });
         else if (isSay(x.e) && busy(x.e)) dropped.push(x.e);
         else { now.push(x.e); released(x.e); }
       }

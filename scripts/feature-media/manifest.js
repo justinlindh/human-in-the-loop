@@ -74,6 +74,10 @@ const BOX = (prop) => `() => { const R = window.__hitlRender, T = R.THREE; const
 // A point offset from the staff's centre (found once per clip), for the hero's drift.
 const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return n ? { x: x / n, z: z / n } : null; })(); return c && { x: c.x + ${dx}, z: c.z + ${dz} }; })()` });
 
+// The decision card moved in from the screen's right edge and up, so a crop keeps a margin round
+// it and the page's corner controls don't cover it.
+const CARD_IN = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { translate: -180px -120px; }'; document.head.append(st); })();`;
+
 export const ITEMS = [
   // The office, by stage and time.
   {
@@ -158,7 +162,7 @@ export const ITEMS = [
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
     // the card, so the camera sits on one person at their desk. The window keeps the card out.
     id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
-    setup: BARE, actions: [...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
+    setup: BARE, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
 
@@ -167,10 +171,15 @@ export const ITEMS = [
     // automate-everything bot runs it until the live week raises the runaway cloud bill. The office
     // holds still under the card (the bill), so the camera pushes in on the hot rack.
     id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=4&speed=1', seconds: 22, warmup: 0.5,
-    setup: `(async () => { await ${RUNAWAY}; ${BARE}; })()`,
-    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...FOLLOW(BOX('rack_hot'), 2.8, 0, 22), ...CAMLOG(22)],
+    setup: `(async () => { await ${RUNAWAY}; ${BARE}; ${CARD_IN} })()`,
+    actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...CAMLOG(22)],
+    // The camera holds still on the rack, so the loop's two ends frame the same.
+    // The rack's bounds grow with its smoke, so the aim point is taken once, when it appears.
+    camera: [{ at: 0, target: { js: `(window.__rackAt ??= (${BOX('rack_hot')})() ?? undefined)` }, zoom: 2.8 }],
     screenshots: [10, 14, 18],
-    out: [LOOP('automation', 10, 9)],
+    // Cropped round the smoking rack and the bill card at native pixels, from the stretch where the
+    // card keeps its incident footer (so the blend at the loop point never changes the card).
+    out: [{ ...LOOP('automation', 11.0, 4.3, { x: 0.2396, y: 0.0185, w: 0.7083, h: 0.7083 }, 29), xfade: 0.8 }],
   },
 
   // New on the page: Yak, the Office Space nods, and decisions you can see.
@@ -178,12 +187,16 @@ export const ITEMS = [
     // A meme posted mid-outage backfires: 😬 reactions and the team's replies under it, in #random.
     // The large Yak keeps the game running (the maximised one pauses it).
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, prep: IN_OFFICE, after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`,
     actions: [
       ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 34, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
-      { at: 11, js: `[...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent))?.click()` },
+      { at: 11, js: `(() => {
+        const b = [...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent));
+        if (!b || b.disabled || !window.__HITL.state.outage) throw new Error('capture: the meme must be available during an outage');
+        b.click();
+      })()` },
       ...[11.5, 16, 22, 28, 32].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
       // Newer messages push the thread up: scroll it back to the top of the list for the frame.
       { at: 32.5, js: `(() => { const posts = [...document.querySelectorAll('.chat.yak *')].filter((e) => e.children.length === 0 && /prod is back/.test(e.textContent)); posts[0]?.scrollIntoView({ block: 'center' }); })()` },
@@ -224,19 +237,20 @@ export const ITEMS = [
   },
   {
     // "Sponsor a prize" hangs the cheque; the live week raises the hackathon.
-    id: 'site-cheque', title: 'Landing page: the giant novelty cheque', query: 'seed=1&speed=1', warmup: 0.5, still: true, record: '3840x2160',
+    id: 'site-cheque', title: 'Landing page: the giant novelty cheque', query: 'seed=1&speed=1', warmup: 0.5, seconds: 20.5, record: '3840x2160',
     setup: `(async () => { await ${PRE_DECISION('ai_summit_hackathon', 600)}; ${CLEAN}; })()`,
     actions: [...CLEAR_EARLY, ...CHOOSE_WHEN('ai_summit_hackathon', 1, 1, 14), ...DISMISS_AT([12, 13, 14, 15], { escape: false }), ...FOLLOW(['giant_cheque'], 3.2, 0, 20)],
     screenshots: [17],
     out: [STILL('cheque', 17, { x: 0.3698, y: 0.2454, w: 0.25, h: 0.25 })],
   },
   {
-    // Shot while the pivot is open, the card hidden.
-    id: 'site-whiteboard', title: 'Landing page: the whiteboard, the market has spoken', query: 'seed=1&speed=1', moment: 'pivot_pitch --stage floor', pre: true, warmup: 6.5, still: true, record: '3840x2160',
+    // Shot while the pivot is open, the card hidden. The cheque, this and the visitor also make the
+    // decisions loop (scripts/reels/decisions.sh).
+    id: 'site-whiteboard', title: 'Landing page: the whiteboard, the market has spoken', query: 'seed=1&speed=1', moment: 'pivot_pitch --stage floor', pre: true, warmup: 6.5, seconds: 8, record: '3840x2160',
     setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
-    actions: [...OPEN(['whiteboard_scrawl']), ...FOLLOW(['whiteboard_scrawl'], 3.2, 0, 5)],
+    actions: [...OPEN(['whiteboard_scrawl']), ...FOLLOW(['whiteboard_scrawl'], 3.2, 0, 8)],
     screenshots: [4.5],
-    out: [STILL('whiteboard', 4.5, { x: 0.2917, y: 0.2917, w: 0.4167, h: 0.4167 })],
+    out: [STILL('whiteboard', 4.5, { x: 0.3125, y: 0.2106, w: 0.375, h: 0.375 })],
   },
   {
     // "Watch in silence": the founders flinch together behind the visitor.

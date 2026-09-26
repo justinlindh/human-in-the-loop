@@ -1,3 +1,4 @@
+import { createSpeechBudget } from './speech-budget.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { ROLE_COLORS } from './palette.js';
@@ -27,8 +28,8 @@ const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
 const TIRED_STAMINA = 25;           // below this a person shows the exhaustion warning signs
 const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
-const MAX_SPEECH = 6;
 const QUIET_R = 4;          // metres round a spotlight moment where only its own lines are spoken
+const POST_REACT_S = 2.2;    // how long the office reacts to a Yak post that backfired
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
@@ -41,6 +42,12 @@ function angleLerp(a, b, k) {
 }
 
 export function createStaffSync({ office, parent, labels, fx, rig, caricature = () => null, setDim = () => {}, setAccent = () => {}, setPictureLight = () => {}, getProps = () => null, low = () => false }) {
+  const speech = createSpeechBudget();
+  function speak(text, r, e = {}) {
+    if (!r || r.hidden || !text || quieted(e, r)) return;
+    const seconds = holdSeconds(text, speed);
+    if (speech.admit(r.id, seconds, labels.speechCount?.() ?? 0, { moment: e.moment })) labels.say(text, r.char.root, seconds);
+  }
   const group = new THREE.Group();
   group.name = 'staff';
   parent.add(group);
@@ -408,6 +415,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           break;
         }
         case 'launch': companyParty(); break;
+        case 'posted': postReaction(e.outcome); break;
         case 'award': {
           const L = cur?.L;
           if (L) fx.confetti(0, 1.2, 0, { spread: 2.2, power: 1.25 });
@@ -458,7 +466,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     sayIds.set(e.id, { root, staffId: e.staffId });
     if (sayIds.size > 300) sayIds.delete(sayIds.keys().next().value);
     const exchange = !!(e.toId || e.replyTo);
-    if (speed >= 4 && exchange) { fastQ.set(root, { e, t: FAST_HOLD }); return; }
+    if (!e.moment && speed >= 4 && exchange) { fastQ.set(root, { e, t: FAST_HOLD }); return; }
     showLine(e, parent);
   }
 
@@ -468,15 +476,46 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const otherId = e.toId ?? parent?.staffId ?? null;
     const other = otherId && otherId !== e.staffId ? recs.get(otherId) : null;
     const staged = other && !other.hidden && other.mode === 'placed';
-    if (!staged && labels.speechCount?.() >= MAX_SPEECH) return;
     if (r.char.emote === 'typing') { r.char.setEmote(null); r.emoteT = 0; }
     if (staged) faceToward(other, r);
     // Only the opening line may walk over, and only a short way; its bubble then shows on arrival.
     if (staged && !e.replyTo && !other.temp?.talk && approach(r, other, e.text, e.moment)) return;
-    labels.say(e.text, r.char.root, holdSeconds(e.text, speed));
+    speak(e.text, r, e);
     if (!staged) return;
     faceToward(r, other);
     if (speed < 4 && !other.char.emote && !labels.speaking?.(other.char.root)) emote(other, 'typing', 1.5);
+  }
+
+  // A Yak post lands in the office. Backfired: someone drops their face into their hand (a gesture
+  // over whatever they're doing), the two nearest turn to look, and a couple more sweat. Landed: a
+  // couple of people light up. Nobody in a staged moment reacts.
+  function postReaction(outcome) {
+    const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && !r.path.length);
+    if (!here.length) return;
+    if (outcome === 'landed') {
+      for (let i = 0; i < 2 && here.length; i++) emote(here.splice(Math.floor(Math.random() * here.length), 1)[0], 'sparkle', 2);
+      return;
+    }
+    if (outcome !== 'backfired') return;
+    // The facepalm goes to someone nobody stands in front of on screen (the front of a group), and
+    // of those whoever faces the camera most squarely, so the hand at the forehead reads.
+    const yaw = rig?.yaw ?? Math.PI / 4, cx = Math.sin(yaw), cz = Math.cos(yaw);
+    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.5; };
+    const pillar = (r) => (office.current?.columns ?? []).some((c) => { const dx = c.x - r.pos.x, dz = c.z - r.pos.z, along = dx * cx + dz * cz; return along > 0 && along < 3 && Math.abs(dx * cz - dz * cx) < 0.55; });
+    const clear = (r) => !pillar(r) && !here.some((x) => x !== r && hides(x, r));
+    // Clear and facing the camera both matter: in a standup ring the clear front row has its back
+    // to the camera, so someone facing it from elsewhere wins.
+    const facing = (r) => { const f = Math.cos(r.yaw - yaw); return f + (clear(r) ? 2 : 0) + (f > 0.3 ? 2 : 0); };
+    here.sort((a, b) => facing(b) - facing(a));
+    const palm = here.shift();
+    // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
+    palm.char.gesture('facepalm', POST_REACT_S);
+    const near = here.sort((a, b) => a.pos.distanceToSquared(palm.pos) - b.pos.distanceToSquared(palm.pos));
+    // The nearest two turn to look. Nobody standing in front of the facepalmer on screen gets a
+    // bubble, since it would sit over their face.
+    near.slice(0, 2).forEach((r, i) => { faceToward(r, palm); if (!hides(r, palm)) emote(r, i ? 'sweat' : 'exclamation', POST_REACT_S); });
+    const rest = near.slice(2).filter((r) => !hides(r, palm));
+    for (let i = 0; i < 2 && rest.length; i++) emote(rest.splice(Math.floor(Math.random() * rest.length), 1)[0], 'sweat', POST_REACT_S);
   }
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
@@ -638,7 +677,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.yaw = angleLerp(r.yaw, tp.goal.yaw, 1 - Math.exp(-dt * 10));
         c.setAnim(LIE_ANIMS.has(tp.anim) ? 'sit' : tp.anim);
       } else {
-        if (tp.sayText) { if (!quieted({ moment: tp.sayMoment }, r)) labels.say(tp.sayText, c.root, holdSeconds(tp.sayText, speed)); tp.sayText = null; }
+        if (tp.sayText) { speak(tp.sayText, r, { moment: tp.sayMoment }); tp.sayText = null; }
         tp.t -= dt;
         if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
@@ -837,7 +876,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // While a staged standup is still talking, the desk week stays silent so bubbles never overlap.
     if (speed >= 4 || standup) return;
     const said = lines.filter((l) => l.text).sort((a, b) => a.text.length - b.text.length)[0];
-    if (said && !(labels.speechCount?.() >= MAX_SPEECH) && !quieted(said, recs.get(said.staffId))) labels.say(said.text, recs.get(said.staffId).char.root, holdSeconds(said.text, speed));
+    if (said) speak(said.text, recs.get(said.staffId));
   }
 
   const MAX_STANDUP_LINES = 3;
@@ -925,9 +964,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         st.t = 0;
         if (st.i >= st.people.length) { st.phase = 'close'; st.t = 0; return; }
         const p = st.people[st.i];
-        if (!recs.has(p.r.id)) return;
+        if (!recs.has(p.r.id) || !p.r.temp?.standup) return;
         if (p.nod) { p.r.temp.anim = 'wave'; emote(p.r, 'lightbulb', 0.9); setTimeoutFree(p.r); }
-        else if (p.text && !quieted({}, p.r)) labels.say(p.text, p.r.char.root, holdSeconds(p.text, speed));
+        else if (p.text) speak(p.text, p.r);
         else emote(p.r, p.r.staff.mood === 'burnout' ? 'zzz' : 'sweat', beat(p));
       }
       return;
@@ -979,6 +1018,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   let frozen = false;
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
+    moments.releaseLetters();
     trace.t += dt;
     if (paused !== frozen) { frozen = paused; traceLine(null, paused ? 'freeze' : 'unfreeze', { decision: lastState?.pendingDecision?.eventId ?? null }); }
     // A spotlight just began: bubbles already up round it go, so only the moment's own lines follow.
@@ -1004,6 +1044,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       return;
     }
     playTime += dt;
+    speech.step(dt);
     if (office.navVersion !== navSeen) { navSeen = office.navVersion; repath(); }
     updateStandup(dt);
     updateFast(dt);
@@ -1077,6 +1118,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
+    // Checks: put someone in a temp and optionally set them walking across the office.
+    catchFor(id, temp, { walk = false } = {}) {
+      const r = recs.get(id);
+      if (!r) return false;
+      r.temp = temp ? { ...temp } : null;
+      if (walk) { const d = office.current.zones.door; walkTo(r, office.nav().freePoint(d.x, d.z)); }
+      return true;
+    },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.

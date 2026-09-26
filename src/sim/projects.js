@@ -9,7 +9,7 @@ import { comboFit } from '../data/combos.js';
 import { TRENDS } from '../data/trends.js';
 import { PRESS, REVIEW_QUOTES, AI_REVIEW_QUOTES } from '../data/press.js';
 import { CATEGORIES } from '../data/categories.js';
-import { RESEARCH } from '../data/research.js';
+import { RESEARCH, RESEARCH_ANNOUNCE } from '../data/research.js';
 import { ANGLES } from '../data/angles.js';
 import { lockedReason } from './unlocks.js';
 import { eraAtLeast, eraIndex } from './eras.js';
@@ -185,6 +185,7 @@ function launchNew(ctx, j) {
   for (const c of state.campaigns) if (c.projectId === j.id) { c.projectId = null; c.productId = product.id; }
   state.stats.launches++;
   ctx.emit({ type: 'launch', productId: product.id });
+  ctx.state.flags.lastPauseWeek = ctx.state.week;
   ctx.emit({ type: 'celebrate', staffId: null });
   ctx.emit({ type: 'toast', text: `${product.name} launched! Reviews average ${product.score}.`, tone: product.score >= 6 ? 'good' : 'warn' });
   return product;
@@ -206,9 +207,9 @@ function complete(ctx, j) {
     // outlets then review that blended product, so the scores shown average to the score the product gets.
     const fresh = reviewScore(state, j).score;
     const target = B.updateOldScoreWeight * pr.score + (1 - B.updateOldScoreWeight) * fresh;
-    // Seeded from things fixed to the product (its launch week and version), never its id, so ids handed out
-    // elsewhere cannot change the scores an update gets.
-    const shown = createRng(state.seed * 7577 + state.week * 131 + (pr.launchedWeek ?? 0) * 97 + pr.version * 13);
+    // Seeded from things fixed to the product (its launch week, version and place in the product list), never its
+    // id, so ids handed out elsewhere cannot change the scores an update gets.
+    const shown = createRng(state.seed * 7577 + state.week * 131 + (pr.launchedWeek ?? 0) * 97 + pr.version * 13 + state.products.indexOf(pr) * 7919);
     const reviews = pressReviews(state, target, { update: true, centered: true, rng: shown });
     Object.assign(pr, { score: meanScore(reviews), reviews, version: pr.version + 1, novelty: Math.min(10, pr.novelty + 3), wrapperHit: false });
     ctx.emit({ type: 'launch', productId: pr.id });
@@ -229,7 +230,9 @@ function complete(ctx, j) {
     state.research.done.push(r.id);
     (ctx.happenings ??= {}).research = true;
     ctx.emit({ type: 'toast', text: `${r.name} is live. ${r.desc}`, tone: 'good' });
-    emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
+    const announce = RESEARCH_ANNOUNCE[r.id];
+    if (announce) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: announce, important: true });
+    else emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
   } else if (j.kind === 'craft') {
     for (const p of team) p.meaning = Math.min(100, p.meaning + 15);
     state.brand = Math.min(100, state.brand + 1);

@@ -47,6 +47,8 @@ function perkOf(e) {
   return PERKS[e.itemId] ? e.itemId : null;
 }
 
+const NEW_TOY_DELAY = 0.4;   // seconds after an item is placed before people come over to try it
+const NEW_TOY_WAIT = 20;     // seconds a new toy keeps looking for takers (everyone may be busy)
 const ASSIGN_W = { idle: 3, maintenance: 1, support: 1, sales: 1, marketing: 1, security: 1, project: 0.5, mentor: 0.5, oversight: 0.3, hardProblem: 0.3 };
 const MOOD_W = { ok: 1, coasting: 1.6, burnout: 1.2 };
 
@@ -482,9 +484,42 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
   // Test hook: while held, nobody starts a new visit (visits sent with send() still run).
   let held = false;
 
+  // A new toy: an item placed while the office is open draws the nearest free people straight away
+  // (a pair table its first game, anything else its first visitor). Items already there when the
+  // office is built or loaded don't count.
+  let known = null;
+  const newToys = [];
+  function spotNewToys() {
+    if (!known) { known = new Set(office.placed.keys()); return; }
+    for (const e of office.placed.values()) {
+      if (known.has(e.id)) continue;
+      known.add(e.id);
+      if (perkOf(e)) newToys.push({ id: e.id, t: NEW_TOY_DELAY, wait: NEW_TOY_WAIT });
+    }
+  }
+  function tryNewToys(dt, state) {
+    for (let i = newToys.length - 1; i >= 0; i--) {
+      const n = newToys[i];
+      n.t -= dt; n.wait -= dt;
+      const e = office.placed.get(n.id);
+      if (!e || n.wait <= 0 || state?.outage || (state?.lockdown && (state.week ?? 0) < state.lockdown.until)) { newToys.splice(i, 1); continue; }
+      // A standup under way doesn't hold it up: whoever isn't in the standup can come over.
+      if (n.t > 0 || held) continue;
+      const slot = freeSlots().find((s) => s.e === e);
+      if (!slot) { newToys.splice(i, 1); continue; }
+      const at = e.obj.position;
+      const near = [...recs.values()].filter((r) => eligible(r) && r.staff.mood !== 'burnout').sort((a, b) => a.pos.distanceToSquared(at) - b.pos.distanceToSquared(at));
+      if (slot.def.pair ? near.length < 2 : !near.length) continue;
+      if (slot.def.pair) startPair(slot, near[0], near[1]); else visit(near[0], slot);
+      newToys.splice(i, 1);
+    }
+  }
+
   function update(dt, state) {
     cleanSlots();
     updatePairs(dt);
+    spotNewToys();
+    tryNewToys(dt, state);
     if (isBusy() || held) return;
     clock -= dt;
     if (clock > 0) return;
@@ -496,12 +531,16 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     for (const s of sessions) { if (s.ball) s.ball.removeFromParent(); if (s.foos) foosEnd(s.foos); }
     sessions.length = 0;
     slots.clear();
+    known = null;
+    newToys.length = 0;
   }
 
   return {
     update, reset,
     get visiting() { return [...recs.values()].filter((r) => r.temp?.perkKey).length; },
     get sessions() { return sessions.length; },
+    // New toys still waiting for takers, and why (checks): [{ id, t, wait, busy, free }].
+    get newToys() { return newToys.map((n) => ({ id: n.id, t: +n.t.toFixed(2), wait: +n.wait.toFixed(1), held, free: [...recs.values()].filter((r) => eligible(r) && r.staff.mood !== 'burnout').length })); },
     pairReady,
     // Pair games that got as far as playing, since the renderer started (for checks).
     get played() { return played; },

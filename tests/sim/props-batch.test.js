@@ -11,12 +11,13 @@ import { game, addStaff, addProduct, passOfficeGates } from './helpers.js';
 const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure', 'photo_lake', 'invoice', 'old_sign', 'sign_rival_copied',
   'envelope', 'envelope_thick', 'binder', 'gift_cards', 'sticky_notes', 'photos_laminated',
   'pizza_boxes', 'smoothie', 'curtain', 'sledgehammer', 'tape_measure', 'pet_carrier', 'cable_chewed', 'visitor_chair',
-  'screens_red', 'screens_skull', 'smoke_puff', 'rack_hot']);
+  'screens_red', 'screens_skull', 'smoke_puff', 'rack_hot',
+  'banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked', 'printout', 'whiteboard_scrawl', 'mug_pile', 'mug_bucket', 'mug_typo', 'moving_boxes', 'giant_cheque', 'swag_box', 'french_press', 'house_sign', 'box_poster', 'box_cube', 'oat_milk']);
 // Props art is still building; until they ship the renderer shows nothing for them.
-const PENDING = new Set(['banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked', 'printout', 'whiteboard_scrawl', 'mug_pile', 'mug_bucket', 'mug_typo', 'moving_boxes', 'giant_cheque', 'swag_box', 'french_press']);
+const PENDING = new Set([]);
 const known = (prop) => SHIPPED.has(prop) || PENDING.has(prop);
 
-const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };
+const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });
 
 describe('issue #228: staged props, batch one', () => {
