@@ -675,9 +675,11 @@ export const ITEMS = [
       { at: 0.2, js: SWOOP(PRINTER_DOWN, [[0, 85, 8.5, 6, 38], [1.5, 68, 5.6, 4.2, 40], [3.0, 50, 4.0, 2.9, 42], [7, 42, 3.9, 2.7, 42]], 0.35) }],
   },
   {
-    // Trailer scene 13: the Waffle Party from the flying camera, orbiting in onto the waffle table.
+    // Trailer scene 13: the Waffle Party from the flying camera, orbiting in from the open side onto
+    // the waffle table. It lands 6 m back on a narrow lens, between the watchers, so none stands at the
+    // edge of the frame.
     id: 'trail-fly-waffle', group: 'trailer', title: 'Trailer: the Waffle Party, flying camera', query: 'seed=1&speed=1', seconds: 20,
     setup: `(async () => { await ${WAFFLE_SETUP}; const st = document.createElement('style'); st.textContent = '#ui { display: none !important; }'; document.head.append(st); ${NO_SAY}; })()`,
-    actions: [...WAFFLE_ACTIONS(20), { at: 0.5, js: SWOOP(PARTY_CENTER, [[0, 85, 8.5, 6, 38], [1.2, 68, 5.6, 4.2, 40], [2.4, 50, 4.0, 2.9, 42], [7, 44, 3.9, 2.8, 42]], 0.6) }],
+    actions: [...WAFFLE_ACTIONS(20), { at: 0.5, js: SWOOP(PARTY_CENTER, [[0, 5, 8.5, 6.2, 34], [1.2, 18, 7.4, 5.2, 31], [2.4, 32, 6.4, 4.2, 28], [7, 45, 6.0, 3.8, 26]], 0.8) }],
   },
 ];
