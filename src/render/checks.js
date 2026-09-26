@@ -876,6 +876,35 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     for (const x of saved) if (x) { if (x[1] === undefined) delete x[0].deskId; else x[0].deskId = x[1]; }
     results.push({ name: 'prop:stageStaff', pass: onTheirs, staffId: b?.id ?? null, desk: b ? R.perks.peek(b.id)?.seat ?? null : null });
   }
+  // 12. The letter's named reader is always castable under the decision freeze: caught in a
+  // standup, a party pose or mid-walk, they go to their seat and read it (#704).
+  {
+    R.moments.full = true;
+    const frame = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.render(1 / 30); } };
+    frame(30 * 2);
+    const seated = S.staff.filter((p) => R.perks.peek(p.id)?.seat && R.isSeated(p.id) && p.mood !== 'away');
+    const cases = {};
+    for (const [name, catchThem] of [
+      ['standup', (id) => R.catchFor(id, { anim: 'idle', t: Infinity, standup: true }, { walk: true })],
+      ['party', (id) => R.catchFor(id, { anim: 'celebrate', t: 1.8, keepPos: true }, { walk: false })],
+      ['walking', (id) => R.catchFor(id, null, { walk: true })],
+    ]) {
+      const who = seated.find((p) => !Object.values(cases).some((c) => c.id === p.id));
+      if (!who) { cases[name] = { id: null, read: false }; continue; }
+      const deskId = R.perks.peek(who.id).seat, d = R.office.placed.get(deskId);
+      catchThem(who.id);
+      S.pendingDecision = { eventId: 'hearing_summons', subjectId: who.id, stage: { prop: 'envelope', anchor: 'subjectDesk', x: d.x, y: d.y, staffId: who.id } };
+      R.setPaused(true);
+      let read = false;
+      for (let i = 0; i < 30 * 25 && !read; i++) { frame(1); read = R.perks.peek(who.id)?.temp?.anim === 'readpaper'; }
+      R.setPaused(false);
+      S.pendingDecision = null;
+      frame(30 * 8);
+      cases[name] = { id: who.id, read };
+    }
+    results.push({ name: 'moment:letter-claim', pass: Object.values(cases).every((c) => c.read), ...cases });
+    R.moments.full = false;
+  }
   R.perks.hold = false;
   return results;
 }

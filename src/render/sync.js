@@ -1077,6 +1077,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     isSeated(id) { return !!recs.get(id)?.char.seated; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
+    // Checks: put someone in a temp and optionally set them walking across the office.
+    catchFor(id, temp, { walk = false } = {}) {
+      const r = recs.get(id);
+      if (!r) return false;
+      r.temp = temp ? { ...temp } : null;
+      if (walk) { const d = office.current.zones.door; walkTo(r, office.nav().freePoint(d.x, d.z)); }
+      return true;
+    },
     sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.

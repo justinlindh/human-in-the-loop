@@ -399,6 +399,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     get timeOfDay() { return timeOfDay; },
     get office() { return office; },
+    // Checks: catch someone in a temp (a standup, a pose) and optionally mid-walk to a far point,
+    // as the decision freeze may find them.
+    catchFor(id, temp, { walk = false } = {}) { return staff?.catchFor?.(id, temp, { walk }) ?? false; },
     // Whether someone has a speech bubble up now (checks).
     isSpeaking(id) { const root = staff?.charOf(id)?.root; return !!root && floating.speaking(root); },
     // Staged props (props.js), for checks.
