@@ -5,7 +5,8 @@
 //   rep.row({ check: 'letter.read', view: 'default', beat: 'read', metric: 'faceVisible', value: 0.92, want: '>= 0.8', pass: true });
 //   rep.skip('letter.read', 'the letter moment is not in this build');
 //   A row with known: <issue> is a failure an open issue tracks: printed as KNOWN, not failed. A
-//   known row that passes is flagged, so the marker comes off with the fix.
+//   known row that passes is flagged, so the marker comes off with the fix. A row with closed:
+//   <issue> had a marker whose issue is closed: it fails as any row does, and says so.
 //   rep.finish({ out: 'shots/stage/report.json' })   // prints; returns the exit code (1 if any row failed)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -23,7 +24,7 @@ export function createReport(name) {
       const tag = (r) => (r.pass ? 'ok  ' : r.known ? 'KNWN' : 'FAIL');
       // A known rule passing in every view it ran in: its marker can come off.
       const fixed = (r) => rows.filter((q) => q.known === r.known && q.check === r.check && q.metric === r.metric).every((q) => q.pass);
-      const line = (vals, r) => `${name.toUpperCase()} ${r ? tag(r) : '    '} ${vals.map((v, i) => v.padEnd(w[i])).join('  ')}${r?.known && (!r.pass || fixed(r)) ? `  (#${r.known}${r.pass ? ': passes now, drop the marker' : ''})` : ''}`;
+      const line = (vals, r) => `${name.toUpperCase()} ${r ? tag(r) : '    '} ${vals.map((v, i) => v.padEnd(w[i])).join('  ')}${r?.known && (!r.pass || fixed(r)) ? `  (#${r.known}${r.pass ? ': passes now, drop the marker' : ''})` : ''}${r?.closed && !r.pass ? `  (#${r.closed} was fixed by a game change but this still fails: fix it or reopen the issue)` : ''}${r?.closed && r.pass ? `  (#${r.closed} is fixed: drop the marker)` : ''}`;
       console.log(line(cols));
       for (const r of rows) console.log(line(cols.map((c) => cell(r, c)), r));
       for (const s of skips) console.log(`${name.toUpperCase()} skip ${s.check}: ${s.why}`);

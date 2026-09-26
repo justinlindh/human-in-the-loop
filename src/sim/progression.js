@@ -37,6 +37,7 @@ registerAction('choosePath', (ctx, { staffId, pathId }) => {
   if (!path) return { ok: false, reason: 'Unknown path' };
   if (path.role !== p.role) return { ok: false, reason: `That path is for ${ROLES[path.role].name.toLowerCase()}s` };
   p.path = pathId;
+  recordGrowth(state, p, 'path', { pathId });
   p.pathPending = false;
   ctx.emit({ type: 'toast', text: `${p.name} is now ${article(path.name)}.`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
@@ -56,9 +57,22 @@ export function offerPaths(state) {
   for (const p of [...state.staff, ...state.candidates]) if (p.seniority === 'senior' && !p.path) p.pathPending = true;
 }
 
+// Adds an entry to a person's growth history. Milestones (promoted, trait, path, legend) are kept for good;
+// level and trained entries keep only the newest B.growthHistoryMax between them.
+const CAPPED = new Set(['level', 'trained']);
+export function recordGrowth(state, p, kind, detail = {}) {
+  const g = (p.growth ??= []);
+  g.push({ week: state.week, kind, detail });
+  let extra = g.filter((e) => CAPPED.has(e.kind)).length - B.growthHistoryMax;
+  for (let i = 0; extra > 0 && i < g.length; ) {
+    if (CAPPED.has(g[i].kind)) { g.splice(i, 1); extra--; } else i++;
+  }
+}
+
 export function onLevelUp(ctx, p) {
   if (p.level < B.maxLevel || p.legend) return;
   p.legend = true;
+  recordGrowth(ctx.state, p, 'legend');
   ctx.emit({ type: 'toast', text: `${p.name} is a Legend. People will tell stories.`, tone: 'good' });
   ctx.emit({ type: 'celebrate', staffId: p.id });
   emitChat(ctx, { channel: 'wins', from: '@hr-bot', text: `Please welcome our newest Legend: ${p.name}. Bow accordingly.` });
@@ -75,5 +89,6 @@ export function progressRecords(ctx, p) {
     if (p.record[e.counter] < e.threshold || p.traits.includes(e.trait) || p.traits.length >= 3) continue;
     p.traits.push(e.trait);
     ctx.emit({ type: 'traitEarned', staffId: p.id, traitId: e.trait, source: 'record' });
+    recordGrowth(ctx.state, p, 'trait', { traitId: e.trait, source: 'record' });
   }
 }

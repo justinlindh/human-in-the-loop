@@ -11,6 +11,7 @@ import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
+import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
 import { roleName } from './content.js';
 import { icon } from './icons.js';
@@ -41,7 +42,12 @@ export function createUI({ root, getState, dispatch, controls }) {
   root.append(layer);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
   const tooltips = createTooltips(layer);
-  createMomentCaptions(layer);
+  const captions = createMomentCaptions(layer, {
+    getRenderer: () => controls.renderer ?? controls.getRenderer?.() ?? null,
+    getSpeed: () => controls.getSpeed?.() ?? 1,
+    toast: (text, tone) => toasts.push(text, tone),
+    sfx: (k) => ctx.sfx?.(k),
+  });
 
   const toasts = createToasts(layer);
   let lastSpeed = 1;
@@ -212,10 +218,10 @@ export function createUI({ root, getState, dispatch, controls }) {
       const reward = goalReward(g);
       const wk = st.done && st.week != null ? dateOf(st.week) : null;
       return [head, h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
-        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
+        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), st.done ? null : progressBar(s, g), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
         wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null)].filter(Boolean);
     }));
-    ctx.openModal({ title: `Goals (${list.filter((g) => s.goals[g.id].done).length}/${list.length})`, iconName: 'star', body, cls: 'small' });
+    ctx.openModal({ title: `Goals: ${goalsDoneText(list.filter((g) => s.goals[g.id].done).length, list.length)}`, iconName: 'star', body, cls: 'small' });
   }
   ui.openGoals = goalsModal;
   ctx.build = buildMode;
@@ -334,6 +340,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     lastFrame = frameAt;
     const running = (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
     spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
+    captions.update();
     announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
@@ -472,6 +479,8 @@ export function createUI({ root, getState, dispatch, controls }) {
       return el;
     },
     hideTip: () => tooltips.hide(),
+    // Holds every toast on screen (true) or lets them time out again (false).
+    freezeToasts: (on) => toasts.freeze(on),
     startTutorial: () => tutorial.start(true),
     build: buildMode,
     openGoals: () => goalsModal(),

@@ -1,0 +1,14 @@
+/* ---------- a toast cut short: a "more" cue, and opened in full on tap ---------- */
+.hitl .toasts .toast.cut:not(.open)::after { content: 'more'; flex: none; align-self: center; font-size: 0.7em; font-weight: 700; padding: 0.1em 0.45em; border-radius: 0.6em; background: rgba(42, 38, 48, 0.1); color: var(--ink-soft); margin-left: 0.3em; }
+.hitl .toasts .toast.cut { cursor: pointer; }
+.hitl .toasts .toast.open .tt { white-space: normal; overflow: visible; text-overflow: clip; }
+/* On phones plain toasts let taps through; a cut one takes them, to open. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .toasts .toast.cut { pointer-events: auto; }
+}
+/* The same cue on the toast docked in a panel or popup, ahead of its "+N" count. */
+.hitl .dtoast.cut:not(.open)::after { content: 'more'; order: 1; flex: none; font-size: 0.72em; font-weight: 700; padding: 0.1em 0.45em; border-radius: 0.6em; background: rgba(42, 38, 48, 0.1); color: var(--ink-soft); }
+.hitl .dtoast .more { order: 2; }
+.hitl .dtoast.cut:not(.open) .more { margin-left: 0; }
+.hitl .dtoast.cut:not(.open)::after { margin-left: auto; }
+.hitl .dtoast.open .tt { white-space: normal; overflow: visible; text-overflow: clip; }

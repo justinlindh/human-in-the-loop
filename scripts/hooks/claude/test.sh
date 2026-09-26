@@ -122,6 +122,7 @@ g -C "$repo" checkout -q -b sim/balance
 lane_ok "$repo/src/sim/tick.js" sim
 lane_ok "$repo/tests/sim/a.test.js" sim
 lane_ok "$repo/docs/toolkit.md" sim
+lane_ok "$repo/docs/toolkit/balance.md" sim
 lane_ok "$repo/.claude/agents/sim-engineer.md" sim
 lane_no "$repo/src/ui/hud.js" sim
 [[ "$err" == *"belongs to ui"* ]] || fail "lane-guard should name the owner (got: $err)"
@@ -149,6 +150,7 @@ g -C "$repo" checkout -q -b video/reel
 lane_ok "$repo/scripts/capture-manifest.js" video
 lane_ok "$repo/scripts/feature-media/build.sh" video
 lane_ok "$repo/scripts/reels/nods.sh" video
+lane_ok "$repo/docs/reels.md" video
 lane_ok "$repo/docs/toolkit.md" video
 lane_no "$repo/scripts/capture.js" "video, the capture engine"
 lane_no "$repo/src/render/index.js" "video, render code"
@@ -176,6 +178,29 @@ jq -e '.hookSpecificOutput.additionalContext' <<<"$out" >/dev/null 2>&1 || fail 
 run behind-main.sh "$(ev UserPromptSubmit)"; [ -z "$out" ] || fail "behind-main should not repeat an unchanged notice (got: $out)"
 echo z >"$repo/LICENSE" && g -C "$repo" add -A && g -C "$repo" commit -qm "chore: license" && g -C "$repo" push -q origin main && g -C "$clone" fetch -q origin
 run behind-main.sh "$(ev UserPromptSubmit)"; [[ "$out" == *"3 commit(s) behind"* ]] || fail "behind-main should repeat when the count changes (got: $out)"
+# Rule changes: a session on a lane branch sees what changed in CLAUDE.md, its brief, the PR template
+# and the toolkit since it started, once.
+mkdir -p "$repo/.claude/agents" "$repo/docs/toolkit" "$repo/.github"
+printf '# Rules\n- Use timeout.\n' >"$repo/CLAUDE.md"; printf 'You are sim.\n' >"$repo/.claude/agents/sim-engineer.md"
+printf 'You are art.\n' >"$repo/.claude/agents/art-director.md"; printf '## What\n' >"$repo/.github/pull_request_template.md"
+printf -- '---\ntool: `old`\nsection: run\n---\nAn old tool.\n' >"$repo/docs/toolkit/old.md"
+g -C "$repo" add -A && g -C "$repo" commit -qm "docs: rules" && g -C "$repo" push -q origin main
+g -C "$clone" fetch -q origin && g -C "$clone" checkout -q -b sim/work origin/main
+sev() { jq -n --arg e "$1" --arg d "$clone" --arg s "$2" '{hook_event_name: $e, cwd: $d, session_id: $s}'; }
+run behind-main.sh "$(sev SessionStart s1)"; [ -z "$out" ] || fail "a session starting up to date gets no rule notice (got: $out)"
+printf -- '- Never pkill -f.\n' >>"$repo/CLAUDE.md"; printf 'Reach for npm run gates.\n' >>"$repo/.claude/agents/sim-engineer.md"
+printf 'Art only.\n' >>"$repo/.claude/agents/art-director.md"
+printf -- '---\ntool: `npm run gates`\nsection: pr\n---\nQuick gates on a snapshot.\n' >"$repo/docs/toolkit/gates.md"
+g -C "$repo" add -A && g -C "$repo" commit -qm "docs: new rules" && g -C "$repo" push -q origin main && g -C "$clone" fetch -q origin
+run behind-main.sh "$(sev UserPromptSubmit s1)"
+ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null)"
+for w in "Re-read these; they apply now" "CLAUDE.md changed on main: 1 line(s) added:" "+ - Never pkill -f." ".claude/agents/sim-engineer.md changed" "+ Reach for npm run gates." "docs/toolkit/gates.md: \`npm run gates\`: Quick gates on a snapshot."; do
+  [[ "$ctx" == *"$w"* ]] || fail "the rule notice should include: $w (got: $ctx)"
+done
+[[ "$ctx" != *"art-director"* && "$ctx" != *"old.md"* && "$ctx" != *"0 removed"* ]] || fail "the rule notice should skip other lanes' briefs and old pages (got: $ctx)"
+g -C "$clone" merge -q origin/main
+run behind-main.sh "$(sev UserPromptSubmit s1)"; [ -z "$out" ] || fail "a rule change is shown once (got: $out)"
+run behind-main.sh "$(sev SessionStart s2)"; run behind-main.sh "$(sev UserPromptSubmit s2)"; [ -z "$out" ] || fail "a session that started after the change has read it (got: $out)"
 
 # pr-create-check: stand-in gh; the body comes from the body file
 mkdir -p "$tmp/bin"; printf '#!/usr/bin/env bash\necho "gh $*" >>"%s/gh.log"\n' "$tmp" >"$tmp/bin/gh"; chmod +x "$tmp/bin/gh"

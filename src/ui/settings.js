@@ -7,7 +7,7 @@ export const BUSES = [
   { id: 'music', label: 'Music' }, { id: 'ambience', label: 'Ambience' }, { id: 'sfx', label: 'Sound effects' },
   { id: 'ui', label: 'Interface' }, { id: 'voice', label: 'Voices' },
 ];
-const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, momentCamera: true, yakSize: 'small', yakHeight: null };
+const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, momentCamera: true, yakSize: 'small', yakHeight: null, yakLevel: 'all' };
 
 export function loadSettings() {
   try {
@@ -29,10 +29,23 @@ function write(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode or blocked storage */ }
 }
 // Keys the UI remembers outside the Settings panel; the panel's own saves keep what is stored.
-const OUTSIDE = ['yakSize', 'yakHeight'];
+const OUTSIDE = ['yakSize', 'yakHeight', 'yakLevel'];
 function saveSettings(s) {
   const cur = loadSettings();
   write({ ...s, ...Object.fromEntries(OUTSIDE.map((k) => [k, cur[k]])) });
+}
+
+// How much Yak asks for attention: every message, only the ones that matter, or nothing but prompts.
+export const YAK_LEVELS = [
+  { v: 'all', label: 'All', tip: 'Yak: every message counts as new' },
+  { v: 'important', label: 'Important', tip: 'Yak: only incidents, wins, launches and bots count as new' },
+  { v: 'off', label: 'Off', tip: 'Yak: kept shut and quiet; replies it needs still show' },
+];
+export const yakLevel = () => (YAK_LEVELS.some((l) => l.v === loadSettings().yakLevel) ? loadSettings().yakLevel : 'all');
+// Saves the Yak level and tells an open Yak.
+export function setYakLevel(v) {
+  saveSetting('yakLevel', v);
+  window.dispatchEvent(new CustomEvent('hitl:yakLevel', { detail: { level: v } }));
 }
 
 // Saves one remembered setting on top of whatever is stored.
@@ -123,6 +136,8 @@ export function createSettings({ layer, controls, sfx }) {
           toggleClass(sw, 'on', settings.momentCamera !== false);
           return row('Camera follows big moments', 'Eases to things like a first user test. Any input takes the camera back.', sw);
         })(),
+        row('Yak', 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Prompts that need your reply always show.',
+          seg(YAK_LEVELS.map(({ v, label }) => ({ v, label })), yakLevel(), (v) => setYakLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));

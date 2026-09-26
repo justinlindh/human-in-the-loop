@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { tileCenter, footprint } from './layout.js';
 import { roundedBox, roundedCylinder, mesh } from './prims.js';
 import { getModel } from './models.js';
-import { mat } from './materials.js';
+import { mat, glow } from './materials.js';
 
 // Staged props (contract: Staged props): the open decision's stage prop and the lingering
 // office.props, diffed each sync. New props pop in, gone ones shrink away, on the frame clock.
@@ -61,10 +61,10 @@ export function createProps(office, screens = null) {
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk });
       if (!obj) continue;
       obj.userData.propId = w.prop;
-      if (obj.userData.blocks) obj.userData.rect = floorRect(obj);
+      if (obj.userData.blocks) obj.userData.rect = floorRect(obj, obj.userData.blockPart);
       if (!obj.userData.noPop) obj.scale.setScalar(0.001);
       root.add(obj);
-      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop });
+      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop, staffId: w.staffId ?? null });
     }
     pushObstacles();
   }
@@ -91,7 +91,7 @@ export function createProps(office, screens = null) {
         if (desk) {
           follow(e.obj, desk);
           const r = e.obj.userData.rect;
-          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj); moved = true; }
+          if (r && Math.hypot(e.obj.position.x - r.px, e.obj.position.z - r.pz) > 0.05) { e.obj.userData.rect = floorRect(e.obj, e.obj.userData.blockPart); moved = true; }
         } else { e.gone = true; e.t = 0; dropped.add(k); moved = true; }
       }
       // Effects are built in office coordinates and fade on their own: no pop, no shrink.
@@ -116,7 +116,8 @@ export function createProps(office, screens = null) {
   const objectOf = (id) => [...live.entries()].find(([k, e]) => !e.gone && k.startsWith(`prop|${id}|`))?.[1].obj ?? null;
 
   // What is up now, for staff moments: [{ prop, obj }] and the screen takeover ('red' | 'skull' | null).
-  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj }));
+  // What is up now: { prop, obj, staffId } (staffId: whose desk a desk-staged prop is on, or null).
+  const current = () => [...live.values()].filter((e) => !e.gone).map((e) => ({ prop: e.prop, obj: e.obj, staffId: e.staffId }));
 
   // For checks: the free-top grid of a placed desk entry, as rows of '.' (free) and '#' (taken).
   const deskMap = (e) => { const g = deskGrid(e); const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.cells[i + k * g.nx] ? '#' : '.'; rows.push(r); } return rows; };
@@ -131,13 +132,14 @@ export function createProps(office, screens = null) {
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
 // prims geometry (cached and shared) and loaded models (userData.shared) belong to everyone.
-// A floor prop's footprint in office coordinates, measured at full size, with a little room around
-// it; px, pz remember where it stood so a moving prop can tell when to re-measure.
-function floorRect(obj) {
+// A floor prop's footprint in office coordinates (of `part` alone when given: the solid piece of a
+// prop whose effects spill round it), measured at full size, with a little room around it; px, pz
+// remember where it stood so a moving prop can tell when to re-measure.
+function floorRect(obj, part = null) {
   const s = obj.scale.x;
   obj.scale.setScalar(1);
   obj.updateMatrixWorld(true);
-  const b = new THREE.Box3().setFromObject(obj);
+  const b = new THREE.Box3().setFromObject(part ?? obj);
   obj.scale.setScalar(s);
   obj.updateMatrixWorld(true);
   const pad = 0.05;
@@ -370,8 +372,13 @@ const rivalCopied = (state) => {
 // desk, or for other anchors, it stands on the anchor tile's floor.
 const deskList = (office) => [...(office.placed?.values() ?? [])].filter((o) => o.desk && o.target);
 const dist = (a, b) => Math.hypot(a.target.x - b.target.x, a.target.z - b.target.z);
-function deskFor(L, anchor, office, nearest) {
+// The desk a prop goes on: the named person's own (anchor.staffId, with their deskId in state),
+// else the one covering the anchor tile, else (nearest) the closest.
+function deskFor(L, anchor, office, nearest, state = null) {
   const desks = [...(office.placed?.values() ?? [])].filter((e) => e.desk && e.target);
+  const own = anchor.staffId && state?.staff?.find((p) => p.id === anchor.staffId)?.deskId;
+  const theirs = own && desks.find((e) => e.id === own);
+  if (theirs) return theirs;
   const covers = (e) => { const f = footprint(e.itemId, e.rot ?? 0); return anchor.x >= e.x && anchor.x < e.x + f.w && anchor.y >= e.y && anchor.y < e.y + f.h; };
   const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
   const d = (e) => Math.hypot(e.target.x - c.x, e.target.z - c.z);
@@ -391,7 +398,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
     // things beside a desk only when the anchor tile is a desk's.
     const onTop = y > 0;
     g.userData.blocks = !onTop;
-    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop) : null;
+    const e = onTop || anchor.anchor === undefined || anchor.anchor === 'subjectDesk' ? deskFor(L, anchor, env.office, onTop, env.state) : null;
     if (e) {
       // A prop too big for the free top shrinks a little until it fits (a big pizza stack).
       // Whatever stands around the desk: a prop overhanging its side may only hang over clear floor.
@@ -932,10 +939,26 @@ function smokePuff(L, anchor, env) {
   return puffs(itemAt(L, anchor, env.office).box, { color: P.metal_dark, size: 0.5, opacity: 0.75, rise: 1.4 });
 }
 // The server rack is running hot: a pulsing orange glow over its front and heat rising off the top.
+const OWN_RACK_YAW = Math.PI / 4;   // a staged rack of its own faces the default camera
 function rackHot(L, anchor, env) {
-  const { box } = itemAt(L, anchor, env.office, ['rack']);
+  const { box: found, entry } = itemAt(L, anchor, env.office, ['rack']);
   const g = new THREE.Group();
-  const heat = puffs(box, { n: 8, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.45, opacity: 0.7, spread: 0.2, glow: true });
+  let box = found;
+  if (!entry) {
+    // No rack in this office: the staged one brings its own, on clear floor near the anchor, facing
+    // the room three-quarters to the camera, and it blocks walking. The effects follow it round.
+    const rack = getModel('server_rack');
+    rack.userData.shared = true;
+    g.add(rack);
+    const c = tileCenter(L, anchor.x ?? 0, anchor.y ?? 0);
+    const q = clearSpot(L, env.office, g, { x: c.x, z: c.z });
+    box = new THREE.Box3().setFromObject(rack);
+    g.position.set(q.x, 0, q.z);
+    g.rotation.y = OWN_RACK_YAW;
+    g.userData.blocks = true;
+    g.userData.blockPart = rack;
+  }
+  const heat = puffs(box, { n: 10, color: P.marker_orange, rise: 1.0, life: 1.6, size: 0.6, opacity: 0.9, spread: 0.22, glow: true });
   g.add(heat);
   // Smoke pouring out of the rack's front vents into the room.
   const front = new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y + (box.max.y - box.min.y) * 0.4, box.max.z + 0.05);
@@ -954,7 +977,7 @@ function rackHot(L, anchor, env) {
     t += dt;
     heat.userData.tick(dt);
     smoke.userData.tick(dt);
-    glowMat.opacity = 0.45 + 0.25 * Math.sin(t * 4);
+    glowMat.opacity = 0.62 + 0.3 * Math.sin(t * 4);
   };
   g.userData.noPop = true;
   return g;
@@ -1063,7 +1086,7 @@ function printerWrecked() {
 // Inside, a little way in from the door: where the printer was taken to be smashed.
 const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
 const WRECK_COLUMN_GAP = 2.3;         // and how far it keeps from a column when it can
-function byDoor(build, scale = 1) {
+function byDoor(build, scale = 1, rot = 0.4) {
   return (L, anchor, env) => {
     const g = new THREE.Group();
     const item = build();
@@ -1085,7 +1108,7 @@ function byDoor(build, scale = 1) {
       g.position.set(p.x, 0, p.z);
       g.userData.blocks = true;
     }
-    g.rotation.y = 0.4;
+    g.rotation.y = rot;
     return g;
   };
 }
@@ -1104,28 +1127,37 @@ const printout = () => canvasTex('printout', 384, 512, (ctx, W, H) => {
   bars.forEach((b, i) => { ctx.fillStyle = i ? P.metal_soft : P.alarm_red; ctx.fillRect(40 + i * 80, H - 40 - b * 110, 56, b * 110); });
 });
 // Marker on a whiteboard: boxes, arrows between them, a scribbled heading and a circled word.
-const scrawl = () => canvasTex('whiteboard_scrawl', 512, 320, (ctx, W, H) => {
-  ctx.clearRect(0, 0, W, H);
+// The pivot board: wiped (the board's own writing gone, a smear left over), then "the market has
+// spoken" in big marker over a panicked diagram of boxes, arrows and a circled "?!".
+const scrawl = () => canvasTex('whiteboard_scrawl', 1024, 640, (ctx, W, H) => {
+  ctx.fillStyle = P.plastic_white; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.12; ctx.fillStyle = P.marker_blue;
+  for (let i = 0; i < 5; i++) ctx.fillRect(80 + i * 170, 380 + (i % 2) * 60, 150, 24);
+  ctx.globalAlpha = 1;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const pen = (col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; };
-  pen(P.marker_blue, 7);
-  ctx.beginPath(); ctx.moveTo(40, 44); for (let x = 40; x < 300; x += 22) ctx.lineTo(x + 11, 44 + ((x / 22) % 2 ? -8 : 8)); ctx.stroke();
+  ctx.fillStyle = P.marker_blue; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = '800 92px sans-serif';
+  ctx.save(); ctx.translate(56, 92); ctx.rotate(-0.035); ctx.fillText('the market', 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(96, 200); ctx.rotate(-0.02); ctx.fillText('has spoken', 0, 0); ctx.restore();
+  pen(P.marker_blue, 9);
+  ctx.beginPath(); ctx.moveTo(96, 262); for (let x = 96; x < 600; x += 30) ctx.lineTo(x + 15, 262 + ((x / 30) % 2 ? -9 : 9)); ctx.stroke();
+  pen(P.ink, 8);
+  ctx.strokeRect(90, 340, 170, 100); ctx.strokeRect(380, 330, 180, 100); ctx.strokeRect(680, 440, 200, 100);
+  pen(P.marker_orange, 8);
+  ctx.beginPath(); ctx.moveTo(265, 390); ctx.lineTo(375, 380); ctx.moveTo(355, 364); ctx.lineTo(377, 380); ctx.lineTo(358, 398);
+  ctx.moveTo(560, 400); ctx.lineTo(675, 470); ctx.moveTo(652, 470); ctx.lineTo(677, 472); ctx.lineTo(665, 450); ctx.stroke();
   pen(P.ink, 6);
-  ctx.strokeRect(50, 110, 120, 70); ctx.strokeRect(310, 90, 140, 80); ctx.strokeRect(300, 220, 150, 70);
-  pen(P.marker_orange, 6);
-  ctx.beginPath(); ctx.moveTo(175, 145); ctx.lineTo(300, 130); ctx.moveTo(285, 118); ctx.lineTo(302, 130); ctx.lineTo(288, 145);
-  ctx.moveTo(380, 175); ctx.lineTo(375, 215); ctx.moveTo(365, 202); ctx.lineTo(375, 217); ctx.lineTo(388, 204); ctx.stroke();
-  pen(P.alarm_red, 10);
-  ctx.beginPath(); ctx.ellipse(110, 250, 78, 40, -0.1, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = P.alarm_red; ctx.font = '900 64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('?!', 110, 252);
-  pen(P.ink, 5);
-  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(70, 132 + i * 16); ctx.lineTo(150 - i * 18, 132 + i * 16); ctx.stroke(); }
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(115, 368 + i * 24); ctx.lineTo(235 - i * 26, 368 + i * 24); ctx.stroke(); }
+  pen(P.alarm_red, 14);
+  ctx.beginPath(); ctx.ellipse(850, 170, 110, 90, -0.1, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = P.alarm_red; ctx.font = '900 120px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('?!', 850, 176);
 });
 // Written on the board's face (both faces of a free-standing one); on the back wall without a board.
 function whiteboardScrawl(L, anchor, env) {
   const { entry } = itemAt(L, anchor, env.office, ['whiteboard']);
-  if (!entry) return wallPrint(scrawl, { w: 0.9, h: 0.56, tilt: 0 })(L, anchor, env);
+  if (!entry) return wallPrint(scrawl, { w: 1.0, h: 0.62, tilt: 0 })(L, anchor, env);
   const face = new THREE.Box3();
   entry.obj.updateMatrixWorld(true);
   entry.obj.traverse((o) => { if (o.isMesh && /whiteboard/.test(o.material?.name ?? '')) face.expandByObject(o); });
@@ -1137,10 +1169,12 @@ function whiteboardScrawl(L, anchor, env) {
   const g = new THREE.Group();
   g.position.set(c.x, c.y, c.z);
   g.rotation.y = r;
-  const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), transparent: true, roughness: 0.6 }));
+  const m = own(new THREE.MeshStandardMaterial({ map: scrawl(), roughness: 0.6 }));
   for (const side of entry.itemId === 'whiteboard_wall' ? [1] : [1, -1]) {
-    const pl = new THREE.Mesh(plane(across * 0.8, size.y * 0.7), m);
-    pl.position.z = side * (thick / 2 + 0.004);
+    // Nearly the whole face, so none of the board's own writing shows round it.
+    const pl = new THREE.Mesh(plane(across * 0.94, size.y * 0.9), m);
+    // In front of anything already written on the board (the rival note sits 12 mm out).
+    pl.position.z = side * (thick / 2 + 0.02);
     if (side < 0) pl.rotation.y = Math.PI;
     pl.userData.noAO = true;
     g.add(pl);
@@ -1233,6 +1267,116 @@ function movingBoxes() {
   g.add(mesh(roundedBox(0.4, 0.004, 0.06, 0.001, 1), mat('paper'), 0, 0.38, 0.21));
   return g;
 }
+// A would-be mentor's hand-painted sign on a gallows post: INCUBATOR in uneven brush letters.
+const incubatorBoard = () => canvasTex('house_sign', 512, 200, (ctx, W, H) => {
+  ctx.fillStyle = P.wood_honey; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = P.wood_dark; ctx.lineWidth = 3;
+  for (let y = 34; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(W * 0.3, y + 6, W * 0.6, y - 5, W, y + 3); ctx.stroke(); }
+  ctx.fillStyle = P.paper_sheet; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  ctx.font = '900 68px sans-serif';
+  // Letter by letter, each a little off, as if painted by someone confident and in a hurry.
+  const word = 'INCUBATOR';
+  word.split('').forEach((ch, i) => {
+    ctx.save();
+    ctx.translate(46 + i * 52, H * 0.46 + ((i * 7) % 5 - 2) * 3);
+    ctx.rotate(((i * 13) % 7 - 3) * 0.025);
+    ctx.fillText(ch, 0, 0);
+    ctx.restore();
+  });
+  // A drip under the second I, and the underline that ran out of paint.
+  ctx.fillRect(44, H * 0.64, 6, 26);
+  ctx.strokeStyle = P.paper_sheet; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(40, H * 0.84); ctx.lineTo(W * 0.62, H * 0.82); ctx.stroke();
+});
+function houseSign() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.08, 1.35, 0.08, 0.015, 2), mat('wood_dark'), 0, 0.675, 0));
+  g.add(mesh(roundedBox(0.7, 0.06, 0.06, 0.012, 2), mat('wood_dark'), 0.32, 1.3, 0));
+  const board = new THREE.Group();
+  board.position.set(0.36, 1.02, 0);
+  board.rotation.z = 0.04;
+  board.add(mesh(roundedBox(0.66, 0.28, 0.035, 0.012, 2), mat('wood_honey'), 0, 0, 0));
+  for (const sz of [-1, 1]) {
+    const face = new THREE.Mesh(plane(0.62, 0.24), flatMat(incubatorBoard(), 0.8));
+    face.position.z = sz * 0.019;
+    if (sz < 0) face.rotation.y = Math.PI;
+    face.userData.noAO = true;
+    board.add(face);
+  }
+  for (const sx of [-0.26, 0.26]) board.add(mesh(roundedBox(0.012, 0.16, 0.012, 0.004, 1), mat('metal_soft'), sx, 0.2, 0));
+  g.add(board);
+  return g;
+}
+// The rival's keynote poster: a brushed aluminium cube floating on a gradient, and very little else.
+const boxPoster = () => canvasTex('box_poster', 480, 640, (ctx, W, H) => {
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, P.fabric_slate); bg.addColorStop(1, P.ink);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = H * 0.42, s = 120;
+  const face = (pts, a, b) => {
+    const gr = ctx.createLinearGradient(pts[0][0], pts[0][1], pts[2][0], pts[2][1]);
+    gr.addColorStop(0, a); gr.addColorStop(1, b);
+    ctx.fillStyle = gr; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.fill();
+  };
+  const top = [[cx, cy - s], [cx + s * 0.87, cy - s / 2], [cx, cy], [cx - s * 0.87, cy - s / 2]];
+  const left = [[cx - s * 0.87, cy - s / 2], [cx, cy], [cx, cy + s], [cx - s * 0.87, cy + s / 2]];
+  const right = [[cx, cy], [cx + s * 0.87, cy - s / 2], [cx + s * 0.87, cy + s / 2], [cx, cy + s]];
+  face(top, P.plastic_white, P.metal_soft);
+  face(left, P.metal_soft, P.fabric_slate);
+  face(right, P.plastic_white, P.metal_soft);
+  // A soft glow under it, as if it hovers.
+  const glow = ctx.createRadialGradient(cx, cy + s * 1.35, 4, cx, cy + s * 1.35, s);
+  glow.addColorStop(0, 'rgba(242,236,225,0.45)'); glow.addColorStop(1, 'rgba(242,236,225,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, cy + s, W, s * 0.8);
+  ctx.fillStyle = P.plastic_white; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '300 64px sans-serif'; ctx.fillText('The Box', cx, H * 0.82);
+  ctx.font = '400 22px sans-serif'; ctx.globalAlpha = 0.7; ctx.fillText('It is a box.', cx, H * 0.9);
+});
+// A small brushed aluminium cube left on a desk: the company's own box.
+function boxCube() {
+  const g = new THREE.Group();
+  g.add(mesh(roundedBox(0.13, 0.13, 0.13, 0.018, 3), mat('metal_soft'), 0, 0.065, 0));
+  const led = mesh(roundedBox(0.05, 0.006, 0.004, 0.002, 1), glow('led_green', 3), 0, 0.04, 0.066);
+  led.userData.noAO = true;
+  g.add(led);
+  return g;
+}
+// Pallets of shrink-wrapped oat milk cartons, the kind that fill a lobby: slatted pallets, cartons
+// stacked three high, and a glossy wrap round each stack.
+const cartonsTex = () => canvasTex('oat_cartons', 256, 256, (ctx, W, H) => {
+  ctx.fillStyle = P.plastic_white; ctx.fillRect(0, 0, W, H);
+  const cw = W / 3, ch = H / 3;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    const x = i * cw, y = j * ch;
+    ctx.fillStyle = P.fabric_mustard; ctx.fillRect(x + 6, y + ch * 0.5, cw - 12, ch * 0.28);
+    ctx.fillStyle = P.fabric_teal; ctx.font = '800 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('OAT', x + cw / 2, y + ch * 0.3);
+    ctx.strokeStyle = P.metal_soft; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cw - 3, ch - 3);
+  }
+});
+let wrapMat = null;
+function oatMilk() {
+  const g = new THREE.Group();
+  wrapMat ??= new THREE.MeshStandardMaterial({ color: new THREE.Color(P.glass), roughness: 0.15, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false });
+  for (const [px, pz, rot] of [[-0.44, 0, 0.04], [0.44, 0.06, -0.06]]) {
+    const pal = new THREE.Group();
+    pal.position.set(px, 0, pz);
+    pal.rotation.y = rot;
+    for (const sx of [-0.3, 0, 0.3]) pal.add(mesh(roundedBox(0.12, 0.08, 0.6, 0.012, 1), mat('wood_honey'), sx, 0.04, 0));
+    for (const sz of [-0.25, 0, 0.25]) pal.add(mesh(roundedBox(0.8, 0.03, 0.1, 0.008, 1), mat('wood_honey'), 0, 0.095, sz));
+    const stack = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.66, 0.54), flatMat(cartonsTex(), 0.8));
+    stack.geometry.userData.own = true;
+    stack.position.y = 0.11 + 0.33;
+    stack.castShadow = stack.receiveShadow = true;
+    pal.add(stack);
+    const wrap = mesh(roundedBox(0.77, 0.69, 0.57, 0.04, 2), wrapMat, 0, 0.11 + 0.345, 0);
+    wrap.castShadow = false;
+    wrap.userData.noAO = true;
+    pal.add(wrap);
+    g.add(pal);
+  }
+  return g;
+}
 // An oversized novelty cheque: the hackathon prize, to the winner, the amount left blank.
 const cheque = () => canvasTex('giant_cheque', 1024, 440, (ctx, W, H) => {
   ctx.fillStyle = '#e9f1e4'; ctx.fillRect(0, 0, W, H);
@@ -1300,7 +1444,7 @@ const BUILDERS = {
   curtain: onFloor(curtain, { x: 1.4, z: -0.3, rot: Math.PI / 2 }),
   sledgehammer: onFloor(sledgehammer, { scale: 1.3 }),
   tape_measure: onFloor(tapeMeasure, { x: 0.9, z: 0.35, rot: 0.4, scale: 1.4 }),
-  pet_carrier: onFloor(petCarrier, { x: 1.0, z: 0.2, rot: -0.5, scale: 1.2 }),
+  pet_carrier: byDoor(petCarrier, 1.2, -0.5),
   cable_chewed: onFloor(cableChewed, { x: 0.95, z: 0.25, rot: 0.6, scale: 1.4 }),
   visitor_chair: onFloor(visitorChair, { x: 0.95, z: 0.15, rot: Math.PI + 0.7 }),
   smoke_puff: smokePuff,
@@ -1317,6 +1461,10 @@ const BUILDERS = {
   mug_bucket: onFloor(mugBucket, { x: 0.95, z: 0.05, rot: -0.4 }),
   mug_typo: wallThing(mugShelf, { w: 1.0, y: 1.15, scale: 1.8 }),
   moving_boxes: onFloor(movingBoxes, { x: 0.9, z: 0.2, rot: 0.3, scale: 1.1 }),
+  house_sign: byDoor(houseSign, 1.3, Math.PI / 4),
+  box_poster: wallPrint(boxPoster, { w: 0.84, h: 1.12, tilt: 0, y: 1.55 }),
+  box_cube: atDesk(boxCube, { x: FLAT.x, z: FLAT.z, rot: 0.5, scale: 1.8 }),
+  oat_milk: byDoor(oatMilk),
   giant_cheque: wallPrint(cheque, { w: 1.6, h: 0.69, tilt: 0.02, y: 1.5 }),
   swag_box: onFloor(swagBox, { x: 0.9, z: 0.25, rot: -0.3, scale: 1.25 }),
   french_press: onFloor(frenchPress, { x: 0.9, z: 0.2, rot: 0.2, scale: 1.3 }),

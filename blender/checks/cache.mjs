@@ -85,3 +85,85 @@ export function recordPass(check, hash) {
 
 // For logs: which inputs a hash covers, relative to the repo.
 export const INPUT_PATHS = INPUTS.map((p) => relative(ROOT, join(ROOT, p)));
+
+// Per-scene records, for checks whose scenes load different things (golden). A scene that passes
+// records every file its page requested, with a hash of each, under a base key covering everything
+// else that can change its pixels. A later run re-hashes those files and skips the scene when
+// nothing it loaded changed. A new import can only appear by editing a file already loaded, and the
+// base key covers the list of file names under src and public, so an added or removed file (which a
+// glob import could pick up) re-renders every scene. Any doubt means "render".
+const fileHashes = new Map();
+export function fileHash(rel) {
+  if (!fileHashes.has(rel)) {
+    let h = null;
+    try { h = createHash('sha256').update(readFileSync(join(ROOT, rel))).digest('hex').slice(0, 24); } catch { /* missing: null */ }
+    fileHashes.set(rel, h);
+  }
+  return fileHashes.get(rel);
+}
+
+// The repo files behind a page's requests; anything that is not one (the dev server's own modules,
+// prebundled dependencies, other hosts) is covered by the base key or kept as a marker.
+export function requestedFiles(urls) {
+  const out = new Set();
+  for (const u of urls) {
+    let url;
+    try { url = new URL(u); } catch { continue; }
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) { out.add(`url:${url.origin}${url.pathname}`); continue; }
+    const p = decodeURIComponent(url.pathname);
+    // The dev server's client and prebundled dependencies (in its cache dir, .vite by default) follow
+    // from the installed packages, which the base key covers.
+    if (p.startsWith('/@vite/') || p.startsWith('/@id/') || p.startsWith('/node_modules/') || (p.startsWith('/.vite') && p.includes('/deps/'))) continue;
+    let rel = null;
+    if (p.startsWith('/@fs/')) rel = relative(ROOT, p.slice(4));
+    else if (p === '/' || p === '/index.html') rel = 'index.html';
+    else if (existsSync(join(ROOT, 'public', p))) rel = join('public', p.slice(1));
+    else rel = p.slice(1);
+    if (rel.startsWith('..')) { out.add(`outside:${p}`); continue; }
+    out.add(rel);
+  }
+  return [...out].sort();
+}
+
+let baseCache = null;
+function tree() {
+  const list = [];
+  for (const p of ['src', 'public']) files(p, list);
+  return list.join('\n');
+}
+// Everything a scene's pixels can depend on besides the files it loads: the scene itself, the check
+// and harness code, installed tools and browser, Node, the lockfile, the build config, and the list
+// of source and public file names.
+export function sceneBase(check, scene, toolFiles) {
+  if (process.env.HITL_NO_CHECK_CACHE === '1') return null;
+  try {
+    baseCache ??= `${process.version}\n${installed()}\n${['package-lock.json', 'vite.config.js', 'index.html', ...toolFiles].map((f) => `${f}:${fileHash(f)}`).join('\n')}\n${createHash('sha256').update(tree()).digest('hex')}`;
+    return createHash('sha256').update(`${check}\n${JSON.stringify(scene)}\n${baseCache}`).digest('hex').slice(0, 32);
+  } catch {
+    return null;
+  }
+}
+
+const sceneFile = (check, name) => join(dir(`${check}-scenes`), `${name}.json`);
+// True when this scene last passed (or was updated) with this base key, this reference image, and
+// every file it loaded unchanged.
+export function sceneUpToDate(check, name, base, refRel) {
+  if (!base) return false;
+  try {
+    const rec = JSON.parse(readFileSync(sceneFile(check, name), 'utf8'));
+    if (rec.base !== base || rec.ref !== fileHash(refRel)) return false;
+    return Object.entries(rec.files).every(([f, h]) => (f.includes(':') ? true : fileHash(f) === h));
+  } catch {
+    return false;
+  }
+}
+export function recordScene(check, name, base, requested, refRel) {
+  if (!base) return;
+  try {
+    fileHashes.delete(refRel);
+    const files = Object.fromEntries(requested.map((f) => [f, f.includes(':') ? f : fileHash(f)]));
+    if (Object.values(files).some((h) => h === null)) return;
+    mkdirSync(dir(`${check}-scenes`), { recursive: true });
+    writeFileSync(sceneFile(check, name), JSON.stringify({ base, ref: fileHash(refRel), files }));
+  } catch { /* a record that cannot be written only costs a render next time */ }
+}

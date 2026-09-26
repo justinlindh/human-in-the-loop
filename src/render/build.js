@@ -44,8 +44,47 @@ export function createBuild({ office, getCamera, canvas }) {
   let markIds = [];
   const markMat = new THREE.MeshBasicMaterial({ color: color('gold'), transparent: true, opacity: 0.7, depthWrite: false, toneMapped: false });
 
-  function onMove(e) { pointer.x = e.clientX; pointer.y = e.clientY; pointer.seen = true; }
+  // A mouse aims by hovering. Touch has no hover: a tap aims at a tile (aim), and a drag that
+  // starts on the ghost carries it; any other drag pans the camera and leaves the ghost where it is.
+  let aimTile = null;  // touch aim: { x, y } tile under the finger, or null
+  let grab = null;     // pointerId of the finger carrying the ghost
+  function onMove(e) {
+    if (e.pointerType === 'mouse') { pointer.x = e.clientX; pointer.y = e.clientY; pointer.seen = true; aimTile = null; return; }
+    if (grab === e.pointerId) { const t = pickTile(e.clientX, e.clientY); if (t) aimTile = t; }
+  }
+  // Runs before the camera's own listener on the canvas, so a grab never pans.
+  function onDown(e) {
+    if (e.pointerType === 'mouse' || !mode?.itemId || !target) return;
+    const t = pickTile(e.clientX, e.clientY);
+    const f = footprint(mode.itemId, target.rot);
+    if (!t || t.x < target.x - 1 || t.x > target.x + f.w || t.y < target.y - 1 || t.y > target.y + f.h) return;
+    grab = e.pointerId;
+    e.stopImmediatePropagation();
+    try { canvas.setPointerCapture?.(e.pointerId); } catch { /* not capturable */ }
+  }
+  function onUp(e) { if (grab === e.pointerId) grab = null; }
   addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerdown', onDown, { capture: true });
+  addEventListener('pointerup', onUp);
+  addEventListener('pointercancel', onUp);
+
+  // The placement corner for a tile under the finger: big footprints are centred on it.
+  function corner(L, t, rot) {
+    const f = footprint(mode.itemId, rot);
+    return {
+      x: Math.max(0, Math.min(L.grid.w - f.w, t.x - Math.floor((f.w - 1) / 2))),
+      y: Math.max(0, Math.min(L.grid.h - f.h, t.y - Math.floor((f.h - 1) / 2))),
+    };
+  }
+  // Touch: aim the ghost at the tile under a screen point. Returns the placement corner, or null
+  // off the floor (the aim is kept).
+  function aim(cx, cy) {
+    const cur = office.current;
+    const t = pickTile(cx, cy);
+    if (!t || !cur || !mode?.itemId) return null;
+    aimTile = t;
+    return corner(cur.L, t, mode.rot ?? 0);
+  }
 
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -110,6 +149,8 @@ export function createBuild({ office, getCamera, canvas }) {
 
   function setMode(m) {
     showHidden(true);
+    // Rotating or placing another of the same item keeps the touch aim; a new item starts fresh.
+    if (!m?.itemId || m.itemId !== mode?.itemId || m.moveId !== mode?.moveId) { aimTile = null; grab = null; }
     mode = m && (m.select || m.itemId) ? { ...m } : null;
     if (typeof m?.validate === 'function') validator = m.validate;
     validCache.clear();
@@ -206,11 +247,10 @@ export function createBuild({ office, getCamera, canvas }) {
       group.add(ghost);
       ghostKey = key;
     }
-    const t = pointer.seen ? pickTile(pointer.x, pointer.y) : null;
+    const t = aimTile ?? (pointer.seen ? pickTile(pointer.x, pointer.y) : null);
     if (!t) { ghost.visible = false; setPlates([], plateMats.ok); target = null; return; }
     const f = footprint(mode.itemId, rot);
-    const x = Math.max(0, Math.min(cur.L.grid.w - f.w, t.x - Math.floor((f.w - 1) / 2)));
-    const y = Math.max(0, Math.min(cur.L.grid.h - f.h, t.y - Math.floor((f.h - 1) / 2)));
+    const { x, y } = corner(cur.L, t, rot);
     const v = validate(x, y, rot);
     target = { x, y, rot, ok: v.ok, reason: v.reason };
     const tr = placedTransform(cur.L, { itemId: mode.itemId, x, y, rot });
@@ -229,15 +269,19 @@ export function createBuild({ office, getCamera, canvas }) {
 
   function dispose() {
     removeEventListener('pointermove', onMove);
+    canvas.removeEventListener('pointerdown', onDown, { capture: true });
+    removeEventListener('pointerup', onUp);
+    removeEventListener('pointercancel', onUp);
     group.removeFromParent();
   }
 
   return {
-    setMode, pickTile, pickPlaced, highlightItems, update, invalidate, dispose,
+    setMode, aim, pickTile, pickPlaced, highlightItems, update, invalidate, dispose,
     set validator(fn) { validator = typeof fn === 'function' ? fn : null; validCache.clear(); },
     get validator() { return validator; },
     get target() { return target; },
     get hoverId() { return hoverId; },
     get mode() { return mode; },
+    get grabbing() { return grab !== null; },
   };
 }

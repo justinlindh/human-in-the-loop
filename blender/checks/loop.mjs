@@ -241,10 +241,70 @@ try {
     if (errors.length) console.log(`page errors: ${errors.slice(0, 3).join('; ')}`);
     await page.close();
   }
+  // A real spotlight: the printer taken out back, through the real game loop. The week before
+  // printer_jam is loaded, the card is answered with the choice that stages the smash, and from the
+  // spotlight's start to its end no week may pass; the weeks resume after, and no hold is cut short.
+  if (!argv.includes('--no-spotlight')) {
+    let target = null, why = '';
+    try {
+      target = resolveTarget({ event: 'printer_jam --stage floor --choice 0 --pre' });
+      if (!target.row?.preTick) { why = 'no printer_jam on the floor with a pre-tick snapshot'; target = null; }
+      else target.file = join(indexDir(simHash()), 'snapshots', target.row.preTick);
+    } catch (e) { why = e.message; }
+    if (!target) { failed++; console.log(`LOOP FAIL real spotlight (printer_jam): ${why}`); }
+    else {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
+      const errors = [], warnings = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      page.on('console', (m) => { if (m.type() === 'warning') warnings.push(m.text()); });
+      await page.addInitScript(SHIM);
+      await page.addInitScript((list) => { for (const [k, v] of list) localStorage.setItem(k, v); }, await snapshotEntries(target.file));
+      await page.goto(`${base}?quality=medium`, { waitUntil: 'load' });
+      for (let i = 0; i < 1200; i++) {
+        if (await page.evaluate(() => !!(window.__HITL && window.__hitlRender?.ready))) break;
+        await page.evaluate(() => window.__frame(1));
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      const r = await page.evaluate(() => {
+        const H = window.__HITL, R = window.__hitlRender, S = () => H.state;
+        const loaded = H.controls.continueGame();
+        if (!loaded.ok) return { error: `continueGame: ${JSON.stringify(loaded)}` };
+        H.setSpeed?.(1);
+        let f = 0;
+        for (; f < 120 * 30 && S().pendingDecision?.eventId !== 'printer_jam'; f++) window.__frame(1);
+        if (S().pendingDecision?.eventId !== 'printer_jam') return { error: 'printer_jam never came up' };
+        H.dispatch({ type: 'resolveDecision', choice: 0 });
+        // Frame by frame: is a spotlight up, and what week is it.
+        const on = [], weeks = [];
+        for (let i = 0; i < 90 * 30; i++) {
+          window.__frame(1);
+          const sp = R.spotlight?.();
+          on.push(sp ? sp.kind : null); weeks.push(S().week);
+          if (S().pendingDecision) H.dispatch({ type: 'resolveDecision', choice: 0 });
+        }
+        const start = on.findIndex((k) => k === 'printer_jam');
+        const end = start < 0 ? -1 : on.indexOf(null, start);
+        return { start, end, weekAtStart: weeks[start], weekAtEnd: end > 0 ? weeks[end - 1] : null, weekLast: weeks[weeks.length - 1], seedWeek: S().week, kinds: [...new Set(on.filter(Boolean))] };
+      });
+      const cut = warnings.filter((w) => /spotlight .* held the clock/.test(w));
+      const checks = r.error ? [[false, r.error]] : [
+        [r.start >= 0, r.start >= 0 ? `the printer spotlight started ${(r.start / 30).toFixed(1)} s after the choice` : `no printer_jam spotlight came up (seen: ${r.kinds.join(', ') || 'none'})`],
+        [r.start >= 0 && r.end > r.start, r.end > r.start ? `it ended by itself after ${((r.end - r.start) / 30).toFixed(1)} s` : 'it never ended in 90 s'],
+        [r.end > r.start && r.weekAtStart === r.weekAtEnd, `no week passed while it played (week ${r.weekAtStart} to ${r.weekAtEnd})`],
+        [r.end > r.start && r.weekLast > r.weekAtEnd, `the weeks resumed after it (week ${r.weekLast} by the end of the watch)`],
+        [cut.length === 0, cut.length ? `the hold was cut short: ${cut[0]}` : 'the hold was never cut short'],
+      ];
+      const pass = checks.every(([ok]) => ok) && !errors.length;
+      if (!pass) failed++;
+      console.log(`LOOP ${pass ? 'ok  ' : 'FAIL'} real spotlight (printer_jam, seed ${target.row.seed} week ${target.row.week}): ${checks.map(([ok, text]) => `${ok ? '' : 'NOT: '}${text}`).join('; ')}`);
+      if (errors.length) console.log(`page errors: ${errors.slice(0, 3).join('; ')}`);
+      await page.close();
+    }
+  }
 } finally {
   await browser.close();
   await server.close();
 }
-const total = queries.length + (argv.includes('--no-spotlight') ? 0 : 1);
+const total = queries.length + (argv.includes('--no-spotlight') ? 0 : 2);
 console.log(`loop: ${total - failed} of ${total} checks passed through the game loop`);
 process.exit(failed ? 1 : 0);

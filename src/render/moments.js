@@ -43,6 +43,8 @@ const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer
 const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
 const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: its corner-on width plus a body's
 const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
+const CHEAT_TURN = 0.5;      // radians the consultants' scene turns off face-to-face toward the camera
+const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its centre toward the camera
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
@@ -54,6 +56,8 @@ const BEHIND_RAD = 2.1;       // how far off a seated visitor's facing counts as
 const SEAT_BACK = 0.75;       // how far someone backs out of a desk seat before walking off
 const EXPLAIN_CLEAR = 0.32;  // room round the spot beside the visitor where a founder leans in to explain
 const REACT_S = 6;           // how long the visitors stay once the choice is in, for the reaction
+const VISITOR_EXPECT_S = REACT_S + 10;   // the visitors' play once they sit, then the reaction
+const PRINTER_GATHER_S = 8;  // the carriers walking to the printer and lifting it, before its cue
 const FLINCH_S = 0.9;        // the founders' flinch on 'Watch in silence'
 const SWING_HIT = 0.605;     // seconds from the start of the 'batswing' pose to its blow (character.js)
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
@@ -131,16 +135,36 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
 
   // Spots round a point, clear of furniture and props, each facing the point.
   const center = new THREE.Vector3();
-  function ringSpots(at, radius, n) {
+  // Spots on a ring round `at`, each facing it. With `far`, the side away from the camera comes first
+  // (in plain view), so whoever faces `at` faces the camera too.
+  function ringSpots(at, radius, n, { far = false } = {}) {
     const nav = office.nav();
     const out = [];
     const start = Math.random() * Math.PI * 2;
-    for (let i = 0; i < 24 && out.length < n; i++) {
+    const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
+    const cands = [];
+    for (let i = 0; i < 24; i++) {
       const a = start + (i * Math.PI * 2) / 12 + (i >= 12 ? Math.PI / 12 : 0);
       const rr = radius + (i >= 12 ? 0.3 : 0);
-      const x = at.x + Math.cos(a) * rr, z = at.z + Math.sin(a) * rr;
+      cands.push({ x: at.x + Math.cos(a) * rr, z: at.z + Math.sin(a) * rr, i });
+    }
+    // Far side first. The near side (between the camera and `at`) is left out: nobody there can face
+    // both.
+    const side = (q) => ((q.x - at.x) * cx + (q.z - at.z) * cz) / Math.hypot(q.x - at.x, q.z - at.z);
+    let list = cands;
+    if (far) {
+      // Only spots the camera sees clearly, unless that would leave fewer than two.
+      const open = cands.filter((q) => side(q) < 0.35 && !nav.isBlocked(q.x, q.z, BODY_R));
+      const seen = open.filter((q) => inView(q, { body: true }));
+      list = (seen.length >= Math.min(2, n) ? seen : open).sort((a, b) => side(a) - side(b) || a.i - b.i);
+    }
+    for (const { x, z } of list) {
+      if (out.length >= n) break;
       if (nav.isBlocked(x, z, BODY_R) || out.some((s) => Math.hypot(s.x - x, s.z - z) < 0.55)) continue;
-      out.push({ x, z, yaw: Math.atan2(at.x - x, at.z - z) });
+      let yaw = Math.atan2(at.x - x, at.z - z);
+      // Standing off to one side: turned a little toward the camera, still on `at`.
+      if (far) { const d = Math.atan2(Math.sin(getYaw() - yaw), Math.cos(getYaw() - yaw)); yaw += Math.sign(d) * Math.min(Math.abs(d), FAR_TURN); }
+      out.push({ x, z, yaw });
     }
     return out;
   }
@@ -150,7 +174,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
     const people = pickIdle(Math.round(rnd(...PIZZA.people)), center);
     if (lite()) { for (const r of people) emote(r, 'heart', 2); return; }
-    const spots = ringSpots(center, PIZZA.ring, people.length);
+    const spots = ringSpots(center, PIZZA.ring, people.length, { far: true });
     people.slice(0, spots.length).forEach((r, i) => {
       r.temp = { anim: 'eat', t: rnd(...PIZZA.dur), goal: spots[i], back: true, moment: 'pizza', stage: { beat: 'eat', target: p.obj } };
       walkTo(r, spots[i]);
@@ -220,6 +244,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       }
       if (!pick) { const q = nav.freePoint(at.x, at.z); pick = { x: q.x, z: q.z, yaw: Math.atan2(at.x - q.x, at.z - q.z) }; }
       hammer = { r, phase: 'fetch', obj: p.obj, held: null };
+      // The caption ("Someone brought a sledgehammer") belongs to the fetch; the swing is the spotlight.
+      hammer.mid = dispatch('start', 'open_plan_office');
       r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer', stage: { beat: 'fetch', target: p.obj } };
       walkTo(r, pick);
       return;
@@ -249,8 +275,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       h.held.rotation.set(0, 0, 0);
       r.temp = { anim: 'swing', t: 3.3, goal: h.wall, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
       h.swingT = 0;
-      h.mid = dispatch('start', 'open_plan_office');
-      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true));
+      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3, () => h.wall);
       momentCam?.hold('hammer', { x: h.wall.x + h.wall.n[0] * 0.7, z: h.wall.z + h.wall.n[1] * 0.7 }, { zoom: 2.0 });
     }
     if (h.phase === 'swing') {
@@ -337,17 +362,33 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // True when the camera sees a spot clearly: nothing placed (a desk's monitor, a beanbag) and no
   // column between a standing person there (legs, chest, head) and the camera.
   const ray = new THREE.Raycaster();
-  function inView(at) {
+  // With `body`, the whole standing body: shoulders and head too, and both sides of it.
+  function inView(at, { body = false } = {}) {
     const cam = getCamera?.();
     if (!cam || !office.current) return !columnInFront(at);
     const dir = new THREE.Vector3();
     cam.getWorldDirection(dir).negate();
-    for (const y of [0.25, 0.5, 0.85]) {
-      ray.set(new THREE.Vector3(at.x, y, at.z), dir);
+    const ys = body ? [0.25, 0.5, 0.85, 1.1] : [0.25, 0.5, 0.85];
+    const across = body ? [-0.13, 0, 0.13] : [0];
+    const sx = dir.z, sz = -dir.x, sl = Math.hypot(sx, sz) || 1;
+    for (const y of ys) for (const a of across) {
+      ray.set(new THREE.Vector3(at.x + (sx / sl) * a, y, at.z + (sz / sl) * a), dir);
       ray.far = 12;
       if (ray.intersectObject(office.current.furniture, true).length) return false;
     }
+    if (body && personInFront(at)) return false;
     return !columnInFront(at);
+  }
+  // Someone standing or sitting between `at` and the camera, close enough to hide a body there.
+  function personInFront(at) {
+    const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
+    for (const r of recs.values()) {
+      if (r.hidden) continue;
+      const dx = r.pos.x - at.x, dz = r.pos.z - at.z;
+      const along = dx * cx + dz * cz, across = Math.abs(dx * cz - dz * cx);
+      if (along > 0.2 && along < 2.2 && across < 0.4) return true;
+    }
+    return false;
   }
   // True when a column stands between the camera and a spot: someone there would be half hidden
   // behind the column (drawn faded over them), so a moment staged there would not read.
@@ -369,9 +410,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   function letter(p, dt) {
     if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [12, 18])) return;
     const deskId = p.obj.userData.follow?.deskId;
-    const r = [...recs.values()].find((x) => x.seat === deskId);
+    // The person the stage names (whose desk it is), else whoever sits at the desk it landed on.
+    const r = (p.staffId && recs.get(p.staffId)) || [...recs.values()].find((x) => x.seat === deskId);
     // Not at their desk right now: look again shortly rather than after the full interval.
-    if (!r || !free().includes(r) || !r.char.seated) { timers.set(`letter|${p.obj.uuid}`, 1); return; }
+    if (!r || !free().includes(r) || !r.char.seated) {
+      note(r?.id ?? null, 'refuse', { by: 'letter', why: !r ? `nobody sits at ${deskId}` : r.hidden ? 'out of the office' : !free().includes(r) ? `busy (${r.temp?.moment ?? r.temp?.anim ?? (r.path.length ? 'walking' : r.mode)})` : 'not seated' });
+      timers.set(`letter|${p.obj.uuid}`, 1);
+      return;
+    }
     // At Low: just the bad-news emote at the desk. Otherwise the emote comes after reading it.
     if (lite()) { emote(r, 'storm', 2.8); return; }
     // Out of the chair sideways (on the camera's side when both are clear), then back into the aisle
@@ -388,7 +434,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const wide = [1, -1].map((sg) => at(SIDE_OUT * sg)).filter((q) => !nav.isBlocked(q.x, q.z)).sort(camFirst);
     const narrow = [1, -1].map((sg) => at(SIDE_SQUEEZE * sg)).sort(camFirst);
     const side = [...wide, ...narrow].find((q) => { const s = { x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK }; return !nav.isBlocked(s.x, s.z, BODY_R) && !columnInFront(s); });
-    if (!side) return;
+    if (!side) { note(r.id, 'refuse', { by: 'letter', why: 'no clear spot beside the chair' }); return; }
     const spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
     spot.yaw = towardCamera(spot, p.obj.position);
     // Push the chair back to get up; it rolls in again as they sit back down.
@@ -535,6 +581,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // The chair's own desk, or (staged on the floor, the event naming nobody) the desk nearest it.
     const nearest = () => [...office.placed.values()].filter((e) => e.desk?.seat).sort((a, b) => Math.hypot(a.desk.seat.x - o.position.x, a.desk.seat.z - o.position.z) - Math.hypot(b.desk.seat.x - o.position.x, b.desk.seat.z - o.position.z))[0]?.desk ?? null;
     const desk = event === 'first_user_test' ? office.deskById?.(o.userData.follow?.deskId) ?? nearest() : null;
+    v.desk = desk;
     if (desk?.seat) {
       v.seat = desk.seat; v.at = { x: desk.seat.x, z: desk.seat.z }; v.yaw = desk.seat.rotY;
       // The spare chair, hidden, moves into the seat: as a floor prop it blocks the walking grid
@@ -554,28 +601,43 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     }
     const fwd = [Math.sin(v.yaw), Math.cos(v.yaw)], side = [Math.cos(v.yaw), -Math.sin(v.yaw)];
     if (event === 'efficiency_consultants') {
-      // The second consultant stands beside the chair with a clipboard; a colleague is interviewed.
-      // Arms out low in front, the clipboard between the hands, tipped up to be read.
+      // A nervous colleague is interviewed across from the seated consultant, the second consultant
+      // behind with a clipboard. Face to face across the camera's view line, each turned three-quarters
+      // to the camera, so all three faces read. Arms out low in front, the clipboard tipped up to be read.
       const rob = makeVisitor(event, 'carryhold');
       rob.root.add(clipboard());
       v.chars.push(rob);
-      v.robAt = { x: v.at.x + side[0] * 0.6 - fwd[0] * 0.1, z: v.at.z + side[1] * 0.6 - fwd[1] * 0.1 };
-      // In front of the seated one, where the camera sees them clear of columns.
-      const r = pickIdle(1, v.at)[0];
-      const nav = office.nav(), cands = [];
-      for (const d of [1.1, 1.3, 0.9]) for (const a of [0, 0.35, -0.35, 0.7, -0.7]) {
-        const c = Math.cos(a), sn = Math.sin(a);
-        cands.push({ x: v.at.x + (fwd[0] * c + side[0] * sn) * d, z: v.at.z + (fwd[1] * c + side[1] * sn) * d });
+      const yaw = getYaw(), cam = [Math.sin(yaw), Math.cos(yaw)], across = [Math.cos(yaw), -Math.sin(yaw)];
+      const nav = office.nav();
+      // The interviewee's side of the chair: whichever side has room and is in plain view.
+      let spot = null;
+      for (const d of [1.3, 1.1, 1.5]) for (const sgn of [1, -1]) for (const back of [0.2, 0.05, 0.35]) {
+        if (spot) break;
+        const q = { x: v.at.x + across[0] * sgn * d - cam[0] * back, z: v.at.z + across[1] * sgn * d - cam[1] * back };
+        if (!nav.isBlocked(q.x, q.z, BODY_R) && inView(q, { body: true })) spot = q;
       }
-      const free = cands.filter((q) => !nav.isBlocked(q.x, q.z, BODY_R));
-      const spot = r && (free.find((q) => inView(q) && !columnInFront(q)) ?? free[0]);
-      if (r && spot) {
-        spot.yaw = Math.atan2(v.at.x - spot.x, v.at.z - spot.z);
+      if (!spot) for (const sgn of [1, -1]) { const q = { x: v.at.x + across[0] * sgn * 1.1, z: v.at.z + across[1] * sgn * 1.1 }; if (!spot && !nav.isBlocked(q.x, q.z, BODY_R)) spot = q; }
+      const toward = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
+      const cheat = (y, k = CHEAT_TURN) => { const d = Math.atan2(Math.sin(yaw - y), Math.cos(yaw - y)); return y + Math.sign(d) * Math.min(Math.abs(d), k); };
+      if (spot) {
+        v.yaw = cheat(toward(v.at, spot));
+        // The nervous one plays a little more to the room.
+        spot.yaw = cheat(toward(spot, v.at), CHEAT_TURN * 1.1);
+      }
+      // The clipboard consultant stands at the seated one's shoulder, on the side away from the
+      // interviewee and a little behind, clear of the chair so the camera sees all of them.
+      const side = spot ? Math.sign((spot.x - v.at.x) * across[0] + (spot.z - v.at.z) * across[1]) || 1 : 1;
+      v.robAt = { x: v.at.x - cam[0] * 0.3 - across[0] * side * 0.7, z: v.at.z - cam[1] * 0.3 - across[1] * side * 0.7 };
+      v.robYaw = spot ? cheat(toward(v.robAt, spot)) : yaw;
+      if (v.chair) v.chair.rotation.y = v.yaw;
+      const r = spot && (pickIdle(1, spot)[0] ?? free().sort((a, b) => Math.hypot(a.pos.x - spot.x, a.pos.z - spot.z) - Math.hypot(b.pos.x - spot.x, b.pos.z - spot.z))[0]);
+      if (r) {
         r.temp = { anim: 'idle', t: 1e6, goal: spot, moment: 'visitor', emoteT: 1, stage: { beat: 'interview', role: 'interviewee', target: v.chars[0].root },
           tick: (rr, d, tp) => { tp.emoteT -= d; if (tp.emoteT <= 0) { tp.emoteT = rnd(2.5, 3.5); emote(rr, 'sweat', 2); } return false; } };
         (v.walks ??= []).push([r, spot]);
         v.cast.push(r);
-      }
+        v.interviewee = r;
+      } else note(null, 'refuse', { by: 'consultants', why: spot ? 'nobody free to interview' : 'no room beside the chair' });
     } else {
       // The founders, or failing that whoever is free, crouch out of sight and peek.
       const founders = free().filter((r) => r.staff.founder);
@@ -588,7 +650,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       });
     }
     v.mid = dispatch('start', event);
-    v.spot = spotlights?.begin(event, endVisitor);
+    v.spot = spotlights?.begin(event, endVisitor, VISITOR_EXPECT_S, () => v.at);
     momentCam?.hold('visitor', { x: v.at.x, z: v.at.z }, { zoom: 2.0 });
   }
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
@@ -713,7 +775,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     }
     if (rob) {
       rob.root.position.set(v.robAt.x, 0, v.robAt.z);
-      rob.root.rotation.y = Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
+      rob.root.rotation.y = v.robYaw ?? Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
       rob.root.visible = sitter.root.visible;
     }
     for (const c of v.chars) c.update(dt);
@@ -740,7 +802,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
     let item = null, best = Infinity;
     for (const e of office.placed.values()) { const d = Math.hypot(e.target.x - center.x, e.target.z - center.z); if (d < best) { best = d; item = e; } }
-    const box = item ? new THREE.Box3().setFromObject(item.obj) : new THREE.Box3().setFromObject(p.obj);
+    // A prop that brought its own rack (rack_hot with none placed) is the source itself.
+    const solid = p.obj.userData.blockPart;
+    const box = new THREE.Box3().setFromObject(solid ?? item?.obj ?? p.obj);
     box.getCenter(center);
     center.y = 0;
     // Whoever is nearest notices first.
@@ -773,20 +837,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const r = (subject && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1, p.obj.position)[0];
     if (!r) return;
     if (lite()) { emote(r, 'heart', 2); return; }
-    const at = p.obj.position, nav = office.nav();
-    // Stand in front of the carrier's door (its local +x), else anywhere round it.
-    const q = p.obj.quaternion ? new THREE.Vector3(1, 0, 0).applyQuaternion(p.obj.getWorldQuaternion(new THREE.Quaternion())) : new THREE.Vector3(1, 0, 0);
-    const tries = [0, 0.6, -0.6, 1.2, -1.2, Math.PI];
-    for (const da of tries) {
-      const a = Math.atan2(q.z, q.x) + da;
-      const x = at.x + Math.cos(a) * 0.75, z = at.z + Math.sin(a) * 0.75;
-      if (nav.isBlocked(x, z, BODY_R)) continue;
-      const spot = { x, z, yaw: Math.atan2(at.x - x, at.z - z) };
-      r.temp = { anim: 'peer', t: rnd(3.5, 5), goal: spot, back: true, moment: 'carrier', stage: { beat: 'peer', target: p.obj } };
-      walkTo(r, spot);
-      emote(r, 'heart', 2.2);
-      return;
-    }
+    // Crouched on the carrier's far side, peering in over it toward the camera, so the face reads.
+    const at = p.obj.getWorldPosition(new THREE.Vector3());
+    const spot = ringSpots(at, 0.75, 1, { far: true })[0] ?? ringSpots(at, 0.75, 1)[0];
+    if (!spot) return;
+    r.temp = { anim: 'peer', t: rnd(3.5, 5), goal: spot, back: true, moment: 'carrier', stage: { beat: 'peer', target: p.obj } };
+    walkTo(r, spot);
+    emote(r, 'heart', 2.2);
   }
 
   // "Take it out back" (printer_jam), staged to its music cue (public/audio/moments/printer_smash.ogg).
@@ -817,7 +874,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
       clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
-    pm.spot = spotlights?.begin('printer_jam', printerEnd);
+    // Gathering and the lift, then the cue from the carry to the walk-off.
+    pm.spot = spotlights?.begin('printer_jam', printerEnd, PRINTER_GATHER_S + CUE.end, () => pm.obj.visible ? pm.obj.getWorldPosition(new THREE.Vector3()) : pm.end);
     pm.twists = twists(pm);
     const c = along(route, 0);
     const spots = carrySpots(pm, c);
@@ -1160,12 +1218,28 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
 
   // What a moment says about someone now, for the staging probe (probe.js): the moment, its beat
   // ('walk' while they are on the way), the target they deal with, what they hold, the effect source.
+  // The moment's own actors that are not staff (the visitors), with their stage records, for the
+  // staging probe and checks: [{ id: 'visitor:0', char, stage: { moment, beat, role, target } }].
+  function extras() {
+    const v = visitor;
+    if (!v) return [];
+    const [sitter, rob] = v.chars;
+    const consult = v.event === 'efficiency_consultants';
+    const at = consult ? v.interviewee?.char.root ?? null : v.desk?.screen ?? null;
+    const out = [];
+    // The interview starts once the colleague has sat down across from them.
+    const arrived = consult && v.interviewee && !v.interviewee.path.length;
+    if (sitter?.root.visible) out.push({ id: 'visitor:0', char: sitter, stage: { moment: 'visitor', beat: consult ? (arrived ? 'interview' : 'wait') : 'test', role: consult ? 'consultant' : 'visitor', target: at, held: null, source: null } });
+    if (rob?.root.visible) out.push({ id: 'visitor:1', char: rob, stage: { moment: 'visitor', beat: arrived ? 'interview' : 'wait', role: 'clipboard', target: at, held: null, source: null } });
+    return out;
+  }
   function staging(id) {
+    if (typeof id === 'string' && id.startsWith('visitor:')) return extras().find((e) => e.id === id)?.stage ?? null;
     const r = recs.get(id), tp = r?.temp;
     if (!tp?.moment) return null;
     const st = tp.stage ?? {};
     return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
   }
 
-  return { update, reset, decided, staging, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { update, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }
