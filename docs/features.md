@@ -181,10 +181,10 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
   - **Desk squeeze**: "I am currently sharing a desk with the printer. The printer is winning." `id: desk_squeeze`
   - **Junior PR**: "It is small. It is one line." `id: junior_pr`
   - **Low-stakes events in Yak**: six small decisions arrive as officebot posts with the event's own choices instead of pausing popups: the two coffee-machine requests, the dog on Fridays, a new model dropping, a senior's weekend side project and the app store rejection. Their staged props show while the prompt is open, and left unanswered, the mildest choice happens (never one that brings in an item or a pet).
-- **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it. The office reacts too: a backfire gets a facepalm from whoever faces you, the two nearest turn to look and a couple more sweat; a post that lands gets a sparkle or two.
+- **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it. The office reacts too: a backfire gets a facepalm from whoever faces you, the two nearest turn to look and a couple more sweat; a post that lands gets a sparkle or two. Sharing a meme posts a picture picked for the moment.
   - **Pep talk**: backfires mid-outage ("Respectfully, the servers are on fire."). `id: pep_talk`
   - **Who broke prod?**: helps during an outage; with nothing broken it just scares people ("Why are you asking. What do you know."). `id: who_broke_prod`
-  - **Share a meme**: "[a cat knocking a mug off a desk, captioned "me, merging on a Friday"]". `id: meme`
+  - **Share a meme**: posts a picture meme that fits the week: an outage always gets the office on fire ("SEV-1. Everything is fine."), the Classic era never sees an agent joke. The post's text is the picture's alt text. `id: meme` `id: this_is_fine` `id: two_buttons` `id: tabs_chart` `id: always_config` `id: yes_no_tests` `id: expanding_review`
   - **Pizza's here**: costs per head, lifts meaning and stamina ("There is a vegetarian one, and it is being guarded."). `id: pizza`
   - **Announcement**: with real news it lands; with none, "Is this a layoffs thing?". `id: announcement`
 - ★ **The @channel offender**: one over-notifier per run pings everyone about their yogurt, "happy friday" on a Thursday or a typo at 2 a.m.; once, during a real outage, it is warranted.

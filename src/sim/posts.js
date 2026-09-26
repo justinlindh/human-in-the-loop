@@ -3,14 +3,29 @@ import { createRng, pick, int, shuffle } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
 import { clamp } from './util.js';
 import { emitChat, teamMeaning } from './chat.js';
-import { eraLines } from './eras.js';
+import { eraLines, eraAllowsText, eraAtLeast } from './eras.js';
 import { POSTS } from '../data/posts.js';
+import { MEMES } from '../data/memes.js';
 
 // The founders' quick posts in Yak (issue #16). Whether a post lands, falls flat or backfires follows from
 // the moment; its own stream, seeded by the game seed, the week and a post sequence, picks only the words,
 // the repliers and the reactions, so a game where nobody posts plays exactly as one without the feature.
 
 const BY_ID = Object.fromEntries(POSTS.map((p) => [p.id, p]));
+
+// The memes that fit the moment: an outage's own meme during one, else the everyday ones plus any that the
+// era makes fit. Filtered for the era's words like any other line.
+const MEME_FITS = {
+  any: () => true,
+  outage: (s) => !!s.outage,
+  agents: (s) => eraAtLeast(s, 'agents'),
+};
+function pickMeme(state, rng) {
+  const fit = MEMES.filter((m) => MEME_FITS[m.when]?.(state) && eraAllowsText(state, m.alt));
+  const outage = fit.filter((m) => m.when === 'outage');
+  const pool = outage.length ? outage : fit.filter((m) => m.when !== 'outage');
+  return pool.length ? pick(rng, pool) : null;
+}
 const present = (state) => state.staff.filter((p) => p.mood !== 'away' && !p.remote);
 const memory = (state) => { const m = (state.flags.posts ??= { lastWeek: null, byId: {}, queue: [] }); m.byId ??= {}; m.queue ??= []; return m; };
 
@@ -101,7 +116,10 @@ registerAction('postMessage', (outer, { id }) => {
   const fx = repeat ? { outcome: 'flat' } : OUTCOMES[id](state);
   const news = recentNews(state);
   const lines = id === 'announcement' && !news ? post.vague : post.text.map((t) => t.replace('{news}', news ?? ''));
-  const msg = emitChat(ctx, { channel: post.channel, person: founder, text: pick(rng, eraLines(state, lines)), reactions: reactionsFor(state, rng, fx.outcome) });
+  // A meme is a picture: one that fits the moment, with its alt caption as the text.
+  const meme = id === 'meme' ? pickMeme(state, rng) : null;
+  const msg = emitChat(ctx, { channel: post.channel, person: founder, text: meme ? meme.alt : pick(rng, eraLines(state, lines)),
+    image: meme ? { id: meme.image, alt: meme.alt } : null, reactions: reactionsFor(state, rng, fx.outcome) });
   applyOutcome(state, fx);
   // Replies, chosen now and posted over the next week or two: people in the roles that care first, one to three of them.
   const staff = present(state).filter((p) => !p.founder);
