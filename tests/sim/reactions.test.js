@@ -40,14 +40,18 @@ describe("issue #609: reactions scale with a post's weight", () => {
 
   it('running jokes are marked important and get the heavier reactions; routine chatter is not marked', () => {
     let jokes = 0, marked = 0, routineMarked = 0;
-    runBot('balanced', 5, 900, { onWeek: (s, ev) => {
-      for (const e of ev) {
-        if (e.type !== 'chat') continue;
-        if (e.important) marked++;
-        if (e.important && (e.fromId === null || e.replyTo)) routineMarked++;
-      }
-      jokes = Object.values(s.flags.talk?.jokes ?? {}).reduce((a, j) => a + j.step, 0);
-    } });
+    for (let seed = 1; seed <= 6; seed++) {
+      let steps = 0;
+      runBot('balanced', seed, 900, { onWeek: (s, ev) => {
+        for (const e of ev) {
+          if (e.type !== 'chat') continue;
+          if (e.important) marked++;
+          if (e.important && (e.fromId === null || e.replyTo)) routineMarked++;
+        }
+        steps = Object.values(s.flags.talk?.jokes ?? {}).reduce((a, j) => a + j.step, 0);
+      } });
+      jokes += steps;
+    }
     expect(jokes).toBeGreaterThan(0);
     expect(marked).toBeGreaterThan(0);
     expect(routineMarked).toBe(0);
