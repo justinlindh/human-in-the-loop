@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
 import { printerModel, visitorChairModel } from './props.js';
@@ -101,6 +102,19 @@ const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5],
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
 
 export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, momentCam = null, spotlights = null, isBusy = () => false, low = () => false }) {
+  const debug = spotDebug(office);
+  const choose = (at, moment, search, options) => pickSpot(at, {
+    debug, moment, search,
+    checks: {
+      clear: (q) => !office.nav().isBlocked(q.x, q.z, BODY_R),
+      chairClear: (q) => [...office.placed.values()].every((e) => !e.desk?.seat || Math.hypot(e.desk.seat.x - q.x, e.desk.seat.z - q.z) >= CHAIR_CLEAR),
+      inView: (q) => inView(q),
+      noColumn: (q) => !columnInFront(q),
+      bothViews: (q) => inView(q) && inView(q, { turn: Math.PI / 2 }),
+      ...options.checks,
+    },
+    ...Object.fromEntries(Object.entries(options).filter(([k]) => k !== 'checks')),
+  });
   const timers = new Map();   // moment key -> seconds until it may start again
   let full = false;           // checks: run full moments even at Low quality
   const lite = () => !full && low();
@@ -138,8 +152,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   const center = new THREE.Vector3();
   // Spots on a ring round `at`, each facing it. With `far`, the side away from the camera comes first
   // (in plain view), so whoever faces `at` faces the camera too.
-  function ringSpots(at, radius, n, { far = false } = {}) {
-    const nav = office.nav();
+  function ringSpots(at, radius, n, { far = false, moment = 'ring', search = 'ring' } = {}) {
     const out = [];
     const start = Math.random() * Math.PI * 2;
     const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
@@ -153,15 +166,22 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // both.
     const side = (q) => ((q.x - at.x) * cx + (q.z - at.z) * cz) / Math.hypot(q.x - at.x, q.z - at.z);
     let list = cands;
+    const collect = (candidates, name, needs, checks = {}) => {
+      const accepted = [];
+      choose(at, moment, name, { candidates, needs, checks, score: (q) => { accepted.push(q); return 0; } });
+      return accepted;
+    };
     if (far) {
-      // Only spots the camera sees clearly, unless that would leave fewer than two.
-      const open = cands.filter((q) => side(q) < 0.35 && !nav.isBlocked(q.x, q.z, BODY_R));
-      const seen = open.filter((q) => inView(q, { body: true }));
+      const open = collect(cands, `${search}:open`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 });
+      const seen = collect(open, `${search}:view`, ['inView'], { inView: (q) => inView(q, { body: true }) });
       list = (seen.length >= Math.min(2, n) ? seen : open).sort((a, b) => side(a) - side(b) || a.i - b.i);
     }
-    for (const { x, z } of list) {
-      if (out.length >= n) break;
-      if (nav.isBlocked(x, z, BODY_R) || out.some((s) => Math.hypot(s.x - x, s.z - z) < 0.55)) continue;
+    for (let i = 0; i < n; i++) {
+      const spot = choose(at, moment, `${search}:${i}`, { candidates: list, needs: ['clear', 'apart'], checks: {
+        apart: (q) => out.every((s) => Math.hypot(s.x - q.x, s.z - q.z) >= 0.55),
+      } });
+      if (!spot) break;
+      const { x, z } = spot;
       let yaw = Math.atan2(at.x - x, at.z - z);
       // Standing off to one side: turned a little toward the camera, still on `at`.
       if (far) { const d = Math.atan2(Math.sin(getYaw() - yaw), Math.cos(getYaw() - yaw)); yaw += Math.sign(d) * Math.min(Math.abs(d), FAR_TURN); }
@@ -175,7 +195,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
     const people = pickIdle(Math.round(rnd(...PIZZA.people)), center);
     if (lite()) { for (const r of people) emote(r, 'heart', 2); return; }
-    const spots = ringSpots(center, PIZZA.ring, people.length, { far: true });
+    const spots = ringSpots(center, PIZZA.ring, people.length, { far: true, moment: 'pizza' });
     people.slice(0, spots.length).forEach((r, i) => {
       r.temp = { anim: 'eat', t: rnd(...PIZZA.dur), goal: spots[i], back: true, moment: 'pizza', stage: { beat: 'eat', target: p.obj } };
       walkTo(r, spots[i]);
@@ -210,9 +230,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // are cut away, and whoever stood at one would be hidden behind its stub). { x, z, yaw, n } where
   // n is the wall's outward normal.
   function wallSpot(from) {
-    const L = office.current.L, nav = office.nav(), yaw = getYaw?.() ?? Math.PI / 4;
+    const L = office.current.L, yaw = getYaw?.() ?? Math.PI / 4;
     const cam = [Math.sin(yaw), Math.cos(yaw)];
     const walls = [[-1, 0], [0, -1], [1, 0], [0, 1]].filter(([nx, nz]) => nx * cam[0] + nz * cam[1] < -0.2);
+    function* candidates() {
     for (const [nx, nz] of walls.sort((a, b) => (a[0] * cam[0] + a[1] * cam[1]) - (b[0] * cam[0] + b[1] * cam[1]))) {
       const along = nx === 0, half = along ? L.W / 2 : L.D / 2, fixed = (along ? nz * L.D / 2 : nx * L.W / 2) - (along ? nz : nx) * 0.7;
       const start = along ? from.x : from.z;
@@ -220,10 +241,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         const u = start + s * d;
         if (Math.abs(u) > half - 0.6) continue;
         const x = along ? u : fixed, z = along ? fixed : u;
-        if (!nav.isBlocked(x, z, BODY_R)) return { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
+        yield { x, z, yaw: Math.atan2(nx, nz), n: [nx, nz] };
       }
     }
-    return null;
+    }
+    return choose(from, 'hammer', 'wall', { candidates: candidates(), needs: ['clear'] });
   }
   function hammerTick(p, state) {
     // The walls came down: decisionResolved chose KNOCK_DOWN of open_plan_office.
@@ -364,11 +386,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // column between a standing person there (legs, chest, head) and the camera.
   const ray = new THREE.Raycaster();
   // With `body`, the whole standing body: shoulders and head too, and both sides of it.
-  function inView(at, { body = false } = {}) {
+  function inView(at, { body = false, turn = 0 } = {}) {
     const cam = getCamera?.();
-    if (!cam || !office.current) return !columnInFront(at);
+    if (!cam || !office.current) return !columnInFront(at, getYaw() + turn);
     const dir = new THREE.Vector3();
     cam.getWorldDirection(dir).negate();
+    if (turn) dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), turn);
     const ys = body ? [0.25, 0.5, 0.85, 1.1] : [0.25, 0.5, 0.85];
     const across = body ? [-0.13, 0, 0.13] : [0];
     const sx = dir.z, sz = -dir.x, sl = Math.hypot(sx, sz) || 1;
@@ -377,12 +400,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       ray.far = 12;
       if (ray.intersectObject(office.current.furniture, true).length) return false;
     }
-    if (body && personInFront(at)) return false;
-    return !columnInFront(at);
+    if (body && personInFront(at, getYaw() + turn)) return false;
+    return !columnInFront(at, getYaw() + turn);
   }
   // Someone standing or sitting between `at` and the camera, close enough to hide a body there.
-  function personInFront(at) {
-    const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
+  function personInFront(at, yaw = getYaw()) {
+    const cx = Math.sin(yaw), cz = Math.cos(yaw);
     for (const r of recs.values()) {
       if (r.hidden) continue;
       const dx = r.pos.x - at.x, dz = r.pos.z - at.z;
@@ -393,8 +416,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   }
   // True when a column stands between the camera and a spot: someone there would be half hidden
   // behind the column (drawn faded over them), so a moment staged there would not read.
-  function columnInFront(at) {
-    const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
+  function columnInFront(at, yaw = getYaw()) {
+    const cx = Math.sin(yaw), cz = Math.cos(yaw);
     for (const col of office.current?.columns ?? []) {
       const dx = col.x - at.x, dz = col.z - at.z;
       const along = dx * cx + dz * cz;               // toward the camera
@@ -439,14 +462,17 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const camFirst = (a, b) => (b.x * Math.sin(yaw) + b.z * Math.cos(yaw)) - (a.x * Math.sin(yaw) + a.z * Math.cos(yaw));
     const wide = [1, -1].map((sg) => at(SIDE_OUT * sg)).filter((q) => !nav.isBlocked(q.x, q.z)).sort(camFirst);
     const narrow = [1, -1].map((sg) => at(SIDE_SQUEEZE * sg)).sort(camFirst);
-    const side = [...wide, ...narrow].find((q) => { const s = { x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK }; return !nav.isBlocked(s.x, s.z, BODY_R) && !columnInFront(s); });
+    const standing = (q) => ({ x: q.x + back[0] * STAND_BACK, z: q.z + back[1] * STAND_BACK });
+    const side = choose(seat, 'letter', 'side', { candidates: [...wide, ...narrow], needs: ['clear', 'noColumn'], checks: {
+      clear: (q) => { const s = standing(q); return !nav.isBlocked(s.x, s.z, BODY_R); },
+      noColumn: (q) => !columnInFront(standing(q)),
+    } });
     // No way out sideways (a tight row of desks): they stand up behind their chair, or at the
     // nearest free floor.
     let spot;
     if (side) spot = { x: side.x + back[0] * STAND_BACK, z: side.z + back[1] * STAND_BACK };
     else {
-      const behind = [1.0, 1.3, 1.6].map((d) => ({ x: seat.x + back[0] * d, z: seat.z + back[1] * d })).find((q) => !nav.isBlocked(q.x, q.z, BODY_R));
-      spot = behind ?? nav.freePoint(seat.x + back[0], seat.z + back[1]);
+      spot = choose(seat, 'letter', 'behind', { candidates: [1.0, 1.3, 1.6].map((d) => ({ x: seat.x + back[0] * d, z: seat.z + back[1] * d })), needs: ['clear'], fallback: () => nav.freePoint(seat.x + back[0], seat.z + back[1]) });
       note(r.id, 'fallback', { by: 'letter', why: 'no clear spot beside the chair: reads behind it' });
     }
     spot.yaw = towardCamera(spot, p.obj.position);
@@ -589,32 +615,38 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       return ray.intersectObject(root, true).some((h) => h.distance > 0.35 && h.object.visible && !h.object.userData.propId);
     };
     const toward = (q) => Math.atan2(at.x - q.x, at.z - q.z);
+    const costs = new Map(), views = new Map();
+    const key = (q) => `${q.x},${q.z}`;
+    const visible = (q) => { const k = key(q); if (!views.has(k)) views.set(k, inView(q)); return views.get(k); };
     const cost = (q) => {
-      if (nav.isBlocked(q.x, q.z, BODY_R) || !inView(q)) return Infinity;
+      const k = key(q);
+      if (costs.has(k)) return costs.get(k);
       const off = Math.abs(Math.atan2(Math.sin(toward(q) - cam), Math.cos(toward(q) - cam))) / Math.PI;
       // The visitor on screen in front of a founder hides them from the player: that costs too.
       const covered = (screenBlocked(q, [{ x: at.x, z: at.z, r: 0.35, top: 1.1 }]) ? 1.5 : 0) + (desk && screenBlocked(q, [{ ...desk, r: 0.85, top: 0.8 }]) ? 2 : 0);
-      return (hidden(q) ? 0 : 2) + off * 3 + (columnInFront(q) ? 1 : 0) + covered;
+      const value = (hidden(q) ? 0 : 2) + off * 3 + (columnInFront(q) ? 1 : 0) + covered;
+      costs.set(k, value);
+      return value;
     };
-    let best = null, bestCost = Infinity;
-    for (const r of [2.2, 1.6, 2.8, 3.6]) {
-      for (let i = 0; i < 24; i++) {
+    function* candidates() {
+      for (const radius of [2.2, 1.6, 2.8, 3.6]) for (let i = 0; i < 24; i++) {
         const a = (i / 24) * Math.PI * 2;
-        const q = { x: at.x + Math.cos(a) * r, z: at.z + Math.sin(a) * r };
-        const c1 = cost(q);
-        if (c1 >= bestCost) continue;
-        // The second founder beside the first, across the line to the visitor.
-        // Side by side, and not one in front of the other on screen.
+        const q = { x: at.x + Math.cos(a) * radius, z: at.z + Math.sin(a) * radius };
         for (const gap of [0.55, 0.75]) for (const k of [1, -1]) {
-          const side = [Math.cos(a + Math.PI / 2) * gap, Math.sin(a + Math.PI / 2) * gap];
-          const q2 = { x: q.x + side[0] * k, z: q.z + side[1] * k };
-          const c = c1 + cost(q2) + (screenBlocked(q2, [{ ...q, r: 0.3, top: 1.1, either: true }]) ? 1.5 : 0);
-          if (c < bestCost) { bestCost = c; best = [{ ...q, yaw: toward(q) }, { ...q2, yaw: toward(q2) }]; }
+          const partner = { x: q.x + Math.cos(a + Math.PI / 2) * gap * k, z: q.z + Math.sin(a + Math.PI / 2) * gap * k };
+          yield { ...q, partner };
         }
       }
     }
-    return best ?? [{ x: at.x + 2, z: at.z, yaw: -Math.PI / 2 }, { x: at.x + 2, z: at.z + 0.55, yaw: -Math.PI / 2 }];
+    const best = choose(at, 'visitor', 'hide', { candidates: candidates(), needs: ['clear', 'inView', 'partnerClear', 'partnerInView'], checks: {
+      inView: visible,
+      partnerClear: (q) => !nav.isBlocked(q.partner.x, q.partner.z, BODY_R),
+      partnerInView: (q) => visible(q.partner),
+    }, score: (q) => cost(q) + cost(q.partner) + (screenBlocked(q.partner, [{ ...q, r: 0.3, top: 1.1, either: true }]) ? 1.5 : 0),
+    fallback: { x: at.x + 2, z: at.z, partner: { x: at.x + 2, z: at.z + 0.55 }, fallback: true } });
+    return [best, best.partner].map((q) => ({ x: q.x, z: q.z, yaw: best.fallback ? -Math.PI / 2 : toward(q) }));
   }
+
   function visitorStart(p, state) {
     const event = stagedBy(state, 'visitor_chair')?.eventId ?? 'first_user_test';
     const o = p.obj;
@@ -656,15 +688,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       rob.root.add(clipboard());
       v.chars.push(rob);
       const yaw = getYaw(), cam = [Math.sin(yaw), Math.cos(yaw)], across = [Math.cos(yaw), -Math.sin(yaw)];
-      const nav = office.nav();
       // The interviewee's side of the chair: whichever side has room and is in plain view.
-      let spot = null;
+      const candidates = [];
       for (const d of [1.3, 1.1, 1.5]) for (const sgn of [1, -1]) for (const back of [0.2, 0.05, 0.35]) {
-        if (spot) break;
-        const q = { x: v.at.x + across[0] * sgn * d - cam[0] * back, z: v.at.z + across[1] * sgn * d - cam[1] * back };
-        if (!nav.isBlocked(q.x, q.z, BODY_R) && inView(q, { body: true })) spot = q;
+        candidates.push({ x: v.at.x + across[0] * sgn * d - cam[0] * back, z: v.at.z + across[1] * sgn * d - cam[1] * back });
       }
-      if (!spot) for (const sgn of [1, -1]) { const q = { x: v.at.x + across[0] * sgn * 1.1, z: v.at.z + across[1] * sgn * 1.1 }; if (!spot && !nav.isBlocked(q.x, q.z, BODY_R)) spot = q; }
+      const spot = choose(v.at, 'visitor', 'interview', { candidates, needs: ['clear', 'inView'], checks: { inView: (q) => inView(q, { body: true }) },
+        fallback: () => choose(v.at, 'visitor', 'interviewFallback', { candidates: [1, -1].map((sgn) => ({ x: v.at.x + across[0] * sgn * 1.1, z: v.at.z + across[1] * sgn * 1.1 })), needs: ['clear'] }),
+      });
       const toward = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
       const cheat = (y, k = CHEAT_TURN) => { const d = Math.atan2(Math.sin(yaw - y), Math.cos(yaw - y)); return y + Math.sign(d) * Math.min(Math.abs(d), k); };
       if (spot) {
@@ -708,13 +739,17 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (!d || Math.hypot(at.x - d.x, at.z - d.z) > OFF_DOOR_NEAR) return null;
     const l = Math.hypot(d.x, d.z) || 1, inx = -d.x / l, inz = -d.z / l;
     const nav = office.nav(), yaw = getYaw(), across = [Math.cos(yaw), -Math.sin(yaw)];
-    for (const along of [2.4, 3, 3.6]) for (const s of [1.6, -1.6, 2.2, -2.2]) {
-      const q = { x: d.x + inx * along - inz * s, z: d.z + inz * along + inx * s };
-      const room = [[0, 0], [across[0] * 1.3, across[1] * 1.3], [-across[0] * 1.3, -across[1] * 1.3]].every(([ax, az]) => !nav.isBlocked(q.x + ax, q.z + az, BODY_R));
-      if (room && inView(q, { body: true })) return q;
+    function* candidates() {
+      for (const along of [2.4, 3, 3.6]) for (const s of [1.6, -1.6, 2.2, -2.2]) {
+        yield { x: d.x + inx * along - inz * s, z: d.z + inz * along + inx * s };
+      }
     }
-    return null;
+    return choose(at, 'visitor', 'offDoor', { candidates: candidates(), needs: ['interviewRoom', 'inView'], checks: {
+      interviewRoom: (q) => [[0, 0], [across[0] * 1.3, across[1] * 1.3], [-across[0] * 1.3, -across[1] * 1.3]].every(([ax, az]) => !nav.isBlocked(q.x + ax, q.z + az, BODY_R)),
+      inView: (q) => inView(q, { body: true }),
+    } });
   }
+
   // Someone right by the visitor's chair (sat at that desk) first steps to a free point nearby whose
   // straight line from them keeps clear of the chair, the one farthest from it; the way on is planned
   // from there. The walking grid's own start would be the nearest free cell, which can lie past the
@@ -725,7 +760,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const nav = office.nav(), dest = r.path[r.path.length - 1];
     if (seat && Math.hypot(r.pos.x - at.x, r.pos.z - at.z) < 0.35) {
       const b = { x: at.x - Math.sin(seat.rotY) * SEAT_BACK, z: at.z - Math.cos(seat.rotY) * SEAT_BACK };
-      if (!nav.isBlocked(b.x, b.z)) { r.path = [b, ...nav.path(b, dest).slice(1)]; return; }
+      if (choose(r.pos, 'visitor', 'seatBack', { candidates: [b], needs: ['clear'], checks: { clear: (q) => !nav.isBlocked(q.x, q.z) } })) { r.path = [b, ...nav.path(b, dest).slice(1)]; return; }
     }
     const clearOfChair = (b) => {
       // Distance from the chair's centre to the segment from the person to b.
@@ -733,13 +768,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       const k = Math.max(0, Math.min(1, ((at.x - r.pos.x) * dx + (at.z - r.pos.z) * dz) / l2));
       return Math.hypot(r.pos.x + dx * k - at.x, r.pos.z + dz * k - at.z) > 0.6;
     };
-    let best = null;
-    for (const d of [0.4, 0.6, 0.8, 1.0, 1.2]) for (let i = 0; i < 16; i++) {
-      const a = (i / 16) * Math.PI * 2;
-      const b = { x: r.pos.x + Math.cos(a) * d, z: r.pos.z + Math.sin(a) * d };
-      if (nav.isBlocked(b.x, b.z) || !clearOfChair(b)) continue;
-      if (!best || Math.hypot(b.x - at.x, b.z - at.z) > Math.hypot(best.x - at.x, best.z - at.z)) best = b;
-    }
+    const best = choose(r.pos, 'visitor', 'stepBack', { ring: { radii: [0.4, 0.6, 0.8, 1.0, 1.2], count: 16 }, needs: ['clear', 'chairClear'], checks: {
+      clear: (q) => !nav.isBlocked(q.x, q.z), chairClear: clearOfChair,
+    }, score: (q) => -Math.hypot(q.x - at.x, q.z - at.z) });
     if (best) r.path = [best, ...nav.path(best, dest).slice(1)];
   }
   function clipboard() {
@@ -775,11 +806,9 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         around.push({ x: v.at.x + (fwd[0] * c + side[0] * sn) * d, z: v.at.z + (fwd[1] * c + side[1] * sn) * d });
       }
       const cols = (office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: COLUMN_SCREEN_R, top: col.h }));
-      const seen = (q) => inView(q) && !screenBlocked(q, [...cols, { x: v.at.x, z: v.at.z, r: 0.3, top: 1.1 }]);
-      // Clear of the desk's edge too: the chair beside it is walkable, the desk top is not.
-      const free = around.filter((q) => !nav.isBlocked(q.x, q.z, EXPLAIN_CLEAR));
-      // Best seen whole; then hidden only by the visitor (who hides part of them at most); then any.
-      const spot = free.find(seen) ?? free.find((q) => inView(q) && !screenBlocked(q, cols)) ?? free[0] ?? around[0];
+      const spot = choose(v.at, 'visitor', 'explain', { candidates: around, needs: ['clear'], checks: {
+        clear: (q) => !nav.isBlocked(q.x, q.z, EXPLAIN_CLEAR),
+      }, score: (q) => !inView(q) || screenBlocked(q, cols) ? 2 : screenBlocked(q, [...cols, { x: v.at.x, z: v.at.z, r: 0.3, top: 1.1 }]) ? 1 : 0, fallback: around[0] });
       spot.yaw = Math.atan2(screen.x - spot.x, screen.z - spot.z);
       a.temp = { anim: 'pointscreen', t: 1e6, goal: spot, moment: 'visitor', run: true, stage: { beat: 'explain', role: 'founder', target: screen } };
       walkTo(a, spot, true);
@@ -878,10 +907,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const yaw = getYaw();
     // Nearest ring round the item with a spot the camera sees clearly (not behind a desk's monitor).
     let cands = [];
-    for (let k = 0; k < 5 && !cands.some(inView); k++) cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55 + k * 0.3, 12);
+    for (let k = 0; k < 5 && !cands.some(inView); k++) cands = ringSpots(center, Math.max(size.x, size.z) / 2 + 0.55 + k * 0.3, 12, { moment: 'fumes', search: `ring${k}` });
     const want = [Math.sin(yaw + 0.95), Math.cos(yaw + 0.95)], want2 = [Math.sin(yaw - 0.95), Math.cos(yaw - 0.95)];
     const score = (s) => { const dx = s.x - center.x, dz = s.z - center.z, l = Math.hypot(dx, dz) || 1; return Math.max((dx * want[0] + dz * want[1]) / l, (dx * want2[0] + dz * want2[1]) / l); };
-    const spot = cands.filter(inView).sort((a, b) => score(b) - score(a))[0] ?? cands.sort((a, b) => score(b) - score(a))[0];
+    const spot = choose(center, 'fumes', 'visible', { candidates: cands, needs: ['inView'], score: (q) => -score(q), fallback: () => choose(center, 'fumes', 'fallback', { candidates: cands, score: (q) => -score(q) }) });
     if (!spot) return;
     // Facing the room, three-quarters to the camera, waving the fumes off behind them.
     spot.yaw = towardCamera(spot, center);
@@ -901,7 +930,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (lite()) { emote(r, 'heart', 2); return; }
     // Crouched on the carrier's far side, peering in over it toward the camera, so the face reads.
     const at = p.obj.getWorldPosition(new THREE.Vector3());
-    const spot = ringSpots(at, 0.75, 1, { far: true })[0] ?? ringSpots(at, 0.75, 1)[0];
+    const spot = ringSpots(at, 0.75, 1, { far: true, moment: 'carrier' })[0] ?? ringSpots(at, 0.75, 1, { moment: 'carrier', search: 'fallback' })[0];
     if (!spot) return;
     r.temp = { anim: 'peer', t: rnd(3.5, 5), goal: spot, back: true, moment: 'carrier', stage: { beat: 'peer', target: p.obj } };
     walkTo(r, spot);
@@ -988,6 +1017,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // on instead (both then walk the way itself, which is clear), turning over a short stretch where
   // across still fits.
   function twists(pm) {
+    for (const search of Object.keys(debug.spots.printer ?? {})) if (search.startsWith('carry:')) delete debug.spots.printer[search];
     // Desk chairs stand out past their cells on the nav grid; a carrier keeps clear of each seat.
     const chairs = [...office.placed.values()].filter((e) => e.desk?.seat).map((e) => e.desk.seat);
     const nav = office.nav();
@@ -995,7 +1025,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const raw = [];
     for (let s = 0; s <= pm.len + 1e-6; s += TWIST_STEP) {
       const c = along(pm.route, s), a = Math.atan2(c.dir[0], c.dir[1]) + Math.PI / 2;
-      raw.push([1, -1].every((k) => clear(c.x + Math.sin(a) * pm.side * k, c.z + Math.cos(a) * pm.side * k)) ? 0 : 1);
+      const q = { x: c.x + Math.sin(a) * pm.side, z: c.z + Math.cos(a) * pm.side,
+        partner: { x: c.x - Math.sin(a) * pm.side, z: c.z - Math.cos(a) * pm.side } };
+      const wide = choose(c, 'printer', `carry:${raw.length}`, { candidates: [q], needs: ['clear', 'partnerClear'], checks: {
+        clear: (p) => clear(p.x, p.z), partnerClear: (p) => clear(p.partner.x, p.partner.z),
+      }, fallback: { x: c.x, z: c.z, endOn: true } });
+      raw.push(wide.endOn ? 1 : 0);
     }
     const win = (arr, n, f) => arr.map((_, i) => f(arr.slice(Math.max(0, i - n), i + n + 1)));
     const endOn = win(raw, Math.round(END_ON_HOLD / TWIST_STEP), (xs) => Math.max(...xs));
@@ -1146,7 +1181,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // The wreck (hidden until the last blow) blocks the nav grid round its spot, and the prop is
     // placed with room clear around it, so inside its footprint only chairs are tested.
     const wreckBox = new THREE.Box3().setFromObject(pm.wreck).expandByScalar(0.35);
-    return (q) => !((!wreckBox.containsPoint(_q.set(q.x, 0.1, q.z)) && nav.isBlocked(q.x, q.z, BODY_R)) || chairs.some((h) => Math.hypot(h.x - q.x, h.z - q.z) < CHAIR_CLEAR));
+    return (q) => {
+      if (!wreckBox.containsPoint(_q.set(q.x, 0.1, q.z)) && nav.isBlocked(q.x, q.z, BODY_R)) return 'clear';
+      if (chairs.some((h) => Math.hypot(h.x - q.x, h.z - q.z) < CHAIR_CLEAR)) return 'chairClear';
+      return true;
+    };
   }
   // Two spots for the carriers to watch from: behind the printer as the camera sees it where there is
   // room, clear, in view, with nothing in front on screen and apart from each other. Null when there
@@ -1159,17 +1198,16 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const cands = [];
     for (const r of [WATCH_AT, WATCH_AT + 0.3]) for (const d of [0.7, -0.7, 0.45, -0.45, 1, -1, 1.3, -1.3, 0.2, -0.2, 1.7, -1.7]) {
       const q = { x: c.x + Math.sin(away + d) * r, z: c.z + Math.cos(away + d) * r };
-      if (ok(q)) cands.push({ q, cost: cost(q) });
+      cands.push(q);
     }
-    let best = null, bestCost = Infinity;
-    for (let i = 0; i < cands.length; i++) for (let j = i + 1; j < cands.length; j++) {
-      const [p, q] = [cands[i].q, cands[j].q];
-      if (Math.hypot(p.x - q.x, p.z - q.z) < 0.8) continue;
-      const total = cands[i].cost + cands[j].cost + (screenBlocked(p, [{ ...q, r: 0.3, top: 1.1, either: true }]) ? 1 : 0);
-      if (total < bestCost) { best = [p, q]; bestCost = total; }
-      if (!total) break;
+    function* pairs() {
+      for (let i = 0; i < cands.length; i++) for (let j = i + 1; j < cands.length; j++) yield { ...cands[i], partner: cands[j] };
     }
-    if (!best) return null;
+    const picked = choose(c, 'printer', 'watch', { candidates: pairs(), minScore: 0, needs: ['standClear', 'partnerClear', 'apart'], checks: {
+      standClear: ok, partnerClear: (q) => ok(q.partner), apart: (q) => Math.hypot(q.x - q.partner.x, q.z - q.partner.z) >= 0.8,
+    }, score: (q) => cost(q) + cost(q.partner) + (screenBlocked(q, [{ ...q.partner, r: 0.3, top: 1.1, either: true }]) ? 1 : 0) });
+    if (!picked) return null;
+    const best = [picked, picked.partner];
     // Each carrier to the nearer spot.
     const [p, q] = best, [a, b] = pm.from;
     const cross = Math.hypot(a.x - p.x, a.z - p.z) + Math.hypot(b.x - q.x, b.z - q.z) > Math.hypot(a.x - q.x, a.z - q.z) + Math.hypot(b.x - p.x, b.z - p.z);
@@ -1179,21 +1217,18 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const away = getYaw() + Math.PI;
     const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
     const carriers = pm.watch ?? [1, -1].map((k) => ({ x: c.x + perp[0] * (pm.side + 0.45) * k, z: c.z + perp[1] * (pm.side + 0.45) * k }));
-    const ok = standTest(pm), blocked = (q) => !ok(q);
+    const ok = standTest(pm);
     // Anything in the way on screen costs 2 (a column, the printer, or out of view), sharing a screen
     // strip with a carrier costs 1; the first spot with the least cost wins.
     const cols = (office.current.columns ?? []).map((col) => ({ x: col.x, z: col.z, r: COLUMN_SCREEN_R, top: col.h }));
     const strips = carriers.map((p) => ({ ...p, r: 0.3, top: 1.1, either: true }));
-    let best = null, bestCost = Infinity;
-    for (const d of [1.3, -1.3, 1, -1, 1.7, -1.7, 0.6, -0.6, 2.2, -2.2, 0, Math.PI]) {
-      const q = { x: c.x + Math.sin(away + d) * SWING_AT, z: c.z + Math.cos(away + d) * SWING_AT };
-      if (blocked(q) || carriers.some((p) => Math.hypot(p.x - q.x, p.z - q.z) < 0.6)) continue;
-      const cost = (inView(q) ? 0 : 2) + (screenBlocked(q, [...cols, { x: c.x, z: c.z, r: 0.35, top: 0.55 }]) ? 2 : 0) + (screenBlocked(q, strips) ? 1 : 0);
-      if (cost < bestCost) { best = q; bestCost = cost; }
-      if (!cost) break;
-    }
-    return best ?? { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT };
+    const candidates = [1.3, -1.3, 1, -1, 1.7, -1.7, 0.6, -0.6, 2.2, -2.2, 0, Math.PI].map((d) => ({ x: c.x + Math.sin(away + d) * SWING_AT, z: c.z + Math.cos(away + d) * SWING_AT }));
+    return choose(c, 'printer', 'swing', { candidates, minScore: 0, needs: ['standClear', 'carrierClear'], checks: {
+      standClear: ok, carrierClear: (q) => carriers.every((p) => Math.hypot(p.x - q.x, p.z - q.z) >= 0.6),
+    }, score: (q) => (inView(q) ? 0 : 2) + (screenBlocked(q, [...cols, { x: c.x, z: c.z, r: 0.35, top: 0.55 }]) ? 2 : 0) + (screenBlocked(q, strips) ? 1 : 0),
+    fallback: { x: c.x - c.dir[0] * SWING_AT, z: c.z - c.dir[1] * SWING_AT } });
   }
+
   // Whether anything in blockers ({ x, z, r, top }) stands in front of a person at q on screen: the
   // same test the office uses to fade a column over someone. `either` blockers also count from behind
   // (two people in one screen strip read as a tangle whichever is in front).
