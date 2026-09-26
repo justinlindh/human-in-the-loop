@@ -485,25 +485,27 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // over whatever they're doing), the two nearest turn to look, and a couple more sweat. Landed: a
   // couple of people light up. Nobody in a staged moment reacts.
   function postReaction(outcome) {
-    const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && !r.path.length);
+    const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && (outcome === 'backfired' || !r.path.length));
     if (!here.length) return;
     if (outcome === 'landed') {
       for (let i = 0; i < 2 && here.length; i++) emote(here.splice(Math.floor(Math.random() * here.length), 1)[0], 'sparkle', 2);
       return;
     }
     if (outcome !== 'backfired') return;
-    // The facepalm goes to someone nobody stands in front of on screen (the front of a group), and
-    // of those whoever faces the camera most squarely, so the hand at the forehead reads.
+    // Prefer a clear standing actor: a seated actor's monitor can hide the temple hand.
     const yaw = rig?.yaw ?? Math.PI / 4, cx = Math.sin(yaw), cz = Math.cos(yaw);
-    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.5; };
+    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.8; };
     const pillar = (r) => (office.current?.columns ?? []).some((c) => { const dx = c.x - r.pos.x, dz = c.z - r.pos.z, along = dx * cx + dz * cz; return along > 0 && along < 3 && Math.abs(dx * cz - dz * cx) < 0.55; });
     const clear = (r) => !pillar(r) && !here.some((x) => x !== r && hides(x, r));
-    // Clear and facing the camera both matter: in a standup ring the clear front row has its back
-    // to the camera, so someone facing it from elsewhere wins.
-    const facing = (r) => { const f = Math.cos(r.yaw - yaw); return f + (clear(r) ? 2 : 0) + (f > 0.3 ? 2 : 0); };
+    // Clear actors win first, then standing actors, then the most camera-facing heading.
+    const facing = (r) => Math.cos(r.yaw - yaw) + (clear(r) ? 8 : 0) + (!r.char.seated ? 4 : 0) + (!r.temp ? 2 : 0);
     here.sort((a, b) => facing(b) - facing(a));
     const palm = here.shift();
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
+    // Bring the temple hand toward the camera instead of behind the far cheek.
+    if (!palm.char.seated) palm.face = { yaw: yaw + 0.35, t: POST_REACT_S, post: true };
+    palm.char.setEmote(null);
+    palm.emoteT = 0;
     palm.char.gesture('facepalm', POST_REACT_S);
     const near = here.sort((a, b) => a.pos.distanceToSquared(palm.pos) - b.pos.distanceToSquared(palm.pos));
     // The nearest two turn to look. Nobody standing in front of the facepalmer on screen gets a
@@ -515,6 +517,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
   function faceToward(a, b) {
+    if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit') return;
     let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
     if (a.goal?.seated && !a.path.length && !a.temp) {
       let d = ((yaw - a.goal.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
@@ -654,7 +657,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
     }
 
-    if (r.path.length) {
+    // Pause a walking reactor without discarding their route or errand.
+    if (c.anim === 'facepalm' && r.face?.post && !r.temp?.moment) {
+      r.yaw = angleLerp(r.yaw, r.face.yaw, 1 - Math.exp(-dt * 8));
+    } else if (r.path.length) {
       stepWalker(r, dt, r.walkAnim);
       // Stepping off an item lasts until they reach the side they got on from.
       if (r.exitFrom && !r.path.includes(r.exitSide)) { r.exitFrom = null; r.exitSide = null; }

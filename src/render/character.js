@@ -334,15 +334,22 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   // Face geometry is the same for everyone, so it is baked once and shared (the per-person tint
   // lives on the material).
   const faces = {};
-  for (const k of ['ok', 'coasting', 'burnout']) {
-    for (const closed of [false, true]) {
+  for (const k of ['ok', 'coasting', 'burnout', 'wince']) {
+    for (const closed of k === 'wince' ? [true] : [false, true]) {
       const key = `${k}${closed ? ':closed' : ''}`;
       let geo = FACE_GEOS.get(key);
       if (!geo) {
         const e = eyes.clone();
-        e.scale.y = closed ? 0.15 : 1;
-        const parts = [e, mouths[k].clone()];
-        if (!closed) parts.push(shine.clone());
+        e.scale.y = k === 'wince' ? 0.45 : closed ? 0.15 : 1;
+        const parts = [e, mouths[k === 'wince' ? 'burnout' : k].clone()];
+        if (!closed || k === 'wince') {
+          const glint = shine.clone();
+          if (k === 'wince') {
+            glint.scale.y = e.scale.y;
+            glint.position.y = eyes.position.y + (shine.position.y - eyes.position.y) * e.scale.y;
+          }
+          parts.push(glint);
+        }
         headGroup.add(...parts);
         const once = bakeParts(parts, headGroup, bm, tintable);
         once.removeFromParent();
@@ -361,7 +368,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   for (const o of [eyes, shine, ...Object.values(mouths)]) o.removeFromParent();
   let faceMood = 'ok';
   let faceClosed = false;
-  const showFace = () => { for (const [k, o] of Object.entries(faces)) attach(o, headGroup, k === `${faceMood}${faceClosed ? ':closed' : ''}`); };
+  const showFace = () => {
+    const key = anim === 'facepalm' || anim === 'facepalmsit' ? 'wince:closed' : `${faceMood}${faceClosed ? ':closed' : ''}`;
+    for (const [k, o] of Object.entries(faces)) attach(o, headGroup, k === key);
+  };
   // Wrists hold nothing once the hands are baked into the arms; only the right one carries the mug.
   arms[0].wrist.removeFromParent();
 
@@ -397,7 +407,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let tired = false;
   let flush = 0;
   let flushFor = 0;
-  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
+  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = rand() * Math.PI * 2;
 
@@ -456,7 +466,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function pose(dt) {
     const s = Math.sin;
-    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
+    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
     const seated = SEATED.has(anim);
     if (seated) {
       tgt.bodyY = SEAT_HIP_Y - HIP_Y;
@@ -697,13 +707,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
       case 'facepalm': case 'facepalmsit':
-        // Head tipped into the left hand at the temple, the other arm limp: a bow deep enough to
-        // read, shallow enough that the big head hides neither the face nor the hand from above.
-        tgt.lean = 0.25;
-        tgt.headX = 0.36 + s(t * 1.2 + phase) * 0.03;
+        // A shallow bow keeps the wince and the left hand at the temple visible from above.
+        tgt.lean = 0.05;
+        tgt.headX = -0.5 + s(t * 1.2 + phase) * 0.03;
         tgt.headZ = 0.24 + s(t * 0.8) * 0.04;
-        tgt.armLX = -2.3;
-        tgt.armLZ = 0.7;
+        tgt.armLX = -2.65;
+        tgt.armLY = 0.08;
+        tgt.armLZ = 0.4;
         tgt.armRX = -0.35;
         tgt.armRZ = -0.08;
         break;
@@ -883,6 +893,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       headGroup.rotation.set(cur.headX, 0, cur.headZ);
       legs[0].rotation.set(cur.legL, 0, 0);
       legs[1].rotation.set(cur.legR, 0, 0);
+      arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
       arms[0].shoulder.rotation.set(cur.armLX, 0, cur.armLZ);
       arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
     }
@@ -907,6 +918,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function applyAnim(name) {
     if (name === anim) return;
     anim = name;
+    showFace();
     animT = 0;
     attach(mug, mugParent, name === 'sip' || name === 'water');
     attach(slice, mugParent, name === 'eat');
