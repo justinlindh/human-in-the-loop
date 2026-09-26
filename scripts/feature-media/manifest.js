@@ -74,6 +74,10 @@ const BOX = (prop) => `() => { const R = window.__hitlRender, T = R.THREE; const
 // A point offset from the staff's centre (found once per clip), for the hero's drift.
 const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return n ? { x: x / n, z: z / n } : null; })(); return c && { x: c.x + ${dx}, z: c.z + ${dz} }; })()` });
 
+// The decision card moved in from the screen's right edge and up, so a crop keeps a margin round
+// it and the page's corner controls don't cover it.
+const CARD_IN = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { translate: -180px -120px; }'; document.head.append(st); })();`;
+
 export const ITEMS = [
   // The office, by stage and time.
   {
@@ -167,11 +171,13 @@ export const ITEMS = [
     // automate-everything bot runs it until the live week raises the runaway cloud bill. The office
     // holds still under the card (the bill), so the camera pushes in on the hot rack.
     id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=4&speed=1', seconds: 22, warmup: 0.5,
-    setup: `(async () => { await ${RUNAWAY}; ${BARE}; })()`,
+    setup: `(async () => { await ${RUNAWAY}; ${BARE}; ${CARD_IN} })()`,
     actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...FOLLOW(BOX('rack_hot'), 2.8, 0, 22), ...CAMLOG(22)],
     screenshots: [10, 14, 18],
-    // Cropped round the smoking rack and the bill card, at native pixels.
-    out: [LOOP('automation', 12, 6, { x: 0.2917, y: 0.0556, w: 0.7083, h: 0.7083 }, 29)],
+    // Cropped round the smoking rack and the bill card at native pixels, from the stretch where the
+    // card keeps its incident footer, cut straight with no crossfade (the card changes height at the
+    // blend otherwise).
+    out: [{ ...LOOP('automation', 10.4, 6, { x: 0.2396, y: 0.0185, w: 0.7083, h: 0.7083 }, 29), loop: 'none' }],
   },
 
   // New on the page: Yak, the Office Space nods, and decisions you can see.
