@@ -74,15 +74,16 @@ export const BEATS = [
   // A meme posted mid-outage, and the reactions.
   // After the unlock card the week raises is closed (about 31 s in); speech bubbles hidden.
   { id: 'yak', item: 'site-yak-backfire', capture: { still: false, seconds: 36, screenshots: [] }, actions: [NO_SAY_T(0), YAK_PUSH(31.9, 'number of tabs')], from: 31.6, dur: 3.1 },
-  // PC LOAD LETTER: the carry, then all four hits, to the rap's last word. No narration.
-  { id: 'printer', item: 'share-printer', from: 20.8, dur: 5.7 },
+  // PC LOAD LETTER from the flying camera: the carry ending, then the hits, to the rap's last word. No narration.
+  { id: 'printer', item: 'trail-fly-printer', from: 20.0, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 7.9, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
   { id: 'cloud-bill', item: 'site-loop-automation', from: 10.0, dur: 4.0 },
   // Consolidation's redress is mostly cleanup: the beat frames the crowd, the busiest HQ.
   { id: 'era-consolidation', item: 'real-era-consolidation', actions: [NO_ERA_CARD(0)], capture: { camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 7.9, dur: 2.8 },
-  { id: 'waffle', item: 'site-loop-waffle', capture: { camera: [{ at: 12, target: PARTY, zoom: 2.4 }] }, from: 16.0, dur: 3.2 },
+  // The flying camera's orbit onto the waffle table.
+  { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
   // The Plateau: 18 people left, pushing in on the empty desks.
   { id: 'plateau', item: 'growth-late', from: 0.5, dur: 5.0 },

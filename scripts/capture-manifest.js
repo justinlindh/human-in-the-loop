@@ -201,6 +201,20 @@ export const BUILD_GLIDE = ({ itemId, at = 0.2, glide = 1.2, rest = 0.5, from = 
 };
 // Only the build bar and its tip over the office (the trailer's build beat): every other overlay hidden.
 export const BUILD_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle, #ui .chat.yak, #ui .menu { display: none !important; }'; document.head.append(st); })()`;
+// A flying-camera swoop (the renderer's fly(), dev only): once `ready` (JS giving the subject's
+// { x, z } or null) first returns a point, orbits in on it from `keys` ([t, angle deg, radius, height,
+// fov], seconds from the start and metres from the subject), looking at it at `lookY` the whole way.
+// Column fade on; labels, tilt-shift and floor rings off. The fly's ceiling and near-camera warnings
+// are pushed as capture marks ('FLYWARN').
+export const SWOOP = (ready, keys, lookY) => `(() => { const R = window.__hitlRender; if (!R.fly) { console.error('capture: this build has no flying camera'); return; }
+  let done = false; const K = ${JSON.stringify(keys.map(([t, a, r, h, fov]) => ({ t, a: (a * Math.PI) / 180, r, h, fov })))};
+  const tick = () => { const P = !done && (${ready})(); if (P) { done = true;
+    R.fly({ keys: K.map((k) => ({ t: k.t, pos: [P.x + k.r * Math.cos(k.a), k.h, P.z + k.r * Math.sin(k.a)], look: [P.x, ${lookY}, P.z], fov: k.fov })), fade: true, labels: false, tilt: false, rings: false }); }
+    if (!done) requestAnimationFrame(tick); }; tick();
+  setInterval(() => { const w = R.flying?.warnings; if (w?.length) (window.__captureMarks ??= []).push({ t: 0, label: 'FLYWARN ' + JSON.stringify(w.slice(0, 3)) }); }, 2000); })()`;
+// Where the printer is set down once the carry nears its end, and the Waffle Party's centre.
+export const PRINTER_DOWN = `() => { const pm = window.__hitlRender.moments.printerState; if (!pm || pm.cue < 8.9) return null; const e = pm.route[pm.route.length - 1]; return { x: e.x, z: e.z }; }`;
+export const PARTY_CENTER = `() => { const c = window.__hitlRender.incentives?.party?.center; return c ? { x: c.x, z: c.z } : null; }`;
 // Speech bubbles and work labels hidden: people in a moment's shot still chat about other things.
 export const NO_SAY = `(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()`;
 // Hides the decision card, for a still whose subject is what the decision staged.
@@ -651,5 +665,19 @@ export const ITEMS = [
     // card ("Nice!") stays up.
     actions: [...Array.from({ length: 96 }, (_, i) => ({ at: 0.1 + i, js: "[...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && ['Got it', 'Later'].includes(b.textContent.trim())).forEach((b) => b.click())" })), ...CHOOSE_WHEN(null, 0, 1, 96, 2)],
     screenshots: [60, 66, 72, 78, 84, 90, 96],
+  },
+  {
+    // Trailer scene 8: the printer smash from the flying camera, orbiting in as the carry ends and
+    // landing on the second bat hit. Needs a build with the flying camera.
+    id: 'trail-fly-printer', group: 'trailer', title: 'Trailer: the printer smash, flying camera', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 27, warmup: 6.5,
+    setup: `(() => { const st = document.createElement('style'); st.textContent = '#ui { display: none !important; }'; document.head.append(st); ${NO_SAY}; })()`,
+    actions: [{ at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), { at: 7, js: KEY('1', 'Digit1') }, ...DISMISS_AT([7.5, 8, 9], { escape: false }),
+      { at: 0.2, js: SWOOP(PRINTER_DOWN, [[0, 85, 8.5, 6, 38], [1.5, 68, 5.6, 4.2, 40], [3.0, 50, 4.0, 2.9, 42], [7, 42, 3.9, 2.7, 42]], 0.35) }],
+  },
+  {
+    // Trailer scene 13: the Waffle Party from the flying camera, orbiting in onto the waffle table.
+    id: 'trail-fly-waffle', group: 'trailer', title: 'Trailer: the Waffle Party, flying camera', query: 'seed=1&speed=1', seconds: 20,
+    setup: `(async () => { await ${WAFFLE_SETUP}; const st = document.createElement('style'); st.textContent = '#ui { display: none !important; }'; document.head.append(st); ${NO_SAY}; })()`,
+    actions: [...WAFFLE_ACTIONS(20), { at: 0.5, js: SWOOP(PARTY_CENTER, [[0, 85, 8.5, 6, 38], [1.2, 68, 5.6, 4.2, 40], [2.4, 50, 4.0, 2.9, 42], [7, 44, 3.9, 2.8, 42]], 0.6) }],
   },
 ];
