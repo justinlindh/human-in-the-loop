@@ -191,6 +191,27 @@ describe('decisions', () => {
   });
 });
 
+describe('desk-stage wait marker', () => {
+  it('a declined roll for an away subject leaves no wait marker', () => {
+    const s = busy();
+    const p = s.staff.find((x) => x.seniority === 'senior');
+    p.mood = 'away';
+    const fired = raiseDecision(ctxOf(s), 'resignation_letter', p.id);
+    expect(fired).toBe(false);
+    expect(s.flags.deskWait?.[`resignation_letter:${p.id}`]).toBeUndefined();
+  });
+
+  it('a genuinely queued wait for an away subject keeps its marker', () => {
+    const s = busy();
+    const p = s.staff.find((x) => x.seniority === 'senior');
+    p.mood = 'away';
+    const fired = raiseDecision(ctxOf(s), 'resignation_letter', p.id, { queue: true });
+    expect(fired).toBe(false);
+    expect(s.flags.deskWait[`resignation_letter:${p.id}`]).toBe(s.week);
+    expect(s.scheduled.some((x) => x.kind === 'event' && x.payload.eventId === 'resignation_letter' && x.payload.subjectId === p.id)).toBe(true);
+  });
+});
+
 describe('delayed consequences', () => {
   it('a later effect applies exactly at week + inWeeks', () => {
     const s = busy();
