@@ -1,9 +1,10 @@
-// One diagnostic store per office, shared by props and moments. Each search replaces its previous
-// record, so a long-running game retains searches, not a frame-by-frame history.
+// One diagnostic store per office, shared by props and moments. It records only while `on` (a check
+// or trace turns it on); each search replaces its previous record, so a long-running game retains
+// searches, not a frame-by-frame history.
 const offices = new WeakMap();
 export function spotDebug(office) {
   let debug = offices.get(office);
-  if (!debug) { debug = { spots: Object.create(null) }; offices.set(office, debug); }
+  if (!debug) { debug = { on: false, spots: Object.create(null) }; offices.set(office, debug); }
   return debug;
 }
 
@@ -26,34 +27,36 @@ const point = (q) => q == null ? null : Object.fromEntries(['x', 'y', 'z', 'yaw'
 // ties keep input order. A first-fit success or a declared minimum score stops enumeration.
 export function pickSpot(center, { candidates, ring, needs = [], checks = {}, score = null, minScore = -Infinity, fallback = null, debug, moment, search = 'spot' }) {
   for (const need of needs) if (typeof checks[need] !== 'function') throw new Error(`Unknown spot requirement: ${need}`);
-  const record = { search, center: point(center), candidates: [], selected: null, fallback: false };
-  let best = null, bestScore = Infinity, bestIndex = -1;
+  // Candidate rows are built only when diagnostics are recording; the search itself is the same.
+  const record = debug?.on && moment ? { search, center: point(center), candidates: [], selected: null, fallback: false } : null;
+  let best = null, bestScore = Infinity, bestIndex = -1, index = -1;
   for (const q of candidates ?? spotRing(center, ring)) {
-    const reasons = [];
+    index++;
+    let why = null;
     for (const need of needs) {
       const result = checks[need](q);
-      if (result !== true) { reasons.push(typeof result === 'string' ? result : need); break; }
+      if (result !== true) { why = typeof result === 'string' ? result : need; break; }
     }
-    const value = reasons.length ? null : score ? score(q) : 0;
-    if (value !== null && !Number.isFinite(value)) reasons.push('no finite score');
-    const row = { ...point(q), reasons, score: Number.isFinite(value) ? value : null };
-    if (q.partner) row.partner = point(q.partner);
-    record.candidates.push(row);
-    if (reasons.length || value >= bestScore) continue;
-    best = q; bestScore = value; bestIndex = record.candidates.length - 1;
+    const value = why ? null : score ? score(q) : 0;
+    if (value !== null && !Number.isFinite(value)) why = 'no finite score';
+    if (record) {
+      const row = { ...point(q), reasons: why ? [why] : [], score: Number.isFinite(value) ? value : null };
+      if (q.partner) row.partner = point(q.partner);
+      record.candidates.push(row);
+    }
+    if (why || value >= bestScore) continue;
+    best = q; bestScore = value; bestIndex = index;
     if (!score || bestScore <= minScore) break;
   }
-  for (let i = 0; i < record.candidates.length; i++) {
-    const row = record.candidates[i];
-    if (!row.reasons.length && i !== bestIndex) row.reasons.push('lower-ranked candidate');
-  }
-  if (!best) {
-    best = typeof fallback === 'function' ? fallback() : fallback;
-    record.fallback = best != null;
-  }
-  record.selected = point(best);
-  record.selectedIndex = bestIndex;
-  if (debug && moment) {
+  if (!best) best = typeof fallback === 'function' ? fallback() : fallback;
+  if (record) {
+    for (let i = 0; i < record.candidates.length; i++) {
+      const row = record.candidates[i];
+      if (!row.reasons.length && i !== bestIndex) row.reasons.push('lower-ranked candidate');
+    }
+    record.fallback = bestIndex < 0 && best != null;
+    record.selected = point(best);
+    record.selectedIndex = bestIndex;
     const searches = debug.spots[moment] ??= Object.create(null);
     searches[search] = record;
   }
