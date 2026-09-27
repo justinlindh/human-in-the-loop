@@ -13,14 +13,13 @@ export const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 
 export const MAX_STEP = 0.25;
 // How long a speech bubble stays up, in real seconds: long enough to read at a relaxed pace. Faster
 // game speeds shorten it a little, but never below the time it takes to read the line
-// (floorBase + chars / charsPerSecond), since reading speed does not change with the game's.
+// (readFloorSeconds + chars / readCharsPerSecond), since reading speed does not change with the game's.
 // The renderer, the pacer, and the pacing simulator all use this.
-export const READ = { base: 1.8, perChar: 0.06, min: 2.5, max: 7, floorBase: 1, charsPerSecond: 15 };
-const READ_SPEED_FACTOR = (speed) => (speed >= 4 ? 0.6 : speed >= 2 ? 0.75 : 1);
+const READ_SPEED_FACTOR = (speed) => (speed >= 4 ? B.readSpeedFactor4x : speed >= 2 ? B.readSpeedFactor2x : 1);
 export function readSeconds(text, speed = 1) {
   const n = typeof text === 'string' ? text.length : 0;
-  const at1x = Math.min(READ.max, Math.max(READ.min, READ.base + READ.perChar * n));
-  const reading = Math.min(READ.max, READ.floorBase + n / READ.charsPerSecond);
+  const at1x = Math.min(B.readMaxSeconds, Math.max(B.readMinimumSeconds, B.readBaseSeconds + B.readSecondsPerChar * n));
+  const reading = Math.min(B.readMaxSeconds, B.readFloorSeconds + n / B.readCharsPerSecond);
   const words = typeof text === 'string' ? text.trim().split(/\s+/).filter(Boolean).length : 0;
   return Math.max(at1x * READ_SPEED_FACTOR(speed), reading, B.readMinimumSeconds + B.readFadeSeconds, words * B.readSecondsPerWord + B.readFadeSeconds);
 }
