@@ -104,7 +104,7 @@ export const BEATS = [
 // Optional: `swaps` (tracks that replace the bed for a stretch, crossfaded over `fade`), `stingers`, and
 // `duck` ({ db, attack, release }: a dip under each narrator line).
 export const MUSIC = {
-  bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -14, fadeIn: 0.3 },
+  bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -8, fadeIn: 0.3 },
   // The printer's own cue replaces the bed for its beat: 9.9 s of the cue lands on the beat's cut.
   swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
   stingers: [],
