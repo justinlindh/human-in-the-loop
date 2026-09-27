@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { chatSystem } from '../../src/sim/chat.js';
+import { chatSystem, emitChat } from '../../src/sim/chat.js';
+import { startOutage, clearOutage } from '../../src/sim/incidents.js';
+import { createYakPacer } from '../../src/yak-pacing.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { TALK, RUNNING_JOKES } from '../../src/data/talk.js';
@@ -32,6 +34,41 @@ const week = (s, prior = []) => {
 };
 
 describe('office talk', () => {
+  it('links outage exchanges to their occurrence without tagging incident history or unrelated chat', () => {
+    const s = busy(12);
+    startOutage(makeCtx(s), { productId: s.products[0].id, kind: 'ransomware', severity: 1 });
+    const occurrence = s.flags.outageSeq;
+    const messages = [];
+    for (let w = 0; w < 80; w++) messages.push(...week(s).filter(e => e.type === 'chat'));
+    const tagged = messages.filter(e => s.flags.outageChat?.[e.id] === occurrence);
+    expect(tagged.filter(e => e.channel === 'incidents').length).toBeGreaterThan(0);
+    expect(tagged.some(e => e.replyTo)).toBe(true);
+    expect(messages.some(e => s.flags.outageChat?.[e.id] === undefined)).toBe(true);
+    const q = createYakPacer();
+    q.enqueue(tagged, { state: s });
+    clearOutage(makeCtx(s), '');
+    startOutage(makeCtx(s), { productId: s.products[0].id, kind: 'ransomware', severity: 1 });
+    expect(s.flags.outageSeq).not.toBe(occurrence);
+    expect(q.step(0, true, { state: s })).toEqual([]);
+    expect(q.queued).toBe(0);
+    expect(s.chatLog.some(e => tagged.some(t => t.id === e.id))).toBe(true);
+  });
+
+  it('keeps context serializable and bounded by chat history while queued entries retain it', () => {
+    const s = busy();
+    // Saves without an outage sequence can still have an active outage.
+    s.outage = { productId: s.products[0].id, kind: 'ransomware', severity: 1, weeks: 0 };
+    const c = makeCtx(s);
+    const e = emitChat(c, { person: s.staff[0], text: 'Investigating.', outage: true });
+    const saved = JSON.parse(JSON.stringify(s));
+    expect(saved.flags.outageChat[e.id]).toBe(0);
+    const q = createYakPacer();
+    q.enqueue([e], { state: saved });
+    for (let i = 0; i < B.chatLogSize; i++) emitChat(c, { person: s.staff[0], text: 'Routine.' });
+    expect(s.flags.outageChat).toEqual({});
+    clearOutage(c, '');
+    expect(q.step(0, true, { state: s })).toEqual([]);
+  });
   it('spoken lines have the say shape, come from people in the office, and never reach Yak', () => {
     const s = busy(2);
     s.staff[3].remote = true;
@@ -160,5 +197,9 @@ describe('the @channel running joke', () => {
       warranted = week(t).find((e) => e.type === 'chat' && e.text.startsWith('@channel') && e.text.includes(p.name));
     }
     expect(warranted).toBeTruthy();
+    expect(t.flags.outageChat[warranted.id]).toBe(0);
+    const replies = t.chatLog.filter(e => e.replyTo === warranted.id);
+    expect(replies.length).toBeGreaterThan(0);
+    expect(replies.every(e => t.flags.outageChat[e.id] === 0)).toBe(true);
   });
 });
