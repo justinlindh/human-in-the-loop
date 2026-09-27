@@ -17,7 +17,7 @@
 
 ## Changes to how the game plays
 
-None, or each change a player would notice in how the game plays (pacing, pausing, speech, rules, balance). Anything listed here needs the owner's approval.
+None <!-- or each change a player would notice in how the game plays (pacing, pausing, speech, rules, balance). Anything listed here needs the owner's approval. -->
 
 ## Affects
 
