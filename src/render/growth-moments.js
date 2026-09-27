@@ -25,5 +25,5 @@ export function createGrowthMoments() {
     for (const [id, value] of pending) if (ready(id)) { pending.delete(id); return value; }
     return null;
   }
-  return { sync, take };
+  return { sync, take, has: id => pending.has(id) };
 }

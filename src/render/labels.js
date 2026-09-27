@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { B } from '../sim/balance.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE as P } from './palette.js';
 import { readSeconds } from './reading.js';
@@ -61,6 +62,7 @@ export function createLabels(parent) {
       const obj = new CSS2DObject(el);
       l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0, dx: 0, dy: 0 };
     }
+    l.growthOwner = null;
     l.dx = l.dy = 0;
     l.px = 0; l.hideK = 1;
     return l;
@@ -126,6 +128,28 @@ export function createLabels(parent) {
     parent.add(l.obj);
     live.push(l);
     place(l);
+    return l;
+  }
+
+  // Growth shares the stat layout, but cannot recycle an existing bubble to make room.
+  function growth(text, icons, follow, seconds) {
+    if (live.length >= MAX) return null;
+    const l = acquire();
+    l.growthOwner = {};
+    l.kind = 'stat'; l.num = null; l.tone = 'growth';
+    l.el.className = 'hitl-lbl hitl-stat hitl-growth';
+    l.inner.textContent = text;
+    for (const key of icons) {
+      const img = document.createElement('img');
+      img.src = `${import.meta.env.BASE_URL}icons/glyphs/${key}.svg`;
+      img.alt = key; img.width = img.height = B.growthOffice.iconPixels;
+      img.style.verticalAlign = 'middle'; img.style.marginLeft = `${B.growthOffice.iconGap}px`;
+      l.inner.appendChild(img);
+    }
+    l.inner.style.background = P.gold;
+    l.w = null; l.t = 0; l.life = seconds; l.rise = B.growthOffice.rise;
+    l.follow = follow; l.offsetY = B.growthOffice.labelY; l.jit.set(0, 0, 0);
+    parent.add(l.obj); live.push(l); place(l);
     return l;
   }
 
@@ -306,6 +330,31 @@ export function createLabels(parent) {
     l.hideK = (l.hideK ?? 1) + ((hidden ? 0 : 1) - (l.hideK ?? 1)) * k;
   }
 
+  // Only growth moves to make room: the speech and ordinary-stat admission and positions stay theirs.
+  function layoutGrowth(camera, w, h) {
+    const badges = live.filter(l => l.growthOwner);
+    if (!badges.length) return;
+    for (const l of live) if (!l.w) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+    const occupied = live.filter(l => !l.growthOwner).map(l => {
+      const r = rectOf(l, camera, w, h);
+      return { left: r.left + l.dx, right: r.right + l.dx, top: r.top + l.dy, bottom: r.bottom + l.dy + (l.kind === 'say' ? TAIL : 0) };
+    });
+    occupied.push(...obstacles(badges.map(l => l.follow), camera, w, h, 0));
+    for (const l of badges) {
+      const r = rectOf(l, camera, w, h);
+      let dy = l.dy;
+      for (let pass = 0; pass < MAX; pass++) {
+        const box = { ...r, top: r.top + dy, bottom: r.bottom + dy };
+        const hit = occupied.find(p => hits(box, p));
+        if (!hit) break;
+        dy = Math.min(dy, hit.top - GAP - r.bottom);
+      }
+      l.dx = 0; l.dy = dy;
+      l.inner.style.transform = l.inner.style.transform.replace(/^translate\([^)]*\)/, `translate(0px, ${dy.toFixed(1)}px)`);
+      occupied.push({ ...r, top: r.top + dy, bottom: r.bottom + dy });
+    }
+  }
+
   function layout(dt, camera, w, h, overlay) {
     occT += dt;
     if (occT > 0.5) { occT = 0; readOccluders(overlay); }
@@ -320,6 +369,7 @@ export function createLabels(parent) {
     const k = 1 - Math.exp(-dt * 14);
     if (!says.length) {
       for (const l of stats) l.dx += (0 - l.dx) * k;
+      layoutGrowth(camera, w, h);
       drawLeads(segs, overlay);
       return;
     }
@@ -398,6 +448,7 @@ export function createLabels(parent) {
       }
       l.dx += (dx - l.dx) * k;
     }
+    layoutGrowth(camera, w, h);
     drawLeads(segs, overlay);
   }
 
@@ -407,5 +458,5 @@ export function createLabels(parent) {
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, say, update, layout, clearFor, speechCount, speaking, get count() { return live.length; } };
+  return { stat, say, growth, update, layout, clearFor, speechCount, speaking, get count() { return live.length; } };
 }

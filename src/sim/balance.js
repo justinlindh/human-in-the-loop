@@ -13,6 +13,12 @@ export const B = {
   growthDigestMin: 3,
   // Level and training entries kept in a person's growth history; milestones are kept for good.
   growthHistoryMax: 20,
+  growthOffice: {
+    smallSeconds: 0.85, mediumSeconds: 1.8, settleSeconds: 0.5, pumpReach: 1.5, queueMax: 8, maxAge: 6,
+    liveMax: 3, lowMax: 1, gap: 0.22, fastGap: 0.9, coworkerMax: 2, nearby: 2.5,
+    labelY: 1.65, rise: 0.2, ringRadius: 0.48, ringOpacity: 0.22, ringY: 0.025, ringInner: 0.8, ringSegments: 32, iconPixels: 18, iconGap: 4,
+    pumpAngle: 2.5, pumpSwing: 0.18, pumpRate: 9, clapAngle: 0.46, clapSwing: 0.08, clapReach: 1.85, clapRate: 14, turnLimit: 0.85,
+  },
   xpPerLevel: 60, xpPerWeekWorking: 8, promoteMidLevel: 5, promoteSeniorLevel: 10, maxLevel: 20,
   juniorXpAutomationPenalty: 0.7, mentorXpMult: 2.2, mentorOutputMult: 0.6,
   basePoints: 4, pointsPerLevel: 1.1,

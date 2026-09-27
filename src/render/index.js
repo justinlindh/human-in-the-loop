@@ -396,6 +396,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       perf.frames++;
     },
     dispose() {
+      staff?.officeGrowth.dispose();
       rig.dispose();
       post.dispose();
       renderer.dispose();
@@ -447,7 +448,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },
     get incentivesFrame() { return staff?.incentives.frameAt ?? null; },
-    get stats() { return { perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
+    get stats() { return { growth: staff?.officeGrowth.stats ?? null, perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };
   // Dev builds expose the renderer for snap-tool experiments (never read by game code).
   if (import.meta.env?.DEV) window.__hitlRender = api;

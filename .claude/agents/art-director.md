@@ -22,3 +22,5 @@ How you work:
 - Prefer Blender for anything the player looks at closely (characters, hero furniture); use procedural Three.js geometry for walls, floors, and repeated clutter.
 - Keep performance in mind from the start: shared materials, merged static geometry, pooled labels and particles, bounded texture updates.
 - After each task: open a PR per CLAUDE.md (a fresh `<lane>/<topic>` branch from `origin/main`, auto-merge on, `scripts/ci-pr.sh`, evidence media via `scripts/pr-media.sh`), then end your turn with the report: the PR link, the commit hash, and the evidence. Media that needs the user's eyes goes to team-lead. For visual work, include screenshot paths and your own top three remaining weaknesses.
+
+For office growth, use `blender/checks/growth-live.mjs` to capture actual level, promotion, trait and training producers through the game loop. Check full badge lifetimes and nearby acknowledgement in both views and rig modes; use its 40-person burst for interleaved baseline/candidate cost checks and Low/software degradation. Keep ordinary bubbles in the evidence and test pause, menus, speed changes, loading, departures and priority ownership.

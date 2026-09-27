@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { B } from '../sim/balance.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
@@ -19,7 +20,7 @@ const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
+const ANIMS = ['growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -36,7 +37,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
+const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
 function roleMaterial(role, hex) {
@@ -520,6 +521,20 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = run ? 0.22 : tired ? 0.2 : 0.04;
         if (tired && !run) { tgt.headX = 0.25; tgt.armLZ = 0.05; tgt.armRZ = -0.05; }
         tgt.twist = s(t * f) * 0.08;
+        break;
+      }
+      case 'growthpump':
+      case 'growthpumpsit':
+        tgt.armRX = -B.growthOffice.pumpReach;
+        if (seated) tgt.armLX = TYPE_REACH;
+        tgt.armRZ = B.growthOffice.pumpAngle + s(animT * B.growthOffice.pumpRate) * B.growthOffice.pumpSwing;
+        tgt.headX = -B.growthOffice.pumpSwing;
+        break;
+      case 'growthclap':
+      case 'growthclapsit': {
+        const clap = B.growthOffice.clapAngle + s(animT * B.growthOffice.clapRate) * B.growthOffice.clapSwing;
+        tgt.armLX = tgt.armRX = -B.growthOffice.clapReach;
+        tgt.armLZ = clap; tgt.armRZ = -clap;
         break;
       }
       case 'celebrate': {
