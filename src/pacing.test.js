@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createPacer, WEEK_SECONDS, MAX_STEP, readSeconds, READ } from './pacing.js';
+import { B } from './sim/balance.js';
 
 const say = (id, staffId, text, replyTo = null) => ({ type: 'say', id, week: 0, staffId, text, toId: null, replyTo });
 const chat = (id, fromId, text) => ({ type: 'chat', id, fromId, from: fromId, text, replyTo: null, channel: 'general', reactions: {} });
@@ -16,7 +17,7 @@ function run(p, seconds, { speed = 1, running = true } = {}) {
 
 describe('readSeconds', () => {
   it('grows with length within its bounds, and speed shortens it only a little', () => {
-    expect(readSeconds('')).toBeGreaterThanOrEqual(2.9);
+    expect(readSeconds('')).toBe(B.readMinimumSeconds + B.readFadeSeconds);
     expect(readSeconds('x'.repeat(40))).toBeCloseTo(READ.base + READ.perChar * 40);
     expect(readSeconds('x'.repeat(500))).toBe(READ.max);
     for (const text of ['ok', 'x'.repeat(40), 'x'.repeat(200)]) {
