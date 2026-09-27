@@ -653,13 +653,13 @@ export const ITEMS = [
   {
     // Trailer beat 4: on the Office Floor the player places a foosball table with the cursor, and two
     // people come over to play.
-    id: 'trail-build', group: 'trailer', title: 'Trailer: build mode, a foosball table placed, then played', query: 'seed=1&speed=1&time=day', seconds: 18, warmup: 1,
+    id: 'trail-build', group: 'trailer', title: 'Trailer: build mode, a foosball table placed, then played', query: 'seed=1&speed=1&time=day', seconds: 10, warmup: 1,
     setup: `(async () => { await ${PLAY({ weeks: 400, until: 's.office.stage === 1 && s.staff.length >= 10', after: IN_OFFICE + 's.cash = Math.max(s.cash, 50000);' })}; ${BUILD_ONLY}; ${NO_SAY}; })()`,
     // Closer than the fitted view from the first frame, so the spot search sees the final framing.
-    actions: [...CLEAR_EARLY, ...BUILD_GLIDE({ itemId: 'foosball', at: 0.6 }), { at: 3.2, js: KEY('Escape') }, ...CAMLOG(18), { at: 0, js: PROP_USE_MARKS }],
+    actions: [...CLEAR_EARLY, ...BUILD_GLIDE({ itemId: 'foosball', at: 0.6 }), { at: 3.2, js: KEY('Escape') }, ...CAMLOG(10), { at: 0, js: PROP_USE_MARKS }],
     // Holds the build view, then eases in on the table as the pair walks over; play starts near 5.9 s.
     camera: [{ at: 0, target: { js: FITTED_VIEW }, zoom: 1.7 }, { at: 5.0, zoom: 1.7 }, { at: 7.0, target: { js: PLACED_AT('foosball') }, zoom: 2.8, ease: 'inOut' }],
-    screenshots: [1.2, 2.2, 2.6, 5, 7, 8, 10, 12],
+    screenshots: [1.2, 2.6, 5, 7, 8.5, 9.5],
   },
   {
     // Trailer beat 5a: the hire panel open over the Office Floor, a candidate hired, at the first week

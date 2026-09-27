@@ -74,7 +74,7 @@ export const BEATS = [
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
-  { id: 'build', item: 'trail-build', capture: { seconds: 10 }, from: 0.9, dur: 8.4 },
+  { id: 'build', item: 'trail-build', from: 0.9, dur: 8.4 },
   // The hire panel: a candidate hired.
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
