@@ -244,8 +244,27 @@ PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file
 [[ "$out" == *"Gates run"* ]] || fail "pr-create-check should flag an empty Gates run entry (got: $out)"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "npm test" "ok")"; [ -z "$out" ] || fail "pr-create-check should ignore other commands"
 
+# merge-skim: after a merge of origin/main, the tooling commits it brought in; once per merge.
+up="$tmp/up"; mkdir -p "$up/scripts" "$up/src" "$up/docs/toolkit"; echo a >"$up/scripts/a.sh"; echo a >"$up/src/g.js"
+g -C "$up" init -q -b main && g -C "$up" add -A && g -C "$up" commit -qm base
+g clone -q "$up" "$tmp/w" 2>/dev/null; w="$tmp/w"
+post() { jq -n --arg c "$1" --arg d "${2:-$tmp}" '{hook_event_name: "PostToolUse", tool_name: "Bash", cwd: $d, tool_input: {command: $c}, tool_response: {}}'; }
+skim() { run merge-skim.sh "$(post "$@")"; ctx="$(jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$out" 2>/dev/null)"; }
+echo b >"$up/scripts/a.sh"; echo "tool: x" >"$up/docs/toolkit/newtool.md"; g -C "$up" add -A && g -C "$up" commit -qm 'feat(integ): a new tool'
+echo b >"$up/src/g.js"; g -C "$up" commit -qam 'feat(ui): game only'
+g -C "$w" fetch -q && g -C "$w" merge -q --no-edit origin/main
+skim "cd $w && git fetch -q origin && git merge -q --no-edit origin/main"
+grep -q 'brought in 1 tooling' <<<"$ctx" && grep -q 'a new tool' <<<"$ctx" && ! grep -q 'game only' <<<"$ctx" && grep -q 'New toolkit pages: newtool' <<<"$ctx" || fail "merge-skim lists the tooling commits: $out"
+skim "cd $w && git merge -q --no-edit origin/main"; [ -z "$out" ] || fail "merge-skim reports a merge once: $out"
+echo c >"$up/src/g.js"; g -C "$up" commit -qam 'fix(ui): game only again'; g -C "$w" fetch -q && g -C "$w" merge -q --no-edit origin/main
+skim "git -C $w merge origin/main"; [ -z "$out" ] || fail "merge-skim is silent when no tooling came in: $out"
+echo c >"$up/scripts/a.sh"; g -C "$up" commit -qam 'fix(integ): tool fix'; g -C "$w" fetch -q && g -C "$w" merge -q --no-edit origin/main
+skim "git -C $w status"; [ -z "$out" ] || fail "merge-skim ignores commands that don't merge: $out"
+skim "git -C $w merge -q --no-edit origin/main"; grep -q 'tool fix' <<<"$ctx" || fail "merge-skim follows git -C: $out"
+skim "cd $w && git log origin/main"; [ -z "$out" ] || fail "merge-skim ignores a log of origin/main: $out"
+
 # Every hook fails open on nonsense input.
-for h in bash-guard.sh lane-guard.sh behind-main.sh pr-create-check.sh; do
+for h in bash-guard.sh lane-guard.sh behind-main.sh pr-create-check.sh merge-skim.sh; do
   run "$h" 'not json'; [ $rc -ne 2 ] || fail "$h should fail open on bad input"
 done
 
