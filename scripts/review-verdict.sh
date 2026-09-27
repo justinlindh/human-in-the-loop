@@ -3,11 +3,14 @@
 # "**Verdict: pass** (head <sha7>)" or "**Verdict: changes requested** (head <sha7>)", then the commit
 # status "review" on that head (success for pass, failure for changes), linked to the review.
 # Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--repo <owner/name>]
-#   <body-file>  the review text; its first line is also the status description
+#   <body-file>  the review text; its first line is also the status description. A pass on a PR with
+#                media, or one that changes what a player sees or hears, needs a "Watched:" line
+#                naming each media file (scripts/lib/watched-media.sh), or it is refused (exit 1).
 #   --head       the head that was reviewed; refuses if the PR's head has moved since
 #   --repo       the repository the PR is in, one of the two this project uses (default: the one this
 #                checkout points at)
-# Exit 0 when posted, 1 when the head moved (before posting, or during it), 2 on usage or lookup errors.
+# Exit 0 when posted, 1 when the head moved (before posting, or during it) or a pass lacks its
+# watched media, 2 on usage or lookup errors.
 set -uo pipefail
 
 usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--repo <owner/name>]"
@@ -36,6 +39,11 @@ if [ -n "$want" ]; then
   case "$head" in "$want"*) ;; *) echo "review-verdict: #$pr is now at ${head:0:7}, not the reviewed $want; review the new head" >&2; exit 1 ;; esac
 fi
 short="${head:0:7}"
+# A pass on a PR judged by its media names every media file it watched (scripts/lib/watched-media.sh).
+if [ "$verdict" = pass ]; then
+  "$(dirname "$0")/lib/watched-media.sh" "$pr" "$body" ${repo:+--repo "$repo"}; rc=$?
+  [ $rc -eq 0 ] || { [ $rc -eq 1 ] && echo "review-verdict: pass not posted" >&2; exit "$rc"; }
+fi
 
 if [ "$verdict" = pass ]; then line="**Verdict: pass** (head $short)"; state=success
 else line="**Verdict: changes requested** (head $short)"; state=failure; fi

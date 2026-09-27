@@ -23,7 +23,7 @@ For a Dependabot PR (author `dependabot[bot]`, title `fix(deps): ...`, `build(de
 - Local CI never runs a bot PR on its own: it would execute the new packages' install scripts. You clear it first.
 - Read the diff without installing anything: `gh pr diff <n>`. Check that only `package.json`, `package-lock.json` or `.github/workflows/` change, that each bumped package's `resolved` URL is on registry.npmjs.org, and that the lockfile gains no unexpected packages and no new `"hasInstallScript": true` entries.
 - Read the changelog or release notes linked in the PR body for every bump, a major one especially, and note anything that affects the game or the tooling.
-- Post the verdict with `scripts/review-verdict.sh <n> pass|changes <body> --head <sha>`, saying what you read.
+- Post the verdict with `scripts/review-verdict.sh <n> pass|changes <body> --head <sha>`, saying what you read. A pass on a PR with media (or one that changes what a player sees or hears) names every media file you watched on a `Watched:` line; the script refuses it otherwise.
 - On a pass, run `scripts/ci-pr.sh <n> --allow-bot --head <sha>` from a checkout of `main`. It refuses anything but a same-repo Dependabot PR whose commits are all Dependabot's, that touches only those files, and whose head has your review pass. Then turn on auto-merge: `gh pr merge <n> --auto --merge`.
 
 For scene pose iteration, `pose.mjs --scene` retains a measured bootstrap draw and skips subsequent sampling draws. Use `--render-reference` and `--profile <file>` for identical-workload comparisons; `pose-nodraw.mjs` checks exact row parity, actual draw calls and ordinary harness behavior. Do not claim fully draw-free initialization or subsecond cold startup from this sampling optimization.
