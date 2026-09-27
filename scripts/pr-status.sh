@@ -15,11 +15,13 @@ red="$(gh issue list --state open --label main-red --json number,title --jq '.[]
 echo "main ${main_sha:0:7}, main guard ${guard}${red:+; open: $red}"
 echo
 printf '%-5s %-10s %-20s %-8s %-9s %-28s %-11s %-30s %s\n' PR MERGE HOLD REVIEW LOCAL-CI 'CHECKS NOT PASSING' OWNER ASK TITLE
+# Owner records count only from logins in scripts/ci-trusted (anyone can comment on a public repo).
+trusted="$(grep -Ev '^[[:space:]]*(#|$)' "$(dirname "$0")/ci-trusted" | jq -Rnc '[inputs]')"
 for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '.[].number' | sort -n); do
   gh pr view "$pr" --json number,title,mergeStateStatus,isDraft,labels,statusCheckRollup,comments,headRefName,headRefOid --jq '
     def ctx(n): [(.statusCheckRollup // [])[] | select(.__typename == "StatusContext" and .context == n) | .state] | first // "none";
     # The owner record (scripts/pr-owner.sh): its owner and ask, the ask marked (old) once the head moved.
-    ([.comments[] | select(.body | contains("<!-- hitl-owner"))] | last | .body // "") as $rec
+    ([.comments[] | select((.body | contains("<!-- hitl-owner")) and (.author.login as $a | '"$trusted"' | index($a)))] | last | .body // "") as $rec
     | def field(k): ($rec | capture("(?m)^" + k + ": (?<v>.*)$") | .v) // "";
     (field("owner") | if . == "" then null else . end) as $owner
     | field("ask") as $ask | field("head") as $at |
