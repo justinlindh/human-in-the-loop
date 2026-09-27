@@ -165,6 +165,7 @@ step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
 tool_step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
