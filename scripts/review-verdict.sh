@@ -51,8 +51,7 @@ fi
 short="${head:0:7}"
 W=(); for w in ${watched[@]+"${watched[@]}"}; do W+=(--watched "$w"); done
 for w in ${superseded[@]+"${superseded[@]}"}; do W+=(--superseded "$w"); done
-# File names from URLs or names, comma separated.
-names() { for w in "$@"; do sed -E 's/[?#].*//; s|.*/||' <<<"$w"; done | sort -u | paste -sd, - | sed 's/,/, /g'; }
+names() { "$(dirname "$0")/lib/watched-media.sh" --names "$@"; }
 if [ "$verdict" = pass ]; then
   "$(dirname "$0")/lib/watched-media.sh" "$pr" ${W[@]+"${W[@]}"} ${why:+--code-only "$why"} ${repo:+--repo "$repo"}; rc=$?
   [ $rc -eq 0 ] || { [ $rc -eq 1 ] && echo "review-verdict: pass not posted" >&2; exit "$rc"; }
