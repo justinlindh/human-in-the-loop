@@ -274,6 +274,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
+      // The probe raycasts every actor every frame; a tree per mesh makes that cheap (harness.mjs).
+      await window.__fastRaycast();
       // The held-prop module allocates three.js objects, so loading it affects the seeded scene.
       const measureHeld = moment === 'hammer' ? (await import('/blender/checks/pose-scene.js')).measureHeld : null;
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
