@@ -6,6 +6,7 @@ export const B = {
   momentSpeechMaxAge: 45,
   momentSpeechGap: 1,
   momentSpeechStartDelay: 1,
+  momentTalkMemory: 24, partyTalkGapWeeks: 6,
   runWeeks: 1040, anniversaryWeek: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
@@ -81,7 +82,7 @@ export const B = {
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
-  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12,
+  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12, standupConversationChance: 0.4, standupConversationCast: 3, standupMaxLines: 5,
   bubbleMaxOnScreen: 1, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
   yakMaxWaitGameSeconds: 30, // Queue age at 1x; reading gaps still use active real seconds.
