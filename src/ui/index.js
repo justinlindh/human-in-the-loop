@@ -52,7 +52,12 @@ export function createUI({ root, getState, dispatch, controls }) {
   // Whether a spotlight holds the clock now. main.js knows (a menu lets a moment go while it plays on);
   // a host without that answer falls back to whether one plays.
   const spotlightActive = () => (controls.spotlightHeld ? controls.spotlightHeld() : !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
-  const toasts = createToasts(layer, { canShow: () => !spotlightActive() });
+  // What the player opened (a panel, a modal, build mode, Settings, the big Yak), not the game's own cards.
+  const playerMenuOpen = () => !!(menu.current || ctx.modal || buildMode.on || settings.isOpen || chat.maximized);
+  // Cards, launch results, the tutorial and the game's toasts wait while a spotlight holds the clock,
+  // and while a scene the player let go by opening a menu still plays behind that menu.
+  const holdForMoment = () => spotlightActive() || (playerMenuOpen() && !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
+  const toasts = createToasts(layer, { canShow: () => !holdForMoment() });
   let lastSpeed = 1;
 
   const ui = {
@@ -152,7 +157,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   ctx.spacing = spacing;
   const growth = createGrowth();
   ctx.growth = growth;
-  const announcer = createAnnouncer({ layer, sfx, held: spotlightActive, openMenu: (id, arg) => menu.open(id, arg), canShow: () => !spotlightActive() && spacing.ready() && !popups?.open });
+  const announcer = createAnnouncer({ layer, sfx, held: holdForMoment, openMenu: (id, arg) => menu.open(id, arg), canShow: () => !holdForMoment() && spacing.ready() && !popups?.open });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
   const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'policies' };
@@ -341,10 +346,10 @@ export function createUI({ root, getState, dispatch, controls }) {
     const frameAt = performance.now();
     const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
     lastFrame = frameAt;
-    const running = !spotlightActive() && (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
+    const running = !holdForMoment() && (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
     spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
     captions.update();
-    if (!spotlightActive()) announcer.pump();
+    if (!holdForMoment()) announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
@@ -352,11 +357,11 @@ export function createUI({ root, getState, dispatch, controls }) {
     toasts.setWeek(state.week);
     hud.update(state);
     gameover.update(state);
-    popups.update(state, { holdLaunch: spotlightActive() });
+    popups.update(state, { holdLaunch: holdForMoment() });
     buildMode.update(state);
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
-    tutorial.setHeld(!!(spotlightActive() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
+    tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
@@ -464,7 +469,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const api = {
     // Whether the player opened something (a panel, a modal, build mode, Settings, the big Yak);
     // the game's own cards (announcements, launch results, the tutorial) don't count.
-    playerMenu: () => !!(menu.current || ctx.modal || buildMode.on || settings.isOpen || chat.maximized),
+    playerMenu: playerMenuOpen,
     get spacing() { return { wait: spacing.waitMs, play: spacing.playMs }; },
     isBusy,
     update,
