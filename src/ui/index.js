@@ -49,7 +49,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     sfx: (k) => ctx.sfx?.(k),
   });
 
-  const spotlightActive = () => !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.();
+  // Whether a spotlight holds the clock now. main.js knows (a menu lets a moment go while it plays on);
+  // a host without that answer falls back to whether one plays.
+  const spotlightActive = () => (controls.spotlightHeld ? controls.spotlightHeld() : !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
   const toasts = createToasts(layer, { canShow: () => !spotlightActive() });
   let lastSpeed = 1;
 
@@ -135,7 +137,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { if (id) captions.cancel(); if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
+    onChange: (id) => { if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
@@ -460,6 +462,9 @@ export function createUI({ root, getState, dispatch, controls }) {
   ui.isBusy = isBusy;
 
   const api = {
+    // Whether the player opened something (a panel, a modal, build mode, Settings, the big Yak);
+    // the game's own cards (announcements, launch results, the tutorial) don't count.
+    playerMenu: () => !!(menu.current || ctx.modal || buildMode.on || settings.isOpen || chat.maximized),
     get spacing() { return { wait: spacing.waitMs, play: spacing.playMs }; },
     isBusy,
     update,

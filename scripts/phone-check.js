@@ -364,7 +364,10 @@ const CHECKS = {
     await page.evaluate(() => { const H = window.__HITL; const p = H.state.staff.find((x) => x.mood !== 'away'); H.emit([{ type: 'incentive', staffId: p.id, reward: 'waffle_party' }]); });
     if (!await spot()) fails.push('no spotlight before menu cancellation');
     await page.evaluate(() => window.__HITL_UI.openStaff(window.__HITL.state.staff[0].id));
-    if (await spot()) fails.push('opening a menu did not end the spotlight');
+    await wait(page, 300);
+    // A menu lets the moment go: it plays on, and it no longer holds the clock.
+    if (!await spot()) fails.push('opening a menu cut the spotlight');
+    if (await page.evaluate(() => !!window.__HITL.clock.spotlight)) fails.push('the spotlight still holds the clock with a menu open');
     await page.keyboard.press('Escape');
     await page.evaluate(() => window.__HITL.setSpeed(0));
     return { fails };

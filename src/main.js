@@ -126,6 +126,8 @@ async function boot() {
   const controls = {
     setSpeed: (k) => { speed = k; if (k > 0) awayPaused = false; renderer?.setSpeed?.(k); },
     getSpeed: () => speed,
+    // True while a spotlight holds the clock (the UI holds its toasts and cards with it).
+    spotlightHeld: () => !!spot,
     // Auto-pause when focus leaves the page (a setting; ui stores it and calls setAutoPause).
     setAutoPause: (on) => { autoPause = on !== false; },
     getAutoPause: () => autoPause,
@@ -246,12 +248,15 @@ async function boot() {
   // hold stops the clock, it doesn't freeze the renderer. It composes with the decision freeze (a
   // spotlight behind its card keeps the clock stopped until the moment ends), and one that holds it
   // alone for longer than its cap (spotlightCap) is let go. Only frames where nothing else stops the clock
-  // (a card, pause, a menu, a hidden tab) count toward that, so reading a card never costs the moment.
+  // (a card, pause, a hidden tab) count toward that, so reading a card never costs the moment. Opening a
+  // menu lets the moment go at once: it plays on, and the clock is the menu's to stop or not.
   let spot = null;          // { key, kind, heldFor } while a hold is on
-  let spotStuck = null;     // the key of a moment let go for running too long
-  function spotlightHold(dt, alone) {
+  let spotStuck = null;     // the key of a moment let go (it ran too long, or a menu opened)
+  function spotlightHold(dt, alone, menuOpen = false) {
     const s = renderer?.spotlight?.() ?? null;
     if (!s || s.key === spotStuck) { spot = null; if (!s) spotStuck = null; return false; }
+    // The player opened a menu: the moment plays on, but it no longer holds the clock.
+    if (menuOpen) { spotStuck = s.key; spot = null; return false; }
     const add = alone ? dt : 0;
     if (spot?.key !== s.key && Number(s.expectedSeconds) * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S > SPOTLIGHT_CEILING_S) {
       console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} expects ${s.expectedSeconds}s; holding the clock ${SPOTLIGHT_CEILING_S}s at most`);
@@ -272,7 +277,7 @@ async function boot() {
     // The UI reports busy while a panel or modal is open (auto-pause for menus).
     const menuPause = ui?.isBusy?.() === true;
     const free = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
-    const held = spotlightHold(dt, free && speed > 0);
+    const held = spotlightHold(dt, free && speed > 0, playing && (ui?.playerMenu ? ui.playerMenu() : menuPause));
     const running = free && !held;
     if (pacer.step(dt, { speed, running })) {
       route(pacer.schedule(sim.tick()), sim.state);
