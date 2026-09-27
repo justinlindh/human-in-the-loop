@@ -20,6 +20,7 @@ case "$args" in
   *"/commits/"*"/statuses"*)
     sha="${args#*commits/}"; sha="${sha%%/*}"
     case "$args" in
+      *local-ci*) cat "$FIX/localci" 2>/dev/null || echo success ;;
       *'carried from'*) [ -s "$FIX/posted" ] && [ -f "$FIX/after_post" ] && tr '|' '\037' <"$FIX/after_post" ;;
       *)
         n=$(cat "$FIX/looks-$sha" 2>/dev/null || echo 0); echo $((n + 1)) >"$FIX/looks-$sha"
@@ -46,7 +47,13 @@ fails=0
 check() { # <name> <want: carried|kept|restored> <heads: "sha state patch" lines separated by |> [file=content...]
   local fix="$tmp/$RANDOM"; mkdir -p "$fix"; printf '%s' "$3" | tr '|' '\n' >"$fix/heads"; : >"$fix/posted"
   local kv; for kv in "${@:4}"; do printf '%s\n' "${kv#*=}" >"$fix/${kv%%=*}"; done
-  FIX="$fix" PATH="$tmp/bin:$PATH" bash "$HERE/review-carry.sh" 7 >/dev/null 2>&1
+  cat >"$fix/union" <<U
+#!/usr/bin/env bash
+[ -f "$fix/union_ok" ] && { echo "merge-union-check: ok"; exit 0; }
+echo "merge-union-check: rule 2: stand-in"; exit 1
+U
+  chmod +x "$fix/union"
+  FIX="$fix" MERGE_UNION_CHECK="$fix/union" PATH="$tmp/bin:$PATH" bash "$HERE/review-carry.sh" 7 >/dev/null 2>&1
   local got=kept last; last="$(tail -1 "$fix/posted")"
   case "$last" in *state=success*) got=carried ;; *state=*) got=restored ;; esac
   [ "$got" = "$2" ] || { echo "FAIL $1: want $2, got $got"; fails=$((fails + 1)); }
@@ -61,5 +68,8 @@ check 'no earlier verdict, nothing to carry' kept 'a - p1|b - p1'
 check 'a verdict that lands before the post is not overwritten' kept 'a success p1|b - p1' late=failure
 check 'a verdict that lands during the post is restored over the carry' restored 'a success p1|b - p1' 'after_post=failure|Changes requested'
 check 'a head that moved while carrying is not carried' kept 'a success p1|b - p1' moved=c
+check 'a hand merge that only kept both sides carries once local-ci passed' carried 'a success p1|b - p2' union_ok=1
+check 'a hand merge that kept both sides waits for local-ci' kept 'a success p1|b - p2' union_ok=1 localci=pending
+check 'a hand merge that failed a union rule does not carry' kept 'a success p1|b - p2'
 [ $fails -eq 0 ] && echo "review-carry: all cases pass" || echo "review-carry: $fails failing"
 [ $fails -eq 0 ]
