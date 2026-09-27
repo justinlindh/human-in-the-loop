@@ -38,6 +38,6 @@ None <!-- or each change a player would notice in how the game plays (pacing, pa
 
 <!-- e.g. Fixes #14. Leave empty if none. -->
 
-<!-- After creating the PR, turn on auto-merge so GitHub merges it once every required check passes
-     (local-ci, review, test, balance, browser, commits):  gh pr merge <number> --auto --merge
+<!-- Opening a non-draft PR turns on auto-merge automatically, so GitHub merges it once every required check passes
+     (local-ci, review, test, balance, browser, commits). When you take a draft out of draft:  gh pr merge <number> --auto --merge
      Check where your PRs stand with scripts/pr-status.sh. -->

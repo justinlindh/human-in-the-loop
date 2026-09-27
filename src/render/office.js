@@ -1234,7 +1234,20 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     }
   }
 
+  // What a line of sight can be blocked by, for staging raycasts: each placed item's own meshes
+  // (tested per mesh, so their bounds cull a ray early; the merged idle batch would put every
+  // triangle in one mesh), and with shell the walls, floor and columns too. A mesh blocks when it
+  // is drawn, or when the batch draws it for it. The raycaster ignores visibility, so the caller asks.
+  function sightBlockers({ shell = false } = {}) {
+    const hidden = new Set(batch ? [...batch.members, ...batch.swaps] : []);
+    const targets = [...placed.values()].filter((e) => e.obj.visible).map((e) => e.obj);
+    if (shell && cur) for (const c of cur.root.children) if (c !== cur.furniture) targets.push(c);
+    const drawn = (m) => { if (hidden.has(m)) return true; for (let o = m; o; o = o.parent) if (!o.visible) return false; return true; };
+    return { targets, drawn };
+  }
+
   return {
+    sightBlockers,
     setStage, setPlaced, freeChair, setDeskScreen, setDeskSign, setDeskRole, setEra, setQuality, leds, update, nav, tuckMeetingChairs, deskById,
     get era() { return era; },
     get current() { return cur; },
