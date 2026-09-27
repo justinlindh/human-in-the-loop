@@ -20,7 +20,7 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit',
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
@@ -65,6 +65,11 @@ export function setRingsShown(on) {
   for (const m of ringMats.values()) m.visible = ringsShown;
 }
 const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
+// Two hands on a sledgehammer's shaft: shoulder pitch for the leading and the supporting arm, how
+// far a swing strokes them, its period in seconds, and how far each arm turns in toward the shaft.
+const HAMMER_GRIP = { leadX: -1.25, supportX: -1.65, swing: 0.55, swingS: 1.1, inward: 0.18 };
+// Poses that aim at something in the world (petting an animal), left out of the standalone lineup.
+export const WORLD_ANIMS = new Set(['pet']);
 const HAND_TIP = new THREE.Vector3(0, -0.06, 0);   // the hand's centre below the wrist pivot
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 // Pizza slice: a wedge pointing at the mouth (-z) with a rounded crust along its back.
@@ -466,6 +471,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       tgt.legL = tgt.legR = -1.45;
     }
     switch (anim) {
+      case 'fidget':
+        // Standing, nervous: hands wrung together in front, a quick shallow bob, the head held still
+        // and a little down, so where they look stays where they were turned.
+        tgt.bodyY = Math.abs(s(t * 5 + phase)) * 0.008;
+        tgt.headX = 0.08;
+        tgt.armLX = tgt.armRX = -0.5;
+        tgt.armLZ = 0.32 + s(t * 6) * 0.04;
+        tgt.armRZ = -0.32 - s(t * 6) * 0.04;
+        break;
       case 'idle':
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         tgt.headZ = s(t * 0.7 + phase) * 0.06;
@@ -898,17 +912,17 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     blendIn(dt);
     if (held?.userData.handSpan) {
       // Keep both palms on the shaft while the legs retain their walking animation.
-      const stroke = anim === 'swing' ? Math.sin(animT * Math.PI * 2 / 1.1) : 0;
+      const stroke = anim === 'swing' ? Math.sin(animT * Math.PI * 2 / HAMMER_GRIP.swingS) : 0;
       const primary = held.userData.primaryHand ?? 1;
-      arms[1].shoulder.rotation.set((primary === 1 ? -1.25 : -1.65) + stroke * 0.55, 0, -0.18);
-      arms[0].shoulder.rotation.set((primary === 0 ? -1.25 : -1.65) + stroke * 0.55, 0, 0.18);
+      const G = HAMMER_GRIP;
+      arms[1].shoulder.rotation.set((primary === 1 ? G.leadX : G.supportX) + stroke * G.swing, 0, -G.inward);
+      arms[0].shoulder.rotation.set((primary === 0 ? G.leadX : G.supportX) + stroke * G.swing, 0, G.inward);
       root.updateMatrixWorld(true);
-      const palm = (a) => a.shoulder.localToWorld(a.wrist.position.clone().add(HAND_TIP));
-      const grip = mugParent.worldToLocal(palm(arms[primary]));
-      const support = mugParent.worldToLocal(palm(arms[1 - primary]));
+      const palm = (a, out) => a.shoulder.localToWorld(out.copy(a.wrist.position).add(HAND_TIP));
+      const grip = mugParent.worldToLocal(palm(arms[primary], gripAt));
+      const support = mugParent.worldToLocal(palm(arms[1 - primary], supportAt));
       held.position.copy(grip);
-      const aim = support.sub(grip).normalize();
-      held.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), aim);
+      held.quaternion.setFromUnitVectors(petDown, support.sub(grip).normalize());
     }
     if (anim === 'pet' && petTarget) {
       headGroup.rotation.y = 0.5 * Math.min(1, animT / 0.3);
@@ -929,9 +943,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let gesture = null, wanted = anim;
   let petTarget = null;
   const petAim = new THREE.Vector3(), petDown = new THREE.Vector3(0, -1, 0), petRotation = new THREE.Quaternion();
+  const gripAt = new THREE.Vector3(), supportAt = new THREE.Vector3();
   function setAnim(name) {
-    // Petting aims at an animal in the world, so it is not a standalone lineup pose.
-    if (name !== 'pet' && !ANIMS.includes(name)) return;
+    if (!ANIMS.includes(name)) return;
     wanted = name;
     if (!gesture) applyAnim(name);
   }

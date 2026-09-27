@@ -3,7 +3,7 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE } from './palette.js';
 import { mat, glow, glass } from './materials.js';
 import { loadModels, getModel, PROP_NAMES, ITEM_IDS, itemModelName } from './models.js';
-import { createCharacter, ANIMS } from './character.js';
+import { createCharacter, ANIMS, WORLD_ANIMS } from './character.js';
 import { EMOTES } from './emotes.js';
 import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, pill, lathe, blob, mesh, mergeStatic } from './prims.js';
@@ -164,7 +164,7 @@ export function buildCharLineup(group) {
     for (let b = 0; b < 3; b++) add(5 + b, 1, { build: b, hair: 5, hairColor: HAIRC[2], shirt: SHIRTS[8], pants: PANTS[b + 1] }, 'sales');
     for (let k = 0; k < 6; k++) add(k, 2, { skin: k, hair: (k * 3) % 8, hairColor: HAIRC[(k * 5) % 8], shirt: SHIRTS[(k + 2) % 10] }, ROLES[(k + 2) % 6]);
     ROLES.forEach((r, i) => add(i, 3, { hair: (i * 2 + 1) % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[(i * 3) % 10], skin: (i + 2) % 6, build: i % 3 }, r));
-    ANIMS.forEach((a, i) => add(i, 4, { hair: i % 8, hairColor: HAIRC[(i + 1) % 8], shirt: SHIRTS[(i + 4) % 10], skin: (i * 2) % 6 }, ROLES[i % 6], (c, x, z) => {
+    ANIMS.filter((a) => !WORLD_ANIMS.has(a)).forEach((a, i) => add(i, 4, { hair: i % 8, hairColor: HAIRC[(i + 1) % 8], shirt: SHIRTS[(i + 4) % 10], skin: (i * 2) % 6 }, ROLES[i % 6], (c, x, z) => {
       if (a === 'typing' || a === 'slumped' || a === 'burnout') {
         // Seated at a desk that faces the camera side, so the face stays visible.
         c.root.rotation.y = Math.PI / 2;

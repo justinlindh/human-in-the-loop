@@ -2,7 +2,7 @@
 // sweep): one row per case and metric, printed as a table, written as JSON for PRs and tooling.
 //
 //   const rep = createReport('stage');
-//   rep.row({ check: 'letter.read', view: 'default', beat: 'read', metric: 'faceVisible', value: 0.92, want: '>= 0.8', pass: true });
+//   rep.row({ check: 'letter.read', view: 'default', beat: 'read', metric: 'facingCamera', value: 0.92, want: '>= 0.8', pass: true });
 //   rep.skip('letter.read', 'the letter moment is not in this build');
 //   A row with known: <issue> is a failure an open issue tracks: printed as KNOWN, not failed. A
 //   known row that passes is flagged, so the marker comes off with the fix. A row with closed:
