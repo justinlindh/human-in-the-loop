@@ -45,7 +45,11 @@ export function beatAssertions(beat) {
   // The build and hire beats must complete the action after opening on its controls.
   // The move lands during the beat.
   if (beat.id === 'office') checks.push(check(beat.id, beat.from + 1.2, 's.office.stage === 1'));
-  if (beat.id === 'build') checks.push(check(beat.id, 3, "s.office.placed.some(p => p.itemId === 'foosball')"));
+  if (beat.id === 'build') {
+    checks.push(check(beat.id, 3, "s.office.placed.some(p => p.itemId === 'foosball')"));
+    // Two people are at the table and the game is on before the push-in lands.
+    checks.push(check(beat.id, beat.from + 6, "R.perks?.phases.some(p => p.startsWith('play'))"));
+  }
   if (beat.id === 'printer') checks.push(check(beat.id, beat.from + 2, 'R.moments.printer?.hit >= 2 && R.flying'));
   if (beat.id === 'hire') {
     checks.unshift({ at: 0, js: 'window.__staffBeforeHire = window.__HITL.state.staff.length' });
