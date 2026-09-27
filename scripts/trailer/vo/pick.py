@@ -126,10 +126,7 @@ def main():
     require_cuda()
     import torch
     from transformers import pipeline
-    snap = glob.glob(os.path.expanduser("~/.cache/huggingface/hub/models--openai--whisper-large-v3/snapshots/*/"))
-    if not snap:
-        sys.exit("trailer-vo: no local Whisper large-v3 snapshot")
-    asr = pipeline("automatic-speech-recognition", model=snap[0], torch_dtype=torch.float16, device="cuda:0")
+    asr = pipeline("automatic-speech-recognition", model="openai/whisper-large-v3", dtype=torch.float16, device="cuda:0")
     if not all(p.is_cuda for p in asr.model.parameters()):
         sys.exit("trailer-vo: Whisper loaded off the GPU. Stopping.")
 
