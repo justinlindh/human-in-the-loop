@@ -1,7 +1,7 @@
 import test from 'node:test';
 import { request } from 'node:http';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, appendFile, chmod, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, appendFile, chmod, rm, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,12 +41,19 @@ test('feedback is pinned and note text cannot switch a revision to approval', ()
   assert.deepEqual(parse('/ship'), ['ship']); assert.deepEqual(parse('/shipwreck'), ['none']);
 });
 
-async function fixture(t) {
+async function fixture(t, { records = [], beforeView = async () => {} } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'dashboard-http-')); let liveHead = head, comments = [], mutations = 0, eligible = true, prState = 'OPEN', loseResponse = false;
+  if (records.length) {
+    await mkdir(join(root, 'control'));
+    await writeFile(join(root, 'control/dashboard-feedback.jsonl'), records.map(record => JSON.stringify(record) + '\n').join(''));
+  }
   const run = async (args, input) => {
     if (args[0] === 'systemctl') return '[]';
     if (args[1] === 'api') return JSON.stringify([comments]);
-    if (args[1] === 'pr' && args[2] === 'view') return JSON.stringify({ headRefOid: liveHead, state: prState, labels: eligible ? [{ name: 'awaiting-user' }] : [] });
+    if (args[1] === 'pr' && args[2] === 'view') {
+      await beforeView(Number(args[3]));
+      return JSON.stringify({ headRefOid: liveHead, state: prState, labels: eligible ? [{ name: 'awaiting-user' }] : [] });
+    }
     if (args[1] === 'pr' && args[2] === 'comment') {
       mutations++; comments.push({ body: input, html_url: 'https://github.com/a/b/pull/1#issuecomment-1' });
       if (loseResponse) { loseResponse = false; throw new Error('Response lost after GitHub committed the comment'); }
@@ -134,6 +141,8 @@ test('startup rejects unreadable, incomplete, malformed and conflicting journals
     ['malformed line', line + 'broken\n', 0o600],
     ['invalid record', line + 'null\n', 0o600],
     ['missing identity', line + '{}\n', 0o600],
+    ['numeric identity', JSON.stringify({ ...record, id: 12345678 }) + '\n', 0o600],
+    ['array identity', JSON.stringify({ ...record, id: ['reserved-request'] }) + '\n', 0o600],
     ['conflicting identity', line + JSON.stringify({ ...record, number: 2, action: 'ship' }) + '\n', 0o600],
   ]) await t.test(name, async () => {
     const root = await mkdtemp(join(tmpdir(), 'dashboard-journal-'));
@@ -159,6 +168,77 @@ test('a failed append blocks later external writes until a clean restart', async
   assert.equal((await f.send({ ...input, id: 'following-request' })).status, 502); assert.equal(f.mutations(), 0);
   assert.equal(await readFile(file, 'utf8'), '');
   await f.restart(); assert.equal((await f.send(input)).status, 200); assert.equal(f.mutations(), 1);
+});
+
+test('non-string API identities are rejected before delivery and cannot alias a string after restart', async t => {
+  const f = await fixture(t);
+  const input = { id: 'typed-request', repo: 'a/b', number: 1, head, action: 'revise', notes: 'Keep this identity' };
+  for (const id of [[input.id], 12345678]) assert.equal((await f.send({ ...input, id })).status, 400);
+  assert.equal(f.mutations(), 0);
+  await assert.rejects(readFile(join(f.root, 'control/dashboard-feedback.jsonl')), { code: 'ENOENT' });
+  await f.restart();
+  const valid = { ...input, number: 2, action: 'ship' };
+  assert.equal((await f.send(valid)).status, 200);
+  await f.restart();
+  assert.equal((await f.send(input)).status, 409);
+  assert.equal((await f.send(valid)).status, 200);
+  assert.equal(f.mutations(), 1);
+});
+
+for (const concurrent of [false, true]) test(`append failure blocks a pending retry ${concurrent ? 'already awaiting eligibility' : 'started after the failure'}`, async t => {
+  const pending = { id: 'pending-request', repo: 'a/b', number: 1, head, action: 'revise', notes: 'Keep the label' };
+  const cached = { ...pending, id: 'cached-request', number: 3, url: 'https://github.com/a/b/pull/3#issuecomment-1' };
+  const entered = Promise.withResolvers(), gate = Promise.withResolvers();
+  const f = await fixture(t, { records: [pending, cached], beforeView: async number => {
+    if (concurrent && number === 1) { entered.resolve(); await gate.promise; }
+  } });
+  const file = join(f.root, 'control/dashboard-feedback.jsonl'), original = await readFile(file, 'utf8');
+  t.after(async () => { gate.resolve(); await chmod(file, 0o600); });
+  const retry = concurrent ? f.send(pending) : null;
+  if (concurrent) await entered.promise;
+  await chmod(file, 0o400);
+  assert.equal((await f.send({ ...pending, id: 'fresh-request', number: 2 })).status, 502);
+  await chmod(file, 0o600);
+  gate.resolve();
+  assert.equal((await (retry || f.send(pending))).status, 502);
+  assert.equal(f.mutations(), 0);
+  assert.equal(await readFile(file, 'utf8'), original);
+  assert.equal((await f.send(cached)).status, 200);
+  assert.equal((await f.send({ ...cached, action: 'ship' })).status, 409);
+  await f.restart();
+  assert.equal((await f.send(pending)).status, 200);
+  assert.equal(f.mutations(), 1);
+});
+
+test('pending retries wait for queued flush failure before any external write', async t => {
+  const pending = { id: 'flush-pending', repo: 'a/b', number: 1, head, action: 'revise', notes: 'Keep the label' };
+  const viewed = Promise.withResolvers(), entered = Promise.withResolvers(), gate = Promise.withResolvers();
+  const f = await fixture(t, { records: [pending], beforeView: async number => { if (number === 1) viewed.resolve(); } });
+  const file = join(f.root, 'control/dashboard-feedback.jsonl');
+  const handle = await open(file, 'r'), prototype = Object.getPrototypeOf(handle), sync = prototype.sync;
+  await handle.close();
+  let syncs = 0;
+  prototype.sync = async function () {
+    syncs++; entered.resolve(); await gate.promise;
+    throw Object.assign(new Error('Injected flush failure'), { code: 'EIO' });
+  };
+  try {
+    const fresh = f.send({ ...pending, id: 'flush-fresh', number: 2 });
+    await entered.promise;
+    const retry = f.send(pending);
+    await viewed.promise;
+    await new Promise(resolve => setTimeout(resolve, 30));
+    const writesBeforeFlush = f.mutations();
+    gate.resolve();
+    assert.deepEqual((await Promise.all([fresh, retry])).map(response => response.status), [502, 502]);
+    assert.equal(writesBeforeFlush, 0);
+    assert.equal(f.mutations(), 0); assert.equal(syncs, 1);
+    assert.equal((await f.send(pending)).status, 502);
+    assert.equal(f.mutations(), 0);
+    const records = (await readFile(file, 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.deepEqual(records.map(record => record.id), [pending.id, 'flush-fresh']);
+    assert.ok(records.every(record => !record.url));
+  } finally { gate.resolve(); prototype.sync = sync; }
 });
 
 test('concurrent submissions retain separate request identities across restart', async t => {

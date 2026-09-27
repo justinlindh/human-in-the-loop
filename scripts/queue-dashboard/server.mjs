@@ -98,7 +98,7 @@ export function createDashboard(config, run = command) {
         }
         if (path === '/api/feedback' && req.method === 'POST') {
           const input = await body(req);
-          if (!config.repos.includes(input.repo) || !Number.isInteger(input.number) || input.number < 1 || !/^[a-zA-Z0-9-]{8,100}$/.test(input.id || '')) return json(res, 400, { error: 'Invalid review request' });
+          if (!config.repos.includes(input.repo) || !Number.isInteger(input.number) || input.number < 1 || typeof input.id !== 'string' || !/^[a-zA-Z0-9-]{8,100}$/.test(input.id)) return json(res, 400, { error: 'Invalid review request' });
           const key = `${input.repo}#${input.number}`;
           const fingerprint = identity(input);
           const prior = submissions.get(input.id);
@@ -124,6 +124,9 @@ export function createDashboard(config, run = command) {
               if (!pr.labels.some(l => l.name === 'awaiting-user')) return json(res, 409, { error: 'This PR is no longer awaiting a decision.' });
               // Persist identity before the write so an uncertain response cannot change its meaning.
               if (!prior) { await journal(record); submissions.set(input.id, { fingerprint }); }
+              // Pending retries must also observe queued flush failures before sending a comment.
+              await journalWrites;
+              if (journalError) throw journalError;
               url = (await run(['gh', 'pr', 'comment', String(input.number), '-R', input.repo, '--body-file', '-'], commentBody)).trim();
             }
             record.url = url;
@@ -155,7 +158,7 @@ export function createDashboard(config, run = command) {
       const records = journal.split('\n').filter(Boolean).map(line => JSON.parse(line));
       const restored = new Map();
       for (const record of records) {
-        if (!record || !/^[a-zA-Z0-9-]{8,100}$/.test(record.id || '') || typeof record.repo !== 'string' ||
+        if (!record || typeof record.id !== 'string' || !/^[a-zA-Z0-9-]{8,100}$/.test(record.id) || typeof record.repo !== 'string' ||
             !Number.isInteger(record.number) || record.number < 1 || typeof record.notes !== 'string' ||
             (record.url !== undefined && (typeof record.url !== 'string' || !record.url))) throw new Error('Invalid feedback journal record');
         feedbackCommand(record.action, record.head, record.notes);
