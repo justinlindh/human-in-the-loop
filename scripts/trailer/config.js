@@ -79,7 +79,7 @@ export const BEATS = [
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
   { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
-  { id: 'incident', item: 'site-loop-incident', from: 8.8, dur: 3.2 },
+  { id: 'incident', item: 'site-loop-incident', from: 8.6, dur: 2.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
   { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
@@ -129,7 +129,7 @@ export const VO = {
     { id: 'l1', at: { beat: 'garage', offset: 0.4 }, max: 5.1, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
     { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, max: 1.3, text: 'Hire humans.' },
     { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, max: 1.35, text: 'Ship products.' },
-    { id: 'l2b', at: { beat: 'incident', offset: 0.3 }, max: 2.4, text: 'Call the outage a stress test.' },
+    { id: 'l2b', at: { beat: 'incident', offset: 0.2 }, max: 1.7, text: 'Call the outage a stress test.' },
     { id: 'l7', at: { beat: 'yak', offset: 0.4 }, max: 2.4, text: 'Your team talks. Mostly in memes.' },
     { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, max: 3.6, text: 'Survive the AI eras. First chatbots.' },
     { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, max: 1.1, text: 'Then agents.' },
