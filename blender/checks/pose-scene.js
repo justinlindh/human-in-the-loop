@@ -11,6 +11,7 @@ import { screen, carried, held, overlaps } from './intersect.js';
 import { measureHeldRead } from './pose-held.js';
 import { getTemplate } from '../../src/render/models.js';
 import { faceVisibility } from './pose-visibility.js';
+import { projectedSubject, sceneOverlays } from './pose-projection.js';
 
 const area = (r) => Math.max(0, r.right - r.left) * Math.max(0, r.bottom - r.top);
 
@@ -39,16 +40,20 @@ export function measureScene(R, S, { who = null, faceTemplate = getTemplate('chi
     o.traverseVisible(c => {
       if (c.userData.part === 'head') head = c;
     });
-    if (id != null && head) heads.set(id, head);
+    if (id != null && head) heads.set(id, { root: o, head });
   });
   const sc = screen(R);
+  const canvas = document.querySelector('canvas').getBoundingClientRect();
+  if (![canvas.left, canvas.top, canvas.width, canvas.height].every(Number.isFinite) || canvas.width <= 0 || canvas.height <= 0) throw new Error('pose: invalid projection canvas');
+  const overlays = sceneOverlays(R, sc, canvas, heads);
   const loads = carried(R), grips = held(R);
   const covers = [...sc.labels.map((l) => ({ what: `${l.kind} "${l.text}"`, r: l.r })), ...sc.emotes.map((e) => ({ what: `emote over ${e.id}`, r: e.r }))];
   const out = [];
   for (const f of sc.faces) {
     if (f.id == null || (who && !who.includes(String(f.id)))) continue;
-    const head = heads.get(String(f.id));
-    if (!head) continue;
+    const character = heads.get(String(f.id));
+    if (!character) continue;
+    const { head } = character;
     const visibility = faceVisibility(R, head, faceTemplate);
     let covered = 0, by = null;
     for (const c of covers) {
@@ -63,6 +68,7 @@ export function measureScene(R, S, { who = null, faceTemplate = getTemplate('chi
       ...visibility, bodyVisible: p.visible ?? null, bodyOccluder: p.occluder ?? null, faceCam: p.faceCam ?? null,
       facePx: +(f.r.bottom - f.r.top).toFixed(1), anim: p.anim ?? null, moment: st?.moment ?? null, beat: st?.beat ?? null,
       ...measureHeld(R, f.id, loads, grips, p),
+      projected: projectedSubject(R, character, faceTemplate, canvas, f.r, overlays),
     });
   }
   return out;
