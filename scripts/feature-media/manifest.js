@@ -54,13 +54,19 @@ const GROWTH_CAMERA = {
   'floor-full': [{ at: 0, target: PEOPLE, zoom: 1.7 }],
   late: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: [-1.6, -4.1], zoom: 2.5, ease: 'inOut' }],
 };
-export const GROW = (week) => `(async () => {
+// lateHires: false plays the late eras without hiring, so attrition thins the office out.
+export const GROW = (week, { lateHires = true } = {}) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
   while (s.week < ${week} && !s.gameOver) {
-    const bot = s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced';
-    b.botDecide(bot, s); b.botTurn(bot, s); sim.tick(s);
+    const late = s.era.id === 'consolidation' || s.era.id === 'plateau';
+    const bot = late ? 'automateAll' : 'balanced';
+    const hold = late && ${!lateHires} ? s.candidates : null;
+    if (hold) s.candidates = [];
+    b.botDecide(bot, s); b.botTurn(bot, s);
+    if (hold) s.candidates = hold;
+    sim.tick(s);
   }
   b.botDecide(s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced', s);
   ${IN_OFFICE}
