@@ -1,0 +1,726 @@
+Issue #744 final merged validation
+
+current-main-heading-control.log
+CLIP FAIL moment:pet:dog {"samples":90,"resumed":true,"petInsidePct":1.05,"insidePct":0}
+CLIP ok   moment:pet:cat {"samples":90,"resumed":true,"petInsidePct":0,"insidePct":0}
+CLIP ok   moment:pet:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:skip-busy {}
+CLIP ok   moment:pet:skip-stationary {}
+CLIP ok   moment:pet:skip-distant {}
+CLIP ok   moment:pet:low-skip {}
+clip: 10 of 11 passed (--only=moment:pet)
+
+merged-full-test.log
+ Test Files  110 passed (110)
+      Tests  936 passed (936)
+
+merged-clip.log
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.016,"handGapMax":0.022,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.203,"handGapMax":0.255,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:tired {"handGapMin":0.011,"handGapMax":0.222,"insidePct":0.26,"byPart":{"head":0,"torso":16,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.019,"handGapMax":0.028,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.203,"handGapMax":0.22,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.011,"handGapMax":0.026,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.02,"handGapMax":0.027,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":3.11}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":5.73,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":5.82,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0,"headInsidePct":0,"floatGap":0.017,"walkInsidePct":0,"enterUpperInsidePct":1.36}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.35}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[11,5],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.85,"z":-0.96,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":77}
+CLIP ok   moment:pet:dog:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:approach {"yaw":null,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.04,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0.13,"insidePct":0,"worstFrame":69,"worstActor":{"id":"s1","pos":[5.97,0.03],"yaw":-0.8,"walk":{"mode":"placed","hidden":false,"speed":1.25,"path":[],"goal":{"x":-5,"z":-2.82,"yaw":3.141592653589793,"key":"desk--5.00,-2.82,3.14-ok-","anim":"typing","seated":true,"hidden":false},"temp":{"anim":"pet","t":1.2333333333333345,"delay":0,"moment":"pet","perk":null,"back":true,"keepPos":false,"goal":{"x":5.970834798733466,"z":0.029757388094281093,"yaw":-0.8},"by":"greetPasser (pets.js)"}},"trace":[{"seq":191,"t":385.33,"id":"s1","what":"end","from":"pet","to":null,"by":"updateRec (sync.js)"},{"seq":193,"t":387.73,"id":"s1","what":"start","from":null,"to":"idle","by":"standAt (sync.js)"},{"seq":194,"t":387.73,"id":"s1","what":"interrupt","from":"idle","to":null,"by":"catchFor (sync.js)"},{"seq":195,"t":388.3,"id":"s1","what":"start","from":null,"to":"pet","by":"greetPasser (pets.js)"},{"seq":197,"t":392.13,"id":"s1","what":"end","from":"pet","to":null,"by":"updateRec (sync.js)"},{"seq":198,"t":393.77,"id":"s1","what":"start","from":null,"to":"idle","by":"standAt (sync.js)"},{"seq":199,"t":393.77,"id":"s1","what":"interrupt","from":"idle","to":null,"by":"catchFor (sync.js)"},{"seq":200,"t":393.83,"id":"s1","what":"start","from":null,"to":"pet","by":"greetPasser (pets.js)"}]}}
+CLIP ok   moment:pet:dog:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-3.141592653589793 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:approach {"yaw":null,"samples":117,"stroke":90,"resumed":true,"resumedDistance":1.96,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-3.141592653589793 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:turn:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:skip-busy {}
+CLIP ok   moment:pet:skip-stationary {}
+CLIP ok   moment:pet:skip-distant {}
+CLIP ok   moment:pet:low-skip {}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[5,1]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":2,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":908,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","start company_party","end company_party","end printer_jam"]},"samples":296,"insidePct":0,"worstWho":null,"chinGap":0.112,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":282,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   prop:pivotBoard {"front":{"x":1,"y":11},"frontResult":{"onWall":true,"recorded":true,"reasons":["insufficient room in front of face","face points away from camera"]},"back":{"x":1,"y":1},"backResult":{"onWall":false,"recorded":true,"reasons":[]}}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:floor {"staff":10,"readyAt":15.7,"playedAt":12.3,"table":{"x":11,"y":5},"ballTravel":3.35,"offPitch":0,"rodTurn":0.95,"newToyAt":0.4}
+CLIP ok   pairs:garage {"staff":2,"readyAt":10.2,"playedAt":5,"table":{"x":6,"y":2},"ballTravel":3.28,"offPitch":0,"rodTurn":1.05,"newToyAt":5.47}
+CLIP ok   moment:growth {"seen":true,"ended":true,"samples":126,"insidePct":0,"worstWho":null}
+CLIP ok   moment:company_party {"seen":true,"ended":true,"samples":202,"insidePct":0,"worstWho":null}
+clip: 149 of 149 passed
+
+merged-clip-rig.log
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.009,"handGapMax":0.034,"insidePct":0.04,"byPart":{"head":2,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.006,"handGapMax":0.187,"insidePct":0.03,"byPart":{"head":0,"torso":2,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.202,"handGapMax":0.205,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:tired {"handGapMin":0.003,"handGapMax":0.226,"insidePct":0.23,"byPart":{"head":0,"torso":14,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.011,"handGapMax":0.045,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.01,"handGapMax":0.19,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.2,"handGapMax":0.235,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.008,"handGapMax":0.226,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.012,"handGapMax":0.045,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.012,"handGapMax":0.19,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.99}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0.012,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":5.73,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":5.82,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0.33,"headInsidePct":0.52,"floatGap":0.001,"walkInsidePct":0,"enterUpperInsidePct":1.07}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.35}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[11,5],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.85,"z":-0.96,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":83}
+CLIP ok   moment:pet:dog:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:approach {"yaw":null,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.04,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-3.141592653589793 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:approach {"yaw":null,"samples":117,"stroke":90,"resumed":true,"resumedDistance":1.96,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-3.141592653589793 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:turn:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:skip-busy {}
+CLIP ok   moment:pet:skip-stationary {}
+CLIP ok   moment:pet:skip-distant {}
+CLIP ok   moment:pet:low-skip {}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[5,1]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":2,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":908,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","start company_party","end company_party","end printer_jam"]},"samples":296,"insidePct":0,"worstWho":null,"chinGap":0.112,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":282,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   prop:pivotBoard {"front":{"x":1,"y":11},"frontResult":{"onWall":true,"recorded":true,"reasons":["insufficient room in front of face","face points away from camera"]},"back":{"x":1,"y":1},"backResult":{"onWall":false,"recorded":true,"reasons":[]}}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:floor {"staff":10,"readyAt":0,"playedAt":12.3,"table":{"x":11,"y":5},"ballTravel":3.26,"offPitch":0,"rodTurn":1,"newToyAt":0.4}
+CLIP ok   pairs:garage {"staff":2,"readyAt":12,"playedAt":6,"table":{"x":6,"y":2},"ballTravel":3.17,"offPitch":0,"rodTurn":1.03,"newToyAt":5.47}
+CLIP ok   moment:growth {"seen":true,"ended":true,"samples":126,"insidePct":0,"worstWho":null}
+CLIP ok   moment:company_party {"seen":true,"ended":true,"samples":202,"insidePct":0,"worstWho":null}
+clip: 149 of 149 passed
+
+merged-stage.log
+STAGE      check            view     beat             metric       value  want                                                    
+STAGE ok   pet.turn         default  turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   pet.turn         default  turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.turn         default  turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.approach     default  approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   pet.approach     default  approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.approach     default  approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.stroke       default  stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   pet.stroke       default  stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   pet.stroke       default  stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.stroke       default  stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.turn         turned   turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   pet.turn         turned   turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.turn         turned   turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.approach     turned   approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   pet.approach     turned   approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.approach     turned   approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.stroke       turned   stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   pet.stroke       turned   stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   pet.stroke       turned   stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.stroke       turned   stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.turn      default  turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   petcat.turn      default  turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.turn      default  turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.approach  default  approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   petcat.approach  default  approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.approach  default  approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.stroke    default  stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   petcat.stroke    default  stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   petcat.stroke    default  stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.stroke    default  stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.turn      turned   turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   petcat.turn      turned   turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.turn      turned   turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.approach  turned   approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   petcat.approach  turned   approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.approach  turned   approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+stage: 40 of 40 passed
+
+merged-sweep.log
+sweep: 7 distinct violation(s), 0 new, 2 new in seeds only (advisory), 40 not seen; 91 s (fast)
+
+combination-final.log
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.016,"handGapMax":0.022,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.203,"handGapMax":0.255,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:tired {"handGapMin":0.011,"handGapMax":0.222,"insidePct":0.26,"byPart":{"head":0,"torso":16,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.019,"handGapMax":0.028,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.203,"handGapMax":0.22,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.011,"handGapMax":0.026,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.02,"handGapMax":0.027,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.009,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":3.11}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":5.73,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":5.82,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0,"headInsidePct":0,"floatGap":0.017,"walkInsidePct":0,"enterUpperInsidePct":1.07}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.35}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:repeatReturn {"trips":[{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716},{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716}]}
+CLIP ok   walk:awayPerk {"trips":[{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666699},{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666711}]}
+CLIP ok   walk:standingPerkObstacle {"browsing":true,"insidePct":0}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[3,4],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.75,"z":-1.13,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":93}
+CLIP ok   moment:pet:dog:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:approach {"yaw":null,"samples":114,"stroke":90,"resumed":true,"resumedDistance":2.08,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.61,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-3.141592653589793 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.61,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.61,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:approach {"yaw":null,"samples":116,"stroke":90,"resumed":true,"resumedDistance":2,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.53,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-3.141592653589793 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.53,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.53,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:turn:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:skip-busy {}
+CLIP ok   moment:pet:skip-stationary {}
+CLIP ok   moment:pet:skip-distant {}
+CLIP ok   moment:pet:low-skip {}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[5,11]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":3,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":900,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","end printer_jam"]},"samples":286,"insidePct":0,"worstWho":null,"chinGap":0.112,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":141,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   prop:pivotBoard {"front":{"x":1,"y":11},"frontResult":{"onWall":true,"recorded":true,"reasons":["insufficient room in front of face","face points away from camera"]},"back":{"x":1,"y":1},"backResult":{"onWall":false,"recorded":true,"reasons":[]}}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:floor {"staff":10,"readyAt":16.7,"playedAt":10.7,"table":{"x":11,"y":5},"ballTravel":3.6,"offPitch":0,"rodTurn":1.1,"newToyAt":0.4}
+CLIP ok   pairs:garage {"staff":2,"readyAt":9,"playedAt":4.8,"table":{"x":6,"y":2},"ballTravel":3.31,"offPitch":0,"rodTurn":1.01,"newToyAt":5.73}
+clip: 150 of 150 passed
+
+combination-rig-final.log
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.009,"handGapMax":0.034,"insidePct":0.04,"byPart":{"head":2,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.006,"handGapMax":0.187,"insidePct":0.03,"byPart":{"head":0,"torso":2,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.202,"handGapMax":0.205,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:tired {"handGapMin":0.003,"handGapMax":0.226,"insidePct":0.23,"byPart":{"head":0,"torso":14,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.011,"handGapMax":0.045,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.01,"handGapMax":0.19,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.2,"handGapMax":0.235,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.008,"handGapMax":0.226,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.012,"handGapMax":0.045,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.012,"handGapMax":0.19,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.99}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0.012,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":5.73,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":5.82,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0.05,"headInsidePct":0.08,"floatGap":0.005,"walkInsidePct":0,"enterUpperInsidePct":1.07}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.35}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:repeatReturn {"trips":[{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716},{"maxStep":0.1287394138994431,"walking":388,"distance":0.04989487430917716}]}
+CLIP ok   walk:awayPerk {"trips":[{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666699},{"started":true,"cancelled":true,"hidden":true,"returned":true,"maxStep":0.04166666666666711}]}
+CLIP ok   walk:standingPerkObstacle {"browsing":true,"insidePct":0}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[3,4],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.75,"z":-1.13,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":85}
+CLIP ok   moment:pet:dog:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:approach {"yaw":null,"samples":114,"stroke":90,"resumed":true,"resumedDistance":2.08,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0.26,"insidePct":0,"worstFrame":46,"worstActor":{"id":"s1","pos":[6,0.04],"yaw":-0.8,"walk":{"mode":"placed","hidden":false,"speed":1.25,"path":[],"goal":{"x":-5,"z":-2.82,"yaw":3.141592653589793,"key":"desk--5.00,-2.82,3.14-ok-","anim":"typing","seated":true,"hidden":false},"temp":{"anim":"pet","t":2.0000000000000036,"delay":0,"moment":"pet","perk":null,"back":true,"keepPos":false,"goal":{"x":6,"z":0.041666666666666664,"yaw":-0.8},"by":"greetPasser (pets.js)"}},"trace":[{"seq":180,"t":365.33,"id":"s1","what":"end","from":"pet","to":null,"by":"updateRec (sync.js)"},{"seq":183,"t":367.73,"id":"s1","what":"start","from":null,"to":"idle","by":"standAt (sync.js)"},{"seq":184,"t":367.73,"id":"s1","what":"interrupt","from":"idle","to":null,"by":"catchFor (sync.js)"},{"seq":185,"t":368.3,"id":"s1","what":"start","from":null,"to":"pet","by":"greetPasser (pets.js)"},{"seq":187,"t":372.1,"id":"s1","what":"end","from":"pet","to":null,"by":"updateRec (sync.js)"},{"seq":188,"t":373.77,"id":"s1","what":"start","from":null,"to":"idle","by":"standAt (sync.js)"},{"seq":189,"t":373.77,"id":"s1","what":"interrupt","from":"idle","to":null,"by":"catchFor (sync.js)"},{"seq":190,"t":373.83,"id":"s1","what":"start","from":null,"to":"pet","by":"greetPasser (pets.js)"}]}}
+CLIP ok   moment:pet:dog:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.61,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-3.141592653589793 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.61,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.61,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:approach {"yaw":null,"samples":116,"stroke":90,"resumed":true,"resumedDistance":2,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":2.94,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.53,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-3.141592653589793 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.53,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.53,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:turn:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:skip-busy {}
+CLIP ok   moment:pet:skip-stationary {}
+CLIP ok   moment:pet:skip-distant {}
+CLIP ok   moment:pet:low-skip {}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[7,5]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":2,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":900,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","end printer_jam"]},"samples":286,"insidePct":0,"worstWho":null,"chinGap":0.112,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":141,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   prop:pivotBoard {"front":{"x":1,"y":11},"frontResult":{"onWall":true,"recorded":true,"reasons":["insufficient room in front of face","face points away from camera"]},"back":{"x":1,"y":1},"backResult":{"onWall":false,"recorded":true,"reasons":[]}}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.35,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:floor {"staff":10,"readyAt":0,"playedAt":10.7,"table":{"x":11,"y":5},"ballTravel":3.54,"offPitch":0,"rodTurn":1.02,"newToyAt":0.4}
+CLIP ok   pairs:garage {"staff":2,"readyAt":11.5,"playedAt":5.8,"table":{"x":6,"y":2},"ballTravel":3.17,"offPitch":0,"rodTurn":1.03,"newToyAt":5.53}
+clip: 150 of 150 passed
+
+combination-stage-final.log
+STAGE      check            view     beat             metric       value  want                                                    
+STAGE ok   pet.turn         default  turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   pet.turn         default  turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.turn         default  turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.approach     default  approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   pet.approach     default  approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.approach     default  approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.stroke       default  stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   pet.stroke       default  stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   pet.stroke       default  stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.stroke       default  stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.turn         turned   turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   pet.turn         turned   turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.turn         turned   turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.approach     turned   approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   pet.approach     turned   approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.approach     turned   approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   pet.stroke       turned   stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   pet.stroke       turned   stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   pet.stroke       turned   stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   pet.stroke       turned   stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.turn      default  turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   petcat.turn      default  turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.turn      default  turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.approach  default  approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   petcat.approach  default  approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.approach  default  approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.stroke    default  stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   petcat.stroke    default  stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   petcat.stroke    default  stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.stroke    default  stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.turn      turned   turn (0.6s)      upright      1      >= 1 of frames (stand upright before reaching)          
+STAGE ok   petcat.turn      turned   turn (0.6s)      petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.turn      turned   turn (0.6s)      noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.approach  turned   approach (0.3s)  upright      1      >= 1 of frames (wait upright while the pet approaches)  
+STAGE ok   petcat.approach  turned   approach (0.3s)  petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.approach  turned   approach (0.3s)  noFade       1      >= 1 of frames (no faded column over them)              
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    atPet        0.933  >= 0.8 of frames (right hand within 0.12 m of the crown)
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    headVisible  1      >= 0.9 of frames (head >= 80% unblocked)                
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    petVisible   1      >= 0.9 of frames (pet >= 60% unblocked)                 
+STAGE ok   petcat.stroke    turned   stroke (3.0s)    noFade       1      >= 1 of frames (no faded column over them)              
+stage: 40 of 40 passed
+
+combination-fast-final.log
+ Test Files  104 passed (104)
+      Tests  862 passed (862)
+
+Current main 59d497a9 plus unchanged PR 731 head 0abf847c fails to merge, exit 1. Navigation and moment conflicts were left unresolved. Historical-base compatibility uses 9ce9dcf9, not current main.
