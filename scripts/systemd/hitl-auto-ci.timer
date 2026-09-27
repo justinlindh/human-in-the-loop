@@ -1,0 +1,10 @@
+[Unit]
+Description=Run hitl-auto-ci every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

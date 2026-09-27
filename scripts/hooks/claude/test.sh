@@ -45,6 +45,14 @@ g -C "$repo" checkout -q main
 denied 'git push' "$repo"
 allowed 'kill 1234'
 allowed 'pgrep -x node'
+# ci-pr.sh by hand: auto CI is the one path; reading the script, the reviewer's --allow-bot runs and HITL_MANUAL_CI=1 pass.
+for c in 'scripts/ci-pr.sh 766' 'bash scripts/ci-pr.sh 766 --head abc' 'cd x && timeout 3000 bash scripts/ci-pr.sh 12 2>&1 | tail' \
+  'nice -n 10 ./scripts/ci-pr.sh 9'; do denied "$c"; done
+for c in 'cat scripts/ci-pr.sh' 'bash -n scripts/ci-pr.sh' 'grep -n trap scripts/ci-pr.sh 2>&1' 'sed -n 1,20p scripts/ci-pr.sh' \
+  'scripts/ci-pr.sh 781 --allow-bot --head abc' 'HITL_MANUAL_CI=1 bash scripts/ci-pr.sh 766' $'cat <<EOF\nrun scripts/ci-pr.sh 5\nEOF'; do allowed "$c"; done
+run bash-guard.sh "$(bashjson 'bash scripts/ci-pr.sh 766')"
+[[ "$err" == *"ci-rerun label"* ]] || fail "the ci-pr refusal should say what to do instead (got: $err)"
+
 # git stash: every worktree shares one stack, so only the read-only list and show get through.
 for c in 'git stash' 'git stash push -m wip' 'git stash save wip' 'git stash pop' 'git stash apply stash@{0}' \
   'git stash drop' 'git -C ../gamedev-sim stash' 'cd x && git stash && git checkout main' 'npm test; git stash pop' \

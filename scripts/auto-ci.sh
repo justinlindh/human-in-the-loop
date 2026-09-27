@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# The one path to local CI: run by hitl-auto-ci.timer, it starts scripts/ci-pr.sh on every open,
+# non-draft PR by a trusted author whose current head has no local-ci status yet, and keeps at most
+# AUTO_CI_JOBS (default: HITL_CI_SLOTS, else 3) of its runs going. Each pass is quick: runs are
+# detached, one process group each, recorded in $STATE/jobs/<pr> as "<pgid> <head>".
+#   - A PR whose head moves on, that closes, or that turns draft has its run stopped (kill -TERM
+#     -<pgid>; ci-pr then sets local-ci to error on the old head) and the new head queued.
+#   - A head whose local-ci is error (the machine failed, not the code) is retried once.
+#   - The ci-rerun label asks for a fresh run of the current head: the label is removed and the run
+#     starts whatever the head's status.
+# ci-pr.sh refuses forks and untrusted authors itself; this only narrows the list first.
+# Usage: scripts/auto-ci.sh [--once]  (the timer runs it with no arguments; --once is the same)
+# Env: AUTO_CI_STATE (default ~/.cache/hitl-ci/auto), AUTO_CI_TREE (the checkout of main that runs
+#      ci-pr; default this script's), AUTO_CI_GH and AUTO_CI_PR (stand-ins for tests).
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+STATE="${AUTO_CI_STATE:-$HOME/.cache/hitl-ci/auto}"
+TREE="${AUTO_CI_TREE:-$(cd "$HERE/.." && pwd)}"
+GH="${AUTO_CI_GH:-gh}"
+CIPR="${AUTO_CI_PR:-$TREE/scripts/ci-pr.sh}"
+MAX="${AUTO_CI_JOBS:-${HITL_CI_SLOTS:-3}}"
+JOBS="$STATE/jobs"
+mkdir -p "$JOBS" "$STATE/retried"
+exec 9>"$STATE/lock"
+flock -n 9 || exit 0
+log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
+alive() { kill -0 -- "-$1" 2>/dev/null; }
+
+# Open PRs: number, draft, trusted, head, local-ci state on the head, rerun label.
+list="$("$GH" pr list --state open --limit 100 \
+  --json number,isDraft,isCrossRepository,author,headRefOid,statusCheckRollup,labels \
+  --jq '.[] | [.number, (.isDraft or .isCrossRepository or (.author.login != "justinlindh")),
+        .headRefOid, ([.statusCheckRollup[]? | select(.context == "local-ci") | .state][0] // "none"),
+        ([.labels[]?.name] | index("ci-rerun") != null)] | @tsv')" || { log "pr list failed"; exit 1; }
+
+declare -A head skip state rerun
+while IFS=$'\t' read -r n s h st r; do
+  [ -n "$n" ] || continue
+  head[$n]="$h"; skip[$n]="$s"; state[$n]="$st"; rerun[$n]="$r"
+done <<<"$list"
+
+stop() {
+  local pr="$1" why="$2" pgid old
+  read -r pgid old <"$JOBS/$pr"
+  if alive "$pgid"; then kill -TERM -- "-$pgid" 2>/dev/null; log "stop #$pr ${old:0:7}: $why"; fi
+  rm -f "$JOBS/$pr"
+}
+
+running=0
+for f in "$JOBS"/*; do
+  [ -e "$f" ] || continue
+  pr="${f##*/}"; read -r pgid old <"$f"
+  if ! alive "$pgid"; then rm -f "$f"; continue; fi
+  if [ -z "${head[$pr]:-}" ]; then stop "$pr" "the PR closed"
+  elif [ "${skip[$pr]}" = true ]; then stop "$pr" "the PR is a draft now"
+  elif [ "${head[$pr]}" != "$old" ]; then stop "$pr" "head moved on to ${head[$pr]:0:7}"
+  elif [ "${rerun[$pr]}" = true ]; then stop "$pr" "ci-rerun asked for a fresh run"
+  else running=$((running + 1))
+  fi
+done
+
+for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
+  [ "${skip[$pr]}" = true ] && continue
+  [ -e "$JOBS/$pr" ] && continue
+  h="${head[$pr]}"; why=""
+  if [ "${rerun[$pr]}" = true ]; then why="ci-rerun"
+  elif [ "${state[$pr]}" = none ]; then why="new head"
+  elif [ "${state[$pr]}" = ERROR ] && [ ! -e "$STATE/retried/$h" ]; then why="retry after a machine error"
+  fi
+  [ -n "$why" ] || continue
+  [ "$running" -lt "$MAX" ] || { log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; }
+  case "$why" in
+    ci-rerun) "$GH" pr edit "$pr" --remove-label ci-rerun >/dev/null 2>&1 || log "#$pr: could not remove ci-rerun" ;;
+    retry*) : >"$STATE/retried/$h" ;;
+  esac
+  # setsid makes the run its own process group, so a stale run stops as a whole. The run must not
+  # keep the pass lock (fd 9) open, or no later pass could start.
+  (cd "$TREE" && exec setsid timeout 3600 nice -n 10 bash "$CIPR" "$pr" --head "$h" >"$STATE/pr-$pr.log" 2>&1 </dev/null 9>&-) &
+  echo "$! $h" >"$JOBS/$pr"
+  running=$((running + 1))
+  log "start #$pr ${h:0:7} ($why)"
+done
+find "$STATE/retried" -type f -mtime +7 -delete 2>/dev/null
+exit 0
