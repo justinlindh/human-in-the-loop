@@ -96,7 +96,7 @@ export const BEATS = [
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
   // Seed 2 once automation has run the office down (15 of 35 at HQ), pushing in on the empty desks.
-  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=2&speed=1&time=day', setup: GROW(705), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
+  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=9&speed=1&time=day', setup: GROW(790, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
   { id: 'end', card: 'end', dur: 8.0 },
 ];
 

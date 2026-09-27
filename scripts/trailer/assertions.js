@@ -16,7 +16,7 @@ const EXPECT = {
   waffle: "R.incentives?.party && R.flying",
   dance: "R.incentives?.dance?.dancers?.length > 0",
   // The shot's point is the thinned office: at most half the desks are staffed.
-  plateau: "s.office.stage === 2 && s.staff.length > 0 && s.staff.length * 2 <= s.office.placed.filter(p => p.itemId === 'desk').length",
+  plateau: "s.era.id === 'plateau' && s.office.stage === 2 && s.staff.length > 0 && s.staff.length * 2 <= s.office.placed.filter(p => p.itemId === 'desk').length",
 };
 
 function check(id, at, predicate) {
