@@ -888,6 +888,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     for (const [x, y] of L.blocked) used.add(`${x},${y}`);
     const free = (x, y) => { for (let i = 0; i < f.w; i++) for (let j = 0; j < f.h; j++) if (used.has(`${x + i},${y + j}`)) return false; return true; };
     const row = (y) => { for (let x = 1; x < L.grid.w - f.w - 1; x++) if (free(x, y)) return { x, y }; return null; };
+    R.spotTrace = true;
     const scrawlOn = (at) => {
       S.office.placed = S.office.placed.filter((p) => p.id !== 'wb_test');
       S.office.placed.push({ id: 'wb_test', itemId: 'whiteboard', level: 1, ...at, rot: 0 });
