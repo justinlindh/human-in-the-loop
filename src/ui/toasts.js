@@ -13,12 +13,21 @@ const WEEK_BUDGET = 3;
 // Info and good toasts that arrive together appear this far apart, so a busy moment builds up a
 // stack instead of dropping it all at once. Warn and bad show at once.
 const GAP_MS = 700;
+const PLAYER_MS = 1500; // how long after a tap or key press a toast still counts as its answer
 
 // Toasts stack top-right when no panel is open. While a panel is open they show one at a
 // time in a strip reserved at the bottom of the panel, so they never cover its controls.
 export function createToasts(root, { canShow = () => true } = {}) {
   const el = h('div.toasts', { 'aria-live': 'polite' });
   root.append(el);
+  // A toast raised just after the player's own tap or key press answers them (a failed action's
+  // reason, a result they asked for): it shows at once, even while canShow() holds the rest.
+  let inputAt = -Infinity;
+  const onInput = () => { inputAt = performance.now(); };
+  addEventListener('pointerdown', onInput, true);
+  addEventListener('keydown', onInput, true);
+  const playerCaused = () => performance.now() - inputAt < PLAYER_MS;
+  const mayShow = (opts) => !!opts?.player || canShow();
   let live = [];
   let dock = null;
   let lastText = '';
@@ -134,6 +143,8 @@ export function createToasts(root, { canShow = () => true } = {}) {
   const weight = (q) => (q.opts.always ? 4 : 0) + (q.opts.action ? 2 : 0) + (toneOf(q.tone) === 'good' ? 1 : 0);
   function push(text, tone = 'info', opts = {}) {
     const t0 = toneOf(tone);
+    if (!opts.player && playerCaused() && !canShow()) opts = { ...opts, player: true };
+    if (opts.player && !canShow()) { shownThisWeek++; show(text, tone, opts); return; }
     if (canShow() && (t0 === 'warn' || t0 === 'bad')) { shownThisWeek++; show(text, tone, opts); return; }
     queue.push({ text, tone, opts, n: ++qSeq });
     if (queue.length > 16) { queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n); hold(queue.pop()); }
@@ -176,9 +187,9 @@ export function createToasts(root, { canShow = () => true } = {}) {
     for (const w of due) show(w.text, w.tone, w.opts, w.at);
   }
 
-  function show(text, tone = 'info', { action, glyph, person } = {}, at = performance.now()) {
+  function show(text, tone = 'info', { action, glyph, person, player } = {}, at = performance.now()) {
     if (!text) return;
-    if (!canShow()) { push(text, tone, { action, glyph, person }); return; }
+    if (!mayShow({ player })) { push(text, tone, { action, glyph, person }); return; }
     if (hidden) {
       waiting.push({ text, tone: toneOf(tone), opts: { action, glyph, person }, at });
       if (waiting.length > MAX_WAITING) waiting.shift();
