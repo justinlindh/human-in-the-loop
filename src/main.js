@@ -86,7 +86,7 @@ async function boot() {
     if (!events?.length) return;
     const urgentIds = new Set((state.chatPrompts ?? []).filter(p => !p.resolved).map(p => p.chatId));
     if (direct) for (const e of events) if (e.type === 'chat') urgentIds.add(e.id);
-    present(yakPacer.enqueue(events, { urgentIds }), state);
+    present(yakPacer.enqueue(events, { urgentIds, state, gameTime: pacer.gameT }), state);
     present(events.filter(e => e.type !== 'chat'), state);
   };
 
@@ -283,7 +283,8 @@ async function boot() {
     // The renderer freezes, the day does not turn, and queued events wait for play to resume.
     frozen = speed === 0 || menuPause || !!sim.state.pendingDecision || !playing;
     if (running) route(pacer.due(), sim.state);
-    present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !held && !document.hidden), sim.state);
+    present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !held && !document.hidden,
+      { gameTime: pacer.gameT, state: sim.state }), sim.state);
     if (!frozen && !held) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     renderer?.setPaused?.(frozen);
     if (renderer) {

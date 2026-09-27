@@ -11,7 +11,7 @@ export const standupMode = (state) => (state.policies.daily_standups ? 'daily' :
 const first = (p) => p.name.split(' ')[0];
 
 // Picks a line for one person from what they are doing this week; '' means they say nothing.
-function lineFor(ctx, p) {
+function lineFor(ctx, p, outageSpeakers) {
   const { state, rng } = ctx;
   const lines = (key) => eraLines(state, STANDUP[key]);
   // A line nobody has used lately, remembered so updates do not repeat week after week.
@@ -38,7 +38,10 @@ function lineFor(ctx, p) {
     .replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const a = p.assignment;
   const outage = state.outage && state.products.find((x) => x.id === state.outage.productId);
-  if (outage && p.role === 'engineer' && a.type !== 'project') return fill(choose('outage'), { product: outage.name });
+  if (outage && p.role === 'engineer' && a.type !== 'project') {
+    outageSpeakers.add(p.id);
+    return fill(choose('outage'), { product: outage.name });
+  }
   if (a.type === 'project') {
     const j = state.projects.find((x) => x.id === a.targetId);
     if (j) {
@@ -104,7 +107,7 @@ export function standupConversation(state, speakers, updates) {
   state.flags.standupConversation = {
     script: chosen.id, topic: chosen.topic, personId: person.id, lines: lines.map(l => ({ ...l })),
     ...(chosen.topic === 'project' ? { subjectId: person.assignment.targetId, name: vars.project } : {}),
-    ...(chosen.topic === 'outage' ? { subjectId: outage.id, name: outage.name, kind: state.outage.kind ?? null, startedWeek: state.week - (state.outage.weeks ?? 0) } : {}),
+    ...(chosen.topic === 'outage' ? { subjectId: outage.id, name: outage.name, kind: state.outage.kind ?? null, startedWeek: state.week - (state.outage.weeks ?? 0), occurrence: state.flags.outageSeq ?? 0 } : {}),
   };
   recent.push(chosen.id);
   if (recent.length > B.standupConversationMemory) recent.splice(0, recent.length - B.standupConversationMemory);
@@ -120,7 +123,9 @@ export function standupSystem(ctx) {
   const present = state.staff.filter((p) => p.mood !== 'away');
   if (!present.length) return;
   const speakers = shuffle(ctx.rng, present).slice(0, Math.min(present.length, int(ctx.rng, 3, 5)));
-  const updates = speakers.map((p) => ({ staffId: p.id, text: lineFor(ctx, p) }));
+  // Keep outage context beside the lines so the standup event keeps its contract shape.
+  const outageSpeakers = new Set();
+  const updates = speakers.map((p) => ({ staffId: p.id, text: lineFor(ctx, p, outageSpeakers) }));
   const lines = mode === 'daily' ? standupConversation(state, speakers, updates) : updates;
   const by = state.flags.standupRecentBy ?? {};
   for (const id of Object.keys(by)) if (!state.staff.some((p) => p.id === id)) delete by[id];
@@ -130,7 +135,7 @@ export function standupSystem(ctx) {
   } else {
     // Async updates are easy to skip: about half the speakers actually post.
     for (const l of lines) {
-      if (l.text && chance(ctx.rng, B.asyncStandupPostChance)) emitChat(ctx, { channel: 'standup', person: state.staff.find((p) => p.id === l.staffId), text: l.text });
+      if (l.text && chance(ctx.rng, B.asyncStandupPostChance)) emitChat(ctx, { channel: 'standup', person: state.staff.find((p) => p.id === l.staffId), text: l.text, outage: outageSpeakers.has(l.staffId) });
     }
   }
 }

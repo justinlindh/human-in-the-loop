@@ -69,7 +69,7 @@ describe('live conversation premise', () => {
     expect(standupContext(JSON.parse(JSON.stringify(s)), s.flags.standupConversation.lines)).not.toBeNull();
   });
   it('revises recovered, replaced, renamed and removed outage subjects without guessing from dialogue text', () => {
-    for (const change of [s => { s.outage = null; }, s => { s.outage.weeks = 0; }, s => { s.outage.kind = 'db_wipe'; }, s => { s.outage.productId = 'other'; }, s => { s.products[0].killed = true; }, s => { s.products[0].name = 'Renamed'; }]) {
+    for (const change of [s => { s.outage = null; }, s => { s.outage.weeks = 0; }, s => { s.outage.kind = 'db_wipe'; }, s => { s.outage.productId = 'other'; }, s => { s.flags.outageSeq = 1; }, s => { s.products[0].killed = true; }, s => { s.products[0].name = 'Renamed'; }]) {
       const s = setup(), context = standupContext(s, generate(s)); change(s);
       expect(standupRevision(context, s)).toMatch(/incident changed/);
     }

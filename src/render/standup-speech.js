@@ -13,7 +13,8 @@ export function standupRevision(context, state) {
   if (context.topic === 'outage') {
     const outage = state.outage, product = state.products.find(p => p.id === context.subjectId && !p.killed);
     if (!outage || !product || product.name !== context.name || outage.productId !== context.subjectId ||
-        (outage.kind ?? null) !== context.kind || state.week - (outage.weeks ?? 0) !== context.startedWeek) return 'The incident changed. Let us check the latest update.';
+        (outage.kind ?? null) !== context.kind || state.week - (outage.weeks ?? 0) !== context.startedWeek ||
+        (state.flags.outageSeq ?? 0) !== (context.occurrence ?? 0)) return 'The incident changed. Let us check the latest update.';
   }
   if (context.topic === 'project') {
     const project = state.projects.find(p => p.id === context.subjectId);

@@ -57,7 +57,7 @@ function reactionRng(state) {
 }
 
 // Emits a Yak chat event in the contract shape. `person` may be a staff object or null for bots.
-export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, image = null, important = false }) {
+export function emitChat(ctx, { channel = 'general', person = null, from = person?.name, text, replyTo = null, reactions, kind = null, id = null, image = null, important = false, outage = false }) {
   const msg = {
     type: 'chat', id: id ?? newId(ctx.state, 'm'), week: ctx.state.week, channel, from, fromId: person?.id ?? null, text, replyTo,
     reactions: reactions ?? reactionsFor(ctx.state, reactionRng(ctx.state), channel, kind, teamMeaning(ctx.state), { reply: !!replyTo, important }),
@@ -66,12 +66,20 @@ export function emitChat(ctx, { channel = 'general', person = null, from = perso
   if (image) msg.image = image;
   // A post that matters without being a win, an incident or a bot post (a running joke, a warranted @channel).
   if (important) msg.important = true;
+  // Internal context links live outage chatter to its occurrence without changing chat events.
+  if (outage && ctx.state.outage) {
+    ctx.state.flags.outageChat ??= {};
+    ctx.state.flags.outageChat[msg.id] = ctx.state.flags.outageSeq ?? 0;
+  }
 
   ctx.emit(msg);
   const log = ctx.state.chatLog;
   if (Array.isArray(log)) {
     log.push(msg);
-    if (log.length > B.chatLogSize) log.splice(0, log.length - B.chatLogSize);
+    if (log.length > B.chatLogSize) {
+      const removed = log.splice(0, log.length - B.chatLogSize);
+      for (const e of removed) if (ctx.state.flags.outageChat) delete ctx.state.flags.outageChat[e.id];
+    }
   }
   return msg;
 }
