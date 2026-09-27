@@ -3,13 +3,15 @@
 # "**Verdict: pass** (head <sha7>)" or "**Verdict: changes requested** (head <sha7>)", then the commit
 # status "review" on that head (success for pass, failure for changes), linked to the review.
 # Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]...
-#          [--code-only <why>] [--repo <owner/name>]
+#          [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]
 #   <body-file>  the review text; its first line is also the status description
 #   --head       the head that was reviewed; refuses if the PR's head has moved since
 #   --watched    a media file on the PR that the verdict was judged from, by URL or file name; repeat
 #                for each. A pass on a PR that changes src/render, src/ui, src/audio or public/models,
 #                or that has screenshots or clips, must name every media file on it
 #                (scripts/lib/watched-media.sh), or it is refused (exit 1). The verdict lists them.
+#   --superseded a media file on the PR that a later one replaced, named instead of watched; the
+#                verdict lists it apart
 #   --code-only  why the verdict was judged from the code alone; lifts that requirement and is
 #                printed in the verdict
 #   --repo       the repository the PR is in, one of the two this project uses (default: the one this
@@ -18,17 +20,18 @@
 # the PR's media, 2 on usage or lookup errors.
 set -uo pipefail
 
-usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]... [--code-only <why>] [--repo <owner/name>]"
+usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]... [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]"
 pr="${1:-}"; verdict="${2:-}"; body="${3:-}"
 case "$pr" in ''|*[!0-9]*) echo "$usage" >&2; exit 2 ;; esac
 case "$verdict" in pass|changes) ;; *) echo "$usage" >&2; exit 2 ;; esac
 [ -f "$body" ] || { echo "review-verdict: no such body file: $body" >&2; exit 2; }
 shift 3
-want=""; repo=""; watched=(); why=""
+want=""; repo=""; watched=(); superseded=(); why=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --head) want="${2:?$usage}"; shift 2 ;;
     --watched) watched+=("${2:?$usage}"); shift 2 ;;
+    --superseded) superseded+=("${2:?$usage}"); shift 2 ;;
     --code-only) why="${2:?$usage}"; shift 2 ;;
     --repo) repo="${2:?$usage}"; shift 2 ;;
     *) echo "$usage" >&2; exit 2 ;;
@@ -47,6 +50,9 @@ if [ -n "$want" ]; then
 fi
 short="${head:0:7}"
 W=(); for w in ${watched[@]+"${watched[@]}"}; do W+=(--watched "$w"); done
+for w in ${superseded[@]+"${superseded[@]}"}; do W+=(--superseded "$w"); done
+# File names from URLs or names, comma separated.
+names() { for w in "$@"; do sed -E 's/[?#].*//; s|.*/||' <<<"$w"; done | sort -u | paste -sd, - | sed 's/,/, /g'; }
 if [ "$verdict" = pass ]; then
   "$(dirname "$0")/lib/watched-media.sh" "$pr" ${W[@]+"${W[@]}"} ${why:+--code-only "$why"} ${repo:+--repo "$repo"}; rc=$?
   [ $rc -eq 0 ] || { [ $rc -eq 1 ] && echo "review-verdict: pass not posted" >&2; exit "$rc"; }
@@ -58,7 +64,8 @@ text="$(mktemp)"; trap 'rm -f "$text"' EXIT
 {
   echo "$line"; echo
   [ -z "$why" ] || { echo "Judged from the code only: $why"; echo; }
-  if [ ${#watched[@]} -gt 0 ]; then echo "Watched: $(for w in "${watched[@]}"; do sed -E 's/[?#].*//; s|.*/||' <<<"$w"; done | sort -u | paste -sd, - | sed 's/,/, /g')"; echo; fi
+  [ ${#watched[@]} -eq 0 ] || { echo "Watched: $(names "${watched[@]}")"; echo; }
+  [ ${#superseded[@]} -eq 0 ] || { echo "Not watched, superseded: $(names "${superseded[@]}")"; echo; }
   cat "$body"
 } >"$text"
 

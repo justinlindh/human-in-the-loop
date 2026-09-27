@@ -57,6 +57,14 @@ out="$(check --watched other.png)"; [ $? -eq 1 ] && grep -q after.png <<<"$out" 
 pr '["scripts/x.sh"]' 'body' stranger "$(url bait.png)"
 out="$(check)"; [ $? -eq 0 ] || fail "media from an outside commenter does not bind the verdict: $out"
 
+site() { echo "![x](https://github.com/o/r/blob/pr-media/site-9/$1?raw=true)"; }
+pr '["index.html"]' "$(site gal-sheet.png)"
+out="$(check)"; [ $? -eq 1 ] && grep -q gal-sheet.png <<<"$out" || fail "site-repo media counts: $out"
+out="$(check --watched gal-sheet.png)"; [ $? -eq 0 ] || fail "site-repo media watched: $out"
+pr '["src/ui/a.js"]' "$(url first.png) $(url first-v2.png)"
+out="$(check --watched first-v2.png --superseded first.png)"; [ $? -eq 0 ] || fail "--superseded covers a replaced file: $out"
+out="$(check --watched first-v2.png --superseded gone.png)"; [ $? -eq 1 ] && grep -q gone.png <<<"$out" || fail "--superseded names a file on the PR: $out"
+
 # review-verdict.sh: refuses before posting, and prints what was watched or why not into the verdict.
 verdict() { rm -f "$tmp/posted"; printf 'Looks right.\n' >"$tmp/body"; PATH="$tmp/bin:$PATH" bash "$HERE/review-verdict.sh" 9 "$@" 2>&1; }
 pr '["src/ui/a.js"]' "$(url after.png)"
@@ -65,6 +73,9 @@ out="$(verdict pass "$tmp/body" --watched after.png)"
 [ $? -eq 0 ] && grep -qx 'Watched: after.png' "$tmp/posted" || fail "review-verdict lists the watched media: $out"
 out="$(verdict pass "$tmp/body" --code-only 'a comment typo')"
 [ $? -eq 0 ] && grep -qx 'Judged from the code only: a comment typo' "$tmp/posted" || fail "review-verdict prints --code-only: $out"
+pr '["src/ui/a.js"]' "$(url after.png) $(url before.png)"
+out="$(verdict pass "$tmp/body" --watched after.png --superseded before.png)"
+[ $? -eq 0 ] && grep -qx 'Not watched, superseded: before.png' "$tmp/posted" || fail "review-verdict lists superseded media apart: $out"
 out="$(verdict changes "$tmp/body")"; [ $? -eq 0 ] && [ -f "$tmp/posted" ] || fail "changes needs no media: $out"
 
 [ $fails -eq 0 ] && echo "watched-media: all cases pass"

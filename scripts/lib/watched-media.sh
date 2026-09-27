@@ -4,19 +4,21 @@
 # (src/render/, src/ui/, src/audio/, public/models/) or its body has a Screenshots or Clips entry.
 # Its media is every image, video and audio file linked from the pr-media branch in its body or in
 # comments from a login in scripts/ci-trusted (a video's GIF preview comes with the video; scripts
-# and text are not media). Each must be named by a --watched flag: its URL or its file name. A PR
+# and text are not media). Each must be named by a --watched flag, or by --superseded when a later
+# file replaced it: its URL or its file name. A PR
 # judged by its media with none posted cannot pass until the author posts some. --code-only
 # "<why>" lets the pass through without media; review-verdict.sh prints the reason in the verdict.
-# Usage: scripts/lib/watched-media.sh <pr> [--watched <url or file>]... [--code-only <why>] [--repo <owner/name>]
+# Usage: scripts/lib/watched-media.sh <pr> [--watched <url or file>]... [--superseded <url or file>]...
+#          [--code-only <why>] [--repo <owner/name>]
 # Exit 0 when the verdict may pass, 1 with the reason when it may not, 2 on usage or lookup errors.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-usage="usage: watched-media.sh <pr> [--watched <url or file>]... [--code-only <why>] [--repo <owner/name>]"
+usage="usage: watched-media.sh <pr> [--watched <url or file>]... [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]"
 pr="${1:?$usage}"; shift
 R=(); watched=(); why=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --watched) watched+=("${2:?$usage}"); shift 2 ;;
+    --watched|--superseded) watched+=("${2:?$usage}"); shift 2 ;;
     --code-only) why="${2:?$usage}"; shift 2 ;;
     --repo) R=(-R "${2:?$usage}"); shift 2 ;;
     *) echo "$usage" >&2; exit 2 ;;
@@ -32,7 +34,7 @@ trusted="$(grep -Ev '^[[:space:]]*(#|$)' "$HERE/ci-trusted" | jq -Rnc '[inputs]'
 view="$(gh pr view "${R[@]}" "$pr" --json body,comments,files)" || { echo "watched-media: can't read #$pr" >&2; exit 2; }
 body="$(jq -r '.body' <<<"$view")"
 text="$(jq -r --argjson t "$trusted" '.body, (.comments[] | select(.author.login as $a | $t | index($a)) | .body)' <<<"$view")"
-media="$(grep -oE 'pr-media/(pr|issue)-[0-9]+/[^])?" [:space:]]+' <<<"$text" | sed 's|.*/||' \
+media="$(grep -oE 'pr-media/(site-)?((pr|issue)-)?[0-9]+/[^])?" [:space:]]+' <<<"$text" | sed 's|.*/||' \
   | grep -iE "$MEDIA" | sort -u)"
 media="$(while read -r m; do
   [ -n "$m" ] || continue
@@ -62,7 +64,7 @@ if [ -n "$unknown" ]; then
   exit 1
 fi
 if [ -n "$missing" ]; then
-  echo "watched-media: #$pr $reason; watch these and name each with --watched <file>, or pass with --code-only \"<why>\":"
+  echo "watched-media: #$pr $reason; watch these and name each with --watched <file> (or --superseded <file> when a later file replaced it), or pass with --code-only \"<why>\":"
   sed 's/^/  /' <<<"$missing"
   exit 1
 fi
