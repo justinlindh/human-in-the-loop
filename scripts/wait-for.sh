@@ -9,14 +9,14 @@
 #   --merged     keep waiting after the checks pass, until the PR merges
 #   --no-update  report a PR that is behind or conflicting instead of merging main into it
 #   --test       the test command gating the push (default: npm test)
-#   --pickup     warn once when local-ci hasn't reported on the head after this many minutes (default 10)
+#   --pickup     warn once when local-ci hasn't reported on the head after this many minutes (default 15)
 #   --issue      wait until an issue closes
 # Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
 # --no-update; 4 merging main conflicts; 5 the tests failed after merging main; 6 the PR was closed;
 # 7 this worktree isn't on the PR's branch at its head; 124 timed out.
 set -uo pipefail
 
-pr="" issue="" merged=0 update=1 test_cmd="npm test" poll=60 pickup=10 timeout=240
+pr="" issue="" merged=0 update=1 test_cmd="npm test" poll=60 pickup=15 timeout=240
 while [ $# -gt 0 ]; do
   case "$1" in
     --merged) merged=1 ;;
