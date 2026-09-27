@@ -36,6 +36,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | reviewer | review and playtest | any (read-only) | nothing |
 
 - When a permanent member joins or leaves, update this table and the team table in `README.md` in the same PR.
+- One owner per fix. When a bug or task is handed to a lane, that lane builds it. A lane asked only to diagnose reports the cause and the owning lane, and doesn't open a fix. If you find someone else is already on it, stop and tell team-lead.
+- Keep token use lean: look at contact sheets and crops rather than full frames, grep logs rather than reading them whole, and fan out read-only helper agents only for large audits, on a cheaper model where the tool allows.
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
 - Anything that needs the user's eyes or ears (a clip, an audio pick, a visual change they asked for, a decision only they can make) goes to team-lead with the media files and the question. team-lead puts it on the user's review desk and tells them it's there. Don't only mention it in a report.
@@ -46,7 +48,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Every instruction or status message names the PR and head (or issue) it's about. An update restates the whole current ask rather than adding a delta. Before stopping another agent's job, or when you do, send it a one-line notice.
 - Never use `git stash`: every worktree shares one stash stack, so two lanes stashing at once swap each other's work. To set changes aside, commit them to a scratch branch, or copy the files to your scratchpad.
 - Read other worktrees for reference; never edit them. Send short messages and keep working; do not idle waiting for replies.
-- Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with one short line. team-lead replies with cross-lane news and the go-ahead for the next task.
+- Team mailbox messages only arrive between turns. After each task, end your turn with your report as your final message: team-lead receives it automatically when your turn ends. Don't also send the same report with SendMessage, or it arrives twice. Use SendMessage for things that can't wait for the end of your turn, and for messages to other teammates. If a turn produced nothing new (for example, you only acknowledged a message), end it with a single word, `idle`, and send nothing else: every message wakes team-lead and costs a full read of its context. Don't send acknowledgements or "nothing new" messages. Batch what you have into one report. team-lead replies with cross-lane news and the go-ahead for the next task.
 - Before a report or an action that depends on a PR's state, check it live (`scripts/pr-status.sh`, or `gh pr view <n>`). Messages cross, so an instruction or a status you received may already be out of date. Report only what changed since your last report: new PRs, new results, and decisions you need.
 
 ## Rules
@@ -84,7 +86,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Breaking contract changes add `!` (`feat(contract)!: ...`).
   - No `@name` in commit subjects or bodies (write `officebot`, not `@officebot`): release notes turn them into GitHub mentions that can ping real accounts.
   - Merges to `main` cut releases automatically (semantic-release, 0.x while pre-alpha), and each release deploys to GitHub Pages, so the commit type decides the version bump: `feat` bumps minor, `fix` and `perf` bump patch.
-- PR descriptions follow `.github/pull_request_template.md`.
+- PR descriptions follow `.github/pull_request_template.md`. A PR that changes how the game plays (pacing, what pauses the clock, who can speak, rules, balance the player feels) lists it under "Changes to how the game plays", and those need the owner's approval (a draft with `awaiting-user`), even inside a technical fix.
 - Commits and PRs carry no Claude attribution: no Co-Authored-By or session lines (`.claude/settings.json` sets both empty).
 - Gate every commit and push on the test command's exit code (`npm run test:fast && git commit ...`, or `set -e`), never on grepping its output. A pass means exit 0. Use the full `npm test` (which adds the several-minute balance run) only when the change touches `src/sim/`, `src/data/`, `src/save/`, `tests/sim/` or `scripts/balance.js`; local CI runs everything on the PR regardless.
 - Evidence before claims: when reporting a task done, include the commit hash, the test output, and screenshot paths for visual work.
