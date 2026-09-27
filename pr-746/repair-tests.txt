@@ -1,0 +1,18 @@
+
+> human-in-the-loop@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 <checkout>
+
+
+ Test Files  110 passed (110)
+      Tests  942 passed (942)
+   Start at  16:59:56
+   Duration  40.02s (tests 82%, transform 11%, import 7%)
+
+
+Standup gate: 22 of 22 passed; 8 of 8 live conversation cases passed.
+Toolkit: 71 entries covered. Feature ids: 206 defined, 110 required covered.
+Independent simulation comparison: 200 seeds x 50 meetings per mode, exact daily RNG/state except bounded conversation metadata, exact async state/events for these fixtures.
+Before controls: old head fails both real-loop recovery and two-attendee completion checks.
