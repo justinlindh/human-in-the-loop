@@ -73,6 +73,21 @@ on main; put src/sim/balance.js 'export const B = {\n  x: 1, y: 2, p: 7,\n  z: 3
 merge_as "src/sim/balance.js=export const B = {\n  x: 1, y: 2, p: 5,\n  z: 3,\n};\n"
 check 'balance.js: a key with two values does not carry' 1
 
+new_case; on pr; put src/sim/balance.js 'export const B = {\n  x: 1, y: [2, 4], p: 5,\n  z: 3,\n};\n'; commit pr
+on main; put src/sim/balance.js 'export const B = {\n  x: 1, y: [2, 4], m: 6,\n  z: 3,\n};\n'; commit main
+merge_as "src/sim/balance.js=export const B = {\n  x: 1, y: [2, 9], p: 5, m: 6,\n  z: 3,\n};\n"
+check 'balance.js: an array value edited after its first element does not carry' 1
+
+new_case; on pr; put src/sim/balance.js 'export const B = {\n  x: 1, y: [2, 4], p: 5,\n  z: 3,\n};\n'; commit pr
+on main; put src/sim/balance.js 'export const B = {\n  x: 1, y: [2, 4], m: { a: 1, b: 2 },\n  z: 3,\n};\n'; commit main
+merge_as "src/sim/balance.js=export const B = {\n  x: 1, y: [2, 4], p: 5, m: { a: 1, b: 2 },\n  z: 3,\n};\n"
+check 'balance.js: array and object values kept whole carry' 0
+
+new_case; on pr; put src/sim/balance.js 'export const B = {\n  x: 1, y: 2, p: 5,\n  z: 3,\n};\n'; commit pr
+on main; put src/sim/balance.js 'export const B = {\n  x: 1, y: 2, m: 6,\n  z: 3,\n};\n'; commit main
+merge_as "src/sim/balance.js=export const B = {\n  x: 1, y: 2, p: 5, m: 6, junk\n  z: 3,\n};\n"
+check 'balance.js: stray text on the line does not carry' 1
+
 new_case; on pr; put src/data/captions.js "export const C = {\n  a: 'A',\n  b: 'from pr',\n};\n"; commit pr
 on main; put src/data/captions.js "export const C = {\n  a: 'A',\n  c: 'C',\n};\n"; commit main
 merge_as "src/data/captions.js=export const C = {\n  a: 'A',\n  b: 'from pr',\n  c: 'C',\n};\n"

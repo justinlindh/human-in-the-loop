@@ -50,7 +50,27 @@ try {
 
   // Rule 2, file by file.
   const blob = (tree, f) => { try { return git(['cat-file', 'blob', `${tree}:${f}`]); } catch { return null; } };
-  const pairs = (line) => new Map([...line.matchAll(/([A-Za-z_$][\w$]*)\s*:\s*([^,]+?)\s*(?=,|$)/g)].map((m) => [m[1], m[2]]));
+  // A balance line's `key: value` pieces, split on top-level commas (not those inside [], {}, () or
+  // quotes), so each value is its whole text. null when a piece isn't a pair or a key repeats.
+  const pairs = (line) => {
+    const pieces = []; let depth = 0, quote = null, cur = '';
+    for (const ch of line.replace(/\/\/.*$/, '')) {
+      if (quote) { cur += ch; if (ch === quote) quote = null; continue; }
+      if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+      else if ('[{('.includes(ch)) depth++;
+      else if (']})'.includes(ch)) depth--;
+      else if (ch === ',' && depth === 0) { pieces.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    pieces.push(cur);
+    const map = new Map();
+    for (const piece of pieces.map((x) => x.trim()).filter(Boolean)) {
+      const m = piece.match(/^([A-Za-z_$][\w$]*)\s*:\s*([\s\S]+)$/);
+      if (!m || map.has(m[1])) return null;
+      map.set(m[1], m[2].replace(/\s+/g, ' ').trim());
+    }
+    return map;
+  };
   let regions = 0;
   for (const f of conflicted) {
     const marked = blob(autoTree, f), resolved = blob(head, f);
@@ -94,6 +114,7 @@ try {
           const end = resolved.indexOf('\n', pos);
           const line = resolved.slice(pos, end < 0 ? resolved.length : end + 1);
           const a = pairs(seg.ours), b = pairs(seg.theirs), r = pairs(line);
+          if (!a || !b || !r) continue;
           const clash = [...a].some(([k, v]) => b.has(k) && b.get(k) !== v);
           const union = new Map([...a, ...b]);
           const same = r.size === union.size && [...union].every(([k, v]) => r.get(k) === v);
