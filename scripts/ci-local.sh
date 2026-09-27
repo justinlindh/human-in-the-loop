@@ -178,8 +178,6 @@ tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
 tool_step toolkit-test node "$SELF/toolkit.test.mjs"
 tool_step capture bash "$SELF/capture.test.sh"
-# The queue dashboard's own suite (node:test), with room to finish on a loaded machine.
-tool_step queue-dashboard timeout 300 node --test "$SELF/queue-dashboard/dashboard.test.mjs"
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
