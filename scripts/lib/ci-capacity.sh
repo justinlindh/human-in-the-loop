@@ -1,5 +1,6 @@
 # Machine-wide capacity for local CI runs. Source it, then:
-#   ci_slot_take <fd>        wait for one of HITL_CI_SLOTS (default 3) run slots and hold it on <fd>;
+#   ci_slot_take <fd>        wait for one of HITL_CI_SLOTS (default 3) run slots and hold it on <fd>,
+#                            after any quiet window (scripts/lib/quiet.sh) ends;
 #                            says on stderr while it waits; exit status 75 when CI_RUN_WAIT (default
 #                            7200) seconds pass without one
 #   ci_runs_going            how many run slots are held right now (the caller's own included)
@@ -10,6 +11,8 @@
 #                            prints why a failed step looks like the machine's fault, not the code's
 #                            (nothing, and exit 1, when it doesn't)
 # Slot files live in HITL_LOCK_DIR, next to the render locks.
+# A quiet window (scripts/lib/quiet.sh) holds new runs back until it ends.
+declare -F quiet_wait >/dev/null || source "$(dirname "${BASH_SOURCE[0]}")/quiet.sh"
 ci_slot_dir() { echo "${HITL_LOCK_DIR:-$HOME/.cache/hitl-ci}"; }
 ci_slot_count() { echo "${HITL_CI_SLOTS:-3}"; }
 
@@ -17,6 +20,7 @@ ci_slot_take() {
   local fd="$1" dir n i waited=0 said=0 max="${CI_RUN_WAIT:-7200}"
   dir="$(ci_slot_dir)"; n="$(ci_slot_count)"; mkdir -p "$dir"
   while :; do
+    quiet_wait ci-local
     for i in $(seq 1 "$n"); do
       eval "exec $fd>\"\$dir/ci-run-$i.lock\""
       if flock -n "$fd"; then
