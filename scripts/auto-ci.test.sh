@@ -83,5 +83,16 @@ run
 has started "10 jjj" || fail "ci-rerun should start a run once there is room"
 grep -q "pr edit 10 --remove-label ci-rerun" "$tmp/edits" 2>/dev/null || fail "ci-rerun should be removed when its run starts"
 
+# A head left pending with no run going is retried once it has been stuck long enough, then not again.
+fixture "$(pr 11 kkk PENDING)"
+run
+has started "11 kkk" && fail "a fresh pending head is someone else's run: leave it"
+touch -d '2 hours ago' "$tmp/state/pending/kkk"
+run
+has started "11 kkk" || fail "a head stuck pending with no run should be retried"
+kill -KILL -- "-$(cut -d' ' -f1 "$tmp/state/jobs/11")" 2>/dev/null; sleep 0.3
+run
+[ "$(grep -c '^11 kkk$' "$tmp/started")" -eq 1 ] || fail "a stuck head should be retried only once"
+
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]

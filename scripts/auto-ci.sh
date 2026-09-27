@@ -5,7 +5,9 @@
 # detached, one process group each, recorded in $STATE/jobs/<pr> as "<pgid> <head>".
 #   - A PR whose head moves on, that closes, or that turns draft has its run stopped (kill -TERM
 #     -<pgid>; ci-pr then sets local-ci to error on the old head) and the new head queued.
-#   - A head whose local-ci is error (the machine failed, not the code) is retried once.
+#   - A head whose local-ci is error (the machine failed, not the code) is retried once. So is a head
+#     left pending with no run of ours going for AUTO_CI_STUCK_MINUTES (default 75, past ci-pr's
+#     60-minute limit): a run killed outright (SIGKILL, out of memory, a reboot) never posts its result.
 #   - The ci-rerun label asks for a fresh run of the current head: the label is removed and the run
 #     starts whatever the head's status.
 # ci-pr.sh refuses forks and untrusted authors itself; this only narrows the list first.
@@ -20,7 +22,8 @@ GH="${AUTO_CI_GH:-gh}"
 CIPR="${AUTO_CI_PR:-$TREE/scripts/ci-pr.sh}"
 MAX="${AUTO_CI_JOBS:-${HITL_CI_SLOTS:-3}}"
 JOBS="$STATE/jobs"
-mkdir -p "$JOBS" "$STATE/retried"
+mkdir -p "$JOBS" "$STATE/retried" "$STATE/pending"
+STUCK="${AUTO_CI_STUCK_MINUTES:-75}"
 exec 9>"$STATE/lock"
 flock -n 9 || exit 0
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
@@ -66,6 +69,12 @@ for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
   if [ "${rerun[$pr]}" = true ]; then why="ci-rerun"
   elif [ "${state[$pr]}" = none ]; then why="new head"
   elif [ "${state[$pr]}" = ERROR ] && [ ! -e "$STATE/retried/$h" ]; then why="retry after a machine error"
+  elif [ "${state[$pr]}" = PENDING ]; then
+    # Pending with no run of ours: someone else's run, or one that died without a result.
+    [ -e "$STATE/pending/$h" ] || : >"$STATE/pending/$h"
+    if [ ! -e "$STATE/retried/$h" ] && [ -n "$(find "$STATE/pending/$h" -mmin "+$STUCK" 2>/dev/null)" ]; then
+      why="retry: pending for over $STUCK minutes with no run going"
+    fi
   fi
   [ -n "$why" ] || continue
   [ "$running" -lt "$MAX" ] || { log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; }
@@ -80,5 +89,5 @@ for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
   running=$((running + 1))
   log "start #$pr ${h:0:7} ($why)"
 done
-find "$STATE/retried" -type f -mtime +7 -delete 2>/dev/null
+find "$STATE/retried" "$STATE/pending" -type f -mtime +7 -delete 2>/dev/null
 exit 0
