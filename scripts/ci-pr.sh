@@ -192,7 +192,9 @@ if [ "$mode" = light ]; then
   if grep -q '^docs/features/' <<<"$changed" && [ -f "$TOOLS/scripts/features-ids.mjs" ]; then
     fdir="$(mktemp -d)"
     if git -C "$REPO" archive "refs/ci/pr-$pr/head" docs/features 2>/dev/null | tar -x -C "$fdir" 2>/dev/null; then
-      if fout="$(node "$TOOLS/scripts/features-ids.mjs" --root "$TOOLS" --doc "$fdir/docs/features" 2>&1)"; then features=pass
+      # The inventory is plain files: a symlink could point the checker anywhere on the machine.
+      if [ -n "$(find "$fdir" -type l -print -quit)" ]; then features=FAIL; light_ok=0; fout="features-ids: docs/features/ holds a symlink; the inventory must be plain files"
+      elif fout="$(node "$TOOLS/scripts/features-ids.mjs" --root "$TOOLS" --doc "$fdir/docs/features" 2>&1)"; then features=pass
       else features=FAIL; light_ok=0; fi
       fout="${fout//$fdir\//}"; fout="${fout//$TOOLS\//}"
       fout="$(sed -E 's#/(home|tmp)/[^[:space:]:)]*#<local path>#g' <<<"$fout")"
