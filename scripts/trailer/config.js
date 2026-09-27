@@ -74,7 +74,7 @@ export const BEATS = [
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
-  { id: 'build', item: 'trail-build', capture: { seconds: 7 }, from: 0.9, dur: 4.0 },
+  { id: 'build', item: 'trail-build', capture: { seconds: 10 }, from: 0.9, dur: 8.4 },
   // The hire panel: a candidate hired.
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
@@ -109,7 +109,9 @@ export const MUSIC = {
   bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -8, fadeIn: 0.3 },
   // The printer's own cue replaces the bed for its beat: 9.9 s of the cue lands on the beat's cut.
   swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
-  stingers: [],
+  // The foosball rally once both players are at the table: the game plays its cue once per use, so
+  // the trailer places a few hits of the same sound under the bed.
+  stingers: [5.15, 5.7, 6.35, 6.9, 7.6].map((offset) => ({ file: 'public/audio/sfx/foosball.ogg', at: { beat: 'build', offset }, gain: -12 })),
   duck: { db: 6, attack: 0.15, release: 0.4 },
   fadeOut: 1.5,
 };
