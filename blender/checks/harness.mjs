@@ -31,7 +31,9 @@ const INIT = `(() => {
   performance.now = () => t;
   Date.now = () => 1700000000000 + t;
   window.__tick = (ms) => { t += ms; };
-  window.requestAnimationFrame = () => 0;
+  // Frames never run on their own; callbacks queue here for a check that drives the game loop itself.
+  window.__rafQ = [];
+  window.requestAnimationFrame = (cb) => { window.__rafQ.push(cb); return window.__rafQ.length; };
 })();`;
 
 // Checks render on the GPU unless told otherwise (scripts/lib/gl.js: --software or HITL_GL=software).
