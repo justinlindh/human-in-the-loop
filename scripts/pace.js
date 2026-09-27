@@ -18,6 +18,7 @@ import { createGame, tick, dispatch } from '../src/sim/index.js';
 import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
 import { createPacer, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
+import { speechMax } from '../src/render/speech-budget.js';
 import { createYakPacer } from '../src/yak-pacing.js';
 
 // Modelled human time, in real seconds. Each range is [min, max], drawn uniformly.
@@ -34,7 +35,6 @@ const HUMAN = {
 const UI = {
   toastBudget: 3,          // info and good toasts per game week; warn and bad always show
   toastDedupSeconds: 0.8,
-  maxSpeech: 4,             // speech bubbles on screen before the renderer drops new ones
   bubbleFade: 0.25,         // seconds; a bubble cut shorter than this still reads as whole
   standupGather: 2.2,       // seconds (scaled by speed, max 2x) to gather before a daily standup talks
   standupStageGap: 165,    // real seconds of unpaused play between staged standups (never at 4x)
@@ -247,7 +247,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       mine.end = start;
     } else if (mine) {
       mine.end = start;
-    } else if ((source === 'say' || source === 'standup-desk') && live.length >= UI.maxSpeech) {
+    } else if ((source === 'say' || source === 'standup-desk') && live.length >= speechMax(state.staff.length)) {
       bubbleStats.dropped++;
       return;
     }
