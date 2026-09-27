@@ -163,8 +163,9 @@ function emit(ctx, ex, planned) {
     }
   } else {
     const kind = ex.channel === 'wins' ? 'win' : ex.channel === 'incidents' ? 'incident' : null;
-    const root = emitChat(ctx, { channel: ex.channel, person: planned.lines[0].person, text: planned.lines[0].text, kind, important: !!ex.important });
-    for (const l of planned.lines.slice(1)) emitChat(ctx, { channel: ex.channel, person: l.person, text: l.text, replyTo: root.id, kind });
+    const outage = ex.on === 'outage';
+    const root = emitChat(ctx, { channel: ex.channel, person: planned.lines[0].person, text: planned.lines[0].text, kind, important: !!ex.important, outage });
+    for (const l of planned.lines.slice(1)) emitChat(ctx, { channel: ex.channel, person: l.person, text: l.text, replyTo: root.id, kind, outage });
   }
 }
 
@@ -304,11 +305,11 @@ function atChannel(ctx, talk, factor) {
   const beat = warranted ? AT_CHANNEL_WARRANTED : pick(rng, AT_CHANNEL);
   const values = { a: first(offender), product: outage?.name ?? '' };
   const text = (t) => t.replace(/\{(a|product)\}/g, (_, k) => values[k]);
-  const root = emitChat(ctx, { channel: 'general', person: offender, text: text(pick(rng, beat.post)), important: !!warranted,
+  const root = emitChat(ctx, { channel: 'general', person: offender, text: text(pick(rng, beat.post)), important: !!warranted, outage: !!warranted,
     reactions: { no_at_channel: int(rng, 2, 6), ...(warranted ? {} : { '😂': 1 }) } });
   const others = shuffle(rng, people.filter((p) => p.id !== offender.id));
   const replies = shuffle(rng, beat.replies).slice(0, int(rng, 1, 2));
-  replies.forEach((r, i) => { if (others[i]) emitChat(ctx, { channel: 'general', person: others[i], text: text(r), replyTo: root.id }); });
+  replies.forEach((r, i) => { if (others[i]) emitChat(ctx, { channel: 'general', person: others[i], text: text(r), replyTo: root.id, outage: !!warranted }); });
   const sigher = state.staff.find((p) => p.id !== offender.id && p.seniority === 'senior' && inOffice(p));
   if (!warranted && sigher && chance(rng, B.atChannelSighChance)) {
     const lines = ['Someone @channeled again.', 'We need to talk about @channel. Again.', 'My phone just told me about a yogurt.'];

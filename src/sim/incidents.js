@@ -96,6 +96,7 @@ const isUnrecoverable = (state, severity) => fixCapacity(state)
 
 export function startOutage(ctx, { productId, kind, severity }) {
   const { state } = ctx;
+  state.flags.outageSeq = (state.flags.outageSeq ?? 0) + 1;
   state.outage = { productId, kind, severity, weeks: 0, unrecoverable: isUnrecoverable(state, severity) };
   const p = state.products.find((x) => x.id === productId);
   noteWorstOutage(state, p);
