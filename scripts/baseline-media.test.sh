@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Cases for scripts/baseline-media.sh in a scratch repo, with gh stubbed. Exit 0 when all pass.
 set -uo pipefail
+# ci-pr.sh exports the PR under test; the cases choose their own.
+unset HITL_PR
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
