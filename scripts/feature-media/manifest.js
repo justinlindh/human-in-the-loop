@@ -1,3 +1,4 @@
+import { YAK_HELPERS, YAK_CHECK } from './yak.js';
 import {
   PLAY, PRE_UNTIL, PRE_DECISION, IN_OFFICE, DROP_UNSTAFFED, STAFF_IDLE, INCIDENT_ON_FLOOR, CHAT_HISTORY,
   BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, KEY,
@@ -193,22 +194,28 @@ export const ITEMS = [
     // A meme posted mid-outage backfires: 😬 reactions and the team's replies under it, in #random.
     // The large Yak keeps the game running (the maximised one pauses it).
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`,
     actions: [
-      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 34, 1),
+      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
       { at: 11, js: `(() => {
         const b = [...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent));
         if (!b || b.disabled || !window.__HITL.state.outage) throw new Error('capture: the meme must be available during an outage');
+        const before = new Set(window.__HITL.state.chatLog.map(m => m.id));
         b.click();
+        const post = window.__HITL.state.chatLog.find(m => !before.has(m.id) && m.image);
+        if (post?.image.id !== 'this_is_fine') throw new Error('capture: Share a meme did not post the outage image');
+        window.__yakMeme = structuredClone(post);
+        (window.__captureMarks ??= []).push({ t: 11, label: 'yak-post', id: post.id, image: post.image.id, outage: true });
       })()` },
-      ...[11.5, 16, 22, 28, 32].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
-      // Newer messages push the thread up: scroll it back to the top of the list for the frame.
-      { at: 32.5, js: `(() => { const posts = [...document.querySelectorAll('.chat.yak *')].filter((e) => e.children.length === 0 && /prod is back/.test(e.textContent)); posts[0]?.scrollIntoView({ block: 'center' }); })()` },
+      ...[11.5, 16, 22, 28, 32, 48, 59].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
+      { at: 59.5, js: "(async () => { const m = document.querySelector('.chat.yak .msg[data-id=\"' + CSS.escape(window.__yakMeme.id) + '\"]'); m?.scrollIntoView({ block: 'start' }); const img = m?.querySelector('.ymeme-img'); if (!img) throw new Error('yak: missing displayed image'); await img.decode(); })()" },
+      { at: 60, js: 'window.__frameYak()' },
+      YAK_CHECK(60.1, { crop: [410 / 1920, 214 / 1080, 1120 / 1920, 700 / 1080] }),
     ],
-    screenshots: [14, 20, 26, 33],
-    out: [{ path: 'img/yak-backfire.webp', size: '1280x720', from: 33, crop: { x: 0, y: 1 / 3, w: 2 / 3, h: 2 / 3 } }],
+    screenshots: [11.1, 60.1],
+    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 410 / 1920, y: 214 / 1080, w: 1120 / 1920, h: 700 / 1080 } }],
   },
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,

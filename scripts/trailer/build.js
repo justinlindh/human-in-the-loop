@@ -3,13 +3,14 @@
 //
 // npm run trailer                                  capture, then build shots/trailer/trailer.mp4
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
-//   [--out shots/trailer] [--reuse] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
+//   [--out shots/trailer] [--reuse] [--reuse-from <clips>] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
 // --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
+import { captureKey, canReuse } from './reuse.js';
 import { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } from './config.js';
 import { renderGraphics } from './cards.js';
 
@@ -74,11 +75,31 @@ const clipBeats = BEATS.filter((b) => b.item);
 const captured = () => (existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')).items : {});
 // A clip is reused only when its capture item and the commit are unchanged.
 const { ITEMS: CAPTURE_ITEMS } = await import('./manifest.js');
-const keyOf = (b) => createHash('sha256').update(`${commit}\n${JSON.stringify(CAPTURE_ITEMS.find((it) => it.id === `trailer-${b.id}`))}`).digest('hex');
+const itemOf = (b) => CAPTURE_ITEMS.find(it => it.id === `trailer-${b.id}`);
+const keyOf = (b) => captureKey(commit, itemOf(b));
 const keyFile = (b) => join(CLIPS, `trailer-${b.id}.key`);
 const fresh = (b) => { const i = captured()[`trailer-${b.id}`]; return i && i.errors === 0 && existsSync(join(CLIPS, `trailer-${b.id}.mp4`)) && existsSync(keyFile(b)) && readFileSync(keyFile(b), 'utf8') === keyOf(b); };
+// Imported footage retains its original build and content hash in the capture index.
+if (typeof args['reuse-from'] === 'string' && !args['audio-only']) {
+  const source = resolve(args['reuse-from']);
+  const old = JSON.parse(readFileSync(join(source, 'index.json'), 'utf8'));
+  const index = existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')) : { items: {} };
+  for (const beat of clipBeats) {
+    const id = 'trailer-' + beat.id, record = old.items[id];
+    const keyPath = join(source, id + '.key');
+    if (!existsSync(keyPath) || !canReuse({ beat, item: itemOf(beat), record, key: readFileSync(keyPath, 'utf8') })) continue;
+    const file = id + '.mp4';
+    const sha256 = createHash('sha256').update(readFileSync(join(source, file))).digest('hex');
+    copyFileSync(join(source, file), join(CLIPS, file));
+    for (const shot of record.screenshots ?? []) copyFileSync(join(source, shot), join(CLIPS, shot));
+    index.items[id] = { ...record, reusedFrom: { build: record.build, sha256 } };
+    writeFileSync(keyFile(beat), keyOf(beat));
+    console.log('trailer: verified reuse ' + id + ' from ' + record.build + ' sha256 ' + sha256);
+  }
+  writeFileSync(indexFile, JSON.stringify(index, null, 2) + '\n');
+}
 const AUDIO_ONLY = !!args['audio-only'];
-const todo = AUDIO_ONLY ? [] : args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
+const todo = AUDIO_ONLY ? [] : (args.reuse || args['reuse-from']) ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
   const capture = ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
