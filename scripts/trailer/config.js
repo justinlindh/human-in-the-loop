@@ -113,26 +113,28 @@ export const MUSIC = {
 };
 
 // The narration. `file` is the rendered line in the VO directory (build.js --vo); `text` doubles as
-// the burned-in caption and the TTS script unless `say` gives the spoken form (a URL read aloud) (scripts/trailer/vo.py reads it through `npm run trailer -- --print-vo`).
-// Each line's window (its offset and the most it may run) keeps it inside one shot; the rendered
-// files start 0.04 s before their first word.
+// the burned-in caption and the TTS script unless `say` gives the spoken form (a URL read aloud);
+// scripts/trailer/vo/render.sh reads it through `npm run trailer -- --print-vo`.
+// Each line's window is its offset and `max`, the most seconds of speech it may run, and keeps it
+// inside one shot. scripts/trailer/vo/table.mjs prints every window and checks it against the cuts
+// and the rendered files, which start a few hundredths of a second before their first word.
 export const VO = {
   gain: 0,
   captions: true,
   lines: [
-    { id: 'l1', at: { beat: 'garage', offset: 0.4 }, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
-    { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, text: 'Hire humans.' },
-    { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, text: 'Ship products.' },
-    { id: 'l2b', at: { beat: 'incident', offset: 0.3 }, text: 'Call the outage a stress test.' },
-    { id: 'l7', at: { beat: 'yak', offset: 0.4 }, text: 'Your team talks. Mostly in memes.' },
-    { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, text: 'Survive the AI eras. First chatbots.' },
-    { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, text: 'Then agents.' },
-    { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, text: 'Just automate everything. Read the bill later.' },
-    { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, text: 'Then whatever the agents hire.' },
-    { id: 'l4a', at: { beat: 'waffle', offset: 0.4 }, text: 'Reward your team with waffles.' },
-    { id: 'l4b', at: { beat: 'dance', offset: 0.3 }, text: 'And a mandatory dance break.' },
-    { id: 'l10', at: { beat: 'plateau', offset: 0.5 }, text: "Or automate them all, and see who's left." },
-    { id: 'l5', at: { beat: 'end', offset: 0.4 }, text: 'Human in the Loop. Someone has to be.' },
-    { id: 'l6', at: { beat: 'end', offset: 3.6 }, text: 'Play it free, right now, at humanintheloopgame.com.', say: 'Play it free, right now, at human in the loop game dot com.' },
+    { id: 'l1', at: { beat: 'garage', offset: 0.4 }, max: 5.1, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
+    { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, max: 1.3, text: 'Hire humans.' },
+    { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, max: 1.35, text: 'Ship products.' },
+    { id: 'l2b', at: { beat: 'incident', offset: 0.3 }, max: 2.4, text: 'Call the outage a stress test.' },
+    { id: 'l7', at: { beat: 'yak', offset: 0.4 }, max: 2.4, text: 'Your team talks. Mostly in memes.' },
+    { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, max: 3.6, text: 'Survive the AI eras. First chatbots.' },
+    { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, max: 1.1, text: 'Then agents.' },
+    { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, max: 3.3, text: 'Just automate everything. Read the bill later.' },
+    { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, max: 2.2, text: 'Then whatever the agents hire.' },
+    { id: 'l4a', at: { beat: 'waffle', offset: 0.4 }, max: 2.3, text: 'Reward your team with waffles.' },
+    { id: 'l4b', at: { beat: 'dance', offset: 0.3 }, max: 2.1, text: 'And a mandatory dance break.' },
+    { id: 'l10', at: { beat: 'plateau', offset: 0.5 }, max: 4.0, text: "Or automate them all, and see who's left." },
+    { id: 'l5', at: { beat: 'end', offset: 0.4 }, max: 3.0, text: 'Human in the Loop. Someone has to be.' },
+    { id: 'l6', at: { beat: 'end', offset: 3.6 }, max: 4.2, text: 'Play it free, right now, at humanintheloopgame.com.', say: 'Play it free, right now, at human in the loop game dot com.' },
   ],
 };
