@@ -32,7 +32,7 @@ None <!-- or each change a player would notice in how the game plays (pacing, pa
 - [ ] Stays within the lane's paths (or the owning lane agreed)
 - [ ] Contract changes, if any, went through team-lead
 - [ ] Affected teammates are listed above and will be messaged on merge
-- [ ] A player-visible change updates its entry in `docs/features.md`
+- [ ] A player-visible change updates its entry in its area's file under `docs/features/`
 
 ## Closes
 

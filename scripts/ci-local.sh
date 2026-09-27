@@ -158,7 +158,7 @@ syntax() {
   return $failed
 }
 step syntax syntax
-# docs/features.md against the data: every staged event, item, perk, moment kind, quick post, prompt,
+# docs/features/ against the data: every staged event, item, perk, moment kind, quick post, prompt,
 # music night genre and era has an entry, and every id the file names exists (scripts/features-ids.mjs).
 step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 # Every script and check has a docs/toolkit/ entry, and every entry is well formed (scripts/toolkit.mjs).
