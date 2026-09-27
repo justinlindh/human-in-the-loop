@@ -2,17 +2,19 @@
 # Claude Code PreToolUse hook for Bash. Denies (exit 2, reason on stderr):
 #   - pkill -f / pgrep -f: they match their own command line and kill or find the wrong process;
 #   - git push to main, or a forced push;
+#   - a test run piped into grep, tail or head that gates a git commit or push: the gate then rides on
+#     the pipe's last command, not the tests (unless pipefail or PIPESTATUS is used);
 #   - git stash, other than list and show: every worktree shares one stash stack, so a pop can take
 #     another lane's work;
 #   - gh pr create/comment/review/edit text (title, body, heredoc bodies, body files), and gh api posts
 #     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...).
-# It looks only at commands mentioning pkill, pgrep, push, stash, gh pr or gh api, and fails open on its own errors.
+# It looks only at commands mentioning pkill, pgrep, push, commit, stash, gh pr or gh api, and fails open on its own errors.
 # Only deny() exits 2; any other failure exits otherwise, which Claude Code treats as allow.
 set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*stash*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
@@ -30,6 +32,17 @@ while IFS= read -r m; do
   sub="${m##*stash}"; sub="${sub#"${sub%%[![:space:]]*}"}"
   case "$sub" in list|show) ;; *) deny "git stash is refused: commit to a scratch branch or copy to your scratchpad; all worktrees share one stash stack." ;; esac
 done <<<"$stash_cmds"
+
+# A test run piped on, with a git commit or push after it, outside heredoc bodies and quoted text
+# (redirects like 2>&1 become R so their & doesn't end a command).
+gate="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+  | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" | sed -E 's/[0-9]*>&[0-9]+|&>/R/g' | tr '\n' ' ')"
+# The last test run before the first commit or push is the gate; it may not be piped on.
+pre="$(sed -E 's/git[[:space:]]+([^;&|]*[[:space:]])?(commit|push)([[:space:]].*|$)/COMMIT/' <<<"$gate")"
+last="$(grep -oE '(^|[[:space:];&|(])(npm[[:space:]]+(run[[:space:]]+(-s[[:space:]]+)?)?test[^[:space:];&|]*|(npx[[:space:]]+)?vitest)([[:space:]][^;&|]*)?.{0,2}' <<<"${pre%%COMMIT*}" | tail -1)"
+if [[ "$pre" == *COMMIT* ]] && [[ "$last" =~ \|([^|]|$) ]] && ! grep -qE 'pipefail|PIPESTATUS' <<<"$gate"; then
+  deny "this test run is piped on, so the git commit or push after it gates on the pipe's last command (grep, tail, head), not on the tests. Gate on the test command's exit code: npm run test:fast >/dev/null 2>&1 && git commit ..., or set -o pipefail first."
+fi
 
 # Each "git ... push ..." segment, up to the next ; & | or newline.
 while IFS= read -r seg; do
