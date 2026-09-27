@@ -165,10 +165,12 @@ step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
 tool_step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
 tool_step review-carry bash "$SELF/review-carry.test.sh"
+tool_step watched-media bash "$SELF/watched-media.test.sh"
 tool_step golden-resolve bash "$SELF/golden-resolve.test.sh"
 tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
 tool_step main-guard bash "$SELF/main-guard.test.sh"
@@ -312,6 +314,19 @@ stage_check() {
   fi
   render_step stage gpu "node blender/checks/stage.mjs --out '$LOGS/stage.json'"
 }
+# No-draw parity (blender/checks/pose-nodraw.mjs, on a GPU slot): the checks that sample frames
+# without drawing must measure exactly what drawn frames measure, and make no draws while sampling.
+# Runs for changes to the renderer or to the harness and pose measures those checks share.
+nodraw_check() {
+  [ -f blender/checks/pose-nodraw.mjs ] || { echo "skipped: no blender/checks/pose-nodraw.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/render/|blender/checks/(pose[^/]*|harness\.mjs|draw-audit\.js|intersect\.js)$|scripts/events/load\.js$)' <<<"$files"; then
+    echo "skipped: no render, harness or pose-measure changes"; return 0
+  fi
+  render_step pose-nodraw gpu "node blender/checks/pose-nodraw.mjs --json '$LOGS/pose-nodraw.json'"
+}
 # golden renders in software (SwiftShader, on the CPU), so it runs in the background while the GPU
 # steps run one after another: those open many browsers each, and running them all at once exhausts
 # the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
@@ -323,6 +338,7 @@ step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.s
 step perf-budget perf_budget
 step phone-check phone_check
 step stage stage_check
+step pose-nodraw nodraw_check
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits

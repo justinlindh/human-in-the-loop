@@ -82,6 +82,10 @@ export const B = {
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
+  // readSeconds in src/pacing.js: a line's hold at 1x, its cap, the reading-speed floor, and the shortening at 2x and 4x.
+  readBaseSeconds: 1.8, readSecondsPerChar: 0.06, readMaxSeconds: 7,
+  readFloorSeconds: 1, readCharsPerSecond: 15,
+  readSpeedFactor2x: 0.75, readSpeedFactor4x: 0.6,
   standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12, standupConversationChance: 0.4, standupConversationCast: 3, standupMaxLines: 5,
   bubbleMaxOnScreen: 1, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,

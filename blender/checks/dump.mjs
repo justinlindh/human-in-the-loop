@@ -60,6 +60,7 @@ try {
   await page.evaluate(async (o) => {
     const R = window.__hitlRender, S = window.__HITL.state;
     if (o.trace && R.trace) R.trace.on = true;
+    R.spotTrace = true;
     window.__dump = await import('/blender/checks/dump.js');
     await window.__dump.prepare();
     if (o.bot && !o.loaded) {

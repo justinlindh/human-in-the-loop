@@ -1,6 +1,6 @@
-// Standalone pose checks from geometry, with no rendering (#708): play one character through an animation, or a
-// gesture over one, and measure it each frame in well under a second, so a pose is tuned on numbers
-// and rendered once at the end.
+// Pose checks from geometry: play one character through an animation, or a gesture over one, and
+// measure it each frame in well under a second with no rendering, so a pose is tuned on numbers and
+// rendered once at the end. --scene measures people in a staged game scene instead.
 //
 //   node blender/checks/pose.mjs --gesture facepalm [--under typing] [--seconds 2.2] [--warm 1]
 //        [--yaw-to-camera 0] [--view 0] [--rig on|off] [--every 6] [--json out.json]
@@ -22,10 +22,11 @@
 // PR's) with this checkout's tool. --check-browser runs the same measures in a harness page and
 // compares every number.
 //
-// --scene measures people in a staged scene under the render lock. Warmup retains a bootstrap
-// draw; subsequent sampling skips drawing. For each person: how much a label or emote covers,
-// the share of seven facial landmarks the camera sees and what hides them, the face's angle to the camera and its
-// drawn head height in pixels. Rules use faceCovered, faceVisible, bodyVisible, faceCam and facePx over the
+// --scene runs in a harness page under the render lock: one drawn frame at the end of the warm-up,
+// then sampling with no draws. For each person: faceCovered (how much of the head a label or emote
+// covers), faceVisible (the share of seven facial landmarks the camera sees, and what hides them;
+// not which way the face points), faceCam (the face's angle to the camera, degrees) and facePx (the
+// drawn head's height). Rules use faceCovered, faceVisible, bodyVisible, faceCam and facePx over the
 // requested frames, for every person listed (or one, with an 'id:' prefix). Missing samples fail.
 // heldHeadDepth and heldTorsoDepth are mesh penetration in metres; heldGap is wrist-to-prop surface
 // distance. An absent prop has null measures and fails these rules. Use --every 1 for a whole hold.
