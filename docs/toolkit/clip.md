@@ -13,6 +13,6 @@ Characters against real furniture: seated poses in every mood, perk poses, and n
 
 `moment:growth` checks the honoree and nearby coworkers through the walk and cheer; `moment:company_party` checks the whole company cheer. Both require actors to finish and stay clear of furniture.
 
-`moment:pet:` checks dog and cat greetings through proximity, furniture clearance and the return to walking, plus removal, absence, interruption and Low-quality release. `setupPetPasser` in the render checks places an idle pet beside a walker without forcing the greeting.
+`moment:pet:` samples dog and cat clearance on every frame through approach, turning, head scratching and resumed movement. It includes incoming yaw 2.104, a full circle at 15-degree intervals, near contact, approaching walkers and opposing pet headings. Each case requires a complete scratch and actual resumed travel. Removal of either actor, absence, priority interruption, decisions and Low-quality release are checked in each greeting phase. Collision limits and furniture checks also apply to the first frame. `setupPetPasser(R, S, species, yaw, distance, petYaw)` places an idle pet beside a walker without forcing the greeting; its optional headings are fixture inputs.
 
 `moment:printer` checks that an ambient carrier line is dropped during the carry and that a tagged printer line appears after the render dialogue queue releases it.

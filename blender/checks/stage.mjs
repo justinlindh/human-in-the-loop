@@ -59,6 +59,22 @@ const SPECS = {
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
     share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
+  'pet.turn': { moment: 'pet', beat: 'turn', role: 'dog', rules: [
+    share('upright', 'stand upright before reaching', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'petcat.turn': { moment: 'pet', scenario: 'petcat', beat: 'turn', role: 'cat', rules: [
+    share('upright', 'stand upright before reaching', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'pet.approach': { moment: 'pet', beat: 'approach', role: 'dog', rules: [
+    share('upright', 'wait upright while the pet approaches', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'petcat.approach': { moment: 'pet', scenario: 'petcat', beat: 'approach', role: 'cat', rules: [
+    share('upright', 'wait upright while the pet approaches', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
   'pet.stroke': { moment: 'pet', beat: 'stroke', role: 'dog', rules: [
     share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
     share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
@@ -180,9 +196,9 @@ const SCENARIOS = {
   growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
-    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog')" },
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
-    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat')" },
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
