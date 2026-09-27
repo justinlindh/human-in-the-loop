@@ -24,6 +24,8 @@ ci_slot_take() {
     for i in $(seq 1 "$n"); do
       eval "exec $fd>\"\$dir/ci-run-$i.lock\""
       if flock -n "$fd"; then
+        # A window asked for between the wait and the take: give the slot back and wait for it.
+        if quiet_blocks; then eval "exec $fd>&-"; break; fi
         [ $said = 1 ] && echo "ci-local: got CI run slot $i after ${waited}s" >&2
         CI_SLOT="$i"; CI_SLOT_WAITED="$waited"
         return 0

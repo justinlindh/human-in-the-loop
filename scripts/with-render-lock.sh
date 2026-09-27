@@ -59,9 +59,15 @@ cmd=("$@")
 if [ "$mode" = software ]; then
   t0=$SECONDS; t0r=$EPOCHREALTIME
   # A quiet window (scripts/lib/quiet.sh) holds software renders back; its own run passes through.
-  source "$HERE/lib/quiet.sh"; quiet_wait with-render-lock
-  exec 8>"$SOFT"
-  flock -w "$WAIT" 8 || { t0=$t0r; log_wait timed_out=1; echo "with-render-lock: no software render lock after ${WAIT}s" >&2; exit 75; }
+  source "$HERE/lib/quiet.sh"
+  while :; do
+    quiet_wait with-render-lock
+    exec 8>"$SOFT"
+    flock -w "$WAIT" 8 || { t0=$t0r; log_wait timed_out=1; echo "with-render-lock: no software render lock after ${WAIT}s" >&2; exit 75; }
+    # A window asked for while this waited for the lock: give the lock back and wait for the window.
+    quiet_blocks || break
+    exec 8>&-
+  done
   echo "with-render-lock: waited $((SECONDS - t0))s for the software render lock" >&2
   t0=$t0r; log_wait
   export HITL_RENDER_LOCK_HELD=$$

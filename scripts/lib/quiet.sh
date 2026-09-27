@@ -16,19 +16,26 @@
 
 quiet_dir() { echo "${HITL_LOCK_DIR:-$HOME/.cache/hitl-ci}"; }
 
-# The live window's holder PID, or nothing (and a dead holder's request is removed).
+# The live window's holder PID, or nothing. A dead holder's request is left for the next window to
+# overwrite: removing it here could race with a new window writing its own.
 quiet_holder() {
   local req pid
   req="$(quiet_dir)/quiet.request"
   [ -f "$req" ] || return 0
   read -r pid _ <"$req" 2>/dev/null || return 0
-  if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then echo "$pid"; else rm -f "$req"; fi
+  if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then echo "$pid"; fi
+}
+
+# Exit 0 when a window is held by someone other than the caller's own window.
+quiet_blocks() {
+  local h; h="$(quiet_holder)"
+  [ -n "$h" ] && [ "${HITL_QUIET_HOLDER:-}" != "$h" ]
 }
 
 quiet_wait() {
   local who="${1:-a run}" holder said=0 t0=$SECONDS
-  while holder="$(quiet_holder)"; [ -n "$holder" ]; do
-    [ "${HITL_QUIET_HOLDER:-}" = "$holder" ] && return 0
+  while quiet_blocks; do
+    holder="$(quiet_holder)"
     [ $said = 1 ] || { echo "$who: waiting for the quiet window held by PID $holder (perf's measurements) to end" >&2; said=1; }
     sleep "${QUIET_POLL:-5}"
   done
@@ -44,7 +51,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   DIR="$(quiet_dir)"; mkdir -p "$DIR"
   usage="usage: scripts/lib/quiet.sh run [--minutes N] -- <command> [args...] | status"
   case "${1:-}" in
-    status) h="$(quiet_holder)"; echo "${h:+quiet window held by PID $h}${h:-none}"; exit 0 ;;
+    status) h="$(quiet_holder)"; if [ -n "$h" ]; then echo "quiet window held by PID $h"; else echo none; fi; exit 0 ;;
     run) shift ;;
     *) echo "$usage" >&2; exit 2 ;;
   esac
@@ -68,8 +75,11 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
 
   req="$DIR/quiet.request"
   echo "$$ $now $minutes" >"$req"
-  trap 'rm -f "$req"' EXIT
-  trap 'exit 143' TERM INT HUP
+  cmd=""
+  # Only this window's own request is removed.
+  trap '[ "$(cut -d" " -f1 "$req" 2>/dev/null)" = "$$" ] && rm -f "$req"' EXIT
+  # A stop signal stops the command too and releases the window at once.
+  trap '[ -n "$cmd" ] && kill -TERM "$cmd" 2>/dev/null && wait "$cmd" 2>/dev/null; echo "quiet: stopped; released" >&2; exit 143' TERM INT HUP
   # New work now waits; let what is running finish.
   soft="$DIR/render-checks.lock"; max="${QUIET_DRAIN_WAIT:-1800}"; t0=$SECONDS
   while :; do
@@ -88,7 +98,9 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   echo "quiet: waited ${wait_s}s for the machine to drain; holding the window for up to $minutes minutes" >&2
   echo "$now" >>"$hist"
   t1=$SECONDS
-  HITL_QUIET_HOLDER=$$ timeout "$((minutes * 60))" "$@"; rc=$?
+  # In the background, so a stop signal is handled at once rather than after the command ends.
+  HITL_QUIET_HOLDER=$$ timeout "$((minutes * 60))" "$@" <&0 & cmd=$!
+  wait "$cmd"; rc=$?; cmd=""
   held_s=$((SECONDS - t1))
   [ $rc -eq 124 ] && echo "quiet: the command ran past $minutes minutes and was stopped" >&2
   echo "quiet: held ${held_s}s; released" >&2

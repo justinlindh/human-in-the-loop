@@ -42,7 +42,8 @@ kill "${pids[-1]}" 2>/dev/null; wait "${pids[-1]}" 2>/dev/null
 # While a window is held, a CI slot and a software render wait for it; the window's own run doesn't.
 bash "$Q" run --minutes 1 -- bash -c "touch '$tmp/held'; sleep 2; source '$Q'; quiet_wait inner && touch '$tmp/inner-ok'" 2>/dev/null & pids+=($!)
 for _ in $(seq 1 50); do [ -e "$tmp/held" ] && break; sleep 0.1; done
-[ "$(bash "$Q" status)" != none ] || fail "status should name the holder while a window is held"
+st="$(bash "$Q" status)"; h="$(cut -d' ' -f1 "$HITL_LOCK_DIR/quiet.request")"
+[ "$st" = "quiet window held by PID $h" ] || fail "status should name the holder once (got: $st)"
 t0=$SECONDS
 ( source "$HERE/lib/ci-capacity.sh"; ci_slot_take 5 2>/dev/null && echo taken >"$tmp/slot" ) &
 slot_pid=$!
@@ -58,7 +59,7 @@ echo "999999 $(date +%s) 20" >"$HITL_LOCK_DIR/quiet.request"
 ( source "$Q"; quiet_wait test ) & w=$!
 sleep 0.5
 if kill -0 "$w" 2>/dev/null; then fail "a dead holder's window should not hold anything back"; kill "$w"; fi
-[ -e "$HITL_LOCK_DIR/quiet.request" ] && fail "a dead holder's request should be removed"
+[ -e "$HITL_LOCK_DIR/quiet.request" ] || fail "a dead holder's request is left for the next window to overwrite"
 
 # with-render-lock --software waits for a window too.
 : >"$HITL_LOCK_DIR/quiet.history"
@@ -67,6 +68,28 @@ for _ in $(seq 1 50); do [ -e "$tmp/held2" ] && break; sleep 0.1; done
 t0=$EPOCHREALTIME
 RENDER_LOCK_WAIT=10 bash "$HERE/with-render-lock.sh" --software true 2>/dev/null
 awk -v a="$EPOCHREALTIME" -v b="$t0" 'BEGIN { exit !(a - b >= 1) }' || fail "a software render should wait for the window"
+
+# A stop signal stops the command and releases the window at once.
+: >"$HITL_LOCK_DIR/quiet.history"
+bash "$Q" run --minutes 1 -- bash -c "echo \$\$ >'$tmp/child'; sleep 30" 2>/dev/null & q=$!
+for _ in $(seq 1 50); do [ -s "$tmp/child" ] && break; sleep 0.1; done
+t0=$EPOCHREALTIME
+kill -TERM "$q"; wait "$q"; rc=$?
+awk -v a="$EPOCHREALTIME" -v b="$t0" 'BEGIN { exit !(a - b < 3) }' || fail "a stopped window should return within seconds"
+[ $rc -eq 143 ] || fail "a stopped window should exit 143 (rc $rc)"
+kill -0 "$(cat "$tmp/child")" 2>/dev/null && fail "a stopped window should stop its command"
+[ "$(bash "$Q" status)" = none ] || fail "a stopped window should be released"
+[ -e "$HITL_LOCK_DIR/quiet.request" ] && fail "a stopped window should remove its request"
+
+# A slot taken just as a window is asked for goes back until the window ends: the taker's first
+# wait comes before the window exists, and only the check after the take can catch it.
+: >"$HITL_LOCK_DIR/quiet.history"
+( source "$HERE/lib/ci-capacity.sh"
+  eval "real_$(declare -f quiet_wait)"
+  quiet_wait() { if [ -z "${first:-}" ]; then first=1; return 0; fi; real_quiet_wait "$@"; }
+  bash "$Q" run --minutes 1 -- sleep 1.5 2>/dev/null & sleep 0.5
+  t0=$SECONDS; ci_slot_take 5 2>/dev/null; echo $((SECONDS - t0)) >"$tmp/race"; wait )
+[ "$(cat "$tmp/race" 2>/dev/null || echo 0)" -ge 1 ] || fail "a slot taken during a window's request should wait for the window"
 
 [ $fails -eq 0 ] && echo "quiet: all cases pass" || echo "quiet: $fails failing"
 [ $fails -eq 0 ]
