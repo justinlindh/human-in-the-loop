@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createPacer, WEEK_SECONDS, MAX_STEP, readSeconds, READ } from './pacing.js';
+import { createPacer, WEEK_SECONDS, MAX_STEP, readSeconds } from './pacing.js';
 import { B } from './sim/balance.js';
 
 const say = (id, staffId, text, replyTo = null) => ({ type: 'say', id, week: 0, staffId, text, toId: null, replyTo });
@@ -18,8 +18,8 @@ function run(p, seconds, { speed = 1, running = true } = {}) {
 describe('readSeconds', () => {
   it('grows with length within its bounds, and speed shortens it only a little', () => {
     expect(readSeconds('')).toBe(B.readMinimumSeconds + B.readFadeSeconds);
-    expect(readSeconds('x'.repeat(40))).toBeCloseTo(READ.base + READ.perChar * 40);
-    expect(readSeconds('x'.repeat(500))).toBe(READ.max);
+    expect(readSeconds('x'.repeat(40))).toBeCloseTo(B.readBaseSeconds + B.readSecondsPerChar * 40);
+    expect(readSeconds('x'.repeat(500))).toBe(B.readMaxSeconds);
     for (const text of ['ok', 'x'.repeat(40), 'x'.repeat(200)]) {
       expect(readSeconds(text, 2)).toBeGreaterThanOrEqual(0.7 * readSeconds(text, 1));
       expect(readSeconds(text, 4)).toBeLessThanOrEqual(readSeconds(text, 2));
@@ -28,12 +28,12 @@ describe('readSeconds', () => {
   it('never drops below the time it takes to read the line at faster speeds', () => {
     for (const n of [10, 40, 70, 100, 140]) {
       const text = 'x'.repeat(n);
-      const reading = Math.min(READ.max, READ.floorBase + n / READ.charsPerSecond);
+      const reading = Math.min(B.readMaxSeconds, B.readFloorSeconds + n / B.readCharsPerSecond);
       for (const speed of [1, 2, 4]) expect(readSeconds(text, speed)).toBeGreaterThanOrEqual(reading - 1e-9);
     }
     // A 70-character line: unchanged at 1x, held to its reading time at 2x and 4x.
-    expect(readSeconds('x'.repeat(70), 1)).toBeCloseTo(READ.base + READ.perChar * 70);
-    expect(readSeconds('x'.repeat(70), 2)).toBeCloseTo(READ.floorBase + 70 / READ.charsPerSecond);
+    expect(readSeconds('x'.repeat(70), 1)).toBeCloseTo(B.readBaseSeconds + B.readSecondsPerChar * 70);
+    expect(readSeconds('x'.repeat(70), 2)).toBeCloseTo(B.readFloorSeconds + 70 / B.readCharsPerSecond);
   });
 });
 
