@@ -31,7 +31,9 @@ const INIT = `(() => {
   performance.now = () => t;
   Date.now = () => 1700000000000 + t;
   window.__tick = (ms) => { t += ms; };
-  window.requestAnimationFrame = () => 0;
+  // Frames never run on their own; callbacks queue here for a check that drives the game loop itself.
+  window.__rafQ = [];
+  window.requestAnimationFrame = (cb) => { window.__rafQ.push(cb); return window.__rafQ.length; };
 })();`;
 
 // Checks render on the GPU unless told otherwise (scripts/lib/gl.js: --software or HITL_GL=software).
@@ -96,6 +98,30 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // The same n frames, drawing only the last: every update still runs each frame, so the final
         // picture is identical to __step(n), without paying for the frames nobody looks at.
         window.__settle = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30, { draw: i === n - 1 }); } };
+        // Raycasts through a bounding-volume tree (three-mesh-bvh) instead of testing every triangle,
+        // for checks that probe the scene each frame. Hits are the same; only static meshes are indexed
+        // (skinned, instanced and morphing meshes keep the default test), each on its first raycast.
+        // Loading the module and building a tree make three.js objects, which take UUIDs from
+        // Math.random, so both run on the tool stream and the game's stream is untouched.
+        window.__fastRaycast = async () => {
+          if (window.__fastRaycastOn) return;
+          const THREE = R.THREE;
+          const toolRandom = window.__tool(() => Math.random), gameRandom = Math.random;
+          Math.random = toolRandom;
+          let bvh;
+          try { bvh = await import('/node_modules/three-mesh-bvh/src/index.js'); } finally { Math.random = gameRandom; }
+          const slow = THREE.Mesh.prototype.raycast;
+          THREE.Mesh.prototype.raycast = function (raycaster, hits) {
+            const g = this.geometry;
+            if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !g?.attributes?.position || g.morphAttributes?.position) return slow.call(this, raycaster, hits);
+            if (!g.boundsTree) {
+              if ((g.index ? g.index.count : g.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
+              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g); });
+            }
+            return bvh.acceleratedRaycast.call(this, raycaster, hits);
+          };
+          window.__fastRaycastOn = true;
+        };
         // Stepping without drawing. R.advance() moves people, moments and effects but, unlike render(),
         // never refreshes world matrices; game logic reads them (paths, gaze, props that follow a desk),
         // so a stepper that skipped the refresh would play differently from the game, and any tool that

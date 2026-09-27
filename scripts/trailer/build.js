@@ -171,12 +171,12 @@ function audioGraph({ stem = false } = {}) {
       chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${VO.gain}dB,adelay=${Math.round(l.start * 1000)}:all=1,aresample=async=1:first_pts=0,apad,atrim=0:${f(total)}[vo${i}]`);
     });
     chains.push(`${voiced.map((_, i) => `[vo${i}]`).join('')}amix=inputs=${voiced.length}:normalize=0:duration=first[vo]`);
-    // The music dips by duck.db under each line: it ramps down over duck.attack before the line starts
-    // and back up over duck.release after it ends. A gain envelope, not a compressor, so it never pumps.
-    // Without `duck`, the music stays at one constant level under the voice.
+    // The music dips by duck.db under each line (a depth: 6 and -6 both mean 6 dB down): it ramps down
+    // over duck.attack before the line starts and back up over duck.release after it ends. A gain
+    // envelope, not a compressor, so it never pumps. Without `duck`, the music stays at one level.
     const d = MUSIC.duck;
     const under = d ? voiced.map((l) => `clip((t-${f(l.start - d.attack)})/${f(d.attack)},0,1)*clip((${f(l.start + l.len + d.release)}-t)/${f(d.release)},0,1)`).join('+') : '';
-    const dip = d ? `volume='1-${(1 - 10 ** (d.db / 20)).toFixed(4)}*min(1,${under})':eval=frame` : 'anull';
+    const dip = d ? `volume='1-${(1 - 10 ** (-Math.abs(d.db) / 20)).toFixed(4)}*min(1,${under})':eval=frame` : 'anull';
     chains.push(`[music]${dip}${stem ? ',asplit=2[ducked][stem]' : '[ducked]'}`);
     chains.push('[ducked][vo]amix=inputs=2:normalize=0:duration=first[premix]');
     tail = '[premix]';
@@ -191,10 +191,13 @@ const mixWav = join(OUT, 'mix.wav');
   const target = `I=${OUTPUT.lufs}:TP=${OUTPUT.truePeak}:LRA=11`;
   const log = await run('ffmpeg', ['-y', '-hide_banner', '-nostats', ...inputs, '-filter_complex', `${graph};[mix]loudnorm=${target}:print_format=json[out]`, '-map', '[out]', '-f', 'null', '-'], { timeout: FFMPEG_TIMEOUT_S, quiet: true });
   const m = JSON.parse(log.slice(log.lastIndexOf('{'), log.lastIndexOf('}') + 1));
-  const second = `loudnorm=${target}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
-  // The same gain goes on the music stem (music-stem.wav), for checking the bed on its own.
-  const withStem = audioGraph({ stem: true });
+  // One fixed gain to the target loudness, then a true-peak limiter for the few peaks it pushes over.
+  // loudnorm's own second pass drops to dynamic mode whenever a linear gain would break the peak
+  // target, and then rides the level like an automatic gain control, undoing the duck; a fixed gain
+  // keeps the mix exactly as designed. The same gain goes on the music stem (music-stem.wav).
   const gain = `volume=${(OUTPUT.lufs - Number(m.input_i)).toFixed(2)}dB`;
+  const second = `${gain},aresample=192000,alimiter=limit=${(10 ** (OUTPUT.truePeak / 20)).toFixed(4)}:attack=1:release=50:level=false,aresample=48000`;
+  const withStem = audioGraph({ stem: true });
   await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...withStem.inputs, '-filter_complex', `${withStem.graph};[mix]${second},aresample=48000[out];[stem]${gain},aresample=48000[stemout]`,
     '-map', '[out]', '-t', f(total), '-c:a', 'pcm_s16le', mixWav, '-map', '[stemout]', '-t', f(total), '-c:a', 'pcm_s16le', join(OUT, 'music-stem.wav')], { timeout: FFMPEG_TIMEOUT_S });
 }

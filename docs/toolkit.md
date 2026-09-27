@@ -7,9 +7,11 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Task | Reach for | Page |
 |---|---|---|
 | Monitor worker tasks and submit owner decisions | `node scripts/queue-dashboard/server.mjs` | [queue-dashboard](toolkit/queue-dashboard.md) |
+| Know what a shot will show (cards, pending decision, clock, prop and people boxes, camera) before recording it | `onscreen.mjs --moment '<query>' --frames 0,60` | [onscreen](toolkit/onscreen.md) |
 | Know where a person will stand or walk, or what blocks a tile | `dump.mjs --moment '<query>'`, then `dump-query path <id>` or `nav <x,z>` | [dump](toolkit/dump.md) |
 | Know whether a face, prop or person reads on screen, and what hides it | `R.probe(id)` (a staff id, `'visitor:0'`, or a prop; reports `occluder`), `R.probeViews(id)`, `dump.mjs --views 0,1,2,3` then `dump-query visible <thing>` | [probe](toolkit/probe.md), [dump](toolkit/dump.md) |
 | Know why a moment didn't start or was cut short | `dump.mjs --trace`, `dump-query trace <id>`; a failing `loop.mjs` or `clip.mjs` case prints the worst actor and their trace on its own | [dump](toolkit/dump.md), [loop](toolkit/loop.md), [clip](toolkit/clip.md) |
+| See who used how many tokens in the current window | `npm run usage` (`--hours`, `--since`, `--json`) | [usage](toolkit/usage.md) |
 | Jump to any event or moment in a real game | `node scripts/events/find.js <event>`, then `--moment '<query>'` or `--snapshot <path>` on a tool | [events](toolkit/events.md) |
 | Check a moment plays through the real game loop, or the spotlight hold | `blender/checks/loop.mjs` (queries, `party:<decision>`) | [loop](toolkit/loop.md) |
 | Tune a pose or gesture on numbers, without rendering (a hand reaching an eye or brow, the face's angle to the camera) | `node blender/checks/pose.mjs --gesture <name> --under <anim> --expect '...'`, `--root <worktree>` | [pose](toolkit/pose.md) |
@@ -42,7 +44,7 @@ The repo's `.claude/settings.json` runs the hooks in `scripts/hooks/claude/` for
 
 ## Render checks
 
-All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `window.__sample(n)` runs complete render updates with no final draw after the caller initializes draw resources via `__settle`; `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip (with and without the rig), standup, loop and the sweep (fast mode) side by side as `render-checks` on one GPU slot, and golden as `golden` under the software lock.
+All run through `blender/checks/harness.mjs`: a seeded page with a frozen clock, stepped frame by frame, so results depend only on the code. Two traps when writing a check: three.js takes a UUID from `Math.random` for every object it makes, and the page's `Math.random` is the game's seeded stream, so tool code that makes three.js objects mid-run (a crop, an overlay, a camera copy) runs inside `window.__tool(fn)`, which gives it a stream of its own; and `window.__sample(n)` runs complete render updates with no final draw after the caller initializes draw resources via `__settle`; `R.advance()` never refreshes world matrices, so step without drawing through `window.__advance(n)`, which does. The game's own frame (sim clock, UI) never runs by itself: its animation-frame callbacks queue in `window.__rafQ`, and a check that needs the UI calls them (as `onscreen.mjs` does). They render on the GPU, except golden, which always uses SwiftShader. Local CI runs clip (with and without the rig), standup, loop and the sweep (fast mode) side by side as `render-checks` on one GPU slot, and golden as `golden` under the software lock.
 
 ### Writing a readability spec
 

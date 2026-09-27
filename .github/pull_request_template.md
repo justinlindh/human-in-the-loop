@@ -15,6 +15,10 @@
 - **Gates run:** <!-- the gates that fit this change and their output: sweep and stage specs (render), paired balance runs (sim), a clip of the whole path (motion) -->
 - **Numbers:** <!-- balance tables, perf (draw calls, frame times), pacing, as relevant -->
 
+## Changes to how the game plays
+
+None <!-- or each change a player would notice in how the game plays (pacing, pausing, speech, rules, balance). Anything listed here needs the owner's approval. -->
+
 ## Affects
 
 <!-- Teammates whose work this changes (a tool, check, harness, shared helper, CI, contract or convention they use), and what each should do. Message each of them when this merges. Write "None" if nothing outside your lane changes. Never write a closing keyword with an issue number here or anywhere outside Closes ("close #n", "fixes #n", "resolves #n"): GitHub closes the issue when this PR merges, even mid-sentence. Write "closes when the fix merges" instead. -->
