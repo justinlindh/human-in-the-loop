@@ -1,4 +1,4 @@
-// Pose checks from geometry, with no rendering (#708): play one character through an animation, or a
+// Standalone pose checks from geometry, with no rendering (#708): play one character through an animation, or a
 // gesture over one, and measure it each frame in well under a second, so a pose is tuned on numbers
 // and rendered once at the end.
 //
@@ -22,14 +22,16 @@
 // PR's) with this checkout's tool. --check-browser runs the same measures in a harness page and
 // compares every number.
 //
-// --scene measures people in a staged scene, in a harness page (it renders, so it takes a render
-// slot): for each person, the largest share of their face a bubble, label or emote covers and which,
+// --scene measures people in a staged scene under the render lock. Warmup retains a bootstrap
+// draw; subsequent sampling skips drawing. For each person: how much a label or emote covers,
 // the share of seven facial landmarks the camera sees and what hides them, the face's angle to the camera and its
 // drawn head height in pixels. Rules use faceCovered, faceVisible, bodyVisible, faceCam and facePx over the
 // requested frames, for every person listed (or one, with an 'id:' prefix). Missing samples fail.
 // heldHeadDepth and heldTorsoDepth are mesh penetration in metres; heldGap is wrist-to-prop surface
 // distance. An absent prop has null measures and fails these rules. Use --every 1 for a whole hold.
 // Scene mode serves this checkout and rejects a differing --root.
+// --render-reference retains rendered scene stepping for comparison. --profile <file> writes
+// phase timings and actual WebGL draw counts separately from the unchanged --json rows.
 //
 // It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
 // a canvas whose 2D context does nothing (cheek and emote textures only), and fetch reading the
@@ -93,27 +95,46 @@ async function sceneMode() {
   });
   const every = Number(opt('every', 6));
   const frames = opt('clip') ? Array.from({ length: Math.floor((Number(opt('clip')) * 30) / every) + 1 }, (_, i) => i * every) : String(opt('frames', '0')).split(',').map(Number).sort((a, b) => a - b);
-  const H = await startHarness();
+  const H = await startHarness({ auditDraws: true });
   let code = 0;
   try {
     const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
     const { page, errors } = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${opt('mock', 'floor')}&rig=${OPTS.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const who = opt('who') ? opt('who').split(',') : null;
-    const rows = await page.evaluate(async (o) => {
+    const readyMs = performance.now() - t0;
+    const { rows, profile } = await page.evaluate(async (o) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const M = await import('/blender/checks/pose-scene.js');
       for (let i = 0; i < o.view; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
+      const initialization = window.__drawAudit();
+      const warmStart = window.__wallNow();
+      // The final warmup draw initializes Three.js resources whose UUID allocations consume the
+      // seeded stream. Omitting it changes later actor choices even if early samples agree.
       window.__settle(o.warm);
+      const warmMs = window.__wallNow() - warmStart;
+      const warmed = window.__drawAudit();
+      // With no bootstrap (for example --warm 0), preserve rendered stepping and its RNG effects.
+      const skipDraw = !o.renderReference && warmed.total > 0;
+      const sampleStart = window.__wallNow();
       if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
       if (o.events) R.handleEvents([].concat(o.events), S);
       const out = [];
       let at = 0;
       for (const f of o.frames) {
-        window.__step(Math.max(0, f - at)); at = f;
+        (skipDraw ? window.__sample : window.__step)(Math.max(0, f - at)); at = f;
         for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who }))) out.push({ frame: f, ...r });
       }
-      return out;
-    }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who });
+      const sampleMs = window.__wallNow() - sampleStart;
+      const total = window.__drawAudit();
+      return { rows: out, profile: { initialization, warmupDraws: warmed.total - initialization.total, sampleDraws: total.total - warmed.total, total, warmMs, sampleMs, samplingMode: skipDraw ? 'no-draw' : 'rendered' } };
+    }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who, renderReference: argv.includes('--render-reference') });
+    Object.assign(profile, { readyMs, mode: argv.includes('--render-reference') ? 'rendered-reference' : 'sampling-optimization', gl: glMode({ argv }), frames, who });
+    if (opt('profile')) writeFileSync(opt('profile'), JSON.stringify(profile, null, 2));
+    console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
+    if (profile.samplingMode === 'no-draw' && profile.sampleDraws !== 0) {
+      console.error('POSE FAIL no-drawing sampling assertion: WebGL draw submissions detected (see --profile); use --render-reference to diagnose');
+      code = 1;
+    }
     const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);
     console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'faceVis'.padStart(8)} ${'bodyVis'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
     for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.bodyVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);

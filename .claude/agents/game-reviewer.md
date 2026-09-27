@@ -25,3 +25,5 @@ For a Dependabot PR (author `dependabot[bot]`, title `fix(deps): ...`, `build(de
 - Read the changelog or release notes linked in the PR body for every bump, a major one especially, and note anything that affects the game or the tooling.
 - Post the verdict with `scripts/review-verdict.sh <n> pass|changes <body> --head <sha>`, saying what you read.
 - On a pass, run `scripts/ci-pr.sh <n> --allow-bot --head <sha>` from a checkout of `main`. It refuses anything but a same-repo Dependabot PR whose commits are all Dependabot's, that touches only those files, and whose head has your review pass. Then turn on auto-merge: `gh pr merge <n> --auto --merge`.
+
+For scene pose iteration, `pose.mjs --scene` retains a measured bootstrap draw and skips subsequent sampling draws. Use `--render-reference` and `--profile <file>` for identical-workload comparisons; `pose-nodraw.mjs` checks exact row parity, actual draw calls and ordinary harness behavior. Do not claim fully draw-free initialization or subsecond cold startup from this sampling optimization.
