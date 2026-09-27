@@ -442,6 +442,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     walkOf(id) { return staff?.walkOf(id) ?? null; },
     // The moment ownership trace (sync.js): trace.on = true, then trace.lines(n).
     get debug() { return office ? spotDebug(office) : null; },
+    // Record every spot search's candidates and rejection reasons (checks and traces turn it on).
+    set spotTrace(on) { if (office) spotDebug(office).on = !!on; },
     get trace() { return staff?.trace ?? null; },
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },

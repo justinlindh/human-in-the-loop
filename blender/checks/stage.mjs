@@ -161,7 +161,7 @@ const SPECS = {
   ] },
   'consultants.interviewee': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'interviewee', rules: [
     share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
-    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.75),
+    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.8),
     visibleRule,
   ] },
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
@@ -279,6 +279,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;
+      R.spotTrace = true;
       // The specs hold staging to the default and the turned view, so the moment camera stays put.
       window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
       for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
