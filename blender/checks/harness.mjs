@@ -9,6 +9,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
+import { installDrawAudit } from './draw-audit.js';
 
 // Two seeded streams. The game draws from Math.random, and so does three.js: it takes a UUID from
 // Math.random for every object, geometry, material or texture it makes (clone() and new
@@ -53,7 +54,7 @@ async function launch(gpu) {
 // browsers: separate Chromium instances to spread pages over. Every page in one browser shares its
 // GPU process, so SwiftShader work from concurrent pages queues behind each other; checks that run
 // scenes in parallel pass their job count here. openScene's `slot` picks the browser.
-export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
+export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws = false } = {}) {
   // Every check renders under the render lock for its mode: a GPU slot, or the software lock.
   holdRenderLock(gpu ? 'gpu' : 'software');
   // HITL_VITE_CACHE gives the server its own dependency cache, so checks running side by side never
@@ -76,7 +77,7 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
       page.on('request', (r) => requests.add(r.url()));
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-      await page.addInitScript(INIT);
+      await page.addInitScript(`${auditDraws ? `(${installDrawAudit.toString()})();` : ''}${INIT}`);
       await page.goto(`${base}?snap=1&${query}`, { waitUntil: 'load' });
       await page.waitForFunction(() => window.__HITL && window.__hitlRender?.ready, null, { timeout: 120000, polling: 50 });
       await page.evaluate(async (tod) => {
@@ -88,6 +89,10 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1 } = {}) {
         R.setTimeOfDay?.(tod);
         // The state is read on each frame: a loaded save (continueGame) replaces it.
         window.__step = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30); } };
+        // Full frame updates, including camera, DOM projection/layout and world matrices. There is
+        // no final draw; unlike __advance this follows render's complete update path. Seeded parity
+        // with __step requires the caller to initialize draw resources via __settle first.
+        window.__sample = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30, { draw: false }); } };
         // The same n frames, drawing only the last: every update still runs each frame, so the final
         // picture is identical to __step(n), without paying for the frames nobody looks at.
         window.__settle = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30, { draw: i === n - 1 }); } };

@@ -22,3 +22,5 @@ How you work:
 - Prefer Blender for anything the player looks at closely (characters, hero furniture); use procedural Three.js geometry for walls, floors, and repeated clutter.
 - Keep performance in mind from the start: shared materials, merged static geometry, pooled labels and particles, bounded texture updates.
 - After each task: open a PR per CLAUDE.md (a fresh `<lane>/<topic>` branch from `origin/main`, auto-merge on, `scripts/ci-pr.sh`, evidence media via `scripts/pr-media.sh`), then end your turn with the report: the PR link, the commit hash, and the evidence. Media that needs the user's eyes goes to team-lead. For visual work, include screenshot paths and your own top three remaining weaknesses.
+
+For scene pose iteration, `pose.mjs --scene` retains a measured bootstrap draw and skips subsequent sampling draws. Use `--render-reference` and `--profile <file>` for identical-workload comparisons; `pose-nodraw.mjs` checks exact row parity, actual draw calls and ordinary harness behavior. Do not claim fully draw-free initialization or subsecond cold startup from this sampling optimization.
