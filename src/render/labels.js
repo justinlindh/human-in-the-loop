@@ -116,6 +116,7 @@ export function createLabels(parent) {
     const l = acquire();
     l.kind = 'say';
     l.moment = moment;
+    l.speechText = text;
     l.el.className = 'hitl-lbl hitl-say';
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
     l.w = null;
@@ -404,8 +405,11 @@ export function createLabels(parent) {
   function clearFor(follow) {
     for (const l of live) if (l.follow === follow) l.t = l.life;
   }
+  function clearSpeech(follow, text) {
+    for (const l of live) if (l.kind === 'say' && !l.moment && l.follow === follow && l.speechText === text) l.t = l.life;
+  }
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, say, update, layout, clearFor, speechCount, speaking, get count() { return live.length; } };
+  return { stat, say, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
 }
