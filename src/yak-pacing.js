@@ -1,7 +1,8 @@
 import { B } from './sim/balance.js';
 
 // This is also the Quieter Yak setting's definition of an important message.
-export const importantChat = (m) => m.important === true || m.channel === 'incidents' || m.channel === 'wins' || (!m.fromId && String(m.from).startsWith('@'));
+// A bot post counts only when the sim flags it.
+export const importantChat = (m) => m.important === true || m.channel === 'incidents' || m.channel === 'wins';
 
 export function createYakPacer() {
   let now = 0, gameNow = 0, free = 0, pending = [];
@@ -28,7 +29,12 @@ export function createYakPacer() {
       const ended = x.outage !== undefined && state
         && (!state.outage || x.outage !== (state.flags?.outageSeq ?? 0));
       const stale = now - x.at > B.yakMaxWaitSeconds || gameNow - x.gameAt > B.yakMaxWaitGameSeconds;
-      if (ended || (!importantChat(x.e) && !parents.has(x.e.id) && (stale || omitted.has(x.e.replyTo)))) {
+      // Important posts outlive ordinary ones but still expire in game time, so a fast game can't back
+      // them up for minutes. The incident alerts themselves (bot posts in #incidents) never expire.
+      const alert = x.e.channel === 'incidents' && !x.e.fromId;
+      const staleImportant = !alert && gameNow - x.gameAt > B.yakImportantMaxWaitGameSeconds;
+      const expired = importantChat(x.e) ? staleImportant : stale || omitted.has(x.e.replyTo);
+      if (ended || (!parents.has(x.e.id) && expired)) {
         omit(x.e); pending.splice(i, 1);
       } else i++;
     }
@@ -67,5 +73,6 @@ export function createYakPacer() {
       return [e];
     },
     get queued() { return pending.length; },
+    get pending() { return pending.map((x) => x.e); },
   };
 }
