@@ -152,6 +152,8 @@ export function createBuild({ office, getCamera, canvas }) {
     // Rotating or placing another of the same item keeps the touch aim; a new item starts fresh.
     if (!m?.itemId || m.itemId !== mode?.itemId || m.moveId !== mode?.moveId) { aimTile = null; grab = null; }
     mode = m && (m.select || m.itemId) ? { ...m } : null;
+    // A move previews the item at its own level unless the caller names one.
+    if (mode?.moveId && mode.level == null) mode.level = office.placed.get(mode.moveId)?.level ?? 1;
     if (typeof m?.validate === 'function') validator = m.validate;
     validCache.clear();
     if (!mode?.itemId) clearGhost();
