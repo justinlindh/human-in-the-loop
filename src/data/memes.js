@@ -13,8 +13,6 @@ export const MEMES = [
     alt: 'An engineer and a colleague: "Wait, it\'s all config?" "Always has been."' },
   { id: 'yes_no_tests', image: 'yes_no_tests', when: 'agents',
     alt: 'An engineer waves off "writing the tests myself" and beams at "asking the agent to write them".' },
-  { id: 'expanding_review', image: 'expanding_review', when: 'agents',
-    alt: 'An engineer getting brighter: "I write code", "I review code", "I review what the agent wrote".' },
   { id: 'is_this_agi', image: 'is_this_agi', when: 'chatbots',
     alt: 'A founder points at an autocomplete bubble and asks: "Is this AGI?"' },
   { id: 'distracted_founder', image: 'distracted_founder', when: 'chatbots',
@@ -23,6 +21,10 @@ export const MEMES = [
     alt: 'A founder reads a cloud bill: $41,000.04, mostly GPU hours and tokens, for 12 users. "Month one".' },
   { id: 'the_plan', image: 'the_plan', when: 'agents',
     alt: 'The plan, on a whiteboard: "1. Add AI. 2. Raise a round. 3. The product is the AI. 4. The AI is the PM."' },
+  { id: 'change_my_mind', image: 'change_my_mind', when: 'any',
+    alt: 'The office printer sits at a table behind a sign: "PC LOAD LETTER is a valid error. Change my mind."' },
+  { id: 'galaxy_brain', image: 'galaxy_brain', when: 'any',
+    alt: 'A desk lamp glows brighter with each idea: fix the bug, add a test, feature-flag it, call it a feature.' },
 ];
 
 export const MEME_IDS = MEMES.map((m) => m.id);

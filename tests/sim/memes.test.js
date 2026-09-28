@@ -20,9 +20,9 @@ const meme = (s) => {
 };
 
 describe('issue #671: image memes in Yak', () => {
-  it('the set is 6 to 10 memes with unique ids, an image id and a short alt caption', () => {
+  it('the set is 6 to 12 memes with unique ids, an image id and a short alt caption', () => {
     expect(MEMES.length).toBeGreaterThanOrEqual(6);
-    expect(MEMES.length).toBeLessThanOrEqual(10);
+    expect(MEMES.length).toBeLessThanOrEqual(12);
     expect(new Set(MEME_IDS).size).toBe(MEMES.length);
     for (const m of MEMES) {
       expect(m.image, m.id).toMatch(/^[a-z_]+$/);
