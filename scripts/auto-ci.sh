@@ -116,4 +116,10 @@ for pr in $(order); do
   log "start #$pr ${h:0:7} ($why$([ $light = 1 ] && echo ", docs only"))"
 done
 find "$STATE/retried" "$STATE/pending" -type f -mtime +7 -delete 2>/dev/null
+# Vitest leaves a /tmp/<21-character id>/ssr directory behind for every run, and /tmp is a tmpfs, so
+# they add up to gigabytes of memory. Clear the ones over an hour old; nothing else is shaped like them.
+find "${AUTO_CI_TMP:-${TMPDIR:-/tmp}}" -maxdepth 1 -mindepth 1 -type d -regextype posix-extended \
+  -regex '.*/[A-Za-z0-9_-]{21}' -mmin +60 2>/dev/null | while read -r d; do
+  [ "$(ls -A "$d" 2>/dev/null)" = ssr ] && rm -rf -- "$d"
+done
 exit 0

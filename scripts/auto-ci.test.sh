@@ -29,7 +29,7 @@ cat >"$tmp/npm" <<'SH'
 case "$1" in ls) [ ! -e "$T/npm-stale" ] ;; ci) echo ci >>"$T/npm-ci" ;; esac
 SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
-export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_NPM="$tmp/npm"
+export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm"
 
 pr() { # number head local-ci-state [draft] [author] [label] [review-state]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
@@ -127,6 +127,16 @@ run
 has started "44 a44" || fail "a docs-only PR should start past the cap"
 has started "45 a45" && fail "a full PR should still wait for the cap"
 grep -q "start #44 a44 (new head, docs only)" "$tmp/state/log" || fail "the log should say the run is docs only"
+
+# Vitest's leftover temp directories over an hour old go; recent ones and anything else stay.
+mkdir -p "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU/ssr" "$tmp/tmpfs/ZyXwVuTsRqPoNmLkJiHgF/ssr" "$tmp/tmpfs/keep-me-not-vitest-x/ssr" "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA/other"
+touch -d '2 hours ago' "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU" "$tmp/tmpfs/keep-me-not-vitest-x" "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA"
+fixture
+run
+[ -e "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU" ] && fail "an old vitest temp directory should be cleared"
+[ -e "$tmp/tmpfs/ZyXwVuTsRqPoNmLkJiHgF" ] || fail "a recent vitest temp directory should stay"
+[ -e "$tmp/tmpfs/keep-me-not-vitest-x" ] || fail "a directory not named like vitest's should stay"
+[ -e "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA" ] || fail "a directory holding more than ssr should stay"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]
