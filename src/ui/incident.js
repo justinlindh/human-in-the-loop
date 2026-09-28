@@ -54,7 +54,8 @@ export function createResolutions(max = 6) {
       if (!fallbacks.has(d)) {
         const last = s?.flags?.lastIncident?.productId === d.subjectId ? s.flags.lastIncident : null;
         fallbacks.set(d, { productId: d.subjectId, severity: last?.severity ?? null, weeks: d.vars?.incidentWeeks ?? last?.weeks ?? 0,
-          cost: d.vars?.incidentCost ?? last?.cost ?? {}, responderIds: d.vars?.incidentResponders ?? last?.responderIds ?? [], helped: [], hurt: [] });
+          cost: d.vars?.incidentCost ?? last?.cost ?? {}, responderIds: d.vars?.incidentResponders ?? last?.responderIds ?? [],
+          helped: d.vars?.incidentHelped ?? [], hurt: d.vars?.incidentHurt ?? [] });
       }
       return fallbacks.get(d);
     },
