@@ -120,7 +120,7 @@ export function staffPanel(ctx, arg) {
   const host = h('div');
 
   const table = liveView(
-    (s) => [sort.col, sort.dir, meaningShown(s), s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0,
+    (s) => [sort.col, sort.dir, meaningShown(s), s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0, (s.outage?.responderIds ?? []).join(),
       (s.squads ?? []).map((sq) => `${sq.name}:${sq.memberIds.join()}`).join(';'),
       s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}${p.remote ? 'r' : ''}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
@@ -171,6 +171,7 @@ export function staffPanel(ctx, arg) {
       const kVal = h('span.num');
       const tr = h('tr', { onclick: () => { detailId = p.id; render(); }, title: 'Click for details' },
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null,
+          s.outage?.responderIds?.includes(p.id) ? h('span.pill.tiny.bad', { title: 'Responding to the outage; back to their work at the all-clear' }, icon('tray.outage', { size: 11 }), ' Responding') : null,
           squadOf(s, p.id) ? h('span.pill.tiny.sqchip', { title: 'Squad' }, icon('team', { size: 11 }), ` ${squadOf(s, p.id).name}`) : null,
           p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p), grew, top, rec))),
         h('td', null, roleChip(p.role)),

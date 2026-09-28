@@ -24,6 +24,7 @@ import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
 import { createCamRotate } from './camrot.js';
+import { createIncidentCard, createResolutions, resolutionBlock, backUpTitle } from './incident.js';
 import { openTarget } from './openTarget.js';
 import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
@@ -262,7 +263,11 @@ export function createUI({ root, getState, dispatch, controls }) {
   ctx.build = buildMode;
   ctx.isBusy = () => isBusy();
 
-  const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
+  const resolutions = createResolutions();
+  const incidentCard = createIncidentCard({ layer, ctx });
+  // The tray's outage card brings a hidden incident card back, else opens Ops.
+  ui.showIncident = () => { if (incidentCard.hidden) incidentCard.reveal(); else menu.open('ops'); };
+  const popups = createPopups({ layer, ctx, toasts, resolutionFor: (d, s) => resolutions.forDecision(d, s), restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
   const gameover = createGameOver({ layer, controls, sfx, act });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx, getState, toast: (text, tone) => toasts.push(text, tone) });
@@ -393,7 +398,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     gameover.update(state);
     popups.update(state, { holdLaunch: holdForMoment() });
     buildMode.update(state);
-    camRot.update(!!(menu.current || ctx.modal || announcer.open || popups.open || settings.isOpen || chat.maximized));
+    const covered = !!(menu.current || ctx.modal || announcer.open || popups.open || settings.isOpen || chat.maximized);
+    incidentCard.update(state, covered || buildMode.on || gameover.open);
+    camRot.update(covered || (incidentCard.open && PHONE.matches));
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
     tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
@@ -464,6 +471,20 @@ export function createUI({ root, getState, dispatch, controls }) {
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good');
+          break;
+        }
+        case 'incidentResolved': {
+          resolutions.add(e);
+          // A severe incident's resolution heads the postmortem decision that follows; a minor one gets a toast.
+          if (e.severity >= 4) break;
+          toasts.push(`${state.products.find((x) => x.id === e.productId)?.name ?? 'The product'} is back up after ${e.weeks} week${e.weeks === 1 ? '' : 's'}.`, 'good', {
+            action: () => {
+              let close = null;
+              const ok = h('button.btn.go', { onclick: () => close?.() }, 'Got it');
+              close = ctx.openModal({ title: backUpTitle(state, e), iconName: 'check', cls: 'small incdone',
+                body: h('div', null, resolutionBlock(ctx.getState(), e), h('div.row', null, h('span.spacer'), ok)) });
+            },
+          });
           break;
         }
         case 'incident': {

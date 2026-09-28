@@ -24,7 +24,7 @@ const FB_FUNDING = [
 ];
 
 const FB_GOALS = [
-  { id: 'place_desks', name: 'Set up shop', desc: 'Place 2 desks in the garage.' },
+  { id: 'place_desks', name: 'Set up shop', desc: 'Make room for a hire.' },
   { id: 'start_product', name: 'Start a product', desc: 'Pick a category and an approach in the Build panel.' },
   { id: 'first_launch', name: 'Ship it', desc: 'Launch your first product.' },
   { id: 'first_hire', name: 'Not alone', desc: 'Hire your first employee.' },

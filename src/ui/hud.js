@@ -251,7 +251,7 @@ export function createHud({ root, controls, ui }) {
       const o = s.outage;
       const p = s.products.find((x) => x.id === o.productId);
       const k = h('span.k');
-      tray.append(h('div.tray-card.alert', { onclick: () => ui.open('ops') },
+      tray.append(h('div.tray-card.alert', { onclick: () => (ui.showIncident ? ui.showIncident() : ui.open('ops')) },
         h('div.t', null, h('span', null, icon('tray.outage'), ` ${p?.name ?? 'Product'} is down`), k),
         h('div', { style: { fontSize: '0.82em', marginTop: '0.15em' }, text: o.unrecoverable ? 'Nobody here can debug this.' : incidentLabel(s, o.kind, 'Outage') })));
       trayBinds.push((st) => st.outage && setText(k, `SEV${6 - st.outage.severity} · ${st.outage.weeks}w`));

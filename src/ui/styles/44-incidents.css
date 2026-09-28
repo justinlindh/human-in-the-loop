@@ -1,0 +1,42 @@
+/* Live incident card (top right under the HUD) and the resolution summary. */
+.hitl .inccard {
+  position: absolute; right: 0.6em; top: calc(var(--topbar-h, 4.6em) + 0.6em); width: min(21em, calc(100% - 1.2em)); z-index: 3;
+  display: flex; flex-direction: column; gap: 0.4em; padding: 0.6em 0.7em;
+  background: #fff; border: 0.18em solid var(--ink); border-radius: 0.9em; box-shadow: 0 0.25em 0 var(--ink), var(--soft);
+  pointer-events: auto; animation: hitl-modal-in 260ms cubic-bezier(.2,1.4,.4,1) both;
+}
+.hitl .inchead { display: flex; align-items: center; gap: 0.45em; }
+.hitl .incsev { background: var(--red); color: #fff; border-color: var(--ink); font-weight: 800; flex: none; }
+.hitl .inctitle { font-size: 1.05em; line-height: 1.2; min-width: 0; }
+.hitl .inckind { font-weight: 700; color: var(--red); }
+.hitl .inccause { line-height: 1.3; color: var(--ink-soft); }
+.hitl .incrow { display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap; }
+.hitl .incwho { display: flex; align-items: center; gap: 0.3em; flex-wrap: wrap; }
+.hitl .incface { display: inline-flex; align-items: center; gap: 0.25em; padding: 0.1em 0.4em 0.1em 0.12em; background: var(--cream); border: 0.13em solid var(--ink); border-radius: 1em; font: inherit; font-size: 0.78em; font-weight: 700; color: var(--ink); cursor: pointer; pointer-events: auto; }
+.hitl .incface img, .hitl .incface canvas { width: 1.9em; height: 1.9em; }
+.hitl .inceta { font-weight: 700; background: var(--cream); }
+.hitl .inceta.bad { background: #ffe1e1; color: var(--red); border-color: var(--red); }
+.hitl .inccosts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35em; }
+.hitl .inccost { display: flex; flex-direction: column; padding: 0.3em 0.45em; background: var(--cream); border: 0.13em solid var(--ink); border-radius: 0.6em; min-width: 0; }
+.hitl .inccost .small { color: var(--ink-soft); }
+.hitl .inccost b { font-size: 1.05em; }
+.hitl .incfoot { display: flex; align-items: center; gap: 0.35em; flex-wrap: wrap; }
+.hitl .incfoot > span.small { flex: 1 1 100%; line-height: 1.25; }
+
+/* Resolution summary: in the postmortem decision and the minor-incident card. */
+.hitl .modal.incdone .mhead { background: var(--green); color: #fff; text-shadow: 0 0.08em 0 rgba(0,0,0,0.25); }
+.hitl .incres { display: flex; flex-direction: column; gap: 0.45em; margin-bottom: 0.5em; }
+.hitl .incpills { display: flex; flex-wrap: wrap; gap: 0.3em; }
+.hitl .incpills .pill { font-weight: 700; background: #fff; }
+.hitl .inclines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2em; font-weight: 700; line-height: 1.3; }
+.hitl .inclines li.good { color: var(--good); }
+.hitl .inclines li.bad { color: var(--red); }
+.hitl .incq { display: block; font-size: 1.05em; margin: 0.2em 0 0.1em; }
+
+/* Desktop toasts start below the card. */
+.hitl.incident-open .toasts { top: calc(var(--topbar-h, 4.6em) + 1.2em + var(--inc-h, 0px)); }
+
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .inccard { top: calc(var(--topbar-h, 4.6em) + 0.5em); left: 0.5em; right: 0.5em; width: auto; }
+  .hitl.incident-open .toasts { top: auto; }
+}
