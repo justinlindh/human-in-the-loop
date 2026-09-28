@@ -189,7 +189,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   // When each queued important Yak post entered the queue, and the longest wait before one showed, in
   // seconds the Yak pacer was running (menus and spotlights freeze it).
   const importantAt = new Map();
-  let importantWait = 0, yakT = 0;
+  let importantWait = 0, yakT = 0, importantIn = 0, importantShown = 0;
 
   let t = 0; // real seconds
   const timeline = [];
@@ -305,7 +305,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     for (const e of events) if (e.type === 'chat') { counts.chatIn++; if (direct) urgentIds.add(e.id); }
     const urgent = yakPacer.enqueue(events, { urgentIds, state, gameTime: pacer.gameT });
     for (const e of urgent) urgentChats.add(e);
-    for (const e of events) if (e.type === 'chat' && importantChat(e) && !urgentChats.has(e)) importantAt.set(e, yakT);
+    for (const e of events) if (e.type === 'chat' && importantChat(e) && !urgentChats.has(e)) { importantAt.set(e, yakT); importantIn++; }
     show(urgent);
     show(events.filter((e) => e.type !== 'chat'));
   }
@@ -364,7 +364,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           counts.chat++;
           if (!e.fromId) counts.chatBot++;
           log('chat', `#${e.channel} ${e.from}: ${e.text}`, { reply: !!e.replyTo, urgent: urgentChats.has(e) });
-          if (importantAt.has(e)) { importantWait = Math.max(importantWait, yakT - importantAt.get(e)); importantAt.delete(e); }
+          if (importantAt.has(e)) { importantWait = Math.max(importantWait, yakT - importantAt.get(e)); importantAt.delete(e); importantShown++; }
           break;
         }
         case 'say': {
@@ -524,7 +524,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     },
     toasts: { shownPerMinute: perMin(toastStats.shown), heldPerMinute: perMin(toastStats.held), ...toastStats },
     chat: { linesPerMinute: perMin(counts.chat), lines: counts.chat, botLines: counts.chatBot, omitted: counts.chatIn - counts.chat - yakPacer.queued, queued: yakPacer.queued,
-      important: { longestWaitSeconds: r1(Math.max(importantWait, ...importantQueued.map((e) => yakT - importantAt.get(e)))), queuedAtEnd: importantQueued.length } },
+      important: { longestWaitSeconds: r1(Math.max(importantWait, ...importantQueued.map((e) => yakT - importantAt.get(e)))), queuedAtEnd: importantQueued.length, queued: importantIn, shown: importantShown } },
     say: { linesPerMinute: perMin(counts.says), lines: counts.says, droppedStale: counts.sayDropped },
     standups: { count: counts.standups, staged: counts.standupsStaged, stagedShare: r2(stagedSeconds / Math.max(1e-9, t)), minutesBetweenStaged: counts.standupsStaged ? r1(minutesPlayed / counts.standupsStaged) : null },
     bubbles: {
@@ -564,7 +564,7 @@ function printSummary(m, overlaps) {
   L('toasts per minute', `${m.toasts.shownPerMinute} shown, ${m.toasts.heldPerMinute} held by the budget`);
   L('  shown by tone', Object.entries(m.toasts.byTone).map(([k, v]) => `${k} ${v}`).join('  '));
   L('Yak lines per minute', `${m.chat.linesPerMinute} (${m.chat.lines} lines, ${m.chat.botLines} from bots, ${m.chat.omitted} omitted by the Yak pacer)`);
-  L('  important posts', `longest wait ${m.chat.important.longestWaitSeconds}s, ${m.chat.important.queuedAtEnd} still queued at the end`);
+  L('  important posts', `${m.chat.important.shown} of ${m.chat.important.queued} shown, longest wait ${m.chat.important.longestWaitSeconds}s, ${m.chat.important.queuedAtEnd} still queued at the end`);
   L('spoken lines per minute', `${m.say.linesPerMinute} (${m.say.lines} lines, ${m.say.droppedStale} dropped stale while the speaker talked)`);
   L('standups', `${m.standups.count} (${m.standups.staged} staged in person, one per ${m.standups.minutesBetweenStaged ?? '-'} min, ${Math.round(m.standups.stagedShare * 100)}% of real time)`);
   L('speech bubbles', `${m.bubbles.perMinute}/min, mean ${m.bubbles.meanOnScreen} on screen, any up ${Math.round(m.bubbles.shareOfTimeAny * 100)}% of the time, max ${m.bubbles.maxConcurrent}`);
