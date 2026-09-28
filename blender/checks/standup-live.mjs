@@ -27,8 +27,8 @@ async function startConversation({ speed, path }) {
   const { B } = await import('/src/sim/balance.js');
   const chance = B.standupConversationChance;
   B.standupConversationChance = 1;
-  const ctx = makeCtx(S); standupSystem(ctx); S.policies.daily_standups = false;
-  B.standupConversationChance = chance;
+  const ctx = makeCtx(S);
+  try { standupSystem(ctx); } finally { B.standupConversationChance = chance; S.policies.daily_standups = false; }
   window.__standupScript = S.flags.standupConversation?.script ?? null;
   const event = ctx.events.find(e => e.type === 'standup');
   window.__standupCheck = { path, speed, lines: event.lines, frames: [], startedWeek: S.week };
