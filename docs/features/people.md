@@ -2,6 +2,7 @@
 
 - **Chibi staff**: big-head characters with varied hair, builds, accessories (glasses, headphones, beanie, cap) and role garments (hoodie, blazer, headset, vest); a role-coloured ring under each. `capture 3-1-lineup`
 - **Portraits**: menus show each person as a portrait rendered from their 3D character. `capture 3-2-portraits`
+- **Advisor portraits**: the three advisors (Marge Tally, CFO; Dev Okafor, people lead; Sam Rourke, tech lead) are drawn the same way from the character kit, in their own muted accents rather than a staff role colour, with a hand-up "has an idea" frame (`renderer.advisorPortrait(key, { idea })`). `id: advisors`
 - **Moods**: typing when fine, slumped when coasting, head down when burnt out; tired people droop, and sometimes nod off at the desk.
 - **Emotes**: sweat, sparkle, storm, lightbulb, heart, zzz, exclamation, music notes, typing dots and tired, popping over heads so state reads without the UI.
 - **Arrivals and departures**: a hire walks in from the door with a sparkle; a leaver waves goodbye with a heart, or a storm cloud when fired, and walks out.
