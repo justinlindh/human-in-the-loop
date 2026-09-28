@@ -391,6 +391,7 @@ export const B = {
   ikBaseline: 2, ikPerProduct: 1.2,
   debtFromEngAuto: 1.1, debtFromQaAuto: 0.35, debtFromOpsAuto: 0.3, debtPerProduct: 0.04,
   debtPaydownPerSeniorEng: 0.004, debtPaydownMaintenance: 0.002, debtPaydownReviews: 0.027, debtRefactorShare: 0.6,   // paydowns are shares of current debt per week
+  debtPerBuildWeek: 0.12, debtBuildWeight: { junior: 1.6, mid: 1, senior: 0.4 }, debtCrunchMult: 1.5,
   debtFromDeparturePerKnowledge: 0.12, debtLowIkThreshold: 40, debtLowIkRate: 0.03,
   sizes: { small: { points: 110, cost: 2000, minStage: 0 }, medium: { points: 280, cost: 8000, minStage: 0 }, large: { points: 650, cost: 25000, minStage: 1 } },
   pointsGrowthPerYear: 0.1, expectationGrowth: 0.1, reviewScale: 6.2, reviewNoise: 0.9, balancePenaltyBelow: 0.08,
@@ -529,8 +530,8 @@ Meaning per non-away person per week:
 Rules:
 - Staff knowledge: `+B.knowledgeGainWorking` on project, maintenance, oversight, hardProblem, or security; mentored juniors `+B.knowledgeGainMentee`; engineers' working gain times `(1 - 0.7 * automation.engineering.level)` unless on hardProblem or mentor; cap 100.
 - `institutionalKnowledge = clamp(100 * sum over engineers and security staff of (knowledge/100 * B.seniorityOutput[seniority]) / (B.ikBaseline + B.ikPerProduct * liveProducts), 0, 100)`.
-- Debt weekly: `+ B.debtFromEngAuto * eng.level * (activeProjects > 0 ? 1 : 0.5) + B.debtFromQaAuto * qa.level + B.debtFromOpsAuto * ops.level + B.debtPerProduct * liveProducts + (ik < B.debtLowIkThreshold ? (B.debtLowIkThreshold - ik) * B.debtLowIkRate : 0) - B.debtPaydownPerSeniorEng * sum over senior engineers (not away) of knowledge/100 - (policies.comprehension_reviews ? B.debtPaydownReviews : 0)`; clamp 0..100.
-- `onDeparture`: `comprehensionDebt = min(100, debt + person.knowledge * B.debtFromDeparturePerKnowledge)`; clear mentor assignments targeting the person; clear `ownerId` on their products.
+- Debt weekly: inflow `+ B.debtPerBuildWeek * B.debtBuildWeight[seniority]` for each builder (not away) on a `new`, `update`, `migration` or `research` project, times `B.debtCrunchMult` under Crunch Mode; `+ B.debtFromEngAuto * eng.level * (activeProjects > 0 ? 1 : 0.5) + B.debtFromQaAuto * qa.level + B.debtFromOpsAuto * ops.level + B.debtPerProduct * liveProducts + (ik < B.debtLowIkThreshold ? (B.debtLowIkThreshold - ik) * B.debtLowIkRate : 0)`; paydowns, each a share of current debt: `- debt * B.debtPaydownPerSeniorEng * sum over senior engineers (not away) of knowledge/100 * path debtPaydown mod`, `- debt * B.debtPaydownMaintenance * engineers on maintenance`, `- (policies.comprehension_reviews ? debt * B.debtPaydownReviews : 0)`; clamp 0..100, then set `state.debtFlow` to each source's raw amount, `oneOff` (the week's `bumpDebt` requests) and `net` (the clamped change).
+- `onDeparture`: `bumpDebt(person.knowledge * B.debtFromDeparturePerKnowledge)` (clamps to 0..100 and records the requested amount in `debtFlow.oneOff`); clear mentor assignments targeting the person; clear `ownerId` on their products.
 
 **Tests:** IK drops when a high-knowledge senior leaves; debt rises under full engineering automation with no seniors, and falls with two knowledgeable senior engineers plus reviews; debt clamped to [0, 100]; finite with zero products and zero staff.
 
