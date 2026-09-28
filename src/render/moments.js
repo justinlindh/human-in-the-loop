@@ -172,42 +172,79 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   const center = new THREE.Vector3();
   // Spots on a ring round `at`, each facing it. With `far`, the side away from the camera comes first
   // (in plain view), so whoever faces `at` faces the camera too.
-  function ringSpots(at, radius, n, { far = false, moment = 'ring', search = 'ring' } = {}) {
-    const out = [];
+  // `strict` stages only spots the current camera sees whole: the ring widens until enough are in
+  // view, spots also seen after a quarter turn either way come first, and nobody stands in front of
+  // another's spot.
+  function ringSpots(at, radius, n, { far = false, strict = false, moment = 'ring', search = 'ring' } = {}) {
     const start = Math.random() * Math.PI * 2;
     const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
-    const cands = [];
-    for (let i = 0; i < 24; i++) {
-      const a = start + (i * Math.PI * 2) / 12 + (i >= 12 ? Math.PI / 12 : 0);
-      const rr = radius + (i >= 12 ? 0.3 : 0);
-      cands.push({ x: at.x + Math.cos(a) * rr, z: at.z + Math.sin(a) * rr, i });
-    }
+    const ring = (base) => {
+      const cands = [];
+      for (let i = 0; i < 24; i++) {
+        const a = start + (i * Math.PI * 2) / 12 + (i >= 12 ? Math.PI / 12 : 0);
+        const rr = base + (i >= 12 ? 0.3 : 0);
+        cands.push({ x: at.x + Math.cos(a) * rr, z: at.z + Math.sin(a) * rr, i });
+      }
+      return cands;
+    };
     // Far side first. The near side (between the camera and `at`) is left out: nobody there can face
     // both.
     const side = (q) => ((q.x - at.x) * cx + (q.z - at.z) * cz) / Math.hypot(q.x - at.x, q.z - at.z);
-    let list = cands;
+    // `a` stands between `b` and the camera, close enough to hide a body there.
+    const hides = (a, b) => {
+      const dx = a.x - b.x, dz = a.z - b.z, along = dx * cx + dz * cz;
+      return along > 0 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.75;
+    };
     const collect = (candidates, name, needs, checks = {}) => {
       const accepted = [];
       choose(at, moment, name, { candidates, needs, checks, score: (q) => { accepted.push(q); return 0; } });
       return accepted;
     };
-    if (far) {
-      const open = collect(cands, `${search}:open`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 });
-      const seen = collect(open, `${search}:view`, ['inView'], { inView: (q) => inView(q, { body: true, walls: true }) });
-      list = (seen.length >= Math.min(2, n) ? seen : open).sort((a, b) => side(a) - side(b) || a.i - b.i);
+    const place = (list) => {
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const spot = choose(at, moment, `${search}:${i}`, { candidates: list, needs: strict ? ['clear', 'apart', 'unhidden'] : ['clear', 'apart'], checks: {
+          apart: (q) => out.every((s) => Math.hypot(s.x - q.x, s.z - q.z) >= 0.55),
+          unhidden: (q) => out.every((s) => !hides(s, q) && !hides(q, s)),
+        } });
+        if (!spot) break;
+        const { x, z } = spot;
+        let yaw = Math.atan2(at.x - x, at.z - z);
+        // Standing off to one side: turned a little toward the camera, still on `at`.
+        if (far) { const d = Math.atan2(Math.sin(getYaw() - yaw), Math.cos(getYaw() - yaw)); yaw += Math.sign(d) * Math.min(Math.abs(d), FAR_TURN); }
+        out.push({ x, z, yaw });
+      }
+      return out;
+    };
+    if (!far) return place(ring(radius));
+    const view = (q, turn = 0) => inView(q, { body: true, walls: true, turn });
+    if (!strict) {
+      const open = collect(ring(radius), `${search}:open`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 });
+      const seen = collect(open, `${search}:view`, ['inView'], { inView: (q) => view(q) });
+      return place((seen.length >= Math.min(2, n) ? seen : open).sort((a, b) => side(a) - side(b) || a.i - b.i));
     }
-    for (let i = 0; i < n; i++) {
-      const spot = choose(at, moment, `${search}:${i}`, { candidates: list, needs: ['clear', 'apart'], checks: {
-        apart: (q) => out.every((s) => Math.hypot(s.x - q.x, s.z - q.z) >= 0.55),
-      } });
-      if (!spot) break;
-      const { x, z } = spot;
-      let yaw = Math.atan2(at.x - x, at.z - z);
-      // Standing off to one side: turned a little toward the camera, still on `at`.
-      if (far) { const d = Math.atan2(Math.sin(getYaw() - yaw), Math.cos(getYaw() - yaw)); yaw += Math.sign(d) * Math.min(Math.abs(d), FAR_TURN); }
-      out.push({ x, z, yaw });
+    // Wider rings join the candidates until everyone has a spot of their own.
+    const seen = [], turned = new Map();
+    let best = [];
+    for (let k = 0; k < 4 && best.length < n; k++) {
+      const suffix = k ? `+${k}` : '';
+      const open = collect(ring(radius + k * 0.3), `${search}:open${suffix}`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 });
+      for (const q of collect(open, `${search}:view${suffix}`, ['inView'], { inView: (q) => view(q) })) {
+        seen.push(q);
+        turned.set(q, (view(q, Math.PI / 2) ? 1 : 0) + (view(q, -Math.PI / 2) ? 1 : 0));
+      }
+      const out = place(seen.slice().sort((a, b) => turned.get(b) - turned.get(a) || side(a) - side(b) || a.i - b.i));
+      if (out.length > best.length) best = out;
     }
-    return out;
+    // Hemmed in on the far side: anyone the camera sees, on any side; failing that, the open far
+    // side as before, so the pizza is never left uneaten.
+    if (!best.length) {
+      const all = [0, 1, 2, 3].flatMap((k) => ring(radius + k * 0.3));
+      const open = collect(all, `${search}:anySide`, ['clear', 'inView'], { inView: (q) => view(q) });
+      best = place(open.sort((a, b) => side(a) - side(b) || a.i - b.i));
+      if (!best.length) best = place(collect(ring(radius), `${search}:blind`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 }).sort((a, b) => side(a) - side(b) || a.i - b.i));
+    }
+    return best;
   }
 
   const spotlighted = new WeakSet();
@@ -235,7 +272,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     new THREE.Box3().setFromObject(p.obj).getCenter(center);
     const people = pickIdle(Math.round(rnd(...PIZZA.people)), center);
     if (lite()) { for (const r of people) emote(r, 'heart', 2); return; }
-    const spots = ringSpots(center, PIZZA.ring, people.length, { far: true, moment: 'pizza' });
+    const spots = ringSpots(center, PIZZA.ring, people.length, { far: true, strict: true, moment: 'pizza' });
     people.slice(0, spots.length).forEach((r, i) => {
       r.temp = { anim: 'eat', t: rnd(...PIZZA.dur), goal: spots[i], back: true, moment: 'pizza', stage: { beat: 'eat', target: p.obj } };
       walkTo(r, spots[i]);

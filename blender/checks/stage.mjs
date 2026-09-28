@@ -169,7 +169,7 @@ const SPECS = {
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
     share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
-    { ...visibleRule, known: 925 },
+    visibleRule,
   ] },
   // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
   'screen.recoil': { moment: 'screen', beat: 'recoil', rules: [
