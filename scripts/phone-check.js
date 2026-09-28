@@ -325,7 +325,10 @@ const CHECKS = {
       if (cut) {
         await tap(long); await wait(page, 300);
         const seen = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { open: e.classList.contains('open'), fits: tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1 }; }).catch(() => ({ gone: true }));
-        if (!seen.open || !seen.fits) fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'})`);
+        if (!seen.open || !seen.fits) {
+          const why = await page.evaluate(() => ({ popupOpen: document.querySelector('.hitl')?.classList.contains('popup-open'), cards: [...document.querySelectorAll('.announce-back, .modal-back, .decision')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width).map((e) => e.className), toasts: [...document.querySelectorAll('.toasts .toast')].map((t) => t.className + ':' + t.textContent.slice(0, 30)) }));
+          fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'}) ${JSON.stringify(why)}`);
+        }
         await shot('toast-long');
       }
     }
@@ -364,7 +367,14 @@ const CHECKS = {
     await page.evaluate(() => { const H = window.__HITL; const p = H.state.staff.find((x) => x.mood !== 'away'); H.emit([{ type: 'incentive', staffId: p.id, reward: 'waffle_party' }]); });
     if (!await spot()) fails.push('no spotlight before menu cancellation');
     await page.evaluate(() => window.__HITL_UI.openStaff(window.__HITL.state.staff[0].id));
-    if (await spot()) fails.push('opening a menu did not end the spotlight');
+    await wait(page, 300);
+    // A menu lets the moment go: it plays on, and it no longer holds the clock.
+    if (!await spot()) fails.push('opening a menu cut the spotlight');
+    if (await page.evaluate(() => !!window.__HITL.clock.spotlight)) fails.push('the spotlight still holds the clock with a menu open');
+    // Cards the moment held wait for the menu to close too, instead of opening over it.
+    await wait(page, 800);
+    const card = () => page.evaluate(() => [...document.querySelectorAll('.announce-back, .modal-back:not(.settings-back)')].some((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0));
+    if (await card()) fails.push('a held card opened over the menu while the scene played');
     await page.keyboard.press('Escape');
     await page.evaluate(() => window.__HITL.setSpeed(0));
     return { fails };

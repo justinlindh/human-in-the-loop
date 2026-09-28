@@ -40,7 +40,7 @@ export function moonshotEffect(ctx, step) {
       addFame(state, B.moonshotFailFame);
       state.brand = clamp(state.brand - B.moonshotFailBrand, 0, 100);
       ctx.emit({ type: 'toast', tone: 'warn', text: `Project ${m.name} did not work. The post-mortem is the best document anyone here has ever written.` });
-      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `"${state.companyName}'s moonshot was a glorious failure," says a blog that loves glorious failures.` });
+      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `"${state.companyName}'s moonshot was a glorious failure," says a blog that loves glorious failures.`, important: true });
     }
   }
 }
