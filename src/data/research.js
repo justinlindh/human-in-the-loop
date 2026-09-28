@@ -6,7 +6,7 @@ const rows = [
   ['observability', 'Observability', 'Dashboards that actually explain things. Outages fixed 40% faster and rarely unfixable.', 500, null, { outageFix: 0.4, unrecoverableThreshold: -0.2 }],
   ['ci_cd', 'CI/CD Pipeline', 'Every change tested and shipped the same way. +10% reliability, slower health decay.', 450, null, { reliability: 0.1, healthDecay: -0.2 }],
   ['design_system', 'Design System', 'Shared components with opinions. +10% polish.', 350, null, { polish: 0.1 }],
-  ['docs_culture', 'Docs Culture', 'People write things down. Departures cost 40% less debt; institutional knowledge +10%.', 400, null, { departureDebt: -0.4, ik: 0.1 }],
+  ['docs_culture', 'Docs Culture', 'People write things down. Departures add 40% less tech debt; institutional knowledge +10%.', 400, null, { departureDebt: -0.4, ik: 0.1 }],
   ['onboarding_kit', 'Onboarding Kit', 'New hires start with a map. +15 starting knowledge.', 300, 'docs_culture', { newHireKnowledge: 15 }],
   ['squish', 'Squish', 'An unreasonably good compression trick. +5% reliability, slower health decay.', 450, 'ci_cd', { reliability: 0.05, healthDecay: -0.1 }],
   ['red_team_suite', 'Red Team Suite', 'Attack yourself before someone else does. +10 security posture.', 600, null, { postureFlat: 10 }],

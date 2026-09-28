@@ -75,7 +75,7 @@ When: `(s) => s.staff.length >= 4`
 
 | Choice | Effects |
 |---|---|
-| Host it | cash -$3,000; team meaning +6; comprehension debt +2; leaves pizza_boxes for 2 weeks |
+| Host it | cash -$3,000; team meaning +6; tech debt +2; leaves pizza_boxes for 2 weeks |
 | Skip it | nothing |
 
 ## Team offsite `team_offsite`
@@ -539,7 +539,7 @@ incident · raised by a rule
 | Choice | Effects |
 |---|---|
 | Call in consultants | consultants clear the outage for $45,000; requires you can afford the consultants |
-| Hire an emergency contractor | cash -$15,000; comprehension debt +3; after 2 weeks: the outage clears |
+| Hire an emergency contractor | cash -$15,000; tech debt +3; after 2 weeks: the outage clears |
 | Keep trying ourselves | nothing |
 
 ## Credential stuffing `credential_stuffing`
@@ -566,8 +566,8 @@ cyber · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Audit every dependency | cash -$15,000; comprehension debt -3 |
-| Remove it and move on | 50% chance of brand -5, comprehension debt +3; otherwise nothing |
+| Audit every dependency | cash -$15,000; tech debt -3 |
+| Remove it and move on | 50% chance of brand -5, tech debt +3; otherwise nothing |
 
 ## Data exfiltration `data_exfiltration`
 
@@ -1194,7 +1194,7 @@ When: `(s) => !!s.rival && ['rising', 'stalled'].includes(s.rival.status)`
 
 | Choice | Effects |
 |---|---|
-| Build our own box | cash -$40,000; comprehension debt +4; hype on your newest product +12; leaves box_cube for 26 weeks |
+| Build our own box | cash -$40,000; tech debt +4; hype on your newest product +12; leaves box_cube for 26 weeks |
 | Stay software | brand +1; after 30 weeks: brand +1 |
 | Mock it | 55% chance of brand +3; otherwise brand -2 |
 
