@@ -133,7 +133,7 @@ describe('an async standup', () => {
 });
 
 describe('standup variety', () => {
-  const daily = s => { s.policies.daily_standups = true; return run(s).find(e => e.type === 'standup').lines; };
+  const daily = s => { s.week++; s.policies.daily_standups = true; return run(s).find(e => e.type === 'standup').lines; };
   it('uses different complete exchanges across successive meetings and save round trips', () => {
     const s = office(9), sequences = [];
     for (let i = 0; i < 12; i++) {
@@ -197,9 +197,10 @@ describe('standup variety', () => {
     const fallback = speakers.map(p => ({ staffId: p.id, text: `Update ${p.id}.` }));
     const lines = standupConversation(s, speakers, fallback);
     const inOffice = speakers.filter(p => !p.remote && p.assignment.type !== 'sabbatical');
-    expect(lines.slice(0, 5).map(l => l.staffId)).toEqual(Array.from({ length: 5 }, (_, i) => inOffice[i % inOffice.length].id));
-    expect(lines.slice(5)).toEqual(fallback.slice(0, 2));
-    expect(lines.slice(0, 5).every(l => !l.text.startsWith('Update '))).toBe(true);
+    const turns = lines.length - 2;
+    expect(lines.slice(0, turns).map(l => l.staffId)).toEqual(Array.from({ length: turns }, (_, i) => inOffice[i % inOffice.length].id));
+    expect(lines.slice(turns)).toEqual(fallback.slice(0, 2));
+    expect(lines.slice(0, turns).every(l => !l.text.startsWith('Update '))).toBe(true);
   });
   it('has unique exchange ids and complete short scripts with strict context topics', () => {
     expect(new Set(STANDUP_EXCHANGES.map(e => e.id)).size).toBe(STANDUP_EXCHANGES.length);
@@ -208,24 +209,47 @@ describe('standup variety', () => {
       for (const line of e.lines) expect(line.replaceAll('{project}', 'A long project name').replaceAll('{product}', 'A long product name').replaceAll('{pct}', '100').length).toBeLessThanOrEqual(70);
     }
   });
-  it('completes all five turns with two active speakers while quiet and absent colleagues keep their updates', () => {
+  it('plays all five turns unless active colleagues are waiting; quiet ones never cut it short', () => {
     const s = office(2), speakers = s.staff;
-    for (const p of speakers) p.assignment = { type: 'idle', targetId: null };
-    for (const unavailable of ['remote', 'sabbatical', 'burnout', 'coasting']) {
-      for (const p of speakers) { p.remote = false; p.mood = 'ok'; p.assignment = { type: 'idle', targetId: null }; }
-      for (const p of speakers.slice(2)) {
-        if (unavailable === 'remote') p.remote = true;
-        else if (unavailable === 'sabbatical') p.assignment.type = 'sabbatical';
-        else p.mood = unavailable;
-      }
-      s.flags.standupConversationRecent = [];
-      const updates = speakers.map(p => ({ staffId: p.id, text: p.mood === 'burnout' ? '' : 'Still on it.' }));
-      const lines = standupConversation(s, speakers, updates);
-      expect(lines.slice(0, 5).map(l => l.text)).toEqual(STANDUP_EXCHANGES.find(e => e.id === 'standup_question').lines);
-      expect(lines.slice(0, 5).map(l => l.staffId)).toEqual([speakers[0].id, speakers[1].id, speakers[0].id, speakers[1].id, speakers[0].id]);
-      expect(lines.slice(5)).toEqual(updates.slice(2));
-    }
+    for (const p of speakers) { p.remote = false; p.mood = 'ok'; p.assignment = { type: 'idle', targetId: null }; }
+    const two = speakers.slice(0, 2);
+    const alone = standupConversation(s, two, two.map(p => ({ staffId: p.id, text: 'Still on it.' })));
+    const script = () => STANDUP_EXCHANGES.find(e => e.id === s.flags.standupConversation.script);
+    expect(alone.map(l => l.text)).toEqual(script().lines);
+    expect(alone.map(l => l.staffId)).toEqual([two[0].id, two[1].id, two[0].id, two[1].id, two[0].id]);
+    for (const p of speakers.slice(2)) p.mood = 'coasting';
+    const updates = speakers.map(p => ({ staffId: p.id, text: 'Still on it.' }));
+    const quiet = standupConversation(s, speakers, updates);
+    expect(quiet.slice(0, 5).map(l => l.text)).toEqual(script().lines);
+    expect(quiet.slice(5)).toEqual(updates.slice(2));
+    for (const p of speakers) p.mood = 'ok';
+    const busy = standupConversation(s, speakers, updates);
+    const waiting = speakers.length - B.standupConversationCast;
+    expect(busy).toHaveLength(B.standupMaxLines);
+    expect(busy.slice(0, B.standupMaxLines - waiting).map(l => l.text)).toEqual(script().lines.slice(0, B.standupMaxLines - waiting));
   });
+
+  it('picks exchanges at random within the most urgent topic, without touching the game RNG', () => {
+    const openers = new Set();
+    for (let seed = 1; seed <= 12; seed++) {
+      const s = office(seed);
+      for (const p of s.staff) { p.remote = false; p.mood = 'ok'; p.assignment = { type: 'idle', targetId: null }; }
+      const rng = JSON.stringify(s.rng);
+      standupConversation(s, s.staff, s.staff.map(p => ({ staffId: p.id, text: 'Update.' })));
+      openers.add(s.flags.standupConversation.script);
+      expect(JSON.stringify(s.rng)).toBe(rng);
+    }
+    expect(openers.size).toBeGreaterThan(3);
+  });
+
+  it('holds a conversation in some daily standups and plain updates in others', () => {
+    const s = office(4);
+    let talks = 0;
+    for (let i = 0; i < 60; i++) { daily(s); if (s.flags.standupConversation) talks++; }
+    expect(talks).toBeGreaterThan(10);
+    expect(talks).toBeLessThan(50);
+  });
+
   it('async updates almost never repeat a line within 30 posts over a long run', async () => {
     const { runBot } = await import('../../src/sim/bots.js');
     for (const seed of [1, 2]) {
