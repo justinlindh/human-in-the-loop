@@ -26,7 +26,9 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
   let blocked = false, paused = false, changed = false, departed = false, pauseStable = true, max = 0;
   for (let frame = 0; frame < 1800; frame++) {
     if (path === 'priority' && shown.length === 1 && !blocked) {
-      R.handleEvents([{ type: 'launch' }], S);
+      // A short decision scene (the letter), started directly: it holds the room for about 3 s.
+      let held = 0;
+      R.spotlights.begin('letter', null, 6, () => ({ x: 0, z: 0 }), () => ++held < 90);
       if (!R.spotlight()) throw Error('priority scene did not start');
       blocked = true;
     }
