@@ -329,6 +329,17 @@ for h in bash-guard.sh lane-guard.sh behind-main.sh pr-create-check.sh context-n
   run "$h" 'not json'; [ $rc -ne 2 ] || fail "$h should fail open on bad input"
 done
 
+# em-dash-guard: SendMessage text and summary, as the character or its escape text
+D=$(printf '\xe2\x80\x94'); E=$(printf '\\u%s' 2014)
+msg() { jq -n --arg m "$1" --arg s "${2:-status}" '{hook_event_name: "PreToolUse", tool_name: "SendMessage", tool_input: {to: "ui", message: $m, summary: $s}}'; }
+run em-dash-guard.sh "$(msg "PR 12 ${D} merged")"; [ $rc -eq 2 ] && [[ "$err" == *"em dash"* ]] || fail "em-dash-guard should refuse a dash in the message (rc $rc)"
+run em-dash-guard.sh "$(msg "PR 12 merged" "done ${D} merged")"; [ $rc -eq 2 ] || fail "em-dash-guard should refuse a dash in the summary (rc $rc)"
+run em-dash-guard.sh "$(msg "PR 12 ${E} merged")"; [ $rc -eq 2 ] || fail "em-dash-guard should refuse the escape text (rc $rc)"
+run em-dash-guard.sh "$(jq -n --arg r "no ${D} thanks" '{tool_name: "SendMessage", tool_input: {to: "lead", message: {type: "shutdown_response", request_id: "r1", approve: false, reason: $r}}}')"; [ $rc -eq 2 ] || fail "em-dash-guard should check a structured message (rc $rc)"
+run em-dash-guard.sh "$(msg "PR 12 merged - see #13, a range 3-4 and a minus -1")"; [ $rc -eq 0 ] || fail "em-dash-guard should allow hyphens (rc $rc: $err)"
+run em-dash-guard.sh "$(msg "en dash $(printf '\xe2\x80\x93') is fine")"; [ $rc -eq 0 ] || fail "em-dash-guard should allow an en dash (rc $rc: $err)"
+run em-dash-guard.sh 'not json'; [ $rc -eq 0 ] || fail "em-dash-guard should let unreadable input through (rc $rc)"
+
 [ $slow -eq 0 ] || echo "($slow slow runs)"
 [ $fails -eq 0 ] && echo "claude hooks: all cases pass" || echo "claude hooks: $fails failing"
 [ $fails -eq 0 ]
