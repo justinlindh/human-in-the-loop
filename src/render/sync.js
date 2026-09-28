@@ -1100,7 +1100,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         if (l.text) {
           const text = standupText(l, st.context, lastState);
           const seconds = speak(text, r, { standup: true });
-          if (seconds > 0) st.spoken = { root: r.char.root, text };
+          if (seconds > 0) {
+            st.spoken = { root: r.char.root, text };
+            // The others in the ring turn to whoever is talking, for as long as the line shows.
+            for (const { r: o } of st.people) if (o !== r && o.temp?.standup && !o.path.length) { faceToward(o, r); if (o.face) o.face.t = seconds; }
+          }
           return seconds;
         }
         emote(r, r.staff.mood === 'burnout' ? 'zzz' : 'sweat', B.standupSilenceSeconds);
