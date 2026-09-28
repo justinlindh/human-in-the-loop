@@ -5,7 +5,8 @@ import { advice, advisorsSystem } from '../../src/sim/advisors.js';
 import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
-import { ADVICE_LINES } from '../../src/data/advisors.js';
+import { ADVICE_LINES, ADVISORS } from '../../src/data/advisors.js';
+import { FIRST_NAMES, LAST_NAMES } from '../../src/data/names.js';
 import { weeklyRevenue, weeklyCosts } from '../../src/sim/economy.js';
 import { game, classicGame, addStaff, addProduct } from './helpers.js';
 
@@ -103,6 +104,14 @@ describe('advisors (#808): what they notice', () => {
     expect(ranked[0].key).toBe('runway');
     for (let i = 1; i < ranked.length; i++) expect(ranked[i - 1].severity).toBeGreaterThanOrEqual(ranked[i].severity);
     expect(ranked.some((a) => a.key === 'fine')).toBe(false);
+  });
+
+  it("no advisor shares a first or last name with the staff name pools", () => {
+    for (const { name } of Object.values(ADVISORS)) {
+      const [first, last] = name.split(' ');
+      expect(FIRST_NAMES, name).not.toContain(first);
+      expect(LAST_NAMES, name).not.toContain(last);
+    }
   });
 
   it('is a pure read: no state change and no draw from the game RNG', () => {

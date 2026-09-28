@@ -4,8 +4,8 @@
 // and never lecture.
 export const ADVISORS = {
   cfo: { name: 'Marge Tally', title: 'CFO' },
-  people: { name: 'Dev Okafor', title: 'People lead' },
-  tech: { name: 'Sam Rourke', title: 'Tech lead' },
+  people: { name: 'Otto Nwosu', title: 'People lead' },
+  tech: { name: 'Rory Halloran', title: 'Tech lead' },
 };
 
 export const ADVICE_LINES = {
