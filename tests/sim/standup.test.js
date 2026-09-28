@@ -229,6 +229,21 @@ describe('standup variety', () => {
     expect(busy.slice(0, B.standupMaxLines - waiting).map(l => l.text)).toEqual(script().lines.slice(0, B.standupMaxLines - waiting));
   });
 
+  it('caps the whole meeting: past B.standupMaxTotalLines spoken lines, the last quiet attendees skip their update', () => {
+    const s = office(2);
+    addStaff(s, 'engineer', 'mid'); addStaff(s, 'designer', 'mid');
+    const speakers = s.staff.slice(0, 5);
+    for (const p of speakers) { p.remote = false; p.mood = 'coasting'; p.assignment = { type: 'idle', targetId: null }; }
+    speakers[0].mood = 'ok'; speakers[1].mood = 'ok';
+    const updates = speakers.map(p => ({ staffId: p.id, text: 'Still on it.' }));
+    const lines = standupConversation(s, speakers, updates);
+    const spoken = lines.filter(l => l.text);
+    expect(spoken).toHaveLength(B.standupMaxTotalLines);
+    expect(lines.slice(0, 5).map(l => l.text)).toEqual(STANDUP_EXCHANGES.find(e => e.id === s.flags.standupConversation.script).lines);
+    expect(lines.some(l => l.staffId === speakers[4].id)).toBe(false);
+    expect(s.flags.standupConversation.lines).toEqual(lines);
+  });
+
   it('picks exchanges at random within the most urgent topic, without touching the game RNG', () => {
     const openers = new Set();
     for (let seed = 1; seed <= 12; seed++) {

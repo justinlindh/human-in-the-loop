@@ -72,6 +72,8 @@ export const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [..
 // presented on the way (no launch cards, incidents or toasts), until a Yak message containing `until`
 // is in the log; then shows only the new messages that contain one of `show`. A nod's payoff weeks
 // later lands on screen now, and quietly.
+// Closes unlock and "new things to place" cards the way a player would ("Got it", "Later").
+export const LATER = "[...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && ['Got it', 'Later'].includes(b.textContent.trim())).forEach((b) => b.click())";
 const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
@@ -563,7 +565,7 @@ export const ITEMS = [
   {
     id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
     setup: `(() => { ${BARE}; })()`,
-    actions: [
+    actions: [...CAMLOG(25), 
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 25),
       { at: 3.5, js: KEY('1', 'Digit1') },
@@ -572,46 +574,48 @@ export const ITEMS = [
     screenshots: [2, 14, 20],
   },
   {
-    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 11, warmup: 6.5,
+    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 14.5, warmup: 6.5,
     setup: `(() => { ${BARE}; })()`,
-    actions: [
+    actions: [...CAMLOG(14.5), 
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })),
-      ...NODS_FOLLOW(['stapler'], 3.2, 0, 6),
-      { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5, 5], { escape: false }),
-      { at: 6, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
-      { at: 6.1, js: YAK }, { at: 6.3, js: CLICK_STARTS('#random') },
+      ...NODS_FOLLOW(['stapler'], 3.2, 0, 9.5),
+      { at: 7.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([8, 8.5], { escape: false }),
+      { at: 9.5, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
+      // The weeks skipped can raise unlock cards over Yak; close them as a player would.
+      ...[9.55, 9.6].map((at) => ({ at, js: LATER })),
+      { at: 9.65, js: YAK }, { at: 9.8, js: CLICK_STARTS('#random') },
     ],
-    screenshots: [2, 9],
+    screenshots: [2, 12.5],
   },
   {
-    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 7, warmup: 6.5,
+    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 10.5, warmup: 6.5,
     setup: `(() => { ${BARE}; })()`,
-    actions: [
+    actions: [...CAMLOG(10.5), 
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })),
-      ...NODS_FOLLOW(['cover_sheets'], 3.2, 0, 7),
-      { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5], { escape: false }),
+      ...NODS_FOLLOW(['cover_sheets'], 3.2, 0, 10.5),
+      { at: 7.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([8], { escape: false }),
     ],
-    screenshots: [2, 6],
+    screenshots: [2, 9.5],
   },
   {
-    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 13, warmup: 6.5,
+    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 15, warmup: 6.5,
     setup: `(() => { ${BARE}; })()`,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
+    actions: [...CAMLOG(15), ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 15), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
     screenshots: [5, 11],
   },
   {
-    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 9, warmup: 6.5,
+    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 12.5, warmup: 6.5,
     setup: `(() => { ${BARE}; })()`,
-    actions: [
+    actions: [...CAMLOG(12.5), 
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...NODS_FOLLOW(['banner_company'], 3, 0, 5),
-      { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5, 5], { escape: false }),
-      ...NODS_FOLLOW(['banner_company'], 4, 5, 9),
+      ...NODS_FOLLOW(['banner_company'], 3, 0, 8.5),
+      { at: 7.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([8, 8.5], { escape: false }),
+      ...NODS_FOLLOW(['banner_company'], 4, 8.5, 12.5),
     ],
     screenshots: [2, 7],
   },

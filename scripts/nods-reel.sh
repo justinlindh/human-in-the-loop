@@ -18,7 +18,7 @@ BEATS=(
   "nods-printer|PC LOAD LETTER|1.2"
   "nods-stapler|The red stapler|1.5"
   "nods-cover-sheets|The TPS report cover sheets|1.5"
-  "nods-consultants|The consultants|2"
+  "nods-consultants|The consultants|1.5"
   "nods-banner|Is this good for the company?|1.2"
 )
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
@@ -33,7 +33,7 @@ for b in "${BEATS[@]}"; do
   fo=$(awk -v d="$len" 'BEGIN { printf "%.3f", d - 0.25 }')
   crop=""; [ "$w" -ge 1920 ] && crop="crop=1280:720:640:140,"
   printf '%s' "$title" > "$TMP/title$i.txt"
-  vf="${crop}fade=t=in:st=0:d=0.25,fade=t=out:st=$fo:d=0.25,drawtext=fontfile=$FONT:textfile=$TMP/title$i.txt:fontsize=44:fontcolor=0xfbf5ea:box=1:boxcolor=0x2a2630@0.78:boxborderw=18:x=(w-text_w)/2:y=h*0.84:enable='between(t,0.3,2.9)':alpha='if(lt(t,0.6),(t-0.3)/0.3,if(gt(t,2.6),(2.9-t)/0.3,1))'"
+  vf="${crop}fade=t=in:st=0:d=0.25,fade=t=out:st=$fo:d=0.25,drawtext=fontfile=$FONT:textfile=$TMP/title$i.txt:fontsize=44:fontcolor=0xfbf5ea:box=1:boxcolor=0x2a2630@0.78:boxborderw=18:x=max(24\,(w*0.62-text_w)/2):y=h*0.84:enable='between(t,0.3,2.9)':alpha='if(lt(t,0.6),(t-0.3)/0.3,if(gt(t,2.6),(2.9-t)/0.3,1))'"
   timeout 300 nice -n 10 ffmpeg -y -loglevel error -ss "$trim" -i "$src" -t "$len" -vf "$vf" -af "afade=t=in:st=0:d=0.25,afade=t=out:st=$fo:d=0.25" -c:v libx264 -pix_fmt yuv420p -crf 18 -r 30 -c:a aac -ar 48000 -ac 2 -b:a 160k "$TMP/b$i.mp4"
   echo "file '$TMP/b$i.mp4'" >> "$LIST"
   i=$((i + 1))

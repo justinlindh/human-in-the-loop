@@ -97,7 +97,7 @@ export const B = {
   readBaseSeconds: 1.8, readSecondsPerChar: 0.06, readMaxSeconds: 7,
   readFloorSeconds: 1, readCharsPerSecond: 15,
   readSpeedFactor2x: 0.75, readSpeedFactor4x: 0.6,
-  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12, standupConversationChance: 0.4, standupConversationCast: 3, standupMaxLines: 5,
+  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12, standupConversationChance: 0.4, standupConversationCast: 3, standupMaxLines: 5, standupMaxTotalLines: 7,
   bubbleMaxOnScreen: 3, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
   bubbleStaffPerExtra: 8, // one more ordinary speech bubble at once for each this many staff, up to bubbleMaxOnScreen
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
