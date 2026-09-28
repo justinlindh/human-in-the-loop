@@ -54,7 +54,8 @@ async function play({ bot, seed, weeks, dir }) {
     for (const e of events ?? []) {
       if (e.type === 'decisionResolved' && open && open.id === e.eventId) open.choice = e.choice ?? null;
       else if (KEEP.has(e.type)) rows.push({ ...base(), type: e.type, id: e.eraId ?? e.eventId ?? e.kind ?? e.type });
-      // A company-wide celebrate is an office party (a new product, a moonshot, Product of the Year).
+      // A company-wide celebrate is an office party (a new product, a moonshot, Product of the Year);
+      // its id is the event's cause when it carries one.
       else if (e.type === 'celebrate' && !e.staffId) rows.push({ ...base(), type: 'party', id: e.cause ?? 'party' });
     }
   };
