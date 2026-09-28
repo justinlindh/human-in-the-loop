@@ -50,6 +50,7 @@ State = {
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
   chatLog: [ChatEvent],   // the most recent chat events (same shape as the chat SimEvent), last 80, so the feed survives save and load
   lowCashWeeks,
+  debtFlow: { work, automation, products, lowKnowledge, seniors, reviews, oneOff },   // last week's comprehensionDebt change by source, signed (inflow +, paydown -); oneOff sums departures, choices and the Big Refactor; all zero at createGame and in old saves
   pendingDecision: null | { eventId, title, text, subjectId, choices: [{ label, hint, available, reason }], vars },   // available false: requirement unmet, reason says why   // vars: placeholder values fixed when raised; UI may ignore
   flags: {},
   stats: { hires, juniorsHired, resignations, incidents, caught, breaches, launches, awards, peakMrr },
