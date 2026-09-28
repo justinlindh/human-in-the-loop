@@ -105,8 +105,7 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // (skinned, instanced and morphing meshes keep the default test), each on its first raycast.
         // Loading the module and building a tree make three.js objects, which take UUIDs from
         // Math.random, so both run on the tool stream and the game's stream is untouched.
-        // { install: false } loads the module without patching raycast, so a comparison run waits on
-        // the page exactly as long as a fast one.
+        // { install: false } loads the module without patching raycast (a comparison run).
         window.__fastRaycast = async ({ install = true } = {}) => {
           if (window.__fastRaycastOn) return;
           const THREE = R.THREE;
@@ -133,6 +132,12 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // so a stepper that skipped the refresh would play differently from the game, and any tool that
         // later refreshed them (a crop, a probe) would change what comes after.
         window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
+        // Tool dependencies that build three.js objects when they load (tool-preload.js) take a UUID
+        // each from Math.random. Loaded here on the tool stream, they cost the game's stream nothing
+        // when a check imports them later, so a result doesn't depend on which tool loaded first.
+        const gameRandom = Math.random;
+        Math.random = window.__tool(() => Math.random);
+        try { await import('/blender/checks/tool-preload.js'); } finally { Math.random = gameRandom; }
       }, time);
       return { page, errors, requests };
     },
