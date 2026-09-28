@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Refuses a commit message that carries AI attribution: a Claude-Session or Co-Authored-By trailer,
+# a claude.ai session link, or a "Generated with Claude Code" line. Commits here carry none.
+# Installed by `npm run hooks` (core.hooksPath scripts/hooks). Skip once with `git commit --no-verify`.
+set -u
+msg="${1:?commit-msg: no message file}"
+hits="$(grep -v '^#' "$msg" | grep -niE '^[[:space:]]*(claude-session|co-authored-by)[[:space:]]*:|claude\.ai/code/session|generated with .{0,3}claude' || true)"
+[ -z "$hits" ] && exit 0
+echo "commit-msg: refusing the commit: it carries attribution, and commits here carry none:" >&2
+sed 's/^/  line /' <<<"$hits" >&2
+echo "commit-msg: remove those lines and commit again." >&2
+exit 1
