@@ -500,7 +500,7 @@ state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
 - If a squad's posted project is cancelled, the squad is benched the same way, with no crew.
 - Cohesion starts at 0 when a squad forms and rises by `1 / B.squadCohesionWeeks` (12) each week that at least half its members work its posting, up to 1. Anyone joining or leaving halves it.
 - Cohesion multiplies output: a member working the squad's posting gets `output * (1 + cohesion * B.squadCohesionOutput)` (0.05). On-loan and benched members get nothing.
-- Advisor topic `squadIdle:<squadId>` (people lead): a squad benched or idle for 2 or more weeks. Severity 1. Options: post it to a project, or post it to maintenance, each with target `{ panel: 'squads', arg: squadId }`. The debt advisor's maintenance option names an idle squad when there is one.
+- Advisor topic `squadIdle:<squadId>` (people lead): a squad with members on an idle posting for `B.squadIdleWeeks` (2) or more, not counting a post-launch bench, which has its own timer. Severity 1. Options: post it to a project, or post it to maintenance, each with target `{ panel: 'squads', arg: squadId }`. The debt advisor's maintenance option names an idle squad when there is one.
 - A departure removes the person from their squad and clears `leadId` if it was them. An emptied squad stays until disbanded.
 - Suggested names come from `SQUAD_NAMES` in `src/data/squads.js`.
 - Old saves load with `squads: []`.
@@ -522,6 +522,6 @@ Refusal reasons include 'Squads unlock with the Office Floor or 8 people', 'Up t
 Events:
 
 ```
-{ type: 'squadFreed', squadId, productId, crewIds }   // a squad's project shipped: crewIds stay on maintenance, the rest are benched
+{ type: 'squadFreed', squadId, productId, crewIds }   // a squad's project finished: crewIds stay on maintenance, the rest are benched; productId null (and crewIds empty) for a project that makes no product (refactor, craft, research)
 { type: 'squadBenchEnded', squadId }                  // the bench ran out and benched members went back to their default work
 ```
