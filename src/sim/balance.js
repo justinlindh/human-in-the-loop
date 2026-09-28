@@ -87,7 +87,8 @@ export const B = {
   readFloorSeconds: 1, readCharsPerSecond: 15,
   readSpeedFactor2x: 0.75, readSpeedFactor4x: 0.6,
   standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12,
-  bubbleMaxOnScreen: 1, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
+  bubbleMaxOnScreen: 3, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
+  bubbleStaffPerExtra: 8, // one more ordinary speech bubble at once for each this many staff, up to bubbleMaxOnScreen
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
   yakMaxWaitGameSeconds: 30, // Queue age at 1x; reading gaps still use active real seconds.
   yakImportantMaxWaitGameSeconds: 60, // Important Yak posts other than incidents expire after this much game time.
