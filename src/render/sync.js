@@ -17,6 +17,7 @@ import { createGrowthMoments } from './growth-moments.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
+import { pickSpot, spotDebug, spotRing } from './spots.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -43,9 +44,22 @@ const STANDUP_QUIET_M = 1.5;  // beyond the standup ring, how far other speech s
 // standing facepalmer turns this far off square to the camera.
 const PALM_PICK = { nearM: 0.1, farM: 2.5, acrossM: 0.8, clear: 8, standing: 4, idle: 2, turn: 0.35 };
 const POST_REACT_S = 2.2;
-// Incident responders: an arc this far from the rack (then wider), spots at least `apart` metres
-// from each other, tried `turn` radians either side of the way each person comes from.
-const RESPOND = { ring: 1.1, ringStep: 0.5, apart: 0.8, turn: 0.45, tries: 21 };    // how long the office reacts to a Yak post that backfired
+// A standing person's bounds (metres) for screen tests, with room for a lean or a reaching arm:
+// half-width and height.
+const BODY_BOX = { r: 0.45, h: 1.3 };
+// Incident responders stand at least `apart` metres from each other. Without named responders the
+// nearest few run over for a moment: an arc `ring` metres from the rack (then `ringStep` wider),
+// tried `turn` radians either side of the way each comes from. Named responders
+// (state.outage.responderIds) hold their place until the all-clear: off every chair by
+// `seatClear`, never within `hideAcross` of the line to the camera from a seated lead or another
+// responder closer than `hideAlong`, nearest the hub and then (weighted by `sideWeight`) nearest
+// where they come from, a place behind a column costing `columnCost` metres more. They work the
+// rack or watch the lead's screen in turn with `anims` or `huddleAnims`; `cheer` is the
+// all-clear's short celebration. One with nowhere in sight to stand keeps working at their own
+// place and tries again `retry` seconds later.
+// Rings searched round each kind of hub (metres): the rack's middle, the lead's chair.
+const SPOT_RADII = { rack: [0.9, 1.1, 1.4, 1.8], desk: [0.6, 0.9, 1.2, 1.6] };
+const RESPOND = { ring: 1.1, ringStep: 0.5, apart: 0.6, turn: 0.45, tries: 21, anims: ['rackfix', 'point', 'rackfix'], huddleAnims: ['pointscreen', 'idle', 'idle'], cheer: 1.4, seatClear: 0.5, sideWeight: 0.3, hideAcross: 0.4, hideAlong: 2.2, columnCost: 2, retry: 2 };
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
@@ -455,7 +469,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           break;
         }
         case 'posted': postReaction(e.outcome); break;
-        case 'incident': incident(e); break;
+        case 'incident': incident(e, state); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
         case 'incentive': incentives.handle(e); break;
         default: break;
@@ -735,37 +749,179 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }, 3, () => ({ x: cast.reduce((v, r) => v + r.pos.x, 0) / cast.length, z: cast.reduce((v, r) => v + r.pos.z, 0) / cast.length }), () => cast.some((r) => r.temp?.moment === 'company_party'));
   }
 
-  function incident(e) {
+  // The rack an incident plays at (the first placed one), or null in an office without one.
+  const incidentRack = () => office.current?.dyn.racks[0] ?? null;
+  // A place on an arc round the rack on the side `r` comes from, apart from `places` and clear of
+  // furniture, so nobody crosses the group to reach their place.
+  function arcSpot(r, hot, places) {
+    const nav = office.nav();
+    const toward = Math.atan2(r.pos.x - hot.x, r.pos.z - hot.z);
+    for (let k = 0; k < RESPOND.tries; k++) {
+      const j = k % 7, ring = RESPOND.ring + Math.floor(k / 7) * RESPOND.ringStep;
+      const a = toward + Math.ceil(j / 2) * RESPOND.turn * (j % 2 ? 1 : -1);
+      const x = hot.x + Math.sin(a) * ring, z = hot.z + Math.cos(a) * ring;
+      if (nav.isBlocked(x, z, BODY_R) || places.some((p) => Math.hypot(p.x - x, p.z - z) < RESPOND.apart)) continue;
+      return { x, z, yaw: Math.atan2(hot.x - x, hot.z - z), anim: 'idle' };
+    }
+    return null;
+  }
+  // Places already taken round the rack: other responders and anyone whose own goal stands there
+  // (an overseer watching the racks).
+  function rackPlaces(except) {
+    return [...recs.values()].filter((r) => r !== except).flatMap((r) => [r.temp?.incident || r.temp?.respond ? r.temp.goal : null, !r.goal?.seated && !r.goal?.hidden ? r.goal : null]).filter(Boolean);
+  }
+
+  function incident(e, state) {
     const cur = office.current;
     if (!cur) return;
     const L = cur.L;
-    const racks = cur.dyn.racks;
-    const hot = racks.length ? racks[0].position : new THREE.Vector3(0, 0, 0);
+    const hot = incidentRack()?.position ?? new THREE.Vector3(0, 0, 0);
     fx.alarm(new THREE.Vector3(0, 0, 0), Math.min(L.W, L.D) * 0.3, e.caught ? 1.6 : 3.2);
     if (!e.caught) rig?.shake(0.22, 0.4);
-    // The nearest few people run to the servers, then go back. Each stands on an arc round the
-    // rack on the side they come from, apart from the others and clear of furniture, so nobody
-    // crosses the group to reach their place. People already responding keep their places.
-    const nav = office.nav();
-    const places = [...recs.values()].filter((r) => r.temp?.incident).map((r) => r.temp.goal);
+    // An outage with named responders: they go to the rack and stay (updateResponders).
+    if (!e.caught && state?.outage?.responderIds?.length && (hub = findHub(responderIds(state)))) return;
+    // Otherwise the nearest few people run to the servers, then go back. People already responding
+    // keep their places.
     const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !taken(r) && !r.temp?.incident)
       .sort((a, b) => a.pos.distanceToSquared(hot) - b.pos.distanceToSquared(hot))
       .slice(0, e.caught ? 1 : 4);
     for (const r of near) {
       emote(r, 'exclamation', 3);
-      const toward = Math.atan2(r.pos.x - hot.x, r.pos.z - hot.z);
-      let spot = null;
-      for (let k = 0; k < RESPOND.tries && !spot; k++) {
-        const j = k % 7, ring = RESPOND.ring + Math.floor(k / 7) * RESPOND.ringStep;
-        const a = toward + Math.ceil(j / 2) * RESPOND.turn * (j % 2 ? 1 : -1);
-        const x = hot.x + Math.sin(a) * ring, z = hot.z + Math.cos(a) * ring;
-        if (nav.isBlocked(x, z, BODY_R) || places.some((p) => Math.hypot(p.x - x, p.z - z) < RESPOND.apart)) continue;
-        spot = { x, z, yaw: Math.atan2(hot.x - x, hot.z - z), anim: 'idle' };
-      }
+      const spot = arcSpot(r, hot, rackPlaces(r));
       if (!spot) continue;
-      places.push(spot);
       r.temp = { anim: 'idle', t: 5.5, goal: spot, back: true, run: true, incident: true };
       walkTo(r, spot, true);
+    }
+  }
+
+  // Who is responding now: the outage's named responders, then whoever is still writing up the
+  // postmortem (flags.postmortem, until its week).
+  function responderIds(state) {
+    const ids = new Set(state?.outage?.responderIds ?? []);
+    const pm = state?.flags?.postmortem;
+    if (pm && (state.week ?? 0) < pm.untilWeek) for (const id of pm.staffIds ?? []) ids.add(id);
+    return ids;
+  }
+  // Responders gather where the fix happens (the hub) and stay until they are no longer named: at a
+  // rack they work it; without one they crowd round a responder seated at a desk, who types while
+  // the rest watch the screen. At the all-clear they cheer briefly and go back
+  // to their places. Someone busy (a moment, a standup, a walk in or out) joins once free.
+  let outageSeen = false, hub = null;
+  // The hub holds for the whole outage while it stays usable: a rack still standing, a lead still
+  // named and at the same desk. A rack whose every nearby spot is out of the camera's sight (its
+  // front turned away) gives way to a desk.
+  function findHub(ids) {
+    if (hub?.kind === 'rack' && office.current?.dyn.racks.includes(hub.target)) return hub;
+    if (hub?.kind === 'desk' && ids.has(hub.lead.id) && recs.get(hub.lead.id) === hub.lead && office.deskById(hub.lead.seat) === hub.desk) return hub;
+    const rack = incidentRack();
+    if (rack && [...spotRing(rack.position, { radii: SPOT_RADII.rack, count: 16 })].some((q) => spotFree(q, null, []) && moments.inView(q, { body: true, walls: true }))) return { kind: 'rack', target: rack };
+    // The seated responder with the most room round their chair, and no column in front of it, leads;
+    // ties go to the first named.
+    let best = null, room = 0;
+    for (const id of ids) {
+      const r = recs.get(id), desk = r && !r.hidden && r.seat != null ? office.deskById(r.seat) : null;
+      if (!desk || !r.goal?.seated) continue;
+      const n = columnFront(desk.seat) ? 0 : [...spotRing(desk.seat, { radii: SPOT_RADII.desk, count: 16 })].filter((q) => spotFree(q, desk.seat, [])).length;
+      if (!best || n > room) { best = { kind: 'desk', lead: r, desk, target: desk.screen ?? desk.obj }; room = n; }
+    }
+    return best;
+  }
+  // Whether a column nearer the camera than a person standing at `q` overlaps them on screen (the
+  // column would fade over them): their screen rectangles, as the staging probe measures it.
+  const colBox = new THREE.Box3(), bodyBox = new THREE.Box3(), corner = new THREE.Vector3();
+  function screenRect(box, cam) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let i = 0; i < 8; i++) {
+      corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(cam);
+      x0 = Math.min(x0, corner.x); x1 = Math.max(x1, corner.x); y0 = Math.min(y0, corner.y); y1 = Math.max(y1, corner.y);
+    }
+    return { x0, x1, y0, y1 };
+  }
+  function columnFront(q) {
+    const cam = rig?.camera, cols = office.current.columns ?? [];
+    if (!cam || !cols.length) return false;
+    bodyBox.min.set(q.x - BODY_BOX.r, 0, q.z - BODY_BOX.r);
+    bodyBox.max.set(q.x + BODY_BOX.r, BODY_BOX.h, q.z + BODY_BOX.r);
+    const b = screenRect(bodyBox, cam), own = cam.position.distanceTo(corner.set(q.x, 0.5, q.z));
+    return cols.some((col) => {
+      if (cam.position.distanceTo(corner.set(col.x, 0.5, col.z)) >= own) return false;
+      colBox.min.set(col.x - 0.3, 0, col.z - 0.3);
+      colBox.max.set(col.x + 0.3, col.h, col.z + 0.3);
+      const c = screenRect(colBox, cam);
+      return c.x0 < b.x1 && c.x1 > b.x0 && c.y0 < b.y1 && c.y1 > b.y0;
+    });
+  }
+  // The tests a standing place passes, by name (for the spot search's diagnostics): clear of
+  // furniture, `apart` from `places`, off every chair, and hiding nobody gathered (the seated lead, if
+  // any, or anyone at `places`) nor hidden by them.
+  function spotTests(lead, places) {
+    const yaw = rig?.yaw ?? Math.PI / 4, cx = Math.sin(yaw), cz = Math.cos(yaw);
+    const hides = (a, b) => { const dx = a.x - b.x, dz = a.z - b.z, along = dx * cx + dz * cz; return along > 0 && along < RESPOND.hideAlong && Math.abs(dx * cz - dz * cx) < RESPOND.hideAcross; };
+    return {
+      clear: (q) => !office.nav().isBlocked(q.x, q.z, BODY_R),
+      apart: (q) => !places.some((p) => Math.hypot(p.x - q.x, p.z - q.z) < RESPOND.apart),
+      seats: (q) => !office.current.desks.some((d) => Math.hypot(d.seat.x - q.x, d.seat.z - q.z) < RESPOND.seatClear),
+      unhidden: (q) => !(lead && hides(q, lead)) && !places.some((p) => hides(q, p) || hides(p, q)),
+    };
+  }
+  const SPOT_NEEDS = ['clear', 'apart', 'seats', 'unhidden'];
+  function spotFree(q, lead, places) {
+    const t = spotTests(lead, places);
+    return SPOT_NEEDS.every((k) => t[k](q));
+  }
+  // A clear place near the hub (spotFree) that the camera sees whole, facing what it works on:
+  // nearest the hub first, then nearest the side the person comes from, then clear of any column
+  // that would fade over them (a faded column beats leaving someone out).
+  const debugSpots = spotDebug(office);
+  const rackMiddle = new THREE.Box3(), rackAim = new THREE.Vector3();
+  function hubSpot(r, h, places) {
+    const c = h.kind === 'rack' ? h.target.position : h.desk.seat;
+    const aim = h.kind === 'rack' ? rackMiddle.setFromObject(h.target).getCenter(rackAim) : { x: c.x + Math.sin(c.rotY) * 0.55, z: c.z + Math.cos(c.rotY) * 0.55 };
+    const spot = pickSpot(c, {
+      ring: { radii: SPOT_RADII[h.kind], count: 16 },
+      needs: [...SPOT_NEEDS, 'inView'],
+      checks: { ...spotTests(h.kind === 'desk' ? c : null, places), inView: (q) => moments.inView(q, { body: true, walls: true }) },
+      score: (q) => Math.hypot(q.x - c.x, q.z - c.z) + RESPOND.sideWeight * Math.hypot(q.x - r.pos.x, q.z - r.pos.z) + (columnFront(q) ? RESPOND.columnCost : 0),
+      debug: debugSpots, moment: 'respond', search: h.kind,
+    });
+    return spot && { x: spot.x, z: spot.z, yaw: Math.atan2(aim.x - spot.x, aim.z - spot.z), anim: 'idle' };
+  }
+
+  function updateResponders(state) {
+    const all = responderIds(state);
+    hub = all.size ? findHub(all) : null;
+    const ids = hub ? all : new Set();
+    const cleared = outageSeen && !state?.outage;
+    outageSeen = !!state?.outage;
+    const beat = state?.outage ? 'fix' : 'writeup';
+    for (const r of recs.values()) {
+      const tp = r.temp;
+      const lead = hub?.lead === r;
+      if (tp?.respond && (!ids.has(r.id) || (tp.stage.role === 'lead') !== lead || tp.stage.target !== hub.target)) {
+        r.temp = null;
+        if (cleared && !r.hidden) { emote(r, 'sparkle', 2); r.temp = { anim: tp.stage.role === 'lead' ? 'growthclapsit' : 'celebrate', t: RESPOND.cheer, keepPos: true, back: tp.stage.role !== 'lead' }; }
+        else if (r.goal && tp.stage.role !== 'lead') walkTo(r, r.goal);
+        continue;
+      }
+      if (tp?.respond) { tp.stage.beat = beat; continue; }
+      if (!ids.has(r.id) || r.hidden || r.mode !== 'placed' || (tp && !tp.incident)) continue;
+      if (lead) {
+        // The lead stays in their own chair: they join once seated there.
+        if (r.path.length || Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) > 0.05) continue;
+        emote(r, 'exclamation', 3);
+        r.temp = { anim: 'typing', t: Infinity, keepPos: true, respond: true, moment: 'respond', stage: { beat, role: 'lead', target: hub.target } };
+        continue;
+      }
+      // A search that found nothing waits a moment before the next: each costs sight tests.
+      if ((r.respondRetry ?? 0) > playTime) continue;
+      const places = rackPlaces(r);
+      const spot = (hub.kind === 'rack' && tp?.incident && tp.goal) || hubSpot(r, hub, places);
+      if (!spot) { r.respondRetry = playTime + RESPOND.retry; continue; }
+      const k = [...recs.values()].filter((x) => x.temp?.respond && x.temp.stage.role !== 'lead').length;
+      spot.anim = (hub.kind === 'rack' ? RESPOND.anims : RESPOND.huddleAnims)[k % 3];
+      if (!tp?.incident) emote(r, 'exclamation', 3);
+      r.temp = { anim: spot.anim, t: Infinity, goal: spot, run: true, respond: true, moment: 'respond', stage: { beat, role: 'responder', target: hub.target } };
+      if (Math.hypot(r.pos.x - spot.x, r.pos.z - spot.z) > 0.05) walkTo(r, spot, true);
     }
   }
 
@@ -1242,6 +1398,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     pets.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
+    updateResponders(lastState);
     updateMomentSpeech(dt);
     momentCam.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
