@@ -489,7 +489,7 @@ Named groups the player staffs and posts as a unit. A layer over per-person assi
 ```
 state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
                   posting: { type: 'project'|'maintenance'|'support'|'idle', targetId },   // targetId: a projectId for 'project', else null
-                  afterLaunch: 'upkeep'|'maintenance', benchUntil: week | null, cohesion /*0..1*/, formedWeek }]
+                  afterLaunch: 'upkeep'|'maintenance', benchUntil: week | null, cohesion /*0..1*/, formedWeek, postedWeek }]   // postedWeek: the week the current posting began (formedWeek for a new squad)
 ```
 
 - At most 6 squads. A person is in at most one squad; membership lives only on the squad, and ui looks it up there.
