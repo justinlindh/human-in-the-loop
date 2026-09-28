@@ -5,6 +5,8 @@ import { PALETTE as P } from './palette.js';
 import { GROWTH } from './growth-tune.js';
 
 const SKILLS = ['features', 'polish', 'reliability', 'novelty'];
+// People's skill names as the staff panel shows them (src/ui/stats.js).
+const SKILL_NAMES = { features: 'Building', polish: 'Craft', reliability: 'Rigor', novelty: 'Ideas' };
 const TRAIT_ICONS = { natural_mentor: 'mentor', mentor: 'mentor', paranoid: 'oversight', visionary: 'stat.novelty' };
 const TYPES = new Set(['levelUp', 'promoted', 'traitEarned', 'skillTrained']);
 
@@ -17,7 +19,7 @@ export function promotionWeek(person, week) {
 export function growthBadge(event) {
   if (event.type === 'promoted') return { text: event.seniority === 'senior' ? 'Senior III' : 'Mid II', icons: ['arrow.up'] };
   if (event.type === 'traitEarned') return { text: TRAITS[event.traitId]?.name ?? event.traitId, icons: [TRAIT_ICONS[event.traitId] ?? 'toast.good'] };
-  if (event.type === 'skillTrained') return { text: `${event.skill} +${event.gain}`, icons: SKILLS.includes(event.skill) ? [`stat.${event.skill}`] : [] };
+  if (event.type === 'skillTrained') return { text: `${SKILL_NAMES[event.skill] ?? event.skill} +${event.gain}`, icons: SKILLS.includes(event.skill) ? [`stat.${event.skill}`] : [] };
   return { text: `LV ${event.level}`, icons: SKILLS.filter(k => event.gains?.[k] > 0).map(k => `stat.${k}`) };
 }
 
@@ -113,7 +115,9 @@ export function createOfficeGrowth({ recs, labels, parent, low, ready, blocked, 
       const cheer = (actor, star) => {
         const temp = { anim: `${star ? 'growthpump' : 'growthclap'}${actor.char.seated ? 'sit' : ''}`, t: seconds, keepPos: true, growthOffice: true, tick: (actor, dt) => { if (actor.face) actor.yaw += Math.atan2(Math.sin(actor.face.yaw - actor.yaw), Math.cos(actor.face.yaw - actor.yaw)) * Math.min(1, dt * tune.pumpRate); return false; } };
         actor.temp = temp; cast.push({ r: actor, temp });
-        if (!star) faceToward(actor, r, seconds);
+        // Coworkers turn to the star; the star turns toward the camera, as far as a chair allows.
+        // Coworkers turn to the star; the star turns toward the camera, as far as a chair allows.
+        faceToward(actor, star ? null : r, seconds);
       };
       cheer(r, true);
       let n = 0;

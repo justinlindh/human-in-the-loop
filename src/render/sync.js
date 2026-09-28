@@ -643,7 +643,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     blocked: () => !!(spotlights.current() || standup || incentives.party || incentives.dance || lastState?.pendingDecision || lastState?.chatPrompts?.some(c => !c.resolved && c.stage)),
     ready: (r, medium) => !growth.has(r.id) && !r.hidden && !r.goal?.hidden && r.char.root.visible && r.mode === 'placed' && !r.temp && !r.path.length && r.staff.mood !== 'away' && r.staff.mood !== 'burnout' && onScreen(r) && (!medium || roomToCelebrate(r)),
     faceToward: (r, star, seconds) => {
-      let yaw = Math.atan2(star.pos.x - r.pos.x, star.pos.z - r.pos.z);
+      let yaw = star ? Math.atan2(star.pos.x - r.pos.x, star.pos.z - r.pos.z) : (rig?.yaw ?? Math.PI / 4);
       if (r.char.seated && r.goal) {
         let d = Math.atan2(Math.sin(yaw - r.goal.yaw), Math.cos(yaw - r.goal.yaw));
         yaw = r.goal.yaw + Math.max(-GROWTH.turnLimit, Math.min(GROWTH.turnLimit, d));

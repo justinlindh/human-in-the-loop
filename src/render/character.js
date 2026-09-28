@@ -560,12 +560,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       }
       case 'growthpump':
-      case 'growthpumpsit':
-        tgt.armRX = -GROWTH.pumpReach;
+      case 'growthpumpsit': {
+        // Arms thrown up in a V (standing), wide enough to clear the head from behind, pumping with a
+        // little bounce, the chin lifted.
+        // Seated, one fist goes up and the other hand stays at the keyboard, clear of the desk.
+        const pump = s(animT * GROWTH.pumpRate) * GROWTH.pumpSwing;
+        tgt.armRX = -GROWTH.pumpReach + pump;
+        tgt.armRZ = GROWTH.pumpAngle;
         if (seated) tgt.armLX = TYPE_REACH;
-        tgt.armRZ = GROWTH.pumpAngle + s(animT * GROWTH.pumpRate) * GROWTH.pumpSwing;
-        tgt.headX = -GROWTH.pumpSwing;
+        else { tgt.armLX = tgt.armRX; tgt.armLZ = -GROWTH.pumpAngle; tgt.bodyY += Math.abs(pump) * GROWTH.pumpHop; }
+        tgt.headX = -GROWTH.pumpLift;
         break;
+      }
       case 'growthclap':
       case 'growthclapsit': {
         const clap = GROWTH.clapAngle + s(animT * GROWTH.clapRate) * GROWTH.clapSwing;

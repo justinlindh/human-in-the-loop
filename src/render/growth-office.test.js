@@ -46,6 +46,7 @@ describe('office growth admission', () => {
     q.add([{ type: 'skillTrained', staffId: 's0', skill: 'polish', gain: 2 }], s);
     expect(q.take(() => true).badges[0].icons).toEqual(['stat.polish']);
     expect(growthBadge({ ...event('s0'), gains: { polish: 1, features: 2, novelty: 0 } }).icons).toEqual(['stat.features', 'stat.polish']);
+    expect(growthBadge({ type: 'skillTrained', staffId: 's0', skill: 'polish', gain: 2 }).text).toBe('Craft +2');
   });
 });
 
