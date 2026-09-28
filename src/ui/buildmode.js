@@ -51,16 +51,19 @@ export function createBuildMode({ layer, ctx, controls }) {
     });
   }
 
-  function enter(itemId, { moveId = null, rot = 0 } = {}) {
+  // onPlaced runs after the first successful placement, then build mode closes; onCancel runs if it
+  // closes with nothing placed. label replaces the item name in the bar.
+  function enter(itemId, { moveId = null, rot = 0, label = null, onPlaced = null, onCancel = null } = {}) {
     if (!CATALOG[itemId]) return;
+    if (mode) exit();
     ctx.close();
     ctx.modal?.close();
-    mode = { itemId, rot, moveId };
+    mode = { itemId, rot, moveId, onPlaced, onCancel };
     hover = null;
     lastSig = '';
     const it = CATALOG[itemId];
     icoEl.replaceChildren(icon(`item.${itemId}`, { size: 30 }));
-    setText(nameEl, moveId ? `Moving: ${it.name}` : it.name);
+    setText(nameEl, label ?? (moveId ? `Moving: ${it.name}` : it.name));
     priceEl.style.display = moveId ? 'none' : '';
     setText(priceEl, fmtMoney(it.costs?.[0] ?? 0));
     autoBtn.style.display = moveId ? 'none' : '';
@@ -73,6 +76,7 @@ export function createBuildMode({ layer, ctx, controls }) {
 
   function exit() {
     if (!mode) return false;
+    const cancel = mode.onCancel;
     mode = null;
     hover = null;
     bar.style.display = 'none';
@@ -81,6 +85,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     highlight(null);
     syncRenderer();
     ctx.sfx('close');
+    cancel?.();
     return true;
   }
 
@@ -105,7 +110,8 @@ export function createBuildMode({ layer, ctx, controls }) {
     const res = ctx.act(action);
     if (!res.ok) return;
     ctx.sfx(m.moveId ? 'move' : 'coin');
-    if (m.moveId) exit();
+    if (m.onPlaced) { m.onCancel = null; exit(); m.onPlaced(res); }
+    else if (m.moveId) exit();
     else { lastSig = ''; syncRenderer(); refresh(); }
   }
 

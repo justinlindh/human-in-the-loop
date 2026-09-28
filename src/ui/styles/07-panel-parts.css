@@ -131,6 +131,7 @@
 .hitl .cand .money { align-items: flex-end; border-top: 0.13em dashed var(--line); padding-top: 0.45em; }
 .hitl .cand .sal { font-size: 1.15em; }
 .hitl .cand .why { color: var(--bad); font-weight: 600; min-height: 1em; }
+.hitl .cand .why.note { color: var(--ink-soft); }
 .hitl .cand .traits .pill { font-size: 0.75em; }
 
 .hitl .mbtn.alarm { animation: hitl-alarm 1.1s ease-in-out infinite; }

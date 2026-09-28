@@ -3,7 +3,8 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { renderEffects } from '../src/sim/effects-report.js';
 import { POLICIES } from '../src/data/policies.js';
 import { EVENTS } from '../src/data/events.js';
-import { POLICY_EFFECTS, CONDITION_LABELS, SUBJECT_LABELS } from '../src/data/effects-map.js';
+import { POLICY_EFFECTS, CONDITION_LABELS, SUBJECT_LABELS, ITEM_RULES } from '../src/data/effects-map.js';
+import { ITEMS } from '../src/data/items.js';
 
 // docs/effects/ is generated; this fails when it no longer matches the data and balance values.
 describe('issue #873: the effects report', () => {
@@ -31,5 +32,54 @@ describe('issue #873: the effects report', () => {
         expect(line, file).not.toMatch(/[{}]|undefined|NaN|object Object/);
       }
     }
+  });
+});
+
+describe('the effects report office page covers every item', () => {
+  const office = renderEffects()['office.md'];
+  const row = (name) => office.split('\n').find((l) => l.startsWith(`| ${name} |`));
+
+  it('every item has an effect in data, an adjacency, or words in ITEM_RULES', () => {
+    for (const it of Object.values(ITEMS)) {
+      const hasData = it.effects.some((e) => Object.keys(e).length) || it.adjacency;
+      expect(hasData || ITEM_RULES[it.id], it.id).toBeTruthy();
+    }
+  });
+
+  it('prints adjacency bonuses with their radius', () => {
+    expect(row('Coffee Corner')).toMatch(/stamina recovery \+8% .*within 3 tiles/);
+    expect(row('Potted Plant')).toMatch(/meaning recovery \+4% .*within 2 tiles/);
+    expect(row('Server Racks')).toMatch(/uptime floor \+1% for each other Server Racks within 1 tile/);
+  });
+
+  it('prints what desks and gated items do', () => {
+    expect(row('Desk Set')).toMatch(/seats one person/);
+    expect(row('Meeting Table')).toMatch(/no effect on the numbers/);
+    expect(row('Trophy Case')).toMatch(/after your first award/);
+    expect(row('Monitoring Wall')).toMatch(/agents era/i);
+  });
+
+  it('states the stacking rules', () => {
+    expect(office).toMatch(/second copy of an item adds its level effect at 50%/);
+    expect(office).toMatch(/every copy counts in full/);
+    expect(office).toMatch(/capped at ±50%/);
+  });
+});
+
+describe('nearby bonuses stack per copy, as the office page says', () => {
+  it('two whiteboards next to one occupied desk give twice the novelty of one', async () => {
+    const { createGame } = await import('../src/sim/state.js');
+    const { itemBonus } = await import('../src/sim/bonus.js');
+    const novelty = (boards) => {
+      const s = createGame({ seed: 1, companyName: 'Stack' });
+      s.staff = s.staff.slice(0, 1);
+      s.office.placed = [{ id: 'd1', itemId: 'desk', x: 0, y: 0, rot: 0, level: 1 },
+        ...Array.from({ length: boards }, (_, i) => ({ id: `w${i}`, itemId: 'whiteboard', x: 2, y: i, rot: 0, level: 1 }))];
+      s.staff[0].deskId = 'd1';
+      return itemBonus(s, 'novelty');
+    };
+    const one = ITEMS.whiteboard.adjacency.value;
+    expect(novelty(1)).toBeCloseTo(one);
+    expect(novelty(2)).toBeCloseTo(2 * one);
   });
 });
