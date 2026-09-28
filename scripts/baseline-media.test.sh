@@ -53,5 +53,11 @@ magick -size 40x30 xc:orange "$r/blender/checks/golden/a.png"; g -C "$r" commit 
 out="$(GH_BODIES="$tmp/bodies" run --check 7 2>&1)"; rc=$?
 [ $rc -eq 1 ] && grep -q 'golden/a.png' <<<"$out" && ! grep -q 'sweep-baseline' <<<"$(sed -n '2,$p' <<<"$out" | grep '^  ')" || fail "a golden changed after its media should fail, naming only it: rc $rc: $out"
 
+# Posting: pr-media.sh only prints its markdown (--print-only) and baseline-media posts the one comment.
+printf '#!/usr/bin/env bash\necho "$*" >"%s/prmedia-args"\necho "![golden-a](https://example.test/golden-a.png)"\n' "$tmp" >"$r/scripts/pr-media.sh"; chmod +x "$r/scripts/pr-media.sh"
+printf '#!/usr/bin/env bash\ncase "$1 $2" in\n  "pr comment") while [ $# -gt 0 ]; do [ "$1" = --body ] && printf %%s "$2" >"%s/posted"; shift; done ;;\n  *) cat "$GH_BODIES" ;;\nesac\n' "$tmp" >"$tmp/bin/gh"
+out="$(GH_BODIES="$tmp/bodies" run 7 --sweep-dir "$tmp/sweep" 2>&1)"; rc=$?
+[ $rc -eq 0 ] && grep -q -- '--print-only' "$tmp/prmedia-args" && grep -q 'example.test/golden-a.png' "$tmp/posted" || fail "posting: pr-media runs with --print-only and its markdown goes in the one comment: rc $rc: $out; args: $(cat "$tmp/prmedia-args" 2>/dev/null)"
+
 [ $fails -eq 0 ] && echo "baseline-media: all cases pass"
 exit $fails

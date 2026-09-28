@@ -265,6 +265,9 @@ fi
 if [ -z "$what" ]; then
   echo "main-guard: $short PASS in ${secs}s"
   echo "$sha" >"$STATE/last-green"
+  # The steps main is red on, for auto CI (scripts/auto-ci.sh); only a verdict on main's newest commit
+  # (not an older one a bisect checks) counts.
+  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red"
   status success "Full suite and sweep pass (${secs}s)"
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
@@ -275,6 +278,7 @@ if [ -z "$what" ]; then
 fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
+git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && echo "$short $what" >"$STATE/red"
 status failure "Red: $what"
 # Report first, so a run stopped later (by the service's time limit, say) cannot lose it: the next
 # tick sees this commit as checked.

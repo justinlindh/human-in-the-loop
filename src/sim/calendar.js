@@ -83,7 +83,7 @@ export function annualSystem(ctx) {
       for (const p of state.staff) if (p.role === 'engineer' || p.role === 'designer') p.meaning = Math.min(100, p.meaning + B.meaningAwardBonus);
       state.stats.awards++;
       ctx.emit({ type: 'award', text: `Product of the Year: ${best.name}` });
-      ctx.emit({ type: 'celebrate', staffId: null });
+      ctx.emit({ type: 'celebrate', staffId: null, cause: `Product of the Year: ${best.name}` });
       emitChat(ctx, { channel: 'wins', from: '@saasies', text: `And the Saasie for Product of the Year goes to... ${best.name}!` });
     }
     otherAwards(ctx);
