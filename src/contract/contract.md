@@ -320,7 +320,7 @@ ChatPrompt = {
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
   expiresWeek,       // resolves as ignored when state.week reaches it
-  options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
+  options: [{ label, hint, available, reason, opens? }],   // 2 or 3; hint states the effects, as decision choices do; opens: optional UI flow to enter after the answer succeeds ('placeDesk')
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y, staffId },   // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
   subjectId: null | staffId,                       // the event's subject, as pendingDecision.subjectId; moments cast the subject first
