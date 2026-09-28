@@ -209,19 +209,24 @@ describe('standup variety', () => {
       for (const line of e.lines) expect(line.replaceAll('{project}', 'A long project name').replaceAll('{product}', 'A long product name').replaceAll('{pct}', '100').length).toBeLessThanOrEqual(70);
     }
   });
-  it('plays all five turns when nobody else is waiting, and shortens the exchange to make room for other updates', () => {
+  it('plays all five turns unless active colleagues are waiting; quiet ones never cut it short', () => {
     const s = office(2), speakers = s.staff;
     for (const p of speakers) { p.remote = false; p.mood = 'ok'; p.assignment = { type: 'idle', targetId: null }; }
     const two = speakers.slice(0, 2);
     const alone = standupConversation(s, two, two.map(p => ({ staffId: p.id, text: 'Still on it.' })));
-    const script = STANDUP_EXCHANGES.find(e => e.id === s.flags.standupConversation.script);
-    expect(alone.map(l => l.text)).toEqual(script.lines);
+    const script = () => STANDUP_EXCHANGES.find(e => e.id === s.flags.standupConversation.script);
+    expect(alone.map(l => l.text)).toEqual(script().lines);
     expect(alone.map(l => l.staffId)).toEqual([two[0].id, two[1].id, two[0].id, two[1].id, two[0].id]);
     for (const p of speakers.slice(2)) p.mood = 'coasting';
     const updates = speakers.map(p => ({ staffId: p.id, text: 'Still on it.' }));
-    const lines = standupConversation(s, speakers, updates);
-    expect(lines).toHaveLength(B.standupMaxLines);
-    expect(lines.slice(3)).toEqual(updates.slice(2));
+    const quiet = standupConversation(s, speakers, updates);
+    expect(quiet.slice(0, 5).map(l => l.text)).toEqual(script().lines);
+    expect(quiet.slice(5)).toEqual(updates.slice(2));
+    for (const p of speakers) p.mood = 'ok';
+    const busy = standupConversation(s, speakers, updates);
+    const waiting = speakers.length - B.standupConversationCast;
+    expect(busy).toHaveLength(B.standupMaxLines);
+    expect(busy.slice(0, B.standupMaxLines - waiting).map(l => l.text)).toEqual(script().lines.slice(0, B.standupMaxLines - waiting));
   });
 
   it('picks exchanges at random within the most urgent topic, without touching the game RNG', () => {

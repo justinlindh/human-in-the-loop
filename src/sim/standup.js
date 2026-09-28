@@ -79,8 +79,8 @@ export function standupRng(state) {
 }
 
 // A short exchange about real work: someone asks, the person doing the work answers, a third responds, and
-// when few others are waiting to speak the first two get a follow-up each. The others then give their own
-// updates, keeping the meeting to about B.standupMaxLines lines.
+// when few active colleagues are waiting to speak the first two get a follow-up each. Everyone else then
+// gives their own update, keeping the exchange plus active updates to about B.standupMaxLines lines.
 // Live work comes first (an outage, then a project, then oversight): a random exchange of the first topic
 // with one not heard recently.
 const TOPIC_ORDER = ['outage', 'project', 'oversight', 'general'];
@@ -111,7 +111,9 @@ export function standupConversation(state, speakers, updates, rng = standupRng(s
   const others = active.filter(p => p !== person);
   const cast = [others[0], person, ...others.slice(1)].slice(0, B.standupConversationCast);
   const rest = updates.filter(l => !cast.some(p => p.id === l.staffId));
-  const turns = Math.max(2, Math.min(chosen.lines.length, B.standupMaxLines - rest.length));
+  // Only real updates from active colleagues make room; quiet, flat or absent colleagues don't cut the exchange short.
+  const waiting = rest.filter(l => active.some(p => p.id === l.staffId)).length;
+  const turns = Math.max(3, Math.min(chosen.lines.length, B.standupMaxLines - waiting));
   const lines = chosen.lines.slice(0, turns).map((text, i) => ({ staffId: cast[i % cast.length].id, text: fill(text, vars) }));
   lines.push(...rest);
   // One bounded snapshot ties the event lines to their subject for live presentation.
