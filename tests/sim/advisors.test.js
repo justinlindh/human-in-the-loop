@@ -121,7 +121,7 @@ describe('advisors (#808): what they notice', () => {
     expect(JSON.stringify(s)).toBe(before);
     expect(advice(s)).toEqual(first);
     for (const a of first) {
-      expect(Object.keys(a).sort()).toEqual(['advisor', 'cooldownWeeks', 'key', 'severity', 'target', 'text', 'tier', 'why']);
+      expect(Object.keys(a).sort()).toEqual(['advisor', 'cooldownWeeks', 'key', 'severity', 'since', 'target', 'text', 'tier', 'why']);
       expect(a.text).not.toMatch(/[{}]/);
     }
   });
@@ -176,8 +176,44 @@ describe('advisors: dismissing and the rare push', () => {
     delete old.advisors;
     saveGame(old, storage);
     const loaded = loadGame(storage).state;
-    expect(loaded.advisors).toEqual({ dismissed: {}, pushed: {}, lastPushWeek: null });
+    expect(loaded.advisors).toEqual({ dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} });
     expect(find(loaded, 'runway')).toBeTruthy();
+  });
+
+  it('since is the week a topic started applying; it holds through tier changes and restarts after a gap', () => {
+    const s = burning(11, 13);
+    expect(find(s, 'runway').since).toBe(s.week);
+    const start = s.week;
+    advisorsSystem(makeCtx(s));
+    s.week += 3;
+    expect(find(s, 'runway').since).toBe(start);
+    s.cash = Math.round(-net(s) * 5);
+    advisorsSystem(makeCtx(s));
+    expect(find(s, 'runway')).toMatchObject({ tier: 2, since: start });
+    const cash = s.cash;
+    s.cash = 1e9; s.week += 1;
+    advisorsSystem(makeCtx(s));
+    expect(s.advisors.noticed.runway).toBeUndefined();
+    s.cash = cash; s.week += 2;
+    advisorsSystem(makeCtx(s));
+    expect(find(s, 'runway').since).toBe(s.week);
+  });
+
+  it("'fine' has a since too, and a save from before since existed still works", () => {
+    const s = classicGame(14);
+    s.cash = 1e7;
+    advisorsSystem(makeCtx(s));
+    const start = s.week;
+    s.week += 5;
+    expect(advice(s)[0]).toMatchObject({ key: 'fine', since: start });
+    const store = new Map();
+    const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+    delete s.advisors.noticed;
+    saveGame(s, storage);
+    const loaded = loadGame(storage).state;
+    expect(advice(loaded)[0].since).toBe(loaded.week);
+    advisorsSystem(makeCtx(loaded));
+    expect(loaded.advisors.noticed.fine).toBe(loaded.week);
   });
 
   it('bot games end the same with advisors on or off', () => {
