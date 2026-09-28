@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
     --timeout) timeout="$2"; shift ;;
     --issue) issue="$2"; shift ;;
     --repo) repo="$2"; shift ;;
-    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,/^set -uo/p' "$0" | grep '^#' | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) pr="$1" ;;
   esac
   shift
@@ -118,9 +118,10 @@ while :; do
     link="$(local_ci_link)"; [ -n "$link" ] && say "Local CI: $link"
     exit 2
   fi
-  # Required statuses not yet passing, by name (a status or a check run).
+  # Required statuses not yet passing, by name (a status or a check run). A skipped or neutral check
+  # run satisfies a required check, as GitHub counts it.
   waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
-    | [$r[] | . as $name | select([$all[] | select(.n == $name and .s == "SUCCESS")] | length == 0)] | join(" ")' <<<"$json")"
+    | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
   now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}"
   [ "$now" != "$last" ] && { say "#$pr at ${head:0:8}: $now"; last="$now"; }
   if [[ " $required " == *" local-ci "* ]] && [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then

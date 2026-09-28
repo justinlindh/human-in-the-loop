@@ -31,6 +31,9 @@ pr OPEN 'check=SUCCESS,review=SUCCESS'
 w --repo o/site; [ $rc -eq 124 ] && grep -q 'waiting on: commits' "$tmp/out" || fail "a required check not reported yet keeps it waiting: $rc $(cat "$tmp/out")"
 pr OPEN 'check=FAILURE,commits=SUCCESS'
 w --repo o/site; [ $rc -eq 2 ] && grep -q 'check=failure' "$tmp/out" || fail "a failing check: $rc $(cat "$tmp/out")"
+pr OPEN 'check=SKIPPED,commits=NEUTRAL'
+w --repo o/site; [ $rc -eq 0 ] || fail "skipped and neutral check runs satisfy required checks: $rc $(cat "$tmp/out")"
+PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" --help | grep -q '^Exit: 0 green' || fail "--help prints the exit codes"
 pr MERGED ''
 w --repo o/site; [ $rc -eq 0 ] || fail "a merged PR: $rc"
 
