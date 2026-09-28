@@ -1,10 +1,11 @@
 import { B } from './balance.js';
 import { createRng, pick } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
-import { weeklyRevenue, weeklyCosts } from './economy.js';
+import { weeklyRevenue, weeklyCosts, policyCost } from './economy.js';
 import { totalMrr } from './products.js';
 import { mentorOf } from './staff.js';
 import { POLICIES } from '../data/policies.js';
+import { isUnlocked } from './unlocks.js';
 import { ERAS } from '../data/eras.js';
 import { ADVICE_LINES } from '../data/advisors.js';
 
@@ -26,8 +27,9 @@ function line(state, key, lines, vars) {
 // Every observation that applies now, dismissed or not. Each reads a number some panel already shows.
 function observe(state) {
   const out = [];
+  const noticed = state.advisors?.noticed ?? {};
   const add = (key, advisor, severity, tier, lines, vars, why, target) =>
-    out.push({ key, advisor, severity, tier, text: line(state, key, lines, vars), why, target, cooldownWeeks: B.advisor.cooldownWeeks });
+    out.push({ key, advisor, severity, tier, text: line(state, key, lines, vars), why, target, cooldownWeeks: B.advisor.cooldownWeeks, since: noticed[key] ?? state.week });
   const A = B.advisor;
 
   const net = weeklyRevenue(state) - Object.values(weeklyCosts(state)).reduce((a, v) => a + v, 0);
@@ -85,6 +87,7 @@ function observe(state) {
 
   for (const p of products) {
     if (p.migrationDueWeek === null || p.migrationDueWeek === undefined) continue;
+    if (state.projects.some((j) => j.kind === 'migration' && j.productId === p.id)) continue;
     const left = p.migrationDueWeek - state.week;
     if (left > A.migrationWarnWeeks) continue;
     const tier = left < 0 ? 2 : 1;
@@ -96,7 +99,91 @@ function observe(state) {
   if (juniors.length >= A.unmentoredJuniors) add('juniors', 'people', 1, 1, ADVICE_LINES.juniors[1], { count: juniors.length },
     `${juniors.length} juniors without a mentor`, { panel: 'staff' });
 
+  for (const a of out) a.options = optionsFor(state, a);
   return out;
+}
+
+// Two or three things the player could do about a topic, each a real action open to them now, named with
+// the menu where it's done. They're offered, never taken.
+function optionsFor(state, a) {
+  const o = [];
+  const opt = (text, panel, arg) => o.push({ text, target: arg === undefined ? { panel } : { panel, arg } });
+  const policyOpen = (id) => isUnlocked(state, `policy.${id}`) && !state.policies[id];
+  const products = live(state);
+  const building = (kind, productId) => state.projects.some((j) => j.kind === kind && (productId === undefined || j.productId === productId));
+  const [topic, id] = a.key.split(':');
+  const person = (pid) => state.staff.find((p) => p.id === pid);
+  const unmentored = state.staff.filter((p) => p.seniority === 'junior' && p.mood !== 'away' && !mentorOf(state, p));
+  switch (topic) {
+    case 'runway': {
+      opt('Put someone on sales', 'staff');
+      if (isUnlocked(state, 'marketing') && products.length) opt('Run a campaign for your best seller', 'marketing');
+      const paid = Object.keys(state.policies).find((pid) => state.policies[pid] && POLICIES[pid] && policyCost(state, pid) > 0);
+      if (paid) opt(`Switch off ${POLICIES[paid].name}; it costs money every week`, 'policies', paid);
+      else if (products.length >= 2) {
+        const weakest = products.reduce((x, p) => (p.customers < x.customers ? p : x));
+        opt(`Retire ${weakest.name}, your smallest product`, 'reports', weakest.id);
+      } else opt('Hold off on hiring for now', 'staff');
+      break;
+    }
+    case 'burnout': {
+      const p = state.staff.find((x) => x.mood === 'burnout');
+      if (p) opt(`Send ${first(p)} on time off`, 'staff', p.id);
+      if (state.policies.crunch) opt('Switch off Crunch Mode', 'policies', 'crunch');
+      else if (policyOpen('no_crunch')) opt('Switch on No Crunch', 'policies', 'no_crunch');
+      if (p) opt(`Give ${first(p)} lighter work`, 'staff', p.id);
+      break;
+    }
+    case 'debt':
+      if (!building('refactor')) opt('Start The Big Refactor', 'build');
+      if (policyOpen('comprehension_reviews')) opt('Switch on Code Comprehension Reviews', 'policies', 'comprehension_reviews');
+      opt('Put an engineer on maintenance', 'staff');
+      break;
+    case 'busFactor': {
+      const p = person(id);
+      if (p && unmentored.length) opt(`Have ${first(p)} mentor ${first(unmentored[0])}`, 'staff', p.id);
+      if (!state.policies.daily_standups && !state.policies.async_standups && isUnlocked(state, 'policy.daily_standups')) opt('Switch on standups, so knowledge gets shared', 'policies', 'daily_standups');
+      if (p) opt(`Pair someone with ${first(p)} on their work`, 'staff', p.id);
+      opt('Hire another engineer', 'staff');
+      break;
+    }
+    case 'juniors':
+      if (state.staff.some((p) => p.seniority === 'senior' && p.mood !== 'away')) opt(`Find ${first(unmentored[0])} a senior mentor`, 'staff', unmentored[0].id);
+      if (policyOpen('apprenticeship')) opt('Switch on the Apprenticeship Program', 'policies', 'apprenticeship');
+      opt(`Send ${first(unmentored[0])} to training`, 'staff', unmentored[0].id);
+      break;
+    case 'migration': {
+      const pr = products.find((p) => p.id === id);
+      if (pr && !building('migration', pr.id)) opt(`Start the ${pr.name} migration`, 'build', pr.id);
+      opt('Put an engineer on maintenance', 'staff');
+      break;
+    }
+    case 'oneProduct': {
+      opt('Start a new product', 'build');
+      const second = [...products].sort((x, y) => y.mrr - x.mrr)[1];
+      if (second && isUnlocked(state, 'marketing')) opt(`Run a campaign for ${second.name}`, 'marketing', second.id);
+      break;
+    }
+    case 'unusedPolicy':
+      opt(`Try ${POLICIES[id].name} for a quarter`, 'policies', id);
+      opt('See what it costs first', 'policies', id);
+      break;
+    case 'era':
+      if (id === 'chatgbt') {
+        if (isUnlocked(state, 'models')) opt('Pick a model for your next product', 'models');
+        if (isUnlocked(state, 'automation')) opt('Look at what automation can take on', 'automation');
+      } else {
+        opt('Put someone on oversight of the agents', 'staff');
+        if (isUnlocked(state, 'automation')) opt('Set up automation', 'automation');
+      }
+      opt('Start something built for the new era', 'build');
+      break;
+    default:
+      opt('Start a new project', 'build');
+      opt('Look at who you could hire', 'staff');
+  }
+  if (o.length < 2) opt("Look at who's working on what", 'staff');
+  return o.slice(0, 3);
 }
 
 // What the advisors would say now, most urgent first. A pure read: it changes nothing, draws nothing from
@@ -107,7 +194,8 @@ export function advice(state) {
   if (!list.length) {
     const advisor = ['cfo', 'people', 'tech'][state.week % 3];
     return [{ key: 'fine', advisor, severity: 1, tier: 1, text: line(state, 'fine', ADVICE_LINES.fine[advisor], {}),
-      why: 'Nothing needs a look', target: null, cooldownWeeks: B.advisor.cooldownWeeks }];
+      why: 'Nothing needs a look', target: null, cooldownWeeks: B.advisor.cooldownWeeks, since: state.advisors?.noticed?.fine ?? state.week,
+      options: optionsFor(state, { key: 'fine' }) }];
   }
   return list.sort((a, b) => b.severity - a.severity || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
@@ -117,20 +205,26 @@ registerAction('dismissAdvice', (ctx, { key }) => {
   // A key that no longer applies (the line changed while the player looked at it) is a quiet no-op.
   const a = observe(state).find((x) => x.key === key);
   if (!a) return { ok: true };
-  (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null }).dismissed[key] = a.tier;
+  (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }).dismissed[key] = a.tier;
   return { ok: true };
 });
 
 // The rare unprompted line: urgent advice only, at most one every B.advisor.pushGapWeeks, never in a week
 // that raises a decision or a staged prompt, and a topic isn't pushed again within its cooldown unless it
-// got worse. Also forgets dismissals and pushes for topics that no longer apply.
+// got worse. Also records the week each topic started applying (for `since`), and forgets dismissals, pushes
+// and those weeks for topics that no longer apply.
 export function advisorsSystem(ctx) {
   const { state } = ctx;
   if (!B.advisorsEnabled) return;
-  const adv = (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null });
+  const adv = (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} });
   const now = new Set(observe(state).map((a) => a.key));
   for (const k of Object.keys(adv.dismissed)) if (!now.has(k)) delete adv.dismissed[k];
   for (const k of Object.keys(adv.pushed)) if (!now.has(k)) delete adv.pushed[k];
+  // Each key's episode starts the first week it applies ('fine' when nothing else does) and ends when it stops.
+  const noticed = (adv.noticed ??= {});
+  const current = now.size ? now : new Set(['fine']);
+  for (const k of current) noticed[k] ??= state.week;
+  for (const k of Object.keys(noticed)) if (!current.has(k)) delete noticed[k];
   if (ctx.events.some((e) => e.type === 'decision' || e.type === 'chatPrompt')) return;
   if (adv.lastPushWeek !== null && state.week - adv.lastPushWeek < B.advisor.pushGapWeeks) return;
   const due = advice(state).find((a) => a.severity === 3

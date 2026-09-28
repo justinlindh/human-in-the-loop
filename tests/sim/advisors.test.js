@@ -8,6 +8,7 @@ import { saveGame, loadGame } from '../../src/save/save.js';
 import { ADVICE_LINES, ADVISORS } from '../../src/data/advisors.js';
 import { FIRST_NAMES, LAST_NAMES } from '../../src/data/names.js';
 import { weeklyRevenue, weeklyCosts } from '../../src/sim/economy.js';
+import { isUnlocked } from '../../src/sim/unlocks.js';
 import { game, classicGame, addStaff, addProduct } from './helpers.js';
 
 const net = (s) => weeklyRevenue(s) - Object.values(weeklyCosts(s)).reduce((a, v) => a + v, 0);
@@ -62,6 +63,8 @@ describe('advisors (#808): what they notice', () => {
     const pr = addProduct(s, { name: 'Jotly' });
     pr.migrationDueWeek = s.week - 1;
     expect(find(s, `migration:${pr.id}`)).toMatchObject({ advisor: 'tech', tier: 2 });
+    s.projects.push({ id: 'jm', kind: 'migration', productId: pr.id });
+    expect(find(s, `migration:${pr.id}`)).toBeUndefined();
   });
 
   it('an unlocked policy nobody has tried, unless its opposite is on', () => {
@@ -121,10 +124,58 @@ describe('advisors (#808): what they notice', () => {
     expect(JSON.stringify(s)).toBe(before);
     expect(advice(s)).toEqual(first);
     for (const a of first) {
-      expect(Object.keys(a).sort()).toEqual(['advisor', 'cooldownWeeks', 'key', 'severity', 'target', 'text', 'tier', 'why']);
+      expect(Object.keys(a).sort()).toEqual(['advisor', 'cooldownWeeks', 'key', 'options', 'severity', 'since', 'target', 'text', 'tier', 'why']);
       expect(a.text).not.toMatch(/[{}]/);
     }
   });
+});
+
+describe('advisors: options', () => {
+  const MENUS = ['build', 'staff', 'office', 'reports', 'marketing', 'policies', 'ops', 'models', 'automation'];
+
+  it('runway offers sales, a campaign, and a paid policy to switch off when one is on', () => {
+    const s = burning(7, 15);
+    s.unlocks.marketing = 0;
+    const r = find(s, 'runway');
+    expect(r.options.map((o) => o.target.panel)).toContain('staff');
+    s.policies.top_pay = true;
+    expect(find(s, 'runway').options.at(-1)).toMatchObject({ target: { panel: 'policies', arg: 'top_pay' } });
+  });
+
+  it('burnout names the person to send on time off, and offers No Crunch only once it is unlocked', () => {
+    const s = game(16);
+    for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'mid');
+    for (const p of s.staff) p.mood = 'ok';
+    const tired = s.staff[2]; tired.mood = 'burnout';
+    const b = find(s, 'burnout');
+    expect(b.options[0]).toMatchObject({ target: { panel: 'staff', arg: tired.id } });
+    expect(b.options[0].text).toContain(tired.name.split(' ')[0]);
+    expect(b.options.some((o) => o.target.arg === 'no_crunch')).toBe(false);
+    s.unlocks['policy.no_crunch'] = s.week;
+    expect(find(s, 'burnout').options.some((o) => o.target.arg === 'no_crunch')).toBe(true);
+  });
+
+  it('over real games every piece of advice offers 2 or 3 real options, pointing at real menus and things', () => {
+    let checked = 0;
+    for (const seed of [1, 2]) runBot('balanced', seed, 520, { onWeek: (s) => {
+      if (s.week % 5) return;
+      for (const a of advice(s)) {
+        checked++;
+        expect(a.options.length, a.key).toBeGreaterThanOrEqual(2);
+        expect(a.options.length, a.key).toBeLessThanOrEqual(3);
+        for (const o of a.options) {
+          expect(MENUS, a.key).toContain(o.target.panel);
+          expect(o.text).not.toMatch(/[{}]|undefined/);
+          const arg = o.target.arg;
+          if (arg === undefined) continue;
+          if (o.target.panel === 'policies') expect(isUnlocked(s, `policy.${arg}`) || s.policies[arg], `${a.key} ${arg}`).toBeTruthy();
+          else if (o.target.panel === 'staff') expect(s.staff.some((p) => p.id === arg && p.mood !== 'away' || p.id === arg && a.key === 'burnout')).toBe(true);
+          else expect(s.products.some((p) => p.id === arg && !p.killed), `${a.key} ${arg}`).toBe(true);
+        }
+      }
+    } });
+    expect(checked).toBeGreaterThan(100);
+  }, 120000);
 });
 
 describe('advisors: dismissing and the rare push', () => {
@@ -176,8 +227,44 @@ describe('advisors: dismissing and the rare push', () => {
     delete old.advisors;
     saveGame(old, storage);
     const loaded = loadGame(storage).state;
-    expect(loaded.advisors).toEqual({ dismissed: {}, pushed: {}, lastPushWeek: null });
+    expect(loaded.advisors).toEqual({ dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} });
     expect(find(loaded, 'runway')).toBeTruthy();
+  });
+
+  it('since is the week a topic started applying; it holds through tier changes and restarts after a gap', () => {
+    const s = burning(11, 13);
+    expect(find(s, 'runway').since).toBe(s.week);
+    const start = s.week;
+    advisorsSystem(makeCtx(s));
+    s.week += 3;
+    expect(find(s, 'runway').since).toBe(start);
+    s.cash = Math.round(-net(s) * 5);
+    advisorsSystem(makeCtx(s));
+    expect(find(s, 'runway')).toMatchObject({ tier: 2, since: start });
+    const cash = s.cash;
+    s.cash = 1e9; s.week += 1;
+    advisorsSystem(makeCtx(s));
+    expect(s.advisors.noticed.runway).toBeUndefined();
+    s.cash = cash; s.week += 2;
+    advisorsSystem(makeCtx(s));
+    expect(find(s, 'runway').since).toBe(s.week);
+  });
+
+  it("'fine' has a since too, and a save from before since existed still works", () => {
+    const s = classicGame(14);
+    s.cash = 1e7;
+    advisorsSystem(makeCtx(s));
+    const start = s.week;
+    s.week += 5;
+    expect(advice(s)[0]).toMatchObject({ key: 'fine', since: start });
+    const store = new Map();
+    const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+    delete s.advisors.noticed;
+    saveGame(s, storage);
+    const loaded = loadGame(storage).state;
+    expect(advice(loaded)[0].since).toBe(loaded.week);
+    advisorsSystem(makeCtx(loaded));
+    expect(loaded.advisors.noticed.fine).toBe(loaded.week);
   });
 
   it('bot games end the same with advisors on or off', () => {
