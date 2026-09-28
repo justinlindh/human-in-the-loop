@@ -34,7 +34,7 @@
 - **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open`
 - **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result`
 - **Annual calendar**: yearly beats.
-  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies, with confetti and a party. `id: awards_show`
+  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies; Product of the Year also throws an office party. `id: awards_show`
   - **SaaSCon**: skip it, or book a small or big booth. `id: conference_expo`
   - **The AI Summit**: a side-room talk or a live main-stage demo, a big panel, or a hackathon prize. `id: ai_summit` `id: ai_summit_panel` `id: ai_summit_hackathon`
   - **The hearing**: a summons to testify, then the committee report. `id: hearing_summons` `id: hearing_report`

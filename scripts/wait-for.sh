@@ -12,7 +12,7 @@
 #   --no-update  report a PR that is behind or conflicting instead of merging main into it
 #   --test       the test command gating the push (default: npm test)
 #   --pickup     warn once when local-ci hasn't reported on the head after this many minutes (default 15)
-#   --issue      wait until an issue closes
+#   --issue      wait until an issue closes (or, given a pull request number, until it merges or closes)
 # Green means every status the base branch requires (branch protection, less review) passed and no
 # GitHub check is still running; without access to the protection rules, local-ci stands in.
 # Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
@@ -47,7 +47,9 @@ timed_out() { [ $(( $(date +%s) - start )) -ge $(( timeout * 60 )) ]; }
 if [ -n "$issue" ]; then
   while :; do
     state="$(gh issue view "${R[@]}" "$issue" --json state | jq -r .state)"
+    # A pull request number works too: GitHub reports a merged one as MERGED, not CLOSED.
     [ "$state" = CLOSED ] && { say "issue #$issue closed"; exit 0; }
+    [ "$state" = MERGED ] && { say "#$issue merged"; exit 0; }
     timed_out && { say "timed out waiting for issue #$issue to close"; exit 124; }
     sleep "$poll"
   done

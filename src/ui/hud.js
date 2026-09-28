@@ -171,7 +171,7 @@ export function createHud({ root, controls, ui }) {
     // Muted has its own look (a red-tinted outline), not the selected fill the speed buttons use.
     toggleClass(muteBtn, 'muted', m);
   }
-  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, muteBtn, gear);
+  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, ui.advisorButton ?? null, muteBtn, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
   // The bar wraps onto more rows on narrow screens; the tray and toasts sit below its real height.
