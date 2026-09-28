@@ -5,6 +5,7 @@ import { EVENTS } from '../data/events.js';
 import { icon } from './icons.js';
 import { pressOutlet } from './press.js';
 import { portrait, portraitLive, roleChip } from './widgets.js';
+import { resolutionBlock, backUpTitle } from './incident.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
   'hackathon_week', 'founder_burnout', 'ceo_support_fallout', 'four_day_week_review', 'ai_first_review']);
@@ -14,7 +15,7 @@ const isLeadership = (d) => EVENTS[d.eventId]?.kind === 'leadership' || LEADERSH
 
 // Modal layer for decisions and launch results. While a modal is open,
 // toasts dock in its strip so a refused choice's reason shows right under the choices.
-export function createPopups({ layer, ctx, toasts, restoreDock }) {
+export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = () => null }) {
   const queue = []; // launch results waiting for the screen
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
@@ -23,6 +24,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
   layer.append(backdrop);
 
   let shown = null; // the pendingDecision object on screen
+  let shownRes = null; // the incident resolution heading it, when it is a postmortem
 
   // What the launch popup's shortcuts need and the launch event doesn't carry, seen each week:
   // who worked on each project (and what it became), and the channel last promoting each product.
@@ -126,10 +128,17 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
         product ? h('span.pill.ink', null, icon('product', { size: 12 }), ` ${product.name}`) : null,
         h('p', { text: d.text }));
     const dock = h('div.modal-dock');
-    const card = h(`div.modal.decision${leader ? '.lead' : ''}`, null,
-      h('div.mhead', null, icon(leader ? 'idea' : 'decision', { size: 24 }), h('h2', { text: d.title }), h('span.spacer'),
-        h('span.mtag', { text: leader ? 'Leadership idea' : 'Decision' })),
-      h('div.mbody', null, body, h('div.choices', null, ...choiceBtns),
+    // A postmortem opens with the incident's resolution: back up, how long, what it cost, what helped and hurt.
+    const res = resolutionFor(d, s);
+    shownRes = res;
+    const head = res
+      ? h('div.mhead', null, icon('check', { size: 24 }), h('h2', { text: res.severity != null ? backUpTitle(s, res) : `${product?.name ?? 'The product'} is back up` }), h('span.spacer'),
+        h('span.mtag', { text: 'Postmortem' }))
+      : h('div.mhead', null, icon(leader ? 'idea' : 'decision', { size: 24 }), h('h2', { text: d.title }), h('span.spacer'),
+        h('span.mtag', { text: leader ? 'Leadership idea' : 'Decision' }));
+    const card = h(`div.modal.decision${leader ? '.lead' : ''}${res ? '.incdone' : ''}`, null,
+      head,
+      h('div.mbody', null, res ? resolutionBlock(s, res) : null, res ? h('b.incq', { text: d.title }) : null, body, h('div.choices', null, ...choiceBtns),
         h('div.small.muted.keys', null, 'Press ', h('span.kbd', { text: '1' }), ` to `, h('span.kbd', { text: String(d.choices.length) }), ' to choose. The week waits for you.')),
       dock);
     backdrop.replaceChildren(card);
@@ -232,6 +241,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock }) {
       renderDecision(s, d);
       return;
     }
+    // A postmortem's resolution can arrive after its decision; redraw with the full summary.
+    if (d && d === shown && shownRes && resolutionFor(d, s) !== shownRes) { renderDecision(s, d); return; }
     if (!d && shown) hide();
     if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }

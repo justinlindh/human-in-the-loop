@@ -16,6 +16,8 @@ export function projectLabel(state, j) {
 // "Updating Inboxer to v3"); anything else reads as assignmentText does.
 const DEFAULT_NAMES = new Set(['The Big Refactor', 'Refactor', 'Craft project']);
 export function doingText(state, p) {
+  // Responders leave their work while an outage lasts; their assignment waits for the all-clear.
+  if (state.outage?.responderIds?.includes(p.id)) return `Responding: ${state.products?.find((x) => x.id === state.outage.productId)?.name ?? 'a product'} is down`;
   const a = p.assignment ?? { type: 'idle' };
   const j = a.type === 'project' ? state.projects.find((x) => x.id === a.targetId) : null;
   if (!j) return assignmentText(state, p);

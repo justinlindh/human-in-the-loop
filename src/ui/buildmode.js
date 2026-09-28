@@ -186,6 +186,8 @@ export function createBuildMode({ layer, ctx, controls }) {
   const scene = () => document.getElementById('scene');
   const onScene = (e) => e.target === scene();
 
+  const GHOST_MS = 500;
+  let ghostUntil = 0;
   addEventListener('pointerdown', (e) => { if (onScene(e) && e.button === 0) down = { x: e.clientX, y: e.clientY }; }, true);
   addEventListener('pointerup', (e) => {
     const d = down;
@@ -220,7 +222,18 @@ export function createBuildMode({ layer, ctx, controls }) {
         return;
       }
       place(at.x, at.y);
-    } else if (!ctx.sceneTips?.eatTap?.()) inspect(e.clientX, e.clientY);
+    } else if (!ctx.sceneTips?.eatTap?.()) {
+      // A tap opens its card on release; the click the browser sends after it would land on that card.
+      if (e.pointerType !== 'mouse') ghostUntil = performance.now() + GHOST_MS;
+      inspect(e.clientX, e.clientY);
+    }
+  }, true);
+  addEventListener('click', (e) => {
+    if (performance.now() > ghostUntil) return;
+    ghostUntil = 0;
+    if (onScene(e)) return;
+    e.stopPropagation();
+    e.preventDefault();
   }, true);
   function tipAt(x, y) {
     tip.style.left = `${x - layer.getBoundingClientRect().left + 16}px`;
