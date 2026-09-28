@@ -7,7 +7,7 @@ export const BUSES = [
   { id: 'music', label: 'Music' }, { id: 'ambience', label: 'Ambience' }, { id: 'sfx', label: 'Sound effects' },
   { id: 'ui', label: 'Interface' }, { id: 'voice', label: 'Voices' },
 ];
-const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, momentCamera: true, yakSize: 'small', yakHeight: null, yakLevel: 'all' };
+const DEFAULTS = { volume: 0.7, bus: { music: 0.8, ambience: 0.8, sfx: 1, ui: 1, voice: 1 }, muted: false, quality: 'auto', tiltShift: true, speed: 1, pauseMenus: true, autoPause: true, momentCamera: true, yakSize: 'small', yakHeight: null, yakLevel: 'all', advisors: 'on' };
 
 export function loadSettings() {
   try {
@@ -29,7 +29,7 @@ function write(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode or blocked storage */ }
 }
 // Keys the UI remembers outside the Settings panel; the panel's own saves keep what is stored.
-const OUTSIDE = ['yakSize', 'yakHeight', 'yakLevel'];
+const OUTSIDE = ['yakSize', 'yakHeight', 'yakLevel', 'advisors'];
 function saveSettings(s) {
   const cur = loadSettings();
   write({ ...s, ...Object.fromEntries(OUTSIDE.map((k) => [k, cur[k]])) });
@@ -46,6 +46,14 @@ export const yakLevel = () => (YAK_LEVELS.some((l) => l.v === loadSettings().yak
 export function setYakLevel(v) {
   saveSetting('yakLevel', v);
   window.dispatchEvent(new CustomEvent('hitl:yakLevel', { detail: { level: v } }));
+}
+
+// The advisors: On, Quiet (no pulse) or Off (no card and no button).
+export const ADVISOR_LEVELS = [{ v: 'on', label: 'On' }, { v: 'quiet', label: 'Quiet' }, { v: 'off', label: 'Off' }];
+export const advisorLevel = () => (ADVISOR_LEVELS.some((l) => l.v === loadSettings().advisors) ? loadSettings().advisors : 'on');
+export function setAdvisorLevel(v) {
+  saveSetting('advisors', v);
+  window.dispatchEvent(new CustomEvent('hitl:advisors', { detail: { level: v } }));
 }
 
 // Saves one remembered setting on top of whatever is stored.
@@ -138,6 +146,8 @@ export function createSettings({ layer, controls, sfx }) {
         })(),
         row('Yak', 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Prompts that need your reply always show.',
           seg(YAK_LEVELS.map(({ v, label }) => ({ v, label })), yakLevel(), (v) => setYakLevel(v))),
+        row('Advisors', 'Quiet keeps them to the tray and the lightbulb; Off hides them.',
+          seg(ADVISOR_LEVELS, advisorLevel(), (v) => setAdvisorLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));

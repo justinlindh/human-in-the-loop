@@ -1,0 +1,19 @@
+/* Advisors: a tray card with the top line and the advisor's face, a lightbulb in the top-right
+   chip, and a small panel of lines with Show me and Not now. */
+.hitl .advface { flex: none; display: inline-grid; place-items: center; border-radius: 50%; border: 0.12em solid var(--ink); color: #fff;
+  font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.25); }
+.hitl .tray-card.advisor { cursor: pointer; pointer-events: auto; }
+.hitl .tray-card.advisor .advrow { display: flex; gap: 0.5em; align-items: center; margin-top: 0.2em; }
+.hitl .tray-card.advisor .advline { font-size: 0.82em; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hitl .tray-card.advisor.idle .advline { color: var(--ink-soft); }
+.hitl .tray-card.advisor.quiet .advline { display: none; }
+.hitl .tray-card.advisor.pulse { animation: hitl-adv-pulse 1.6s ease-in-out 3; border-color: var(--yellow); }
+@keyframes hitl-adv-pulse { 0%, 100% { box-shadow: var(--pop, 0 0.2em 0 var(--ink)); } 50% { box-shadow: 0 0 0 0.3em rgba(255, 176, 32, 0.55); } }
+@media (prefers-reduced-motion: reduce) { .hitl .tray-card.advisor.pulse { animation: none; box-shadow: 0 0 0 0.2em rgba(255, 176, 32, 0.7); } }
+.hitl .advlist { display: flex; flex-direction: column; gap: 0.7em; }
+.hitl .advitem { display: flex; gap: 0.7em; align-items: flex-start; padding: 0.6em 0.7em; border-radius: 0.7em; background: var(--cream-2); border-left: 0.35em solid var(--line); }
+.hitl .advitem.sev-urgent { border-left-color: var(--red); background: #ffefe9; }
+.hitl .advitem.sev-warn { border-left-color: var(--yellow); }
+.hitl .advbody { display: flex; flex-direction: column; gap: 0.25em; min-width: 0; }
+.hitl .advtext { font-weight: 600; line-height: 1.3; }
+.hitl .advacts { display: flex; gap: 0.5em; margin-top: 0.2em; flex-wrap: wrap; }

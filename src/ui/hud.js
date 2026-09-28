@@ -171,7 +171,7 @@ export function createHud({ root, controls, ui }) {
     // Muted has its own look (a red-tinted outline), not the selected fill the speed buttons use.
     toggleClass(muteBtn, 'muted', m);
   }
-  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, muteBtn, gear);
+  const speed = h('div.chip.speed', null, pausedTag, menuTag, ...speedBtns, ui.advisorButton ?? null, muteBtn, gear);
 
   const bar = h('div.topbar', null, company, cash, mrr, team, meters, h('div.spacer'), speed);
   // The bar wraps onto more rows on narrow screens; the tray and toasts sit below its real height.
@@ -236,6 +236,8 @@ export function createHud({ root, controls, ui }) {
             icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick);
         })));
     }
+    // The advisors' card keeps its own element and updates itself; it sits under Needs you.
+    if (ui.advisorCard) tray.append(ui.advisorCard);
     if (s.outage) {
       const o = s.outage;
       const p = s.products.find((x) => x.id === o.productId);
