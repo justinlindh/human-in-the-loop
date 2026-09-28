@@ -10,7 +10,7 @@ export const MEME_ART = [
   { id: 'tabs_chart', format: 'Up-and-to-the-right chart', caption: 'tabs I have open', shots: ['celebrate'] },
   { id: 'always_config', format: 'Always has been', caption: "Wait, it's all config? / Always has been.", shots: ['point', 'idle'] },
   { id: 'yes_no_tests', format: 'Reject / approve', caption: 'writing the tests myself / asking the agent to write them', shots: ['fan', 'celebrate'] },
-  { id: 'expanding_review', format: 'Expanding brain', caption: 'I write code / I review code / I review what the agent wrote', shots: ['typing', 'peer', 'celebrate'] },
+  { id: 'expanding_review', format: 'Expanding brain', caption: 'I write code / I review code / I review what the agent wrote / I review what the agent says it wrote', shots: ['typing', 'peer', 'celebrate', 'celebrate'] },
 ];
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const out = resolve('public/memes'), evidence = resolve('shots/memes');
@@ -26,6 +26,7 @@ try {
       const { setRingsShown } = await import('/src/render/character.js');
       const { RoundedBoxGeometry } = await import('/node_modules/three/examples/jsm/geometries/RoundedBoxGeometry.js');
       const dump = await import('/blender/checks/dump.js');
+      const { createFlame } = await import('/src/render/flame.js');
       await dump.prepare();
       R.perks.hold = true;
       S.pendingDecision = null;
@@ -43,13 +44,10 @@ try {
       };
       window.__tool(() => {
         if (meme.id === 'this_is_fine') {
-          // Rounded toy flames sit among the office furniture, behind the coffee drinker.
-          for (const [x, z, height] of [[-1, 0, 0.95], [0.9, 0, 1.15], [-0.8, 2, 0.7], [1.3, 1.5, 0.9]]) {
-            for (const [r, h, color] of [[0.27, height, P.marker_orange], [0.14, height * 0.66, P.gold]]) {
-              const points = [[0,0],[r,0.12],[r*0.9,h*0.42],[r*0.4,h*0.75],[0,h]].map(([a,b]) => new T.Vector2(a,b));
-              const flame = new T.Mesh(new T.LatheGeometry(points, 16), material(color));
-              flame.position.set(x, 0, z + (r < 0.2 ? 0.15 : 0)); flame.castShadow = true; extras.add(flame);
-            }
+          // The game's flames stand among the office furniture, behind the coffee drinker.
+          for (const [x, z, height, phase] of [[-1, 0, 1.0, 1.3], [0.9, 0, 1.2, 0.4], [-0.8, 2, 0.75, 2.1], [1.3, 1.5, 0.95, 0.9]]) {
+            const f = createFlame({ height });
+            f.position.set(x, 0, z); f.userData.update(phase); extras.add(f);
           }
         }
         if (meme.id === 'two_buttons') {
@@ -100,7 +98,7 @@ try {
         // Native-pixel crops keep faces sharp; the dump supplies the subject's screen bounds.
         const person = measurements[i].people.find(p => p.id === subjects[i]);
         const [px, py, pw, ph] = person.screen;
-        const sh = wide ? (meme.id === 'this_is_fine' ? 790 : 840) : (meme.id === 'expanding_review' ? 440 : 560), sw = sh * w / h;
+        const sh = wide ? (meme.id === 'this_is_fine' ? 790 : 840) : (meme.id === 'expanding_review' ? 360 : 560), sw = sh * w / h;
         const sx = Math.max(0, Math.min(1800 - sw, px + pw / 2 - sw / 2));
         const sy = Math.max(0, Math.min(1350 - sh, py + ph / 2 - sh / 2));
         c.drawImage(captures[i], sx, sy, sw, sh, x, y, w, h);
@@ -132,21 +130,24 @@ try {
         text('writing the', 825, 180, 64, 700); text('tests myself', 825, 260, 64, 700);
         text('asking the agent', 825, 630, 59, 700); text('to write them', 825, 710, 64, 700); rule(450);
       } else {
-        const lines = [['I write code'], ['I review code'], ['I review what', 'the agent wrote']];
-        for (let i = 0; i < 3; i++) {
-          const crop = shot(i, 0, i * 300, 400, 300);
-          if (i > 0) {
+        // Four rows, the head brighter each time: the last row is the punchline.
+        const lines = [['I write code'], ['I review code'], ['I review what', 'the agent wrote'], ['I review what the', 'agent says it wrote']];
+        const glow = [null, [P.gold, 60, 72, 8], [P.screen_cyan, 60, 92, 12], [P.marker_orange, 58, 112, 16]];
+        for (let i = 0; i < 4; i++) {
+          const crop = shot(i, 0, i * 225, 400, 225);
+          if (glow[i]) {
+            const [color, r0, r1, rays] = glow[i];
             const [hx, hy] = measurements[i].people[0].head.screen;
             const x = (hx - crop.sx) / crop.sw * crop.w;
             const y = (hy - crop.sy) / crop.sh * crop.h + crop.y;
-            c.save(); c.beginPath(); c.rect(10, i * 300 + 10, 380, 280); c.clip();
-            c.strokeStyle = i === 1 ? P.gold : P.screen_cyan; c.lineWidth = 7;
-            for (let ray = 0; ray < 12; ray++) { const a = ray * Math.PI / 6; c.beginPath(); c.moveTo(x + Math.cos(a) * 62, y + Math.sin(a) * 55); c.lineTo(x + Math.cos(a) * (i === 1 ? 78 : 103), y + Math.sin(a) * (i === 1 ? 72 : 95)); c.stroke(); }
+            c.save(); c.beginPath(); c.rect(10, i * 225 + 10, 380, 205); c.clip();
+            c.strokeStyle = color; c.lineWidth = i === 3 ? 9 : 7;
+            for (let ray = 0; ray < rays; ray++) { const a = ray * 2 * Math.PI / rays; c.beginPath(); c.moveTo(x + Math.cos(a) * r0 * 0.75, y + Math.sin(a) * r0 * 0.7); c.lineTo(x + Math.cos(a) * r1 * 0.75, y + Math.sin(a) * r1 * 0.7); c.stroke(); }
             c.restore();
           }
-          c.fillStyle = [P.wall_cream, P.wall_sage, P.glass][i]; c.fillRect(400, i * 300, 800, 300);
-          lines[i].forEach((line, j) => text(line, 800, i * 300 + (lines[i].length === 1 ? 150 : 110 + j * 85), 65, 750));
-          if (i) rule(i * 300);
+          c.fillStyle = [P.wall_cream, P.wall_sage, P.glass, P.gold][i]; c.fillRect(400, i * 225, 800, 225);
+          lines[i].forEach((line, j) => text(line, 800, i * 225 + (lines[i].length === 1 ? 112 : 78 + j * 70), 58, 750));
+          if (i) rule(i * 225);
         }
       }
       c.strokeStyle = P.ink; c.lineWidth = 16; c.strokeRect(8, 8, 1184, 884);
