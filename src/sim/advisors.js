@@ -26,8 +26,9 @@ function line(state, key, lines, vars) {
 // Every observation that applies now, dismissed or not. Each reads a number some panel already shows.
 function observe(state) {
   const out = [];
+  const noticed = state.advisors?.noticed ?? {};
   const add = (key, advisor, severity, tier, lines, vars, why, target) =>
-    out.push({ key, advisor, severity, tier, text: line(state, key, lines, vars), why, target, cooldownWeeks: B.advisor.cooldownWeeks });
+    out.push({ key, advisor, severity, tier, text: line(state, key, lines, vars), why, target, cooldownWeeks: B.advisor.cooldownWeeks, since: noticed[key] ?? state.week });
   const A = B.advisor;
 
   const net = weeklyRevenue(state) - Object.values(weeklyCosts(state)).reduce((a, v) => a + v, 0);
@@ -107,7 +108,7 @@ export function advice(state) {
   if (!list.length) {
     const advisor = ['cfo', 'people', 'tech'][state.week % 3];
     return [{ key: 'fine', advisor, severity: 1, tier: 1, text: line(state, 'fine', ADVICE_LINES.fine[advisor], {}),
-      why: 'Nothing needs a look', target: null, cooldownWeeks: B.advisor.cooldownWeeks }];
+      why: 'Nothing needs a look', target: null, cooldownWeeks: B.advisor.cooldownWeeks, since: state.advisors?.noticed?.fine ?? state.week }];
   }
   return list.sort((a, b) => b.severity - a.severity || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
@@ -117,20 +118,26 @@ registerAction('dismissAdvice', (ctx, { key }) => {
   // A key that no longer applies (the line changed while the player looked at it) is a quiet no-op.
   const a = observe(state).find((x) => x.key === key);
   if (!a) return { ok: true };
-  (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null }).dismissed[key] = a.tier;
+  (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }).dismissed[key] = a.tier;
   return { ok: true };
 });
 
 // The rare unprompted line: urgent advice only, at most one every B.advisor.pushGapWeeks, never in a week
 // that raises a decision or a staged prompt, and a topic isn't pushed again within its cooldown unless it
-// got worse. Also forgets dismissals and pushes for topics that no longer apply.
+// got worse. Also records the week each topic started applying (for `since`), and forgets dismissals, pushes
+// and those weeks for topics that no longer apply.
 export function advisorsSystem(ctx) {
   const { state } = ctx;
   if (!B.advisorsEnabled) return;
-  const adv = (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null });
+  const adv = (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} });
   const now = new Set(observe(state).map((a) => a.key));
   for (const k of Object.keys(adv.dismissed)) if (!now.has(k)) delete adv.dismissed[k];
   for (const k of Object.keys(adv.pushed)) if (!now.has(k)) delete adv.pushed[k];
+  // Each key's episode starts the first week it applies ('fine' when nothing else does) and ends when it stops.
+  const noticed = (adv.noticed ??= {});
+  const current = now.size ? now : new Set(['fine']);
+  for (const k of current) noticed[k] ??= state.week;
+  for (const k of Object.keys(noticed)) if (!current.has(k)) delete noticed[k];
   if (ctx.events.some((e) => e.type === 'decision' || e.type === 'chatPrompt')) return;
   if (adv.lastPushWeek !== null && state.week - adv.lastPushWeek < B.advisor.pushGapWeeks) return;
   const due = advice(state).find((a) => a.severity === 3
