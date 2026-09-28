@@ -153,7 +153,7 @@ cleanup() {
   git -C "$REPO" worktree remove --force "$WT" 2>/dev/null
   git -C "$REPO" worktree remove --force "$TOOLS" 2>/dev/null
   # A run that stops before its verdict must not leave the status pending forever.
-  [ "$status_final" = 1 ] || status error "Local CI stopped before finishing; run scripts/ci-pr.sh $pr again"
+  [ "$status_final" = 1 ] || status error "Local CI stopped before finishing; auto CI retries it once, or add the ci-rerun label"
 }
 trap cleanup EXIT
 # A stop signal ends the run through the EXIT trap instead of skipping it.
@@ -290,7 +290,7 @@ body="$(mktemp)"
   echo "Head \`${head:0:7}\`, tested as \`$sha\` ($what), in ${secs}s."
   echo
   if [ $rc -eq 3 ]; then
-    echo "Steps failed twice on the machine (out of disk, memory or GPU), and nothing failed on the code. Run ci-pr again when the machine is quieter."
+    echo "Steps failed twice on the machine (out of disk, memory or GPU), and nothing failed on the code. Auto CI retries it once; after that, add the ci-rerun label when the machine is quieter."
     [ -n "$repeat" ] && echo "The previous run failed the same way ($repeat). A machine failure that repeats may come from the code (a leak, a GPU crash): check with \`npm run ci\` in your worktree."
     echo
   fi

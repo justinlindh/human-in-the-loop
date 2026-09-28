@@ -145,7 +145,7 @@ export function openEventPrompt(outer, ev, subjectId) {
   state.chatPrompts ??= [];
   const vars = decisionVars(state, ctx.rng, subjectId);
   const fill2 = (t) => fillText(state, ctx.rng, t, subjectId, vars);
-  const msg = emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill2(ev.title)}: ${fill2(ev.text)}` });
+  const msg = emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill2(ev.title)}: ${fill2(ev.text)}`, important: true });
   state.flags.promptSeq = (state.flags.promptSeq ?? 0) + 1;
   const id = `cp${state.flags.promptSeq}`;
   (state.flags.promptCtx ??= {})[id] = { kind: ev.id, event: true, subjectId, vars };
@@ -163,7 +163,7 @@ export function openEventPrompt(outer, ev, subjectId) {
 }
 
 function botLine(ctx, prompt, text) {
-  return emitChat(ctx, { channel: prompt.channel, from: '@officebot', text, replyTo: prompt.chatId }).id;
+  return emitChat(ctx, { channel: prompt.channel, from: '@officebot', text, replyTo: prompt.chatId, important: true }).id;
 }
 
 // Applies an event prompt's choice (or its ignore choice) the way resolving the decision would.
