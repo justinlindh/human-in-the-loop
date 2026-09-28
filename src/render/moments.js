@@ -86,7 +86,7 @@ function sheetMat() {
   return sheetMatCache;
 }
 
-// A visitor's look is random each visit, from everyday colours (render only: Math.random is fine here).
+// A visitor's look varies from visit to visit, from everyday colours (see visitorLook).
 const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
 const VISITOR_SHIRT = ['#9aa3b5', '#d9a441', '#6f8fc0', '#9ab58a', '#c78a8a', '#e8e2d6'];
 const VISITOR_PANTS = ['#2e3440', '#3b4a6b', '#5b4a3a', '#6b6b6b'];
@@ -107,6 +107,19 @@ const HANDLE_MAT = new THREE.MeshStandardMaterial({ color: P.wood_light, roughne
 const HEAD_MAT = new THREE.MeshStandardMaterial({ color: P.metal_dark, roughness: 0.5, metalness: 0.3 });
 const PIZZA = { first: [2, 4], every: [26, 36], people: [2, 3], dur: [4.5, 6.5], ring: 0.95 };
 const SCREEN = { first: [0.3, 1.2], every: [7, 11], share: 0.5, dur: [1.8, 2.6] };
+
+// A small deterministic random stream from a string (FNV-1a hash seeding mulberry32).
+function seededRand(key) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619) >>> 0;
+  return () => {
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 export function createMoments({ office, recs, walkTo, emote, getProps, note = () => {}, fx = null, parent = null, getYaw = () => Math.PI / 4, getCamera = null, spotlights = null, isBusy = () => false, low = () => false }) {
   const debug = spotDebug(office);
@@ -637,13 +650,19 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // The visitors stay REACT_S after the choice so the reaction plays; the moment camera holds on them
   // and hitl:moment carries the decision's id for the caption. At Low quality, just a nervous emote.
   let visitor = null;     // { event, obj, at, yaw, chars: [], cast: [recs], resolved, left, mid, ... }
-  function visitorLook(event) {
-    const pick = (a) => a[Math.floor(Math.random() * a.length)];
-    if (event === 'efficiency_consultants') return { skin: Math.floor(Math.random() * 6), hair: 1, hairColor: '#4a3222', shirt: '#3b4a6b', pants: '#2e3440', build: 1, accessory: 'glasses' };
-    return { skin: Math.floor(Math.random() * 6), hair: Math.floor(Math.random() * 8), hairColor: pick(VISITOR_HAIR), shirt: pick(VISITOR_SHIRT), pants: pick(VISITOR_PANTS), build: Math.floor(Math.random() * 3), accessory: pick(['none', 'none', 'glasses', 'cap', 'beanie']) };
+  // A visitor's look comes from the game, the week and the event (never from the game's random
+  // stream), so it is the same every time that moment plays; a staged decision may pin it
+  // (stage.look), for checks that need a particular look. Visitors are never the smallest build: at a
+  // desk seen from the far side, too little of that one shows over the furniture.
+  function visitorLook(event, rand, pinned = null) {
+    const pick = (a) => a[Math.floor(rand() * a.length)];
+    const look = event === 'efficiency_consultants'
+      ? { skin: Math.floor(rand() * 6), hair: 1, hairColor: '#4a3222', shirt: '#3b4a6b', pants: '#2e3440', build: 1, accessory: 'glasses' }
+      : { skin: Math.floor(rand() * 6), hair: Math.floor(rand() * 8), hairColor: pick(VISITOR_HAIR), shirt: pick(VISITOR_SHIRT), pants: pick(VISITOR_PANTS), build: 1 + Math.floor(rand() * 2), accessory: pick(['none', 'none', 'glasses', 'cap', 'beanie']) };
+    return pinned ? { ...look, ...pinned } : look;
   }
-  function makeVisitor(event, anim) {
-    const c = createCharacter(visitorLook(event), P.metal_soft, { seed: `visitor-${Math.random()}` });
+  function makeVisitor(event, anim, rand, key, pinned = null) {
+    const c = createCharacter(visitorLook(event, rand, pinned), P.metal_soft, { seed: `visitor-${key}` });
     c.setRingScale(0.0001);
     c.pickProxy.visible = false;
     c.setAnim(anim);
@@ -721,7 +740,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       const f = o.userData.follow;
       if (f) { f.lx = 0; f.lz = SEAT_LOCAL_Z; } else o.position.set(v.at.x, 0, v.at.z);
     }
-    v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit'));
+    const key = `${state?.seed ?? 0}|${state?.week ?? 0}|${event}`;
+    const rand = seededRand(key);
+    const staged = state?.pendingDecision?.stage?.prop === 'visitor_chair' ? state.pendingDecision.stage : (state?.chatPrompts ?? []).find((x) => !x.resolved && x.stage?.prop === 'visitor_chair')?.stage;
+    const pinned = staged?.look ?? null;
+    v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit', rand, `${key}|0`, pinned));
     // The consultants' chair is staged at the door; their interview sets up a few metres in and to
     // one side, off the path everyone walks in and out by.
     if (event === 'efficiency_consultants') { const q = offDoor(v.at); if (q) v.at = q; }
@@ -740,7 +763,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       // A nervous colleague is interviewed across from the seated consultant, the second consultant
       // behind with a clipboard. Face to face across the camera's view line, each turned three-quarters
       // to the camera, so all three faces read. Arms out low in front, the clipboard tipped up to be read.
-      const rob = makeVisitor(event, 'carryhold');
+      const rob = makeVisitor(event, 'carryhold', rand, `${key}|1`);
       rob.root.add(clipboard());
       v.chars.push(rob);
       const yaw = getYaw(), cam = [Math.sin(yaw), Math.cos(yaw)], across = [Math.cos(yaw), -Math.sin(yaw)];
