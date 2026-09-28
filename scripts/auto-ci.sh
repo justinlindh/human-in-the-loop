@@ -13,6 +13,9 @@
 #     (scripts/, blender/checks/) waits: its render checks would fail on main's fault, not its own.
 #   - The ci-rerun label asks for a fresh run of the current head: the label is removed and the run
 #     starts whatever the head's status.
+#   - PRs that passed review go first, then those without a verdict, then those with changes
+#     requested, each by number. A docs-only PR (the light gate, scripts/ci-classify.sh) starts at
+#     once, past the job cap: it takes no CI slot and finishes in seconds.
 # ci-pr.sh refuses forks and untrusted authors itself; this only narrows the list first.
 # Usage: scripts/auto-ci.sh [--once]  (the timer runs it with no arguments; --once is the same)
 # Env: AUTO_CI_STATE (default ~/.cache/hitl-ci/auto), AUTO_CI_TREE (the checkout of main that runs
@@ -46,18 +49,24 @@ flock -n 9 || exit 0
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
 alive() { kill -0 -- "-$1" 2>/dev/null; }
 
-# Open PRs: number, draft, trusted, head, local-ci state on the head, rerun label.
+# Open PRs: number, draft, trusted, head, local-ci state on the head, rerun label, review state.
 list="$("$GH" pr list --state open --limit 100 \
   --json number,isDraft,isCrossRepository,author,headRefOid,statusCheckRollup,labels \
   --jq '.[] | [.number, (.isDraft or .isCrossRepository or (.author.login != "justinlindh")),
         .headRefOid, ([.statusCheckRollup[]? | select(.context == "local-ci") | .state][0] // "none"),
-        ([.labels[]?.name] | index("ci-rerun") != null)] | @tsv')" || { log "pr list failed"; exit 1; }
+        ([.labels[]?.name] | index("ci-rerun") != null),
+        ([.statusCheckRollup[]? | select(.context == "review") | .state][0] // "none")] | @tsv')" || { log "pr list failed"; exit 1; }
 
-declare -A head skip state rerun
-while IFS=$'\t' read -r n s h st r; do
+declare -A head skip state rerun review
+while IFS=$'\t' read -r n s h st r rv; do
   [ -n "$n" ] || continue
-  head[$n]="$h"; skip[$n]="$s"; state[$n]="$st"; rerun[$n]="$r"
+  head[$n]="$h"; skip[$n]="$s"; state[$n]="$st"; rerun[$n]="$r"; review[$n]="${rv:-none}"
 done <<<"$list"
+# True when the PR only changes paths on the light gate's list (docs): no CI slot, done in seconds.
+is_light() {
+  local files; files="$("$GH" pr view "$1" --json files --jq '.files[].path' 2>/dev/null)" && [ -n "$files" ] || return 1
+  [ "$(bash "$HERE/ci-classify.sh" "$HERE/ci-skip-paths" <<<"$files" 2>/dev/null)" = light ]
+}
 
 stop() {
   local pr="$1" why="$2" pgid old
@@ -86,7 +95,14 @@ if [ "$running" -eq 0 ] && ! (cd "$TREE" && ${AUTO_CI_NPM:-npm} ls --depth=0 >/d
   else log "npm ci failed in $TREE"; fi
 fi
 
-for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
+order() {
+  local n p
+  for n in "${!head[@]}"; do
+    case "${review[$n]}" in SUCCESS) p=0 ;; FAILURE) p=2 ;; *) p=1 ;; esac
+    echo "$p $n"
+  done | sort -k1,1n -k2,2n | cut -d' ' -f2
+}
+for pr in $(order); do
   [ "${skip[$pr]}" = true ] && continue
   [ -e "$JOBS/$pr" ] && continue
   h="${head[$pr]}"; why=""
@@ -102,7 +118,10 @@ for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
   fi
   [ -n "$why" ] || continue
   if [ -n "$red_render" ] && render_only "$pr"; then log "#$pr ${h:0:7} waits: main is red on $red_render"; continue; fi
-  [ "$running" -lt "$MAX" ] || { log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; }
+  light=0
+  if [ "$running" -ge "$MAX" ]; then
+    if is_light "$pr"; then light=1; else log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; fi
+  fi
   case "$why" in
     ci-rerun) "$GH" pr edit "$pr" --remove-label ci-rerun >/dev/null 2>&1 || log "#$pr: could not remove ci-rerun" ;;
     retry*) : >"$STATE/retried/$h" ;;
@@ -111,8 +130,8 @@ for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
   # keep the pass lock (fd 9) open, or no later pass could start.
   (cd "$TREE" && exec setsid timeout 3600 nice -n 10 bash "$CIPR" "$pr" --head "$h" >"$STATE/pr-$pr.log" 2>&1 </dev/null 9>&-) &
   echo "$! $h" >"$JOBS/$pr"
-  running=$((running + 1))
-  log "start #$pr ${h:0:7} ($why)"
+  [ $light = 1 ] || running=$((running + 1))
+  log "start #$pr ${h:0:7} ($why$([ $light = 1 ] && echo ", docs only"))"
 done
 find "$STATE/retried" "$STATE/pending" -type f -mtime +7 -delete 2>/dev/null
 exit 0

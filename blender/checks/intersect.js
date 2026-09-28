@@ -16,7 +16,7 @@
 // cross the other an odd number of times) give the depth as their distance to its surface.
 // Measurement only: nothing here changes the scene, state or geometry (the BVHs are indirect).
 import * as THREE from 'three';
-import { MeshBVH } from '/node_modules/three-mesh-bvh/src/index.js';
+import { MeshBVH } from 'three-mesh-bvh';
 
 const MAX_POINTS = 1500;
 const UP = new THREE.Vector3(0, 1, 0);

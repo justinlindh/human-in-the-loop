@@ -3,6 +3,7 @@ import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { raiseDecision, resolveSubjects, restageSystem } from '../../src/sim/events.js';
 import { propsSystem, leaveProp, stageTile, isIn } from '../../src/sim/props.js';
+import { openEventPrompt } from '../../src/sim/prompts.js';
 import { suggestPlacement, footprintCells, frontCells } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
@@ -258,6 +259,18 @@ describe('desk-staged props never wait on an empty chair', () => {
     const before = JSON.stringify(s.pendingDecision.stage);
     restageSystem(makeCtx(s));
     expect(JSON.stringify(s.pendingDecision.stage)).toBe(before);
+  });
+
+  it('an open staged prompt re-picks its desk too', () => {
+    const s = setup(36);
+    openEventPrompt(makeCtx(s), EVENTS.pet_request, null);
+    const prompt = s.chatPrompts.at(-1);
+    const first = s.staff.find((p) => p.id === prompt.stage.staffId);
+    first.remote = true;
+    restageSystem(makeCtx(s));
+    const who = s.staff.find((p) => p.id === prompt.stage.staffId);
+    expect(who.id).not.toBe(first.id);
+    expect(isIn(who)).toBe(true);
   });
 
   it('a person on sabbatical is never in the office', () => {

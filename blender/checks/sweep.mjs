@@ -195,6 +195,7 @@ if (argv.includes('--update-baseline')) {
   const accepted = [...kept, ...seen.values()].sort((a, b) => a.key.localeCompare(b.key));
   writeFileSync(BASELINE, JSON.stringify({ accepted }, null, 1) + '\n');
   console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);
+  console.log(`sweep: a changed baseline needs its media on the PR: commit it, then scripts/baseline-media.sh <pr> --sweep-dir ${outDir}`);
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
 console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
