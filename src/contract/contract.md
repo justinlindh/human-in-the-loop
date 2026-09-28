@@ -437,6 +437,7 @@ Advice = {
   why,           // the visible fact behind it, short: 'Runway: 11 weeks at this burn'
   target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation', ui's menu ids); arg e.g. a staffId
   cooldownWeeks  // how long an unprompted push of this key rests
+  since          // the game week this topic's current episode began: when its key started applying. A key that stops applying and later returns starts a new episode; a tier change within an episode keeps since
 }
 ```
 
@@ -447,10 +448,13 @@ Advice = {
 ### State: Advisors
 
 ```js
-advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastPushWeek /*number|null*/ }   // default { dismissed: {}, pushed: {}, lastPushWeek: null }
+advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastPushWeek /*number|null*/, noticed: { [key]: week } }   // default { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }
 ```
 
 - Old saves load a missing `advisors` with the default.
+- `noticed` is written by the weekly advisors system (order 96): a key that applies and isn't in `noticed` gets the current week, and a key that no longer applies is removed, along with its dismissal and push. `'fine'` is tracked the same way, as the key that applies when nothing else does.
+- `advice(state)` stays a pure read. A key that applies but isn't in `noticed` yet (it became true earlier this week, before the system ran) reports `since: state.week`.
+- Old saves load a missing `noticed` as `{}`.
 - Entries for keys that no longer apply are pruned weekly.
 
 ### Actions: Advisors
