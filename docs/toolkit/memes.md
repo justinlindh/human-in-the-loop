@@ -4,7 +4,7 @@ section: run
 who: video
 covers: scripts/reels/memes.mjs scripts/reels/memes-check.mjs
 ---
-Regenerates Yak's six picture memes from the game's own renderer, characters, office and palette. Run from the repository root under `timeout 300 nice -n 10`. The shared scene harness takes a GPU render slot, seeds the browser clock and randomness, and loads the game's Fredoka font. Staging uses `window.__HITL`, `standAt` and `catchFor`; the scene dump supplies exact subject bounds for native-pixel crops. No source photos or external likenesses are used.
+Regenerates five of Yak's picture memes from the game's own renderer, characters, office and palette. Run from the repository root under `timeout 300 nice -n 10`. The shared scene harness takes a GPU render slot, seeds the browser clock and randomness, and loads the game's Fredoka font. Staging uses `window.__HITL`, `standAt` and `catchFor`; the scene dump supplies exact subject bounds for native-pixel crops. No source photos or external likenesses are used.
 
 The generator composites captions with Canvas and writes `public/memes/<id>.webp` at 480x360 and `<id>@2x.webp` at 1200x900. It rejects captions wider than their text box. Scene measurements go to `shots/memes/<id>.json`. The IDs must match `src/data/memes.js` from the simulation's image-meme change. It renders this_is_fine, two_buttons, tabs_chart, always_config and yes_no_tests. The styled memes (is_this_agi, distracted_founder, the_bill, the_plan, change_my_mind, galaxy_brain) come from art's `blender/memes/studio.mjs` and are encoded to the same two sizes.
 
