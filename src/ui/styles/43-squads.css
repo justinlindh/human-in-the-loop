@@ -1,0 +1,68 @@
+/* Squads tab in Staff: a grid of squad cards, one column on phones. */
+.hitl .sqintro { margin: 0 0 0.6em; }
+.hitl .sqgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(21em, 1fr)); gap: 0.7em; align-items: start; }
+.hitl .sqcard { background: #fff; border: 0.18em solid var(--ink); border-radius: 0.9em; box-shadow: 0 0.2em 0 var(--ink); padding: 0.6em 0.7em; display: flex; flex-direction: column; gap: 0.45em; min-width: 0; }
+.hitl .sqcard.flash { animation: sqflash 0.6s ease-in-out 3; }
+@keyframes sqflash { 50% { box-shadow: 0 0 0 0.3em var(--yellow); } }
+.hitl .sqnew { border-style: dashed; box-shadow: none; background: transparent; align-items: center; justify-content: center; min-height: 9em; text-align: center; }
+.hitl .sqhead { display: flex; align-items: center; gap: 0.45em; flex-wrap: wrap; }
+.hitl .sqtitle { font: inherit; font-weight: 800; font-size: 1.2em; background: none; border: none; padding: 0; color: var(--ink); cursor: pointer; pointer-events: auto; }
+.hitl .sqtitle:hover { text-decoration: underline dotted; }
+.hitl .sqpost { border-width: 0.12em; }
+.hitl .sqpost.on { background: #e3f6f4; }
+.hitl .sqpost.bench { background: #fff1d2; border-color: var(--yellow); }
+.hitl .sqpost.idle { background: var(--cream-2); }
+.hitl .sqbanner { background: var(--yellow); border: 0.14em solid var(--ink); border-radius: 0.6em; padding: 0.4em 0.6em; font-weight: 700; font-size: 0.88em; line-height: 1.3; }
+.hitl .sqfaces { display: flex; flex-wrap: wrap; gap: 0.3em; align-items: flex-start; }
+.hitl .sqface { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.1em; width: 3.2em; padding: 0.25em 0.1em 0.2em; background: var(--cream); border: 0.13em solid var(--ink); border-radius: 0.7em; cursor: pointer; pointer-events: auto; font: inherit; color: var(--ink); }
+.hitl .sqface:hover { background: var(--cream-2); }
+.hitl .sqface.loan, .hitl .sqface.away, .hitl .sqface.cant { border-style: dashed; opacity: 0.6; }
+.hitl .sqface.crew { background: #e3f6f4; }
+.hitl .sqpic { position: relative; display: block; line-height: 0; }
+.hitl .sqstar { position: absolute; top: -0.45em; right: -0.5em; color: var(--yellow); filter: drop-shadow(0 0.06em 0 var(--ink)); }
+.hitl .sqfn { font-size: 0.72em; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .sqtag { font-size: 0.6em; font-weight: 700; line-height: 1; padding: 0.15em 0.3em; border-radius: 0.5em; background: var(--cream-3); white-space: nowrap; }
+.hitl .sqtag.crew { background: var(--teal); color: #fff; }
+.hitl .sqedit { align-self: center; min-width: 2.6em; padding-left: 0.35em; padding-right: 0.35em; }
+.hitl .sqnote { line-height: 1.3; }
+.hitl .sqcoh { display: flex; align-items: center; gap: 0.5em; }
+.hitl .sqcoh .bar { flex: 1; min-width: 4em; }
+.hitl .sqcoh .num { min-width: 3.4em; text-align: right; }
+.hitl .sqafterrow { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; }
+.hitl .sqafter .segb { font-family: inherit; font-weight: 700; font-size: 0.78em; min-width: 0; cursor: pointer; }
+.hitl .sqafter .segb.on { background: var(--ink); color: #fff; }
+.hitl .sqrow { display: flex; align-items: center; gap: 0.45em; flex-wrap: wrap; }
+.hitl .sqrow.end { justify-content: flex-end; }
+.hitl .sqrow .sqpostpick { flex: 1 1 10em; min-width: 0; max-width: 16em; }
+.hitl .sqmore { min-width: 2.6em; }
+.hitl .sqmore .pk-caret { display: none; }
+.hitl .pill.sqchip { background: #efe7ff; }
+
+/* Member picker and the one-member card. */
+.hitl .modal.squads .mbody { display: flex; flex-direction: column; min-height: 0; }
+.hitl .sqmembers, .hitl .sqmember { display: flex; flex-direction: column; gap: 0.55em; min-height: 0; }
+.hitl .sqnamerow { gap: 0.4em; }
+.hitl .sqnamerow .sqname { flex: 1; min-width: 0; font-size: 1.05em; font-weight: 700; }
+.hitl .sqpicklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(17em, 1fr)); gap: 0.35em; overflow-y: auto; max-height: 50vh; padding: 0.1em; }
+.hitl .sqpick { display: flex; align-items: center; gap: 0.45em; text-align: left; padding: 0.3em 0.45em; background: #fff; border: 0.13em solid var(--line); border-radius: 0.7em; cursor: pointer; pointer-events: auto; font: inherit; color: var(--ink); min-width: 0; }
+.hitl .sqpick.on { border-color: var(--ink); background: #e8f8f1; box-shadow: 0 0.12em 0 var(--ink); }
+.hitl .sqtick { flex: none; width: 1.3em; height: 1.3em; border-radius: 0.35em; border: 0.13em solid var(--ink); display: inline-flex; align-items: center; justify-content: center; color: transparent; background: #fff; }
+.hitl .sqpick.on .sqtick { background: var(--green); color: #fff; }
+.hitl .sqpmain { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.hitl .sqpmain .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitl .sqptop { display: flex; align-items: center; gap: 0.35em; flex-wrap: wrap; }
+.hitl .pill.sqin { flex: none; background: #efe7ff; }
+.hitl .num.over { color: var(--red); }
+.hitl .sqfoot { gap: 0.5em; align-items: center; }
+.hitl .sqacts { display: flex; flex-wrap: wrap; gap: 0.4em; }
+.hitl .sqacts .gpick { flex: 1 1 11em; }
+
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .sqgrid { grid-template-columns: 1fr; }
+  .hitl .sqpicklist { grid-template-columns: 1fr; max-height: 45vh; }
+  .hitl .sqrow .sqpostpick { max-width: none; }
+}
+.hitl .sqwhy { color: var(--ink-soft); }
+.hitl .sqwhy.bad { color: var(--red); font-weight: 700; }
+.hitl .projsq { cursor: pointer; pointer-events: auto; font: inherit; font-size: 0.8em; font-weight: 700; color: var(--ink); }
+.hitl .sqpic > img, .hitl .sqpic > canvas { width: 2.75em; height: 2.75em; }

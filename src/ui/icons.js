@@ -148,6 +148,8 @@ export const ICONS = {
   letgo: I('👋', 'Staff: let go action', 16),
   team: I('👥', 'Staff: seats summary chip', 14),
   seat: I('🪑', 'Hire: seats chip', 14),
+  'turn.left': I('↶', 'Camera turn button, left', 18),
+  'turn.right': I('↷', 'Camera turn button, right', 18),
   refresh: I('🔄', 'Hire: next candidates chip', 14),
   hire: I('📨', 'Staff: Hire tab and button', 16),
   office: I('🏢', 'Hire: need more seats button, Office panel', 16),

@@ -43,7 +43,8 @@ export function decisionVars(state, rng, subjectId) {
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
   return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
     alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague',
-    deal: featuredDeal(state)?.name ?? 'A small company' };
+    deal: featuredDeal(state)?.name ?? 'A small company',
+    incidentWeeks: state.flags.lastIncident?.weeks ?? 0, incidentCost: { ...(state.flags.lastIncident?.cost ?? { cash: 0, brand: 0, customers: 0 }) } };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -129,6 +130,13 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   const vars = decisionVars(state, ctx.rng, subjectId);
+  // A postmortem carries the incident it is about, taken from the queue of those waiting.
+  const waiting = state.flags.postmortemQueue ?? [];
+  const at = waiting.findIndex((x) => x.eventId === eventId);
+  if (at >= 0) {
+    const inc = waiting.splice(at, 1)[0];
+    Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds] });
+  }
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
     eventId, subjectId, vars,

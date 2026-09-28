@@ -480,7 +480,8 @@ incident · raised by a rule
 |---|---|
 | Roll back and eat the cost | cash -$15,000 |
 | Blame the vendor | if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
-| Publish a public postmortem | know-how +3; if Blameless Postmortems is on: brand +3; otherwise brand -1 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The cloud bill has feelings `agent_runaway_spend`
 
@@ -490,7 +491,8 @@ incident · raised by a rule · staged: rack_hot
 |---|---|
 | Pay it and apologize to finance | cash -$25,000 |
 | Beg the cloud provider for credits | 50% chance of cash -$30,000; otherwise nothing |
-| Publish a public postmortem | cash -$12,000; know-how +3; if Blameless Postmortems is on: brand +3; otherwise brand -1 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## Every customer got an email `agent_mass_email`
 
@@ -500,7 +502,8 @@ incident · raised by a rule
 |---|---|
 | Send an apology email | brand -1; customers -3% |
 | Blame the vendor | if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
-| Publish a public postmortem | know-how +3; if Blameless Postmortems is on: brand +3; otherwise brand -1 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The agent followed the wrong instructions `agent_prompt_injection_leak`
 
@@ -510,7 +513,8 @@ incident · raised by a rule
 |---|---|
 | Rotate every secret tonight | cash -$12,000; team meaning -2 |
 | Blame the vendor | if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
-| Publish a public postmortem | know-how +3; if Blameless Postmortems is on: brand +3; otherwise brand -1 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The agent fixed pricing `agent_pricing_rewrite`
 
@@ -520,7 +524,8 @@ incident · raised by a rule
 |---|---|
 | Honor the deals | cash -$18,000; brand +2 |
 | Cancel the free plans | customers -6% |
-| Publish a public postmortem | cash -$8,000; know-how +3; if Blameless Postmortems is on: brand +3; otherwise brand -1 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The support bot promised refunds `support_refund_hallucination`
 
@@ -530,7 +535,8 @@ incident · raised by a rule
 |---|---|
 | Pay the refunds | cash -$15,000 |
 | Blame the vendor | customers -4%; if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
-| Publish a public postmortem | cash -$6,000; know-how +3; if Blameless Postmortems is on: brand +3; otherwise brand -1 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## Nobody here can debug this `outage_unfixable`
 
@@ -586,6 +592,15 @@ cyber · raised by a rule · staged: gift_cards
 |---|---|
 | Mandatory security training | cash -$4,000; team meaning -1 |
 | Laugh it off | 30% chance of cash -$25,000; otherwise nothing |
+
+## The attack is over `incident_postmortem`
+
+cyber · raised by a rule
+
+| Choice | Effects |
+|---|---|
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The ChatGBT moment `era_chatgbt`
 

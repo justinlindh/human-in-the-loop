@@ -592,10 +592,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function faceToward(a, b) {
     if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit') return;
     let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
-    if (a.goal?.seated && !a.path.length && !a.temp) {
-      let d = ((yaw - a.goal.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
+    // Seated people (at a desk, or in a meeting chair for a standup) only swivel.
+    const seat = a.temp?.seat ? a.temp.goal : a.goal?.seated && !a.path.length && !a.temp ? a.goal : null;
+    if (seat) {
+      let d = ((yaw - seat.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
       if (d < -Math.PI) d += Math.PI * 2;
-      yaw = a.goal.yaw + Math.max(-0.9, Math.min(0.9, d));
+      yaw = seat.yaw + Math.max(-0.9, Math.min(0.9, d));
     }
     a.face = { yaw, t: 3.6 };
   }
@@ -998,20 +1000,21 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Where a standup gathers. A ring whose spots mostly land on furniture (a board with desks in
   // front of it) moves to the most open floor instead.
-  function ringSpots(n) {
+  function ringSpots(n, out = 0) {
     const nav = office.nav();
     const crowded = (spots) => spots.filter((p) => nav.isBlocked(p.x, p.z, 0.2)).length > spots.length * 0.25;
-    let spots = ringSpotsRaw(n);
+    let spots = ringSpotsRaw(n, null, out);
     if (crowded(indoors(spots))) spots = indoors(ringSpotsRaw(n, clearing()));
     return onFloor(spots);
   }
 
-  function ringSpotsRaw(n, at = null) {
+  // `out` widens the ring round a meeting table, so standers stay clear of people in its chairs.
+  function ringSpotsRaw(n, at = null, out = 0) {
     const Z = office.current.zones;
     const spots = [];
     if (Z.meeting && !at) {
       const M = Z.meeting;
-      const a = M.L / 2 + 0.5, b = M.D / 2 + 0.5;
+      const a = M.L / 2 + 0.5 + out, b = M.D / 2 + 0.5 + out;
       const c = Math.cos(M.rotY), sn = Math.sin(M.rotY);
       for (let i = 0; i < n; i++) {
         const lap = Math.floor(i / 8);
@@ -1067,14 +1070,33 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     lastStagedAt = playTime;
     // A speaker can take several turns, but occupies one place in the ring.
     const attendees = [...new Map(lines.map(l => [l.staffId, l])).values()];
-    const spots = ringSpots(attendees.length);
+    // At a meeting table (not on Low) attendees take its chairs, speakers first and in the chairs
+    // facing the camera; anyone left over (everyone, on Low) stands round the table.
+    const seats = !low() && office.current.zones.meeting?.seats?.length ? seatOrder(office.current.zones.meeting.seats) : [];
+    const speaks = new Set(lines.filter((l) => l.text).map((l) => l.staffId));
+    attendees.sort((a, b) => speaks.has(b.staffId) - speaks.has(a.staffId));
+    const seated = attendees.slice(0, seats.length);
+    const standing = attendees.slice(seats.length);
+    const spots = [
+      ...seated.map((l, i) => ({ seat: seats[i], x: seats[i].x, z: seats[i].z })),
+      ...(standing.length ? (office.current.zones.meeting ? standersNear(office.current.zones.meeting, standing.length, seats.slice(0, seated.length)) : ringSpots(standing.length)) : []),
+    ];
     const people = attendees.map((l, i) => {
       const r = recs.get(l.staffId);
       const sp = spots[i];
-      const spot = { x: sp.x, z: sp.z, yaw: Math.atan2(sp.cx - sp.x, sp.cz - sp.z), anim: 'idle' };
-      r.temp = { anim: 'idle', t: Infinity, goal: spot, standup: true };
       labels.clearFor(r.char.root);
-      walkTo(r, spot);
+      if (sp.seat) {
+        const st = sp.seat;
+        const spot = { x: st.x, z: st.z, yaw: st.yaw, anim: 'sit' };
+        // Reached from behind the chair, then a slide onto the seat (as onto a couch).
+        const side = { x: st.x - Math.sin(st.yaw) * CHAIR_BACK_M, z: st.z - Math.cos(st.yaw) * CHAIR_BACK_M };
+        r.temp = { anim: 'sit', t: Infinity, goal: spot, standup: true, seat: true, enter: { t: 0, side } };
+        walkTo(r, { ...side, yaw: st.yaw });
+      } else {
+        const spot = { x: sp.x, z: sp.z, yaw: Math.atan2(sp.cx - sp.x, sp.cz - sp.z), anim: 'idle' };
+        r.temp = { anim: 'idle', t: Infinity, goal: spot, standup: true };
+        walkTo(r, spot);
+      }
       // Everyone arrives within GATHER seconds (weeks are short); far walkers jog.
       let len = 0, px = r.pos.x, pz = r.pos.z;
       for (const q of r.path) { len += Math.hypot(q.x - px, q.z - pz); px = q.x; pz = q.z; }
@@ -1085,15 +1107,62 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const at = { x: spots.reduce((v, sp) => v + sp.x, 0) / spots.length, z: spots.reduce((v, sp) => v + sp.z, 0) / spots.length };
     const quietR = Math.max(0, ...spots.map((sp) => Math.hypot(sp.x - at.x, sp.z - at.z))) + STANDUP_QUIET_M;
     standup = { people, phase: 'gather', t: 0, speech: createStandupSpeech(lines), context: standupContext(state, e.lines), spoken: null, at, quietR };
-    office.tuckMeetingChairs(true);
+    office.tuckMeetingChairs(true, seats.slice(0, seated.length).map((st) => st.chair));
+  }
+
+  // Standing places for those without a chair: free floor on widening rings round the table, clear of
+  // the seats and each other, nearest ring first. Too few (a table boxed in by desks) falls back to
+  // the usual ring.
+  function standersNear(M, n, seats) {
+    const nav = office.nav();
+    const L = office.current.L;
+    const c = Math.cos(M.rotY), sn = Math.sin(M.rotY);
+    const yaw = rig?.yaw ?? Math.PI / 4, camX = Math.sin(yaw), camZ = Math.cos(yaw);
+    const cands = [];
+    for (let k = 0; k < 4; k++) {
+      const a = M.L / 2 + 0.85 + k * 0.5, b = M.D / 2 + 0.85 + k * 0.5;
+      const steps = 12 + k * 4;
+      for (let i = 0; i < steps; i++) {
+        const t = (i / steps) * Math.PI * 2 + k * 0.3;
+        const lx = Math.cos(t) * a, lz = Math.sin(t) * b;
+        const p = { x: M.x + c * lx + sn * lz, z: M.z - sn * lx + c * lz, cx: M.x, cz: M.z };
+        if (Math.abs(p.x) > L.W / 2 - 0.6 || Math.abs(p.z) > L.D / 2 - 0.6 || nav.isBlocked(p.x, p.z, 0.25)) continue;
+        // Standing between the camera and the table hides the people in its chairs.
+        const toCam = ((p.x - M.x) * camX + (p.z - M.z) * camZ) / Math.hypot(p.x - M.x, p.z - M.z);
+        cands.push({ p, score: k + Math.max(0, toCam) * 3 });
+      }
+    }
+    cands.sort((u, v) => u.score - v.score);
+    const taken = seats.map((st) => ({ x: st.x, z: st.z }));
+    const out = [];
+    for (const { p } of cands) {
+      if (out.length === n) break;
+      if (taken.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 0.6)) continue;
+      taken.push(p);
+      out.push(p);
+    }
+    return out.length === n ? out : ringSpots(n, 0.45);
+  }
+
+  // Meeting seats, best first: those whose sitter faces the camera most, so faces read.
+  function seatOrder(seats) {
+    const yaw = rig?.yaw ?? Math.PI / 4;
+    return [...seats].sort((a, b) => Math.cos(b.yaw - yaw) - Math.cos(a.yaw - yaw));
   }
 
   function endStandup() {
     office.tuckMeetingChairs(false);
     for (const { r } of standup.people) {
       if (!recs.has(r.id) || r.temp?.standup !== true) continue;
+      const tp = r.temp;
       r.temp = null;
-      if (r.goal && !r.goal.hidden) walkTo(r, r.goal);
+      if (!r.goal || r.goal.hidden) continue;
+      walkTo(r, r.goal);
+      // Out of a meeting chair the way they got in: back behind it first, then on to their spot.
+      if (tp.seat && tp.enter.from && r.path.length) {
+        const side = tp.enter.side;
+        r.path = [side, ...office.nav().path(side, r.path[r.path.length - 1]).slice(1)];
+      }
     }
     standup = null;
   }

@@ -915,7 +915,16 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
         desks.push(d);
         cur.dyn.screens.push(d.screen);
       } else if (kind === 'meeting') {
-        Z.meeting ??= { x: t.x, z: t.z, rotY: t.rotY, ...e.obj.userData.table, id: e.id };
+        if (!Z.meeting) {
+          // Each chair's seat, 5 cm in from the chair toward the table (as at a desk), facing the table.
+          const c = Math.cos(t.rotY), sn = Math.sin(t.rotY);
+          const seats = e.obj.userData.chairs.map((ch) => {
+            const h = ch.userData.home;
+            const lz = h.z - Math.sign(h.z) * 0.05;
+            return { x: t.x + c * h.x + sn * lz, z: t.z - sn * h.x + c * lz, yaw: t.rotY + (h.z < 0 ? 0 : Math.PI), chair: ch };
+          });
+          Z.meeting = { x: t.x, z: t.z, rotY: t.rotY, ...e.obj.userData.table, id: e.id, seats };
+        }
         cur.dyn.meetingChairs.push(...e.obj.userData.chairs);
       } else if (kind === 'rack' || e.itemId === 'server_rack') {
         cur.dyn.racks.push(e.obj);
@@ -978,7 +987,9 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   }
 
   let tuck = false;
-  function tuckMeetingChairs(on) { tuck = on; }
+  let keepOut = new Set();
+  // During a standup the empty meeting chairs tuck under the table; `occupied` chairs stay out.
+  function tuckMeetingChairs(on, occupied = []) { tuck = on; keepOut = new Set(on ? occupied : []); }
 
   // Era dressing: rebuild placed models in place (no pop) and swap the wall dressing.
   function setEra(id) {
@@ -1199,7 +1210,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       if (d.t >= 0.18) { d.obj.removeFromParent(); dying.splice(i, 1); }
     }
     for (const ch of cur.dyn.meetingChairs) {
-      ch.position.lerp(tuck ? ch.userData.tucked : ch.userData.home, 1 - Math.exp(-dt * 6));
+      ch.position.lerp(tuck && !keepOut.has(ch) ? ch.userData.tucked : ch.userData.home, 1 - Math.exp(-dt * 6));
     }
     // Moving office, one swap in place: the new office comes down (ENTER_S) onto the old one's spot,
     // and once its floor reaches the old walls it presses the old office flat into the ground
