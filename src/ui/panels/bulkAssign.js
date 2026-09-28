@@ -20,6 +20,12 @@ export function staffUpMatches(pool, { from, roles, seniority }) {
   return pool.filter((p) => (!from.size || from.has(p.assignment.type)) && (!roles.size || roles.has(p.role)) && (!seniority.size || seniority.has(p.seniority)));
 }
 
+// Engineers on maintenance pay down tech debt. True when moving the picked ids would leave none.
+export function leavesNoMaintenance(s, picked) {
+  const maint = s.staff.filter((p) => p.role === 'engineer' && isAvailable(p) && p.assignment?.type === 'maintenance');
+  return maint.length > 0 && maint.every((p) => picked.has(p.id));
+}
+
 export function openStaffUp(ctx, projectId) {
   const s0 = ctx.getState();
   const proj = s0.projects.find((j) => j.id === projectId);
@@ -32,6 +38,7 @@ export function openStaffUp(ctx, projectId) {
   const chipsEl = h('div.col.sufilters');
   const listEl = h('div.picker.sulist');
   const countEl = h('span.small.muted');
+  const maintNote = h('div.small.warn-t.sumaint', { text: 'This leaves no engineer on maintenance, and maintenance pays down tech debt.' });
   const goT = h('span');
   const go = h('button.btn.go.big', { onclick: () => commit() }, icon('launch'), ' ', goT);
 
@@ -52,7 +59,7 @@ export function openStaffUp(ctx, projectId) {
     chipsEl.replaceChildren(
       group('From', FROM.filter((x) => pool.some((p) => p.assignment.type === x.id)), f.from),
       roles.length > 1 ? group('Role', roles, f.roles) : null,
-      levels.length > 1 ? group('Level', levels, f.seniority) : null);
+      levels.length > 1 ? group('Seniority', levels, f.seniority) : null);
     const shown = staffUpMatches(pool, f);
     // Filters pick: everyone shown starts picked; a tap on a row drops or re-adds them.
     picked.clear();
@@ -76,6 +83,7 @@ export function openStaffUp(ctx, projectId) {
 
   function sync() {
     setText(countEl, `${picked.size} picked of ${pool.length} on maintenance or idle`);
+    maintNote.style.display = leavesNoMaintenance(ctx.getState(), picked) ? '' : 'none';
     setText(goT, picked.size ? `Move ${picked.size} to ${projectLabel(ctx.getState(), proj)}` : 'Pick someone');
     go.disabled = !picked.size;
   }
@@ -90,6 +98,7 @@ export function openStaffUp(ctx, projectId) {
   const body = h('div.col.staffup', null,
     pool.length ? chipsEl : null,
     pool.length ? listEl : h('div.empty', { text: 'Nobody is on maintenance or idle right now.' }),
+    maintNote,
     h('div.row.wrap', null, countEl, h('span.spacer'), pool.length ? go : null));
   if (pool.length) render();
   close = ctx.openModal({ title: `Staff up: ${projectLabel(s0, proj)}`, iconName: 'menu.staff', body, cls: 'small' });
