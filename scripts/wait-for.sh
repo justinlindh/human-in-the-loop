@@ -6,17 +6,21 @@
 # Usage: scripts/wait-for.sh <pr> [--merged] [--no-update] [--test "<cmd>"] [--poll <s>]
 #                                  [--pickup <min>] [--timeout <min>]
 #        scripts/wait-for.sh --issue <n> [--poll <s>] [--timeout <min>]
+#   --repo       the PR's or issue's repository (owner/name), for the site repository; run it from a
+#                checkout of that repository
 #   --merged     keep waiting after the checks pass, until the PR merges
 #   --no-update  report a PR that is behind or conflicting instead of merging main into it
 #   --test       the test command gating the push (default: npm test)
 #   --pickup     warn once when local-ci hasn't reported on the head after this many minutes (default 15)
 #   --issue      wait until an issue closes
+# Green means every status the base branch requires (branch protection, less review) passed and no
+# GitHub check is still running; without access to the protection rules, local-ci stands in.
 # Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
 # --no-update; 4 merging main conflicts; 5 the tests failed after merging main; 6 the PR was closed;
 # 7 this worktree isn't on the PR's branch at its head; 124 timed out.
 set -uo pipefail
 
-pr="" issue="" merged=0 update=1 test_cmd="npm test" poll=60 pickup=15 timeout=240
+pr="" issue="" repo="" merged=0 update=1 test_cmd="npm test" poll=60 pickup=15 timeout=240
 while [ $# -gt 0 ]; do
   case "$1" in
     --merged) merged=1 ;;
@@ -26,6 +30,7 @@ while [ $# -gt 0 ]; do
     --pickup) pickup="$2"; shift ;;
     --timeout) timeout="$2"; shift ;;
     --issue) issue="$2"; shift ;;
+    --repo) repo="$2"; shift ;;
     -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) pr="$1" ;;
   esac
@@ -33,13 +38,15 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$pr" ] || [ -n "$issue" ] || { echo "usage: scripts/wait-for.sh <pr> | --issue <n>" >&2; exit 64; }
 
+R=(); api="repos/{owner}/{repo}"
+[ -n "$repo" ] && { R=(-R "$repo"); api="repos/$repo"; }
 start=$(date +%s)
 say() { echo "[wait-for $(date +%H:%M:%S)] $*"; }
 timed_out() { [ $(( $(date +%s) - start )) -ge $(( timeout * 60 )) ]; }
 
 if [ -n "$issue" ]; then
   while :; do
-    state="$(gh issue view "$issue" --json state | jq -r .state)"
+    state="$(gh issue view "${R[@]}" "$issue" --json state | jq -r .state)"
     [ "$state" = CLOSED ] && { say "issue #$issue closed"; exit 0; }
     timed_out && { say "timed out waiting for issue #$issue to close"; exit 124; }
     sleep "$poll"
@@ -47,7 +54,7 @@ if [ -n "$issue" ]; then
 fi
 
 local_ci_link() {
-  gh api "repos/{owner}/{repo}/issues/$pr/comments?per_page=100" \
+  gh api "$api/issues/$pr/comments?per_page=100" \
     | jq -r '[.[] | select(.body | startswith("### Local CI"))] | last | .html_url // empty'
 }
 
@@ -77,9 +84,14 @@ update_branch() {
   say "pushed $(git rev-parse --short HEAD)"
 }
 
-last="" seen_head="" head_since=0 warned=0
+last="" seen_head="" head_since=0 warned=0 required=""
 while :; do
-  json="$(gh pr view "$pr" --json state,headRefOid,headRefName,mergeStateStatus,mergeable,statusCheckRollup)" || { sleep "$poll"; continue; }
+  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup)" || { sleep "$poll"; continue; }
+  if [ -z "$required" ]; then
+    required="$(gh api "$api/branches/$(jq -r .baseRefName <<<"$json")/protection" 2>/dev/null \
+      | jq -r '[.required_status_checks.contexts[]? | select(type == "string" and . != "review")] | join(" ")' 2>/dev/null)" || required=""
+    [ -n "$required" ] || required="local-ci"
+  fi
   state="$(jq -r .state <<<"$json")"
   head="$(jq -r .headRefOid <<<"$json")"
   branch="$(jq -r .headRefName <<<"$json")"
@@ -106,14 +118,17 @@ while :; do
     link="$(local_ci_link)"; [ -n "$link" ] && say "Local CI: $link"
     exit 2
   fi
-  now="local-ci ${local_ci,,}, review ${review,,}, running: ${pending:-none}"
+  # Required statuses not yet passing, by name (a status or a check run).
+  waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
+    | [$r[] | . as $name | select([$all[] | select(.n == $name and .s == "SUCCESS")] | length == 0)] | join(" ")' <<<"$json")"
+  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}"
   [ "$now" != "$last" ] && { say "#$pr at ${head:0:8}: $now"; last="$now"; }
-  if [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then
+  if [[ " $required " == *" local-ci "* ]] && [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then
     say "auto-CI hasn't reported on ${head:0:8} after ${pickup} min; check the timer"
     warned=1
   fi
-  if [ "$local_ci" = SUCCESS ] && [ -z "$pending" ] && [ "$merged" = 0 ]; then
-    say "#$pr at ${head:0:8}: local-ci and every GitHub check passed"
+  if [ -z "$waiting" ] && [ -z "$pending" ] && [ "$merged" = 0 ]; then
+    say "#$pr at ${head:0:8}: $required and every GitHub check passed"
     exit 0
   fi
   timed_out && { say "timed out waiting on #$pr"; exit 124; }
