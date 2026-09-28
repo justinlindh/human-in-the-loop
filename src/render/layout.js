@@ -229,24 +229,20 @@ export function createNav(L, obstacles, cell = 0.35) {
     return [i, k];
   }
 
-  // A* on the grid with 8-way moves; returns world points from start to goal (inclusive). clear > 0
-  // keeps the way that many metres from anything blocked; with no such way, the result is null.
-  // soft: instead, cells nearer than that cost extra, so the way keeps its distance where it can.
-  function path(from, to, clear = 0, { soft = false } = {}) {
-    const near = soft && clear > 0 ? gridFor(clear) : null;
-    const blocked = near ? grid0 : gridFor(clear);
-    const [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
-    const [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked);
+  // A* on the grid with 8-way moves between two cells. Returns the cell each was reached from
+  // (came) and whether the goal was reached; a failed search leaves `closed` holding every cell the
+  // start can reach.
+  function search(si, sk, gi, gk, blocked, near) {
     const N = nx * nz;
     const g = new Float32Array(N).fill(Infinity);
     const came = new Int32Array(N).fill(-1);
-    const open = [si + sk * nx];
+    const start = si + sk * nx, goal = gi + gk * nx;
+    const open = [start];
     const inOpen = new Uint8Array(N);
     const closed = new Uint8Array(N);
     const h = (n) => Math.hypot((n % nx) - gi, Math.floor(n / nx) - gk);
-    g[open[0]] = 0;
-    inOpen[open[0]] = 1;
-    const goal = gi + gk * nx;
+    g[start] = 0;
+    inOpen[start] = 1;
     while (open.length) {
       let bi = 0;
       for (let j = 1; j < open.length; j++) if (g[open[j]] + h(open[j]) < g[open[bi]] + h(open[bi])) bi = j;
@@ -274,17 +270,65 @@ export function createNav(L, obstacles, cell = 0.35) {
         }
       }
     }
-    if (came[goal] === -1 && goal !== si + sk * nx) return clear > 0 && !near ? null : [{ x: from.x, z: from.z }, { x: to.x, z: to.z }];
+    return { came, closed, found: start === goal || came[goal] !== -1 };
+  }
+
+  // The cell of `region` (a mask) nearest to a world point, or -1 when the region is empty.
+  function nearestIn(region, x, z) {
+    let best = -1, bd = Infinity;
+    for (let n = 0; n < region.length; n++) {
+      if (!region[n]) continue;
+      const c = center(n % nx, Math.floor(n / nx)), d = (c.x - x) ** 2 + (c.z - z) ** 2;
+      if (d < bd) { bd = d; best = n; }
+    }
+    return best;
+  }
+
+  // A* on the grid with 8-way moves; returns world points from start to goal (inclusive). clear > 0
+  // keeps the way that many metres from anything blocked; with no such way, the result is null.
+  // soft: instead, cells nearer than that cost extra, so the way keeps its distance where it can.
+  // When the start and goal cells don't connect (a sitter whose nearest free cell is a pocket
+  // between desks), the smaller side is swapped for its nearest cell in the larger one, so nobody
+  // walks a straight line through the furniture.
+  function path(from, to, clear = 0, { soft = false } = {}) {
+    const near = soft && clear > 0 ? gridFor(clear) : null;
+    const blocked = near ? grid0 : gridFor(clear);
+    let [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
+    let [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked);
+    let res = search(si, sk, gi, gk, blocked, near);
+    let end = to;
+    if (!res.found) {
+      if (clear > 0 && !near) return null;
+      const fromStart = res.closed;
+      const fromGoal = search(gi, gk, si, sk, blocked, near).closed;
+      const size = (m) => m.reduce((a, v) => a + v, 0);
+      if (size(fromGoal) >= size(fromStart)) {
+        const n = nearestIn(fromGoal, from.x, from.z);
+        if (n >= 0) { si = n % nx; sk = Math.floor(n / nx); }
+      } else {
+        const n = nearestIn(fromStart, to.x, to.z);
+        if (n >= 0) { gi = n % nx; gk = Math.floor(n / nx); end = center(gi, gk); }
+      }
+      res = search(si, sk, gi, gk, blocked, near);
+      if (!res.found) return [{ x: from.x, z: from.z }, { x: from.x, z: from.z }];
+    }
     const cells = [];
-    for (let n = goal; n !== -1; n = came[n]) cells.push(n);
+    for (let n = gi + gk * nx; n !== -1; n = res.came[n]) cells.push(n);
     cells.reverse();
     const pts = [{ x: from.x, z: from.z }];
+    // A start moved to another region begins at its cell, not across whatever lies between.
+    if (cells.length && (cells[0] % nx !== Math.max(0, Math.min(nx - 1, ix(from.x))) || Math.floor(cells[0] / nx) !== Math.max(0, Math.min(nz - 1, iz(from.z))))) pts.push(center(cells[0] % nx, Math.floor(cells[0] / nx)));
     // Keep only turning points so walkers move in long straight runs.
     for (let j = 1; j < cells.length - 1; j++) {
       const a = cells[j - 1], b = cells[j], c = cells[j + 1];
       if (b - a !== c - b) pts.push(center(b % nx, Math.floor(b / nx)));
     }
-    pts.push({ x: to.x, z: to.z });
+    // A goal inside furniture (a seat's approach, a spot on an item) is reached from its cell, not
+    // straight from the last turn across whatever lies between.
+    const gc = cells.at(-1);
+    const last = pts.at(-1), gcx = center(gc % nx, Math.floor(gc / nx));
+    if (cells.length > 1 && (gc % nx !== Math.max(0, Math.min(nx - 1, ix(end.x))) || Math.floor(gc / nx) !== Math.max(0, Math.min(nz - 1, iz(end.z)))) && (last.x !== gcx.x || last.z !== gcx.z)) pts.push(gcx);
+    pts.push({ x: end.x, z: end.z });
     return pts;
   }
 
