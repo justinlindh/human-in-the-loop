@@ -51,6 +51,12 @@ describe('office speech attention', () => {
     expect(b.admit('d', 3, 0)).toBe(true);
     expect(b.admit('e', 3, 1)).toBe(true);
   });
+  it('keeps a standup to one bubble in a big office', () => {
+    const b = createSpeechBudget();
+    b.step(0, 2 * B.bubbleStaffPerExtra);
+    expect(b.admit('a', 3, 1, { standup: true })).toBe(false);
+    expect(b.admit('a', 3, 0, { standup: true })).toBe(true);
+  });
   it('keeps a small office to one bubble', () => {
     const b = createSpeechBudget();
     b.step(0, B.bubbleStaffPerExtra - 1);

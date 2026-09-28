@@ -21,7 +21,8 @@ export function createSpeechBudget() {
     admit(id, seconds, count, { moment = false, standup = false } = {}) {
       let slot = 0;
       if (!moment) {
-        if (count >= max) return false;
+        // A standup is one conversation: its turns wait for the room to be quiet, whatever the headcount.
+        if (count >= (standup ? 1 : max)) return false;
         if (!standup) {
           if ((people.get(id) ?? 0) > now) return false;
           slot = -1;
