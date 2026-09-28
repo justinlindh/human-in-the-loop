@@ -39,6 +39,13 @@ async function startConversation({ speed, path }) {
 async function assertConversation() {
   const c = window.__standupCheck;
   const { holdSeconds } = await import('/src/render/reading.js');
+  // At 4x and above standups are skipped: no sampled frame may show a staged meeting.
+  if (c && c.speed >= 4) {
+    if (!c.frames.length || c.frames.at(-1).week <= c.startedWeek) throw Error('standup-live: real clock did not advance at 4x');
+    if (c.frames.some(f => f.meeting)) throw Error('standup-live: a meeting was staged at 4x');
+    (window.__captureMarks ??= []).push({ label: 'standup-live-pass', path: c.path, speed: c.speed, staged: false });
+    return;
+  }
   if (!c || !c.frames.some(f => f.meeting) || c.frames.at(-1).meeting || c.frames.at(-1).week <= c.startedWeek) throw Error('standup-live: meeting or real clock did not complete');
   if (c.frames.some(f => f.meeting && f.text.length > 1)) throw Error('standup-live: overlapping bubbles');
   const changed = c.path === 'outage' || c.path === 'replacement';
@@ -62,7 +69,7 @@ async function assertConversation() {
 
 export const ITEMS = [
   ...[1, 2, 4].map(speed => ({ path: 'outage', speed })),
-  { path: 'replacement', speed: 4 },
+  { path: 'replacement', speed: 2 },
   ...['remote', 'sabbatical', 'burnout', 'coasting'].map(path => ({ path, speed: 1 })),
 ].map(options => ({
   id: `standup-live-${options.path}-${options.speed}`, title: 'Standup live premise and complete exchange',
