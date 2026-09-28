@@ -57,6 +57,35 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
   const sessions = [];
   let clock = rnd(2, 4);
   const ballGeo = new THREE.SphereGeometry(0.028, 10, 8);
+  // A ping pong paddle in the fist: the grip in the hand, the blade beyond it, face forward.
+  const bladeGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 16).rotateX(Math.PI / 2).translate(0, -0.19, 0);
+  const gripGeo = new THREE.BoxGeometry(0.028, 0.1, 0.02).translate(0, -0.07, 0);
+  const PADDLE_COLS = ['fabric_terracotta', 'plastic_charcoal'];
+  const PADDLE_TILT = [-1.0, 0, 0.3];
+  function paddle(i) {
+    const g = new THREE.Group();
+    for (const m of [new THREE.Mesh(bladeGeo, mat(PADDLE_COLS[i])), new THREE.Mesh(gripGeo, mat('wood_honey'))]) { m.castShadow = !low(); g.add(m); }
+    // Tipped forward and out from the arm, so the swing carries the blade clear of the body.
+    g.rotation.set(...PADDLE_TILT);
+    return g;
+  }
+  // The table's own paddles, shown when nobody holds them.
+  function tablePaddles(obj, show) {
+    for (let i = 0; i < 2; i++) { const pd = obj.getObjectByName(`ping_pong_paddle${i}`); if (pd) pd.visible = show; }
+  }
+  // Each player picks up the table paddle nearer them.
+  function takePaddles(s) {
+    tablePaddles(s.e.obj, false);
+    const pads = [0, 1].map((i) => s.e.obj.getObjectByName(`ping_pong_paddle${i}`)?.getWorldPosition(new THREE.Vector3()));
+    const d = (r, v) => (v ? Math.hypot(r.pos.x - v.x, r.pos.z - v.z) : 0);
+    const aFirst = d(s.a, pads[0]) + d(s.b, pads[1]) <= d(s.a, pads[1]) + d(s.b, pads[0]);
+    s.paddles = [s.a, s.b].map((r, k) => { const pd = paddle(aFirst ? k : 1 - k); r.char.setHeld(pd); return [r, pd]; });
+  }
+  function dropPaddles(s) {
+    for (const [r, pd] of s.paddles ?? []) if (pd.parent) r.char.setHeld(null);
+    s.paddles = null;
+    tablePaddles(s.e.obj, true);
+  }
 
   function toWorld(t, lx, lz) {
     return { x: t.x + Math.cos(t.rotY) * lx + Math.sin(t.rotY) * lz, z: t.z - Math.sin(t.rotY) * lx + Math.cos(t.rotY) * lz };
@@ -372,6 +401,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
 
   function endPair(s, played) {
     if (s.ball) { s.ball.removeFromParent(); s.ball = null; }
+    if (s.paddles) dropPaddles(s);
     if (s.foos) { foosEnd(s.foos); s.foos = null; }
     const live = [s.a, s.b].filter((r) => r.temp?.pair === s);
     if (played && live.length === 2) {
@@ -398,7 +428,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
           s.phase = 'play'; s.t = 0; played++;
           announceUse(s.e, [s.a.id, s.b.id]);
           s.a.temp.anim = s.b.temp.anim = s.def.anim;
-          if (s.def === PERKS.pingpong) { s.ball = new THREE.Mesh(ballGeo, mat('paper')); s.ball.castShadow = true; parent.add(s.ball); }
+          if (s.def === PERKS.pingpong) { s.ball = new THREE.Mesh(ballGeo, mat('paper')); s.ball.castShadow = !low(); parent.add(s.ball); takePaddles(s); }
           if (s.def === PERKS.foosball) foosStart(s);
         } else if (s.t > s.limit) { endPair(s, false); sessions.splice(i, 1); }
         continue;

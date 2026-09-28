@@ -873,7 +873,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       case 'paddle': {
         const sw = s(t * 6.5 + phase);
         tgt.armRX = -0.9 + sw * 0.6;
-        tgt.armRZ = -0.55 - sw * 0.25;
+        tgt.armRZ = -0.1 - sw * 0.25;
         tgt.armLX = -0.4;
         tgt.twist = sw * 0.28;
         tgt.lean = 0.1;

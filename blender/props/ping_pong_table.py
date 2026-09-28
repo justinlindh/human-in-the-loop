@@ -1,4 +1,4 @@
-'''Ping pong table sized for chibi players: 1.8 x 1.0 top at 0.6 m, net across the middle, two paddles.'''
+'''Ping pong table sized for chibi players: 1.8 x 1.0 top at 0.6 m, net across the middle, two paddles as separate objects.'''
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *
@@ -25,9 +25,12 @@ for sx in (-1, 1):
         parts.append(box(f'leg{sx}{sy}', (0.05, 0.05, H - 0.07), (x, sy * (W / 2 - 0.12), (H - 0.07) / 2), 'metal_dark', bevel=0.01))
     parts.append(box(f'foot{sx}', (0.07, W - 0.16, 0.04), (x, 0, 0.02), 'metal_dark', bevel=0.01))
 parts.append(box('stretcher', (L - 0.6, 0.04, 0.04), (0, 0, 0.3), 'metal_dark', bevel=0.01))
-# Paddles resting on either end.
-for sx, col in ((-1, 'fabric_terracotta'), (1, 'plastic_charcoal')):
-    parts.append(cyl(f'pad{sx}', 0.075, 0.012, (sx * (L / 2 - 0.2), sx * 0.2, H + 0.008), col, verts=16, bevel=0.003))
-    parts.append(box(f'grip{sx}', (0.1, 0.028, 0.02), (sx * (L / 2 - 0.2) + sx * 0.11, sx * 0.2, H + 0.012), 'wood_honey', bevel=0.006, segments=1))
 join(parts, 'ping_pong_table')
+# Paddles resting on either end, each its own object (ping_pong_paddle0, 1) so the game can hide one
+# while a player holds it.
+for i, (sx, col) in enumerate(((-1, 'fabric_terracotta'), (1, 'plastic_charcoal'))):
+    pad = cyl(f'pad{sx}', 0.075, 0.012, (sx * (L / 2 - 0.2), sx * 0.2, H + 0.008), col, verts=16, bevel=0.003)
+    grip = box(f'grip{sx}', (0.1, 0.028, 0.02), (sx * (L / 2 - 0.2) + sx * 0.11, sx * 0.2, H + 0.012), 'wood_honey', bevel=0.006, segments=1)
+    join([pad, grip], f'ping_pong_paddle{i}')
+require_parts(['ping_pong_table', 'ping_pong_paddle0', 'ping_pong_paddle1'])
 export()
