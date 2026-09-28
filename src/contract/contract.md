@@ -426,9 +426,9 @@ Three advisors (a CFO, a people lead and a tech lead) comment on what the player
 ### Sim API: Advisors
 
 ```js
-advice(state) -> Advice[]   // pure read: changes nothing and draws no game randomness; ranked by severity (highest first), then key; [] when nothing applies
+advice(state) -> Advice[]   // pure read: changes nothing and draws no game randomness; ranked by severity (highest first), then key; a single { key: 'fine', severity: 1, target: null, ... } when nothing applies, so the panel is never empty
 Advice = {
-  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'unplacedItem:<itemId>', 'era:<eraId>', 'oneProduct', 'aging:<productId>', 'fine'
+  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'fine'
   advisor,       // 'cfo' | 'people' | 'tech'
   severity,      // 1 worth a thought, 2 soon, 3 urgent
   tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
@@ -439,7 +439,7 @@ Advice = {
 }
 ```
 
-- Each trigger reads a number some panel already shows (runway, burnout count, comprehension debt, knowledge share, unlocked but unused policies and items, the current era, MRR share, product score trend).
+- Each trigger reads a number some panel already shows (runway, burnout count, comprehension debt, one person's share of the team's know-how, juniors without a mentor, a product's migration date, the current era, MRR share, unlocked but unused policies).
 - A key the player dismissed at its current tier or lower is left out.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
@@ -464,6 +464,6 @@ advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastP
 { type: 'advice', key, advisor, severity, tier, text, why, target }   // the rare unprompted line; ui shows it on the tray card, never in Yak
 ```
 
-- At most one every `B.advisorPushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
+- At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
 - A key isn't pushed again within its `cooldownWeeks` unless its tier rose.
 - The sim always computes and emits. The On / Quiet / Off setting lives in ui's settings store, not in state: On shows pushes and the panel, Quiet ignores `advice` events, Off hides the panel. Bot games end identically whatever the setting.
