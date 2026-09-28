@@ -434,7 +434,7 @@ Advice = {
   tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
   text,          // the advisor's line, in the game's voice
   why,           // the visible fact behind it, short: 'Runway: 11 weeks at this burn'
-  target,        // { panel, arg } | null: the menu that shows the fact ('staff'|'reports'|'policies'|'ops'|'office'|'build'|'automation'); arg e.g. a staffId
+  target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation', ui's menu ids); arg e.g. a staffId
   cooldownWeeks  // how long an unprompted push of this key rests
 }
 ```
@@ -446,7 +446,7 @@ Advice = {
 ### State: Advisors
 
 ```js
-advisors: { dismissed: { [key]: tier }, pushed: { [key]: week }, lastPushWeek /*number|null*/ }   // default { dismissed: {}, pushed: {}, lastPushWeek: null }
+advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastPushWeek /*number|null*/ }   // default { dismissed: {}, pushed: {}, lastPushWeek: null }
 ```
 
 - Old saves load a missing `advisors` with the default.
