@@ -461,7 +461,7 @@ advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastP
 ### Events: Advisors
 
 ```js
-{ type: 'advice', key, advisor, severity, tier, text, why, target }   // the rare unprompted line; ui shows it as the advisor's peek beside the HUD lightbulb, never in Yak
+{ type: 'advice', key, advisor, severity, tier, text, why, target }   // the rare unprompted line; ui shows it as the advisor's peek (a portrait and one line that slide in, then tuck away), never in Yak
 ```
 
 - Pushed by the `advisors` system (order 96, after `history`). At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
