@@ -39,11 +39,13 @@ const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
+// A role's own colour shares the palette material; any other colour (an advisor's accent) gets its own.
 function roleMaterial(role, hex) {
-  const key = role ?? hex;
+  const own = !!ROLE_COLORS[role] && (!hex || hex === ROLE_COLORS[role]);
+  const key = own ? role : `${role}:${hex}`;
   let m = roleMats.get(key);
   if (!m) {
-    m = ROLE_COLORS[role] ? mat(`role_${role}`) : new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.7 });
+    m = own ? mat(`role_${role}`) : new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.7 });
     roleMats.set(key, m);
   }
   return m;
