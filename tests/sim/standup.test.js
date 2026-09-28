@@ -276,3 +276,29 @@ describe('standup variety', () => {
     }
   }, 120000);
 });
+
+describe('standups at the meeting table (#974)', () => {
+  const table = (s) => { s.office.placed.push({ id: `t${s.nextId++}`, itemId: 'meeting_table', level: 1, x: 0, y: 100, rot: 0 }); return s; };
+  const knowledgeAfter = (s) => {
+    for (const p of s.staff) p.knowledge = 40;
+    const st = run(s).find((e) => e.type === 'standup');
+    return { st, k: new Map(s.staff.map((p) => [p.id, p.knowledge])) };
+  };
+
+  it('a daily standup at a meeting table teaches everyone who speaks a little', () => {
+    const s = table(office(4));
+    s.policies.daily_standups = true;
+    const { st, k } = knowledgeAfter(s);
+    const spoke = new Set(st.lines.map((l) => l.staffId));
+    for (const p of s.staff) expect(k.get(p.id), p.name).toBe(spoke.has(p.id) ? 40 + B.meetingTableKnowledge : 40);
+  });
+
+  it('without a table, or with async standups, nobody gains knowledge from it', () => {
+    const bare = office(4);
+    bare.policies.daily_standups = true;
+    expect([...knowledgeAfter(bare).k.values()].every((v) => v === 40)).toBe(true);
+    const async = table(office(4));
+    async.policies.async_standups = true;
+    expect([...knowledgeAfter(async).k.values()].every((v) => v === 40)).toBe(true);
+  });
+});
