@@ -1,26 +1,29 @@
 #!/usr/bin/env node
-// Checks docs/features.md against the game's data, both ways:
+// Checks the feature inventory (docs/features/, one file per area) against the game's data, both ways:
 //   - every required id has an entry (`id: <x>` in a bullet), unless a bullet in the "Ids left out on
-//     purpose" section names it as a code span in its subject (before the first ": ", leaving out
+//     purpose" file names it as a code span in its subject (before the first ": ", leaving out
 //     parenthesised examples and anything after "other than");
 //   - every `id: <x>` in the file exists somewhere in the data.
 // Required ids: events with a stage, a grant or a leaves prop; items; perks; moment KINDS; quick
 // posts; prompt template ids; music night genres; eras. Some ids are shared by several kinds
 // (pizza, coffee, chatgbt), so an id counts by presence, whatever kind the entry is about.
-// Usage: node scripts/features-ids.mjs [--doc <features.md>] [--root <checkout>]
-//   --doc   the file to check (default docs/features.md under --root)
+// Usage: node scripts/features-ids.mjs [--doc <dir or file>] [--root <checkout>]
+//   --doc   the inventory: a directory of .md files (default docs/features/ under --root) or one file
 //   --root  the checkout whose data defines the ids (default this script's own)
 // Exit 0 when both directions hold, 1 with the list when not, 2 when the file or data can't be read.
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const root = resolve(opt('root', join(dirname(fileURLToPath(import.meta.url)), '..')));
-const docPath = resolve(opt('doc', join(root, 'docs/features.md')));
+const docPath = resolve(opt('doc', join(root, 'docs/features')));
 if (!existsSync(docPath)) { console.log(`features-ids: no ${docPath}; nothing to check`); process.exit(0); }
-const doc = readFileSync(docPath, 'utf8');
+// Each area file opens with a "# <area>" heading, read here as a section like a "## " one.
+const doc = statSync(docPath).isDirectory()
+  ? readdirSync(docPath).filter((n) => n.endsWith('.md')).sort().map((n) => readFileSync(join(docPath, n), 'utf8')).join('\n')
+  : readFileSync(docPath, 'utf8');
 const load = (rel) => import(pathToFileURL(join(root, rel)).href);
 
 // Keys of a top-level object literal in a module we can't import (render code imports three).
@@ -84,7 +87,7 @@ try {
 }
 
 // The file's own ids: `id: <x>` code spans; the exceptions: code spans in the left-out section.
-const sections = doc.split(/^## /m);
+const sections = doc.split(/^##? /m);
 const leftOut = sections.find((s) => /^Ids left out on purpose/.test(s)) ?? '';
 const body = sections.filter((s) => s !== leftOut).join('\n## ');
 const inDoc = new Set([...body.matchAll(/`id: ([^`\s]+)`/g)].map((m) => m[1]));
