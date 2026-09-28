@@ -7,6 +7,7 @@ import { itemBonus, researchBonus } from './bonus.js';
 import { staffMods } from './staff.js';
 import { remoteLearning } from './ladder.js';
 import { bumpDebt } from './debt.js';
+import { responding } from './responders.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
@@ -88,7 +89,7 @@ export function debtFlow(state) {
   const ik = state.institutionalKnowledge;
   const here = state.staff.filter((p) => p.mood !== 'away');
   const shipping = new Set(state.projects.filter((j) => DEBT_WORK.has(j.kind)).map((j) => j.id));
-  const builders = here.filter((p) => p.assignment.type === 'project' && shipping.has(p.assignment.targetId));
+  const builders = here.filter((p) => p.assignment.type === 'project' && shipping.has(p.assignment.targetId) && !responding(state, p.id));
   const engineers = here.filter((p) => p.role === 'engineer');
   const work = B.debtPerBuildWeek * sum(builders, (p) => B.debtBuildWeight[p.seniority] ?? 1) * (state.policies.crunch ? B.debtCrunchMult : 1);
   return {
@@ -97,7 +98,7 @@ export function debtFlow(state) {
     products: B.debtPerProduct * live,
     lowKnowledge: ik < B.debtLowIkThreshold ? (B.debtLowIkThreshold - ik) * B.debtLowIkRate : 0,
     seniors: paydown(debt * B.debtPaydownPerSeniorEng * sum(engineers.filter((p) => p.seniority === 'senior'), (p) => (p.knowledge / 100) * staffMods(p).debtPaydown)),
-    maintenance: paydown(debt * B.debtPaydownMaintenance * engineers.filter((p) => p.assignment.type === 'maintenance').length),
+    maintenance: paydown(debt * B.debtPaydownMaintenance * engineers.filter((p) => p.assignment.type === 'maintenance' && !responding(state, p.id)).length),
     reviews: state.policies.comprehension_reviews ? paydown(debt * B.debtPaydownReviews) : 0,
   };
 }

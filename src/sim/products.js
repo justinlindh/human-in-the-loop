@@ -110,13 +110,15 @@ export function productsSystem(ctx) {
       soldMrr += won * CATEGORIES[p.category].price;
     }
     const inOutage = state.outage?.productId === p.id;
-    const churn = Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
+    const churnWith = (down) => Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
       + (p.hype / 10 > p.score + B.wrapperGap ? B.wrapperChurn : 0)
       + state.ops.supportShortfall * B.supportShortfallChurn
       + (1 - Math.min(10, p.novelty) / 10) * B.staleChurn
-      + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn
+      + (down ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn
       * (1 - B.fameChurnRelief * (state.fame ?? 0) / 100);
-    p.customers = Math.max(0, Math.floor(p.customers * (1 - churn)));
+    const kept = Math.max(0, Math.floor(p.customers * (1 - churnWith(inOutage))));
+    if (inOutage && state.outage.cost) state.outage.cost.customers += Math.max(0, Math.floor(p.customers * (1 - churnWith(false))) - kept);
+    p.customers = kept;
 
     if (shortfall > 0) p.health -= decay * shortfall;
     else p.health = Math.min(p.baseHealth, p.health + B.healthRecovery);

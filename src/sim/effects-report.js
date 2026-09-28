@@ -54,6 +54,7 @@ const SPECIAL = {
   gpuShortageWeeks: (v) => `automation costs ${pct(B.gpuShortageMult - 1)} for ${v} weeks`,
   consultants: () => `consultants clear the outage for ${money(B.consultantCost)}`,
   clearOutage: () => 'the outage clears',
+  postmortem: () => `responders off their work 1 more week; tech debt -${B.postmortemDebt}; responders' knowledge +${B.postmortemKnowledge}; responders' meaning -${B.postmortemMeaning} unless Blameless Postmortems`,
   ransom: () => 'you pay the ransom',
   rivalMerge: () => 'you buy the rival (priced by its strength)',
   rivalFate: (v) => `the rival ${v === 'dead' ? 'shuts down' : v}`,

@@ -31,7 +31,7 @@ function expansionBlocker(state) {
   return officeGateReason(state, step) ?? (state.cash < step.upgradeCost ? 'Not enough cash' : null);
 }
 import { danceBreak } from './incentives.js';
-import { clearOutage } from './incidents.js';
+import { clearOutage, writePostmortem } from './incidents.js';
 import { automationCap } from './automation.js';
 import { adoptPet } from './ladder.js';
 import { setMission, testPurpose } from './purpose.js';
@@ -220,6 +220,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.cash -= B.consultantCost;
     clearOutage(ctx, ' thanks to very expensive consultants');
   }
+  if (fx.postmortem) writePostmortem(state);
   if (fx.clearOutage && state.outage && (!subjectProduct || state.outage.productId === subjectProduct.id)) clearOutage(ctx, ' thanks to the contractor');
   for (const m of [fx.modifier].flat().filter((x) => x && MODIFIER_KEYS[x.key])) {
     state.modifiers.push({ id: newId(state, 'mod'), key: m.key, value: m.value, label: m.label, untilWeek: state.week + m.weeks, source });

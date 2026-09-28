@@ -5,6 +5,7 @@ import { outputMult, staffMods, STATS } from './staff.js';
 import { registerSystem } from './registry.js';
 import { perk } from './bonus.js';
 import { currentEra } from './eras.js';
+import { responding } from './responders.js';
 
 export const zeroPoints = () => ({ features: 0, polish: 0, reliability: 0, novelty: 0 });
 
@@ -76,6 +77,7 @@ export function workSystem(ctx) {
   for (const p of state.staff) {
     if (p.mood === 'away') continue;
     const t = p.assignment.type;
+    if ((t === 'project' || t === 'maintenance') && responding(state, p.id)) continue;
     if (t === 'project' && weekEffort[p.assignment.targetId]) {
       const id = p.assignment.targetId;
       const pts = personPoints(state, p);

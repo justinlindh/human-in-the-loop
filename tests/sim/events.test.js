@@ -186,7 +186,7 @@ describe('decisions', () => {
     expect(old.hype).toBe(0);
     const before = old.customers;
     raise(s, 'agent_mass_email', old.id);
-    resolve(s, 0);
+    resolve(s, 2);
     expect(old.customers).toBe(Math.floor(before * 0.97));
   });
 });

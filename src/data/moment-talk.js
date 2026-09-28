@@ -87,17 +87,19 @@ export const MOMENT_TALK = {
     ["We're monitoring the minus sign.", 'The spreadsheet remains unconvinced.'],
   ] },
   agent_runaway_spend: { open: ['That rack is working harder than our business model.', 'The cron job has acquired a fleet.'], choices: [
-    ['Finance would like an apology with a limit attached.', 'Paid. Please never optimize that again.'],
-    ['Asking for store credit on four thousand GPUs.', 'The support ticket includes the word please twice.'],
     ['The postmortem needs a very wide cost chart.', 'At least the cautionary tale scales.'],
+    ['Budget alert set. Moving on before finance finds us.', 'The cron job lives. Smaller, humbler.'],
+    ['Asking for store credit on four thousand GPUs.', 'The support ticket includes the word please twice.'],
   ] },
   ransomware: { open: ['The skull has better animation than our loading screen.', 'Please tell me the backup is somewhere else.'], choices: [
-    ["That's the worst purchase order I've seen.", 'Paying for access to our own files. Lovely.'],
-    ['The backups are getting their big moment.', 'Time to find out what restore means.'],
+    ['Page one of the write-up: where the backups live.', 'We tested the restore. Once. Under duress.'],
+    ['Skull gone. Nobody look at the logs too closely.', "We're calling that a restore and moving on."],
+    ["That's the worst purchase order I've seen.", 'Paying them to forget us. Lovely.'],
   ] },
   phishing_ceo: { open: ['The gift cards are a strange enterprise feature.', 'Apparently the boss signs emails with three urgents.'], choices: [
-    ['New rule: the boss never needs gift cards. Ever.', 'The gift cards are now training materials.'],
-    ['Keeping the gift cards as a cautionary decoration.', "We've filed that under nearly."],
+    ['New rule: the boss never needs gift cards. Ever.', 'The write-up has a whole section on urgency.'],
+    ['Finance calls before buying anything now.', "We've filed that under nearly."],
+    ['Keeping the gift cards as a cautionary decoration.', 'The email is on the fridge. It is framed.'],
   ] },
   lockdown_start: { open: ['My monitor is coming home before my desk.', 'The office fits in more boxes than expected.'], choices: [
     ['The stipend is going straight into a chair.', 'Packing the charger. That feels essential.'],

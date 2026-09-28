@@ -43,7 +43,8 @@ export function decisionVars(state, rng, subjectId) {
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
   return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
     alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague',
-    deal: featuredDeal(state)?.name ?? 'A small company' };
+    deal: featuredDeal(state)?.name ?? 'A small company',
+    incidentWeeks: state.flags.lastIncident?.weeks ?? 0, incidentCost: { ...(state.flags.lastIncident?.cost ?? { cash: 0, brand: 0, customers: 0 }) } };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
