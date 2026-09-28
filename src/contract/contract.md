@@ -431,7 +431,7 @@ Three advisors (a CFO, a people lead and a tech lead) comment on what the player
 ```js
 advice(state) -> Advice[]   // pure read: changes nothing and draws no game randomness; ranked by severity (highest first), then key; a single { key: 'fine', severity: 1, target: null, ... } when nothing applies, so the panel is never empty
 Advice = {
-  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'fine'
+  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'squadIdle:<squadId>', 'fine'
   advisor,       // 'cfo' | 'people' | 'tech'
   severity,      // 1 worth a thought, 2 soon, 3 urgent
   tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
@@ -451,7 +451,7 @@ Advice = {
 - Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
 - Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
 - `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
-- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item); other panels take no arg.
+- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item), a squadId for `squads` (the Squads tab in Staff, scrolled to that squad); other panels take no arg.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
 ### State: Advisors
@@ -494,8 +494,13 @@ state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
 
 - At most 6 squads. A person is in at most one squad; membership lives only on the squad, and ui looks it up there.
 - A member whose assignment doesn't match the squad's posting is "on loan". That is derived, never stored. A plain `assign` of a member leaves them in the squad, on loan.
-- After a squad's project ships with `afterLaunch: 'upkeep'`, the engineers who know the product best, enough to cover its maintenance and at least one, go to maintenance as its crew; the rest are benched: posting `{ type: 'idle', targetId: null }` with `benchUntil` set. When that week arrives, benched members go back to their default work. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
-- `cohesion * B.squadCohesionOutput` is an output bonus for members working the squad's posting. Anyone joining or leaving halves it.
+- Unlock: squads unlock the first week the company reaches the Office Floor or 8 staff, and stay unlocked after that even if headcount drops.
+- Postings are `project`, `maintenance` or `support`, plus `idle` for a benched squad. Other assignments (sales, marketing, security, oversight, mentoring) stay per person; a member on one of those is on loan.
+- After a squad's project ships with `afterLaunch: 'upkeep'`: the crew is the squad's engineers ranked by knowledge of that product, taken in order until their maintenance capacity covers the new product's maintenance need under the ordinary maintenance rule, and at least one. The crew goes to maintenance. The rest are benched: posting `{ type: 'idle', targetId: null }`, `benchUntil = week + B.squadBenchWeeks` (2). When that week arrives, benched members go back to their default work and the squad's posting becomes `maintenance`. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
+- If a squad's posted project is cancelled, the squad is benched the same way, with no crew.
+- Cohesion starts at 0 when a squad forms and rises by `1 / B.squadCohesionWeeks` (12) each week that at least half its members work its posting, up to 1. Anyone joining or leaving halves it.
+- Cohesion multiplies output: a member working the squad's posting gets `output * (1 + cohesion * B.squadCohesionOutput)` (0.05). On-loan and benched members get nothing.
+- Advisor topic `squadIdle:<squadId>` (people lead): a squad benched or idle for 2 or more weeks. Severity 1. Options: post it to a project, or post it to maintenance, each with target `{ panel: 'squads', arg: squadId }`. The debt advisor's maintenance option names an idle squad when there is one.
 - A departure removes the person from their squad and clears `leadId` if it was them. An emptied squad stays until disbanded.
 - Suggested names come from `SQUAD_NAMES` in `src/data/squads.js`.
 - Old saves load with `squads: []`.
@@ -512,7 +517,7 @@ Actions:
 { type: 'setSquadAfterLaunch', squadId, mode }    // 'upkeep' | 'maintenance'
 ```
 
-Refusal reasons include 'Squads unlock with the Office Floor or 8 people', 'Up to 6 squads', 'Name the squad', 'A squad has 1 to 8 people', 'No such staff member' and 'Not in this squad'. Squads unlock with the Office Floor or 8 people.
+Refusal reasons include 'Squads unlock with the Office Floor or 8 people', 'Up to 6 squads', 'Name the squad', 'A squad has 1 to 8 people', 'No such staff member' and 'Not in this squad'.
 
 Events:
 
