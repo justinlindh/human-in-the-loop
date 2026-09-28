@@ -41,6 +41,9 @@ done <<<"$refs"
 [ $code_push = 1 ] || exit 0
 [ -n "${CI:-}" ] && exit 0
 grep -q '"test:fast"' package.json 2>/dev/null || exit 0
+# Git exports GIT_DIR and friends to hooks; tests that drive their own scratch repos would act on
+# this one instead.
+unset $(git rev-parse --local-env-vars 2>/dev/null)
 log="$(mktemp)"; trap 'rm -f "$log"' EXIT
 if ! npm run -s test:fast >"$log" 2>&1; then
   tail -25 "$log" >&2

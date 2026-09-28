@@ -8,7 +8,7 @@ fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 unset CI
 r="$tmp/repo"; mkdir -p "$r" "$tmp/bin"
 printf '{ "scripts": { "test:fast": "bash fake.sh" } }\n' >"$r/package.json"
-printf 'echo run >>"%s/runs"; echo "      Tests  3 passed (3)"; exit "${WANT:-0}"\n' "$tmp" >"$r/fake.sh"
+printf 'echo run >>"%s/runs"; echo "${GIT_DIR:-no GIT_DIR}" >"%s/gitdir"; echo "      Tests  3 passed (3)"; exit "${WANT:-0}"\n' "$tmp" "$tmp" >"$r/fake.sh"
 git -C "$r" init -q -b main && git -C "$r" -c user.name=t -c user.email=t@t commit -qm base --allow-empty
 # gh pr list answers with $tmp/prs (empty: no PR for the branch).
 printf '#!/usr/bin/env bash\ncat "%s/prs" 2>/dev/null\n' "$tmp" >"$tmp/bin/gh"; chmod +x "$tmp/bin/gh"
@@ -31,6 +31,8 @@ CI=true WANT=1 push "refs/heads/x $SHA refs/heads/tools/x $ZERO"
 echo "5 MERGED" >"$tmp/prs"; push "refs/heads/x $SHA refs/heads/tools/x $ZERO"
 [ $rc -eq 1 ] && grep -q 'PR #5 is MERGED' <<<"$out" && [ "$(runs)" -eq "$n" ] || fail "a merged PR's branch is refused before the tests: rc $rc: $out"
 rm -f "$tmp/prs"
+GIT_DIR="$r/.git" push "refs/heads/x $SHA refs/heads/tools/x $ZERO"
+[ $rc -eq 0 ] && [ "$(cat "$tmp/gitdir")" = "no GIT_DIR" ] || fail "the tests run without git's hook variables (GIT_DIR): rc $rc, saw $(cat "$tmp/gitdir" 2>/dev/null)"
 
 [ $fails -eq 0 ] && echo "pre-push: all cases pass"
 exit $fails
