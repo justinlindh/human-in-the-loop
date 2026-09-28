@@ -18,6 +18,8 @@ import { agentsHere } from '../v2content.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
 const before = new Map(); // staffId -> the assignment they had before Assign put them on oversight
+// A new or loaded game has other people and projects under the same ids.
+export const forgetOverseers = () => before.clear();
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
 
 export function fnOversight(s, fn) {
@@ -141,7 +143,6 @@ function panelOf(ctx, tab) {
         if (sig === pickSig) return;
         pickSig = sig;
         const rows = overseerCandidates(st);
-        const back = (p) => ({ type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null });
         pickList.replaceChildren(...(rows.length ? rows.map(({ p, on, hours }) => h(`div.ovrow${on ? '.on' : ''}`, null,
           h('b.ovname', { text: p.name }),
           h('span.small.muted', { text: `${roleName(p.role)} · ${on ? 'on oversight' : (ASSIGNMENT_LABEL[p.assignment.type] ?? p.assignment.type)}` }),

@@ -9,6 +9,7 @@ import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
+import { forgetOverseers } from './panels/automation.js';
 import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
@@ -315,7 +316,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
-      announcer.reset(); spacing.reset(); growth.reset(); advisors.reset(); officePrompt.reset(); buildMode.exit(); menuSig = null;
+      announcer.reset(); spacing.reset(); growth.reset(); forgetOverseers(); advisors.reset(); officePrompt.reset(); buildMode.exit(); menuSig = null;
       for (const id of newMenus) menu.setNew(id, false);
       newMenus.clear();
       launchScores.clear();
