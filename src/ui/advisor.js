@@ -44,6 +44,8 @@ function who(id) {
 const sev = (x) => (x === 3 || x === 'urgent' ? 'urgent' : x === 2 || x === 'warn' ? 'warn' : 'info');
 const isFine = (x) => x?.key === 'fine';
 const panelOf = (x) => x?.target?.panel ?? x?.panel ?? null;
+// Targets that open a tab inside another panel: squads live in Staff.
+const HOST_PANEL = { squads: 'staff' };
 
 // The advisor's face: art's portrait in a round badge frame when the renderer has one ready,
 // else initials in their colour. Faces showing initials upgrade when portraits finish rendering.
@@ -115,9 +117,9 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     h('span.advpeek-bub', null, peekWho, peekText, h('span.advpeek-more', { text: 'More ›' })), peekFace);
   layer?.append(peek);
 
-  const canShow = (item) => { const p = panelOf(item); return !!p && (p === 'goals' || !!panels[p]); };
+  const canShow = (item) => { const p = panelOf(item); return !!p && (p === 'goals' || !!panels[HOST_PANEL[p] ?? p]); };
   // Where an option leads, named as its panel is (Staff, Reports...), for the chip on its button.
-  const placeName = (o) => { const p = panelOf(o); return p === 'goals' ? 'Goals' : (panels[p]?.title ?? '').split(' ')[0]; };
+  const placeName = (o) => { const p = panelOf(o); return p === 'goals' ? 'Goals' : (panels[HOST_PANEL[p] ?? p]?.title ?? '').split(' ')[0]; };
   const options = (item) => (Array.isArray(item.options) ? item.options.filter((o) => o?.text && canShow(o)).slice(0, 3) : []);
   // Opens the panel a line or option names. A staffId opens that person; a policy or product id
   // scrolls its row into view with a brief flash, once the panel has drawn.
@@ -126,6 +128,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     const arg = item.target?.arg;
     ctx.modal?.close();
     if (target === 'goals') { openGoals(); return; }
+    if (target === 'squads') { ctx.open('staff', { tab: 'squads', squadId: arg ?? null }); return; }
     if (!target || !panels[target]) return;
     if (target === 'staff') { ctx.open('staff', arg ? { staffId: arg } : undefined); return; }
     if (target === 'office' && typeof arg === 'string' && arg) { startPlacing(ctx, arg); return; }
