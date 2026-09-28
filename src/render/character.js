@@ -1094,6 +1094,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     setPetTarget(target) { petTarget = target; },
     // Both wrists in world space, left then right (shared vectors: copy them to keep them).
     hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
+    // The shoulder joints, left then right, for hand-posed stills (the meme studio). A pose set on
+    // them lasts until the next update.
+    shoulders() { return arms.map((a) => a.shoulder); },
     get anim() { return anim; },
     // Staging measurements (probe.js), in world space: the eyes, the way the face points, the hands.
     probe() {
