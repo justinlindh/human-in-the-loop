@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { request } from 'node:http';
-import { bindAllowed, isPrivateAddress, scrub, lastActivity } from './lib.mjs';
+import { bindAllowed, isPrivateAddress, scrub, lastActivity, modelName } from './lib.mjs';
 
 const SERVER = join(import.meta.dirname, 'server.mjs');
 
@@ -51,7 +51,7 @@ test('scrubs secrets and keeps descriptions to one short line', () => {
 test('takes each agent\'s newest tool call from the log tails, scrubbed', () => {
   const dir = mkdtempSync(join(tmpdir(), 'dash-'));
   const line = (who, at, name, description) => JSON.stringify({ type: 'assistant', agentName: who, timestamp: at,
-    message: { content: [{ type: 'tool_use', name, input: { description, command: 'secret stays out' } }] } });
+    message: { model: 'claude-opus-5-5', content: [{ type: 'tool_use', name, input: { description, command: 'secret stays out' } }] } });
   writeFileSync(join(dir, 'a.jsonl'), [line('art', '2026-01-01T00:00:00Z', 'Bash', 'older'), line('art', '2026-01-01T00:05:00Z', 'Bash', 'push ghp_abcdefghijklmnopqrstuvwxyz0123')].join('\n'));
   mkdirSync(join(dir, 's', 'subagents'), { recursive: true });
   writeFileSync(join(dir, 's', 'subagents', 'x.jsonl'), JSON.stringify({ type: 'assistant', timestamp: '2026-01-01T00:03:00Z', message: { content: [{ type: 'tool_use', name: 'Read', input: {} }] } }));
@@ -59,9 +59,20 @@ test('takes each agent\'s newest tool call from the log tails, scrubbed', () => 
   const rows = lastActivity(files, () => 'sim');
   const art = rows.find((r) => r.who === 'art');
   assert.equal(art.tool, 'Bash');
+  assert.equal(art.model, 'Opus 5.5');
   assert.ok(art.what.startsWith('push [hidden]'), art.what);
   assert.ok(!JSON.stringify(rows).includes('secret stays out'));
   assert.ok(rows.some((r) => r.who === 'sim (subagent)' && r.tool === 'Read'));
+});
+
+test('names models as people say them', () => {
+  assert.equal(modelName('claude-opus-5-5'), 'Opus 5.5');
+  assert.equal(modelName('claude-opus-5-5[1m]'), 'Opus 5.5');
+  assert.equal(modelName('claude-sonnet-5'), 'Sonnet 5');
+  assert.equal(modelName('claude-haiku-4-5-20251001'), 'Haiku 4.5');
+  assert.equal(modelName('claude-fable-5'), 'Fable 5');
+  assert.equal(modelName('some-other-model'), 'some-other-model');
+  assert.equal(modelName(undefined), '');
 });
 
 test('the server refuses a wildcard or public bind', () => {
