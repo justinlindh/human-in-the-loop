@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HITL team dashboard</title>
 <style>
-  :root { --bg: #f6f3ec; --panel: #fffdf8; --ink: #23201a; --dim: #7a7266; --line: #e3ddd0; --ok: #2f8a4c; --bad: #c0392b; --wait: #b7791f; --run: #2b6cb0; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #16150f; --panel: #1f1d17; --ink: #ece6d8; --dim: #a39a8a; --line: #34302a; } }
+  :root { color-scheme: light; --bg: #f6f3ec; --panel: #fffdf8; --ink: #23201a; --dim: #6f675b; --line: #e3ddd0; --ok: #23773f; --bad: #b3261e; --wait: #9a6412; --run: #1f5fa6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --bg: #14130f; --panel: #1e1c16; --ink: #ece6d8; --dim: #a8a08f; --line: #36322b; --ok: #5cc27d; --bad: #f07a6c; --wait: #e5ad4f; --run: #6aa8ef; } }
+  :root[data-theme="dark"] { color-scheme: dark; --bg: #14130f; --panel: #1e1c16; --ink: #ece6d8; --dim: #a8a08f; --line: #36322b; --ok: #5cc27d; --bad: #f07a6c; --wait: #e5ad4f; --run: #6aa8ef; }
+  #theme { margin-left: auto; font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
   header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; padding: 14px 16px; border-bottom: 1px solid var(--line); }
@@ -34,6 +36,7 @@
   <span id="main"></span>
   <span id="ci" class="dim"></span>
   <span id="age" class="dim"></span>
+  <button id="theme" type="button" title="Theme: follows the system until you pick one"></button>
 </header>
 <main>
   <section><h2>Agents</h2><table id="agents"></table></section>
@@ -43,6 +46,21 @@
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
+// Theme: auto (the system setting), light or dark; the choice is remembered in this browser only.
+const THEMES = ['auto', 'light', 'dark'];
+const saved = () => { try { return localStorage.getItem('hitl-dash-theme') || 'auto'; } catch { return 'auto'; } };
+function applyTheme(t) {
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = t;
+  $('theme').textContent = `Theme: ${t}`;
+}
+let theme = saved();
+applyTheme(theme);
+$('theme').addEventListener('click', () => {
+  const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  theme = next;
+  try { localStorage.setItem('hitl-dash-theme', next); } catch { /* not remembered */ }
+  applyTheme(next);
+});
 const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
 const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 90 ? `${s}s` : s < 5400 ? `${Math.round(s / 60)}m` : `${Math.round(s / 3600)}h`; };
 const tone = (v) => ({ success: 'ok', failure: 'bad', error: 'bad', pending: 'wait', in_progress: 'run', queued: 'wait', cancelled: '' })[v] ?? '';

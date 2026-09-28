@@ -4,7 +4,7 @@ section: pr
 who: all
 covers: scripts/dashboard/server.mjs scripts/dashboard/collect.mjs scripts/dashboard/lib.mjs scripts/dashboard/dashboard.test.mjs scripts/systemd/hitl-dashboard.service
 ---
-The owner's read-only view of the team, with no model calls, so it costs no tokens. It shows:
+The owner's read-only view of the team, with no model calls, so it costs no tokens. It follows the system's light or dark setting, and a Theme button picks one, remembered in that browser. It shows:
 - each agent's newest tool call, with its one-line description, scrubbed of anything that looks like a secret and cut to 80 characters;
 - local CI: auto CI's runs and their last step, slots, load, the quiet window, the render hold and the main guard;
 - open PRs with every check;
