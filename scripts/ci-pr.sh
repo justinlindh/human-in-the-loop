@@ -187,17 +187,19 @@ if [ "$mode" = light ]; then
     rm -f "$tmp"
   done <<<"$changed"
   [ "$syntax" = pass ] || light_ok=0
-  # A light change can't touch the data, so the PR's docs/features.md is checked against the base's.
+  # A light change can't touch the data, so the PR's docs/features/ is checked against the base's.
   features=""; fout=""
-  if grep -qx 'docs/features.md' <<<"$changed" && [ -f "$TOOLS/scripts/features-ids.mjs" ]; then
-    fdoc="$(mktemp --suffix=.md)"
-    if git -C "$REPO" show "refs/ci/pr-$pr/head:docs/features.md" >"$fdoc" 2>/dev/null; then
-      if fout="$(node "$TOOLS/scripts/features-ids.mjs" --root "$TOOLS" --doc "$fdoc" 2>&1)"; then features=pass
+  if grep -q '^docs/features/' <<<"$changed" && [ -f "$TOOLS/scripts/features-ids.mjs" ]; then
+    fdir="$(mktemp -d)"
+    if git -C "$REPO" archive "refs/ci/pr-$pr/head" docs/features 2>/dev/null | tar -x -C "$fdir" 2>/dev/null; then
+      # The inventory is plain files: a symlink could point the checker anywhere on the machine.
+      if [ -n "$(find "$fdir" -type l -print -quit)" ]; then features=FAIL; light_ok=0; fout="features-ids: docs/features/ holds a symlink; the inventory must be plain files"
+      elif fout="$(node "$TOOLS/scripts/features-ids.mjs" --root "$TOOLS" --doc "$fdir/docs/features" 2>&1)"; then features=pass
       else features=FAIL; light_ok=0; fi
-      fout="${fout//$fdoc/docs\/features.md}"; fout="${fout//$TOOLS\//}"
+      fout="${fout//$fdir\//}"; fout="${fout//$TOOLS\//}"
       fout="$(sed -E 's#/(home|tmp)/[^[:space:]:)]*#<local path>#g' <<<"$fout")"
     fi
-    rm -f "$fdoc"
+    rm -rf "$fdir"
   fi
   table+=$'\n'"| syntax (touched .js/.mjs) | $syntax |"
   [ -n "$features" ] && table+=$'\n'"| features-ids | $features |"

@@ -12,4 +12,6 @@ Carries a review pass to a new head that only merges `main` in (ci-pr runs it af
 3. Conflicts are only in `docs/`, `*.md` (not `src/contract/`), `src/data/*.js`, tests, or that one `balance.js` line.
 4. `main` changed none of the PR's own `src/` files outside those.
 
+One more hand change carries: when main split `docs/features.md` into `docs/features/<area>.md` while the PR edited the old file, the merge may delete it and move the PR's own line edits verbatim into the area files. The lines the PR removed and added there must be exactly the lines the merge removes and adds under `docs/features/`, and nothing else there may change.
+
 When a rule fails, ci-pr's output names it (for example "rule 2: docs/x.md: a conflict wasn't resolved by keeping both sides verbatim"), and the PR needs a fresh verdict. Run `node scripts/merge-union-check.mjs <passed-head> <new-head> origin/main` to check a merge before pushing it.
