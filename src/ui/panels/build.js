@@ -314,15 +314,18 @@ export function buildPanel(ctx, arg) {
       options: live.map((p) => ({ value: p.id, label: `${p.name} v${p.version}`, stat: `score ${p.score.toFixed(1)}`, icon: 'update' })),
     });
     const migr = live.filter((p) => p.migrationDueWeek !== null && p.migrationDueWeek !== undefined);
+    // An advisor option naming a product lands on its migration row when one is due (the option is
+    // then "Start the migration"), else on Update a product.
+    const argMigrates = migr.some((p) => p.id === arg?.productId);
     const other = h('div.grid.others', null,
-      h('div.card.other', { dataset: live.some((p) => p.id === arg?.productId) ? { product: arg.productId } : {} },
+      h('div.card.other', { dataset: !argMigrates && live.some((p) => p.id === arg?.productId) ? { product: arg.productId } : {} },
         h('b', null, icon('update'), ' Update a product'),
         h('span.small.muted', { text: 'Makes it fresh again and gets new reviews.' }),
         live.length ? h('div.row', null, updSel.el, h('button.btn.small.blue', { onclick: () => startKind({ kind: 'update', productId: updSel.value }) }, 'Start')) : h('span.faint.small', { text: 'No live products yet.' })),
       h('div.card.other', null,
         h('b', null, icon('migrate'), ' Model migration'),
         h('span.small.muted', { text: 'Vendors deprecate old versions. Skipping a migration hurts health.' }),
-        migr.length ? h('div.col', null, ...migr.map((p) => h('div.row', null,
+        migr.length ? h('div.col', null, ...migr.map((p) => h('div.row', { dataset: p.id === arg?.productId ? { product: p.id } : {} },
           h('span.small', { text: `${p.name}: due ${p.migrationDueWeek <= s.week ? 'NOW' : `in ${p.migrationDueWeek - s.week}w`}`, class: p.migrationDueWeek <= s.week ? 'bad-t small' : 'warn-t small' }),
           h('button.btn.small.blue', { onclick: () => startKind({ kind: 'migration', productId: p.id }) }, 'Migrate'))))
           : h('span.faint.small', { text: 'Nothing due.' })),
