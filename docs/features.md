@@ -57,7 +57,7 @@ Conventions:
 
 ## The office (stages, items, perks)
 
-- ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. `capture 2-2-office-move`
+- ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. When a move becomes possible and stays possible for two game weeks, a Needs you row names it with its price and the Office button shows New; both go once you open Office or tap Later, once per new office. `capture 2-2-office-move`
 - **Garage**: a suburban lot with lawn, driveway, picket fences, houses behind, a roll-up garage door and a water heater in the corner. `?mock=garage`
 - **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
