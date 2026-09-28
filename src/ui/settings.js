@@ -1,6 +1,7 @@
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SAVE_NOTE } from './saveNote.js';
+import { downloadSave } from './saveFiles.js';
 
 const KEY = 'hitl.settings';
 // Audio buses the engine mixes; 'volume' is the master level.
@@ -78,7 +79,7 @@ export function applySettings(controls, s) {
   window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: s.momentCamera !== false } }));
 }
 
-export function createSettings({ layer, controls, sfx }) {
+export function createSettings({ layer, controls, sfx, getState = null, toast = null }) {
   const settings = loadSettings();
   applySettings(controls, settings);
 
@@ -152,8 +153,22 @@ export function createSettings({ layer, controls, sfx }) {
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
         h('h3.sethead', { text: 'Saving' }),
         h('div.small.muted.setnote', { text: SAVE_NOTE }),
+        canExport() ? row('Export a copy', 'Saves this company as a file. Import it on the title screen in another browser or device.',
+          h('button.btn.small', { onclick: () => exportNow() }, icon('continue'), ' Export')) : null,
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));
+  }
+
+  // Only for a game in progress that the host can save and read back.
+  const canExport = () => !!(controls.save && controls.exportSave && getState?.()?.companyName && !layer.classList.contains('title-mode'));
+  function exportNow() {
+    controls.save();
+    const s = getState();
+    const text = controls.exportSave(s.flags?.saveSlot);
+    if (!text) { toast?.('Could not export: this browser is not saving', 'warn'); sfx('error'); return; }
+    downloadSave(text, s.companyName, s.flags?.saveSlot);
+    sfx('confirm');
+    toast?.('Save exported as a file.', 'good');
   }
 
   function open() { render(); back.style.display = ''; sfx('open'); }

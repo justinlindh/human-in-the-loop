@@ -260,7 +260,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const popups = createPopups({ layer, ctx, toasts, restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
   const gameover = createGameOver({ layer, controls, sfx, act });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
-  const settings = createSettings({ layer, controls, sfx });
+  const settings = createSettings({ layer, controls, sfx, getState, toast: (text, tone) => toasts.push(text, tone) });
   ui.openSettings = () => settings.open();
   ui.isMuted = () => settings.isMuted();
   ui.toggleMute = () => { settings.setMuted(!settings.isMuted()); sfx('click'); };
