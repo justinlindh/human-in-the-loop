@@ -1194,7 +1194,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     startGrowth();
     playTime += dt;
-    speech.step(dt);
+    speech.step(dt, lastState?.staff?.length ?? 0);
     if (office.navVersion !== navSeen) { navSeen = office.navVersion; repath(); }
     updateStandup(dt);
     updateFast(dt);

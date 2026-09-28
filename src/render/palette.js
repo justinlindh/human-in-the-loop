@@ -103,6 +103,11 @@ export const PALETTE = {
   alarm_red: '#ff3b3b',
   lamp_warm: '#ffcf96',
   city_lit: '#ffd27a',
+  flame_base: '#e2561f',
+  flame_mid: '#f7952c',
+  flame_tip: '#ffd45a',
+  flame_core: '#fff1b0',
+  flame_glow: '#ffae4a',
 
   // Tone colors for floating labels
   tone_features: '#4f8cff',

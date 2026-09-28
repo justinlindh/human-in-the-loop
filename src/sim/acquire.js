@@ -35,7 +35,7 @@ export function forSaleSystem(ctx) {
   const picks = shuffle(rng, FOR_SALE.filter((c) => !taken.has(c.name))).slice(0, B.forSalePerRound);
   for (const base of picks) state.market.forSale.push(listing(state, rng, base));
   if (picks.length) {
-    emitChat(ctx, { channel: 'random', from: '@dealbot', text: `${picks.length} small companies are quietly for sale this quarter: ${picks.map((c) => c.name).join(', ')}. Offers close in ${B.forSaleWeeks} weeks.` });
+    emitChat(ctx, { channel: 'random', from: '@dealbot', text: `${picks.length} small companies are quietly for sale this quarter: ${picks.map((c) => c.name).join(', ')}. Offers close in ${B.forSaleWeeks} weeks.`, important: true });
   }
 }
 
