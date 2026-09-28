@@ -127,7 +127,20 @@ const { browser } = await launchChromium(chromium, { mode: GL, label: 'phone-che
 const results = [];
 const wait = (page, ms) => page.waitForTimeout(ms);
 
+// A game that doesn't come up (a loaded CI machine) gets one more try; after that the check
+// reports it instead of crashing on a missing window.__HITL.
 async function openGame(deviceName, extraQuery = '') {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await openGameOnce(deviceName, extraQuery);
+    } catch (e) {
+      if (!e.gameDidNotLoad || attempt >= 2) throw e;
+      console.log(`retry  ${deviceName.padEnd(15)} the game did not load in 90 s; trying once more`);
+    }
+  }
+}
+
+async function openGameOnce(deviceName, extraQuery = '') {
   const ctx = await browser.newContext({ ...DEVICES[deviceName] });
   await ctx.addInitScript(INIT);
   const page = await ctx.newPage();
@@ -136,8 +149,15 @@ async function openGame(deviceName, extraQuery = '') {
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   const q = new URLSearchParams(query);
   for (const [k, v] of new URLSearchParams(extraQuery)) q.set(k, v);
-  await page.goto(`${base}?${q}`, { waitUntil: 'load' });
-  await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 90000 });
+  try {
+    await page.goto(`${base}?${q}`, { waitUntil: 'load', timeout: 90000 });
+    await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 90000 });
+  } catch (e) {
+    await ctx.close().catch(() => {});
+    const err = new Error(`the game did not load in 90 s (${String(e.message ?? e).split('\n')[0]})`);
+    err.gameDidNotLoad = true;
+    throw err;
+  }
   await wait(page, 800);
   await page.evaluate(() => document.querySelectorAll('.btn').forEach((b) => { if (/Skip tour/.test(b.textContent)) b.click(); }));
   await wait(page, 300);
@@ -155,6 +175,26 @@ const stepWeek = (page) => page.evaluate(() => {
   for (let c = 0; c < 4 && h.state.pendingDecision; c++) h.dispatch({ type: 'resolveDecision', choice: c });
   h.tickN(1);
 });
+// Closes every card on screen (announcements, modals, decisions) by pressing its buttons; returns
+// the class names of any still showing after a few rounds.
+async function clearCards(page) {
+  for (let i = 0; i < 12; i++) {
+    const open = await page.evaluate(() => {
+      const h = window.__HITL;
+      for (let c = 0; c < 4 && h.state.pendingDecision; c++) h.dispatch({ type: 'resolveDecision', choice: c });
+      const shown = [...document.querySelectorAll('.announce-back, .modal-back')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width);
+      for (const card of shown) {
+        const btn = [...card.querySelectorAll('button')].reverse().find((b) => !b.disabled && b.offsetParent);
+        btn?.click();
+      }
+      return shown.length;
+    });
+    if (!open) return [];
+    await page.waitForTimeout(400);
+  }
+  return page.evaluate(() => [...document.querySelectorAll('.announce-back, .modal-back')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width).map((e) => e.className));
+}
+
 const clearDecisions = (page) => page.evaluate(() => { const h = window.__HITL; for (let c = 0; c < 4 && h.state.pendingDecision; c++) h.dispatch({ type: 'resolveDecision', choice: c }); });
 const camera = (page) => page.evaluate(() => { const c = window.__HITL.controls.renderer.camera; return { h: c.top - c.bottom, x: c.position.x, z: c.position.z, scale: visualViewport.scale }; });
 // Yak's caret expands and collapses it; the header's other buttons resize or maximize it, so taps
@@ -313,7 +353,11 @@ const CHECKS = {
     await clearDecisions(page);
     // A long toast: if it is cut off, it shows a cue and opens in full after one tap.
     const longText = 'A very long message from the office that will not fit on one line on a phone, so it has to open when tapped.';
-    await page.evaluate(() => window.__HITL.setSpeed(0)); await clearDecisions(page); await wait(page, 300);
+    await page.evaluate(() => window.__HITL.setSpeed(0)); await clearDecisions(page);
+    // The weeks above queue goal and era cards; on a phone an open card hides the toasts, so one
+    // arriving late would swallow the tap. Clear them all first (the clock is stopped, so no more come).
+    const leftCards = await clearCards(page);
+    await wait(page, 300);
     // Held on screen for the check, so a loaded machine cannot time it out before the tap.
     await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]); }, longText); // warn always shows
     await wait(page, 600);
@@ -323,11 +367,13 @@ const CHECKS = {
       const { cut, overflows } = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { cut: e.classList.contains('cut'), overflows: tt.scrollWidth > tt.clientWidth + 1 || tt.scrollHeight > tt.clientHeight + 1 }; });
       if (overflows && !cut) fails.push('a toast is cut off with no cue and no way to read the rest');
       if (cut) {
-        await tap(long); await wait(page, 300);
+        await tap(long);
+        // A loaded machine can take a while to lay the opened toast out: poll rather than guess.
+        await page.waitForFunction(() => { const e = [...document.querySelectorAll('.toasts .toast')].find((x) => x.textContent.includes('A very long message')); const tt = e?.querySelector('.tt'); return !!tt && e.classList.contains('open') && tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1; }, null, { timeout: 4000 }).catch(() => {});
         const seen = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { open: e.classList.contains('open'), fits: tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1 }; }).catch(() => ({ gone: true }));
         if (!seen.open || !seen.fits) {
           const why = await page.evaluate(() => ({ popupOpen: document.querySelector('.hitl')?.classList.contains('popup-open'), cards: [...document.querySelectorAll('.announce-back, .modal-back, .decision')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width).map((e) => e.className), toasts: [...document.querySelectorAll('.toasts .toast')].map((t) => t.className + ':' + t.textContent.slice(0, 30)) }));
-          fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'}) ${JSON.stringify(why)}`);
+          fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'}) ${JSON.stringify({ ...why, cardsLeftBeforeTap: leftCards })}`);
         }
         await shot('toast-long');
       }
@@ -470,7 +516,13 @@ try {
   for (const d of deviceNames) {
     for (const c of checks) {
       if (d === 'desktop' && TOUCH_ONLY.has(c)) continue;
-      const g = await openGame(d);
+      let g;
+      try { g = await openGame(d); } catch (e) {
+        const r = { fails: [e.gameDidNotLoad ? `game didn't load, twice: ${e.message}` : `could not open the game: ${String(e.message ?? e).split('\n')[0]}`] };
+        results.push({ d, c, ...r });
+        console.log(`FAIL  ${d.padEnd(15)} ${c.padEnd(10)} ${r.fails[0]}`);
+        continue;
+      }
       const shot = (name) => g.page.screenshot({ path: `${outDir}/${d}-${name}.png` }).catch(() => {});
       let r;
       try { r = await CHECKS[c]({ ...g, shot }); } catch (e) { r = { fails: [`crashed: ${String(e.message ?? e).split('\n')[0]}`] }; }
