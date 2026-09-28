@@ -5,6 +5,7 @@ import { setTip } from './tooltip.js';
 import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
 import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
 import { icon } from './icons.js';
+import { debtReadout, fmtRate } from './debtFlow.js';
 import { projectLabel, stalledProject } from './panels/common.js';
 import { GOALS, ERA, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
@@ -144,7 +145,14 @@ export function createHud({ root, controls, ui }) {
   };
   const mBrand = meter('Brand', 'brand', 'Brand: multiplies signups and reduces churn. Slow to build.');
   const mIk = meter('Know-how', 'ik', 'Institutional Knowledge: how well your people understand your own systems.');
-  const mDebt = meter('Debt', 'debt', 'Comprehension Debt: shipped behavior nobody on staff understands. Raises incidents.');
+  const DEBT_TIP = 'Tech debt\nCode nobody on staff understands anymore. Raises incidents.';
+  const mDebt = meter('Tech debt', 'debt', DEBT_TIP);
+  // Last week's net change beside the number; the tip lists where it came from.
+  const debtRate = h('span.drate.num');
+  const debtVal = h('span.vw');
+  mDebt.v.replaceWith(debtVal);
+  debtVal.append(mDebt.v, debtRate);
+  let debtSig = '';
   // Fame joins the meters once it is above zero (late game).
   const mFame = meter('Fame', 'fame', 'Fame: softens churn and hiring costs. Raised by fame campaigns; fades slowly.');
   mFame.el.style.display = 'none';
@@ -191,7 +199,7 @@ export function createHud({ root, controls, ui }) {
   const stripNeeds = h('span.tsb.needs'), stripWork = h('span.tsb'), stripGoals = h('span.tsb'), stripFx = h('span.tsb');
   // On phones the meters chip hides; the strip carries Brand, Know-how and Debt as small readouts.
   const smB = h('b.num'), smK = h('b.num'), smD = h('b.num');
-  const stripMeters = h('span.tsm', { title: 'Brand, Know-how and Debt' }, h('span.tsmi', null, h('i.brand'), 'B', smB), h('span.tsmi', null, h('i.ik'), 'K', smK), h('span.tsmi', null, h('i.debt'), 'D', smD));
+  const stripMeters = h('span.tsm', { title: 'Brand, Know-how and Tech debt' }, h('span.tsmi', null, h('i.brand'), 'B', smB), h('span.tsmi', null, h('i.ik'), 'K', smK), h('span.tsmi', null, h('i.debt'), 'TD', smD));
   const trayToggle = h('button.tray-toggle', { dataset: { occludes: '' }, 'aria-expanded': 'false', title: 'Show or hide the side cards', onclick: () => setTrayOpen(!trayOpen) },
     h('span.tsi', null, icon('caret.right', { size: 12 })), stripNeeds, stripWork, stripGoals, stripFx, stripMeters);
   let trayOpen = !phoneLayout();
@@ -394,6 +402,17 @@ export function createHud({ root, controls, ui }) {
     setWidth(mDebt.fill, s.comprehensionDebt / 100);
     setText(mDebt.v, Math.round(s.comprehensionDebt));
     toggleClass(mDebt.bar, 'hot', s.comprehensionDebt >= 60);
+    const dr = debtReadout(s);
+    const dsig = `${dr.net.toFixed(1)}|${dr.sources}|${dr.held}`;
+    if (dsig !== debtSig) {
+      debtSig = dsig;
+      const rate = dr.empty ? '' : fmtRate(dr.net);
+      setText(debtRate, rate && rate !== '0' ? `${rate}/wk` : '');
+      toggleClass(debtRate, 'up', dr.net >= 0.05);
+      toggleClass(debtRate, 'down', dr.net <= -0.05);
+      const why = dr.held ?? (dr.sources ? `Last week: ${dr.sources}.` : '');
+      setTip(mDebt.el, why ? `${DEBT_TIP}\n${why}` : DEBT_TIP);
+    }
     const fame = Number.isFinite(s.fame) ? s.fame : 0;
     const showFame = fame > 0;
     if (showFame !== last.fame) { last.fame = showFame; mFame.el.style.display = showFame ? '' : 'none'; }

@@ -9,6 +9,7 @@ import { retireOptions, retireBanner } from '../retire.js';
 import { PURPOSE_INFO } from '../v2content.js';
 import { picker, personOption } from '../picker.js';
 import { call } from '../simapi.js';
+import { debtReadout, fmtRate } from '../debtFlow.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -18,6 +19,14 @@ function chartCard(title, legend, canvas, extra) {
     h('div.row', null, h('b', { text: title }), h('span.spacer'),
       ...legend.map((l) => h('span.legend', null, h('i', { style: { background: l.color } }), l.label))),
     canvas, extra ?? null);
+}
+
+// Where last week's tech debt came from, under the health chart.
+function debtLine(s) {
+  const r = debtReadout(s);
+  if (r.empty) return null;
+  const text = r.held ? `${r.held}. ${r.sources}.` : `${r.sources}. Net ${fmtRate(r.net)}/wk.`;
+  return h('div.small.debtline', null, icon('debt', { size: 14 }), h('b', { text: ' Tech debt last week: ' }), text);
 }
 
 function scoreClass(v) {
@@ -75,12 +84,12 @@ export function reportsPanel(ctx, arg) {
           lineChart({ weeks, w: W, h: H, fmt: num, series: [{ color: '#4f8cff', values: hist.map((x) => x.customers) }] })),
         chartCard('Cash', [{ label: money(last.cash ?? 0), color: '#ffb020' }],
           lineChart({ weeks, w: W, h: H, fmt: money, series: [{ color: '#e8930c', values: hist.map((x) => x.cash) }] })),
-        chartCard('Company health', [{ label: 'Brand', color: '#9b6bff' }, { label: 'Know-how', color: '#3fb6b0' }, { label: 'Debt', color: '#e5484d' }],
+        chartCard('Company health', [{ label: 'Brand', color: '#9b6bff' }, { label: 'Know-how', color: '#3fb6b0' }, { label: 'Tech debt', color: '#e5484d' }],
           lineChart({ weeks, w: W, h: H, max: 100, fill: false, series: [
             { color: '#9b6bff', values: hist.map((x) => x.brand) },
             { color: '#3fb6b0', values: hist.map((x) => x.ik) },
             { color: '#e5484d', values: hist.map((x) => x.debt) },
-          ] })));
+          ] }), debtLine(s)));
     });
 
   const people = liveView(
