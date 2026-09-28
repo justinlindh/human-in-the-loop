@@ -30,7 +30,7 @@
   - **HQ perks**: Top-of-Market Pay and Office Upkeep ("chairs that do not squeak"). `id: top_pay` `id: office_upkeep`
   - **Incentives Program**: the reward ladder under Staged moments. `id: incentives`
 - **Unlocks**: Marketing, Ops, Research, Models, Automation, Meaning, Career Paths and Standups each arrive with a one-time explainer card. `capture 4-6-unlock-card`
-- **Goals and trophies**: milestones from "Place two desks" to "Ten years", each with a small reward; trophy goals fill a shelf. The goals card and list say "3 of 5 done", and a count goal shows a thin bar with how far along it is.
+- **Goals and trophies**: milestones from "Make room for a hire" to "Ten years", each with a small reward; trophy goals fill a shelf. The goals card and list say "3 of 5 done", and a count goal shows a thin bar with how far along it is.
 - **The rival**: a named rival company appears, jabs at you in Yak, may raise a mega-round, and can die, be acquired or merge with you. `id: rival_appears` `id: rival_merge` `id: rival_megaround` `capture 2-6-rival`
 - **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open`
 - **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result`

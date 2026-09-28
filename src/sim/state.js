@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { createRng } from './rng.js';
-import { START_YEAR } from './util.js';
+import { START_YEAR, newId } from './util.js';
 import { generateStaff, refreshCandidates } from './staff.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
@@ -11,6 +11,7 @@ import { GOALS } from '../data/goals.js';
 import { ARCHETYPES, DEFAULT_FOUNDERS } from '../data/founders.js';
 import { FUNDING } from '../data/funding.js';
 import { rollEraSchedule } from './eras.js';
+import { findSpot, assignSeats } from './office.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
 export const SAVE_VERSION = 2;
@@ -82,6 +83,12 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     });
     state.staff.push(p);
   }
+  // Each founder brings a desk to the garage, so the first hire needs only one more.
+  for (let i = 0; i < state.staff.length; i++) {
+    const spot = findSpot(0, state.office.placed, 'desk', [0, 2, 1, 3]);
+    state.office.placed.push({ id: newId(state, 'f'), itemId: 'desk', level: 1, x: spot.x, y: spot.y, rot: spot.rot });
+  }
+  assignSeats(state);
   // A side stream, so the era jitter does not shift every other roll in the run.
   state.eraSchedule = rollEraSchedule(createRng(seed * 7919 + 13), B.eraJitterWeeks);
   refreshCandidates(state);
