@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { makeCtx } from '../../src/sim/registry.js';
 import { raiseDecision, eligibleEvents, lastPauseWeek, eventsSystem } from '../../src/sim/events.js';
 import { B } from '../../src/sim/balance.js';
-import { showsCard } from '../../src/sim/unlocks.js';
+import { showsCard, checkUnlocks } from '../../src/sim/unlocks.js';
+import { UNLOCKS } from '../../src/data/unlocks.js';
+import { POLICIES } from '../../src/data/policies.js';
 import { game, addProduct } from './helpers.js';
 
 // A settled company with a product, past the opening grace, with nothing recent.
@@ -71,6 +73,24 @@ describe('issue #556: a launch or an unlock counts as the last pausing moment', 
     } finally {
       B.randomEventChance = chance;
     }
+  });
+
+  it('checkUnlocks: a later policy with no era leaves the last pause alone; the first policy still sets it', () => {
+    const run = (earlierPolicy) => {
+      const s = settled(6);
+      const all = [...UNLOCKS.map((u) => u.key), ...Object.keys(POLICIES).map((id) => `policy.${id}`)];
+      s.unlocks = Object.fromEntries(all.filter((k) => k !== 'policy.blameless' && (earlierPolicy || !k.startsWith('policy.') && k !== 'standups')).map((k) => [k, s.week - 20]));
+      s.stats.incidents = 1;
+      s.flags.lastUnlockWeek = s.week - 20;
+      s.flags.lastPauseWeek = s.week - 10;
+      const ctx = makeCtx(s);
+      checkUnlocks(ctx);
+      expect(s.unlocks['policy.blameless']).toBe(s.week);
+      expect(ctx.events.some((e) => e.type === 'era')).toBe(false);
+      return s.flags.lastPauseWeek - s.week;
+    };
+    expect(run(true)).toBe(-10);
+    expect(run(false)).toBe(0);
   });
 
   it('only unlocks that show a card pause decisions: a later policy is a toast unless an era comes with it', () => {
