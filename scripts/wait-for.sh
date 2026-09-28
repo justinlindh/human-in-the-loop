@@ -88,7 +88,7 @@ update_branch() {
 
 last="" seen_head="" head_since=0 warned=0 required=""
 while :; do
-  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup)" || { sleep "$poll"; continue; }
+  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels)" || { sleep "$poll"; continue; }
   if [ -z "$required" ]; then
     required="$(gh api "$api/branches/$(jq -r .baseRefName <<<"$json")/protection" 2>/dev/null \
       | jq -r '[.required_status_checks.contexts[]? | select(type == "string" and . != "review")] | join(" ")' 2>/dev/null)" || required=""
@@ -110,7 +110,11 @@ while :; do
   fi
 
   local_ci="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "local-ci") | .state] | first // "NONE"' <<<"$json")"
-  failing="$(jq -r '[.statusCheckRollup[]? | if .__typename == "CheckRun" then {n: .name, s: (.conclusion // "")} else {n: .context, s: .state} end
+  # A ci-rerun label means auto-CI will replace the head's local-ci result, so an old failure there
+  # counts as still waiting. Auto-CI sets local-ci pending when it picks the rerun up.
+  rerun="$(jq -r '[.labels[]?.name] | index("ci-rerun") != null' <<<"$json")"
+  failing="$(jq -r --argjson rerun "$rerun" '[.statusCheckRollup[]? | if .__typename == "CheckRun" then {n: .name, s: (.conclusion // "")} else {n: .context, s: .state} end
+    | select(($rerun and .n == "local-ci") | not)
     | select(.s == "FAILURE" or .s == "ERROR" or .s == "CANCELLED" or .s == "TIMED_OUT" or .s == "ACTION_REQUIRED") | "\(.n)=\(.s | ascii_downcase)"] | join(" ")' <<<"$json")"
   pending="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "CheckRun" and (.status != "COMPLETED")) | .name] | join(" ")' <<<"$json")"
   review="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "review") | .state] | first // "NONE"' <<<"$json")"
@@ -124,7 +128,7 @@ while :; do
   # run satisfies a required check, as GitHub counts it.
   waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
     | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
-  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}"
+  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}$([ "$rerun" = true ] && echo ", local-ci rerun asked")"
   [ "$now" != "$last" ] && { say "#$pr at ${head:0:8}: $now"; last="$now"; }
   if [[ " $required " == *" local-ci "* ]] && [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then
     say "auto-CI hasn't reported on ${head:0:8} after ${pickup} min; check the timer"

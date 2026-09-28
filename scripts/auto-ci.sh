@@ -134,6 +134,12 @@ for pr in $(order); do
   if [ "$running" -ge "$MAX" ]; then
     if is_light "$pr"; then light=1; else log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; fi
   fi
+  # Mark the head pending before the label comes off, so a waiter (wait-for.sh) never reads the old
+  # result as final in the time ci-pr takes to set its own status.
+  case "$why" in ci-rerun|retry*)
+    "$GH" api "repos/{owner}/{repo}/statuses/$h" -f state=pending -f context=local-ci \
+      -f description="Local CI queued: $why" >/dev/null 2>&1 || log "#$pr: could not mark local-ci pending" ;;
+  esac
   case "$why" in
     ci-rerun) "$GH" pr edit "$pr" --remove-label ci-rerun >/dev/null 2>&1 || log "#$pr: could not remove ci-rerun" ;;
     retry*) : >"$STATE/retried/$h" ;;

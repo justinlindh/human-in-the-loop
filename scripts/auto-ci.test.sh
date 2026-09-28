@@ -16,6 +16,7 @@ case "$1 $2" in
   "pr edit") echo "$*" >>"$T/edits" ;;
   "pr merge") echo "$3" >>"$T/merged"; [ ! -e "$T/merge-refuses" ] ;;
   "pr view") cat "$T/files-$3" 2>/dev/null ;;
+  api*) echo "$*" >>"$T/api" ;;
 esac
 SH
 cat >"$tmp/ci-pr" <<'SH'
@@ -75,6 +76,8 @@ has started "6 fff" || fail "#6 should start once runs stop"
 fixture "$(pr 6 fff PENDING)" "$(pr 7 ggg ERROR)" "$(pr 8 hhh FAILURE)"
 run
 has started "7 ggg" || fail "an error should be retried"
+grep -q "statuses/ggg -f state=pending" "$tmp/api" 2>/dev/null || fail "a retry should mark local-ci pending"
+grep -q "statuses/hhh" "$tmp/api" 2>/dev/null && fail "a failure that is not rerun should keep its status"
 has started "8 hhh" && fail "a failure should not be retried"
 kill -KILL -- "-$(cut -d' ' -f1 "$tmp/state/jobs/7")" 2>/dev/null; sleep 0.3
 run
@@ -91,6 +94,7 @@ fixture "$(pr 6 fff PENDING)" "$(pr 9 iii PENDING)" "$(pr 10 jjj FAILURE false j
 run
 has started "10 jjj" || fail "ci-rerun should start a run once there is room"
 grep -q "pr edit 10 --remove-label ci-rerun" "$tmp/edits" 2>/dev/null || fail "ci-rerun should be removed when its run starts"
+grep -q "statuses/jjj -f state=pending -f context=local-ci" "$tmp/api" 2>/dev/null || fail "a ci-rerun pickup should mark local-ci pending"
 
 # A head left pending with no run going is retried once it has been stuck long enough, then not again.
 fixture "$(pr 11 kkk PENDING)"

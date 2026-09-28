@@ -123,6 +123,27 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     expect(r.stdout).toMatch(/#7 merged/);
   });
 
+  it('waits on an old local-ci failure while the PR carries ci-rerun, then follows the rerun', () => {
+    const failed = { ...green, statusCheckRollup: [{ __typename: 'StatusContext', context: 'local-ci', state: 'FAILURE' }] };
+    replies({ ...failed, labels: [{ name: 'ci-rerun' }] },
+      { ...green, statusCheckRollup: [{ __typename: 'StatusContext', context: 'local-ci', state: 'PENDING' }] }, green);
+    const r = run('7', '--poll', '0');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/local-ci rerun asked/);
+    expect(r.stdout).not.toMatch(/failing/);
+  });
+
+  it('still fails on another check while ci-rerun is on', () => {
+    replies({ ...green, labels: [{ name: 'ci-rerun' }], statusCheckRollup: [
+      { __typename: 'StatusContext', context: 'local-ci', state: 'FAILURE' },
+      { __typename: 'CheckRun', name: 'test', status: 'COMPLETED', conclusion: 'FAILURE' },
+    ] });
+    const r = run('7', '--poll', '0');
+    expect(r.status).toBe(2);
+    expect(r.stdout).toMatch(/test=failure/);
+    expect(r.stdout).not.toMatch(/local-ci=failure/);
+  });
+
   it('warns once when auto-CI has not picked up the head', () => {
     replies({ ...green, statusCheckRollup: [] }, { ...green, statusCheckRollup: [] }, green);
     const r = run('7', '--poll', '0', '--pickup', '0');
