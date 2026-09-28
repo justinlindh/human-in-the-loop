@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, createGame, tick } from '../../src/sim/index.js';
-import { incidentsSystem, startOutage, fixCapacity, landIncident, responding, fixRanking } from '../../src/sim/incidents.js';
+import { incidentsSystem, startOutage, clearOutage, fixCapacity, landIncident, responding, fixRanking } from '../../src/sim/incidents.js';
+import { processScheduled } from '../../src/sim/effects.js';
 import { workSystem } from '../../src/sim/work.js';
 import { productsSystem } from '../../src/sim/products.js';
 import { makeCtx } from '../../src/sim/registry.js';
@@ -130,7 +131,7 @@ describe('incidents close with a summary (#830)', () => {
     expect(JSON.parse(JSON.stringify(done))).toEqual(done);
   });
 
-  it('a severe outage raises its SEV decision at the all-clear, not at the alarm', () => {
+  it("a rogue agent's severe outage raises its SEV decision at the all-clear, not at the alarm", () => {
     const s = quiet(game());
     addProduct(s, { customers: 1000 });
     team(s, 3);
@@ -143,10 +144,10 @@ describe('incidents close with a summary (#830)', () => {
     expect(s.outage).toBe(null);
     expect(s.pendingDecision.eventId).toBe(INCIDENT_EVENT.db_wipe);
     expect(s.pendingDecision.vars.incidentWeeks).toBeGreaterThanOrEqual(1);
-    expect(s.pendingDecision.choices.map((c) => c.label).slice(0, 2)).toEqual(['Write it up properly', 'Patch and move on']);
+    expect(s.pendingDecision.choices.map((c) => c.label).slice(2)).toEqual(['Write it up properly', 'Patch and move on']);
   });
 
-  it('a severe incident that takes nothing down resolves the same week', () => {
+  it('a severe attack that takes nothing down keeps its decision at the alarm and resolves the same week, with a short postmortem after', () => {
     const s = quiet(game());
     addProduct(s, { customers: 1000 });
     team(s, 3);
@@ -156,6 +157,24 @@ describe('incidents close with a summary (#830)', () => {
     const done = c.events.find((e) => e.type === 'incidentResolved');
     expect(done).toMatchObject({ kind: 'data_exfiltration', severity: 4, weeks: 0 });
     expect(s.pendingDecision.eventId).toBe('data_exfiltration');
+    expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
+    processScheduled(makeCtx(s));
+    expect(s.pendingDecision.eventId).toBe('incident_postmortem');
+    expect(s.pendingDecision.choices.map((x) => x.label)).toEqual(['Write it up properly', 'Patch and move on']);
+  });
+
+  it('an attack that takes a product down asks at the alarm, and follows up at the all-clear', () => {
+    const s = quiet(game());
+    addProduct(s, { customers: 1000 });
+    team(s, 3);
+    s.comprehensionDebt = 0;
+    landIncident(makeCtx(s), { kind: 'ransomware', severity: 5, caught: false, model: null });
+    expect(s.outage).not.toBe(null);
+    expect(s.pendingDecision.eventId).toBe('ransomware');
+    s.pendingDecision = null;
+    s.scheduled = [];
+    clearOutage(makeCtx(s), '');
+    expect(s.pendingDecision.eventId).toBe('incident_postmortem');
   });
 
   it('a mild incident that takes nothing down, and any caught incident, never fire it', () => {
@@ -189,25 +208,39 @@ describe('incidents close with a summary (#830)', () => {
 });
 
 describe('the postmortem (#830)', () => {
+  // A severe rogue-agent outage cleared at once, with its SEV decision open. Write-up is choice 2, patch 3.
   const resolved = (blameless = false) => {
     const s = quiet(game());
     s.policies.blameless = blameless;
     addProduct(s, { customers: 1000 });
     const eng = team(s, 3);
     s.comprehensionDebt = 20;
-    landIncident(makeCtx(s), { kind: 'data_exfiltration', severity: 5, caught: false, model: null });
+    landIncident(makeCtx(s), { kind: 'db_wipe', severity: 5, caught: false, model: 'grokk' });
+    s.pendingDecision = null;
+    s.scheduled = [];
+    clearOutage(makeCtx(s), '');
+    expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
     return { s, eng };
   };
 
-  it('every incident decision offers write-up, patch, and one flavour choice', () => {
-    for (const id of Object.values(INCIDENT_EVENT)) {
-      const ev = EVENTS[id];
-      expect(ev.choices.length, id).toBe(3);
-      expect(ev.choices[0].label, id).toBe('Write it up properly');
-      expect(ev.choices[0].effects.postmortem, id).toBe(true);
-      expect(ev.choices[1].label, id).toBe('Patch and move on');
-      expect(ev.choices[1].effects.debt, id).toBe(B.patchDebt);
+  const ROGUE = ['db_wipe', 'runaway_spend', 'refund_hallucination', 'pricing_rewrite', 'mass_email', 'prompt_injection_leak'];
+  const choiceShape = (ev, at) => {
+    expect(ev.choices[at].label, ev.id).toBe('Write it up properly');
+    expect(ev.choices[at].effects.postmortem, ev.id).toBe(true);
+    expect(ev.choices[at + 1].label, ev.id).toBe('Patch and move on');
+    expect(ev.choices[at + 1].effects.debt, ev.id).toBe(B.patchDebt);
+  };
+
+  it('rogue-agent decisions keep their first two choices and add write-up and patch; attacks get a two-choice follow-up', () => {
+    for (const kind of ROGUE) {
+      const ev = EVENTS[INCIDENT_EVENT[kind]];
+      expect(ev.choices.length, kind).toBe(4);
+      expect(ev.choices.some((c) => /public postmortem/i.test(c.label)), kind).toBe(false);
+      choiceShape(ev, 2);
     }
+    const follow = EVENTS.incident_postmortem;
+    expect(follow.choices.length).toBe(2);
+    choiceShape(follow, 0);
   });
 
   it('writing it up pays debt down, teaches the responders, and keeps them one more week', () => {
@@ -218,7 +251,7 @@ describe('the postmortem (#830)', () => {
     const m = people.map((x) => x.meaning);
     const debt = s.comprehensionDebt;
     s.week++;
-    expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
+    expect(dispatch(s, { type: 'resolveDecision', choice: 2 }).ok).toBe(true);
     expect(s.comprehensionDebt).toBeCloseTo(debt - B.postmortemDebt);
     people.forEach((x, i) => expect(x.knowledge).toBe(Math.min(100, k[i] + B.postmortemKnowledge)));
     people.forEach((x, i) => expect(x.meaning).toBe(Math.max(0, m[i] - B.postmortemMeaning)));
@@ -231,14 +264,14 @@ describe('the postmortem (#830)', () => {
     const { s } = resolved(true);
     const people = s.flags.lastIncident.responderIds.map((id) => s.staff.find((x) => x.id === id));
     const m = people.map((x) => x.meaning);
-    expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
+    expect(dispatch(s, { type: 'resolveDecision', choice: 2 }).ok).toBe(true);
     people.forEach((x, i) => expect(x.meaning).toBe(m[i]));
   });
 
   it('patching and moving on adds tech debt', () => {
     const { s } = resolved();
     const debt = s.comprehensionDebt;
-    expect(dispatch(s, { type: 'resolveDecision', choice: 1 }).ok).toBe(true);
+    expect(dispatch(s, { type: 'resolveDecision', choice: 3 }).ok).toBe(true);
     expect(s.comprehensionDebt).toBeCloseTo(debt + B.patchDebt);
   });
 });

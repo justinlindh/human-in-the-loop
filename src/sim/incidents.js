@@ -187,6 +187,7 @@ function fixHurt(state) {
 }
 
 // The incident is over: say what it cost and what helped, and open the postmortem for a severe one.
+// A rogue agent's SEV decision waits for this; an attack had its decision at the alarm and gets a short follow-up.
 function resolveIncident(ctx, r) {
   const { state } = ctx;
   const cost = { cash: Math.round(r.cost.cash), brand: Math.round(r.cost.brand * 10) / 10, customers: r.cost.customers };
@@ -194,7 +195,7 @@ function resolveIncident(ctx, r) {
     cost, responderIds: [...r.responderIds], helped: r.helped, hurt: r.hurt };
   ctx.emit(event);
   state.flags.lastIncident = { week: state.week, kind: r.kind, productId: r.productId, severity: r.severity, weeks: r.weeks, cost, responderIds: [...r.responderIds] };
-  if (r.severity >= 4) raiseDecision(ctx, INCIDENT_EVENT[r.kind], r.productId, { queue: true });
+  if (r.severity >= 4) raiseDecision(ctx, CYBER_KINDS.includes(r.kind) ? 'incident_postmortem' : INCIDENT_EVENT[r.kind], r.productId, { queue: true });
 }
 
 function noteWorstOutage(state, product) {
@@ -290,6 +291,8 @@ export function landIncident(ctx, { kind, severity, caught, model, fn = null }) 
     const who = pick(ctx.rng, witnesses);
     emitChat(ctx, { channel: 'incidents', person: who, text: filledLine(ctx, CHATTER.incident, who, product) });
   }
+  // An attack's decision responds to the attack itself, so it comes at the alarm.
+  if (severity >= 4 && !model) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
   const why = explain(state, kind, model, fn);
   if (severity >= B.outageMinSeverity && OUTAGE_KINDS.has(kind) && !state.outage && product) {
     startOutage(ctx, { productId, kind, severity, cost, cause: why.cause, notes: { helped: why.helped, hurt: why.hurt } });
@@ -308,7 +311,7 @@ export function writePostmortem(state) {
     p.knowledge = Math.min(100, p.knowledge + B.postmortemKnowledge);
     if (!state.policies.blameless) p.meaning = Math.max(0, p.meaning - B.postmortemMeaning);
   }
-  state.flags.postmortem = { staffIds: people.map((p) => p.id), untilWeek: state.week + 1 };
+  state.flags.postmortem = { staffIds: people.map((p) => p.id), untilWeek: state.week + B.postmortemWeeks };
 }
 
 export function incidentsSystem(ctx) {

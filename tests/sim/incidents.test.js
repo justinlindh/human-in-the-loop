@@ -314,9 +314,9 @@ describe('ransoms scale with the company', () => {
     addProduct(big, { mrr: 2e6 });
     expect(ransomFor(big)).toBe(B.ransomCap);
     raise(mk(small), 'ransomware');
-    expect(small.pendingDecision.choices[2].hint).toContain(`$${r.toLocaleString('en-US')}`);
+    expect(small.pendingDecision.choices[0].hint).toContain(`$${r.toLocaleString('en-US')}`);
     const before = small.cash;
-    expect(dispatch(small, { type: 'resolveDecision', choice: 2 }).ok).toBe(true);
+    expect(dispatch(small, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
     expect(small.cash).toBe(before - r);
     expect(small.cash).toBeGreaterThan(0);
   });

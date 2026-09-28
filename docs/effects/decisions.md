@@ -478,9 +478,10 @@ incident · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
+| Roll back and eat the cost | cash -$15,000 |
 | Blame the vendor | if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The cloud bill has feelings `agent_runaway_spend`
 
@@ -488,9 +489,10 @@ incident · raised by a rule · staged: rack_hot
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
+| Pay it and apologize to finance | cash -$25,000 |
 | Beg the cloud provider for credits | 50% chance of cash -$30,000; otherwise nothing |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## Every customer got an email `agent_mass_email`
 
@@ -498,9 +500,10 @@ incident · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
 | Send an apology email | brand -1; customers -3% |
+| Blame the vendor | if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The agent followed the wrong instructions `agent_prompt_injection_leak`
 
@@ -508,9 +511,10 @@ incident · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
 | Rotate every secret tonight | cash -$12,000; team meaning -2 |
+| Blame the vendor | if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The agent fixed pricing `agent_pricing_rewrite`
 
@@ -518,9 +522,10 @@ incident · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
 | Honor the deals | cash -$18,000; brand +2 |
+| Cancel the free plans | customers -6% |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The support bot promised refunds `support_refund_hallucination`
 
@@ -528,9 +533,10 @@ incident · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
+| Pay the refunds | cash -$15,000 |
 | Blame the vendor | customers -4%; if the last incident was on a trusted vendor: nothing; otherwise brand -3 |
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## Nobody here can debug this `outage_unfixable`
 
@@ -548,9 +554,8 @@ cyber · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
 | Force password resets | brand +1; customers -3% |
+| Patch it quietly | 40% chance of brand -6; otherwise nothing |
 
 ## Ransomware `ransomware`
 
@@ -558,9 +563,8 @@ cyber · raised by a rule · staged: screens_skull
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
-| Pay them to delete their copy | you pay the ransom |
+| Pay the ransom | you pay the ransom |
+| Restore from backups | if know-how is 40 or more: know-how +2; otherwise brand -4, customers -20% |
 
 ## Supply chain compromise `supply_chain`
 
@@ -568,9 +572,8 @@ cyber · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
 | Audit every dependency | cash -$15,000; tech debt -3 |
+| Remove it and move on | 50% chance of brand -5, tech debt +3; otherwise nothing |
 
 ## Data exfiltration `data_exfiltration`
 
@@ -578,8 +581,7 @@ cyber · raised by a rule
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
+| Disclose it publicly | cash -$10,000; brand -3 |
 | Say nothing | 50% chance of cash -$30,000, brand -12; otherwise nothing |
 
 ## The CEO wants gift cards `phishing_ceo`
@@ -588,9 +590,17 @@ cyber · raised by a rule · staged: gift_cards
 
 | Choice | Effects |
 |---|---|
-| Write it up properly | responders off their work 1 more week; tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
-| Patch and move on | tech debt +3 |
+| Mandatory security training | cash -$4,000; team meaning -1 |
 | Laugh it off | 30% chance of cash -$25,000; otherwise nothing |
+
+## The attack is over `incident_postmortem`
+
+cyber · raised by a rule
+
+| Choice | Effects |
+|---|---|
+| Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
+| Patch and move on | tech debt +3 |
 
 ## The ChatGBT moment `era_chatgbt`
 
