@@ -3,6 +3,7 @@ import { portrait, roleChip, confirmButton } from './widgets.js';
 import { traitInfo } from './content.js';
 import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
+import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
 import { STAT } from './stats.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
@@ -36,6 +37,14 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
 
   function prealpha() {
     return h('div.tl-prealpha', null, h('b', { text: `Pre-alpha build ${versionLabel()}.` }), ' Things will break, including your saves.');
+  }
+
+  // How saving works. main.js autosaves every few weeks and whenever the tab is hidden or closed,
+  // into this browser's storage. Full on a first visit; one quiet line once a save exists.
+  function saveNote(hasSave) {
+    return hasSave
+      ? h('div.tl-savenote.quiet', { text: SAVE_NOTE_SHORT })
+      : h('div.tl-savenote', null, icon('continue', { size: 18 }), h('span', { text: SAVE_NOTE }));
   }
 
   // Saves: controls.listSaves() -> [{ id, companyName, logoColor, week, year, eraId, over, savedAt }], most
@@ -125,11 +134,14 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   function menuView() {
+    const slots = saveSlots();
+    const hasSave = slots.some((x) => x.id != null || x.ok);
     root.replaceChildren(h('div.tl-card', null, lockup(),
       h('div.tl-menu', null,
         h('button.btn.go.big.tl-btn', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' New Game'),
-        h('div.tl-slots', null, ...saveSlots().flatMap(slotRow)),
+        h('div.tl-slots', null, ...slots.flatMap(slotRow)),
         h('button.btn.big.tl-btn', { onclick: () => openSettings() }, icon('settings'), ' Settings')),
+      saveNote(hasSave),
       prealpha()));
   }
 
