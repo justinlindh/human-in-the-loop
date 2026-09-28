@@ -39,12 +39,14 @@ function setMembers(state, squad, memberIds) {
     const kept = other.memberIds.filter((id) => !memberIds.includes(id));
     if (kept.length !== other.memberIds.length) {
       other.memberIds = kept;
+      other.crewIds = other.crewIds.filter((id) => kept.includes(id));
       other.cohesion /= 2;
       if (other.leadId && !kept.includes(other.leadId)) other.leadId = null;
     }
   }
   const changed = memberIds.length !== before.size || memberIds.some((id) => !before.has(id));
   squad.memberIds = [...memberIds];
+  squad.crewIds = squad.crewIds.filter((id) => memberIds.includes(id));
   if (changed) squad.cohesion /= 2;
   if (squad.leadId && !memberIds.includes(squad.leadId)) squad.leadId = null;
 }
@@ -64,7 +66,7 @@ registerAction('createSquad', (ctx, { name, memberIds }) => {
   const bad = checkMembers(state, memberIds);
   if (bad) return { ok: false, reason: bad };
   const squad = { id: newId(state, 'q'), name: n, memberIds: [], leadId: null, posting: { type: 'idle', targetId: null },
-    afterLaunch: 'upkeep', benchUntil: null, cohesion: 0, formedWeek: state.week };
+    afterLaunch: 'upkeep', benchUntil: null, cohesion: 0, formedWeek: state.week, crewIds: [] };
   state.squads.push(squad);
   setMembers(state, squad, memberIds);
   return { ok: true, squadId: squad.id };
@@ -119,7 +121,8 @@ export function postSquad(state, squad, posting) {
   const assignment = { type: posting.type, targetId: posting.type === 'project' ? posting.targetId : null };
   for (const id of squad.memberIds) {
     const p = findStaff(state, id);
-    const reason = postingBlocker(p, posting) ?? tryAssign(state, p, assignment);
+    const crew = posting.type !== 'maintenance' && squad.crewIds.includes(id) ? 'On upkeep crew' : null;
+    const reason = crew ?? postingBlocker(p, posting) ?? tryAssign(state, p, assignment);
     if (reason) skipped.push({ staffId: id, reason });
     else placed.push(id);
   }
@@ -137,11 +140,14 @@ registerAction('postSquad', (ctx, { squadId, posting }) => {
   if (!placed.length) return { ok: false, reason: skipped[0].reason, placed, skipped };
   squad.posting = { type: posting.type, targetId: posting.type === 'project' ? posting.targetId : null };
   squad.benchUntil = null;
+  if (posting.type === 'maintenance') squad.crewIds = [];
   return { ok: true, placed, skipped };
 });
 
-const onPosting = (squad, p) => squad.posting.type !== 'idle' && p.mood !== 'away' && p.assignment.type === squad.posting.type
-  && (squad.posting.type !== 'project' || p.assignment.targetId === squad.posting.targetId);
+// Working the squad's posting, or looking after a product as its upkeep crew.
+const onPosting = (squad, p) => p.mood !== 'away' && ((squad.crewIds.includes(p.id) && p.assignment.type === 'maintenance')
+  || (squad.posting.type !== 'idle' && p.assignment.type === squad.posting.type
+    && (squad.posting.type !== 'project' || p.assignment.targetId === squad.posting.targetId)));
 
 // The output bonus a person gets from their squad's cohesion while working its posting.
 export function squadOutputBonus(state, person) {
@@ -151,9 +157,10 @@ export function squadOutputBonus(state, person) {
   return 0;
 }
 
-// Called when a project finishes, after its team went back to their default work. A squad posted to it keeps
-// an upkeep crew on the product (the engineers who know most, enough to cover its maintenance) and benches
-// the rest; with afterLaunch 'maintenance' everyone keeps their default work, as without squads.
+// Called when a project finishes, after its team went back to their default work. A squad posted to a new
+// product keeps an upkeep crew on it (the engineers who know most, enough to cover its maintenance) and
+// benches the rest; after an update, migration or internal project the whole squad is benched, since the
+// product already has its upkeep. With afterLaunch 'maintenance' everyone keeps their default work.
 export function squadsAfterProject(ctx, project, team, product) {
   const { state } = ctx;
   for (const sq of state.squads ?? []) {
@@ -164,7 +171,7 @@ export function squadsAfterProject(ctx, project, team, product) {
       continue;
     }
     const crew = [];
-    if (product) {
+    if (product && project.kind === 'new') {
       const need = B.maintenancePerProduct + product.customers * B.maintenancePerCustomer;
       let covered = 0;
       for (const p of mine.filter((x) => x.role === 'engineer').sort((a, b) => b.knowledge - a.knowledge)) {
@@ -175,6 +182,7 @@ export function squadsAfterProject(ctx, project, team, product) {
       }
     }
     for (const p of mine) p.assignment = crew.includes(p) ? { type: 'maintenance', targetId: null } : { type: 'idle', targetId: null };
+    sq.crewIds = [...new Set([...sq.crewIds, ...crew.map((p) => p.id)])];
     sq.posting = { type: 'idle', targetId: null };
     sq.benchUntil = state.week + B.squadBenchWeeks;
     ctx.emit({ type: 'squadFreed', squadId: sq.id, productId: product?.id ?? null, crewIds: crew.map((p) => p.id) });
@@ -189,6 +197,8 @@ export function squadsSystem(ctx) {
   const idleSince = (state.flags.squadIdleSince ??= {});
   for (const sq of state.squads) {
     const members = sq.memberIds.map((id) => findStaff(state, id)).filter(Boolean);
+    // Someone moved off maintenance by hand has left the crew.
+    sq.crewIds = sq.crewIds.filter((id) => findStaff(state, id)?.assignment.type === 'maintenance');
     if (sq.benchUntil !== null && state.week >= sq.benchUntil) {
       for (const p of members) if (p.assignment.type === 'idle' && p.mood !== 'away') p.assignment = defaultAssignment(p);
       sq.benchUntil = null;

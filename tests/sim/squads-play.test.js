@@ -101,6 +101,37 @@ describe('squads after a launch (#938)', () => {
   });
 });
 
+describe('the upkeep crew (#938)', () => {
+  it('stays on the product when the squad is posted again, and is named in crewIds', () => {
+    const { s, squad } = setup();
+    const freed = shipSmall(s, squad).find((e) => e.type === 'squadFreed');
+    expect(squad.crewIds).toEqual(freed.crewIds);
+    const r = dispatch(s, { type: 'startProject', kind: 'refactor' });
+    const res = dispatch(s, { type: 'postSquad', squadId: squad.id, posting: { type: 'project', targetId: r.projectId } });
+    expect(res.skipped.filter((x) => x.reason === 'On upkeep crew').map((x) => x.staffId)).toEqual(freed.crewIds);
+    for (const id of freed.crewIds) expect(s.staff.find((p) => p.id === id).assignment.type).toBe('maintenance');
+  });
+
+  it('leaves the crew when moved by hand, or when the squad is posted to maintenance', () => {
+    const { s, squad } = setup({ engineers: 3, designers: 0 });
+    const [crewId] = shipSmall(s, squad).find((e) => e.type === 'squadFreed').crewIds;
+    dispatch(s, { type: 'assign', staffId: crewId, assignment: { type: 'support', targetId: null } });
+    weeks(s, 1);
+    expect(squad.crewIds).not.toContain(crewId);
+    const again = setup({ engineers: 3, designers: 0 });
+    shipSmall(again.s, again.squad);
+    dispatch(again.s, { type: 'postSquad', squadId: again.squad.id, posting: { type: 'maintenance', targetId: null } });
+    expect(again.squad.crewIds).toEqual([]);
+  });
+
+  it('a crew member leaving the company leaves the crew', () => {
+    const { s, squad } = setup();
+    const [crewId] = shipSmall(s, squad).find((e) => e.type === 'squadFreed').crewIds;
+    dispatch(s, { type: 'fire', staffId: crewId });
+    expect(squad.crewIds).not.toContain(crewId);
+  });
+});
+
 describe('squad cohesion (#938)', () => {
   it('builds while the squad works its posting, reaches 1 after squadCohesionWeeks, and adds output', () => {
     const { s, squad, members } = setup({ engineers: 2, designers: 0 });

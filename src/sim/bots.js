@@ -361,6 +361,11 @@ function staffProjects(s) {
 let useSquads = false;
 function staffSquads(s) {
   if (!(s.officeStage >= 1 || s.staff.length >= B.squadUnlockStaff)) { staffProjects(s); return; }
+  // Products outgrow their crews; lend one more engineer to maintenance when it runs short.
+  if (liveProducts(s).length && s.ops.maintenanceShortfall > 0.15) {
+    const pull = builders(s).find((p) => p.role === 'engineer' && p.assignment.type === 'project' && !p.founder);
+    if (pull) dispatch(s, { type: 'assign', staffId: pull.id, assignment: { type: 'maintenance', targetId: null } });
+  }
   const inSquad = new Set(s.squads.flatMap((q) => q.memberIds));
   for (const p of builders(s).filter((x) => !inSquad.has(x.id))) {
     const room = s.squads.filter((q) => q.memberIds.length < B.botBuildersPerProject).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];

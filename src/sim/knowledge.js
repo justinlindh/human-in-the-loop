@@ -20,6 +20,7 @@ export function onDeparture(state, person) {
   forgetCarry(state, person.id);
   for (const sq of state.squads ?? []) {
     sq.memberIds = sq.memberIds.filter((id) => id !== person.id);
+    sq.crewIds = (sq.crewIds ?? []).filter((id) => id !== person.id);
     if (sq.leadId === person.id) sq.leadId = null;
   }
   for (const [name, id] of Object.entries(state.flags.owners ?? {})) if (id === person.id) state.flags[`${name}Gone`] = true;
