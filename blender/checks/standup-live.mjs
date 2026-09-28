@@ -23,12 +23,21 @@ async function startConversation({ speed, path }) {
     }
   }
   S.policies.daily_standups = true;
-  // Only some daily standups hold a conversation; this check needs one, so it forces the roll for this meeting.
+  // Only some daily standups hold a conversation; this check needs one, so it forces the roll for this
+  // meeting. The system also draws 3 to 5 random speakers from whoever is active; at a low active
+  // headcount that draw can miss the second speaker a conversation needs, so retry with a fresh draw
+  // until one lands, or give up after enough tries that a genuinely empty office is the real story.
   const { B } = await import('/src/sim/balance.js');
   const chance = B.standupConversationChance;
   B.standupConversationChance = 1;
-  const ctx = makeCtx(S);
-  try { standupSystem(ctx); } finally { B.standupConversationChance = chance; S.policies.daily_standups = false; }
+  let ctx;
+  try {
+    for (let tries = 0; tries < 20; tries++) {
+      ctx = makeCtx(S);
+      standupSystem(ctx);
+      if (S.flags.standupConversation?.script) break;
+    }
+  } finally { B.standupConversationChance = chance; S.policies.daily_standups = false; }
   window.__standupScript = S.flags.standupConversation?.script ?? null;
   const event = ctx.events.find(e => e.type === 'standup');
   window.__standupCheck = { path, speed, lines: event.lines, frames: [], startedWeek: S.week };
