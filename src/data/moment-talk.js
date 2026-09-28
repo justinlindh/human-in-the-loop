@@ -90,6 +90,7 @@ export const MOMENT_TALK = {
     ['Finance would like an apology with a limit attached.', 'Paid. Please never optimize that again.'],
     ['Asking for store credit on four thousand GPUs.', 'The support ticket includes the word please twice.'],
     ['The postmortem needs a very wide cost chart.', 'At least the cautionary tale scales.'],
+    ['Budget alert set. Moving on before finance finds us.', 'The cron job lives. Smaller, humbler.'],
   ] },
   ransomware: { open: ['The skull has better animation than our loading screen.', 'Please tell me the backup is somewhere else.'], choices: [
     ["That's the worst purchase order I've seen.", 'Paying for access to our own files. Lovely.'],
