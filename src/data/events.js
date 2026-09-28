@@ -24,7 +24,7 @@ export const EFFECT_KEYS = [
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
-  'consultants', 'clearOutage', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
+  'consultants', 'clearOutage', 'postmortem', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
   'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag', 'strain',
 ];
 
@@ -511,16 +511,17 @@ const list = [
     auto: { gpuShortageWeeks: 8 },
   },
 
-  // Incidents (raised by the incidents system for severe uncaught rogue agents)
+  // Incidents: the postmortem, raised when a severe uncaught rogue-agent incident is resolved
   {
     id: 'agent_db_wipe', kind: 'incident', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'The agent dropped the production database',
-    text: 'Your engineering agent decided the users table was "unused" and cleaned it up. It is very proud.',
+    text: 'Your engineering agent decided the users table was "unused" and cleaned it up. It was very proud. Now someone has to explain it.',
     choices: [
       { label: 'Roll back and eat the cost', hint: 'Cash hit, customers stay', effects: { cash: -15000 }, outcome: 'The backups work. Everyone exhales.' },
       { label: 'Blame the vendor', hint: 'Brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } } }, outcome: 'The vendor responds with a link to their terms of service.' },
-      { label: 'Publish a public postmortem', hint: 'Honest. Painful. Respected with blameless culture', effects: { cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'Hacker Olds calls it "refreshingly honest".' },
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The postmortem is twelve pages. Page nine is just the word "backups" in a very large font.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'Someone adds "do not delete users" to the prompt. In capitals. That should hold.' },
     ],
   },
   {
@@ -528,11 +529,12 @@ const list = [
     when: () => true,
     stage: { prop: 'rack_hot', anchor: 'wall' },
     title: 'The cloud bill has feelings',
-    text: 'An agent spun up 4,000 GPUs to "optimize" a cron job. The bill is still counting.',
+    text: 'An agent spun up 4,000 GPUs to "optimize" a cron job. The bill has stopped counting. Finance has not.',
     choices: [
       { label: 'Pay it and apologize to finance', hint: 'Big cash hit', effects: { cash: -25000 }, outcome: 'Finance puts a sticky note on the agent. It does nothing.' },
       { label: 'Beg the cloud provider for credits', hint: 'Half the time you still pay $30k', effects: { gamble: { p: 0.5, effects: { cash: -30000 } } }, outcome: 'You write a very nice email.' },
-      { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cash: -12000, cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'The postmortem includes a graph shaped like a rocket.' },
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The postmortem includes a graph shaped like a rocket, and a budget alert shaped like a smaller rocket.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'The cron job still runs every minute. It is just cheaper about it now.' },
     ],
   },
   {
@@ -543,7 +545,8 @@ const list = [
     choices: [
       { label: 'Send an apology email', hint: 'Small churn', effects: { customersPct: -3, brand: -1 }, outcome: 'The apology email has a 94% open rate. Your best ever.' },
       { label: 'Blame the vendor', hint: 'Brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } } }, outcome: 'Nobody believes the vendor wrote "Final notice :)".' },
-      { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'Customers enjoy the postmortem more than the newsletter.' },
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The write-up finds the agent had permission to email everyone because nobody said it could not.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'The agent is told to stop. It replies to all.' },
     ],
   },
   {
@@ -554,29 +557,32 @@ const list = [
     choices: [
       { label: 'Rotate every secret tonight', hint: 'Cash hit, overtime', effects: { cash: -12000, teamMeaning: -2 }, outcome: 'Keys rotated. Pizza ordered. Sun rising.' },
       { label: 'Blame the vendor', hint: 'Brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } } }, outcome: 'The vendor adds a new paragraph to its system prompt.' },
-      { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'Security researchers send you a fruit basket.' },
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The postmortem gets a new section: "Things a PDF is allowed to ask for". It is short.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'The agent now ignores PDFs. Customers now send their instructions as PNGs.' },
     ],
   },
   {
     id: 'agent_pricing_rewrite', kind: 'incident', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'The agent fixed pricing',
-    text: 'The sales agent decided the enterprise plan should be free "to maximize adoption". Adoption is up.',
+    text: 'The sales agent decided the enterprise plan should be free "to maximize adoption". Adoption went up.',
     choices: [
       { label: 'Honor the deals', hint: 'Cash hit, brand up', effects: { cash: -18000, brand: 2 }, outcome: 'A few very happy customers tell everyone.' },
       { label: 'Cancel the free plans', hint: 'Some customers leave', effects: { customersPct: -6 }, outcome: 'The angry emails are long and well formatted.' },
-      { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cash: -8000, cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'The postmortem title: "Adoption at all costs".' },
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The postmortem title: "Adoption at all costs". The costs get their own appendix.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'Pricing is locked behind a second approval. The agent asks itself for it.' },
     ],
   },
   {
     id: 'support_refund_hallucination', kind: 'incident', weight: 0, cooldownWeeks: 0, random: false, subject: null,
     when: () => true,
     title: 'The support bot promised refunds',
-    text: 'Your support agent promised 400 customers a full refund plus "a small pony". Lawyers are asking about the pony.',
+    text: 'Your support agent promised 400 customers a full refund plus "a small pony". Lawyers are still asking about the pony.',
     choices: [
       { label: 'Pay the refunds', hint: 'Cash hit, brand kept', effects: { cash: -15000 }, outcome: 'No ponies were purchased.' },
       { label: 'Blame the vendor', hint: 'Lose 4% of customers, plus a brand hit unless the model is well trusted', effects: { cond: { test: 'trustedVendor', then: {}, else: { brand: -3 } }, customersPct: -4 }, outcome: 'Customers do not care whose fault the pony is.' },
-      { label: 'Publish a public postmortem', hint: 'Knowledge up, brand depends on culture', effects: { cash: -6000, cond: { test: 'blameless', then: { brand: 3 }, else: { brand: -1 } }, ik: 3 }, outcome: 'The pony becomes a company mascot.' },
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The write-up traces the pony to a single training example. Nobody will say whose.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'The word "pony" goes on a blocklist. The agent starts offering "a small horse".' },
     ],
   },
 
@@ -643,6 +649,16 @@ const list = [
     choices: [
       { label: 'Mandatory security training', hint: 'Small cost, team grumbles', effects: { cash: -4000, teamMeaning: -1 }, outcome: 'The training video is 40 minutes long.' },
       { label: 'Laugh it off', hint: 'It may happen again', effects: { gamble: { p: 0.3, effects: { cash: -25000 } } }, outcome: 'Finance now calls you before buying anything.' },
+    ],
+  },
+  {
+    id: 'incident_postmortem', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    when: () => true,
+    title: 'The attack is over',
+    text: 'Everything is locked down again. The whiteboard still says "WHO CLICKED IT" in three colors. How much of this do you want to understand?',
+    choices: [
+      { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The write-up has a timeline, a root cause, and one very long footnote about a password manager.' },
+      { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'Someone erases the whiteboard. The ghost of "WHO CLICKED IT" remains.' },
     ],
   },
 

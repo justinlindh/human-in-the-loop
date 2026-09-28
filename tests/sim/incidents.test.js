@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch, securityPosture } from '../../src/sim/index.js';
-import { incidentsSystem, rogueRisk, catchChance, cyberChance, startOutage, fixCapacity, postureParts } from '../../src/sim/incidents.js';
+import { incidentsSystem, rogueRisk, catchChance, cyberChance, startOutage, clearOutage, fixCapacity, postureParts } from '../../src/sim/incidents.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { processScheduled } from '../../src/sim/effects.js';
@@ -112,10 +112,13 @@ describe('rogue agents', () => {
     const raised = [];
     for (let i = 0; i < 600 && !raised.some((d) => Object.values(INCIDENT_EVENT).includes(d.eventId)); i++) {
       run(s, 1);
+      // An outage ends at once here, so its postmortem is raised the same week.
+      if (s.pendingDecision) raised.push(s.pendingDecision);
+      s.pendingDecision = null;
+      if (s.outage) clearOutage(makeCtx(s), '');
       if (s.pendingDecision) raised.push(s.pendingDecision);
       s.pendingDecision = null;
       s.scheduled = [];
-      s.outage = null;
     }
     const d = raised.find((x) => Object.values(INCIDENT_EVENT).includes(x.eventId));
     expect(d).toBeDefined();

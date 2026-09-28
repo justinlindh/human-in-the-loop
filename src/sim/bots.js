@@ -116,6 +116,7 @@ function sensibleValue(s, fx, depth = 0) {
   if (fx.teamSalaryPct) v -= fx.teamSalaryPct * 0.1;
   if (fx.consultants) v += 5;
   if (fx.clearOutage) v += 4;
+  if (fx.postmortem) v += B.postmortemDebt * 0.3 + B.postmortemKnowledge * 0.1 - (s.policies.blameless ? 0 : B.postmortemMeaning * 0.15);
   if (fx.pivot) v -= 2;
   if (fx.cond) v += 0.5 * (sensibleValue(s, fx.cond.then, depth + 1) + sensibleValue(s, fx.cond.else, depth + 1));
   if (fx.gamble) v += fx.gamble.p * sensibleValue(s, fx.gamble.effects, depth + 1) + (1 - fx.gamble.p) * sensibleValue(s, fx.gamble.else, depth + 1);
