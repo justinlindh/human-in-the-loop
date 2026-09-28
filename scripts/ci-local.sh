@@ -20,6 +20,8 @@ done
 
 # Tools come from this script's own checkout; the tree under test is CI_DIR (default: that checkout).
 SELF="$(cd "$(dirname "$0")" && pwd)"
+# Every test run here is real: scripts/test-cache.sh never skips one.
+export HITL_NO_TEST_CACHE=1
 # Every step's wall and CPU time go to the team's timing log (scripts/lib/timing.sh).
 source "$SELF/lib/timing.sh"
 cd "${CI_DIR:-$SELF/..}"
@@ -165,6 +167,7 @@ step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
