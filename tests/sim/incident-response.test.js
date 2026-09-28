@@ -143,7 +143,7 @@ describe('incidents close with a summary (#830)', () => {
     for (let w = 0; w < 30 && s.outage; w++) step(s);
     expect(s.outage).toBe(null);
     expect(s.pendingDecision.eventId).toBe(INCIDENT_EVENT.db_wipe);
-    expect(s.pendingDecision.vars.weeks).toBeGreaterThanOrEqual(1);
+    expect(s.pendingDecision.vars.incidentWeeks).toBeGreaterThanOrEqual(1);
     expect(s.pendingDecision.choices.map((c) => c.label).slice(2)).toEqual(['Write it up properly', 'Patch and move on']);
   });
 
@@ -324,6 +324,8 @@ describe('the postmortem (#830)', () => {
 });
 
 describe('saves (#830)', () => {
+  const summary = (e) => ({ incidentWeeks: e.weeks, incidentCost: e.cost, incidentResponders: e.responderIds, incidentHelped: e.helped, incidentHurt: e.hurt });
+
   it("a pending postmortem keeps its incident's summary in vars through a save and reload", () => {
     const st = store();
     const s = quiet(game());
@@ -336,14 +338,13 @@ describe('saves (#830)', () => {
     const c = makeCtx(s);
     clearOutage(c, '');
     const done = c.events.find((e) => e.type === 'incidentResolved');
-    const want = { weeks: done.weeks, cost: done.cost, helped: done.helped, hurt: done.hurt };
-    expect(s.pendingDecision.vars).toMatchObject(want);
     expect(done.hurt.length).toBeGreaterThan(0);
+    expect(s.pendingDecision.vars).toMatchObject(summary(done));
     saveGame(s, st);
     const res = loadGame(st, s.flags.saveSlot);
     expect(res.ok).toBe(true);
     expect(res.state.pendingDecision.eventId).toBe('agent_db_wipe');
-    expect(res.state.pendingDecision.vars).toMatchObject(want);
+    expect(res.state.pendingDecision.vars).toMatchObject(summary(done));
     const debt = res.state.comprehensionDebt;
     expect(dispatch(res.state, { type: 'resolveDecision', choice: 2 }).ok).toBe(true);
     expect(res.state.comprehensionDebt).toBeCloseTo(debt - B.postmortemDebt);
@@ -360,7 +361,7 @@ describe('saves (#830)', () => {
     expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
     processScheduled(makeCtx(s));
     expect(s.pendingDecision.eventId).toBe('incident_postmortem');
-    expect(s.pendingDecision.vars).toMatchObject({ weeks: 0, cost: done.cost, helped: done.helped, hurt: done.hurt });
+    expect(s.pendingDecision.vars).toMatchObject(summary(done));
   });
 
   it('an outage from an old save loads with the new fields filled', () => {
