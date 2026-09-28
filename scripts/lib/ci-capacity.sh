@@ -61,7 +61,7 @@ vitest_workers() {
 # Signatures of a machine out of something (disk, memory, GPU, network), as the browsers, git and node report
 # it. Only a log's last INFRA_TAIL lines (default 40) count, where a tool reports why it stopped, so
 # the same words inside ordinary test output above an assertion don't turn a code failure into one.
-INFRA_RE='ERR_INSUFFICIENT_RESOURCES|ENOSPC|No space left on device|unable to write file|Cannot allocate memory|ENOMEM|asked for the GPU but got no WebGL2|Error creating WebGL context|Could not create a WebGL context|WebGL context could not be created|GPU process (exited|crashed|isn.t usable)|signal=SIGTRAP|no (software render lock|CI run slot) after|net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|NAME_NOT_RESOLVED|CONNECTION_RESET|CONNECTION_TIMED_OUT)'
+INFRA_RE='ERR_INSUFFICIENT_RESOURCES|ENOSPC|No space left on device|unable to write file|Cannot allocate memory|ENOMEM|asked for the GPU but got no WebGL2|Error creating WebGL context|Could not create a WebGL context|WebGL context could not be created|GPU process (exited|crashed|isn.t usable)|signal=SIGTRAP|no (software render lock|CI run slot) after|net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|CONNECTION_RESET|CONNECTION_TIMED_OUT)'
 infra_failure() {
   local log="$1" secs="$2" hit
   hit="$(tail -n "${INFRA_TAIL:-40}" "$log" 2>/dev/null | grep -m1 -oE "$INFRA_RE")"
