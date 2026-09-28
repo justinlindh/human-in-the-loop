@@ -40,7 +40,7 @@ export function moonshotEffect(ctx, step) {
       addFame(state, B.moonshotFailFame);
       state.brand = clamp(state.brand - B.moonshotFailBrand, 0, 100);
       ctx.emit({ type: 'toast', tone: 'warn', text: `Project ${m.name} did not work. The post-mortem is the best document anyone here has ever written.` });
-      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `"${state.companyName}'s moonshot was a glorious failure," says a blog that loves glorious failures.` });
+      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `"${state.companyName}'s moonshot was a glorious failure," says a blog that loves glorious failures.`, important: true });
     }
   }
 }
@@ -65,7 +65,7 @@ function launchMoonshot(ctx, m) {
   state.brand = clamp(state.brand + B.moonshotWinBrand, 0, 100);
   ctx.emit({ type: 'launch', productId: state.products.at(-1).id });
   state.flags.lastPauseWeek = state.week;
-  ctx.emit({ type: 'celebrate', staffId: null });
+  ctx.emit({ type: 'celebrate', staffId: null, cause: `${state.products.at(-1).name} launched` });
   ctx.emit({ type: 'toast', tone: 'good', text: `Project ${m.name} works. It is a whole new product, and the internet has opinions. Good ones.` });
 }
 

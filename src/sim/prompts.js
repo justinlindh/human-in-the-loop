@@ -5,8 +5,9 @@ import { registerAction, registerSystem } from './registry.js';
 import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { emitChat } from './chat.js';
 import { eraAllowsText, eraLines, currentEra } from './eras.js';
-import { PROMPTS } from '../data/prompts.js';
-import { deskCapacity } from './office.js';
+import { PROMPTS, DESK_PROMISE_LINES } from '../data/prompts.js';
+import { deskCapacity, deskCap, desksOf, suggestPlacement, nextExpansion } from './office.js';
+import { OFFICE_STAGES } from '../data/office.js';
 import { mentorOf } from './staff.js';
 import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
@@ -86,8 +87,15 @@ const TRIGGERS = {
     const poster = staffOnly(state)[0];
     return poster ? { poster } : null;
   },
+  // Every desk is taken: with floor for another desk, someone asks for one; with none, for a bigger office,
+  // when there is one to move to.
   crowded: (state) => {
-    if (state.staff.length < deskCapacity(state)) return null;
+    if (state.staff.length < deskCapacity(state) || !deskRoom(state)) return null;
+    const poster = staffOnly(state).at(-1);
+    return poster ? { poster } : null;
+  },
+  full: (state) => {
+    if (state.staff.length < deskCapacity(state) || deskRoom(state) || !biggerOffice(state)) return null;
     const poster = staffOnly(state).at(-1);
     return poster ? { poster } : null;
   },
@@ -122,6 +130,26 @@ const fitsEra = (state, t) => (!t.eras || t.eras.includes(currentEra(state).id))
   && t.text.some((l) => eraAllowsText(state, l))
   && t.options.every((o) => eraAllowsText(state, o.label) && eraAllowsText(state, o.hint));
 
+// Whether there's a bigger office to move to: a later stage, or an HQ expansion still to buy.
+const biggerOffice = (state) => state.officeStage < OFFICE_STAGES.length - 1 || !!nextExpansion(state);
+// Whether another desk would fit: floor for one, and the office's desk limit not reached.
+const deskRoom = (state) => !(state.officeStage >= 1 && desksOf(state.office.placed).length >= deskCap(state)) && !!suggestPlacement(state, 'desk');
+
+// A promised desk: kept when the desk count rises within B.deskPromiseWeeks (the poster says thanks), broken
+// after that (the poster's meaning drops by B.deskPromiseBroken). Dropped if the poster leaves.
+function checkDeskPromise(ctx) {
+  const { state } = ctx;
+  const promise = state.flags.deskPromise;
+  if (!promise) return;
+  const who = state.staff.find((p) => p.id === promise.staffId);
+  if (!who) { delete state.flags.deskPromise; return; }
+  const kept = deskCapacity(state) > promise.desks;
+  if (!kept && state.week - promise.week < B.deskPromiseWeeks) return;
+  if (!kept) who.meaning = Math.max(0, who.meaning - B.deskPromiseBroken);
+  emitChat(ctx, { channel: 'general', person: who, text: pick(ctx.rng, DESK_PROMISE_LINES[kept ? 'kept' : 'broken']) });
+  delete state.flags.deskPromise;
+}
+
 const founderOf = (state) => present(state).find((p) => p.founder) ?? state.staff.find((p) => p.founder) ?? null;
 
 function applyOption(ctx, o, pc) {
@@ -145,7 +173,7 @@ export function openEventPrompt(outer, ev, subjectId) {
   state.chatPrompts ??= [];
   const vars = decisionVars(state, ctx.rng, subjectId);
   const fill2 = (t) => fillText(state, ctx.rng, t, subjectId, vars);
-  const msg = emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill2(ev.title)}: ${fill2(ev.text)}` });
+  const msg = emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill2(ev.title)}: ${fill2(ev.text)}`, important: true });
   state.flags.promptSeq = (state.flags.promptSeq ?? 0) + 1;
   const id = `cp${state.flags.promptSeq}`;
   (state.flags.promptCtx ??= {})[id] = { kind: ev.id, event: true, subjectId, vars };
@@ -160,11 +188,10 @@ export function openEventPrompt(outer, ev, subjectId) {
   state.flags.lastPromptWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
-  emitMomentTalk(ctx, { ...state.chatPrompts.at(-1), eventId: ev.id });
 }
 
 function botLine(ctx, prompt, text) {
-  return emitChat(ctx, { channel: prompt.channel, from: '@officebot', text, replyTo: prompt.chatId }).id;
+  return emitChat(ctx, { channel: prompt.channel, from: '@officebot', text, replyTo: prompt.chatId, important: true }).id;
 }
 
 // Applies an event prompt's choice (or its ignore choice) the way resolving the decision would.
@@ -222,7 +249,7 @@ function openPrompt(ctx) {
   state.chatPrompts.push({
     id, kind: t.id, chatId: msg.id, channel: t.channel, fromId: hit.poster.id, week: state.week,
     expiresWeek: state.week + B.chatPromptExpiryWeeks,
-    options: t.options.map((o) => { const why = optionBlocker(state, o, pc.posterId); return { label: o.label, hint: fill(state, o.hint, pc) ?? o.hint, available: !why, reason: why }; }),
+    options: t.options.map((o) => { const why = optionBlocker(state, o, pc.posterId); return { label: o.label, hint: fill(state, o.hint, pc) ?? o.hint, available: !why, reason: why, ...(o.opens ? { opens: o.opens } : {}) }; }),
     resolved: null,
     stage: null,
     subjectId: null,
@@ -266,6 +293,7 @@ export function promptsSystem(outer) {
   const ctx = side(outer, 1);
   const { state } = ctx;
   state.chatPrompts ??= [];
+  checkDeskPromise(ctx);
   for (const p of state.chatPrompts) if (!p.resolved && state.week >= p.expiresWeek) resolve(ctx, p, null);
   state.chatPrompts = state.chatPrompts.filter((p) => !p.resolved || state.week - p.resolved.week < B.chatPromptsKept);
   const open = state.chatPrompts.filter((p) => !p.resolved);

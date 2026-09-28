@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HITL team dashboard</title>
+<style>
+  :root { color-scheme: light; --bg: #f6f3ec; --panel: #fffdf8; --ink: #23201a; --dim: #6f675b; --line: #e3ddd0; --ok: #23773f; --bad: #b3261e; --wait: #9a6412; --run: #1f5fa6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --bg: #14130f; --panel: #1e1c16; --ink: #ece6d8; --dim: #a8a08f; --line: #36322b; --ok: #5cc27d; --bad: #f07a6c; --wait: #e5ad4f; --run: #6aa8ef; } }
+  :root[data-theme="dark"] { color-scheme: dark; --bg: #14130f; --panel: #1e1c16; --ink: #ece6d8; --dim: #a8a08f; --line: #36322b; --ok: #5cc27d; --bad: #f07a6c; --wait: #e5ad4f; --run: #6aa8ef; }
+  #theme { margin-left: auto; font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; }
+  .dim { color: var(--dim); }
+  main { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; padding: 14px 16px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 8px; color: var(--dim); }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 4px 6px 4px 0; vertical-align: top; border-top: 1px solid var(--line); }
+  tr:first-child td { border-top: 0; }
+  td.n { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .what { color: var(--dim); overflow-wrap: anywhere; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--dim); }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .wait { color: var(--wait); } .run { color: var(--run); }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.wait { background: var(--wait); } .dot.run { background: var(--run); }
+  a { color: inherit; }
+  .chips span { display: inline-block; margin: 0 4px 2px 0; padding: 0 6px; border-radius: 8px; border: 1px solid var(--line); font-size: 12px; }
+  pre { margin: 0; white-space: pre-wrap; font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <h1>HITL team dashboard</h1>
+  <span id="main"></span>
+  <span id="ci" class="dim"></span>
+  <span id="age" class="dim"></span>
+  <button id="theme" type="button" title="Theme: follows the system until you pick one"></button>
+</header>
+<main>
+  <section><h2>Agents</h2><table id="agents"></table></section>
+  <section><h2>Local CI</h2><table id="jobs"></table><pre id="recent"></pre></section>
+  <section><h2>Open pull requests</h2><table id="prs"></table></section>
+  <section><h2>Token use, last 5 hours</h2><table id="usage"></table><p id="wt" class="dim"></p></section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+// Theme: auto (the system setting), light or dark; the choice is remembered in this browser only.
+const THEMES = ['auto', 'light', 'dark'];
+const saved = () => { try { return localStorage.getItem('hitl-dash-theme') || 'auto'; } catch { return 'auto'; } };
+function applyTheme(t) {
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = t;
+  $('theme').textContent = `Theme: ${t}`;
+}
+let theme = saved();
+applyTheme(theme);
+$('theme').addEventListener('click', () => {
+  const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  theme = next;
+  try { localStorage.setItem('hitl-dash-theme', next); } catch { /* not remembered */ }
+  applyTheme(next);
+});
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
+const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 90 ? `${s}s` : s < 5400 ? `${Math.round(s / 60)}m` : `${Math.round(s / 3600)}h`; };
+const tone = (v) => ({ success: 'ok', failure: 'bad', error: 'bad', pending: 'wait', in_progress: 'run', queued: 'wait', cancelled: '' })[v] ?? '';
+const k = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
+function td(children, cls) { const t = el('td', null, cls); for (const c of [].concat(children)) t.append(c instanceof Node ? c : document.createTextNode(c)); return t; }
+function render(s) {
+  if (s.loading) { $('age').textContent = 'collecting…'; return; }
+  const m = s.main;
+  $('main').replaceChildren(el('span', '', `dot ${tone(m?.guard?.state)}`), `main ${m?.sha ?? '?'}: ${m?.guard?.description ?? m?.state ?? 'unknown'}`);
+  const c = s.ci;
+  $('ci').textContent = `CI slots ${c.slots}/${c.slotMax} · load ${c.load1} on ${c.cores} cores · guard ${c.guard.active}${c.quiet ? ' · quiet window held' : ''}${c.renderHold ? ` · render PRs held (main red on ${c.renderHold})` : ''}`;
+  $('age').textContent = `updated ${ago(s.at)} ago`;
+  const agents = $('agents'); agents.replaceChildren();
+  for (const a of s.agents) {
+    const fresh = Date.now() - a.at < 10 * 60e3;
+    const tr = el('tr');
+    tr.append(td([el('span', '', `dot ${fresh ? 'run' : ''}`), a.who, el('div', a.model || '', 'dim')]), td(ago(a.at), 'n dim'), td(a.tool, 'n'), td(a.what, 'what'));
+    agents.append(tr);
+  }
+  const jobs = $('jobs'); jobs.replaceChildren();
+  if (!c.jobs.length) { const tr = el('tr'); tr.append(td('no auto-CI runs going', 'dim')); jobs.append(tr); }
+  for (const j of c.jobs) {
+    const tr = el('tr');
+    const a = el('a', `#${j.pr}`); a.href = `https://github.com/justinlindh/human-in-the-loop/pull/${j.pr}`;
+    tr.append(td([el('span', '', 'dot run'), a]), td(j.head, 'n dim'), td(ago(j.since), 'n'), td(j.lastStep ? `after ${j.lastStep.step}${j.lastStep.exit ? ' (failed)' : ''}` : 'starting', 'what'));
+    jobs.append(tr);
+  }
+  $('recent').textContent = c.recent.join('\n');
+  const prs = $('prs'); prs.replaceChildren();
+  for (const p of s.prs ?? []) {
+    const tr = el('tr');
+    const a = el('a', `#${p.number}`); a.href = p.url;
+    const chips = el('div', null, 'chips');
+    for (const [name, v] of Object.entries(p.checks)) chips.append(el('span', `${name}`, tone(v)));
+    tr.append(td(a, 'n'), td([el('div', p.title), chips], ''), td(p.draft ? 'draft' : '', 'n dim'));
+    prs.append(tr);
+  }
+  const usage = $('usage'); usage.replaceChildren();
+  for (const u of s.usage) { const tr = el('tr'); tr.append(td(u.who), td(`${u.messages} msgs`, 'n dim'), td(`${k(u.output)} out`, 'n'), td(`${k(u.cacheRead)} cached`, 'n dim')); usage.append(tr); }
+  $('wt').textContent = `${s.worktrees.count} worktrees${s.worktrees.dirty.length ? `, ${s.worktrees.dirty.length} with uncommitted changes` : ''}`;
+}
+async function tick() {
+  try { render(await (await fetch('/state.json', { cache: 'no-store' })).json()); } catch { $('age').textContent = 'dashboard unreachable'; }
+}
+tick(); setInterval(tick, 15000);
+</script>
+</body>
+</html>

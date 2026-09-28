@@ -9,6 +9,7 @@ import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
 import { memeView, createMemeBox } from './memes.js';
+import { companyKey } from './saveKey.js';
 
 const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
@@ -213,6 +214,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   const counts = (m, channel) => level === 'all' || (level === 'important' && important({ ...m, channel }));
   function add(e, week, { quiet: silent = false } = {}) {
     if (e.type === 'say') return;
+    noteShown(e.id);
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
     const m = { important: e.important === true, image: e.image?.id ? { id: e.image.id, alt: e.image.alt ?? e.text ?? '' } : null, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
     const msgs = store[channel];
@@ -254,13 +256,45 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     }
   }
 
+  // Which logged posts Yak actually showed, per saved company, so a reload leaves out the routine ones
+  // the pacer dropped. It lives in this browser; a save without a record shows its whole log.
+  const shownKey = (company) => `hitl.yak.shown.${company}`;
+  let shown = new Set();
+  let shownTimer = 0;
+  function writeShown() {
+    clearTimeout(shownTimer); shownTimer = 0;
+    const st = getState?.();
+    const company = companyKey(st);
+    if (!company) return;
+    const ids = (st.chatLog ?? []).map((e) => e.id).filter((id) => id && shown.has(id));
+    try { localStorage.setItem(shownKey(company), JSON.stringify(ids)); } catch { /* private mode or blocked storage */ }
+  }
+  function noteShown(id) {
+    if (!id) return;
+    shown.add(id);
+    if (!shownTimer) shownTimer = setTimeout(writeShown, 2000);
+  }
+  addEventListener('pagehide', writeShown);
+  function readShown(company) {
+    if (!company) return null;
+    try { const v = JSON.parse(localStorage.getItem(shownKey(company)) ?? 'null'); return Array.isArray(v) ? new Set(v) : null; } catch { return null; }
+  }
+
   // A new or loaded game rebuilds the feed from the state's recent chat log.
   function reset(s) {
     for (const c of CHANNELS) { store[c] = []; unread[c] = 0; }
     lastGeneralWeek = null;
     renderChannel();
+    const record = readShown(companyKey(s));
+    // The pacer never drops important posts or a reply prompt's post, so those always come back.
+    const anchors = new Set((s?.chatPrompts ?? []).map((p) => p.chatId));
+    const dropped = (e) => record && e.id && !record.has(e.id) && !important(e) && !anchors.has(e.id);
+    shown = new Set();
     // Spoken 'say' lines are office bubbles, never Yak messages.
-    for (const e of s?.chatLog ?? []) if (e.type !== 'say') add(e, Number.isFinite(e.week) ? e.week : null, { quiet: true });
+    for (const e of s?.chatLog ?? []) {
+      if (e.type === 'say' || dropped(e)) continue;
+      add(e, Number.isFinite(e.week) ? e.week : null, { quiet: true });
+    }
     refreshBadges();
   }
 

@@ -18,6 +18,7 @@ const BY_ID = Object.fromEntries(POSTS.map((p) => [p.id, p]));
 const MEME_FITS = {
   any: () => true,
   outage: (s) => !!s.outage,
+  chatbots: (s) => eraAtLeast(s, 'chatgbt'),
   agents: (s) => eraAtLeast(s, 'agents'),
 };
 function pickMeme(state, rng) {

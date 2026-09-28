@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { B } from '../sim/balance.js';
+import { GROWTH } from './growth-tune.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { PALETTE as P } from './palette.js';
 import { readSeconds } from './reading.js';
@@ -33,6 +33,7 @@ function injectStyle() {
   .hitl-leads i { position: absolute; width: 2.5px; margin-left: -1.25px; background: ${P.ink}; border-radius: 2px; }
   .hitl-leads i::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px;
     margin-left: -4px; border-radius: 50%; background: ${P.ink}; box-shadow: 0 0 0 2px ${P.paper}; }
+  .hitl-banner .in { background: ${P.gold}; color: ${P.ink}; font: 700 16px Fredoka, sans-serif; padding: 4px 13px; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
   `;
@@ -112,12 +113,31 @@ export function createLabels(parent) {
     return l;
   }
 
+  // A banner over a group for a few seconds (what a company party is celebrating). It lays out like
+  // a stat label but stays put and holds long enough to read.
+  function banner(text, follow, seconds = readSeconds(text) + 1, offsetY = 2.2) {
+    const l = acquire();
+    l.tone = null; l.num = null;
+    l.kind = 'stat';
+    l.el.className = 'hitl-lbl hitl-stat hitl-banner';
+    l.inner.textContent = text;
+    l.inner.style.background = '';
+    l.w = null;
+    l.t = 0; l.life = seconds; l.rise = 0.12; l.follow = follow; l.offsetY = offsetY;
+    l.jit.set(0, 0, 0);
+    parent.add(l.obj);
+    live.push(l);
+    place(l);
+    return l;
+  }
+
   // Speech bubble for its reading time (or `seconds`); replaces any bubble already on the same person.
   function say(text, follow, seconds = readSeconds(text), offsetY = 1.45, { moment = false } = {}) {
     for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     const l = acquire();
     l.kind = 'say';
     l.moment = moment;
+    l.speechText = text;
     l.el.className = 'hitl-lbl hitl-say';
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
     l.w = null;
@@ -142,13 +162,13 @@ export function createLabels(parent) {
     for (const key of icons) {
       const img = document.createElement('img');
       img.src = `${import.meta.env.BASE_URL}icons/glyphs/${key}.svg`;
-      img.alt = key; img.width = img.height = B.growthOffice.iconPixels;
-      img.style.verticalAlign = 'middle'; img.style.marginLeft = `${B.growthOffice.iconGap}px`;
+      img.alt = key; img.width = img.height = GROWTH.iconPixels;
+      img.style.verticalAlign = 'middle'; img.style.marginLeft = `${GROWTH.iconGap}px`;
       l.inner.appendChild(img);
     }
     l.inner.style.background = P.gold;
-    l.w = null; l.t = 0; l.life = seconds; l.rise = B.growthOffice.rise;
-    l.follow = follow; l.offsetY = B.growthOffice.labelY; l.jit.set(0, 0, 0);
+    l.w = null; l.t = 0; l.life = seconds; l.rise = GROWTH.rise;
+    l.follow = follow; l.offsetY = GROWTH.labelY; l.jit.set(0, 0, 0);
     parent.add(l.obj); live.push(l); place(l);
     return l;
   }
@@ -455,8 +475,11 @@ export function createLabels(parent) {
   function clearFor(follow) {
     for (const l of live) if (l.follow === follow) l.t = l.life;
   }
+  function clearSpeech(follow, text) {
+    for (const l of live) if (l.kind === 'say' && !l.moment && l.follow === follow && l.speechText === text) l.t = l.life;
+  }
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, say, growth, update, layout, clearFor, speechCount, speaking, get count() { return live.length; } };
+  return { stat, banner, say, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
 }

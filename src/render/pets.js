@@ -100,6 +100,11 @@ function buildPet(species, look) {
   return { root, body, legs, neck, head, ears, tail, emote };
 }
 
+// A passer stopping to pet an animal: seconds before the same pet is greeted again, the distance
+// band (metres) a passer must be in, seconds before the same person stops again, and how often a
+// pet looks for passers.
+const PET_GREET = { petCooldownS: 18, minM: 0.56, maxM: 1.05, staffCooldownS: 25, scanS: 0.15 };
+
 export function createPets({ office, recs, emote: staffEmote, parent, getProps = () => null, resumeWalk, low = () => false }) {
   const pets = new Map();       // pet id -> rec
   const pens = [];
@@ -156,7 +161,8 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
       if (!p.who.path.length && p.who.goal && recs.has(p.who.id)) resumeWalk(p.who, p.who.goal);
     }
     r.petter = null;
-    r.cooldown = clock + 18;
+    r.path = [];
+    r.cooldown = clock + PET_GREET.petCooldownS;
     r.mode = 'idle'; r.t = 2; r.arrived = false;
     petEmote(r, 'heart', 1.2);
   }
@@ -166,23 +172,34 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     for (const who of recs.values()) {
       if (who.hidden || who.goal?.hidden || who.mode !== 'placed' || who.temp || !who.path.length || who.exitFrom || who.char.seated || (staffCooldown.get(who.id) ?? 0) > clock) continue;
       const d = Math.hypot(who.pos.x - r.pos.x, who.pos.z - r.pos.z);
-      if (d < 0.56 || d > 0.72) continue;
-      // Both actors stay on their own floor points. Reject furniture between them or beside
-      // the reaching arm, rather than pulling either actor through a desk to make contact.
+      if (d < PET_GREET.minM || d > PET_GREET.maxM) continue;
+      // Stop the passer with room for the pet to turn, then let the pet approach along
+      // the clear segment. The person's feet stay planted throughout the greeting.
       const nav = office.nav();
       if (![0.25, 0.5, 0.75].every(k => !nav.isBlocked(who.pos.x + (r.pos.x - who.pos.x) * k, who.pos.z + (r.pos.z - who.pos.z) * k, 0.2))) continue;
       const target = new THREE.Vector3();
-      const temp = { anim: 'pet', t: 3, back: true, moment: 'pet',
+      const temp = { anim: 'idle', t: 3, back: true, moment: 'pet',
         goal: { x: who.pos.x, z: who.pos.z, yaw: Math.atan2(r.pos.x - who.pos.x, r.pos.z - who.pos.z) - 0.8 },
-        stage: { beat: 'stroke', role: r.species, target },
+        stage: { beat: 'turn', role: r.species, target },
+        tick(_who, _dt, tp) {
+          if (tp.stage.beat !== 'stroke') tp.t = 3;
+        },
       };
       who.path = [];
       who.face = null;
       who.temp = temp;
       r.path = []; r.mode = 'petted'; r.pose = 'sit'; r.arrived = true;
-      r.yaw = Math.atan2(who.pos.x - r.pos.x, who.pos.z - r.pos.z) - 0.65;
-      r.petter = { who, temp, target };
-      staffCooldown.set(who.id, clock + 25);
+      const gap = Math.min(d, 0.65);
+      const facing = Math.atan2(who.pos.x - r.pos.x, who.pos.z - r.pos.z);
+      const relative = angleLerp(facing, r.yaw, 1) - facing;
+      r.yaw = facing + relative;
+      // At close range, turn the muzzle through the empty side of the circle.
+      // Crossing the person-facing heading would sweep it through their legs.
+      const turn = d < 0.85 && relative > 0 ? Math.PI * 2 - 0.65 : -0.65;
+      r.petter = { who, temp, target, age: 0,
+        at: { x: who.pos.x + (r.pos.x - who.pos.x) * gap / d, z: who.pos.z + (r.pos.z - who.pos.z) * gap / d },
+        yaw: facing + turn };
+      staffCooldown.set(who.id, clock + PET_GREET.staffCooldownS);
       r.emoteT = 0; r.rig.emote.visible = false;
       return;
     }
@@ -347,7 +364,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     clock += dt;
     scanIn -= dt;
     const scan = scanIn <= 0;
-    if (scan) scanIn = 0.15;
+    if (scan) scanIn = PET_GREET.scanS;
     for (const r of pets.values()) {
       const g = r.rig;
       if (r.petter && (low() || r.petter.who.hidden || r.petter.who.goal?.hidden || !recs.has(r.petter.who.id) || r.petter.who.temp !== r.petter.temp || r.petter.temp.t <= 0 || r.petter.who.path.length)) releasePetter(r);
@@ -377,7 +394,22 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
         }
       }
       if (r.petter) {
+        const p = r.petter;
+        p.age += dt;
         r.pose = 'sit';
+        r.yaw += (p.yaw - r.yaw) * (1 - Math.exp(-dt * 6));
+        if (p.age >= 0.6 && p.temp.stage.beat !== 'stroke') {
+          const dx = p.at.x - r.pos.x, dz = p.at.z - r.pos.z, d = Math.hypot(dx, dz);
+          const step = Math.min(d, SPEED[r.species] * dt);
+          if (d > 0.001) {
+            r.pos.x += dx * step / d; r.pos.z += dz * step / d;
+            r.path = [p.at]; r.speed = SPEED[r.species]; r.pose = 'stand';
+            p.temp.stage.beat = 'approach';
+          } else {
+            r.path = [];
+            p.temp.anim = 'pet'; p.temp.stage.beat = 'stroke';
+          }
+        }
       } else if (r.hop) {
         // A short arc onto or off a perch.
         r.hop.t += dt / 0.45;
@@ -481,13 +513,15 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
   return {
     sync, update, reset,
     get count() { return pets.size; },
-    // Checks place an idle pet beside a walking route; the greeting still uses proximity.
-    standAt(id, x, z) {
+    // Checks place an idle pet beside a walking route and can set the incoming headings.
+    standAt(id, x, z, passer = null) {
       const r = pets.get(id);
       if (!r) return false;
       releasePetter(r);
       r.pos.set(x, 0, z); r.y = 0; r.hop = null; r.path = [];
       r.mode = 'idle'; r.pose = 'sit'; r.t = 30; r.arrived = true; r.cooldown = 0; scanIn = 0;
+      if (passer?.yaw != null) recs.get(passer.id).yaw = passer.yaw;
+      r.yaw = passer?.petYaw ?? r.yaw;
       return true;
     },
     // Test hook: force a plan now ('visit' | 'nap' | 'chase' | 'sleep' | 'knock').

@@ -5,15 +5,17 @@
     "doc": "docs"
   },
   "scripts": {
+    "effects": "node scripts/effects.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:fast": "vitest run --exclude tests/sim/balance.test.js",
+    "test:fast": "bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js",
     "test:balance": "vitest run tests/sim/balance.test.js",
     "ci": "bash scripts/ci-local.sh",
     "gates": "bash scripts/gates.sh",
     "toolkit": "node scripts/toolkit.mjs",
+    "usage": "node scripts/usage.mjs",
     "feature-media": "node scripts/feature-media/render.mjs",
     "balance": "node scripts/balance.js",
     "snap": "node scripts/snap.js",

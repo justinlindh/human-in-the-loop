@@ -8,7 +8,8 @@
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
 // A rule with known: <issue> fails as KNOWN (not failing the run) until that issue is fixed: closed by
 // a merged PR or commit that changed game code. Then the rule fails again. Issue states come from gh,
-// once per run; if gh can't be reached, markers count as open and the run says so.
+// once per run; if gh can't be reached, markers count as open and the run says so. knownView: '<view>'
+// limits a rule's marker to that view.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
@@ -50,7 +51,7 @@ function motion(xs) {
 const SPECS = {
   'growth.honoree': { moment: 'growth', beat: 'cheer', role: 'honoree', rules: [
     share('celebrating', 'honoree celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
-    share('faceVisible', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
+    share('facingCamera', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
     visibleRule, noFade,
   ] },
   'growth.coworker': { moment: 'growth', beat: 'cheer', role: 'coworker', rules: [
@@ -58,6 +59,22 @@ const SPECS = {
   ] },
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
     share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  ] },
+  'pet.turn': { moment: 'pet', beat: 'turn', role: 'dog', rules: [
+    share('upright', 'stand upright before reaching', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'petcat.turn': { moment: 'pet', scenario: 'petcat', beat: 'turn', role: 'cat', rules: [
+    share('upright', 'stand upright before reaching', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'pet.approach': { moment: 'pet', beat: 'approach', role: 'dog', rules: [
+    share('upright', 'wait upright while the pet approaches', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
+  ] },
+  'petcat.approach': { moment: 'pet', scenario: 'petcat', beat: 'approach', role: 'cat', rules: [
+    share('upright', 'wait upright while the pet approaches', x => x.anim === 'idle', 1),
+    share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
   ] },
   'pet.stroke': { moment: 'pet', beat: 'stroke', role: 'dog', rules: [
     share('atPet', 'right hand within 0.12 m of the crown', x => x.petContact <= 0.12, 0.8),
@@ -72,11 +89,11 @@ const SPECS = {
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     visibleRule, noFade,
   ] },
   'letter.slump': { moment: 'letter', beat: 'slump', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     { metric: 'headDrop', want: '>= 0.03 m below the reading head height', test: (xs, all) => {
       const read = all.filter((x) => x.beat === 'read');
       if (!read.length || !xs.length) return 0;
@@ -116,7 +133,7 @@ const SPECS = {
   // The first user test: the founders crouch out of the visitor's sight, faces to the camera, watching
   // the visitor; on "Explain everything" one leans in beside the visitor, at their screen.
   'visitor.hide': { moment: 'visitor', beat: 'hide', role: 'founder', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
     visibleRule, noFade,
   ] },
@@ -135,23 +152,23 @@ const SPECS = {
   // view, both turned three-quarters to the camera; the one with the clipboard stands behind, in view.
   // (Their own scenario: the moment is the visitor one.)
   'consultants.consultant': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'consultant', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     share('atInterviewee', 'face within 60 deg of the interviewee', (x) => x.targetAngle <= 60, 0.8),
     visibleRule,
   ] },
   'consultants.clipboard': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'clipboard', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     visibleRule,
   ] },
   'consultants.interviewee': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'interviewee', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
-    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.75),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.8),
     visibleRule,
   ] },
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
-    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
   // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
@@ -161,7 +178,7 @@ const SPECS = {
   // A pet carrier by the door: whoever comes over peers at its door, face in view.
   'carrier.peer': { moment: 'carrier', beat: 'peer', rules: [
     share('atCarrier', 'face within 45 deg of the carrier', (x) => x.targetAngle <= 45, 0.8),
-    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
   ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
@@ -180,9 +197,9 @@ const SCENARIOS = {
   growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
-    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog')" },
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
-    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat')" },
+    setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
@@ -196,8 +213,11 @@ const SCENARIOS = {
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
     steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
-  // The consultants at the HQ door, where the sim stages their chair.
-  consultants: { query: 'mock=hq', patch: {}, seconds: 16,
+  // The consultants at the HQ door, where the sim stages their chair. Who walks in to be
+  // interviewed (the nearest idle staffer, seeded) decides how long the walk takes, so the interview
+  // beat is scored for a fixed window starting once they arrive, not over the whole run.
+  consultants: { query: 'mock=hq', patch: {}, arriveSeconds: 20, beatSeconds: 6,
+    arrive: { role: 'interviewee', beat: 'interview' },
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
 
@@ -255,14 +275,17 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { moment, view } = task;
     const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns }) => {
+    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns, arrive, arriveSeconds, beatSeconds }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
+      // The probe raycasts every actor every frame; a tree per mesh makes that cheap (harness.mjs).
+      await window.__fastRaycast();
       // The held-prop module allocates three.js objects, so loading it affects the seeded scene.
       const measureHeld = moment === 'hammer' ? (await import('/blender/checks/pose-scene.js')).measureHeld : null;
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;
+      R.spotTrace = true;
       // The specs hold staging to the default and the turned view, so the moment camera stays put.
       window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
       for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
@@ -273,7 +296,15 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       const samples = [];
       // Everyone the moment takes part, each sampled every frame until the moment is over for all.
       const actors = new Set();
-      for (let f = 0; f < seconds * 30; f++) {
+      // A scenario with `arrive` scores a fixed beatSeconds window starting once that role reaches
+      // its beat, rather than over the whole run: how long the walk there takes must not change how
+      // much of the beat gets scored. arriveSeconds bounds the wait; past it, nobody arrived.
+      // A role's beat can read as the arrival beat before it starts walking (staged, but not yet
+      // sent off): only count arriving once that role has actually been seen walking first.
+      let arrivedAt = null, sawWalk = false;
+      const cap = arrive ? (arriveSeconds + beatSeconds) * 30 : seconds * 30;
+      let f = 0;
+      for (; f < cap; f++) {
         for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
         window.__step(1);
         for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
@@ -306,11 +337,17 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
           }
           samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
+          if (arrive && st?.role === arrive.role) {
+            if (arrivedAt === null && sawWalk && m.beat === arrive.beat) arrivedAt = f;
+            if (m.beat === 'walk') sawWalk = true;
+          }
         }
+        if (arrive && arrivedAt === null && f >= arriveSeconds * 30 - 1) return { actors: [...actors], samples, spots: R.debug?.spots ?? {}, arriveTimedOut: true };
+        if (arrive && arrivedAt !== null && f >= arrivedAt + beatSeconds * 30 - 1) break;
         if (samples.length && !live) break;
       }
       return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
-    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns });
+    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns, arrive: sc.arrive ?? null, arriveSeconds: sc.arriveSeconds ?? sc.seconds, beatSeconds: sc.beatSeconds ?? 0 });
     await page.close();
     results.set(task, { res, errors });
   }
@@ -323,8 +360,13 @@ for (const task of tasks) {
   {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
+    const sc = SCENARIOS[task.scenario];
     const firstRow = rep.rows.length;
-    if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    if (errors.length) rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    if (res.arriveTimedOut) {
+      rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'arrived', value: 0, want: `${sc.arrive.role} reaches the beat within ${sc.arriveSeconds}s`, pass: false });
+      continue;
+    }
     // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
     // wall and still pass. Walking and waiting are between beats and need none.
     if (view.turns === 0) {
@@ -339,7 +381,7 @@ for (const task of tasks) {
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
       for (const rule of spec.rules) {
         const value = rule.test(xs, res.samples);
-        const k2 = rule.known ?? null;
+        const k2 = (!rule.knownView || rule.knownView === view.name) ? rule.known ?? null : null;
         rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: k2 && !closedIssues.has(k2) ? k2 : null, closed: k2 && closedIssues.has(k2) ? k2 : null });
       }
     }

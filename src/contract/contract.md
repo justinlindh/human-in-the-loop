@@ -94,8 +94,8 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
-                                          // important: optional true promotes a post that wouldn't otherwise count as important (a running joke, big news);
-                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, bot posts, or flagged) raise unread counts
+                                          // important: optional true promotes a post that wouldn't otherwise count as important (a bot post that matters, a running joke, big news);
+                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, or flagged) raise unread counts; a bot post counts only when flagged
                                           // image: optional { id, alt } on posts that carry a picture (a meme); id is a meme image id from src/data/memes.js, and ui maps it to its files;
                                           // alt is the picture's short caption and equals text, so readers of text alone still get a sensible line; ui shows text when the image is missing
 { type: 'launch', productId }
@@ -105,7 +105,8 @@ Product = {
 { type: 'decision' }
 { type: 'decisionResolved', eventId, choice, subjectId }   // emitted by resolveDecision: the event id, the chosen choice index, and the subject (or null). Render and ui react to the choice; never infer it from effects
 { type: 'officeUpgrade', stage }
-{ type: 'celebrate', staffId }            // staffId may be null for company-wide
+{ type: 'celebrate', staffId, cause }     // staffId may be null for company-wide; cause: a short caption of what the company is celebrating
+                                          // ('Product 5 launched', 'Product of the Year: Product 5'), set when staffId is null, absent otherwise
 { type: 'award', text }
 { type: 'gameOver' }
 { type: 'standup', mode, lines: [{ staffId, text }] }   // mode: 'daily' (in person) | 'async' (lines also emitted as #standup chat)
@@ -319,7 +320,7 @@ ChatPrompt = {
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
   expiresWeek,       // resolves as ignored when state.week reaches it
-  options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
+  options: [{ label, hint, available, reason, opens? }],   // 2 or 3; hint states the effects, as decision choices do; opens: optional { panel, arg? } as in Advice.target, the menu ui opens after the answer succeeds, e.g. { panel: 'office', arg: 'desk' } to place a desk
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y, staffId },   // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
   subjectId: null | staffId,                       // the event's subject, as pendingDecision.subjectId; moments cast the subject first
@@ -342,7 +343,7 @@ ChatPrompt = {
 ```
 
 - The founder's reply and the poster's follow-up are ordinary chat events with `replyTo = chatId`. The founder's line has `fromId` set to a founder's id.
-- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup.
+- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup. An option's `opens` is acted on by ui after a successful answer: it opens that menu or mode (`{ panel: 'office', arg: 'desk' }` enters desk placement, the same entry as hiring with no free desk; with no room or cash it opens the office menu, which says why). Ignored or refused answers open nothing.
 - At most `B.chatPromptsOpen` prompts are open at once. A new prompt opens at least `B.chatPromptGapWeeks` after the last one.
 - Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
 - Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
@@ -418,3 +419,63 @@ p.growth = [{ week, kind, detail }]   // newest last
 - Milestones ('promoted', 'trait', 'path', 'legend') are kept for good. 'level' and 'trained' entries are capped at `B.growthHistoryMax`, and the oldest of those drop off first.
 - Candidates start with `[]`. The history leaves with the person.
 - It draws no randomness. Old saves load a missing `growth` as `[]`.
+
+## Advisors (#808)
+
+Three advisors (a CFO, a people lead and a tech lead) comment on what the player can already see. They offer a trade-off, never an order, and never reveal a hidden number, odds, threshold or future event. The player mostly asks for them; the sim pushes one line on its own only rarely.
+
+### Sim API: Advisors
+
+```js
+advice(state) -> Advice[]   // pure read: changes nothing and draws no game randomness; ranked by severity (highest first), then key; a single { key: 'fine', severity: 1, target: null, ... } when nothing applies, so the panel is never empty
+Advice = {
+  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'fine'
+  advisor,       // 'cfo' | 'people' | 'tech'
+  severity,      // 1 worth a thought, 2 soon, 3 urgent
+  tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
+  text,          // the advisor's line, in the game's voice
+  why,           // the visible fact behind it, short: 'Runway: 11 weeks at this burn'
+  target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation', ui's menu ids); arg e.g. a staffId
+  cooldownWeeks  // how long an unprompted push of this key rests
+  since          // the game week this topic's current episode began: when its key started applying. A key that stops applying and later returns starts a new episode; a tier change within an episode keeps since
+  options        // [{ text, target }]: two or three things the player could do about it, each a real action available now
+                 // text: short, a suggestion not an order ('Put someone on sales', 'Send Priya on time off'); no menu name in it, the target names the place
+                 // target: { panel, arg? } as in Advice.target: the menu where it's done, arg e.g. a staffId, policyId or productId
+}
+```
+
+- Each trigger reads a number some panel already shows (runway, burnout count, comprehension debt, one person's share of the team's know-how, juniors without a mentor, a product's migration date, the current era, MRR share, unlocked but unused policies).
+- A key the player dismissed at its current tier or lower is left out.
+- Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
+- Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
+- `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
+- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item); other panels take no arg.
+- Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
+
+### State: Advisors
+
+```js
+advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastPushWeek /*number|null*/, noticed: { [key]: week } }   // default { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }
+```
+
+- Old saves load a missing `advisors` with the default.
+- `noticed` is written by the weekly advisors system (order 96): a key that applies and isn't in `noticed` gets the current week, and a key that no longer applies is removed, along with its dismissal and push. `'fine'` is tracked the same way, as the key that applies when nothing else does.
+- `advice(state)` stays a pure read. A key that applies but isn't in `noticed` yet (it became true earlier this week, before the system ran) reports `since: state.week`.
+- Old saves load a missing `noticed` as `{}`.
+- Entries for keys that no longer apply are pruned weekly.
+
+### Actions: Advisors
+
+```js
+{ type: 'dismissAdvice', key }   // -> { ok: true }; silences the key until its tier rises. A key no longer in advice(state) is a no-op that still returns ok, since the line may have changed as the player clicked.
+```
+
+### Events: Advisors
+
+```js
+{ type: 'advice', key, advisor, severity, tier, text, why, target }   // the rare unprompted line; ui shows it as the advisor's peek (a portrait and one line that slide in, then tuck away), never in Yak
+```
+
+- Pushed by the `advisors` system (order 96, after `history`). At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
+- A key isn't pushed again within its `cooldownWeeks` unless its tier rose.
+- The sim always computes and emits. The On / Quiet / Off setting lives in ui's settings store, not in state: On shows pushes and the panel, Quiet ignores `advice` events, Off hides the panel. Bot games end identically whatever the setting.

@@ -1,4 +1,4 @@
-"""Office shop: arcade. l1 handheld on a side table with floor cushions, l2 cabinet, l3 two cabinets and a neon sign."""
+"""Office shop: arcade. l1 a compact cabinet, l2 a full cabinet with a stool, l3 two cabinets and a neon sign."""
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *
@@ -6,6 +6,7 @@ import kit
 
 # Shop item tiers share one footprint: back edge near y = +0.5 (against a wall), front faces -Y.
 BUDGET = {1: 3000, 2: 4000, 3: 6000}
+L1_SCALE = 0.82
 
 
 def build(level, fn, name):
@@ -15,15 +16,13 @@ def build(level, fn, name):
 
 
 def l1():
-    parts = kit.side_table('t_', 0, 0.1, r=0.3, h=0.4, top='wood_light')
-    parts += [
-        box('handheld', (0.2, 0.1, 0.03), (0, 0.08, 0.415), 'plastic_white', bevel=0.012, rot=(0, 0, math.radians(20))),
-        box('handscreen', (0.07, 0.05, 0.006), (0, 0.08, 0.432), 'plastic_charcoal', bevel=0, rot=(0, 0, math.radians(20))),
-        cyl('cart', 0.05, 0.012, (0.18, 0.2, 0.41), 'role_designer', verts=4, bevel=0.003),
-    ]
-    for i, (x, y, c) in enumerate([(-0.55, -0.05, 'fabric_teal'), (0.55, -0.1, 'fabric_terracotta')]):
-        o = box(f'cush{i}', (0.46, 0.46, 0.14), (x, y, 0.07), c, bevel=0.06, segments=3, rot=(0, 0, 0.3 * (i * 2 - 1)))
-        parts.append(o)
+    # One compact cabinet in the engineering blue, played standing: a cabinet from the first level,
+    # smaller than level 2's so each level reads as a step up. Everything built (the screen and
+    # marquee too) scales about the item's origin.
+    parts = kit.arcade_cabinet('a_', 0, 0.2, body='role_engineer', screen='arcade2_screen', marquee='neon_cyan')
+    for o in bpy.context.scene.objects:
+        o.scale = [v * L1_SCALE for v in o.scale]
+        o.location = o.location * L1_SCALE
     return parts
 
 

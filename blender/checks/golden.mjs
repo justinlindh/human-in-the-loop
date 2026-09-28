@@ -19,6 +19,7 @@ import { startHarness } from './harness.mjs';
 import { sceneBase, sceneUpToDate, recordScene, requestedFiles } from './cache.mjs';
 import { logTiming } from '../../scripts/lib/timing.js';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -167,11 +168,25 @@ await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, async (_, 
 const IDENTITY = SCENES.find((sc) => sc.name === 'char-lineup');
 async function identity() {
   const shot = async (settle) => {
-    const { page } = await H.openScene(`quality=medium&${IDENTITY.query}`, { width: W, height: H_PX });
-    try { return await page.evaluate(POSE, poseArgs(IDENTITY, settle)); } finally { await page.close(); }
+    const { page, errors } = await H.openScene(`quality=medium&${IDENTITY.query}`, { width: W, height: H_PX });
+    try { return { png: await page.evaluate(POSE, poseArgs(IDENTITY, settle)), errors }; } finally { await page.close(); }
   };
   const [stepped, settled] = [await shot(false), await shot(true)];
-  return stepped === settled;
+  if (stepped.png === settled.png) return true;
+  // What differs, for a mismatch that doesn't repeat: both renders saved, and the differing pixels
+  // counted and boxed in the log.
+  const files = { stepped: join(OUT, `${IDENTITY.name}.stepped.png`), settled: join(OUT, `${IDENTITY.name}.settled.png`) };
+  for (const [k, f] of Object.entries(files)) writeFileSync(f, Buffer.from((k === 'stepped' ? stepped : settled).png.split(',')[1], 'base64'));
+  let where = '';
+  try {
+    const n = execFileSync('magick', ['compare', '-metric', 'AE', files.stepped, files.settled, 'null:'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    where = n;
+  } catch (e) { where = String(e.stderr ?? '').trim().split(' ')[0]; }
+  let box = '';
+  try { box = execFileSync('magick', [files.stepped, files.settled, '-compose', 'difference', '-composite', '-threshold', '0', '-format', '%@', 'info:'], { encoding: 'utf8' }).trim(); } catch { /* no magick */ }
+  console.log(`golden: identity mismatch: ${where || '?'} pixels differ${box ? `, inside ${box}` : ''}; renders in shots/golden/${IDENTITY.name}.{stepped,settled}.png`);
+  for (const [k, r] of [['stepped', stepped], ['settled', settled]]) if (r.errors.length) console.log(`golden: identity ${k} page errors: ${r.errors.slice(0, 3).join('; ')}`);
+  return false;
 }
 let identical = true;
 try { identical = await identity(); } catch (e) { identical = false; console.log(`golden: identity check failed to run: ${e.message.split('\n')[0]}`); }
@@ -182,5 +197,6 @@ if (!identical) {
   console.log(`golden: ${IDENTITY.name} drawn frame by frame differs from its final-frame render; something in the draw path now keeps state between frames, so __settle is no longer exact`);
 } else console.log(`golden: ${IDENTITY.name} is byte-identical drawn frame by frame and final frame only`);
 console.log(`golden: rendered ${todo.length} of ${selected.length} scenes; ${selected.length - todo.length} unchanged, skipped`);
-if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended`);
+if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended (then commit and post before/after media: scripts/baseline-media.sh <pr>)`);
+if (UPDATE) console.log('golden: updated references need before/after media on the PR: commit them, then scripts/baseline-media.sh <pr>');
 process.exit(failed ? 1 : 0);

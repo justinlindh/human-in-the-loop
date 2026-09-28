@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createGrowthQueue, growthBadge } from './growth-office.js';
 import { B } from '../sim/balance.js';
+import { GROWTH } from './growth-tune.js';
 import { makeCtx } from '../sim/registry.js';
 import { staffUpkeep } from '../sim/staff.js';
 import { game, addStaff, addDesks } from '../../tests/sim/helpers.js';
@@ -21,8 +22,8 @@ describe('office growth admission', () => {
   });
   it('bounds a 40-person burst and expires blocked work without extending the deadline', () => {
     const s = state(40), q = createGrowthQueue(); q.sync(s);
-    q.add(s.staff.map(p => event(p.id)), s); expect(q.size).toBe(B.growthOffice.queueMax);
-    q.step(B.growthOffice.maxAge - 0.1); q.add([event('s0')], s);
+    q.add(s.staff.map(p => event(p.id)), s); expect(q.size).toBe(GROWTH.queueMax);
+    q.step(GROWTH.maxAge - 0.1); q.add([event('s0')], s);
     expect(q.take(() => false)).toBeNull();
     q.step(0.2); expect(q.size).toBe(0);
   });
@@ -56,14 +57,14 @@ function officeFixture() {
   const labels = { growth: vi.fn((text, icons, root, seconds) => ({ t: 0, life: seconds })) };
   let blocked = false, low = false;
   const g = createOfficeGrowth({ recs, labels, parent: new THREE.Group(), low: () => low, ready: r => !r.temp && !r.hidden && !r.goal.hidden && !r.path.length, blocked: () => blocked, faceToward: () => {} });
-  g.sync(s); g.update(B.growthOffice.settleSeconds);
+  g.sync(s); g.update(GROWTH.settleSeconds);
   return { s, recs, labels, g, block: () => { blocked = true; }, low: () => { low = true; } };
 }
 describe('office growth lifecycle', () => {
   it('keeps ordinary work untouched and releases the entire small effect under one second', () => {
     const { s, recs, g } = officeFixture(); g.events([event('s0')], s); g.update(1 / 30);
     expect(g.stats.live).toBe(1); expect(recs.get('s0').temp).toBeNull();
-    g.update(B.growthOffice.smallSeconds); expect(g.stats.live).toBe(0); expect(g.stats.rings).toBe(1); g.dispose();
+    g.update(GROWTH.smallSeconds); expect(g.stats.live).toBe(0); expect(g.stats.rings).toBe(1); g.dispose();
   });
   it('poses only available coworkers and releases owned poses on pause, speed change and priority', () => {
     for (const stop of ['pause', 'speed', 'priority']) {
@@ -82,13 +83,13 @@ describe('office growth lifecycle', () => {
     const f = officeFixture(); f.g.events([{ type: 'promoted', staffId: 's0', seniority: 'mid' }], f.s); f.g.update(1 / 30);
     const scene = { moment: 'letter' }; f.recs.get('s0').temp = scene; f.g.update(1 / 30);
     expect(f.recs.get('s0').temp).toBe(scene); expect(f.g.stats.live).toBe(0);
-    f.g.events([event('s3')], f.s); f.recs.get('s3').hidden = true; f.g.update(B.growthOffice.maxAge + 1);
+    f.g.events([event('s3')], f.s); f.recs.get('s3').hidden = true; f.g.update(GROWTH.maxAge + 1);
     expect(f.g.stats.pending).toBe(0); expect(f.g.stats.live).toBe(0); f.g.dispose();
   });
   it('limits Low to one badge, no floor rings and one acknowledgement', () => {
     const f = officeFixture(); f.low(); f.g.events(f.s.staff.map(p => event(p.id)), f.s);
     for (let i = 0; i < 15; i++) { f.g.update(0.1); expect(f.g.stats.live).toBeLessThanOrEqual(1); expect(f.g.stats.rings).toBe(0); }
-    f.g.clear(); f.g.update(B.growthOffice.settleSeconds); f.g.events([{ type: 'promoted', staffId: 's0', seniority: 'mid' }], f.s); f.g.update(0.1);
+    f.g.clear(); f.g.update(GROWTH.settleSeconds); f.g.events([{ type: 'promoted', staffId: 's0', seniority: 'mid' }], f.s); f.g.update(0.1);
     expect([...f.recs.values()].filter(r => r.temp).length).toBe(2); f.g.dispose();
   });
 });

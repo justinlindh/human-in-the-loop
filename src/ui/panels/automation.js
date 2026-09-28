@@ -1,5 +1,5 @@
 import { h, setText, setWidth, fmtMoney, toggleClass, setClass } from '../dom.js';
-import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, policyUnlocked, policyLockText } from '../content.js';
+import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, policyUnlocked, policyLockText, ASSIGNMENT_LABEL, roleName } from '../content.js';
 
 // Policies that cannot be on together. Data can declare it with excludes: [ids]; the standup pair is known here too.
 const EXCLUSIVE = [['daily_standups', 'async_standups']];
@@ -17,6 +17,9 @@ import { picker } from '../picker.js';
 import { agentsHere } from '../v2content.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
+const before = new Map(); // staffId -> the assignment they had before Assign put them on oversight
+// A new or loaded game has other people and projects under the same ids.
+export const forgetOverseers = () => before.clear();
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
 
 export function fnOversight(s, fn) {
@@ -35,6 +38,20 @@ export function oversightHave(s) {
   // A placement-era state has no items list; older sim helpers still iterate it.
   if (typeof SIM.oversightProvided === 'function') return SIM.oversightProvided(s.items ? s : { ...s, items: [] });
   return s.ops?.oversightProvided ?? 0;
+}
+
+// Oversight hours a person would provide on duty: the sim's own total with them on oversight,
+// minus the total with them off it.
+export function overseerHours(s, p) {
+  const withAs = (type) => ({ ...s, staff: s.staff.map((x) => (x.id === p.id ? { ...x, assignment: { type, targetId: null } } : x)) });
+  return Math.max(0, oversightHave(withAs('oversight')) - oversightHave(withAs('idle')));
+}
+
+// Everyone who can take oversight now: the people on duty first, then the most hours added.
+export function overseerCandidates(s) {
+  return s.staff.filter((p) => p.mood !== 'away')
+    .map((p) => ({ p, on: p.assignment.type === 'oversight', hours: overseerHours(s, p) }))
+    .sort((a, b) => (b.on - a.on) || (b.hours - a.hours));
 }
 
 export function fnCost(s, fn) {
@@ -100,11 +117,50 @@ function panelOf(ctx, tab) {
         const debt = FUNCTIONS.reduce((a, f) => a + (DEBT[f] ?? 0) * (st.automation[f]?.level ?? 0), 0);
         setText(debtEl, debt > 0 ? `+${debt.toFixed(1)}/wk` : 'none');
       });
+      // Assign overseers right here: who can take it, what they do now, and the hours they'd add.
+      const pickList = h('div.ovpick');
+      pickList.style.display = 'none';
+      const pickBtn = h('button.btn.small', { 'aria-expanded': 'false', onclick: () => {
+        const open = pickList.style.display === 'none';
+        pickList.style.display = open ? '' : 'none';
+        pickBtn.setAttribute('aria-expanded', String(open));
+        setText(pickBtn, open ? 'Done' : 'Assign overseers');
+      } }, 'Assign overseers');
+      let pickSig = '';
+      // Relieve sends someone back to what they did before this list put them on oversight, if the sim
+      // still takes it (the project may have shipped); else to their role's usual work. The memory is
+      // this session's; after a reload it's the usual work.
+      function relieve(p) {
+        const prev = before.get(p.id);
+        const tries = [prev, { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null }].filter((a) => a && a.type !== 'oversight');
+        for (const [i, a] of tries.entries()) {
+          const res = ctx.act({ type: 'assign', staffId: p.id, assignment: a }, { quiet: i < tries.length - 1 });
+          if (res?.ok) { before.delete(p.id); ctx.sfx('click'); return; }
+        }
+      }
+      bind((st) => {
+        const sig = st.staff.map((p) => `${p.id}${p.mood}${p.assignment.type}${p.assignment.targetId ?? ''}`).join();
+        if (sig === pickSig) return;
+        pickSig = sig;
+        const rows = overseerCandidates(st);
+        pickList.replaceChildren(...(rows.length ? rows.map(({ p, on, hours }) => h(`div.ovrow${on ? '.on' : ''}`, null,
+          h('b.ovname', { text: p.name }),
+          h('span.small.muted', { text: `${roleName(p.role)} · ${on ? 'on oversight' : (ASSIGNMENT_LABEL[p.assignment.type] ?? p.assignment.type)}` }),
+          h('span.spacer'),
+          h('span.num.small.ovhrs', { text: `${on ? '' : '+'}${hours.toFixed(0)}h` }),
+          on ? h('button.btn.small', { onclick: () => relieve(p) }, 'Relieve')
+            : h('button.btn.small.go', { onclick: () => {
+              const prev = { type: p.assignment.type, targetId: p.assignment.targetId ?? null };
+              if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: 'oversight', targetId: null } }).ok) { before.set(p.id, prev); ctx.sfx('confirm'); }
+            } }, 'Assign')))
+          : [h('div.small.muted', { text: 'Nobody is free to oversee right now.' })]));
+      });
       const summary = h('div.card.autosum', null,
         h('div.ovhead', null, h('b', null, icon('oversight'), ' Oversight'), h('span', null, provEl, ' provided of ', reqEl, ' needed'), h('span.spacer'),
-          h('button.btn.small', { onclick: () => ctx.open('staff') }, 'Assign overseers')),
+          pickBtn),
         h('div.bar.thick', null, ovFill),
         ovNote,
+        pickList,
         h('div.row.wrap.autometa', null,
           h('span.pill', null, icon('money'), ' Automation cost ', costEl),
           h('span.pill.warn', null, icon('debt'), ' Comprehension debt ', debtEl),
@@ -172,7 +228,7 @@ function panelOf(ctx, tab) {
         onclick: () => { if (ctx.act({ type: 'setPolicy', id: p.id, on: !on }).ok) ctx.sfx(on ? 'close' : 'confirm'); },
       }, h('span.knob'));
       toggleClass(sw, 'on', on);
-      const card = h('div.card.policy', null,
+      const card = h('div.card.policy', { dataset: { policy: p.id } },
         h('div.row', null, h('b.pname', { text: p.name }), h('span.spacer'), sw),
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,

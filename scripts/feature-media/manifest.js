@@ -1,3 +1,4 @@
+import { YAK_HELPERS, YAK_CHECK } from './yak.js';
 import {
   PLAY, PRE_UNTIL, PRE_DECISION, IN_OFFICE, DROP_UNSTAFFED, STAFF_IDLE, INCIDENT_ON_FLOOR, CHAT_HISTORY,
   BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, KEY,
@@ -36,17 +37,36 @@ const GROWTH_STAGES = [['garage', 6, 'Classic'], ['floor', 138, 'Classic'], ['fl
 const VIEW0 = { js: '(window.__view0 ??= window.__hitlRender.view())' };
 // The people's centre, for a tighter frame on a filled room.
 const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
+// The middle of the largest group of empty desks (desks with nobody seated within 1.2 m), found once,
+// for a push-in that shows who's gone. Desk and seat positions come from their screen boxes projected
+// onto the floor.
+export const EMPTY_DESKS = { js: `(window.__emptyAt ??= (() => {
+  const R = window.__hitlRender, T = R.THREE, s = window.__HITL.state, cam = R.camera, ray = new T.Raycaster(), floor = new T.Plane(new T.Vector3(0, 1, 0), 0);
+  const ground = (r) => { if (!r) return null; ray.setFromCamera(new T.Vector2(((r.left + r.width / 2) / innerWidth) * 2 - 1, -(((r.top + r.height * 0.7) / innerHeight) * 2 - 1)), cam); const p = new T.Vector3(); return ray.ray.intersectPlane(floor, p) ? p : null; };
+  const people = s.staff.map((p) => ground(R.screenRectOf({ kind: 'staff', id: p.id }))).filter(Boolean);
+  const empty = s.office.placed.filter((i) => i.itemId === 'desk').map((i) => ground(R.screenRectOf({ kind: 'item', id: i.id }))).filter((d) => d && !people.some((p) => Math.hypot(p.x - d.x, p.z - d.z) < 1.2));
+  if (!empty.length) return undefined;
+  const near = (d) => empty.filter((e) => Math.hypot(e.x - d.x, e.z - d.z) < 2.5);
+  const best = empty.reduce((a, d) => (near(d).length > near(a).length ? d : a));
+  const g = near(best); return { x: g.reduce((t, d) => t + d.x, 0) / g.length, z: g.reduce((t, d) => t + d.z, 0) / g.length };
+})())` };
 const GROWTH_CAMERA = {
   'floor-full': [{ at: 0, target: PEOPLE, zoom: 1.7 }],
   late: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: [-1.6, -4.1], zoom: 2.5, ease: 'inOut' }],
 };
-const GROW = (week) => `(async () => {
+// lateHires: false plays the late eras without hiring, so attrition thins the office out.
+export const GROW = (week, { lateHires = true } = {}) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
   while (s.week < ${week} && !s.gameOver) {
-    const bot = s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced';
-    b.botDecide(bot, s); b.botTurn(bot, s); sim.tick(s);
+    const late = s.era.id === 'consolidation' || s.era.id === 'plateau';
+    const bot = late ? 'automateAll' : 'balanced';
+    const hold = late && ${!lateHires} ? s.candidates : null;
+    if (hold) s.candidates = [];
+    b.botDecide(bot, s); b.botTurn(bot, s);
+    if (hold) s.candidates = hold;
+    sim.tick(s);
   }
   b.botDecide(s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced', s);
   ${IN_OFFICE}
@@ -193,22 +213,28 @@ export const ITEMS = [
     // A meme posted mid-outage backfires: 😬 reactions and the team's replies under it, in #random.
     // The large Yak keeps the game running (the maximised one pauses it).
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
-    setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; })()`,
+    setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`,
     actions: [
-      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 34, 1),
+      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
       { at: 11, js: `(() => {
         const b = [...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent));
         if (!b || b.disabled || !window.__HITL.state.outage) throw new Error('capture: the meme must be available during an outage');
+        const before = new Set(window.__HITL.state.chatLog.map(m => m.id));
         b.click();
+        const post = window.__HITL.state.chatLog.find(m => !before.has(m.id) && m.image);
+        if (post?.image.id !== 'this_is_fine') throw new Error('capture: Share a meme did not post the outage image');
+        window.__yakMeme = structuredClone(post);
+        (window.__captureMarks ??= []).push({ t: 11, label: 'yak-post', id: post.id, image: post.image.id, outage: true });
       })()` },
-      ...[11.5, 16, 22, 28, 32].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
-      // Newer messages push the thread up: scroll it back to the top of the list for the frame.
-      { at: 32.5, js: `(() => { const posts = [...document.querySelectorAll('.chat.yak *')].filter((e) => e.children.length === 0 && /prod is back/.test(e.textContent)); posts[0]?.scrollIntoView({ block: 'center' }); })()` },
+      ...[11.5, 16, 22, 28, 32, 48, 59].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
+      { at: 59.5, js: "(async () => { const m = document.querySelector('.chat.yak .msg[data-id=\"' + CSS.escape(window.__yakMeme.id) + '\"]'); m?.scrollIntoView({ block: 'start' }); const img = m?.querySelector('.ymeme-img'); if (!img) throw new Error('yak: missing displayed image'); await img.decode(); })()" },
+      { at: 60, js: 'window.__frameYak()' },
+      YAK_CHECK(60.1, { crop: [376 / 1920, 190 / 1080, 1168 / 1920, 730 / 1080] }),
     ],
-    screenshots: [14, 20, 26, 33],
-    out: [{ path: 'img/yak-backfire.webp', size: '1280x720', from: 33, crop: { x: 0, y: 1 / 3, w: 2 / 3, h: 2 / 3 } }],
+    screenshots: [11.1, 60.1],
+    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }],
   },
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,

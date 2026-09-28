@@ -6,6 +6,9 @@ import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
 import { oversightNeeded, oversightHave } from './automation.js';
 
+// A breakdown value with its sign; a value that rounds to zero carries none ("0.0", not "-0.0").
+const signed = (v, sign, digits = 1) => { const t = Math.abs(v).toFixed(digits); return Number(t) === 0 ? t : `${sign}${t}`; };
+
 // The sim's own breakdown, so the rows add up to the posture bar. Debt is a positive penalty.
 export function postureParts(s) {
   // A placement-era state has no items list; older sim helpers still iterate it.
@@ -55,11 +58,11 @@ export function opsPanel(ctx) {
       bind((st) => {
         const pp = postureParts(st);
         post.set(pp.total, pp.total < 30 ? '#e5484d' : pp.total < 60 ? '#e8930c' : '#34c38f');
-        setText(parts.staff, `+${pp.staff.toFixed(1)}`);
-        setText(parts.audit, `+${pp.audit.toFixed(1)}`);
-        setText(parts.tooling, `+${pp.tooling.toFixed(0)}`);
-        setText(parts.bonus, `+${pp.bonus.toFixed(1)}`);
-        setText(parts.debt, `-${pp.debt.toFixed(1)}`);
+        setText(parts.staff, signed(pp.staff, '+'));
+        setText(parts.audit, signed(pp.audit, '+'));
+        setText(parts.tooling, signed(pp.tooling, '+', 0));
+        setText(parts.bonus, signed(pp.bonus, '+'));
+        setText(parts.debt, signed(pp.debt, '-'));
         setText(auditLeft, pp.audit > 0.5 ? 'Audit boost fades a little every week.' : 'No recent audit.');
       });
       const pp0 = postureParts(s);
@@ -102,12 +105,20 @@ export function opsPanel(ctx) {
         sup.set(sc, sc < 70 ? '#e5484d' : '#34c38f');
         mnt.set(mc, mc < 70 ? '#e5484d' : '#4f8cff');
       });
-      const loadCard = h('div.card.load', null,
-        h('div.row', null, icon('oversight'), h('b', { text: 'Oversight' }), h('span', null, ovProv, ' of ', ovReq), h('span.spacer'),
-          h('button.btn.small', { onclick: () => ctx.open('automation') }, 'Automation')),
-        h('div.bar.thick', null, ovFill),
-        h('div.small.muted', { text: 'Coverage: how much of the needed work is actually getting done.' }),
-        sup.el, mnt.el);
+      // Before automation unlocks there is nothing to oversee, so the Oversight row and its Automation
+      // button stay out of sight; the card is just Coverage (Support and Upkeep matter from day one).
+      // They appear, live, when the unlock arrives.
+      const ovHead = h('div.row', null, icon('oversight'), h('b', { text: 'Oversight' }), h('span', null, ovProv, ' of ', ovReq), h('span.spacer'),
+        h('button.btn.small', { onclick: () => ctx.open('automation') }, 'Automation'));
+      const ovBar = h('div.bar.thick', null, ovFill);
+      const ovNote = h('div.small.muted', { text: 'Coverage: how much of the needed work is actually getting done.' });
+      const covHead = h('div.row', null, h('b', { text: 'Coverage' }), h('span.spacer'), h('span.small.muted', { text: 'How much of the needed work is getting done.' }));
+      bind((st) => {
+        const locked = !!st.unlocks && st.unlocks.automation == null;
+        for (const el of [ovHead, ovBar, ovNote]) el.style.display = locked ? 'none' : '';
+        covHead.style.display = locked ? '' : 'none';
+      });
+      const loadCard = h('div.card.load', null, ovHead, covHead, ovBar, ovNote, sup.el, mnt.el);
 
       // Incident log
       const st = s.stats ?? {};

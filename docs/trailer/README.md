@@ -27,6 +27,7 @@ Flags:
 - `--vo <dir>`: the voiceover, one WAV per line named by line id (`l1.wav`, `l2.wav`, ...). Without it the
   trailer is built with music and captions only, which is handy while editing cuts.
 - `--reuse`: keep clips already captured from the same commit and capture only the rest.
+- `--reuse-from <clips>`: reuse inspected footage from a prior capture directory when the capture specification matches and its subject checks passed. The capture index records the original build and content hash. Both Yak shots are recaptured.
 - `--vertical`: also build the 1080x1920 cut.
 - `--no-captions`: skip the burned-in captions.
 - `--print-vo`: print the voiceover lines as JSON (the input the voice script reads), using each line's `say` when it has one.
@@ -77,7 +78,7 @@ results card. The launch beat starts after the reviews finish appearing.
 `yak` and `yak-react` both replay `site-yak-backfire`, seed 2. The balanced bot stops expanding once eight staff
 have moved to the Office Floor, then waits for an outage. Daily standups stay off during the search
 and recording so the same simulation reaches the outage and the people are free to react. The Yak
-shot frames the meme and its reply; the reaction shot returns to the instant the same post lands,
+shot frames the decoded outage image and its live replies, selected by the clicked post ID. It waits for the paced replies to reach the UI and checks the image and thread against the frame and scroll bounds; the reaction shot returns to the instant the same post lands,
 finds the facepalmer with `R.probe(id).anim`, and eases the isometric camera onto them. Speech bubbles
 and work labels stay hidden, and the interface hides after the post is clicked.
 
@@ -115,7 +116,8 @@ and its transcript. Source and licence are in `LICENSES.md` next to this file.
      --takes shots/trailer/takes --out shots/trailer/vo
    ```
 
-   Run it with a Python that has torch (CUDA) and transformers, and a local Whisper large-v3. Each take is
+   Run it with a Python that has torch (CUDA) and transformers; Whisper large-v3 is fetched from the Hugging Face
+   hub on first use (set `HF_HUB_OFFLINE=1` once it is cached). Each take is
    transcribed with word timings and checked the way an ear would:
    - A take is rejected if it stops before its voice has decayed (clean takes end at -70 dB or lower).
    - It's rejected if its last word ends less than 120 ms before the audio does, or if Whisper doesn't hear the line's last word.
@@ -125,7 +127,16 @@ and its transcript. Source and licence are in `LICENSES.md` next to this file.
 
    The winner is trimmed to 40 ms before its first sound and to its natural decay. It then gets `--tail` seconds of silence (0.2 by default) so a line never stops dead. Finally one fixed gain sets it to -18 LUFS, under a gentle peak limit; there is no dynamic loudness processing. It's written as `<line id>.wav`. `picks.json` records every take's checks and transcript, and `sample.wav` plays the lines back to back.
 
-3. Build with `npm run trailer -- --vo shots/trailer/vo`. The build warns when a line runs into the next
+3. When the user rejects a line, screen more takes with `scripts/trailer/vo/screen.py`. It is stricter than
+   `pick.py`: clipping at either end, word-level scores, creaky or flat tone, and optionally the phonemes a
+   word must contain or a sentence-final pitch fall. It writes three candidates per line for the user's
+   approval. See [its toolkit page](../toolkit/trailer-vo-screen.md).
+
+4. Check the timing: `node scripts/trailer/vo/table.mjs --vo shots/trailer/vo` fails when a line's window or
+   speech breaks the window rules. [docs/trailer/script.md](script.md) is the script and timing table, generated
+   from `config.js` by `--write`.
+
+5. Build with `npm run trailer -- --vo shots/trailer/vo`. The build warns when a line runs into the next
    one or past the end; move its cue (`at`) in `config.js`.
 
 Rules: no pitch processing, ever. Generation and transcription run on the GPU and stop if it is

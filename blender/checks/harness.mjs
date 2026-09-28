@@ -17,7 +17,8 @@ import { installDrawAudit } from './draw-audit.js';
 // would shift the game's stream and change every state after it, so tool code runs inside
 // window.__tool(fn), which gives fn a stream of its own. fn must be synchronous.
 const INIT = `(() => {
-  let s = 1234567;
+  const SEED = 1234567;
+  let s = SEED;
   const game = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
   let ts = 7654321;
   const tool = () => { ts = (ts * 16807) % 2147483647; return (ts - 1) / 2147483646; };
@@ -27,11 +28,18 @@ const INIT = `(() => {
     Math.random = tool;
     try { return fn(); } finally { Math.random = prev; }
   };
+  // Loading a model draws from the game stream too (three.js takes a UUID from Math.random for
+  // every geometry, material and texture it makes), so an asset's own contents shift every draw
+  // after it loads. openScene resets the stream once the page is ready, before a check's own setup
+  // runs, so what a scene stages depends only on the check's code, never on what happened to load.
+  window.__reseedGame = () => { s = SEED; };
   let t = 0;
   performance.now = () => t;
   Date.now = () => 1700000000000 + t;
   window.__tick = (ms) => { t += ms; };
-  window.requestAnimationFrame = () => 0;
+  // Frames never run on their own; callbacks queue here for a check that drives the game loop itself.
+  window.__rafQ = [];
+  window.requestAnimationFrame = (cb) => { window.__rafQ.push(cb); return window.__rafQ.length; };
 })();`;
 
 // Checks render on the GPU unless told otherwise (scripts/lib/gl.js: --software or HITL_GL=software).
@@ -60,7 +68,9 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
   // HITL_VITE_CACHE gives the server its own dependency cache, so checks running side by side never
   // re-optimize (and reload) each other's dependencies.
   const cacheDir = process.env.HITL_VITE_CACHE || undefined;
-  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, logLevel: 'error' });
+  // three-mesh-bvh is bundled when the server starts: found later, on a tool's first import, it would
+  // make Vite rebundle dependencies and reload the page mid-run.
+  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, optimizeDeps: { include: ['three-mesh-bvh'] }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];
   const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));
@@ -77,9 +87,22 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       page.on('request', (r) => requests.add(r.url()));
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+      // Pages never touch the network: a request off the harness's own server is aborted, recorded as
+      // a page error, and fails opening the page, so no result depends on what the network returned.
+      const blocked = [];
+      const origin = new URL(base).origin;
+      await page.route((url) => url.origin !== origin && /^(https?|wss?):$/.test(url.protocol), (route) => {
+        const u = route.request().url();
+        blocked.push(u); errors.push(`harness: blocked a network request off the harness server: ${u}`);
+        return route.abort('blockedbyclient');
+      });
       await page.addInitScript(`${auditDraws ? `(${installDrawAudit.toString()})();` : ''}${INIT}`);
       await page.goto(`${base}?snap=1&${query}`, { waitUntil: 'load' });
       await page.waitForFunction(() => window.__HITL && window.__hitlRender?.ready, null, { timeout: 120000, polling: 50 });
+      if (blocked.length) throw new Error(`harness: the page requested the network (blocked): ${blocked.slice(0, 3).join(', ')}`);
+      // Reset the game stream now, once model loading and the page's own bootstrap draws are behind
+      // it, so nothing a check does afterward can depend on what those drew.
+      await page.evaluate(() => window.__reseedGame());
       await page.evaluate(async (tod) => {
         await document.fonts.load('700 16px Fredoka');
         await document.fonts.ready;
@@ -96,11 +119,44 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // The same n frames, drawing only the last: every update still runs each frame, so the final
         // picture is identical to __step(n), without paying for the frames nobody looks at.
         window.__settle = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30, { draw: i === n - 1 }); } };
+        // Raycasts through a bounding-volume tree (three-mesh-bvh) instead of testing every triangle,
+        // for checks that probe the scene each frame. Hits are the same; only static meshes are indexed
+        // (skinned, instanced and morphing meshes keep the default test), each on its first raycast.
+        // Loading the module and building a tree make three.js objects, which take UUIDs from
+        // Math.random, so both run on the tool stream and the game's stream is untouched.
+        // { install: false } loads the module without patching raycast (a comparison run).
+        window.__fastRaycast = async ({ install = true } = {}) => {
+          if (window.__fastRaycastOn) return;
+          const THREE = R.THREE;
+          const toolRandom = window.__tool(() => Math.random), gameRandom = Math.random;
+          Math.random = toolRandom;
+          let bvh;
+          try { bvh = await import('/blender/checks/bvh.js'); } finally { Math.random = gameRandom; }
+          if (!install) return;
+          const slow = THREE.Mesh.prototype.raycast;
+          THREE.Mesh.prototype.raycast = function (raycaster, hits) {
+            const g = this.geometry;
+            if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !g?.attributes?.position || g.morphAttributes?.position) return slow.call(this, raycaster, hits);
+            if (!g.boundsTree) {
+              if ((g.index ? g.index.count : g.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
+              // indirect: the game's geometry (its index, or its lack of one) stays as it was.
+              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g, { indirect: true }); });
+            }
+            return bvh.acceleratedRaycast.call(this, raycaster, hits);
+          };
+          window.__fastRaycastOn = true;
+        };
         // Stepping without drawing. R.advance() moves people, moments and effects but, unlike render(),
         // never refreshes world matrices; game logic reads them (paths, gaze, props that follow a desk),
         // so a stepper that skipped the refresh would play differently from the game, and any tool that
         // later refreshed them (a crop, a probe) would change what comes after.
         window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
+        // Tool dependencies that build three.js objects when they load (tool-preload.js) take a UUID
+        // each from Math.random. Loaded here on the tool stream, they cost the game's stream nothing
+        // when a check imports them later, so a result doesn't depend on which tool loaded first.
+        const gameRandom = Math.random;
+        Math.random = window.__tool(() => Math.random);
+        try { await import('/blender/checks/tool-preload.js'); } finally { Math.random = gameRandom; }
       }, time);
       return { page, errors, requests };
     },

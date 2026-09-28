@@ -20,6 +20,8 @@ done
 
 # Tools come from this script's own checkout; the tree under test is CI_DIR (default: that checkout).
 SELF="$(cd "$(dirname "$0")" && pwd)"
+# Every test run here is real: scripts/test-cache.sh never skips one.
+export HITL_NO_TEST_CACHE=1
 # Every step's wall and CPU time go to the team's timing log (scripts/lib/timing.sh).
 source "$SELF/lib/timing.sh"
 cd "${CI_DIR:-$SELF/..}"
@@ -151,29 +153,52 @@ deps() {
 step deps deps
 tracked_modules() { test -z "$(git ls-files node_modules)" || { echo "node_modules is tracked by git"; return 1; }; }
 step no-node-modules tracked_modules
+# Steps GitHub's own checks (.github/workflows/ci.yml) already run on the same merged code: a PR run
+# records them as covered there, and the main guard (CI_FULL=1) still runs them here, so a red main
+# gets its issue and bisect.
+gh_step() { # <name> <github job> <command...>
+  local name="$1" job="$2"; shift 2
+  if [ "${CI_FULL:-}" = 1 ]; then step "$name" "$@"
+  else record "$name" "skipped: GitHub's $job check runs it" 0; timing_log kind=step tool=ci-local step="$name" skipped=1 github=1 wall_s=0 exit=0; fi
+}
 # A parse check of every script, so a syntax error fails in seconds with its file and line.
 syntax() {
   local failed=0
   while IFS= read -r f; do node --check "$f" || failed=1; done < <(git ls-files 'src/**.js' 'src/**.mjs' 'scripts/**.js' 'scripts/**.mjs' 'blender/**.mjs')
   return $failed
 }
-step syntax syntax
-# docs/features.md against the data: every staged event, item, perk, moment kind, quick post, prompt,
+gh_step syntax test syntax
+# docs/features/ against the data: every staged event, item, perk, moment kind, quick post, prompt,
 # music night genre and era has an entry, and every id the file names exists (scripts/features-ids.mjs).
 step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 # Every script and check has a docs/toolkit/ entry, and every entry is well formed (scripts/toolkit.mjs).
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
+# A changed golden image or sweep-baseline entry needs its own before/after media on the PR
+# (scripts/baseline-media.sh); without a PR number it only says so.
+step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step wait-for bash "$SELF/wait-for.test.sh"
+tool_step check-commits bash "$SELF/check-commits.test.sh"
+tool_step review-prep bash "$SELF/review-prep.test.sh"
+tool_step test-cache bash "$SELF/test-cache.test.sh"
+tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
+tool_step pre-push bash "$SELF/hooks/pre-push.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
 tool_step ci-bot-check bash "$SELF/ci-bot-check.test.sh"
 tool_step review-carry bash "$SELF/review-carry.test.sh"
+tool_step auto-ci bash "$SELF/auto-ci.test.sh"
+tool_step watched-media bash "$SELF/watched-media.test.sh"
 tool_step golden-resolve bash "$SELF/golden-resolve.test.sh"
+tool_step baseline-media-test bash "$SELF/baseline-media.test.sh"
+tool_step merge-union-check bash "$SELF/merge-union-check.test.sh"
 tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
-tool_step main-guard bash "$SELF/main-guard.test.sh"
+gh_step main-guard tools bash "$SELF/main-guard.test.sh"
 tool_step gl node "$SELF/lib/gl.test.mjs"
 tool_step ci-capacity bash "$SELF/ci-capacity.test.sh"
+tool_step quiet bash "$SELF/quiet.test.sh"
+tool_step dashboard node --test "$SELF/dashboard/dashboard.test.mjs"
 tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
 tool_step toolkit-test node "$SELF/toolkit.test.mjs"
@@ -185,7 +210,8 @@ tool_step capture bash "$SELF/capture.test.sh"
 # come from the base, and any doubt (no list, no classifier, nothing to compare) runs the suite.
 # CI_FULL=1 (the main guard) always runs it.
 bal_mode=full
-if [ "${CI_FULL:-}" != 1 ] && git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
+[ "${CI_FULL:-}" = 1 ] || bal_mode=github
+if [ "$bal_mode" = full ] && [ "${CI_FULL:-}" != 1 ] && git show "$BASE:scripts/ci-balance-skip-paths" >"$LOGS/bal-skip" 2>/dev/null \
   && git show "$BASE:scripts/ci-classify.sh" >"$LOGS/classify.sh" 2>/dev/null \
   && bal_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)"; then
   bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
@@ -206,13 +232,15 @@ balance_hash() {
   } | sha256sum | cut -c1-32
 }
 bal_hash=""; bal_passed=""
-if [ "$bal_mode" != light ] && [ "${HITL_NO_CHECK_CACHE:-}" != 1 ]; then
+if [ "$bal_mode" = full ] && [ "${HITL_NO_CHECK_CACHE:-}" != 1 ]; then
   bal_hash="$(balance_hash 2>/dev/null)" || bal_hash=""
   [ -n "$bal_hash" ] && [ -f "$BAL_CACHE/$bal_hash.pass" ] && bal_passed="$(cat "$BAL_CACHE/$bal_hash.pass")"
   [ -n "$bal_hash" ] && timing_log kind=cache tool=test:balance cache="$([ -n "$bal_passed" ] && echo hit || echo miss)" input="$bal_hash"
 fi
 bal_t0=$(now)
-if [ "$bal_mode" = light ]; then
+if [ "$bal_mode" = github ]; then
+  echo "test:balance: skipped: GitHub's balance check runs it"
+elif [ "$bal_mode" = light ]; then
   echo "test:balance: skipped: no sim changes"
 elif [ -n "$bal_passed" ]; then
   echo "test:balance: skipped: these sim inputs passed on ${bal_passed:-an earlier run}"
@@ -233,8 +261,8 @@ if [ -z "$VITEST_WORKERS" ]; then
   VITEST_WORKERS="$(vitest_workers "$(nproc)" "$(load1)" "$(ci_runs_going)")"
   timing_log kind=vitest tool=ci-local workers="$VITEST_WORKERS" cores="$(nproc)" load1="$(load1)" runs="$(ci_runs_going)"
 fi
-step test:fast npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
-step build npm run build
+gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
+gh_step build test npm run build
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
 # whose wait does not count against the ten minutes:
 #   render-checks  clipping with and without the rig, standups, and (unless CI_SKIP_SWEEP=1) the scene sweep (new violations in
@@ -312,22 +340,51 @@ stage_check() {
   fi
   render_step stage gpu "node blender/checks/stage.mjs --out '$LOGS/stage.json'"
 }
+# No-draw parity (blender/checks/pose-nodraw.mjs, on a GPU slot): the checks that sample frames
+# without drawing must measure exactly what drawn frames measure, and make no draws while sampling.
+# Runs for changes to the renderer or to the harness and pose measures those checks share.
+nodraw_check() {
+  [ -f blender/checks/pose-nodraw.mjs ] || { echo "skipped: no blender/checks/pose-nodraw.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/render/|blender/checks/(pose[^/]*|harness\.mjs|draw-audit\.js|intersect\.js)$|scripts/events/load\.js$)' <<<"$files"; then
+    echo "skipped: no render, harness or pose-measure changes"; return 0
+  fi
+  render_step pose-nodraw gpu "node blender/checks/pose-nodraw.mjs --json '$LOGS/pose-nodraw.json'"
+}
+# Tool loading (blender/checks/tool-rng.mjs, on a GPU slot): importing a page-side tool module takes
+# nothing from the game's random stream, and idle time before warm-up changes nothing. Runs for
+# changes to the page-side tool modules, the harness or the renderer.
+rng_check() {
+  [ -f blender/checks/tool-rng.mjs ] || { echo "skipped: no blender/checks/tool-rng.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/render/|blender/checks/([^/]*\.js|harness\.mjs|tool-rng\.mjs)$|package-lock\.json$)' <<<"$files"; then
+    echo "skipped: no render, harness or page-side tool changes"; return 0
+  fi
+  render_step tool-rng gpu "node blender/checks/tool-rng.mjs"
+}
 # golden renders in software (SwiftShader, on the CPU), so it runs in the background while the GPU
 # steps run one after another: those open many browsers each, and running them all at once exhausts
 # the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
 browser_t0=$(now)
 pstep golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
-step lifecycle bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
-step soak bash "$SELF/with-render-lock.sh" --gpu npm run soak
+gh_step lifecycle browser bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
+gh_step soak browser bash "$SELF/with-render-lock.sh" --gpu npm run soak
 step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' $render_parts"
-step perf-budget perf_budget
+gh_step perf-budget tools perf_budget
 step phone-check phone_check
 step stage stage_check
+step pose-nodraw nodraw_check
+step tool-rng rng_check
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
-step commits commits
+gh_step commits commits commits
 
 if [ -n "$bal_passed" ]; then record test:balance "skipped: these sim inputs passed on $bal_passed" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 cached=1 wall_s=0 exit=0;
+elif [ "$bal_mode" = github ]; then record test:balance "skipped: GitHub's balance check runs it" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 github=1 wall_s=0 exit=0;
 elif [ -z "$bal_pid" ]; then record test:balance "skipped: no sim changes" 0; timing_log kind=step tool=ci-local step=test:balance skipped=1 wall_s=0 exit=0;
 elif wait "$bal_pid"; then record test:balance pass $(( $(now) - bal_t0 ));
 else

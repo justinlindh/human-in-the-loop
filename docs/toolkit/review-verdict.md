@@ -1,6 +1,6 @@
 ---
-tool: `scripts/review-verdict.sh <pr> pass|changes <body> --head <sha>`
+tool: `scripts/review-verdict.sh <pr> pass|changes <body> --head <sha> [--watched <file>]... [--superseded <file>]... [--code-only <why>]`
 section: pr
-covers: scripts/review-verdict.sh
+covers: scripts/review-verdict.sh scripts/lib/watched-media.sh scripts/watched-media.test.sh
 ---
-The reviewer's verdict: a PR review plus the `review` status on that head. team-lead uses it for lead and integrator PRs.
+The reviewer's verdict: a PR review plus the `review` status on that head. team-lead uses it for lead and integrator PRs. A pass names the media it was judged from: `--watched <file or pr-media URL>`, once per file. When the PR changes `src/render/`, `src/ui/`, `src/audio/` or `public/models/`, or has screenshots or clips (a Screenshots or clips entry other than "none", "not applicable" or "audio only", or pr-media links, game or site, in its body or in comments from `scripts/ci-trusted` logins), every image, video and audio file on it must be named; a video's GIF preview comes with the video. A file a later one replaced can be named with `--superseded <file>` instead, and the verdict lists it apart. Otherwise the pass is refused (exit 1) with the unnamed files listed, and a name that matches no file on the PR is refused too. A visible change with no media can't pass until the author posts some. `--code-only "<why>"` lifts the requirement when the code alone settles it. The verdict prints a `Watched:` line and the code-only reason. review-carry.sh doesn't check media: a carried pass rests on the verdict it carries.

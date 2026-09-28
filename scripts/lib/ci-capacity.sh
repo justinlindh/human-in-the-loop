@@ -1,5 +1,6 @@
 # Machine-wide capacity for local CI runs. Source it, then:
-#   ci_slot_take <fd>        wait for one of HITL_CI_SLOTS (default 3) run slots and hold it on <fd>;
+#   ci_slot_take <fd>        wait for one of HITL_CI_SLOTS (default 3) run slots and hold it on <fd>,
+#                            after any quiet window (scripts/lib/quiet.sh) ends;
 #                            says on stderr while it waits; exit status 75 when CI_RUN_WAIT (default
 #                            7200) seconds pass without one
 #   ci_runs_going            how many run slots are held right now (the caller's own included)
@@ -10,6 +11,8 @@
 #                            prints why a failed step looks like the machine's fault, not the code's
 #                            (nothing, and exit 1, when it doesn't)
 # Slot files live in HITL_LOCK_DIR, next to the render locks.
+# A quiet window (scripts/lib/quiet.sh) holds new runs back until it ends.
+declare -F quiet_wait >/dev/null || source "$(dirname "${BASH_SOURCE[0]}")/quiet.sh"
 ci_slot_dir() { echo "${HITL_LOCK_DIR:-$HOME/.cache/hitl-ci}"; }
 ci_slot_count() { echo "${HITL_CI_SLOTS:-3}"; }
 
@@ -17,9 +20,12 @@ ci_slot_take() {
   local fd="$1" dir n i waited=0 said=0 max="${CI_RUN_WAIT:-7200}"
   dir="$(ci_slot_dir)"; n="$(ci_slot_count)"; mkdir -p "$dir"
   while :; do
+    quiet_wait ci-local
     for i in $(seq 1 "$n"); do
       eval "exec $fd>\"\$dir/ci-run-$i.lock\""
       if flock -n "$fd"; then
+        # A window asked for between the wait and the take: give the slot back and wait for it.
+        if quiet_blocks; then eval "exec $fd>&-"; break; fi
         [ $said = 1 ] && echo "ci-local: got CI run slot $i after ${waited}s" >&2
         CI_SLOT="$i"; CI_SLOT_WAITED="$waited"
         return 0
@@ -52,10 +58,10 @@ vitest_workers() {
   }'
 }
 
-# Signatures of a machine out of something (disk, memory, GPU), as the browsers, git and node report
+# Signatures of a machine out of something (disk, memory, GPU, network), as the browsers, git and node report
 # it. Only a log's last INFRA_TAIL lines (default 40) count, where a tool reports why it stopped, so
 # the same words inside ordinary test output above an assertion don't turn a code failure into one.
-INFRA_RE='ERR_INSUFFICIENT_RESOURCES|ENOSPC|No space left on device|unable to write file|Cannot allocate memory|ENOMEM|asked for the GPU but got no WebGL2|Error creating WebGL context|Could not create a WebGL context|WebGL context could not be created|GPU process (exited|crashed|isn.t usable)|signal=SIGTRAP|no (software render lock|CI run slot) after'
+INFRA_RE='ERR_INSUFFICIENT_RESOURCES|ENOSPC|No space left on device|unable to write file|Cannot allocate memory|ENOMEM|asked for the GPU but got no WebGL2|Error creating WebGL context|Could not create a WebGL context|WebGL context could not be created|GPU process (exited|crashed|isn.t usable)|signal=SIGTRAP|no (software render lock|CI run slot) after|net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|CONNECTION_RESET|CONNECTION_TIMED_OUT)'
 infra_failure() {
   local log="$1" secs="$2" hit
   hit="$(tail -n "${INFRA_TAIL:-40}" "$log" 2>/dev/null | grep -m1 -oE "$INFRA_RE")"

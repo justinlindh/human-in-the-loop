@@ -6,11 +6,10 @@ import { resolve } from 'node:path';
 
 export const MEME_ART = [
   { id: 'this_is_fine', format: 'This is fine', caption: 'SEV-1. Everything is fine.', shots: ['sip'] },
-  { id: 'two_buttons', format: 'Two buttons', caption: 'Ship on Friday / Sleep', shots: ['facepalm'] },
+  { id: 'two_buttons', format: 'Two buttons', caption: 'Ship on Friday / Sleep', shots: ['dilemma'] },
   { id: 'tabs_chart', format: 'Up-and-to-the-right chart', caption: 'tabs I have open', shots: ['celebrate'] },
   { id: 'always_config', format: 'Always has been', caption: "Wait, it's all config? / Always has been.", shots: ['point', 'idle'] },
   { id: 'yes_no_tests', format: 'Reject / approve', caption: 'writing the tests myself / asking the agent to write them', shots: ['fan', 'celebrate'] },
-  { id: 'expanding_review', format: 'Expanding brain', caption: 'I write code / I review code / I review what the agent wrote', shots: ['typing', 'peer', 'celebrate'] },
 ];
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const out = resolve('public/memes'), evidence = resolve('shots/memes');
@@ -26,6 +25,7 @@ try {
       const { setRingsShown } = await import('/src/render/character.js');
       const { RoundedBoxGeometry } = await import('/node_modules/three/examples/jsm/geometries/RoundedBoxGeometry.js');
       const dump = await import('/blender/checks/dump.js');
+      const { createFlame } = await import('/src/render/flame.js');
       await dump.prepare();
       R.perks.hold = true;
       S.pendingDecision = null;
@@ -43,13 +43,10 @@ try {
       };
       window.__tool(() => {
         if (meme.id === 'this_is_fine') {
-          // Rounded toy flames sit among the office furniture, behind the coffee drinker.
-          for (const [x, z, height] of [[-1, 0, 0.95], [0.9, 0, 1.15], [-0.8, 2, 0.7], [1.3, 1.5, 0.9]]) {
-            for (const [r, h, color] of [[0.27, height, P.marker_orange], [0.14, height * 0.66, P.gold]]) {
-              const points = [[0,0],[r,0.12],[r*0.9,h*0.42],[r*0.4,h*0.75],[0,h]].map(([a,b]) => new T.Vector2(a,b));
-              const flame = new T.Mesh(new T.LatheGeometry(points, 16), material(color));
-              flame.position.set(x, 0, z + (r < 0.2 ? 0.15 : 0)); flame.castShadow = true; extras.add(flame);
-            }
+          // The game's flames stand among the office furniture, behind the coffee drinker.
+          for (const [x, z, height, phase] of [[-1, 0, 1.0, 1.3], [0.9, 0, 1.2, 0.4], [-0.8, 2, 0.75, 2.1], [1.3, 1.5, 0.95, 0.9]]) {
+            const f = createFlame({ height });
+            f.position.set(x, 0, z); f.userData.update(phase); extras.add(f);
           }
         }
         if (meme.id === 'two_buttons') {
@@ -96,13 +93,13 @@ try {
         if (c.measureText(line).width > max) throw new Error(`Caption too wide: ${line}`);
         c.fillText(line, x, y);
       };
-      const shot = (i, x, y, w, h, wide = false) => {
+      const shot = (i, x, y, w, h, wide = false, { size, dx = 0, dy = 0 } = {}) => {
         // Native-pixel crops keep faces sharp; the dump supplies the subject's screen bounds.
         const person = measurements[i].people.find(p => p.id === subjects[i]);
         const [px, py, pw, ph] = person.screen;
-        const sh = wide ? (meme.id === 'this_is_fine' ? 790 : 840) : (meme.id === 'expanding_review' ? 440 : 560), sw = sh * w / h;
-        const sx = Math.max(0, Math.min(1800 - sw, px + pw / 2 - sw / 2));
-        const sy = Math.max(0, Math.min(1350 - sh, py + ph / 2 - sh / 2));
+        const sh = size ?? (wide ? (meme.id === 'this_is_fine' ? 790 : 840) : 560), sw = sh * w / h;
+        const sx = Math.max(0, Math.min(1800 - sw, px + pw / 2 - sw / 2 + dx));
+        const sy = Math.max(0, Math.min(1350 - sh, py + ph / 2 - sh / 2 + dy));
         c.drawImage(captures[i], sx, sy, sw, sh, x, y, w, h);
         return { sx, sy, sw, sh, x, y, w, h };
       };
@@ -112,7 +109,8 @@ try {
         text('SEV-1', 600, 62, 78);
         text('Everything is fine.', 600, 838, 76);
       } else if (meme.id === 'two_buttons') {
-        shot(0, 0, 135, 1200, 765, true);
+        // Close on the torn face, with both buttons still in frame below it.
+        shot(0, 0, 135, 1200, 765, true, { size: 640, dx: -150, dy: -15 });
         text('Ship on Friday', 340, 70, 61, 590); text('Sleep', 930, 70, 66, 380);
         c.fillStyle = P.marker_orange; c.fillRect(65, 111, 550, 14);
         c.fillStyle = P.marker_green; c.fillRect(745, 111, 365, 14);
@@ -131,23 +129,6 @@ try {
         shot(0, 0, 0, 450, 450); shot(1, 0, 450, 450, 450);
         text('writing the', 825, 180, 64, 700); text('tests myself', 825, 260, 64, 700);
         text('asking the agent', 825, 630, 59, 700); text('to write them', 825, 710, 64, 700); rule(450);
-      } else {
-        const lines = [['I write code'], ['I review code'], ['I review what', 'the agent wrote']];
-        for (let i = 0; i < 3; i++) {
-          const crop = shot(i, 0, i * 300, 400, 300);
-          if (i > 0) {
-            const [hx, hy] = measurements[i].people[0].head.screen;
-            const x = (hx - crop.sx) / crop.sw * crop.w;
-            const y = (hy - crop.sy) / crop.sh * crop.h + crop.y;
-            c.save(); c.beginPath(); c.rect(10, i * 300 + 10, 380, 280); c.clip();
-            c.strokeStyle = i === 1 ? P.gold : P.screen_cyan; c.lineWidth = 7;
-            for (let ray = 0; ray < 12; ray++) { const a = ray * Math.PI / 6; c.beginPath(); c.moveTo(x + Math.cos(a) * 62, y + Math.sin(a) * 55); c.lineTo(x + Math.cos(a) * (i === 1 ? 78 : 103), y + Math.sin(a) * (i === 1 ? 72 : 95)); c.stroke(); }
-            c.restore();
-          }
-          c.fillStyle = [P.wall_cream, P.wall_sage, P.glass][i]; c.fillRect(400, i * 300, 800, 300);
-          lines[i].forEach((line, j) => text(line, 800, i * 300 + (lines[i].length === 1 ? 150 : 110 + j * 85), 65, 750));
-          if (i) rule(i * 300);
-        }
       }
       c.strokeStyle = P.ink; c.lineWidth = 16; c.strokeRect(8, 8, 1184, 884);
       const big = canvas.toDataURL('image/webp', 0.94);

@@ -9,6 +9,12 @@ import { B } from '../sim/balance.js';
 //   ignored  what happens when nobody answers before it expires
 const N = B.prompts;
 
+// What the poster says when a promised desk arrives in time, or never does.
+export const DESK_PROMISE_LINES = {
+  kept: ['The new desk is in. Thank you! Reopening the job post.', 'A desk! An actual desk. Hiring is back on.'],
+  broken: ['That desk never showed up. Hiring is still on pause.', 'Still no desk. I have stopped checking the delivery tracker.'],
+};
+
 export const PROMPTS = [
   {
     id: 'strain_vent', on: 'strain', channel: 'general', cooldown: 6,
@@ -189,19 +195,36 @@ export const PROMPTS = [
   {
     id: 'desk_squeeze', on: 'crowded', channel: 'general', cooldown: 10,
     text: [
-      'I am currently sharing a desk with the printer. The printer is winning.',
-      'Can we get another desk? I have been working from the beanbag for a week.',
-      'Is the meeting room a desk now? Asking because I live there.',
+      'Every desk is taken, so we cannot hire anyone else. Can we get another desk?',
+      'The hiring page says "no desk, no hire". Could we fix the desk part?',
+      'I found a great candidate. Where would they sit? Every desk is taken.',
     ],
     options: [
-      { label: 'A new desk is coming', hint: 'Their meaning up a little', effects: { meaning: 2 },
-        reply: ['A new desk is coming. Guard the beanbag until then.'],
-        answer: ['The beanbag and I will miss each other.'] },
-      { label: 'Hot-desking builds character', hint: 'Their meaning down a little', effects: { meaning: -1 },
-        reply: ['Hot-desking builds character.'],
-        answer: ['My character is very built now. Thanks.'] },
+      { label: 'I will add a desk', hint: 'A promise: add a desk within a month, or they take it personally',
+        effects: { deskPromise: true }, opens: { panel: 'office', arg: 'desk' },
+        reply: ['A new desk is coming. Keep that candidate warm.'],
+        answer: ['Telling the candidate to hold that thought.'] },
+      { label: 'Not now', hint: 'Their meaning down a little', effects: { meaning: -1 },
+        reply: ['Not now. We are the right size for the moment.'],
+        answer: ['Understood. Hiring is on pause.'] },
     ],
-    ignored: { effects: { meaning: -2 }, line: ['Beanbag, week two. We have an understanding now.'] },
+    ignored: { effects: { meaning: -2 }, line: ['No answer. No desk, no hire. I will keep the job post in drafts.'] },
+  },
+  {
+    id: 'office_full', on: 'full', channel: 'general', cooldown: 16,
+    text: [
+      'Every desk is taken and there is no floor left for another. Is it time for a bigger office?',
+      'We cannot hire until there is somewhere to put people. Are we moving?',
+    ],
+    options: [
+      { label: 'A bigger office is the plan', hint: 'Their meaning up a little', effects: { meaning: 1 }, opens: { panel: 'office' },
+        reply: ['A bigger office is next on the list.'],
+        answer: ['I am already measuring my future desk with my eyes.'] },
+      { label: 'We stay this size for now', hint: 'Their meaning down a little', effects: { meaning: -1 },
+        reply: ['We stay this size for a while.'],
+        answer: ['Understood. Hiring is on pause.'] },
+    ],
+    ignored: { effects: { meaning: -2 }, line: ['No answer. The job post stays in drafts.'] },
   },
   {
     id: 'junior_pr', on: 'junior', channel: 'general', cooldown: 6,

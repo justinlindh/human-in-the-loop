@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { B } from '../sim/balance.js';
 import { TRAITS } from '../data/traits.js';
 import { PALETTE as P } from './palette.js';
+import { GROWTH } from './growth-tune.js';
 
 const SKILLS = ['features', 'polish', 'reliability', 'novelty'];
 const TRAIT_ICONS = { natural_mentor: 'mentor', mentor: 'mentor', paranoid: 'oversight', visionary: 'stat.novelty' };
@@ -36,7 +37,7 @@ export function createGrowthQueue() {
       const p = state.staff.find(p => p.id === e.staffId);
       if (!p || (e.type === 'levelUp' && (p.level >= B.maxLevel || medium.has(p.id) || promotionWeek(p, state.week)))) continue;
       const before = pending.get(p.id);
-      if (!before && pending.size >= B.growthOffice.queueMax) continue;
+      if (!before && pending.size >= GROWTH.queueMax) continue;
       if (before && before.event.type !== 'levelUp' && e.type === 'levelUp') continue;
       const badges = before?.badges ?? [];
       const badge = growthBadge(e);
@@ -47,7 +48,7 @@ export function createGrowthQueue() {
   }
   function step(dt) {
     clock += dt;
-    for (const [id, q] of pending) if (clock - q.at >= B.growthOffice.maxAge) pending.delete(id);
+    for (const [id, q] of pending) if (clock - q.at >= GROWTH.maxAge) pending.delete(id);
   }
   function take(ready) {
     for (const [id, q] of pending) if (ready(id, q)) { pending.delete(id); return q; }
@@ -59,7 +60,7 @@ export function createGrowthQueue() {
 export function createOfficeGrowth({ recs, labels, parent, low, ready, blocked, faceToward }) {
   const queue = createGrowthQueue(), live = [], rings = [];
   let owner = null, stage = null, week = -Infinity, gap = 0, speed = 1;
-  const tune = B.growthOffice;
+  const tune = GROWTH;
   function release(beat) {
     if (beat.label?.growthOwner === beat.token) beat.label.t = beat.label.life;
     if (beat.ring) { beat.ring.visible = false; rings.push(beat.ring); }

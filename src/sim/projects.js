@@ -79,7 +79,7 @@ export function pressReviews(state, target, { update = false, centered = false, 
 }
 
 // Founders built the company, so any founder can build, whatever their role.
-const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder));
+export const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder));
 
 function baseProject(state, fields) {
   return {
@@ -186,7 +186,7 @@ function launchNew(ctx, j) {
   state.stats.launches++;
   ctx.emit({ type: 'launch', productId: product.id });
   ctx.state.flags.lastPauseWeek = ctx.state.week;
-  ctx.emit({ type: 'celebrate', staffId: null });
+  ctx.emit({ type: 'celebrate', staffId: null, cause: `${product.name} launched` });
   ctx.emit({ type: 'toast', text: `${product.name} launched! Reviews average ${product.score}.`, tone: product.score >= 6 ? 'good' : 'warn' });
   return product;
 }

@@ -1,6 +1,6 @@
 import { ensureRecord } from './record.js';
 import { B } from './balance.js';
-import { pick, shuffle, int } from './rng.js';
+import { pick, shuffle, int, createRng } from './rng.js';
 import { newId } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
@@ -13,6 +13,16 @@ import { raiseDecision } from './events.js';
 const LADDER = INCENTIVES.filter((r) => r.id !== 'waffle_party');
 
 const inOffice = (p) => p.mood !== 'away' && !p.remote;
+
+// The reward for the count-th award: the ladder in order up to music night at the top. Past the top, music
+// night comes back every B.incentiveMusicEvery awards, and the awards between draw a lower rung from a
+// stream of their own, seeded by the game and the award's number.
+export function rewardFor(state, count) {
+  const top = LADDER.length - 1;
+  if (count <= top) return LADDER[count];
+  if ((count - top) % B.incentiveMusicEvery === 0) return LADDER[top];
+  return pick(createRng((Math.imul(state.seed >>> 0, 2654435761) + Math.imul(count, 40503) + 17) >>> 0), LADDER.slice(0, top));
+}
 
 // The Incentives Program: every couple of months the top performer gets the next reward on the ladder.
 // It buys a burst of output that shrinks with every reward (incentive fatigue), a happy winner, a slightly
@@ -28,7 +38,7 @@ export function incentivesSystem(ctx) {
   if (!eligible.length) return;
   const winner = eligible.reduce((a, b) => (outputMult(state, b) * b.level > outputMult(state, a) * a.level ? b : a));
   const count = state.flags.incentiveCount ?? 0;
-  const reward = LADDER[Math.min(count, LADDER.length - 1)];
+  const reward = rewardFor(state, count);
   state.flags.incentiveWeek = state.week;
   state.flags.incentiveCount = count + 1;
   if (reward.id === 'music_night') {

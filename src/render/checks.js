@@ -710,7 +710,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       }
       if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
         pm.interrupted = true;
-        R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
+        R.handleEvents([{ type: 'celebrate', staffId: null, cause: 'Check launched' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
       }
       if (i % 2 || pm.phase === 'off') continue;
       samples++;
@@ -888,6 +888,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     for (const [x, y] of L.blocked) used.add(`${x},${y}`);
     const free = (x, y) => { for (let i = 0; i < f.w; i++) for (let j = 0; j < f.h; j++) if (used.has(`${x + i},${y + j}`)) return false; return true; };
     const row = (y) => { for (let x = 1; x < L.grid.w - f.w - 1; x++) if (free(x, y)) return { x, y }; return null; };
+    R.spotTrace = true;
     const scrawlOn = (at) => {
       S.office.placed = S.office.placed.filter((p) => p.id !== 'wb_test');
       S.office.placed.push({ id: 'wb_test', itemId: 'whiteboard', level: 1, ...at, rot: 0 });
@@ -1095,7 +1096,7 @@ export async function runSkyCheck() {
 
 // A passer on open floor beside an idle pet. Only the fixture positions actors; the
 // production greeting must notice the walker and release them back to their goal.
-export function setupPetPasser(R, S, species = 'dog') {
+export function setupPetPasser(R, S, species = 'dog', yaw = null, distance = 0.65, petYaw = 0) {
   R.perks.hold = true;
   S.pendingDecision = null;
   S.pets = [{ id: 'check_pet', species, name: 'Kernel', ownerId: null }];
@@ -1111,36 +1112,54 @@ export function setupPetPasser(R, S, species = 'dog') {
   R.catchFor(id, null, { walk: true });
   window.__advance(1);
   const pos = charOf(R.scene, id).position;
-  R.pets.standAt('check_pet', pos.x, pos.z + 0.65);
+  R.pets.standAt('check_pet', pos.x, pos.z + distance, { id, yaw, petYaw });
   return { id, at };
 }
 
 export async function runPetChecks(R, S) {
   const results = [];
-  for (const species of ['dog', 'cat']) {
+  const headings = [null, 2.104, ...Array.from({ length: 24 }, (_, i) => i * Math.PI / 12)];
+  const cases = headings.map((yaw, i) => ({ name: `heading-${i}`, yaw }));
+  cases.push({ name: 'approach', distance: 1.35 }, { name: 'near', yaw: 2.104, distance: 0.56 });
+  cases.push({ name: 'near-side-turn', yaw: 2.104, petYaw: -Math.PI / 2 });
+  for (const petYaw of [Math.PI / 2, Math.PI, -Math.PI / 2]) cases.push({ name: `pet-turn-${petYaw}`, yaw: 2.104, petYaw, distance: 1.0 });
+  for (const species of ['dog', 'cat']) for (const { name, yaw = null, distance = 0.65, petYaw = 0 } of cases) {
     R.pets.reset(); R.setQuality('medium');
-    const { id } = setupPetPasser(R, S, species);
+    const { id } = setupPetPasser(R, S, species, yaw, distance, petYaw);
     const root = charOf(R.scene, id);
-    let samples = 0, worst = 0, petInside = 0, resumed = false;
+    let samples = 0, worst = 0, petInside = 0, firstInside = null, resumed = false, stroke = 0, resumedDistance = 0;
+    let lastGreeting = null;
     let petRoot = null; R.scene.traverse(o => { if (o.name === 'pet') petRoot = o; });
-    for (let f = 0; f < 160; f++) {
+    let worstActor = null, worstFrame = null;
+    for (let f = 0; f < 180; f++) {
       window.__advance(1);
-      if (R.walkOf(id)?.temp?.moment === 'pet') {
+      const greeting = R.walkOf(id)?.temp?.moment === 'pet';
+      worst = Math.max(worst, bodyInside(root, furnitureOf(R)));
+      const overlap = bodyInside(root, meshes(petRoot), false);
+      if (overlap > petInside) { petInside = overlap; worstActor = actorAt(R, id); worstFrame = f; }
+      if (greeting) {
         samples++;
-        if (f % 3 === 0) {
-          worst = Math.max(worst, bodyInside(root, furnitureOf(R)));
-          petInside = Math.max(petInside, bodyInside(root, meshes(petRoot), false));
-        }
-      } else if (samples && R.walkOf(id)?.path.length) resumed = true;
+        lastGreeting = { x: root.position.x, z: root.position.z };
+        if (R.walkOf(id).temp.anim === 'pet') stroke++;
+        if (firstInside === null) firstInside = overlap;
+      } else if (samples && R.walkOf(id)?.path.length) {
+        resumed = true;
+        resumedDistance = Math.max(resumedDistance, Math.hypot(root.position.x - lastGreeting.x, root.position.z - lastGreeting.z));
+      }
     }
-    results.push({ name: `moment:pet:${species}`, pass: samples >= 80 && resumed && worst < 0.01 && petInside < 0.01, samples, resumed, petInsidePct: +(petInside * 100).toFixed(2), insidePct: +(worst * 100).toFixed(2) });
+    results.push({ name: `moment:pet:${species}:${name}`, pass: samples >= 80 && stroke >= 80 && resumed && resumedDistance > 0.3 && worst < 0.01 && petInside < 0.01,
+      yaw, samples, stroke, resumed, resumedDistance: +resumedDistance.toFixed(2), firstInsidePct: firstInside === null ? null : +(firstInside * 100).toFixed(2), petInsidePct: +(petInside * 100).toFixed(2), insidePct: +(worst * 100).toFixed(2), worstFrame, worstActor });
   }
-  for (const interrupt of ['remove', 'away', 'priority', 'decision', 'low']) {
+  for (const phase of ['turn', 'approach', 'stroke']) for (const interrupt of ['remove', 'staff-remove', 'away', 'priority', 'decision', 'low']) {
     R.pets.reset(); R.setQuality('medium');
-    const { id } = setupPetPasser(R, S);
-    for (let f = 0; f < 30 && !R.pets.peek('check_pet')?.petter; f++) window.__advance(1);
-    const started = R.pets.peek('check_pet')?.petter === id;
-    const staff = S.staff.find(s => s.id === id), mood = staff.mood;
+    const { id } = setupPetPasser(R, S, 'dog', 2.104, 1.0);
+    for (let f = 0; f < 90; f++) {
+      window.__advance(1);
+      if (R.moments.staging(id)?.beat === phase) break;
+    }
+    const started = R.pets.peek('check_pet')?.petter === id && R.moments.staging(id)?.beat === phase;
+    const staff = S.staff.find(s => s.id === id), mood = staff.mood, roster = S.staff;
+    if (interrupt === 'staff-remove') S.staff = S.staff.filter(s => s.id !== id);
     if (interrupt === 'remove') S.pets = [];
     if (interrupt === 'away') staff.mood = 'away';
     if (interrupt === 'priority') R.catchFor(id, { anim: 'celebrate', t: 10, keepPos: true });
@@ -1149,8 +1168,8 @@ export async function runPetChecks(R, S) {
     window.__advance(3);
     const ended = !R.pets.peek('check_pet')?.petter && R.walkOf(id)?.temp?.moment !== 'pet';
     const priority = interrupt !== 'priority' || R.walkOf(id)?.temp?.anim === 'celebrate';
-    results.push({ name: `moment:pet:${interrupt}`, pass: started && ended && priority, started, ended, priority });
-    staff.mood = mood; S.pendingDecision = null;
+    results.push({ name: `moment:pet:${phase}:${interrupt}`, pass: started && ended && priority, started, ended, priority });
+    staff.mood = mood; S.staff = roster; S.pendingDecision = null;
   }
   for (const blocked of ['busy', 'stationary', 'distant']) {
     R.pets.reset(); R.setQuality('medium');

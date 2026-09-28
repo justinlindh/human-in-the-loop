@@ -1,0 +1,37 @@
+# Yak
+
+- **Picture meme art**: five office parodies in Fredoka: This is fine, Two buttons, Tabs chart, Always config and Reject/approve tests. Renderer captures live in `public/memes/` at 480x360 and 1200x900; regenerate them with `scripts/reels/memes.mjs`. Six more are art's styled drawings: Is this AGI, Distracted founder, The bill, The plan, Change my mind (the printer) and Galaxy brain (a desk lamp). Expanding review is retired from Yak, but its images stay for chats that already posted it. `id: is_this_agi` `id: distracted_founder` `id: the_bill` `id: the_plan` `id: change_my_mind` `id: galaxy_brain`
+
+- **Feed pacing**: messages arrive with reading time between them at every game speed. Important posts take priority; prompts and the player's own replies arrive immediately. Ordinary posts wait at most 30 active real seconds or 30 game seconds (7.5 active seconds at 4x). Queued outage chatter, including async standup outage updates, is skipped once its specific outage ends, including when another outage starts. Ordinary async updates still arrive. Important notices are exempt from age limits. The full recent history stays in the save.
+- **Channels**: #general, #incidents, #wins, #random and #standup, with unread badges; threads stay together, reactions show counts, names are clickable to find the person.
+- **Layout**: drag the top edge to resize, maximise into a large overlay, or collapse it (collapsed by default on phones).
+- **Mentions**: "@channel" and "@here" render as mention pills.
+- **Bots**: @launchbot (a new product, then every fifth version), @pagerbot (SEV lines), @vendorbot, @newsbot, @dealbot, @saasies, @facilities, @officebot, @buildbot and @hackerspewsbot ("Show HS: Notes but with AI").
+- **Image memes**: a Yak post that carries a picture shows it framed in the message, larger in the big Yak; a tap opens it over the game and a tap or Esc closes it. A picture that fails to load reads as its caption instead.
+- **Reply prompts**: a staff post with two or three founder replies, each with its effect hint; a flag on the Yak header points to an open one, and ignoring it has its own consequence.
+  - **Strain vent**: "Is it just me or has this sprint been three sprints?" Friday off, or ship Friday then rest. `id: strain_vent`
+  - **Incident blame**: "Okay, who pushed to prod on a Friday?" A blameless postmortem, or fix it and talk later. `id: incident_blame`
+  - **Launch hype**: "We launched {product}. My mom liked the post. Can you like the post?" A hype post, cake at 4, or back to the roadmap. `id: launch_hype`
+  - **Rival itch**: the rival shipped last month's demo; rise above it or one tasteful reply. `id: rival_itch`
+  - **Project late**: "Do we cut scope or cut sleep?" `id: project_late`
+  - **Agent PRs**: "The coding agent opened 40 pull requests overnight." Review every one, or merge the green ones. `id: agent_prs`
+  - **New hire lost**: "is there a map of the codebase, or do I just walk in and hope?" `id: newhire_lost`
+  - **Coasting check**: "just moving tickets from one column to another?" `id: coasting_check`
+  - **Support swamped**: "I have started talking to the tickets." `id: support_swamped`
+  - **Low-cash lunch**: "are we a sandwich company now?" `id: lowcash_lunch`
+  - **Desk squeeze**: when every desk is taken and there's floor for another: "The hiring page says "no desk, no hire". Could we fix the desk part?" "I will add a desk" opens desk placement and is a promise: add one within four weeks and they say thanks; don't, and they take it personally (more than a plain "Not now"). `id: desk_squeeze`
+  - **Office full**: when every desk is taken and there's no floor left for another: "Is it time for a bigger office?" The plan option opens the Office menu. `id: office_full`
+  - **Junior PR**: "It is small. It is one line." `id: junior_pr`
+  - **Low-stakes events in Yak**: six small decisions arrive as officebot posts with the event's own choices instead of pausing popups: the two coffee-machine requests, the dog on Fridays, a new model dropping, a senior's weekend side project and the app store rejection. Their staged props show while the prompt is open, and left unanswered, the mildest choice happens (never one that brings in an item or a pet).
+- **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it. The office reacts too: a backfire prefers an unobstructed standing person, who turns toward you with their palm over the camera-side eye and brow and their eyes squeezed shut, pausing their walk if needed. The two nearest turn to look and a couple more sweat; a post that lands gets a sparkle or two. Sharing a meme posts a picture picked for the moment.
+  - **Pep talk**: backfires mid-outage ("Respectfully, the servers are on fire."). `id: pep_talk`
+  - **Who broke prod?**: helps during an outage; with nothing broken it just scares people ("Why are you asking. What do you know."). `id: who_broke_prod`
+  - **Share a meme**: posts a picture meme that fits the week: an outage always gets the office on fire ("SEV-1. Everything is fine."), chatbot jokes arrive with the ChatGBT era and agent jokes with the Agents era, so the Classic era never sees either. The post's text is the picture's alt text. The trailer and landing Yak card show the live outage image and its thread. `capture site-yak-backfire` `id: meme` `id: this_is_fine` `id: two_buttons` `id: tabs_chart` `id: always_config` `id: yes_no_tests` `id: is_this_agi` `id: distracted_founder` `id: the_bill` `id: the_plan` `id: change_my_mind` `id: galaxy_brain`
+  - **Pizza's here**: costs per head, lifts meaning and stamina ("There is a vegetarian one, and it is being guarded."). `id: pizza`
+  - **Announcement**: with real news it lands; with none, "Is this a layoffs thing?". `id: announcement`
+- ★ **The @channel offender**: one over-notifier per run pings everyone about their yogurt, "happy friday" on a Thursday or a typo at 2 a.m.; once, during a real outage, it is warranted.
+- **Running jokes**: slow callbacks weeks apart with the same cast. The framework migration that circles back to the first framework; the sandwich bet ledger; the unclaimed "World's Okayest Boss" mug; the sock project that gets an acquisition offer from the company; "good news" from the engineer hosting the database at home. `id: joke_framework_circle` `id: joke_sandwich_bet` `id: joke_okayest_mug` `id: joke_sock_project` `id: joke_ten_x_good_news`
+- **Running jokes in Yak**: the fridge sign that grows a changelog; the lunch place that will not stop sending olives; the coding assistant rules file that reaches 900 lines before "please" works. `id: joke_fridge_sign` `id: joke_no_olives` `id: joke_rules_file`
+- **Chatter**: mood-driven lines in #general ("Reviewed 40 PRs. Understood 6.", "My therapist knows our deploy schedule.").
+- **Incentive speculation**: each incentive reward gets a Yak post and replies ("I touched the honeydew.").
+- **Office Space follow-ups**: @facilities chases the cover sheet memo three weeks running; @officebot reports the red stapler found in the lost and found.

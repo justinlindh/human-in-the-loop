@@ -443,7 +443,7 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         g.userData.blocks = true;
         const o = e.obj, r = o.rotation.y, side = { x: o.position.x + Math.cos(r) * 0.95, z: o.position.z - Math.sin(r) * 0.95 };
         g.rotation.y = rot;
-        const at = clearSpot(L, env.office, g, side);
+        const at = clearSpot(L, env.office, g, side, { gather: group });
         g.position.set(at.x, 0, at.z);
       }
     } else {
@@ -458,7 +458,9 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
 // The nearest spot to c where a floor prop fits: clear of furniture and other props with room to
 // walk round it, inside the walls, and off the doorway. Wall and door anchors land here.
 const DOOR_CLEAR = 1.6, WALK_ROOM = 0.25;
-function clearSpot(L, office, g, c) {
+const GATHER_R = [0.95, 1.25], GATHER_OPEN = 14;
+// gather: people stand round it (pizza), so it also wants open floor for a ring of them.
+function clearSpot(L, office, g, c, { gather = false } = {}) {
   const nav = office.nav?.();
   if (!nav) return c;
   g.position.set(0, 0, 0);
@@ -477,7 +479,24 @@ function clearSpot(L, office, g, c) {
     }
     return true;
   };
-  return pickSpot(c, { ring: { centerFirst: true, radii: Array.from({ length: 31 }, (_, i) => (i + 1) * 0.25), count: (d) => Math.max(8, Math.round(d * 12)) },
+  // Standing room round it: of 24 places at eating distance, enough are open floor for a crowd.
+  const room = (q) => {
+    let open = 0;
+    for (const r of GATHER_R) for (let i = 0; i < 12; i++) {
+      const a = (i + (r === GATHER_R[0] ? 0 : 0.5)) * Math.PI / 6;
+      if (!nav.isBlocked(q.x + Math.cos(a) * r, q.z + Math.sin(a) * r, 0.2)) open++;
+    }
+    return open >= GATHER_OPEN;
+  };
+  const needs = gather ? ['clear', 'room'] : ['clear'];
+  const checks = { clear: (q) => fits(q.x, q.z), room };
+  const opts = { ring: { centerFirst: true, radii: Array.from({ length: 31 }, (_, i) => (i + 1) * 0.25), count: (d) => Math.max(8, Math.round(d * 12)) },
+    checks, debug: spotDebug(office), moment: g.userData.spotMoment ?? 'props' };
+  if (gather) {
+    const q = pickSpot(c, { ...opts, needs, search: 'floorGather' });
+    if (q) return q;
+  }
+  return pickSpot(c, { ring: opts.ring,
     needs: ['clear'], checks: { clear: (q) => fits(q.x, q.z) }, fallback: c,
     debug: spotDebug(office), moment: g.userData.spotMoment ?? 'props', search: 'floor',
   });
@@ -1040,8 +1059,11 @@ function printerBody(broken = false) {
   panel.position.set(0.1, 0.395, 0.17); panel.rotation.x = -Math.PI / 2 + 0.5;
   g.add(panel);
   if (!broken) {
-    // The jammed sheet, crumpled out of the output slot.
-    const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.05, 0.33, 0.3);
+    // The jammed sheet, crumpled out of the output slot on the front: its back edge just in front of
+    // the body and the lid's lip, so no part of it passes through the printer, and to the left of the
+    // screen so the whole PC LOAD LETTER label shows.
+    g.add(mesh(roundedBox(0.28, 0.026, 0.02, 0.008, 1), mat('metal_dark'), -0.14, 0.31, 0.25));
+    const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.14, 0.3, 0.335);
     jam.rotation.set(0.9, 0.2, 0.15);
     g.add(jam);
   }

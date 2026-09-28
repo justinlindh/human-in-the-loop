@@ -11,9 +11,13 @@
 
 <!-- Required. Nothing here may be a local path (/home, /tmp, scratchpad). -->
 - **Tests:** <!-- exact command and result line, e.g. `npm test`: "Tests 493 passed (493)" -->
-- **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh --comment <pr> <files>`; paste the markdown here or reference the comment -->
+- **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh <pr> <files>`, which comments them on the PR; paste the markdown here too or reference the comment -->
 - **Gates run:** <!-- the gates that fit this change and their output: sweep and stage specs (render), paired balance runs (sim), a clip of the whole path (motion) -->
 - **Numbers:** <!-- balance tables, perf (draw calls, frame times), pacing, as relevant -->
+
+## Changes to how the game plays
+
+None <!-- or each change a player would notice in how the game plays (pacing, pausing, speech, rules, balance). Anything listed here needs the owner's approval. -->
 
 ## Affects
 
@@ -28,12 +32,12 @@
 - [ ] Stays within the lane's paths (or the owning lane agreed)
 - [ ] Contract changes, if any, went through team-lead
 - [ ] Affected teammates are listed above and will be messaged on merge
-- [ ] A player-visible change updates its entry in `docs/features.md`
+- [ ] A player-visible change updates its entry in its area's file under `docs/features/`
 
 ## Closes
 
 <!-- e.g. Fixes #14. Leave empty if none. -->
 
-<!-- After creating the PR, turn on auto-merge so GitHub merges it once every required check passes
-     (local-ci, review, test, balance, browser, commits):  gh pr merge <number> --auto --merge
+<!-- Opening a non-draft PR turns on auto-merge automatically, so GitHub merges it once every required check passes
+     (local-ci, review, test, balance, browser, commits). When you take a draft out of draft:  gh pr merge <number> --auto --merge
      Check where your PRs stand with scripts/pr-status.sh. -->

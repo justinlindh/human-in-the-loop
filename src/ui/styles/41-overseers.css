@@ -1,0 +1,16 @@
+/* Assign overseers inline in the Automation panel's Oversight card. */
+.hitl .ovpick { display: flex; flex-direction: column; gap: 0.25em; margin: 0.5em 0 0.2em; max-height: 16em; overflow-y: auto; }
+.hitl .ovrow { display: flex; align-items: center; gap: 0.6em; padding: 0.3em 0.5em; border-radius: 0.55em; background: var(--cream-2); }
+.hitl .ovrow.on { background: #e3f6ec; }
+.hitl .ovrow .ovname { white-space: nowrap; }
+.hitl .ovrow .small.muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hitl .ovrow .ovhrs { min-width: 3.2em; text-align: right; font-weight: 700; }
+.hitl .ovpick { flex: none; }
+.hitl .ovrow > * { flex: none; }
+.hitl .ovrow > .spacer { flex: 1 1 0; }
+.hitl .ovrow .small.muted { flex: 1 1 auto; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .ovpick { max-height: 12em; margin-bottom: 0.7em; }
+  .hitl .ovrow { flex-wrap: wrap; row-gap: 0.1em; }
+  .hitl .ovrow .small.muted { flex-basis: 100%; order: 5; }
+}

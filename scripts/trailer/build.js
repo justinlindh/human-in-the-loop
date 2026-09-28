@@ -3,13 +3,14 @@
 //
 // npm run trailer                                  capture, then build shots/trailer/trailer.mp4
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
-//   [--out shots/trailer] [--reuse] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
+//   [--out shots/trailer] [--reuse] [--reuse-from <clips>] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
 // --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
+import { captureKey, canReuse } from './reuse.js';
 import { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } from './config.js';
 import { renderGraphics } from './cards.js';
 
@@ -74,11 +75,31 @@ const clipBeats = BEATS.filter((b) => b.item);
 const captured = () => (existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')).items : {});
 // A clip is reused only when its capture item and the commit are unchanged.
 const { ITEMS: CAPTURE_ITEMS } = await import('./manifest.js');
-const keyOf = (b) => createHash('sha256').update(`${commit}\n${JSON.stringify(CAPTURE_ITEMS.find((it) => it.id === `trailer-${b.id}`))}`).digest('hex');
+const itemOf = (b) => CAPTURE_ITEMS.find(it => it.id === `trailer-${b.id}`);
+const keyOf = (b) => captureKey(commit, itemOf(b));
 const keyFile = (b) => join(CLIPS, `trailer-${b.id}.key`);
 const fresh = (b) => { const i = captured()[`trailer-${b.id}`]; return i && i.errors === 0 && existsSync(join(CLIPS, `trailer-${b.id}.mp4`)) && existsSync(keyFile(b)) && readFileSync(keyFile(b), 'utf8') === keyOf(b); };
+// Imported footage retains its original build and content hash in the capture index.
+if (typeof args['reuse-from'] === 'string' && !args['audio-only']) {
+  const source = resolve(args['reuse-from']);
+  const old = JSON.parse(readFileSync(join(source, 'index.json'), 'utf8'));
+  const index = existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')) : { items: {} };
+  for (const beat of clipBeats) {
+    const id = 'trailer-' + beat.id, record = old.items[id];
+    const keyPath = join(source, id + '.key');
+    if (!existsSync(keyPath) || !canReuse({ beat, item: itemOf(beat), record, key: readFileSync(keyPath, 'utf8') })) continue;
+    const file = id + '.mp4';
+    const sha256 = createHash('sha256').update(readFileSync(join(source, file))).digest('hex');
+    copyFileSync(join(source, file), join(CLIPS, file));
+    for (const shot of record.screenshots ?? []) copyFileSync(join(source, shot), join(CLIPS, shot));
+    index.items[id] = { ...record, reusedFrom: { build: record.build, sha256 } };
+    writeFileSync(keyFile(beat), keyOf(beat));
+    console.log('trailer: verified reuse ' + id + ' from ' + record.build + ' sha256 ' + sha256);
+  }
+  writeFileSync(indexFile, JSON.stringify(index, null, 2) + '\n');
+}
 const AUDIO_ONLY = !!args['audio-only'];
-const todo = AUDIO_ONLY ? [] : args.reuse ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
+const todo = AUDIO_ONLY ? [] : (args.reuse || args['reuse-from']) ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
   const capture = ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
@@ -150,12 +171,12 @@ function audioGraph({ stem = false } = {}) {
       chains.push(`[${n}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${VO.gain}dB,adelay=${Math.round(l.start * 1000)}:all=1,aresample=async=1:first_pts=0,apad,atrim=0:${f(total)}[vo${i}]`);
     });
     chains.push(`${voiced.map((_, i) => `[vo${i}]`).join('')}amix=inputs=${voiced.length}:normalize=0:duration=first[vo]`);
-    // The music dips by duck.db under each line: it ramps down over duck.attack before the line starts
-    // and back up over duck.release after it ends. A gain envelope, not a compressor, so it never pumps.
-    // Without `duck`, the music stays at one constant level under the voice.
+    // The music dips by duck.db under each line (a depth: 6 and -6 both mean 6 dB down): it ramps down
+    // over duck.attack before the line starts and back up over duck.release after it ends. A gain
+    // envelope, not a compressor, so it never pumps. Without `duck`, the music stays at one level.
     const d = MUSIC.duck;
     const under = d ? voiced.map((l) => `clip((t-${f(l.start - d.attack)})/${f(d.attack)},0,1)*clip((${f(l.start + l.len + d.release)}-t)/${f(d.release)},0,1)`).join('+') : '';
-    const dip = d ? `volume='1-${(1 - 10 ** (d.db / 20)).toFixed(4)}*min(1,${under})':eval=frame` : 'anull';
+    const dip = d ? `volume='1-${(1 - 10 ** (-Math.abs(d.db) / 20)).toFixed(4)}*min(1,${under})':eval=frame` : 'anull';
     chains.push(`[music]${dip}${stem ? ',asplit=2[ducked][stem]' : '[ducked]'}`);
     chains.push('[ducked][vo]amix=inputs=2:normalize=0:duration=first[premix]');
     tail = '[premix]';
@@ -170,10 +191,13 @@ const mixWav = join(OUT, 'mix.wav');
   const target = `I=${OUTPUT.lufs}:TP=${OUTPUT.truePeak}:LRA=11`;
   const log = await run('ffmpeg', ['-y', '-hide_banner', '-nostats', ...inputs, '-filter_complex', `${graph};[mix]loudnorm=${target}:print_format=json[out]`, '-map', '[out]', '-f', 'null', '-'], { timeout: FFMPEG_TIMEOUT_S, quiet: true });
   const m = JSON.parse(log.slice(log.lastIndexOf('{'), log.lastIndexOf('}') + 1));
-  const second = `loudnorm=${target}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
-  // The same gain goes on the music stem (music-stem.wav), for checking the bed on its own.
-  const withStem = audioGraph({ stem: true });
+  // One fixed gain to the target loudness, then a true-peak limiter for the few peaks it pushes over.
+  // loudnorm's own second pass drops to dynamic mode whenever a linear gain would break the peak
+  // target, and then rides the level like an automatic gain control, undoing the duck; a fixed gain
+  // keeps the mix exactly as designed. The same gain goes on the music stem (music-stem.wav).
   const gain = `volume=${(OUTPUT.lufs - Number(m.input_i)).toFixed(2)}dB`;
+  const second = `${gain},aresample=192000,alimiter=limit=${(10 ** (OUTPUT.truePeak / 20)).toFixed(4)}:attack=1:release=50:level=false,aresample=48000`;
+  const withStem = audioGraph({ stem: true });
   await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...withStem.inputs, '-filter_complex', `${withStem.graph};[mix]${second},aresample=48000[out];[stem]${gain},aresample=48000[stemout]`,
     '-map', '[out]', '-t', f(total), '-c:a', 'pcm_s16le', mixWav, '-map', '[stemout]', '-t', f(total), '-c:a', 'pcm_s16le', join(OUT, 'music-stem.wav')], { timeout: FFMPEG_TIMEOUT_S });
 }

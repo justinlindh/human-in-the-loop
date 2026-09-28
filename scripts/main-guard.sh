@@ -62,8 +62,15 @@ sync_shared() {
   [ "$(git -C "$dir" branch --show-current)" = main ] && [ -z "$(git -C "$dir" status --porcelain)" ] || return 0
   busy_in "$dir" && { echo "main-guard: the shared checkout is in use; not updating it"; return 0; }
   git -C "$dir" fetch -q origin main || return 0
-  [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ] || return 0
-  git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+  if [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ]; then
+    git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+  fi
+  # Its install follows its lockfile, so tools run from it (and the reviewer's servers) have every package.
+  local npm="${MAIN_GUARD_NPM:-npm}"
+  if ! (cd "$dir" && $npm ls --depth=0 >/dev/null 2>&1); then
+    if (cd "$dir" && timeout 900 nice -n 10 $npm ci --no-audit --no-fund >/dev/null 2>&1); then echo "main-guard: shared checkout's node_modules reinstalled from its lockfile"
+    else echo "main-guard: npm ci failed in the shared checkout"; fi
+  fi
 }
 # True while any process waits (blocked in flock) for the exclusive software render lock.
 someone_waits() {
@@ -83,7 +90,9 @@ yield() { # waits (up to an hour, or YIELD_MAX seconds) while others queue for t
 }
 
 sync_shared
-git -C "$REPO" fetch -q origin main || { echo "main-guard: cannot fetch origin/main" >&2; exit 2; }
+# MAIN_GUARD_FETCH replaces the fetch in tests, so they don't depend on reaching GitHub.
+if [ -n "${MAIN_GUARD_FETCH:-}" ]; then bash -c "$MAIN_GUARD_FETCH"; else git -C "$REPO" fetch -q origin main; fi \
+  || { echo "main-guard: cannot fetch origin/main" >&2; exit 2; }
 sha="$(git -C "$REPO" rev-parse "${sha_arg:-origin/main}")" || exit 2
 short="${sha:0:7}"
 if [ -z "$sha_arg" ] && [ "$(cat "$STATE/last" 2>/dev/null)" = "$sha" ]; then exit 0; fi
@@ -136,6 +145,13 @@ gate() {
   # would quietly stop it catching regressions. Here every scene renders, on every commit checked.
   run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --software timeout 900 nice -n 10 node blender/checks/golden.mjs --jobs=4
   golden_rc=$?
+  # A failing golden's images (actual, diff, and the identity check's two renders) live in this gate's
+  # worktree, which goes when the gate ends: keep them beside the commit's logs, for two weeks.
+  if [ "$golden_rc" -ne 0 ] && compgen -G "$WT/shots/golden/*.png" >/dev/null; then
+    mkdir -p "$STATE/$cs-golden" && cp "$WT"/shots/golden/*.png "$STATE/$cs-golden/" \
+      && echo "main-guard: kept golden's failure images in $STATE/$cs-golden"
+  fi
+  find "$STATE" -maxdepth 1 -type d -name '*-golden' -mtime +14 -exec rm -rf {} + 2>/dev/null
   if [ "$golden_rc" -ne 0 ] && gwhy="$(infra_failure "$STATE/$cs.golden.log" 999)"; then
     gate_err=1; golden_rc=0; gate_why="${gate_why:+$gate_why; }golden: $gwhy"
   fi
@@ -258,6 +274,8 @@ fi
 if [ -z "$what" ]; then
   echo "main-guard: $short PASS in ${secs}s"
   echo "$sha" >"$STATE/last-green"
+  # Main's red record for auto CI (scripts/auto-ci.sh) clears on a green verdict for main's newest commit.
+  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red" "$STATE/red-seen"
   status success "Full suite and sweep pass (${secs}s)"
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
@@ -268,6 +286,19 @@ if [ -z "$what" ]; then
 fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
+# The red record auto CI holds render PRs on (scripts/auto-ci.sh) names only the steps red in two
+# verdicts in a row on main's newest commit (a new commit, or the same one checked again), so one flake
+# holds nothing. Only those verdicts count, not an older commit a bisect checks.
+if git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null; then
+  repeated=""
+  if [ -f "$STATE/red-seen" ]; then
+    for step in $(tr ',' ' ' <<<"$what"); do
+      cut -d' ' -f2- "$STATE/red-seen" | tr ', ' '\n\n' | grep -qxF "$step" && repeated+="${repeated:+, }$step"
+    done
+  fi
+  echo "$short $what" >"$STATE/red-seen"
+  if [ -n "$repeated" ]; then echo "$short $repeated" >"$STATE/red"; else rm -f "$STATE/red"; fi
+fi
 status failure "Red: $what"
 # Report first, so a run stopped later (by the service's time limit, say) cannot lose it: the next
 # tick sees this commit as checked.

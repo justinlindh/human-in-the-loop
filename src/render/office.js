@@ -471,6 +471,8 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   // LEDs blink per mesh and foosball rods turn, so they stay out of the static merge.
   inner.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) { c.userData.dynamic = true; c.userData.noAO = true; } });
   if (kind === 'foosball') for (let i = 0; i < 4; i++) { const r = inner.getObjectByName(`foosball_rod${i}`); if (r) r.userData.dynamic = true; }
+  // Ping pong paddles hide while players hold them.
+  if (kind === 'pingpong') for (let i = 0; i < 2; i++) { const pd = inner.getObjectByName(`ping_pong_paddle${i}`); if (pd) pd.userData.dynamic = true; }
   if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind), FRONT_ZONE.has(itemModelName(p.itemId, p.level)));
   const g = new THREE.Group();
   g.add(inner);
@@ -1234,7 +1236,20 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     }
   }
 
+  // What a line of sight can be blocked by, for staging raycasts: each placed item's own meshes
+  // (tested per mesh, so their bounds cull a ray early; the merged idle batch would put every
+  // triangle in one mesh), and with shell the walls, floor and columns too. A mesh blocks when it
+  // is drawn, or when the batch draws it for it. The raycaster ignores visibility, so the caller asks.
+  function sightBlockers({ shell = false } = {}) {
+    const hidden = new Set(batch ? [...batch.members, ...batch.swaps] : []);
+    const targets = [...placed.values()].filter((e) => e.obj.visible).map((e) => e.obj);
+    if (shell && cur) for (const c of cur.root.children) if (c !== cur.furniture) targets.push(c);
+    const drawn = (m) => { if (hidden.has(m)) return true; for (let o = m; o; o = o.parent) if (!o.visible) return false; return true; };
+    return { targets, drawn };
+  }
+
   return {
+    sightBlockers,
     setStage, setPlaced, freeChair, setDeskScreen, setDeskSign, setDeskRole, setEra, setQuality, leds, update, nav, tuckMeetingChairs, deskById,
     get era() { return era; },
     get current() { return cur; },

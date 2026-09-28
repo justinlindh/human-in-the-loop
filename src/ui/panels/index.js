@@ -17,11 +17,11 @@ export const PANELS = {
   ...Object.fromEntries(MENU.map((m) => [m.id, stub(m.label)])),
   build: { title: 'Build', wide: true, build: (ctx, arg) => buildPanel(ctx, arg) },
   staff: { title: 'Staff', wide: true, build: (ctx, arg) => staffPanel(ctx, arg) },
-  marketing: { title: 'Marketing', wide: true, build: (ctx) => marketingPanel(ctx) },
+  marketing: { title: 'Marketing', wide: true, build: (ctx, arg) => marketingPanel(ctx, arg) },
   models: { title: 'Model Vendors', wide: true, build: (ctx) => modelsPanel(ctx) },
   automation: { title: 'Automation', wide: true, build: (ctx) => automationPanel(ctx) },
   policies: { title: 'Policies', wide: true, build: (ctx) => policiesPanel(ctx) },
   ops: { title: 'Ops and Security', wide: true, build: (ctx) => opsPanel(ctx) },
   office: { title: 'Office', wide: true, build: (ctx, arg) => officePanel(ctx, arg) },
-  reports: { title: 'Reports', wide: true, build: (ctx) => reportsPanel(ctx) },
+  reports: { title: 'Reports', wide: true, build: (ctx, arg) => reportsPanel(ctx, arg) },
 };

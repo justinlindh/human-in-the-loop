@@ -9,10 +9,13 @@ import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
+import { forgetOverseers } from './panels/automation.js';
 import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
+import { createAdvisors } from './advisor.js';
+import { createOfficePrompt } from './officePrompt.js';
 import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
@@ -49,8 +52,15 @@ export function createUI({ root, getState, dispatch, controls }) {
     sfx: (k) => ctx.sfx?.(k),
   });
 
-  const spotlightActive = () => !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.();
-  const toasts = createToasts(layer, { canShow: () => !spotlightActive() });
+  // Whether a spotlight holds the clock now. main.js knows (a menu lets a moment go while it plays on);
+  // a host without that answer falls back to whether one plays.
+  const spotlightActive = () => (controls.spotlightHeld ? controls.spotlightHeld() : !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
+  // What the player opened (a panel, a modal, build mode, Settings, the big Yak), not the game's own cards.
+  const playerMenuOpen = () => !!(menu.current || ctx.modal || buildMode.on || settings.isOpen || chat.maximized);
+  // Cards, launch results, the tutorial and the game's toasts wait while a spotlight holds the clock,
+  // and while a scene the player let go by opening a menu still plays behind that menu.
+  const holdForMoment = () => spotlightActive() || (playerMenuOpen() && !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
+  const toasts = createToasts(layer, { canShow: () => !holdForMoment() });
   let lastSpeed = 1;
 
   const ui = {
@@ -68,7 +78,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   };
 
   // Every player action goes through here: failures surface their reason as a warn toast.
-  function act(action) {
+  // quiet: a caller trying a fallback next handles a refusal itself (no toast or error sound).
+  function act(action, { quiet = false } = {}) {
     let res;
     try {
       res = dispatch(action);
@@ -76,6 +87,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       console.warn('dispatch threw', e);
       res = { ok: false, reason: 'Something went wrong' };
     }
+    if ((!res || !res.ok) && quiet) return res ?? { ok: false };
     if (!res || !res.ok) {
       toasts.push(res?.reason ?? 'That did not work', 'warn');
       sfx('error');
@@ -119,6 +131,14 @@ export function createUI({ root, getState, dispatch, controls }) {
     },
   };
 
+  const advisors = createAdvisors({
+    ctx, layer, getRenderer: () => controls.renderer ?? controls.getRenderer?.() ?? null, panels: PANELS, getSpeed: () => controls.getSpeed?.() ?? 1, held: () => holdForMoment(),
+    openGoals: () => goalsModal(),
+  });
+  ui.advisorButton = advisors.button;
+  ui.openAdvisors = () => advisors.open();
+  const officePrompt = createOfficePrompt();
+  ui.extraNeeds = (s) => officePrompt.rows(s);
   const hud = createHud({ root: layer, controls, ui });
 
   const bottom = h('div.bottom');
@@ -135,7 +155,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { if (id) captions.cancel(); if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
+    onChange: (id) => { if (id === 'office') officePrompt.opened(getState()); if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
@@ -150,7 +170,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   ctx.spacing = spacing;
   const growth = createGrowth();
   ctx.growth = growth;
-  const announcer = createAnnouncer({ layer, sfx, held: spotlightActive, openMenu: (id, arg) => menu.open(id, arg), canShow: () => !spotlightActive() && spacing.ready() && !popups?.open });
+  const announcer = createAnnouncer({ layer, sfx, held: holdForMoment, openMenu: (id, arg) => menu.open(id, arg), canShow: () => !holdForMoment() && spacing.ready() && !popups?.open });
 
   // Progressive unlocks. A state without unlocks (the v1 sim) shows every menu.
   const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'policies' };
@@ -280,6 +300,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (e.key === '2') return ui.setSpeed(2);
     if (e.key === '3') return ui.setSpeed(4);
     if (e.key === 'c' || e.key === 'C') return chat.toggle();
+    if (e.key === 'h' || e.key === 'H') return advisors.open();
     const m = MENU.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
     if (m) { e.preventDefault(); buildMode.exit(); menu.toggle(m.id); }
   }
@@ -295,7 +316,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
-      announcer.reset(); spacing.reset(); growth.reset(); buildMode.exit(); menuSig = null;
+      announcer.reset(); spacing.reset(); growth.reset(); forgetOverseers(); advisors.reset(); officePrompt.reset(); buildMode.exit(); menuSig = null;
       for (const id of newMenus) menu.setNew(id, false);
       newMenus.clear();
       launchScores.clear();
@@ -335,26 +356,31 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   let lastPanelAt = 0;
   let lastFrame = null;
+  let lastMovePip = false;
   function update(state) {
     const frameAt = performance.now();
     const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
     lastFrame = frameAt;
-    const running = !spotlightActive() && (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
+    const running = !holdForMoment() && (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
     spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
     captions.update();
-    if (!spotlightActive()) announcer.pump();
+    if (!holdForMoment()) announcer.pump();
     checkNewItems(state);
     // Phones hide toasts while a card is up (the stylesheet reads this class).
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
     toasts.setHidden(PHONE.matches && (buildMode.on || !!popups.open));
     toasts.setWeek(state.week);
+    advisors.update(state);
+    // The office move's New pip follows its Needs you row.
+    const movePip = !!officePrompt.current(state);
+    if (movePip !== lastMovePip) { lastMovePip = movePip; if (!newMenus.has('office')) menu.setNew('office', movePip); }
     hud.update(state);
     gameover.update(state);
-    popups.update(state, { holdLaunch: spotlightActive() });
+    popups.update(state, { holdLaunch: holdForMoment() });
     buildMode.update(state);
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
-    tutorial.setHeld(!!(spotlightActive() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
+    tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
     logMeaning(state);
     const now = performance.now();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
@@ -445,7 +471,12 @@ export function createUI({ root, getState, dispatch, controls }) {
           sfx('coin');
           break;
         }
-        case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
+        case 'advice': advisors.onEvent(e); break;
+        case 'officeUpgrade':
+          // The move is a big moment: clear the screen so it plays in view.
+          menu.close(); ctx.modal?.close(); settings.close(); buildMode.exit(); if (chat.maximized) chat.setMax(false);
+          toasts.push('Moved into a bigger office!', 'good');
+          break;
         default: break;
       }
     }
@@ -460,6 +491,9 @@ export function createUI({ root, getState, dispatch, controls }) {
   ui.isBusy = isBusy;
 
   const api = {
+    // Whether the player opened something (a panel, a modal, build mode, Settings, the big Yak);
+    // the game's own cards (announcements, launch results, the tutorial) don't count.
+    playerMenu: playerMenuOpen,
     get spacing() { return { wait: spacing.waitMs, play: spacing.playMs }; },
     isBusy,
     update,

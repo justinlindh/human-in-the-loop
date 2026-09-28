@@ -1,0 +1,47 @@
+# Company and progression
+
+- **Founding**: name the company, pick a logo colour and tagline, choose two founders and a funding source; a pair with no builder gets a plain warning. `capture 1-2-founding`
+- **Founder archetypes**: the Engineer, the Designer, the Hustler, the Operator, the Researcher and the Seller, each with a starting trait and two strong skills. `id: engineer` `id: designer` `id: hustler` `id: operator` `id: researcher` `id: seller`
+- **Funding**: Bootstrapped (full score, no net), Friends and Family (dinner-table questions later), Pre-seed VC (two senior intros, a board that pushes for growth, then automation). `id: bootstrapped` `id: family` `id: preseed`
+- **Family and investor check-ins**: funded companies get their own decisions, from a cousin wanting an update to a board asking "why so many humans?". `id: family_dinner` `id: family_checkin` `id: family_intern` `id: investor_growth_push` `id: investor_automation_push`
+- **Building products**: pick a category and an approach (later an AI angle and a model vendor); some pairings fit much better than others, and a dice button suggests a name.
+- **Launches and reviews**: a launch popup with a review score and quotes from TechCrunchy, The Vergence, Hacker Olds and Wired-ish. Their parody logos are a bitten chip, a cross-eyed V, an elderly terminal and a loose W-shaped cable, shown beside the outlet names on launch cards and in Reports. Launches offer shortcuts to start the next version with the same team or rerun the last campaign; launches that land together share one card with each product's score, best quote, outlet logo and shortcuts. `capture 5-1-first-launch`
+- **Marketing campaigns**: from a blog and Product Hunch Day up to an influencer deal and a conference booth; Consolidation adds fame campaigns (The Documentary, The Big Game Ad, Stadium Naming Rights) priced in weeks of revenue. `id: documentary` `id: big_game_ad` `id: stadium`
+- **Market trends**: timed trends such as Agents Are Hot, AI Fatigue, Mobile Rush and Made by Humans lift or sink angles and categories; the HUD shows the current one with its flavour line.
+- **Hiring, training and careers**: hire from candidates, send people to a workshop, conference or course, and let freshly promoted seniors pick a career path (Architect, AI Wrangler, Community Manager, Incident Commander and more).
+- **Traits**: people arrive with traits (Vibe Coder, Old Guard, Job Hopper, Night Owl, Caffeinated) and earn some by doing the work (Natural Mentor, Paranoid, Visionary).
+- **Meaning, strain and Purpose**: automation drains meaning, load builds strain, and a mission picked in the Agents era sets a Purpose that later decisions test. Spoken: "The spreadsheet does not have to answer the phone." `id: mission_statement` `id: mission_test_support` `id: mission_test_demo`
+- **Automation and oversight**: from the ChatGBT era, dial automation per function and pick the model that runs it; from Agents, overseers watch the agents and catch rogue behaviour. Assign overseers opens a list right in Automation: everyone free to oversee, what they're doing now and the hours they'd add, each with Assign or Relieve, the needed-hours bar filling as you go. Before automation arrives, Ops shows only Coverage (Support and Upkeep); the Oversight row and its Automation button appear with the unlock.
+- **Rogue agent incidents**: from the Agents era, each ends in a decision that offers a public postmortem.
+  - "The agent dropped the production database". `id: agent_db_wipe`
+  - "Every customer got an email". `id: agent_mass_email`
+  - "The agent followed the wrong instructions". `id: agent_prompt_injection_leak`
+  - "The agent fixed pricing". `id: agent_pricing_rewrite`
+  - "The support bot promised refunds". `id: support_refund_hallucination`
+  - "The cloud bill has feelings", staged with a hot rack (see Fumes). `id: agent_runaway_spend`
+- **Security incidents**: credential stuffing, supply chain, exfiltration, ransomware and CEO phishing, with a security posture to build in Ops. `id: credential_stuffing` `id: supply_chain` `id: data_exfiltration`
+- **Outages**: a live product can go down; when nobody on staff can debug it, the game asks whether to call consultants. In the office an alarm sweeps the floor and the nearest few people run to the servers, each taking a spot round the rack on the side they came from. `id: outage_unfixable`
+- **Research**: internal tools (Eval Harness, Agent Sandbox, Observability, CI/CD, Design System, Docs Culture, Onboarding Kit, Red Team Suite) built as projects.
+- **Policies**: switched on in the Policies panel, some in pairs that exclude each other.
+  - **Standups**: daily in person (see Standups under People) or async in #standup, where the quiet ones stop posting. `id: daily_standups` `id: async_standups`
+  - **Culture policies**: AI as Pair, Craft Fridays, Blameless Postmortems, Code Comprehension Reviews, Apprenticeships and Sabbaticals. `id: pair` `id: craft_fridays` `id: blameless` `id: comprehension_reviews` `id: apprenticeship` `id: sabbatical`
+  - **Crunch or not**: Crunch Mode trades later exhaustion for output now; No Crunch halves how fast exhaustion builds. `id: crunch` `id: no_crunch`
+  - **HQ perks**: Top-of-Market Pay and Office Upkeep ("chairs that do not squeak"). `id: top_pay` `id: office_upkeep`
+  - **Incentives Program**: the reward ladder under Staged moments. `id: incentives`
+- **Unlocks**: Marketing, Ops, Research, Models, Automation, Meaning, Career Paths and Standups each arrive with a one-time explainer card. `capture 4-6-unlock-card`
+- **Goals and trophies**: milestones from "Place two desks" to "Ten years", each with a small reward; trophy goals fill a shelf. The goals card and list say "3 of 5 done", and a count goal shows a thin bar with how far along it is.
+- **The rival**: a named rival company appears, jabs at you in Yak, may raise a mega-round, and can die, be acquired or merge with you. `id: rival_appears` `id: rival_merge` `id: rival_megaround` `capture 2-6-rival`
+- **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open`
+- **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result`
+- **Annual calendar**: yearly beats.
+  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies; Product of the Year also throws an office party. `id: awards_show`
+  - **SaaSCon**: skip it, or book a small or big booth. `id: conference_expo`
+  - **The AI Summit**: a side-room talk or a live main-stage demo, a big panel, or a hackathon prize. `id: ai_summit` `id: ai_summit_panel` `id: ai_summit_hackathon`
+  - **The hearing**: a summons to testify, then the committee report. `id: hearing_summons` `id: hearing_report`
+  - **Year in review**: a summary of the year. `id: year_summary`
+- **Alumni**: long-tenured people sometimes leave on good terms, then send referrals, start competitors or come back for a reunion. `id: alumni_referral` `id: alumni_competitor`
+- **Endings**: each ends with a score and an epilogue that retells the run. `?mock=ending`
+  - **Retire**: take an IPO ("rang the opening bell") or an open acquisition offer. `id: acquisition_offer`
+  - **Out of runway**: the epilogue opens "The money ran out on a Tuesday."
+  - **Collapse**: an outage nobody can fix hits the main product.
+  - **The 20th anniversary**: the natural end of a career, with the option to play on. `capture 5-6-anniversary`

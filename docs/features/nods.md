@@ -1,0 +1,20 @@
+# Nods and parodies
+
+- ★ **"Is this good for the company?"**: a corporate-blue banner high on the wall; hang it, hang it ironically (a visiting investor may post it sincerely), or send it back. `id: banner_company` `capture nods-banner`
+- ★ **TPS reports**: a squared stack of cover sheets with the memo on top; mandating them brings three weeks of @facilities reminders. `id: cover_sheets` `capture nods-cover-sheets`
+- ★ **The red stapler**: a red stapler on a veteran's desk; letting them keep it leaves it until they leave. `id: the_stapler` `capture nods-stapler`
+- ★ **The two Robs**: "So what would you say you do here?" `id: efficiency_consultants`
+- ★ **PC LOAD LETTER**: a printer with a blinking light and a screen reading PC LOAD LETTER that beeps on a loop while it sits in the kitchen; "Print less" puts up an OUT OF ORDER. FOREVER. sign. `id: printer_jam` `npm run capture -- --group nods`
+- **"Yeahhh, Saturday"**: a senior leans on your desk with a mug; the refusal is "No. Mmkay?". `id: saturday_ask` `capture nods-saturday`
+- ★ **The incubator house**: early on, a would-be mentor offers free rent in his house for a cut of the company; a hand-painted INCUBATOR sign by the door; move in (and a year later he's on a podcast calling himself your founder), keep the garage, or counter. Spoken: "The sign says mentor. The fine print says equity." `id: incubator_house`
+- ★ **The Box**: the rival's brushed-aluminium cube that does less for four times the price; build your own (a little cube lands on a desk), stay software (the Box gets recalled), or mock it. Spoken: "The poster makes software look very heavy." `id: the_box`
+- ★ **Four thousand pounds of oat milk**: during the first 26 weeks of the Agents era, a company with at least eight staff and 25% ops automation can get pallets in the lobby when its procurement agent fixes the Thursday shortage; once per run, send it back, keep it, or donate it. Spoken: "The lobby has become a dairy alternative." `id: oat_milk`
+- ★ **Tabs or spaces**: a running joke between two engineers that escalates over weeks to two whiteboards and ends in a ruling. `id: tabs_or_spaces`
+- **Is it kielbasa?**: a junior's weekend app that is extremely confident and right half the time; ship it, sell it, or keep it as the office party trick. `id: is_it_kielbasa`
+- **The Squish Score**: a compression research node whose launch post cites a score of 5.2 on a scale nobody can explain. `id: squish`
+- **Model vendors**: Claudius (declines to delete prod, at length), ChatGBT ("Great question!"), Gemenai, Grokk, Llamarama, DeepSleep and Mistrale (comes with a small baguette). `id: claudius` `id: chatgbt` `id: gemenai` `id: grokk` `id: llamarama` `id: deepsleep` `id: mistrale`
+- **Incumbents**: Notian, Gmale, Jirra, Zendisk, Salesfarce, Lookerish, Figmo, GitHug, Workdai, LinkedOut, Quickbucks, Adobo Premiere, LexisNaxis and CrowdStrife. `id: notian` `id: gmale` `id: jirra` `id: zendisk` `id: salesfarce` `id: lookerish` `id: figmo` `id: githug` `id: workdai` `id: linkedout` `id: quickbucks` `id: adobo` `id: lexisnaxis` `id: crowdstrife`
+- **Industry parody**: Product Hunch Day, Hacker Spews, SaaSCon, the Saasies, a Grokk PR scandal, the blockchain pitch and "Mint a coin". `id: grokk_pr_scandal` `id: blockchain_pitch`
+- **Rival jabs**: a dartboard with the rival's logo as the bullseye (three darts in it) and "beat <rival>" underlined twice on the whiteboard, crossed out once they are gone. `capture 2-6-rival`
+- **The pandemic**: the office closes, everyone takes a monitor home, and the video call runs the classics ("You are on mute.", "We can see your inbox.", "You froze mid-sneeze. That is your portrait now."). `id: lockdown_start` `id: work_policy`
+- **The incentive ladder**: finger traps, balloons, a caricature, a melon bar, a music night and THE WAFFLE PARTY ("No. We watch."). Once the ladder is climbed, music night comes back every third award and the awards between are the earlier rewards. `id: finger_traps` `id: balloons` `id: caricature` `id: melon_bar` `id: music_night` `id: waffle_party`

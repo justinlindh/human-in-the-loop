@@ -18,6 +18,8 @@ import { createGame, tick, dispatch } from '../src/sim/index.js';
 import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
 import { createPacer, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
+import { speechMax } from '../src/render/speech-budget.js';
+import { createYakPacer, importantChat } from '../src/yak-pacing.js';
 
 // Modelled human time, in real seconds. Each range is [min, max], drawn uniformly.
 const HUMAN = {
@@ -33,7 +35,6 @@ const HUMAN = {
 const UI = {
   toastBudget: 3,          // info and good toasts per game week; warn and bad always show
   toastDedupSeconds: 0.8,
-  maxSpeech: 4,             // speech bubbles on screen before the renderer drops new ones
   bubbleFade: 0.25,         // seconds; a bubble cut shorter than this still reads as whole
   standupGather: 2.2,       // seconds (scaled by speed, max 2x) to gather before a daily standup talks
   standupStageGap: 165,    // real seconds of unpaused play between staged standups (never at 4x)
@@ -140,7 +141,7 @@ const STAGE_NAMES = ['garage', 'floor', 'hq'];
 const milestoneLine = (m) => (m.milestones.length ? m.milestones.map((x) => `${x.minute} ${x.label}`).join(' | ') : 'none');
 
 // Office stages are timed in game weeks; the spacing and quiet rules are in real time at 1x.
-const PACING_TARGETS = { floorWeeks: [104, 156], hqWeeks: [260, 364], maxUnlocksPerMinute: 2, maxQuietAfterTenMinutes: 45 };
+const PACING_TARGETS = { floorWeeks: [104, 156], hqWeeks: [260, 364], maxUnlocksPerMinute: 2, maxQuietAfterTenMinutes: 45, maxImportantWaitSeconds: 90, maxImportantQueuedAtEnd: 15 };
 
 // Pass or fail per target. Unlocks that arrive with an era do not count toward the per-minute cap.
 function checkTargets(m) {
@@ -159,6 +160,8 @@ function checkTargets(m) {
     { target: `hq in weeks ${PACING_TARGETS.hqWeeks.join(' to ')}`, ok: within(weekOf('hq'), PACING_TARGETS.hqWeeks), got: weekOf('hq') === null ? null : `week ${weekOf('hq')}` },
     { target: `at most ${PACING_TARGETS.maxUnlocksPerMinute} unlocks in any minute outside eras`, ok: worst[1] <= PACING_TARGETS.maxUnlocksPerMinute, got: worst[0] === null ? 0 : `${worst[1]} in minute ${worst[0]}` },
     { target: `no quiet stretch over ${PACING_TARGETS.maxQuietAfterTenMinutes}s after minute 10`, ok: m.longestQuiet.afterTenMinutes <= PACING_TARGETS.maxQuietAfterTenMinutes, got: `${m.longestQuiet.afterTenMinutes}s` },
+    { target: `important Yak posts wait at most ${PACING_TARGETS.maxImportantWaitSeconds}s`, ok: m.chat.important.longestWaitSeconds <= PACING_TARGETS.maxImportantWaitSeconds, got: `${m.chat.important.longestWaitSeconds}s` },
+    { target: `at most ${PACING_TARGETS.maxImportantQueuedAtEnd} important Yak posts still queued at the end`, ok: m.chat.important.queuedAtEnd <= PACING_TARGETS.maxImportantQueuedAtEnd, got: m.chat.important.queuedAtEnd },
     // The opening is reported, not checked: it is content work, not clock work.
     { target: 'longest quiet stretch overall (report only)', ok: true, info: true, got: `${m.longestQuiet.seconds}s from minute ${m.longestQuiet.fromMinute}` },
   ];
@@ -181,6 +184,12 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   const rand = mulberry(seed ^ 0x9e3779b9);
   const draw = ([a, b]) => a + rand() * (b - a);
   const pacer = createPacer({ weekSeconds });
+  const yakPacer = createYakPacer();
+  const urgentChats = new WeakSet();
+  // When each queued important Yak post entered the queue, and the longest wait before one showed, in
+  // seconds the Yak pacer was running (menus and spotlights freeze it).
+  const importantAt = new Map();
+  let importantWait = 0, yakT = 0;
 
   let t = 0; // real seconds
   const timeline = [];
@@ -244,7 +253,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       mine.end = start;
     } else if (mine) {
       mine.end = start;
-    } else if ((source === 'say' || source === 'standup-desk') && live.length >= UI.maxSpeech) {
+    } else if ((source === 'say' || source === 'standup-desk') && live.length >= speechMax(state.staff.length)) {
       bubbleStats.dropped++;
       return;
     }
@@ -267,7 +276,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   let stagedUntil = -Infinity; // real time a staged standup finishes talking
   let stagedSeconds = 0;
   let playT = 0; // real seconds while the game is running (the renderer's play clock)
-  const counts = { chat: 0, chatBot: 0, sayDropped: 0, says: 0, standupsStaged: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
+  const counts = { chat: 0, chatBot: 0, chatIn: 0, sayDropped: 0, says: 0, standupsStaged: 0, incidents: 0, launches: 0, launchPopups: 0, standups: 0 };
 
   const spotlight = { model: 'estimated presentation durations; excludes manual skips and camera travel', count: 0, skipped: 0, addedSeconds: 0, byKind: {} };
   const activeSpots = new Map(), stagedSpots = new Set();
@@ -289,7 +298,18 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     const mapped = propKind[d?.stage?.prop];
     if (mapped) beginSpotlight(kind === 'efficiency_consultants' ? kind : mapped, key);
   }
-  function route(events) {
+  // As in main.js: Yak chats wait in the Yak pacer unless they carry an open prompt or come from the player's own action.
+  function route(events, direct = false) {
+    if (!events?.length) return show(events);
+    const urgentIds = new Set((state.chatPrompts ?? []).filter((p) => !p.resolved).map((p) => p.chatId));
+    for (const e of events) if (e.type === 'chat') { counts.chatIn++; if (direct) urgentIds.add(e.id); }
+    const urgent = yakPacer.enqueue(events, { urgentIds, state, gameTime: pacer.gameT });
+    for (const e of urgent) urgentChats.add(e);
+    for (const e of events) if (e.type === 'chat' && importantChat(e) && !urgentChats.has(e)) importantAt.set(e, yakT);
+    show(urgent);
+    show(events.filter((e) => e.type !== 'chat'));
+  }
+  function show(events) {
     growth.sync(state);
     if (!events?.length) return;
     refreshPresent();
@@ -343,7 +363,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
         case 'chat': {
           counts.chat++;
           if (!e.fromId) counts.chatBot++;
-          log('chat', `#${e.channel} ${e.from}: ${e.text}`, { reply: !!e.replyTo });
+          log('chat', `#${e.channel} ${e.from}: ${e.text}`, { reply: !!e.replyTo, urgent: urgentChats.has(e) });
+          if (importantAt.has(e)) { importantWait = Math.max(importantWait, yakT - importantAt.get(e)); importantAt.delete(e); }
           break;
         }
         case 'say': {
@@ -400,13 +421,13 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
           const out = [];
           bots.botDecide(bot, state, { onEvents: (ev) => out.push(...ev) });
           log('choice', title);
-          route(out);
+          route(out, true);
         } else {
           const choice = pickDecision(state, chooser);
           const res = dispatch(state, { type: 'resolveDecision', choice });
           log('choice', `${title}: ${state.pendingDecision ? '(still pending)' : `choice ${choice}`}`);
-          route(res.events);
-          if (!res.ok) for (let c = 0; c < 4 && state.pendingDecision; c++) route(dispatch(state, { type: 'resolveDecision', choice: c }).events);
+          route(res.events, true);
+          if (!res.ok) for (let c = 0; c < 4 && state.pendingDecision; c++) route(dispatch(state, { type: 'resolveDecision', choice: c }).events, true);
         }
         reading = null;
       }
@@ -427,7 +448,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       else for (const a of bots.BOTS[bot](state) ?? []) dispatch(state, a);
       const { n, newStaff } = countActions(before, fingerprint(state));
       // Without the sink the bot's events are lost; hires are the ones the diff can recover.
-      route(sinkApi ? out : newStaff.map((staffId) => ({ type: 'hire', staffId })));
+      route(sinkApi ? out : newStaff.map((staffId) => ({ type: 'hire', staffId })), true);
       if (n > 0) {
         const seconds = draw(HUMAN.menuBase) + n * draw(HUMAN.menuPerAction);
         menu = { until: t + seconds, kind: 'menu' };
@@ -455,7 +476,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     else if (state.pendingDecision) paused.decision += frame;
     if (pacer.step(frame, { speed, running })) {
       route(pacer.schedule(tick(state)));
-      route(pacer.takeDropped().map((e) => ({ ...e, dropped: true })));
+      // main.js discards dropped events; pace.js presents dropped says to count them, and never shows a dropped chat.
+      show(pacer.takeDropped().filter((e) => e.type !== 'chat').map((e) => ({ ...e, dropped: true })));
       botDue = true;
       if (state.cash < 0) attention ??= 'cash';
       if (state.era && state.era.id !== lastEra) {
@@ -465,6 +487,9 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       }
     }
     if (running) route(pacer.due());
+    const yakRunning = !menuPause && !held && !state.gameOver;
+    if (yakRunning) yakT += frame;
+    show(yakPacer.step(frame, yakRunning, { gameTime: pacer.gameT, state }));
     t += frame;
   }
 
@@ -478,6 +503,7 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     if (n > 0) covered++;
     samples++;
   }
+  const importantQueued = yakPacer.pending.filter((e) => importantAt.has(e));
   const minutesPlayed = t / 60;
   const gaps = decisions.slice(1).map((x, i) => x - decisions[i]).sort((a, b) => a - b);
   const popups = decisions.length + counts.launchPopups + timeline.filter((e) => e.kind === 'era' || e.kind === 'unlock').length;
@@ -497,7 +523,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       gapSeconds: gaps.length ? { min: r1(gaps[0]), p10: r1(pct(gaps, 0.1)), p25: r1(pct(gaps, 0.25)), median: r1(pct(gaps, 0.5)), p75: r1(pct(gaps, 0.75)), p90: r1(pct(gaps, 0.9)), max: r1(gaps.at(-1)), mean: r1(gaps.reduce((a, b) => a + b, 0) / gaps.length) } : null,
     },
     toasts: { shownPerMinute: perMin(toastStats.shown), heldPerMinute: perMin(toastStats.held), ...toastStats },
-    chat: { linesPerMinute: perMin(counts.chat), lines: counts.chat, botLines: counts.chatBot },
+    chat: { linesPerMinute: perMin(counts.chat), lines: counts.chat, botLines: counts.chatBot, omitted: counts.chatIn - counts.chat - yakPacer.queued, queued: yakPacer.queued,
+      important: { longestWaitSeconds: r1(Math.max(importantWait, ...importantQueued.map((e) => yakT - importantAt.get(e)))), queuedAtEnd: importantQueued.length } },
     say: { linesPerMinute: perMin(counts.says), lines: counts.says, droppedStale: counts.sayDropped },
     standups: { count: counts.standups, staged: counts.standupsStaged, stagedShare: r2(stagedSeconds / Math.max(1e-9, t)), minutesBetweenStaged: counts.standupsStaged ? r1(minutesPlayed / counts.standupsStaged) : null },
     bubbles: {
@@ -536,7 +563,8 @@ function printSummary(m, overlaps) {
   }
   L('toasts per minute', `${m.toasts.shownPerMinute} shown, ${m.toasts.heldPerMinute} held by the budget`);
   L('  shown by tone', Object.entries(m.toasts.byTone).map(([k, v]) => `${k} ${v}`).join('  '));
-  L('Yak lines per minute', `${m.chat.linesPerMinute} (${m.chat.lines} lines, ${m.chat.botLines} from bots)`);
+  L('Yak lines per minute', `${m.chat.linesPerMinute} (${m.chat.lines} lines, ${m.chat.botLines} from bots, ${m.chat.omitted} omitted by the Yak pacer)`);
+  L('  important posts', `longest wait ${m.chat.important.longestWaitSeconds}s, ${m.chat.important.queuedAtEnd} still queued at the end`);
   L('spoken lines per minute', `${m.say.linesPerMinute} (${m.say.lines} lines, ${m.say.droppedStale} dropped stale while the speaker talked)`);
   L('standups', `${m.standups.count} (${m.standups.staged} staged in person, one per ${m.standups.minutesBetweenStaged ?? '-'} min, ${Math.round(m.standups.stagedShare * 100)}% of real time)`);
   L('speech bubbles', `${m.bubbles.perMinute}/min, mean ${m.bubbles.meanOnScreen} on screen, any up ${Math.round(m.bubbles.shareOfTimeAny * 100)}% of the time, max ${m.bubbles.maxConcurrent}`);

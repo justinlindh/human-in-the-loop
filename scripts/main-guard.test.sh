@@ -31,7 +31,7 @@ guard() { # <gh log> <open file> [env assignments...] -- [guard args...]
   local log="$1" open="$2"; shift 2
   local envs=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
   env GH_LOG="$log" GH_OPEN="$open" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$case_root" HITL_LOCK_DIR="$tmp/locks" \
-    MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
+    MAIN_GUARD_NPM="${MAIN_GUARD_NPM:-true}" MAIN_GUARD_FETCH=true MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
 }
 expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x looks in the guard's output>
   local w want; IFS='|' read -ra want <<<"$3"
@@ -39,10 +39,12 @@ expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x look
     local f="$2" p="$w" neg=0
     case "$p" in !*) neg=1; p="${p#!}" ;; esac
     case "$p" in out:*) f="$2.out"; p="${p#out:}" ;; esac
-    if grep -qF -- "$p" "$f"; then [ $neg = 1 ] && { echo "FAIL $1: unexpected $p"; fails=$((fails + 1)); }
-    else [ $neg = 0 ] && { echo "FAIL $1: missing $p"; fails=$((fails + 1)); }; fi
+    if grep -qF -- "$p" "$f"; then [ $neg = 1 ] && { echo "FAIL $1: unexpected $p"; fails=$((fails + 1)); shown "$2"; }
+    else [ $neg = 0 ] && { echo "FAIL $1: missing $p"; fails=$((fails + 1)); shown "$2"; }; fi
   done
 }
+# A failing case shows the guard's last lines, so a failure in CI can be read without rerunning it.
+shown() { tail -n 15 "$1.out" 2>/dev/null | sed 's/^/    guard: /'; }
 one() { # <name> <suite> <strict> <open "label n" lines, ; separated> <patterns> [extra env...]
   case_root="$tmp/root-$RANDOM"; local log="$tmp/$RANDOM.log" open="$tmp/$RANDOM.open"; : >"$log"; printf '%s' "$4" | tr ';' '\n' >"$open"
   local name="$1" suite="$2" strict="$3" pats="$5"; shift 5
@@ -114,6 +116,15 @@ sleep 0.3
 guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
 [ "$(git -C "$shared" rev-parse HEAD)" != "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a busy shared checkout was updated"; fails=$((fails + 1)); }
 kill "$busy" 2>/dev/null
+wait "$busy" 2>/dev/null
+# A shared checkout whose install doesn't match its lockfile is reinstalled.
+cat >"$tmp/npm" <<SH
+#!/usr/bin/env bash
+case "\$1" in ls) exit 1 ;; ci) echo ci >>"$tmp/npm-ci" ;; esac
+SH
+chmod +x "$tmp/npm"
+MAIN_GUARD_NPM="$tmp/npm" guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ "$(wc -l <"$tmp/npm-ci" 2>/dev/null || echo 0)" -ge 1 ] || { echo "FAIL a stale shared install was not reinstalled"; fails=$((fails + 1)); }
 
 # Bisect: last green four merges back, red from the second of them on: the first red one is named.
 mapfile -t fp < <(git -C "$REPO" rev-list --first-parent -n 5 HEAD)
@@ -160,8 +171,22 @@ if [ ${#fp[@]} -eq 5 ]; then
 fi
 # The uncached golden run: a failure marks main red, one that fails on the machine gives no verdict.
 case_root="$tmp/root-golden"; gl="$tmp/golden.log"; : >"$gl"
-guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='mkdir -p shots/golden && printf x >shots/golden/office.actual.png && printf y >shots/golden/char-lineup.stepped.png && echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
 expect 'an uncached golden failure marks main red' "$gl" "state=failure|golden-uncached|--label main-red"
+ls "$tmp/root-golden/main-guard/"*-golden/office.actual.png "$tmp/root-golden/main-guard/"*-golden/char-lineup.stepped.png >/dev/null 2>&1 \
+  || { echo "FAIL a failing golden's images should be kept beside the commit's logs"; fails=$((fails + 1)); }
+[ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL one red verdict (a possible flake) should not hold render PRs yet"; fails=$((fails + 1)); }
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
+grep -q "golden-uncached" "$tmp/root-golden/main-guard/red" 2>/dev/null || { echo "FAIL the same step red twice in a row should leave its red steps for auto CI"; fails=$((fails + 1)); }
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+[ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL a green newest commit should clear the red steps"; fails=$((fails + 1)); }
+# Several steps red twice: every repeated step is named, not only the first.
+case_root="$tmp/root-multi"; : >"$gl"
+TWO='printf "| step | result | seconds |\n|---|---|---|\n| stage | FAIL | 1 |\n| render-checks | FAIL | 1 |\n" >"$SUMMARY"; exit 1'
+for _ in 1 2; do guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$TWO" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD; done
+for s in stage render-checks golden-uncached; do
+  cut -d' ' -f2- "$case_root/main-guard/red" 2>/dev/null | tr ', ' '\n\n' | grep -qxF "$s" || { echo "FAIL $s red twice should be in the red record (got: $(cat "$case_root/main-guard/red" 2>/dev/null))"; fails=$((fails + 1)); }
+done
 case_root="$tmp/root-golden2"; : >"$gl"
 guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "Error: ENOSPC: no space left on device"; exit 1' -- --sha HEAD
 expect 'an uncached golden run that fails on the machine gives no verdict' "$gl" "state=error|golden: ENOSPC|!state=failure|!--label main-red"
@@ -179,7 +204,7 @@ expect 'local CI failing on the machine gets no verdict' "$cl" "state=error|erro
 : >"$cl"; guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
 expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label main-red|!state=failure"
 [ "$(cat "$case_root/main-guard/last" 2>/dev/null)" = "$(git -C "$REPO" rev-parse HEAD)" ] \
-  || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); }
+  || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); shown "$cl"; }
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]
