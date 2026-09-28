@@ -67,6 +67,12 @@ describe('pacer scheduling', () => {
     expect(out[1].g).toBeGreaterThan(1);
   });
 
+  it('presents an incident resolution with the postmortem decision raised in the same tick', () => {
+    const p = createPacer();
+    const now = p.schedule([{ type: 'incidentResolved', helped: ['a'], hurt: [] }, { type: 'decision' }]);
+    expect(now.map((e) => e.type)).toEqual(['incidentResolved', 'decision']);
+  });
+
   it('releases a reply only after the line it answers has been up for its reading time', () => {
     const gaps = {};
     for (const speed of [1, 2]) {

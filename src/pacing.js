@@ -8,7 +8,7 @@ export const WEEK_SECONDS = 8.0;
 // Paced events are released across this fraction of the week, leaving a quiet beat before the next tick.
 export const SPREAD = 0.85;
 // Events that land the moment they happen; everything else trickles out across the week.
-export const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 'officeUpgrade', 'standup', 'era', 'unlock', 'goal']);
+export const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 'officeUpgrade', 'standup', 'era', 'unlock', 'goal', 'incidentResolved']);
 // Longest frame step honoured, so a stalled tab cannot jump weeks but slow machines keep real time.
 export const MAX_STEP = 0.25;
 // How long a speech bubble stays up, in real seconds: long enough to read at a relaxed pace. Faster
