@@ -537,20 +537,20 @@ export const ITEMS = [
   // up a second into the clip. The moment camera follows staged moments; props get a close focus.
   {
     // The shareable printer clip: the nods-printer beat with the card held about 6 s before the choice.
-    id: 'share-printer', group: 'share', title: 'PC LOAD LETTER (shareable)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 28.5, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    id: 'share-printer', group: 'share', title: 'PC LOAD LETTER (shareable)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 31, warmup: 6.5,
+    setup: `(() => { ${BARE}; })()`,
     actions: [
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 28.5),
+      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 31),
       { at: 7, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([7.5, 8, 9], { escape: false }),
-      ...CAMLOG(28.5),
+      ...CAMLOG(31),
     ],
-    screenshots: [4, 17, 23],
+    screenshots: [4, 17, 23, 28.5],
   },
   {
     id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    setup: `(() => { ${BARE}; })()`,
     actions: [
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 25),
@@ -561,7 +561,7 @@ export const ITEMS = [
   },
   {
     id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 11, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    setup: `(() => { ${BARE}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })),
@@ -575,7 +575,7 @@ export const ITEMS = [
   },
   {
     id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 7, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    setup: `(() => { ${BARE}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })),
@@ -587,13 +587,13 @@ export const ITEMS = [
   },
   {
     id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 13, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    setup: `(() => { ${BARE}; })()`,
     actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
     screenshots: [5, 11],
   },
   {
     id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 9, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    setup: `(() => { ${BARE}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...NODS_FOLLOW(['banner_company'], 3, 0, 5),
