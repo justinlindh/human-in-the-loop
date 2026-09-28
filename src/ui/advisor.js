@@ -77,6 +77,14 @@ export function noticesFor(s) {
     .sort((a, b) => (Number(b.x.since ?? -Infinity) - Number(a.x.since ?? -Infinity)) || a.i - b.i).map(({ x }) => x);
 }
 // The 'fine' line never says how old it is: its week restarts whenever everything else is dismissed.
+// What the panel shows: the notice in focus (else the most recent, else the all-clear line) and up
+// to EARLIER_LINES older ones.
+export function panelModel(s, focus = null) {
+  const list = noticesFor(s);
+  const main = list.find((x) => x.key === focus) ?? list[0] ?? adviceFor(s).find(isFine) ?? null;
+  return { main, earlier: list.filter((x) => x !== main).slice(0, EARLIER_LINES) };
+}
+
 const ageText = (s, x) => {
   if (isFine(x)) return '';
   const n = Number.isFinite(x?.since) ? s.week - x.since : null;
@@ -159,16 +167,16 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     let focus = focusKey;
     const render = () => {
       const st = ctx.getState();
-      const list = noticesFor(st);
-      const main = list.find((x) => x.key === focus) ?? list[0] ?? adviceFor(st).find(isFine) ?? null;
+      const { main, earlier } = panelModel(st, focus);
       if (main) saw(main);
-      const earlier = list.filter((x) => x !== main).slice(0, EARLIER_LINES);
       const age = main ? ageText(st, main) : '';
-      body.replaceChildren(
+      // replaceChildren would print a missing part as the text "null", so only real parts go in.
+      body.replaceChildren(...[
         main ? row(main, render, age) : h('div.empty', { text: 'Nothing to report. The advisors are pretending to read the reports.' }),
         earlier.length ? h('div.advearlier', null, h('div.small.muted.advearlier-t', { text: 'Earlier' }),
           ...earlier.map((x) => h('button.advearlier-row', { type: 'button', onclick: () => { focus = x.key; render(); } },
-            face(x.advisor, 22), h('span.advearlier-text', { text: x.text }), h('span.small.muted', { text: ageText(st, x) })))) : null);
+            face(x.advisor, 22), h('span.advearlier-text', { text: x.text }), h('span.small.muted', { text: ageText(st, x) })))) : null,
+      ].filter(Boolean));
     };
     render();
     ctx.openModal({ title: 'Advisors', iconName: 'idea', body, cls: 'small' });
