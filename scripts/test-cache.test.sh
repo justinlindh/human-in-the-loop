@@ -15,7 +15,8 @@ cat >"$tmp/fake" <<'F'
 echo run >>"$COUNT"; echo " Test Files  1 passed (1)"; echo "      Tests  3 passed (3)"; exit "${WANT:-0}"
 F
 chmod +x "$tmp/fake"; export COUNT="$tmp/count"
-t() { (cd "$r" && bash "$HERE/test-cache.sh" "$tmp/fake" "$@"); }
+# Every call logs the cache's debug lines; a failing run prints them, so the log shows which input moved.
+t() { echo "-- t $*" >>"$tmp/debug"; (cd "$r" && HITL_TEST_CACHE_DEBUG=1 bash "$HERE/test-cache.sh" "$tmp/fake" "$@" 2>>"$tmp/debug"); }
 runs() { wc -l <"$COUNT" 2>/dev/null || echo 0; }
 
 t >/dev/null; [ "$(runs)" -eq 1 ] || fail "the first run runs"
@@ -33,4 +34,5 @@ HITL_NO_TEST_CACHE=1 t >/dev/null; [ "$(runs)" -eq $((n + 2)) ] || fail "HITL_NO
 [ -z "$(g -C "$r" status --porcelain -- src/a.js | grep '^[AM]')" ] || fail "the real index is left alone"
 
 [ $fails -eq 0 ] && echo "test-cache: all cases pass"
+[ $fails -eq 0 ] || { echo "test-cache debug log:"; sed 's/^/  /' "$tmp/debug"; }
 exit $fails

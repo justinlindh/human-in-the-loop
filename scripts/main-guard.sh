@@ -145,6 +145,13 @@ gate() {
   # would quietly stop it catching regressions. Here every scene renders, on every commit checked.
   run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --software timeout 900 nice -n 10 node blender/checks/golden.mjs --jobs=4
   golden_rc=$?
+  # A failing golden's images (actual, diff, and the identity check's two renders) live in this gate's
+  # worktree, which goes when the gate ends: keep them beside the commit's logs, for two weeks.
+  if [ "$golden_rc" -ne 0 ] && compgen -G "$WT/shots/golden/*.png" >/dev/null; then
+    mkdir -p "$STATE/$cs-golden" && cp "$WT"/shots/golden/*.png "$STATE/$cs-golden/" \
+      && echo "main-guard: kept golden's failure images in $STATE/$cs-golden"
+  fi
+  find "$STATE" -maxdepth 1 -type d -name '*-golden' -mtime +14 -exec rm -rf {} + 2>/dev/null
   if [ "$golden_rc" -ne 0 ] && gwhy="$(infra_failure "$STATE/$cs.golden.log" 999)"; then
     gate_err=1; golden_rc=0; gate_why="${gate_why:+$gate_why; }golden: $gwhy"
   fi
