@@ -11,5 +11,6 @@ The one path to local CI. Every 2 minutes it starts `scripts/ci-pr.sh` on each o
 - **While the main guard has main red on a render step** (stage, render-checks, golden, golden-uncached, pose-nodraw, sweep), a PR that changes the render and no tooling (`scripts/`, `blender/checks/`) waits, and the log says why. A tooling fix still runs, and `ci-rerun` starts a held PR (a render fix for main's red). A red record older than 3 hours is ignored.
 - **The `ci-rerun` label** asks for a fresh run of the current head, whatever its status. The label comes off when the run starts.
 - **Its worktree's install** is what runs link to when the lockfiles match. When `npm ls` finds it stale, auto CI reinstalls it (`npm ci`) at the first pass with none of its runs going.
+- **Machine hygiene:** each pass clears vitest's leftover `/tmp/<21-character id>/ssr` directories over an hour old. Vitest leaves one behind per run, and on a tmpfs `/tmp` they cost memory.
 - **The log** is in `~/.cache/hitl-ci/auto/log`, and each run's output in `pr-<n>.log` next to it.
 - **Install:** `scripts/systemd/install.sh` installs the timer with its own worktree of main (`~/.cache/hitl-ci/auto/worktree`). `journalctl --user -u hitl-auto-ci` shows it.
