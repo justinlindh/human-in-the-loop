@@ -2,20 +2,29 @@
 // squad dispatches each member's ordinary assignment, so every other system sees people, not squads.
 import { B } from './balance.js';
 import { newId } from './util.js';
-import { registerAction } from './registry.js';
+import { registerAction, registerSystem } from './registry.js';
+import { isUnlocked } from './unlocks.js';
 import { findStaff, tryAssign } from './staff.js';
 
 const POSTINGS = new Set(['project', 'maintenance', 'support', 'idle']);
-const LOCKED = 'Squads unlock with the Office Floor or 8 people';
 
 export const squadOf = (state, staffId) => state.squads.find((sq) => sq.memberIds.includes(staffId)) ?? null;
 const findSquad = (state, id) => state.squads.find((sq) => sq.id === id) ?? null;
-const unlocked = (state) => state.officeStage >= 1 || state.staff.length >= B.squadUnlockStaff;
+const ready = (state) => state.officeStage >= 1 || state.staff.length >= B.squadUnlockStaff;
+const lockedText = () => `Squads unlock with the Office Floor or ${B.squadUnlockStaff} people`;
+
+// Squads unlock the first week the company is ready, silently, and stay unlocked after that.
+function unlocked(state) {
+  if (!isUnlocked(state, 'squads') && ready(state)) state.unlocks.squads = state.week;
+  return isUnlocked(state, 'squads');
+}
 const cleanName = (name) => (typeof name === 'string' ? name.trim() : '');
 
+const membersText = () => `A squad has 1 to ${B.squadMaxMembers} people`;
+
 function checkMembers(state, memberIds) {
-  if (!Array.isArray(memberIds) || memberIds.length < 1 || memberIds.length > B.squadMaxMembers) return 'A squad has 1 to 8 people';
-  if (new Set(memberIds).size !== memberIds.length) return 'A squad has 1 to 8 people';
+  if (!Array.isArray(memberIds) || memberIds.length < 1 || memberIds.length > B.squadMaxMembers) return membersText();
+  if (new Set(memberIds).size !== memberIds.length) return membersText();
   if (memberIds.some((id) => !findStaff(state, id))) return 'No such staff member';
   return null;
 }
@@ -47,7 +56,7 @@ function postingBlocker(person, posting) {
 
 registerAction('createSquad', (ctx, { name, memberIds }) => {
   const { state } = ctx;
-  if (!unlocked(state)) return { ok: false, reason: LOCKED };
+  if (!unlocked(state)) return { ok: false, reason: lockedText() };
   if (state.squads.length >= B.squadMax) return { ok: false, reason: `Up to ${B.squadMax} squads` };
   const n = cleanName(name);
   if (!n || n.length > 20) return { ok: false, reason: 'Name the squad' };
@@ -129,3 +138,10 @@ registerAction('postSquad', (ctx, { squadId, posting }) => {
   squad.benchUntil = null;
   return { ok: true, placed, skipped };
 });
+
+// Weekly: records the unlock.
+export function squadsSystem(ctx) {
+  unlocked(ctx.state);
+}
+
+registerSystem('squads', squadsSystem, 32);

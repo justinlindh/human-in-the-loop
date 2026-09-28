@@ -3,9 +3,9 @@ import { dispatch, createGame, tick } from '../../src/sim/index.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { SQUAD_NAMES } from '../../src/data/squads.js';
 import { B } from '../../src/sim/balance.js';
-import { game, addStaff, addDesks } from './helpers.js';
+import { game, classicGame, addStaff, addDesks } from './helpers.js';
 
-const floor = () => { const s = game(); s.officeStage = 1; addDesks(s, 8); return s; };
+const floor = () => { const s = game(); s.officeStage = 1; addDesks(s, 8); s.unlocks.squads = 0; return s; };
 const eng = (s, seniority = 'mid') => addStaff(s, 'engineer', seniority);
 const make = (s, name, memberIds) => { const r = dispatch(s, { type: 'createSquad', name, memberIds }); return s.squads.find((x) => x.id === r.squadId); };
 const project = (s) => { const r = dispatch(s, { type: 'startProject', kind: 'refactor' }); return s.projects.find((j) => j.id === r.projectId); };
@@ -16,12 +16,15 @@ describe('squads: state and actions (#938)', () => {
     expect(SQUAD_NAMES.length).toBeGreaterThanOrEqual(8);
   });
 
-  it('unlocks with the Office Floor or 8 people', () => {
-    const s = game();
-    s.staff = s.staff.slice(0, 2);
-    expect(dispatch(s, { type: 'createSquad', name: 'Core', memberIds: [s.staff[0].id] })).toMatchObject({ ok: false, reason: 'Squads unlock with the Office Floor or 8 people' });
+  it('unlocks the first week the company has the Office Floor or 8 people, and stays unlocked', () => {
+    const s = classicGame();
     addDesks(s, 8);
-    while (s.staff.length < 8) eng(s);
+    expect(dispatch(s, { type: 'createSquad', name: 'Core', memberIds: [s.staff[0].id] })).toMatchObject({ ok: false, reason: `Squads unlock with the Office Floor or ${B.squadUnlockStaff} people` });
+    while (s.staff.length < B.squadUnlockStaff) eng(s);
+    tick(s);
+    expect(s.unlocks.squads).toBe(s.week - 1);
+    s.staff = s.staff.slice(0, 3);
+    tick(s);
     expect(dispatch(s, { type: 'createSquad', name: 'Core', memberIds: [s.staff[0].id] }).ok).toBe(true);
   });
 
@@ -114,6 +117,7 @@ describe('squads: state and actions (#938)', () => {
     const store = (() => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; })();
     const s = createGame({ seed: 2, companyName: 'Keep' });
     s.officeStage = 1;
+    s.unlocks.squads = 0;
     dispatch(s, { type: 'createSquad', name: 'Core', memberIds: [s.staff[0].id] });
     saveGame(s, store);
     expect(loadGame(store).state.squads).toEqual(s.squads);
