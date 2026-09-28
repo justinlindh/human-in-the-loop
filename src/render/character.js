@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GROWTH } from './growth-tune.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
@@ -21,7 +22,7 @@ const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -36,7 +37,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-const SEATED = new Set(['typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
+const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
 // A role's own colour shares the palette material; any other colour (an advisor's accent) gets its own.
@@ -556,6 +557,24 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = run ? 0.22 : tired ? 0.2 : 0.04;
         if (tired && !run) { tgt.headX = 0.25; tgt.armLZ = 0.05; tgt.armRZ = -0.05; }
         tgt.twist = s(t * f) * 0.08;
+        break;
+      }
+      case 'growthpump':
+      case 'growthpumpsit': {
+        // A cheer: both arms swing up sideways over the head (as a celebration's do, clear of the desk
+        // in front), pumping, the chin lifted; standing, with a hop.
+        const pump = s(animT * GROWTH.pumpRate) * GROWTH.pumpSwing;
+        tgt.armRZ = GROWTH.standAngle + pump;
+        tgt.armLZ = -GROWTH.standAngle - pump;
+        if (!seated) tgt.bodyY += Math.max(0, s(animT * GROWTH.pumpRate)) * GROWTH.pumpHop;
+        tgt.headX = -GROWTH.pumpLift;
+        break;
+      }
+      case 'growthclap':
+      case 'growthclapsit': {
+        const clap = GROWTH.clapAngle + s(animT * GROWTH.clapRate) * GROWTH.clapSwing;
+        tgt.armLX = tgt.armRX = -GROWTH.clapReach;
+        tgt.armLZ = clap; tgt.armRZ = -clap;
         break;
       }
       case 'celebrate': {

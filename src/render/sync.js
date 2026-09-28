@@ -1,4 +1,5 @@
 import { B } from '../sim/balance.js';
+import { GROWTH } from './growth-tune.js';
 import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
 import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
@@ -13,6 +14,7 @@ import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
 import { createGrowthMoments } from './growth-moments.js';
+import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 
@@ -279,6 +281,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function sync(state) {
     lastState = state;
     growth.sync(state);
+    officeGrowth.sync(state);
     const cur = office.current;
     if (!cur) return;
     const key = cur.key ?? cur.stage;
@@ -442,6 +445,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           break;
         }
         case 'celebrate': {
+          if (e.staffId && promotionWeek(state.staff.find(p => p.id === e.staffId), state.week)) break;
           if (e.staffId) {
             const r = recs.get(e.staffId);
             if (r && !r.hidden && !r.temp?.standup) celebrate(r, 2.4, true);
@@ -457,7 +461,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         default: break;
       }
     }
-    void state;
+    officeGrowth.events(events ?? [], state);
   }
 
   // Conversations: a say that answers or addresses someone in the office is staged between the
@@ -635,6 +639,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
+  const officeGrowth = createOfficeGrowth({ recs, labels, parent: group, low,
+    blocked: () => !!(spotlights.current() || standup || incentives.party || incentives.dance || lastState?.pendingDecision || lastState?.chatPrompts?.some(c => !c.resolved && c.stage)),
+    ready: (r, medium) => !growth.has(r.id) && !r.hidden && !r.goal?.hidden && r.char.root.visible && r.mode === 'placed' && !r.temp && !r.path.length && r.staff.mood !== 'away' && r.staff.mood !== 'burnout' && onScreen(r) && (!medium || roomToCelebrate(r)),
+    faceToward: (r, star, seconds) => {
+      let yaw = star ? Math.atan2(star.pos.x - r.pos.x, star.pos.z - r.pos.z) : (rig?.yaw ?? Math.PI / 4);
+      if (r.char.seated && r.goal) {
+        let d = Math.atan2(Math.sin(yaw - r.goal.yaw), Math.cos(yaw - r.goal.yaw));
+        yaw = r.goal.yaw + Math.max(-GROWTH.turnLimit, Math.min(GROWTH.turnLimit, d));
+      }
+      r.face = { yaw, t: seconds };
+    },
+  });
   const growth = createGrowthMoments();
   let growthGlow = null;
   let growthCast = [];
@@ -931,7 +947,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   let standup = null;
   // Whether someone stands close enough to the standup ring for their chatter to talk over it.
   const nearStandup = (x) => !!standup && !!x && Math.hypot(x.pos.x - standup.at.x, x.pos.z - standup.at.z) < standup.quietR;
-  function setSpeed(k) { speed = k; }
+  function setSpeed(k) { speed = k; officeGrowth.setSpeed(k); }
 
   // Where a standup gathers: around the meeting table, else in front of the whiteboard, else on
   // open floor. Everyone faces the middle of the group.
@@ -1196,6 +1212,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       for (const r of recs.values()) if (r.temp?.moment || r.temp?.party || (at && Math.hypot(r.pos.x - at.x, r.pos.z - at.z) < QUIET_R) || onScreen(r)) clearForSpotlight(r);
     }
     quietKey = spot?.key ?? null;
+    officeGrowth.update(dt, { paused });
     if (paused) {
       // With a decision open (momentsToo), the moment it stages still plays: its actors, its
       // visitors and the moment camera. Everything else holds still.
@@ -1260,6 +1277,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function dispose() {
     spotlights.clear();
+    officeGrowth.dispose();
     growthGlow?.geometry.dispose(); growthGlow?.material.dispose();
     for (const r of recs.values()) disposeRec(r);
     for (const r of leavers) disposeRec(r);
@@ -1312,7 +1330,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       return spotlights.cut();
     },
-    sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
+    officeGrowth, sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.
     standAt(id, x, z) {
