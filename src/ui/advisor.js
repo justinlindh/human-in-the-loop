@@ -76,7 +76,9 @@ export function noticesFor(s) {
   return adviceFor(s).map((x, i) => ({ x, i })).filter(({ x }) => !isFine(x))
     .sort((a, b) => (Number(b.x.since ?? -Infinity) - Number(a.x.since ?? -Infinity)) || a.i - b.i).map(({ x }) => x);
 }
+// The 'fine' line never says how old it is: its week restarts whenever everything else is dismissed.
 const ageText = (s, x) => {
+  if (isFine(x)) return '';
   const n = Number.isFinite(x?.since) ? s.week - x.since : null;
   return n !== null && n >= AGE_WEEKS ? `Noticed ${n} weeks ago` : '';
 };
