@@ -142,7 +142,6 @@ const SPECS = {
   // off the face's line; looking away from it is 60 and more.
   'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
     share('atScreen', 'face within 45 deg of the screen', (x) => x.targetAngle <= 45, 0.8),
-    // The visitor's random look decides whether the turned view clears 0.70 (#862).
     visibleRule,
   ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
