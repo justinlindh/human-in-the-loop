@@ -76,7 +76,7 @@ export function noticesFor(s) {
   return adviceFor(s).map((x, i) => ({ x, i })).filter(({ x }) => !isFine(x))
     .sort((a, b) => (Number(b.x.since ?? -Infinity) - Number(a.x.since ?? -Infinity)) || a.i - b.i).map(({ x }) => x);
 }
-// The 'fine' line never says how old it is: its week restarts whenever everything else is dismissed.
+
 // What the panel shows: the notice in focus (else the most recent, else the all-clear line) and up
 // to EARLIER_LINES older ones.
 export function panelModel(s, focus = null) {
@@ -85,6 +85,7 @@ export function panelModel(s, focus = null) {
   return { main, earlier: list.filter((x) => x !== main).slice(0, EARLIER_LINES) };
 }
 
+// The 'fine' line never says how old it is: its week restarts whenever everything else is dismissed.
 const ageText = (s, x) => {
   if (isFine(x)) return '';
   const n = Number.isFinite(x?.since) ? s.week - x.since : null;
