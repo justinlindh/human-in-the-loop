@@ -47,7 +47,7 @@ State = {
   modifiers: [{ id, key, value, label, untilWeek, source }],   // temporary effects from decisions; key names a sim bonus (e.g. 'output', 'meaningRecovery')
   scheduled: [{ id, week, kind /*'effects'|'event'*/, payload }],   // delayed consequences and follow-up events; UI does not reveal payloads
   discoveredCombos: { ['cat:angle']: fitNumber },
-  outage: null | { productId, kind, severity, weeks, unrecoverable },
+  outage: null | { productId, kind, severity, weeks, unrecoverable, responderIds, etaWeeks, cost, cause },   // see Incidents (#830)
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
   chatLog: [ChatEvent],   // the most recent chat events (same shape as the chat SimEvent), last 80, so the feed survives save and load
   lowCashWeeks,
@@ -496,7 +496,7 @@ state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
 - A member whose assignment doesn't match the squad's posting is "on loan". That is derived, never stored. A plain `assign` of a member leaves them in the squad, on loan.
 - Unlock: squads unlock the first week the company reaches the Office Floor or 8 staff, recorded as `unlocks.squads = week`. Actions check that key, not the current headcount, so squads stay unlocked if headcount drops.
 - Postings are `project`, `maintenance` or `support`, plus `idle` for a benched squad. Other assignments (sales, marketing, security, oversight, mentoring) stay per person; a member on one of those is on loan.
-- After a squad's project ships with `afterLaunch: 'upkeep'`: the crew is the squad's engineers ranked by knowledge of that product, taken in order until their maintenance capacity covers the new product's maintenance need under the ordinary maintenance rule, and at least one. The crew goes to maintenance. The rest are benched: posting `{ type: 'idle', targetId: null }`, `benchUntil = week + B.squadBenchWeeks` (2). When that week arrives, benched members go back to their default work and the squad's posting becomes `maintenance`. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
+- After a squad's project ships a new product with `afterLaunch: 'upkeep'`: the crew is the squad's engineers ranked by knowledge (the sim tracks general knowledge, not per product), taken in order until their maintenance capacity covers the new product's maintenance need under the ordinary maintenance rule, and at least one. The crew goes to maintenance. The rest are benched: posting `{ type: 'idle', targetId: null }`, `benchUntil = week + B.squadBenchWeeks` (2). When that week arrives, benched members go back to their default work and the squad's posting becomes `maintenance`. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads. Under `'upkeep'`, an update, migration or other project that makes no new product gets no crew: the whole squad is benched.
 - If a squad's posted project is cancelled, the squad is benched the same way, with no crew.
 - `crewIds` are members left on a product's upkeep after a launch. `postSquad` skips them (reason 'On upkeep crew'), and they count as working the squad's posting for cohesion. A member leaves the crew when assigned elsewhere by hand, when the squad is posted to maintenance, when their product is retired, when they're removed from the squad or it's disbanded, or when they leave the company. A crew member is shown as "on upkeep", never "on loan": the on-loan rule applies only to members outside `crewIds`. Old saves load `crewIds: []`.
 - Cohesion starts at 0 when a squad forms and rises by `1 / B.squadCohesionWeeks` (12) each week that at least half its members work its posting, up to 1. Anyone joining or leaving halves it.
@@ -523,6 +523,33 @@ Refusal reasons include 'Squads unlock with the Office Floor or 8 people', 'Up t
 Events:
 
 ```
-{ type: 'squadFreed', squadId, productId, crewIds }   // a squad's project finished: crewIds stay on maintenance, the rest are benched; productId null (and crewIds empty) for a project that makes no product (refactor, craft, research)
+{ type: 'squadFreed', squadId, productId, crewIds }   // a squad's project finished: crewIds stay on maintenance, the rest are benched; an update or migration sends its product's id with empty crewIds; productId null (and crewIds empty) for a project with no product (refactor, craft, research, cancelled)
 { type: 'squadBenchEnded', squadId }                  // the bench ran out and benched members went back to their default work
 ```
+
+## Incidents (#830)
+
+An outage explains itself while it runs and closes with a summary; the postmortem choice comes at the end.
+
+```
+state.outage = null | { productId, kind, severity, weeks, unrecoverable,
+                        responderIds: [staffId],   // up to B.fixersCounted: the engineers and founders the fix relies on, the same ranking fixCapacity uses; refreshed weekly (someone away or gone is replaced)
+                        etaWeeks,                  // weeks left at the current fix capacity; null while unrecoverable
+                        cost: { cash, brand, customers },   // running totals since the incident: its cash and brand hit plus customers lost to outage churn
+                        cause }                    // short plain words, e.g. 'credential stuffing got past a security posture of 42'
+```
+
+- Responders leave their work while the outage lasts: their project or maintenance output is skipped. Their assignment isn't changed, so they return on the all-clear with nothing to reassign. ui and render show them as responding.
+- Old saves: an outage without these fields loads with `responderIds: []`, `etaWeeks: null`, zero costs and `cause: ''`.
+
+```
+{ type: 'incidentResolved', productId, kind, severity, weeks, cost: { cash, brand, customers }, responderIds, helped: [text], hurt: [text] }
+```
+
+- Fires when an outage clears, or in the same week for a severity 4 or 5 incident that takes nothing down (a breach, a phishing hit). Caught incidents never fire it.
+- `helped` and `hurt` are short plain lines, e.g. 'Priya caught it early', 'Tech debt 34 made this 1.9x harder to fix'.
+- The postmortem, by kind:
+  - Agent kinds: the SEV decision (same eventIds, `INCIDENT_EVENT[kind]`) is raised from `incidentResolved` instead of at the alarm, with `vars` carrying weeks and cost. It keeps its first two choices, drops "Publish a public postmortem", and adds the two below.
+  - Security kinds: the decision stays at the alarm, since its choices respond to the attack (pay the ransom, restore from backups). The resolution card offers only the two below, as a small follow-up decision.
+  - "Write it up properly": responders respond `B.postmortemWeeks` (1) more week, tech debt -`B.postmortemDebt` (5), responders' knowledge +`B.postmortemKnowledge` (3), and each responder loses `B.postmortemMeaning` meaning unless Blameless Postmortems is on.
+  - "Patch and move on": tech debt +`B.patchDebt` (3).
