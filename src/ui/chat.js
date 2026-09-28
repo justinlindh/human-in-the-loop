@@ -9,6 +9,7 @@ import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
 import { memeView, createMemeBox } from './memes.js';
+import { companyKey } from './saveKey.js';
 
 const CHANNELS = CHAT_CHANNELS;
 const MAX_PER_CHANNEL = 60;
@@ -255,18 +256,18 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     }
   }
 
-  // Which logged posts Yak actually showed, per save slot, so a reload leaves out the routine ones
+  // Which logged posts Yak actually showed, per saved company, so a reload leaves out the routine ones
   // the pacer dropped. It lives in this browser; a save without a record shows its whole log.
-  const shownKey = (slot) => `hitl.yak.shown.${slot}`;
+  const shownKey = (company) => `hitl.yak.shown.${company}`;
   let shown = new Set();
   let shownTimer = 0;
   function writeShown() {
     clearTimeout(shownTimer); shownTimer = 0;
     const st = getState?.();
-    const slot = st?.flags?.saveSlot;
-    if (!slot) return;
+    const company = companyKey(st);
+    if (!company) return;
     const ids = (st.chatLog ?? []).map((e) => e.id).filter((id) => id && shown.has(id));
-    try { localStorage.setItem(shownKey(slot), JSON.stringify(ids)); } catch { /* private mode or blocked storage */ }
+    try { localStorage.setItem(shownKey(company), JSON.stringify(ids)); } catch { /* private mode or blocked storage */ }
   }
   function noteShown(id) {
     if (!id) return;
@@ -274,9 +275,9 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     if (!shownTimer) shownTimer = setTimeout(writeShown, 2000);
   }
   addEventListener('pagehide', writeShown);
-  function readShown(slot) {
-    if (!slot) return null;
-    try { const v = JSON.parse(localStorage.getItem(shownKey(slot)) ?? 'null'); return Array.isArray(v) ? new Set(v) : null; } catch { return null; }
+  function readShown(company) {
+    if (!company) return null;
+    try { const v = JSON.parse(localStorage.getItem(shownKey(company)) ?? 'null'); return Array.isArray(v) ? new Set(v) : null; } catch { return null; }
   }
 
   // A new or loaded game rebuilds the feed from the state's recent chat log.
@@ -284,7 +285,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     for (const c of CHANNELS) { store[c] = []; unread[c] = 0; }
     lastGeneralWeek = null;
     renderChannel();
-    const record = readShown(s?.flags?.saveSlot);
+    const record = readShown(companyKey(s));
     // The pacer never drops important posts or a reply prompt's post, so those always come back.
     const anchors = new Set((s?.chatPrompts ?? []).map((p) => p.chatId));
     const dropped = (e) => record && e.id && !record.has(e.id) && !important(e) && !anchors.has(e.id);

@@ -6,6 +6,7 @@ export const B = {
   momentSpeechMaxAge: 45,
   momentSpeechGap: 1,
   momentSpeechStartDelay: 1,
+  momentTalkMemory: 24, partyTalkGapWeeks: 6,
   runWeeks: 1040, anniversaryWeek: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
@@ -79,16 +80,27 @@ export const B = {
   // Emoji reactions by a post's weight: routine chatter and replies rarely get any (one or two when they do),
   // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
+  // Advisors (#808): runway tiers in weeks, debt tiers, the share of team knowledge one person holds, weeks
+  // before an unused policy is worth a word (and for how long), how long a new era is, and how rarely an urgent line is pushed unprompted.
+  advisorsEnabled: true,
+  advisor: {
+    runwayWeeks: [12, 8, 4], burnoutShareUrgent: 1 / 3, debt: [40, 60, 80], busFactorMinHolders: 3, busFactorShare: [0.4, 0.55],
+    unusedPolicyWeeks: 26, unusedPolicyWindowWeeks: 26, eraWeeks: 8, oneProductPct: 75, migrationWarnWeeks: 8, unmentoredJuniors: 2,
+    cooldownWeeks: 26, pushGapWeeks: 12,
+  },
+  launchbotVersionStep: 5,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
   // readSeconds in src/pacing.js: a line's hold at 1x, its cap, the reading-speed floor, and the shortening at 2x and 4x.
   readBaseSeconds: 1.8, readSecondsPerChar: 0.06, readMaxSeconds: 7,
   readFloorSeconds: 1, readCharsPerSecond: 15,
   readSpeedFactor2x: 0.75, readSpeedFactor4x: 0.6,
-  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12,
-  bubbleMaxOnScreen: 1, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
+  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12, standupConversationChance: 0.4, standupConversationCast: 3, standupMaxLines: 5,
+  bubbleMaxOnScreen: 3, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
+  bubbleStaffPerExtra: 8, // one more ordinary speech bubble at once for each this many staff, up to bubbleMaxOnScreen
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
   yakMaxWaitGameSeconds: 30, // Queue age at 1x; reading gaps still use active real seconds.
+  yakImportantMaxWaitGameSeconds: 60, // Important Yak posts other than incidents expire after this much game time.
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {

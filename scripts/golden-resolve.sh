@@ -55,5 +55,5 @@ for f in "${golden[@]}"; do
     "$keep/$s.this-branch.png" "$keep/$s.merged-in.png" "$keep/$s.regenerated.png" >/dev/null
 done
 echo "golden-resolve: regenerated and staged ${#golden[@]} image(s)."
-[ $sheets = 1 ] && echo "golden-resolve: review sheets in shots/golden-resolve/*.sheet.png; post them with scripts/pr-media.sh --comment <pr> shots/golden-resolve/*.sheet.png, then commit the merge."
+[ $sheets = 1 ] && echo "golden-resolve: review sheets in shots/golden-resolve/*.sheet.png; post them with scripts/pr-media.sh <pr> shots/golden-resolve/*.sheet.png, then commit the merge."
 exit 0

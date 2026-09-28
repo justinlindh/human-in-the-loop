@@ -24,7 +24,7 @@ pr() { # <files as a JSON array> <body> [<comment author> <comment body>]
 }
 check() { PATH="$tmp/bin:$PATH" bash "$HERE/lib/watched-media.sh" 9 "$@"; }
 url() { echo "![x](https://github.com/o/r/blob/pr-media/pr-9/$1?raw=true)"; }
-template='- **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh --comment <pr> <files>` -->'
+template='- **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh <pr> <files>`, which comments them on the PR -->'
 
 pr '["scripts/x.sh"]' "tooling only
 $template"

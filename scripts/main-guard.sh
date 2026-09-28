@@ -62,8 +62,15 @@ sync_shared() {
   [ "$(git -C "$dir" branch --show-current)" = main ] && [ -z "$(git -C "$dir" status --porcelain)" ] || return 0
   busy_in "$dir" && { echo "main-guard: the shared checkout is in use; not updating it"; return 0; }
   git -C "$dir" fetch -q origin main || return 0
-  [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ] || return 0
-  git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+  if [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ]; then
+    git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+  fi
+  # Its install follows its lockfile, so tools run from it (and the reviewer's servers) have every package.
+  local npm="${MAIN_GUARD_NPM:-npm}"
+  if ! (cd "$dir" && $npm ls --depth=0 >/dev/null 2>&1); then
+    if (cd "$dir" && timeout 900 nice -n 10 $npm ci --no-audit --no-fund >/dev/null 2>&1); then echo "main-guard: shared checkout's node_modules reinstalled from its lockfile"
+    else echo "main-guard: npm ci failed in the shared checkout"; fi
+  fi
 }
 # True while any process waits (blocked in flock) for the exclusive software render lock.
 someone_waits() {

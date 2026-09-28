@@ -6,11 +6,11 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 
 | Task | Reach for | Page |
 |---|---|---|
-| Monitor worker tasks and submit owner decisions | `node scripts/queue-dashboard/server.mjs` | [queue-dashboard](toolkit/queue-dashboard.md) |
 | Know what a shot will show (cards, pending decision, clock, prop and people boxes, camera) before recording it | `onscreen.mjs --moment '<query>' --frames 0,60` | [onscreen](toolkit/onscreen.md) |
 | Know where a person will stand or walk, or what blocks a tile | `dump.mjs --moment '<query>'`, then `dump-query path <id>` or `nav <x,z>` | [dump](toolkit/dump.md) |
 | Know whether a face, prop or person reads on screen, and what hides it | `R.probe(id)` (a staff id, `'visitor:0'`, or a prop; reports `occluder`), `R.probeViews(id)`, `dump.mjs --views 0,1,2,3` then `dump-query visible <thing>` | [probe](toolkit/probe.md), [dump](toolkit/dump.md) |
 | Know why a moment didn't start or was cut short | `dump.mjs --trace`, `dump-query trace <id>`; a failing `loop.mjs` or `clip.mjs` case prints the worst actor and their trace on its own | [dump](toolkit/dump.md), [loop](toolkit/loop.md), [clip](toolkit/clip.md) |
+| Say who owns a PR and what is asked of it now, or see it for every PR | `scripts/pr-owner.sh <pr> --owner <name> --ask "..."`, `scripts/pr-status.sh` | [pr-owner](toolkit/pr-owner.md), [pr-status](toolkit/pr-status.md) |
 | See who used how many tokens in the current window | `npm run usage` (`--hours`, `--since`, `--json`) | [usage](toolkit/usage.md) |
 | Jump to any event or moment in a real game | `node scripts/events/find.js <event>`, then `--moment '<query>'` or `--snapshot <path>` on a tool | [events](toolkit/events.md) |
 | Check a moment plays through the real game loop, or the spotlight hold | `blender/checks/loop.mjs` (queries, `party:<decision>`) | [loop](toolkit/loop.md) |
@@ -23,7 +23,8 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Record a clip or still through the real game | `npm run capture` (camera keyframes, per-item size and fps) | [capture](toolkit/capture.md) |
 | Make reels and landing page media | `scripts/reels/` (the kit and `docs/reels.md`), `npm run feature-media` | [reels guide](reels.md), [feature-media](toolkit/feature-media.md) |
 | Shoot and check a landing page change before a site PR (full pages at 1440 and 390, each loop's card, posters that match their loop's first frame, console errors, sideways scroll) | in the site repo, `npm run preview` (`scripts/preview.mjs`); run it under `scripts/with-render-lock.sh` from this repo | site repo README |
-| Keep the feature inventory in step with the data | `docs/features.md`, `node scripts/features-ids.mjs` | [features-ids](toolkit/features-ids.md) |
+| Keep the feature inventory in step with the data | `docs/features/`, `node scripts/features-ids.mjs` | [features-ids](toolkit/features-ids.md) |
+| Change a golden image or the sweep baseline | commit it, then `scripts/baseline-media.sh <pr>` posts before/after media (local CI fails the PR without it) | [baseline-media](toolkit/baseline-media.md) |
 | Gate, review and merge a PR | auto CI runs local CI on each head (the `ci-rerun` label asks again), `scripts/pr-status.sh`, `scripts/review-verdict.sh`; the main guard watches `main` | [auto-ci](toolkit/auto-ci.md), [ci-pr](toolkit/ci-pr.md), [pr-status](toolkit/pr-status.md), [review-verdict](toolkit/review-verdict.md), [main-guard](toolkit/main-guard.md) |
 | Know what the Claude Code hooks refuse, and record an agreed cross-lane edit | the bash and lane guards; an exception goes in `$(git rev-parse --git-dir)/hitl-lane-allow` | [bash-guard](toolkit/bash-guard.md), [lane-guard](toolkit/lane-guard.md) |
 

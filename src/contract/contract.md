@@ -94,8 +94,8 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
-                                          // important: optional true promotes a post that wouldn't otherwise count as important (a running joke, big news);
-                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, bot posts, or flagged) raise unread counts
+                                          // important: optional true promotes a post that wouldn't otherwise count as important (a bot post that matters, a running joke, big news);
+                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, or flagged) raise unread counts; a bot post counts only when flagged
                                           // image: optional { id, alt } on posts that carry a picture (a meme); id is a meme image id from src/data/memes.js, and ui maps it to its files;
                                           // alt is the picture's short caption and equals text, so readers of text alone still get a sensible line; ui shows text when the image is missing
 { type: 'launch', productId }
@@ -418,3 +418,52 @@ p.growth = [{ week, kind, detail }]   // newest last
 - Milestones ('promoted', 'trait', 'path', 'legend') are kept for good. 'level' and 'trained' entries are capped at `B.growthHistoryMax`, and the oldest of those drop off first.
 - Candidates start with `[]`. The history leaves with the person.
 - It draws no randomness. Old saves load a missing `growth` as `[]`.
+
+## Advisors (#808)
+
+Three advisors (a CFO, a people lead and a tech lead) comment on what the player can already see. They offer a trade-off, never an order, and never reveal a hidden number, odds, threshold or future event. The player mostly asks for them; the sim pushes one line on its own only rarely.
+
+### Sim API: Advisors
+
+```js
+advice(state) -> Advice[]   // pure read: changes nothing and draws no game randomness; ranked by severity (highest first), then key; a single { key: 'fine', severity: 1, target: null, ... } when nothing applies, so the panel is never empty
+Advice = {
+  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'fine'
+  advisor,       // 'cfo' | 'people' | 'tech'
+  severity,      // 1 worth a thought, 2 soon, 3 urgent
+  tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
+  text,          // the advisor's line, in the game's voice
+  why,           // the visible fact behind it, short: 'Runway: 11 weeks at this burn'
+  target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation', ui's menu ids); arg e.g. a staffId
+  cooldownWeeks  // how long an unprompted push of this key rests
+}
+```
+
+- Each trigger reads a number some panel already shows (runway, burnout count, comprehension debt, one person's share of the team's know-how, juniors without a mentor, a product's migration date, the current era, MRR share, unlocked but unused policies).
+- A key the player dismissed at its current tier or lower is left out.
+- Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
+
+### State: Advisors
+
+```js
+advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastPushWeek /*number|null*/ }   // default { dismissed: {}, pushed: {}, lastPushWeek: null }
+```
+
+- Old saves load a missing `advisors` with the default.
+- Entries for keys that no longer apply are pruned weekly.
+
+### Actions: Advisors
+
+```js
+{ type: 'dismissAdvice', key }   // -> { ok: true }; silences the key until its tier rises. A key no longer in advice(state) is a no-op that still returns ok, since the line may have changed as the player clicked.
+```
+
+### Events: Advisors
+
+```js
+{ type: 'advice', key, advisor, severity, tier, text, why, target }   // the rare unprompted line; ui shows it on the tray card, never in Yak
+```
+
+- Pushed by the `advisors` system (order 96, after `history`). At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
+- A key isn't pushed again within its `cooldownWeeks` unless its tier rose.
+- The sim always computes and emits. The On / Quiet / Off setting lives in ui's settings store, not in state: On shows pushes and the panel, Quiet ignores `advice` events, Off hides the panel. Bot games end identically whatever the setting.
