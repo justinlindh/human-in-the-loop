@@ -71,28 +71,52 @@ function tailLines(path, bytes) {
   } finally { closeSync(fd); }
 }
 
+// When a session log started: the first timestamp in its head, or 0.
+function sessionStart(path, bytes = 65536) {
+  const fd = openSync(path, 'r');
+  try {
+    const buf = Buffer.alloc(Math.min(bytes, statSync(path).size));
+    readSync(fd, buf, 0, buf.length, 0);
+    const m = /"timestamp":"([^"]+)"/.exec(buf.toString('utf8'));
+    return m ? Date.parse(m[1]) || 0 : 0;
+  } finally { closeSync(fd); }
+}
+
 // Per agent, the newest tool call in its session logs: { who, at, tool, what, model } (what = the call's
-// own one-line description, scrubbed; model = the model that made the call, as a name). `files` are { path, mtime, parent } (scripts/usage-lib.mjs
-// logFiles); `nameOf(parent)` names a subagent log's session. Only the tail of each log is read.
+// own one-line description, scrubbed). model is the model of the agent's newest session (the log that
+// started last), from its newest reply, so a teammate restarted on another model shows the new one
+// before it makes a tool call. `files` are { path, mtime, parent } (scripts/usage-lib.mjs logFiles);
+// `nameOf(parent)` names a subagent log's session. Only the tail and head of each log are read.
 export function lastActivity(files, nameOf, { since = 0, bytes = 262144 } = {}) {
   const best = new Map();
+  const newest = new Map();
   for (const f of files) {
     if (f.mtime < since) continue;
     let lines;
     try { lines = tailLines(f.path, bytes); } catch { continue; }
-    for (let i = lines.length - 1; i >= 0; i--) {
+    let call = false, model = null;
+    for (let i = lines.length - 1; i >= 0 && !(call && model); i--) {
       const l = lines[i];
-      if (!l.includes('"tool_use"')) continue;
+      if (!l.includes('"assistant"')) continue;
       let o;
       try { o = JSON.parse(l); } catch { continue; }
-      const uses = Array.isArray(o?.message?.content) ? o.message.content.filter((c) => c?.type === 'tool_use') : [];
-      if (o?.type !== 'assistant' || !uses.length || !o.timestamp) continue;
-      const u = uses[uses.length - 1];
+      if (o?.type !== 'assistant' || !o.timestamp) continue;
       const who = o.agentName || (f.parent ? `${nameOf(f.parent)} (subagent)` : 'lead');
+      const id = o.message?.model;
+      if (!model && id && id !== '<synthetic>') {
+        model = { who, id };
+        let started = 0;
+        try { started = sessionStart(f.path); } catch { /* keep 0 */ }
+        if (!(newest.get(who)?.started > started)) newest.set(who, { started, id });
+      }
+      const uses = Array.isArray(o.message?.content) ? o.message.content.filter((c) => c?.type === 'tool_use') : [];
+      if (call || !uses.length) continue;
+      call = true;
+      const u = uses[uses.length - 1];
       const at = Date.parse(o.timestamp);
-      if (!(best.get(who)?.at >= at)) best.set(who, { who, at, tool: String(u.name ?? '?'), what: scrub(u.input?.description ?? u.input?.summary ?? ''), model: modelName(o.message.model) });
-      break;
+      if (!(best.get(who)?.at >= at)) best.set(who, { who, at, tool: String(u.name ?? '?'), what: scrub(u.input?.description ?? u.input?.summary ?? ''), model: modelName(id) });
     }
   }
+  for (const [who, row] of best) if (newest.has(who)) row.model = modelName(newest.get(who).id);
   return [...best.values()].sort((a, b) => b.at - a.at);
 }
