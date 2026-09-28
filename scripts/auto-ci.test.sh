@@ -14,6 +14,7 @@ cat >"$tmp/gh" <<'SH'
 case "$1 $2" in
   "pr list") while [ $# -gt 0 ]; do [ "$1" = --jq ] && { jq -r "$2" "$FIXTURE"; exit; }; shift; done ;;
   "pr edit") echo "$*" >>"$T/edits" ;;
+  "pr view") cat "$T/files-$3" 2>/dev/null ;;
 esac
 SH
 cat >"$tmp/ci-pr" <<'SH'
@@ -28,7 +29,7 @@ cat >"$tmp/npm" <<'SH'
 case "$1" in ls) [ ! -e "$T/npm-stale" ] ;; ci) echo ci >>"$T/npm-ci" ;; esac
 SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
-export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_NPM="$tmp/npm"
+export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red"
 
 pr() { # number head local-ci-state [draft] [author] [label]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
@@ -109,6 +110,28 @@ fixture "$(pr 20 ttt PENDING)"
 run
 [ "$(count npm-ci)" -eq 1 ] || fail "a stale install should wait while a run is going ($(count npm-ci) installs)"
 rm -f "$tmp/npm-stale"
+
+# While main is red on a render step, a render-only PR waits; tooling fixes and other PRs run.
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+echo "abc1234 stage, render-checks" >"$tmp/red"
+printf 'src/render/sync.js\n' >"$tmp/files-30"
+printf 'src/render/sync.js\nblender/checks/harness.mjs\n' >"$tmp/files-31"
+printf 'src/ui/hud.js\n' >"$tmp/files-32"
+fixture "$(pr 30 r30 none)" "$(pr 31 r31 none)"
+run
+has started "30 r30" && fail "a render PR should wait while main is red on stage"
+grep -q "#30 r30 waits: main is red on stage, render-checks" "$tmp/state/log" || fail "the wait should name main's red render steps"
+has started "31 r31" || fail "a PR that also fixes tooling should run while main is red"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+fixture "$(pr 32 r32 none)"
+run
+has started "32 r32" || fail "a PR outside the render should run while main is red"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+echo "abc1234 test:fast" >"$tmp/red"
+fixture "$(pr 30 r30 none)"
+run
+has started "30 r30" || fail "a render PR should run when main is red only off the render"
+rm -f "$tmp/red"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]

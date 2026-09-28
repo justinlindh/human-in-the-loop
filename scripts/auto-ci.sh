@@ -8,6 +8,9 @@
 #   - A head whose local-ci is error (the machine failed, not the code) is retried once. So is a head
 #     left pending with no run of ours going for AUTO_CI_STUCK_MINUTES (default 75, past ci-pr's
 #     60-minute limit): a run killed outright (SIGKILL, out of memory, a reboot) never posts its result.
+#   - While the main guard has main red on a render step (its $GUARD/red file), a PR that changes
+#     the render (src/render/, blender/ outside blender/checks/, public/models/) and no tooling
+#     (scripts/, blender/checks/) waits: its render checks would fail on main's fault, not its own.
 #   - The ci-rerun label asks for a fresh run of the current head: the label is removed and the run
 #     starts whatever the head's status.
 # ci-pr.sh refuses forks and untrusted authors itself; this only narrows the list first.
@@ -24,6 +27,20 @@ MAX="${AUTO_CI_JOBS:-${HITL_CI_SLOTS:-3}}"
 JOBS="$STATE/jobs"
 mkdir -p "$JOBS" "$STATE/retried" "$STATE/pending"
 STUCK="${AUTO_CI_STUCK_MINUTES:-75}"
+GUARD_RED="${AUTO_CI_GUARD_RED:-$HOME/.cache/hitl-ci/main-guard/red}"
+RENDER_STEPS=" stage render-checks golden golden-uncached pose-nodraw sweep "
+red_render=""
+if [ -f "$GUARD_RED" ]; then
+  for step in $(cut -d' ' -f2- "$GUARD_RED" | tr ',' ' '); do
+    case "$RENDER_STEPS" in *" $step "*) red_render+="${red_render:+, }$step" ;; esac
+  done
+fi
+# True when the PR changes the render and no tooling.
+render_only() {
+  local files; files="$("$GH" pr view "$1" --json files --jq '.files[].path' 2>/dev/null)" || return 1
+  grep -qE '^(scripts/|blender/checks/)' <<<"$files" && return 1
+  grep -qE '^(src/render/|blender/|public/models/)' <<<"$files"
+}
 exec 9>"$STATE/lock"
 flock -n 9 || exit 0
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
@@ -84,6 +101,7 @@ for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
     fi
   fi
   [ -n "$why" ] || continue
+  if [ -n "$red_render" ] && render_only "$pr"; then log "#$pr ${h:0:7} waits: main is red on $red_render"; continue; fi
   [ "$running" -lt "$MAX" ] || { log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; }
   case "$why" in
     ci-rerun) "$GH" pr edit "$pr" --remove-label ci-rerun >/dev/null 2>&1 || log "#$pr: could not remove ci-rerun" ;;
