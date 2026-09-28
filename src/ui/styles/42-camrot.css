@@ -1,0 +1,14 @@
+/* Camera turn buttons: bottom-right beside the menu bar; top-right under the HUD on phones. */
+.hitl .camrot { position: absolute; right: 0.6em; bottom: 0.9em; display: flex; gap: 0.35em; align-items: center; pointer-events: auto; z-index: 3; }
+.hitl .camrot-b { width: 2.6em; height: 2.6em; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.hitl .camrot-b.ccw svg, .hitl .camrot-b.ccw img { transform: scaleX(-1); }
+.hitl .camhint { position: absolute; right: 0; bottom: calc(100% + 0.7em); width: max-content; max-width: 15em; background: var(--yellow); color: var(--ink); border: 0.14em solid var(--ink); border-radius: 0.8em; padding: 0.45em 0.7em; font-weight: 700; font-size: 0.85em; line-height: 1.25; box-shadow: 0 0.18em 0 var(--ink); animation: hitl-modal-in 300ms cubic-bezier(.2,1.4,.4,1) both; }
+.hitl .camhint::after { content: ''; position: absolute; right: 1.6em; bottom: -0.55em; width: 0.8em; height: 0.8em; background: var(--yellow); border-right: 0.14em solid var(--ink); border-bottom: 0.14em solid var(--ink); transform: rotate(45deg); }
+.hitl.title-mode .camrot { display: none !important; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .camrot { bottom: auto; top: calc(var(--topbar-h, 4.6em) + 0.5em); }
+  /* The tray summary shares this row on the left; keep it clear of the two 44px buttons. */
+  .hitl .tray-toggle { max-width: calc(100% - 1.8em - 100px); overflow: hidden; }
+  .hitl .camhint { bottom: auto; top: calc(100% + 0.7em); }
+  .hitl .camhint::after { bottom: auto; top: -0.55em; transform: rotate(-135deg); }
+}

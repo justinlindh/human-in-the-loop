@@ -23,6 +23,7 @@ import { createTitle } from './title.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
+import { createCamRotate } from './camrot.js';
 import { openTarget } from './openTarget.js';
 import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
@@ -169,6 +170,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   bottom.append(h('div'));
 
   const buildMode = createBuildMode({ layer, ctx, controls });
+  const camRot = createCamRotate({ layer, controls, sfx });
+  ctx.rotateHint = () => camRot.buildHint();
   // Hover or long-press a person or an item in the office for its tooltip.
   ctx.sceneTips = createSceneTips({
     tooltips, getState, getRenderer: () => controls.renderer ?? null,
@@ -388,6 +391,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     gameover.update(state);
     popups.update(state, { holdLaunch: holdForMoment() });
     buildMode.update(state);
+    camRot.update(!!(menu.current || ctx.modal || announcer.open || popups.open || settings.isOpen || chat.maximized));
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
     tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
