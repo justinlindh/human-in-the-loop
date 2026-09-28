@@ -79,7 +79,7 @@ export function pressReviews(state, target, { update = false, centered = false, 
 }
 
 // Founders built the company, so any founder can build, whatever their role.
-const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder));
+export const freeBuilders = (state) => state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder));
 
 function baseProject(state, fields) {
   return {

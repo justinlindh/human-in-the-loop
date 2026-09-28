@@ -5,6 +5,7 @@ import { weeklyRevenue, weeklyCosts, policyCost } from './economy.js';
 import { totalMrr } from './products.js';
 import { mentorOf } from './staff.js';
 import { POLICIES } from '../data/policies.js';
+import { freeBuilders } from './projects.js';
 import { isUnlocked } from './unlocks.js';
 import { ERAS } from '../data/eras.js';
 import { ADVICE_LINES } from '../data/advisors.js';
@@ -135,10 +136,10 @@ function optionsFor(state, a) {
       break;
     }
     case 'debt': {
-      const idleBuilder = state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder) && p.assignment.type === 'idle');
+      // The same rule startProject uses: any engineer, designer or founder who isn't away can take it on.
       if (!building('refactor')) {
-        if (idleBuilder) opt('Start The Big Refactor', 'build');
-        else opt('Free up an engineer for The Big Refactor', 'staff');
+        if (freeBuilders(state)) opt('Start The Big Refactor', 'build');
+        else opt('Hire an engineer who can take on The Big Refactor', 'staff');
       }
       if (policyOpen('comprehension_reviews')) opt('Switch on Code Comprehension Reviews', 'policies', 'comprehension_reviews');
       opt('Put an engineer on maintenance', 'staff');
