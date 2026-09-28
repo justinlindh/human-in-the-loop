@@ -11,6 +11,7 @@
 //        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
 //        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
 //        [--slow-raycast] [--render-reference] [--profile <file>] [--json out.json]
+//   node blender/checks/pose.mjs --scene --serve     (one NDJSON request per stdin line, see below)
 //
 // Prints a row every --every frames (t, phase, animation, hand-to-face and hand-to-head distances in
 // metres, face angle to the camera in degrees) and a summary over the gesture's frames. --expect
@@ -37,6 +38,13 @@
 // compare. --render-reference retains rendered scene stepping for comparison. --profile <file> writes
 // phase timings and actual WebGL draw counts separately from the unchanged --json rows.
 //
+// --serve keeps the browser and Vite server open across requests instead of paying their startup
+// every time, but opens a fresh page for each one, so results always match a cold run exactly: each
+// stdin line is a JSON object with the same fields as the flags above in camelCase (mock, moment,
+// snapshot, patchJs, event, warm, frames, clip, every, who, view, rig, expect (an array), slowRaycast,
+// renderReference, profile, json), printed and judged exactly like a single cold run, then a
+// `POSE serve <n> code=<0|1|2> ...` summary line. `{"quit": true}` or stdin EOF ends the session.
+//
 // It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
 // a canvas whose 2D context does nothing (cheek and emote textures only), and fetch reading the
 // model files from public/. pose-measure.js holds the measuring; --check-browser runs it in a
@@ -46,6 +54,7 @@ import { LANDMARKS } from './pose-landmarks.js';
 import { HELD_READ_MEASURES } from './pose-held.js';
 import { judgeScene } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
 
 const argv = process.argv.slice(2);
@@ -84,91 +93,186 @@ function parseRule(s) {
 }
 const cmp = { '<=': (a, b) => a <= b, '>=': (a, b) => a >= b, '<': (a, b) => a < b, '>': (a, b) => a > b };
 
-// The same run in a harness page (the real canvas, fetch and loaders), compared number by number:
-// the stand-ins are only right while the two agree.
+// Reads scene-mode options from argv flags or a --serve request's camelCase JSON keys, so both feed
+// the same normalizer. get/flag/getAll abstract "a value flag", "a boolean flag" and "a repeated
+// flag" over either source.
+function cliSource() {
+  return { get: (k, d) => opt(k, d), flag: (k) => argv.includes(`--${k}`), getAll: (k) => all(k) };
+}
+function jsonSource(req) {
+  const camel = (k) => k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  return { get: (k, d) => (camel(k) in req ? req[camel(k)] : d), flag: (k) => !!req[camel(k)], getAll: (k) => req[camel(k)] ?? [] };
+}
+function normalizeSceneRequest({ get, flag, getAll }) {
+  const rules = getAll('expect').map((txt) => {
+    const m = /^(?:([\w:]+?):)?(\w+)\s*(<=|>=|<|>)\s*(-?[\d.]+)(?:@([\d.]+))?$/.exec(String(txt).replace(/\s+/g, ''));
+    if (!m || !SCENE_MEASURES.includes(m[2])) throw new Error(`pose: can't read scene rule "${txt}" (want e.g. s3:faceCovered<=0.1@0.8, measure one of ${SCENE_MEASURES.join(', ')})`);
+    return { text: txt, id: m[1] ?? null, measure: m[2], op: m[3], value: Number(m[4]), share: m[5] ? Number(m[5]) : 1 };
+  });
+  const every = Number(get('every', 6));
+  const clip = get('clip', null);
+  const frames = clip != null ? Array.from({ length: Math.floor((Number(clip) * 30) / every) + 1 }, (_, i) => i * every) : String(get('frames', '0')).split(',').map(Number).sort((a, b) => a - b);
+  const whoRaw = get('who', null);
+  const eventRaw = get('event', null);
+  return {
+    mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
+    rig: get('rig', 'on') !== 'off', view: Number(get('view', 0)), warm: Number(get('warm', 30)),
+    frames, who: whoRaw ? (Array.isArray(whoRaw) ? whoRaw : String(whoRaw).split(',')) : null, rules,
+    patchJs: get('patch-js', null),
+    events: eventRaw ? (typeof eventRaw === 'string' ? JSON.parse(eventRaw) : eventRaw) : null,
+    renderReference: flag('render-reference'), slowRaycast: flag('slow-raycast'),
+    jsonPath: get('json', null), profilePath: get('profile', null),
+  };
+}
+
+// The page-side sampling pass: turn to the requested view (a delta from the camera's current step,
+// which is always 0 on the fresh page each request gets), warm up, reseed and sample every requested
+// frame. Shared by a single cold run and every --serve request, each against its own freshly opened
+// page; the page and whatever target it shows are the caller's job.
+async function runSample(page, req) {
+  return page.evaluate(async (o) => {
+    const R = window.__hitlRender, S = window.__HITL.state;
+    // The visibility probes raycast every person every frame; a tree per mesh makes that cheap and
+    // finds the same hits (harness.mjs). --slow-raycast keeps three.js's own raycast.
+    await window.__fastRaycast({ install: !o.slowRaycast });
+    const M = await import('/blender/checks/pose-scene.js');
+    const wanted = ((o.view % 4) + 4) % 4, have = ((R.yawStep ?? 0) % 4 + 4) % 4;
+    for (let i = 0, n = (wanted - have + 4) % 4; i < n; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
+    const initialization = window.__drawAudit();
+    const warmStart = window.__wallNow();
+    // A real draw allocates lazy Three.js resources whose UUIDs draw from the seeded stream, so
+    // --render-reference (the only mode that samples by drawing every frame, for comparison) keeps
+    // its warmup draw; the default, no-draw mode never draws at all. Either way, reseeding right
+    // after puts both on the same stream from here on, so which one drew during warmup can't move a
+    // later actor choice. __settle only draws on its last frame, so --warm 0 gives --render-reference
+    // zero warmup draws too, pushing its own first draw (and the resource allocation it triggers)
+    // past the reseed and into the sampled frames. Nothing passes --warm 0 today; a caller who does
+    // should not expect it to match a separate --warm 0 run of the other mode.
+    (o.renderReference ? window.__settle : window.__sample)(o.warm);
+    window.__reseedGame();
+    const warmMs = window.__wallNow() - warmStart;
+    const warmed = window.__drawAudit();
+    const skipDraw = !o.renderReference;
+    const sampleStart = window.__wallNow();
+    if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
+    if (o.events) R.handleEvents([].concat(o.events), S);
+    const out = [];
+    let at = 0;
+    for (const f of o.frames) {
+      (skipDraw ? window.__sample : window.__step)(Math.max(0, f - at)); at = f;
+      for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who }))) out.push({ frame: f, ...r });
+    }
+    const sampleMs = window.__wallNow() - sampleStart;
+    const total = window.__drawAudit();
+    return { rows: out, profile: { initialization, warmupDraws: warmed.total - initialization.total, sampleDraws: total.total - warmed.total, total, warmMs, sampleMs, samplingMode: skipDraw ? 'no-draw' : 'rendered' } };
+  }, { view: req.view, warm: req.warm, patchJs: req.patchJs, events: req.events, frames: req.frames, who: req.who, renderReference: req.renderReference, slowRaycast: req.slowRaycast });
+}
+
+// The table, verdicts and (on failure) exit code a request's rows earn: identical for a single cold
+// run and every --serve request, so a warm answer reads exactly like a cold one.
+function printSceneResult(req, rows, profile, errors) {
+  let code = 0;
+  console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
+  if (profile.samplingMode === 'no-draw' && (profile.warmupDraws !== 0 || profile.sampleDraws !== 0)) {
+    console.error('POSE FAIL no-drawing assertion: WebGL draw submissions detected (see --profile); use --render-reference to diagnose');
+    code = 1;
+  }
+  const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);
+  console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'faceVis'.padStart(8)} ${'bodyVis'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
+  for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.bodyVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
+  const ids = [...new Set(rows.map((r) => r.id))];
+  const judged = judgeScene(rows, req.frames, req.who, req.rules);
+  if (!judged.pass) code = 1;
+  if (!ids.length) console.log('POSE FAIL no subjects measured');
+  for (const missing of judged.missing) console.log(`POSE FAIL ${missing.id}: missing samples at frames ${missing.frames.join(', ')}`);
+  for (const { id, rule, share, pass } of judged.verdicts) {
+    const values = rows.filter((r) => r.id === id).map((r) => r[rule.measure]).filter(Number.isFinite);
+    const range = values.length ? `; min ${Math.min(...values).toFixed(6)}, max ${Math.max(...values).toFixed(6)}` : '';
+    console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${(share * 100).toFixed(0)}% of ${req.frames.length} requested frames (want ${(rule.share * 100).toFixed(0)}%)${range}`);
+  }
+  if (req.jsonPath) writeFileSync(req.jsonPath, JSON.stringify(rows, null, 1));
+  if (errors.length) { code = Math.max(code, 1); console.log(`pose: page errors: ${errors.slice(0, 3).join('; ')}`); }
+  return { code, ids };
+}
+
+// One cold run: open the target, sample once, print, close. Identical output to before --serve
+// existed.
 async function sceneMode() {
   const { holdRenderLock, glMode } = await import('../../scripts/lib/gl.js');
   holdRenderLock(glMode({ argv }));
   const t0 = performance.now();
   const { startHarness } = await import('./harness.mjs');
   const { resolveTarget, openAt } = await import('../../scripts/events/load.js');
-  const rules = all('expect').map((txt) => {
-    const m = /^(?:([\w:]+?):)?(\w+)\s*(<=|>=|<|>)\s*(-?[\d.]+)(?:@([\d.]+))?$/.exec(txt.replace(/\s+/g, ''));
-    if (!m || !SCENE_MEASURES.includes(m[2])) throw new Error(`pose: can't read scene rule "${txt}" (want e.g. s3:faceCovered<=0.1@0.8, measure one of ${SCENE_MEASURES.join(', ')})`);
-    return { text: txt, id: m[1] ?? null, measure: m[2], op: m[3], value: Number(m[4]), share: m[5] ? Number(m[5]) : 1 };
-  });
-  const every = Number(opt('every', 6));
-  const frames = opt('clip') ? Array.from({ length: Math.floor((Number(opt('clip')) * 30) / every) + 1 }, (_, i) => i * every) : String(opt('frames', '0')).split(',').map(Number).sort((a, b) => a - b);
+  const req = normalizeSceneRequest(cliSource());
   const H = await startHarness({ auditDraws: true });
   let code = 0;
   try {
-    const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
-    const { page, errors } = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${opt('mock', 'floor')}&rig=${OPTS.rig ? 1 : 0}`, { width: 1280, height: 800 });
-    const who = opt('who') ? opt('who').split(',') : null;
+    const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
+    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${req.mock ?? 'floor'}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+    const { page, errors } = opened;
     const readyMs = performance.now() - t0;
-    const { rows, profile } = await page.evaluate(async (o) => {
-      const R = window.__hitlRender, S = window.__HITL.state;
-      // The visibility probes raycast every person every frame; a tree per mesh makes that cheap
-      // and finds the same hits (harness.mjs). --slow-raycast keeps three.js's own raycast.
-      await window.__fastRaycast({ install: !o.slowRaycast });
-      const M = await import('/blender/checks/pose-scene.js');
-      for (let i = 0; i < o.view; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
-      const initialization = window.__drawAudit();
-      const warmStart = window.__wallNow();
-      // A real draw allocates lazy Three.js resources whose UUIDs draw from the seeded stream, so
-      // --render-reference (the only mode that samples by drawing every frame, for comparison) keeps
-      // its warmup draw; the default, no-draw mode never draws at all. Either way, reseeding right
-      // after puts both on the same stream from here on, so which one drew during warmup can't move
-      // a later actor choice. __settle only draws on its last frame, so --warm 0 gives
-      // --render-reference zero warmup draws too, pushing its own first draw (and the resource
-      // allocation it triggers) past the reseed and into the sampled frames. Nothing passes --warm 0
-      // today; a caller who does should not expect it to match a separate --warm 0 run of the other
-      // mode.
-      (o.renderReference ? window.__settle : window.__sample)(o.warm);
-      window.__reseedGame();
-      const warmMs = window.__wallNow() - warmStart;
-      const warmed = window.__drawAudit();
-      const skipDraw = !o.renderReference;
-      const sampleStart = window.__wallNow();
-      if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
-      if (o.events) R.handleEvents([].concat(o.events), S);
-      const out = [];
-      let at = 0;
-      for (const f of o.frames) {
-        (skipDraw ? window.__sample : window.__step)(Math.max(0, f - at)); at = f;
-        for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who }))) out.push({ frame: f, ...r });
-      }
-      const sampleMs = window.__wallNow() - sampleStart;
-      const total = window.__drawAudit();
-      return { rows: out, profile: { initialization, warmupDraws: warmed.total - initialization.total, sampleDraws: total.total - warmed.total, total, warmMs, sampleMs, samplingMode: skipDraw ? 'no-draw' : 'rendered' } };
-    }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who, renderReference: argv.includes('--render-reference'), slowRaycast: argv.includes('--slow-raycast') });
-    Object.assign(profile, { readyMs, mode: argv.includes('--render-reference') ? 'rendered-reference' : 'sampling-optimization', gl: glMode({ argv }), frames, who });
-    if (opt('profile')) writeFileSync(opt('profile'), JSON.stringify(profile, null, 2));
-    console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
-    if (profile.samplingMode === 'no-draw' && (profile.warmupDraws !== 0 || profile.sampleDraws !== 0)) {
-      console.error('POSE FAIL no-drawing assertion: WebGL draw submissions detected (see --profile); use --render-reference to diagnose');
-      code = 1;
-    }
-    const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);
-    console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'faceVis'.padStart(8)} ${'bodyVis'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
-    for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.bodyVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
-    const ids = [...new Set(rows.map((r) => r.id))];
-    const judged = judgeScene(rows, frames, who, rules);
-    if (!judged.pass) code = 1;
-    if (!ids.length) console.log('POSE FAIL no subjects measured');
-    for (const missing of judged.missing) console.log(`POSE FAIL ${missing.id}: missing samples at frames ${missing.frames.join(', ')}`);
-    for (const { id, rule, share, pass } of judged.verdicts) {
-      const values = rows.filter((r) => r.id === id).map((r) => r[rule.measure]).filter(Number.isFinite);
-      const range = values.length ? `; min ${Math.min(...values).toFixed(6)}, max ${Math.max(...values).toFixed(6)}` : '';
-      console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${id} ${rule.text}: ${(share * 100).toFixed(0)}% of ${frames.length} requested frames (want ${(rule.share * 100).toFixed(0)}%)${range}`);
-    }
-    if (opt('json')) writeFileSync(opt('json'), JSON.stringify(rows, null, 1));
-    if (errors.length) { code = Math.max(code, 1); console.log(`pose: page errors: ${errors.slice(0, 3).join('; ')}`); }
-    console.log(`pose: scene, ${ids.length} people, ${frames.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
+    const { rows, profile } = await runSample(page, req);
+    Object.assign(profile, { readyMs, mode: req.renderReference ? 'rendered-reference' : 'sampling-optimization', gl: glMode({ argv }), harnessPhases: { start: H.phases, open: opened.phases }, frames: req.frames, who: req.who });
+    if (req.profilePath) writeFileSync(req.profilePath, JSON.stringify(profile, null, 2));
+    const { code: printCode, ids } = printSceneResult(req, rows, profile, errors);
+    code = printCode;
+    console.log(`pose: scene, ${ids.length} people, ${req.frames.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
   } finally {
     await H.close();
   }
   return code;
+}
+
+// A warm scene server: launch the browser and Vite server once (most of a cold command's own time),
+// then answer each stdin request (one JSON object per line, same fields as the CLI's --scene flags in
+// camelCase) by opening a fresh page against it, the same way a cold run would. A fresh page every
+// time means a request's rows always match what a cold run of the same request would print; reusing
+// an already-open page across requests does not (its camera and character animation state keep
+// easing toward whatever the last request left as their goal, instead of starting fresh), so this
+// does not attempt it. `{"quit": true}` or stdin EOF ends the session.
+async function serveMode() {
+  const { holdRenderLock, glMode } = await import('../../scripts/lib/gl.js');
+  holdRenderLock(glMode({ argv }));
+  const { startHarness } = await import('./harness.mjs');
+  const { resolveTarget, openAt } = await import('../../scripts/events/load.js');
+  const H = await startHarness({ auditDraws: true });
+  let worst = 0, n = 0;
+  async function handle(req) {
+    const t0 = performance.now();
+    const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
+    const opened = target
+      ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' })
+      : await H.openScene(`quality=medium&mock=${req.mock ?? 'floor'}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+    const { page, errors } = opened;
+    try {
+      const readyMs = performance.now() - t0;
+      const { rows, profile } = await runSample(page, req);
+      Object.assign(profile, { readyMs, mode: req.renderReference ? 'rendered-reference' : 'sampling-optimization', gl: glMode({ argv }), harnessPhases: { start: H.phases, open: opened.phases }, frames: req.frames, who: req.who });
+      if (req.profilePath) writeFileSync(req.profilePath, JSON.stringify(profile, null, 2));
+      const { code, ids } = printSceneResult(req, rows, profile, errors);
+      worst = Math.max(worst, code);
+      console.log(`POSE serve ${n} code=${code} people=${ids.length} frames=${req.frames.length} ms=${(performance.now() - t0).toFixed(0)}`);
+    } finally {
+      await page.close();
+    }
+  }
+  console.log('POSE serve ready');
+  try {
+    const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+    for await (const line of rl) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      n++;
+      let json;
+      try { json = JSON.parse(trimmed); } catch (e) { console.log(`POSE serve ${n} code=2 parse error: ${e.message}`); worst = Math.max(worst, 2); continue; }
+      if (json.quit) break;
+      try { await handle(normalizeSceneRequest(jsonSource(json))); }
+      catch (e) { console.log(`POSE serve ${n} code=2 error: ${e.message}`); worst = Math.max(worst, 2); }
+    }
+  } finally {
+    await H.close();
+  }
+  return worst;
 }
 
 async function checkBrowser(frames) {
@@ -197,7 +301,7 @@ if (browserMode && ROOT !== resolve(join(import.meta.dirname, '../..'))) {
   console.error(`pose: ${browserMode} measures the page's own checkout, not --root; run pose.mjs from ${ROOT} (copy blender/checks/pose*.js there) to check it`);
   process.exit(2);
 }
-if (argv.includes('--scene')) process.exit(await sceneMode());
+if (argv.includes('--scene')) process.exit(argv.includes('--serve') ? await serveMode() : await sceneMode());
 
 // The browser check renders, so it takes a render slot first; taking one re-runs this script under
 // the lock, which must happen before anything is printed.

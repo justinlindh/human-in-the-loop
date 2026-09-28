@@ -58,29 +58,47 @@ async function launch(gpu) {
   return { browser, renderer };
 }
 
+// A named-phase stopwatch: mark('x') records ms since the last mark (or since the timer started)
+// under phases.x. Cheap (a handful of performance.now() calls); always on, so --profile callers and
+// a warm server deciding what a reload actually cost can see where cold-start time goes.
+function phaseTimer() {
+  const phases = {}; let last = performance.now();
+  return { phases, mark(name) { const now = performance.now(); phases[name] = now - last; last = now; } };
+}
+
 // gpu: render on the GPU (the default, see wantGpu) or on SwiftShader.
 // browsers: separate Chromium instances to spread pages over. Every page in one browser shares its
 // GPU process, so SwiftShader work from concurrent pages queues behind each other; checks that run
 // scenes in parallel pass their job count here. openScene's `slot` picks the browser.
 export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws = false } = {}) {
+  const timer = phaseTimer();
   // Every check renders under the render lock for its mode: a GPU slot, or the software lock.
   holdRenderLock(gpu ? 'gpu' : 'software');
+  timer.mark('lock');
   // HITL_VITE_CACHE gives the server its own dependency cache, so checks running side by side never
   // re-optimize (and reload) each other's dependencies.
   const cacheDir = process.env.HITL_VITE_CACHE || undefined;
   // three-mesh-bvh is bundled when the server starts: found later, on a tool's first import, it would
   // make Vite rebundle dependencies and reload the page mid-run.
   const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, optimizeDeps: { include: ['three-mesh-bvh'] }, logLevel: 'error' });
+  timer.mark('createServer');
   await server.listen();
+  timer.mark('listen');
   const base = server.resolvedUrls.local[0];
   const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));
+  timer.mark('launchChromium');
   const { browser, renderer } = launched[0];
   return {
     browser,
     renderer,
+    // Cold-start cost outside any one scene: the render lock, the Vite server and the browser
+    // launch. Fixed per startHarness() call, before any page opens.
+    phases: timer.phases,
     // A page on `query`, ready to step. errors collects page errors and console errors.
     async openScene(query, { width = 960, height = 640, time = 0.45, slot = 0 } = {}) {
+      const pt = phaseTimer();
       const page = await launched[slot % launched.length].browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+      pt.mark('newPage');
       const errors = [];
       // Every path the page requests, so a check can key a cache on exactly what the scene loaded.
       const requests = new Set();
@@ -97,15 +115,19 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         return route.abort('blockedbyclient');
       });
       await page.addInitScript(`${auditDraws ? `(${installDrawAudit.toString()})();` : ''}${INIT}`);
+      pt.mark('initScript');
       await page.goto(`${base}?snap=1&${query}`, { waitUntil: 'load' });
+      pt.mark('goto');
       await page.waitForFunction(() => window.__HITL && window.__hitlRender?.ready, null, { timeout: 120000, polling: 50 });
+      pt.mark('waitReady');
       if (blocked.length) throw new Error(`harness: the page requested the network (blocked): ${blocked.slice(0, 3).join(', ')}`);
       // Reset the game stream now, once model loading and the page's own bootstrap draws are behind
       // it, so nothing a check does afterward can depend on what those drew.
       await page.evaluate(() => window.__reseedGame());
+      pt.mark('reseed');
+      await page.evaluate(async () => { await document.fonts.load('700 16px Fredoka'); await document.fonts.ready; });
+      pt.mark('fonts');
       await page.evaluate(async (tod) => {
-        await document.fonts.load('700 16px Fredoka');
-        await document.fonts.ready;
         const R = window.__hitlRender, S = window.__HITL.state;
         R.setSpeed?.(1);
         R.setPaused?.(false);
@@ -151,14 +173,20 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // so a stepper that skipped the refresh would play differently from the game, and any tool that
         // later refreshed them (a crop, a probe) would change what comes after.
         window.__advance = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
-        // Tool dependencies that build three.js objects when they load (tool-preload.js) take a UUID
-        // each from Math.random. Loaded here on the tool stream, they cost the game's stream nothing
-        // when a check imports them later, so a result doesn't depend on which tool loaded first.
+      }, time);
+      pt.mark('stepDefs');
+      // Tool dependencies that build three.js objects when they load (tool-preload.js) take a UUID
+      // each from Math.random. Loaded here on the tool stream, they cost the game's stream nothing
+      // when a check imports them later, so a result doesn't depend on which tool loaded first.
+      await page.evaluate(async () => {
         const gameRandom = Math.random;
         Math.random = window.__tool(() => Math.random);
         try { await import('/blender/checks/tool-preload.js'); } finally { Math.random = gameRandom; }
-      }, time);
-      return { page, errors, requests };
+      });
+      pt.mark('toolPreload');
+      // Cold-start cost for this one page: navigation, model/font readiness, and tool preload. Added
+      // to startHarness()'s own phases, this is where openScene's time actually goes.
+      return { page, errors, requests, phases: pt.phases };
     },
     async close() { await Promise.all(launched.map((l) => l.browser.close())); await server.close(); },
   };

@@ -50,9 +50,12 @@ export async function snapshotEntries(file) {
   return [...mem.entries()];
 }
 
-export async function openAt(H, target, { width = 1280, height = 800, quality = 'medium', slot = 0 } = {}) {
-  const items = await snapshotEntries(target.file);
-  const { page, errors } = await H.openScene(`quality=${quality}`, { width, height, slot });
+// Loads a snapshot into an already-open page through the game's own save and continueGame, exactly
+// as a player loading that save would see it (decision open, prop staged). Safe to call more than
+// once on the same page: each call is an ordinary in-game load, indistinguishable from a player
+// picking a different save from the title screen mid-session.
+export async function applySnapshot(page, file) {
+  const items = await snapshotEntries(file);
   const res = await page.evaluate((list) => {
     for (const [k, v] of list) localStorage.setItem(k, v);
     const r = window.__HITL.controls.continueGame();
@@ -65,8 +68,14 @@ export async function openAt(H, target, { width = 1280, height = 800, quality = 
     window.__hitlRender.setPaused?.(false);
     return { ...r, week: S.week, pending: S.pendingDecision?.eventId ?? null, title: window.__HITL.titleShown ?? !!document.querySelector('.title-mode') };
   }, items);
-  if (!res.ok) throw new Error(`continueGame failed on ${target.file}: ${JSON.stringify(res)}`);
+  if (!res.ok) throw new Error(`continueGame failed on ${file}: ${JSON.stringify(res)}`);
   // A capture under the title screen would judge the menu, not the moment.
-  if (res.title) throw new Error(`the title screen is still up after loading ${target.file}`);
-  return { page, errors, row: target.row, state: { week: res.week, pending: res.pending } };
+  if (res.title) throw new Error(`the title screen is still up after loading ${file}`);
+  return { week: res.week, pending: res.pending };
+}
+
+export async function openAt(H, target, { width = 1280, height = 800, quality = 'medium', slot = 0 } = {}) {
+  const { page, errors } = await H.openScene(`quality=${quality}`, { width, height, slot });
+  const state = await applySnapshot(page, target.file);
+  return { page, errors, row: target.row, state };
 }
