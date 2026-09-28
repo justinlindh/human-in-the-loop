@@ -489,7 +489,7 @@ Named groups the player staffs and posts as a unit. A layer over per-person assi
 ```
 state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
                   posting: { type: 'project'|'maintenance'|'support'|'idle', targetId },   // targetId: a projectId for 'project', else null
-                  afterLaunch: 'upkeep'|'maintenance', benchUntil: week | null, cohesion /*0..1*/, formedWeek, postedWeek }]   // postedWeek: the week the current posting began (formedWeek for a new squad)
+                  afterLaunch: 'upkeep'|'maintenance', benchUntil: week | null, cohesion /*0..1*/, formedWeek, postedWeek, crewIds: [staffId] }]   // postedWeek: the week the current posting began (formedWeek for a new squad)
 ```
 
 - At most 6 squads. A person is in at most one squad; membership lives only on the squad, and ui looks it up there.
@@ -498,6 +498,7 @@ state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
 - Postings are `project`, `maintenance` or `support`, plus `idle` for a benched squad. Other assignments (sales, marketing, security, oversight, mentoring) stay per person; a member on one of those is on loan.
 - After a squad's project ships with `afterLaunch: 'upkeep'`: the crew is the squad's engineers ranked by knowledge of that product, taken in order until their maintenance capacity covers the new product's maintenance need under the ordinary maintenance rule, and at least one. The crew goes to maintenance. The rest are benched: posting `{ type: 'idle', targetId: null }`, `benchUntil = week + B.squadBenchWeeks` (2). When that week arrives, benched members go back to their default work and the squad's posting becomes `maintenance`. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
 - If a squad's posted project is cancelled, the squad is benched the same way, with no crew.
+- `crewIds` are members left on a product's upkeep after a launch. `postSquad` skips them (reason 'On upkeep crew'), and they count as working the squad's posting for cohesion. A member leaves the crew when assigned elsewhere by hand, when the squad is posted to maintenance, when their product is retired, or when they leave the company. Old saves load `crewIds: []`.
 - Cohesion starts at 0 when a squad forms and rises by `1 / B.squadCohesionWeeks` (12) each week that at least half its members work its posting, up to 1. Anyone joining or leaving halves it.
 - Cohesion multiplies output: a member working the squad's posting gets `output * (1 + cohesion * B.squadCohesionOutput)` (0.05). On-loan and benched members get nothing.
 - Advisor topic `squadIdle:<squadId>` (people lead): a squad with members on an idle posting for `B.squadIdleWeeks` (2) or more, not counting a post-launch bench, which has its own timer. Severity 1. Options: post it to a project, or post it to maintenance, each with target `{ panel: 'squads', arg: squadId }`. The debt advisor's maintenance option names an idle squad when there is one.
