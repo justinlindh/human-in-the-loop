@@ -14,6 +14,7 @@ cat >"$tmp/gh" <<'SH'
 case "$1 $2" in
   "pr list") while [ $# -gt 0 ]; do [ "$1" = --jq ] && { jq -r "$2" "$FIXTURE"; exit; }; shift; done ;;
   "pr edit") echo "$*" >>"$T/edits" ;;
+  "pr view") cat "$T/files-$3" 2>/dev/null ;;
 esac
 SH
 cat >"$tmp/ci-pr" <<'SH'
@@ -30,8 +31,9 @@ SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
 export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_NPM="$tmp/npm"
 
-pr() { # number head local-ci-state [draft] [author] [label]
+pr() { # number head local-ci-state [draft] [author] [label] [review-state]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
+  [ -n "${7:-}" ] && ctx="$(jq -c --arg r "$7" '. + [{context: "review", state: $r}]' <<<"$ctx")"
   local lab='[]'; [ -n "${6:-}" ] && lab="[{\"name\":\"$6\"}]"
   printf '{"number":%s,"headRefOid":"%s","isDraft":%s,"isCrossRepository":false,"author":{"login":"%s"},"statusCheckRollup":%s,"labels":%s}' \
     "$1" "$2" "${4:-false}" "${5:-justinlindh}" "$ctx" "$lab"
@@ -109,6 +111,22 @@ fixture "$(pr 20 ttt PENDING)"
 run
 [ "$(count npm-ci)" -eq 1 ] || fail "a stale install should wait while a run is going ($(count npm-ci) installs)"
 rm -f "$tmp/npm-stale"
+
+# PRs that passed review go first; changes requested go last.
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+: >"$tmp/started"
+fixture "$(pr 40 a40 none false justinlindh '' FAILURE)" "$(pr 41 a41 none)" "$(pr 42 a42 none false justinlindh '' SUCCESS)" "$(pr 43 a43 none false justinlindh '' SUCCESS)"
+run
+[ "$(head -2 "$tmp/started" | tr '\n' ' ')" = "42 a42 43 a43 " ] || fail "reviewed PRs should start first (started: $(tr '\n' ' ' <"$tmp/started"))"
+has started "40 a40" && fail "a PR with changes requested should wait behind the others"
+# A docs-only PR starts at once, past the cap.
+printf 'docs/x.md\nCLAUDE.md\n' >"$tmp/files-44"
+printf 'src/sim/x.js\n' >"$tmp/files-45"
+fixture "$(pr 42 a42 PENDING)" "$(pr 43 a43 PENDING)" "$(pr 44 a44 none)" "$(pr 45 a45 none)"
+run
+has started "44 a44" || fail "a docs-only PR should start past the cap"
+has started "45 a45" && fail "a full PR should still wait for the cap"
+grep -q "start #44 a44 (new head, docs only)" "$tmp/state/log" || fail "the log should say the run is docs only"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]
