@@ -65,6 +65,23 @@ test('takes each agent\'s newest tool call from the log tails, scrubbed', () => 
   assert.ok(rows.some((r) => r.who === 'sim (subagent)' && r.tool === 'Read'));
 });
 
+test('takes each agent\'s model from its newest session, even before that session calls a tool', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'dash-'));
+  const msg = (at, model, content) => JSON.stringify({ type: 'assistant', agentName: 'tools', timestamp: at, message: { model, content } });
+  const bash = [{ type: 'tool_use', name: 'Bash', input: { description: 'old work' } }];
+  // The old session started first and made the newest tool call; the new one has only replied so far.
+  writeFileSync(join(dir, 'old.jsonl'), [JSON.stringify({ type: 'user', timestamp: '2026-01-01T00:00:00Z' }),
+    msg('2026-01-01T00:00:10Z', 'claude-opus-5-5', bash), msg('2026-01-01T02:00:00Z', 'claude-opus-5-5', bash)].join('\n'));
+  writeFileSync(join(dir, 'new.jsonl'), [JSON.stringify({ type: 'user', timestamp: '2026-01-01T01:00:00Z' }),
+    msg('2026-01-01T01:00:05Z', 'claude-sonnet-5', [{ type: 'text', text: 'ready' }]), msg('2026-01-01T01:00:06Z', '<synthetic>', [{ type: 'text', text: '' }])].join('\n'));
+  const files = ['old', 'new'].map((n) => ({ path: join(dir, `${n}.jsonl`), mtime: Date.now(), parent: null }));
+  for (const order of [files, [...files].reverse()]) {
+    const tools = lastActivity(order, () => 'lead').find((r) => r.who === 'tools');
+    assert.equal(tools.what, 'old work');
+    assert.equal(tools.model, 'Sonnet 5');
+  }
+});
+
 test('names models as people say them', () => {
   assert.equal(modelName('claude-opus-5-5'), 'Opus 5.5');
   assert.equal(modelName('claude-opus-5-5[1m]'), 'Opus 5.5');
