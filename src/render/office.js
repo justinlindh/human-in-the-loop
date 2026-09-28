@@ -471,6 +471,8 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   // LEDs blink per mesh and foosball rods turn, so they stay out of the static merge.
   inner.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) { c.userData.dynamic = true; c.userData.noAO = true; } });
   if (kind === 'foosball') for (let i = 0; i < 4; i++) { const r = inner.getObjectByName(`foosball_rod${i}`); if (r) r.userData.dynamic = true; }
+  // Ping pong paddles hide while players hold them.
+  if (kind === 'pingpong') for (let i = 0; i < 2; i++) { const pd = inner.getObjectByName(`ping_pong_paddle${i}`); if (pd) pd.userData.dynamic = true; }
   if (kind !== 'desk' && kind !== 'meeting') fitFootprint(inner, f, !FREE_STANDING.has(kind), FRONT_ZONE.has(itemModelName(p.itemId, p.level)));
   const g = new THREE.Group();
   g.add(inner);
