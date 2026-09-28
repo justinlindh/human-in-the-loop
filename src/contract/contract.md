@@ -455,7 +455,7 @@ advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastP
 ### Actions: Advisors
 
 ```js
-{ type: 'dismissAdvice', key }   // -> { ok }; ok:false with reason 'No such advice' when advice(state) has no such key. Silences the key until its tier rises.
+{ type: 'dismissAdvice', key }   // -> { ok: true }; silences the key until its tier rises. A key no longer in advice(state) is a no-op that still returns ok, since the line may have changed as the player clicked.
 ```
 
 ### Events: Advisors
@@ -464,6 +464,6 @@ advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastP
 { type: 'advice', key, advisor, severity, tier, text, why, target }   // the rare unprompted line; ui shows it on the tray card, never in Yak
 ```
 
-- At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
+- Pushed by the `advisors` system (order 96, after `history`). At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
 - A key isn't pushed again within its `cooldownWeeks` unless its tier rose.
 - The sim always computes and emits. The On / Quiet / Off setting lives in ui's settings store, not in state: On shows pushes and the panel, Quiet ignores `advice` events, Off hides the panel. Bot games end identically whatever the setting.
