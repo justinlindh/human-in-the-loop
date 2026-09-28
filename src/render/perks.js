@@ -32,7 +32,7 @@ const SEAT_HIP_Y = 0.47;
 const GATHER_SLACK = 4;          // seconds a pair game waits past the longer walk before giving up
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const MODEL_SPOTS = {
-  arcade_l1: [{ x: 0, z: 0.72, anim: 'play', look: [0, -0.2] }],
+  arcade_l1: [{ x: 0, z: 0.62, anim: 'play', look: [0, -0.2] }],
   arcade_l2: [{ x: 0.55, z: 0.35, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
   arcade_l3: [{ x: 0, z: 0.45, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
   library_l1: [{ x: 0, z: 0.2, anim: 'browse', yaw: Math.PI }],

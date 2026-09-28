@@ -6,6 +6,7 @@ import kit
 
 # Shop item tiers share one footprint: back edge near y = +0.5 (against a wall), front faces -Y.
 BUDGET = {1: 3000, 2: 4000, 3: 6000}
+L1_SCALE = 0.82
 
 
 def build(level, fn, name):
@@ -15,8 +16,14 @@ def build(level, fn, name):
 
 
 def l1():
-    # One cabinet in the engineering blue, played standing: an arcade cabinet from the first level.
-    return kit.arcade_cabinet('a_', 0, 0.2, body='role_engineer', screen='arcade2_screen', marquee='neon_cyan')
+    # One compact cabinet in the engineering blue, played standing: a cabinet from the first level,
+    # smaller than level 2's so each level reads as a step up. Everything built (the screen and
+    # marquee too) scales about the item's origin.
+    parts = kit.arcade_cabinet('a_', 0, 0.2, body='role_engineer', screen='arcade2_screen', marquee='neon_cyan')
+    for o in bpy.context.scene.objects:
+        o.scale = [v * L1_SCALE for v in o.scale]
+        o.location = o.location * L1_SCALE
+    return parts
 
 
 def l2():
