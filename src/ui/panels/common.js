@@ -1,4 +1,6 @@
 import { ASSIGNMENT_LABEL, B } from '../content.js';
+import { productName } from '../../data/product-names.js';
+import { ERA_IDS } from '../../data/eras.js';
 
 export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project', research: 'Internal tool' };
 
@@ -93,20 +95,11 @@ export function isAvailable(p) {
   return p.mood !== 'away' && p.assignment?.type !== 'sabbatical';
 }
 
-const PREFIX = ['Inbox', 'Plan', 'Desk', 'Note', 'Deal', 'Chart', 'Pixel', 'Ship', 'Ledger', 'Brief', 'Loop', 'Hire', 'Clip', 'Vault', 'Flow', 'Pilot', 'Nudge', 'Tidy', 'Quill', 'Beacon'];
-const SUFFIX = ['ly', 'ify', 'bot', 'wise', 'hub', 'io', 'genie', 'pal', 'sense', 'mind', 'ster', 'o', 'able', 'dex', 'ware'];
-const SILLY = ['Synergy.ai', 'Clippy Returns', 'Yet Another Copilot', 'Prompt and Circumstance', 'Agentic McAgentface', 'Hallucinate Less', 'Summarize This', 'Vibe Ledger', 'Just Ship It', 'Tokenomicon'];
-const CAT_WORD = { notes: 'Note', email: 'Inbox', pm: 'Plan', support: 'Desk', crm: 'Deal', analytics: 'Chart', design: 'Pixel', devtools: 'Ship', hr: 'People', recruiting: 'Hire', accounting: 'Ledger', video: 'Clip', legal: 'Brief', security: 'Vault' };
-
 let suggestN = 0;
 // The product name cap is the sim's (B.productNameMax), so the two cannot drift.
 export const NAME_MAX = B.productNameMax ?? 20;
 
-export function suggestName(category) {
-  suggestN++;
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  // Product names are capped at NAME_MAX characters; long jokes are skipped.
-  if (suggestN % 5 === 0) return pick(SILLY.filter((n) => n.length <= NAME_MAX));
-  const base = category && CAT_WORD[category] && Math.random() < 0.7 ? CAT_WORD[category] : pick(PREFIX);
-  return `${base}${pick(SUFFIX)}`.slice(0, NAME_MAX);
+// Joke names are tagged by era in src/data/product-names.js; with no era given, every joke is in the pool.
+export function suggestName(category, eraId = ERA_IDS.at(-1)) {
+  return productName(category, (k) => Math.floor(Math.random() * k), ++suggestN, eraId);
 }

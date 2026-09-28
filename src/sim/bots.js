@@ -10,6 +10,7 @@ import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { weeklyCosts, weeklyRevenue, moonshotWeekly } from './economy.js';
 import { campaignCost } from './marketing.js';
+import { botProductName } from '../data/product-names.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
@@ -67,9 +68,9 @@ const bestModel = (s, prefer) => prefer.find((m) => s.models[m].available && !s.
 const cheapestModel = (s) => Object.keys(s.models).filter((m) => s.models[m].available && !s.models[m].deprecated)
   .sort((a, b) => MODELS[a].autoCost * s.models[a].costMult - MODELS[b].autoCost * s.models[b].costMult)[0];
 
-function startNew(s, size, model, name) {
+function startNew(s, size, model) {
   const combo = bestCombo(s);
-  return { type: 'startProject', kind: 'new', name, category: combo.c, angle: combo.a, model, size };
+  return { type: 'startProject', kind: 'new', name: botProductName(s, combo.c), category: combo.c, angle: combo.a, model, size };
 }
 
 function assignAll(s, people, projectId) {
@@ -84,7 +85,6 @@ function act(s, actions) {
   return results;
 }
 
-const fixedName = (s) => `Product ${s.stats.launches + s.projects.length + 1}`;
 
 function pickDecision(s, scorer, d = s.pendingDecision) {
   const ev = EVENTS[d.eventId];
@@ -251,7 +251,7 @@ function automateAll(s) {
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
   if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
-    const res = dispatch(s, startNew(s, 'medium', model, fixedName(s)));
+    const res = dispatch(s, startNew(s, 'medium', model));
     if (res.ok) act(s, assignAll(s, builders(s), res.projectId));
   }
   const pj = s.projects.find((j) => j.kind === 'new');
@@ -271,8 +271,8 @@ function recklessHumans(s) {
   if (!!s.policies.crunch !== crunch) dispatch(s, { type: 'setPolicy', id: 'crunch', on: crunch });
   if (!s.projects.some((j) => j.kind === 'new')) {
     const size = s.officeStage >= 1 ? 'large' : 'medium';
-    const res = dispatch(s, startNew(s, size, 'chatgbt', fixedName(s)));
-    if (!res.ok) dispatch(s, startNew(s, 'small', 'chatgbt', fixedName(s)));
+    const res = dispatch(s, startNew(s, size, 'chatgbt'));
+    if (!res.ok) dispatch(s, startNew(s, 'small', 'chatgbt'));
   }
   const pj = s.projects.find((j) => j.kind === 'new');
   if (pj) act(s, assignAll(s, builders(s).filter((p) => p.assignment.type === 'idle' || p.assignment.type === 'maintenance' && builders(s).filter((q) => q.assignment.type === 'maintenance').length > 1), pj.id));
@@ -430,7 +430,7 @@ function balanced(s) {
   const parallel = Math.max(1, Math.floor(builders(s).length / B.botBuildersPerProject));
   if (s.projects.filter((j) => j.kind === 'new').length < parallel && s.cash > 15000) {
     const size = s.officeStage >= 1 && s.cash > 200000 ? 'large' : s.cash > 60000 && builders(s).length >= 3 ? 'medium' : 'small';
-    dispatch(s, startNew(s, size, model, fixedName(s)));
+    dispatch(s, startNew(s, size, model));
   }
   maintainProducts(s);
   if (useSquads) staffSquads(s);
@@ -479,7 +479,7 @@ function sensible(s) {
   if (!s.policies.async_standups) dispatch(s, { type: 'setPolicy', id: 'async_standups', on: true });
   if (s.week <= 2 && s.stats.hires < (s.flags.botEarlyHires ?? 1)) act(s, hireBest(s, (c) => c.role === 'engineer' && c.seniority !== 'senior', (a, b) => skillSum(b) - skillSum(a)));
   if (s.week < 52) {
-    if (!s.projects.some((j) => j.kind === 'new') && s.cash > 5000) dispatch(s, startNew(s, 'small', 'chatgbt', fixedName(s)));
+    if (!s.projects.some((j) => j.kind === 'new') && s.cash > 5000) dispatch(s, startNew(s, 'small', 'chatgbt'));
     const pj = s.projects.find((j) => j.kind === 'new');
     if (pj) act(s, assignAll(s, builders(s).filter((p) => p.assignment.type !== 'project' && (p.assignment.type !== 'maintenance' || !liveProducts(s).length || builders(s).filter((q) => q.assignment.type === 'maintenance').length > 1)), pj.id));
     for (const p of launchedThisWeek(s)) dispatch(s, { type: 'runCampaign', channel: 'launch', productId: p.id });
