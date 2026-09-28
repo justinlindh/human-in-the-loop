@@ -8,7 +8,7 @@
 // Any error reading inputs or the cache means "render": the cache can only skip, never fail.
 // HITL_NO_CHECK_CACHE=1 turns it off.
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join, resolve, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { execSync } from 'node:child_process';
@@ -56,7 +56,8 @@ function installed() {
   return ['three', 'vite', 'playwright'].map((p) => `${p}@${version(p)}`).concat(`chromium:${chromium.executablePath()}`).join(' ');
 }
 
-const dir = (check) => join(homedir(), '.cache', 'hitl-ci', check);
+// HITL_CHECK_CACHE_DIR moves the whole cache (tests use a scratch one).
+const dir = (check) => join(process.env.HITL_CHECK_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci'), check);
 
 // The commit a previous clean pass recorded for this hash, or null.
 // Each lookup goes to the team's timing log as a hit or a miss.
@@ -167,4 +168,10 @@ export function recordScene(check, name, base, requested, refRel) {
     mkdirSync(dir(`${check}-scenes`), { recursive: true });
     writeFileSync(sceneFile(check, name), JSON.stringify({ base, ref: fileHash(refRel), files }));
   } catch { /* a record that cannot be written only costs a render next time */ }
+}
+
+// Forget a scene's record, so a failed or interrupted run cannot leave an earlier success behind
+// that a later run would trust.
+export function clearScene(check, name) {
+  try { rmSync(sceneFile(check, name), { force: true }); } catch { /* unremovable: the base key still guards it */ }
 }

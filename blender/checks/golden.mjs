@@ -8,7 +8,10 @@
 // the pixels do not depend on the order or the overlap. Each scene that passes (or is updated) is
 // recorded with every file its page loaded (cache.mjs); a later run, verify or --update, skips a
 // scene when none of those files, its reference, or anything else in its base key changed, and
-// starts no browser at all when every scene is unchanged. HITL_NO_CHECK_CACHE=1 renders them all.
+// starts no browser at all when every scene is unchanged and the frame-by-frame identity check (below)
+// has a matching success record of its own. Scene records never stand in for it: with the scenes
+// cached but no current identity record, golden opens a browser for the identity check alone.
+// HITL_NO_CHECK_CACHE=1 renders and checks everything.
 //
 // Each scene loads the game through harness.mjs (Math.random seeded, the clock frozen, the game
 // loop held) and steps a fixed number of frames by hand, drawing only the last (__settle), so a
@@ -16,9 +19,10 @@
 // Differences are counted per pixel (any channel off by more than CHANNEL_TOL); a scene fails when
 // more than MAX_SHARE of pixels differ. Failures write <scene>.actual.png and <scene>.diff.png next to the reference.
 import { startHarness } from './harness.mjs';
-import { sceneBase, sceneUpToDate, recordScene, requestedFiles } from './cache.mjs';
+import { sceneBase, sceneUpToDate, recordScene, clearScene, requestedFiles } from './cache.mjs';
 import { logTiming } from '../../scripts/lib/timing.js';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,6 +66,16 @@ const SCENES = [
 const TOOL_FILES = ['blender/checks/golden.mjs', 'blender/checks/harness.mjs', 'blender/checks/cache.mjs', 'scripts/lib/gl.js'];
 const refRel = (sc) => `blender/checks/golden/${sc.name}.png`;
 const selected = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
+// Drawing only the final frame is exact only while nothing in the draw path carries state from one
+// frame to the next (history buffers, accumulation, trails in post). Whenever golden renders, one
+// scene is also drawn frame by frame and must match its settled render byte for byte, so such an
+// effect fails here instead of drifting every reference. HITL_GOLDEN_IDENTITY_SETUP is script run in
+// that scene's page before it steps (a test hook for a deliberate temporal effect).
+const IDENTITY = { ...SCENES.find((sc) => sc.name === 'char-lineup'), setup: process.env.HITL_GOLDEN_IDENTITY_SETUP || undefined };
+const IDENTITY_CHECK = 'golden-identity';
+IDENTITY.base = sceneBase(IDENTITY_CHECK, { ...IDENTITY, base: undefined, W, H_PX }, TOOL_FILES);
+const identityFresh = sceneUpToDate(IDENTITY_CHECK, IDENTITY.name, IDENTITY.base, 'blender/checks/golden.mjs');
+logTiming({ kind: 'cache', tool: 'golden', scene: `${IDENTITY.name}:identity`, cache: IDENTITY.base ? (identityFresh ? 'hit' : 'miss') : 'off', input: IDENTITY.base });
 const results = new Map();
 const todo = [];
 for (const sc of selected) {
@@ -71,14 +85,14 @@ for (const sc of selected) {
   if (fresh) results.set(sc.name, `${sc.name}: unchanged, skipped`);
   else todo.push(sc);
 }
-if (!todo.length) {
+if (!todo.length && identityFresh) {
   for (const sc of selected) console.log(`GOLDEN ${results.get(sc.name)}`);
-  console.log(`golden: all ${selected.length} scenes unchanged since they last passed, skipped`);
+  console.log(`golden: all ${selected.length} scenes unchanged since they last passed, and ${IDENTITY.name} identity is on record, skipped`);
   process.exit(0);
 }
 
 // Golden images compare exact pixels, which only SwiftShader reproduces on every machine.
-const H = await startHarness({ gpu: false, browsers: Math.min(JOBS, todo.length) });
+const H = await startHarness({ gpu: false, browsers: Math.max(1, Math.min(JOBS, todo.length)) });
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
@@ -161,41 +175,60 @@ await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, async (_, 
     try { await runScene(sc, slot); } catch (e) { failed++; results.set(sc.name, `${sc.name}: ERROR ${e.message.split('\n')[0]}`); }
   }
 }));
-// Drawing only the final frame is exact only while nothing in the draw path carries state from one
-// frame to the next (history buffers, accumulation, trails in post). Whenever golden renders, one
-// scene is also drawn frame by frame and must match its settled render byte for byte, so such an
-// effect fails here instead of drifting every reference.
-const IDENTITY = SCENES.find((sc) => sc.name === 'char-lineup');
+const sha = (png) => createHash('sha256').update(png).digest('hex').slice(0, 16);
+const identityFiles = { stepped: join(OUT, `${IDENTITY.name}.stepped.png`), settled: join(OUT, `${IDENTITY.name}.settled.png`) };
+// Runs the check; true only when both renders exist, match byte for byte and raised no page errors.
+// Whatever renders exist are saved when it does not pass, so a failure can be looked at.
 async function identity() {
   const shot = async (settle) => {
-    const { page, errors } = await H.openScene(`quality=medium&${IDENTITY.query}`, { width: W, height: H_PX });
-    try { return { png: await page.evaluate(POSE, poseArgs(IDENTITY, settle)), errors }; } finally { await page.close(); }
+    let page;
+    const r = { png: null, errors: [], error: null, requests: [] };
+    try {
+      const o = await H.openScene(`quality=medium&${IDENTITY.query}`, { width: W, height: H_PX });
+      page = o.page; r.errors = o.errors; r.requests = o.requests;
+      r.png = await page.evaluate(POSE, poseArgs(IDENTITY, settle));
+    } catch (e) { r.error = e.message.split('\n')[0]; } finally { await page?.close().catch(() => {}); }
+    return r;
   };
-  const [stepped, settled] = [await shot(false), await shot(true)];
-  if (stepped.png === settled.png) return true;
-  // What differs, for a mismatch that doesn't repeat: both renders saved, and the differing pixels
-  // counted and boxed in the log.
-  const files = { stepped: join(OUT, `${IDENTITY.name}.stepped.png`), settled: join(OUT, `${IDENTITY.name}.settled.png`) };
-  for (const [k, f] of Object.entries(files)) writeFileSync(f, Buffer.from((k === 'stepped' ? stepped : settled).png.split(',')[1], 'base64'));
+  const stepped = await shot(false);
+  const settled = await shot(true);
+  const both = { stepped, settled };
+  const ran = stepped.png && settled.png;
+  if (ran && stepped.png === settled.png && !stepped.errors.length && !settled.errors.length) {
+    recordScene(IDENTITY_CHECK, IDENTITY.name, IDENTITY.base, requestedFiles([...stepped.requests, ...settled.requests]), 'blender/checks/golden.mjs');
+    return true;
+  }
+  for (const [k, f] of Object.entries(identityFiles)) if (both[k].png) writeFileSync(f, Buffer.from(both[k].png.split(',')[1], 'base64'));
+  for (const [k, r] of Object.entries(both)) {
+    if (r.error) console.log(`golden: identity ${k} render failed to run: ${r.error}`);
+    if (r.errors.length) console.log(`golden: identity ${k} page errors: ${r.errors.slice(0, 3).join('; ')}`);
+  }
+  if (!ran) { console.log(`golden: identity not established; saved ${Object.keys(identityFiles).filter((k) => both[k].png).map((k) => `${IDENTITY.name}.${k}.png`).join(', ') || 'no renders'} in shots/golden/`); return false; }
+  if (stepped.png === settled.png) { console.log(`golden: identity renders match (sha ${sha(stepped.png)}) but the pages raised errors; renders in shots/golden/${IDENTITY.name}.{stepped,settled}.png`); return false; }
+  // What differs: the differing pixels counted and boxed in the log, with hashes of both renders.
   let where = '';
   try {
-    const n = execFileSync('magick', ['compare', '-metric', 'AE', files.stepped, files.settled, 'null:'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-    where = n;
+    where = execFileSync('magick', ['compare', '-metric', 'AE', identityFiles.stepped, identityFiles.settled, 'null:'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   } catch (e) { where = String(e.stderr ?? '').trim().split(' ')[0]; }
   let box = '';
-  try { box = execFileSync('magick', [files.stepped, files.settled, '-compose', 'difference', '-composite', '-threshold', '0', '-format', '%@', 'info:'], { encoding: 'utf8' }).trim(); } catch { /* no magick */ }
-  console.log(`golden: identity mismatch: ${where || '?'} pixels differ${box ? `, inside ${box}` : ''}; renders in shots/golden/${IDENTITY.name}.{stepped,settled}.png`);
-  for (const [k, r] of [['stepped', stepped], ['settled', settled]]) if (r.errors.length) console.log(`golden: identity ${k} page errors: ${r.errors.slice(0, 3).join('; ')}`);
+  try { box = execFileSync('magick', [identityFiles.stepped, identityFiles.settled, '-compose', 'difference', '-composite', '-threshold', '0', '-format', '%@', 'info:'], { encoding: 'utf8' }).trim(); } catch { /* no magick */ }
+  console.log(`golden: identity mismatch: ${where || '?'} pixels differ${box ? `, inside ${box}` : ''}; stepped sha ${sha(stepped.png)}, settled sha ${sha(settled.png)}; renders in shots/golden/${IDENTITY.name}.{stepped,settled}.png`);
   return false;
 }
-let identical = true;
-try { identical = await identity(); } catch (e) { identical = false; console.log(`golden: identity check failed to run: ${e.message.split('\n')[0]}`); }
+// A current success record stands in for the check. Otherwise the record is dropped before the
+// check starts and written only if it passes, so an interrupted run leaves nothing to vouch for it.
+let identical = identityFresh;
+if (!identityFresh) {
+  clearScene(IDENTITY_CHECK, IDENTITY.name);
+  try { identical = await identity(); } catch (e) { console.log(`golden: identity check failed to run: ${e.message.split('\n')[0]}`); }
+  if (!identical) clearScene(IDENTITY_CHECK, IDENTITY.name);
+}
 await H.close();
 for (const sc of selected) console.log(`GOLDEN ${results.get(sc.name)}`);
 if (!identical) {
   failed++;
-  console.log(`golden: ${IDENTITY.name} drawn frame by frame differs from its final-frame render; something in the draw path now keeps state between frames, so __settle is no longer exact`);
-} else console.log(`golden: ${IDENTITY.name} is byte-identical drawn frame by frame and final frame only`);
+  console.log(`golden: identity not established for ${IDENTITY.name}: the frame-by-frame and final-frame renders did not both come out identical (see above). A draw path that keeps state between frames is one cause, a page or asset not ready in one render another`);
+} else console.log(`golden: ${IDENTITY.name} is byte-identical drawn frame by frame and final frame only${identityFresh ? ' (on record, not redrawn)' : ''}`);
 console.log(`golden: rendered ${todo.length} of ${selected.length} scenes; ${selected.length - todo.length} unchanged, skipped`);
 if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended (then commit and post before/after media: scripts/baseline-media.sh <pr>)`);
 if (UPDATE) console.log('golden: updated references need before/after media on the PR: commit them, then scripts/baseline-media.sh <pr>');
