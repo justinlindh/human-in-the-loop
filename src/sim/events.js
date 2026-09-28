@@ -135,7 +135,8 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const at = waiting.findIndex((x) => x.eventId === eventId);
   if (at >= 0) {
     const inc = waiting.splice(at, 1)[0];
-    Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds] });
+    Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds],
+      incidentHelped: [...inc.helped], incidentHurt: [...inc.hurt] });
   }
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {

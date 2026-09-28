@@ -324,6 +324,46 @@ describe('the postmortem (#830)', () => {
 });
 
 describe('saves (#830)', () => {
+  const summary = (e) => ({ incidentWeeks: e.weeks, incidentCost: e.cost, incidentResponders: e.responderIds, incidentHelped: e.helped, incidentHurt: e.hurt });
+
+  it("a pending postmortem keeps its incident's summary in vars through a save and reload", () => {
+    const st = store();
+    const s = quiet(game());
+    addProduct(s, { customers: 2000 });
+    team(s, 3);
+    s.comprehensionDebt = 34;
+    landIncident(makeCtx(s), { kind: 'db_wipe', severity: 5, caught: false, model: 'grokk' });
+    s.pendingDecision = null;
+    s.scheduled = [];
+    const c = makeCtx(s);
+    clearOutage(c, '');
+    const done = c.events.find((e) => e.type === 'incidentResolved');
+    expect(done.hurt.length).toBeGreaterThan(0);
+    expect(s.pendingDecision.vars).toMatchObject(summary(done));
+    saveGame(s, st);
+    const res = loadGame(st, s.flags.saveSlot);
+    expect(res.ok).toBe(true);
+    expect(res.state.pendingDecision.eventId).toBe('agent_db_wipe');
+    expect(res.state.pendingDecision.vars).toMatchObject(summary(done));
+    const debt = res.state.comprehensionDebt;
+    expect(dispatch(res.state, { type: 'resolveDecision', choice: 2 }).ok).toBe(true);
+    expect(res.state.comprehensionDebt).toBeCloseTo(debt - B.postmortemDebt);
+    expect(res.state.flags.postmortem.staffIds).toEqual(done.responderIds);
+  });
+
+  it('the security follow-up carries the same summary', () => {
+    const s = quiet(game());
+    addProduct(s, { customers: 1000 });
+    team(s, 3);
+    const c = makeCtx(s);
+    landIncident(c, { kind: 'phishing', severity: 5, caught: false, model: null });
+    const done = c.events.find((e) => e.type === 'incidentResolved');
+    expect(dispatch(s, { type: 'resolveDecision', choice: 0 }).ok).toBe(true);
+    processScheduled(makeCtx(s));
+    expect(s.pendingDecision.eventId).toBe('incident_postmortem');
+    expect(s.pendingDecision.vars).toMatchObject(summary(done));
+  });
+
   it('an outage from an old save loads with the new fields filled', () => {
     const st = store();
     const s = createGame({ seed: 4, companyName: 'Old' });
