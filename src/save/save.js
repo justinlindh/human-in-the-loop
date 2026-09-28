@@ -148,6 +148,12 @@ function normalize(state) {
   state.office.expansion ??= 0;
   state.office.props ??= [];
   state.fame ??= 0;
+  if (state.outage) {
+    state.outage.responderIds ??= [];
+    state.outage.etaWeeks ??= null;
+    state.outage.cost ??= { cash: 0, brand: 0, customers: 0 };
+    state.outage.cause ??= '';
+  }
   // Saves from before sticky seats: seat everyone in staff order.
   if (state.staff.some((p) => !('deskId' in p))) {
     for (const p of state.staff) p.deskId = null;

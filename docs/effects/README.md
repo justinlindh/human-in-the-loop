@@ -13,3 +13,4 @@ How each game choice and element changes the game, generated from the data and t
 - [yak](yak.md)
 - [advisors](advisors.md)
 - [tech-debt](tech-debt.md)
+- [squads](squads.md)

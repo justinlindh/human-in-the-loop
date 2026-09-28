@@ -1,5 +1,6 @@
 // Standups stay indoors (issue #149): in every mock office, with and without a meeting table and a
-// whiteboard, a staged standup gathers everyone inside the walls and outside all furniture.
+// whiteboard, a staged standup gathers everyone inside the walls and outside all furniture. With a
+// meeting table on Medium, attendees sit in its chairs (runStandupTableCheck).
 //
 //   node blender/checks/standup.mjs      prints one line per case; exits 1 if any fails
 import { startHarness } from './harness.mjs';
@@ -12,6 +13,8 @@ for (const mock of ['garage', 'floor', 'hq']) for (const strip of ['none', 'meet
 CASES.push({ seed: 26, weeks: 110, strip: 'none' });
 for (const speed of [1, 2, 4]) CASES.push({ mock: 'floor', strip: 'none', speech: { speed } });
 for (const path of ['denied', 'ambient', 'priority', 'pause', 'menu', 'speed', 'departure', 'away', 'empty']) CASES.push({ mock: 'floor', strip: 'none', speech: { path } });
+// At a meeting table (issue #974): seated around it on Medium, the standing ring on Low.
+for (const mock of ['floor', 'hq']) for (const quality of ['medium', 'low']) CASES.push({ mock, strip: 'none', table: true, quality });
 
 // Cases run concurrently (--jobs=N, default 8), each in its own seeded page; a full pass is
 // recorded against a hash of every input (cache.mjs) and unchanged inputs skip the run.
@@ -26,8 +29,8 @@ const H = await startHarness({ browsers: JOBS });
 let failed = 0;
 const lines = new Map();
 async function runCase(c, slot) {
-  const { page, errors } = await H.openScene(c.seed ? `quality=low&seed=${c.seed}` : `quality=low&mock=${c.mock}`, { width: 640, height: 400, slot });
-  const res = await page.evaluate(async ({ strip, weeks, speech }) => {
+  const { page, errors } = await H.openScene(c.seed ? `quality=low&seed=${c.seed}` : `quality=${c.quality ?? 'low'}&mock=${c.mock}`, { width: 640, height: 400, slot });
+  const res = await page.evaluate(async ({ strip, weeks, speech, table, quality }) => {
     const R = window.__hitlRender, S = window.__HITL.state;
     if (speech) {
       const { checkStandupSpeech } = await import('/blender/checks/standup-speech.mjs');
@@ -46,10 +49,11 @@ async function runCase(c, slot) {
     const drop = strip === 'none' ? [] : strip === 'meeting' ? ['meeting_table'] : ['meeting_table', 'whiteboard', 'whiteboard_wall'];
     S.office.placed = S.office.placed.filter((p) => !drop.includes(p.itemId));
     for (let i = 0; i < 60; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
+    if (table) return C.runStandupTableCheck(R, S, { low: quality === 'low' });
     return C.runStandupCheck(R, S);
   }, c);
   if (!res.pass || errors.length) failed++;
-  lines.set(c, `STANDUP ${res.pass && !errors.length ? 'ok  ' : 'FAIL'} ${c.seed ? `seed${c.seed}-w${c.weeks}` : c.mock}:${c.strip} ${JSON.stringify(res)}${errors.length ? ' errors: ' + errors[0] : ''}`);
+  lines.set(c, `STANDUP ${res.pass && !errors.length ? 'ok  ' : 'FAIL'} ${c.seed ? `seed${c.seed}-w${c.weeks}` : c.mock}:${c.table ? `table-${c.quality}` : c.strip} ${JSON.stringify(res)}${errors.length ? ' errors: ' + errors[0] : ''}`);
   await page.close();
 }
 let next = 0;

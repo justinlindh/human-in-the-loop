@@ -24,11 +24,15 @@ export function onPosting(sq, p) {
   return sq.posting.type !== 'project' || a.targetId === sq.posting.targetId;
 }
 
-// 'crew', 'away', 'posted' or 'loan' for one member.
+// Why a member's role can't take the squad's posting (postSquad skips them), or null.
+export const cantPost = (sq, p) => (sq.posting.type === 'maintenance' && p.role !== 'engineer' ? 'maintenance' : null);
+
+// 'crew', 'away', 'posted', 'cant' (their role can't take the posting) or 'loan' for one member.
 export function memberStatus(sq, p) {
   if ((sq.crewIds ?? []).includes(p.id)) return 'crew';
   if (p.mood === 'away' || p.assignment?.type === 'sabbatical') return 'away';
-  return onPosting(sq, p) ? 'posted' : 'loan';
+  if (onPosting(sq, p)) return 'posted';
+  return cantPost(sq, p) ? 'cant' : 'loan';
 }
 
 const benched = (sq) => sq.posting.type === 'idle' && sq.benchUntil != null;
@@ -170,7 +174,7 @@ function openMember(ctx, sqId, staffId, openCard) {
   const done = (res) => { if (res.ok) { ctx.sfx?.('confirm'); close?.(); } };
   const st = memberStatus(sq, p);
   const status = { crew: 'On upkeep: looking after the product they launched.', away: 'Away right now.',
-    posted: `Working the squad's posting.`, loan: 'On loan: doing other work. They rejoin when you post the squad.' }[st];
+    posted: `Working the squad's posting.`, cant: `Can't do ${cantPost(sq, p)}, so they keep their own work while the squad is there.`, loan: 'On loan: doing other work. They rejoin when you post the squad.' }[st];
   const lead = sq.leadId === p.id
     ? h('button.btn.small', { onclick: () => done(ctx.act({ type: 'setSquadLead', squadId: sq.id, staffId: null })) }, 'Stop leading')
     : h('button.btn.small.primary', { onclick: () => done(ctx.act({ type: 'setSquadLead', squadId: sq.id, staffId: p.id })) }, icon('star', { size: 14 }), ' Make lead');
@@ -224,7 +228,7 @@ export function squadsView(ctx, { openCard }) {
 
   function face(s, sq, p) {
     const st = memberStatus(sq, p);
-    const tag = { crew: 'upkeep', loan: 'on loan', away: 'away' }[st];
+    const tag = { crew: 'upkeep', loan: 'on loan', away: 'away', cant: 'own work' }[st];
     const el = h('button.sqface', { type: 'button', title: `${p.name}: ${doingText(s, p)}`, onclick: () => openMember(ctx, sq.id, p.id, openCard) },
       h('span.sqpic', null, portrait(p, 40), sq.leadId === p.id ? h('span.sqstar', { title: 'Squad lead' }, icon('star', { size: 14 })) : null),
       h('span.sqfn', { text: first(p) }),
@@ -239,6 +243,7 @@ export function squadsView(ctx, { openCard }) {
     const posted = members.filter((p) => status.get(p.id) === 'posted').length;
     const crew = members.filter((p) => status.get(p.id) === 'crew');
     const loan = members.filter((p) => status.get(p.id) === 'loan');
+    const cant = members.filter((p) => status.get(p.id) === 'cant');
     const pt = postingText(s, sq);
     const isBench = benched(sq);
 
@@ -255,6 +260,7 @@ export function squadsView(ctx, { openCard }) {
     const notes = [];
     if (!members.length) notes.push('Nobody left in this squad. Add people or disband it.');
     if (loan.length && sq.posting.type !== 'idle') notes.push(`${loan.map(first).join(', ')} ${loan.length === 1 ? 'is' : 'are'} on loan · ${loan.length === 1 ? 'rejoins' : 'rejoin'} next posting`);
+    if (cant.length) notes.push(`${cant.map(first).join(', ')} can't do ${cantPost(sq, cant[0])} · ${cant.length === 1 ? 'keeps their' : 'keep their'} own work`);
     if (crew.length) {
       const prodOf = s.flags?.crewProduct ?? {};
       const names = [...new Set(crew.map((p) => s.products.find((x) => x.id === prodOf[p.id])?.name).filter(Boolean))];

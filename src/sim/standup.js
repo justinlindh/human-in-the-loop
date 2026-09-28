@@ -154,6 +154,11 @@ export function standupSystem(ctx) {
   ctx.emit({ type: 'standup', mode, lines });
   if (mode === 'daily') {
     for (const p of speakers) p.meaning = Math.min(100, p.meaning + B.standupDailyMeaning);
+    // Round a meeting table, everyone in the meeting hears how the rest of the system works.
+    if (state.office.placed.some((i) => i.itemId === 'meeting_table')) {
+      const attending = new Set(lines.map((l) => l.staffId));
+      for (const p of state.staff) if (attending.has(p.id)) p.knowledge = Math.min(100, p.knowledge + B.meetingTableKnowledge);
+    }
   } else {
     // Async updates are easy to skip: about half the speakers actually post.
     for (const l of lines) {

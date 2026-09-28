@@ -13,9 +13,8 @@ export function createCamRotate({ layer, controls, sfx }) {
     sfx?.('click');
     hideHint();
   };
-  const left = h('button.btn.small.camrot-b', { 'aria-label': 'Turn the view left', onclick: () => turn(-1) }, icon('refresh', { size: 18 }));
-  const right = h('button.btn.small.camrot-b', { 'aria-label': 'Turn the view right', onclick: () => turn(1) }, icon('refresh', { size: 18 }));
-  left.classList.add('ccw');
+  const left = h('button.btn.small.camrot-b', { 'aria-label': 'Turn the view left', onclick: () => turn(-1) }, icon('turn.left', { size: 22 }));
+  const right = h('button.btn.small.camrot-b', { 'aria-label': 'Turn the view right', onclick: () => turn(1) }, icon('turn.right', { size: 22 }));
   setTip(left, 'Turn the view left (Q)');
   setTip(right, 'Turn the view right (E)');
   const hint = h('div.camhint', null, 'Turn the view to reach every spot', h('span.small', { text: ' (Q and E on a keyboard)' }));

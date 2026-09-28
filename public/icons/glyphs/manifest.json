@@ -249,6 +249,12 @@
  "seat": {
   "file": "glyphs/seat.svg"
  },
+ "turn.left": {
+  "file": "glyphs/turn.left.svg"
+ },
+ "turn.right": {
+  "file": "glyphs/turn.right.svg"
+ },
  "refresh": {
   "file": "glyphs/refresh.svg"
  },

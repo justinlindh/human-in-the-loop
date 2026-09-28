@@ -15,6 +15,7 @@ import { currentEra, eraAtLeast } from './eras.js';
 import { autoArrange, spentOn } from './office.js';
 import { rivalPressure } from './ladder.js';
 import { purposeLift } from './purpose.js';
+import { outageProductGone } from './incidents.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -110,13 +111,15 @@ export function productsSystem(ctx) {
       soldMrr += won * CATEGORIES[p.category].price;
     }
     const inOutage = state.outage?.productId === p.id;
-    const churn = Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
+    const churnWith = (down) => Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
       + (p.hype / 10 > p.score + B.wrapperGap ? B.wrapperChurn : 0)
       + state.ops.supportShortfall * B.supportShortfallChurn
       + (1 - Math.min(10, p.novelty) / 10) * B.staleChurn
-      + (inOutage ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn
+      + (down ? B.outageChurn : 0)) * Math.max(0, 1 + modifierBonus(state, 'churn')) * pathChurn
       * (1 - B.fameChurnRelief * (state.fame ?? 0) / 100);
-    p.customers = Math.max(0, Math.floor(p.customers * (1 - churn)));
+    const kept = Math.max(0, Math.floor(p.customers * (1 - churnWith(inOutage))));
+    if (inOutage && state.outage.cost) state.outage.cost.customers += Math.max(0, Math.floor(p.customers * (1 - churnWith(false))) - kept);
+    p.customers = kept;
 
     if (shortfall > 0) p.health -= decay * shortfall;
     else p.health = Math.min(p.baseHealth, p.health + B.healthRecovery);
@@ -154,7 +157,7 @@ export function sunsetProduct(ctx, p, { quiet = false } = {}) {
     const builder = (s.role === 'engineer' || s.role === 'designer') && s.hiredWeek <= p.launchedWeek;
     if (builder || s.id === p.ownerId) s.meaning = Math.max(0, s.meaning - 10);
   }
-  if (state.outage?.productId === p.id) state.outage = null;
+  if (state.outage?.productId === p.id) outageProductGone(ctx);
   p.ownerId = null;
   const cancelled = state.projects.filter((j) => j.productId === p.id);
   if (cancelled.length) {

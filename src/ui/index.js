@@ -172,6 +172,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const buildMode = createBuildMode({ layer, ctx, controls });
   const camRot = createCamRotate({ layer, controls, sfx });
   ctx.rotateHint = () => camRot.buildHint();
+  ctx.rotateHintHide = () => camRot.hideHint();
   // Hover or long-press a person or an item in the office for its tooltip.
   ctx.sceneTips = createSceneTips({
     tooltips, getState, getRenderer: () => controls.renderer ?? null,
