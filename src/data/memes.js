@@ -18,9 +18,9 @@ export const MEMES = [
   { id: 'is_this_agi', image: 'is_this_agi', when: 'chatbots',
     alt: 'A founder points at an autocomplete bubble and asks: "Is this AGI?"' },
   { id: 'distracted_founder', image: 'distracted_founder', when: 'chatbots',
-    alt: 'A founder holding "our actual product" turns to stare at a passing "new AI feature". "Priorities".' },
+    alt: 'A founder beside "our actual product" turns to stare at a passing "new AI feature". "Priorities".' },
   { id: 'the_bill', image: 'the_bill', when: 'chatbots',
-    alt: 'A founder reads a cloud bill: $41,000, mostly GPU hours and tokens, for 12 users. Caption: "Month one".' },
+    alt: 'A founder reads a cloud bill: $41,000.04, mostly GPU hours and tokens, for 12 users. "Month one".' },
   { id: 'the_plan', image: 'the_plan', when: 'agents',
     alt: 'The plan, on a whiteboard: "1. Add AI. 2. Raise a round. 3. The product is the AI. 4. The AI is the PM."' },
 ];
