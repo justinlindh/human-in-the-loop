@@ -24,6 +24,7 @@ import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
 import { createCamRotate } from './camrot.js';
+import { openTarget } from './openTarget.js';
 import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
@@ -103,6 +104,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     toast: (text, tone) => toasts.push(text, tone),
     open: (id, arg) => menu.open(id, arg),
     close: () => menu.close(),
+    // Folds the big Yak, so a mode it started (desk placement) isn't hidden under it.
+    unmaxYak: () => { if (chat?.maximized) chat.setMax(false); },
     currentMenu: () => menu.current,
     controls,
     sfx,
@@ -151,7 +154,13 @@ export function createUI({ root, getState, dispatch, controls }) {
   const chat = createChat(bottom, {
     getState,
     onName: (id) => { controls.focusStaff?.(id); menu.open('staff', { staffId: id }); },
-    onAnswer: (promptId, choice) => { if (act({ type: 'answerPrompt', promptId, choice }).ok) sfx('confirm'); },
+    // An option's opens (a panel, or an item to place) is acted on once the answer succeeds.
+    onAnswer: (promptId, choice) => {
+      const opens = getState()?.chatPrompts?.find((p) => p.id === promptId)?.options?.[choice]?.opens;
+      if (!act({ type: 'answerPrompt', promptId, choice }).ok) return;
+      sfx('confirm');
+      if (opens) openTarget(ctx, opens);
+    },
     onPost: (id) => { const r = act({ type: 'postMessage', id }); if (r.ok) sfx('confirm'); return r; },
   });
   const menu = createMenu({

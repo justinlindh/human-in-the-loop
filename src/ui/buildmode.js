@@ -58,6 +58,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     if (mode) exit();
     ctx.close();
     ctx.modal?.close();
+    ctx.unmaxYak?.();
     mode = { itemId, rot, moveId, onPlaced, onCancel };
     hover = null;
     lastSig = '';
