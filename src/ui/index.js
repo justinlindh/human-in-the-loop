@@ -273,7 +273,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       const speed = settings.values.speed ?? 1;
       // A first game waits, paused, while the coach marks are up.
       if (fresh && !tutorialDone()) { controls.setSpeed(0); setTimeout(() => tutorial.start(false, speed), 600); }
-      else if (!fresh) setTimeout(() => openRecap(ctx), 400);
+      else if (!fresh) setTimeout(() => { if (!layer.classList.contains('title-mode')) openRecap(ctx); }, 400);
       else controls.setSpeed(speed);
     },
   });
@@ -507,7 +507,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     isBusy,
     update,
     handleEvents,
-    showTitle() { menu.close(); title.show(); },
+    showTitle() { menu.close(); ctx.modal?.close(); title.show(); },
     hideTitle() { title.hide(); },
     openStaff: (id) => menu.open('staff', { staffId: id }),
     openSettings: () => settings.open(),

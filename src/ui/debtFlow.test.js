@@ -22,9 +22,10 @@ describe('tech debt readout', () => {
     expect(r.net).toBeCloseTo(0.3);
   });
 
-  it('explains a debt held at zero by its paydowns', () => {
-    const r = debtReadout({ comprehensionDebt: 0, debtFlow: { ...zero, work: 1, seniors: -3, reviews: -0.5, net: 0 } });
-    expect(r.held).toBe('Senior engineers and reviews hold it at zero');
+  it('says when the debt is capped at 100', () => {
+    const r = debtReadout({ comprehensionDebt: 100, debtFlow: { ...zero, work: 1.2, seniors: -0.4, net: 0 } });
+    expect(r.held).toBe('Maxed out at 100');
+    expect(debtReadout({ comprehensionDebt: 0, debtFlow: { ...zero, work: 1.1, net: 1.1 } }).held).toBeNull();
   });
 
   it('is empty on a fresh game or an old save', () => {

@@ -31,7 +31,6 @@ export function debtTop(flow, n = 3) {
     .slice(0, n);
 }
 
-const andList = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
 
 // { net, sources: 'Shipping code +1.2/wk, Reviews -0.9/wk', held: sentence or null, empty }
 export function debtReadout(state) {
@@ -39,12 +38,7 @@ export function debtReadout(state) {
   const net = Number(flow?.net) || 0;
   const top = debtTop(flow);
   const sources = top.map((x) => `${x.label} ${fmtRate(x.v)}/wk`).join(', ');
-  let held = null;
-  if (Math.abs(net) < EPS && top.some((x) => x.v > 0)) {
-    const debt = state.comprehensionDebt ?? 0;
-    const pay = debtTop(flow, 8).filter((x) => x.v < 0).map((x) => x.label.toLowerCase());
-    if (debt <= 0.5 && pay.length) held = `${andList(pay).replace(/^./, (m) => m.toUpperCase())} ${pay.length > 1 ? 'hold' : 'holds'} it at zero`;
-    else if (debt >= 99.5) held = 'Maxed out at 100';
-  }
+  // Paydowns scale with the debt, so it can't be held at zero; at the cap, inflows can't raise it.
+  const held = Math.abs(net) < EPS && top.some((x) => x.v > 0) && (state.comprehensionDebt ?? 0) >= 99.5 ? 'Maxed out at 100' : null;
   return { net, sources, held, empty: !top.length };
 }
