@@ -24,7 +24,7 @@ function suggestCompany() {
 }
 
 // Title screen over the live diorama: New Game (company name, optional seed), Continue, Settings.
-export function createTitle({ layer, controls, sfx, toast, onStart, openSettings }) {
+export function createTitle({ layer, controls, sfx, toast, onStart, openSettings, getState = null }) {
   const root = h('div.title');
   root.style.display = 'none';
   layer.append(root);
@@ -157,11 +157,13 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   function importReplaceView(text) {
-    const list = controls.listSaves?.() ?? [];
+    // The loaded game autosaves to its own slot, which would overwrite an import placed there.
+    const live = getState?.()?.flags?.saveSlot ?? null;
+    const list = (controls.listSaves?.() ?? []).filter((m) => m.id !== live);
     root.replaceChildren(h('div.tl-card', null, lockup(),
       h('div.tl-form', null,
         h('b', { text: 'Every save slot is taken' }),
-        h('div', { text: 'Pick a company to replace with the imported save. Its current save is lost, so export it first if you want to keep it.' }),
+        h('div', { text: `Pick a company to replace with the imported save. Its current save is lost, so export it first if you want to keep it.${live ? ' The company you have open is not listed: it keeps saving to its own slot.' : ''}` }),
         h('div.tl-slots', null, ...list.map((m) => h('div.tl-slotrow', null,
           h('div.tl-slot.tl-replaceinfo', null, h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }),
             h('span.sinfo', null, h('b', { text: m.companyName ?? 'A company' }), h('span.small.muted', { text: [m.year, ERA[m.eraId]?.name, ago(m.savedAt)].filter(Boolean).join(' · ') }))),

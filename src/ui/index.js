@@ -265,6 +265,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   ui.isMuted = () => settings.isMuted();
   ui.toggleMute = () => { settings.setMuted(!settings.isMuted()); sfx('click'); };
   const title = createTitle({
+    getState,
     layer, controls, sfx,
     toast: (text, tone) => toasts.push(text, tone),
     openSettings: () => settings.open(),
