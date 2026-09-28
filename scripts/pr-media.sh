@@ -3,8 +3,11 @@
 # orphan branch pr-media of this repository (never merged; no history shared with the code) under
 # pr-<n>/ or issue-<n>/ (site-<n>/ or site-issue-<n>/ for the site repository), and the script prints
 # markdown that renders on GitHub.
-# Usage: scripts/pr-media.sh [--comment] [--issue] [--repo <owner/name>] <number> <file>...
-#   --comment   also posts the markdown as a comment on the PR or issue
+# Usage: scripts/pr-media.sh [--print-only] [--issue] [--repo <owner/name>] <number> <file>...
+# It posts the markdown as a comment on the PR or issue, so the media is linked where reviewers and
+# review-verdict.sh look, and prints it.
+#   --print-only  only prints the markdown (for a caller that posts it itself)
+#   --comment     accepted for older callers; commenting is the default
 #   --issue     the number is an issue, not a PR
 #   --repo      the repository the PR or issue is in: justinlindh/human-in-the-loop (the default) or
 #               justinlindh/humanintheloopgame-site. It must exist there.
@@ -12,11 +15,12 @@
 # a small GIF preview that shows inline.
 set -euo pipefail
 
-usage="usage: scripts/pr-media.sh [--comment] [--issue] [--repo <owner/name>] <number> <file>..."
-comment=0; repo=""; kind=pr
+usage="usage: scripts/pr-media.sh [--print-only] [--issue] [--repo <owner/name>] <number> <file>..."
+comment=1; repo=""; kind=pr
 while [ $# -gt 0 ]; do
   case "$1" in
     --comment) comment=1; shift ;;
+    --print-only) comment=0; shift ;;
     --issue) kind=issue; shift ;;
     --repo) repo="${2:?$usage}"; shift 2 ;;
     -*) echo "$usage" >&2; exit 1 ;;

@@ -62,8 +62,15 @@ sync_shared() {
   [ "$(git -C "$dir" branch --show-current)" = main ] && [ -z "$(git -C "$dir" status --porcelain)" ] || return 0
   busy_in "$dir" && { echo "main-guard: the shared checkout is in use; not updating it"; return 0; }
   git -C "$dir" fetch -q origin main || return 0
-  [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ] || return 0
-  git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+  if [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ]; then
+    git -C "$dir" merge -q --ff-only origin/main && echo "main-guard: shared checkout now at $(git -C "$dir" rev-parse --short HEAD)"
+  fi
+  # Its install follows its lockfile, so tools run from it (and the reviewer's servers) have every package.
+  local npm="${MAIN_GUARD_NPM:-npm}"
+  if ! (cd "$dir" && $npm ls --depth=0 >/dev/null 2>&1); then
+    if (cd "$dir" && timeout 900 nice -n 10 $npm ci --no-audit --no-fund >/dev/null 2>&1); then echo "main-guard: shared checkout's node_modules reinstalled from its lockfile"
+    else echo "main-guard: npm ci failed in the shared checkout"; fi
+  fi
 }
 # True while any process waits (blocked in flock) for the exclusive software render lock.
 someone_waits() {
@@ -258,6 +265,9 @@ fi
 if [ -z "$what" ]; then
   echo "main-guard: $short PASS in ${secs}s"
   echo "$sha" >"$STATE/last-green"
+  # The steps main is red on, for auto CI (scripts/auto-ci.sh); only a verdict on main's newest commit
+  # (not an older one a bisect checks) counts.
+  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red"
   status success "Full suite and sweep pass (${secs}s)"
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
@@ -268,6 +278,7 @@ if [ -z "$what" ]; then
 fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
+git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && echo "$short $what" >"$STATE/red"
 status failure "Red: $what"
 # Report first, so a run stopped later (by the service's time limit, say) cannot lose it: the next
 # tick sees this commit as checked.

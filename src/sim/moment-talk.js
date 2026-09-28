@@ -4,61 +4,81 @@ import { seatOf } from './office.js';
 import { isIn } from './props.js';
 import { MOMENT_TALK, CELEBRATION_TALK } from '../data/moment-talk.js';
 
-// The sim knows desk tiles; the renderer also guards people who walk into the scene.
+// Who can speak for a staged moment: the person the stage names, then the subject, then people in the office
+// seated within B.momentTalkRadius tiles of the prop. Someone with no seat is only in range when named.
 export function momentCast(state, decision) {
   const here = state.staff.filter(isIn), st = decision.stage;
+  const onTile = Number.isFinite(st?.x) && Number.isFinite(st?.y);
   const distance = (p) => {
     const seat = seatOf(state, p.id);
-    return seat && Number.isFinite(st?.x) && Number.isFinite(st?.y)
-      ? Math.hypot(seat[0] - st.x, seat[1] - st.y) : 0;
+    return seat && onTile ? Math.hypot(seat[0] - st.x, seat[1] - st.y) : Infinity;
   };
-  const named = new Set([st?.staffId, decision.subjectId]);
+  const named = new Set([st?.staffId, decision.subjectId].filter(Boolean));
   if (decision.eventId === 'first_user_test') for (const p of here) if (p.founder) named.add(p.id);
-  const near = here.filter(p => named.has(p.id) || distance(p) <= B.momentTalkRadius);
-  const pool = near.length ? near : [...here].sort((a, b) => distance(a) - distance(b)).slice(0, 1);
+  const near = here.filter((p) => named.has(p.id) || distance(p) <= B.momentTalkRadius);
+  const pool = near.length ? near : onTile ? [...here].sort((a, b) => distance(a) - distance(b)).slice(0, 1) : here;
   return pool.sort((a, b) => Number(b.id === st?.staffId) - Number(a.id === st?.staffId)
     || Number(named.has(b.id)) - Number(named.has(a.id)) || distance(a) - distance(b));
 }
 
-function draw(state, decision, choice) {
+// Cosmetic draws come from a stream of their own, so they never advance the game's RNG.
+function momentRng(state, eventId) {
+  let seed = (state.seed >>> 0) + state.week;
+  for (const c of eventId) seed = Math.imul(seed, 31) + c.charCodeAt(0);
+  return createRng((seed + (state.flags.momentSaySeq ?? 0)) >>> 0);
+}
+
+// Lines not heard recently come first, so a moment that comes back picks different words.
+function draw(state, rng, decision, choice) {
   const pool = MOMENT_TALK[decision.eventId] ?? CELEBRATION_TALK[decision.eventId];
-  if (!pool) return [];
-  const lines = choice == null ? pool.open : pool.choices[choice];
+  const lines = choice == null ? pool?.open : pool?.choices?.[choice];
   if (!lines) return [];
-  // Cosmetic draws and ids never advance the economy's RNG or shared id counter.
-  let seed = state.seed + state.week;
-  for (const c of decision.eventId) seed = Math.imul(seed, 31) + c.charCodeAt(0);
-  return shuffle(createRng(seed + (state.flags.momentSaySeq ?? 0)), lines);
+  const recent = state.flags.momentRecent ?? [];
+  const shuffled = shuffle(rng, lines);
+  return [...shuffled.filter((t) => !recent.includes(t)), ...shuffled.filter((t) => recent.includes(t))];
 }
 
+// Speaks a moment's own lines: up to B.momentTalkLines when it opens, one when a choice is made.
 export function emitMomentTalk(ctx, decision, choice = null) {
-  const cast = momentCast(ctx.state, decision), lines = draw(ctx.state, decision, choice);
-  const count = choice == null ? Math.min(B.momentTalkLines, cast.length) : Math.min(1, cast.length);
-  for (let i = 0; i < count && i < lines.length; i++) {
-    ctx.state.flags.momentSaySeq = (ctx.state.flags.momentSaySeq ?? 0) + 1;
-    ctx.emit({ type: 'say', id: `momentSay${ctx.state.flags.momentSaySeq}`, week: ctx.state.week,
+  const { state } = ctx;
+  const rng = momentRng(state, decision.eventId);
+  const lines = draw(state, rng, decision, choice);
+  if (!lines.length) return;
+  let cast = momentCast(state, decision);
+  const named = new Set([decision.stage?.staffId, decision.subjectId].filter(Boolean));
+  // An untiled moment (a party) has the whole office in range: the named go first, the rest in a random order.
+  if (!Number.isFinite(decision.stage?.x)) cast = [...cast.filter((p) => named.has(p.id)), ...shuffle(rng, cast.filter((p) => !named.has(p.id)))];
+  const count = Math.min(choice == null ? B.momentTalkLines : 1, cast.length, lines.length);
+  const recent = (state.flags.momentRecent ??= []);
+  for (let i = 0; i < count; i++) {
+    state.flags.momentSaySeq = (state.flags.momentSaySeq ?? 0) + 1;
+    ctx.emit({ type: 'say', id: `momentSay${state.flags.momentSaySeq}`, week: state.week,
       staffId: cast[i].id, text: lines[i], toId: null, replyTo: null, moment: decision.eventId });
+    recent.push(lines[i]);
   }
+  if (recent.length > B.momentTalkMemory) recent.splice(0, recent.length - B.momentTalkMemory);
 }
 
-// Runs after ordinary talk and restaging, so nudges and exchanges cannot give the cast an unrelated line.
+// At the end of the week, after restaging: a decision or staged prompt that opened this week speaks its
+// opening lines with its final cast. Otherwise a launch, award or party gets a line or two, at most once
+// every B.partyTalkGapWeeks. Ordinary chatter is left alone; the renderer drops unmarked lines near a moment.
 export function momentTalkSystem(ctx) {
-  const decisions = [ctx.state.pendingDecision, ...(ctx.state.chatPrompts ?? [])
-    .filter(p => !p.resolved && p.stage).map(p => ({ ...p, eventId: p.kind }))].filter(d => d?.stage && MOMENT_TALK[d.eventId]);
-  const party = ctx.events.find(e => CELEBRATION_TALK[e.type]);
-  if (!decisions.length && party && !ctx.events.some(e => e.type === 'incentive')) {
-    const d = { eventId: party.type, subjectId: party.staffId, stage: { anchor: 'screens' } };
-    decisions.push(d);
-    emitMomentTalk(ctx, d);
+  const { state } = ctx;
+  const week = [...ctx.events];
+  let spoke = false;
+  if (state.pendingDecision?.stage && week.some((e) => e.type === 'decision')) {
+    emitMomentTalk(ctx, state.pendingDecision);
+    spoke = true;
   }
-  for (const d of decisions) {
-    const cast = new Set(momentCast(ctx.state, d).map(p => p.id));
-    const lines = draw(ctx.state, d, null);
-    let n = 0;
-    for (const e of ctx.events) {
-      if (e.type !== 'say' || e.moment) continue;
-      if (!cast.has(e.staffId)) continue;
-      Object.assign(e, { text: lines[n++ % lines.length], moment: d.eventId, toId: null, replyTo: null });
-    }
+  for (const e of week) {
+    if (e.type !== 'chatPrompt') continue;
+    const p = (state.chatPrompts ?? []).find((x) => x.id === e.promptId && !x.resolved);
+    if (p?.stage && MOMENT_TALK[p.kind]) { emitMomentTalk(ctx, { ...p, eventId: p.kind }); spoke = true; }
   }
+  if (spoke || week.some((e) => e.type === 'incentive')) return;
+  const party = week.find((e) => CELEBRATION_TALK[e.type]);
+  const last = state.flags.partyTalkWeek;
+  if (!party || (last !== undefined && state.week - last < B.partyTalkGapWeeks)) return;
+  state.flags.partyTalkWeek = state.week;
+  emitMomentTalk(ctx, { eventId: party.type, subjectId: party.staffId ?? null, stage: { anchor: 'screens' } });
 }

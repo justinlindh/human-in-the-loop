@@ -31,7 +31,7 @@ guard() { # <gh log> <open file> [env assignments...] -- [guard args...]
   local log="$1" open="$2"; shift 2
   local envs=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
   env GH_LOG="$log" GH_OPEN="$open" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$case_root" HITL_LOCK_DIR="$tmp/locks" \
-    MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
+    MAIN_GUARD_NPM="${MAIN_GUARD_NPM:-true}" MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
 }
 expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x looks in the guard's output>
   local w want; IFS='|' read -ra want <<<"$3"
@@ -114,6 +114,15 @@ sleep 0.3
 guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
 [ "$(git -C "$shared" rev-parse HEAD)" != "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a busy shared checkout was updated"; fails=$((fails + 1)); }
 kill "$busy" 2>/dev/null
+wait "$busy" 2>/dev/null
+# A shared checkout whose install doesn't match its lockfile is reinstalled.
+cat >"$tmp/npm" <<SH
+#!/usr/bin/env bash
+case "\$1" in ls) exit 1 ;; ci) echo ci >>"$tmp/npm-ci" ;; esac
+SH
+chmod +x "$tmp/npm"
+MAIN_GUARD_NPM="$tmp/npm" guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ "$(wc -l <"$tmp/npm-ci" 2>/dev/null || echo 0)" -ge 1 ] || { echo "FAIL a stale shared install was not reinstalled"; fails=$((fails + 1)); }
 
 # Bisect: last green four merges back, red from the second of them on: the first red one is named.
 mapfile -t fp < <(git -C "$REPO" rev-list --first-parent -n 5 HEAD)
@@ -160,8 +169,11 @@ if [ ${#fp[@]} -eq 5 ]; then
 fi
 # The uncached golden run: a failure marks main red, one that fails on the machine gives no verdict.
 case_root="$tmp/root-golden"; gl="$tmp/golden.log"; : >"$gl"
-guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
 expect 'an uncached golden failure marks main red' "$gl" "state=failure|golden-uncached|--label main-red"
+grep -q "golden-uncached" "$tmp/root-golden/main-guard/red" 2>/dev/null || { echo "FAIL a red newest commit should leave its red steps for auto CI"; fails=$((fails + 1)); }
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
+[ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL a green newest commit should clear the red steps"; fails=$((fails + 1)); }
 case_root="$tmp/root-golden2"; : >"$gl"
 guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "Error: ENOSPC: no space left on device"; exit 1' -- --sha HEAD
 expect 'an uncached golden run that fails on the machine gives no verdict' "$gl" "state=error|golden: ENOSPC|!state=failure|!--label main-red"

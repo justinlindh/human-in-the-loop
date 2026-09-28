@@ -72,6 +72,8 @@ export const CLEAR_CARDS = `(() => { for (let i = 0; i < 8; i++) { const b = [..
 // presented on the way (no launch cards, incidents or toasts), until a Yak message containing `until`
 // is in the log; then shows only the new messages that contain one of `show`. A nod's payoff weeks
 // later lands on screen now, and quietly.
+// Closes unlock and "new things to place" cards the way a player would ("Got it", "Later").
+export const LATER = "[...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && ['Got it', 'Later'].includes(b.textContent.trim())).forEach((b) => b.click())";
 const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
@@ -86,6 +88,18 @@ const QUIET_UNTIL_CHAT = (until, show, max) => `(async () => {
 })()`;
 // Marks the clip time (window.__captureMarks, saved in index.json) when a moment starts or ends, so
 // the reel lays music in on the moment's own start signal.
+// Camera path targets: the view the page opened on, and where an item placed during the clip stands
+// (the newest of its kind, so a key must come after the placement). Both are read once and kept.
+export const FITTED_VIEW = `(window.__fittedView ??= (() => { const v = window.__hitlRender.view(); return { x: v.x, z: v.z }; })())`;
+export const PLACED_AT = (itemId) => `(window.__placedAt ??= (() => {
+  const R = window.__hitlRender, s = window.__HITL.state, e = s.office.placed.filter((i) => i.itemId === ${JSON.stringify(itemId)}).at(-1);
+  if (!e) return undefined;
+  let o = null; R.scene.traverse((x) => { if (!o && x.userData?.placedId === e.id) o = x; });
+  if (!o) return undefined;
+  const v = o.getWorldPosition(new R.THREE.Vector3()); return { x: v.x, z: v.z };
+})())`;
+// Marks each perk use as it starts ('propUse <itemId>'), so a cut can wait for the first game.
+export const PROP_USE_MARKS = `(() => { const t0 = window.__capture.now; addEventListener('hitl:propUse', (e) => (window.__captureMarks ??= []).push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'propUse ' + e.detail.itemId + ' ' + e.detail.staffIds.length })); })()`;
 export const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__captureMarks = []; addEventListener('hitl:moment', (e) => window.__captureMarks.push({ t: +((window.__capture.now - t0) / 1000).toFixed(3), label: 'hitl:moment ' + e.detail.phase + ' ' + e.detail.key })); })()`;
 // Keeps the camera on what a beat is about from `from` to `to`, re-aimed every frame: a critically
 // damped spring glides the look point onto the staged prop, the printer while it is carried, or the visitors,
@@ -537,21 +551,21 @@ export const ITEMS = [
   // up a second into the clip. The moment camera follows staged moments; props get a close focus.
   {
     // The shareable printer clip: the nods-printer beat with the card held about 6 s before the choice.
-    id: 'share-printer', group: 'share', title: 'PC LOAD LETTER (shareable)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 28.5, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
+    id: 'share-printer', group: 'share', title: 'PC LOAD LETTER (shareable)', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 31, warmup: 6.5,
+    setup: `(() => { ${BARE}; })()`,
     actions: [
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 28.5),
+      ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 31),
       { at: 7, js: KEY('1', 'Digit1') },
       ...DISMISS_AT([7.5, 8, 9], { escape: false }),
-      ...CAMLOG(28.5),
+      ...CAMLOG(31),
     ],
-    screenshots: [4, 17, 23],
+    screenshots: [4, 17, 23, 28.5],
   },
   {
     id: 'nods-printer', group: 'nods', title: 'PC LOAD LETTER: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
-    actions: [
+    setup: `(() => { ${BARE}; })()`,
+    actions: [...CAMLOG(25), 
       { at: 0, js: MARK_MOMENTS }, ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...NODS_FOLLOW(['printer_jammed'], 2.4, 0, 25),
       { at: 3.5, js: KEY('1', 'Digit1') },
@@ -560,46 +574,48 @@ export const ITEMS = [
     screenshots: [2, 14, 20],
   },
   {
-    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 11, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
-    actions: [
+    id: 'nods-stapler', group: 'nods', title: 'The red stapler, and the lost and found', query: 'seed=1&speed=1', moment: 'the_stapler', pre: true, seconds: 14.5, warmup: 6.5,
+    setup: `(() => { ${BARE}; })()`,
+    actions: [...CAMLOG(14.5), 
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['stapler']) })),
-      ...NODS_FOLLOW(['stapler'], 3.2, 0, 6),
-      { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5, 5], { escape: false }),
-      { at: 6, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
-      { at: 6.1, js: YAK }, { at: 6.3, js: CLICK_STARTS('#random') },
+      ...NODS_FOLLOW(['stapler'], 3.2, 0, 9.5),
+      { at: 7.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([8, 8.5], { escape: false }),
+      { at: 9.5, js: QUIET_UNTIL_CHAT('lost and found', ['lost and found'], 60) },
+      // The weeks skipped can raise unlock cards over Yak; close them as a player would.
+      ...[9.55, 9.6].map((at) => ({ at, js: LATER })),
+      { at: 9.65, js: YAK }, { at: 9.8, js: CLICK_STARTS('#random') },
     ],
-    screenshots: [2, 9],
+    screenshots: [2, 12.5],
   },
   {
-    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 7, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
-    actions: [
+    id: 'nods-cover-sheets', group: 'nods', title: 'TPS reports: the new cover sheets', query: 'seed=1&speed=1', moment: 'cover_sheets', pre: true, seconds: 10.5, warmup: 6.5,
+    setup: `(() => { ${BARE}; })()`,
+    actions: [...CAMLOG(10.5), 
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
       ...[1.5, 2, 2.5, 3].map((at) => ({ at, js: BEST_VIEW(['cover_sheets']) })),
-      ...NODS_FOLLOW(['cover_sheets'], 3.2, 0, 7),
-      { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5], { escape: false }),
+      ...NODS_FOLLOW(['cover_sheets'], 3.2, 0, 10.5),
+      { at: 7.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([8], { escape: false }),
     ],
-    screenshots: [2, 6],
+    screenshots: [2, 9.5],
   },
   {
-    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 13, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
-    actions: [...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 13), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
+    id: 'nods-consultants', group: 'nods', title: 'The consultants: what would you say you do here?', query: 'seed=1&speed=1', moment: 'efficiency_consultants', pre: true, seconds: 15, warmup: 6.5,
+    setup: `(() => { ${BARE}; })()`,
+    actions: [...CAMLOG(15), ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })), ...NODS_FOLLOW(['visitor_chair'], 3.2, 0, 15), { at: 9, js: KEY('2', 'Digit2') }, ...DISMISS_AT([9.5, 10], { escape: false })],
     screenshots: [5, 11],
   },
   {
-    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 9, warmup: 6.5,
-    setup: `(() => { ${BARE}; ${NO_SAY}; })()`,
-    actions: [
+    id: 'nods-banner', group: 'nods', title: 'Is this good for the company?', query: 'seed=1&speed=1', moment: 'banner_company', pre: true, seconds: 12.5, warmup: 6.5,
+    setup: `(() => { ${BARE}; })()`,
+    actions: [...CAMLOG(12.5), 
       ...[0, 0.5, 1, 1.5].map((at) => ({ at, js: CLEAR_CARDS })),
-      ...NODS_FOLLOW(['banner_company'], 3, 0, 5),
-      { at: 4, js: KEY('1', 'Digit1') },
-      ...DISMISS_AT([4.5, 5], { escape: false }),
-      ...NODS_FOLLOW(['banner_company'], 4, 5, 9),
+      ...NODS_FOLLOW(['banner_company'], 3, 0, 8.5),
+      { at: 7.5, js: KEY('1', 'Digit1') },
+      ...DISMISS_AT([8, 8.5], { escape: false }),
+      ...NODS_FOLLOW(['banner_company'], 4, 8.5, 12.5),
     ],
     screenshots: [2, 7],
   },
@@ -641,11 +657,13 @@ export const ITEMS = [
   {
     // Trailer beat 4: on the Office Floor the player places a foosball table with the cursor, and two
     // people come over to play.
-    id: 'trail-build', group: 'trailer', title: 'Trailer: build mode, a foosball table placed', query: 'seed=1&speed=1&time=day', seconds: 9, warmup: 1,
+    id: 'trail-build', group: 'trailer', title: 'Trailer: build mode, a foosball table placed, then played', query: 'seed=1&speed=1&time=day', seconds: 10, warmup: 1,
     setup: `(async () => { await ${PLAY({ weeks: 400, until: 's.office.stage === 1 && s.staff.length >= 10', after: IN_OFFICE + 's.cash = Math.max(s.cash, 50000);' })}; ${BUILD_ONLY}; ${NO_SAY}; })()`,
-    // Closer than the fitted view, set before the glide so the spot search sees the final framing.
-    actions: [...CLEAR_EARLY, { at: 0.05, js: '(() => { const R = window.__hitlRender, v = R.view(); R.focusAt(v.x, v.z, 1.7); })()' }, ...BUILD_GLIDE({ itemId: 'foosball', at: 0.6 }), ...CAMLOG(9)],
-    screenshots: [1.2, 2.2, 2.6, 5, 8],
+    // Closer than the fitted view from the first frame, so the spot search sees the final framing.
+    actions: [...CLEAR_EARLY, ...BUILD_GLIDE({ itemId: 'foosball', at: 0.6 }), { at: 3.2, js: KEY('Escape') }, ...CAMLOG(10), { at: 0, js: PROP_USE_MARKS }],
+    // Holds the build view, then eases in on the table as the pair walks over; play starts near 5.9 s.
+    camera: [{ at: 0, target: { js: FITTED_VIEW }, zoom: 1.7 }, { at: 5.0, zoom: 1.7 }, { at: 7.0, target: { js: PLACED_AT('foosball') }, zoom: 2.8, ease: 'inOut' }],
+    screenshots: [1.2, 2.6, 5, 7, 8.5, 9.5],
   },
   {
     // Trailer beat 5a: the hire panel open over the Office Floor, a candidate hired, at the first week

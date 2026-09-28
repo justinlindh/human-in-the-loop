@@ -24,8 +24,9 @@ function scoreClass(v) {
   return v >= 8 ? 'great' : v >= 6 ? 'ok' : v >= 4 ? 'meh' : 'bad';
 }
 
-export function reportsPanel(ctx) {
-  let tab = 'overview';
+export function reportsPanel(ctx, arg) {
+  // A productId opens the Products tab (an advisor option pointing at one product).
+  let tab = arg?.productId ? 'products' : 'overview';
   const t = tabs([
     { id: 'overview', icon: 'chart', label: 'Money' },
     { id: 'people', icon: 'team', label: 'People' },
@@ -155,7 +156,7 @@ export function reportsPanel(ctx) {
           options: [{ value: '', label: 'No owner', sub: 'Nobody answers for it' }, ...s.staff.map((x) => personOption(x, { busy: null, free: false }))],
           onChange: (v) => ctx.act({ type: 'setOwner', productId: p.id, staffId: v || null }),
         }).el;
-        return h('div.card.prodcard', null,
+        return h('div.card.prodcard', { dataset: { product: p.id } },
           h('div.row', null,
             h(`div.score.${scoreClass(p.score)}`, { title: 'Review average' }, p.score.toFixed(1)),
             h('div', { style: { minWidth: 0 } }, h('b.pname', { text: `${p.name} v${p.version}` }),

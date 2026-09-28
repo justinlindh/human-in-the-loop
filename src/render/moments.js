@@ -4,6 +4,7 @@ import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
 import { printerModel, visitorChairModel } from './props.js';
+import { MOMENT_KINDS } from './spotlight-kinds.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -213,7 +214,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         if (kind === 'letter') releaseLetter(r);
         else { r.temp = null; if (r.goal) walkTo(r, r.goal); }
       }
-    }, 30, at, () => live().length > 0);
+    }, MOMENT_KINDS[kind]?.seconds, at, () => live().length > 0);
   }
 
   function pizza(p, dt) {

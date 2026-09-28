@@ -1,0 +1,51 @@
+/* Advisors: the lightbulb in the top-right chip with a count, a rare peek at the screen edge, and a
+   small panel of lines with Show me and Not now. */
+.hitl .advface { flex: none; display: inline-grid; place-items: center; border-radius: 50%; border: 0.12em solid var(--ink); color: #fff;
+  font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.25); }
+
+/* A portrait fills the badge; the ink ring stays as its frame. */
+.hitl .advface.portrait { background: var(--cream-2) !important; overflow: hidden; }
+.hitl .advface.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* The dot: the latest notice is unseen. */
+.hitl .advbtn { position: relative; }
+.hitl .advbtn .advcount { position: absolute; top: -0.25em; right: -0.25em; display: none; width: 0.75em; height: 0.75em; border-radius: 50%;
+  background: var(--red); border: 0.12em solid var(--ink); pointer-events: none; }
+.hitl .advbtn .advcount.show { display: block; }
+.hitl .advbtn.glow { background: #fff3d6; box-shadow: 0 0 0 0.25em rgba(255, 176, 32, 0.6); }
+
+/* The peek: a face and a one-line bubble, bottom right on desktop, under the top rows on phones. */
+.hitl .advpeek { position: absolute; right: 0.9em; bottom: calc(var(--bottom-h, 6em) + 1em); display: flex; align-items: center; gap: 0.6em;
+  max-width: min(24em, calc(100% - 1.8em)); padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  pointer-events: none; opacity: 0; visibility: hidden; transform: translateY(0.8em); transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms; }
+.hitl .advpeek.show { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: opacity 300ms ease, transform 300ms ease, visibility 0s; }
+.hitl .advpeek-face .advface { box-shadow: 0 0.2em 0 var(--ink); font-size: 0.9em; }
+.hitl .advpeek-bub { background: var(--cream); border: 0.14em solid var(--ink); border-radius: 0.9em; padding: 0.5em 0.75em; box-shadow: 0 0.2em 0 var(--ink);
+  font-size: 0.86em; line-height: 1.3; display: flex; flex-direction: column; gap: 0.15em; }
+.hitl .advpeek-bub b { font-size: 0.85em; color: var(--ink-soft); }
+.hitl .advpeek-more { font-weight: 700; color: var(--blue); font-size: 0.85em; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .advpeek { bottom: calc(var(--bottom-h, 6em) + 4.6em); right: 0.6em; z-index: 5; }
+}
+@media (prefers-reduced-motion: reduce) { .hitl .advpeek { transition: opacity 200ms linear; transform: none; } }
+
+.hitl .advlist { display: flex; flex-direction: column; gap: 0.7em; }
+.hitl .advitem { display: flex; gap: 0.7em; align-items: flex-start; padding: 0.6em 0.7em; border-radius: 0.7em; background: var(--cream-2); border-left: 0.35em solid var(--line); }
+.hitl .advitem.sev-urgent { border-left-color: var(--red); background: #ffefe9; }
+.hitl .advitem.sev-warn { border-left-color: var(--yellow); }
+.hitl .advbody { display: flex; flex-direction: column; gap: 0.25em; min-width: 0; }
+.hitl .advtext { font-weight: 600; line-height: 1.3; }
+.hitl .advwhy { color: var(--ink-soft); line-height: 1.3; }
+.hitl .advacts { display: flex; gap: 0.5em; margin-top: 0.2em; flex-wrap: wrap; }
+.hitl .advearlier { display: flex; flex-direction: column; gap: 0.25em; margin-top: 0.3em; }
+.hitl .advearlier-t { font-weight: 700; }
+.hitl .advearlier-row { display: flex; align-items: center; gap: 0.5em; padding: 0.3em 0.45em; border: 0; border-radius: 0.5em; background: transparent;
+  font: inherit; color: inherit; text-align: left; cursor: pointer; pointer-events: auto; }
+.hitl .advearlier-row:hover { background: var(--cream-2); }
+.hitl .advearlier-text { flex: 1; min-width: 0; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .advacts .advopt { white-space: normal; text-align: left; line-height: 1.2; }
+.hitl .advopt .advplace { margin-left: 0.45em; padding: 0 0.4em; border-radius: 0.6em; background: rgba(255, 255, 255, 0.28); font-size: 0.85em; font-weight: 600; }
+/* The row an advisor option points at, flashed once when its panel opens. */
+.hitl .advflash { animation: hitl-adv-flash 1.6s ease-out; }
+@keyframes hitl-adv-flash { 0%, 40% { box-shadow: 0 0 0 0.3em rgba(255, 176, 32, 0.85); } 100% { box-shadow: 0 0 0 0 rgba(255, 176, 32, 0); } }
+@media (prefers-reduced-motion: reduce) { .hitl .advflash { animation: none; outline: 0.2em solid var(--yellow); } }
