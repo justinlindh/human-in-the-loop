@@ -1,22 +1,52 @@
 #!/usr/bin/env bash
-# Refuses to push to a branch whose pull request is already merged or closed: those commits would
-# never reach main. Put them on a new branch and open a new PR instead.
+# Before a push:
+# - refuses to push to a branch whose pull request is already merged or closed: those commits would
+#   never reach main. Put them on a new branch and open a new PR instead.
+# - runs `npm run test:fast` and refuses the push when it fails. The run is cached per tree
+#   (scripts/test-cache.sh), so a tree that already passed costs well under a second. It tests the
+#   checkout as it is, uncommitted changes included. Skipped in CI, for a push that only touches the
+#   pr-media branch or deletes branches, and where package.json has no test:fast.
 # Installed by `npm run hooks` (core.hooksPath scripts/hooks: each worktree runs its own copy).
 # Skip once with `git push --no-verify`.
 set -u
-command -v gh >/dev/null 2>&1 || { echo "pre-push: gh not found; merged-PR check skipped" >&2; exit 0; }
+refs="$(cat)"
 status=0
+if command -v gh >/dev/null 2>&1; then
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+    [ "$local_sha" = 0000000000000000000000000000000000000000 ] && continue   # branch deletion
+    branch="${remote_ref#refs/heads/}"
+    states="$(gh pr list --head "$branch" --state all --json number,state --jq '.[] | "\(.number) \(.state)"' 2>/dev/null)" \
+      || { echo "pre-push: could not ask GitHub about $branch; merged-PR check skipped" >&2; continue; }
+    [ -z "$states" ] && continue                                   # no PR yet
+    echo "$states" | grep -q " OPEN$" && continue                   # an open PR still takes pushes
+    done_pr="$(echo "$states" | head -1)"
+    echo "pre-push: refusing to push $branch: PR #${done_pr% *} is ${done_pr#* } (no open PR uses this branch)." >&2
+    echo "pre-push: new commits here would never merge. Start a new branch from origin/main, cherry-pick them, and open a new PR." >&2
+    status=1
+  done <<<"$refs"
+else
+  echo "pre-push: gh not found; merged-PR check skipped" >&2
+fi
+[ $status -eq 0 ] || exit $status
+
+# The test gate: only for pushes that add commits to a branch other than pr-media.
+code_push=0
 while read -r local_ref local_sha remote_ref remote_sha; do
-  case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
-  [ "$local_sha" = 0000000000000000000000000000000000000000 ] && continue   # branch deletion
-  branch="${remote_ref#refs/heads/}"
-  states="$(gh pr list --head "$branch" --state all --json number,state --jq '.[] | "\(.number) \(.state)"' 2>/dev/null)" \
-    || { echo "pre-push: could not ask GitHub about $branch; merged-PR check skipped" >&2; continue; }
-  [ -z "$states" ] && continue                                   # no PR yet
-  echo "$states" | grep -q " OPEN$" && continue                   # an open PR still takes pushes
-  done_pr="$(echo "$states" | head -1)"
-  echo "pre-push: refusing to push $branch: PR #${done_pr% *} is ${done_pr#* } (no open PR uses this branch)." >&2
-  echo "pre-push: new commits here would never merge. Start a new branch from origin/main, cherry-pick them, and open a new PR." >&2
-  status=1
-done
-exit $status
+  [ -n "${remote_ref:-}" ] || continue
+  [ "$local_sha" = 0000000000000000000000000000000000000000 ] && continue
+  [ "$remote_ref" = refs/heads/pr-media ] && continue
+  code_push=1
+done <<<"$refs"
+[ $code_push = 1 ] || exit 0
+[ -n "${CI:-}" ] && exit 0
+grep -q '"test:fast"' package.json 2>/dev/null || exit 0
+log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+if ! npm run -s test:fast >"$log" 2>&1; then
+  tail -25 "$log" >&2
+  echo "pre-push: refusing the push: npm run test:fast failed on this checkout (last lines above). Fix it, or push with --no-verify if the failure isn't yours." >&2
+  exit 1
+fi
+[ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || echo "pre-push: note: tests ran on this checkout including uncommitted changes, not only the pushed commits" >&2
+grep -E '^ *(test-cache: skipped|Tests )' "$log" | head -2 | sed 's/^ */pre-push: /' >&2
+exit 0
