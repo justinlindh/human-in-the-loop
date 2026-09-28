@@ -113,11 +113,16 @@ export function createOfficeGrowth({ recs, labels, parent, low, ready, blocked, 
     const cast = [];
     if (medium) {
       const cheer = (actor, star) => {
-        const temp = { anim: `${star ? 'growthpump' : 'growthclap'}${actor.char.seated ? 'sit' : ''}`, t: seconds, keepPos: true, growthOffice: true, tick: (actor, dt) => { if (actor.face) actor.yaw += Math.atan2(Math.sin(actor.face.yaw - actor.yaw), Math.cos(actor.face.yaw - actor.yaw)) * Math.min(1, dt * tune.pumpRate); return false; } };
+        const temp = { anim: `${star ? 'growthpump' : 'growthclap'}${actor.char.seated ? 'sit' : ''}`, t: seconds, keepPos: true, growthOffice: true, tick: (actor, dt, tp) => {
+          // Hold the beat's facing for its length, so a conversation can't turn them back mid-beat.
+          if (tp.face) actor.face = { ...tp.face };
+          if (actor.face) actor.yaw += Math.atan2(Math.sin(actor.face.yaw - actor.yaw), Math.cos(actor.face.yaw - actor.yaw)) * Math.min(1, dt * tune.pumpRate);
+          return false;
+        } };
         actor.temp = temp; cast.push({ r: actor, temp });
         // Coworkers turn to the star; the star turns toward the camera, as far as a chair allows.
-        // Coworkers turn to the star; the star turns toward the camera, as far as a chair allows.
         faceToward(actor, star ? null : r, seconds);
+        temp.face = actor.face ? { ...actor.face } : null;
       };
       cheer(r, true);
       let n = 0;
