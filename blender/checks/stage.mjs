@@ -169,7 +169,7 @@ const SPECS = {
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
     share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
-    visibleRule,
+    { ...visibleRule, known: 925 },
   ] },
   // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
   'screen.recoil': { moment: 'screen', beat: 'recoil', rules: [
@@ -213,8 +213,11 @@ const SCENARIOS = {
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
     steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
-  // The consultants at the HQ door, where the sim stages their chair.
-  consultants: { query: 'mock=hq', patch: {}, seconds: 22,
+  // The consultants at the HQ door, where the sim stages their chair. Who walks in to be
+  // interviewed (the nearest idle staffer, seeded) decides how long the walk takes, so the interview
+  // beat is scored for a fixed window starting once they arrive, not over the whole run.
+  consultants: { query: 'mock=hq', patch: {}, arriveSeconds: 20, beatSeconds: 6,
+    arrive: { role: 'interviewee', beat: 'interview' },
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
 
@@ -272,7 +275,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { moment, view } = task;
     const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns }) => {
+    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns, arrive, arriveSeconds, beatSeconds }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
       // The probe raycasts every actor every frame; a tree per mesh makes that cheap (harness.mjs).
@@ -293,7 +296,15 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       const samples = [];
       // Everyone the moment takes part, each sampled every frame until the moment is over for all.
       const actors = new Set();
-      for (let f = 0; f < seconds * 30; f++) {
+      // A scenario with `arrive` scores a fixed beatSeconds window starting once that role reaches
+      // its beat, rather than over the whole run: how long the walk there takes must not change how
+      // much of the beat gets scored. arriveSeconds bounds the wait; past it, nobody arrived.
+      // A role's beat can read as the arrival beat before it starts walking (staged, but not yet
+      // sent off): only count arriving once that role has actually been seen walking first.
+      let arrivedAt = null, sawWalk = false;
+      const cap = arrive ? (arriveSeconds + beatSeconds) * 30 : seconds * 30;
+      let f = 0;
+      for (; f < cap; f++) {
         for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
         window.__step(1);
         for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
@@ -326,11 +337,17 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
           }
           samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
+          if (arrive && st?.role === arrive.role) {
+            if (arrivedAt === null && sawWalk && m.beat === arrive.beat) arrivedAt = f;
+            if (m.beat === 'walk') sawWalk = true;
+          }
         }
+        if (arrive && arrivedAt === null && f >= arriveSeconds * 30 - 1) return { actors: [...actors], samples, spots: R.debug?.spots ?? {}, arriveTimedOut: true };
+        if (arrive && arrivedAt !== null && f >= arrivedAt + beatSeconds * 30 - 1) break;
         if (samples.length && !live) break;
       }
       return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
-    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns });
+    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns, arrive: sc.arrive ?? null, arriveSeconds: sc.arriveSeconds ?? sc.seconds, beatSeconds: sc.beatSeconds ?? 0 });
     await page.close();
     results.set(task, { res, errors });
   }
@@ -343,8 +360,13 @@ for (const task of tasks) {
   {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
+    const sc = SCENARIOS[task.scenario];
     const firstRow = rep.rows.length;
-    if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    if (errors.length) rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    if (res.arriveTimedOut) {
+      rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'arrived', value: 0, want: `${sc.arrive.role} reaches the beat within ${sc.arriveSeconds}s`, pass: false });
+      continue;
+    }
     // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
     // wall and still pass. Walking and waiting are between beats and need none.
     if (view.turns === 0) {
