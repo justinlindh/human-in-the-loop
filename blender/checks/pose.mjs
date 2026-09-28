@@ -114,9 +114,13 @@ function normalizeSceneRequest({ get, flag, getAll }) {
   const frames = clip != null ? Array.from({ length: Math.floor((Number(clip) * 30) / every) + 1 }, (_, i) => i * every) : String(get('frames', '0')).split(',').map(Number).sort((a, b) => a - b);
   const whoRaw = get('who', null);
   const eventRaw = get('event', null);
+  // The CLI spells this 'off' ('--rig off'); a --serve request may send the JSON boolean false
+  // instead, so both count as off (only the string 'off' or the boolean false do; anything else,
+  // including a missing field, is on).
+  const rigRaw = get('rig', 'on');
   return {
     mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
-    rig: get('rig', 'on') !== 'off', view: Number(get('view', 0)), warm: Number(get('warm', 30)),
+    rig: rigRaw !== 'off' && rigRaw !== false, view: Number(get('view', 0)), warm: Number(get('warm', 30)),
     frames, who: whoRaw ? (Array.isArray(whoRaw) ? whoRaw : String(whoRaw).split(',')) : null, rules,
     patchJs: get('patch-js', null),
     events: eventRaw ? (typeof eventRaw === 'string' ? JSON.parse(eventRaw) : eventRaw) : null,
@@ -231,6 +235,13 @@ async function sceneMode() {
 // easing toward whatever the last request left as their goal, instead of starting fresh), so this
 // does not attempt it. `{"quit": true}` or stdin EOF ends the session.
 async function serveMode() {
+  // Read from stdin before anything else touches it: the render lock re-execs this same command
+  // under a lock script that inherits our stdin fd (holdRenderLock), and later steps import modules
+  // asynchronously, both of which give a piped, already-buffered stdin a chance to be drained by
+  // something other than us before we get to it. Starting the readline interface first wins that
+  // race: it puts Node's own stream reading first in line for the pipe's bytes.
+  const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+  const lines = rl[Symbol.asyncIterator]();
   const { holdRenderLock, glMode } = await import('../../scripts/lib/gl.js');
   holdRenderLock(glMode({ argv }));
   const { startHarness } = await import('./harness.mjs');
@@ -258,9 +269,8 @@ async function serveMode() {
   }
   console.log('POSE serve ready');
   try {
-    const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
-    for await (const line of rl) {
-      const trimmed = line.trim();
+    for (let next = await lines.next(); !next.done; next = await lines.next()) {
+      const trimmed = next.value.trim();
       if (!trimmed) continue;
       n++;
       let json;
@@ -270,6 +280,7 @@ async function serveMode() {
       catch (e) { console.log(`POSE serve ${n} code=2 error: ${e.message}`); worst = Math.max(worst, 2); }
     }
   } finally {
+    rl.close();
     await H.close();
   }
   return worst;
