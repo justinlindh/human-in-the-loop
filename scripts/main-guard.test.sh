@@ -171,8 +171,10 @@ if [ ${#fp[@]} -eq 5 ]; then
 fi
 # The uncached golden run: a failure marks main red, one that fails on the machine gives no verdict.
 case_root="$tmp/root-golden"; gl="$tmp/golden.log"; : >"$gl"
-guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='mkdir -p shots/golden && printf x >shots/golden/office.actual.png && printf y >shots/golden/char-lineup.stepped.png && echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
 expect 'an uncached golden failure marks main red' "$gl" "state=failure|golden-uncached|--label main-red"
+ls "$tmp/root-golden/main-guard/"*-golden/office.actual.png "$tmp/root-golden/main-guard/"*-golden/char-lineup.stepped.png >/dev/null 2>&1 \
+  || { echo "FAIL a failing golden's images should be kept beside the commit's logs"; fails=$((fails + 1)); }
 [ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL one red verdict (a possible flake) should not hold render PRs yet"; fails=$((fails + 1)); }
 guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
 grep -q "golden-uncached" "$tmp/root-golden/main-guard/red" 2>/dev/null || { echo "FAIL the same step red twice in a row should leave its red steps for auto CI"; fails=$((fails + 1)); }
