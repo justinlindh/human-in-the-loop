@@ -4,10 +4,10 @@
 // for a progress bar, with n capped at of; h comes from goalHelpers in src/sim/goals.js.
 export const GOALS = [
   {
-    id: 'place_desks', group: 'Getting started', name: 'Place two desks', trophy: false,
-    desc: 'Buy two desk sets and put them somewhere sensible. Or anywhere.',
-    reward: { cash: 0, brand: 0 }, done: (s, h) => h.desks >= 2,
-    progress: (s, h) => ({ n: Math.min(2, h.desks), of: 2 }),
+    id: 'place_desks', group: 'Getting started', name: 'Make room for a hire', trophy: false,
+    desc: 'The founders have their desks. Buy a third desk set so your first hire has somewhere to sit.',
+    reward: { cash: 0, brand: 0 }, done: (s, h) => h.desks >= 3,
+    progress: (s, h) => ({ n: Math.min(3, h.desks), of: 3 }),
   },
   {
     id: 'start_product', group: 'Getting started', name: 'Start a product', trophy: false,

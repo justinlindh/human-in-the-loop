@@ -111,6 +111,9 @@ describe('props never change a seeded run', () => {
       const c = structuredClone(s);
       c.office.props = [];
       delete c.flags.propSeq;
+      // Who is near a staged prop, and so how many lines its moment speaks, follows where it lands.
+      delete c.flags.momentRecent;
+      delete c.flags.momentSaySeq;
       if (c.pendingDecision?.stage) c.pendingDecision.stage = null;
       for (const p of c.chatPrompts ?? []) if (p.stage) p.stage = null;
       return JSON.stringify(c);

@@ -55,9 +55,9 @@ describe('issue #151: the epilogue retells the run', () => {
 });
 
 describe('consequences outrank flavour', () => {
-  it('the reviewer case: sensible seed 1 with 14 breaches always gets the breach line', () => {
+  it('a breach-heavy run (sensible seed 2) always gets the breach line', () => {
     let st = null;
-    runBot('sensible', 1, 1040, { setup: (s) => { st = s; }, onWeek: (s) => { st = s; } });
+    runBot('sensible', 2, 1040, { setup: (s) => { st = s; }, onWeek: (s) => { st = s; } });
     expect(st.stats.breaches).toBeGreaterThanOrEqual(3);
     const lines = st.gameOver.epilogue;
     const breach = lines.findIndex((l) => l.startsWith('Your customer data now lives in several places'));

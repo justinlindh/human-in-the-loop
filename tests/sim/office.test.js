@@ -13,7 +13,8 @@ import { EVENTS } from '../../src/data/events.js';
 import { classicGame, game, addStaff, addProduct, expectFail, addDesks, passOfficeGates } from './helpers.js';
 
 const place = (s, itemId, x, y, rot = 0) => dispatch(s, { type: 'placeItem', itemId, x, y, rot });
-const fresh = () => { const s = classicGame(); s.cash = 1e6; return s; };
+// An empty garage (no founder desks) with cash to spare, for placement mechanics.
+const fresh = () => { const s = classicGame(); s.cash = 1e6; s.office.placed = []; for (const p of s.staff) p.deskId = null; return s; };
 
 describe('office data', () => {
   it('every item has a kind, a footprint, and prices; every stage a grid with a free door', () => {
@@ -41,10 +42,11 @@ describe('office data', () => {
 });
 
 describe('placement', () => {
-  it('the run starts with an empty garage', () => {
+  it('the run starts in the garage with a desk per founder', () => {
     const s = classicGame();
-    expect(s.office).toEqual({ stage: 0, placed: [], expansion: 0, props: [] });
-    expect(deskCapacity(s)).toBe(0);
+    expect(s.office.stage).toBe(0);
+    expect(s.office.placed.map((p) => p.itemId)).toEqual(['desk', 'desk']);
+    expect(deskCapacity(s)).toBe(2);
   });
 
   it('refuses every invalid placement with a reason and state unchanged', () => {
@@ -142,10 +144,11 @@ describe('desks are capacity', () => {
     expect(s.cash).toBe(cash + ITEMS.desk.costs[0] / 2);
   });
 
-  it('placing the second desk completes the first goal right away', () => {
+  it('placing the third desk completes the first goal right away', () => {
     const s = fresh();
     expect(place(s, 'desk', 0, 0).events.filter((e) => e.type === 'goal')).toEqual([]);
-    expect(place(s, 'desk', 1, 0).events).toContainEqual({ type: 'goal', goalId: 'place_desks' });
+    expect(place(s, 'desk', 1, 0).events.filter((e) => e.type === 'goal')).toEqual([]);
+    expect(place(s, 'desk', 2, 0).events).toContainEqual({ type: 'goal', goalId: 'place_desks' });
   });
 
   it('seats are sticky: people keep their desk when others leave or desks move', () => {

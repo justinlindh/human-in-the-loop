@@ -40,7 +40,7 @@ describe('game state', () => {
     expect(s.unlocks).toEqual({});
     expect(Object.values(s.goals).every((g) => g.done === false && g.week === null)).toBe(true);
     expect(s.market.categories.crm.incumbentStrength).toBe(650);
-    expect(s.office).toEqual({ stage: 0, placed: [], expansion: 0, props: [] });
+    expect({ ...s.office, placed: s.office.placed.map((p) => p.itemId) }).toEqual({ stage: 0, placed: ['desk', 'desk'], expansion: 0, props: [] });
     expect(s.founding).toEqual({ founders: ['engineer', 'designer'], funding: 'bootstrapped', logoColor: '#ffb020', tagline: '' });
     expect(s.research).toEqual({ done: [] });
     expect(s.modifiers).toEqual([]);

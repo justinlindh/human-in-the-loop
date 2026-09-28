@@ -20,7 +20,7 @@ export function openEverything(s) {
   for (const [id, m] of Object.entries(s.models)) m.available = id !== 'mistrale';
   for (const g of Object.values(s.goals)) Object.assign(g, { done: true, week: 0 });
   s.market.unlockedAngles = Object.keys(ANGLES).filter((a) => ANGLES[a].era !== 'consolidation');
-  addDesks(s, 4);
+  addDesks(s, 4 - s.office.placed.filter((p) => p.itemId === 'desk').length);
   return s;
 }
 
