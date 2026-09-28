@@ -32,6 +32,7 @@ function injectStyle() {
   .hitl-leads i { position: absolute; width: 2.5px; margin-left: -1.25px; background: ${P.ink}; border-radius: 2px; }
   .hitl-leads i::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px;
     margin-left: -4px; border-radius: 50%; background: ${P.ink}; box-shadow: 0 0 0 2px ${P.paper}; }
+  .hitl-banner .in { background: ${P.gold}; color: ${P.ink}; font: 700 16px Fredoka, sans-serif; padding: 4px 13px; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
   `;
@@ -104,6 +105,24 @@ export function createLabels(parent) {
     const near = live.filter((o) => o.kind === 'stat' && o.t < 0.9 && anchor(o.follow, tmp2).distanceTo(l.jit) < 1.2).length;
     l.offsetY += near * 0.26;
     l.jit.set(((near % 3) - 1) * 0.28, 0, -((near % 3) - 1) * 0.28);
+    parent.add(l.obj);
+    live.push(l);
+    place(l);
+    return l;
+  }
+
+  // A banner over a group for a few seconds (what a company party is celebrating). It lays out like
+  // a stat label but stays put and holds long enough to read.
+  function banner(text, follow, seconds = readSeconds(text) + 1, offsetY = 2.2) {
+    const l = acquire();
+    l.tone = null; l.num = null;
+    l.kind = 'stat';
+    l.el.className = 'hitl-lbl hitl-stat hitl-banner';
+    l.inner.textContent = text;
+    l.inner.style.background = '';
+    l.w = null;
+    l.t = 0; l.life = seconds; l.rise = 0.12; l.follow = follow; l.offsetY = offsetY;
+    l.jit.set(0, 0, 0);
     parent.add(l.obj);
     live.push(l);
     place(l);
@@ -411,5 +430,5 @@ export function createLabels(parent) {
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, say, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
+  return { stat, banner, say, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
 }

@@ -710,7 +710,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
       }
       if (pm.phase === 'carry' && pm.cue > 1 && !pm.interrupted) {
         pm.interrupted = true;
-        R.handleEvents([{ type: 'launch' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
+        R.handleEvents([{ type: 'celebrate', staffId: null, cause: 'Check launched' }, { type: 'incident', caught: false }, { type: 'standup', mode: 'daily', lines: S.staff.map((p) => ({ staffId: p.id, text: 'Busy.' })) }], S);
       }
       if (i % 2 || pm.phase === 'off') continue;
       samples++;
