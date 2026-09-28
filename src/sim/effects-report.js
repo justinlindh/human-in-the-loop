@@ -16,7 +16,7 @@ import { RESEARCH } from '../data/research.js';
 import { ERAS } from '../data/eras.js';
 import { POSTS } from '../data/posts.js';
 import * as MODS from '../data/modifiers.js';
-import { POLICY_EFFECTS, ITEM_EFFECT_LABELS, CONDITION_LABELS, TRAIT_MOD_LABELS, SUBJECT_LABELS } from '../data/effects-map.js';
+import { POLICY_EFFECTS, ITEM_RULES, ITEM_EFFECT_LABELS, CONDITION_LABELS, TRAIT_MOD_LABELS, SUBJECT_LABELS } from '../data/effects-map.js';
 
 const { MODIFIER_KEYS } = MODS;
 const VACATION_PUSHES = MODS.VACATION_PUSHES ?? {};
@@ -146,15 +146,26 @@ function decisionsFile() {
   return parts.join('\n\n') + '\n';
 }
 
+const ITEM_NEEDS = { award: 'after your first award' };
 function officeFile() {
+  const label = (k) => ITEM_EFFECT_LABELS[k] ?? k;
   const rows = list(ITEMS).map((it) => {
     const levels = it.effects.map((e, i) => {
-      const fx = Object.entries(e).map(([k, v]) => `${ITEM_EFFECT_LABELS[k] ?? k} ${typeof v === 'number' && Math.abs(v) < 1 ? pct(v) : signed(v)}`);
+      const fx = Object.entries(e).map(([k, v]) => `${label(k)} ${typeof v === 'number' && Math.abs(v) < 1 ? pct(v) : signed(v)}`);
       return `L${i + 1} ${money(it.costs[i] ?? it.costs.at(-1))}${fx.length ? `: ${fx.join(', ')}` : ''}`;
     });
-    return [it.name, it.kind, it.minStage ? ['', 'Office Floor', 'HQ Building'][it.minStage] : 'any', levels.join(' · ')];
+    const a = it.adjacency;
+    const tiles = a && `within ${a.radius} tile${a.radius === 1 ? '' : 's'}`;
+    const near = a && (a.to ? `${label(a.key)} ${pct(a.value)} for each other ${ITEMS[a.to].name} ${tiles}`
+      : `${label(a.key)} ${pct(a.value)} for each occupied desk ${tiles}, shared across the team`);
+    const effects = [levels.join(' · '), near, ITEM_RULES[it.id]?.(B)].filter(Boolean).join('; ');
+    const from = [it.minStage ? ['', 'Office Floor', 'HQ Building'][it.minStage] : 'any', it.era ? `the ${list(ERAS).find((e) => e.id === it.era)?.name ?? it.era} era` : null, ITEM_NEEDS[it.requires] ?? it.requires].filter(Boolean).join(', ');
+    return [it.name, it.kind, from, effects];
   });
-  return `${HEADER}# Office items and perks\n\nPlaced in Build mode. Each level's cost and what it adds.\n\n${table(['Item', 'Kind', 'From', 'Levels'], rows)}\n`;
+  const rules = `A second copy of an item adds its level effect at ${Math.round(B.itemSecondCopy * 100)}%, and copies past the second add no level effect. `
+    + 'Nearby bonuses are different: every copy counts in full, for each desk or item in reach. '
+    + `All items together are capped at ±${Math.round(B.itemBonusCap * 100)}% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.`;
+  return `${HEADER}# Office items and perks\n\nPlaced in Build mode. Each level's cost and what it adds.\n\n${table(['Item', 'Kind', 'From', 'Effects'], rows)}\n\n${rules}\n`;
 }
 
 function peopleFile() {
