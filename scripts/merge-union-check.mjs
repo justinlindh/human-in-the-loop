@@ -40,7 +40,30 @@ try {
   const autoTree = first.trim();
   const conflicted = new Set();
   for (const f of rest) { const m = f.match(/^\d+ [0-9a-f]+ [123]\t(.+)$/); if (m) conflicted.add(m[1]); else if (!f) break; }
-  const changed = git(['diff', '--name-only', autoTree, head]).split('\n').filter(Boolean);
+  // Main split docs/features.md into docs/features/<area>.md while the PR edited the old file: the one
+  // hand change allowed is moving the PR's own line edits there verbatim. The lines the PR removed and
+  // added in docs/features.md must be exactly the lines the merge removes and adds under docs/features/.
+  const INV = 'docs/features.md', AREAS = 'docs/features/';
+  const has = (rev, f) => { try { git(['cat-file', '-e', `${rev}:${f}`]); return true; } catch { return false; } };
+  const edits = (a, b, path) => {
+    const rm = [], add = [];
+    for (const l of git(['diff', '-U0', a, b, '--', path]).split('\n')) {
+      if (/^(---|\+\+\+) /.test(l)) continue;
+      if (l.startsWith('-')) rm.push(l.slice(1)); else if (l.startsWith('+')) add.push(l.slice(1));
+    }
+    return { rm: rm.sort(), add: add.sort() };
+  };
+  let ported = false;
+  if (conflicted.has(INV) && !has(p2, INV) && !has(head, INV)) {
+    const own = edits(git(['merge-base', p1, p2]).trim(), p1, INV), moved = edits(p2, head, AREAS);
+    const same = (x, y) => x.length === y.length && x.every((l, i) => l === y[i]);
+    if (!same(own.rm, moved.rm) || !same(own.add, moved.add)) {
+      fail(2, `docs/features.md: the PR's own line edits weren't moved verbatim into docs/features/ (the PR removed ${own.rm.length} and added ${own.add.length} line(s); the merge removes ${moved.rm.length} and adds ${moved.add.length} there)`);
+    }
+    conflicted.delete(INV); ported = true;
+  }
+  const changed = git(['diff', '--name-only', autoTree, head]).split('\n').filter(Boolean)
+    .filter((f) => !(ported && (f === INV || f.startsWith(AREAS))));
   for (const f of changed) if (!conflicted.has(f)) fail(2, `${f} differs from git's own merge but had no conflict: a hand edit`);
 
   // Rule 3.
@@ -142,7 +165,7 @@ try {
   const mine = files(mb, p1), theirs = files(mb, p2);
   for (const f of mine) if (f.startsWith('src/') && theirs.has(f) && !conflicted.has(f)) fail(4, `main also changed ${f}, one of this PR's own src files`);
 
-  console.log(`merge-union-check: ok: ${regions} conflicted region(s) kept both sides${conflicted.size ? ` in ${[...conflicted].join(', ')}` : ''}`);
+  console.log(`merge-union-check: ok: ${regions} conflicted region(s) kept both sides${conflicted.size ? ` in ${[...conflicted].join(', ')}` : ''}${ported ? '; docs/features.md edits moved verbatim into docs/features/' : ''}`);
   process.exit(0);
 } catch (e) {
   console.log(`merge-union-check: error: ${String(e.stderr || e.message).trim().split('\n')[0]}`);
