@@ -11,7 +11,7 @@
 - **Hiring, training and careers**: hire from candidates, send people to a workshop, conference or course, and let freshly promoted seniors pick a career path (Architect, AI Wrangler, Community Manager, Incident Commander and more).
 - **Traits**: people arrive with traits (Vibe Coder, Old Guard, Job Hopper, Night Owl, Caffeinated) and earn some by doing the work (Natural Mentor, Paranoid, Visionary).
 - **Meaning, strain and Purpose**: automation drains meaning, load builds strain, and a mission picked in the Agents era sets a Purpose that later decisions test. Spoken: "The spreadsheet does not have to answer the phone." `id: mission_statement` `id: mission_test_support` `id: mission_test_demo`
-- **Automation and oversight**: from the ChatGBT era, dial automation per function and pick the model that runs it; from Agents, overseers watch the agents and catch rogue behaviour.
+- **Automation and oversight**: from the ChatGBT era, dial automation per function and pick the model that runs it; from Agents, overseers watch the agents and catch rogue behaviour. Before automation arrives, Ops shows Oversight with its Automation button disabled and the reason (it arrives with the ChatGBT moment).
 - **Rogue agent incidents**: from the Agents era, each ends in a decision that offers a public postmortem.
   - "The agent dropped the production database". `id: agent_db_wipe`
   - "Every customer got an email". `id: agent_mass_email`
@@ -20,7 +20,7 @@
   - "The support bot promised refunds". `id: support_refund_hallucination`
   - "The cloud bill has feelings", staged with a hot rack (see Fumes). `id: agent_runaway_spend`
 - **Security incidents**: credential stuffing, supply chain, exfiltration, ransomware and CEO phishing, with a security posture to build in Ops. `id: credential_stuffing` `id: supply_chain` `id: data_exfiltration`
-- **Outages**: a live product can go down; when nobody on staff can debug it, the game asks whether to call consultants. `id: outage_unfixable`
+- **Outages**: a live product can go down; when nobody on staff can debug it, the game asks whether to call consultants. In the office an alarm sweeps the floor and the nearest few people run to the servers, each taking a spot round the rack on the side they came from. `id: outage_unfixable`
 - **Research**: internal tools (Eval Harness, Agent Sandbox, Observability, CI/CD, Design System, Docs Culture, Onboarding Kit, Red Team Suite) built as projects.
 - **Policies**: switched on in the Policies panel, some in pairs that exclude each other.
   - **Standups**: daily in person (see Standups under People) or async in #standup, where the quiet ones stop posting. `id: daily_standups` `id: async_standups`

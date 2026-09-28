@@ -37,17 +37,36 @@ const GROWTH_STAGES = [['garage', 6, 'Classic'], ['floor', 138, 'Classic'], ['fl
 const VIEW0 = { js: '(window.__view0 ??= window.__hitlRender.view())' };
 // The people's centre, for a tighter frame on a filled room.
 const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
+// The middle of the largest group of empty desks (desks with nobody seated within 1.2 m), found once,
+// for a push-in that shows who's gone. Desk and seat positions come from their screen boxes projected
+// onto the floor.
+export const EMPTY_DESKS = { js: `(window.__emptyAt ??= (() => {
+  const R = window.__hitlRender, T = R.THREE, s = window.__HITL.state, cam = R.camera, ray = new T.Raycaster(), floor = new T.Plane(new T.Vector3(0, 1, 0), 0);
+  const ground = (r) => { if (!r) return null; ray.setFromCamera(new T.Vector2(((r.left + r.width / 2) / innerWidth) * 2 - 1, -(((r.top + r.height * 0.7) / innerHeight) * 2 - 1)), cam); const p = new T.Vector3(); return ray.ray.intersectPlane(floor, p) ? p : null; };
+  const people = s.staff.map((p) => ground(R.screenRectOf({ kind: 'staff', id: p.id }))).filter(Boolean);
+  const empty = s.office.placed.filter((i) => i.itemId === 'desk').map((i) => ground(R.screenRectOf({ kind: 'item', id: i.id }))).filter((d) => d && !people.some((p) => Math.hypot(p.x - d.x, p.z - d.z) < 1.2));
+  if (!empty.length) return undefined;
+  const near = (d) => empty.filter((e) => Math.hypot(e.x - d.x, e.z - d.z) < 2.5);
+  const best = empty.reduce((a, d) => (near(d).length > near(a).length ? d : a));
+  const g = near(best); return { x: g.reduce((t, d) => t + d.x, 0) / g.length, z: g.reduce((t, d) => t + d.z, 0) / g.length };
+})())` };
 const GROWTH_CAMERA = {
   'floor-full': [{ at: 0, target: PEOPLE, zoom: 1.7 }],
   late: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: [-1.6, -4.1], zoom: 2.5, ease: 'inOut' }],
 };
-const GROW = (week) => `(async () => {
+// lateHires: false plays the late eras without hiring, so attrition thins the office out.
+export const GROW = (week, { lateHires = true } = {}) => `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
   while (s.week < ${week} && !s.gameOver) {
-    const bot = s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced';
-    b.botDecide(bot, s); b.botTurn(bot, s); sim.tick(s);
+    const late = s.era.id === 'consolidation' || s.era.id === 'plateau';
+    const bot = late ? 'automateAll' : 'balanced';
+    const hold = late && ${!lateHires} ? s.candidates : null;
+    if (hold) s.candidates = [];
+    b.botDecide(bot, s); b.botTurn(bot, s);
+    if (hold) s.candidates = hold;
+    sim.tick(s);
   }
   b.botDecide(s.era.id === 'consolidation' || s.era.id === 'plateau' ? 'automateAll' : 'balanced', s);
   ${IN_OFFICE}
@@ -212,10 +231,10 @@ export const ITEMS = [
       ...[11.5, 16, 22, 28, 32, 48, 59].map((at) => ({ at, js: `[...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#random'))?.click()` })),
       { at: 59.5, js: "(async () => { const m = document.querySelector('.chat.yak .msg[data-id=\"' + CSS.escape(window.__yakMeme.id) + '\"]'); m?.scrollIntoView({ block: 'start' }); const img = m?.querySelector('.ymeme-img'); if (!img) throw new Error('yak: missing displayed image'); await img.decode(); })()" },
       { at: 60, js: 'window.__frameYak()' },
-      YAK_CHECK(60.1, { crop: [410 / 1920, 214 / 1080, 1120 / 1920, 700 / 1080] }),
+      YAK_CHECK(60.1, { crop: [376 / 1920, 190 / 1080, 1168 / 1920, 730 / 1080] }),
     ],
     screenshots: [11.1, 60.1],
-    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 410 / 1920, y: 214 / 1080, w: 1120 / 1920, h: 700 / 1080 } }],
+    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }],
   },
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,

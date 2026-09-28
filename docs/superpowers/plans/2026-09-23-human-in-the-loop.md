@@ -348,6 +348,7 @@ Blurbs in the spec's voice (Claudius "will politely decline to delete prod", Gro
 90 endgame         win and lose                                       S12
 91 posts           deliver queued replies to founder Yak posts        -
 95 history         weekly snapshot                                    S12
+96 advisors        push a rare urgent advisor line (#808)              -
 99 restage         a desk-staged decision whose reader left re-picks  S11
 100 moment-talk    a staged moment's own opening lines                -
 ```

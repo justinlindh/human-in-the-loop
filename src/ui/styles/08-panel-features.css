@@ -97,7 +97,7 @@
 .hitl .sec, .hitl .load { display: flex; flex-direction: column; gap: 0.5em; }
 .hitl .sec .meter, .hitl .load .meter { grid-template-columns: 4.2em 1fr 2.6em; }
 .hitl .breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2em 1em; font-size: 0.85em; }
-.hitl .breakdown div { display: flex; justify-content: space-between; }
+.hitl .breakdown div { display: flex; justify-content: space-between; gap: 0.6em; }
 .hitl .breakdown b { color: var(--good); }
 .hitl .breakdown .neg b { color: var(--bad); }
 .hitl table.inclog, .hitl table.combos { width: 100%; border-collapse: collapse; font-size: 0.88em; }

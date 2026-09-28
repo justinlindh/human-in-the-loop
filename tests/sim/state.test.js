@@ -3,6 +3,7 @@ import { createGame, tick, dispatch, FUNCTIONS, SAVE_VERSION, dateOf } from '../
 import { B } from '../../src/sim/balance.js';
 
 const STATE_KEYS = [
+  'advisors',
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
   'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'fame', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'chatPrompts', 'discoveredCombos', 'outage',
