@@ -7,6 +7,7 @@ import { EVENTS } from '../../src/data/events.js';
 import { MOMENT_TALK, CELEBRATION_TALK } from '../../src/data/moment-talk.js';
 import { emitMomentTalk, momentCast, momentTalkSystem } from '../../src/sim/moment-talk.js';
 import { game, addStaff } from './helpers.js';
+import { B } from '../../src/sim/balance.js';
 
 describe('moment dialogue', () => {
   it('covers every staged decision and each choice with original short pools', () => {
@@ -24,6 +25,8 @@ describe('moment dialogue', () => {
   it('raises and resolves the printer with tagged cast lines from the right pool', () => {
     const s = game(7), ctx = makeCtx(s);
     expect(raiseDecision(ctx, 'printer_jam', s.staff[0].id)).toBe(true);
+    expect(ctx.events.some(e => e.type === 'say')).toBe(false);
+    momentTalkSystem(ctx);
     const lines = ctx.events.filter(e => e.type === 'say');
     expect(lines).toHaveLength(2);
     for (const e of lines) {
@@ -67,25 +70,42 @@ describe('moment dialogue', () => {
     expect(a.events.length).toBeGreaterThan(ids.length);
   });
 
-  it('replaces ambient cast speech while open and leaves distant staff alone', () => {
+  it('leaves ordinary lines alone while a moment is open', () => {
     const s = game(5);
-    const far = addStaff(s, 'engineer', 'mid');
-    const desk = s.office.placed.find(d => d.id === far.deskId);
-    desk.x = 100; desk.y = 100;
     const ctx = makeCtx(s);
     raiseDecision(ctx, 'printer_jam', s.staff[0].id);
     ctx.emit({ type: 'say', id: 'near', staffId: s.staff[0].id, text: 'Unrelated' });
-    ctx.emit({ type: 'say', id: 'far', staffId: far.id, text: 'Elsewhere' });
     momentTalkSystem(ctx);
-    expect(ctx.events.find(e => e.id === 'near').moment).toBe('printer_jam');
-    expect(ctx.events.find(e => e.id === 'far').text).toBe('Elsewhere');
+    expect(ctx.events.find(e => e.id === 'near')).toMatchObject({ text: 'Unrelated' });
+    expect(ctx.events.find(e => e.id === 'near').moment).toBeUndefined();
+    expect(ctx.events.filter(e => e.type === 'say' && e.moment === 'printer_jam').length).toBeLessThanOrEqual(B.momentTalkLines);
+  });
+
+  it('counts someone with no seat as out of range unless the stage names them', () => {
+    const s = game(6);
+    const seatless = addStaff(s, 'engineer', 'mid');
+    seatless.deskId = null;
+    const d = { eventId: 'printer_jam', subjectId: null, stage: { x: 0, y: 0 } };
+    expect(momentCast(s, d).map(p => p.id)).not.toContain(seatless.id);
+    expect(momentCast(s, { ...d, stage: { x: 0, y: 0, staffId: seatless.id } })[0].id).toBe(seatless.id);
+  });
+
+  it('a moment that comes back picks lines not heard recently', () => {
+    const s = game(8), d = { eventId: 'printer_jam', stage: { x: 1, y: 1 } };
+    const heard = [];
+    for (let i = 0; i < 2; i++) { const ctx = makeCtx(s); emitMomentTalk(ctx, d); heard.push(...ctx.events.map(e => e.text)); }
+    const pool = MOMENT_TALK.printer_jam.open;
+    expect(new Set(heard).size).toBe(Math.min(heard.length, pool.length));
   });
 });
 
 it('staged Yak prompts use their event pools when opened and answered', () => {
   const s = game(9), ctx = makeCtx(s);
   openEventPrompt(ctx, EVENTS.pet_request, s.staff[0].id);
-  expect(ctx.events.filter(e => e.type === 'say').every(e => e.moment === 'pet_request')).toBe(true);
+  momentTalkSystem(ctx);
+  const open = ctx.events.filter(e => e.type === 'say');
+  expect(open.length).toBeGreaterThan(0);
+  expect(open.every(e => e.moment === 'pet_request')).toBe(true);
   const res = dispatch(s, { type: 'answerPrompt', promptId: s.chatPrompts.at(-1).id, choice: 1 });
   expect(res.ok).toBe(true);
   const lines = res.events.filter(e => e.type === 'say');
@@ -93,15 +113,19 @@ it('staged Yak prompts use their event pools when opened and answered', () => {
   expect(MOMENT_TALK.pet_request.choices[1]).toContain(lines[0].text);
 });
 
-it('celebrations replace unrelated party chatter without changing the sim RNG', () => {
-  const s = game(11), ctx = makeCtx(s), rng = { ...s.rng }, nextId = s.nextId;
-  ctx.emit({ type: 'launch', productId: 'p1' });
-  ctx.emit({ type: 'say', staffId: s.staff[0].id, text: 'Unrelated', id: 'ambient' });
-  momentTalkSystem(ctx);
-  for (const e of ctx.events.filter(e => e.type === 'say')) {
-    expect(e.moment).toBe('launch');
-    expect(CELEBRATION_TALK.launch.open).toContain(e.text);
-  }
+it('a launch gets a line or two of its own, at most once per party gap, and never rewrites other lines', () => {
+  const s = game(11), rng = { ...s.rng }, nextId = s.nextId;
+  const week = (extra = []) => { const ctx = makeCtx(s); ctx.emit({ type: 'launch', productId: 'p1' }); for (const e of extra) ctx.emit(e); momentTalkSystem(ctx); return ctx.events.filter(e => e.type === 'say'); };
+  const first = week([{ type: 'say', staffId: s.staff[0].id, text: 'Unrelated', id: 'ambient' }]);
+  const party = first.filter(e => e.moment === 'launch');
+  expect(party.length).toBeGreaterThan(0);
+  expect(party.length).toBeLessThanOrEqual(B.momentTalkLines);
+  for (const e of party) expect(CELEBRATION_TALK.launch.open).toContain(e.text);
+  expect(first.find(e => e.id === 'ambient')).toMatchObject({ text: 'Unrelated' });
+  s.week += 1;
+  expect(week().length).toBe(0);
+  s.week += B.partyTalkGapWeeks;
+  expect(week().length).toBeGreaterThan(0);
   expect(s.rng).toEqual(rng);
   expect(s.nextId).toBe(nextId);
 });

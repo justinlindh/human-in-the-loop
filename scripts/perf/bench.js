@@ -7,6 +7,11 @@
 // node scripts/perf/bench.js [--gpu|--software] [--scenes garage,floor,hq,music,late]
 //   [--quality low,high] [--runs 3] [--warmup 3] [--seconds 8] [--size 1280x720]
 //   [--cores 2 | --cpus 30-31] [--refs <git-ref>,<git-ref>] [--json out.json] [--profile]
+//   [--quiet [minutes]]
+// --quiet holds a quiet window (scripts/lib/quiet.sh, at most two a day) from after the builds until
+// the last scene, for a clean baseline: new local CI and other software renders wait for it. It
+// fails with quiet.sh's reason when the window is refused or the machine doesn't drain. Results
+// measured after the window's time ran out are marked.
 // --profile samples the main thread with the CPU profiler while recording and prints the functions
 // with the most self time per scene (module and line, from the unminified build).
 // --cores N pins the browser (not the build) to the last N cores, a weak-device proxy; --cpus names them.
@@ -43,6 +48,7 @@ const [W, H] = String(arg('size', '1280x720')).split('x').map(Number);
 const REFS = typeof arg('refs', null) === 'string' ? arg('refs').split(',') : null;
 const REF_DIR = join(ROOT, '.vite/perf-refs');
 const PROFILE = !!arg('profile', false);
+const QUIET = arg('quiet', null) === null ? null : arg('quiet') === true ? 20 : Number(arg('quiet'));
 const CPUS = typeof arg('cpus', null) === 'string' ? arg('cpus')
   : arg('cores', null) ? `${cpus().length - Number(arg('cores'))}-${cpus().length - 1}` : null;
 
@@ -55,6 +61,26 @@ async function takeRenderLock() {
     p.once('exit', (code) => fail(new Error(`render lock: with-render-lock.sh exited ${code}`)));
   });
   return () => { p.stdin.end(); };
+}
+
+// Holds a quiet window until release() is called. quiet.sh's own PID names the window, so marking
+// this process as its holder lets bench's own software render locks pass through it.
+async function takeQuietWindow(minutes) {
+  const p = spawn('bash', [join(ROOT, 'scripts/lib/quiet.sh'), 'run', '--minutes', String(minutes), '--', 'sh', '-c', 'echo held; read _'], { stdio: ['pipe', 'pipe', 'inherit'] });
+  const w = { ended: false };
+  await new Promise((ok, fail) => {
+    p.stdout.once('data', ok);
+    p.once('exit', (code) => fail(new Error(`quiet window: quiet.sh exited ${code}`)));
+  });
+  p.removeAllListeners('exit');
+  p.once('exit', () => { w.ended = true; });
+  process.env.HITL_QUIET_HOLDER = String(p.pid);
+  w.release = () => new Promise((ok) => {
+    if (w.ended) return ok();
+    p.once('exit', ok);
+    p.stdin.end();
+  });
+  return w;
 }
 
 // A wrapper that starts the browser pinned to CPUS with taskset, or niced when it may use every core.
@@ -268,6 +294,17 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { removeRefWork
 const specs = REFS ? REFS.map(checkout) : [{ label: 'worktree', root: ROOT }];
 const builds = [];
 for (const s of specs) builds.push(await prepare(s));
+let quiet = null;
+if (QUIET !== null) {
+  try {
+    quiet = await takeQuietWindow(QUIET);
+  } catch (e) {
+    console.error(`perf: ${e.message}`);
+    for (const b of builds) await b.server.close();
+    removeRefWorktrees();
+    process.exit(1);
+  }
+}
 const { browser, renderer: glName } = await launchChromium(chromium, { mode: GL, label: 'perf', args: uncapped, executablePath: browserExecutable() });
 
 const affinity = CPUS ?? 'all';
@@ -275,7 +312,7 @@ const kb = (n) => `${Math.round(n / 1024)}KB`;
 // Machine load next to every result: timings taken on a busy machine aren't a baseline.
 const load = () => loadavg()[0].toFixed(1);
 const loadAtStart = load();
-console.log(`perf  gl=${GL} size=${W}x${H} runs=${RUNS} warmup=${WARMUP}s seconds=${SECONDS} cpus=${affinity ?? '?'}/${cpus().length} load=${loadAtStart}`);
+console.log(`perf  gl=${GL} size=${W}x${H} runs=${RUNS} warmup=${WARMUP}s seconds=${SECONDS} cpus=${affinity ?? '?'}/${cpus().length} load=${loadAtStart}${quiet ? ` quiet=${QUIET}m` : ''}`);
 for (const b of builds) {
   console.log(`build ${b.label.padEnd(12)}${PROFILE ? " (unminified)" : ""} js ${kb(b.bundle.js.raw)} (gz ${kb(b.bundle.js.gz)})  css ${kb(b.bundle.css.raw)} (gz ${kb(b.bundle.css.gz)})`
     + (b.late ? `  late: week ${b.late.week} stage ${b.late.stage} staff ${b.late.staff}${b.late.over ? ' (over)' : ''}` : ''));
@@ -302,8 +339,9 @@ try {
         // The fastest run: other jobs on shared cores only ever add time, so it is the steadiest figure.
         med.best = Math.min(...rs.map((r) => r.render));
         med.load = +load();
+        if (quiet?.ended) med.quietEnded = 1;
         b.scenes[key] = { ...med, spread: { p50: rs.map((r) => +r.p50.toFixed(2)), render: rs.map((r) => +r.render.toFixed(2)) } };
-        console.log(`${formatRow(b.label, key, med)}  load ${med.load}`);
+        console.log(`${formatRow(b.label, key, med)}  load ${med.load}${med.quietEnded ? '  (after the quiet window)' : ''}`);
         if (PROFILE) {
           const total = {};
           for (const r of rs) for (const [k, ms] of Object.entries(r.profile)) total[k] = (total[k] ?? 0) + ms / rs.length;
@@ -320,13 +358,14 @@ try {
   exitCode = 1;
 } finally {
   await browser.close();
+  await quiet?.release();
   for (const b of builds) await b.server.close();
   removeRefWorktrees();
 }
 const jsonOut = arg('json', null);
 if (typeof jsonOut === 'string') {
   const out = {
-    gl: GL, glName, size: `${W}x${H}`, runs: RUNS, warmup: WARMUP, seconds: SECONDS, cpus: affinity, hostCpus: cpus().length, loadAtStart: +loadAtStart,
+    gl: GL, glName, size: `${W}x${H}`, runs: RUNS, warmup: WARMUP, seconds: SECONDS, cpus: affinity, hostCpus: cpus().length, loadAtStart: +loadAtStart, quiet: QUIET,
     builds: builds.map((b) => ({ label: b.label, bundle: b.bundle, late: b.late && { week: b.late.week, stage: b.late.stage, staff: b.late.staff }, scenes: b.scenes })),
   };
   mkdirSync(resolve(jsonOut, '..'), { recursive: true });

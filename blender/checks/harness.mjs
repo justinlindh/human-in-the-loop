@@ -62,7 +62,9 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
   // HITL_VITE_CACHE gives the server its own dependency cache, so checks running side by side never
   // re-optimize (and reload) each other's dependencies.
   const cacheDir = process.env.HITL_VITE_CACHE || undefined;
-  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, logLevel: 'error' });
+  // three-mesh-bvh is bundled when the server starts: found later, on a tool's first import, it would
+  // make Vite rebundle dependencies and reload the page mid-run.
+  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, optimizeDeps: { include: ['three-mesh-bvh'] }, logLevel: 'error' });
   await server.listen();
   const base = server.resolvedUrls.local[0];
   const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));
@@ -103,20 +105,24 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // (skinned, instanced and morphing meshes keep the default test), each on its first raycast.
         // Loading the module and building a tree make three.js objects, which take UUIDs from
         // Math.random, so both run on the tool stream and the game's stream is untouched.
-        window.__fastRaycast = async () => {
+        // { install: false } loads the module without patching raycast, so a comparison run waits on
+        // the page exactly as long as a fast one.
+        window.__fastRaycast = async ({ install = true } = {}) => {
           if (window.__fastRaycastOn) return;
           const THREE = R.THREE;
           const toolRandom = window.__tool(() => Math.random), gameRandom = Math.random;
           Math.random = toolRandom;
           let bvh;
-          try { bvh = await import('/node_modules/three-mesh-bvh/src/index.js'); } finally { Math.random = gameRandom; }
+          try { bvh = await import('/blender/checks/bvh.js'); } finally { Math.random = gameRandom; }
+          if (!install) return;
           const slow = THREE.Mesh.prototype.raycast;
           THREE.Mesh.prototype.raycast = function (raycaster, hits) {
             const g = this.geometry;
             if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !g?.attributes?.position || g.morphAttributes?.position) return slow.call(this, raycaster, hits);
             if (!g.boundsTree) {
               if ((g.index ? g.index.count : g.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
-              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g); });
+              // indirect: the game's geometry (its index, or its lack of one) stays as it was.
+              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g, { indirect: true }); });
             }
             return bvh.acceleratedRaycast.call(this, raycaster, hits);
           };
