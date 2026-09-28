@@ -1,5 +1,5 @@
 import { h, setText, setWidth, fmtMoney, toggleClass, setClass } from '../dom.js';
-import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, policyUnlocked, policyLockText } from '../content.js';
+import { FUNCTIONS, FUNCTION_INFO, MODEL, MODELS, ROLES, B, POLICIES, POLICY, policyUnlocked, policyLockText, ASSIGNMENT_LABEL, roleName } from '../content.js';
 
 // Policies that cannot be on together. Data can declare it with excludes: [ids]; the standup pair is known here too.
 const EXCLUSIVE = [['daily_standups', 'async_standups']];
@@ -35,6 +35,20 @@ export function oversightHave(s) {
   // A placement-era state has no items list; older sim helpers still iterate it.
   if (typeof SIM.oversightProvided === 'function') return SIM.oversightProvided(s.items ? s : { ...s, items: [] });
   return s.ops?.oversightProvided ?? 0;
+}
+
+// Oversight hours a person would provide on duty: the sim's own total with them on oversight,
+// minus the total with them off it.
+export function overseerHours(s, p) {
+  const withAs = (type) => ({ ...s, staff: s.staff.map((x) => (x.id === p.id ? { ...x, assignment: { type, targetId: null } } : x)) });
+  return Math.max(0, oversightHave(withAs('oversight')) - oversightHave(withAs('idle')));
+}
+
+// Everyone who can take oversight now: the people on duty first, then the most hours added.
+export function overseerCandidates(s) {
+  return s.staff.filter((p) => p.mood !== 'away')
+    .map((p) => ({ p, on: p.assignment.type === 'oversight', hours: overseerHours(s, p) }))
+    .sort((a, b) => (b.on - a.on) || (b.hours - a.hours));
 }
 
 export function fnCost(s, fn) {
@@ -100,11 +114,37 @@ function panelOf(ctx, tab) {
         const debt = FUNCTIONS.reduce((a, f) => a + (DEBT[f] ?? 0) * (st.automation[f]?.level ?? 0), 0);
         setText(debtEl, debt > 0 ? `+${debt.toFixed(1)}/wk` : 'none');
       });
+      // Assign overseers right here: who can take it, what they do now, and the hours they'd add.
+      const pickList = h('div.ovpick');
+      pickList.style.display = 'none';
+      const pickBtn = h('button.btn.small', { 'aria-expanded': 'false', onclick: () => {
+        const open = pickList.style.display === 'none';
+        pickList.style.display = open ? '' : 'none';
+        pickBtn.setAttribute('aria-expanded', String(open));
+        setText(pickBtn, open ? 'Done' : 'Assign overseers');
+      } }, 'Assign overseers');
+      let pickSig = '';
+      bind((st) => {
+        const sig = st.staff.map((p) => `${p.id}${p.mood}${p.assignment.type}${p.assignment.targetId ?? ''}`).join();
+        if (sig === pickSig) return;
+        pickSig = sig;
+        const rows = overseerCandidates(st);
+        const back = (p) => ROLES[p.role]?.defaultAssignment ?? 'idle';
+        pickList.replaceChildren(...(rows.length ? rows.map(({ p, on, hours }) => h(`div.ovrow${on ? '.on' : ''}`, null,
+          h('b.ovname', { text: p.name }),
+          h('span.small.muted', { text: `${roleName(p.role)} · ${on ? 'on oversight' : (ASSIGNMENT_LABEL[p.assignment.type] ?? p.assignment.type)}` }),
+          h('span.spacer'),
+          h('span.num.small.ovhrs', { text: `${on ? '' : '+'}${hours.toFixed(0)}h` }),
+          on ? h('button.btn.small', { onclick: () => { if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: back(p), targetId: null } }).ok) ctx.sfx('click'); } }, 'Relieve')
+            : h('button.btn.small.go', { onclick: () => { if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: 'oversight', targetId: null } }).ok) ctx.sfx('confirm'); } }, 'Assign')))
+          : [h('div.small.muted', { text: 'Nobody is free to oversee right now.' })]));
+      });
       const summary = h('div.card.autosum', null,
         h('div.ovhead', null, h('b', null, icon('oversight'), ' Oversight'), h('span', null, provEl, ' provided of ', reqEl, ' needed'), h('span.spacer'),
-          h('button.btn.small', { onclick: () => ctx.open('staff') }, 'Assign overseers')),
+          pickBtn),
         h('div.bar.thick', null, ovFill),
         ovNote,
+        pickList,
         h('div.row.wrap.autometa', null,
           h('span.pill', null, icon('money'), ' Automation cost ', costEl),
           h('span.pill.warn', null, icon('debt'), ' Comprehension debt ', debtEl),
