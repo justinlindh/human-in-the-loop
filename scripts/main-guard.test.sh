@@ -173,7 +173,9 @@ fi
 case_root="$tmp/root-golden"; gl="$tmp/golden.log"; : >"$gl"
 guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
 expect 'an uncached golden failure marks main red' "$gl" "state=failure|golden-uncached|--label main-red"
-grep -q "golden-uncached" "$tmp/root-golden/main-guard/red" 2>/dev/null || { echo "FAIL a red newest commit should leave its red steps for auto CI"; fails=$((fails + 1)); }
+[ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL one red verdict (a possible flake) should not hold render PRs yet"; fails=$((fails + 1)); }
+guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD
+grep -q "golden-uncached" "$tmp/root-golden/main-guard/red" 2>/dev/null || { echo "FAIL the same step red twice in a row should leave its red steps for auto CI"; fails=$((fails + 1)); }
 guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
 [ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL a green newest commit should clear the red steps"; fails=$((fails + 1)); }
 case_root="$tmp/root-golden2"; : >"$gl"

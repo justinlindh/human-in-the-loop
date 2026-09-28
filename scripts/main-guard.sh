@@ -267,9 +267,8 @@ fi
 if [ -z "$what" ]; then
   echo "main-guard: $short PASS in ${secs}s"
   echo "$sha" >"$STATE/last-green"
-  # The steps main is red on, for auto CI (scripts/auto-ci.sh); only a verdict on main's newest commit
-  # (not an older one a bisect checks) counts.
-  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red"
+  # Main's red record for auto CI (scripts/auto-ci.sh) clears on a green verdict for main's newest commit.
+  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red" "$STATE/red-seen"
   status success "Full suite and sweep pass (${secs}s)"
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
@@ -280,7 +279,19 @@ if [ -z "$what" ]; then
 fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
-git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && echo "$short $what" >"$STATE/red"
+# The red record auto CI holds render PRs on (scripts/auto-ci.sh) names only the steps red in two
+# verdicts in a row on main's newest commit (a new commit, or the same one checked again), so one flake
+# holds nothing. Only those verdicts count, not an older commit a bisect checks.
+if git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null; then
+  repeated=""
+  if [ -f "$STATE/red-seen" ]; then
+    for step in $(tr ',' ' ' <<<"$what"); do
+      grep -qE "(^| )$step(,|$)" <(cut -d' ' -f2- "$STATE/red-seen") && repeated+="${repeated:+, }$step"
+    done
+  fi
+  echo "$short $what" >"$STATE/red-seen"
+  if [ -n "$repeated" ]; then echo "$short $repeated" >"$STATE/red"; else rm -f "$STATE/red"; fi
+fi
 status failure "Red: $what"
 # Report first, so a run stopped later (by the service's time limit, say) cannot lose it: the next
 # tick sees this commit as checked.
