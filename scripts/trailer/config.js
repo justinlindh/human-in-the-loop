@@ -130,7 +130,7 @@ export const VO = {
     { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, max: 1.3, text: 'Hire humans.' },
     { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, max: 1.35, text: 'Ship products.' },
     { id: 'l2b', at: { beat: 'incident', offset: 0.2 }, max: 1.7, text: 'Call the outage a stress test.' },
-    { id: 'l7', at: { beat: 'yak', offset: 0.4 }, max: 2.4, text: 'Your team talks. Mostly in memes.' },
+    { id: 'l7', at: { beat: 'yak', offset: 0.3 }, max: 2.5, text: 'Your team talks. Mostly in memes.' },
     { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, max: 3.6, text: 'Survive the AI eras. First chatbots.' },
     { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, max: 1.1, text: 'Then agents.' },
     { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, max: 3.3, text: 'Just automate everything. Read the bill later.' },
