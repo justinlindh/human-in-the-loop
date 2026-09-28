@@ -106,6 +106,8 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   layer?.append(peek);
 
   const canShow = (item) => { const p = panelOf(item); return !!p && (p === 'goals' || !!panels[p]); };
+  // Where an option leads, named as its panel is (Staff, Reports...), for the chip on its button.
+  const placeName = (o) => { const p = panelOf(o); return p === 'goals' ? 'Goals' : (panels[p]?.title ?? '').split(' ')[0]; };
   const options = (item) => (Array.isArray(item.options) ? item.options.filter((o) => o?.text && canShow(o)).slice(0, 3) : []);
   function showMe(item) {
     const target = panelOf(item);
@@ -132,7 +134,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
         item.why ? h('div.small.advwhy', { text: item.why }) : null,
         isFine(item) ? null : h('div.advacts', null,
           // A notice's own ways to address it, each opening its panel; Show me when it has none.
-          ...(options(item).length ? options(item).map((o) => h('button.btn.small.go.advopt', { type: 'button', onclick: () => showMe(o) }, o.text))
+          ...(options(item).length ? options(item).map((o) => h('button.btn.small.go.advopt', { type: 'button', onclick: () => showMe(o) }, o.text, h('span.advplace', { text: placeName(o) })))
             : [canShow(item) ? h('button.btn.small.go', { type: 'button', onclick: () => showMe(item) }, 'Show me') : null]),
           h('button.btn.small', { type: 'button', onclick: () => { if (dismiss(item)) rerender(); } }, 'Not now'))));
   }

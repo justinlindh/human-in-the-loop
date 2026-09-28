@@ -44,3 +44,4 @@
 .hitl .advearlier-row:hover { background: var(--cream-2); }
 .hitl .advearlier-text { flex: 1; min-width: 0; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hitl .advacts .advopt { white-space: normal; text-align: left; line-height: 1.2; }
+.hitl .advopt .advplace { margin-left: 0.45em; padding: 0 0.4em; border-radius: 0.6em; background: rgba(255, 255, 255, 0.28); font-size: 0.85em; font-weight: 600; }
