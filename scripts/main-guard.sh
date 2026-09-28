@@ -145,6 +145,13 @@ gate() {
   # would quietly stop it catching regressions. Here every scene renders, on every commit checked.
   run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --software timeout 900 nice -n 10 node blender/checks/golden.mjs --jobs=4
   golden_rc=$?
+  # A failing golden's images (actual, diff, and the identity check's two renders) live in this gate's
+  # worktree, which goes when the gate ends: keep them beside the commit's logs, for two weeks.
+  if [ "$golden_rc" -ne 0 ] && compgen -G "$WT/shots/golden/*.png" >/dev/null; then
+    mkdir -p "$STATE/$cs-golden" && cp "$WT"/shots/golden/*.png "$STATE/$cs-golden/" \
+      && echo "main-guard: kept golden's failure images in $STATE/$cs-golden"
+  fi
+  find "$STATE" -maxdepth 1 -type d -name '*-golden' -mtime +14 -exec rm -rf {} + 2>/dev/null
   if [ "$golden_rc" -ne 0 ] && gwhy="$(infra_failure "$STATE/$cs.golden.log" 999)"; then
     gate_err=1; golden_rc=0; gate_why="${gate_why:+$gate_why; }golden: $gwhy"
   fi
@@ -267,9 +274,8 @@ fi
 if [ -z "$what" ]; then
   echo "main-guard: $short PASS in ${secs}s"
   echo "$sha" >"$STATE/last-green"
-  # The steps main is red on, for auto CI (scripts/auto-ci.sh); only a verdict on main's newest commit
-  # (not an older one a bisect checks) counts.
-  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red"
+  # Main's red record for auto CI (scripts/auto-ci.sh) clears on a green verdict for main's newest commit.
+  git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red" "$STATE/red-seen"
   status success "Full suite and sweep pass (${secs}s)"
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
@@ -280,7 +286,19 @@ if [ -z "$what" ]; then
 fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
-git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && echo "$short $what" >"$STATE/red"
+# The red record auto CI holds render PRs on (scripts/auto-ci.sh) names only the steps red in two
+# verdicts in a row on main's newest commit (a new commit, or the same one checked again), so one flake
+# holds nothing. Only those verdicts count, not an older commit a bisect checks.
+if git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null; then
+  repeated=""
+  if [ -f "$STATE/red-seen" ]; then
+    for step in $(tr ',' ' ' <<<"$what"); do
+      cut -d' ' -f2- "$STATE/red-seen" | tr ', ' '\n\n' | grep -qxF "$step" && repeated+="${repeated:+, }$step"
+    done
+  fi
+  echo "$short $what" >"$STATE/red-seen"
+  if [ -n "$repeated" ]; then echo "$short $repeated" >"$STATE/red"; else rm -f "$STATE/red"; fi
+fi
 status failure "Red: $what"
 # Report first, so a run stopped later (by the service's time limit, say) cannot lose it: the next
 # tick sees this commit as checked.

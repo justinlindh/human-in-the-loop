@@ -89,6 +89,10 @@ export const B = {
     cooldownWeeks: 26, pushGapWeeks: 12,
   },
   launchbotVersionStep: 5,
+  // Apprenticeship Program: skill added to each junior candidate; Blameless Postmortems: knowledge each engineer gains when an outage clears.
+  apprenticeSkillBonus: 10, blamelessKnowledge: 5,
+  // A GPU shortage multiplies automation's weekly cost while it lasts.
+  gpuShortageMult: 1.5,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
   // readSeconds in src/pacing.js: a line's hold at 1x, its cap, the reading-speed floor, and the shortening at 2x and 4x.

@@ -20,7 +20,13 @@ case "$1 $2" in
 esac
 `;
 
-const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } }).trim();
+// Child processes get no GIT_* variables from whatever runs the tests (a git hook sets GIT_DIR and
+// GIT_INDEX_FILE), so every git command here can only reach the scratch repos.
+const cleanEnv = (extra = {}) => ({
+  ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_'))),
+  GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t', ...extra,
+});
+const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', env: cleanEnv() }).trim();
 
 let root, work, bin, ghDir;
 const green = { state: 'OPEN', headRefOid: 'HEAD_SHA', headRefName: 'feature', mergeStateStatus: 'CLEAN', mergeable: 'MERGEABLE', statusCheckRollup: [
@@ -29,7 +35,7 @@ const green = { state: 'OPEN', headRefOid: 'HEAD_SHA', headRefName: 'feature', m
 ] };
 const replies = (...list) => list.forEach((r, i) => writeFileSync(join(ghDir, `pr-${i}.json`), JSON.stringify(r)));
 const run = (...args) => spawnSync('bash', [SCRIPT, ...args], { cwd: work, encoding: 'utf8', timeout: 60000,
-  env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } });
+  env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work }) });
 
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'wait-for-'));
@@ -129,6 +135,22 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     const r = run('--issue', '9', '--poll', '0', '--timeout', '0');
     expect(r.status).toBe(0);
     expect(r.stdout).toMatch(/#9 merged/);
+  });
+
+  it('touches only its scratch repos even when run with a git hook\'s GIT_* variables set', () => {
+    const saved = { GIT_DIR: process.env.GIT_DIR, GIT_INDEX_FILE: process.env.GIT_INDEX_FILE, GIT_WORK_TREE: process.env.GIT_WORK_TREE };
+    process.env.GIT_DIR = join(root, 'not-a-repo');
+    process.env.GIT_INDEX_FILE = join(root, 'not-an-index');
+    process.env.GIT_WORK_TREE = root;
+    try {
+      advanceMain('c.txt', 'main\n');
+      replies({ ...green, mergeStateStatus: 'BEHIND' }, green);
+      const r = run('7', '--poll', '0', '--test', 'true');
+      expect(r.status).toBe(0);
+      expect(git(work, 'rev-parse', 'origin/feature')).toBe(git(work, 'rev-parse', 'HEAD'));
+    } finally {
+      for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    }
   });
 
   it('waits for an issue to close', () => {

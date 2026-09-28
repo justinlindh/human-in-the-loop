@@ -176,7 +176,7 @@ export function refreshCandidates(state) {
 export function makeCandidate(state, role, seniority) {
   const c = generateStaff(state, { role, seniority });
   if (seniority === 'junior' && state.policies.apprenticeship) {
-    for (const st of STATS) c.skills[st] = Math.min(100, c.skills[st] + 10);
+    for (const st of STATS) c.skills[st] = Math.min(100, c.skills[st] + B.apprenticeSkillBonus);
   }
   return c;
 }

@@ -1,6 +1,11 @@
 ---
 tool: `scripts/hooks/pre-push` (`npm run hooks`)
 section: pr
-covers: scripts/hooks/pre-push
+covers: scripts/hooks/pre-push scripts/hooks/pre-push.test.sh
 ---
-Refuses pushes to a branch whose PR has already merged or closed.
+Before every push:
+- It refuses pushes to a branch whose PR has already merged or closed.
+- It runs `npm run test:fast` and refuses the push when that fails, so an ungated push can't happen. `test:fast` is cached per tree (test-cache), so a tree that already passed costs well under a second.
+- It tests the checkout as it is, uncommitted changes included, and says so when the tree is dirty.
+- The test gate is skipped in CI, for a push that only touches the `pr-media` branch or deletes branches, and where `package.json` has no `test:fast`.
+- `git push --no-verify` skips both once.

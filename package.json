@@ -5,6 +5,7 @@
     "doc": "docs"
   },
   "scripts": {
+    "effects": "node scripts/effects.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
