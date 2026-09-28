@@ -78,7 +78,7 @@ export function describeEffects(fx) {
   const num = (key, label, fmt = signed) => { if (typeof fx[key] === 'number') out.push(`${label} ${fmt(fx[key])}`); };
   if (typeof fx.cash === 'number') out.push(`cash ${fx.cash < 0 ? '-' : '+'}${money(Math.abs(fx.cash))}`);
   num('brand', 'brand'); num('meaning', 'their meaning'); num('teamMeaning', 'team meaning'); num('ik', 'know-how');
-  num('debt', 'comprehension debt'); num('hype', 'hype on your newest product'); num('fame', 'fame'); num('health', 'product health');
+  num('debt', 'tech debt'); num('hype', 'hype on your newest product'); num('fame', 'fame'); num('health', 'product health');
   num('knowledge', 'their knowledge'); num('strain', 'their strain'); num('teamStrain', 'team strain'); num('purpose', 'purpose');
   if (typeof fx.customersPct === 'number') out.push(`customers ${pct(fx.customersPct / 100)}`);
   if (typeof fx.salaryPct === 'number') out.push(`their salary ${pct(fx.salaryPct / 100)}`);
@@ -213,22 +213,22 @@ function debtFile() {
     ['Know-how under ' + B.debtLowIkThreshold, `${B.debtLowIkRate} per point under`],
   ]);
   const paydown = table(['Paydown', 'Takes off a week'], [
-    ['Code Comprehension Reviews', `${share(B.debtPaydownReviews)} of the debt`],
-    ['Each senior engineer', `${share(B.debtPaydownPerSeniorEng)} of the debt × their knowledge / 100 (Architects ${mult(PATHS.architect?.mods?.debtPaydown ?? 1)})`],
-    ['Each engineer on maintenance', `${share(B.debtPaydownMaintenance)} of the debt`],
+    ['Code Comprehension Reviews', `${share(B.debtPaydownReviews)} of the tech debt`],
+    ['Each senior engineer', `${share(B.debtPaydownPerSeniorEng)} of the tech debt × their knowledge / 100 (Architects ${mult(PATHS.architect?.mods?.debtPaydown ?? 1)})`],
+    ['Each engineer on maintenance', `${share(B.debtPaydownMaintenance)} of the tech debt`],
   ]);
   const once = [
     `- Someone leaves: ${B.debtFromDeparturePerKnowledge} × their knowledge (Docs Culture research cuts it).`,
-    `- The Big Refactor ships: ${Math.round(B.debtRefactorShare * 100)}% of the debt is cleared.`,
+    `- The Big Refactor ships: ${Math.round(B.debtRefactorShare * 100)}% of the tech debt is cleared.`,
     '- Some choices add or remove a few points; the Decisions page lists them.',
   ].join('\n');
   const effects = [
-    `- Security posture ${signed(-B.postureDebtPenalty)} per point of debt.`,
-    '- Rogue agent risk × (1 + debt / 50), and over 60 a rogue incident hits one level harder.',
-    '- The fixing capacity an outage needs × (0.4 + debt / 100): past what your people can fix, the outage is unrecoverable.',
+    `- Security posture ${signed(-B.postureDebtPenalty)} per point of tech debt.`,
+    '- Rogue agent risk × (1 + tech debt / 50), and over 60 a rogue incident hits one level harder.',
+    '- The fixing capacity an outage needs × (0.4 + tech debt / 100): past what your people can fix, the outage is unrecoverable.',
     `- The tech lead speaks up at ${B.advisor.debt.join(' / ')}. Code Comprehension Reviews unlock at 20 or on the Office Floor.`,
   ].join('\n');
-  return `${HEADER}# Comprehension debt\n\nCode nobody quite understands, from 0 to 100. Paydowns take a share of the current debt, so it settles where inflow and paydown meet.\n\n## What adds it\n\n${inflow}\n\n## What pays it down\n\n${paydown}\n\n## All at once\n\n${once}\n\n## What it does\n\n${effects}\n`;
+  return `${HEADER}# Tech debt\n\nCode nobody quite understands any more (comprehension debt), from 0 to 100. Paydowns take a share of the current tech debt, so it settles where inflow and paydown meet.\n\n## What adds it\n\n${inflow}\n\n## What pays it down\n\n${paydown}\n\n## All at once\n\n${once}\n\n## What it does\n\n${effects}\n`;
 }
 
 function advisorsFile() {
@@ -236,7 +236,7 @@ function advisorsFile() {
   const rows = [
     ['Runway', 'CFO', `under ${A.runwayWeeks.join(' / ')} weeks of cash at this burn (tiers 1 to 3), or in the red`],
     ['Burnout', 'people lead', `one person burnt out; two or more; two or more and at least ${Math.round(A.burnoutShareUrgent * 100)}% of the team`],
-    ['Comprehension debt', 'tech lead', `at ${A.debt.join(' / ')}`],
+    ['Tech debt', 'tech lead', `at ${A.debt.join(' / ')}`],
     ['One person holds the know-how', 'tech lead', `one of ${A.busFactorMinHolders} or more holders has ${A.busFactorShare.map((x) => `${Math.round(x * 100)}%`).join(' / ')} of the team's knowledge`],
     ['Unused policy', 'people lead', `a good policy unlocked ${A.unusedPolicyWeeks} weeks and never switched on (for ${A.unusedPolicyWindowWeeks} weeks)`],
     ['New era', 'tech lead', `the first ${A.eraWeeks} weeks of a new era`],
@@ -248,7 +248,7 @@ function advisorsFile() {
 }
 
 const FILES = { 'policies.md': policiesFile, 'decisions.md': decisionsFile, 'office.md': officeFile, 'people.md': peopleFile,
-  'products.md': productsFile, 'growth.md': growthFile, 'yak.md': yakFile, 'advisors.md': advisorsFile, 'debt.md': debtFile };
+  'products.md': productsFile, 'growth.md': growthFile, 'yak.md': yakFile, 'advisors.md': advisorsFile, 'tech-debt.md': debtFile };
 
 export function renderEffects() {
   const out = {};

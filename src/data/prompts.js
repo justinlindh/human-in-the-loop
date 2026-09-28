@@ -114,10 +114,10 @@ export const PROMPTS = [
       'The agent left a comment on my code: "consider simplifying". I am considering a long walk.',
     ],
     options: [
-      { label: 'Review every one', hint: 'Comprehension debt down; their strain up', effects: { debt: -N.reviewDebt, strain: N.pushStrain },
+      { label: 'Review every one', hint: 'Tech debt down; their strain up', effects: { debt: -N.reviewDebt, strain: N.pushStrain },
         reply: ['Review them all. Every line. We own it once it merges.', 'Read it like you wrote it. Because now you did.'],
         answer: ['Pouring a second coffee. And a third.', 'On number 3 of 40. Send help. And lunch.'] },
-      { label: 'Merge the green ones', hint: 'Comprehension debt up; their meaning up a little', effects: { debt: N.mergeDebt, meaning: 1 },
+      { label: 'Merge the green ones', hint: 'Tech debt up; their meaning up a little', effects: { debt: N.mergeDebt, meaning: 1 },
         reply: ['If the tests pass, merge it.', 'Green means go. Mostly.'],
         answer: ['Merged 38. Two are "thinking".', 'Done. I understand none of it. Great.'] },
     ],
