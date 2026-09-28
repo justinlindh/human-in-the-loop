@@ -183,14 +183,17 @@ function drawPortrait(g, p) {
 
   const hx = 32, hy = 30, r = 17;
   const style = a.hair ?? 0;
-  // Hair follows render's eight styles (blender/characters/chibi.py): 0 short crop, 1 bob, 2 long,
-  // 3 ponytail, 4 spiky, 5 bun, 6 curly, 7 side swoop. A hat replaces the hair, as in the office.
+  // Hair follows render's styles (blender/characters/chibi.py): 0 short crop, 1 bob, 2 long,
+  // 3 ponytail, 4 spiky, 5 bun, 6 curly, 7 side swoop, 8 afro, 9 space buns, 10 mohawk, 11 buzz cut,
+  // 12 pigtails. A hat replaces the hair, as in the office.
   const hat = a.accessory === 'beanie' || a.accessory === 'cap';
   const hairShape = (draw) => { g.fillStyle = hair; g.beginPath(); draw(); g.fill(); g.stroke(); };
   // Behind the head: long hair, a bob's sides, a ponytail's tail.
   if (!hat && style === 2) hairShape(() => roundRect(g, hx - r - 2, hy - 6, (r + 2) * 2, 28, 9));
   if (!hat && style === 1) hairShape(() => roundRect(g, hx - r - 3, hy - 4, (r + 3) * 2, 17, 7));
   if (!hat && style === 3) hairShape(() => { g.moveTo(hx + r - 2, hy - 8); g.quadraticCurveTo(hx + r + 10, hy + 2, hx + r + 3, hy + 16); g.quadraticCurveTo(hx + r - 3, hy + 6, hx + r - 6, hy - 2); g.closePath(); });
+  if (!hat && style === 8) hairShape(() => g.ellipse(hx, hy - 7, r + 7, r + 3, 0, 0, Math.PI * 2));
+  if (!hat && style === 12) for (const sx of [-1, 1]) hairShape(() => g.ellipse(hx + sx * (r + 2), hy + 7, 4.5, 8, sx * 0.25, 0, Math.PI * 2));
   // head
   g.fillStyle = skin;
   g.beginPath();
@@ -230,6 +233,19 @@ function drawPortrait(g, p) {
       case 7: // side swoop across the forehead
         hairShape(cap);
         hairShape(() => { g.moveTo(hx - r + 1, hy - 4); g.quadraticCurveTo(hx - 4, hy - 14, hx + 8, hy - 8); g.quadraticCurveTo(hx - 2, hy - 4, hx - r + 3, hy + 2); g.closePath(); });
+        break;
+      case 8: // afro: the dome's front edge over the forehead
+        hairShape(() => { g.ellipse(hx, hy - 7, r + 7, r + 3, 0, Math.PI * 0.08, Math.PI * 0.92, true); g.quadraticCurveTo(hx, hy - 16, hx + (r + 7) * Math.cos(Math.PI * 0.08), hy - 7 + (r + 3) * Math.sin(Math.PI * 0.08)); });
+        break;
+      case 9: // space buns
+        for (const sx of [-1, 1]) hairShape(() => g.arc(hx + sx * 8, hy - r - 2, 6, 0, Math.PI * 2));
+        hairShape(cap);
+        break;
+      case 10: // mohawk: a ridge on a bare scalp
+        hairShape(() => roundRect(g, hx - 3.5, hy - r - 7, 7, 16, 3.5));
+        break;
+      case 11: // buzz cut: a close cap with a high hairline
+        hairShape(() => { g.arc(hx, hy, r, Math.PI * 1.04, Math.PI * 1.96); g.quadraticCurveTo(hx, hy - 17, hx - r * Math.cos(Math.PI * 0.04), hy - r * Math.sin(Math.PI * 0.04)); });
         break;
       case 0: // short crop with a little fringe
         hairShape(cap);

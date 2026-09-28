@@ -185,13 +185,18 @@ export function buildCharLineup(group) {
       if (a === 'burnout') c.setMood('burnout');
     }));
     EMOTES.forEach((e, i) => add(i, 5, { hair: (i + 4) % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[(i + 7) % 10], skin: (i + 1) % 6 }, ROLES[i % 6], (c) => c.setEmote(e)));
+    // The extra hair styles, in the row ends the rows above leave free (no support: its headset only
+    // takes the buzz cut).
+    [[8, 0], [8, 1], [6, 2], [7, 2], [8, 2]].forEach(([col, row], i) => add(col, row, { hair: i, style: 8 + i, hairColor: HAIRC[(i * 3 + 2) % 8], skin: (i * 2 + 1) % 6, shirt: SHIRTS[(i + 6) % 10] }, ['designer', 'sales', 'engineer', 'marketer', 'security'][i]));
     add(8, 5, { hair: 7, hairColor: HAIRC[4], shirt: SHIRTS[5], skin: 3, accessory: 'glasses' }, 'engineer', (c) => { c.setLegend(true); c.setAnim('celebrate'); });
   });
   return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 1.4, d / 2));
 }
 
 // One character at four headings, for checking the face and silhouette up close.
-// Query: hair, acc, back (cap backwards), skin, hc (hair color), shirt, build, role.
+// Query: hair, acc, back (cap backwards), skin, hc (hair color), shirt, build, role, style (the hair
+// style drawn, 0..12; defaults to hair, so a combination stays pinned), print (a chest design; none
+// unless given).
 export function buildCharTurnaround(group) {
   group.add(mesh(roundedBox(5, 0.3, 2, 0.08), mat('slab_side'), 0, -0.15, 0));
   group.add(mesh(roundedBox(4.8, 0.04, 1.8, 0.02), mat('floor_wood'), 0, 0.02, 0));
@@ -203,7 +208,7 @@ export function buildCharTurnaround(group) {
       const acc = new URLSearchParams(location.search).get('acc') ?? 'none';
       const qp = new URLSearchParams(location.search);
       const role = qp.get('role') ?? 'designer';
-      const c = createCharacter({ skin: Number(qp.get('skin') ?? 1), hair: Number(qp.get('hair') ?? 1), hairColor: HAIRC[Number(qp.get('hc') ?? 3)], shirt: SHIRTS[Number(qp.get('shirt') ?? 3)], pants: PANTS[0], accessory: acc, build: Number(qp.get('build') ?? 1), capBack: qp.get('back') === '1' }, ROLE_COLORS[role], { role, seed: `turn-${i}` });
+      const c = createCharacter({ skin: Number(qp.get('skin') ?? 1), hair: Number(qp.get('hair') ?? 1), hairColor: HAIRC[Number(qp.get('hc') ?? 3)], shirt: SHIRTS[Number(qp.get('shirt') ?? 3)], pants: PANTS[0], accessory: acc, build: Number(qp.get('build') ?? 1), capBack: qp.get('back') === '1', style: Number(qp.get('style') ?? qp.get('hair') ?? 1), print: qp.get('print') || null }, ROLE_COLORS[role], { role, seed: `turn-${i}` });
       c.root.position.set((i - 1.5) * 1.1, 0.04, 0);
       c.root.rotation.y = Math.PI / 4 + i * Math.PI / 2;
       group.add(c.root);

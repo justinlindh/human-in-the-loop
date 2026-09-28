@@ -1,6 +1,7 @@
 # People (characters, poses, emotes, moods, traits)
 
-- **Chibi staff**: big-head characters with varied hair, builds, accessories (glasses, headphones, beanie, cap) and role garments (hoodie, blazer, headset, vest); a role-coloured ring under each. `capture 3-1-lineup`
+- **Chibi staff**: big-head characters with thirteen hairstyles (among them an afro, space buns, a mohawk, a buzz cut and pigtails), builds, accessories (glasses, headphones, beanie, cap) and role garments (hoodie, blazer, headset, vest); a role-coloured ring under each. `capture 3-1-lineup`
+- **Role graphic tees**: most engineers, designers and support staff wear a print that suits the role: code brackets, a git branch or a terminal prompt on the hoodie pouch; a pen nib, colour swatches or a bezier curve on a designer's chest; a heart or a chat bubble on support's shirt. Close-ups show them best (`?chars=2&role=support&print=heart`).
 - **Portraits**: menus show each person as a portrait rendered from their 3D character. `capture 3-2-portraits`
 - **Advisor portraits**: the three advisors (Marge Tally, CFO; Otto Nwosu, people lead; Rory Halloran, tech lead) are drawn the same way from the character kit, in their own muted accents rather than a staff role colour, with a hand-up "has an idea" frame (`renderer.advisorPortrait(key, { idea })`).
 - **Moods**: typing when fine, slumped when coasting, head down when burnt out; tired people droop, and sometimes nod off at the desk.
