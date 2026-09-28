@@ -138,6 +138,8 @@ export const B = {
   incentiveEveryWeeks: 8, musicNightDancers: [3, 5], waffleLaunches: 20, waffleLevel: 20, waffleCooldownWeeks: 156, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
   awardAiScore: 8.5, awardWorkplaceStaff: 10, awardWorkplaceMeaning: 78, awardWorkplaceStreak: 2, awardTrustedIncidents: 0, awardAiHype: 15, awardWorkplacePride: 1, awardTrustedBrand: 2,
   recordEngPointsPerFeature: 8, recordDesignPointsPerFeature: 120, recordPointsPerPr: 30, recordTicketHours: 2, recordCustomersPerDeal: 25,
+  // Squads: how many, how big, and the headcount that unlocks them without the Office Floor.
+  squadMax: 6, squadMaxMembers: 8, squadUnlockStaff: 8,
   // Office items: the most all items together move one effect, and what a second copy's level effect counts for.
   itemBonusCap: 0.5, itemSecondCopy: 0.5,
   hqDeskCap: 30, expansionDeskStep: 5, topPayAttrition: 0.6, upkeepAttrition: 0.85, upkeepMeaningRecovery: 0.15,

@@ -18,6 +18,7 @@ import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 const T = 0.25;                    // wall thickness margin round the office footprint
 const GROUND_Y = -0.3;             // board top on the ground-level stages
 const FLOOR_UP = 7.5;              // how far the Office Floor sits above its plaza
+const EDGE = 0.8;                  // board left round the outermost building's footprint
 const rnd = (() => { let s = 7; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
 
 const COL = {
@@ -233,20 +234,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const M = stage === 0 ? 9 : stage === 1 ? 12 : 14;
     const BW = 2 * (hw + M), BD = 2 * (hd + M);
 
-    // The diorama board: a thick slab with a soil edge and the stage's ground on top.
-    const groundHex = stage === 0 ? COL.grass : COL.paving;
-    // The soil slab's top sits under the ground plate, not level with it (no z-fighting).
-    onFlat(mesh(roundedBox(BW, 0.8, BD, 0.25, 3), m(COL.soil), 0, 0, 0, { cast: false }), 0, gy - 0.45, 0);
-    onFlat(mesh(roundedBox(BW - 0.05, 0.06, BD - 0.05, 0.03, 2), m(groundHex), 0, gy - 0.03, 0, { cast: false }), 0, gy - 0.03, 0);
-
-    // A street across the front (+z), kerbs and a dashed centre line.
-    const street = (z0, width, x0 = -BW / 2 + 0.2, x1 = BW / 2 - 0.2) => {
-      const cz = z0 + width / 2, len = x1 - x0, cx = (x0 + x1) / 2;
-      onFlat(mesh(roundedBox(len, 0.04, width, 0.01, 1), m(COL.asphalt), 0, 0, 0, { cast: false }), cx, gy + 0.01, cz);
-      for (const zz of [z0 - 0.35, z0 + width + 0.35]) onFlat(mesh(roundedBox(len, 0.08, 0.7, 0.02, 1), m(COL.kerb), 0, 0, 0, { cast: false }), cx, gy + 0.03, zz);
-      for (let x = x0 + 0.6; x < x1 - 1; x += 2.2) onFlat(mesh(roundedBox(1.1, 0.012, 0.14, 0.004, 1), m(COL.line), 0, 0, 0, { cast: false }), x + 0.55, gy + 0.035, cz);
-      return cz;
-    };
+    // A street across the front (+z), kerbs and a dashed centre line. It is laid once the board's
+    // width is known (below), edge to edge.
+    const streets = [];
+    const street = (z0, width) => { streets.push({ z0, width }); return z0 + width / 2; };
 
     if (stage === 0) {
       // Suburban lot: lawn, the street out front, a driveway from the garage door, houses behind.
@@ -334,6 +325,31 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         movers.push({ make: () => car(COL.car[Math.floor(rnd() * 4)]), z: sz + 0.85, x0: -BW / 2 + 1, x1: BW / 2 - 1, speed: 3.4, gap: [6, 12] });
       }
     }
+
+    // The diorama board covers everything that stands on it: at least the stage's margin round the
+    // office, grown on any side where a building, tree or fence reaches further, so nothing overhangs
+    // its edge from any view.
+    const ext = { x0: -BW / 2, x1: BW / 2, z0: -BD / 2, z1: BD / 2 };
+    const box = new THREE.Box3();
+    for (const g of Object.values(sides)) for (const o of g.children) {
+      box.setFromObject(o);
+      ext.x0 = Math.min(ext.x0, box.min.x - EDGE); ext.x1 = Math.max(ext.x1, box.max.x + EDGE);
+      ext.z0 = Math.min(ext.z0, box.min.z - EDGE); ext.z1 = Math.max(ext.z1, box.max.z + EDGE);
+    }
+    const bw = ext.x1 - ext.x0, bd = ext.z1 - ext.z0, bx = (ext.x0 + ext.x1) / 2, bz = (ext.z0 + ext.z1) / 2;
+    const groundHex = stage === 0 ? COL.grass : COL.paving;
+    // The soil slab's top sits under the ground plate, not level with it (no z-fighting).
+    onFlat(mesh(roundedBox(bw, 0.8, bd, 0.25, 3), m(COL.soil), 0, 0, 0, { cast: false }), bx, gy - 0.45, bz);
+    onFlat(mesh(roundedBox(bw - 0.05, 0.06, bd - 0.05, 0.03, 2), m(groundHex), 0, 0, 0, { cast: false }), bx, gy - 0.03, bz);
+    const sx0 = ext.x0 + 0.2, sx1 = ext.x1 - 0.2;
+    for (const { z0, width } of streets) {
+      const cz = z0 + width / 2, len = sx1 - sx0, cx = (sx0 + sx1) / 2;
+      onFlat(mesh(roundedBox(len, 0.04, width, 0.01, 1), m(COL.asphalt), 0, 0, 0, { cast: false }), cx, gy + 0.01, cz);
+      for (const zz of [z0 - 0.35, z0 + width + 0.35]) onFlat(mesh(roundedBox(len, 0.08, 0.7, 0.02, 1), m(COL.kerb), 0, 0, 0, { cast: false }), cx, gy + 0.03, zz);
+      for (let x = sx0 + 0.6; x < sx1 - 1; x += 2.2) onFlat(mesh(roundedBox(1.1, 0.012, 0.14, 0.004, 1), m(COL.line), 0, 0, 0, { cast: false }), x + 0.55, gy + 0.035, cz);
+    }
+    // Cars drive the street's full length.
+    for (const mv of movers) { mv.x0 = mv.x0 < mv.x1 ? ext.x0 + 1 : ext.x1 - 1; mv.x1 = mv.x0 < 0 ? ext.x1 - 1 : ext.x0 + 1; }
 
     // Clouds drift slowly past high up behind the office.
     if (!lite) {

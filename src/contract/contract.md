@@ -160,7 +160,7 @@ The run starts at week 0 = January 2019 (dateOf(0).year === 2019).
 ```js
 era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /* week */ },
 eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
-unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
+unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups','squads', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
 // Count goals in src/data/goals.js also define progress(state, h) -> { n, of }, with n capped at of and never rounded up
 // to of before done. h = goalHelpers(state), exported from src/sim/index.js. ui reads these for progress bars and never recomputes them.
@@ -431,7 +431,7 @@ Three advisors (a CFO, a people lead and a tech lead) comment on what the player
 ```js
 advice(state) -> Advice[]   // pure read: changes nothing and draws no game randomness; ranked by severity (highest first), then key; a single { key: 'fine', severity: 1, target: null, ... } when nothing applies, so the panel is never empty
 Advice = {
-  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'fine'
+  key,           // stable topic id: 'runway', 'burnout', 'debt', 'busFactor:<staffId>', 'unusedPolicy:<policyId>', 'era:<eraId>', 'oneProduct', 'migration:<productId>', 'juniors', 'squadIdle:<squadId>', 'fine'
   advisor,       // 'cfo' | 'people' | 'tech'
   severity,      // 1 worth a thought, 2 soon, 3 urgent
   tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
@@ -451,7 +451,7 @@ Advice = {
 - Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
 - Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
 - `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
-- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item); other panels take no arg.
+- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item), a squadId for `squads` (the Squads tab in Staff, scrolled to that squad); other panels take no arg.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
 ### State: Advisors
@@ -481,3 +481,48 @@ advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastP
 - Pushed by the `advisors` system (order 96, after `history`). At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
 - A key isn't pushed again within its `cooldownWeeks` unless its tier rose.
 - The sim always computes and emits. The On / Quiet / Off setting lives in ui's settings store, not in state: On shows pushes and the panel, Quiet ignores `advice` events, Off hides the panel. Bot games end identically whatever the setting.
+
+## Squads (#938)
+
+Named groups the player staffs and posts as a unit. A layer over per-person assignments: posting a squad dispatches the ordinary assignment for each member, so output, maintenance, oversight and knowledge work as before. People outside any squad are unaffected.
+
+```
+state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
+                  posting: { type: 'project'|'maintenance'|'support'|'idle', targetId },   // targetId: a projectId for 'project', else null
+                  afterLaunch: 'upkeep'|'maintenance', benchUntil: week | null, cohesion /*0..1*/, formedWeek, postedWeek, crewIds: [staffId] }]   // postedWeek: the week the current posting began (formedWeek for a new squad)
+```
+
+- At most 6 squads. A person is in at most one squad; membership lives only on the squad, and ui looks it up there.
+- A member whose assignment doesn't match the squad's posting is "on loan". That is derived, never stored. A plain `assign` of a member leaves them in the squad, on loan.
+- Unlock: squads unlock the first week the company reaches the Office Floor or 8 staff, recorded as `unlocks.squads = week`. Actions check that key, not the current headcount, so squads stay unlocked if headcount drops.
+- Postings are `project`, `maintenance` or `support`, plus `idle` for a benched squad. Other assignments (sales, marketing, security, oversight, mentoring) stay per person; a member on one of those is on loan.
+- After a squad's project ships with `afterLaunch: 'upkeep'`: the crew is the squad's engineers ranked by knowledge of that product, taken in order until their maintenance capacity covers the new product's maintenance need under the ordinary maintenance rule, and at least one. The crew goes to maintenance. The rest are benched: posting `{ type: 'idle', targetId: null }`, `benchUntil = week + B.squadBenchWeeks` (2). When that week arrives, benched members go back to their default work and the squad's posting becomes `maintenance`. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
+- If a squad's posted project is cancelled, the squad is benched the same way, with no crew.
+- `crewIds` are members left on a product's upkeep after a launch. `postSquad` skips them (reason 'On upkeep crew'), and they count as working the squad's posting for cohesion. A member leaves the crew when assigned elsewhere by hand, when the squad is posted to maintenance, when their product is retired, when they're removed from the squad or it's disbanded, or when they leave the company. A crew member is shown as "on upkeep", never "on loan": the on-loan rule applies only to members outside `crewIds`. Old saves load `crewIds: []`.
+- Cohesion starts at 0 when a squad forms and rises by `1 / B.squadCohesionWeeks` (12) each week that at least half its members work its posting, up to 1. Anyone joining or leaving halves it.
+- Cohesion multiplies output: a member working the squad's posting gets `output * (1 + cohesion * B.squadCohesionOutput)` (0.05). On-loan and benched members get nothing.
+- Advisor topic `squadIdle:<squadId>` (people lead): a squad with members on an idle posting for `B.squadIdleWeeks` (2) or more, not counting a post-launch bench, which has its own timer. Severity 1. Options: post it to a project, or post it to maintenance, each with target `{ panel: 'squads', arg: squadId }`. The debt advisor's maintenance option names an idle squad when there is one.
+- A departure removes the person from their squad and clears `leadId` if it was them. An emptied squad stays until disbanded.
+- Suggested names come from `SQUAD_NAMES` in `src/data/squads.js`.
+- Old saves load with `squads: []`.
+
+Actions:
+
+```
+{ type: 'createSquad', name, memberIds }        // -> { ok, squadId }; name 1..20 characters, trimmed; 1..8 members; joining moves a person out of their old squad
+{ type: 'renameSquad', squadId, name }
+{ type: 'disbandSquad', squadId }                 // members keep their current work
+{ type: 'setSquadMembers', squadId, memberIds }   // replaces the members, same rules as createSquad
+{ type: 'setSquadLead', squadId, staffId }        // staffId null clears it; must be a member
+{ type: 'postSquad', squadId, posting: { type, targetId } }   // -> { ok, placed: [staffId], skipped: [{ staffId, reason }] }; ok false with the first reason when nobody can be placed; clears benchUntil
+{ type: 'setSquadAfterLaunch', squadId, mode }    // 'upkeep' | 'maintenance'
+```
+
+Refusal reasons include 'Squads unlock with the Office Floor or 8 people', 'Up to 6 squads', 'Name the squad', 'A squad has 1 to 8 people', 'No such staff member' and 'Not in this squad'.
+
+Events:
+
+```
+{ type: 'squadFreed', squadId, productId, crewIds }   // a squad's project finished: crewIds stay on maintenance, the rest are benched; productId null (and crewIds empty) for a project that makes no product (refactor, craft, research)
+{ type: 'squadBenchEnded', squadId }                  // the bench ran out and benched members went back to their default work
+```

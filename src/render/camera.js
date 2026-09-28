@@ -170,14 +170,17 @@ export function createCameraRig(canvas) {
     return e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey
       || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
   };
+  // A quarter turn of the view: -1 is Q's way, +1 is E's.
+  function rotate(dir) {
+    touched();
+    yawGoal += Math.sign(dir) * Math.PI / 2;
+    refit();
+  }
   const onKeyDown = (e) => {
     if (ignore(e)) return;
     const k = e.key.toLowerCase();
-    if (k === 'q' || k === 'e' || PAN_KEYS.has(k)) touched();
-    if (k === 'q' || k === 'e') {
-      yawGoal += (k === 'q' ? -1 : 1) * Math.PI / 2;
-      refit();
-    } else if (PAN_KEYS.has(k)) keys.add(k);
+    if (k === 'q' || k === 'e') rotate(k === 'q' ? -1 : 1);
+    else if (PAN_KEYS.has(k)) { touched(); keys.add(k); }
   };
   const onKeyUp = (e) => keys.delete(e.key.toLowerCase());
   const onBlur = () => { keys.clear(); pts.clear(); dragging = false; };
@@ -258,8 +261,10 @@ export function createCameraRig(canvas) {
   }
 
   return {
-    camera, target, setBounds, resize, update, shake, focus, dispose,
+    camera, target, setBounds, resize, update, shake, focus, dispose, rotate,
     get yaw() { return yaw; },
+    // Which of the four views the camera is turning to, 0 to 3 (0 is the starting view).
+    get yawStep() { return ((Math.round((yawGoal - Math.PI / 4) / (Math.PI / 2)) % 4) + 4) % 4; },
     get zoom() { return zoom; },
     setZoom(z, ease = false) { zoomGoal = THREE.MathUtils.clamp(z, ZOOM_MIN, ZOOM_MAX); if (!ease) zoom = zoomGoal; },
     get dragging() { return dragging; },
