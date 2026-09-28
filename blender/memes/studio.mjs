@@ -12,7 +12,7 @@ import { join } from 'node:path';
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 const OUT = arg('--out') ?? 'shots/memes';
 const ONLY = arg('--only')?.split(',') ?? null;
-const MEMES = ['is_this_agi', 'distracted_founder', 'the_bill', 'the_plan'].filter((m) => !ONLY || ONLY.includes(m));
+const MEMES = ['is_this_agi', 'distracted_founder', 'the_bill', 'the_plan', 'change_my_mind'].filter((m) => !ONLY || ONLY.includes(m));
 mkdirSync(OUT, { recursive: true });
 
 // Runs in the page: builds and renders one meme, returns a PNG data URL.
@@ -181,6 +181,30 @@ async function render(id) {
       x.restore();
     });
     x.fillStyle = P.ink; x.fillRect(pw - 5, 0, 10, H); x.fillRect(0, ph, W, 10);
+    border();
+  }
+  if (id === 'change_my_mind') {
+    // The format with an office object in the chair: the printer, at a folding table, behind its sign.
+    const { printerModel } = await import('/src/render/props.js');
+    const { scene, mat } = studio({ wall: P.wall_sage });
+    windowOn(scene, mat, -1.6, 1.9); plant(scene, mat, 1.9, -1.1);
+    const wood = mat(P.wood_light, { roughness: 0.6 }), metal = mat(P.metal_soft, { roughness: 0.5 });
+    scene.add(box(1.5, 0.06, 0.75, wood, 0, 0.74, 0.3));
+    for (const [lx, lz] of [[-0.68, 0], [0.68, 0], [-0.68, 0.6], [0.68, 0.6]]) scene.add(box(0.05, 0.72, 0.05, metal, lx, 0.36, lz));
+    const printer = printerModel(); printer.scale.setScalar(1.6); printer.position.set(0, 0.77, 0.05); printer.rotation.y = 0.15;
+    printer.traverse((o) => { if (o.isMesh) o.castShadow = true; }); scene.add(printer);
+    const mug = new T.Mesh(new T.CylinderGeometry(0.06, 0.055, 0.12, 20), mat(P.marker_orange)); mug.position.set(0.52, 0.83, 0.45); mug.castShadow = true; scene.add(mug);
+    // The sign on the table's front, drawn like marker on card.
+    const sc = document.createElement('canvas'); sc.width = 1024; sc.height = 512;
+    const g = sc.getContext('2d'); g.fillStyle = '#fffdf8'; g.fillRect(0, 0, 1024, 512); g.strokeStyle = P.ink; g.lineWidth = 14; g.strokeRect(7, 7, 1010, 498);
+    g.fillStyle = P.ink; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 84px Fredoka'; g.fillText('PC LOAD LETTER', 512, 130); g.font = '700 70px Fredoka'; g.fillText('is a valid error', 512, 235);
+    g.fillStyle = P.alarm_red; g.font = '700 92px Fredoka'; g.fillText('CHANGE MY MIND', 512, 380);
+    const tex = new T.CanvasTexture(sc); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8;
+    const sign = new T.Mesh(new T.PlaneGeometry(1.2, 0.6), new T.MeshStandardMaterial({ map: tex, roughness: 0.8 }));
+    sign.position.set(0, 0.45, 0.68); sign.rotation.x = -0.12; scene.add(sign);
+    const { canvas } = shoot(scene, [1.25, 1.45, 3.9], [0.05, 0.82, 0.3], 860);
+    x.drawImage(canvas, 0, 20);
     border();
   }
   return out.toDataURL('image/png');
