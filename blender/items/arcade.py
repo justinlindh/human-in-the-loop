@@ -1,4 +1,4 @@
-"""Office shop: arcade. l1 handheld on a side table with floor cushions, l2 cabinet, l3 two cabinets and a neon sign."""
+"""Office shop: arcade. l1 a compact cabinet, l2 a full cabinet with a stool, l3 two cabinets and a neon sign."""
 import os, sys, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from common import *
@@ -15,16 +15,8 @@ def build(level, fn, name):
 
 
 def l1():
-    parts = kit.side_table('t_', 0, 0.1, r=0.3, h=0.4, top='wood_light')
-    parts += [
-        box('handheld', (0.2, 0.1, 0.03), (0, 0.08, 0.415), 'plastic_white', bevel=0.012, rot=(0, 0, math.radians(20))),
-        box('handscreen', (0.07, 0.05, 0.006), (0, 0.08, 0.432), 'plastic_charcoal', bevel=0, rot=(0, 0, math.radians(20))),
-        cyl('cart', 0.05, 0.012, (0.18, 0.2, 0.41), 'role_designer', verts=4, bevel=0.003),
-    ]
-    for i, (x, y, c) in enumerate([(-0.55, -0.05, 'fabric_teal'), (0.55, -0.1, 'fabric_terracotta')]):
-        o = box(f'cush{i}', (0.46, 0.46, 0.14), (x, y, 0.07), c, bevel=0.06, segments=3, rot=(0, 0, 0.3 * (i * 2 - 1)))
-        parts.append(o)
-    return parts
+    # One cabinet in the engineering blue, played standing: an arcade cabinet from the first level.
+    return kit.arcade_cabinet('a_', 0, 0.2, body='role_engineer', screen='arcade2_screen', marquee='neon_cyan')
 
 
 def l2():

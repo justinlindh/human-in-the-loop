@@ -74,7 +74,7 @@ Conventions:
 - **Espresso machine**: a drip pot on a cart, then a prosumer machine and grinder, then a chrome bar. `id: espresso`
 - **Plant wall**: two pots, a ladder shelf, then a living wall with a grow light; people water it. `id: plant_wall`
 - **Nap pod**: a beanbag (lounge in it, awake and humming), a couch with a blanket, then a sleep pod with a glass canopy (lie down with a zzz). `id: nap_pod`
-- **Arcade**: a handheld on cushions (sprawl and play), a cabinet with a stool, then two cabinets and a neon sign; players cheer in their seat with sparkles, over arcade sounds. `id: arcade`
+- **Arcade**: a blue cabinet played standing, a pink cabinet with a stool, then two cabinets and a neon sign; players cheer with sparkles, over arcade sounds. `id: arcade`
 - **Standing desks**: a box on a desk, a motorised desk, then a treadmill desk. `id: standing_desk`
 - **Whiteboard wall**: a mobile board, a wide board with sticky notes, then a wall-sized kanban. `id: whiteboard_wall`
 - **Library nook**: a bookshelf, then an armchair for reading, then a reading nook with lamp and rug. `id: library`
