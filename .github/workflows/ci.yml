@@ -50,6 +50,13 @@ jobs:
           cache: npm
       - run: npm ci
         if: steps.cls.outputs.mode == 'full'
+      # Every script parses, including ones no test imports (local CI's syntax step, which PR runs leave to this job).
+      - name: Syntax of every .js and .mjs
+        if: steps.cls.outputs.mode == 'full'
+        run: |
+          failed=0
+          while IFS= read -r f; do node --check "$f" || failed=1; done < <(git ls-files 'src/**.js' 'src/**.mjs' 'scripts/**.js' 'scripts/**.mjs' 'blender/**.mjs')
+          exit $failed
       - run: npm run test:fast
         if: steps.cls.outputs.mode == 'full'
       - run: npm run build
