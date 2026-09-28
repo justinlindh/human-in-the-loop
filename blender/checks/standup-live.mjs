@@ -51,7 +51,8 @@ async function assertConversation() {
   const expected = changed ? ['The incident changed. Let us check the latest update.', 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'] : c.lines.slice(0, 5).map(l => l.text);
   const { STANDUP_EXCHANGES } = await import('/src/data/standup.js');
   const script = STANDUP_EXCHANGES.find(e => e.id === window.__standupScript);
-  if (!changed && (!script || expected[2] !== script.lines[2])) throw Error('standup-live: two speakers lost the answer');
+  if (!changed && !script) throw Error('standup-live: no conversation was picked');
+  if (!changed && expected[2] !== script.lines[2]) throw Error('standup-live: two speakers lost the answer');
   for (const text of expected) {
     const dwell = c.frames.filter(f => f.text.includes(text)).length / 30;
     if (dwell < holdSeconds(text, c.speed) - 0.05) throw Error('standup-live: missing or shortened turn: ' + text);
