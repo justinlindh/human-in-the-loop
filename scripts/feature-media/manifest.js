@@ -1,7 +1,7 @@
 import { YAK_HELPERS, YAK_CHECK } from './yak.js';
 import {
   PLAY, PRE_UNTIL, PRE_DECISION, IN_OFFICE, DROP_UNSTAFFED, STAFF_IDLE, INCIDENT_ON_FLOOR, CHAT_HISTORY,
-  BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, KEY,
+  BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, CLICK_STARTS, KEY,
   FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS, MARK_MOMENTS, NO_SAY,
 } from '../capture-manifest.js';
 
@@ -167,6 +167,24 @@ export const ITEMS = [
     out: [LOOP('incident', 8.8, 7)],
   },
   {
+    // A real seed grown to the Office Floor, where there is room for one: bots never buy a meeting
+    // table on their own (it is not in their decor list), so this places it the way a player would,
+    // then forces daily standups on. The next one gathers everyone round it live.
+    id: 'site-loop-meeting', title: 'Landing page loop: a standup round the meeting table', query: 'seed=26&speed=1', seconds: 24, warmup: 0.5,
+    setup: `(async () => { await ${PLAY({
+      weeks: 300, until: 's.office.stage >= 1 && s.staff.length >= 8',
+      after: `${IN_OFFICE}
+        { const { suggestPlacement } = await import('/src/sim/office.js');
+          if (!s.office.placed.some((p) => p.itemId === 'meeting_table')) { const spot = suggestPlacement(s, 'meeting_table'); if (spot) window.__HITL.dispatch({ type: 'placeItem', itemId: 'meeting_table', x: spot.x, y: spot.y, rot: spot.rot }); } }
+        window.__HITL.dispatch({ type: 'setPolicy', id: 'async_standups', on: false });
+        window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });`,
+    })}; ${CLEAN}; })()`,
+    actions: [...CLEAR_EARLY, ...DISMISS_AT([2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18], { escape: false }), ...CAMLOG(24)],
+    screenshots: [9, 12, 15, 18],
+    // The gathering starts around 9s and the dialogue lands by 14s; this window covers both.
+    out: [LOOP('meeting', 9, 8)],
+  },
+  {
     id: 'site-loop-waffle', title: 'Landing page loop: the Waffle Party', query: 'seed=1&speed=1', seconds: 30,
     setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: [{ at: 0, js: NO_SAY }, ...WAFFLE_ACTIONS(30), ...CAMLOG(30)], screenshots: [12, 16, 20, 24],
     out: [LOOP('waffle', 16, 4.2, MIDDLE, 28)],
@@ -186,6 +204,31 @@ export const ITEMS = [
     id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
     setup: BARE, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
+  },
+  {
+    // The on-screen rotate control (always up once the renderer offers it), not a cut: an
+    // establishing hold, a quarter turn right, a hold on the new side, then back left to the start,
+    // so the loop's two ends frame the same. UI stays up (full) since the control is the subject.
+    id: 'site-loop-rotate', title: 'Landing page loop: turning the view with the rotate control', ...OFFICE(500, HQ), seconds: 10,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: HQ, after: IN_OFFICE })}; ${CLEAN}; })()`,
+    actions: [
+      ...CLEAR_EARLY,
+      { at: 2.2, js: CLICK_SEL('.camrot-b[aria-label="Turn the view right"]') },
+      { at: 6.0, js: CLICK_SEL('.camrot-b[aria-label="Turn the view left"]') },
+      ...CAMLOG(10),
+    ],
+    screenshots: [1, 3, 5, 9],
+    out: [LOOP('rotate', 0, 9.5)],
+  },
+  {
+    // A real game played by the squads bot (src/sim/bots.js), which forms squads once they unlock
+    // and posts them to projects, so cohesion has time to build. Staff opens straight to the tab.
+    id: 'site-still-squads', title: 'Landing page: the Squads tab in Staff', query: 'seed=8&speed=0', still: true, warmup: 0.5,
+    setup: `(async () => { await ${PLAY({ weeks: 400, bot: 'squads', until: 's.squads.length >= 2 && s.squads.some((q) => q.cohesion >= 0.5)', after: IN_OFFICE })}; })()`,
+    actions: [...CLEAR_EARLY, { at: 3.3, js: KEY('s', 'KeyS') }, { at: 4, js: CLICK_STARTS('Squads') }],
+    screenshots: [4.6],
+    // Cropped to the Squads tab card, with a sliver of the HUD above it and the office below.
+    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 45 / 1080, w: 1340 / 1920, h: 750 / 1080 } }],
   },
 
   {

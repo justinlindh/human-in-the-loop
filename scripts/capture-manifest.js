@@ -20,7 +20,7 @@ export const KEY = (key, code = key) => `dispatchEvent(new KeyboardEvent('keydow
 // Closes the tutorial, cards, and panels until the UI reports nothing open.
 export const IDLE = `(() => { for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) ${KEY('Escape')}; })()`;
 // Clicks the visible button whose label starts with this text (tabs like "Hire (8)").
-const CLICK_STARTS = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith(${JSON.stringify(label)}))?.click()`;
+export const CLICK_STARTS = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith(${JSON.stringify(label)}))?.click()`;
 // Cards that turn up once play resumes (unlocks, tips): a player dismisses them in the first seconds.
 // Unlock cards close with their "Got it" button; panels and tips close with Escape.
 // With escape false only "Got it" is pressed, so popups that close on Escape (launch results) stay.
