@@ -14,6 +14,8 @@ case "$*" in
   "issue list"*) args="$*"; label="${args#*--label }"; label="${label%% *}"; awk -v l="$label" '$1 == l { print $2 }' "$GH_OPEN" 2>/dev/null ;;
   "issue create"*) echo "https://github.com/o/r/issues/99" ;;
 esac
+# An issue body goes in the log too, so a case can check what it says.
+while [ $# -gt 0 ]; do [ "$1" = --body-file ] && cat "$2" >>"$GH_LOG"; shift; done
 GH
 chmod +x "$tmp/bin/gh"
 fails=0
@@ -56,6 +58,12 @@ one 'green, nothing open: success, no issue' "$PASS" "$CLEAN" '' 'state=success|
 one 'green closes the open main-red issue' "$PASS" "$CLEAN" 'main-red 41' 'state=success|issue close 41'
 one 'red opens a main-red issue' "$FAIL_BAL" "$CLEAN" '' 'state=failure|description=Red: test:balance|issue create --title main is red at|--label main-red'
 one 'red again comments on the open main-red issue' "$FAIL_BAL" "$CLEAN" 'main-red 41' 'state=failure|issue comment 41|!issue create'
+# A red step's own log is kept and its FAIL lines go in the issue; a green gate keeps no step logs.
+FAIL_PHONE='printf "| step | result | seconds |\n|---|---|---|\n| phone-check | FAIL | 9 |\n" >"$SUMMARY"; printf "pass  android  toasts\nFAIL  android  taps  crashed: boom\n" >"$CI_LOGS/phone-check.log"; exit 1'
+one 'a red step'"'"'s FAIL lines go in the issue' "$FAIL_PHONE" "$CLEAN" '' 'description=Red: phone-check|`phone-check` failed:|FAIL  android  taps  crashed: boom|!pass  android  toasts'
+compgen -G "$case_root/main-guard/*-steps/phone-check.log" >/dev/null || { echo "FAIL a red gate should keep its step logs"; fails=$((fails + 1)); }
+one 'a green gate keeps no step logs' "$PASS" "$CLEAN" '' 'state=success'
+compgen -G "$case_root/main-guard/*-steps" >/dev/null && { echo "FAIL a green gate should remove its step logs"; fails=$((fails + 1)); }
 one 'a new violation outside seeded games makes main red' "$PASS" "$NEW_MOCK" '' 'state=failure|description=Red: sweep|--label main-red'
 one 'a seed-only violation leaves main green and opens a sweep-finding issue' "$PASS" "$NEW_SEED" '' 'state=success|--label sweep-finding|!--label main-red --body'
 one 'a clean sweep closes the open sweep-finding issue' "$PASS" "$CLEAN" 'sweep-finding 52' 'state=success|issue close 52'

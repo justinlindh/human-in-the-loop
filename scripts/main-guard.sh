@@ -134,8 +134,15 @@ gate() {
   fi
   summary="$STATE/$cs.md"; out="$STATE/strict-$cs"; mkdir -p "$out"
   yield
+  # Local CI's step logs, kept beside the commit's logs when the gate fails (for two weeks), so a red
+  # step's own output can be read after its run's temporary files are gone.
+  rm -rf "$STATE/$cs-steps"; mkdir -p "$STATE/$cs-steps"
+  export CI_LOGS="$STATE/$cs-steps"
   run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_SKIP_SWEEP=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
   ci_rc=$?
+  unset CI_LOGS
+  [ "$ci_rc" -eq 0 ] && rm -rf "$STATE/$cs-steps"
+  find "$STATE" -maxdepth 1 -type d -name '*-steps' -mtime +14 -exec rm -rf {} + 2>/dev/null
   if [ "$ci_rc" -eq 3 ]; then
     gate_err=1; ci_rc=0
     gate_why="$(grep -oE 'error: machine \([^|]*\)' "$summary" 2>/dev/null | sed 's/ *$//' | sort -u | paste -sd';' -)"
@@ -314,6 +321,15 @@ if [ $post = 1 ]; then
     fi
     if [ "$ci_rc" -ne 0 ]; then
       echo; echo "Local CI, last lines:"; echo; echo '```'; tail -n 25 "$STATE/$short.log"; echo '```'
+      # Each red step's own failure lines (its whole tail when it prints none).
+      for step in $(tr ',' ' ' <<<"$what"); do
+        slog="$STATE/$short-steps/$step.log"
+        [ -f "$STATE/$short-steps/$step.retry.log" ] && slog="$STATE/$short-steps/$step.retry.log"
+        [ -s "$slog" ] || continue
+        lines="$(grep -E '^FAIL|[^a-z]FAIL[: ]|Error' "$slog" | head -n 40)"
+        [ -n "$lines" ] || lines="$(tail -n 25 "$slog")"
+        echo; echo "\`$step\` failed:"; echo; echo '```'; echo "$lines"; echo '```'
+      done
     fi
   } >"$body"
   gh label create main-red --color b60205 --description "main fails the main guard" >/dev/null 2>&1
