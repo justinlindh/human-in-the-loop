@@ -333,7 +333,7 @@ export function buildPanel(ctx, arg) {
           : h('span.faint.small', { text: 'Nothing due.' })),
       h('div.card.other', null,
         h('b', null, icon('refactor'), ' Refactor'),
-        h('span.small.muted', { text: `Humans read and clean the code. Pays down comprehension debt (now ${Math.round(s.comprehensionDebt)}).` }),
+        h('span.small.muted', { text: `Humans read and clean the code. Pays down tech debt (now ${Math.round(s.comprehensionDebt)}).` }),
         h('button.btn.small.blue', { onclick: () => startKind({ kind: 'refactor' }) }, 'Start refactor')),
       h('div.card.other', null,
         h('b', null, icon('craft'), ' Craft project'),
