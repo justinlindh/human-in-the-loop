@@ -236,6 +236,14 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       const out = place(seen.slice().sort((a, b) => turned.get(b) - turned.get(a) || side(a) - side(b) || a.i - b.i));
       if (out.length > best.length) best = out;
     }
+    // Hemmed in on the far side: anyone the camera sees, on any side; failing that, the open far
+    // side as before, so the pizza is never left uneaten.
+    if (!best.length) {
+      const all = [0, 1, 2, 3].flatMap((k) => ring(radius + k * 0.3));
+      const open = collect(all, `${search}:anySide`, ['clear', 'inView'], { inView: (q) => view(q) });
+      best = place(open.sort((a, b) => side(a) - side(b) || a.i - b.i));
+      if (!best.length) best = place(collect(ring(radius), `${search}:blind`, ['farSide', 'clear'], { farSide: (q) => side(q) < 0.35 }).sort((a, b) => side(a) - side(b) || a.i - b.i));
+    }
     return best;
   }
 
