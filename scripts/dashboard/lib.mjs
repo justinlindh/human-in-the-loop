@@ -50,6 +50,14 @@ export function scrub(text, max = 80) {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+// A model id as people say it: claude-opus-5-5 -> "Opus 5.5", claude-sonnet-5 -> "Sonnet 5". Anything
+// else (a dated or unfamiliar id) is shown as it is, and a missing one as "".
+export function modelName(id) {
+  const m = /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(?:\[[^\]]*\])?$/.exec(String(id ?? ''));
+  if (!m) return String(id ?? '');
+  return `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}${m[3] ? `.${m[3]}` : ''}`;
+}
+
 // The last `bytes` of a file as lines (the first, likely partial, line dropped).
 function tailLines(path, bytes) {
   const size = statSync(path).size;
@@ -63,8 +71,8 @@ function tailLines(path, bytes) {
   } finally { closeSync(fd); }
 }
 
-// Per agent, the newest tool call in its session logs: { who, at, tool, what } (what = the call's own
-// one-line description, scrubbed). `files` are { path, mtime, parent } (scripts/usage-lib.mjs
+// Per agent, the newest tool call in its session logs: { who, at, tool, what, model } (what = the call's
+// own one-line description, scrubbed; model = the model that made the call, as a name). `files` are { path, mtime, parent } (scripts/usage-lib.mjs
 // logFiles); `nameOf(parent)` names a subagent log's session. Only the tail of each log is read.
 export function lastActivity(files, nameOf, { since = 0, bytes = 262144 } = {}) {
   const best = new Map();
@@ -82,7 +90,7 @@ export function lastActivity(files, nameOf, { since = 0, bytes = 262144 } = {}) 
       const u = uses[uses.length - 1];
       const who = o.agentName || (f.parent ? `${nameOf(f.parent)} (subagent)` : 'lead');
       const at = Date.parse(o.timestamp);
-      if (!(best.get(who)?.at >= at)) best.set(who, { who, at, tool: String(u.name ?? '?'), what: scrub(u.input?.description ?? u.input?.summary ?? '') });
+      if (!(best.get(who)?.at >= at)) best.set(who, { who, at, tool: String(u.name ?? '?'), what: scrub(u.input?.description ?? u.input?.summary ?? ''), model: modelName(o.message.model) });
       break;
     }
   }
