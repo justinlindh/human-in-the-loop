@@ -343,7 +343,7 @@ ChatPrompt = {
 ```
 
 - The founder's reply and the poster's follow-up are ordinary chat events with `replyTo = chatId`. The founder's line has `fromId` set to a founder's id.
-- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup.
+- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup. An option's `opens` is acted on by ui after a successful answer: it opens that menu or mode (`{ panel: 'office', arg: 'desk' }` enters desk placement, the same entry as hiring with no free desk; with no room or cash it opens the office menu, which says why). Ignored or refused answers open nothing.
 - At most `B.chatPromptsOpen` prompts are open at once. A new prompt opens at least `B.chatPromptGapWeeks` after the last one.
 - Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
 - Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
