@@ -7,14 +7,11 @@
 .hitl .advface.portrait { background: var(--cream-2) !important; overflow: hidden; }
 .hitl .advface.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* The count: a round badge on the bulb's corner. Grid centring rather than line-height, so the
-   digit sits in the middle whatever the font's ascent; a hair of top padding balances Fredoka's
-   short numerals. */
+/* The dot: the latest notice is unseen. */
 .hitl .advbtn { position: relative; }
-.hitl .advbtn .advcount { position: absolute; top: -0.5em; right: -0.5em; display: none; place-items: center; box-sizing: border-box;
-  min-width: 1.45em; height: 1.45em; padding: 0.06em 0.28em 0; border-radius: 0.73em; background: var(--red); color: #fff;
-  border: 0.12em solid var(--ink); font-size: 0.7em; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
-.hitl .advbtn .advcount.show { display: grid; }
+.hitl .advbtn .advcount { position: absolute; top: -0.25em; right: -0.25em; display: none; width: 0.75em; height: 0.75em; border-radius: 50%;
+  background: var(--red); border: 0.12em solid var(--ink); pointer-events: none; }
+.hitl .advbtn .advcount.show { display: block; }
 .hitl .advbtn.glow { background: #fff3d6; box-shadow: 0 0 0 0.25em rgba(255, 176, 32, 0.6); }
 
 /* The peek: a face and a one-line bubble, bottom right on desktop, under the top rows on phones. */
@@ -40,3 +37,9 @@
 .hitl .advtext { font-weight: 600; line-height: 1.3; }
 .hitl .advwhy { color: var(--ink-soft); line-height: 1.3; }
 .hitl .advacts { display: flex; gap: 0.5em; margin-top: 0.2em; flex-wrap: wrap; }
+.hitl .advearlier { display: flex; flex-direction: column; gap: 0.25em; margin-top: 0.3em; }
+.hitl .advearlier-t { font-weight: 700; }
+.hitl .advearlier-row { display: flex; align-items: center; gap: 0.5em; padding: 0.3em 0.45em; border: 0; border-radius: 0.5em; background: transparent;
+  font: inherit; color: inherit; text-align: left; cursor: pointer; pointer-events: auto; }
+.hitl .advearlier-row:hover { background: var(--cream-2); }
+.hitl .advearlier-text { flex: 1; min-width: 0; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

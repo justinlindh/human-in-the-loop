@@ -3,14 +3,16 @@
 // and never empty ('fine' when nothing needs saying), and rare { type: 'advice' } events for a line
 // worth saying out loud. The UI never acts on advice.
 //
-//   the lightbulb   in the top-right chip, with a count of the lines worth reading; it opens the panel
-//   the panel       the top few lines, each with Show me (opens its panel) and Not now
-//                   (dispatches dismissAdvice, which silences the topic until it gets worse)
+//   the lightbulb   in the top-right chip, with a dot while the latest notice is unseen; it opens the panel
+//   the panel       the most recent notice (with how long ago it came in, when that matters), Show me
+//                   (opens its panel) and Not now (dispatches dismissAdvice, which silences the topic
+//                   until it gets worse), and a short Earlier list of the older notices
 //   the peek        on an advice event only: the advisor's face and the line slide in at the screen
 //                   edge, then tuck away; a tap opens the panel, and the bulb glows until it's opened
-//   the setting     On, Quiet (the count, no peek) or Off (no lightbulb)
+//   the setting     On, Quiet (the dot, no peek) or Off (no lightbulb)
 //
-// A peek is rare and polite: at most one every PEEK_WEEKS game weeks, never at the top speed, never
+// A peek is rare and polite: at most one every PEEK_WEEKS game weeks unless it's more urgent than the
+// last, never at the top speed, never
 // for a line already seen at that tier or higher, and never while something else holds the screen.
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
@@ -22,7 +24,8 @@ const DATA = Object.values(import.meta.glob('../data/advisors.js', { eager: true
 
 const PEEK_WEEKS = 12;
 const PEEK_MS = 9000;
-const PANEL_LINES = 3;
+const EARLIER_LINES = 4;
+const AGE_WEEKS = 2; // younger notices don't say how old they are
 const TOP_SPEED = 4;
 export const ADVISORS = {
   cfo: { name: 'The CFO', short: 'CFO', initials: 'CFO', role: 'Money', color: '#34c38f' },
@@ -67,6 +70,17 @@ export function adviceFor(s) {
   } catch { return []; }
 }
 
+// The notices worth reading, most recent first: by the week the sim first noticed each (since), the
+// sim's own ranking breaking ties and standing in when it gives no week.
+export function noticesFor(s) {
+  return adviceFor(s).map((x, i) => ({ x, i })).filter(({ x }) => !isFine(x))
+    .sort((a, b) => (Number(b.x.since ?? -Infinity) - Number(a.x.since ?? -Infinity)) || a.i - b.i).map(({ x }) => x);
+}
+const ageText = (s, x) => {
+  const n = Number.isFinite(x?.since) ? s.week - x.since : null;
+  return n !== null && n >= AGE_WEEKS ? `Noticed ${n} weeks ago` : '';
+};
+
 export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed = () => 1, held = () => false, openGoals = () => {}, panels = {} }) {
   let level = advisorLevel();
   portraitOf = (id, opts) => { try { return getRenderer()?.advisorPortrait?.(id, opts) ?? null; } catch { return null; } };
@@ -74,11 +88,11 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   const tierOf = (x) => Number(x?.tier ?? x?.severity ?? 1) || 1;
   const saw = (x) => seen.set(x.key, Math.max(seen.get(x.key) ?? 0, tierOf(x)));
   const seenAt = (x) => (seen.get(x.key) ?? 0) >= tierOf(x);
-  let lastPeekWeek = -Infinity;
+  let lastPeek = { week: -Infinity, tier: 0 };
   let pending = null;              // an advice event waiting for a quiet moment to peek
   let glowing = false;
   let peekTimer = 0;
-  let countShown = -1;
+  let countShown = null;
 
   const count = h('span.advcount', { 'aria-hidden': 'true' });
   const button = h('button.btn.small.advbtn', { type: 'button', title: 'Advisors (H)', 'aria-label': 'Advisors', onclick: () => open() }, icon('idea'), count);
@@ -105,12 +119,12 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     return false;
   }
 
-  function row(item, rerender) {
+  function row(item, rerender, age = '') {
     const a = who(item.advisor);
     return h(`div.advitem.sev-${sev(item.severity)}`, null,
       face(item.advisor, 34),
       h('div.advbody', null,
-        h('div.small.muted', { text: `${a.name}${a.role ? ` · ${a.role}` : ''}` }),
+        h('div.small.muted', { text: `${a.name}${a.role ? ` · ${a.role}` : ''}${age ? ` · ${age}` : ''}` }),
         h('div.advtext', { text: item.text }),
         item.why ? h('div.small.advwhy', { text: item.why }) : null,
         isFine(item) ? null : h('div.advacts', null,
@@ -118,19 +132,24 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
           h('button.btn.small', { type: 'button', onclick: () => { if (dismiss(item)) rerender(); } }, 'Not now'))));
   }
 
-  function open() {
+  function open(focusKey = null) {
     if (level === 'off') return;
     hidePeek();
     setGlow(false);
     const body = h('div.advlist');
+    let focus = focusKey;
     const render = () => {
-      const all = adviceFor(ctx.getState());
-      const items = all.slice(0, PANEL_LINES);
-      for (const x of items) saw(x);
-      const more = all.filter((x) => !isFine(x)).length - items.filter((x) => !isFine(x)).length;
-      body.replaceChildren(...(items.length ? items.map((x) => row(x, render))
-        : [h('div.empty', { text: 'Nothing to report. The advisors are pretending to read the reports.' })]),
-        ...(more > 0 ? [h('div.small.muted.advmore', { text: `${more} more ${more === 1 ? 'thing' : 'things'} to look at once these are dealt with.` })] : []));
+      const st = ctx.getState();
+      const list = noticesFor(st);
+      const main = list.find((x) => x.key === focus) ?? list[0] ?? adviceFor(st).find(isFine) ?? null;
+      if (main) saw(main);
+      const earlier = list.filter((x) => x !== main).slice(0, EARLIER_LINES);
+      const age = main ? ageText(st, main) : '';
+      body.replaceChildren(
+        main ? row(main, render, age) : h('div.empty', { text: 'Nothing to report. The advisors are pretending to read the reports.' }),
+        earlier.length ? h('div.advearlier', null, h('div.small.muted.advearlier-t', { text: 'Earlier' }),
+          ...earlier.map((x) => h('button.advearlier-row', { type: 'button', onclick: () => { focus = x.key; render(); } },
+            face(x.advisor, 22), h('span.advearlier-text', { text: x.text }), h('span.small.muted', { text: ageText(st, x) })))) : null);
     };
     render();
     ctx.openModal({ title: 'Advisors', iconName: 'idea', body, cls: 'small' });
@@ -151,18 +170,20 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
 
   // Once a frame: the count, and a waiting peek once the screen is free.
   function update(s) {
-    const n = level === 'off' ? 0 : adviceFor(s).filter((x) => !isFine(x)).length;
-    if (n !== countShown) {
-      countShown = n;
-      setText(count, n > 9 ? '9+' : n ? String(n) : '');
-      toggleClass(count, 'show', n > 0);
-      button.setAttribute('aria-label', n ? `Advisors: ${n} thing${n === 1 ? '' : 's'} to consider` : 'Advisors');
+    const latest = level === 'off' ? null : noticesFor(s)[0] ?? null;
+    const dot = !!latest && !seenAt(latest);
+    if (dot !== countShown) {
+      countShown = dot;
+      toggleClass(count, 'show', dot);
+      button.setAttribute('aria-label', dot ? 'Advisors: something new to consider' : 'Advisors');
     }
     button.style.display = level === 'off' ? 'none' : '';
     if (!pending) return;
-    if (level !== 'on' || seenAt(pending) || s.week - lastPeekWeek < PEEK_WEEKS || getSpeed() >= TOP_SPEED) { pending = null; return; }
+    // The rate limit holds back repeats, not an escalation to a higher tier.
+    const tooSoon = s.week - lastPeek.week < PEEK_WEEKS && tierOf(pending) <= lastPeek.tier;
+    if (level !== 'on' || seenAt(pending) || tooSoon || getSpeed() >= TOP_SPEED) { pending = null; return; }
     if (held()) return;
-    lastPeekWeek = s.week;
+    lastPeek = { week: s.week, tier: tierOf(pending) };
     saw(pending);
     showPeek(pending);
     setGlow(true);
@@ -177,7 +198,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
 
   addEventListener('hitl:advisors', (e) => {
     level = ADVISOR_LEVELS.some((l) => l.v === e.detail?.level) ? e.detail.level : 'on';
-    countShown = -1;
+    countShown = null;
     if (level !== 'on') { hidePeek(); pending = null; }
     if (level === 'off') setGlow(false);
   });
@@ -185,6 +206,6 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   return {
     button, peek, open, update, onEvent,
     get glowing() { return glowing; },
-    reset() { seen.clear(); lastPeekWeek = -Infinity; pending = null; hidePeek(); setGlow(false); countShown = -1; },
+    reset() { seen.clear(); lastPeek = { week: -Infinity, tier: 0 }; pending = null; hidePeek(); setGlow(false); countShown = null; },
   };
 }
