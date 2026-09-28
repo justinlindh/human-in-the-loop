@@ -11,7 +11,7 @@
 //   the setting     On, Quiet (the count, no peek) or Off (no lightbulb)
 //
 // A peek is rare and polite: at most one every PEEK_WEEKS game weeks, never at the top speed, never
-// for a line already seen, and never while something else holds the screen.
+// for a line already seen at that tier or higher, and never while something else holds the screen.
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
@@ -70,7 +70,10 @@ export function adviceFor(s) {
 export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed = () => 1, held = () => false, openGoals = () => {}, panels = {} }) {
   let level = advisorLevel();
   portraitOf = (id, opts) => { try { return getRenderer()?.advisorPortrait?.(id, opts) ?? null; } catch { return null; } };
-  const seen = new Set();          // keys whose line the player has seen, in the panel or a peek
+  const seen = new Map();          // key -> the highest tier of that line the player has seen
+  const tierOf = (x) => Number(x?.tier ?? x?.severity ?? 1) || 1;
+  const saw = (x) => seen.set(x.key, Math.max(seen.get(x.key) ?? 0, tierOf(x)));
+  const seenAt = (x) => (seen.get(x.key) ?? 0) >= tierOf(x);
   let lastPeekWeek = -Infinity;
   let pending = null;              // an advice event waiting for a quiet moment to peek
   let glowing = false;
@@ -121,10 +124,13 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     setGlow(false);
     const body = h('div.advlist');
     const render = () => {
-      const items = adviceFor(ctx.getState()).slice(0, PANEL_LINES);
-      for (const x of items) seen.add(x.key);
+      const all = adviceFor(ctx.getState());
+      const items = all.slice(0, PANEL_LINES);
+      for (const x of items) saw(x);
+      const more = all.filter((x) => !isFine(x)).length - items.filter((x) => !isFine(x)).length;
       body.replaceChildren(...(items.length ? items.map((x) => row(x, render))
-        : [h('div.empty', { text: 'Nothing to report. The advisors are pretending to read the reports.' })]));
+        : [h('div.empty', { text: 'Nothing to report. The advisors are pretending to read the reports.' })]),
+        ...(more > 0 ? [h('div.small.muted.advmore', { text: `${more} more ${more === 1 ? 'thing' : 'things'} to look at once these are dealt with.` })] : []));
     };
     render();
     ctx.openModal({ title: 'Advisors', iconName: 'idea', body, cls: 'small' });
@@ -154,10 +160,10 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     }
     button.style.display = level === 'off' ? 'none' : '';
     if (!pending) return;
-    if (level !== 'on' || seen.has(pending.key) || s.week - lastPeekWeek < PEEK_WEEKS || getSpeed() >= TOP_SPEED) { pending = null; return; }
+    if (level !== 'on' || seenAt(pending) || s.week - lastPeekWeek < PEEK_WEEKS || getSpeed() >= TOP_SPEED) { pending = null; return; }
     if (held()) return;
     lastPeekWeek = s.week;
-    seen.add(pending.key);
+    saw(pending);
     showPeek(pending);
     setGlow(true);
     pending = null;
@@ -166,7 +172,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   // The sim's rare advice event: a line worth a peek.
   function onEvent(e) {
     if (level !== 'on' || !e?.key || isFine(e)) return;
-    pending = { key: e.key, advisor: e.advisor, severity: e.severity, text: e.text };
+    pending = { key: e.key, advisor: e.advisor, severity: e.severity, tier: e.tier, text: e.text };
   }
 
   addEventListener('hitl:advisors', (e) => {
