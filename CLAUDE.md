@@ -16,7 +16,7 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 
 Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) has an entry in `docs/toolkit/`, one file per tool, saying who uses it and for what. `npm run toolkit` prints them all (`--grep <word>` finds one), and `docs/toolkit.md` holds the shared guidance. Read both at the start of a session. A PR that adds, removes or changes a tool adds or updates its entry in `docs/toolkit/` and, when a role should reach for it, that role's brief in `.claude/agents/`.
 
-Everything the game does for the player (items, perks, staged moments, props, Yak features, jokes, sounds, interface) is catalogued in `docs/features.md`, with the ids it is built from and how to see each one. A PR that adds, changes or removes something a player can see updates its entry in the same PR. A data-backed entry carries its ids (`id: printer_jam`).
+Everything the game does for the player (items, perks, staged moments, props, Yak features, jokes, sounds, interface) is catalogued in `docs/features/` (one file per area; start at its README), with the ids it is built from and how to see each one. A PR that adds, changes or removes something a player can see updates its entry in the same PR. A data-backed entry carries its ids (`id: printer_jam`).
 
 ## Team
 
@@ -68,7 +68,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
   - Opening a non-draft PR turns on auto-merge for you (a hook runs `gh pr merge <n> --auto --merge`), and GitHub merges it once every required check passes. Run that command yourself only when you take a draft out of draft.
   - A PR that depends on a decision the user hasn't made yet is opened as a draft (`--draft`) with the `awaiting-user` label, without auto-merge, until team-lead confirms the answer.
   - Authors run the gates that fit their change before asking for review (the sweep and stage specs for render work, paired balance runs for sim work, a clip of the whole path for motion) and paste the output into the PR. Once review starts, push only after a verdict, unless the reviewer asks. Reviewers put every nit in the first review.
-  - `scripts/ci-pr.sh <pr>` tests the PR merged into its base and posts a Local CI comment. `npm run ci` runs the same checks in any worktree.
+  - Auto CI (`scripts/auto-ci.sh`, a timer) runs `scripts/ci-pr.sh` on every non-draft PR's new head: it tests the PR merged into its base and posts a Local CI comment. Nobody runs `ci-pr.sh` by hand (a hook refuses it) except the reviewer's `--allow-bot` Dependabot path; add the `ci-rerun` label to retry a head. `npm run ci` runs the same checks in any worktree.
   - Branch protection requires, on the PR's current head: the GitHub checks, `local-ci` (posted by `scripts/ci-pr.sh`), and `review` (posted by the reviewer's verdict).
   - The reviewer posts each verdict with `scripts/review-verdict.sh`. It writes the PR review and sets the `review` status on the head. A verdict judged from the code alone says so; visual PRs are judged from a screenshot, and motion from a clip.
   - When a new head only merges `main` into an already passed PR, `scripts/review-carry.sh` (run by ci-pr) carries the pass forward. Any other change needs a fresh verdict.
