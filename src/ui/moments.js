@@ -96,11 +96,6 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
     }
   }
 
-  function cancel() {
-    const renderer = getRenderer();
-    for (let n = 0; n < 32 && renderer?.spotlight?.(); n++) renderer.endSpotlight();
-    syncSpotlight();
-  }
 
-  return { cancel, hide: () => hide(), update, skip, get spotlight() { return spot; }, get shown() { return el.classList.contains('show') ? text.textContent : null; } };
+  return { hide: () => hide(), update, skip, get spotlight() { return spot; }, get shown() { return el.classList.contains('show') ? text.textContent : null; } };
 }

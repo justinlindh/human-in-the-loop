@@ -12,6 +12,7 @@ cat >"$tmp/bin/gh" <<EOF
 #!/usr/bin/env bash
 case "\$1 \$2" in
   "pr view") case "\$*" in *headRefOid*) echo abcdef0123456789 ;; *) cat "$tmp/pr.json" ;; esac ;;
+  "api repos/{owner}/{repo}/pulls/9/files") jq -r '.files[].path' "$tmp/pr.json" ;;
   "pr review") while [ \$# -gt 0 ]; do [ "\$1" = --body-file ] && cp "\$2" "$tmp/posted"; shift; done ;;
 esac
 exit 0
@@ -64,6 +65,11 @@ out="$(check --watched gal-sheet.png)"; [ $? -eq 0 ] || fail "site-repo media wa
 pr '["src/ui/a.js"]' "$(url first.png) $(url first-v2.png)"
 out="$(check --watched first-v2.png --superseded first.png)"; [ $? -eq 0 ] || fail "--superseded covers a replaced file: $out"
 out="$(check --watched first-v2.png --superseded gone.png)"; [ $? -eq 1 ] && grep -q gone.png <<<"$out" || fail "--superseded names a file on the PR: $out"
+
+# A visible path past the first 100 files still counts (the files list is paged).
+pr "$(jq -nc '[range(150) | "scripts/f\(.).sh"] + ["src/render/late.js"]')" 'big'
+out="$(check)"; [ $? -eq 1 ] && grep -q 'src/render/late.js' <<<"$out" || fail "a visible file past 100: $out"
+[ "$(bash "$HERE/lib/watched-media.sh" --names b.png 'https://x/pr-media/pr-9/a.mp4?raw=true' b.png)" = "a.mp4, b.png" ] || fail "--names"
 
 # review-verdict.sh: refuses before posting, and prints what was watched or why not into the verdict.
 verdict() { rm -f "$tmp/posted"; printf 'Looks right.\n' >"$tmp/body"; PATH="$tmp/bin:$PATH" bash "$HERE/review-verdict.sh" 9 "$@" 2>&1; }

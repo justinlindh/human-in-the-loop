@@ -45,6 +45,14 @@ g -C "$repo" checkout -q main
 denied 'git push' "$repo"
 allowed 'kill 1234'
 allowed 'pgrep -x node'
+# ci-pr.sh by hand: auto CI is the one path; reading the script, the reviewer's --allow-bot runs and HITL_MANUAL_CI=1 pass.
+for c in 'scripts/ci-pr.sh 766' 'bash scripts/ci-pr.sh 766 --head abc' 'cd x && timeout 3000 bash scripts/ci-pr.sh 12 2>&1 | tail' \
+  'nice -n 10 ./scripts/ci-pr.sh 9'; do denied "$c"; done
+for c in 'cat scripts/ci-pr.sh' 'bash -n scripts/ci-pr.sh' 'grep -n trap scripts/ci-pr.sh 2>&1' 'sed -n 1,20p scripts/ci-pr.sh' \
+  'scripts/ci-pr.sh 781 --allow-bot --head abc' 'HITL_MANUAL_CI=1 bash scripts/ci-pr.sh 766' $'cat <<EOF\nrun scripts/ci-pr.sh 5\nEOF'; do allowed "$c"; done
+run bash-guard.sh "$(bashjson 'bash scripts/ci-pr.sh 766')"
+[[ "$err" == *"ci-rerun label"* ]] || fail "the ci-pr refusal should say what to do instead (got: $err)"
+
 # git stash: every worktree shares one stack, so only the read-only list and show get through.
 for c in 'git stash' 'git stash push -m wip' 'git stash save wip' 'git stash pop' 'git stash apply stash@{0}' \
   'git stash drop' 'git -C ../gamedev-sim stash' 'cd x && git stash && git checkout main' 'npm test; git stash pop' \
@@ -244,8 +252,46 @@ PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file
 [[ "$out" == *"Gates run"* ]] || fail "pr-create-check should flag an empty Gates run entry (got: $out)"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "npm test" "ok")"; [ -z "$out" ] || fail "pr-create-check should ignore other commands"
 
+# A test run piped on can't gate a commit or push.
+denied 'npm run test:fast 2>&1 | grep -E Tests && git commit -m x'
+denied 'timeout 600 npm run -s test:fast 2>&1 | tail -3; git add a && git commit -qm x'
+denied 'npm test | grep -q passed && git push origin tools/x'
+denied 'npx vitest run tests/a.test.js 2>&1 | tail -5 && git -C ../w commit -m x'
+allowed 'npm run test:fast >/dev/null 2>&1 && git commit -m x'
+allowed 'set -o pipefail; npm run test:fast 2>&1 | tail -3 && git commit -m x'
+allowed 'npm test 2>&1 | tail -3; echo "rc=${PIPESTATUS[0]}"; test ${PIPESTATUS[0]} -eq 0 && git commit -m x'
+allowed 'npm run test:fast 2>&1 | tail -3'
+allowed 'git commit -m x && npm test | tail -3'
+allowed "git commit -m 'npm test | grep ok'"
+allowed 'npm run -s test:fast 2>&1 | grep Tests; git add a && npm run -s test:fast >/dev/null 2>&1 && git commit -qm x'
+allowed 'npx vitest run > vitest1.log 2>&1; rc=$?; grep Tests vitest1.log | head -4; if [ $rc -eq 0 ]; then git commit -qm x; fi'
+denied 'npx vitest run 2>&1 | grep -E Tests; git add a && git commit -qm x'
+denied 'set -e; npm run -s test:fast 2>&1 | tail -4 && git commit -qam x'
+allowed 'npx vitest run a 2>&1 | grep x; git merge -q --no-commit b'
+run bash-guard.sh "$(bashjson 'npm test | tail && git commit -m x')"
+[[ "$err" == *"exit code"* ]] || fail "the test-gate refusal should say to gate on the exit code (got: $err)"
+
+# merge-skim: after a merge of origin/main, the tooling commits it brought in; once per merge.
+up="$tmp/up"; mkdir -p "$up/scripts" "$up/src" "$up/docs/toolkit"; echo a >"$up/scripts/a.sh"; echo a >"$up/src/g.js"
+g -C "$up" init -q -b main && g -C "$up" add -A && g -C "$up" commit -qm base
+g clone -q "$up" "$tmp/w" 2>/dev/null; w="$tmp/w"
+post() { jq -n --arg c "$1" --arg d "${2:-$tmp}" '{hook_event_name: "PostToolUse", tool_name: "Bash", cwd: $d, tool_input: {command: $c}, tool_response: {}}'; }
+skim() { run merge-skim.sh "$(post "$@")"; ctx="$(jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$out" 2>/dev/null)"; }
+echo b >"$up/scripts/a.sh"; echo "tool: x" >"$up/docs/toolkit/newtool.md"; g -C "$up" add -A && g -C "$up" commit -qm 'feat(integ): a new tool'
+echo b >"$up/src/g.js"; g -C "$up" commit -qam 'feat(ui): game only'
+g -C "$w" fetch -q && g -C "$w" merge -q --no-edit origin/main
+skim "cd $w && git fetch -q origin && git merge -q --no-edit origin/main"
+grep -q 'brought in 1 tooling' <<<"$ctx" && grep -q 'a new tool' <<<"$ctx" && ! grep -q 'game only' <<<"$ctx" && grep -q 'New toolkit pages: newtool' <<<"$ctx" || fail "merge-skim lists the tooling commits: $out"
+skim "cd $w && git merge -q --no-edit origin/main"; [ -z "$out" ] || fail "merge-skim reports a merge once: $out"
+echo c >"$up/src/g.js"; g -C "$up" commit -qam 'fix(ui): game only again'; g -C "$w" fetch -q && g -C "$w" merge -q --no-edit origin/main
+skim "git -C $w merge origin/main"; [ -z "$out" ] || fail "merge-skim is silent when no tooling came in: $out"
+echo c >"$up/scripts/a.sh"; g -C "$up" commit -qam 'fix(integ): tool fix'; g -C "$w" fetch -q && g -C "$w" merge -q --no-edit origin/main
+skim "git -C $w status"; [ -z "$out" ] || fail "merge-skim ignores commands that don't merge: $out"
+skim "git -C $w merge -q --no-edit origin/main"; grep -q 'tool fix' <<<"$ctx" || fail "merge-skim follows git -C: $out"
+skim "cd $w && git log origin/main"; [ -z "$out" ] || fail "merge-skim ignores a log of origin/main: $out"
+
 # Every hook fails open on nonsense input.
-for h in bash-guard.sh lane-guard.sh behind-main.sh pr-create-check.sh; do
+for h in bash-guard.sh lane-guard.sh behind-main.sh pr-create-check.sh merge-skim.sh; do
   run "$h" 'not json'; [ $rc -ne 2 ] || fail "$h should fail open on bad input"
 done
 
