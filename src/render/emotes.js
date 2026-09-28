@@ -161,22 +161,44 @@ const DRAW = {
   },
 };
 
-export function emoteTexture(kind) {
-  let t = textures.get(kind);
-  if (t) return t;
-  const c = document.createElement('canvas');
-  c.width = c.height = SIZE;
-  const ctx = c.getContext('2d');
+// Kinds that draw text, and the font each draws it in.
+const FONTS = { zzz: '800 40px Fredoka' };
+
+function paint(ctx, kind) {
+  ctx.clearRect(0, 0, SIZE, SIZE);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   bubble(ctx);
   ctx.lineWidth = 5;
   ctx.strokeStyle = P.ink;
   (DRAW[kind] ?? DRAW.exclamation)(ctx);
+}
+
+// A text emote painted before its font loaded shows the fallback face; ask for the font and
+// repaint the shared texture once it arrives. A font that never loads keeps the fallback.
+function repaintWhenFontLoads(kind, ctx, t) {
+  const font = FONTS[kind];
+  const fonts = globalThis.document?.fonts;
+  if (!font || !fonts?.load || fonts.check(font)) return;
+  fonts.load(font).then(() => {
+    if (textures.get(kind) !== t || !fonts.check(font)) return;
+    paint(ctx, kind);
+    t.needsUpdate = true;
+  }, () => {});
+}
+
+export function emoteTexture(kind) {
+  let t = textures.get(kind);
+  if (t) return t;
+  const c = document.createElement('canvas');
+  c.width = c.height = SIZE;
+  const ctx = c.getContext('2d');
+  paint(ctx, kind);
   t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
   textures.set(kind, t);
+  repaintWhenFontLoads(kind, ctx, t);
   return t;
 }
 
