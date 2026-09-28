@@ -79,6 +79,7 @@ export const B = {
   // Emoji reactions by a post's weight: routine chatter and replies rarely get any (one or two when they do),
   // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
+  launchbotVersionStep: 5,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
   // readSeconds in src/pacing.js: a line's hold at 1x, its cap, the reading-speed floor, and the shortening at 2x and 4x.
