@@ -88,8 +88,7 @@ export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, 
     t = +(t + dt).toFixed(6);
     c.root.updateMatrixWorld(true);
     const p = c.probe();
-    // --root measures another checkout's render code, which may predate joints() (#998); a missing
-    // method must not crash a run that otherwise still measures everything else correctly.
+    // joints() may be missing when --root points at an older checkout; write null then.
     const j = c.joints?.() ?? null;
     const S = headSurfaces(c, p.head, p.forward);
     const phase = !gesture || t <= warm + 1e-9 ? (gesture ? 'warm' : 'pose') : t <= warm + seconds + 1e-9 ? 'gesture' : 'after';
