@@ -43,7 +43,7 @@ beforeEach(() => {
   writeFileSync(join(work, 'a.txt'), 'one\n'); git(work, 'add', '.'); git(work, 'commit', '-qm', 'base'); git(work, 'push', '-q', 'origin', 'HEAD:main');
   git(work, 'switch', '-qc', 'feature'); writeFileSync(join(work, 'b.txt'), 'feature\n'); git(work, 'add', '.'); git(work, 'commit', '-qm', 'feature');
   git(work, 'push', '-q', '-u', 'origin', 'feature');
-});
+}, 60000);
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 // Moves main ahead from a second clone; `file` decides whether the PR branch will conflict.
@@ -53,7 +53,8 @@ function advanceMain(file, text) {
   writeFileSync(join(other, file), text); git(other, 'add', '.'); git(other, 'commit', '-qm', 'main moves'); git(other, 'push', '-q', 'origin', 'main');
 }
 
-describe('scripts/wait-for.sh', () => {
+// Each case shells out to git and bash several times, so a loaded machine gets a minute, not the default 10 to 20 s.
+describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
   it('exits 0 once local-ci and every GitHub check pass on the head', () => {
     replies({ ...green, statusCheckRollup: [{ __typename: 'CheckRun', name: 'test', status: 'IN_PROGRESS', conclusion: '' }] }, green);
     const r = run('7', '--poll', '0');
@@ -121,6 +122,13 @@ describe('scripts/wait-for.sh', () => {
     const r = run('7', '--poll', '0', '--pickup', '0');
     expect(r.status).toBe(0);
     expect(r.stdout.match(/auto-CI hasn't reported/g)).toHaveLength(1);
+  });
+
+  it('--issue with a pull request number stops when it merges', () => {
+    writeFileSync(join(ghDir, 'issue.json'), JSON.stringify({ state: 'MERGED' }));
+    const r = run('--issue', '9', '--poll', '0', '--timeout', '0');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/#9 merged/);
   });
 
   it('waits for an issue to close', () => {
