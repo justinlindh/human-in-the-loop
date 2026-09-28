@@ -114,8 +114,9 @@ export function advice(state) {
 
 registerAction('dismissAdvice', (ctx, { key }) => {
   const { state } = ctx;
+  // A key that no longer applies (the line changed while the player looked at it) is a quiet no-op.
   const a = observe(state).find((x) => x.key === key);
-  if (!a) return { ok: false, reason: 'No such advice' };
+  if (!a) return { ok: true };
   (state.advisors ??= { dismissed: {}, pushed: {}, lastPushWeek: null }).dismissed[key] = a.tier;
   return { ok: true };
 });

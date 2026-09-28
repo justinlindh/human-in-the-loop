@@ -121,7 +121,9 @@ describe('advisors (#808): what they notice', () => {
 describe('advisors: dismissing and the rare push', () => {
   it('dismissAdvice silences a topic until it gets worse', () => {
     const s = burning(11, 8);
-    expect(dispatch(s, { type: 'dismissAdvice', key: 'nope' })).toMatchObject({ ok: false, reason: 'No such advice' });
+    const before = JSON.stringify(s.advisors);
+    expect(dispatch(s, { type: 'dismissAdvice', key: 'nope' }).ok).toBe(true);
+    expect(JSON.stringify(s.advisors)).toBe(before);
     expect(dispatch(s, { type: 'dismissAdvice', key: 'runway' }).ok).toBe(true);
     expect(find(s, 'runway')).toBeUndefined();
     s.cash = Math.round(-net(s) * 5);
