@@ -24,10 +24,10 @@ describe('incident resolution', () => {
 
   it('falls back to the decision\'s own vars, once per decision, and not while that product is still down', () => {
     const r = createResolutions();
-    const d = { eventId: 'incident_postmortem', subjectId: 'p9', vars: { incidentWeeks: 3, incidentCost: { cash: 5 }, incidentResponders: ['s2'] } };
+    const d = { eventId: 'incident_postmortem', subjectId: 'p9', vars: { incidentWeeks: 3, incidentCost: { cash: 5 }, incidentResponders: ['s2'], incidentHelped: ['h'], incidentHurt: ['x'] } };
     const s = { flags: { lastIncident: { productId: 'p9', severity: 4 } } };
     const a = r.forDecision(d, s);
-    expect(a).toMatchObject({ weeks: 3, severity: 4, responderIds: ['s2'] });
+    expect(a).toMatchObject({ weeks: 3, severity: 4, responderIds: ['s2'], helped: ['h'], hurt: ['x'] });
     expect(r.forDecision(d, s)).toBe(a);
     expect(r.forDecision(d, { outage: { productId: 'p9' } })).toBe(null);
   });
