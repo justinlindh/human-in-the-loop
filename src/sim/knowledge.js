@@ -18,6 +18,10 @@ export function onDeparture(state, person) {
   state.flags.departures = (state.flags.departures ?? alumni.length) + 1;
   alumni.push({ name: person.name, role: person.role, week: state.week, record: { ...(person.record ?? {}) } });
   forgetCarry(state, person.id);
+  for (const sq of state.squads ?? []) {
+    sq.memberIds = sq.memberIds.filter((id) => id !== person.id);
+    if (sq.leadId === person.id) sq.leadId = null;
+  }
   for (const [name, id] of Object.entries(state.flags.owners ?? {})) if (id === person.id) state.flags[`${name}Gone`] = true;
   if (alumni.length > B.alumniKept) alumni.splice(0, alumni.length - B.alumniKept);
   bumpDebt(state, person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
