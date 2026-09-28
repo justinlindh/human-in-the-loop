@@ -53,6 +53,23 @@ for c in 'cat scripts/ci-pr.sh' 'bash -n scripts/ci-pr.sh' 'grep -n trap scripts
 run bash-guard.sh "$(bashjson 'bash scripts/ci-pr.sh 766')"
 [[ "$err" == *"ci-rerun label"* ]] || fail "the ci-pr refusal should say what to do instead (got: $err)"
 
+# Sleeping between checks of PR or CI state costs a turn per wait: wait-for.sh in the background instead.
+allowed 'sleep 5; gh pr view 12 --json statusCheckRollup'
+denied 'until gh pr checks 12; do sleep 30; done'
+denied 'while true; do scripts/pr-status.sh | grep 12; sleep 120; done'
+denied 'for i in 1 2 3; do gh run list --limit 1; sleep 45; done'
+denied 'for n in 1 2; do sleep 30 && gh api repos/o/r/commits/abc/statuses; done'
+allowed "git commit -m 'while it waits\nsleep 60 then gh pr view'"
+allowed 'for i in 1 2 3; do grep -q exit f.log && break; sleep 10; done; gh pr view 12'
+allowed 'git commit -m "it'"'"'s a loop: for x do sleep 5; gh pr view; done"'
+allowed 'gh pr view 12 --json statusCheckRollup'
+allowed 'sleep 2; npm test'
+allowed "git commit -m 'sleep 60 then gh pr view'"
+run bash-guard.sh "$(jq -n --arg c 'until gh pr checks 12; do sleep 30; done' --arg d "$tmp" '{hook_event_name: "PreToolUse", tool_name: "Bash", cwd: $d, tool_input: {command: $c, run_in_background: true}}')"
+[ $rc -eq 0 ] || fail "bash-guard should allow a background poll (rc $rc: $err)"
+run bash-guard.sh "$(bashjson 'until gh pr view 12; do sleep 60; done')"
+[[ "$err" == *"wait-for.sh"* ]] || fail "the sleep-poll refusal should name wait-for.sh (got: $err)"
+
 # git stash: every worktree shares one stack, so only the read-only list and show get through.
 for c in 'git stash' 'git stash push -m wip' 'git stash save wip' 'git stash pop' 'git stash apply stash@{0}' \
   'git stash drop' 'git -C ../gamedev-sim stash' 'cd x && git stash && git checkout main' 'npm test; git stash pop' \
