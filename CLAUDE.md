@@ -16,7 +16,7 @@ Kairosoft-style management sim about an AI-era SaaS company. Three.js isometric 
 
 Every other tool (the PR and review scripts, captures, render checks, balance and pacing tools) has an entry in `docs/toolkit/`, one file per tool, saying who uses it and for what. `npm run toolkit` prints them all (`--grep <word>` finds one), and `docs/toolkit.md` holds the shared guidance. Read both at the start of a session. A PR that adds, removes or changes a tool adds or updates its entry in `docs/toolkit/` and, when a role should reach for it, that role's brief in `.claude/agents/`.
 
-Everything the game does for the player (items, perks, staged moments, props, Yak features, jokes, sounds, interface) is catalogued in `docs/features.md`, with the ids it is built from and how to see each one. A PR that adds, changes or removes something a player can see updates its entry in the same PR. A data-backed entry carries its ids (`id: printer_jam`).
+Everything the game does for the player (items, perks, staged moments, props, Yak features, jokes, sounds, interface) is catalogued in `docs/features/` (one file per area; start at its README), with the ids it is built from and how to see each one. A PR that adds, changes or removes something a player can see updates its entry in the same PR. A data-backed entry carries its ids (`id: printer_jam`).
 
 ## Team
 

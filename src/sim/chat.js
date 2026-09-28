@@ -194,7 +194,8 @@ export function chatSystem(ctx) {
 
   for (const e of ctx.events.filter((x) => x.type === 'launch')) {
     const p = state.products.find((x) => x.id === e.productId);
-    if (p) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: `${p.name} v${p.version} is live. Reviews average ${p.score}.`, kind: 'win' });
+    // A new product always gets a post; updates only every B.launchbotVersionStep versions, so #wins isn't a changelog.
+    if (p && (p.version === 1 || p.version % B.launchbotVersionStep === 0)) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: `${p.name} v${p.version} is live. Reviews average ${p.score}.`, kind: 'win' });
   }
   if (!team.length) return;
 

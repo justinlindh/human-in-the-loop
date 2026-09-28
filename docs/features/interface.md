@@ -1,0 +1,17 @@
+# Interface
+
+- **Advisors**: Marge Tally (CFO), Dev Okafor (people lead) and Sam Rourke (tech lead) notice what the panels already show and price the trade-off, never give orders: runway ("At this burn we have 11 weeks. I've started pricing smaller chairs."), burnout, comprehension debt, one person holding most of the know-how, juniors without a mentor, a migration coming due, one product paying for everything, a policy unlocked and never tried, a new era just arrived, and, when nothing applies, "Things are fine. I hate it when things are fine." Each line says the fact behind it and which menu shows it. "Noted" silences a topic until it gets worse. Urgent runway or burnout advice appears on its own at most once every 12 weeks, never in a week with a decision. The sim side is `advice(state)` and the `dismissAdvice` action; the panel and tray card are ui's.
+- **Title screen**: New Game, Continue, Settings over the live diorama; several save slots with export and a two-tap delete. `capture 1-1-title-saves`
+- **Welcome back**: Continue opens a recap of where the company stands and what happened last. `capture 1-1-continue-recap`
+- **HUD**: cash with the weekly change, the date with the era emblem, brand, know-how, debt and (late) fame meters, speed buttons (1x, 2x, 4x) and a quick mute. `capture 4-1-hud`
+- **Needs strip**: things waiting on the player, most urgent first, each with a click-to-fix and sometimes a one-tap fix.
+- **Panels**: Build, Staff, Marketing, Model Vendors, Automation, Policies, Ops and Security, Office and Reports, unlocking left to right as the game goes. `capture 4-3-build-panel` `capture 4-4-reports`
+- **Decisions and toasts**: decision cards dock right with a light dim; toasts stack top right and dock inside an open panel so they never cover its controls. A toast too long for its box shows a "more" cue and opens in full on a tap. While a spotlight moment plays, other toasts wait for it to end, but one answering the player's own tap or key press shows at once.
+- **Moment captions**: a single fading line near the bottom while the printer, the first user test or the consultants play.
+- **Scene tips**: hover (or long-press) a person or item in the office for a tooltip; clicking a person opens them in Staff, clicking an item opens its card to move, upgrade or sell.
+- **Coach marks**: dismissible tips for the HUD and speed controls.
+- **Game over**: a headline, a score breakdown and epilogue lines revealed one at a time. `?mock=ending`
+- **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, how much Yak asks for attention, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
+- **Yak level**: All, Important or Off, in Settings and on a button in Yak's header. Important counts only incidents, wins and bot posts as new; Off keeps Yak shut with no unread count. A reply prompt still shows its Reply mark at every level. Routine posts Yak skipped to keep its pace stay skipped after a reload.
+- **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.
+- **Growth**: a promotion, an earned trait or a trained skill gets a toast with the person's portrait that opens their card; level-ups mark Staff as new, rows show a New pip, and the card lists what grew since you last looked and a growth timeline (levels, promotions, traits, training, a chosen path, becoming a legend) that is saved with the game.
