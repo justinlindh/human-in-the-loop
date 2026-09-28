@@ -130,9 +130,9 @@ const fitsEra = (state, t) => (!t.eras || t.eras.includes(currentEra(state).id))
   && t.text.some((l) => eraAllowsText(state, l))
   && t.options.every((o) => eraAllowsText(state, o.label) && eraAllowsText(state, o.hint));
 
-// Whether another desk would fit: floor for one, and the office's desk limit not reached.
 // Whether there's a bigger office to move to: a later stage, or an HQ expansion still to buy.
 const biggerOffice = (state) => state.officeStage < OFFICE_STAGES.length - 1 || !!nextExpansion(state);
+// Whether another desk would fit: floor for one, and the office's desk limit not reached.
 const deskRoom = (state) => !(state.officeStage >= 1 && desksOf(state.office.placed).length >= deskCap(state)) && !!suggestPlacement(state, 'desk');
 
 // A promised desk: kept when the desk count rises within B.deskPromiseWeeks (the poster says thanks), broken
