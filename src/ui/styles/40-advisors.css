@@ -17,3 +17,4 @@
 .hitl .advbody { display: flex; flex-direction: column; gap: 0.25em; min-width: 0; }
 .hitl .advtext { font-weight: 600; line-height: 1.3; }
 .hitl .advacts { display: flex; gap: 0.5em; margin-top: 0.2em; flex-wrap: wrap; }
+.hitl .advwhy { color: var(--ink-soft); line-height: 1.3; }

@@ -455,6 +455,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           sfx('coin');
           break;
         }
+        case 'advice': advisors.onEvent(e); break;
         case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
         default: break;
       }
