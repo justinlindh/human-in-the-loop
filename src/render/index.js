@@ -339,6 +339,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // The spotlight moment playing now (spotlight.js): null or { kind, key, since }. main.js holds the
     // game clock while there is one; endSpotlight() cuts it short (the Skip control).
     spotlight() { return staff?.spotlights?.current() ?? null; },
+    // Checks: the spotlight registry itself, to start a scene without staging its moment.
+    get spotlights() { return staff?.spotlights ?? null; },
     endSpotlight() { return staff?.endSpotlight() ?? false; },
     // Where the camera looks now, and its zoom.
     view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
