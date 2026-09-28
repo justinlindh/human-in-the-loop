@@ -47,10 +47,10 @@ done <<<"$media")"
 
 visible="$(grep -E "$VISIBLE" <<<"$paths" | head -3 | tr '\n' ' ' | sed 's/ $//')"
 # A Screenshots or Clips entry: a heading of that name, or a labelled line with something after the
-# label once the template's comment is gone, other than "none" or "not applicable".
+# label once the template's comment is gone, other than "none", "not applicable" or "audio only".
 entry="$(sed 's/<!--.*-->//g' <<<"$body" \
   | grep -iE '^#+[[:space:]]*(screenshots|clips)\b|^[-*[:space:]]*\**(screenshots|clips)[^:]*:[*_]*[[:space:]]*[^*_[:space:]]' \
-  | grep -viE ':[*_]*[[:space:]]*(none|n/?a|not applicable)\b' | head -1)"
+  | grep -viE ':[*_]*[[:space:]]*(none|n/?a|not applicable|audio only)\b' | head -1)"
 [ -n "$visible" ] || [ -n "$entry" ] || [ -n "$media" ] || exit 0
 reason="${visible:+changes $visible}"; [ -n "$reason" ] || reason="has screenshots or clips"
 
