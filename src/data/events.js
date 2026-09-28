@@ -113,7 +113,7 @@ const list = [
     title: 'Hackathon weekend?',
     text: 'Someone proposes a weekend hackathon. There will be pizza and questionable architecture.',
     choices: [
-      { label: 'Host it', hint: 'Costs cash, team meaning up, a bit of debt', effects: { cash: -3000, teamMeaning: 6, debt: 2 }, leaves: { prop: 'pizza_boxes', until: { weeks: 2 } }, outcome: 'Twelve prototypes, one good idea, zero sleep.' },
+      { label: 'Host it', hint: 'Costs cash, team meaning up, a bit of tech debt', effects: { cash: -3000, teamMeaning: 6, debt: 2 }, leaves: { prop: 'pizza_boxes', until: { weeks: 2 } }, outcome: 'Twelve prototypes, one good idea, zero sleep.' },
       { label: 'Skip it', hint: 'Nothing happens', effects: {}, outcome: 'Everyone goes home and does their laundry.' },
     ],
   },
@@ -587,7 +587,7 @@ const list = [
     text: '{product} is down and nobody on staff understands the part that broke. The logs are long, confident, and wrong.',
     choices: [
       { label: 'Call in consultants', hint: '$45k, and it is fixed this week', requires: 'affordConsultants', effects: { consultants: true }, outcome: 'Three people in vests arrive, say "interesting" a lot, and fix it by Thursday.' },
-      { label: 'Hire an emergency contractor', hint: '$15k; fixed in about 2 weeks, effects later; adds some debt nobody will understand', effects: { cash: -15000, debt: 3, later: [{ inWeeks: 2, effects: { clearOutage: true } }] }, outcome: 'A contractor named Dmitri logs in from an airport. He seems calm. That is something.' },
+      { label: 'Hire an emergency contractor', hint: '$15k; fixed in about 2 weeks, effects later; adds some tech debt nobody will understand', effects: { cash: -15000, debt: 3, later: [{ inWeeks: 2, effects: { clearOutage: true } }] }, outcome: 'A contractor named Dmitri logs in from an airport. He seems calm. That is something.' },
       { label: 'Keep trying ourselves', hint: 'If {product} stays down {collapseWeeks} more weeks and it is your main product, or nobody understands the systems anymore, the company collapses', effects: {}, outcome: 'Someone orders pizza. Someone else opens the oldest file in the repo.' },
     ],
   },
@@ -620,7 +620,7 @@ const list = [
     title: 'Supply chain compromise',
     text: 'A tiny package someone installed at 2 a.m. turned out to be a crypto miner in a trench coat.',
     choices: [
-      { label: 'Audit every dependency', hint: 'Costs cash, lowers debt', effects: { cash: -15000, debt: -3 }, outcome: 'You now know what left-pad is. Again.' },
+      { label: 'Audit every dependency', hint: 'Costs cash, lowers tech debt', effects: { cash: -15000, debt: -3 }, outcome: 'You now know what left-pad is. Again.' },
       { label: 'Remove it and move on', hint: 'Risky', effects: { gamble: { p: 0.5, effects: { brand: -5, debt: 3 } } }, outcome: 'Probably fine. Probably.' },
     ],
   },

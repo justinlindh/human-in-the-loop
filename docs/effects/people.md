@@ -61,7 +61,7 @@
 
 | Path | Role | Effects |
 |---|---|---|
-| Architect | Engineer | debt paydown ×1.4, knowledge gain ×1.3 |
+| Architect | Engineer | tech debt paydown ×1.4, knowledge gain ×1.3 |
 | Tech Lead | Engineer | mentoring ×1.4 |
 | AI Wrangler | Engineer | oversight ×1.4, bug catching ×0.15, meaning from oversight ×1.35 |
 | Staff Engineer | Engineer | novelty from hard problems ×1.4, features ×1.15 |

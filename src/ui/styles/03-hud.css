@@ -76,3 +76,9 @@
 .hitl .tray-card.trend .t .k { color: #cfc6d6; }
 @keyframes hitl-shake { 0%, 90%, 100% { transform: none; } 92% { transform: translateX(-0.15em) rotate(-0.5deg); } 96% { transform: translateX(0.15em) rotate(0.5deg); } }
 
+.hitl .hmeter .vw { grid-column: 2; justify-self: end; display: inline-flex; align-items: baseline; gap: 0.3em; }
+.hitl .hmeter .vw .v { font-size: 0.85em; }
+.hitl .hmeter .drate { font-size: 0.68em; font-weight: 700; color: var(--ink-soft); }
+.hitl .hmeter .drate.up { color: var(--bad); }
+.hitl .hmeter .drate.down { color: var(--good); }
+.hitl .debtline { display: flex; align-items: center; gap: 0.25em; flex-wrap: wrap; margin-top: 0.4em; color: var(--ink-soft); }

@@ -9,7 +9,7 @@ export const POLICY_EFFECTS = {
   pair: [['automation meaning drain', 'pairMeaningDrainMult', 'mult'], ['automation output', 'pairAutoMult', 'mult']],
   craft_fridays: [['output', 'craftFridaysOutput', 'x100'], ['meaning recovery a week', 'meaningRecovery.craftFridays', 'num']],
   blameless: [['knowledge per engineer when an outage clears', 'blamelessKnowledge', 'num']],
-  comprehension_reviews: [['project speed', 'comprehensionReviewSpeed', 'x100'], ['comprehension debt paid down a week', 'debtPaydownReviews', 'num']],
+  comprehension_reviews: [['project speed', 'comprehensionReviewSpeed', 'x100'], ['share of tech debt paid down a week', 'debtPaydownReviews', 'share']],
   apprenticeship: [['skill added to each junior candidate', 'apprenticeSkillBonus', 'num']],
   sabbatical: [['weeks away', 'sabbaticalWeeks', 'count'], ['meaning recovery a week while away', 'meaningRecovery.sabbatical', 'num']],
   no_crunch: [['strain build-up', 'noCrunchStrainMult', 'mult'], ['output', 'noCrunchOutput', 'pct']],
@@ -30,7 +30,7 @@ export const ITEM_EFFECT_LABELS = {
 export const TRAIT_MOD_LABELS = {
   polish: 'polish', meaningDrain: 'meaning drain', meaningRecovery: 'meaning recovery', hype: 'hype', oversight: 'oversight', catch: 'bug catching',
   mentorBonus: 'mentoring', output: 'output', stamina: 'stamina', features: 'features', reliability: 'reliability', resign: 'chance of resigning',
-  novelty: 'novelty', xp: 'learning speed', debtPaydown: 'debt paydown', knowledgeGain: 'knowledge gain', oversightMeaning: 'meaning from oversight',
+  novelty: 'novelty', xp: 'learning speed', debtPaydown: 'tech debt paydown', knowledgeGain: 'knowledge gain', oversightMeaning: 'meaning from oversight',
   hardProblemNovelty: 'novelty from hard problems', brandPerWeek: 'brand a week', brandGain: 'brand gains', supportHours: 'support hours', churn: 'churn',
   postureFlat: 'security posture', outageFix: 'outage fixing', salesBoost: 'sales', acquisition: 'customer acquisition',
 };

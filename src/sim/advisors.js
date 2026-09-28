@@ -50,7 +50,7 @@ function observe(state) {
 
   const debtTier = A.debt.filter((d) => state.comprehensionDebt >= d).length;
   if (debtTier) add('debt', 'tech', Math.min(2, debtTier), debtTier, ADVICE_LINES.debt[debtTier], {},
-    `Comprehension debt: ${Math.round(state.comprehensionDebt)}`, { panel: 'ops' });
+    `Tech debt: ${Math.round(state.comprehensionDebt)}`, { panel: 'ops' });
 
   const holders = state.staff.filter((p) => holdsKnowledge(p) && p.mood !== 'away' && p.knowledge > 0);
   if (holders.length >= A.busFactorMinHolders) {

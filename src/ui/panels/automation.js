@@ -163,7 +163,7 @@ function panelOf(ctx, tab) {
         pickList,
         h('div.row.wrap.autometa', null,
           h('span.pill', null, icon('money'), ' Automation cost ', costEl),
-          h('span.pill.warn', null, icon('debt'), ' Comprehension debt ', debtEl),
+          h('span.pill.warn', null, icon('debt'), ' Tech debt ', debtEl),
           s.policies.pair ? h('span.pill.good', null, icon('pair'), ' AI as Pair: less output, far less meaning drain') : null));
 
       const rows = h('div.autorows');
@@ -207,7 +207,7 @@ function panelOf(ctx, tab) {
             cap > 0 ? h('span.ro.good-t', { text: outputText(s, fn) }) : null,
             h('span.ro', { text: a.level > 0 ? `${fmtMoney(fnCost(s, fn))}/wk` : '' }),
             ov > 0 ? h('span.ro.warn-t', null, icon('oversight', { size: 12 }), ` ${ov.toFixed(1)}h oversight`) : null,
-            debt > 0 ? h('span.ro.bad-t', null, icon('debt', { size: 12 }), ` +${debt.toFixed(2)} debt/wk`) : null),
+            debt > 0 ? h('span.ro.bad-t', null, icon('debt', { size: 12 }), ` +${debt.toFixed(2)} tech debt/wk`) : null),
           h('div.whoaff', { title: who.map((p) => p.name).join(', ') }, whoEl, meanEl)));
       }
       return [summary, rows,

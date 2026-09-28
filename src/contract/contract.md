@@ -18,6 +18,7 @@ scoreRun(state) -> { score, valuation, breakdown }
 loadGame(storage) -> { ok, state?, reason?, notice? }   // notice: a message to toast after a successful load (src/save/save.js)
 // A save the current build can't run returns { ok:false, stale:true, version, reason:'Save is from an older build'|'Save is from a newer build' }; ui offers Start fresh instead of failing.
 exportSave(storage, id) -> string   // the raw save text, for keeping a stale save; saveMeta carries `version`
+importSave(storage, text, { replaceId? }) -> { ok, id?, meta?, reason?, full?, stale?, version? }   // validates text as loadGame does and stores it in a free slot; with every slot taken it returns { ok:false, full:true } and writes nothing unless replaceId names the slot to overwrite; never changes the index's `last` slot; success carries the slot's saveMeta as `meta`, a version refusal carries `stale` and `version` as loadGame's does. ui reaches it through controls.importSave(text, opts) in main.js
 FUNCTIONS = ['engineering','support','sales','marketing','qa','ops']
 SAVE_VERSION = 1
 ```

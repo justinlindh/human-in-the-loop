@@ -4,7 +4,7 @@ const KEY = 'hitl.tutorialDone';
 
 const STEPS = [
   { target: '.topbar', place: 'below', title: 'Your company at a glance',
-    text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Comprehension Debt. Tap or hover any of them for details.' },
+    text: 'Cash and runway, monthly revenue, your team, and three things to watch: Brand, Know-how, and Tech debt. Tap or hover any of them for details.' },
   { target: '.tray', place: 'right', title: 'What needs you',
     text: 'Anything waiting on you shows up here first, then your goals. Tap a line to jump to it. Each goal pays a small reward.' },
   { target: '.mbtn[data-menu="build"]', place: 'above', title: 'Build a product',

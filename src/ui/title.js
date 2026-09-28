@@ -4,6 +4,7 @@ import { traitInfo } from './content.js';
 import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
 import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
+import { downloadSave, pickSaveFile } from './saveFiles.js';
 import { STAT } from './stats.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
@@ -23,7 +24,7 @@ function suggestCompany() {
 }
 
 // Title screen over the live diorama: New Game (company name, optional seed), Continue, Settings.
-export function createTitle({ layer, controls, sfx, toast, onStart, openSettings }) {
+export function createTitle({ layer, controls, sfx, toast, onStart, openSettings, getState = null }) {
   const root = h('div.title');
   root.style.display = 'none';
   layer.append(root);
@@ -86,7 +87,16 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       sfx('close');
       menuView();
     }, m?.companyName) : null;
-    return [h('div.tl-slotrow', null, btn, del), old ? h('div.small.tl-why', { text: 'From a different build. Tap to see your options.' }) : !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
+    // Export keeps a copy of the save as a file, for another browser or device (Import there).
+    const exp = slot.id && !old && controls.exportSave ? h('button.btn.tl-exp', {
+      title: `Export ${m?.companyName ?? 'this save'} as a file`, 'aria-label': `Export ${m?.companyName ?? 'this save'}`,
+      onclick: () => {
+        const text = controls.exportSave(slot.id);
+        if (!text) { toast('Could not read that save', 'warn'); return; }
+        downloadSave(text, m?.companyName, slot.id); sfx('confirm'); toast('Save exported as a file.', 'good');
+      },
+    }, icon('continue'), h('span.tl-explbl', { text: ' Export' })) : null;
+    return [h('div.tl-slotrow', null, btn, exp, del), old ? h('div.small.tl-why', { text: 'From a different build. Tap to see your options.' }) : !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
   }
 
   // An old save the current build cannot load: say so plainly and offer a fresh start.
@@ -110,17 +120,6 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         prealpha())));
   }
 
-  // Saves the raw text through a temporary link; no dialog.
-  function downloadSave(text, name, id) {
-    const safe = String(name ?? 'company').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'company';
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-    const a = h('a', { href: url, download: `${safe}-${id}.hitl.json` });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
   function deleteButton(onConfirm, name) {
     let armed = null;
     const b = h('button.btn.tl-del', { title: `Delete ${name ?? 'this save'}`, 'aria-label': `Delete ${name ?? 'this save'}` }, icon('close'));
@@ -133,6 +132,45 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     return b;
   }
 
+  // Import: pick a file, let the save module check it, and add it as a new slot. When every slot is
+  // taken, the player picks which one to replace, and that takes a second tap.
+  async function importFlow() {
+    sfx('click');
+    const got = await pickSaveFile();
+    if (!got) return;
+    if (!got.text) { sfx('error'); toast(got.reason, 'warn'); return; }
+    finishImport(got.text);
+  }
+
+  function finishImport(text, replaceId = null) {
+    let res;
+    try { res = controls.importSave(text, replaceId ? { replaceId } : undefined); } catch { res = { ok: false, reason: 'Could not import that file' }; }
+    if (res?.ok) {
+      sfx('confirm');
+      toast(`Imported ${res.meta?.companyName ?? 'the save'}.`, 'good');
+      menuView();
+      return;
+    }
+    if (res?.full) { importReplaceView(text); return; }
+    sfx('error');
+    toast(`That file can't be loaded: ${(res?.reason ?? 'unknown problem').replace(/^./, (c) => c.toLowerCase())}.`, 'warn');
+  }
+
+  function importReplaceView(text) {
+    // The loaded game autosaves to its own slot, which would overwrite an import placed there.
+    const live = getState?.()?.flags?.saveSlot ?? null;
+    const list = (controls.listSaves?.() ?? []).filter((m) => m.id !== live);
+    root.replaceChildren(h('div.tl-card', null, lockup(),
+      h('div.tl-form', null,
+        h('b', { text: 'Every save slot is taken' }),
+        h('div', { text: `Pick a company to replace with the imported save. Its current save is lost, so export it first if you want to keep it.${live ? ' The company you have open is not listed: it keeps saving to its own slot.' : ''}` }),
+        h('div.tl-slots', null, ...list.map((m) => h('div.tl-slotrow', null,
+          h('div.tl-slot.tl-replaceinfo', null, h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }),
+            h('span.sinfo', null, h('b', { text: m.companyName ?? 'A company' }), h('span.small.muted', { text: [m.year, ERA[m.eraId]?.name, ago(m.savedAt)].filter(Boolean).join(' · ') }))),
+          confirmButton('Replace', 'Replace? Tap again', 'big.danger', () => finishImport(text, m.id))))),
+        h('button.btn.big', { onclick: () => { sfx('click'); menuView(); } }, icon('arrow.back'), ' Cancel'))));
+  }
+
   function menuView() {
     const slots = saveSlots();
     const hasSave = slots.some((x) => x.id != null || x.ok);
@@ -140,6 +178,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-menu', null,
         h('button.btn.go.big.tl-btn', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' New Game'),
         h('div.tl-slots', null, ...slots.flatMap(slotRow)),
+        controls.importSave ? h('button.btn.big.tl-btn', { onclick: () => importFlow() }, icon('continue'), ' Import a save') : null,
         h('button.btn.big.tl-btn', { onclick: () => openSettings() }, icon('settings'), ' Settings')),
       saveNote(hasSave),
       prealpha()));

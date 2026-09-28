@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { staffUpPool, staffUpMatches } from './bulkAssign.js';
+import { staffUpPool, staffUpMatches, leavesNoMaintenance } from './bulkAssign.js';
 
 const person = (id, type, role, seniority, mood = 'content') => ({ id, role, seniority, mood, assignment: { type, targetId: null } });
 
@@ -24,5 +24,12 @@ describe('staff up', () => {
     expect(staffUpMatches(pool, { ...none, roles: new Set(['engineer']) }).map((p) => p.id)).toEqual(['a', 'f']);
     expect(staffUpMatches(pool, { ...none, from: new Set(['idle']) }).map((p) => p.id)).toEqual(['b']);
     expect(staffUpMatches(pool, { ...none, roles: new Set(['engineer']), seniority: new Set(['mid']) }).map((p) => p.id)).toEqual(['f']);
+  });
+
+  it('notes when a move would leave no engineer on maintenance', () => {
+    expect(leavesNoMaintenance(s, new Set(['a', 'f']))).toBe(true);
+    expect(leavesNoMaintenance(s, new Set(['a']))).toBe(false);
+    expect(leavesNoMaintenance(s, new Set(['b']))).toBe(false);
+    expect(leavesNoMaintenance({ staff: [person('x', 'idle', 'engineer', 'mid')] }, new Set(['x']))).toBe(false);
   });
 });

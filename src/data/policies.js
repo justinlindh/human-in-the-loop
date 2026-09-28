@@ -22,9 +22,9 @@ export const POLICIES = {
     desc: 'Incidents teach instead of scar. Engineers gain knowledge when outages clear. Costs meeting time.',
   },
   comprehension_reviews: {
-    id: 'comprehension_reviews', lockText: 'Unlocks at 20 comprehension debt or on the Office Floor', name: 'Code Comprehension Reviews', weeklyCost: 0,
+    id: 'comprehension_reviews', lockText: 'Unlocks at 20 tech debt or on the Office Floor', name: 'Code Comprehension Reviews', weeklyCost: 0,
     unlock: (s) => s.comprehensionDebt >= 20 || s.officeStage >= 1,
-    desc: 'Someone must understand every change before it ships. Slower projects, steady debt paydown.',
+    desc: 'Someone must understand every change before it ships. Slower projects, steady tech debt paydown.',
   },
   apprenticeship: {
     id: 'apprenticeship', lockText: 'Needs the Office Floor', name: 'Apprenticeship Program', weeklyCost: 1500, unlock: (s) => s.officeStage >= 1,

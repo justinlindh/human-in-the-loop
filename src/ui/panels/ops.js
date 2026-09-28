@@ -76,7 +76,7 @@ export function opsPanel(ctx) {
           h('div', null, h('span', { text: 'Tools and specialists' }), parts.bonus),
           h('div', null, h('span', { text: 'Audit' }), parts.audit),
           h('div', null, h('span', { text: 'Tooling' }), parts.tooling),
-          h('div.neg', null, h('span', { text: 'Comprehension debt' }), parts.debt)),
+          h('div.neg', null, h('span', { text: 'Tech debt' }), parts.debt)),
         h('div.row.wrap', null,
           h('button.btn.blue', { onclick: () => { if (ctx.act({ type: 'buyAudit' }).ok) ctx.sfx('coin'); } }, icon('audit'), ` Buy audit ${fmtMoney(B.auditCost ?? 15000)}`),
           auditLeft),

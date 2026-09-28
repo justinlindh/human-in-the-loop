@@ -12,3 +12,4 @@ How each game choice and element changes the game, generated from the data and t
 - [growth](growth.md)
 - [yak](yak.md)
 - [advisors](advisors.md)
+- [tech-debt](tech-debt.md)

@@ -142,7 +142,7 @@
 .hitl .staffup { gap: 0.7em; }
 .hitl .staffup .sufilters { gap: 0.4em; }
 .hitl .staffup .sugroup { gap: 0.35em; align-items: center; }
-.hitl .staffup .sulabel { min-width: 3.6em; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.72em; }
+.hitl .staffup .sulabel { min-width: 5.4em; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.72em; }
 .hitl .staffup .suchip { min-height: 2.2em; }
 .hitl .staffup .suchip.on { background: var(--ink); color: var(--cream); }
 .hitl .staffup .sulist { height: min(22em, 46vh); max-height: none; overflow-y: auto; }

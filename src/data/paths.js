@@ -1,7 +1,7 @@
 // Career paths chosen at promotion to senior. mods use the trait vocabulary plus path keys.
 // Additive keys (default 0): catch, brandPerWeek, postureFlat. Everything else multiplies (default 1).
 const rows = [
-  ['architect', 'Architect', 'engineer', 'Pays down comprehension debt faster and learns the systems quicker.', { debtPaydown: 1.4, knowledgeGain: 1.3 }],
+  ['architect', 'Architect', 'engineer', 'Pays down tech debt faster and learns the systems quicker.', { debtPaydown: 1.4, knowledgeGain: 1.3 }],
   ['tech_lead', 'Tech Lead', 'engineer', 'Mentees grow much faster.', { mentorBonus: 1.4 }],
   ['ai_wrangler', 'AI Wrangler', 'engineer', 'A natural overseer: more oversight hours, better catches, and oversight feels meaningful.', { oversight: 1.4, catch: 0.15, oversightMeaning: 1.35 }],
   ['staff_engineer', 'Staff Engineer', 'engineer', 'Hard problems yield fresher ideas, and features come out stronger.', { hardProblemNovelty: 1.4, features: 1.15 }],

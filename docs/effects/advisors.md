@@ -8,7 +8,7 @@ What makes each advisor speak. Urgent advice pushes itself at most once every 12
 |---|---|---|
 | Runway | CFO | under 12 / 8 / 4 weeks of cash at this burn (tiers 1 to 3), or in the red |
 | Burnout | people lead | one person burnt out; two or more; two or more and at least 33% of the team |
-| Comprehension debt | tech lead | at 40 / 60 / 80 |
+| Tech debt | tech lead | at 30 / 50 / 70 |
 | One person holds the know-how | tech lead | one of 3 or more holders has 40% / 55% of the team's knowledge |
 | Unused policy | people lead | a good policy unlocked 26 weeks and never switched on (for 26 weeks) |
 | New era | tech lead | the first 8 weeks of a new era |

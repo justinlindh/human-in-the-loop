@@ -45,12 +45,12 @@ export const ADVICE_LINES = {
   },
   debt: {
     1: [
-      "Comprehension debt is creeping up. Nobody's panicking. Nobody can explain the billing code either.",
+      "Tech debt is creeping up. Nobody's panicking. Nobody can explain the billing code either.",
       "We're shipping faster than we're understanding. Fine for now. Now is a short word.",
     ],
     2: [
       'Nobody can explain how billing works anymore. Including billing.',
-      'Debt is high enough that incidents feel personal. A refactor costs a project. An outage costs a weekend.',
+      'Tech debt is high enough that incidents feel personal. A refactor costs a project. An outage costs a weekend.',
     ],
     3: [
       'The codebase has become folklore. People tell stories about it at lunch.',

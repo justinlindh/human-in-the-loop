@@ -34,7 +34,7 @@ export const SV_NODS = [
     text: '{rival} launched The Box: a brushed-aluminium cube that does what your product does, slower, for four times the price. Analysts love it.',
     stage: { prop: 'box_poster', anchor: 'wall' },
     choices: [
-      { label: 'Build our own box', hint: `${k(N.boxCost)}; hype up; some comprehension debt`, effects: { cash: -N.boxCost, hype: N.boxHype, debt: N.boxDebt },
+      { label: 'Build our own box', hint: `${k(N.boxCost)}; hype up; some tech debt`, effects: { cash: -N.boxCost, hype: N.boxHype, debt: N.boxDebt },
         leaves: { prop: 'box_cube', anchor: 'subjectDesk', until: { weeks: N.boxCubeWeeks } },
         outcome: '{name} gets a cube on their desk and a deadline. The cube has no ports. The deadline has no mercy.' },
       { label: 'Stay software', hint: 'Brand up a little now, and again later when The Box ages badly', effects: { brand: 1, later: [
