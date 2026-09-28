@@ -6,7 +6,8 @@ import { applyEffects, checkCondition, requireReason } from './effects.js';
 import { emitChat } from './chat.js';
 import { eraAllowsText, eraLines, currentEra } from './eras.js';
 import { PROMPTS, DESK_PROMISE_LINES } from '../data/prompts.js';
-import { deskCapacity, deskCap, desksOf, suggestPlacement } from './office.js';
+import { deskCapacity, deskCap, desksOf, suggestPlacement, nextExpansion } from './office.js';
+import { OFFICE_STAGES } from '../data/office.js';
 import { mentorOf } from './staff.js';
 import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
@@ -86,14 +87,15 @@ const TRIGGERS = {
     const poster = staffOnly(state)[0];
     return poster ? { poster } : null;
   },
-  // Every desk is taken: with floor for another desk, someone asks for one; with none, for a bigger office.
+  // Every desk is taken: with floor for another desk, someone asks for one; with none, for a bigger office,
+  // when there is one to move to.
   crowded: (state) => {
     if (state.staff.length < deskCapacity(state) || !deskRoom(state)) return null;
     const poster = staffOnly(state).at(-1);
     return poster ? { poster } : null;
   },
   full: (state) => {
-    if (state.staff.length < deskCapacity(state) || deskRoom(state)) return null;
+    if (state.staff.length < deskCapacity(state) || deskRoom(state) || !biggerOffice(state)) return null;
     const poster = staffOnly(state).at(-1);
     return poster ? { poster } : null;
   },
@@ -129,6 +131,8 @@ const fitsEra = (state, t) => (!t.eras || t.eras.includes(currentEra(state).id))
   && t.options.every((o) => eraAllowsText(state, o.label) && eraAllowsText(state, o.hint));
 
 // Whether another desk would fit: floor for one, and the office's desk limit not reached.
+// Whether there's a bigger office to move to: a later stage, or an HQ expansion still to buy.
+const biggerOffice = (state) => state.officeStage < OFFICE_STAGES.length - 1 || !!nextExpansion(state);
 const deskRoom = (state) => !(state.officeStage >= 1 && desksOf(state.office.placed).length >= deskCap(state)) && !!suggestPlacement(state, 'desk');
 
 // A promised desk: kept when the desk count rises within B.deskPromiseWeeks (the poster says thanks), broken

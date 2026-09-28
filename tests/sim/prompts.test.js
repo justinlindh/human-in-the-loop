@@ -255,6 +255,25 @@ describe('issue #929: a full office asks for a desk, and a promised desk is reme
     expect(p.options[0].opens).toEqual({ panel: 'office' });
   });
 
+  it('never suggests a bigger office when there is none: the last stage with every expansion bought', async () => {
+    const { OFFICE_STAGES } = await import('../../src/data/office.js');
+    const last = OFFICE_STAGES.length - 1;
+    const cap = B.hqDeskCap;
+    B.hqDeskCap = 0;
+    try {
+      const atTop = (expansion) => {
+        const s = crowded(44, { room: false });
+        s.flags.pcd_desk_squeeze = 999;
+        s.officeStage = last;
+        s.office.expansion = expansion;
+        for (let i = 0; i < 40 && !s.chatPrompts.some((p) => p.kind === 'office_full'); i++) { weekOf(s); s.week++; }
+        return s.chatPrompts.some((p) => p.kind === 'office_full');
+      };
+      expect(atTop(0)).toBe(true);
+      expect(atTop((OFFICE_STAGES[last].expansions ?? []).length)).toBe(false);
+    } finally { B.hqDeskCap = cap; }
+  });
+
   it('a desk added within the promise keeps it: a thanks, and no meaning lost', () => {
     const s = crowded(42);
     const p = opened(s);
