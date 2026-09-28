@@ -52,6 +52,8 @@ export const ICONS = {
   decision: I('🗳️', 'Decision popup header', 24),
   settings: I('⚙️', 'Settings: top bar gear, title button, settings header', 16),
   continue: I('💾', 'Title: Continue button', 18),
+  'save.export': I('📤', 'Title: Export on a save slot; Settings: Export a copy', 18),
+  'save.import': I('📥', 'Title: Import a save', 18),
   gameover: I('🪦', 'Game over header when lost', 44),
   slot: I('🔲', 'Office: item slots chip', 12),
   research: I('🧰', 'Build: Internal tools tab', 16),

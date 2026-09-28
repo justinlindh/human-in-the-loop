@@ -95,7 +95,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         if (!text) { toast('Could not read that save', 'warn'); return; }
         downloadSave(text, m?.companyName, slot.id); sfx('confirm'); toast('Save exported as a file.', 'good');
       },
-    }, icon('continue'), h('span.tl-explbl', { text: ' Export' })) : null;
+    }, icon('save.export'), h('span.tl-explbl', { text: ' Export' })) : null;
     return [h('div.tl-slotrow', null, btn, exp, del), old ? h('div.small.tl-why', { text: 'From a different build. Tap to see your options.' }) : !slot.ok ? h('div.small.tl-why', { text: slot.reason ?? '' }) : null];
   }
 
@@ -105,7 +105,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const name = slot.meta?.companyName;
     // Export keeps a copy of the save as a file; hidden when the host cannot read the slot's text.
     const text = slot.id ? controls.exportSave?.(slot.id) ?? null : null;
-    const exportBtn = text ? h('button.btn.big', { onclick: () => { downloadSave(text, name, slot.id); sfx('confirm'); toast('Save exported as a file.', 'good'); } }, icon('continue'), ' Export') : null;
+    const exportBtn = text ? h('button.btn.big', { onclick: () => { downloadSave(text, name, slot.id); sfx('confirm'); toast('Save exported as a file.', 'good'); } }, icon('save.export'), ' Export') : null;
     root.replaceChildren(h('div.tl-card', null, lockup(),
       h('div.tl-form', null,
         h('b', { text: 'This save is from a different build' }),
@@ -156,6 +156,16 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     toast(`That file can't be loaded: ${(res?.reason ?? 'unknown problem').replace(/^./, (c) => c.toLowerCase())}.`, 'warn');
   }
 
+  // The companies to replace, in a box that scrolls on short screens; a fade at the bottom shows
+  // while more rows are below.
+  function replaceList(rows) {
+    const box = h('div.tl-slots.tl-replacelist', null, ...rows);
+    const cue = () => box.classList.toggle('more', box.scrollTop + box.clientHeight < box.scrollHeight - 2);
+    box.addEventListener('scroll', cue, { passive: true });
+    requestAnimationFrame(cue);
+    return box;
+  }
+
   function importReplaceView(text) {
     // The loaded game autosaves to its own slot, which would overwrite an import placed there.
     const live = getState?.()?.flags?.saveSlot ?? null;
@@ -164,7 +174,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-form', null,
         h('b', { text: 'Every save slot is taken' }),
         h('div', { text: `Pick a company to replace with the imported save. Its current save is lost, so export it first if you want to keep it.${live ? ' The company you have open is not listed: it keeps saving to its own slot.' : ''}` }),
-        h('div.tl-slots', null, ...list.map((m) => h('div.tl-slotrow', null,
+        replaceList(list.map((m) => h('div.tl-slotrow', null,
           h('div.tl-slot.tl-replaceinfo', null, h('span.slogo', { style: { background: m.logoColor ?? '' }, text: (m.companyName || '?').slice(0, 1).toUpperCase() }),
             h('span.sinfo', null, h('b', { text: m.companyName ?? 'A company' }), h('span.small.muted', { text: [m.year, ERA[m.eraId]?.name, ago(m.savedAt)].filter(Boolean).join(' · ') }))),
           confirmButton('Replace', 'Replace? Tap again', 'big.danger', () => finishImport(text, m.id))))),
@@ -178,7 +188,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('div.tl-menu', null,
         h('button.btn.go.big.tl-btn', { onclick: () => { sfx('click'); newGameView(); } }, icon('launch'), ' New Game'),
         h('div.tl-slots', null, ...slots.flatMap(slotRow)),
-        controls.importSave ? h('button.btn.big.tl-btn', { onclick: () => importFlow() }, icon('continue'), ' Import a save') : null,
+        controls.importSave ? h('button.btn.big.tl-btn', { onclick: () => importFlow() }, icon('save.import'), ' Import a save') : null,
         h('button.btn.big.tl-btn', { onclick: () => openSettings() }, icon('settings'), ' Settings')),
       saveNote(hasSave),
       prealpha()));

@@ -154,7 +154,7 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
         h('h3.sethead', { text: 'Saving' }),
         h('div.small.muted.setnote', { text: SAVE_NOTE }),
         canExport() ? row('Export a copy', 'Saves this company as a file. Import it on the title screen in another browser or device.',
-          h('button.btn.small', { onclick: () => exportNow() }, icon('continue'), ' Export')) : null,
+          h('button.btn.small', { onclick: () => exportNow() }, icon('save.export'), ' Export')) : null,
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));
   }

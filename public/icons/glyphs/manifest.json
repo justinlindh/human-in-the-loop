@@ -318,6 +318,12 @@
  "chart": {
   "file": "glyphs/chart.svg"
  },
+ "save.export": {
+  "file": "glyphs/save.export.svg"
+ },
+ "save.import": {
+  "file": "glyphs/save.import.svg"
+ },
  "continue": {
   "file": "glyphs/continue.svg"
  },

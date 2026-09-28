@@ -38,7 +38,7 @@ export function openStaffUp(ctx, projectId) {
   const chipsEl = h('div.col.sufilters');
   const listEl = h('div.picker.sulist');
   const countEl = h('span.small.muted');
-  const maintNote = h('div.small.warn-t.sumaint', { text: 'This leaves no engineer on maintenance, and maintenance pays down tech debt.' });
+  const maintNote = h('div.small.sumaint', { text: 'This leaves no engineer on maintenance, and maintenance pays down tech debt.' });
   const goT = h('span');
   const go = h('button.btn.go.big', { onclick: () => commit() }, icon('launch'), ' ', goT);
 
@@ -83,7 +83,8 @@ export function openStaffUp(ctx, projectId) {
 
   function sync() {
     setText(countEl, `${picked.size} picked of ${pool.length} on maintenance or idle`);
-    maintNote.style.display = leavesNoMaintenance(ctx.getState(), picked) ? '' : 'none';
+    // Always laid out, so the modal keeps its size when the note comes and goes.
+    maintNote.style.visibility = leavesNoMaintenance(ctx.getState(), picked) ? '' : 'hidden';
     setText(goT, picked.size ? `Move ${picked.size} to ${projectLabel(ctx.getState(), proj)}` : 'Pick someone');
     go.disabled = !picked.size;
   }

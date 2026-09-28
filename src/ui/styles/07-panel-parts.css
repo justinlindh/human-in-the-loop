@@ -147,3 +147,4 @@
 .hitl .staffup .suchip.on { background: var(--ink); color: var(--cream); }
 .hitl .staffup .sulist { height: min(22em, 46vh); max-height: none; overflow-y: auto; }
 .hitl .staffup .sufrom { margin-left: auto; white-space: nowrap; }
+.hitl .staffup .sumaint { background: #fff4dc; color: var(--ink); border: 0.12em solid var(--warn); border-radius: 0.6em; padding: 0.3em 0.6em; font-weight: 600; }
