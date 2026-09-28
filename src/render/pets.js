@@ -100,6 +100,11 @@ function buildPet(species, look) {
   return { root, body, legs, neck, head, ears, tail, emote };
 }
 
+// A passer stopping to pet an animal: seconds before the same pet is greeted again, the distance
+// band (metres) a passer must be in, seconds before the same person stops again, and how often a
+// pet looks for passers.
+const PET_GREET = { petCooldownS: 18, minM: 0.56, maxM: 1.05, staffCooldownS: 25, scanS: 0.15 };
+
 export function createPets({ office, recs, emote: staffEmote, parent, getProps = () => null, resumeWalk, low = () => false }) {
   const pets = new Map();       // pet id -> rec
   const pens = [];
@@ -157,7 +162,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     }
     r.petter = null;
     r.path = [];
-    r.cooldown = clock + 18;
+    r.cooldown = clock + PET_GREET.petCooldownS;
     r.mode = 'idle'; r.t = 2; r.arrived = false;
     petEmote(r, 'heart', 1.2);
   }
@@ -167,7 +172,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     for (const who of recs.values()) {
       if (who.hidden || who.goal?.hidden || who.mode !== 'placed' || who.temp || !who.path.length || who.exitFrom || who.char.seated || (staffCooldown.get(who.id) ?? 0) > clock) continue;
       const d = Math.hypot(who.pos.x - r.pos.x, who.pos.z - r.pos.z);
-      if (d < 0.56 || d > 1.05) continue;
+      if (d < PET_GREET.minM || d > PET_GREET.maxM) continue;
       // Stop the passer with room for the pet to turn, then let the pet approach along
       // the clear segment. The person's feet stay planted throughout the greeting.
       const nav = office.nav();
@@ -194,7 +199,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
       r.petter = { who, temp, target, age: 0,
         at: { x: who.pos.x + (r.pos.x - who.pos.x) * gap / d, z: who.pos.z + (r.pos.z - who.pos.z) * gap / d },
         yaw: facing + turn };
-      staffCooldown.set(who.id, clock + 25);
+      staffCooldown.set(who.id, clock + PET_GREET.staffCooldownS);
       r.emoteT = 0; r.rig.emote.visible = false;
       return;
     }
@@ -359,7 +364,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     clock += dt;
     scanIn -= dt;
     const scan = scanIn <= 0;
-    if (scan) scanIn = 0.15;
+    if (scan) scanIn = PET_GREET.scanS;
     for (const r of pets.values()) {
       const g = r.rig;
       if (r.petter && (low() || r.petter.who.hidden || r.petter.who.goal?.hidden || !recs.has(r.petter.who.id) || r.petter.who.temp !== r.petter.temp || r.petter.temp.t <= 0 || r.petter.who.path.length)) releasePetter(r);

@@ -2,24 +2,34 @@
 # Claude Code PreToolUse hook for Bash. Denies (exit 2, reason on stderr):
 #   - pkill -f / pgrep -f: they match their own command line and kill or find the wrong process;
 #   - git push to main, or a forced push;
+#   - scripts/ci-pr.sh by hand: auto CI (scripts/auto-ci.sh) is the one path to local CI. The reviewer's
+#     --allow-bot runs and an explicit HITL_MANUAL_CI=1 get through;
 #   - a test run piped into grep, tail or head that gates a git commit or push: the gate then rides on
 #     the pipe's last command, not the tests (unless pipefail or PIPESTATUS is used);
 #   - git stash, other than list and show: every worktree shares one stash stack, so a pop can take
 #     another lane's work;
 #   - gh pr create/comment/review/edit text (title, body, heredoc bodies, body files), and gh api posts
 #     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...).
-# It looks only at commands mentioning pkill, pgrep, push, commit, stash, gh pr or gh api, and fails open on its own errors.
+# It looks only at commands mentioning pkill, pgrep, push, commit, stash, ci-pr, gh pr or gh api, and fails open on its own errors.
 # Only deny() exits 2; any other failure exits otherwise, which Claude Code treats as allow.
 set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
 if grep -qE '(^|[^[:alnum:]_./-])(pkill|pgrep)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(-[[:alnum:]]*f[[:alnum:]]*|--full)([[:space:]]|$)' <<<"$cmd"; then
   deny "pkill -f and pgrep -f match their own command line (and your shell's), so they find or kill the wrong process. Stop a process by PID, wait on a lock, or match /proc/<pid>/cmdline by exact prefix."
+fi
+
+# ci-pr.sh run on a PR (ci-pr.sh <number>), outside heredoc bodies and quoted text.
+cipr_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+  | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
+  | grep -E '(^|[[:space:]/;&|(])ci-pr\.sh[[:space:]]+[0-9]+([[:space:];&|)]|$)' || true)"
+if [ -n "$cipr_cmds" ] && ! grep -qE -- '--allow-bot|HITL_MANUAL_CI=1' <<<"$cipr_cmds"; then
+  deny "local CI has one path: auto CI runs scripts/ci-pr.sh on every PR head within a couple of minutes (scripts/auto-ci.sh). Watch the local-ci status instead, or add the ci-rerun label for a fresh run. If you really need a run by hand (the integrator debugging CI), prefix it with HITL_MANUAL_CI=1."
 fi
 
 # git stash as a command (not in heredoc bodies or quoted text, which become Q so a quoted -C path

@@ -34,6 +34,10 @@ const TIRED_STAMINA = 25;           // below this a person shows the exhaustion 
 const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const QUIET_R = 4;          // metres round a spotlight moment where only its own lines are spoken
+// Choosing who facepalms at a backfired post: someone in the camera's line within nearM to farM in
+// front and acrossM to the side hides them; the weights favour clear, standing and idle people; a
+// standing facepalmer turns this far off square to the camera.
+const PALM_PICK = { nearM: 0.1, farM: 2.5, acrossM: 0.8, clear: 8, standing: 4, idle: 2, turn: 0.35 };
 const POST_REACT_S = 2.2;    // how long the office reacts to a Yak post that backfired
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
@@ -561,16 +565,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (outcome !== 'backfired') return;
     // Prefer a clear standing actor: a seated actor's monitor can hide the temple hand.
     const yaw = rig?.yaw ?? Math.PI / 4, cx = Math.sin(yaw), cz = Math.cos(yaw);
-    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > 0.1 && along < 2.5 && Math.abs(dx * cz - dz * cx) < 0.8; };
+    const hides = (x, r) => { const dx = x.pos.x - r.pos.x, dz = x.pos.z - r.pos.z, along = dx * cx + dz * cz; return along > PALM_PICK.nearM && along < PALM_PICK.farM && Math.abs(dx * cz - dz * cx) < PALM_PICK.acrossM; };
     const pillar = (r) => (office.current?.columns ?? []).some((c) => { const dx = c.x - r.pos.x, dz = c.z - r.pos.z, along = dx * cx + dz * cz; return along > 0 && along < 3 && Math.abs(dx * cz - dz * cx) < 0.55; });
     const clear = (r) => !pillar(r) && !here.some((x) => x !== r && hides(x, r));
     // Clear actors win first, then standing actors, then the most camera-facing heading.
-    const facing = (r) => Math.cos(r.yaw - yaw) + (clear(r) ? 8 : 0) + (!r.char.seated ? 4 : 0) + (!r.temp ? 2 : 0);
+    const facing = (r) => Math.cos(r.yaw - yaw) + (clear(r) ? PALM_PICK.clear : 0) + (!r.char.seated ? PALM_PICK.standing : 0) + (!r.temp ? PALM_PICK.idle : 0);
     here.sort((a, b) => facing(b) - facing(a));
     const palm = here.shift();
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
     // Bring the temple hand toward the camera instead of behind the far cheek.
-    if (!palm.char.seated) palm.face = { yaw: yaw + 0.35, t: POST_REACT_S, post: true };
+    if (!palm.char.seated) palm.face = { yaw: yaw + PALM_PICK.turn, t: POST_REACT_S, post: true };
     palm.char.setEmote(null);
     palm.emoteT = 0;
     palm.char.gesture('facepalm', POST_REACT_S);
