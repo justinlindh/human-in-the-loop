@@ -94,8 +94,8 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
-                                          // important: optional true promotes a post that wouldn't otherwise count as important (a running joke, big news);
-                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, bot posts, or flagged) raise unread counts
+                                          // important: optional true promotes a post that wouldn't otherwise count as important (a bot post that matters, a running joke, big news);
+                                          // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, or flagged) raise unread counts; a bot post counts only when flagged
                                           // image: optional { id, alt } on posts that carry a picture (a meme); id is a meme image id from src/data/memes.js, and ui maps it to its files;
                                           // alt is the picture's short caption and equals text, so readers of text alone still get a sensible line; ui shows text when the image is missing
 { type: 'launch', productId }
