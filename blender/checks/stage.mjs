@@ -50,7 +50,7 @@ function motion(xs) {
 const SPECS = {
   'growth.honoree': { moment: 'growth', beat: 'cheer', role: 'honoree', rules: [
     share('celebrating', 'honoree celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
-    share('faceVisible', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
+    share('facingCamera', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
     visibleRule, noFade,
   ] },
   'growth.coworker': { moment: 'growth', beat: 'cheer', role: 'coworker', rules: [
@@ -88,11 +88,11 @@ const SPECS = {
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     visibleRule, noFade,
   ] },
   'letter.slump': { moment: 'letter', beat: 'slump', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     { metric: 'headDrop', want: '>= 0.03 m below the reading head height', test: (xs, all) => {
       const read = all.filter((x) => x.beat === 'read');
       if (!read.length || !xs.length) return 0;
@@ -132,7 +132,7 @@ const SPECS = {
   // The first user test: the founders crouch out of the visitor's sight, faces to the camera, watching
   // the visitor; on "Explain everything" one leans in beside the visitor, at their screen.
   'visitor.hide': { moment: 'visitor', beat: 'hide', role: 'founder', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     share('watching', 'face within 60 deg of the visitor', (x) => x.targetAngle <= 60, 0.8),
     visibleRule, noFade,
   ] },
@@ -151,23 +151,23 @@ const SPECS = {
   // view, both turned three-quarters to the camera; the one with the clipboard stands behind, in view.
   // (Their own scenario: the moment is the visitor one.)
   'consultants.consultant': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'consultant', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     share('atInterviewee', 'face within 60 deg of the interviewee', (x) => x.targetAngle <= 60, 0.8),
     visibleRule,
   ] },
   'consultants.clipboard': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'clipboard', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     visibleRule,
   ] },
   'consultants.interviewee': { moment: 'visitor', scenario: 'consultants', beat: 'interview', role: 'interviewee', rules: [
-    share('faceVisible', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
-    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.75),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('atConsultant', 'face within 60 deg of the consultant', (x) => x.targetAngle <= 60, 0.8),
     visibleRule,
   ] },
   // Pizza on a desk: the people who come over face the boxes and stay in view while they eat.
   'pizza.eat': { moment: 'pizza', beat: 'eat', rules: [
     share('facesPizza', 'face within 60 deg of the boxes', (x) => x.targetAngle <= 60, 0.8),
-    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
   // Screens taken over: seated people recoil from their monitors; the camera sees them do it.
@@ -177,7 +177,7 @@ const SPECS = {
   // A pet carrier by the door: whoever comes over peers at its door, face in view.
   'carrier.peer': { moment: 'carrier', beat: 'peer', rules: [
     share('atCarrier', 'face within 45 deg of the carrier', (x) => x.targetAngle <= 45, 0.8),
-    share('faceVisible', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
+    share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
   ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
@@ -281,6 +281,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
       R.perks.hold = true;
       R.moments.full = true;
+      R.spotTrace = true;
       // The specs hold staging to the default and the turned view, so the moment camera stays put.
       window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
       for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }

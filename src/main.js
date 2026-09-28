@@ -108,11 +108,15 @@ async function boot() {
     return saveMod.saveGame(sim.state);
   }
 
+  // Set once the UI is built, below; startPlaying may run before that (the harness) or after.
+  let ui = null;
   function startPlaying(state) {
     pacer.reset();
     yakPacer.reset();
     if (realSim) useState(state);
     playing = true;
+    // A load started from code (the dev harness loading a snapshot) has no title button to close it.
+    ui?.hideTitle?.();
   }
 
   function showTitle() {
@@ -192,7 +196,7 @@ async function boot() {
     // Build mode and other renderer hooks (setBuildMode, pickTile) for the UI; null without a renderer.
     renderer,
   };
-  const ui = uiMod?.createUI({ root: document.getElementById('ui'), getState: () => sim.state, dispatch, controls }) ?? null;
+  ui = uiMod?.createUI({ root: document.getElementById('ui'), getState: () => sim.state, dispatch, controls }) ?? null;
 
   if (directPlay || !ui) {
     playing = true;
@@ -210,6 +214,7 @@ async function boot() {
     version: __HITL_VERSION__,
     get state() { return sim.state; },
     get playing() { return playing; },
+    get titleShown() { return !!document.querySelector('.title-mode'); },
     get clock() { return { acc: pacer.acc, queued: pacer.queued, speed, frames: frameCount, busy: ui?.isBusy?.() ?? null, dayClock, frozen, spotlight: spot }; },
     dispatch,
     setSpeed: controls.setSpeed,
