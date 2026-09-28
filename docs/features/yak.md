@@ -19,7 +19,8 @@
   - **Coasting check**: "just moving tickets from one column to another?" `id: coasting_check`
   - **Support swamped**: "I have started talking to the tickets." `id: support_swamped`
   - **Low-cash lunch**: "are we a sandwich company now?" `id: lowcash_lunch`
-  - **Desk squeeze**: when every desk is taken: "Can we get more room? My elbow and my neighbour's elbow are basically dating now." `id: desk_squeeze`
+  - **Desk squeeze**: when every desk is taken and there's floor for another: "The hiring page says "no desk, no hire". Could we fix the desk part?" "I will add a desk" opens desk placement and is a promise: add one within four weeks and they say thanks; don't, and they take it personally (more than a plain "Not now"). `id: desk_squeeze`
+  - **Office full**: when every desk is taken and there's no floor left for another: "Is it time for a bigger office?" The plan option opens the Office menu. `id: office_full`
   - **Junior PR**: "It is small. It is one line." `id: junior_pr`
   - **Low-stakes events in Yak**: six small decisions arrive as officebot posts with the event's own choices instead of pausing popups: the two coffee-machine requests, the dog on Fridays, a new model dropping, a senior's weekend side project and the app store rejection. Their staged props show while the prompt is open, and left unanswered, the mildest choice happens (never one that brings in an item or a pet).
 - **Quick posts**: a Post button at the foot of Yak opens a picker; each post lands, falls flat or backfires depending on the moment, and the team's replies thread under it. The office reacts too: a backfire prefers an unobstructed standing person, who turns toward you with their palm over the camera-side eye and brow and their eyes squeezed shut, pausing their walk if needed. The two nearest turn to look and a couple more sweat; a post that lands gets a sparkle or two. Sharing a meme posts a picture picked for the moment.

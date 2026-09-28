@@ -11,7 +11,7 @@ import { EVENTS } from '../../src/data/events.js';
 import { fireEvent, resolveSubjects } from '../../src/sim/events.js';
 import { game, addStaff, addDesks, addProduct } from './helpers.js';
 
-const TRIGGERS = ['strain', 'incident', 'launch', 'rival', 'late', 'agents', 'newhire', 'coasting', 'support', 'lowcash', 'crowded', 'junior'];
+const TRIGGERS = ['strain', 'incident', 'launch', 'rival', 'late', 'agents', 'newhire', 'coasting', 'support', 'lowcash', 'crowded', 'full', 'junior'];
 
 // A settled company where only one thing is going on: someone is worn out.
 function strained(seed = 1) {
@@ -217,7 +217,89 @@ describe('issue #911: prompt lines never contradict the rules', () => {
   it('a full office is cramped, never deskless: every hire has a desk', () => {
     const squeeze = PROMPTS.find((t) => t.id === 'desk_squeeze');
     expect(squeeze.on).toBe('crowded');
-    for (const line of PROMPTS.flatMap(lines)) expect(line).not.toMatch(/beanbag|without a desk|no desk|sharing a desk|live (in|there)|a desk now/i);
+    for (const line of PROMPTS.flatMap(lines)) expect(line).not.toMatch(/beanbag|without a desk|working from|sharing a desk|live (in|there)|a desk now/i);
+  });
+});
+
+describe('issue #929: a full office asks for a desk, and a promised desk is remembered', () => {
+  // Every desk taken; only the prompt under test may open.
+  function crowded(seed, { room = true } = {}) {
+    const s = game(seed);
+    s.week = 40;
+    s.office.placed = s.office.placed.filter((p) => p.itemId !== 'desk');
+    if (room) addDesks(s, 4);
+    else for (;;) { try { addDesks(s, 1); } catch { break; } }
+    const desks = s.office.placed.filter((p) => p.itemId === 'desk').length;
+    while (s.staff.length < desks) addStaff(s, 'engineer', 'mid', { hiredWeek: 0 });
+    for (const p of s.staff) { p.mood = 'ok'; p.strain = 0; p.meaning = 60; p.hiredWeek = 0; }
+    s.flags.lastPromptWeek = undefined;
+    for (const t of PROMPTS) if (!['desk_squeeze', 'office_full'].includes(t.id)) s.flags[`pcd_${t.id}`] = 999;
+    return s;
+  }
+  const opened = (s) => { openOne(s); return s.chatPrompts.at(-1); };
+  const answer = (s, prompt, choice) => dispatch(s, { type: 'answerPrompt', promptId: prompt.id, choice });
+  const poster = (s, prompt) => s.staff.find((p) => p.id === prompt.fromId);
+
+  it('with floor for another desk it asks for a desk, and the desk option opens desk placement', () => {
+    const s = crowded(40);
+    const p = opened(s);
+    expect(p.kind).toBe('desk_squeeze');
+    expect(p.options[0].opens).toEqual({ panel: 'office', arg: 'desk' });
+    expect(p.options[1].opens).toBeUndefined();
+  });
+
+  it('with no floor left it nudges toward a bigger office instead', () => {
+    const s = crowded(41, { room: false });
+    const p = opened(s);
+    expect(p.kind).toBe('office_full');
+    expect(p.options[0].opens).toEqual({ panel: 'office' });
+  });
+
+  it('never suggests a bigger office when there is none: the last stage with every expansion bought', async () => {
+    const { OFFICE_STAGES } = await import('../../src/data/office.js');
+    const last = OFFICE_STAGES.length - 1;
+    const cap = B.hqDeskCap;
+    B.hqDeskCap = 0;
+    try {
+      const atTop = (expansion) => {
+        const s = crowded(44, { room: false });
+        s.flags.pcd_desk_squeeze = 999;
+        s.officeStage = last;
+        s.office.expansion = expansion;
+        for (let i = 0; i < 40 && !s.chatPrompts.some((p) => p.kind === 'office_full'); i++) { weekOf(s); s.week++; }
+        return s.chatPrompts.some((p) => p.kind === 'office_full');
+      };
+      expect(atTop(0)).toBe(true);
+      expect(atTop((OFFICE_STAGES[last].expansions ?? []).length)).toBe(false);
+    } finally { B.hqDeskCap = cap; }
+  });
+
+  it('a desk added within the promise keeps it: a thanks, and no meaning lost', () => {
+    const s = crowded(42);
+    const p = opened(s);
+    answer(s, p, 0);
+    const who = poster(s, p);
+    expect(s.flags.deskPromise).toMatchObject({ staffId: who.id, week: s.week });
+    const before = who.meaning;
+    addDesks(s, 1);
+    s.week += 1;
+    const ev = weekOf(s);
+    expect(s.flags.deskPromise).toBeUndefined();
+    expect(ev.some((e) => e.type === 'chat' && e.fromId === who.id)).toBe(true);
+    expect(who.meaning).toBe(before);
+  });
+
+  it('a desk that never comes costs the poster more than "Not now" does', () => {
+    const s = crowded(43);
+    const p = opened(s);
+    answer(s, p, 0);
+    const who = poster(s, p);
+    const before = who.meaning;
+    for (let i = 0; i < B.deskPromiseWeeks; i++) { s.week += 1; weekOf(s); }
+    expect(s.flags.deskPromise).toBeUndefined();
+    expect(before - who.meaning).toBe(B.deskPromiseBroken);
+    const notNow = PROMPTS.find((t) => t.id === 'desk_squeeze').options[1].effects.meaning;
+    expect(B.deskPromiseBroken).toBeGreaterThan(-notNow);
   });
 });
 

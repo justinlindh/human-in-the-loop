@@ -21,7 +21,7 @@ import { agentSpend, rivalMergePrice } from './economy.js';
 import { acquireCompany, bestDeal, dealBlocker } from './acquire.js';
 import { moonshotEffect, lastBetEffect } from './moonshot.js';
 import { expandOffice, officeGateReason } from './products.js';
-import { nextExpansion } from './office.js';
+import { nextExpansion, desksOf } from './office.js';
 
 // Why the next HQ expansion cannot be bought right now, or null.
 function expansionBlocker(state) {
@@ -247,6 +247,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (fx.teamStrain) for (const p of state.staff) p.strain = clamp((p.strain ?? 0) + fx.teamStrain, 0, 100);
   // The subject owns something until they leave; onDeparture then sets `${name}Gone`.
   if (fx.ownerFlag && person) (state.flags.owners ??= {})[fx.ownerFlag] = person.id;
+  if (fx.deskPromise && person) state.flags.deskPromise = { staffId: person.id, week: state.week, desks: desksOf(state.office.placed).length };
   for (const c of [fx.chat].flat().filter(Boolean)) {
     if (c.text.includes('{first}') && !person) continue;
     const text = c.text.replaceAll('{first}', person?.name.split(' ')[0] ?? '').replaceAll('{name}', person?.name ?? '')
