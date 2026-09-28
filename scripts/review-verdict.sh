@@ -2,24 +2,37 @@
 # Posts a reviewer's verdict on a pull request: a PR review whose first line is
 # "**Verdict: pass** (head <sha7>)" or "**Verdict: changes requested** (head <sha7>)", then the commit
 # status "review" on that head (success for pass, failure for changes), linked to the review.
-# Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--repo <owner/name>]
+# Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]...
+#          [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]
 #   <body-file>  the review text; its first line is also the status description
 #   --head       the head that was reviewed; refuses if the PR's head has moved since
+#   --watched    a media file on the PR that the verdict was judged from, by URL or file name; repeat
+#                for each. A pass on a PR that changes src/render, src/ui, src/audio or public/models,
+#                or that has screenshots or clips, must name every media file on it
+#                (scripts/lib/watched-media.sh), or it is refused (exit 1). The verdict lists them.
+#   --superseded a media file on the PR that a later one replaced, named instead of watched; the
+#                verdict lists it apart
+#   --code-only  why the verdict was judged from the code alone; lifts that requirement and is
+#                printed in the verdict
 #   --repo       the repository the PR is in, one of the two this project uses (default: the one this
 #                checkout points at)
-# Exit 0 when posted, 1 when the head moved (before posting, or during it), 2 on usage or lookup errors.
+# Exit 0 when posted, 1 when the head moved (before posting, or during it) or a pass doesn't name
+# the PR's media, 2 on usage or lookup errors.
 set -uo pipefail
 
-usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--repo <owner/name>]"
+usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]... [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]"
 pr="${1:-}"; verdict="${2:-}"; body="${3:-}"
 case "$pr" in ''|*[!0-9]*) echo "$usage" >&2; exit 2 ;; esac
 case "$verdict" in pass|changes) ;; *) echo "$usage" >&2; exit 2 ;; esac
 [ -f "$body" ] || { echo "review-verdict: no such body file: $body" >&2; exit 2; }
 shift 3
-want=""; repo=""
+want=""; repo=""; watched=(); superseded=(); why=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --head) want="${2:?$usage}"; shift 2 ;;
+    --watched) watched+=("${2:?$usage}"); shift 2 ;;
+    --superseded) superseded+=("${2:?$usage}"); shift 2 ;;
+    --code-only) why="${2:?$usage}"; shift 2 ;;
     --repo) repo="${2:?$usage}"; shift 2 ;;
     *) echo "$usage" >&2; exit 2 ;;
   esac
@@ -36,11 +49,24 @@ if [ -n "$want" ]; then
   case "$head" in "$want"*) ;; *) echo "review-verdict: #$pr is now at ${head:0:7}, not the reviewed $want; review the new head" >&2; exit 1 ;; esac
 fi
 short="${head:0:7}"
+W=(); for w in ${watched[@]+"${watched[@]}"}; do W+=(--watched "$w"); done
+for w in ${superseded[@]+"${superseded[@]}"}; do W+=(--superseded "$w"); done
+names() { "$(dirname "$0")/lib/watched-media.sh" --names "$@"; }
+if [ "$verdict" = pass ]; then
+  "$(dirname "$0")/lib/watched-media.sh" "$pr" ${W[@]+"${W[@]}"} ${why:+--code-only "$why"} ${repo:+--repo "$repo"}; rc=$?
+  [ $rc -eq 0 ] || { [ $rc -eq 1 ] && echo "review-verdict: pass not posted" >&2; exit "$rc"; }
+fi
 
 if [ "$verdict" = pass ]; then line="**Verdict: pass** (head $short)"; state=success
 else line="**Verdict: changes requested** (head $short)"; state=failure; fi
 text="$(mktemp)"; trap 'rm -f "$text"' EXIT
-{ echo "$line"; echo; cat "$body"; } >"$text"
+{
+  echo "$line"; echo
+  [ -z "$why" ] || { echo "Judged from the code only: $why"; echo; }
+  [ ${#watched[@]} -eq 0 ] || { echo "Watched: $(names "${watched[@]}")"; echo; }
+  [ ${#superseded[@]} -eq 0 ] || { echo "Not watched, superseded: $(names "${superseded[@]}")"; echo; }
+  cat "$body"
+} >"$text"
 
 # The head can move while the review posts: check it right before posting, and again after.
 now="$(gh pr view "${R[@]}" "$pr" --json headRefOid --jq .headRefOid)"

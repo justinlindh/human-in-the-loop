@@ -3,7 +3,7 @@ import { pickSpot, spotDebug, spotReasons, spotRing } from './spots.js';
 
 describe('spot selection diagnostics', () => {
   it('records the failed constraint and retains the explicit all-rejected fallback', () => {
-    const debug = spotDebug({});
+    const debug = spotDebug({}); debug.on = true;
     const candidates = [{ x: 0, z: 0 }, { x: 1, z: 0 }];
     const fallback = { x: 4, z: 5 };
     expect(pickSpot(candidates[0], { candidates, needs: ['clear', 'inView'], checks: {
@@ -19,14 +19,14 @@ describe('spot selection diagnostics', () => {
     expect(pickSpot({}, { candidates: candidates(), needs: ['clear'], checks: { clear: (q) => q.x > 0 } })).toBe(accepted);
   });
   it('ranks only valid candidates, preserves ties, and reports eligible losers', () => {
-    const debug = spotDebug({});
+    const debug = spotDebug({}); debug.on = true;
     const candidates = [5, 2, 2, 0].map((x) => ({ x, z: 0 }));
     expect(pickSpot({}, { candidates, needs: ['clear'], checks: { clear: (q) => q.x > 0 }, score: (q) => q.x, debug, moment: 'printer' })).toBe(candidates[1]);
     expect(debug.spots.printer.spot.selectedIndex).toBe(1);
     expect(debug.spots.printer.spot.candidates.map((q) => q.reasons)).toEqual([['lower-ranked candidate'], [], ['lower-ranked candidate'], ['clear']]);
   });
   it('keeps searches separate and replaces repeated searches without leaking between offices', () => {
-    const a = {}, b = {}, debug = spotDebug(a);
+    const a = {}, b = {}, debug = spotDebug(a); debug.on = true;
     for (let x = 0; x < 10; x++) pickSpot({}, { candidates: [{ x, z: 0 }], debug, moment: 'letter', search: 'side' });
     pickSpot({}, { candidates: [], debug, moment: 'letter', search: 'behind' });
     expect(Object.keys(debug.spots.letter)).toEqual(['side', 'behind']);
@@ -52,7 +52,7 @@ describe('spot selection diagnostics', () => {
     expect(pickSpot(c, { ring, needs: ['clear'], checks: { clear: (q) => q.x > 2.3 } })).toEqual(points[5]);
   });
   it('retains pair diagnostics and rejects non-finite scores without claiming success', () => {
-    const debug = spotDebug({}), partner = { x: 2, z: 3 };
+    const debug = spotDebug({}), partner = { x: 2, z: 3 }; debug.on = true;
     expect(pickSpot({}, { candidates: [{ x: 0, z: 0, partner }], score: () => Infinity, debug, moment: 'visitor' })).toBe(null);
     expect(debug.spots.visitor.spot.candidates[0]).toMatchObject({ partner, reasons: ['no finite score'], score: null });
   });
@@ -61,4 +61,14 @@ describe('spot selection diagnostics', () => {
     expect(pickSpot({}, { candidates: candidates(), score: (q) => q.x, minScore: 0 })).toEqual({ x: 0, z: 0 });
   });
 
+  it('records nothing unless diagnostics are on, and picks the same spot', () => {
+    const debug = spotDebug({});
+    const candidates = [{ x: 0, z: 0 }, { x: 2, z: 0 }, { x: 1, z: 0 }];
+    const pick = () => pickSpot({}, { candidates, needs: ['clear'], checks: { clear: (q) => q.x > 0 }, score: (q) => q.x, debug, moment: 'pizza' });
+    expect(pick()).toBe(candidates[2]);
+    expect(debug.spots.pizza).toBeUndefined();
+    debug.on = true;
+    expect(pick()).toBe(candidates[2]);
+    expect(debug.spots.pizza.spot.selectedIndex).toBe(2);
+  });
 });

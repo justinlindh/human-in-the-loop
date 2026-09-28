@@ -14,7 +14,7 @@ describe("issue #609: reactions scale with a post's weight", () => {
       for (const e of ev) {
         if (e.type !== 'chat' || e.reactions?.no_at_channel) continue;
         if (e.replyTo) replies.push(total(e.reactions));
-        else if (e.channel === 'wins' || e.channel === 'incidents') big.push(total(e.reactions));
+        else if (e.channel === 'wins' || e.channel === 'incidents' || e.important) big.push(total(e.reactions));
         else routine.push(total(e.reactions));
       }
     } });
@@ -48,7 +48,7 @@ describe("issue #609: reactions scale with a post's weight", () => {
         for (const e of ev) {
           if (e.type !== 'chat') continue;
           if (e.important) { marked++; here++; }
-          if (e.important && (e.fromId === null || e.replyTo)) routineMarked++;
+          if (e.important && e.fromId !== null && e.replyTo) routineMarked++;
         }
         steps = Object.values(s.flags.talk?.jokes ?? {}).reduce((a, j) => a + j.step, 0);
       }, stopWhen: () => here >= 4 });
