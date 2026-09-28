@@ -88,14 +88,16 @@ export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, 
     t = +(t + dt).toFixed(6);
     c.root.updateMatrixWorld(true);
     const p = c.probe();
-    const j = c.joints();
+    // --root measures another checkout's render code, which may predate joints() (#998); a missing
+    // method must not crash a run that otherwise still measures everything else correctly.
+    const j = c.joints?.() ?? null;
     const S = headSurfaces(c, p.head, p.forward);
     const phase = !gesture || t <= warm + 1e-9 ? (gesture ? 'warm' : 'pose') : t <= warm + seconds + 1e-9 ? 'gesture' : 'after';
     frames.push({
       t, phase, anim: p.anim,
       eyes: p.eyes.toArray().map((v) => +v.toFixed(4)), forward: p.forward.toArray().map((v) => +v.toFixed(4)),
       head: p.head.toArray().map((v) => +v.toFixed(4)), hands: p.hands.map((h) => h.toArray().map((v) => +v.toFixed(4))),
-      joints: Object.fromEntries(Object.entries(j).map(([name, v]) => [name, v.toArray().map((n) => +n.toFixed(4))])),
+      joints: j && Object.fromEntries(Object.entries(j).map(([name, v]) => [name, v.toArray().map((n) => +n.toFixed(4))])),
       contact: { ...landmarkContacts(landmarks, c.head.matrixWorld, p.hands), ...Object.fromEntries([0, 1].flatMap((h) => [[`hand${h}Face`, dist(S.face, p.hands[h])], [`hand${h}Head`, dist(S.head, p.hands[h])], [`hand${h}HeadTop`, dist(S.headTop, p.hands[h])]])) },
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(toCam)).toFixed(1),
     });
