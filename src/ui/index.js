@@ -128,7 +128,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   };
 
   const advisors = createAdvisors({
-    ctx, layer, panels: PANELS, getSpeed: () => controls.getSpeed?.() ?? 1, held: () => spotlightActive(),
+    ctx, layer, getRenderer: () => controls.renderer ?? controls.getRenderer?.() ?? null, panels: PANELS, getSpeed: () => controls.getSpeed?.() ?? 1, held: () => spotlightActive(),
     openGoals: () => goalsModal(),
   });
   ui.advisorButton = advisors.button;

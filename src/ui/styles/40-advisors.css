@@ -3,6 +3,10 @@
 .hitl .advface { flex: none; display: inline-grid; place-items: center; border-radius: 50%; border: 0.12em solid var(--ink); color: #fff;
   font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.25); }
 
+/* A portrait fills the badge; the ink ring stays as its frame. */
+.hitl .advface.portrait { background: var(--cream-2) !important; overflow: hidden; }
+.hitl .advface.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 /* The count: a round badge on the bulb's corner. Grid centring rather than line-height, so the
    digit sits in the middle whatever the font's ascent; a hair of top padding balances Fredoka's
    short numerals. */

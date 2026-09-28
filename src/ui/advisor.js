@@ -41,11 +41,22 @@ const sev = (x) => (x === 3 || x === 'urgent' ? 'urgent' : x === 2 || x === 'war
 const isFine = (x) => x?.key === 'fine';
 const panelOf = (x) => x?.target?.panel ?? x?.panel ?? null;
 
-// The advisor's face: a round badge in their colour with their initials, until portraits exist.
-function face(id, size = 28) {
+// The advisor's face: art's portrait in a round badge frame when the renderer has one ready,
+// else initials in their colour. Faces showing initials upgrade when portraits finish rendering.
+let portraitOf = () => null;
+function face(id, size = 28, { idea = false } = {}) {
   const a = who(id);
-  return h('span.advface', { style: { background: a.color, width: `${size}px`, height: `${size}px` }, 'aria-hidden': 'true', text: a.initials });
+  const el = h('span.advface', { style: { background: a.color, width: `${size}px`, height: `${size}px` }, 'aria-hidden': 'true', dataset: { adv: id ?? '', idea: idea ? '1' : '' } });
+  fillFace(el);
+  return el;
 }
+function fillFace(el) {
+  const id = el.dataset.adv;
+  const url = id ? portraitOf(id, { idea: el.dataset.idea === '1', size: 96 }) : null;
+  if (url) { el.classList.add('portrait'); el.replaceChildren(h('img', { src: url, alt: '' })); }
+  else if (!el.firstChild) el.textContent = who(id).initials;
+}
+if (typeof window !== 'undefined') addEventListener('hitl:portraits', () => { for (const el of document.querySelectorAll('.advface[data-adv]:not(.portrait)')) fillFace(el); });
 
 // The sim's advice for a state, or [] when the sim has none.
 export function adviceFor(s) {
@@ -56,8 +67,9 @@ export function adviceFor(s) {
   } catch { return []; }
 }
 
-export function createAdvisors({ ctx, layer, getSpeed = () => 1, held = () => false, openGoals = () => {}, panels = {} }) {
+export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed = () => 1, held = () => false, openGoals = () => {}, panels = {} }) {
   let level = advisorLevel();
+  portraitOf = (id, opts) => { try { return getRenderer()?.advisorPortrait?.(id, opts) ?? null; } catch { return null; } };
   const seen = new Set();          // keys whose line the player has seen, in the panel or a peek
   let lastPeekWeek = -Infinity;
   let pending = null;              // an advice event waiting for a quiet moment to peek
@@ -123,7 +135,7 @@ export function createAdvisors({ ctx, layer, getSpeed = () => 1, held = () => fa
   function hidePeek() { clearTimeout(peekTimer); peekTimer = 0; peek.classList.remove('show'); }
   function showPeek(e) {
     const a = who(e.advisor);
-    peekFace.replaceChildren(face(e.advisor, 44));
+    peekFace.replaceChildren(face(e.advisor, 44, { idea: true }));
     setText(peekWho, `${a.name}${a.role ? `, ${a.role}` : ''}`);
     setText(peekText, e.text);
     peek.classList.add('show');
