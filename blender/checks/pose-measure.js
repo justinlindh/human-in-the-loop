@@ -10,9 +10,11 @@
 //   yawToCamera  the person's heading off the camera, degrees (0 faces the camera)
 //   view         camera turns (n presses of E) for the facing angle
 //   rig          the authored clips on (the game's Medium and High default) or off (Low, ?rig=0)
-// Each frame: { t, phase ('warm' | 'gesture' | 'after'), anim, eyes, forward, head, hands,
+// Each frame: { t, phase ('warm' | 'gesture' | 'after'), anim, eyes, forward, head, hands, joints,
 //   contact: { hand0Face, hand0Head, hand0HeadTop, hand1Face, ... }, faceCam }. hand0 is the character's
-//   probe().hands[0] (the rig's armL, arms[0]), hand1 hands[1] (armR).
+//   probe().hands[0] (the rig's armL, arms[0]), hand1 hands[1] (armR). joints is every named pivot's
+//   world position (character.js's joints(): hips, torso, neck, head, legL, legR, armL, armR, wristL,
+//   wristR), not just the four probe() reports.
 // Distances are metres from a hand's centre to the nearest point of the surface named: face is the
 // half of the head the face points out of, headTop the top quarter of the head, head all of it.
 import * as THREE from 'three';
@@ -86,12 +88,16 @@ export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, 
     t = +(t + dt).toFixed(6);
     c.root.updateMatrixWorld(true);
     const p = c.probe();
+    // --root measures another checkout's render code, which may predate joints() (#998); a missing
+    // method must not crash a run that otherwise still measures everything else correctly.
+    const j = c.joints?.() ?? null;
     const S = headSurfaces(c, p.head, p.forward);
     const phase = !gesture || t <= warm + 1e-9 ? (gesture ? 'warm' : 'pose') : t <= warm + seconds + 1e-9 ? 'gesture' : 'after';
     frames.push({
       t, phase, anim: p.anim,
       eyes: p.eyes.toArray().map((v) => +v.toFixed(4)), forward: p.forward.toArray().map((v) => +v.toFixed(4)),
       head: p.head.toArray().map((v) => +v.toFixed(4)), hands: p.hands.map((h) => h.toArray().map((v) => +v.toFixed(4))),
+      joints: j && Object.fromEntries(Object.entries(j).map(([name, v]) => [name, v.toArray().map((n) => +n.toFixed(4))])),
       contact: { ...landmarkContacts(landmarks, c.head.matrixWorld, p.hands), ...Object.fromEntries([0, 1].flatMap((h) => [[`hand${h}Face`, dist(S.face, p.hands[h])], [`hand${h}Head`, dist(S.head, p.hands[h])], [`hand${h}HeadTop`, dist(S.headTop, p.hands[h])]])) },
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(toCam)).toFixed(1),
     });

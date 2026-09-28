@@ -177,7 +177,7 @@ async function checkBrowser(frames) {
   try {
     const { page } = await H.openScene('quality=medium&mock=floor', { width: 320, height: 200 });
     const b = await page.evaluate(async (o) => (await import('/blender/checks/pose-measure.js')).playPose(o), OPTS);
-    const flat = (f) => [f.t, ...f.eyes, ...f.forward, ...f.head, ...f.hands.flat(), ...Object.values(f.contact).map((v) => v ?? 0), f.faceCam];
+    const flat = (f) => [f.t, ...f.eyes, ...f.forward, ...f.head, ...f.hands.flat(), ...(f.joints ? Object.values(f.joints).flat() : []), ...Object.values(f.contact).map((v) => v ?? 0), f.faceCam];
     let worst = 0, at = null;
     if (b.frames.length !== frames.length) { console.log(`POSE FAIL browser check: ${b.frames.length} frames in the page, ${frames.length} in Node`); return 1; }
     frames.forEach((f, i) => { const x = flat(f), y = flat(b.frames[i]); x.forEach((v, k) => { const d = Math.abs(v - y[k]); if (d > worst) { worst = d; at = `frame ${i} value ${k}`; } }); });
