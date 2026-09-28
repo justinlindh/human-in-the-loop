@@ -209,6 +209,8 @@ export function createHud({ root, controls, ui }) {
   };
   root.append(bar, trayToggle, tray);
 
+  // Rows the UI adds itself (the office move) go ahead of the sim-derived ones.
+  const allNeeds = (s) => [...(ui.extraNeeds?.(s) ?? []), ...needsYou(s)];
   let traySig = '';
   let trendOpen = false;
   let trayBinds = [];
@@ -216,7 +218,7 @@ export function createHud({ root, controls, ui }) {
   function buildTray(s) {
     clear(tray);
     trayBinds = [];
-    const needs = needsYou(s);
+    const needs = allNeeds(s);
     {
       const goals = Object.values(s.goals ?? {});
       badge(stripNeeds, 'warn', needs.length ? String(needs.length) : null, needs.length > 0);
@@ -232,8 +234,9 @@ export function createHud({ root, controls, ui }) {
         ...shown.map((n) => {
           // An item can carry a one-tap fix next to it (e.g. time off for someone exhausted).
           const quick = n.quick ? h('button.btn.small.go.nquick', { onclick: (e) => { e.stopPropagation(); ui.act?.(n.quick.action); } }, n.quick.label) : null;
+          const later = n.later ? h('button.btn.small.nquick', { onclick: (e) => { e.stopPropagation(); n.later.run(); traySig = ''; } }, n.later.label) : null;
           return h('div.needrow', null, h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
-            icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick);
+            icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick, later);
         })));
     }
     if (s.outage) {
@@ -423,7 +426,7 @@ export function createHud({ root, controls, ui }) {
     if (now2 - (last.trayAt ?? 0) < 200) { for (const b of trayBinds) b(s); return; }
     last.trayAt = now2;
     // Goal progress bars move weekly, so the week is part of the signature while any goal shows one.
-    const sig = `${SIMX.goalHelpers ? s.week : ''}|${Object.entries(s.goals ?? {}).map(([k, v]) => `${k}${v.done}`).join()}|${needsYou(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
+    const sig = `${SIMX.goalHelpers ? s.week : ''}|${Object.entries(s.goals ?? {}).map(([k, v]) => `${k}${v.done}`).join()}|${allNeeds(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
     if (sig !== traySig) { traySig = sig; buildTray(s); }
     for (const b of trayBinds) b(s);
   }

@@ -1,12 +1,12 @@
 # The office (stages, items, perks)
 
-- ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. `capture 2-2-office-move`
+- ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. When a move becomes possible and stays possible for two game weeks, a Needs you row names it with its price and the Office button shows New; both go once you open Office or tap Later, once per new office. `capture 2-2-office-move`
 - **Garage**: a suburban lot with lawn, driveway, picket fences, houses behind, a roll-up garage door and a water heater in the corner. `?mock=garage`
 - **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`
 - **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
 - **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. Spoken: "They have measured that wall more than our product." `id: floor_next_door`
 - **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
-- **New toys**: something to use (a table game, a couch, the coffee corner, an arcade) that's just been placed draws the nearest free people straight away: a pair table's first game starts within a second, even during a standup.
+- **New toys**: something to use (a table game, a couch, the coffee corner, an arcade) that's just been placed draws the nearest free people straight away: a pair table's first game starts within a second, even during a standup. While it waits for takers, nobody else wanders off to another perk.
 - **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
 - **Meeting table**: standups gather round it and tuck the chairs in. `id: meeting_table`
 - **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`

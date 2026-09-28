@@ -166,7 +166,11 @@ step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 # Every script and check has a docs/toolkit/ entry, and every entry is well formed (scripts/toolkit.mjs).
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
+# A changed golden image or sweep-baseline entry needs its own before/after media on the PR
+# (scripts/baseline-media.sh); without a PR number it only says so.
+step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step review-prep bash "$SELF/review-prep.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
@@ -176,6 +180,7 @@ tool_step review-carry bash "$SELF/review-carry.test.sh"
 tool_step auto-ci bash "$SELF/auto-ci.test.sh"
 tool_step watched-media bash "$SELF/watched-media.test.sh"
 tool_step golden-resolve bash "$SELF/golden-resolve.test.sh"
+tool_step baseline-media-test bash "$SELF/baseline-media.test.sh"
 tool_step merge-union-check bash "$SELF/merge-union-check.test.sh"
 tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
 tool_step main-guard bash "$SELF/main-guard.test.sh"
