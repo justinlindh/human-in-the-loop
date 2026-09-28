@@ -13,3 +13,4 @@ scripts/hooks/claude/test.sh      the Claude Code hooks' own tests
 blender/checks/dump.js            the in-page half of dump.mjs
 blender/checks/intersect.js       the sweep's in-page measurements
 blender/checks/sample.js          the sweep's in-page state sampler
+blender/checks/bvh.js
