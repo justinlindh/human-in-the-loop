@@ -391,7 +391,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     gameover.update(state);
     popups.update(state, { holdLaunch: holdForMoment() });
     buildMode.update(state);
-    camRot.update();
+    camRot.update(!!(menu.current || ctx.modal || announcer.open || popups.open || settings.isOpen || chat.maximized));
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
     tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));

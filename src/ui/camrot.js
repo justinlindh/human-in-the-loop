@@ -33,16 +33,20 @@ export function createCamRotate({ layer, controls, sfx }) {
   }
 
   return {
-    // Cheap per frame: only flips visibility when the renderer's support changes.
-    update() {
-      const on = typeof R()?.rotateView === 'function';
+    // Cheap per frame: only flips visibility when it changes. covered: a panel, modal or card is open
+    // over the scene (on phones the pad would sit on a panel's close button).
+    update(covered = false) {
+      const on = typeof R()?.rotateView === 'function' && !covered;
       if (on === shown) return;
       shown = on;
       pad.style.display = on ? '' : 'none';
     },
     // Called on entering build mode: the bubble shows once per browser.
     buildHint() {
-      if (!shown) return;
+      // Build mode has just closed the panel it came from; the next update agrees.
+      if (typeof R()?.rotateView !== 'function') return;
+      shown = true;
+      pad.style.display = '';
       let done = false;
       try { done = localStorage.getItem(HINT_KEY) === '1'; } catch { /* no storage: show it this time */ }
       if (done) return;
