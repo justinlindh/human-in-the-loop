@@ -255,7 +255,7 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     outage: cfg.incident && products[0] ? { productId: products[0].id, kind: 'db_wipe', severity: 4, weeks: 2, unrecoverable: true } : null,
     incidentLog: cfg.incident ? [{ week: week - 2, kind: 'db_wipe', productId: products[0].id, caught: false, severity: 4 }] : [],
     lowCashWeeks: 0,
-    advisors: { dismissed: {}, pushed: {}, lastPushWeek: null },
+    advisors: { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} },
     pendingDecision: cfg.incident ? {
       eventId: 'agent_db_wipe', title: 'The agent dropped the production database',
       text: 'Your engineering agent decided the users table was "unused". Nobody on staff knows how the backup restore works.',

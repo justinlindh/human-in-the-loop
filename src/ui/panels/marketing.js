@@ -25,8 +25,9 @@ export function wrapperRisk(p) {
   return null;
 }
 
-export function marketingPanel(ctx) {
-  let sel = null;
+export function marketingPanel(ctx, arg) {
+  // A productId (an advisor option) opens with that product picked as the campaign target.
+  let sel = arg?.productId ? `p:${arg.productId}` : null;
 
   const view = liveView(
     (s) => [targets(s).map((t) => t.key).join(), sel, s.officeStage, s.campaigns.map((c) => c.id).join(),
@@ -58,7 +59,7 @@ export function marketingPanel(ctx) {
       });
 
       const tgtRow = h('div.tiles.targets', null, ...list.map((t) => {
-        const b = h('button.tile', { onclick: () => { sel = t.key; view.update(ctx.getState(), true); } },
+        const b = h('button.tile', { dataset: t.kind === 'product' ? { product: t.id } : {}, onclick: () => { sel = t.key; view.update(ctx.getState(), true); } },
           h('span.tn', { text: t.name }), h('span.ts', { text: t.sub }));
         toggleClass(b, 'on', t.key === sel);
         return b;
