@@ -148,12 +148,23 @@ describe('comprehension debt from project work (#936)', () => {
   it('debtFlow names every source, finite, and oneOff carries a departure', () => {
     const s = game();
     run(s, 1);
-    expect(Object.keys(s.debtFlow).sort()).toEqual(['automation', 'lowKnowledge', 'maintenance', 'oneOff', 'products', 'reviews', 'seniors', 'work']);
+    expect(Object.keys(s.debtFlow).sort()).toEqual(['automation', 'lowKnowledge', 'maintenance', 'net', 'oneOff', 'products', 'reviews', 'seniors', 'work']);
     const vet = eng(s, 'senior', 80);
     dispatch(s, { type: 'fire', staffId: vet.id });
     run(s, 1);
     expect(s.debtFlow.oneOff).toBeCloseTo(80 * B.debtFromDeparturePerKnowledge);
+    const sources = Object.entries(s.debtFlow).filter(([k]) => k !== 'net').reduce((a, [, v]) => a + v, 0);
+    expect(s.debtFlow.net).toBeCloseTo(sources);
     for (const v of Object.values(s.debtFlow)) expect(Number.isFinite(v)).toBe(true);
+  });
+
+  it('net is the change after the clamp: paydown at zero debt reads zero net', () => {
+    const s = game();
+    s.policies.comprehension_reviews = true;
+    eng(s, 'senior', 100);
+    run(s, 2);
+    expect(s.comprehensionDebt).toBe(0);
+    expect(s.debtFlow.net).toBe(0);
   });
 
   it('a new game starts with an all-zero debtFlow', async () => {

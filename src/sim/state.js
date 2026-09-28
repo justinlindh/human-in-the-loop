@@ -27,7 +27,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
   const state = {
     version: SAVE_VERSION, seed, rng: createRng(seed), companyName, week: 0, nextId: 1,
     cash: B.funding[fundingId].cash, brand: B.startBrand, institutionalKnowledge: 60, comprehensionDebt: 0,
-    debtFlow: { work: 0, automation: 0, products: 0, lowKnowledge: 0, seniors: 0, maintenance: 0, reviews: 0, oneOff: 0 },
+    debtFlow: { work: 0, automation: 0, products: 0, lowKnowledge: 0, seniors: 0, maintenance: 0, reviews: 0, oneOff: 0, net: 0 },
     officeStage: 0,
     staff: [], candidates: [], candidatesWeek: 0,
     projects: [], products: [],

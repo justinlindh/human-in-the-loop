@@ -62,10 +62,10 @@ export function knowledgeSystem(ctx) {
 
   const debt = state.comprehensionDebt;
   const flow = debtFlow(state);
-  const oneOff = debt - (state.flags.debtAfterKnowledge ?? debt);
-  const total = sum(Object.values(flow), (v) => v);
-  state.comprehensionDebt = clamp(debt + total, 0, 100);
-  state.debtFlow = { ...flow, oneOff };
+  const before = state.flags.debtAfterKnowledge ?? debt;
+  const oneOff = debt - before;
+  state.comprehensionDebt = clamp(debt + sum(Object.values(flow), (v) => v), 0, 100);
+  state.debtFlow = { ...flow, oneOff, net: state.comprehensionDebt - before };
   state.flags.debtAfterKnowledge = state.comprehensionDebt;
 }
 
