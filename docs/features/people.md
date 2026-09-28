@@ -4,6 +4,7 @@
 - **Portraits**: menus show each person as a portrait rendered from their 3D character. `capture 3-2-portraits`
 - **Moods**: typing when fine, slumped when coasting, head down when burnt out; tired people droop, and sometimes nod off at the desk.
 - **Emotes**: sweat, sparkle, storm, lightbulb, heart, zzz, exclamation, music notes, typing dots and tired, popping over heads so state reads without the UI.
+- **Walking round furniture**: people step out of their chair and walk the aisles to where they are going, and step into a seat or onto an item from its own side, never in a straight line across desks. Someone who can't reach their spot waits beside it and tries again rather than sliding through.
 - **Arrivals and departures**: a hire walks in from the door with a sparkle; a leaver waves goodbye with a heart, or a storm cloud when fired, and walks out.
 - **Assignments you can see**: mentors stand at their mentee's desk with hearts; hard-problem people think at the whiteboard; people away, remote or on sabbatical leave by the door, and a desk gets an "ON SABBATICAL" sign.
 - **Legends**: someone who reaches level 20 wears a gold halo.
