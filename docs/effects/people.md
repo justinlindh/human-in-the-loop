@@ -79,4 +79,4 @@
 ## Vacations and strain
 
 - Everyone takes 2 weeks of vacation a year, with at most 15% of the team away at once.
-- An outage, Crunch Mode postpones a vacation by 4 weeks and adds 6 strain, at most 2 times in a row.
+- An outage, Crunch Mode or a push (Founder hustle, Lockdown sprint, Rivalry, Heads down, Family expectations, Performance plan pressure) postpones a vacation by 4 weeks and adds 6 strain, at most 2 times in a row.
