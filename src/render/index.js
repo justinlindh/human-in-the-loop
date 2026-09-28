@@ -339,6 +339,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     focusAt(x, z, zoom = 2.5) { rig.focus({ x, y: 0.4, z }, zoom); rig.update(10); },
     // The same, eased: the camera glides there at `rate` (as the moment camera does) instead of jumping.
     easeTo(x, z, zoom = 2.5, rate = 2, y = 0.4) { rig.focus({ x, y, z }, zoom, rate); },
+    // A quarter turn of the view, as Q (-1) and E (+1) do; yawStep says which view it turns to (0 to 3).
+    rotateView(dir) { rig.rotate(dir); },
+    get yawStep() { return rig.yawStep; },
     // The spotlight moment playing now (spotlight.js): null or { kind, key, since }. main.js holds the
     // game clock while there is one; endSpotlight() cuts it short (the Skip control).
     spotlight() { return staff?.spotlights?.current() ?? null; },
