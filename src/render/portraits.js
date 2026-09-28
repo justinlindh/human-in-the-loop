@@ -15,11 +15,13 @@ const BUCKETS = [64, 128, 176];
 const MAX_CACHE = 320;
 const PER_FRAME = 1;             // portraits rendered per frame (each is a few ms of GPU work)
 const MAX_LIVE = 3;
+const IDEA_T = 0.45;            // seconds into the wave for the "has an idea" frame: the hand is up
+const IDEA_YAW = -0.3;          // radians the body turns for that frame
 
 const bucketFor = (px) => BUCKETS.find((b) => b >= px) ?? BUCKETS[BUCKETS.length - 1];
 
 function keyOf(p, px) {
-  return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.legend ? 1 : 0}|${JSON.stringify(p.appearance ?? {})}|${px}`;
+  return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.legend ? 1 : 0}|${p.roleColor ?? ''}|${p.pose ?? ''}${p.poseT ?? ''}|${JSON.stringify(p.appearance ?? {})}|${px}`;
 }
 
 export function createPortraits({ ready, lowQuality = () => false }) {
@@ -69,7 +71,7 @@ export function createPortraits({ ready, lowQuality = () => false }) {
   }
 
   function build(person, caricature = false) {
-    const c = createCharacter(person.appearance ?? {}, ROLE_COLORS[person.role], { role: person.role, seed: person.id });
+    const c = createCharacter(person.appearance ?? {}, person.roleColor ?? ROLE_COLORS[person.role], { role: person.role, seed: person.id });
     if (caricature) {
       // Big head, small body: the party-favour caricature look.
       c.head.scale.setScalar(1.45);
@@ -79,8 +81,11 @@ export function createPortraits({ ready, lowQuality = () => false }) {
     c.pickProxy.visible = false;
     c.setMood(person.mood && person.mood !== 'away' ? person.mood : 'ok');
     c.setLegend(!!person.legend);
-    c.setAnim('idle');
-    c.update(0.016);
+    // 'idea': a hand up, for someone who has something to say (the UI adds its own badge).
+    c.setAnim(person.pose === 'idea' ? 'wave' : 'idle');
+    // The body turns a little so the raised hand sits beside the face, inside the frame.
+    if (person.pose === 'idea') c.root.rotation.y = IDEA_YAW;
+    c.update(person.pose === 'idea' ? person.poseT ?? IDEA_T : 0.016);
     scene.add(c.root);
     return c;
   }

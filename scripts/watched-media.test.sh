@@ -38,6 +38,10 @@ pr '["scripts/x.sh"]' '- **Screenshots or clips:** None; tooling only.'
 out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of none: $out"
 pr '["scripts/x.sh"]' '- Screenshots or clips: not applicable to this change.'
 out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of not applicable: $out"
+pr '["scripts/x.sh"]' '- **Screenshots or clips:** audio only. The owner approved the take on the review desk.'
+out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of audio only: $out"
+pr '["scripts/x.sh"]' "- **Screenshots or clips:** audio only $(url take.wav)"
+out="$(check)"; [ $? -eq 1 ] && grep -q take.wav <<<"$out" || fail "audio posted with pr-media still needs watching: $out"
 pr '["scripts/x.sh"]' '- **Screenshots or clips:** see the comment below'
 out="$(check)"; [ $? -eq 1 ] && grep -q 'has no media' <<<"$out" || fail "a Screenshots entry with no media posted: $out"
 
