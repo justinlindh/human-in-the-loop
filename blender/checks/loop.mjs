@@ -31,7 +31,7 @@ import { fmtTrace, fmtActor, ACTOR_JS } from './diag.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1; party:hearing_summons').split(';').map((q) => q.trim()).filter(Boolean);
+const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1; party:coffee_machine_broke').split(';').map((q) => q.trim()).filter(Boolean);
 const seconds = Number(opt('seconds', 30));
 const MOVE_M = 0.3;
 
@@ -75,9 +75,9 @@ try {
     if (query.startsWith('party:')) {
       const id = query.slice(6), rows = readIndex(simHash())?.rows ?? [];
       const key = (r) => `${r.seed}|${r.bot}|${r.week}`;
-      const party = new Set(rows.filter((r) => r.type === 'launch' || r.type === 'award').map(key));
+      const party = new Set(rows.filter((r) => r.type === 'party').map(key));
       const hit = rows.find((r) => r.type === 'decision' && r.id === id && r.preTick && party.has(key(r)));
-      if (!hit) { console.log(`LOOP skip ${query}: no ${id} in a launch or award week in this index`); continue; }
+      if (!hit) { console.log(`LOOP skip ${query}: no ${id} in a week with a company party in this index`); continue; }
       query = `${id} --seed ${hit.seed} --bot ${hit.bot} --weeks ${hit.week}-${hit.week}`;
     }
     // The state just before the tick that raises the decision, so the game's own tick raises it.

@@ -6,17 +6,19 @@
 #     --allow-bot runs and an explicit HITL_MANUAL_CI=1 get through;
 #   - a test run piped into grep, tail or head that gates a git commit or push: the gate then rides on
 #     the pipe's last command, not the tests (unless pipefail or PIPESTATUS is used);
+#   - a foreground loop that sleeps between checks of PR or CI state (gh pr, gh run, gh api,
+#     pr-status): scripts/wait-for.sh in the background waits instead. A background command gets through;
 #   - git stash, other than list and show: every worktree shares one stash stack, so a pop can take
 #     another lane's work;
 #   - gh pr create/comment/review/edit text (title, body, heredoc bodies, body files), and gh api posts
 #     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...).
-# It looks only at commands mentioning pkill, pgrep, push, commit, stash, ci-pr, gh pr or gh api, and fails open on its own errors.
+# It looks only at commands mentioning pkill, pgrep, push, commit, stash, ci-pr, sleep, gh pr or gh api, and fails open on its own errors.
 # Only deny() exits 2; any other failure exits otherwise, which Claude Code treats as allow.
 set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*sleep*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
@@ -30,6 +32,18 @@ cipr_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0
   | grep -E '(^|[[:space:]/;&|(])ci-pr\.sh[[:space:]]+[0-9]+([[:space:];&|)]|$)' || true)"
 if [ -n "$cipr_cmds" ] && ! grep -qE -- '--allow-bot|HITL_MANUAL_CI=1' <<<"$cipr_cmds"; then
   deny "local CI has one path: auto CI runs scripts/ci-pr.sh on every PR head within a couple of minutes (scripts/auto-ci.sh). Watch the local-ci status instead, or add the ci-rerun label for a fresh run. If you really need a run by hand (the integrator debugging CI), prefix it with HITL_MANUAL_CI=1."
+fi
+
+# A loop sleeping between checks of PR or CI state, outside heredoc bodies and quoted text (lines are
+# joined first, so a quoted message spanning lines counts as text), unless run in the background.
+if [ "$(jq -r '.tool_input.run_in_background // false' <<<"$input" 2>/dev/null)" != true ]; then
+  # Quotes are stripped left to right over the whole command, then each loop body (for, while or
+  # until, to its done) must hold both a sleep and a PR or CI check.
+  poll="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+    | perl -0777 -ne 's/"(?:[^"\\]|\\.)*"|\x27[^\x27]*\x27/Q/gs; while (/(?:^|[^\w-])(?:for|while|until)\s(.*?)(?:^|[^\w-])done(?:[^\w-]|$)/gs) { my $b = $1; if ($b =~ /(?:^|[^\w-])sleep\s+\d/ && $b =~ /(?:^|[^\w-])(?:gh\s+(?:pr|run|api)|pr-status(?:\.sh)?)(?:\s|$)/) { print "poll"; last } }' 2>/dev/null)"
+  if [ "$poll" = poll ]; then
+    deny "this loop sleeps between checks of PR or CI state, holding the turn for as long as it polls. Run scripts/wait-for.sh <pr> (add --merged to wait for the merge) with run_in_background: it returns when the checks pass or fail, and you're notified. One look at the state now needs no sleep."
+  fi
 fi
 
 # git stash as a command (not in heredoc bodies or quoted text, which become Q so a quoted -C path

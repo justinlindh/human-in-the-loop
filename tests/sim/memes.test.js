@@ -20,9 +20,9 @@ const meme = (s) => {
 };
 
 describe('issue #671: image memes in Yak', () => {
-  it('the set is 6 to 10 memes with unique ids, an image id and a short alt caption', () => {
+  it('the set is 6 to 12 memes with unique ids, an image id and a short alt caption', () => {
     expect(MEMES.length).toBeGreaterThanOrEqual(6);
-    expect(MEMES.length).toBeLessThanOrEqual(10);
+    expect(MEMES.length).toBeLessThanOrEqual(12);
     expect(new Set(MEME_IDS).size).toBe(MEMES.length);
     for (const m of MEMES) {
       expect(m.image, m.id).toMatch(/^[a-z_]+$/);
@@ -50,9 +50,22 @@ describe('issue #671: image memes in Yak', () => {
     for (let i = 0; i < 40; i++) { s.week += 3; seen.add(meme(s).image.id); }
     for (const id of seen) {
       const m = MEMES.find((x) => x.image === id);
-      expect(m.when, id).not.toBe('agents');
+      expect(['agents', 'chatbots'], id).not.toContain(m.when);
       expect(eraAllowsText(s, m.alt), id).toBe(true);
     }
+  });
+
+  it('chatbot memes arrive with the ChatGBT era; agent memes wait for the Agents era', () => {
+    const s = office(classicGame(4));
+    s.era = { id: 'chatgbt', since: s.week };
+    const seen = new Set();
+    for (let i = 0; i < 60; i++) {
+      s.week += 3;
+      const id = meme(s)?.image?.id;
+      if (id) seen.add(MEMES.find((x) => x.image === id).when);
+    }
+    expect(seen.has('chatbots')).toBe(true);
+    expect(seen.has('agents')).toBe(false);
   });
 
 });
