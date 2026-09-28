@@ -5,6 +5,7 @@ import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
 import { ROLE_COLORS, PALETTE } from './palette.js';
 import { characterLook } from './look.js';
+import { printParts } from './prints.js';
 import { emoteMaterial } from './emotes.js';
 import { bakedMaterial, bakeParts } from './bake.js';
 import { rigClips, rigEnabled } from './rig.js';
@@ -256,11 +257,17 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   badge.position.z = (bdepth - 1) * 0.115;
   torso.add(lanyard, badge);
   const torsoParts = [torsoMesh, lanyard, badge];
+  let garment = null;
   if (role && role !== 'support') {
-    const g = P(look.garment === 'hood_tucked' ? 'role_engineer_tucked' : `role_${role}`);
-    g.scale.set(wScale, 1, bdepth);
-    torso.add(g);
-    torsoParts.push(g);
+    garment = P(look.garment === 'hood_tucked' ? 'role_engineer_tucked' : `role_${role}`);
+    garment.scale.set(wScale, 1, bdepth);
+    torso.add(garment);
+    torsoParts.push(garment);
+  }
+  // A role graphic on the shirt front (the engineer's goes on the hoodie pouch).
+  if (look.print) {
+    const targets = role === 'engineer' && garment ? [torsoMesh, garment] : [torsoMesh];
+    for (const m of printParts(look.print, role, torso, targets, `${build}|${look.garment}`, wScale)) { torso.add(m); torsoParts.push(m); }
   }
 
   const neck = new THREE.Group();
