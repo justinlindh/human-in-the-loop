@@ -29,7 +29,7 @@ cat >"$tmp/npm" <<'SH'
 case "$1" in ls) [ ! -e "$T/npm-stale" ] ;; ci) echo ci >>"$T/npm-ci" ;; esac
 SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
-export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_NPM="$tmp/npm"
+export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red"
 
 pr() { # number head local-ci-state [draft] [author] [label] [review-state]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
@@ -112,6 +112,41 @@ run
 [ "$(count npm-ci)" -eq 1 ] || fail "a stale install should wait while a run is going ($(count npm-ci) installs)"
 rm -f "$tmp/npm-stale"
 
+# While main is red on a render step, a render-only PR waits; tooling fixes and other PRs run.
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+echo "abc1234 stage, render-checks" >"$tmp/red"
+printf 'src/render/sync.js\n' >"$tmp/files-30"
+printf 'src/render/sync.js\nblender/checks/harness.mjs\n' >"$tmp/files-31"
+printf 'src/ui/hud.js\n' >"$tmp/files-32"
+fixture "$(pr 30 r30 none)" "$(pr 31 r31 none)"
+run
+has started "30 r30" && fail "a render PR should wait while main is red on stage"
+grep -q "#30 r30 waits: main is red on stage, render-checks" "$tmp/state/log" || fail "the wait should name main's red render steps"
+has started "31 r31" || fail "a PR that also fixes tooling should run while main is red"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+fixture "$(pr 32 r32 none)"
+run
+has started "32 r32" || fail "a PR outside the render should run while main is red"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+# ci-rerun starts a held render PR (a render fix for main's red), and the label comes off.
+fixture "$(pr 30 r30 none false justinlindh ci-rerun)"
+run
+has started "30 r30" || fail "ci-rerun should start a render PR held by main's red"
+grep -q "pr edit 30 --remove-label ci-rerun" "$tmp/edits" 2>/dev/null || fail "ci-rerun should come off when the held PR starts"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+sed -i '/^30 r30$/d' "$tmp/started"
+# A red file older than AUTO_CI_RED_HOURS holds nothing.
+touch -d '4 hours ago' "$tmp/red"
+fixture "$(pr 33 r33 none)"
+printf 'src/render/sync.js\n' >"$tmp/files-33"
+run
+has started "33 r33" || fail "a stale red file should not hold render PRs"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+echo "abc1234 test:fast" >"$tmp/red"
+fixture "$(pr 30 r30 none)"
+run
+has started "30 r30" || fail "a render PR should run when main is red only off the render"
+rm -f "$tmp/red"
 # PRs that passed review go first; changes requested go last.
 for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
 : >"$tmp/started"
@@ -127,6 +162,16 @@ run
 has started "44 a44" || fail "a docs-only PR should start past the cap"
 has started "45 a45" && fail "a full PR should still wait for the cap"
 grep -q "start #44 a44 (new head, docs only)" "$tmp/state/log" || fail "the log should say the run is docs only"
+
+# Vitest's leftover temp directories over an hour old go; recent ones and anything else stay.
+mkdir -p "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU/ssr" "$tmp/tmpfs/ZyXwVuTsRqPoNmLkJiHgF/ssr" "$tmp/tmpfs/keep-me-not-vitest-x/ssr" "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA/other"
+touch -d '2 hours ago' "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU" "$tmp/tmpfs/keep-me-not-vitest-x" "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA"
+fixture
+run
+[ -e "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU" ] && fail "an old vitest temp directory should be cleared"
+[ -e "$tmp/tmpfs/ZyXwVuTsRqPoNmLkJiHgF" ] || fail "a recent vitest temp directory should stay"
+[ -e "$tmp/tmpfs/keep-me-not-vitest-x" ] || fail "a directory not named like vitest's should stay"
+[ -e "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA" ] || fail "a directory holding more than ssr should stay"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]

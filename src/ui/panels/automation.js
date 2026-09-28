@@ -172,7 +172,7 @@ function panelOf(ctx, tab) {
         onclick: () => { if (ctx.act({ type: 'setPolicy', id: p.id, on: !on }).ok) ctx.sfx(on ? 'close' : 'confirm'); },
       }, h('span.knob'));
       toggleClass(sw, 'on', on);
-      const card = h('div.card.policy', null,
+      const card = h('div.card.policy', { dataset: { policy: p.id } },
         h('div.row', null, h('b.pname', { text: p.name }), h('span.spacer'), sw),
         h('div.small', { text: p.desc }),
         h('div.row.wrap', null,

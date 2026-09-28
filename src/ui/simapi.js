@@ -21,6 +21,7 @@ export const SIMX = {
   campaignCost: find('campaignCost'),
   postOptions: find('postOptions'),
   goalHelpers: find('goalHelpers'),
+  advice: find('advice'),
   ipoBlocker: find('ipoBlocker'),
   acquisitionOpen: find('acquisitionOpen'),
 };

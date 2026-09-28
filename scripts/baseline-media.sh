@@ -111,7 +111,7 @@ md=''
 if [ -n "$dry" ]; then
   mkdir -p "$dry"; [ ${#files[@]} -gt 0 ] && cp "${files[@]}" "$dry/"
   md="$(for f in "${files[@]}"; do echo "![$(basename "$f" .png)]($(basename "$f"))"; done)"
-elif [ ${#files[@]} -gt 0 ]; then md="$("$HERE/pr-media.sh" "$pr" "${files[@]}")"; fi
+elif [ ${#files[@]} -gt 0 ]; then md="$("$HERE/pr-media.sh" --print-only "$pr" "${files[@]}")"; fi
 body="$(printf '%s\n%s\n-->\n### Baseline changes at %s\n%s\n%s\n' "$MARK" "$(echo "$list" | sed 's/^/file: /')" "$(git rev-parse --short HEAD)" "$notes" "$md")"
 if [ -n "$dry" ]; then printf '%s' "$body" >"$dry/comment.md"; echo "baseline-media: wrote $dry/comment.md and ${#files[@]} image(s)"; exit 0; fi
 gh pr comment "$pr" --body "$body" >/dev/null

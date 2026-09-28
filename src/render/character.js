@@ -20,7 +20,7 @@ const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
-  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget',
+  'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
@@ -72,6 +72,9 @@ const ringGeo = new THREE.RingGeometry(0.27, 0.33, 32).rotateX(-Math.PI / 2);
 const HAMMER_GRIP = { leadX: -1.25, supportX: -1.65, swing: 0.55, swingS: 1.1, inward: 0.18 };
 // Poses that aim at something in the world (petting an animal), left out of the standalone lineup.
 export const WORLD_ANIMS = new Set(['pet']);
+// The dilemma pose: how far the head turns each way (radians) and how fast it swings, and the
+// hovering hand's shoulder pitch, bob and rate.
+const DILEMMA = { look: 0.85, lookRate: 1.3, handUp: -1.75, hover: 0.22, hoverRate: 2.6, sway: 0.07 };
 const HAND_TIP = new THREE.Vector3(0, -0.06, 0);   // the hand's centre below the wrist pivot
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 // Pizza slice: a wedge pointing at the mouth (-z) with a rounded crust along its back.
@@ -407,7 +410,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let tired = false;
   let flush = 0;
   let flushFor = 0;
-  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
+  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headY: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = rand() * Math.PI * 2;
 
@@ -466,13 +469,30 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function pose(dt) {
     const s = Math.sin;
-    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
+    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headY: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
     const seated = SEATED.has(anim);
     if (seated) {
       tgt.bodyY = SEAT_HIP_Y - HIP_Y;
       tgt.legL = tgt.legR = -1.45;
     }
     switch (anim) {
+      case 'dilemma': {
+        // Torn between two things: the head swings from one side to the other and lingers on each,
+        // a hand hovers up in front as if about to press something and keeps not pressing it, and
+        // the other hand grips the hem.
+        const look = Math.tanh(3 * s(t * DILEMMA.lookRate + phase));
+        tgt.headY = look * DILEMMA.look;
+        tgt.headZ = -look * 0.08;
+        tgt.headX = 0.05;
+        tgt.twist = look * 0.12;
+        tgt.bodyZ = look * DILEMMA.sway;
+        tgt.armRX = DILEMMA.handUp + s(t * DILEMMA.hoverRate) * DILEMMA.hover;
+        tgt.armRZ = -0.45;
+        tgt.armLX = -0.25;
+        tgt.armLZ = 0.22;
+        tgt.bodyY = Math.abs(s(t * 4 + phase)) * 0.006;
+        break;
+      }
       case 'fidget':
         // Standing, nervous: hands wrung together in front, a quick shallow bob, the head held still
         // and a little down, so where they look stays where they were turned.
@@ -904,7 +924,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       body.position.set(0, cur.bodyY, cur.bodyZ);
       body.rotation.set(cur.pitch, 0, 0);
       torso.rotation.set(cur.lean, cur.twist, 0);
-      headGroup.rotation.set(cur.headX, 0, cur.headZ);
+      headGroup.rotation.set(cur.headX, cur.headY, cur.headZ);
       legs[0].rotation.set(cur.legL, 0, 0);
       legs[1].rotation.set(cur.legR, 0, 0);
       arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
@@ -1094,6 +1114,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     setPetTarget(target) { petTarget = target; },
     // Both wrists in world space, left then right (shared vectors: copy them to keep them).
     hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
+    // The shoulder joints, left then right, for hand-posed stills (the meme studio). A pose set on
+    // them lasts until the next update.
+    shoulders() { return arms.map((a) => a.shoulder); },
     get anim() { return anim; },
     // Staging measurements (probe.js), in world space: the eyes, the way the face points, the hands.
     probe() {
