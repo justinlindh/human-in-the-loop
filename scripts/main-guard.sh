@@ -90,7 +90,9 @@ yield() { # waits (up to an hour, or YIELD_MAX seconds) while others queue for t
 }
 
 sync_shared
-git -C "$REPO" fetch -q origin main || { echo "main-guard: cannot fetch origin/main" >&2; exit 2; }
+# MAIN_GUARD_FETCH replaces the fetch in tests, so they don't depend on reaching GitHub.
+if [ -n "${MAIN_GUARD_FETCH:-}" ]; then bash -c "$MAIN_GUARD_FETCH"; else git -C "$REPO" fetch -q origin main; fi \
+  || { echo "main-guard: cannot fetch origin/main" >&2; exit 2; }
 sha="$(git -C "$REPO" rev-parse "${sha_arg:-origin/main}")" || exit 2
 short="${sha:0:7}"
 if [ -z "$sha_arg" ] && [ "$(cat "$STATE/last" 2>/dev/null)" = "$sha" ]; then exit 0; fi

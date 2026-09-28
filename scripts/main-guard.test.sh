@@ -31,7 +31,7 @@ guard() { # <gh log> <open file> [env assignments...] -- [guard args...]
   local log="$1" open="$2"; shift 2
   local envs=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
   env GH_LOG="$log" GH_OPEN="$open" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$case_root" HITL_LOCK_DIR="$tmp/locks" \
-    MAIN_GUARD_NPM="${MAIN_GUARD_NPM:-true}" MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
+    MAIN_GUARD_NPM="${MAIN_GUARD_NPM:-true}" MAIN_GUARD_FETCH=true MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
 }
 expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x looks in the guard's output>
   local w want; IFS='|' read -ra want <<<"$3"
@@ -39,10 +39,12 @@ expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x look
     local f="$2" p="$w" neg=0
     case "$p" in !*) neg=1; p="${p#!}" ;; esac
     case "$p" in out:*) f="$2.out"; p="${p#out:}" ;; esac
-    if grep -qF -- "$p" "$f"; then [ $neg = 1 ] && { echo "FAIL $1: unexpected $p"; fails=$((fails + 1)); }
-    else [ $neg = 0 ] && { echo "FAIL $1: missing $p"; fails=$((fails + 1)); }; fi
+    if grep -qF -- "$p" "$f"; then [ $neg = 1 ] && { echo "FAIL $1: unexpected $p"; fails=$((fails + 1)); shown "$2"; }
+    else [ $neg = 0 ] && { echo "FAIL $1: missing $p"; fails=$((fails + 1)); shown "$2"; }; fi
   done
 }
+# A failing case shows the guard's last lines, so a failure in CI can be read without rerunning it.
+shown() { tail -n 15 "$1.out" 2>/dev/null | sed 's/^/    guard: /'; }
 one() { # <name> <suite> <strict> <open "label n" lines, ; separated> <patterns> [extra env...]
   case_root="$tmp/root-$RANDOM"; local log="$tmp/$RANDOM.log" open="$tmp/$RANDOM.open"; : >"$log"; printf '%s' "$4" | tr ';' '\n' >"$open"
   local name="$1" suite="$2" strict="$3" pats="$5"; shift 5
@@ -188,7 +190,7 @@ expect 'local CI failing on the machine gets no verdict' "$cl" "state=error|erro
 : >"$cl"; guard "$cl" /dev/null MAIN_GUARD_SUITE="$MACHINE" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
 expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label main-red|!state=failure"
 [ "$(cat "$case_root/main-guard/last" 2>/dev/null)" = "$(git -C "$REPO" rev-parse HEAD)" ] \
-  || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); }
+  || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); shown "$cl"; }
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]
