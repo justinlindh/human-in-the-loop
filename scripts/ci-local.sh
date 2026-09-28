@@ -170,6 +170,7 @@ step toolkit toolkit_check
 # (scripts/baseline-media.sh); without a PR number it only says so.
 step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step review-prep bash "$SELF/review-prep.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
