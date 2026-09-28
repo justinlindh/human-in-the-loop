@@ -87,6 +87,7 @@ function observe(state) {
 
   for (const p of products) {
     if (p.migrationDueWeek === null || p.migrationDueWeek === undefined) continue;
+    if (state.projects.some((j) => j.kind === 'migration' && j.productId === p.id)) continue;
     const left = p.migrationDueWeek - state.week;
     if (left > A.migrationWarnWeeks) continue;
     const tier = left < 0 ? 2 : 1;
@@ -147,7 +148,7 @@ function optionsFor(state, a) {
       break;
     }
     case 'juniors':
-      if (state.staff.some((p) => p.seniority === 'senior' && p.mood !== 'away')) opt(`Make a senior ${first(unmentored[0])}'s mentor`, 'staff', unmentored[0].id);
+      if (state.staff.some((p) => p.seniority === 'senior' && p.mood !== 'away')) opt(`Find ${first(unmentored[0])} a senior mentor`, 'staff', unmentored[0].id);
       if (policyOpen('apprenticeship')) opt('Switch on the Apprenticeship Program', 'policies', 'apprenticeship');
       opt(`Send ${first(unmentored[0])} to training`, 'staff', unmentored[0].id);
       break;

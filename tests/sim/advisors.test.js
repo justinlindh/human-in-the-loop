@@ -63,6 +63,8 @@ describe('advisors (#808): what they notice', () => {
     const pr = addProduct(s, { name: 'Jotly' });
     pr.migrationDueWeek = s.week - 1;
     expect(find(s, `migration:${pr.id}`)).toMatchObject({ advisor: 'tech', tier: 2 });
+    s.projects.push({ id: 'jm', kind: 'migration', productId: pr.id });
+    expect(find(s, `migration:${pr.id}`)).toBeUndefined();
   });
 
   it('an unlocked policy nobody has tried, unless its opposite is on', () => {
