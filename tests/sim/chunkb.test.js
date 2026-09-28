@@ -4,7 +4,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { strainSystem, strainDelta } from '../../src/sim/strain.js';
 import { meaningSystem } from '../../src/sim/meaning.js';
 import { purposeSystem, purposeLift } from '../../src/sim/purpose.js';
-import { incentivesSystem } from '../../src/sim/incentives.js';
+import { incentivesSystem, rewardFor } from '../../src/sim/incentives.js';
 import { checkUnlocks } from '../../src/sim/unlocks.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { productAppeal } from '../../src/sim/products.js';
@@ -155,8 +155,10 @@ describe('the Incentives Program (issue #11)', () => {
       }
       s.week++;
     }
-    // The timed ladder tops out at music night; the Waffle Party is earned by a milestone instead.
-    expect(rewards).toEqual(['finger_traps', 'balloons', 'caricature', 'melon_bar', 'music_night', 'music_night', 'music_night']);
+    // The timed ladder tops out at music night; past it, the next awards come from the lower rungs. The
+    // Waffle Party is earned by a milestone instead.
+    expect(rewards.slice(0, 5)).toEqual(['finger_traps', 'balloons', 'caricature', 'melon_bar', 'music_night']);
+    for (const r of rewards.slice(5)) expect(['finger_traps', 'balloons', 'caricature', 'melon_bar']).toContain(r);
     for (let i = 1; i < boosts.length; i++) expect(boosts[i]).toBeLessThanOrEqual(boosts[i - 1]);
     expect(s.purpose.value).toBeLessThan(60);
   });
@@ -182,6 +184,31 @@ describe('the Incentives Program (issue #11)', () => {
     }
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
     for (const p of s.staff) expect(Number.isFinite(p.strain)).toBe(true);
+  });
+});
+
+describe('issue #912: music night stays special once the ladder is climbed', () => {
+  const ladder = INCENTIVES.filter((r) => r.id !== 'waffle_party').map((r) => r.id);
+  const top = ladder.length - 1;
+
+  it('climbs the ladder in order, then music night returns only every few awards past the top', () => {
+    const s = game(21);
+    const seq = Array.from({ length: 40 }, (_, count) => rewardFor(s, count).id);
+    expect(seq.slice(0, top + 1)).toEqual(ladder);
+    for (let count = top + 1; count < 40; count++) {
+      const music = (count - top) % B.incentiveMusicEvery === 0;
+      expect(seq[count] === 'music_night', `award ${count}`).toBe(music);
+      if (!music) expect(ladder.slice(0, top)).toContain(seq[count]);
+    }
+    expect(new Set(seq.slice(top + 1).filter((id) => id !== 'music_night')).size).toBeGreaterThan(1);
+  });
+
+  it('is the same for the same game and draws nothing from the game RNG', () => {
+    const a = game(22), b = game(22);
+    const rng = JSON.stringify(a.rng);
+    const seq = (s) => Array.from({ length: 30 }, (_, i) => rewardFor(s, i).id);
+    expect(seq(a)).toEqual(seq(b));
+    expect(JSON.stringify(a.rng)).toBe(rng);
   });
 });
 

@@ -16,7 +16,7 @@ export const POLICY_EFFECTS = {
   crunch: [['output', 'crunchOutput', 'pct'], ['strain a week on project or maintenance work', 'crunchStrain', 'num'], ['meaning drain', 'crunchMeaningDrain', 'num']],
   top_pay: [['chance an outside offer is taken', 'topPayAttrition', 'mult']],
   office_upkeep: [['chance an outside offer is taken', 'upkeepAttrition', 'mult'], ['meaning recovery a week', 'upkeepMeaningRecovery', 'num']],
-  incentives: [['weeks between rewards', 'incentiveEveryWeeks', 'count'], ['output while a reward lasts', 'incentiveOutput', 'pct'], ["winner's meaning", 'incentiveWinnerMeaning', 'num'], ['envy for everyone else', 'incentiveEnvy', 'num']],
+  incentives: [['weeks between rewards', 'incentiveEveryWeeks', 'count'], ['output while a reward lasts', 'incentiveOutput', 'pct'], ["winner's meaning", 'incentiveWinnerMeaning', 'num'], ['envy for everyone else', 'incentiveEnvy', 'num'], ['awards between music nights once the ladder is climbed', 'incentiveMusicEvery', 'count']],
 };
 
 // Office item effect keys, as the report names them.
