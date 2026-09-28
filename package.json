@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:fast": "vitest run --exclude tests/sim/balance.test.js",
+    "test:fast": "bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js",
     "test:balance": "vitest run tests/sim/balance.test.js",
     "ci": "bash scripts/ci-local.sh",
     "gates": "bash scripts/gates.sh",

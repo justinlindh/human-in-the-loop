@@ -79,6 +79,7 @@ export const B = {
   // Emoji reactions by a post's weight: routine chatter and replies rarely get any (one or two when they do),
   // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
+  launchbotVersionStep: 5,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
   // readSeconds in src/pacing.js: a line's hold at 1x, its cap, the reading-speed floor, and the shortening at 2x and 4x.
@@ -90,6 +91,7 @@ export const B = {
   bubbleStaffPerExtra: 8, // one more ordinary speech bubble at once for each this many staff, up to bubbleMaxOnScreen
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
   yakMaxWaitGameSeconds: 30, // Queue age at 1x; reading gaps still use active real seconds.
+  yakImportantMaxWaitGameSeconds: 60, // Important Yak posts other than incidents expire after this much game time.
   saySituationChance: 0.8, sayExchangeChance: 0.22, saySoloChance: 0.45, asyncStandupPostChance: 0.35, standupMemory: 80, helloMemory: 8, standupPersonMemory: 16, ongoingSituationChance: 0.2, chatSituationChance: 0.7, threadChance: 0.15, chatSoloChance: 0.3,
   rareExchangeShare: 0.34, atChannelChance: 0.03, atChannelWarrantedChance: 0.3, atChannelSighChance: 0.4, atChannelGapWeeks: 40, runningJokesPerRun: 3, jokeGapWeeks: [8, 20], talkMemory: 60, exchangeCooldownWeeks: 52, neighbourTiles: 3,
   funding: {
