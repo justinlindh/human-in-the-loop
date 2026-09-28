@@ -16,7 +16,7 @@ export const STAT_INFO = STATS.map((s) => ({ id: s.id, name: s.product, color: s
 const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large: { name: 'Large' } };
 
 export function buildPanel(ctx, arg) {
-  let tab = arg?.projectId ? 'projects' : 'new';
+  let tab = arg?.projectId || arg?.productId ? 'projects' : 'new';
   const form = { name: suggestName(), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
   // A starter preset (from the tutorial): fields plus the founders as the team.
   const preset = arg?.preset ?? null;
@@ -309,12 +309,13 @@ export function buildPanel(ctx, arg) {
     // Other kinds of work
     const live = s.products.filter((p) => !p.killed);
     const updSel = picker({
-      key: 'update-product', value: live[0]?.id ?? '', title: 'Which product to update',
+      // An advisor option naming a product picks it here.
+      key: 'update-product', value: live.some((p) => p.id === arg?.productId) ? arg.productId : live[0]?.id ?? '', title: 'Which product to update',
       options: live.map((p) => ({ value: p.id, label: `${p.name} v${p.version}`, stat: `score ${p.score.toFixed(1)}`, icon: 'update' })),
     });
     const migr = live.filter((p) => p.migrationDueWeek !== null && p.migrationDueWeek !== undefined);
     const other = h('div.grid.others', null,
-      h('div.card.other', null,
+      h('div.card.other', { dataset: live.some((p) => p.id === arg?.productId) ? { product: arg.productId } : {} },
         h('b', null, icon('update'), ' Update a product'),
         h('span.small.muted', { text: 'Makes it fresh again and gets new reviews.' }),
         live.length ? h('div.row', null, updSel.el, h('button.btn.small.blue', { onclick: () => startKind({ kind: 'update', productId: updSel.value }) }, 'Start')) : h('span.faint.small', { text: 'No live products yet.' })),
