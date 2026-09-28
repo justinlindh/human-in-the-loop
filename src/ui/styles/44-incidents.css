@@ -25,6 +25,7 @@
 
 /* Resolution summary: in the postmortem decision and the minor-incident card. */
 .hitl .modal.incdone .mhead { background: var(--green); color: #fff; text-shadow: 0 0.08em 0 rgba(0,0,0,0.25); }
+.hitl .modal.incdone .mhead .btn.x { color: var(--ink); text-shadow: none; }
 .hitl .incres { display: flex; flex-direction: column; gap: 0.45em; margin-bottom: 0.5em; }
 .hitl .incpills { display: flex; flex-wrap: wrap; gap: 0.3em; }
 .hitl .incpills .pill { font-weight: 700; background: #fff; }
