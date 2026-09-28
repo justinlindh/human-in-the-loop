@@ -248,8 +248,20 @@ function advisorsFile() {
   return `${HEADER}# Advisors\n\nWhat makes each advisor speak. Urgent advice pushes itself at most once every ${A.pushGapWeeks} weeks; a topic rests ${A.cooldownWeeks} weeks unless it gets worse.\n\n${table(['Topic', 'Advisor', 'Speaks when'], rows)}\n`;
 }
 
+function squadsFile() {
+  const rows = table(['Rule', 'Value'], [
+    ['Unlock', `the Office Floor or ${B.squadUnlockStaff} people`],
+    ['Size', `up to ${B.squadMax} squads of 1 to ${B.squadMaxMembers} people`],
+    ['Cohesion', `fills over ${B.squadCohesionWeeks} weeks that at least half the squad works its posting; anyone joining or leaving halves it`],
+    ['Cohesion bonus', `up to ${pct(B.squadCohesionOutput)} output for members working the squad's posting, in proportion to cohesion`],
+    ['Bench after a launch', `${B.squadBenchWeeks} weeks, then back to default work and the squad goes to maintenance`],
+    ['Idle squad', `an advisor speaks after ${B.squadIdleWeeks} weeks on an idle posting`],
+  ]);
+  return `${HEADER}# Squads\n\n${rows}\n`;
+}
+
 const FILES = { 'policies.md': policiesFile, 'decisions.md': decisionsFile, 'office.md': officeFile, 'people.md': peopleFile,
-  'products.md': productsFile, 'growth.md': growthFile, 'yak.md': yakFile, 'advisors.md': advisorsFile, 'tech-debt.md': debtFile };
+  'products.md': productsFile, 'growth.md': growthFile, 'yak.md': yakFile, 'advisors.md': advisorsFile, 'tech-debt.md': debtFile, 'squads.md': squadsFile };
 
 export function renderEffects() {
   const out = {};

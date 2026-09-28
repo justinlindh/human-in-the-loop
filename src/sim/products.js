@@ -15,6 +15,7 @@ import { currentEra, eraAtLeast } from './eras.js';
 import { autoArrange, spentOn } from './office.js';
 import { rivalPressure } from './ladder.js';
 import { purposeLift } from './purpose.js';
+import { outageProductGone } from './incidents.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -156,7 +157,7 @@ export function sunsetProduct(ctx, p, { quiet = false } = {}) {
     const builder = (s.role === 'engineer' || s.role === 'designer') && s.hiredWeek <= p.launchedWeek;
     if (builder || s.id === p.ownerId) s.meaning = Math.max(0, s.meaning - 10);
   }
-  if (state.outage?.productId === p.id) state.outage = null;
+  if (state.outage?.productId === p.id) outageProductGone(ctx);
   p.ownerId = null;
   const cancelled = state.projects.filter((j) => j.productId === p.id);
   if (cancelled.length) {

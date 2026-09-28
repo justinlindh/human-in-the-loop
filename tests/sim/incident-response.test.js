@@ -207,6 +207,40 @@ describe('incidents close with a summary (#830)', () => {
   });
 });
 
+describe('an outage whose product goes away (#830)', () => {
+  const down = () => {
+    const s = quiet(game());
+    const p = addProduct(s, { customers: 1000 });
+    addProduct(s, { customers: 500, name: 'Spare' });
+    team(s, 3);
+    s.comprehensionDebt = 0;
+    landIncident(makeCtx(s), { kind: 'db_wipe', severity: 5, caught: false, model: 'grokk' });
+    s.pendingDecision = null;
+    s.scheduled = [];
+    return { s, p: s.products.find((x) => x.id === s.outage.productId) ?? p };
+  };
+
+  it('killing the product resolves the incident and opens its postmortem', () => {
+    const { s, p } = down();
+    const res = dispatch(s, { type: 'killProduct', productId: p.id });
+    expect(res.ok).toBe(true);
+    expect(s.outage).toBe(null);
+    const done = res.events.find((e) => e.type === 'incidentResolved');
+    expect(done).toMatchObject({ productId: p.id, kind: 'db_wipe', severity: 5 });
+    expect(done.hurt.join(' ')).toMatch(/shut down/);
+    expect(s.pendingDecision.eventId).toBe(INCIDENT_EVENT.db_wipe);
+  });
+
+  it('a product gone by the next week resolves it too', () => {
+    const { s, p } = down();
+    p.killed = true;
+    const ev = step(s);
+    expect(s.outage).toBe(null);
+    expect(ev.some((e) => e.type === 'incidentResolved' && e.productId === p.id)).toBe(true);
+    expect(s.pendingDecision.eventId).toBe(INCIDENT_EVENT.db_wipe);
+  });
+});
+
 describe('the postmortem (#830)', () => {
   // A severe rogue-agent outage cleared at once, with its SEV decision open. Write-up is choice 2, patch 3.
   const resolved = (blameless = false) => {
@@ -258,6 +292,19 @@ describe('the postmortem (#830)', () => {
     for (const id of ids) expect(responding(s, id)).toBe(true);
     tick(s);
     for (const id of ids) expect(responding(s, id)).toBe(false);
+  });
+
+  it('a write-up teaches the responders of its own incident, even when another resolved first', () => {
+    const { s } = resolved();
+    const first = [...s.flags.lastIncident.responderIds];
+    const newcomer = addStaff(s, 'engineer', 'senior', { knowledge: 100, traits: [] });
+    landIncident(makeCtx(s), { kind: 'data_exfiltration', severity: 5, caught: false, model: null });
+    expect(s.flags.lastIncident.responderIds).toContain(newcomer.id);
+    expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
+    const k = newcomer.knowledge;
+    expect(dispatch(s, { type: 'resolveDecision', choice: 2 }).ok).toBe(true);
+    expect(s.flags.postmortem.staffIds).toEqual(first.filter((id) => s.staff.some((p) => p.id === id)));
+    expect(newcomer.knowledge).toBe(k);
   });
 
   it('under Blameless Postmortems the write-up costs no meaning', () => {

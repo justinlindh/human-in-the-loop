@@ -78,7 +78,7 @@ export const B = {
   postureSecurityPerSkill: 3.2, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageComplexityPerProduct: 0.2, fixersCounted: 3,
-  postmortemWeeks: 1, postmortemDebt: 5, postmortemKnowledge: 3, postmortemMeaning: 2, patchDebt: 3, incidentDebtLineMult: 1.3, incidentSprawlLine: 4,
+  postmortemWeeks: 1, postmortemQueueMax: 6, postmortemDebt: 5, postmortemKnowledge: 3, postmortemMeaning: 2, patchDebt: 3, incidentDebtLineMult: 1.3, incidentSprawlLine: 4,
   outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22, heldRollsMax: 2, deskStageWaitWeeks: 4,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
@@ -144,7 +144,7 @@ export const B = {
   squadMax: 6, squadMaxMembers: 8, squadUnlockStaff: 8,
   // After a launch the benched part of a squad waits this long for a new posting; cohesion fills over
   // squadCohesionWeeks of working together and is worth up to squadCohesionOutput extra output.
-  squadBenchWeeks: 2, squadCohesionWeeks: 12, squadCohesionOutput: 0.05, squadIdleWeeks: 2,
+  squadBenchWeeks: 2, squadCohesionWeeks: 12, squadCohesionOutput: 0.1, squadIdleWeeks: 2,
   // Office items: the most all items together move one effect, and what a second copy's level effect counts for.
   itemBonusCap: 0.5, itemSecondCopy: 0.5,
   hqDeskCap: 30, expansionDeskStep: 5, topPayAttrition: 0.6, upkeepAttrition: 0.85, upkeepMeaningRecovery: 0.15,

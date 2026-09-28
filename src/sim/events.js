@@ -130,6 +130,13 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   const vars = decisionVars(state, ctx.rng, subjectId);
+  // A postmortem carries the incident it is about, taken from the queue of those waiting.
+  const waiting = state.flags.postmortemQueue ?? [];
+  const at = waiting.findIndex((x) => x.eventId === eventId);
+  if (at >= 0) {
+    const inc = waiting.splice(at, 1)[0];
+    Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds] });
+  }
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
     eventId, subjectId, vars,
