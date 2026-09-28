@@ -51,18 +51,28 @@ flock -n 9 || exit 0
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
 alive() { kill -0 -- "-$1" 2>/dev/null; }
 
-# Open PRs: number, draft, trusted, head, local-ci state on the head, rerun label, review state.
+# Open PRs: number, draft or untrusted, head, local-ci state on the head, rerun label, review state,
+# and whether auto-merge is still to be turned on (not a draft, no awaiting-user label, not on yet).
 list="$("$GH" pr list --state open --limit 100 \
-  --json number,isDraft,isCrossRepository,author,headRefOid,statusCheckRollup,labels \
+  --json number,isDraft,isCrossRepository,author,headRefOid,statusCheckRollup,labels,autoMergeRequest \
   --jq '.[] | [.number, (.isDraft or .isCrossRepository or (.author.login != "justinlindh")),
         .headRefOid, ([.statusCheckRollup[]? | select(.context == "local-ci") | .state][0] // "none"),
         ([.labels[]?.name] | index("ci-rerun") != null),
-        ([.statusCheckRollup[]? | select(.context == "review") | .state][0] // "none")] | @tsv')" || { log "pr list failed"; exit 1; }
+        ([.statusCheckRollup[]? | select(.context == "review") | .state][0] // "none"),
+        (.autoMergeRequest == null and ([.labels[]?.name] | index("awaiting-user") == null))] | @tsv')" || { log "pr list failed"; exit 1; }
 
 declare -A head skip state rerun review
-while IFS=$'\t' read -r n s h st r rv; do
+mkdir -p "$STATE/auto-merge"
+while IFS=$'\t' read -r n s h st r rv am; do
   [ -n "$n" ] || continue
   head[$n]="$h"; skip[$n]="$s"; state[$n]="$st"; rerun[$n]="$r"; review[$n]="${rv:-none}"
+  # Auto-merge is normally turned on when the PR opens, by the PR-open hook; a PR opened from a
+  # script or a background job skips that hook. Tried once per head, so a refusal isn't repeated.
+  if [ "$s" = false ] && [ "$am" = true ] && [ ! -e "$STATE/auto-merge/$n-$h" ]; then
+    : >"$STATE/auto-merge/$n-$h"
+    if "$GH" pr merge "$n" --auto --merge >/dev/null 2>&1; then log "#$n ${h:0:7}: auto-merge was off; turned it on"
+    else log "#$n ${h:0:7}: auto-merge was off and turning it on failed"; fi
+  fi
 done <<<"$list"
 # True when the PR only changes paths on the light gate's list (docs): no CI slot, done in seconds.
 is_light() {
@@ -135,7 +145,7 @@ for pr in $(order); do
   [ $light = 1 ] || running=$((running + 1))
   log "start #$pr ${h:0:7} ($why$([ $light = 1 ] && echo ", docs only"))"
 done
-find "$STATE/retried" "$STATE/pending" -type f -mtime +7 -delete 2>/dev/null
+find "$STATE/retried" "$STATE/pending" "$STATE/auto-merge" -type f -mtime +7 -delete 2>/dev/null
 # Vitest leaves a /tmp/<21-character id>/ssr directory behind for every run, and /tmp is a tmpfs, so
 # they add up to gigabytes of memory. Clear the ones over an hour old; nothing else is shaped like them.
 find "${AUTO_CI_TMP:-${TMPDIR:-/tmp}}" -maxdepth 1 -mindepth 1 -type d -regextype posix-extended \
