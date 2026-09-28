@@ -211,6 +211,36 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
   if (spare[1] && cfg.stage >= 1) { spare[1].assignment = { type: 'sabbatical', targetId: null }; spare[1].mood = 'away'; spare[1].sabbaticalWeeksLeft = 3; }
 
   const week = { garage: 3, floor: 110, hq: 420, incident: 150, night: 110, ending: 779 }[scenario] ?? 110;
+
+  // Squads on floor and hq, from people with no special assignment: Core on the live project (one
+  // member on loan to support), Growth benched after a launch with one engineer left on upkeep, and
+  // Night Shift on support. Each is added only while enough people remain.
+  const squads = [];
+  if (scenario === 'floor' || scenario === 'hq') {
+    const pool = staff.filter((p) => p.mood !== 'away' && ['project', 'maintenance', 'support', 'sales', 'marketing', 'security', 'idle'].includes(p.assignment.type));
+    const takeWhere = (n, ok) => { const out = []; for (const p of [...pool]) { if (out.length < n && ok(p)) { out.push(p); pool.splice(pool.indexOf(p), 1); } } return out; };
+    const builder = (p) => p.role === 'engineer' || p.role === 'designer';
+    const squad = (name, members, extra) => ({ id: id('q'), name, memberIds: members.map((p) => p.id), leadId: null, afterLaunch: 'upkeep', benchUntil: null,
+      cohesion: 0.3, formedWeek: week - 30, postedWeek: week - 6, crewIds: [], ...extra });
+    if (pool.filter(builder).length >= 2 && pool.length >= 5) {
+      const core = [...takeWhere(4, builder)];
+      core.push(...takeWhere(5 - core.length, () => true));
+      core.slice(0, 4).forEach((p) => { p.assignment = { type: 'project', targetId: projects[0].id }; });
+      core[4].assignment = { type: 'support', targetId: null };
+      squads.push(squad('Core', core, { leadId: core[0].id, posting: { type: 'project', targetId: projects[0].id }, cohesion: 0.6 }));
+    }
+    if (pool.some((p) => p.role === 'engineer') && pool.length >= 4) {
+      const growth = [...takeWhere(1, (p) => p.role === 'engineer'), ...takeWhere(3, () => true)];
+      growth[0].assignment = { type: 'maintenance', targetId: null };
+      growth.slice(1).forEach((p) => { p.assignment = { type: 'idle', targetId: null }; });
+      squads.push(squad('Growth', growth, { posting: { type: 'idle', targetId: null }, benchUntil: week + 2, crewIds: [growth[0].id], postedWeek: week - 1 }));
+    }
+    if (pool.length >= 3) {
+      const night = takeWhere(3, () => true);
+      night.forEach((p) => { p.assignment = { type: 'support', targetId: null }; });
+      squads.push(squad('Night Shift', night, { posting: { type: 'support', targetId: null }, cohesion: 0.9, afterLaunch: 'maintenance' }));
+    }
+  }
   const history = [];
   for (let w = Math.max(0, week - 120); w < week; w++) {
     const t = w / Math.max(1, week);
@@ -246,7 +276,8 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     office: { stage: cfg.stage, placed: mockPlaced(cfg.stage, staff.length) },
     era: { id: ['classic', 'chatgbt', 'agents', 'agents', 'chatgbt', 'consolidation'][Object.keys(SCENARIOS).indexOf(scenario)] ?? 'chatgbt', since: Math.max(0, week - 20) },
     eraSchedule: { chatgbt: 170, agents: 320, consolidation: 530 },
-    unlocks: cfg.stage === 0 ? {} : { marketing: 20, ops: 40, research: 60, models: 170, automation: 170, paths: 80, standups: 90 },
+    unlocks: cfg.stage === 0 ? {} : { marketing: 20, ops: 40, research: 60, models: 170, automation: 170, paths: 80, standups: 90, squads: 60 },
+    squads,
     goals: { place_desks: { done: true, week: 0 }, first_launch: { done: cfg.stage > 0, week: cfg.stage > 0 ? 12 : null }, office_floor: { done: cfg.stage > 0, week: cfg.stage > 0 ? 60 : null }, hq: { done: cfg.stage > 1, week: cfg.stage > 1 ? 300 : null }, ipo: { done: false, week: null } },
     founding: { founders: ['engineer', 'designer'], funding: 'bootstrapped', logoColor: '#ffb020', tagline: 'Build software. Keep the humans.' },
     modifiers: cfg.stage >= 1 ? [{ id: 'x1', key: 'output', value: -0.1, label: 'Four-day week trial', untilWeek: week + 5, source: 'four_day_week' }, { id: 'x2', key: 'meaningRecovery', value: 0.5, label: 'Four-day week trial', untilWeek: week + 5, source: 'four_day_week' }] : [],
@@ -382,6 +413,58 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     return events;
   }
 
+  // The squad actions, with the contract's refusals but none of the sim's cohesion or bench rules.
+  function squadAction(a) {
+    const no = (reason) => ({ ok: false, reason, events: [] });
+    if (state.unlocks.squads === undefined) return no('Squads unlock with the Office Floor or 8 people');
+    const sq = state.squads.find((q) => q.id === a.squadId);
+    const setMembers = (q, ids) => {
+      if (!Array.isArray(ids) || ids.length < 1 || ids.length > 8) return 'A squad has 1 to 8 people';
+      if (ids.some((sid) => !state.staff.some((p) => p.id === sid))) return 'No such staff member';
+      for (const o of state.squads) if (o !== q) { o.memberIds = o.memberIds.filter((m) => !ids.includes(m)); o.crewIds = o.crewIds.filter((m) => !ids.includes(m)); if (!o.memberIds.includes(o.leadId)) o.leadId = null; }
+      q.memberIds = [...ids]; q.crewIds = q.crewIds.filter((m) => ids.includes(m));
+      if (!ids.includes(q.leadId)) q.leadId = null;
+      return null;
+    };
+    if (a.type === 'createSquad') {
+      if (state.squads.length >= 6) return no('Up to 6 squads');
+      const name = String(a.name ?? '').trim();
+      if (!name || name.length > 20) return no('Name the squad');
+      const q = { id: id('q'), name, memberIds: [], leadId: null, posting: { type: 'idle', targetId: null }, afterLaunch: 'upkeep', benchUntil: null, cohesion: 0, formedWeek: state.week, postedWeek: state.week, crewIds: [] };
+      const bad = setMembers(q, a.memberIds);
+      if (bad) return no(bad);
+      state.squads.push(q);
+      return { ok: true, squadId: q.id, events: [] };
+    }
+    if (!sq) return no('No such squad');
+    if (a.type === 'renameSquad') {
+      const name = String(a.name ?? '').trim();
+      if (!name || name.length > 20) return no('Name the squad');
+      sq.name = name;
+    } else if (a.type === 'disbandSquad') state.squads = state.squads.filter((q) => q !== sq);
+    else if (a.type === 'setSquadMembers') { const bad = setMembers(sq, a.memberIds); if (bad) return no(bad); }
+    else if (a.type === 'setSquadLead') {
+      if (a.staffId !== null && !sq.memberIds.includes(a.staffId)) return no('Not in this squad');
+      sq.leadId = a.staffId;
+    } else if (a.type === 'setSquadAfterLaunch') sq.afterLaunch = a.mode;
+    else if (a.type === 'postSquad') {
+      const placed = [], skipped = [];
+      for (const sid of sq.memberIds) {
+        const p = state.staff.find((s) => s.id === sid);
+        if (!p) continue;
+        if (sq.crewIds.includes(sid) && a.posting.type !== 'maintenance') { skipped.push({ staffId: sid, reason: 'On upkeep crew' }); continue; }
+        p.assignment = { type: a.posting.type, targetId: a.posting.targetId ?? null };
+        placed.push(sid);
+      }
+      if (!placed.length) return no(skipped[0]?.reason ?? 'Nobody to post');
+      if (a.posting.type === 'maintenance') sq.crewIds = [];
+      sq.posting = { type: a.posting.type, targetId: a.posting.targetId ?? null };
+      sq.postedWeek = state.week; sq.benchUntil = null;
+      return { ok: true, placed, skipped, events: [] };
+    } else return no(`The mock sim does not implement ${a.type}`);
+    return { ok: true, events: [] };
+  }
+
   function dispatch(action) {
     if (action.type === 'resolveDecision') {
       if (!state.pendingDecision) return { ok: false, reason: 'No decision pending', events: [] };
@@ -445,6 +528,7 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
       state.cash += Math.round(spent / 2);
       return { ok: true, events: [] };
     }
+    if (/Squad/.test(action.type)) return squadAction(action);
     return { ok: false, reason: `The mock sim does not implement ${action.type}`, events: [] };
   }
 
