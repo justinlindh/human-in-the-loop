@@ -45,7 +45,10 @@ export const B = {
   knowledgeGainWorking: 0.5, knowledgeGainMentee: 1.0, newHireKnowledge: 10,
   ikBaseline: 1.35, ikPerProduct: 0.68,
   debtFromEngAuto: 0.8, debtFromQaAuto: 0.35, debtFromOpsAuto: 0.3, debtPerProduct: 0.04,
-  debtPaydownPerSeniorEng: 0.35, debtPaydownReviews: 0.9, debtPaydownRefactor: 15,
+  // Project work adds debt per builder-week, weighted by seniority; paydowns are shares of the current debt
+  // a week, so debt settles where inflow and paydown meet. The Big Refactor clears a share when it ships.
+  debtPerBuildWeek: 0.12, debtBuildWeight: { junior: 1.6, mid: 1, senior: 0.4 }, debtCrunchMult: 1.5,
+  debtPaydownPerSeniorEng: 0.004, debtPaydownMaintenance: 0.002, debtPaydownReviews: 0.027, debtRefactorShare: 0.6,
   debtFromDeparturePerKnowledge: 0.12, debtLowIkThreshold: 40, debtLowIkRate: 0.03,
   sizes: {
     small: { points: 400, cost: 2000, minStage: 0 },
@@ -84,7 +87,7 @@ export const B = {
   // before an unused policy is worth a word (and for how long), how long a new era is, and how rarely an urgent line is pushed unprompted.
   advisorsEnabled: true,
   advisor: {
-    runwayWeeks: [12, 8, 4], burnoutShareUrgent: 1 / 3, debt: [40, 60, 80], busFactorMinHolders: 3, busFactorShare: [0.4, 0.55],
+    runwayWeeks: [12, 8, 4], burnoutShareUrgent: 1 / 3, debt: [30, 50, 70], busFactorMinHolders: 3, busFactorShare: [0.4, 0.55],
     unusedPolicyWeeks: 26, unusedPolicyWindowWeeks: 26, eraWeeks: 8, oneProductPct: 75, migrationWarnWeeks: 8, unmentoredJuniors: 2,
     cooldownWeeks: 26, pushGapWeeks: 12,
   },
