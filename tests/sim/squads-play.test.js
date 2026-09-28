@@ -132,6 +132,36 @@ describe('the upkeep crew (#938)', () => {
   });
 });
 
+describe('squads: cancel, retire and postedWeek (#938)', () => {
+  it('a cancelled project benches its squad with no crew', () => {
+    const { s, squad, members } = setup();
+    const r = dispatch(s, { type: 'startProject', kind: 'refactor' });
+    dispatch(s, { type: 'postSquad', squadId: squad.id, posting: { type: 'project', targetId: r.projectId } });
+    const res = dispatch(s, { type: 'cancelProject', projectId: r.projectId });
+    expect(res.events.find((e) => e.type === 'squadFreed')).toMatchObject({ squadId: squad.id, productId: null, crewIds: [] });
+    expect(squad.posting.type).toBe('idle');
+    expect(squad.benchUntil).toBe(s.week + B.squadBenchWeeks);
+    for (const p of members) expect(p.assignment.type).toBe('idle');
+  });
+
+  it('retiring the product releases its crew', () => {
+    const { s, squad } = setup();
+    shipSmall(s, squad);
+    expect(squad.crewIds.length).toBeGreaterThan(0);
+    dispatch(s, { type: 'killProduct', productId: s.products.at(-1).id });
+    weeks(s, 1);
+    expect(squad.crewIds).toEqual([]);
+  });
+
+  it('postedWeek is the week the current posting began', () => {
+    const { s, squad } = setup();
+    expect(squad.postedWeek).toBe(squad.formedWeek);
+    weeks(s, 3);
+    dispatch(s, { type: 'postSquad', squadId: squad.id, posting: { type: 'maintenance', targetId: null } });
+    expect(squad.postedWeek).toBe(s.week);
+  });
+});
+
 describe('squad cohesion (#938)', () => {
   it('builds while the squad works its posting, reaches 1 after squadCohesionWeeks, and adds output', () => {
     const { s, squad, members } = setup({ engineers: 2, designers: 0 });

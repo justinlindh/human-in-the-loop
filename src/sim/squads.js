@@ -66,7 +66,7 @@ registerAction('createSquad', (ctx, { name, memberIds }) => {
   const bad = checkMembers(state, memberIds);
   if (bad) return { ok: false, reason: bad };
   const squad = { id: newId(state, 'q'), name: n, memberIds: [], leadId: null, posting: { type: 'idle', targetId: null },
-    afterLaunch: 'upkeep', benchUntil: null, cohesion: 0, formedWeek: state.week, crewIds: [] };
+    afterLaunch: 'upkeep', benchUntil: null, cohesion: 0, formedWeek: state.week, postedWeek: state.week, crewIds: [] };
   state.squads.push(squad);
   setMembers(state, squad, memberIds);
   return { ok: true, squadId: squad.id };
@@ -139,6 +139,7 @@ registerAction('postSquad', (ctx, { squadId, posting }) => {
   const { placed, skipped } = postSquad(state, squad, posting);
   if (!placed.length) return { ok: false, reason: skipped[0].reason, placed, skipped };
   squad.posting = { type: posting.type, targetId: posting.type === 'project' ? posting.targetId : null };
+  squad.postedWeek = state.week;
   squad.benchUntil = null;
   if (posting.type === 'maintenance') squad.crewIds = [];
   return { ok: true, placed, skipped };
@@ -161,17 +162,18 @@ export function squadOutputBonus(state, person) {
 // product keeps an upkeep crew on it (the engineers who know most, enough to cover its maintenance) and
 // benches the rest; after an update, migration or internal project the whole squad is benched, since the
 // product already has its upkeep. With afterLaunch 'maintenance' everyone keeps their default work.
-export function squadsAfterProject(ctx, project, team, product) {
+export function squadsAfterProject(ctx, project, team, product, { cancelled = false } = {}) {
   const { state } = ctx;
   for (const sq of state.squads ?? []) {
     if (sq.posting.type !== 'project' || sq.posting.targetId !== project.id) continue;
     const mine = team.filter((p) => sq.memberIds.includes(p.id));
-    if (sq.afterLaunch === 'maintenance') {
+    if (sq.afterLaunch === 'maintenance' && !cancelled) {
       sq.posting = { type: 'maintenance', targetId: null };
+      sq.postedWeek = state.week;
       continue;
     }
     const crew = [];
-    if (product && project.kind === 'new') {
+    if (product && project.kind === 'new' && !cancelled) {
       const need = B.maintenancePerProduct + product.customers * B.maintenancePerCustomer;
       let covered = 0;
       for (const p of mine.filter((x) => x.role === 'engineer').sort((a, b) => b.knowledge - a.knowledge)) {
@@ -183,35 +185,38 @@ export function squadsAfterProject(ctx, project, team, product) {
     }
     for (const p of mine) p.assignment = crew.includes(p) ? { type: 'maintenance', targetId: null } : { type: 'idle', targetId: null };
     sq.crewIds = [...new Set([...sq.crewIds, ...crew.map((p) => p.id)])];
+    const cared = (state.flags.crewProduct ??= {});
+    for (const p of crew) cared[p.id] = product.id;
     sq.posting = { type: 'idle', targetId: null };
+    sq.postedWeek = state.week;
     sq.benchUntil = state.week + B.squadBenchWeeks;
     ctx.emit({ type: 'squadFreed', squadId: sq.id, productId: product?.id ?? null, crewIds: crew.map((p) => p.id) });
   }
 }
 
-// Weekly: records the unlock, benches run out, cohesion builds for squads working their posting, and idle
-// spells are timed for the advisors.
+// Weekly: records the unlock, benches run out, crews shed anyone no longer on upkeep, and cohesion builds
+// for squads working their posting.
 export function squadsSystem(ctx) {
   const { state } = ctx;
   unlocked(state);
-  const idleSince = (state.flags.squadIdleSince ??= {});
   for (const sq of state.squads) {
     const members = sq.memberIds.map((id) => findStaff(state, id)).filter(Boolean);
-    // Someone moved off maintenance by hand has left the crew.
-    sq.crewIds = sq.crewIds.filter((id) => findStaff(state, id)?.assignment.type === 'maintenance');
+    // Someone moved off maintenance by hand, or whose product was retired, has left the crew.
+    const cared = state.flags.crewProduct ?? {};
+    const live = (id) => state.products.some((pr) => pr.id === cared[id] && !pr.killed);
+    sq.crewIds = sq.crewIds.filter((id) => findStaff(state, id)?.assignment.type === 'maintenance' && live(id));
     if (sq.benchUntil !== null && state.week >= sq.benchUntil) {
       for (const p of members) if (p.assignment.type === 'idle' && p.mood !== 'away') p.assignment = defaultAssignment(p);
       sq.benchUntil = null;
-      sq.posting = { type: members.some((p) => p.role === 'engineer') ? 'maintenance' : 'idle', targetId: null };
+      sq.posting = { type: 'maintenance', targetId: null };
+      sq.postedWeek = state.week;
       ctx.emit({ type: 'squadBenchEnded', squadId: sq.id });
     }
     const working = members.filter((p) => onPosting(sq, p)).length;
     if (members.length && working * 2 >= members.length) sq.cohesion = Math.min(1, sq.cohesion + 1 / B.squadCohesionWeeks);
-    const idle = members.length > 0 && sq.posting.type === 'idle' && sq.benchUntil === null;
-    if (!idle) delete idleSince[sq.id];
-    else idleSince[sq.id] ??= state.week;
   }
-  for (const id of Object.keys(idleSince)) if (!state.squads.some((sq) => sq.id === id)) delete idleSince[id];
+  const cared = state.flags.crewProduct;
+  if (cared) for (const id of Object.keys(cared)) if (!state.squads.some((sq) => sq.crewIds.includes(id))) delete cared[id];
 }
 
 registerSystem('squads', squadsSystem, 32);

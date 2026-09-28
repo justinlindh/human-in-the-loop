@@ -317,6 +317,7 @@ registerAction('cancelProject', (ctx, { projectId }) => {
   const voice = [...crew].sort((a, b) => (rank[a.seniority] ?? 3) - (rank[b.seniority] ?? 3))[0]
     ?? state.staff.find((p) => p.founder && p.mood !== 'away') ?? state.staff.find((p) => p.founder);
   for (const p of crew) p.assignment = { type: 'idle', targetId: null };
+  squadsAfterProject(ctx, j, crew, null, { cancelled: true });
   for (const k of Object.keys(state.flags)) if (k.startsWith('returnTo_') && state.flags[k] === j.id) delete state.flags[k];
   state.campaigns = state.campaigns.filter((c) => c.projectId !== j.id);
   state.projects = state.projects.filter((x) => x.id !== j.id);
