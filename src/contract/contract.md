@@ -160,7 +160,7 @@ The run starts at week 0 = January 2019 (dateOf(0).year === 2019).
 ```js
 era: { id /* 'classic'|'chatgbt'|'agents'|'consolidation'|'plateau' */, since /* week */ },
 eraSchedule: { chatgbt, agents, consolidation, plateau },          // arrival weeks for this run (jittered)
-unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups', 'policy.<id>'
+unlocks: { [key]: week },                                  // keys: 'marketing','ops','research','models','automation','paths','standups','squads', 'policy.<id>'
 goals: { [goalId]: { done /*bool*/, week /* or null */ } },
 // Count goals in src/data/goals.js also define progress(state, h) -> { n, of }, with n capped at of and never rounded up
 // to of before done. h = goalHelpers(state), exported from src/sim/index.js. ui reads these for progress bars and never recomputes them.
@@ -494,7 +494,7 @@ state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
 
 - At most 6 squads. A person is in at most one squad; membership lives only on the squad, and ui looks it up there.
 - A member whose assignment doesn't match the squad's posting is "on loan". That is derived, never stored. A plain `assign` of a member leaves them in the squad, on loan.
-- Unlock: squads unlock the first week the company reaches the Office Floor or 8 staff, and stay unlocked after that even if headcount drops.
+- Unlock: squads unlock the first week the company reaches the Office Floor or 8 staff, recorded as `unlocks.squads = week`. Actions check that key, not the current headcount, so squads stay unlocked if headcount drops.
 - Postings are `project`, `maintenance` or `support`, plus `idle` for a benched squad. Other assignments (sales, marketing, security, oversight, mentoring) stay per person; a member on one of those is on loan.
 - After a squad's project ships with `afterLaunch: 'upkeep'`: the crew is the squad's engineers ranked by knowledge of that product, taken in order until their maintenance capacity covers the new product's maintenance need under the ordinary maintenance rule, and at least one. The crew goes to maintenance. The rest are benched: posting `{ type: 'idle', targetId: null }`, `benchUntil = week + B.squadBenchWeeks` (2). When that week arrives, benched members go back to their default work and the squad's posting becomes `maintenance`. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
 - If a squad's posted project is cancelled, the squad is benched the same way, with no crew.
