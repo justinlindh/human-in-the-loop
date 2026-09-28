@@ -12,7 +12,7 @@ import { join } from 'node:path';
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 const OUT = arg('--out') ?? 'shots/memes';
 const ONLY = arg('--only')?.split(',') ?? null;
-const MEMES = ['is_this_agi', 'distracted_founder', 'the_bill', 'the_plan', 'change_my_mind', 'galaxy_brain', 'coffee_approves'].filter((m) => !ONLY || ONLY.includes(m));
+const MEMES = ['is_this_agi', 'distracted_founder', 'the_bill', 'the_plan', 'change_my_mind', 'galaxy_brain'].filter((m) => !ONLY || ONLY.includes(m));
 mkdirSync(OUT, { recursive: true });
 
 // Runs in the page: builds and renders one meme, returns a PNG data URL.
@@ -238,38 +238,6 @@ async function render(id) {
     border();
   }
 
-  if (id === 'coffee_approves') {
-    // Reject and approve, with the espresso machine as the judge: a face on its little screen.
-    const { loadModels, getModel } = await import('/src/render/models.js');
-    await loadModels(['espresso_l2']);
-    const faceTex = (happy) => {
-      const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d');
-      g.fillStyle = happy ? '#2d3a44' : '#2a2630'; g.fillRect(0, 0, 256, 160);
-      g.strokeStyle = g.fillStyle = happy ? P.screen_pink : P.metal_soft; g.lineWidth = 10; g.lineCap = 'round';
-      if (happy) { for (const ex of [80, 176]) { g.beginPath(); g.moveTo(ex, 70); g.bezierCurveTo(ex - 26, 40, ex - 34, 76, ex, 94); g.bezierCurveTo(ex + 34, 76, ex + 26, 40, ex, 70); g.fill(); } g.beginPath(); g.arc(128, 105, 34, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
-      else { g.beginPath(); g.moveTo(58, 62); g.lineTo(102, 72); g.moveTo(198, 62); g.lineTo(154, 72); g.stroke(); g.beginPath(); g.arc(128, 140, 30, 1.2 * Math.PI, 1.8 * Math.PI); g.stroke(); }
-      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
-    };
-    const panel = (happy) => {
-      const { scene, mat } = studio({ wall: happy ? P.wall_warm : P.wall_sage });
-      const m = getModel('espresso_l2'); m.scale.setScalar(1.3); m.rotation.y = happy ? -0.35 : 0.5; m.traverse((o) => { if (o.isMesh) o.castShadow = true; }); scene.add(m);
-      const box3 = new T.Box3().setFromObject(m); const top = box3.max.y, front = box3.max.z;
-      const screen = new T.Mesh(new T.PlaneGeometry(0.42, 0.26), new T.MeshStandardMaterial({ map: faceTex(happy), emissive: new T.Color('#ffffff'), emissiveMap: faceTex(happy), emissiveIntensity: happy ? 0.9 : 0.3 }));
-      screen.position.set(0, top * 0.72, front + 0.01); screen.rotation.y = m.rotation.y; scene.add(screen);
-      if (happy) { const spark = new T.MeshBasicMaterial({ color: new T.Color(P.lamp_warm) }); for (const [sx, sy] of [[-0.55, top * 0.9], [0.6, top * 1.0], [0.45, top * 0.5]]) { const s2 = new T.Mesh(new T.OctahedronGeometry(0.05), spark); s2.position.set(sx, sy, 0.3); scene.add(s2); } }
-      const c = box3.getCenter(new T.Vector3());
-      const aim = new T.Vector3(screen.position.x, screen.position.y - 0.1, screen.position.z);
-      return shoot(scene, [aim.x + 0.35, aim.y + 0.25, aim.z + 1.9], [aim.x, aim.y, aim.z], 740).canvas;
-    };
-    const a = panel(false), b = panel(true);
-    const half = (H - 20) / 2;
-    x.drawImage(a, 200, 40, 800, 660, 16, 16, 520, half - 12);
-    x.drawImage(b, 200, 40, 800, 660, 16, 16 + half + 8, 520, half - 12);
-    text('Decaf', 880, 16 + half / 2, 78);
-    text('Espresso,', 880, 16 + half + half / 2 - 40, 66); text('but it has AI', 880, 16 + half + half / 2 + 34, 66);
-    x.fillStyle = P.ink; x.fillRect(0, 16 + half - 2, W, 10); x.fillRect(536, 0, 10, H);
-    border();
-  }
   return out.toDataURL('image/png');
 }
 
