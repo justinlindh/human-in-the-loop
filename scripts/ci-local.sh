@@ -329,6 +329,19 @@ nodraw_check() {
   fi
   render_step pose-nodraw gpu "node blender/checks/pose-nodraw.mjs --json '$LOGS/pose-nodraw.json'"
 }
+# Tool loading (blender/checks/tool-rng.mjs, on a GPU slot): importing a page-side tool module takes
+# nothing from the game's random stream, and idle time before warm-up changes nothing. Runs for
+# changes to the page-side tool modules, the harness or the renderer.
+rng_check() {
+  [ -f blender/checks/tool-rng.mjs ] || { echo "skipped: no blender/checks/tool-rng.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/render/|blender/checks/([^/]*\.js|harness\.mjs|tool-rng\.mjs)$|package-lock\.json$)' <<<"$files"; then
+    echo "skipped: no render, harness or page-side tool changes"; return 0
+  fi
+  render_step tool-rng gpu "node blender/checks/tool-rng.mjs"
+}
 # golden renders in software (SwiftShader, on the CPU), so it runs in the background while the GPU
 # steps run one after another: those open many browsers each, and running them all at once exhausts
 # the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
@@ -341,6 +354,7 @@ step perf-budget perf_budget
 step phone-check phone_check
 step stage stage_check
 step pose-nodraw nodraw_check
+step tool-rng rng_check
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 step commits commits
