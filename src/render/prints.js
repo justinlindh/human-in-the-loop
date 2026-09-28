@@ -121,13 +121,26 @@ function tessellate(geo) {
   return g;
 }
 
+// Building a print makes three.js objects, and each takes a UUID from Math.random, which the checks
+// seed as the game's own stream. Prints draw from a stream of their own, so whether someone wears one
+// never changes what the game draws next.
+let own = 1;
+const ownRandom = () => { own = (own * 16807) % 2147483647; return (own - 1) / 2147483646; };
+function isolated(fn) {
+  const prev = Math.random;
+  Math.random = ownRandom;
+  try { return fn(); } finally { Math.random = prev; }
+}
+
 const cache = new Map();
 const ray = new THREE.Raycaster();
 const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _n = new THREE.Vector3();
 
 // Meshes for a role's print, children of `torso`, laid onto `targets` (meshes already under torso).
 // Geometry is built once per design, role, build and garment and shared by everyone who wears it.
-export function printParts(design, role, torso, targets, key, wScale = 1) {
+export function printParts(...args) { return isolated(() => buildParts(...args)); }
+
+function buildParts(design, role, torso, targets, key, wScale) {
   const r = REGION[role];
   const make = DESIGNS[design];
   if (!r || !make) return [];
