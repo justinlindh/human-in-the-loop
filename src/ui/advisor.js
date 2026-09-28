@@ -17,6 +17,7 @@
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
+import { startPlacing } from './openTarget.js';
 import { ADVISOR_LEVELS, advisorLevel } from './settings.js';
 
 // The sim's advisor names and titles (src/data/advisors.js), when the build has them.
@@ -127,6 +128,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     if (target === 'goals') { openGoals(); return; }
     if (!target || !panels[target]) return;
     if (target === 'staff') { ctx.open('staff', arg ? { staffId: arg } : undefined); return; }
+    if (target === 'office' && typeof arg === 'string' && arg) { startPlacing(ctx, arg); return; }
     const kind = target === 'policies' ? 'policy' : 'product';
     ctx.open(target, arg ? { [`${kind}Id`]: arg } : undefined);
     if (!arg) return;
