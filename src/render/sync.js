@@ -34,6 +34,7 @@ const TIRED_STAMINA = 25;           // below this a person shows the exhaustion 
 const isTired = (s) => s.mood !== 'burnout' && s.mood !== 'away' && Number.isFinite(s.stamina) && s.stamina < TIRED_STAMINA;
 const STAT_TONES = new Set(['features', 'polish', 'reliability', 'novelty']);
 const QUIET_R = 4;          // metres round a spotlight moment where only its own lines are spoken
+const STANDUP_QUIET_M = 1.5;  // beyond the standup ring, how far other speech stays quiet
 // Choosing who facepalms at a backfired post: someone in the camera's line within nearM to farM in
 // front and acrossM to the side hides them; the weights favour clear, standing and idle people; a
 // standing facepalmer turns this far off square to the camera.
@@ -55,7 +56,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const momentSpeech = createMomentSpeech();
   function speak(text, r, e = {}, checked = false) {
     if (!r || r.hidden || !text || (!checked && quieted(e, r))) return 0;
-    if (standup && !e.standup && !e.moment) return 0;
+    if (standup && !e.standup && !e.moment && (nearStandup(r) || nearStandup(e.toId && recs.get(e.toId)))) return 0;
     const seconds = holdSeconds(text, speed);
     if (!speech.admit(r.id, seconds, labels.speechCount?.() ?? 0, e)) return 0;
     labels.say(text, r.char.root, seconds, 1.45, { moment: !!e.moment });
@@ -500,7 +501,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (q.open && !pending) return 'drop';
       if (q.spot && q.spot !== active?.key) return 'drop';
       // Routine celebration lines wait their turn outside an ordered meeting; a spotlight keeps priority.
-      if (standup && !active && !q.open) return 'wait';
+      if (standup && !active && !q.open && nearStandup(r)) return 'wait';
       if (active && active.kind !== e.moment) return 'wait';
       if (active) q.spot = active.key;
       if (q.age < B.momentSpeechStartDelay) return 'wait';
@@ -899,6 +900,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const GATHER = 2.2;
   let speed = 1;
   let standup = null;
+  // Whether someone stands close enough to the standup ring for their chatter to talk over it.
+  const nearStandup = (x) => !!standup && !!x && Math.hypot(x.pos.x - standup.at.x, x.pos.z - standup.at.z) < standup.quietR;
   function setSpeed(k) { speed = k; }
 
   // Where a standup gathers: around the meeting table, else in front of the whiteboard, else on
@@ -1010,7 +1013,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (week < lastStagedWeek) { lastStagedWeek = -Infinity; lastStagedAt = -Infinity; }   // a new or loaded game
     // In person only now and then (by real play time, so speed doesn't change how often); a
     // standup still talking is never cut off, and the weeks between stay at the desks.
-    const stage = !standup && playTime - lastStagedAt >= STAGE_GAP_S;
+    const stage = !standup && speed < 4 && playTime - lastStagedAt >= STAGE_GAP_S;
     const present = (l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !taken(r); };
     if (!stage) { deskStandup((e.lines ?? []).filter(present)); return; }
     const lines = (e.lines ?? []).filter((l) => { const r = recs.get(l.staffId); return r && !r.hidden && r.mode === 'placed' && !r.temp?.moment; });
@@ -1034,7 +1037,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (need > r.speed) { r.speed = need; r.walkAnim = need > 2 ? 'run' : 'walk'; }
       return { r };
     });
-    standup = { people, phase: 'gather', t: 0, speech: createStandupSpeech(lines), context: standupContext(state, e.lines), spoken: null };
+    const at = { x: spots.reduce((v, sp) => v + sp.x, 0) / spots.length, z: spots.reduce((v, sp) => v + sp.z, 0) / spots.length };
+    const quietR = Math.max(0, ...spots.map((sp) => Math.hypot(sp.x - at.x, sp.z - at.z))) + STANDUP_QUIET_M;
+    standup = { people, phase: 'gather', t: 0, speech: createStandupSpeech(lines), context: standupContext(state, e.lines), spoken: null, at, quietR };
     office.tuckMeetingChairs(true);
   }
 
@@ -1056,6 +1061,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const { r } of st.people) if (r.goal?.hidden && r.temp?.standup) { r.temp = null; labels.clearFor(r.char.root); }
     const live = st.people.filter((p) => recs.has(p.r.id) && !p.r.hidden && p.r.temp?.standup);
     if (!live.length) { endStandup(); return; }
+    // At 4x and above the meeting is skipped: everyone goes back to what they were doing.
+    if (speed >= 4) { if (st.spoken) labels.clearSpeech(st.spoken.root, st.spoken.text); endStandup(); return; }
     if (spotlights.current()) return;
     if (st.phase === 'gather') {
       // Talking starts once most of the ring is in place; stragglers finish walking in.
@@ -1281,7 +1288,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.pos.set(x, 0, z);
       return true;
     },
-    get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.speech.index } : null; },
+    get standup() { return standup ? { phase: standup.phase, n: standup.people.length, i: standup.speech.index, at: { ...standup.at }, quietR: standup.quietR } : null; },
     get count() { return recs.size; },
     get leaverCount() { return leavers.length; },
   };
