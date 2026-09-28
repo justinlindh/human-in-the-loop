@@ -445,14 +445,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           }
           break;
         }
-        case 'launch': companyParty(); break;
         case 'posted': postReaction(e.outcome); break;
-        case 'award': {
-          const L = cur?.L;
-          if (L) fx.confetti(0, 1.2, 0, { spread: 2.2, power: 1.25 });
-          companyParty();
-          break;
-        }
         case 'incident': incident(e); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
         case 'incentive': incentives.handle(e); break;
@@ -698,9 +691,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function companyParty(cause = null) {
     const cur = office.current;
     if (!cur) return;
-    // A launch arrives with celebrate(null) in the same batch; throw one party, not two.
+    // Only a company-wide celebrate throws a party (a launch or award on its own doesn't); two in
+    // quick succession make one.
     const now = performance.now();
-    // Its cause may come with the second of the two; it still gets its banner.
+    // A second one's cause still gets its banner.
     if (now - lastParty < 1500) { if (cause && !partyBanner) showBanner(cause); return; }
     lastParty = now;
     partyBanner = false;
