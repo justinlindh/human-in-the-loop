@@ -103,20 +103,24 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // (skinned, instanced and morphing meshes keep the default test), each on its first raycast.
         // Loading the module and building a tree make three.js objects, which take UUIDs from
         // Math.random, so both run on the tool stream and the game's stream is untouched.
-        window.__fastRaycast = async () => {
+        // { install: false } loads the module without patching raycast, so a comparison run waits on
+        // the page exactly as long as a fast one.
+        window.__fastRaycast = async ({ install = true } = {}) => {
           if (window.__fastRaycastOn) return;
           const THREE = R.THREE;
           const toolRandom = window.__tool(() => Math.random), gameRandom = Math.random;
           Math.random = toolRandom;
           let bvh;
           try { bvh = await import('/node_modules/three-mesh-bvh/src/index.js'); } finally { Math.random = gameRandom; }
+          if (!install) return;
           const slow = THREE.Mesh.prototype.raycast;
           THREE.Mesh.prototype.raycast = function (raycaster, hits) {
             const g = this.geometry;
             if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !g?.attributes?.position || g.morphAttributes?.position) return slow.call(this, raycaster, hits);
             if (!g.boundsTree) {
               if ((g.index ? g.index.count : g.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
-              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g); });
+              // indirect: the game's geometry (its index, or its lack of one) stays as it was.
+              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g, { indirect: true }); });
             }
             return bvh.acceleratedRaycast.call(this, raycaster, hits);
           };
