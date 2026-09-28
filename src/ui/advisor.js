@@ -109,13 +109,25 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   // Where an option leads, named as its panel is (Staff, Reports...), for the chip on its button.
   const placeName = (o) => { const p = panelOf(o); return p === 'goals' ? 'Goals' : (panels[p]?.title ?? '').split(' ')[0]; };
   const options = (item) => (Array.isArray(item.options) ? item.options.filter((o) => o?.text && canShow(o)).slice(0, 3) : []);
+  // Opens the panel a line or option names. A staffId opens that person; a policy or product id
+  // scrolls its row into view with a brief flash, once the panel has drawn.
   function showMe(item) {
     const target = panelOf(item);
     const arg = item.target?.arg;
     ctx.modal?.close();
-    if (target === 'goals') openGoals();
-    else if (target === 'staff') ctx.open('staff', arg ? { staffId: arg } : undefined);
-    else if (target && panels[target]) ctx.open(target);
+    if (target === 'goals') { openGoals(); return; }
+    if (!target || !panels[target]) return;
+    if (target === 'staff') { ctx.open('staff', arg ? { staffId: arg } : undefined); return; }
+    const kind = target === 'policies' ? 'policy' : 'product';
+    ctx.open(target, arg ? { [`${kind}Id`]: arg } : undefined);
+    if (!arg) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = [...document.querySelectorAll(`[data-${kind}]`)].find((x) => x.dataset[kind] === String(arg));
+      if (!el) return;
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.add('advflash');
+      setTimeout(() => el.classList.remove('advflash'), 1800);
+    }));
   }
 
   function dismiss(item) {
@@ -132,11 +144,11 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
         h('div.small.muted', { text: `${a.name}${a.role ? ` · ${a.role}` : ''}${age ? ` · ${age}` : ''}` }),
         h('div.advtext', { text: item.text }),
         item.why ? h('div.small.advwhy', { text: item.why }) : null,
-        isFine(item) ? null : h('div.advacts', null,
+        h('div.advacts', null,
           // A notice's own ways to address it, each opening its panel; Show me when it has none.
           ...(options(item).length ? options(item).map((o) => h('button.btn.small.go.advopt', { type: 'button', onclick: () => showMe(o) }, o.text, h('span.advplace', { text: placeName(o) })))
             : [canShow(item) ? h('button.btn.small.go', { type: 'button', onclick: () => showMe(item) }, 'Show me') : null]),
-          h('button.btn.small', { type: 'button', onclick: () => { if (dismiss(item)) rerender(); } }, 'Not now'))));
+          isFine(item) ? null : h('button.btn.small', { type: 'button', onclick: () => { if (dismiss(item)) rerender(); } }, 'Not now'))));
   }
 
   function open(focusKey = null) {

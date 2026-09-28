@@ -45,3 +45,7 @@
 .hitl .advearlier-text { flex: 1; min-width: 0; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hitl .advacts .advopt { white-space: normal; text-align: left; line-height: 1.2; }
 .hitl .advopt .advplace { margin-left: 0.45em; padding: 0 0.4em; border-radius: 0.6em; background: rgba(255, 255, 255, 0.28); font-size: 0.85em; font-weight: 600; }
+/* The row an advisor option points at, flashed once when its panel opens. */
+.hitl .advflash { animation: hitl-adv-flash 1.6s ease-out; }
+@keyframes hitl-adv-flash { 0%, 40% { box-shadow: 0 0 0 0.3em rgba(255, 176, 32, 0.85); } 100% { box-shadow: 0 0 0 0 rgba(255, 176, 32, 0); } }
+@media (prefers-reduced-motion: reduce) { .hitl .advflash { animation: none; outline: 0.2em solid var(--yellow); } }
