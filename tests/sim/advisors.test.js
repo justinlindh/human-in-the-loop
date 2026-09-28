@@ -155,14 +155,14 @@ describe('advisors: options', () => {
     expect(find(s, 'burnout').options.some((o) => o.target.arg === 'no_crunch')).toBe(true);
   });
 
-  it('The Big Refactor is offered only when a builder is free; otherwise the option is to free one up', () => {
+  it('The Big Refactor is offered whenever startProject would allow it; with no builder in, the option is to hire one', () => {
     const s = game(17);
     for (let i = 0; i < 2; i++) addStaff(s, 'engineer', 'mid');
     s.comprehensionDebt = B.advisor.debt[1];
     for (const p of s.staff) p.assignment = { type: 'support', targetId: null };
-    expect(find(s, 'debt').options[0]).toMatchObject({ text: 'Free up an engineer for The Big Refactor', target: { panel: 'staff' } });
-    s.staff.find((p) => p.role === 'engineer').assignment = { type: 'idle', targetId: null };
     expect(find(s, 'debt').options[0]).toMatchObject({ text: 'Start The Big Refactor', target: { panel: 'build' } });
+    for (const p of s.staff) if (p.role === 'engineer' || p.role === 'designer' || p.founder) p.mood = 'away';
+    expect(find(s, 'debt').options[0]).toMatchObject({ text: 'Hire an engineer who can take on The Big Refactor', target: { panel: 'staff' } });
   });
 
   it('over real games every piece of advice offers 2 or 3 real options, pointing at real menus and things', () => {
