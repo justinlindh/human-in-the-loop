@@ -470,7 +470,7 @@ vendor · weight 1 · cooldown 52 weeks
 
 When: `(s) => Object.values(s.automation).some((a) => a.level > 0)`
 
-Happens: self-hosted models cost 50% more for 8 weeks
+Happens: automation costs +50% for 8 weeks
 
 ## The agent dropped the production database `agent_db_wipe`
 
