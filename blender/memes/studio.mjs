@@ -12,7 +12,7 @@ import { join } from 'node:path';
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 const OUT = arg('--out') ?? 'shots/memes';
 const ONLY = arg('--only')?.split(',') ?? null;
-const MEMES = ['is_this_agi', 'distracted_founder', 'the_bill', 'the_plan', 'change_my_mind'].filter((m) => !ONLY || ONLY.includes(m));
+const MEMES = ['is_this_agi', 'distracted_founder', 'the_bill', 'the_plan', 'change_my_mind', 'galaxy_brain', 'coffee_approves'].filter((m) => !ONLY || ONLY.includes(m));
 mkdirSync(OUT, { recursive: true });
 
 // Runs in the page: builds and renders one meme, returns a PNG data URL.
@@ -20,7 +20,8 @@ async function render(id) {
   const R = window.__hitlRender, T = R.THREE;
   const { createCharacter } = await import('/src/render/character.js');
   const { PALETTE: P, ROLE_COLORS } = await import('/src/render/palette.js');
-  const { RoundedBoxGeometry } = await import('/node_modules/three/examples/jsm/geometries/RoundedBoxGeometry.js');
+  // Packages come through the game's own modules, so Vite resolves them wherever node_modules lives.
+  const { roundedBox } = await import('/src/render/prims.js');
   await document.fonts.load('700 60px Fredoka');
   const W = 1200, H = 900;
 
@@ -37,10 +38,10 @@ async function render(id) {
     const floor = new T.Mesh(new T.PlaneGeometry(16, 10), mat(P.carpet_classic, { roughness: 0.95 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
     const back = new T.Mesh(new T.PlaneGeometry(16, 6), mat(wall)); back.position.set(0, 3, -1.6); back.receiveShadow = true; scene.add(back);
-    const wain = new T.Mesh(new RoundedBoxGeometry(16, 0.9, 0.06, 2, 0.02), mat(P.wood_light, { roughness: 0.7 })); wain.position.set(0, 0.45, -1.57); scene.add(wain);
+    const wain = new T.Mesh(roundedBox(16, 0.9, 0.06, 0.02, 2), mat(P.wood_light, { roughness: 0.7 })); wain.position.set(0, 0.45, -1.57); scene.add(wain);
     return { scene, mat };
   }
-  const box = (w, h, d, material, x, y, z) => { const m = new T.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.min(w, h, d) * 0.15), material); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; return m; };
+  const box = (w, h, d, material, x, y, z) => { const m = new T.Mesh(roundedBox(w, h, d, Math.min(w, h, d) * 0.15, 3), material); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; return m; };
   function windowOn(scene, mat, x, y) {
     scene.add(box(1.5, 1.1, 0.08, mat(P.paper), x, y, -1.56));
     const pane = new T.Mesh(new T.PlaneGeometry(1.3, 0.9), mat(P.window_day, { emissive: new T.Color(P.window_day), emissiveIntensity: 0.4 }));
@@ -102,7 +103,7 @@ async function render(id) {
     // The "butterfly": a glowing chat bubble with typing dots, where the finger points.
     const bubble = new T.Group();
     const glowMat = mat(P.screen_cyan, { emissive: new T.Color(P.screen_cyan), emissiveIntensity: 0.6, roughness: 0.4 });
-    bubble.add(new T.Mesh(new RoundedBoxGeometry(0.62, 0.4, 0.14, 4, 0.12), glowMat));
+    bubble.add(new T.Mesh(roundedBox(0.62, 0.4, 0.14, 0.12, 4), glowMat));
     const tail = new T.Mesh(new T.ConeGeometry(0.08, 0.16, 12), glowMat); tail.position.set(-0.22, -0.24, 0); tail.rotation.z = -0.6; bubble.add(tail);
     const dot = mat(P.paper, { emissive: new T.Color(P.paper), emissiveIntensity: 0.4 });
     for (const dx of [-0.15, 0, 0.15]) { const d = new T.Mesh(new T.SphereGeometry(0.045, 16, 12), dot); d.position.set(dx, 0, 0.08); bubble.add(d); }
@@ -206,19 +207,91 @@ async function render(id) {
     x.drawImage(canvas, 0, 20);
     border();
   }
+  if (id === 'galaxy_brain') {
+    // Expanding brain with desk lamps: four ideas, each lamp brighter than the last, the last one blazing.
+    const ideas = [['Fix the bug'], ['Add a test'], ['Add a', 'feature flag'], ['Rename the bug', 'to a feature']];
+    const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })();
+    const rowH = (H - 30) / 4;
+    for (let i = 0; i < 4; i++) {
+      const { scene, mat } = studio({ wall: i === 3 ? P.wall_trim : P.wall_cream });
+      scene.background = new T.Color(i === 3 ? '#2a2630' : P.paper);
+      const metal = mat(P.metal_dark ?? '#4a4f5a', { roughness: 0.4 });
+      const base = new T.Mesh(new T.CylinderGeometry(0.22, 0.26, 0.06, 32), metal); base.position.set(0, 0.03, 0); scene.add(base);
+      const arm = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.8, 12), metal); arm.position.set(-0.05, 0.42, 0); arm.rotation.z = 0.25; scene.add(arm);
+      const arm2 = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.55, 12), metal); arm2.position.set(0.12, 0.88, 0); arm2.rotation.z = -1.0; scene.add(arm2);
+      const shade = new T.Mesh(new T.ConeGeometry(0.2, 0.24, 32, 1, true), mat(P.marker_orange, { side: T.DoubleSide })); shade.position.set(0.36, 0.95, 0); shade.rotation.z = -0.5; scene.add(shade);
+      const level = [0.05, 0.9, 2.2, 5][i];
+      const bulb = new T.Mesh(new T.SphereGeometry(0.1, 24, 16), new T.MeshStandardMaterial({ color: new T.Color(P.lamp_warm), emissive: new T.Color(P.lamp_warm), emissiveIntensity: level })); bulb.position.set(0.44, 0.78, 0.02); scene.add(bulb);
+      // A pool of light on the desk under the lamp, wider and warmer with each idea.
+      if (level > 0.5) { const pool = new T.Mesh(new T.CircleGeometry([0, 0.35, 0.6, 1.0][i], 48), new T.MeshBasicMaterial({ map: glowTex, color: new T.Color(P.lamp_warm), transparent: true, opacity: [0, 0.35, 0.55, 0.8][i], blending: T.AdditiveBlending, depthWrite: false })); pool.rotation.x = -Math.PI / 2; pool.position.set(0.5, 0.012, 0.1); scene.add(pool); }
+      if (level > 0.5) { const l = new T.PointLight(new T.Color(P.lamp_warm), level * 0.8, 4); l.position.copy(bulb.position); scene.add(l); }
+      if (i >= 2) { const halo = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color: new T.Color(P.lamp_warm), transparent: true, opacity: i === 3 ? 0.95 : 0.5, blending: T.AdditiveBlending, depthWrite: false })); halo.scale.setScalar(i === 3 ? 2.4 : 0.9); halo.position.copy(bulb.position); scene.add(halo); }
+      if (i === 3) { const spark = new T.MeshBasicMaterial({ color: new T.Color(P.lamp_warm) }); for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; const m = new T.Mesh(new T.OctahedronGeometry(0.035), spark); m.position.set(0.4 + Math.cos(a) * 0.75, 0.86 + Math.sin(a) * 0.55, 0.1); scene.add(m); } }
+      const { canvas } = shoot(scene, [0.35, 0.9, 2.7], [0.25, 0.6, 0], 740);
+      const y0 = 15 + i * rowH;
+      x.drawImage(canvas, 150, 20, 920, 620, W / 2, y0, W / 2, rowH);
+      x.fillStyle = P.paper; x.fillRect(16, y0, W / 2 - 16, rowH);
+      ideas[i].forEach((line, k) => text(line, W / 4, y0 + rowH / 2 + (k - (ideas[i].length - 1) / 2) * 56, 52));
+      if (i) { x.fillStyle = P.ink; x.fillRect(0, y0 - 4, W, 8); }
+    }
+    x.fillStyle = P.ink; x.fillRect(W / 2 - 4, 0, 8, H);
+    border();
+  }
+
+  if (id === 'coffee_approves') {
+    // Reject and approve, with the espresso machine as the judge: a face on its little screen.
+    const { loadModels, getModel } = await import('/src/render/models.js');
+    await loadModels(['espresso_l2']);
+    const faceTex = (happy) => {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d');
+      g.fillStyle = happy ? '#2d3a44' : '#2a2630'; g.fillRect(0, 0, 256, 160);
+      g.strokeStyle = g.fillStyle = happy ? P.screen_pink : P.metal_soft; g.lineWidth = 10; g.lineCap = 'round';
+      if (happy) { for (const ex of [80, 176]) { g.beginPath(); g.moveTo(ex, 70); g.bezierCurveTo(ex - 26, 40, ex - 34, 76, ex, 94); g.bezierCurveTo(ex + 34, 76, ex + 26, 40, ex, 70); g.fill(); } g.beginPath(); g.arc(128, 105, 34, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
+      else { g.beginPath(); g.moveTo(58, 62); g.lineTo(102, 72); g.moveTo(198, 62); g.lineTo(154, 72); g.stroke(); g.beginPath(); g.arc(128, 140, 30, 1.2 * Math.PI, 1.8 * Math.PI); g.stroke(); }
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+    };
+    const panel = (happy) => {
+      const { scene, mat } = studio({ wall: happy ? P.wall_warm : P.wall_sage });
+      const m = getModel('espresso_l2'); m.scale.setScalar(1.3); m.rotation.y = happy ? -0.35 : 0.5; m.traverse((o) => { if (o.isMesh) o.castShadow = true; }); scene.add(m);
+      const box3 = new T.Box3().setFromObject(m); const top = box3.max.y, front = box3.max.z;
+      const screen = new T.Mesh(new T.PlaneGeometry(0.42, 0.26), new T.MeshStandardMaterial({ map: faceTex(happy), emissive: new T.Color('#ffffff'), emissiveMap: faceTex(happy), emissiveIntensity: happy ? 0.9 : 0.3 }));
+      screen.position.set(0, top * 0.72, front + 0.01); screen.rotation.y = m.rotation.y; scene.add(screen);
+      if (happy) { const spark = new T.MeshBasicMaterial({ color: new T.Color(P.lamp_warm) }); for (const [sx, sy] of [[-0.55, top * 0.9], [0.6, top * 1.0], [0.45, top * 0.5]]) { const s2 = new T.Mesh(new T.OctahedronGeometry(0.05), spark); s2.position.set(sx, sy, 0.3); scene.add(s2); } }
+      const c = box3.getCenter(new T.Vector3());
+      const aim = new T.Vector3(screen.position.x, screen.position.y - 0.1, screen.position.z);
+      return shoot(scene, [aim.x + 0.35, aim.y + 0.25, aim.z + 1.9], [aim.x, aim.y, aim.z], 740).canvas;
+    };
+    const a = panel(false), b = panel(true);
+    const half = (H - 20) / 2;
+    x.drawImage(a, 200, 40, 800, 660, 16, 16, 520, half - 12);
+    x.drawImage(b, 200, 40, 800, 660, 16, 16 + half + 8, 520, half - 12);
+    text('Decaf', 880, 16 + half / 2, 78);
+    text('Espresso,', 880, 16 + half + half / 2 - 40, 66); text('but it has AI', 880, 16 + half + half / 2 + 34, 66);
+    x.fillStyle = P.ink; x.fillRect(0, 16 + half - 2, W, 10); x.fillRect(536, 0, 10, H);
+    border();
+  }
   return out.toDataURL('image/png');
 }
 
 const H = await startHarness({ browsers: 1 });
+let written = 0, failed = 0;
 try {
   for (const id of MEMES) {
-    const { page } = await H.openScene('mock=garage&quality=high&rig=0', { width: 1200, height: 900 });
-    const url = await page.evaluate(render, id);
-    writeFileSync(join(OUT, `${id}.png`), Buffer.from(url.split(',')[1], 'base64'));
-    console.log(`meme: ${join(OUT, `${id}.png`)}`);
+    const { page, errors } = await H.openScene('mock=garage&quality=high&rig=0', { width: 1200, height: 900 });
+    try {
+      const url = await page.evaluate(render, id);
+      if (!url?.startsWith('data:image/png')) throw new Error('the page returned no image');
+      writeFileSync(join(OUT, `${id}.png`), Buffer.from(url.split(',')[1], 'base64'));
+      console.log(`meme: ${join(OUT, `${id}.png`)}`);
+      written++;
+    } catch (e) {
+      failed++;
+      console.error(`meme: ${id} FAILED: ${e.message.split('\n')[0]}${errors?.length ? ` (page errors: ${errors.slice(0, 2).join('; ')})` : ''}`);
+    }
     await page.close();
   }
 } finally {
   await H.close?.();
-  process.exit(0);
 }
+if (failed || !written) console.error(`meme: ${written} of ${MEMES.length} written`);
+process.exit(failed || !written ? 1 : 0);

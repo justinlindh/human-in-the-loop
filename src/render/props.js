@@ -1040,8 +1040,9 @@ function printerBody(broken = false) {
   panel.position.set(0.1, 0.395, 0.17); panel.rotation.x = -Math.PI / 2 + 0.5;
   g.add(panel);
   if (!broken) {
-    // The jammed sheet, crumpled out of the output slot.
-    const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.05, 0.33, 0.3);
+    // The jammed sheet, crumpled out of the output slot: its back edge just in front of the body and
+    // the lid's lip, so no part of it passes through the printer.
+    const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.05, 0.3, 0.335);
     jam.rotation.set(0.9, 0.2, 0.15);
     g.add(jam);
   }
