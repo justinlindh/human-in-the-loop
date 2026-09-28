@@ -445,12 +445,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           }
           break;
         }
-        case 'launch': companyParty(); break;
+        case 'launch': {
+          const name = state?.products?.find((p) => p.id === e.productId)?.name;
+          companyParty(name ? `${name} launched!` : null);
+          break;
+        }
         case 'posted': postReaction(e.outcome); break;
         case 'award': {
           const L = cur?.L;
           if (L) fx.confetti(0, 1.2, 0, { spread: 2.2, power: 1.25 });
-          companyParty();
+          companyParty(e.text ?? null);
           break;
         }
         case 'incident': incident(e); break;
@@ -684,7 +688,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   let lastParty = -1e9;
-  function companyParty() {
+  const partyAt = new THREE.Object3D();
+  // cause: what the company is celebrating ("Product 5 launched!", an award's text), shown as a
+  // banner over the crowd. A launch or award comes in the same batch as its celebrate(null), first.
+  function companyParty(cause = null) {
     const cur = office.current;
     if (!cur) return;
     // A launch arrives with celebrate(null) in the same batch; throw one party, not two.
@@ -699,6 +706,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (r.hidden || r.mode !== 'placed' || taken(r) || !roomToCelebrate(r)) continue;
       r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08, moment: 'company_party', stage: { beat: 'cheer' } };
       cast.push(r);
+    }
+    if (cause && cast.length) {
+      partyAt.position.set(cast.reduce((v, r) => v + r.pos.x, 0) / cast.length, 0, cast.reduce((v, r) => v + r.pos.z, 0) / cast.length);
+      if (!partyAt.parent) group.add(partyAt);
+      labels.banner?.(cause, partyAt);
     }
     if (cast.length) spotlights.begin('company_party', () => {
       for (const r of cast) if (r.temp?.moment === 'company_party') r.temp = null;
