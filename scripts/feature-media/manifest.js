@@ -109,10 +109,12 @@ export const ITEMS = [
     id: 'site-hero', title: 'Landing page hero: the HQ by day, and a drift over it', ...OFFICE(500, HQ), seconds: 14.5, record: '3840x2160',
     camera: [{ at: 0, target: HERO_AT(-1.8, 0.9), zoom: 1.2 }, { at: 7, target: HERO_AT(1.8, -0.9), zoom: 1.2, ease: 'inOut' }, { at: 14, target: HERO_AT(-1.8, 0.9), zoom: 1.2, ease: 'inOut' }],
     actions: [{ at: 0, js: 'window.__hitlRender.setTiltShift(false)' }, ...CLEAR_EARLY, ...CAMLOG(14.5)],
-    screenshots: [3.5],
+    // The stills are cut from the loop's own opening frame (0), not a later one: the site checks the
+    // poster against the loop's first frame and refuses a page jump when the loop starts.
+    screenshots: [0],
     out: [
-      { path: 'img/hero.webp', size: '1920x1080', from: 3.5, quality: 88 },
-      { path: 'img/hero-2560.webp', size: '2560x1440', from: 3.5, quality: 86 },
+      { path: 'img/hero.webp', size: '1920x1080', from: 0, quality: 88 },
+      { path: 'img/hero-2560.webp', size: '2560x1440', from: 0, quality: 86 },
       { path: 'media/loops/hero.mp4', size: '1600x900', from: 0, seconds: 14, fps: 24, webm: true, xfade: 0.4, crf: 30, webmCrf: 40 },
       { path: 'media/loops/hero-2560.mp4', size: '2560x1440', from: 0, seconds: 14, fps: 24, webm: true, xfade: 0.4, crf: 31, webmCrf: 42 },
     ],
@@ -180,9 +182,10 @@ export const ITEMS = [
         window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });`,
     })}; ${CLEAN}; })()`,
     actions: [...CLEAR_EARLY, ...DISMISS_AT([2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18], { escape: false }), ...CAMLOG(24)],
-    screenshots: [9, 12, 15, 18],
-    // The gathering starts around 9s and the dialogue lands by 14s; this window covers both.
-    out: [LOOP('meeting', 9, 8)],
+    screenshots: [8.5, 12, 15, 18],
+    // People start walking over around 8.5s and are seated by 10s; the dialogue lands by 14s. Cropped
+    // on the table (it sits in a back corner, so the full frame reads as mostly empty).
+    out: [LOOP('meeting', 8.5, 8, { x: 950 / 1920, y: 300 / 1080, w: 800 / 1920, h: 450 / 1080 })],
   },
   {
     id: 'site-loop-waffle', title: 'Landing page loop: the Waffle Party', query: 'seed=1&speed=1', seconds: 30,
@@ -227,8 +230,8 @@ export const ITEMS = [
     setup: `(async () => { await ${PLAY({ weeks: 400, bot: 'squads', until: 's.squads.length >= 2 && s.squads.some((q) => q.cohesion >= 0.5)', after: IN_OFFICE })}; })()`,
     actions: [...CLEAR_EARLY, { at: 3.3, js: KEY('s', 'KeyS') }, { at: 4, js: CLICK_STARTS('Squads') }],
     screenshots: [4.6],
-    // Cropped to the Squads tab card, with a sliver of the HUD above it and the office below.
-    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 45 / 1080, w: 1340 / 1920, h: 750 / 1080 } }],
+    // Cropped to the Squads tab card, starting at its own top edge, with the office below.
+    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 85 / 1080, w: 1340 / 1920, h: 710 / 1080 } }],
   },
 
   {
