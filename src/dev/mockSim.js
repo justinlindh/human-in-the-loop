@@ -446,19 +446,27 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     else if (a.type === 'setSquadLead') {
       if (a.staffId !== null && !sq.memberIds.includes(a.staffId)) return no('Not in this squad');
       sq.leadId = a.staffId;
-    } else if (a.type === 'setSquadAfterLaunch') sq.afterLaunch = a.mode;
+    } else if (a.type === 'setSquadAfterLaunch') {
+      if (a.mode !== 'upkeep' && a.mode !== 'maintenance') return no('Unknown mode');
+      sq.afterLaunch = a.mode;
+    }
     else if (a.type === 'postSquad') {
+      const posting = a.posting;
+      if (!posting || !['project', 'maintenance', 'support', 'idle'].includes(posting.type)) return no('Unknown posting');
+      if (posting.type === 'project' && !state.projects.some((j) => j.id === posting.targetId)) return no('No such project');
+      if (!sq.memberIds.length) return no('The squad is empty');
+      const targetId = posting.type === 'project' ? posting.targetId : null;
       const placed = [], skipped = [];
       for (const sid of sq.memberIds) {
         const p = state.staff.find((s) => s.id === sid);
         if (!p) continue;
-        if (sq.crewIds.includes(sid) && a.posting.type !== 'maintenance') { skipped.push({ staffId: sid, reason: 'On upkeep crew' }); continue; }
-        p.assignment = { type: a.posting.type, targetId: a.posting.targetId ?? null };
+        if (sq.crewIds.includes(sid) && posting.type !== 'maintenance') { skipped.push({ staffId: sid, reason: 'On upkeep crew' }); continue; }
+        p.assignment = { type: posting.type, targetId };
         placed.push(sid);
       }
       if (!placed.length) return no(skipped[0]?.reason ?? 'Nobody to post');
-      if (a.posting.type === 'maintenance') sq.crewIds = [];
-      sq.posting = { type: a.posting.type, targetId: a.posting.targetId ?? null };
+      if (posting.type === 'maintenance') sq.crewIds = [];
+      sq.posting = { type: posting.type, targetId };
       sq.postedWeek = state.week; sq.benchUntil = null;
       return { ok: true, placed, skipped, events: [] };
     } else return no(`The mock sim does not implement ${a.type}`);
