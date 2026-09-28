@@ -14,6 +14,7 @@ import { ANGLES } from '../data/angles.js';
 import { lockedReason } from './unlocks.js';
 import { eraAtLeast, eraIndex } from './eras.js';
 import { emitChat } from './chat.js';
+import { bumpDebt } from './debt.js';
 import { raiseDecision } from './events.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
@@ -222,7 +223,7 @@ function complete(ctx, j) {
     delete state.flags[`migrateTo_${pr.id}`];
     ctx.emit({ type: 'toast', text: `${pr.name} migrated. Nothing broke. Probably.`, tone: 'good' });
   } else if (j.kind === 'refactor') {
-    state.comprehensionDebt *= 1 - B.debtRefactorShare;
+    bumpDebt(state, -state.comprehensionDebt * B.debtRefactorShare);
     for (const p of team) p.knowledge = Math.min(100, p.knowledge + 10);
     ctx.emit({ type: 'toast', text: 'The Big Refactor is done. People understand things again.', tone: 'good' });
   } else if (j.kind === 'research' && RESEARCH[j.researchId] && !state.research.done.includes(j.researchId)) {

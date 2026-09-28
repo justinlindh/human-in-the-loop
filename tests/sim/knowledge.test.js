@@ -167,6 +167,39 @@ describe('comprehension debt from project work (#936)', () => {
     expect(s.debtFlow.net).toBe(0);
   });
 
+  it('oneOff records the amount asked for, even where the clamp stops it', async () => {
+    const { bumpDebt } = await import('../../src/sim/debt.js');
+    const low = game();
+    run(low, 1);
+    low.comprehensionDebt = 0;
+    low.flags.debtAfterKnowledge = 0;
+    bumpDebt(low, -3);
+    run(low, 1);
+    expect(low.debtFlow.oneOff).toBe(-3);
+    expect(low.comprehensionDebt).toBeGreaterThanOrEqual(0);
+    const high = game();
+    run(high, 1);
+    high.comprehensionDebt = 100;
+    high.flags.debtAfterKnowledge = 100;
+    const vet = eng(high, 'senior', 80);
+    dispatch(high, { type: 'fire', staffId: vet.id });
+    expect(high.comprehensionDebt).toBe(100);
+    run(high, 1);
+    expect(high.debtFlow.oneOff).toBeCloseTo(80 * B.debtFromDeparturePerKnowledge);
+    run(high, 1);
+    expect(high.debtFlow.oneOff).toBe(0);
+  });
+
+  it('a senior on maintenance pays down in both seniors and maintenance, each once', () => {
+    const s = game();
+    s.staff = [];
+    s.comprehensionDebt = 50;
+    eng(s, 'senior', 100, 'maintenance');
+    run(s, 1);
+    expect(s.debtFlow.seniors).toBeCloseTo(-50 * B.debtPaydownPerSeniorEng);
+    expect(s.debtFlow.maintenance).toBeCloseTo(-50 * B.debtPaydownMaintenance);
+  });
+
   it('a new game starts with an all-zero debtFlow', async () => {
     const { createGame } = await import('../../src/sim/index.js');
     const s = createGame({ seed: 3, companyName: 'Zero' });

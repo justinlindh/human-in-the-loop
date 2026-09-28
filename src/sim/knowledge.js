@@ -6,6 +6,7 @@ import { ROLES } from '../data/roles.js';
 import { itemBonus, researchBonus } from './bonus.js';
 import { staffMods } from './staff.js';
 import { remoteLearning } from './ladder.js';
+import { bumpDebt } from './debt.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
@@ -19,8 +20,7 @@ export function onDeparture(state, person) {
   forgetCarry(state, person.id);
   for (const [name, id] of Object.entries(state.flags.owners ?? {})) if (id === person.id) state.flags[`${name}Gone`] = true;
   if (alumni.length > B.alumniKept) alumni.splice(0, alumni.length - B.alumniKept);
-  state.comprehensionDebt = Math.min(100, state.comprehensionDebt
-    + person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
+  bumpDebt(state, person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
   for (const p of state.staff) {
     if (p.assignment.targetId === person.id && p.assignment.type === 'mentor') {
       p.assignment = { type: ROLES[p.role].defaultAssignment, targetId: null };
@@ -63,9 +63,9 @@ export function knowledgeSystem(ctx) {
   const debt = state.comprehensionDebt;
   const flow = debtFlow(state);
   const before = state.flags.debtAfterKnowledge ?? debt;
-  const oneOff = debt - before;
   state.comprehensionDebt = clamp(debt + sum(Object.values(flow), (v) => v), 0, 100);
-  state.debtFlow = { ...flow, oneOff, net: state.comprehensionDebt - before };
+  state.debtFlow = { ...flow, oneOff: state.flags.debtOneOff ?? 0, net: state.comprehensionDebt - before };
+  state.flags.debtOneOff = 0;
   state.flags.debtAfterKnowledge = state.comprehensionDebt;
 }
 
