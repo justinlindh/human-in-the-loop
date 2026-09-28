@@ -1,5 +1,6 @@
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
+import { SAVE_NOTE } from './saveNote.js';
 
 const KEY = 'hitl.settings';
 // Audio buses the engine mixes; 'volume' is the master level.
@@ -149,6 +150,8 @@ export function createSettings({ layer, controls, sfx }) {
         row('Advisors', 'Quiet keeps them to the lightbulb and its dot; Off hides the lightbulb.',
           seg(ADVISOR_LEVELS, advisorLevel(), (v) => setAdvisorLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
+        h('h3.sethead', { text: 'Saving' }),
+        h('div.small.muted.setnote', { text: SAVE_NOTE }),
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));
   }
