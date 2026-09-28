@@ -1,0 +1,27 @@
+# The office (stages, items, perks)
+
+- ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. `capture 2-2-office-move`
+- **Garage**: a suburban lot with lawn, driveway, picket fences, houses behind, a roll-up garage door and a water heater in the corner. `?mock=garage`
+- **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`
+- **HQ Building**: a campus plaza with planters, trees, lamps, a road and a skyline. `?mock=hq`
+- **HQ expansions**: Knock-through (old wall lines become metal thresholds), Roof Terrace (plank decking, glass balustrade, string lights; outdoor-friendly items only) and The Annex (a carpeted extra wing); each swaps the shell in place with a dust puff. Spoken: "They have measured that wall more than our product." `id: floor_next_door`
+- **Build mode**: a tile grid and a tinted ghost; R rotates, adjacency previews glow under what an item would boost, and "Place for me" works without aiming. On touch a tap aims the ghost, a drag that starts on it carries it (any other drag pans), Rotate turns it in place, and a tap on it or the Place button puts it down. `capture 2-1-build-mode`
+- **New toys**: something to use (a table game, a couch, the coffee corner, an arcade) that's just been placed draws the nearest free people straight away: a pair table's first game starts within a second, even during a standup.
+- **Desk sets**: one person each; a team mat under each set is tinted by the sitter's role, and neighbouring desks butt into a bench. `id: desk`
+- **Meeting table**: standups gather round it and tuck the chairs in. `id: meeting_table`
+- **Whiteboard**: boosts inventiveness nearby; hard-problem people stand at it thinking. `id: whiteboard`
+- **Coffee corner**: a kettle, a drip machine and a "World's Okayest Dev" mug in the description; people stop by to sip. `id: coffee_corner` `id: coffee`
+- **Potted plant, bookshelf, couch**: small recovery and learning boosts; people browse the shelf and sit on the couch. `id: plant` `id: bookshelf` `id: couch`
+- ★ **Foosball**: two people play head to head. An orange ball runs between the rods, the rods slide after it and whip round when a man kicks it back, and now and then it drops into a goal and a new one pops out at the centre. At the end the winner celebrates with a sparkle and the loser groans. `id: foosball`
+- ★ **Ping pong**: a real volley, the ball arcing paddle to paddle and bouncing once each side, then a winner's cheer and a loser's groan; a ping pong sound plays. `id: ping_pong_table` `id: pingpong`
+- **Espresso machine**: a drip pot on a cart, then a prosumer machine and grinder, then a chrome bar. `id: espresso`
+- **Plant wall**: two pots, a ladder shelf, then a living wall with a grow light; people water it. `id: plant_wall`
+- **Nap pod**: a beanbag (lounge in it, awake and humming), a couch with a blanket, then a sleep pod with a glass canopy (lie down with a zzz). `id: nap_pod`
+- **Arcade**: a handheld on cushions (sprawl and play), a cabinet with a stool, then two cabinets and a neon sign; players cheer in their seat with sparkles, over arcade sounds. `id: arcade`
+- **Standing desks**: a box on a desk, a motorised desk, then a treadmill desk. `id: standing_desk`
+- **Whiteboard wall**: a mobile board, a wide board with sticky notes, then a wall-sized kanban. `id: whiteboard_wall`
+- **Library nook**: a bookshelf, then an armchair for reading, then a reading nook with lamp and rug. `id: library`
+- **Monitoring wall** (Agents era): one screen, then a console, then a tiled video wall with a bar per automation function that flashes red on alarm; overseers stand in front of it. `id: monitoring_wall`
+- **Server racks**: one rack, two with a cable tray, then a glass-door row with a cold-aisle glow; blinking LEDs. `id: server_rack`
+- **Trophy case**: a low shelf, a glass case, then a lit display wall for the Saasies. `id: trophy_case`
+- **Desk screens**: code, UI, charts and games by desk; grey for coasting or burnt-out sitters, red during an outage, off when empty.
