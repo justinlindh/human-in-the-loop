@@ -1,0 +1,14 @@
+# Local CI on open PRs (scripts/auto-ci.sh), run by hitl-auto-ci.timer from its own worktree of main,
+# moved to origin/main before each pass. Runs outlive the pass: KillMode=process leaves them going
+# when the pass exits. git replaces changed files rather than rewriting them, so a run already going
+# keeps reading the script it started with.
+[Unit]
+Description=Human in the Loop: local CI on open PRs, one path
+
+[Service]
+Type=oneshot
+KillMode=process
+Nice=10
+TimeoutStartSec=5min
+Environment=AUTO_CI_TREE=%h/.cache/hitl-ci/auto/worktree
+ExecStart=/bin/bash -c 'set -e; cd "$AUTO_CI_TREE"; git fetch -q origin main; git checkout -q --detach origin/main; exec bash scripts/auto-ci.sh'
