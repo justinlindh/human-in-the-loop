@@ -23,7 +23,13 @@ async function startConversation({ speed, path }) {
     }
   }
   S.policies.daily_standups = true;
-  const ctx = makeCtx(S); standupSystem(ctx); S.policies.daily_standups = false;
+  // Only some daily standups hold a conversation; this check needs one, so it forces the roll for this meeting.
+  const { B } = await import('/src/sim/balance.js');
+  const chance = B.standupConversationChance;
+  B.standupConversationChance = 1;
+  const ctx = makeCtx(S);
+  try { standupSystem(ctx); } finally { B.standupConversationChance = chance; S.policies.daily_standups = false; }
+  window.__standupScript = S.flags.standupConversation?.script ?? null;
   const event = ctx.events.find(e => e.type === 'standup');
   window.__standupCheck = { path, speed, lines: event.lines, frames: [], startedWeek: S.week };
   H.setSpeed(speed); H.emit([event]);
@@ -50,7 +56,10 @@ async function assertConversation() {
   if (c.frames.some(f => f.meeting && f.text.length > 1)) throw Error('standup-live: overlapping bubbles');
   const changed = c.path === 'outage' || c.path === 'replacement';
   const expected = changed ? ['The incident changed. Let us check the latest update.', 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'] : c.lines.slice(0, 5).map(l => l.text);
-  if (!changed && expected[2] !== 'Something small that another person can check.') throw Error('standup-live: two speakers lost the answer');
+  const { STANDUP_EXCHANGES } = await import('/src/data/standup.js');
+  const script = STANDUP_EXCHANGES.find(e => e.id === window.__standupScript);
+  if (!changed && !script) throw Error('standup-live: no conversation was picked');
+  if (!changed && expected[2] !== script.lines[2]) throw Error('standup-live: two speakers lost the answer');
   for (const text of expected) {
     const dwell = c.frames.filter(f => f.text.includes(text)).length / 30;
     if (dwell < holdSeconds(text, c.speed) - 0.05) throw Error('standup-live: missing or shortened turn: ' + text);

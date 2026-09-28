@@ -25,6 +25,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Make reels and landing page media | `scripts/reels/` (the kit and `docs/reels.md`), `npm run feature-media` | [reels guide](reels.md), [feature-media](toolkit/feature-media.md) |
 | Shoot and check a landing page change before a site PR (full pages at 1440 and 390, each loop's card, posters that match their loop's first frame, console errors, sideways scroll) | in the site repo, `npm run preview` (`scripts/preview.mjs`); run it under `scripts/with-render-lock.sh` from this repo | site repo README |
 | Keep the feature inventory in step with the data | `docs/features/`, `node scripts/features-ids.mjs` | [features-ids](toolkit/features-ids.md) |
+| Change a golden image or the sweep baseline | commit it, then `scripts/baseline-media.sh <pr>` posts before/after media (local CI fails the PR without it) | [baseline-media](toolkit/baseline-media.md) |
 | Gate, review and merge a PR | auto CI runs local CI on each head (the `ci-rerun` label asks again), `scripts/pr-status.sh`, `scripts/review-verdict.sh`; the main guard watches `main` | [auto-ci](toolkit/auto-ci.md), [ci-pr](toolkit/ci-pr.md), [pr-status](toolkit/pr-status.md), [review-verdict](toolkit/review-verdict.md), [main-guard](toolkit/main-guard.md) |
 | Know what the Claude Code hooks refuse, and record an agreed cross-lane edit | the bash and lane guards; an exception goes in `$(git rev-parse --git-dir)/hitl-lane-allow` | [bash-guard](toolkit/bash-guard.md), [lane-guard](toolkit/lane-guard.md) |
 
