@@ -320,7 +320,7 @@ ChatPrompt = {
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
   expiresWeek,       // resolves as ignored when state.week reaches it
-  options: [{ label, hint, available, reason }],   // 2 or 3; hint states the effects, as decision choices do
+  options: [{ label, hint, available, reason, opens? }],   // 2 or 3; hint states the effects, as decision choices do; opens: optional { panel, arg? } as in Advice.target, the menu ui opens after the answer succeeds, e.g. { panel: 'office', arg: 'desk' } to place a desk
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y, staffId },   // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
   subjectId: null | staffId,                       // the event's subject, as pendingDecision.subjectId; moments cast the subject first
@@ -343,7 +343,7 @@ ChatPrompt = {
 ```
 
 - The founder's reply and the poster's follow-up are ordinary chat events with `replyTo = chatId`. The founder's line has `fromId` set to a founder's id.
-- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup.
+- `answerPrompt` works while paused, like `resolveDecision`, and never opens a popup. An option's `opens` is acted on by ui after a successful answer: it opens that menu or mode (`{ panel: 'office', arg: 'desk' }` enters desk placement, the same entry as hiring with no free desk; with no room or cash it opens the office menu, which says why). Ignored or refused answers open nothing.
 - At most `B.chatPromptsOpen` prompts are open at once. A new prompt opens at least `B.chatPromptGapWeeks` after the last one.
 - Prompts are triggered by real state: strain or burnout, a live incident, a launch week, rival news, or a project running late.
 - Option effects use the same keys as decision effects. An ignored prompt has its own small consequence, stated in its template.
@@ -449,7 +449,7 @@ Advice = {
 - Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
 - Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
 - `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
-- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`; other panels take no arg.
+- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item); other panels take no arg.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
 ### State: Advisors
