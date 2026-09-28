@@ -24,7 +24,7 @@ pr() { # <files as a JSON array> <body> [<comment author> <comment body>]
 }
 check() { PATH="$tmp/bin:$PATH" bash "$HERE/lib/watched-media.sh" 9 "$@"; }
 url() { echo "![x](https://github.com/o/r/blob/pr-media/pr-9/$1?raw=true)"; }
-template='- **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh --comment <pr> <files>` -->'
+template='- **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh <pr> <files>`, which comments them on the PR -->'
 
 pr '["scripts/x.sh"]' "tooling only
 $template"
@@ -38,6 +38,10 @@ pr '["scripts/x.sh"]' '- **Screenshots or clips:** None; tooling only.'
 out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of none: $out"
 pr '["scripts/x.sh"]' '- Screenshots or clips: not applicable to this change.'
 out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of not applicable: $out"
+pr '["scripts/x.sh"]' '- **Screenshots or clips:** audio only. The owner approved the take on the review desk.'
+out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of audio only: $out"
+pr '["scripts/x.sh"]' "- **Screenshots or clips:** audio only $(url take.wav)"
+out="$(check)"; [ $? -eq 1 ] && grep -q take.wav <<<"$out" || fail "audio posted with pr-media still needs watching: $out"
 pr '["scripts/x.sh"]' '- **Screenshots or clips:** see the comment below'
 out="$(check)"; [ $? -eq 1 ] && grep -q 'has no media' <<<"$out" || fail "a Screenshots entry with no media posted: $out"
 

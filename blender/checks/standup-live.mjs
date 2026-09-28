@@ -23,7 +23,13 @@ async function startConversation({ speed, path }) {
     }
   }
   S.policies.daily_standups = true;
-  const ctx = makeCtx(S); standupSystem(ctx); S.policies.daily_standups = false;
+  // Only some daily standups hold a conversation; this check needs one, so it forces the roll for this meeting.
+  const { B } = await import('/src/sim/balance.js');
+  const chance = B.standupConversationChance;
+  B.standupConversationChance = 1;
+  const ctx = makeCtx(S);
+  try { standupSystem(ctx); } finally { B.standupConversationChance = chance; S.policies.daily_standups = false; }
+  window.__standupScript = S.flags.standupConversation?.script ?? null;
   const event = ctx.events.find(e => e.type === 'standup');
   window.__standupCheck = { path, speed, lines: event.lines, frames: [], startedWeek: S.week };
   H.setSpeed(speed); H.emit([event]);
@@ -39,11 +45,24 @@ async function startConversation({ speed, path }) {
 async function assertConversation() {
   const c = window.__standupCheck;
   const { holdSeconds } = await import('/src/render/reading.js');
+  // At 4x and above standups are skipped: no sampled frame may show a staged meeting.
+  if (c && c.speed >= 4) {
+    if (!c.frames.length || c.frames.at(-1).week <= c.startedWeek) throw Error('standup-live: real clock did not advance at 4x');
+    if (c.frames.some(f => f.meeting)) throw Error('standup-live: a meeting was staged at 4x');
+    (window.__captureMarks ??= []).push({ label: 'standup-live-pass', path: c.path, speed: c.speed, staged: false });
+    return;
+  }
   if (!c || !c.frames.some(f => f.meeting) || c.frames.at(-1).meeting || c.frames.at(-1).week <= c.startedWeek) throw Error('standup-live: meeting or real clock did not complete');
-  if (c.frames.some(f => f.meeting && f.text.length > 1)) throw Error('standup-live: overlapping bubbles');
+  // Only the meeting's own lines count: people away from the ring may talk while it runs.
+  const REVISION = ['The incident changed. Let us check the latest update.', 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'];
+  const own = new Set([...c.lines.map(l => l.text), ...REVISION]);
+  if (c.frames.some(f => f.meeting && f.text.filter(t => own.has(t)).length > 1)) throw Error('standup-live: overlapping bubbles');
   const changed = c.path === 'outage' || c.path === 'replacement';
-  const expected = changed ? ['The incident changed. Let us check the latest update.', 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'] : c.lines.slice(0, 5).map(l => l.text);
-  if (!changed && expected[2] !== 'Something small that another person can check.') throw Error('standup-live: two speakers lost the answer');
+  const expected = changed ? REVISION : c.lines.slice(0, 5).map(l => l.text);
+  const { STANDUP_EXCHANGES } = await import('/src/data/standup.js');
+  const script = STANDUP_EXCHANGES.find(e => e.id === window.__standupScript);
+  if (!changed && !script) throw Error('standup-live: no conversation was picked');
+  if (!changed && expected[2] !== script.lines[2]) throw Error('standup-live: two speakers lost the answer');
   for (const text of expected) {
     const dwell = c.frames.filter(f => f.text.includes(text)).length / 30;
     if (dwell < holdSeconds(text, c.speed) - 0.05) throw Error('standup-live: missing or shortened turn: ' + text);
@@ -62,7 +81,7 @@ async function assertConversation() {
 
 export const ITEMS = [
   ...[1, 2, 4].map(speed => ({ path: 'outage', speed })),
-  { path: 'replacement', speed: 4 },
+  { path: 'replacement', speed: 2 },
   ...['remote', 'sabbatical', 'burnout', 'coasting'].map(path => ({ path, speed: 1 })),
 ].map(options => ({
   id: `standup-live-${options.path}-${options.speed}`, title: 'Standup live premise and complete exchange',
