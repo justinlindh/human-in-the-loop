@@ -81,6 +81,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     const cancel = mode.onCancel;
     mode = null;
     hover = null;
+    ctx.rotateHintHide?.();
     bar.style.display = 'none';
     tip.style.display = 'none';
     layer.classList.remove('building');

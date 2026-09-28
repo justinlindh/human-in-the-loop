@@ -237,6 +237,8 @@ export const GLYPHS = {
   letgo: { d: D.door },
   team: { d: circ(8, 8, 3.3, C.skin) + path('M2.5 19c0-3.4 2.5-5.8 5.5-5.8s5.5 2.4 5.5 5.8Z', C.blue) + circ(16, 8.5, 3.3, C.skin) + path('M10.5 19.5c0-3.4 2.5-5.8 5.5-5.8s5.5 2.4 5.5 5.8Z', C.pink) },
   seat: { d: rr(6, 3, 12, 10, 3, C.teal) + rr(4.5, 12, 15, 4, 2, C.teal) + `<path d="M7 16v5M17 16v5M12 16v3" ${line(2)}/>` },
+  'turn.left': { d: `<path d="M20.5 19.5a9 9 0 0 0-15.5-8" ${line(3)}/>` + path('M3.5 4.5v7.5h7.5', 'none') },
+  'turn.right': { d: `<path d="M3.5 19.5a9 9 0 0 1 15.5-8" ${line(3)}/>` + path('M20.5 4.5v7.5h-7.5', 'none') },
   refresh: { d: `<path d="M19 12a7 7 0 0 1-12 5M5 12a7 7 0 0 1 12-5" ${line(2.6)}/>` + path('M17 3v4.5h-4.5', 'none') + path('M7 21v-4.5h4.5', 'none') },
   hire: { d: rr(2.5, 5.5, 19, 13, 2, PAPER) + path('M3.5 7 12 13l8.5-6', 'none') + path(star5(18.5, 17.5, 3.6, 1.7), C.yellow) },
   office: { d: D.building },
