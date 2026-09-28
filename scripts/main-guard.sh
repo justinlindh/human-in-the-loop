@@ -286,7 +286,7 @@ if git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sh
   repeated=""
   if [ -f "$STATE/red-seen" ]; then
     for step in $(tr ',' ' ' <<<"$what"); do
-      grep -qE "(^| )$step(,|$)" <(cut -d' ' -f2- "$STATE/red-seen") && repeated+="${repeated:+, }$step"
+      cut -d' ' -f2- "$STATE/red-seen" | tr ', ' '\n\n' | grep -qxF "$step" && repeated+="${repeated:+, }$step"
     done
   fi
   echo "$short $what" >"$STATE/red-seen"

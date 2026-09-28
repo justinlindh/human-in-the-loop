@@ -178,6 +178,13 @@ guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_ST
 grep -q "golden-uncached" "$tmp/root-golden/main-guard/red" 2>/dev/null || { echo "FAIL the same step red twice in a row should leave its red steps for auto CI"; fails=$((fails + 1)); }
 guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" -- --sha HEAD
 [ -e "$tmp/root-golden/main-guard/red" ] && { echo "FAIL a green newest commit should clear the red steps"; fails=$((fails + 1)); }
+# Several steps red twice: every repeated step is named, not only the first.
+case_root="$tmp/root-multi"; : >"$gl"
+TWO='printf "| step | result | seconds |\n|---|---|---|\n| stage | FAIL | 1 |\n| render-checks | FAIL | 1 |\n" >"$SUMMARY"; exit 1'
+for _ in 1 2; do guard "$gl" /dev/null MAIN_GUARD_TIP=HEAD MAIN_GUARD_SUITE="$TWO" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "golden: office differs from its reference"; exit 1' -- --sha HEAD; done
+for s in stage render-checks golden-uncached; do
+  cut -d' ' -f2- "$case_root/main-guard/red" 2>/dev/null | tr ', ' '\n\n' | grep -qxF "$s" || { echo "FAIL $s red twice should be in the red record (got: $(cat "$case_root/main-guard/red" 2>/dev/null))"; fails=$((fails + 1)); }
+done
 case_root="$tmp/root-golden2"; : >"$gl"
 guard "$gl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" MAIN_GUARD_GOLDEN='echo "Error: ENOSPC: no space left on device"; exit 1' -- --sha HEAD
 expect 'an uncached golden run that fails on the machine gives no verdict' "$gl" "state=error|golden: ENOSPC|!state=failure|!--label main-red"
