@@ -11,6 +11,8 @@
 #   - While the main guard has main red on a render step (its $GUARD/red file), a PR that changes
 #     the render (src/render/, blender/ outside blender/checks/, public/models/) and no tooling
 #     (scripts/, blender/checks/) waits: its render checks would fail on main's fault, not its own.
+#     The ci-rerun label starts it anyway (a render fix for main's red), and a red file older than
+#     AUTO_CI_RED_HOURS (default 3) is ignored, so a stopped guard can't hold render PRs for good.
 #   - The ci-rerun label asks for a fresh run of the current head: the label is removed and the run
 #     starts whatever the head's status.
 #   - PRs that passed review go first, then those without a verdict, then those with changes
@@ -33,7 +35,7 @@ STUCK="${AUTO_CI_STUCK_MINUTES:-75}"
 GUARD_RED="${AUTO_CI_GUARD_RED:-$HOME/.cache/hitl-ci/main-guard/red}"
 RENDER_STEPS=" stage render-checks golden golden-uncached pose-nodraw sweep "
 red_render=""
-if [ -f "$GUARD_RED" ]; then
+if [ -f "$GUARD_RED" ] && [ -z "$(find "$GUARD_RED" -mmin "+$(( ${AUTO_CI_RED_HOURS:-3} * 60 ))" 2>/dev/null)" ]; then
   for step in $(cut -d' ' -f2- "$GUARD_RED" | tr ',' ' '); do
     case "$RENDER_STEPS" in *" $step "*) red_render+="${red_render:+, }$step" ;; esac
   done
@@ -117,7 +119,7 @@ for pr in $(order); do
     fi
   fi
   [ -n "$why" ] || continue
-  if [ -n "$red_render" ] && render_only "$pr"; then log "#$pr ${h:0:7} waits: main is red on $red_render"; continue; fi
+  if [ -n "$red_render" ] && [ "$why" != ci-rerun ] && render_only "$pr"; then log "#$pr ${h:0:7} waits: main is red on $red_render"; continue; fi
   light=0
   if [ "$running" -ge "$MAX" ]; then
     if is_light "$pr"; then light=1; else log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; fi

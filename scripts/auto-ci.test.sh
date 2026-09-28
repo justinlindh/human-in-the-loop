@@ -128,6 +128,20 @@ fixture "$(pr 32 r32 none)"
 run
 has started "32 r32" || fail "a PR outside the render should run while main is red"
 for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+# ci-rerun starts a held render PR (a render fix for main's red), and the label comes off.
+fixture "$(pr 30 r30 none false justinlindh ci-rerun)"
+run
+has started "30 r30" || fail "ci-rerun should start a render PR held by main's red"
+grep -q "pr edit 30 --remove-label ci-rerun" "$tmp/edits" 2>/dev/null || fail "ci-rerun should come off when the held PR starts"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+sed -i '/^30 r30$/d' "$tmp/started"
+# A red file older than AUTO_CI_RED_HOURS holds nothing.
+touch -d '4 hours ago' "$tmp/red"
+fixture "$(pr 33 r33 none)"
+printf 'src/render/sync.js\n' >"$tmp/files-33"
+run
+has started "33 r33" || fail "a stale red file should not hold render PRs"
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
 echo "abc1234 test:fast" >"$tmp/red"
 fixture "$(pr 30 r30 none)"
 run
