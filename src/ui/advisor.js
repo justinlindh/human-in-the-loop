@@ -106,6 +106,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   layer?.append(peek);
 
   const canShow = (item) => { const p = panelOf(item); return !!p && (p === 'goals' || !!panels[p]); };
+  const options = (item) => (Array.isArray(item.options) ? item.options.filter((o) => o?.text && canShow(o)).slice(0, 3) : []);
   function showMe(item) {
     const target = panelOf(item);
     const arg = item.target?.arg;
@@ -130,7 +131,9 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
         h('div.advtext', { text: item.text }),
         item.why ? h('div.small.advwhy', { text: item.why }) : null,
         isFine(item) ? null : h('div.advacts', null,
-          canShow(item) ? h('button.btn.small.go', { type: 'button', onclick: () => showMe(item) }, 'Show me') : null,
+          // A notice's own ways to address it, each opening its panel; Show me when it has none.
+          ...(options(item).length ? options(item).map((o) => h('button.btn.small.go.advopt', { type: 'button', onclick: () => showMe(o) }, o.text))
+            : [canShow(item) ? h('button.btn.small.go', { type: 'button', onclick: () => showMe(item) }, 'Show me') : null]),
           h('button.btn.small', { type: 'button', onclick: () => { if (dismiss(item)) rerender(); } }, 'Not now'))));
   }
 

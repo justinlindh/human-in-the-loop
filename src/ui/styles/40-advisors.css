@@ -43,3 +43,4 @@
   font: inherit; color: inherit; text-align: left; cursor: pointer; pointer-events: auto; }
 .hitl .advearlier-row:hover { background: var(--cream-2); }
 .hitl .advearlier-text { flex: 1; min-width: 0; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .advacts .advopt { white-space: normal; text-align: left; line-height: 1.2; }
