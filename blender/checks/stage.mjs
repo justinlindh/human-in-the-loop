@@ -361,12 +361,12 @@ for (const task of tasks) {
     const { res, errors } = results.get(task);
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
     const sc = SCENARIOS[task.scenario];
+    const firstRow = rep.rows.length;
+    if (errors.length) rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
     if (res.arriveTimedOut) {
-      rep.row({ check: moment, view: view.name, beat: '-', metric: 'arrived', value: 0, want: `${sc.arrive.role} reaches the beat within ${sc.arriveSeconds}s`, pass: false });
+      rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'arrived', value: 0, want: `${sc.arrive.role} reaches the beat within ${sc.arriveSeconds}s`, pass: false });
       continue;
     }
-    const firstRow = rep.rows.length;
-    if (errors.length) rep.row({ check: moment, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
     // Every role the moment stages needs a spec: an actor nobody wrote a rule for can stare at a
     // wall and still pass. Walking and waiting are between beats and need none.
     if (view.turns === 0) {
