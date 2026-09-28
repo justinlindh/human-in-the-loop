@@ -115,7 +115,13 @@ export function standupConversation(state, speakers, updates, rng = standupRng(s
   const waiting = rest.filter(l => active.some(p => p.id === l.staffId)).length;
   const turns = Math.max(3, Math.min(chosen.lines.length, B.standupMaxLines - waiting));
   const lines = chosen.lines.slice(0, turns).map((text, i) => ({ staffId: cast[i % cast.length].id, text: fill(text, vars) }));
-  lines.push(...rest);
+  // The whole meeting stops at B.standupMaxTotalLines spoken lines; attendees past that skip their update today.
+  let spoken = lines.length;
+  for (const l of rest) {
+    if (l.text && spoken >= B.standupMaxTotalLines) continue;
+    if (l.text) spoken++;
+    lines.push(l);
+  }
   // One bounded snapshot ties the event lines to their subject for live presentation.
   state.flags.standupConversation = {
     script: chosen.id, topic: chosen.topic, personId: person.id, lines: lines.map(l => ({ ...l })),
