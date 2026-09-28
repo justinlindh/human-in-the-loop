@@ -26,6 +26,7 @@ try {
       const { setRingsShown } = await import('/src/render/character.js');
       const { RoundedBoxGeometry } = await import('/node_modules/three/examples/jsm/geometries/RoundedBoxGeometry.js');
       const dump = await import('/blender/checks/dump.js');
+      const { createFlame } = await import('/src/render/flame.js');
       await dump.prepare();
       R.perks.hold = true;
       S.pendingDecision = null;
@@ -43,13 +44,10 @@ try {
       };
       window.__tool(() => {
         if (meme.id === 'this_is_fine') {
-          // Rounded toy flames sit among the office furniture, behind the coffee drinker.
-          for (const [x, z, height] of [[-1, 0, 0.95], [0.9, 0, 1.15], [-0.8, 2, 0.7], [1.3, 1.5, 0.9]]) {
-            for (const [r, h, color] of [[0.27, height, P.marker_orange], [0.14, height * 0.66, P.gold]]) {
-              const points = [[0,0],[r,0.12],[r*0.9,h*0.42],[r*0.4,h*0.75],[0,h]].map(([a,b]) => new T.Vector2(a,b));
-              const flame = new T.Mesh(new T.LatheGeometry(points, 16), material(color));
-              flame.position.set(x, 0, z + (r < 0.2 ? 0.15 : 0)); flame.castShadow = true; extras.add(flame);
-            }
+          // The game's flames stand among the office furniture, behind the coffee drinker.
+          for (const [x, z, height, phase] of [[-1, 0, 1.0, 1.3], [0.9, 0, 1.2, 0.4], [-0.8, 2, 0.75, 2.1], [1.3, 1.5, 0.95, 0.9]]) {
+            const f = createFlame({ height });
+            f.position.set(x, 0, z); f.userData.update(phase); extras.add(f);
           }
         }
         if (meme.id === 'two_buttons') {
