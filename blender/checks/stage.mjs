@@ -142,8 +142,7 @@ const SPECS = {
   // off the face's line; looking away from it is 60 and more.
   'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
     share('atScreen', 'face within 45 deg of the screen', (x) => x.targetAngle <= 45, 0.8),
-    // The visitor's random look decides whether the turned view clears 0.70 (#862).
-    { ...visibleRule, known: 862, knownView: 'turned' },
+    visibleRule,
   ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
@@ -215,7 +214,7 @@ const SCENARIOS = {
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
     steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
   // The consultants at the HQ door, where the sim stages their chair.
-  consultants: { query: 'mock=hq', patch: {}, seconds: 16,
+  consultants: { query: 'mock=hq', patch: {}, seconds: 22,
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
 

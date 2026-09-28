@@ -16,7 +16,7 @@ export const modelCostPerCustomer = (state, modelId) => (modelId ? MODELS[modelI
 export function automationWeeklyCost(state, fn) {
   const a = state.automation[fn];
   if (a.level <= 0) return 0;
-  const gpuMult = state.flags.gpuShortageWeeks > 0 ? 1.5 : 1;
+  const gpuMult = state.flags.gpuShortageWeeks > 0 ? B.gpuShortageMult : 1;
   return MODELS[a.model].autoCost * B.autoCostMult * state.models[a.model].costMult * a.level * gpuMult;
 }
 
@@ -36,7 +36,6 @@ export function officeRent(state) {
 // Weekly spend broken out by line item; the UI can show it as a burn breakdown.
 export function weeklyCosts(state) {
   const live = liveProducts(state);
-  const gpuMult = state.flags.gpuShortageWeeks > 0 ? 1.5 : 1;
   const autos = Object.values(state.automation).filter((a) => a.level > 0);
   const selfHosted = live.some((p) => p.model && MODELS[p.model].selfHosted) || autos.some((a) => MODELS[a.model].selfHosted);
   return {

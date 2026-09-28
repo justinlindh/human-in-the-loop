@@ -9,6 +9,7 @@ import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
+import { forgetOverseers } from './panels/automation.js';
 import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
@@ -77,7 +78,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   };
 
   // Every player action goes through here: failures surface their reason as a warn toast.
-  function act(action) {
+  // quiet: a caller trying a fallback next handles a refusal itself (no toast or error sound).
+  function act(action, { quiet = false } = {}) {
     let res;
     try {
       res = dispatch(action);
@@ -85,6 +87,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       console.warn('dispatch threw', e);
       res = { ok: false, reason: 'Something went wrong' };
     }
+    if ((!res || !res.ok) && quiet) return res ?? { ok: false };
     if (!res || !res.ok) {
       toasts.push(res?.reason ?? 'That did not work', 'warn');
       sfx('error');
@@ -313,7 +316,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
-      announcer.reset(); spacing.reset(); growth.reset(); advisors.reset(); officePrompt.reset(); buildMode.exit(); menuSig = null;
+      announcer.reset(); spacing.reset(); growth.reset(); forgetOverseers(); advisors.reset(); officePrompt.reset(); buildMode.exit(); menuSig = null;
       for (const id of newMenus) menu.setNew(id, false);
       newMenus.clear();
       launchScores.clear();
@@ -469,7 +472,11 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'advice': advisors.onEvent(e); break;
-        case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
+        case 'officeUpgrade':
+          // The move is a big moment: clear the screen so it plays in view.
+          menu.close(); ctx.modal?.close(); settings.close(); buildMode.exit(); if (chat.maximized) chat.setMax(false);
+          toasts.push('Moved into a bigger office!', 'good');
+          break;
         default: break;
       }
     }

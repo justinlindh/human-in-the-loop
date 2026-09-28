@@ -119,7 +119,7 @@ export function clearOutage(ctx, how) {
   const p = state.products.find((x) => x.id === state.outage.productId);
   state.outage = null;
   const engineers = state.staff.filter((x) => x.role === 'engineer');
-  if (state.policies.blameless) for (const e of engineers) e.knowledge = Math.min(100, e.knowledge + 5);
+  if (state.policies.blameless) for (const e of engineers) e.knowledge = Math.min(100, e.knowledge + B.blamelessKnowledge);
   else for (const e of engineers) e.meaning = Math.max(0, e.meaning - 5);
   ctx.emit({ type: 'toast', text: `${p?.name ?? 'The product'} is back up${how}.`, tone: 'good' });
 }

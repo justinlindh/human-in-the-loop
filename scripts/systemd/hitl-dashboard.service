@@ -1,0 +1,17 @@
+# The owner dashboard (scripts/dashboard/server.mjs), read-only, from auto CI's worktree of main.
+# install.sh adds a drop-in naming the one private address it binds (HITL_DASH_HOST). It restarts
+# daily to pick up the dashboard's code as main moves.
+[Unit]
+Description=Human in the Loop: owner dashboard (read-only, private network)
+
+[Service]
+Type=simple
+Nice=10
+Environment=HITL_DASH_TREE=%h/.cache/hitl-ci/auto/worktree
+ExecStart=/bin/bash -c 'cd "$HITL_DASH_TREE" && exec node scripts/dashboard/server.mjs'
+Restart=always
+RestartSec=10
+RuntimeMaxSec=1d
+
+[Install]
+WantedBy=default.target

@@ -11,7 +11,7 @@
 - **Hiring, training and careers**: hire from candidates, send people to a workshop, conference or course, and let freshly promoted seniors pick a career path (Architect, AI Wrangler, Community Manager, Incident Commander and more).
 - **Traits**: people arrive with traits (Vibe Coder, Old Guard, Job Hopper, Night Owl, Caffeinated) and earn some by doing the work (Natural Mentor, Paranoid, Visionary).
 - **Meaning, strain and Purpose**: automation drains meaning, load builds strain, and a mission picked in the Agents era sets a Purpose that later decisions test. Spoken: "The spreadsheet does not have to answer the phone." `id: mission_statement` `id: mission_test_support` `id: mission_test_demo`
-- **Automation and oversight**: from the ChatGBT era, dial automation per function and pick the model that runs it; from Agents, overseers watch the agents and catch rogue behaviour. Before automation arrives, Ops shows Oversight with its Automation button disabled and the reason (it arrives with the ChatGBT moment).
+- **Automation and oversight**: from the ChatGBT era, dial automation per function and pick the model that runs it; from Agents, overseers watch the agents and catch rogue behaviour. Assign overseers opens a list right in Automation: everyone free to oversee, what they're doing now and the hours they'd add, each with Assign or Relieve, the needed-hours bar filling as you go. Before automation arrives, Ops shows only Coverage (Support and Upkeep); the Oversight row and its Automation button appear with the unlock.
 - **Rogue agent incidents**: from the Agents era, each ends in a decision that offers a public postmortem.
   - "The agent dropped the production database". `id: agent_db_wipe`
   - "Every customer got an email". `id: agent_mass_email`
@@ -34,7 +34,7 @@
 - **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open`
 - **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result`
 - **Annual calendar**: yearly beats.
-  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies, with confetti and a party. `id: awards_show`
+  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies; Product of the Year also throws an office party. `id: awards_show`
   - **SaaSCon**: skip it, or book a small or big booth. `id: conference_expo`
   - **The AI Summit**: a side-room talk or a live main-stage demo, a big panel, or a hackathon prize. `id: ai_summit` `id: ai_summit_panel` `id: ai_summit_hackathon`
   - **The hearing**: a summons to testify, then the committee report. `id: hearing_summons` `id: hearing_report`

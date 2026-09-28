@@ -5,6 +5,7 @@ import { weeklyRevenue, weeklyCosts, policyCost } from './economy.js';
 import { totalMrr } from './products.js';
 import { mentorOf } from './staff.js';
 import { POLICIES } from '../data/policies.js';
+import { freeBuilders } from './projects.js';
 import { isUnlocked } from './unlocks.js';
 import { ERAS } from '../data/eras.js';
 import { ADVICE_LINES } from '../data/advisors.js';
@@ -134,11 +135,16 @@ function optionsFor(state, a) {
       if (p) opt(`Give ${first(p)} lighter work`, 'staff', p.id);
       break;
     }
-    case 'debt':
-      if (!building('refactor')) opt('Start The Big Refactor', 'build');
+    case 'debt': {
+      // The same rule startProject uses: any engineer, designer or founder who isn't away can take it on.
+      if (!building('refactor')) {
+        if (freeBuilders(state)) opt('Start The Big Refactor', 'build');
+        else opt('Hire an engineer who can take on The Big Refactor', 'staff');
+      }
       if (policyOpen('comprehension_reviews')) opt('Switch on Code Comprehension Reviews', 'policies', 'comprehension_reviews');
       opt('Put an engineer on maintenance', 'staff');
       break;
+    }
     case 'busFactor': {
       const p = person(id);
       if (p && unmentored.length) opt(`Have ${first(p)} mentor ${first(unmentored[0])}`, 'staff', p.id);
@@ -170,11 +176,11 @@ function optionsFor(state, a) {
       break;
     case 'era':
       if (id === 'chatgbt') {
-        if (isUnlocked(state, 'models')) opt('Pick a model for your next product', 'models');
-        if (isUnlocked(state, 'automation')) opt('Look at what automation can take on', 'automation');
+        if (isUnlocked(state, 'models')) opt('Choose what your next product runs on', 'models');
+        if (isUnlocked(state, 'automation')) opt('See which routine work a model could take on', 'automation');
       } else {
         opt('Put someone on oversight of the agents', 'staff');
-        if (isUnlocked(state, 'automation')) opt('Set up automation', 'automation');
+        if (isUnlocked(state, 'automation')) opt('Hand some routine work to agents', 'automation');
       }
       opt('Start something built for the new era', 'build');
       break;

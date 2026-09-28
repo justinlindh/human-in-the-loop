@@ -4,7 +4,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { strainSystem, strainDelta } from '../../src/sim/strain.js';
 import { meaningSystem } from '../../src/sim/meaning.js';
 import { purposeSystem, purposeLift } from '../../src/sim/purpose.js';
-import { incentivesSystem } from '../../src/sim/incentives.js';
+import { incentivesSystem, rewardFor } from '../../src/sim/incentives.js';
 import { checkUnlocks } from '../../src/sim/unlocks.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { productAppeal } from '../../src/sim/products.js';
@@ -155,8 +155,10 @@ describe('the Incentives Program (issue #11)', () => {
       }
       s.week++;
     }
-    // The timed ladder tops out at music night; the Waffle Party is earned by a milestone instead.
-    expect(rewards).toEqual(['finger_traps', 'balloons', 'caricature', 'melon_bar', 'music_night', 'music_night', 'music_night']);
+    // The timed ladder tops out at music night; past it, the next awards come from the lower rungs. The
+    // Waffle Party is earned by a milestone instead.
+    expect(rewards.slice(0, 5)).toEqual(['finger_traps', 'balloons', 'caricature', 'melon_bar', 'music_night']);
+    for (const r of rewards.slice(5)) expect(['finger_traps', 'balloons', 'caricature', 'melon_bar']).toContain(r);
     for (let i = 1; i < boosts.length; i++) expect(boosts[i]).toBeLessThanOrEqual(boosts[i - 1]);
     expect(s.purpose.value).toBeLessThan(60);
   });
@@ -185,6 +187,31 @@ describe('the Incentives Program (issue #11)', () => {
   });
 });
 
+describe('issue #912: music night stays special once the ladder is climbed', () => {
+  const ladder = INCENTIVES.filter((r) => r.id !== 'waffle_party').map((r) => r.id);
+  const top = ladder.length - 1;
+
+  it('climbs the ladder in order, then music night returns only every few awards past the top', () => {
+    const s = game(21);
+    const seq = Array.from({ length: 40 }, (_, count) => rewardFor(s, count).id);
+    expect(seq.slice(0, top + 1)).toEqual(ladder);
+    for (let count = top + 1; count < 40; count++) {
+      const music = (count - top) % B.incentiveMusicEvery === 0;
+      expect(seq[count] === 'music_night', `award ${count}`).toBe(music);
+      if (!music) expect(ladder.slice(0, top)).toContain(seq[count]);
+    }
+    expect(new Set(seq.slice(top + 1).filter((id) => id !== 'music_night')).size).toBeGreaterThan(1);
+  });
+
+  it('is the same for the same game and draws nothing from the game RNG', () => {
+    const a = game(22), b = game(22);
+    const rng = JSON.stringify(a.rng);
+    const seq = (s) => Array.from({ length: 30 }, (_, i) => rewardFor(s, i).id);
+    expect(seq(a)).toEqual(seq(b));
+    expect(JSON.stringify(a.rng)).toBe(rng);
+  });
+});
+
 describe('natural vacations', () => {
   it('everyone takes about two weeks a year, staggered, and a crunch or outage postpones it with strain', async () => {
     const { runBot } = await import('../../src/sim/bots.js');
@@ -210,6 +237,36 @@ describe('natural vacations', () => {
     s.week = s.flags.vacationDue[p.id];
     run(s, vacationSystem);
     expect(p.mood).toBe('away');
+  });
+
+  it('issue #867: only a real crunch or push postpones a vacation, and the toast names it', async () => {
+    const { vacationSystem } = await import('../../src/sim/strain.js');
+    const due = (seed, setup) => {
+      const s = game(seed);
+      const p = addStaff(s, 'engineer', 'mid', { hiredWeek: -200, strain: 0 });
+      setup(s);
+      const ev = run(s, vacationSystem);
+      return { p, note: ev.find((e) => e.type === 'toast' && /postponed/.test(e.text)) };
+    };
+    const mod = (s, label, value) => s.modifiers.push({ id: 'm1', key: 'output', value, label, untilWeek: s.week + 10, source: null });
+    const banner = due(7, (s) => mod(s, 'The banner', 0.02));
+    expect(banner.p.mood).toBe('away');
+    expect(banner.note).toBeUndefined();
+    const hustle = due(8, (s) => mod(s, 'Founder hustle', 0.1));
+    expect(hustle.p.mood).not.toBe('away');
+    expect(hustle.note.text).toMatch(/because of the founder hustle/);
+    const crunch = due(9, (s) => { s.policies.crunch = true; });
+    expect(crunch.p.mood).not.toBe('away');
+    expect(crunch.note.text).toMatch(/because of the crunch/);
+  });
+
+  it('every push that postpones vacations names a real modifier from the events', async () => {
+    const { VACATION_PUSHES } = await import('../../src/data/modifiers.js');
+    const { EVENTS } = await import('../../src/data/events.js');
+    const labels = new Set();
+    const walk = (fx) => { if (!fx || typeof fx !== 'object') return; for (const [k, v] of Object.entries(fx)) { if (k === 'modifier') for (const m of [v].flat()) labels.add(m.label); else walk(v); } };
+    for (const ev of Object.values(EVENTS)) for (const c of ev.choices ?? []) walk(c.effects);
+    for (const label of Object.keys(VACATION_PUSHES)) expect(labels, label).toContain(label);
   });
 
   it('understaffing alone never postpones a vacation', async () => {

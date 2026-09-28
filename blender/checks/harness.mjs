@@ -81,9 +81,19 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       page.on('request', (r) => requests.add(r.url()));
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+      // Pages never touch the network: a request off the harness's own server is aborted, recorded as
+      // a page error, and fails opening the page, so no result depends on what the network returned.
+      const blocked = [];
+      const origin = new URL(base).origin;
+      await page.route((url) => url.origin !== origin && /^(https?|wss?):$/.test(url.protocol), (route) => {
+        const u = route.request().url();
+        blocked.push(u); errors.push(`harness: blocked a network request off the harness server: ${u}`);
+        return route.abort('blockedbyclient');
+      });
       await page.addInitScript(`${auditDraws ? `(${installDrawAudit.toString()})();` : ''}${INIT}`);
       await page.goto(`${base}?snap=1&${query}`, { waitUntil: 'load' });
       await page.waitForFunction(() => window.__HITL && window.__hitlRender?.ready, null, { timeout: 120000, polling: 50 });
+      if (blocked.length) throw new Error(`harness: the page requested the network (blocked): ${blocked.slice(0, 3).join(', ')}`);
       await page.evaluate(async (tod) => {
         await document.fonts.load('700 16px Fredoka');
         await document.fonts.ready;

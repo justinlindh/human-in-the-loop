@@ -1,7 +1,8 @@
 // Checks that tools can't change what they measure by how or when they load: importing any page-side
 // tool module in blender/checks takes nothing from the game's Math.random stream (a module that
 // builds three.js objects when it loads would, one UUID each), and a scene played after a second of
-// idle page time matches one played at once.
+// idle page time matches one played at once. And a page can't reach the network: a request off the
+// harness's server is blocked and reported (the harness enforces it; this checks it still does).
 // node blender/checks/tool-rng.mjs          (under timeout; the harness takes the render lock)
 // Exit 0 when both hold, 1 with what broke.
 import { readdirSync, readFileSync } from 'node:fs';
@@ -50,6 +51,15 @@ try {
     await p.close();
     return hashes;
   };
+  {
+    const { page: p, errors } = await H.openScene('quality=low&mock=garage', { width: 320, height: 200 });
+    const got = await p.evaluate(() => fetch('https://example.com/').then(() => 'reached', () => 'failed'));
+    const reported = errors.some((e) => e.includes('blocked a network request') && e.includes('example.com'));
+    await p.close();
+    const ok = got === 'failed' && reported;
+    if (!ok) code = 1;
+    console.log(`TOOL-RNG ${ok ? 'ok  ' : 'FAIL'} network: a page's request to example.com is ${got === 'failed' ? 'blocked' : 'NOT blocked'}${reported ? ' and reported' : ', not reported'}`);
+  }
   const [now, later] = [await play(0), await play(1000)];
   const at = now.findIndex((h, i) => h !== later[i]);
   if (at >= 0) code = 1;

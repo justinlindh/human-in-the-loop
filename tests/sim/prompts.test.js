@@ -211,6 +211,16 @@ describe('issue #16: Yak reply prompts', () => {
   });
 });
 
+describe('issue #911: prompt lines never contradict the rules', () => {
+  const lines = (t) => [...t.text, ...t.options.flatMap((o) => [...(o.reply ?? []), ...(o.answer ?? [])]), ...(t.ignored?.line ?? [])];
+
+  it('a full office is cramped, never deskless: every hire has a desk', () => {
+    const squeeze = PROMPTS.find((t) => t.id === 'desk_squeeze');
+    expect(squeeze.on).toBe('crowded');
+    for (const line of PROMPTS.flatMap(lines)) expect(line).not.toMatch(/beanbag|without a desk|no desk|sharing a desk|live (in|there)|a desk now/i);
+  });
+});
+
 describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
   const YAK = ['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
 
