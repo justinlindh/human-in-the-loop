@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { request } from 'node:http';
 import { bindAllowed, isPrivateAddress, scrub, lastActivity } from './lib.mjs';
 
 const SERVER = join(import.meta.dirname, 'server.mjs');
@@ -64,7 +65,7 @@ test('takes each agent\'s newest tool call from the log tails, scrubbed', () => 
 });
 
 test('the server refuses a wildcard or public bind', () => {
-  for (const host of ['0.0.0.0', '::', '8.8.8.8']) {
+  for (const host of ['0.0.0.0', '::', '8.8.8.8', ' 0.0.0.0 ']) {
     const r = spawnSync(process.execPath, [SERVER, '--host', host, '--port', '0'], { encoding: 'utf8', timeout: 20000 });
     assert.equal(r.status, 2, `${host}: ${r.stderr}`);
     assert.match(r.stderr, /refusing to bind/);
@@ -81,5 +82,14 @@ test('the server answers GETs on loopback and refuses writes', async () => {
     assert.equal((await fetch(`${base}/state.json`)).headers.get('content-type'), 'application/json');
     assert.equal((await fetch(`${base}/state.json`, { method: 'POST' })).status, 405);
     assert.equal((await fetch(`${base}/nope`)).status, 404);
+    // A request naming another host (DNS rebinding) is refused; the dashboard's own address works.
+    const withHost = (h) => new Promise((res, rej) => {
+      const r = request({ host: '127.0.0.1', port, path: '/state.json', headers: { host: h } }, (resp) => { resp.resume(); res(resp.statusCode); });
+      r.on('error', rej); r.end();
+    });
+    assert.equal(await withHost('attacker.example'), 421);
+    assert.equal(await withHost(`attacker.example:${port}`), 421);
+    assert.equal(await withHost('127.0.0.1'), 421);
+    assert.equal(await withHost(`127.0.0.1:${port}`), 200);
   } finally { child.kill(); }
 });

@@ -14,13 +14,17 @@ import { collect } from './collect.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-const host = opt('host', process.env.HITL_DASH_HOST);
+const host = String(opt('host', process.env.HITL_DASH_HOST) ?? '').trim();
 const port = Number(opt('port', process.env.HITL_DASH_PORT ?? 8790));
 if (!bindAllowed(host)) {
   console.error(`dashboard: refusing to bind "${host ?? ''}": give one private address (loopback, 10/8, 172.16/12, 192.168/16 or 100.64/10), never a wildcard`);
   process.exit(2);
 }
 
+// Browsers must address it by its own address: a request naming any other host (a rebound DNS name
+// pointing here) gets 421, so no outside page can read it as same-origin.
+const hostName = host.includes(':') ? `[${host}]` : host;
+const allowedHosts = new Set([`${hostName}:${port}`, ...(port === 80 ? [hostName] : [])]);
 const page = readFileSync(join(import.meta.dirname, 'page.html'));
 let state = JSON.stringify({ at: 0, loading: true });
 let busy = false, n = 0;
@@ -41,10 +45,11 @@ const HEADERS = {
 };
 const server = createServer((req, res) => {
   if (!isPrivateAddress(req.socket.remoteAddress)) { res.writeHead(403, HEADERS).end('forbidden\n'); return; }
+  if (!allowedHosts.has(String(req.headers.host ?? '').toLowerCase())) { res.writeHead(421, HEADERS).end('misdirected: use the address the dashboard listens on\n'); return; }
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { ...HEADERS, allow: 'GET, HEAD' }).end('read-only\n'); return; }
   const path = new URL(req.url, 'http://x').pathname;
   if (path === '/') res.writeHead(200, { ...HEADERS, 'content-type': 'text/html; charset=utf-8' }).end(page);
   else if (path === '/state.json') res.writeHead(200, { ...HEADERS, 'content-type': 'application/json' }).end(state);
   else res.writeHead(404, HEADERS).end('not found\n');
 });
-server.listen(port, host, () => console.log(`dashboard: http://${host}:${port}/`));
+server.listen(port, host, () => console.log(`dashboard: http://${hostName}:${port}/`));

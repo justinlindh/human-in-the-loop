@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { homedir, loadavg, cpus } from 'node:os';
 import { join, resolve } from 'node:path';
 import { logFiles, sessionName, usageSince } from '../usage-lib.mjs';
-import { lastActivity, scrub } from './lib.mjs';
+import { lastActivity } from './lib.mjs';
 
 const REPO = resolve(import.meta.dirname, '../..');
 const CI = process.env.HITL_LOCK_DIR ?? join(homedir(), '.cache/hitl-ci');
@@ -89,7 +89,7 @@ export async function collect({ slow = false } = {}) {
     main: mainStatus(),
     prs: prs(),
     ci: localCi(),
-    agents: agents.map((a) => ({ ...a, what: scrub(a.what) })),
+    agents,
     usage: slowCache.usage,
     worktrees: { count: wts.length, dirty: slowCache.dirty },
   };
