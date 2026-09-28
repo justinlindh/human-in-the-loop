@@ -38,7 +38,10 @@ const QUIET_R = 4;          // metres round a spotlight moment where only its ow
 // front and acrossM to the side hides them; the weights favour clear, standing and idle people; a
 // standing facepalmer turns this far off square to the camera.
 const PALM_PICK = { nearM: 0.1, farM: 2.5, acrossM: 0.8, clear: 8, standing: 4, idle: 2, turn: 0.35 };
-const POST_REACT_S = 2.2;    // how long the office reacts to a Yak post that backfired
+const POST_REACT_S = 2.2;
+// Incident responders: an arc this far from the rack (then wider), spots at least `apart` metres
+// from each other, tried `turn` radians either side of the way each person comes from.
+const RESPOND = { ring: 1.1, ringStep: 0.5, apart: 0.8, turn: 0.45, tries: 21 };    // how long the office reacts to a Yak post that backfired
 const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
@@ -713,16 +716,30 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const hot = racks.length ? racks[0].position : new THREE.Vector3(0, 0, 0);
     fx.alarm(new THREE.Vector3(0, 0, 0), Math.min(L.W, L.D) * 0.3, e.caught ? 1.6 : 3.2);
     if (!e.caught) rig?.shake(0.22, 0.4);
-    // The nearest few people run to the servers, then go back.
-    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !taken(r))
+    // The nearest few people run to the servers, then go back. Each stands on an arc round the
+    // rack on the side they come from, apart from the others and clear of furniture, so nobody
+    // crosses the group to reach their place. People already responding keep their places.
+    const nav = office.nav();
+    const places = [...recs.values()].filter((r) => r.temp?.incident).map((r) => r.temp.goal);
+    const near = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !taken(r) && !r.temp?.incident)
       .sort((a, b) => a.pos.distanceToSquared(hot) - b.pos.distanceToSquared(hot))
       .slice(0, e.caught ? 1 : 4);
-    near.forEach((r, i) => {
+    for (const r of near) {
       emote(r, 'exclamation', 3);
-      const spot = { x: hot.x + 0.6 + (i % 2) * 0.7, z: hot.z + 1.0 + Math.floor(i / 2) * 0.6, yaw: Math.PI, anim: 'idle' };
-      r.temp = { anim: 'idle', t: 5.5, goal: spot, back: true, run: true };
+      const toward = Math.atan2(r.pos.x - hot.x, r.pos.z - hot.z);
+      let spot = null;
+      for (let k = 0; k < RESPOND.tries && !spot; k++) {
+        const j = k % 7, ring = RESPOND.ring + Math.floor(k / 7) * RESPOND.ringStep;
+        const a = toward + Math.ceil(j / 2) * RESPOND.turn * (j % 2 ? 1 : -1);
+        const x = hot.x + Math.sin(a) * ring, z = hot.z + Math.cos(a) * ring;
+        if (nav.isBlocked(x, z, BODY_R) || places.some((p) => Math.hypot(p.x - x, p.z - z) < RESPOND.apart)) continue;
+        spot = { x, z, yaw: Math.atan2(hot.x - x, hot.z - z), anim: 'idle' };
+      }
+      if (!spot) continue;
+      places.push(spot);
+      r.temp = { anim: 'idle', t: 5.5, goal: spot, back: true, run: true, incident: true };
       walkTo(r, spot, true);
-    });
+    }
   }
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
