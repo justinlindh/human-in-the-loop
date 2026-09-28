@@ -124,11 +124,11 @@ async function render(id) {
     windowOn(scene, mat, -2.2, 1.9); plant(scene, mat, -3.2, -1.1);
     // Left to right: the new AI feature walking past, the founder turning to look, the product glaring.
     person(scene, { skin: 4, hair: 5, hairColor: '#b5562b', shirt: P.screen_cyan, pants: '#2e3440', build: 1, accessory: 'none' }, 'designer', { at: [-1.3, 0.35], yaw: -1.2, anim: 'walk', head: [0, 0.35, 0] });
-    person(scene, founder, 'marketer', { at: [0.15, 0.2], yaw: 1.3, anim: 'walk', head: [0, -1.1, 0.12], emote: 'sparkle' });
+    person(scene, founder, 'marketer', { at: [0.15, 0.2], yaw: 0.6, anim: 'walk', head: [0, -1.35, 0.12], emote: 'sparkle' });
     person(scene, { skin: 1, hair: 2, hairColor: '#2a2630', shirt: P.fabric_slate, pants: '#3b3a40', build: 1, accessory: 'none' }, 'support', { at: [0.9, 0.05], yaw: -0.9, anim: 'idle', arms: { l: [-0.3, 0, 0.6], r: [-0.3, 0, -0.6] }, head: [0.1, -0.35, 0], mood: 'coasting', emote: 'storm' });
     const { canvas, proj } = shoot(scene, [0.0, 1.05, 4.6], [-0.1, 0.95, 0]);
     x.drawImage(canvas, 0, 20);
-    const lab = (t, p, dy = 0) => { const [lx, ly] = proj(p); text(t, Math.min(W - 200, Math.max(200, lx)), ly + dy, 44, P.ink, true); };
+    const lab = (t, p, dy = 0) => { const [lx, ly] = proj(p); x.font = '700 44px Fredoka'; const half = x.measureText(t).width / 2 + 30; text(t, Math.min(W - half, Math.max(half, lx)), ly + dy, 44, P.ink, true); };
     lab('new AI feature', [-1.3, 0.45, 0.35]);
     lab('founder', [0.1, 0.45, 0.2], 0);
     lab('our actual product', [1.15, 0.2, 0.05], 70);
@@ -149,7 +149,7 @@ async function render(id) {
     x.fillStyle = P.metal_soft; x.fillRect(26, 88, 308, 4);
     [['GPU hours', '$28,410'], ['Tokens', '$9,882'], ['Storage', '$1,204'], ['Egress', '$1,391'], ['Support', '$113'], ['That one test', '$0.04']].forEach(([a, b], i) => row(a, b, 140 + i * 56));
     x.fillStyle = P.ink; x.fillRect(26, 480, 308, 5);
-    row('Total', '$41,000', 530, 38, true);
+    row('Total', '$41,000.04', 530, 34, true);
     x.fillStyle = P.alarm_red; x.font = '700 30px Fredoka'; x.textAlign = 'left'; x.fillText('Users: 12', 26, 600);
     x.restore();
     rule(765); text('Month one', W / 2, 835, 80); border();
@@ -170,14 +170,13 @@ async function render(id) {
     const pw = W / 2, ph = (H - 10) / 2;
     shots.forEach(({ canvas, proj }, i) => {
       const px = (i % 2) * pw, py = Math.floor(i / 2) * (ph + 10);
-      x.drawImage(canvas, 150, 60, 900, 640, px, py, pw, ph);
+      x.drawImage(canvas, 150, 0, 900, 640, px, py, pw, ph);
       // The board's writing, placed on the board as the camera sees it.
       const [bx, by] = proj([0.62, 1.2, -0.06]);
-      const sx = (bx - 150) * pw / 900 + px, sy = (by - 60) * ph / 640 + py;
-      x.save(); x.font = `700 ${i === 3 ? 25 : 34}px Fredoka`; x.fillStyle = i === 3 ? P.alarm_red : P.ink; x.textAlign = 'center'; x.textBaseline = 'middle';
-      const words = lines[i].split(' '); const mid = Math.ceil(words.length / 2);
-      const [a, b] = words.length > 2 ? [words.slice(0, mid).join(' '), words.slice(mid).join(' ')] : [lines[i], ''];
-      x.fillText(a, sx, sy - (b ? 20 : 0)); if (b) x.fillText(b, sx, sy + 22);
+      const sx = (bx - 150) * pw / 900 + px, sy = by * ph / 640 + py;
+      x.save(); x.font = '700 34px Fredoka'; x.fillStyle = i === 3 ? P.alarm_red : P.ink; x.textAlign = 'center'; x.textBaseline = 'middle';
+      const rows = [['1. Add', 'AI'], ['2. Raise', 'a round'], ['3. The product', 'is the AI'], ['4. The AI is', 'the product', 'manager']][i];
+      rows.forEach((r, k) => x.fillText(r, sx, sy + (k - (rows.length - 1) / 2) * 40));
       x.restore();
     });
     x.fillStyle = P.ink; x.fillRect(pw - 5, 0, 10, H); x.fillRect(0, ph, W, 10);
