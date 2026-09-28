@@ -1096,6 +1096,45 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
   return results;
 }
 
+// An outage's named responders, at the floor's rack and then, with the rack taken away, round a
+// desk: at least two gather, nobody stands in furniture (the lead sits in their own chair), and at
+// the all-clear every one of them lets go within ten seconds.
+export async function runRespondChecks(R, S, { dt = 1 / 30 } = {}) {
+  const results = [];
+  R.perks.hold = true;
+  const step = () => { window.__tick(dt * 1000); R.sync(S); R.render(dt, { draw: false }); };
+  for (let i = 0; i < 180; i++) step();
+  const rack = S.office.placed.find((p) => p.itemId === 'server_rack');
+  for (const hub of ['rack', 'desk']) {
+    if (hub === 'desk') { S.office.placed = S.office.placed.filter((p) => p !== rack); R.sync(S); for (let i = 0; i < 30; i++) step(); }
+    S.outage = { productId: S.products[0].id, kind: 'db_wipe', severity: 3, weeks: 0, unrecoverable: false, responderIds: ['s1', 's2', 's3'], etaWeeks: 2, cost: { cash: 0, brand: 0, customers: 0 }, cause: '' };
+    R.sync(S);
+    R.handleEvents([{ type: 'incident', kind: 'db_wipe', productId: S.products[0].id, caught: false, severity: 3 }], S);
+    let worst = 0, worstWho = null, samples = 0, most = 0;
+    for (let i = 0; i < 30 * 20; i++) {
+      step();
+      const actors = R.moments.active.filter(([, m]) => m === 'respond');
+      most = Math.max(most, actors.length);
+      if (i % 3) continue;
+      for (const [id] of actors) {
+        const root = charOf(R.scene, id), st = R.moments.staging(id), rec = R.perks.peek(id);
+        const own = st.role === 'lead' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
+        const overlap = bodyInside(root, furnitureOf(R, own), false);
+        samples++;
+        if (overlap > worst) { worst = overlap; worstWho = id; }
+      }
+    }
+    S.outage = null;
+    R.sync(S);
+    let ended = false;
+    for (let i = 0; i < 30 * 10 && !ended; i++) { step(); ended = !R.moments.active.some(([, m]) => m === 'respond'); }
+    results.push({ name: `moment:respond:${hub}`, pass: most >= 2 && samples > 0 && worst < 0.01 && ended, gathered: most, ended, samples, insidePct: +(100 * worst).toFixed(2), worstWho });
+    for (let i = 0; i < 180; i++) step();
+  }
+  if (rack) { S.office.placed.push(rack); R.sync(S); }
+  return results;
+}
+
 export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   const { footprint } = await import('./layout.js');
   const L = R.office.current.L;

@@ -23,7 +23,7 @@ const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -834,6 +834,18 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.06;
         tgt.headX = -0.05;
         break;
+      case 'rackfix': {
+        // Working a rack's console standing up: both hands tapping at chest height, the head
+        // glancing up at the lights now and then.
+        const tap = s(t * 9 + phase), up = Math.max(0, s(t * 0.7 + phase) - 0.4) / 0.6;
+        tgt.lean = 0.1;
+        tgt.armLX = -1.2 + Math.max(0, tap) * 0.12;
+        tgt.armRX = -1.2 + Math.max(0, -tap) * 0.12;
+        tgt.armLZ = 0.24; tgt.armRZ = -0.24;
+        tgt.headX = 0.1 - up * 0.3;
+        tgt.bodyY = s(t * 2.2 + phase) * 0.005;
+        break;
+      }
       case 'press':
         // Both hands up against the glass.
         tgt.armLX = tgt.armRX = -1.55;

@@ -181,6 +181,21 @@ const SPECS = {
     share('facingCamera', 'face within 80 deg of the camera', (x) => x.faceCam <= 80, 0.6),
     visibleRule,
   ] },
+  // An outage: the named responders work the rack until the all-clear, facing it and in view. With
+  // no rack, or one whose front the camera can't see, they crowd round one of them seated at a desk,
+  // watching that screen while the lead types.
+  'respond.rack': { moment: 'respond', beat: 'fix', role: 'responder', rules: [
+    share('facesWork', 'face within 60 deg of the rack (or, with it turned away, the lead\'s screen)', (x) => x.targetAngle <= 60, 0.9),
+    visibleRule, noFade,
+  ] },
+  'respond_desk.responder': { moment: 'respond', scenario: 'respond_desk', beat: 'fix', role: 'responder', rules: [
+    share('facesScreen', 'face within 60 deg of the lead\'s screen', (x) => x.targetAngle <= 60, 0.9),
+    visibleRule, noFade,
+  ] },
+  'respond_desk.lead': { moment: 'respond', scenario: 'respond_desk', beat: 'fix', role: 'lead', rules: [
+    share('typing', 'the lead types at their own desk', (x) => x.anim === 'typing', 1),
+    share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.9),
+  ] },
   ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
     ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6], ['heldPalmGap', 0.02], ['heldSupportGap', 0.02], ['heldHeadDistance', 0.6], ['heldHeadJoint', 0.08], ['heldScreenDistance', 0.6]].map(([metric, limit]) =>
       share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
@@ -193,6 +208,7 @@ const SPECS = {
 };
 
 // How each moment is set up in the mock floor, and how long to watch it.
+const OUTAGE = "S.outage = { productId: S.products[0].id, kind: 'db_wipe', severity: 3, weeks: 0, unrecoverable: false, responderIds: ['s1', 's2', 's3'], etaWeeks: 2, cost: { cash: 0, brand: 0, customers: 0 }, cause: '' }; R.sync(S); R.handleEvents([{ type: 'incident', kind: 'db_wipe', productId: S.products[0].id, caught: false, severity: 3 }], S);";
 const SCENARIOS = {
   growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
@@ -213,6 +229,10 @@ const SCENARIOS = {
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
   hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
     steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
+  // An outage with three named responders, at the floor's rack and, with the rack taken out, at a desk.
+  respond: { query: 'mock=floor', patch: {}, seconds: 12, steps: [{ at: 0, js: OUTAGE }] },
+  respond_desk: { moment: 'respond', query: 'mock=floor', patch: {}, seconds: 12,
+    steps: [{ at: 0, js: `S.office.placed = S.office.placed.filter((p) => p.itemId !== 'server_rack'); R.sync(S); ${OUTAGE}` }] },
   // The consultants at the HQ door, where the sim stages their chair. Who walks in to be
   // interviewed (the nearest idle staffer, seeded) decides how long the walk takes, so the interview
   // beat is scored for a fixed window starting once they arrive, not over the whole run.

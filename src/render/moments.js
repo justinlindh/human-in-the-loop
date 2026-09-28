@@ -33,7 +33,7 @@ function rnd(a, b) { return a + Math.random() * (b - a); }
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pet', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party'];
+const KINDS = ['pet', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party', 'respond'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
@@ -1462,5 +1462,5 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       checks: { inView: (q) => inView(q, { body: true, walls: true }) },
     });
   }
-  return { growthSpot, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { growthSpot, inView, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }

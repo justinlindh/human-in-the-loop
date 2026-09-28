@@ -19,6 +19,7 @@ export const MOMENT_KINDS = {
   legend: { spotlight: false, seconds: 6 },
   top_level: { spotlight: false, seconds: 6 },
   standup: { spotlight: false },
+  respond: { spotlight: false },
   coffee: { spotlight: false },
   pair: { spotlight: false },
 };

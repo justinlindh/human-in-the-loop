@@ -30,6 +30,7 @@ const GROUPS = {
   sky: ['sky:trailing'],
   garage: ['pairs:garage'],
   celebrations: ['moment:growth', 'moment:company_party'],
+  respond: ['moment:respond:rack', 'moment:respond:desk'],
 };
 const noMatch = () => { console.log(`clip: no case matches --only=${ONLY.join(',')}`); process.exit(1); };
 const wanted = (name) => !ONLY || ONLY.some((p) => name.includes(p));
@@ -128,6 +129,15 @@ if (runs.celebrations) {
   out.push(...await g.page.evaluate(async () => {
     const C = await import('/src/render/checks.js');
     return C.runCelebrationChecks(window.__hitlRender, window.__HITL.state);
+  }));
+  errors.push(...g.errors);
+  await g.page.close();
+}
+if (runs.respond) {
+  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
+  out.push(...await g.page.evaluate(async () => {
+    const C = await import('/src/render/checks.js');
+    return C.runRespondChecks(window.__hitlRender, window.__HITL.state);
   }));
   errors.push(...g.errors);
   await g.page.close();
