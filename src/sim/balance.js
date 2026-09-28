@@ -6,6 +6,7 @@ export const B = {
   momentSpeechMaxAge: 45,
   momentSpeechGap: 1,
   momentSpeechStartDelay: 1,
+  momentTalkMemory: 24, partyTalkGapWeeks: 6,
   runWeeks: 1040, anniversaryWeek: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
@@ -94,8 +95,9 @@ export const B = {
   readBaseSeconds: 1.8, readSecondsPerChar: 0.06, readMaxSeconds: 7,
   readFloorSeconds: 1, readCharsPerSecond: 15,
   readSpeedFactor2x: 0.75, readSpeedFactor4x: 0.6,
-  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12,
-  bubbleMaxOnScreen: 1, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
+  standupSpeechGap: 0.6, standupSilenceSeconds: 1.3, standupConversationMemory: 12, standupConversationChance: 0.4, standupConversationCast: 3, standupMaxLines: 5,
+  bubbleMaxOnScreen: 3, bubbleGapSeconds: 6, bubblePersonGapSeconds: 20,
+  bubbleStaffPerExtra: 8, // one more ordinary speech bubble at once for each this many staff, up to bubbleMaxOnScreen
   yakMinGapSeconds: 6, yakReadingGapSeconds: 2, yakMaxWaitSeconds: 30, yakPendingLimit: 40, yakMemorySeconds: 120,
   yakMaxWaitGameSeconds: 30, // Queue age at 1x; reading gaps still use active real seconds.
   yakImportantMaxWaitGameSeconds: 60, // Important Yak posts other than incidents expire after this much game time.

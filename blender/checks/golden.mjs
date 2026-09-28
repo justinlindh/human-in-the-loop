@@ -182,5 +182,6 @@ if (!identical) {
   console.log(`golden: ${IDENTITY.name} drawn frame by frame differs from its final-frame render; something in the draw path now keeps state between frames, so __settle is no longer exact`);
 } else console.log(`golden: ${IDENTITY.name} is byte-identical drawn frame by frame and final frame only`);
 console.log(`golden: rendered ${todo.length} of ${selected.length} scenes; ${selected.length - todo.length} unchanged, skipped`);
-if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended`);
+if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended (then commit and post before/after media: scripts/baseline-media.sh <pr>)`);
+if (UPDATE) console.log('golden: updated references need before/after media on the PR: commit them, then scripts/baseline-media.sh <pr>');
 process.exit(failed ? 1 : 0);

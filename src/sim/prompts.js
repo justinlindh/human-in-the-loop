@@ -160,7 +160,6 @@ export function openEventPrompt(outer, ev, subjectId) {
   state.flags.lastPromptWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
-  emitMomentTalk(ctx, { ...state.chatPrompts.at(-1), eventId: ev.id });
 }
 
 function botLine(ctx, prompt, text) {
