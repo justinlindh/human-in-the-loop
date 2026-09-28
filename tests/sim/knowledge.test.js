@@ -96,8 +96,9 @@ describe('comprehension debt', () => {
     t.comprehensionDebt = 1;
     t.policies.comprehension_reviews = true;
     eng(t, 'senior', 100);
-    run(t, 20);
-    expect(t.comprehensionDebt).toBe(0);
+    run(t, 200);
+    expect(t.comprehensionDebt).toBeGreaterThanOrEqual(0);
+    expect(t.comprehensionDebt).toBeLessThan(0.1);
   });
 
   it('stays finite with zero products and zero staff', () => {
@@ -107,5 +108,57 @@ describe('comprehension debt', () => {
     expect(Number.isFinite(s.institutionalKnowledge)).toBe(true);
     expect(Number.isFinite(s.comprehensionDebt)).toBe(true);
     expect(s.institutionalKnowledge).toBe(0);
+  });
+});
+
+describe('comprehension debt from project work (#936)', () => {
+  const project = (s, kind = 'new') => { const j = { id: `j${s.nextId++}`, kind, progress: 0, pointsNeeded: 999 }; s.projects.push(j); return j; };
+  const builder = (s, seniority, j) => addStaff(s, 'engineer', seniority, { knowledge: 0, traits: [], assignment: { type: 'project', targetId: j.id } });
+  const once = (setup) => { const s = game(); s.staff = []; setup(s); run(s, 1); return s; };
+
+  it('each builder-week on a shipping project adds debt, weighted by seniority', () => {
+    const mid = once((s) => builder(s, 'mid', project(s)));
+    expect(mid.debtFlow.work).toBeCloseTo(B.debtPerBuildWeek * B.debtBuildWeight.mid);
+    const juniors = once((s) => { const j = project(s); builder(s, 'junior', j); builder(s, 'junior', j); });
+    const seniors = once((s) => { const j = project(s); builder(s, 'senior', j); builder(s, 'senior', j); });
+    expect(juniors.debtFlow.work).toBeGreaterThan(seniors.debtFlow.work);
+  });
+
+  it('crunch makes the same work add more', () => {
+    const calm = once((s) => builder(s, 'mid', project(s)));
+    const crunch = once((s) => { s.policies.crunch = true; builder(s, 'mid', project(s)); });
+    expect(crunch.debtFlow.work).toBeCloseTo(calm.debtFlow.work * B.debtCrunchMult);
+  });
+
+  it('a refactor or craft project adds none', () => {
+    const s = once((g) => { builder(g, 'mid', project(g, 'refactor')); builder(g, 'mid', project(g, 'craft')); });
+    expect(s.debtFlow.work).toBe(0);
+  });
+
+  it('reviews and seniors pay down a share of the debt, reviews the most', () => {
+    const at = (debt, setup) => { const s = game(); s.staff = []; s.comprehensionDebt = debt; setup(s); run(s, 1); return s.debtFlow; };
+    const reviews = at(40, (s) => { s.policies.comprehension_reviews = true; });
+    const senior = at(40, (s) => eng(s, 'senior', 100));
+    expect(reviews.reviews).toBeCloseTo(-40 * B.debtPaydownReviews);
+    expect(senior.seniors).toBeCloseTo(-40 * B.debtPaydownPerSeniorEng);
+    expect(reviews.reviews).toBeLessThan(senior.seniors);
+    expect(at(20, (s) => { s.policies.comprehension_reviews = true; }).reviews).toBeCloseTo(reviews.reviews / 2);
+  });
+
+  it('debtFlow names every source, finite, and oneOff carries a departure', () => {
+    const s = game();
+    run(s, 1);
+    expect(Object.keys(s.debtFlow).sort()).toEqual(['automation', 'lowKnowledge', 'maintenance', 'oneOff', 'products', 'reviews', 'seniors', 'work']);
+    const vet = eng(s, 'senior', 80);
+    dispatch(s, { type: 'fire', staffId: vet.id });
+    run(s, 1);
+    expect(s.debtFlow.oneOff).toBeCloseTo(80 * B.debtFromDeparturePerKnowledge);
+    for (const v of Object.values(s.debtFlow)) expect(Number.isFinite(v)).toBe(true);
+  });
+
+  it('a new game starts with an all-zero debtFlow', async () => {
+    const { createGame } = await import('../../src/sim/index.js');
+    const s = createGame({ seed: 3, companyName: 'Zero' });
+    expect(Object.values(s.debtFlow).every((v) => v === 0)).toBe(true);
   });
 });
