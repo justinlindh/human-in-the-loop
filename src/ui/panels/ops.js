@@ -5,7 +5,6 @@ import { postureParts as simPostureParts } from '../../sim/incidents.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
 import { oversightNeeded, oversightHave } from './automation.js';
-import { UNLOCKS_BY_KEY } from '../../data/unlocks.js';
 
 // A breakdown value with its sign; a value that rounds to zero carries none ("0.0", not "-0.0").
 const signed = (v, sign, digits = 1) => { const t = Math.abs(v).toFixed(digits); return Number(t) === 0 ? t : `${sign}${t}`; };
@@ -106,25 +105,20 @@ export function opsPanel(ctx) {
         sup.set(sc, sc < 70 ? '#e5484d' : '#34c38f');
         mnt.set(mc, mc < 70 ? '#e5484d' : '#4f8cff');
       });
-      // Before automation unlocks there is nothing to oversee: the hours and bar hide, and the Automation
-      // button stays disabled with what brings it.
-      const ovNums = h('span', null, ovProv, ' of ', ovReq);
+      // Before automation unlocks there is nothing to oversee, so the Oversight row and its Automation
+      // button stay out of sight; the card is just Coverage (Support and Upkeep matter from day one).
+      // They appear, live, when the unlock arrives.
+      const ovHead = h('div.row', null, icon('oversight'), h('b', { text: 'Oversight' }), h('span', null, ovProv, ' of ', ovReq), h('span.spacer'),
+        h('button.btn.small', { onclick: () => ctx.open('automation') }, 'Automation'));
       const ovBar = h('div.bar.thick', null, ovFill);
       const ovNote = h('div.small.muted', { text: 'Coverage: how much of the needed work is actually getting done.' });
-      const autoBtn = h('button.btn.small', { onclick: () => ctx.open('automation') }, 'Automation');
-      const lockWhy = h('div.small.muted.lockwhy');
+      const covHead = h('div.row', null, h('b', { text: 'Coverage' }), h('span.spacer'), h('span.small.muted', { text: 'How much of the needed work is getting done.' }));
       bind((st) => {
         const locked = !!st.unlocks && st.unlocks.automation == null;
-        autoBtn.disabled = locked;
-        autoBtn.setAttribute('aria-disabled', String(locked));
-        setText(lockWhy, locked ? `Nothing is automated yet. Automation: ${(UNLOCKS_BY_KEY.automation?.reason ?? 'not unlocked yet').replace(/^./, (c) => c.toLowerCase())}.` : '');
-        lockWhy.style.display = locked ? '' : 'none';
-        for (const el of [ovNums, ovBar, ovNote]) el.style.display = locked ? 'none' : '';
+        for (const el of [ovHead, ovBar, ovNote]) el.style.display = locked ? 'none' : '';
+        covHead.style.display = locked ? '' : 'none';
       });
-      const loadCard = h('div.card.load', null,
-        h('div.row', null, icon('oversight'), h('b', { text: 'Oversight' }), ovNums, h('span.spacer'), autoBtn),
-        ovBar, ovNote, lockWhy,
-        sup.el, mnt.el);
+      const loadCard = h('div.card.load', null, ovHead, covHead, ovBar, ovNote, sup.el, mnt.el);
 
       // Incident log
       const st = s.stats ?? {};
