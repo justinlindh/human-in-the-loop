@@ -47,13 +47,13 @@ function lockdownStep(ctx) {
     state.lockdown = { since: state.week, until: state.week + B.lockdownWeeks, stayerId: stayer.id };
     state.flags.lockdownWeek = state.week;
     raiseDecision(ctx, 'lockdown_start', stayer.id, { queue: true });
-    emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is closed until further notice. Please take your plants home.' : 'The office is closed until further notice. Please take your chair home. Only your chair.' });
+    emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is closed until further notice. Please take your plants home.' : 'The office is closed until further notice. Please take your chair home. Only your chair.', important: true });
     return;
   }
   if (state.lockdown && state.week >= state.lockdown.until && state.flags.workPolicyAsked === undefined) {
     state.flags.workPolicyAsked = state.week;
     raiseDecision(ctx, 'work_policy', null, { queue: true });
-    emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is open again. The plants did not make it. We are not talking about it.' : 'The office is open again. It smells like a closed office. Windows are open. Please be patient.' });
+    emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is open again. The plants did not make it. We are not talking about it.' : 'The office is open again. It smells like a closed office. Windows are open. Please be patient.', important: true });
   }
 }
 
@@ -76,7 +76,7 @@ function rivalStep(ctx) {
       strength: B.rivalStartStrength, status: 'rising',
     };
     raiseDecision(ctx, 'rival_appears', null, { queue: true });
-    emitChat(ctx, { channel: 'random', from: '@newsbot', text: `Just launched: ${state.rival.name}, "like the thing you already use, but ours".` });
+    emitChat(ctx, { channel: 'random', from: '@newsbot', text: `Just launched: ${state.rival.name}, "like the thing you already use, but ours".`, important: true });
     return;
   }
   const r = state.rival;
@@ -93,10 +93,10 @@ function rivalStep(ctx) {
     const roll = int(ctx.rng, 0, 2);
     if (roll === 0) {
       r.status = 'acquired';
-      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `${r.name} has been acquired. ${r.founderName} posted a thread about "the journey".` });
+      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `${r.name} has been acquired. ${r.founderName} posted a thread about "the journey".`, important: true });
     } else if (roll === 1) {
       r.status = 'dead';
-      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `${r.name} is shutting down. Their last blog post is titled "What we learned". It is very long.` });
+      emitChat(ctx, { channel: 'random', from: '@newsbot', text: `${r.name} is shutting down. Their last blog post is titled "What we learned". It is very long.`, important: true });
     } else {
       raiseDecision(ctx, 'rival_merge', null, { queue: true });
     }

@@ -63,8 +63,10 @@ export async function openAt(H, target, { width = 1280, height = 800, quality = 
     // Loading sets the game's speed, which is 0 in snap mode; the harness steps a running diorama.
     window.__hitlRender.setSpeed?.(1);
     window.__hitlRender.setPaused?.(false);
-    return { ...r, week: S.week, pending: S.pendingDecision?.eventId ?? null };
+    return { ...r, week: S.week, pending: S.pendingDecision?.eventId ?? null, title: window.__HITL.titleShown ?? !!document.querySelector('.title-mode') };
   }, items);
   if (!res.ok) throw new Error(`continueGame failed on ${target.file}: ${JSON.stringify(res)}`);
+  // A capture under the title screen would judge the menu, not the moment.
+  if (res.title) throw new Error(`the title screen is still up after loading ${target.file}`);
   return { page, errors, row: target.row, state: { week: res.week, pending: res.pending } };
 }

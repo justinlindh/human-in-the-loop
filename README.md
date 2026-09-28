@@ -133,7 +133,7 @@ The result is a loop that looks a lot like the game: the machines do the work, a
 Changes land on `main` only through pull requests:
 
 1. Each change is a branch and a PR with Conventional Commit titles (`type(scope): summary`), following [the PR template](.github/pull_request_template.md). The PR turns on auto-merge.
-2. `scripts/ci-pr.sh <pr>` runs local CI (tests, build, lifecycle and soak runs, headless render checks, commit lint, balance) on the PR merged into `main`, and posts the result as the `local-ci` status and a comment. A PR that only touches docs gets a light gate (the list is `scripts/ci-skip-paths`).
+2. Auto CI (`scripts/auto-ci.sh`, on a timer) runs `scripts/ci-pr.sh` on each new PR head: local CI (tests, build, lifecycle and soak runs, headless render checks, commit lint, balance) on the PR merged into `main`, and posts the result as the `local-ci` status and a comment. A PR that only touches docs gets a light gate (the list is `scripts/ci-skip-paths`).
 3. The reviewer agent posts a verdict with `scripts/review-verdict.sh`, which sets the `review` status. Visual changes are judged from screenshots and motion from clips, and the reviewer measures what it can (positions, frame counts, overlaps) rather than eyeballing it.
 4. GitHub merges once `local-ci`, `review` and the workflow checks pass. A merge with a `feat`, `fix` or `perf` commit tags a release, which deploys the site.
 
