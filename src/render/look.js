@@ -5,8 +5,8 @@ import { PALETTE, SKINS, ROLE_COLORS } from './palette.js';
 //
 // characterLook(appearance, role) -> {
 //   skin, hairColor, shirt, pants, hatColor: '#rrggbb' (null without a hat),
-//   hair: 0..7, build: 0..2, accessory: 'none'|'glasses'|'headphones'|'beanie'|'cap',
-//   capBack: bool, garment: 'hood'|'hood_tucked'|'scarf'|'blazer'|'headset'|'vest'|'jacket'|null,
+//   hair: 0..12 (the style drawn), build: 0..2, accessory: 'none'|'glasses'|'headphones'|'beanie'|'cap',
+//   capBack: bool, print: a chest graphic id or null, garment: 'hood'|'hood_tucked'|'scarf'|'blazer'|'headset'|'vest'|'jacket'|null,
 //   roleColor: '#rrggbb',
 //   linear: { skin, hairColor, shirt, pants, hatColor }   // [r, g, b] in linear light, for rendering
 // }
@@ -14,7 +14,8 @@ import { PALETTE, SKINS, ROLE_COLORS } from './palette.js';
 // Rules: appearance colors are muted a little and kept off pure black; a shirt too close to the
 // role color is swapped for a palette fabric; support wears only its headset (glasses allowed); a
 // hat takes a color (and, for a cap, a direction) from a hash of the look; an engineer with long hair
-// wears the hoodie without its hood.
+// wears the hoodie without its hood. The sim picks hair 0..7; a hash of the look moves some people
+// onto the extra styles 8..12, and gives most people in a role that shows its shirt a role graphic.
 
 const toLinear = (c) => (c < 0.04045 ? c * 0.0773993808 : Math.pow(c * 0.9478672986 + 0.0521327014, 2.4));
 const toSRGB = (c) => (c < 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 0.41666) - 0.055);
@@ -64,6 +65,33 @@ export function hashLook(a) {
   return h;
 }
 
+// Extra hair styles: 8 afro, 9 space buns, 10 mohawk, 11 buzz cut, 12 pigtails. Only the buzz cut
+// fits under a band and ear cups (headphones, or support's headset).
+const EXTRA_HAIR = [8, 9, 10, 11, 12];
+const HEADPHONE_HAIR = new Set([11]);
+function hairStyle(a, accessory, role, h) {
+  const base = Math.max(0, Math.min(7, a.hair ?? 0));
+  if (a.style != null) return a.style;
+  const k = (h >>> 5) % 13;
+  if (k < 8) return base;
+  const style = EXTRA_HAIR[k - 8];
+  return (accessory === 'headphones' || role === 'support') && !HEADPHONE_HAIR.has(style) ? base : style;
+}
+
+// Chest graphics by role, for the roles whose shirt front shows: sales wears a tie, security a vest,
+// and a marketer's blazer closes over the chest.
+export const PRINTS = {
+  engineer: ['brackets', 'branch', 'terminal'],
+  designer: ['pen', 'swatches', 'bezier'],
+  support: ['heart', 'chat'],
+};
+function printFor(a, role, h) {
+  if (a.print !== undefined) return a.print;
+  const list = PRINTS[role];
+  if (!list || (h >>> 9) % 3 === 0) return null;
+  return list[(h >>> 11) % list.length];
+}
+
 const GARMENT = { engineer: 'hood', designer: 'scarf', marketer: 'blazer', support: 'headset', security: 'vest', sales: 'jacket' };
 const LONG_HAIR = 2;
 
@@ -72,8 +100,8 @@ export function characterLook(appearance = {}, role = null, roleColor = null) {
   const roleHex = roleColor ?? ROLE_COLORS[role] ?? PALETTE.role_engineer;
   const accessory = role === 'support' && a.accessory !== 'glasses' ? 'none' : a.accessory ?? 'none';
   const hat = accessory === 'beanie' || accessory === 'cap';
-  const hair = Math.max(0, Math.min(7, a.hair ?? 0));
   const h = hashLook(a);
+  const hair = hairStyle(a, accessory, role, h);
   const linear = {
     skin: lin(SKINS[a.skin ?? 1] ?? SKINS[1]),
     hairColor: characterColor(a.hairColor ?? '#4a3222', 0.05),
@@ -89,6 +117,6 @@ export function characterLook(appearance = {}, role = null, roleColor = null) {
     hatName: hat ? HAT_COLORS[h % HAT_COLORS.length] : null,
     hair, build: Math.max(0, Math.min(2, a.build ?? 1)), accessory,
     capBack: accessory === 'cap' && (a.capBack ?? h % 4 === 1),
-    garment, roleColor: roleHex, linear,
+    garment, print: printFor(a, role, h), roleColor: roleHex, linear,
   };
 }

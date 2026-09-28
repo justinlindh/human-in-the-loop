@@ -2,7 +2,7 @@
 assembles and animates them with plain transforms:
 
   head (neck pivot at origin, head center at z = HEAD_C), eyes, eye_shine, mouth_smile, mouth_flat,
-  mouth_frown, blush, hair_0..7, acc_glasses, acc_headphones, acc_beanie, acc_cap
+  mouth_frown, blush, hair_0..12, acc_glasses, acc_headphones, acc_beanie, acc_cap
   torso_0..2 (waist pivot), lanyard, badge
   role_engineer (hood), role_designer (scarf), role_marketer (blazer), role_support (headset),
   role_security (vest), role_sales (jacket and gold tie)
@@ -125,7 +125,7 @@ def inside(c):
 bmesh.ops.delete(bm, geom=[f for f in bm.faces if not inside(f.calc_center_median())], context='FACES')
 bm.to_mesh(bl.data); bm.free()
 
-# Hair: eight silhouettes, all centered on the head center (origin at the neck pivot).
+# Hair silhouettes, all centered on the head center (origin at the neck pivot).
 # Short styles run down to the nape: a head tipped forward (slumped, burnout, desk nap) shows the
 # back of the skull to the camera, which must not be bare. The cut removes vertices, so a face
 # survives only if all its corners are above it: the plane sits well below the ring to keep.
@@ -186,6 +186,34 @@ curly('hair_6')                                                     # curly
 curly('hair_6_hp', pressed=True)
 h = at_head([hair_cap('h7cap', 0.1, NAPE, side_z=-0.03, rings=13), lump('h7swoop', 0.12, (-0.07, -0.13, 0.14), (1.3, 0.7, 0.5))])
 join(h, 'hair_7')                                                   # side swoop
+
+# Styles 8 to 12. The sim picks hair 0..7; the renderer maps some looks onto these for variety.
+# Their visible lumps are UV spheres: an icosphere's facets show on a silhouette this size.
+def puff(name, r, loc, scale=(1, 1, 1), seg=12, rings=8):
+    return use(uvsphere(name, r, loc, None, seg=seg, rings=rings, scale=scale), 'hair')
+
+
+# Afro: a big smooth dome over the head, running low at the back, with a filler under its rim so
+# no hollow shows from behind.
+h = at_head([hair_cap('h8cap', 0.1, -0.3, r=HEAD_R + 0.07, side_z=-0.06, scale=(1.12, 1.06, 1.0), seg=20, rings=14),
+             lump('h8fill', 0.2, (0, 0.09, -0.1), (1.25, 0.95, 0.75))])
+for o in h:
+    o.location.z += 0.03
+    o.location.y += 0.015
+join(h, 'hair_8')                                                   # afro
+h = at_head([hair_cap('h9cap', 0.1, NAPE, side_z=-0.03, rings=13)]
+            + [puff(f'h9bun{sx}', 0.09, (sx * 0.1, 0.04, 0.225), (1, 1, 0.95)) for sx in (-1, 1)])
+join(h, 'hair_9')                                                   # space buns
+# Mohawk: a ridge on a bare scalp, front to nape, so it reads apart from the buzz cut.
+ridge = []
+for i, (y, z, r) in enumerate([(-0.16, 0.16, 0.05), (-0.1, 0.215, 0.06), (-0.02, 0.24, 0.064), (0.07, 0.228, 0.062), (0.15, 0.18, 0.056), (0.2, 0.09, 0.05), (0.21, -0.02, 0.045)]):
+    ridge.append(puff(f'h10r{i}', r, (0, y, z), (0.75, 1.0, 1.25), seg=8, rings=6))
+join(at_head(ridge), 'hair_10')                                     # mohawk
+join(at_head([hair_cap('h11cap', 0.12, NAPE, r=HEAD_R + 0.008, side_z=-0.02, rings=13)]), 'hair_11')   # buzz cut
+h = at_head([hair_cap('h12cap', 0.07, NAPE, side_z=-0.1, scale=(1.08, 1.03, 1.0), rings=13)]
+            + [puff(f'h12tie{sx}', 0.03, (sx * 0.2, 0.08, -0.04), seg=8, rings=5) for sx in (-1, 1)]
+            + [puff(f'h12tail{sx}', 0.07, (sx * 0.22, 0.1, -0.13), (0.8, 0.8, 1.5)) for sx in (-1, 1)])
+join(h, 'hair_12')                                                  # pigtails
 
 # Accessories (head-centered). Glasses are the frame front only: temple arms read as antennae or
 # floating bars on a round chibi head from every angle.
@@ -289,6 +317,7 @@ for i, (w, d) in enumerate([(0.26, 0.19), (0.3, 0.21), (0.36, 0.24)]):
     t = box(f'torso_{i}', (w, d, TORSO_H), (0, 0, TORSO_H / 2), None, bevel=0)
     soften(t, min(w, d) * 0.45, 3, hard=False)
     t.data.materials.append(PLACEHOLDER['shirt'])
+
 lan = torus('lanyard_strap', 0.09, 0.008, (0, -0.02, TORSO_H - 0.04), None, rot=(math.radians(62), 0, 0), major_seg=20, minor_seg=4)
 use(lan, 'role')
 bm = bmesh.new(); bm.from_mesh(lan.data)
@@ -386,11 +415,11 @@ join([vs, stripe, stripe2, shield], 'role_security')
 
 
 REQUIRED = ['head', 'eyes', 'eye_shine', 'mouth_smile', 'mouth_flat', 'mouth_frown', 'blush',
-            *[f'hair_{i}' for i in range(8)], 'acc_glasses', 'acc_headphones', 'acc_beanie', 'acc_cap',
+            *[f'hair_{i}' for i in range(13)], 'acc_glasses', 'acc_headphones', 'acc_beanie', 'acc_cap',
             'torso_0', 'torso_1', 'torso_2', 'lanyard', 'badge', 'arm', 'hand', 'leg', 'shoe', 'mug',
             *[f'role_{r}' for r in ('engineer', 'designer', 'marketer', 'support', 'security', 'sales')],
             'hair_6_hp', 'role_engineer_tucked']
 require_parts(REQUIRED)
 # The budget covers the whole kit; a character draws one part per slot (one hair, one role garment),
 # so variants such as hair_6_hp add to the file, not to any one person.
-export(budget=9000, zfight_kit=True)
+export(budget=12000, zfight_kit=True)
