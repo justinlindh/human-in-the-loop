@@ -8,6 +8,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A PR's newer push cancels its older run, so superseded heads don't hold runners. Pushes to main and
+# manual runs each get their own group (the run id) and are never grouped or cancelled.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
