@@ -5,6 +5,12 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
   const { SPEECH } = await import('/src/render/speech-budget.js');
   const budget = { ...SPEECH };
   if (path === 'ambient') Object.assign(SPEECH, { max: 3, gap: 0, personGap: 0 });
+  try {
+    return await run();
+  } finally {
+    Object.assign(SPEECH, budget);
+  }
+  async function run() {
   S.pendingDecision = null;
   S.chatPrompts = [];
   S.office.props = [];
@@ -26,6 +32,7 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
     if (!document.querySelector('.hitl-say')) throw Error('priority blocker did not appear');
   }
   R.handleEvents([{ type: 'standup', mode: 'daily', lines }], S);
+  const posOf = (id) => { let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === id) o = x.parent; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; };
   const shown = [], dwell = new Map();
   let blocked = false, paused = false, changed = false, departed = false, pauseStable = true, max = 0;
   let nearId = null, farId = null, farShown = false, staged4x = false, quiet = 0;
@@ -39,7 +46,8 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
     quiet = document.querySelector('.hitl-say') ? 0 : quiet + 1;
     if (path === 'ambient' && shown.length === 1 && !blocked && quiet >= 4) {
       // The nearest and farthest non-attendees from the ring: the near one is held, the far one talks.
-      const st = R.stats.standup, dist = (p) => { const w = R.walkOf(p.id); const at = w?.path?.at(-1) ?? w?.goal; return at ? Math.hypot(at.x - st.at.x, at.z - st.at.z) : Infinity; };
+      // Where each person stands now, as the renderer's quiet ring measures it.
+      const st = R.stats.standup, dist = (p) => { const at = posOf(p.id); return at ? Math.hypot(at.x - st.at.x, at.z - st.at.z) : Infinity; };
       const others = S.staff.filter(p => !ids.includes(p.id) && R.walkOf(p.id) && !R.walkOf(p.id).hidden).sort((a, b) => dist(a) - dist(b));
       nearId = others[0]?.id; farId = others.at(-1)?.id;
       // Nobody may stand that close in the mock, so the near speaker is placed just inside the quiet ring.
@@ -75,7 +83,7 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
       blocked = true;
     }
     const bubbles = [...document.querySelectorAll('.hitl-say')].filter(el => el.isConnected);
-    max = Math.max(max, bubbles.filter(el => lines.some(l => el.textContent.includes(l.text))).length);
+    max = Math.max(max, (path === 'ambient' ? bubbles.filter(el => lines.some(l => el.textContent.includes(l.text))) : bubbles).length);
     for (const el of bubbles) {
       const text = el.textContent;
       if (path === 'ambient' && R.stats.standup && text.startsWith('Unrelated') && text.endsWith('near.')) throw Error('speech near the ring interrupted the meeting');
@@ -86,10 +94,18 @@ export async function checkStandupSpeech(R, S, { speed = 1, path = 'normal' } = 
     }
     if (!R.stats.standup) break;
   }
-  Object.assign(SPEECH, budget);
+  // A held line waits, it isn't dropped: the near speaker's celebration shows once the meeting ends.
+  let heldShown = false, cleared = true;
+  for (let frame = 0; frame < 300 && path === 'ambient' && !heldShown; frame++) {
+    window.__settle(1);
+    heldShown = [...document.querySelectorAll('.hitl-say')].some(el => el.textContent.includes('Unrelated celebration near.'));
+  }
+  // Reaching 4x mid-meeting clears the meeting's bubble along with the meeting.
+  if (path === 'speed') { window.__settle(2); cleared = ![...document.querySelectorAll('.hitl-say')].some(el => lines.some(l => el.textContent.includes(l.text))); }
   // At 4x no standup is staged; reaching 4x mid-meeting ends it after the line on screen.
   const expected = speed >= 4 ? [] : (['empty', 'speed'].includes(path) ? lines.slice(0, 1) : lines.filter(l => !['departure', 'away'].includes(path) || l.staffId !== ids[1])).map(l => l.text);
   const readable = ['empty', 'speed'].includes(path) || shown.every(text => dwell.get(text) >= holdSeconds(text, speed) - 0.05);
-  return { pass: JSON.stringify(shown) === JSON.stringify(expected) && !R.stats.standup && max <= 1 && readable && pauseStable && !staged4x && (path !== 'denied' || blocked) && (path !== 'ambient' || farShown),
-    speed, path, expected, shown, dwell: Object.fromEntries(dwell), max, readable, pauseStable, staged4x, farShown, completed: !R.stats.standup };
+  return { pass: JSON.stringify(shown) === JSON.stringify(expected) && !R.stats.standup && max <= 1 && readable && pauseStable && !staged4x && (path !== 'denied' || blocked) && (path !== 'ambient' || (farShown && heldShown)) && cleared,
+    speed, path, expected, shown, dwell: Object.fromEntries(dwell), max, readable, pauseStable, staged4x, farShown, heldShown, cleared, completed: !R.stats.standup };
+}
 }
