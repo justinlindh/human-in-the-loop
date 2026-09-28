@@ -22,6 +22,7 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { POLICIES } from '../data/policies.js';
 import { EVENTS } from '../data/events.js';
 import { ROLES } from '../data/roles.js';
+import { SQUAD_NAMES } from '../data/squads.js';
 
 // Where the events of the bots' own dispatches go while botTurn or botDecide runs (null: dropped).
 let sink = null;
@@ -354,6 +355,34 @@ function staffProjects(s) {
   }
 }
 
+// The squad player: once squads open, builders join squads of about botBuildersPerProject and each squad is
+// posted as a unit to a project nobody else's squad has; a squad with nothing to build covers maintenance.
+// Before squads open it staffs like the balanced player.
+let useSquads = false;
+function staffSquads(s) {
+  if (!(s.officeStage >= 1 || s.staff.length >= B.squadUnlockStaff)) { staffProjects(s); return; }
+  // Products outgrow their crews; lend one more engineer to maintenance when it runs short.
+  if (liveProducts(s).length && s.ops.maintenanceShortfall > 0.15) {
+    const pull = builders(s).find((p) => p.role === 'engineer' && p.assignment.type === 'project' && !p.founder);
+    if (pull) dispatch(s, { type: 'assign', staffId: pull.id, assignment: { type: 'maintenance', targetId: null } });
+  }
+  const inSquad = new Set(s.squads.flatMap((q) => q.memberIds));
+  for (const p of builders(s).filter((x) => !inSquad.has(x.id))) {
+    const room = s.squads.filter((q) => q.memberIds.length < B.botBuildersPerProject).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
+    if (room) dispatch(s, { type: 'setSquadMembers', squadId: room.id, memberIds: [...room.memberIds, p.id] });
+    else if (s.squads.length < B.squadMax) dispatch(s, { type: 'createSquad', name: SQUAD_NAMES[s.squads.length], memberIds: [p.id] });
+  }
+  const taken = new Set(s.squads.filter((q) => q.posting.type === 'project').map((q) => q.posting.targetId));
+  const projects = [...s.projects].sort((a, b) => (a.kind === 'new' ? -1 : 1) - (b.kind === 'new' ? -1 : 1));
+  for (const q of s.squads) {
+    if (!q.memberIds.length || (q.posting.type === 'project' && s.projects.some((j) => j.id === q.posting.targetId))) continue;
+    const j = projects.find((x) => !taken.has(x.id));
+    if (j) {
+      if (dispatch(s, { type: 'postSquad', squadId: q.id, posting: { type: 'project', targetId: j.id } }).ok) taken.add(j.id);
+    } else if (q.benchUntil === null && q.posting.type !== 'maintenance') dispatch(s, { type: 'postSquad', squadId: q.id, posting: { type: 'maintenance', targetId: null } });
+  }
+}
+
 // Plays like the plan's "balanced" player: moderate automation, mentoring, oversight, and care.
 function balanced(s) {
   const rich = s.cash > 300000;
@@ -403,7 +432,8 @@ function balanced(s) {
     dispatch(s, startNew(s, size, model, fixedName(s)));
   }
   maintainProducts(s);
-  staffProjects(s);
+  if (useSquads) staffSquads(s);
+  else staffProjects(s);
   spendLate(s);
 
   for (const p of launchedThisWeek(s)) {
@@ -436,6 +466,12 @@ function allHumans(s) {
   return out;
 }
 
+// The balanced player, organised into squads.
+function squads(s) {
+  useSquads = true;
+  try { return balanced(s); } finally { useSquads = false; }
+}
+
 // A careful new player: one early hire, small products on good combos, light automation, sensible choices.
 function sensible(s) {
   s.flags.botStandup = 'async_standups';
@@ -455,9 +491,9 @@ function sensible(s) {
   return balanced(s);
 }
 
-export const BOTS = { automateAll, allHumans, balanced, sensible, recklessHumans };
+export const BOTS = { automateAll, allHumans, balanced, sensible, recklessHumans, squads };
 
-export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChooser, balanced: balancedChooser, sensible: balancedChooser, recklessHumans: firstChooser };
+export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChooser, balanced: balancedChooser, sensible: balancedChooser, recklessHumans: firstChooser, squads: balancedChooser };
 
 // Resolves pending decisions the way the named bot would. Returns how many bridge loans it took.
 // onEvents(events, action) receives the events of every dispatch.

@@ -20,6 +20,7 @@ import { TRAINING } from '../data/training.js';
 import { eraLines, eraOnlyAllowsText, eraAtLeast } from './eras.js';
 import { remoteLearning } from './ladder.js';
 import { purposeLift } from './purpose.js';
+import { squadOutputBonus } from './squads.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -193,7 +194,8 @@ export function outputMult(state, person) {
   const craft = (state.policies.craft_fridays ? B.craftFridaysOutput : 1) * (state.policies.no_crunch ? 1 + B.noCrunchOutput : 1)
     * (state.policies.crunch && BUILDER_ROLES.has(person.role) ? 1 + B.crunchOutput : 1);
   return B.seniorityOutput[person.seniority] * person.speed * moodMult * staminaMult * strained * staffMods(person).output * craft
-    * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0));
+    * Math.max(0, 1 + modifierBonus(state, 'output') + itemBonus(state, 'output') + (state.policies.daily_standups ? B.standupDailyOutput : 0))
+    * (1 + squadOutputBonus(state, person));
 }
 
 export const capacity = (state) => deskCapacity(state);

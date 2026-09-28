@@ -144,6 +144,7 @@ function normalize(state) {
   for (const i of INCUMBENTS) state.market.categories[i.category] ??= { incumbentStrength: i.strength, clones: 0 };
   for (const g of GOALS) state.goals[g.id] ??= { done: false, week: null };
   state.market.forSale ??= [];
+  for (const sq of state.squads) { sq.crewIds ??= []; sq.postedWeek ??= sq.formedWeek; }
   state.office.expansion ??= 0;
   state.office.props ??= [];
   state.fame ??= 0;

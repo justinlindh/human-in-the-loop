@@ -100,9 +100,18 @@ function observe(state) {
   if (juniors.length >= A.unmentoredJuniors) add('juniors', 'people', 1, 1, ADVICE_LINES.juniors[1], { count: juniors.length },
     `${juniors.length} juniors without a mentor`, { panel: 'staff' });
 
+  for (const sq of idleSquads(state)) {
+    add(`squadIdle:${sq.id}`, 'people', 1, 1, ADVICE_LINES.squadIdle[1], { squad: sq.name },
+      `${sq.name}: idle for ${state.week - sq.postedWeek} weeks`, { panel: 'squads', arg: sq.id });
+  }
+
   for (const a of out) a.options = optionsFor(state, a);
   return out;
 }
+
+// Squads with members that have sat on an idle posting (not a post-launch bench) for squadIdleWeeks or more.
+const idleSquads = (state) => (state.squads ?? []).filter((sq) => sq.memberIds.length && sq.posting.type === 'idle'
+  && sq.benchUntil === null && state.week - sq.postedWeek >= B.squadIdleWeeks);
 
 // Two or three things the player could do about a topic, each a real action open to them now, named with
 // the menu where it's done. They're offered, never taken.
@@ -135,6 +144,14 @@ function optionsFor(state, a) {
       if (p) opt(`Give ${first(p)} lighter work`, 'staff', p.id);
       break;
     }
+    case 'squadIdle': {
+      const sq = (state.squads ?? []).find((x) => x.id === id);
+      const waiting = state.projects.find((j) => !state.staff.some((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id));
+      if (sq && waiting) opt(`Post ${sq.name} to ${waiting.name}`, 'squads', sq.id);
+      else if (freeBuilders(state)) opt('Start a new product', 'build');
+      if (sq) opt(`Post ${sq.name} to maintenance`, 'squads', sq.id);
+      break;
+    }
     case 'debt': {
       // The same rule startProject uses: any engineer, designer or founder who isn't away can take it on.
       if (!building('refactor')) {
@@ -142,7 +159,9 @@ function optionsFor(state, a) {
         else opt('Hire an engineer who can take on The Big Refactor', 'staff');
       }
       if (policyOpen('comprehension_reviews')) opt('Switch on Code Comprehension Reviews', 'policies', 'comprehension_reviews');
-      opt('Put an engineer on maintenance', 'staff');
+      const idle = idleSquads(state)[0];
+      if (idle) opt(`Post ${idle.name} to maintenance`, 'squads', idle.id);
+      else opt('Put an engineer on maintenance', 'staff');
       break;
     }
     case 'busFactor': {
