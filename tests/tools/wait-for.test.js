@@ -123,6 +123,13 @@ describe('scripts/wait-for.sh', () => {
     expect(r.stdout.match(/auto-CI hasn't reported/g)).toHaveLength(1);
   });
 
+  it('--issue with a pull request number stops when it merges', () => {
+    writeFileSync(join(ghDir, 'issue.json'), JSON.stringify({ state: 'MERGED' }));
+    const r = run('--issue', '9', '--poll', '0', '--timeout', '0');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/#9 merged/);
+  });
+
   it('waits for an issue to close', () => {
     writeFileSync(join(ghDir, 'issue.json'), JSON.stringify({ state: 'CLOSED' }));
     const r = run('--issue', '9', '--poll', '0');
