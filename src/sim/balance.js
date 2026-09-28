@@ -95,6 +95,8 @@ export const B = {
   gpuShortageMult: 1.5,
   // Once the Incentives Program's ladder is climbed, music night comes back every this many awards.
   incentiveMusicEvery: 3,
+  // desk_squeeze: weeks to add a promised desk, and the poster's meaning lost when it never comes.
+  deskPromiseWeeks: 4, deskPromiseBroken: 3,
   chatLogSize: 80, eventGraceWeeks: 10, decisionGapWeeks: 3, reactionMax: 6, chatMemory: 24,
   readMinimumSeconds: 2.5, readSecondsPerWord: 0.25, readFadeSeconds: 0.4,
   // readSeconds in src/pacing.js: a line's hold at 1x, its cap, the reading-speed floor, and the shortening at 2x and 4x.
