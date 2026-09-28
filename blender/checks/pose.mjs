@@ -23,12 +23,13 @@
 // PR's) with this checkout's tool. --check-browser runs the same measures in a harness page and
 // compares every number.
 //
-// --scene runs in a harness page under the render lock: one drawn frame at the end of the warm-up,
-// then sampling with no draws. For each person: faceCovered (how much of the head a label or emote
-// covers), faceVisible (the share of seven facial landmarks the camera sees, and what hides them;
-// not which way the face points), faceCam (the face's angle to the camera, degrees) and facePx (the
-// drawn head's height). Rules use faceCovered, faceVisible, bodyVisible, faceCam and facePx over the
-// requested frames, for every person listed (or one, with an 'id:' prefix). Missing samples fail.
+// --scene runs in a harness page under the render lock, drawing nothing: warm-up and sampling both
+// run through the update path with no draw call. For each person: faceCovered (how much of the head
+// a label or emote covers), faceVisible (the share of seven facial landmarks the camera sees, and
+// what hides them; not which way the face points), faceCam (the face's angle to the camera, degrees)
+// and facePx (the drawn head's height). Rules use faceCovered, faceVisible, bodyVisible, faceCam and
+// facePx over the requested frames, for every person listed (or one, with an 'id:' prefix). Missing
+// samples fail.
 // heldHeadDepth and heldTorsoDepth are mesh penetration in metres; heldGap is wrist-to-prop surface
 // distance. An absent prop has null measures and fails these rules. Use --every 1 for a whole hold.
 // Scene mode serves this checkout and rejects a differing --root.
@@ -114,13 +115,20 @@ async function sceneMode() {
       for (let i = 0; i < o.view; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
       const initialization = window.__drawAudit();
       const warmStart = window.__wallNow();
-      // The final warmup draw initializes Three.js resources whose UUID allocations consume the
-      // seeded stream. Omitting it changes later actor choices even if early samples agree.
-      window.__settle(o.warm);
+      // A real draw allocates lazy Three.js resources whose UUIDs draw from the seeded stream, so
+      // --render-reference (the only mode that samples by drawing every frame, for comparison) keeps
+      // its warmup draw; the default, no-draw mode never draws at all. Either way, reseeding right
+      // after puts both on the same stream from here on, so which one drew during warmup can't move
+      // a later actor choice. __settle only draws on its last frame, so --warm 0 gives
+      // --render-reference zero warmup draws too, pushing its own first draw (and the resource
+      // allocation it triggers) past the reseed and into the sampled frames. Nothing passes --warm 0
+      // today; a caller who does should not expect it to match a separate --warm 0 run of the other
+      // mode.
+      (o.renderReference ? window.__settle : window.__sample)(o.warm);
+      window.__reseedGame();
       const warmMs = window.__wallNow() - warmStart;
       const warmed = window.__drawAudit();
-      // With no bootstrap (for example --warm 0), preserve rendered stepping and its RNG effects.
-      const skipDraw = !o.renderReference && warmed.total > 0;
+      const skipDraw = !o.renderReference;
       const sampleStart = window.__wallNow();
       if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
       if (o.events) R.handleEvents([].concat(o.events), S);
@@ -137,8 +145,8 @@ async function sceneMode() {
     Object.assign(profile, { readyMs, mode: argv.includes('--render-reference') ? 'rendered-reference' : 'sampling-optimization', gl: glMode({ argv }), frames, who });
     if (opt('profile')) writeFileSync(opt('profile'), JSON.stringify(profile, null, 2));
     console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
-    if (profile.samplingMode === 'no-draw' && profile.sampleDraws !== 0) {
-      console.error('POSE FAIL no-drawing sampling assertion: WebGL draw submissions detected (see --profile); use --render-reference to diagnose');
+    if (profile.samplingMode === 'no-draw' && (profile.warmupDraws !== 0 || profile.sampleDraws !== 0)) {
+      console.error('POSE FAIL no-drawing assertion: WebGL draw submissions detected (see --profile); use --render-reference to diagnose');
       code = 1;
     }
     const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);

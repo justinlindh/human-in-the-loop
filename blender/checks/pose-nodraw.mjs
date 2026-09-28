@@ -30,7 +30,8 @@ async function run(fixture, rendered) {
         dispatchEvent(new KeyboardEvent('keydown', { key: 'e' }));
         dispatchEvent(new KeyboardEvent('keyup', { key: 'e' }));
       }
-      window.__settle(30);
+      (rendered ? window.__settle : window.__sample)(30);
+      window.__reseedGame();
       const warmup = window.__drawAudit().total - initialization;
       if (fixture.kind === 'printer') S.pendingDecision = { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } };
       R.handleEvents([{ type: 'say', staffId: subject, text: 'Pose overlay lifetime' }, { type: 'chat', fromId: other, text: 'Pose emote lifetime' }], S);
@@ -90,6 +91,7 @@ try {
     const reference = await run(fixture, true), candidate = await run(fixture, false);
     if (args.includes('--json')) writeFileSync(opt('--json'), JSON.stringify({ fixture, reference, candidate }));
     assert.equal(candidate.draws.sampling, 0, 'no sampling WebGL drawing');
+    assert.equal(candidate.draws.warmup, 0, 'no warmup WebGL drawing');
     assert(reference.draws.warmup > 0 && reference.draws.sampling > 0, 'unchanged rendered path must fail the zero-draw assertion');
     // Exact equality includes every legacy/projected field, IDs, nulls, overlay lifetime, matrix,
     // effect count and staged beat. No numeric tolerance is needed for identical seeded inputs.
