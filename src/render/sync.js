@@ -1286,6 +1286,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const r = recs.get(id);
       if (!r) return false;
       r.temp = temp ? { ...temp } : null;
+      // The dilemma pose sweats for as long as it lasts.
+      if (temp?.anim === 'dilemma') emote(r, 'sweat', Number.isFinite(temp.t) ? temp.t : 6);
       if (walk) { const d = office.current.zones.door; walkTo(r, office.nav().freePoint(d.x, d.z)); }
       return true;
     },
