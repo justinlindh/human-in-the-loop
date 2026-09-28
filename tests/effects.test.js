@@ -54,7 +54,7 @@ describe('the effects report office page covers every item', () => {
 
   it('prints what desks and gated items do', () => {
     expect(row('Desk Set')).toMatch(/seats one person/);
-    expect(row('Meeting Table')).toMatch(/no effect on the numbers/);
+    expect(row('Meeting Table')).toMatch(/Daily Standups on, everyone in the weekly standup gains 0.3 knowledge/);
     expect(row('Trophy Case')).toMatch(/after your first award/);
     expect(row('Monitoring Wall')).toMatch(/agents era/i);
   });

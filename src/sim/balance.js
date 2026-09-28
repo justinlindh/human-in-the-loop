@@ -79,7 +79,7 @@ export const B = {
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageComplexityPerProduct: 0.2, fixersCounted: 3, outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22, heldRollsMax: 2, deskStageWaitWeeks: 4,
-  standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1,
+  standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1, meetingTableKnowledge: 0.3,
   // Emoji reactions by a post's weight: routine chatter and replies rarely get any (one or two when they do),
   // and a trivial post now and then gets a pile of one emoji as a joke. Big posts use reactionMax.
   reactions: { routineChance: 0.3, routineSecond: 0.25, replyChance: 0.12, pileOnChance: 0.012, pileOnMin: 6, pileOnMax: 10 },
