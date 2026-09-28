@@ -1,4 +1,4 @@
-// The next office, promoted once (#823): when a move becomes possible and stays possible for
+// The next office, promoted once: when a move becomes possible and stays possible for
 // STABLE_WEEKS game weeks, a "Needs you" row names it with its price and the Office button gets a
 // New pip. Both clear for good for that office once the player opens Office while the move is
 // possible, or taps Later. They never open anything or pause the game. Whether a move is possible
@@ -6,9 +6,10 @@
 import { SIMX } from './simapi.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { fmtMoney } from './dom.js';
+import { companyKey } from './saveKey.js';
 
 const STABLE_WEEKS = 2;
-const seenKey = (slot) => `hitl.office.promoted.${slot}`;
+const seenKey = (company) => `hitl.office.promoted.${company}`;
 
 export function moveAvailable(s) {
   const next = OFFICE_STAGES[s?.officeStage + 1];
@@ -23,26 +24,29 @@ export function createOfficePrompt() {
   let sinceStage = null;
   const seenMem = new Set();
 
-  const read = (slot) => { try { const v = JSON.parse(localStorage.getItem(seenKey(slot)) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+  const read = (company) => { try { const v = JSON.parse(localStorage.getItem(seenKey(company)) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
   function isSeen(s) {
     if (seenMem.has(s.officeStage)) return true;
-    const slot = s.flags?.saveSlot;
-    return !!slot && read(slot).includes(s.officeStage);
+    const company = companyKey(s);
+    return !!company && read(company).includes(s.officeStage);
   }
   function markSeen(s) {
     seenMem.add(s.officeStage);
-    const slot = s.flags?.saveSlot;
-    if (!slot) return;
-    const list = read(slot);
+    const company = companyKey(s);
+    if (!company) return;
+    const list = read(company);
     if (!list.includes(s.officeStage)) list.push(s.officeStage);
-    try { localStorage.setItem(seenKey(slot), JSON.stringify(list)); } catch { /* private mode or blocked storage */ }
+    try { localStorage.setItem(seenKey(company), JSON.stringify(list)); } catch { /* private mode or blocked storage */ }
   }
 
   // The move to promote now, or null.
   function current(s) {
     const next = moveAvailable(s);
-    if (!next || sinceStage !== s.officeStage) { since = next ? s.week : null; sinceStage = s.officeStage; }
-    if (!next || s.week - since < STABLE_WEEKS || isSeen(s)) return null;
+    if (sinceStage !== s.officeStage) { since = null; sinceStage = s.officeStage; }
+    // The wait starts over whenever the move stops being possible.
+    if (!next) { since = null; return null; }
+    if (since === null) since = s.week;
+    if (s.week - since < STABLE_WEEKS || isSeen(s)) return null;
     return next;
   }
 
