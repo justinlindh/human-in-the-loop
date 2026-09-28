@@ -17,32 +17,43 @@ export function carpetTexture(era = 'classic', low = false) {
   ctx.fillStyle = P[`carpet_${era}`];
   ctx.fillRect(0, 0, 1, 1);
   ctx.fillStyle = ctx.strokeStyle = P[`carpet_${era}_pattern`];
+  // Warm neutrals at low contrast so team mats and people stay the loudest thing on the floor.
+  // Every motif runs along the floor's own axes: a diagonal in texture space lines up with the
+  // screen's vertical in the isometric view and reads as a shaft of light.
   if (era === 'classic') {
-    ctx.fillRect(0, 0, 0.5, 0.5);
-    ctx.fillRect(0.5, 0.5, 0.5, 0.5);
+    // A quiet tile grid.
+    ctx.fillRect(0, 0, 1, 0.04);
+    ctx.fillRect(0, 0, 0.04, 1);
+    ctx.fillRect(0, 0.5, 1, 0.04);
+    ctx.fillRect(0.5, 0, 0.04, 1);
   } else if (era === 'chatgbt') {
-    // Diagonal ribbons continue through the repeat edges.
-    for (let x = -1; x <= 1; x++) {
+    // Pinstripes along one wall.
+    for (let i = 0; i < 4; i++) ctx.fillRect(0, i / 4, 1, 0.05);
+  } else if (era === 'agents') {
+    // A small dot grid.
+    for (let i = 0; i < 4; i++) for (let k = 0; k < 4; k++) {
       ctx.beginPath();
-      ctx.moveTo(x, 0); ctx.lineTo(x + 0.25, 0);
-      ctx.lineTo(x + 1.25, 1); ctx.lineTo(x + 1, 1);
+      ctx.arc((i + 0.5) / 4, (k + 0.5) / 4, 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (era === 'consolidation') {
+    // Paired stripes, thin.
+    ctx.fillRect(0, 0.2, 1, 0.05);
+    ctx.fillRect(0, 0.3, 1, 0.05);
+    ctx.fillRect(0, 0.7, 1, 0.05);
+    ctx.fillRect(0, 0.8, 1, 0.05);
+  } else {
+    // Small diamonds on a half-tile grid.
+    for (let i = 0; i < 2; i++) for (let k = 0; k < 2; k++) {
+      const x = (i + 0.5) / 2, y = (k + 0.5) / 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 0.09); ctx.lineTo(x + 0.09, y);
+      ctx.lineTo(x, y + 0.09); ctx.lineTo(x - 0.09, y);
       ctx.closePath(); ctx.fill();
     }
-  } else if (era === 'agents') {
-    ctx.lineWidth = 0.07;
-    ctx.strokeRect(0.17, 0.17, 0.66, 0.66);
-    ctx.fillRect(0.42, 0.42, 0.16, 0.16);
-  } else if (era === 'consolidation') {
-    ctx.fillRect(0, 0, 1, 0.28);
-    ctx.fillRect(0, 0.38, 1, 0.06);
-  } else {
-    ctx.beginPath();
-    ctx.moveTo(0.5, 0.08); ctx.lineTo(0.92, 0.5);
-    ctx.lineTo(0.5, 0.92); ctx.lineTo(0.08, 0.5);
-    ctx.closePath(); ctx.fill();
   }
   if (!low) {
-    ctx.globalAlpha = 0.12;
+    ctx.globalAlpha = 0.06;
     ctx.fillStyle = P.paper;
     for (let i = 0; i < size; i += 4) ctx.fillRect(0, i / size, 1, 1 / size);
     ctx.fillStyle = P.ink;
