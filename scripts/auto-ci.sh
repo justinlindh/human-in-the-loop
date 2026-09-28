@@ -62,6 +62,13 @@ for f in "$JOBS"/*; do
   fi
 done
 
+# This tree's install is what runs link to when the lockfiles match (ci-pr checks it with npm ls).
+# Refresh it only while none of our runs is going, since a running one may be linked to it.
+if [ "$running" -eq 0 ] && ! (cd "$TREE" && ${AUTO_CI_NPM:-npm} ls --depth=0 >/dev/null 2>&1); then
+  if (cd "$TREE" && timeout 900 nice -n 10 ${AUTO_CI_NPM:-npm} ci --no-audit --no-fund >/dev/null 2>&1); then log "reinstalled node_modules from the lockfile"
+  else log "npm ci failed in $TREE"; fi
+fi
+
 for pr in $(printf '%s\n' "${!head[@]}" | sort -n); do
   [ "${skip[$pr]}" = true ] && continue
   [ -e "$JOBS/$pr" ] && continue

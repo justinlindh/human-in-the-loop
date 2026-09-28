@@ -22,8 +22,13 @@ echo "$1 $3" >>"$T/started"
 trap 'echo "$1 $3" >>"$T/stopped"; exit 143' TERM
 sleep 30 & wait
 SH
-chmod +x "$tmp/gh" "$tmp/ci-pr"
-export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2
+# A stand-in npm: ls passes unless $T/npm-stale exists; ci is logged.
+cat >"$tmp/npm" <<'SH'
+#!/usr/bin/env bash
+case "$1" in ls) [ ! -e "$T/npm-stale" ] ;; ci) echo ci >>"$T/npm-ci" ;; esac
+SH
+chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
+export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_NPM="$tmp/npm"
 
 pr() { # number head local-ci-state [draft] [author] [label]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
@@ -93,6 +98,17 @@ has started "11 kkk" || fail "a head stuck pending with no run should be retried
 kill -KILL -- "-$(cut -d' ' -f1 "$tmp/state/jobs/11")" 2>/dev/null; sleep 0.3
 run
 [ "$(grep -c '^11 kkk$' "$tmp/started")" -eq 1 ] || fail "a stuck head should be retried only once"
+
+# A stale install is refreshed only while none of its runs is going.
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+: >"$tmp/npm-stale"; rm -f "$tmp/npm-ci"
+fixture "$(pr 20 ttt none)"
+run
+[ "$(count npm-ci)" -eq 1 ] || fail "a stale install with no runs going should be reinstalled ($(count npm-ci) installs)"
+fixture "$(pr 20 ttt PENDING)"
+run
+[ "$(count npm-ci)" -eq 1 ] || fail "a stale install should wait while a run is going ($(count npm-ci) installs)"
+rm -f "$tmp/npm-stale"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]
