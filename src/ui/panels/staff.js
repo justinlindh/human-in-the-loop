@@ -7,6 +7,7 @@ import { assignmentOptions, assignmentText, doingText, mentorOf, isAvailable } f
 import { icon } from '../icons.js';
 import { STATS, STAT, strengthChip } from '../stats.js';
 import { hireView } from './hire.js';
+import { squadsView, squadsUnlocked, squadOf, SQUAD_MAX } from './squads.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
 import { picker, personOption } from '../picker.js';
@@ -110,25 +111,29 @@ function assignSelect(ctx, s, p) {
 }
 
 export function staffPanel(ctx, arg) {
-  let tab = arg?.tab === 'hire' ? 'hire' : 'team';
+  let tab = ['hire', 'squads'].includes(arg?.tab) ? arg.tab : 'team';
   let detailId = arg?.staffId ?? null;
   let sinceFor = null, sinceList = [];
   let sort = { col: 'role', dir: 1 };
 
-  const t = tabs([{ id: 'team', icon: 'menu.staff', label: 'Team' }, { id: 'hire', icon: 'hire', label: 'Hire' }], tab, (id) => { tab = id; detailId = null; t.set(id); render(); });
+  const t = tabs([{ id: 'team', icon: 'menu.staff', label: 'Team' }, { id: 'squads', icon: 'team', label: 'Squads' }, { id: 'hire', icon: 'hire', label: 'Hire' }], tab, (id) => { tab = id; detailId = null; t.set(id); render(); });
   const host = h('div');
 
   const table = liveView(
     (s) => [sort.col, sort.dir, meaningShown(s), s.projects.map((j) => j.id).join(), s.policies?.sabbatical ? 1 : 0,
+      (s.squads ?? []).map((sq) => `${sq.name}:${sq.memberIds.join()}`).join(';'),
       s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}${p.remote ? 'r' : ''}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
   const detail = liveView(
     (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week, Math.round(strainOf(p) / 5)].join('|') : 'gone'; },
     (s, bind) => renderDetail(s, bind));
   const hire = hireView(ctx);
+  const squads = squadsView(ctx, { openCard: (id) => { tab = 'team'; detailId = id; t.set('team'); render(); } });
+  let sqShown = null;
+  const current = () => (tab === 'hire' ? hire : tab === 'squads' ? squads : detailId ? detail : table);
 
   function render() {
-    const v = tab === 'hire' ? hire : detailId ? detail : table;
+    const v = current();
     host.replaceChildren(v.el);
     v.update(ctx.getState(), true);
   }
@@ -166,6 +171,7 @@ export function staffPanel(ctx, arg) {
       const kVal = h('span.num');
       const tr = h('tr', { onclick: () => { detailId = p.id; render(); }, title: 'Click for details' },
         h('td.nm', null, h('div.row', null, portrait(p, 30), h('div', null, h('b', { text: p.name }), p.founder ? h('span.pill.ink.tiny', { text: 'Founder' }) : null,
+          squadOf(s, p.id) ? h('span.pill.tiny.sqchip', { title: 'Squad' }, icon('team', { size: 11 }), ` ${squadOf(s, p.id).name}`) : null,
           p.remote ? h('span.pill.tiny.remote', { title: 'Working from home this week' }, icon('home', { size: 11 }), ' Home') : null, pathBadge(p), grew, top, rec))),
         h('td', null, roleChip(p.role)),
         h('td', null, seniorityChip(p.seniority), h('span.num.lv', { text: ` Lv${p.level}` })),
@@ -348,6 +354,7 @@ export function staffPanel(ctx, arg) {
   }
 
   render();
+  if (tab === 'squads') squads.focus(arg?.squadId);
   if (arg?.pickPath && arg.staffId) setTimeout(() => openPathPicker(ctx, arg.staffId), 0);
   return {
     el: host,
@@ -355,10 +362,15 @@ export function staffPanel(ctx, arg) {
     update(s) {
       t.setLabel('team', `Team (${s.staff.length})`);
       t.setLabel('hire', `Hire (${s.candidates.length})`);
-      (tab === 'hire' ? hire : detailId ? detail : table).update(s);
+      const sqOn = squadsUnlocked(s);
+      if (sqOn !== sqShown) { sqShown = sqOn; t.setHidden('squads', !sqOn); }
+      t.setLabel('squads', `Squads (${s.squads?.length ?? 0} of ${SQUAD_MAX})`);
+      if (tab === 'squads' && !sqOn) { tab = 'team'; t.set('team'); render(); }
+      current().update(s);
     },
     show(a) {
-      if (a?.staffId) { tab = 'team'; detailId = a.staffId; t.set('team'); render(); }
+      if (a?.tab === 'squads') { if (tab !== 'squads') { tab = 'squads'; detailId = null; t.set('squads'); render(); } squads.focus(a.squadId); }
+      else if (a?.staffId) { tab = 'team'; detailId = a.staffId; t.set('team'); render(); }
     },
   };
 }

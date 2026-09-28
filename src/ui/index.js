@@ -188,6 +188,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const UNLOCK_HOST = { meaning: 'staff', marketing: 'marketing', ops: 'ops', models: 'models', automation: 'automation', research: 'build', paths: 'staff', standups: 'policies' };
   const hostOf = (key) => UNLOCK_HOST[key] ?? (key.startsWith('policy.') ? 'policies' : null);
   const newMenus = new Set();
+  let squadsToldWeek = null;
   let menuSig = null;
   function syncMenus(state, animate = false) {
     const u = state.unlocks;
@@ -427,8 +428,27 @@ export function createUI({ root, getState, dispatch, controls }) {
     const era = events.find((e) => e.type === 'era') ?? null;
     if (unlockKeys.length || era) onUnlocksAndEra(unlockKeys, era, state);
     onGrowth(events, state);
+    // The sim records the squads unlock without an event; the week it lands gets one toast.
+    if (state.unlocks?.squads === state.week && squadsToldWeek !== state.week && state.week > 0) {
+      squadsToldWeek = state.week;
+      toasts.push('Squads are here: group people into teams that work as a unit. They are in Staff.', 'good', { action: () => menu.open('staff', { tab: 'squads' }) });
+      if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); }
+    }
     for (const e of events) {
       switch (e.type) {
+        case 'squadFreed': {
+          const sq = state.squads?.find((x) => x.id === e.squadId);
+          if (!sq) break;
+          const crew = (e.crewIds ?? []).map((id) => state.staff.find((p) => p.id === id)?.name.split(' ')[0]).filter(Boolean);
+          toasts.push(`${sq.name} is free: start something.${crew.length ? ` ${crew.join(', ')} ${crew.length === 1 ? 'stays' : 'stay'} on upkeep.` : ''}`, 'good',
+            { action: () => menu.open('staff', { tab: 'squads', squadId: sq.id }) });
+          break;
+        }
+        case 'squadBenchEnded': {
+          const sq = state.squads?.find((x) => x.id === e.squadId);
+          if (sq) toasts.push(`${sq.name}'s break is over: back to their usual work.`, 'info', { action: () => menu.open('staff', { tab: 'squads', squadId: sq.id }) });
+          break;
+        }
         case 'toast': {
           // "X is ready to choose a career path." opens the path picker when clicked.
           const who = /ready to choose a career path/.test(e.text) ? state.staff.find((p) => p.pathPending && e.text.startsWith(p.name)) : null;
