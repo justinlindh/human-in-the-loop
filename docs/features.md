@@ -29,7 +29,7 @@ Conventions:
   - "The support bot promised refunds". `id: support_refund_hallucination`
   - "The cloud bill has feelings", staged with a hot rack (see Fumes). `id: agent_runaway_spend`
 - **Security incidents**: credential stuffing, supply chain, exfiltration, ransomware and CEO phishing, with a security posture to build in Ops. `id: credential_stuffing` `id: supply_chain` `id: data_exfiltration`
-- **Outages**: a live product can go down; when nobody on staff can debug it, the game asks whether to call consultants. `id: outage_unfixable`
+- **Outages**: a live product can go down; when nobody on staff can debug it, the game asks whether to call consultants. In the office an alarm sweeps the floor and the nearest few people run to the servers, each taking a spot round the rack on the side they came from. `id: outage_unfixable`
 - **Research**: internal tools (Eval Harness, Agent Sandbox, Observability, CI/CD, Design System, Docs Culture, Onboarding Kit, Red Team Suite) built as projects.
 - **Policies**: switched on in the Policies panel, some in pairs that exclude each other.
   - **Standups**: daily in person (see Standups under People) or async in #standup, where the quiet ones stop posting. `id: daily_standups` `id: async_standups`
