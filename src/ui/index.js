@@ -469,7 +469,11 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'advice': advisors.onEvent(e); break;
-        case 'officeUpgrade': toasts.push('Moved into a bigger office!', 'good'); break;
+        case 'officeUpgrade':
+          // The move is a big moment: clear the screen so it plays in view.
+          menu.close(); ctx.modal?.close(); settings.close(); buildMode.exit(); if (chat.maximized) chat.setMax(false);
+          toasts.push('Moved into a bigger office!', 'good');
+          break;
         default: break;
       }
     }
