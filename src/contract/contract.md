@@ -105,7 +105,8 @@ Product = {
 { type: 'decision' }
 { type: 'decisionResolved', eventId, choice, subjectId }   // emitted by resolveDecision: the event id, the chosen choice index, and the subject (or null). Render and ui react to the choice; never infer it from effects
 { type: 'officeUpgrade', stage }
-{ type: 'celebrate', staffId }            // staffId may be null for company-wide
+{ type: 'celebrate', staffId, cause }     // staffId may be null for company-wide; cause: a short caption of what the company is celebrating
+                                          // ('Product 5 launched', 'Product of the Year: Product 5'), set when staffId is null, absent otherwise
 { type: 'award', text }
 { type: 'gameOver' }
 { type: 'standup', mode, lines: [{ staffId, text }] }   // mode: 'daily' (in person) | 'async' (lines also emitted as #standup chat)
