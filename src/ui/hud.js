@@ -236,8 +236,6 @@ export function createHud({ root, controls, ui }) {
             icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick);
         })));
     }
-    // The advisors' card keeps its own element and updates itself; it sits under Needs you.
-    if (ui.advisorCard) tray.append(ui.advisorCard);
     if (s.outage) {
       const o = s.outage;
       const p = s.products.find((x) => x.id === o.productId);

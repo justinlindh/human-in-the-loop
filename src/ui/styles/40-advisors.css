@@ -1,20 +1,38 @@
-/* Advisors: a tray card with the top line and the advisor's face, a lightbulb in the top-right
-   chip, and a small panel of lines with Show me and Not now. */
+/* Advisors: the lightbulb in the top-right chip with a count, a rare peek at the screen edge, and a
+   small panel of lines with Show me and Not now. */
 .hitl .advface { flex: none; display: inline-grid; place-items: center; border-radius: 50%; border: 0.12em solid var(--ink); color: #fff;
   font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.25); }
-.hitl .tray-card.advisor { cursor: pointer; pointer-events: auto; }
-.hitl .tray-card.advisor .advrow { display: flex; gap: 0.5em; align-items: center; margin-top: 0.2em; }
-.hitl .tray-card.advisor .advline { font-size: 0.82em; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hitl .tray-card.advisor.idle .advline { color: var(--ink-soft); }
-.hitl .tray-card.advisor.quiet .advline { display: none; }
-.hitl .tray-card.advisor.pulse { animation: hitl-adv-pulse 1.6s ease-in-out 3; border-color: var(--yellow); }
-@keyframes hitl-adv-pulse { 0%, 100% { box-shadow: var(--pop, 0 0.2em 0 var(--ink)); } 50% { box-shadow: 0 0 0 0.3em rgba(255, 176, 32, 0.55); } }
-@media (prefers-reduced-motion: reduce) { .hitl .tray-card.advisor.pulse { animation: none; box-shadow: 0 0 0 0.2em rgba(255, 176, 32, 0.7); } }
+
+/* The count: a round badge on the bulb's corner. Grid centring rather than line-height, so the
+   digit sits in the middle whatever the font's ascent; a hair of top padding balances Fredoka's
+   short numerals. */
+.hitl .advbtn { position: relative; }
+.hitl .advbtn .advcount { position: absolute; top: -0.5em; right: -0.5em; display: none; place-items: center; box-sizing: border-box;
+  min-width: 1.45em; height: 1.45em; padding: 0.06em 0.28em 0; border-radius: 0.73em; background: var(--red); color: #fff;
+  border: 0.12em solid var(--ink); font-size: 0.7em; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.hitl .advbtn .advcount.show { display: grid; }
+.hitl .advbtn.glow { background: #fff3d6; box-shadow: 0 0 0 0.25em rgba(255, 176, 32, 0.6); }
+
+/* The peek: a face and a one-line bubble, bottom right on desktop, under the top rows on phones. */
+.hitl .advpeek { position: absolute; right: 0.9em; bottom: calc(var(--bottom-h, 6em) + 1em); display: flex; align-items: center; gap: 0.6em;
+  max-width: min(24em, calc(100% - 1.8em)); padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  pointer-events: none; opacity: 0; visibility: hidden; transform: translateY(0.8em); transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms; }
+.hitl .advpeek.show { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: opacity 300ms ease, transform 300ms ease, visibility 0s; }
+.hitl .advpeek-face .advface { box-shadow: 0 0.2em 0 var(--ink); font-size: 0.9em; }
+.hitl .advpeek-bub { background: var(--cream); border: 0.14em solid var(--ink); border-radius: 0.9em; padding: 0.5em 0.75em; box-shadow: 0 0.2em 0 var(--ink);
+  font-size: 0.86em; line-height: 1.3; display: flex; flex-direction: column; gap: 0.15em; }
+.hitl .advpeek-bub b { font-size: 0.85em; color: var(--ink-soft); }
+.hitl .advpeek-more { font-weight: 700; color: var(--blue); font-size: 0.85em; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .advpeek { bottom: calc(var(--bottom-h, 6em) + 4.6em); right: 0.6em; z-index: 5; }
+}
+@media (prefers-reduced-motion: reduce) { .hitl .advpeek { transition: opacity 200ms linear; transform: none; } }
+
 .hitl .advlist { display: flex; flex-direction: column; gap: 0.7em; }
 .hitl .advitem { display: flex; gap: 0.7em; align-items: flex-start; padding: 0.6em 0.7em; border-radius: 0.7em; background: var(--cream-2); border-left: 0.35em solid var(--line); }
 .hitl .advitem.sev-urgent { border-left-color: var(--red); background: #ffefe9; }
 .hitl .advitem.sev-warn { border-left-color: var(--yellow); }
 .hitl .advbody { display: flex; flex-direction: column; gap: 0.25em; min-width: 0; }
 .hitl .advtext { font-weight: 600; line-height: 1.3; }
-.hitl .advacts { display: flex; gap: 0.5em; margin-top: 0.2em; flex-wrap: wrap; }
 .hitl .advwhy { color: var(--ink-soft); line-height: 1.3; }
+.hitl .advacts { display: flex; gap: 0.5em; margin-top: 0.2em; flex-wrap: wrap; }

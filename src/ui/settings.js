@@ -48,7 +48,7 @@ export function setYakLevel(v) {
   window.dispatchEvent(new CustomEvent('hitl:yakLevel', { detail: { level: v } }));
 }
 
-// The advisors: On, Quiet (no pulse) or Off (no card and no button).
+// The advisors: On, Quiet (the lightbulb's count, no peek) or Off (no lightbulb).
 export const ADVISOR_LEVELS = [{ v: 'on', label: 'On' }, { v: 'quiet', label: 'Quiet' }, { v: 'off', label: 'Off' }];
 export const advisorLevel = () => (ADVISOR_LEVELS.some((l) => l.v === loadSettings().advisors) ? loadSettings().advisors : 'on');
 export function setAdvisorLevel(v) {
@@ -146,7 +146,7 @@ export function createSettings({ layer, controls, sfx }) {
         })(),
         row('Yak', 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Prompts that need your reply always show.',
           seg(YAK_LEVELS.map(({ v, label }) => ({ v, label })), yakLevel(), (v) => setYakLevel(v))),
-        row('Advisors', 'Quiet keeps them to the tray and the lightbulb; Off hides them.',
+        row('Advisors', 'Quiet keeps them to the lightbulb and its count; Off hides the lightbulb.',
           seg(ADVISOR_LEVELS, advisorLevel(), (v) => setAdvisorLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
