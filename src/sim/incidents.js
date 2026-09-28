@@ -155,6 +155,22 @@ export function clearOutage(ctx, how) {
     helped.push('Blameless culture: every engineer learned from it');
   } else for (const e of engineers) e.meaning = Math.max(0, e.meaning - 5);
   ctx.emit({ type: 'toast', text: `${p?.name ?? 'The product'} is back up${how}.`, tone: 'good' });
+  closeOutage(ctx, o, helped, hurt);
+}
+
+// The outage's product was shut down or is gone: the incident is over without a fix.
+export function outageProductGone(ctx) {
+  const { state } = ctx;
+  const o = state.outage;
+  if (!o) return;
+  const notes = state.flags.outageNotes ?? { helped: [], hurt: [] };
+  state.outage = null;
+  delete state.flags.outageNotes;
+  closeOutage(ctx, o, [...notes.helped], [...notes.hurt, 'The product was shut down before anyone fixed it']);
+}
+
+function closeOutage(ctx, o, helped, hurt) {
+  const { state } = ctx;
   resolveIncident(ctx, { productId: o.productId, kind: o.kind, severity: o.severity, weeks: o.weeks, cost: o.cost ?? { cash: 0, brand: 0, customers: 0 },
     responderIds: o.responderIds ?? [], helped: [...fixHelped(state, o.responderIds ?? []), ...helped], hurt: [...fixHurt(state), ...hurt] });
 }
@@ -194,8 +210,15 @@ function resolveIncident(ctx, r) {
   const event = { type: 'incidentResolved', productId: r.productId, kind: r.kind, severity: r.severity, weeks: r.weeks,
     cost, responderIds: [...r.responderIds], helped: r.helped, hurt: r.hurt };
   ctx.emit(event);
-  state.flags.lastIncident = { week: state.week, kind: r.kind, productId: r.productId, severity: r.severity, weeks: r.weeks, cost, responderIds: [...r.responderIds] };
-  if (r.severity >= 4) raiseDecision(ctx, CYBER_KINDS.includes(r.kind) ? 'incident_postmortem' : INCIDENT_EVENT[r.kind], r.productId, { queue: true });
+  const record = { week: state.week, kind: r.kind, productId: r.productId, severity: r.severity, weeks: r.weeks, cost, responderIds: [...r.responderIds] };
+  state.flags.lastIncident = record;
+  if (r.severity < 4) return;
+  const eventId = CYBER_KINDS.includes(r.kind) ? 'incident_postmortem' : INCIDENT_EVENT[r.kind];
+  // Each postmortem waits with its own incident, so the write-up teaches the right people.
+  const waiting = (state.flags.postmortemQueue ??= []);
+  waiting.push({ eventId, ...record });
+  if (waiting.length > B.postmortemQueueMax) waiting.splice(0, waiting.length - B.postmortemQueueMax);
+  raiseDecision(ctx, eventId, r.productId, { queue: true });
 }
 
 function noteWorstOutage(state, product) {
@@ -208,7 +231,7 @@ function outageStep(ctx) {
   const { state } = ctx;
   const o = state.outage;
   if (!o) return;
-  if (!state.products.some((p) => p.id === o.productId && !p.killed)) { state.outage = null; return; }
+  if (!state.products.some((p) => p.id === o.productId && !p.killed)) { outageProductGone(ctx); return; }
   o.weeks++;
   o.unrecoverable = isUnrecoverable(state, o.severity);
   o.responderIds = responderIds(state);
@@ -303,8 +326,8 @@ export function landIncident(ctx, { kind, severity, caught, model, fn = null }) 
 
 // "Write it up properly": the last incident's responders spend another week on it, learn from it,
 // and pay tech debt down. Without Blameless Postmortems the write-up stings a little.
-export function writePostmortem(state) {
-  const ids = state.flags.lastIncident?.responderIds ?? [];
+export function writePostmortem(state, vars = null) {
+  const ids = vars?.incidentResponders ?? state.flags.lastIncident?.responderIds ?? [];
   const people = ids.map((id) => state.staff.find((p) => p.id === id)).filter(Boolean);
   bumpDebt(state, -B.postmortemDebt);
   for (const p of people) {
