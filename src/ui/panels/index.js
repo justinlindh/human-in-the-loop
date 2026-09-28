@@ -23,5 +23,5 @@ export const PANELS = {
   policies: { title: 'Policies', wide: true, build: (ctx) => policiesPanel(ctx) },
   ops: { title: 'Ops and Security', wide: true, build: (ctx) => opsPanel(ctx) },
   office: { title: 'Office', wide: true, build: (ctx, arg) => officePanel(ctx, arg) },
-  reports: { title: 'Reports', wide: true, build: (ctx) => reportsPanel(ctx) },
+  reports: { title: 'Reports', wide: true, build: (ctx, arg) => reportsPanel(ctx, arg) },
 };
