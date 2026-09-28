@@ -8,7 +8,8 @@
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
 // A rule with known: <issue> fails as KNOWN (not failing the run) until that issue is fixed: closed by
 // a merged PR or commit that changed game code. Then the rule fails again. Issue states come from gh,
-// once per run; if gh can't be reached, markers count as open and the run says so.
+// once per run; if gh can't be reached, markers count as open and the run says so. knownView: '<view>'
+// limits a rule's marker to that view.
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
@@ -141,7 +142,8 @@ const SPECS = {
   // off the face's line; looking away from it is 60 and more.
   'visitor.test': { moment: 'visitor', beat: 'test', role: 'visitor', rules: [
     share('atScreen', 'face within 45 deg of the screen', (x) => x.targetAngle <= 45, 0.8),
-    visibleRule,
+    // The visitor's random look decides whether the turned view clears 0.70 (#862).
+    { ...visibleRule, known: 862, knownView: 'turned' },
   ] },
   'visitor.explain': { moment: 'visitor', beat: 'explain', role: 'founder', rules: [
     share('atScreen', 'face within 45 deg of the screen in front of the visitor', (x) => x.targetAngle <= 45, 0.8),
@@ -358,7 +360,7 @@ for (const task of tasks) {
       if (!xs.length) { rep.row({ check: k, view: view.name, beat: spec.beat, metric: 'beatSeen', value: 0, want: 'the beat happens', pass: false }); continue; }
       for (const rule of spec.rules) {
         const value = rule.test(xs, res.samples);
-        const k2 = rule.known ?? null;
+        const k2 = (!rule.knownView || rule.knownView === view.name) ? rule.known ?? null : null;
         rep.row({ check: k, view: view.name, beat: `${spec.beat} (${(xs.length / FPS).toFixed(1)}s)`, metric: rule.metric, value, want: rule.want, pass: rule.pass(value), known: k2 && !closedIssues.has(k2) ? k2 : null, closed: k2 && closedIssues.has(k2) ? k2 : null });
       }
     }
