@@ -58,6 +58,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     scheduled: [],
     chatLog: [],
     chatPrompts: [],
+    advisors: { dismissed: {}, pushed: {}, lastPushWeek: null },
     discoveredCombos: {},
     outage: null,
     incidentLog: [],

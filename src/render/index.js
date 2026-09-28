@@ -22,6 +22,7 @@ import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
 import { createBuild } from './build.js';
 import { createPortraits } from './portraits.js';
+import { advisorPerson } from './advisors.js';
 import { createRival } from './rival.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
@@ -284,6 +285,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get ready() { return ready; },
     // Menu portraits from the office character builder (see portraits.js).
     portrait(person, opts) { return portraits.portrait(person, opts); },
+    // An advisor's portrait (advisors.js): key 'cfo' | 'people' | 'tech'; idea: the "has an idea" frame.
+    advisorPortrait(key, { idea = false, size } = {}) { const p = advisorPerson(key, { idea }); return p ? portraits.portrait(p, { size }) : null; },
     portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
     // A celebrating big-head render (the framed caricature), as a canvas.
     caricature(person, px) { return portraits.caricature(person, px); },
@@ -339,6 +342,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // The spotlight moment playing now (spotlight.js): null or { kind, key, since }. main.js holds the
     // game clock while there is one; endSpotlight() cuts it short (the Skip control).
     spotlight() { return staff?.spotlights?.current() ?? null; },
+    // Checks: the spotlight registry itself, to start a scene without staging its moment.
+    get spotlights() { return staff?.spotlights ?? null; },
     endSpotlight() { return staff?.endSpotlight() ?? false; },
     // Where the camera looks now, and its zoom.
     view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
