@@ -51,11 +51,14 @@ export function saveMeta(state, id) {
   };
 }
 
-// A free slot id, or the oldest slot when all are taken.
-function allocate(idx) {
+// A free slot id, or null when all are taken.
+function freeSlot(idx) {
   for (let i = 1; i <= MAX_SLOTS; i++) if (!idx.slots[`s${i}`]) return `s${i}`;
-  return Object.values(idx.slots).sort((a, b) => a.savedAt - b.savedAt)[0].id;
+  return null;
 }
+
+// A free slot id, or the oldest slot when all are taken.
+const allocate = (idx) => freeSlot(idx) ?? Object.values(idx.slots).sort((a, b) => a.savedAt - b.savedAt)[0].id;
 
 export function saveGame(state, storage, id = state.flags?.saveSlot) {
   try {
@@ -184,13 +187,29 @@ function runs(raw) {
 export function loadGame(storage, id = readIndex(storage).last) {
   const raw = readRaw(storage, id);
   if (raw === null || raw === undefined) return { ok: false, reason: 'No save found' };
+  const res = check(raw, 'Save is corrupted');
+  if (!res.ok) return res.trial ? { ...withoutTrial(res), id: id ?? null } : res;
+  const { state } = res;
+  if (state.pendingDecision && !EVENTS[state.pendingDecision.eventId]) {
+    state.pendingDecision = null;
+    return { ok: true, id: id ?? null, state, notice: 'A decision from this save no longer exists and was skipped.' };
+  }
+  return { ok: true, id: id ?? null, state };
+}
+
+const withoutTrial = ({ trial, ...rest }) => rest;
+
+// Parses and checks a save's text: the version, the required keys, the shape, and a trial week. A result
+// that failed only the trial week carries trial: true. notJson is the reason given for text that is not a
+// JSON object.
+function check(raw, notJson) {
   let state;
   try {
     state = JSON.parse(raw);
   } catch {
-    return { ok: false, reason: 'Save is corrupted' };
+    return { ok: false, reason: notJson };
   }
-  if (!state || typeof state !== 'object' || Array.isArray(state)) return { ok: false, reason: 'Save is corrupted' };
+  if (!isObj(state)) return { ok: false, reason: notJson };
   if ('version' in state && state.version !== SAVE_VERSION) {
     const older = !(state.version > SAVE_VERSION);
     return { ok: false, reason: older ? 'Save is from an older build' : 'Save is from a newer build', stale: true, version: state.version };
@@ -201,10 +220,33 @@ export function loadGame(storage, id = readIndex(storage).last) {
   } catch {
     return { ok: false, reason: 'Save is corrupted' };
   }
-  if (!state.gameOver && !runs(raw)) return { ok: false, reason: 'Save is from an older build', stale: true, version: state.version, id: id ?? null };
-  if (state.pendingDecision && !EVENTS[state.pendingDecision.eventId]) {
-    state.pendingDecision = null;
-    return { ok: true, id: id ?? null, state, notice: 'A decision from this save no longer exists and was skipped.' };
+  if (!state.gameOver && !runs(raw)) return { ok: false, reason: 'Save is from an older build', stale: true, version: state.version, trial: true };
+  return { ok: true, state };
+}
+
+// Imports a save file's text into a free slot, or into replaceId when given. It checks the text as loadGame
+// does, never overwrites a slot it was not told to, and leaves the index's last slot alone.
+export function importSave(storage, text, { replaceId = null } = {}) {
+  const res = check(text, 'Not a save file');
+  if (!res.ok) return withoutTrial(res);
+  try {
+    const idx = readIndex(storage);
+    let id = replaceId;
+    if (id !== null) {
+      const n = Number(/^s(\d+)$/.exec(id)?.[1]);
+      if (!idx.slots[id] && !(n >= 1 && n <= MAX_SLOTS)) return { ok: false, reason: 'No such save slot' };
+    } else {
+      id = freeSlot(idx);
+      if (!id) return { ok: false, reason: 'All save slots are full', full: true };
+    }
+    const saved = JSON.parse(text);
+    saved.flags.saveSlot = id;
+    res.state.flags.saveSlot = id;
+    store(storage).setItem(slotKey(id), JSON.stringify(saved));
+    idx.slots[id] = saveMeta(res.state, id);
+    writeIndex(storage, idx);
+    return { ok: true, id, meta: idx.slots[id] };
+  } catch {
+    return { ok: false, reason: 'Could not write the save' };
   }
-  return { ok: true, id: id ?? null, state };
 }

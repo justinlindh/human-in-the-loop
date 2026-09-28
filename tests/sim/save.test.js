@@ -223,3 +223,53 @@ describe('voice backfill', () => {
     expect(loadGame(store).state.staff.map((p) => p.voice)).toEqual(voices);
   });
 });
+
+describe('importSave (#945)', () => {
+  const setup = async () => {
+    const { importSave, MAX_SLOTS } = await import('../../src/save/save.js');
+    const { createGame } = await import('../../src/sim/index.js');
+    return { importSave, MAX_SLOTS, createGame, store: fakeStorage() };
+  };
+
+  it('round trips: an exported save imports into a new slot and loads equal apart from saveSlot', async () => {
+    const { importSave, createGame, store } = await setup();
+    const s = createGame({ seed: 5, companyName: 'Roundtrip' });
+    advance(s, 20, tick, dispatch);
+    saveGame(s, store);
+    const text = exportSave(store, s.flags.saveSlot);
+    const res = importSave(store, text);
+    expect(res.ok).toBe(true);
+    expect(res.id).not.toBe(s.flags.saveSlot);
+    expect(res.meta).toMatchObject({ id: res.id, companyName: 'Roundtrip', week: s.week });
+    const original = loadGame(store, s.flags.saveSlot).state;
+    const imported = loadGame(store, res.id).state;
+    expect(imported.flags.saveSlot).toBe(res.id);
+    expect({ ...imported, flags: { ...imported.flags, saveSlot: null } }).toEqual({ ...original, flags: { ...original.flags, saveSlot: null } });
+    expect(listSaves(store).map((m) => m.id).sort()).toEqual([s.flags.saveSlot, res.id].sort());
+  });
+
+  it('refuses text that is not a save, a save from another build, and a broken one', async () => {
+    const { importSave, createGame, store } = await setup();
+    expect(importSave(store, 'not json')).toMatchObject({ ok: false, reason: 'Not a save file' });
+    expect(importSave(store, '[1,2]')).toMatchObject({ ok: false, reason: 'Not a save file' });
+    const s = createGame({ seed: 6, companyName: 'Broken' });
+    expect(importSave(store, JSON.stringify({ ...s, version: SAVE_VERSION - 1 }))).toMatchObject({ ok: false, stale: true, reason: 'Save is from an older build' });
+    expect(importSave(store, JSON.stringify({ ...s, version: SAVE_VERSION + 1 }))).toMatchObject({ ok: false, stale: true, reason: 'Save is from a newer build' });
+    const { staff, ...missing } = s;
+    expect(importSave(store, JSON.stringify(missing))).toMatchObject({ ok: false, reason: 'Save is corrupted' });
+    expect(listSaves(store)).toEqual([]);
+  });
+
+  it('with every slot taken it refuses unless told which slot to replace', async () => {
+    const { importSave, MAX_SLOTS, createGame, store } = await setup();
+    for (let i = 0; i < MAX_SLOTS; i++) saveGame(createGame({ seed: i + 1, companyName: `Co ${i}` }), store);
+    const before = listSaves(store).map((m) => `${m.id}:${m.companyName}`).sort();
+    const text = JSON.stringify(createGame({ seed: 99, companyName: 'Newcomer' }));
+    expect(importSave(store, text)).toEqual({ ok: false, reason: 'All save slots are full', full: true });
+    expect(listSaves(store).map((m) => `${m.id}:${m.companyName}`).sort()).toEqual(before);
+    const res = importSave(store, text, { replaceId: 's3' });
+    expect(res).toMatchObject({ ok: true, id: 's3' });
+    expect(loadGame(store, 's3').state.companyName).toBe('Newcomer');
+    expect(importSave(store, text, { replaceId: 's99' })).toMatchObject({ ok: false, reason: 'No such save slot' });
+  });
+});
