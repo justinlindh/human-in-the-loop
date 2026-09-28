@@ -13,17 +13,17 @@
 .hitl .sqpost.bench { background: #fff1d2; border-color: var(--yellow); }
 .hitl .sqpost.idle { background: var(--cream-2); }
 .hitl .sqbanner { background: var(--yellow); border: 0.14em solid var(--ink); border-radius: 0.6em; padding: 0.4em 0.6em; font-weight: 700; font-size: 0.88em; line-height: 1.3; }
-.hitl .sqfaces { display: flex; flex-wrap: wrap; gap: 0.35em; align-items: flex-start; }
-.hitl .sqface { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.1em; width: 3.6em; padding: 0.25em 0.1em 0.2em; background: var(--cream); border: 0.13em solid var(--ink); border-radius: 0.7em; cursor: pointer; pointer-events: auto; font: inherit; color: var(--ink); }
+.hitl .sqfaces { display: flex; flex-wrap: wrap; gap: 0.3em; align-items: flex-start; }
+.hitl .sqface { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.1em; width: 3.2em; padding: 0.25em 0.1em 0.2em; background: var(--cream); border: 0.13em solid var(--ink); border-radius: 0.7em; cursor: pointer; pointer-events: auto; font: inherit; color: var(--ink); }
 .hitl .sqface:hover { background: var(--cream-2); }
-.hitl .sqface.loan, .hitl .sqface.away { border-style: dashed; opacity: 0.6; }
+.hitl .sqface.loan, .hitl .sqface.away, .hitl .sqface.cant { border-style: dashed; opacity: 0.6; }
 .hitl .sqface.crew { background: #e3f6f4; }
 .hitl .sqpic { position: relative; display: block; line-height: 0; }
 .hitl .sqstar { position: absolute; top: -0.45em; right: -0.5em; color: var(--yellow); filter: drop-shadow(0 0.06em 0 var(--ink)); }
 .hitl .sqfn { font-size: 0.72em; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hitl .sqtag { font-size: 0.6em; font-weight: 700; line-height: 1; padding: 0.15em 0.3em; border-radius: 0.5em; background: var(--cream-3); white-space: nowrap; }
 .hitl .sqtag.crew { background: var(--teal); color: #fff; }
-.hitl .sqedit { align-self: center; min-width: 3em; }
+.hitl .sqedit { align-self: center; min-width: 2.6em; padding-left: 0.35em; padding-right: 0.35em; }
 .hitl .sqnote { line-height: 1.3; }
 .hitl .sqcoh { display: flex; align-items: center; gap: 0.5em; }
 .hitl .sqcoh .bar { flex: 1; min-width: 4em; }
@@ -65,3 +65,4 @@
 .hitl .sqwhy { color: var(--ink-soft); }
 .hitl .sqwhy.bad { color: var(--red); font-weight: 700; }
 .hitl .projsq { cursor: pointer; pointer-events: auto; font: inherit; font-size: 0.8em; font-weight: 700; color: var(--ink); }
+.hitl .sqpic > img, .hitl .sqpic > canvas { width: 2.75em; height: 2.75em; }

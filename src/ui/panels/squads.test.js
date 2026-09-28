@@ -13,6 +13,12 @@ describe('squad member status', () => {
     expect(memberStatus(sq, person('c', 'support'))).toBe('loan');
   });
 
+  it('says a member whose role cannot take the posting keeps their own work, not on loan', () => {
+    const sq = squad({ posting: { type: 'maintenance', targetId: null } });
+    expect(memberStatus(sq, { ...person('a', 'idle'), role: 'designer' })).toBe('cant');
+    expect(memberStatus(sq, { ...person('b', 'support'), role: 'engineer' })).toBe('loan');
+  });
+
   it('shows upkeep crew as on upkeep, never on loan', () => {
     const sq = squad({ crewIds: ['a'] });
     expect(memberStatus(sq, person('a', 'maintenance'))).toBe('crew');
