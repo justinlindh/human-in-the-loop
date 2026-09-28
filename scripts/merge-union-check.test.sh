@@ -113,5 +113,21 @@ on main; put docs/a.md 'one\nmain line\ntwo\n'; commit main
 merge_as "docs/a.md=one\npr line\nmain line\ntwo\n"
 check 'a merge whose first parent is not the passed head does not carry' 1 'pr^1^1'
 
+# Main split docs/features.md into docs/features/ while the PR edited it: moving the PR's own edits
+# verbatim into the area files carries; anything else doesn't.
+split_case() { # <resolution of a.md> <resolution of b.md>
+  new_case; put docs/features.md 'intro\nalpha line\nbeta line\n'; g add -A; g commit -qm inv; g branch -f pr
+  on pr; put docs/features.md 'intro\nalpha line, improved\nbeta line\n'; commit pr
+  on main; g rm -q docs/features.md; put docs/features/README.md 'intro\n'; put docs/features/a.md 'alpha line\n'; put docs/features/b.md 'beta line\n'; commit split
+  on pr; g merge -q --no-edit main; g rm -q docs/features.md; put docs/features/a.md "$1"; put docs/features/b.md "$2"
+  g add -A; g -c core.editor=true commit -q --no-edit
+}
+split_case 'alpha line, improved\n' 'beta line\n'
+check 'features: edits moved verbatim into docs/features/ carry' 0
+split_case 'alpha line, improved again\n' 'beta line\n'
+check 'features: an edit changed on the way into docs/features/ does not carry' 1
+split_case 'alpha line, improved\n' 'beta line, and more\n'
+check 'features: a move plus another edit under docs/features/ does not carry' 1
+
 [ $fails -eq 0 ] && echo "merge-union-check: all cases pass" || echo "merge-union-check: $fails failing"
 [ $fails -eq 0 ]
