@@ -159,6 +159,11 @@ async function boot() {
     },
     // The raw text of a save slot, even one this build cannot load; null without storage.
     exportSave: (id) => (canSave() && saveMod.exportSave ? saveMod.exportSave(undefined, id) ?? null : null),
+    // Stores a save file's text as a slot: { ok, id, meta } or { ok: false, reason, full? }.
+    importSave: (text, opts) => {
+      if (!canSave() || !saveMod.importSave) return { ok: false, reason: 'Saving is off' };
+      return saveMod.importSave(undefined, text, opts);
+    },
     // The save slots' metadata, newest first, plus ok and reason from a trial load so a slot that
     // will not load is listed with its reason instead of dropped.
     listSaves: () => {

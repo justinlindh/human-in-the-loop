@@ -6,6 +6,7 @@ import { ROLES } from '../data/roles.js';
 import { itemBonus, researchBonus } from './bonus.js';
 import { staffMods } from './staff.js';
 import { remoteLearning } from './ladder.js';
+import { bumpDebt } from './debt.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
@@ -19,8 +20,7 @@ export function onDeparture(state, person) {
   forgetCarry(state, person.id);
   for (const [name, id] of Object.entries(state.flags.owners ?? {})) if (id === person.id) state.flags[`${name}Gone`] = true;
   if (alumni.length > B.alumniKept) alumni.splice(0, alumni.length - B.alumniKept);
-  state.comprehensionDebt = Math.min(100, state.comprehensionDebt
-    + person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
+  bumpDebt(state, person.knowledge * B.debtFromDeparturePerKnowledge * Math.max(0, 1 + researchBonus(state, 'departureDebt')));
   for (const p of state.staff) {
     if (p.assignment.targetId === person.id && p.assignment.type === 'mentor') {
       p.assignment = { type: ROLES[p.role].defaultAssignment, targetId: null };
@@ -60,18 +60,41 @@ export function knowledgeSystem(ctx) {
 
   state.institutionalKnowledge = institutionalKnowledge(state);
 
+  const debt = state.comprehensionDebt;
+  const flow = debtFlow(state);
+  const before = state.flags.debtAfterKnowledge ?? debt;
+  state.comprehensionDebt = clamp(debt + sum(Object.values(flow), (v) => v), 0, 100);
+  state.debtFlow = { ...flow, oneOff: state.flags.debtOneOff ?? 0, net: state.comprehensionDebt - before };
+  state.flags.debtOneOff = 0;
+  state.flags.debtAfterKnowledge = state.comprehensionDebt;
+}
+
+// A paydown as a negative flow; zero stays +0 so the state survives a JSON round trip unchanged.
+const paydown = (x) => (x > 0 ? -x : 0);
+
+// Kinds of project that ship code people then have to understand.
+const DEBT_WORK = new Set(['new', 'update', 'migration', 'research']);
+
+// This week's comprehension debt change by source, before one-offs: inflows positive, paydowns negative.
+export function debtFlow(state) {
+  const debt = state.comprehensionDebt;
   const live = state.products.filter((p) => !p.killed).length;
   const { engineering, qa, ops } = state.automation;
   const ik = state.institutionalKnowledge;
-  const seniorEngs = state.staff.filter((p) => p.role === 'engineer' && p.seniority === 'senior' && p.mood !== 'away');
-  const delta = B.debtFromEngAuto * engineering.level * (state.projects.length > 0 ? 1 : 0.5)
-    + B.debtFromQaAuto * qa.level
-    + B.debtFromOpsAuto * ops.level
-    + B.debtPerProduct * live
-    + (ik < B.debtLowIkThreshold ? (B.debtLowIkThreshold - ik) * B.debtLowIkRate : 0)
-    - B.debtPaydownPerSeniorEng * sum(seniorEngs, (p) => (p.knowledge / 100) * staffMods(p).debtPaydown)
-    - (state.policies.comprehension_reviews ? B.debtPaydownReviews : 0);
-  state.comprehensionDebt = clamp(state.comprehensionDebt + delta, 0, 100);
+  const here = state.staff.filter((p) => p.mood !== 'away');
+  const shipping = new Set(state.projects.filter((j) => DEBT_WORK.has(j.kind)).map((j) => j.id));
+  const builders = here.filter((p) => p.assignment.type === 'project' && shipping.has(p.assignment.targetId));
+  const engineers = here.filter((p) => p.role === 'engineer');
+  const work = B.debtPerBuildWeek * sum(builders, (p) => B.debtBuildWeight[p.seniority] ?? 1) * (state.policies.crunch ? B.debtCrunchMult : 1);
+  return {
+    work,
+    automation: B.debtFromEngAuto * engineering.level * (state.projects.length > 0 ? 1 : 0.5) + B.debtFromQaAuto * qa.level + B.debtFromOpsAuto * ops.level,
+    products: B.debtPerProduct * live,
+    lowKnowledge: ik < B.debtLowIkThreshold ? (B.debtLowIkThreshold - ik) * B.debtLowIkRate : 0,
+    seniors: paydown(debt * B.debtPaydownPerSeniorEng * sum(engineers.filter((p) => p.seniority === 'senior'), (p) => (p.knowledge / 100) * staffMods(p).debtPaydown)),
+    maintenance: paydown(debt * B.debtPaydownMaintenance * engineers.filter((p) => p.assignment.type === 'maintenance').length),
+    reviews: state.policies.comprehension_reviews ? paydown(debt * B.debtPaydownReviews) : 0,
+  };
 }
 
 registerSystem('knowledge', knowledgeSystem, 55);

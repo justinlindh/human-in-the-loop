@@ -9,7 +9,7 @@ export const POLICY_EFFECTS = {
   pair: [['automation meaning drain', 'pairMeaningDrainMult', 'mult'], ['automation output', 'pairAutoMult', 'mult']],
   craft_fridays: [['output', 'craftFridaysOutput', 'x100'], ['meaning recovery a week', 'meaningRecovery.craftFridays', 'num']],
   blameless: [['knowledge per engineer when an outage clears', 'blamelessKnowledge', 'num']],
-  comprehension_reviews: [['project speed', 'comprehensionReviewSpeed', 'x100'], ['comprehension debt paid down a week', 'debtPaydownReviews', 'num']],
+  comprehension_reviews: [['project speed', 'comprehensionReviewSpeed', 'x100'], ['share of comprehension debt paid down a week', 'debtPaydownReviews', 'share']],
   apprenticeship: [['skill added to each junior candidate', 'apprenticeSkillBonus', 'num']],
   sabbatical: [['weeks away', 'sabbaticalWeeks', 'count'], ['meaning recovery a week while away', 'meaningRecovery.sabbatical', 'num']],
   no_crunch: [['strain build-up', 'noCrunchStrainMult', 'mult'], ['output', 'noCrunchOutput', 'pct']],

@@ -52,7 +52,15 @@ export function hireWithDesk(ctx, c) {
     label: n > 1 ? `Desk for ${c.name} (${n} to go)` : `Desk for ${c.name}`,
     onPlaced: () => {
       if (needsDesk(ctx.getState())) { hireWithDesk(ctx, c); return; }
-      if (ctx.act({ type: 'hire', candidateId: c.id }).ok) ctx.sfx('coin');
+      // The candidate list or the cash can change while the player places desks; say why the hire failed.
+      const gone = !ctx.getState().candidates.some((x) => x.id === c.id);
+      const res = gone ? { ok: false } : ctx.act({ type: 'hire', candidateId: c.id }, { quiet: true });
+      if (res.ok) ctx.sfx('coin');
+      else {
+        const why = (res.reason ?? 'That did not work').replace(/^./, (m) => m.toLowerCase());
+        ctx.toast(gone ? `${c.name} is no longer a candidate. The desk stays.` : `Couldn't hire ${c.name}: ${why}. The desk stays.`, 'warn');
+        ctx.sfx('error');
+      }
       ctx.open('staff', { tab: 'hire' });
     },
     onCancel: () => { ctx.toast(`Hiring ${c.name} cancelled`); ctx.open('staff', { tab: 'hire' }); },

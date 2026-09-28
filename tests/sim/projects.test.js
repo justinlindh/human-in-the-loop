@@ -153,7 +153,7 @@ describe('building and launching', () => {
     build(s, 60);
     expect(pr.migrationDueWeek).toBe(null);
     expect(pr.modelVersion).toBe(2);
-    expect(s.comprehensionDebt).toBe(50 - B.debtPaydownRefactor);
+    expect(s.comprehensionDebt).toBeLessThan(50 * (1 - B.debtRefactorShare) + 5);
   });
 });
 
