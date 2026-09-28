@@ -20,6 +20,8 @@ done
 
 # Tools come from this script's own checkout; the tree under test is CI_DIR (default: that checkout).
 SELF="$(cd "$(dirname "$0")" && pwd)"
+# Every test run here is real: scripts/test-cache.sh never skips one.
+export HITL_NO_TEST_CACHE=1
 # Every step's wall and CPU time go to the team's timing log (scripts/lib/timing.sh).
 source "$SELF/lib/timing.sh"
 cd "${CI_DIR:-$SELF/..}"
@@ -158,13 +160,18 @@ syntax() {
   return $failed
 }
 step syntax syntax
-# docs/features.md against the data: every staged event, item, perk, moment kind, quick post, prompt,
+# docs/features/ against the data: every staged event, item, perk, moment kind, quick post, prompt,
 # music night genre and era has an entry, and every id the file names exists (scripts/features-ids.mjs).
 step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
 # Every script and check has a docs/toolkit/ entry, and every entry is well formed (scripts/toolkit.mjs).
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
+# A changed golden image or sweep-baseline entry needs its own before/after media on the PR
+# (scripts/baseline-media.sh); without a PR number it only says so.
+step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step review-prep bash "$SELF/review-prep.test.sh"
+tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
 tool_step with-render-lock bash "$SELF/with-render-lock.test.sh"
@@ -173,6 +180,8 @@ tool_step review-carry bash "$SELF/review-carry.test.sh"
 tool_step auto-ci bash "$SELF/auto-ci.test.sh"
 tool_step watched-media bash "$SELF/watched-media.test.sh"
 tool_step golden-resolve bash "$SELF/golden-resolve.test.sh"
+tool_step baseline-media-test bash "$SELF/baseline-media.test.sh"
+tool_step merge-union-check bash "$SELF/merge-union-check.test.sh"
 tool_step claude-hooks bash "$SELF/hooks/claude/test.sh"
 tool_step main-guard bash "$SELF/main-guard.test.sh"
 tool_step gl node "$SELF/lib/gl.test.mjs"

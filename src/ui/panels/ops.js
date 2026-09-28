@@ -5,6 +5,7 @@ import { postureParts as simPostureParts } from '../../sim/incidents.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
 import { oversightNeeded, oversightHave } from './automation.js';
+import { UNLOCKS_BY_KEY } from '../../data/unlocks.js';
 
 // The sim's own breakdown, so the rows add up to the posture bar. Debt is a positive penalty.
 export function postureParts(s) {
@@ -102,11 +103,24 @@ export function opsPanel(ctx) {
         sup.set(sc, sc < 70 ? '#e5484d' : '#34c38f');
         mnt.set(mc, mc < 70 ? '#e5484d' : '#4f8cff');
       });
+      // Before automation unlocks there is nothing to oversee: the hours and bar hide, and the Automation
+      // button stays disabled with what brings it.
+      const ovNums = h('span', null, ovProv, ' of ', ovReq);
+      const ovBar = h('div.bar.thick', null, ovFill);
+      const ovNote = h('div.small.muted', { text: 'Coverage: how much of the needed work is actually getting done.' });
+      const autoBtn = h('button.btn.small', { onclick: () => ctx.open('automation') }, 'Automation');
+      const lockWhy = h('div.small.muted.lockwhy');
+      bind((st) => {
+        const locked = !!st.unlocks && st.unlocks.automation == null;
+        autoBtn.disabled = locked;
+        autoBtn.setAttribute('aria-disabled', String(locked));
+        setText(lockWhy, locked ? `Nothing is automated yet. Automation: ${(UNLOCKS_BY_KEY.automation?.reason ?? 'not unlocked yet').replace(/^./, (c) => c.toLowerCase())}.` : '');
+        lockWhy.style.display = locked ? '' : 'none';
+        for (const el of [ovNums, ovBar, ovNote]) el.style.display = locked ? 'none' : '';
+      });
       const loadCard = h('div.card.load', null,
-        h('div.row', null, icon('oversight'), h('b', { text: 'Oversight' }), h('span', null, ovProv, ' of ', ovReq), h('span.spacer'),
-          h('button.btn.small', { onclick: () => ctx.open('automation') }, 'Automation')),
-        h('div.bar.thick', null, ovFill),
-        h('div.small.muted', { text: 'Coverage: how much of the needed work is actually getting done.' }),
+        h('div.row', null, icon('oversight'), h('b', { text: 'Oversight' }), ovNums, h('span.spacer'), autoBtn),
+        ovBar, ovNote, lockWhy,
         sup.el, mnt.el);
 
       // Incident log

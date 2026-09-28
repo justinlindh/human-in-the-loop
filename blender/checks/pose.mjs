@@ -10,6 +10,7 @@
 //   node blender/checks/pose.mjs --scene [--mock floor | --moment '<query>' | --snapshot <path>]
 //        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
 //        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
+//        [--slow-raycast] [--render-reference] [--profile <file>] [--json out.json]
 //
 // Prints a row every --every frames (t, phase, animation, hand-to-face and hand-to-head distances in
 // metres, face angle to the camera in degrees) and a summary over the gesture's frames. --expect
@@ -31,7 +32,8 @@
 // heldHeadDepth and heldTorsoDepth are mesh penetration in metres; heldGap is wrist-to-prop surface
 // distance. An absent prop has null measures and fails these rules. Use --every 1 for a whole hold.
 // Scene mode serves this checkout and rejects a differing --root.
-// --render-reference retains rendered scene stepping for comparison. --profile <file> writes
+// Raycasts go through per-mesh bounding-volume trees; --slow-raycast uses three.js's own raycast, to
+// compare. --render-reference retains rendered scene stepping for comparison. --profile <file> writes
 // phase timings and actual WebGL draw counts separately from the unchanged --json rows.
 //
 // It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
@@ -105,6 +107,9 @@ async function sceneMode() {
     const readyMs = performance.now() - t0;
     const { rows, profile } = await page.evaluate(async (o) => {
       const R = window.__hitlRender, S = window.__HITL.state;
+      // The visibility probes raycast every person every frame; a tree per mesh makes that cheap
+      // and finds the same hits (harness.mjs). --slow-raycast keeps three.js's own raycast.
+      await window.__fastRaycast({ install: !o.slowRaycast });
       const M = await import('/blender/checks/pose-scene.js');
       for (let i = 0; i < o.view; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
       const initialization = window.__drawAudit();
@@ -128,7 +133,7 @@ async function sceneMode() {
       const sampleMs = window.__wallNow() - sampleStart;
       const total = window.__drawAudit();
       return { rows: out, profile: { initialization, warmupDraws: warmed.total - initialization.total, sampleDraws: total.total - warmed.total, total, warmMs, sampleMs, samplingMode: skipDraw ? 'no-draw' : 'rendered' } };
-    }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who, renderReference: argv.includes('--render-reference') });
+    }, { view: Number(opt('view', 0)), warm: Number(opt('warm', 30)), patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, frames, who, renderReference: argv.includes('--render-reference'), slowRaycast: argv.includes('--slow-raycast') });
     Object.assign(profile, { readyMs, mode: argv.includes('--render-reference') ? 'rendered-reference' : 'sampling-optimization', gl: glMode({ argv }), frames, who });
     if (opt('profile')) writeFileSync(opt('profile'), JSON.stringify(profile, null, 2));
     console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);

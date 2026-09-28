@@ -6,7 +6,7 @@ const STATE_KEYS = [
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
   'automation', 'policies', 'office', 'era', 'eraSchedule', 'unlocks', 'goals', 'founding', 'research', 'modifiers', 'scheduled', 'campaigns', 'security', 'ops', 'market', 'models', 'discoveredCombos', 'outage',
-  'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
+  'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver', 'advisors',
 ];
 
 const walkFinite = (v, path = 'state') => {

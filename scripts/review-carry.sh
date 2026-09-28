@@ -2,7 +2,9 @@
 # Carries a review pass to a new PR head that only brings in main. It finds the newest earlier head
 # of the PR with any "review" status; if that verdict is a pass, it compares the PR's own changes at
 # both heads (the diff from their merge-base with main, as a patch-id). When they match, the new head
-# gets "review" success too; otherwise nothing is posted and a reviewer has to look again.
+# gets "review" success too. When they differ, the pass still carries across a merge of main whose
+# conflicts only kept both sides (scripts/merge-union-check.mjs names the rule that failed), once
+# local-ci has passed on the new head. Otherwise nothing is posted and a reviewer has to look again.
 # A verdict always beats a carry: nothing is posted on a head that has any review status of its own,
 # and a newer changes-requested verdict is never skipped to reach an older pass.
 # Usage: scripts/review-carry.sh <pr>
@@ -40,13 +42,27 @@ verdict_on_head() {
   gh api "repos/{owner}/{repo}/commits/$head/statuses" \
     --jq '[.[] | select(.context=="review" and ((.description // "") | startswith("carried from") | not))] | first | if . then "\(.state)\u001f\(.description // "")" else "" end'
 }
-if [ -n "$a" ] && [ "$a" = "$b" ]; then
+UNION="${MERGE_UNION_CHECK:-node $REPO/scripts/merge-union-check.mjs}"
+why=""
+if [ -n "$a" ] && [ "$a" = "$b" ]; then why="only merges $base"
+else
+  if union="$($UNION "$prev" "$head" "origin/$base" --repo "$REPO" 2>&1)"; then
+    ci="$(gh api "repos/{owner}/{repo}/commits/$head/statuses" --jq '[.[] | select(.context=="local-ci")] | first | .state // ""')"
+    if [ "$ci" = success ]; then why="merges $base, both sides kept"
+    else echo "review-carry: #$pr head ${head:0:7} only kept both sides, but local-ci is '${ci:-none}', not a pass; not carrying"; exit 1; fi
+  else
+    echo "review-carry: #$pr changes differ from ${prev:0:7}, and the merge can't carry the pass: ${union#merge-union-check: }"
+    echo "review-carry: a reviewer needs to look again"
+    exit 1
+  fi
+fi
+if [ -n "$why" ]; then
   # A verdict or a push can land while this runs: check both right before posting.
   late="$(review_state "$head")"
   [ -z "$late" ] || { echo "review-carry: #$pr head ${head:0:7} got a review verdict ($late) meanwhile; not carrying"; exit 1; }
   [ "$(gh pr view "$pr" --json headRefOid --jq .headRefOid)" = "$head" ] || { echo "review-carry: #$pr moved past ${head:0:7}; not carrying"; exit 1; }
   gh api "repos/{owner}/{repo}/statuses/$head" -f state=success -f context=review \
-    -f description="carried from ${prev:0:7}: only merges $base" >/dev/null || exit 2
+    -f description="carried from ${prev:0:7}: $why" >/dev/null || exit 2
   # A verdict posted in the instant before the carry would now be older than it: post the verdict
   # again so it is the newest status and wins.
   v="$(verdict_on_head)"

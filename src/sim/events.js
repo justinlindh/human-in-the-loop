@@ -141,7 +141,6 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     stage: ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null,
   };
   ctx.emit({ type: 'decision' });
-  emitMomentTalk(ctx, state.pendingDecision);
   return true;
 }
 
@@ -257,17 +256,22 @@ registerSystem('events', eventsSystem, 70);
 
 // Systems later in the week can send the person a desk prop was staged for home (the remote roll, a
 // burnout leave). At the end of the week the prop moves to someone who is still in, so the moment has a cast.
+// Open staged prompts get the same check.
 export function restageSystem(ctx) {
   const { state } = ctx;
-  const d = state.pendingDecision;
-  const st = d?.stage;
-  if (!st?.staffId || st.anchor !== 'subjectDesk') return;
-  const who = state.staff.find((p) => p.id === st.staffId);
-  if (who && isIn(who)) return;
-  const { x, y, staffId, ...rest } = st;
-  d.stage = { ...rest, ...stageTile(state, st.anchor, d.subjectId) };
+  const restage = (holder, subjectId) => {
+    const st = holder?.stage;
+    if (!st?.staffId || st.anchor !== 'subjectDesk') return;
+    const who = state.staff.find((p) => p.id === st.staffId);
+    if (who && isIn(who)) return;
+    const { x, y, staffId, ...rest } = st;
+    holder.stage = { ...rest, ...stageTile(state, st.anchor, subjectId) };
+  };
+  restage(state.pendingDecision, state.pendingDecision?.subjectId);
+  for (const p of state.chatPrompts ?? []) if (!p.resolved) restage(p, p.subjectId);
 }
-registerSystem('restage', ctx => { restageSystem(ctx); momentTalkSystem(ctx); }, 99);
+registerSystem('restage', restageSystem, 99);
+registerSystem('moment-talk', momentTalkSystem, 100);
 
 registerAction('resolveDecision', (ctx, { choice }) => {
   const { state } = ctx;

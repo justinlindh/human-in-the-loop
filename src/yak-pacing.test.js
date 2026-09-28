@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { simulatePacing } from '../scripts/pace.js';
-import { createYakPacer } from './yak-pacing.js';
+import { createYakPacer, importantChat } from './yak-pacing.js';
 import { B } from './sim/balance.js';
 import { createPacer } from './pacing.js';
 const msg = (id, extra = {}) => ({ type: 'chat', id, text: 'A short message', fromId: 'a', channel: 'general', ...extra });
@@ -82,8 +82,9 @@ it('does not revive an old outage post when the same product fails again', () =>
 it('preserves important parents through expiry and resets both clocks', () => {
   const p = createYakPacer();
   p.enqueue([msg('root'), msg('reply', { replyTo: 'root', important: true })]);
-  expect(p.step(40, true, { gameTime: 160 }).map(e => e.id)).toEqual(['root']);
-  expect(p.step(6, true, { gameTime: 184 }).map(e => e.id)).toEqual(['reply']);
+  // Past the ordinary real-time limit, within the important game-time one.
+  expect(p.step(40, true, { gameTime: 40 }).map(e => e.id)).toEqual(['root']);
+  expect(p.step(6, true, { gameTime: 46 }).map(e => e.id)).toEqual(['reply']);
   p.reset();
   p.enqueue([msg('fresh')], { gameTime: 0 });
   expect(p.step(0, true, { gameTime: 0 })[0].id).toBe('fresh');
@@ -119,4 +120,42 @@ it('paces Yak chats through the Yak pacer, as the game does', () => {
     if (!chats[i].urgent) expect(chats[i].t - chats[i - 1].t).toBeGreaterThanOrEqual(B.yakMinGapSeconds - frame);
   }
   expect(metrics.chat.omitted).toBeGreaterThanOrEqual(0);
+});
+
+it('counts a bot post as important only when the sim flags it', () => {
+  const bot = { type: 'chat', id: 'b', fromId: null, from: '@launchbot', channel: 'general', text: 'Product 2 v7 is live.' };
+  expect(importantChat(bot)).toBe(false);
+  expect(importantChat({ ...bot, important: true })).toBe(true);
+  expect(importantChat({ ...bot, channel: 'wins' })).toBe(true);
+  expect(importantChat({ ...bot, channel: 'incidents' })).toBe(true);
+});
+
+it('keeps important posts from backing up at 4x-rate traffic, and never expires an incident alert', () => {
+  // About 17 important posts a real minute at 4x, against roughly 8 a minute the reading gap lets through.
+  const p = createYakPacer(), speed = 4, dt = 0.1, waits = [], enqueuedAt = new Map();
+  let t = 0, n = 0, maxQueued = 0;
+  const alerts = new Set(), shown = new Set();
+  for (let step = 0; step < 6000; step++, t += dt) {
+    if (step % 35 === 0) {
+      const alert = n % 10 === 0;
+      const e = alert
+        ? { type: 'chat', id: `a${n}`, fromId: null, from: '@pagerbot', channel: 'incidents', text: 'SEV2 on Product 1: it ate the database.' }
+        : { type: 'chat', id: `w${n}`, fromId: null, from: '@launchbot', channel: 'wins', text: 'Product 1 v2 is live.' };
+      if (alert) alerts.add(e.id);
+      enqueuedAt.set(e.id, t);
+      p.enqueue([e], { gameTime: t * speed });
+      n++;
+    }
+    for (const e of p.step(dt, true, { gameTime: (t + dt) * speed })) { shown.add(e.id); waits.push(t + dt - enqueuedAt.get(e.id)); }
+    maxQueued = Math.max(maxQueued, p.queued);
+  }
+  expect(Math.max(...waits)).toBeLessThanOrEqual(B.yakImportantMaxWaitGameSeconds / speed + 2 * B.yakMinGapSeconds);
+  expect(maxQueued).toBeLessThanOrEqual(10);
+  for (const id of alerts) if (t - enqueuedAt.get(id) > 60) expect(shown.has(id)).toBe(true);
+});
+
+it('reports the longest important-post wait at 4x within the pacing target', () => {
+  const { metrics } = simulatePacing({ seed: 3, speed: 4, weeks: 520, frame: 0.1 });
+  expect(metrics.chat.important.longestWaitSeconds).toBeLessThanOrEqual(90);
+  expect(metrics.chat.important.queuedAtEnd).toBeLessThanOrEqual(15);
 });
