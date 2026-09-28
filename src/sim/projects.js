@@ -14,6 +14,7 @@ import { ANGLES } from '../data/angles.js';
 import { lockedReason } from './unlocks.js';
 import { eraAtLeast, eraIndex } from './eras.js';
 import { emitChat } from './chat.js';
+import { squadsAfterProject } from './squads.js';
 import { bumpDebt } from './debt.js';
 import { raiseDecision } from './events.js';
 
@@ -198,8 +199,9 @@ function complete(ctx, j) {
   const pr = j.productId ? findProduct(state, j.productId) : null;
   // Everyone on a new product's launch gets credit; the Waffle Party milestone counts these.
   const credit = () => { for (const p of team) addToRecord(state, p, 'launches', 1); };
+  let launched = null;
   if (j.kind === 'new') {
-    launchNew(ctx, j);
+    launched = launchNew(ctx, j);
     credit();
     for (const p of team) p.meaning = Math.min(100, p.meaning + B.meaningLaunchBonus);
   } else if (j.kind === 'update' && pr && !pr.killed) {
@@ -243,6 +245,7 @@ function complete(ctx, j) {
     p.assignment = defaultAssignment(p);
     ctx.emit({ type: 'celebrate', staffId: p.id });
   }
+  squadsAfterProject(ctx, j, team, launched ?? (pr && !pr.killed ? pr : null));
   state.projects = state.projects.filter((x) => x.id !== j.id);
 }
 

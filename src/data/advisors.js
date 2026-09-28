@@ -106,6 +106,13 @@ export const ADVICE_LINES = {
       "{product} is past its migration date. Every week it gets a little more haunted.",
     ],
   },
+  squadIdle: {
+    1: [
+      "{squad} has been playing foosball since the launch. Impressive, but not billable.",
+      '{squad} is between projects. So far that means a very organised snack drawer.',
+      "Nobody has told {squad} what's next, so {squad} has started a podcast. Please give them a project.",
+    ],
+  },
   juniors: {
     1: [
       "{count} juniors are teaching themselves. Mentoring costs a senior's time. Not mentoring costs a junior's first year.",

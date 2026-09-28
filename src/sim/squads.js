@@ -4,7 +4,8 @@ import { B } from './balance.js';
 import { newId } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { isUnlocked } from './unlocks.js';
-import { findStaff, tryAssign } from './staff.js';
+import { findStaff, tryAssign, defaultAssignment } from './staff.js';
+import { personPoints } from './work.js';
 
 const POSTINGS = new Set(['project', 'maintenance', 'support', 'idle']);
 
@@ -139,9 +140,68 @@ registerAction('postSquad', (ctx, { squadId, posting }) => {
   return { ok: true, placed, skipped };
 });
 
-// Weekly: records the unlock.
+const onPosting = (squad, p) => squad.posting.type !== 'idle' && p.mood !== 'away' && p.assignment.type === squad.posting.type
+  && (squad.posting.type !== 'project' || p.assignment.targetId === squad.posting.targetId);
+
+// The output bonus a person gets from their squad's cohesion while working its posting.
+export function squadOutputBonus(state, person) {
+  for (const sq of state.squads ?? []) {
+    if (sq.cohesion > 0 && sq.memberIds.includes(person.id)) return onPosting(sq, person) ? sq.cohesion * B.squadCohesionOutput : 0;
+  }
+  return 0;
+}
+
+// Called when a project finishes, after its team went back to their default work. A squad posted to it keeps
+// an upkeep crew on the product (the engineers who know most, enough to cover its maintenance) and benches
+// the rest; with afterLaunch 'maintenance' everyone keeps their default work, as without squads.
+export function squadsAfterProject(ctx, project, team, product) {
+  const { state } = ctx;
+  for (const sq of state.squads ?? []) {
+    if (sq.posting.type !== 'project' || sq.posting.targetId !== project.id) continue;
+    const mine = team.filter((p) => sq.memberIds.includes(p.id));
+    if (sq.afterLaunch === 'maintenance') {
+      sq.posting = { type: 'maintenance', targetId: null };
+      continue;
+    }
+    const crew = [];
+    if (product) {
+      const need = B.maintenancePerProduct + product.customers * B.maintenancePerCustomer;
+      let covered = 0;
+      for (const p of mine.filter((x) => x.role === 'engineer').sort((a, b) => b.knowledge - a.knowledge)) {
+        if (crew.length && covered >= need) break;
+        crew.push(p);
+        const pts = personPoints(state, p);
+        covered += pts.features + pts.reliability;
+      }
+    }
+    for (const p of mine) p.assignment = crew.includes(p) ? { type: 'maintenance', targetId: null } : { type: 'idle', targetId: null };
+    sq.posting = { type: 'idle', targetId: null };
+    sq.benchUntil = state.week + B.squadBenchWeeks;
+    ctx.emit({ type: 'squadFreed', squadId: sq.id, productId: product?.id ?? null, crewIds: crew.map((p) => p.id) });
+  }
+}
+
+// Weekly: records the unlock, benches run out, cohesion builds for squads working their posting, and idle
+// spells are timed for the advisors.
 export function squadsSystem(ctx) {
-  unlocked(ctx.state);
+  const { state } = ctx;
+  unlocked(state);
+  const idleSince = (state.flags.squadIdleSince ??= {});
+  for (const sq of state.squads) {
+    const members = sq.memberIds.map((id) => findStaff(state, id)).filter(Boolean);
+    if (sq.benchUntil !== null && state.week >= sq.benchUntil) {
+      for (const p of members) if (p.assignment.type === 'idle' && p.mood !== 'away') p.assignment = defaultAssignment(p);
+      sq.benchUntil = null;
+      sq.posting = { type: members.some((p) => p.role === 'engineer') ? 'maintenance' : 'idle', targetId: null };
+      ctx.emit({ type: 'squadBenchEnded', squadId: sq.id });
+    }
+    const working = members.filter((p) => onPosting(sq, p)).length;
+    if (members.length && working * 2 >= members.length) sq.cohesion = Math.min(1, sq.cohesion + 1 / B.squadCohesionWeeks);
+    const idle = members.length > 0 && sq.posting.type === 'idle' && sq.benchUntil === null;
+    if (!idle) delete idleSince[sq.id];
+    else idleSince[sq.id] ??= state.week;
+  }
+  for (const id of Object.keys(idleSince)) if (!state.squads.some((sq) => sq.id === id)) delete idleSince[id];
 }
 
 registerSystem('squads', squadsSystem, 32);
