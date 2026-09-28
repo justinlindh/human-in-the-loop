@@ -441,20 +441,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
             const r = recs.get(e.staffId);
             if (r && !r.hidden && !r.temp?.standup) celebrate(r, 2.4, true);
           } else {
-            companyParty();
+            companyParty(typeof e.cause === 'string' && e.cause ? e.cause : null);
           }
           break;
         }
-        case 'launch': {
-          const name = state?.products?.find((p) => p.id === e.productId)?.name;
-          companyParty(name ? `${name} launched!` : null);
-          break;
-        }
+        case 'launch': companyParty(); break;
         case 'posted': postReaction(e.outcome); break;
         case 'award': {
           const L = cur?.L;
           if (L) fx.confetti(0, 1.2, 0, { spread: 2.2, power: 1.25 });
-          companyParty(e.text ?? null);
+          companyParty();
           break;
         }
         case 'incident': incident(e); break;
@@ -689,15 +685,25 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   let lastParty = -1e9;
   const partyAt = new THREE.Object3D();
-  // cause: what the company is celebrating ("Product 5 launched!", an award's text), shown as a
-  // banner over the crowd. A launch or award comes in the same batch as its celebrate(null), first.
+  let partyBanner = false, partyCast = [];
+  function showBanner(cause) {
+    if (!partyCast.length) return;
+    partyAt.position.set(partyCast.reduce((v, r) => v + r.pos.x, 0) / partyCast.length, 0, partyCast.reduce((v, r) => v + r.pos.z, 0) / partyCast.length);
+    if (!partyAt.parent) group.add(partyAt);
+    labels.banner?.(cause, partyAt);
+    partyBanner = true;
+  }
+  // cause: what the company is celebrating (celebrate.cause: "Product 5 launched", "Product of the
+  // Year: Product 5"), shown as a banner over the crowd. No cause, no banner.
   function companyParty(cause = null) {
     const cur = office.current;
     if (!cur) return;
     // A launch arrives with celebrate(null) in the same batch; throw one party, not two.
     const now = performance.now();
-    if (now - lastParty < 1500) return;
+    // Its cause may come with the second of the two; it still gets its banner.
+    if (now - lastParty < 1500) { if (cause && !partyBanner) showBanner(cause); return; }
     lastParty = now;
+    partyBanner = false;
     const L = cur.L;
     for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
@@ -707,11 +713,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08, moment: 'company_party', stage: { beat: 'cheer' } };
       cast.push(r);
     }
-    if (cause && cast.length) {
-      partyAt.position.set(cast.reduce((v, r) => v + r.pos.x, 0) / cast.length, 0, cast.reduce((v, r) => v + r.pos.z, 0) / cast.length);
-      if (!partyAt.parent) group.add(partyAt);
-      labels.banner?.(cause, partyAt);
-    }
+    partyCast = cast;
+    if (cause) showBanner(cause);
     if (cast.length) spotlights.begin('company_party', () => {
       for (const r of cast) if (r.temp?.moment === 'company_party') r.temp = null;
     }, 3, () => ({ x: cast.reduce((v, r) => v + r.pos.x, 0) / cast.length, z: cast.reduce((v, r) => v + r.pos.z, 0) / cast.length }), () => cast.some((r) => r.temp?.moment === 'company_party'));
