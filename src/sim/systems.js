@@ -33,3 +33,4 @@ import './props.js';
 import './prompts.js';
 import './posts.js';
 import './advisors.js';
+import './squads.js';
