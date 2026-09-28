@@ -520,7 +520,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     updatePairs(dt);
     spotNewToys();
     tryNewToys(dt, state);
-    if (isBusy() || held) return;
+    // A new toy waiting for takers keeps people free for it: no other visit starts meanwhile.
+    if (isBusy() || held || newToys.length) return;
     clock -= dt;
     if (clock > 0) return;
     clock = state?.lockdown && (state.week ?? 0) < state.lockdown.until ? rnd(1, 2) : rnd(2.5, 5);

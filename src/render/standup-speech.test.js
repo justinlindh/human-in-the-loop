@@ -65,7 +65,7 @@ describe('live conversation premise', () => {
     expect(standupContext({ flags: {} }, lines)).toBeNull();
     s.week++; s.outage.weeks++; generate(s);
     expect(standupRevision(context, s)).toBeNull();
-    expect(context.script).toBe('standup_outage_logs');
+    expect(context.topic).toBe('outage');
     expect(standupContext(JSON.parse(JSON.stringify(s)), s.flags.standupConversation.lines)).not.toBeNull();
   });
   it('revises recovered, replaced, renamed and removed outage subjects without guessing from dialogue text', () => {

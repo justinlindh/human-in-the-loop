@@ -13,6 +13,7 @@ import { createPopups } from './popups.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
+import { createOfficePrompt } from './officePrompt.js';
 import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
@@ -126,6 +127,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     },
   };
 
+  const officePrompt = createOfficePrompt();
+  ui.extraNeeds = (s) => officePrompt.rows(s);
   const hud = createHud({ root: layer, controls, ui });
 
   const bottom = h('div.bottom');
@@ -142,7 +145,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
-    onChange: (id) => { if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
+    onChange: (id) => { if (id === 'office') officePrompt.opened(getState()); if (id && newMenus.delete(id)) menu.setNew(id, false); sfx(id ? 'open' : 'close'); if (!popups.open) toasts.setDock(id ? menu.dockEl : null); },
   });
   bottom.append(h('div'));
 
@@ -302,7 +305,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     // A new or loaded game is a new state object whose staff ids restart, so drop old samples.
     if (state !== loggedState) {
       loggedState = state; ctx.meaningLog.clear(); loggedWeek = -1; chat.reset(state);
-      announcer.reset(); spacing.reset(); growth.reset(); buildMode.exit(); menuSig = null;
+      announcer.reset(); spacing.reset(); growth.reset(); officePrompt.reset(); buildMode.exit(); menuSig = null;
       for (const id of newMenus) menu.setNew(id, false);
       newMenus.clear();
       launchScores.clear();
@@ -342,6 +345,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   let lastPanelAt = 0;
   let lastFrame = null;
+  let lastMovePip = false;
   function update(state) {
     const frameAt = performance.now();
     const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
@@ -355,6 +359,9 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (layer.classList.contains('popup-open') !== !!popups.open) layer.classList.toggle('popup-open', !!popups.open);
     toasts.setHidden(PHONE.matches && (buildMode.on || !!popups.open));
     toasts.setWeek(state.week);
+    // The office move's New pip follows its Needs you row.
+    const movePip = !!officePrompt.current(state);
+    if (movePip !== lastMovePip) { lastMovePip = movePip; if (!newMenus.has('office')) menu.setNew('office', movePip); }
     hud.update(state);
     gameover.update(state);
     popups.update(state, { holdLaunch: holdForMoment() });

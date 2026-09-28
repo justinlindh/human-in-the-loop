@@ -9,6 +9,7 @@ The game is the show. Every effect exists to make a beat easier to read, never t
 ## Shooting
 
 - **Through the real game loop, always.** Open a moment the week before it happens and let the game's own tick bring it live, card and freeze included.
+  - **The one exception is illustration:** Yak's picture memes (`scripts/reels/memes.mjs`) pose characters in the mock garage with props added for the joke. They show no game state, so there's no real moment to open. Anything that claims to show the game (reels, trailers, landing shots, feature media) stays in the real loop.
 - **UI, per shot:**
   - **clean:** no interface at all (`STAGE_ONLY`). Use it for scenery, timelapses, the office in motion, and any moment that needs no card. This is the default.
   - **card:** the decision card and the moment caption only (`BARE`). Use it when the card is the joke, as in PC LOAD LETTER, the consultants and the cloud bill.
