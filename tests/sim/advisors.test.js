@@ -4,6 +4,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { advice, advisorsSystem } from '../../src/sim/advisors.js';
 import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
+import { saveGame, loadGame } from '../../src/save/save.js';
 import { ADVICE_LINES } from '../../src/data/advisors.js';
 import { weeklyRevenue, weeklyCosts } from '../../src/sim/economy.js';
 import { game, classicGame, addStaff, addProduct } from './helpers.js';
@@ -151,6 +152,21 @@ describe('advisors: dismissing and the rare push', () => {
     s.cash = 1e9;
     advisorsSystem(makeCtx(s));
     expect(s.advisors.dismissed.runway).toBeUndefined();
+  });
+
+  it('dismissals survive a save and load; saves without advisors load with the default', () => {
+    const store = new Map();
+    const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+    const s = burning(11, 11);
+    dispatch(s, { type: 'dismissAdvice', key: 'runway' });
+    saveGame(s, storage);
+    expect(loadGame(storage).state.advisors).toEqual(s.advisors);
+    const old = burning(11, 12);
+    delete old.advisors;
+    saveGame(old, storage);
+    const loaded = loadGame(storage).state;
+    expect(loaded.advisors).toEqual({ dismissed: {}, pushed: {}, lastPushWeek: null });
+    expect(find(loaded, 'runway')).toBeTruthy();
   });
 
   it('bot games end the same with advisors on or off', () => {
