@@ -83,5 +83,7 @@ describe('issue #556: a launch or an unlock counts as the last pausing moment', 
     const withEra = makeCtx(s);
     withEra.events.push({ type: 'era', eraId: 'agents' });
     expect(showsCard(withEra, 'policy.remote_first')).toBe(true);
+    s.unlocks = { standups: s.week - 5 };
+    expect(showsCard(makeCtx(s), 'policy.crunch')).toBe(false);
   });
 });
