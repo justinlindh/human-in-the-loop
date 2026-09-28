@@ -134,11 +134,16 @@ function optionsFor(state, a) {
       if (p) opt(`Give ${first(p)} lighter work`, 'staff', p.id);
       break;
     }
-    case 'debt':
-      if (!building('refactor')) opt('Start The Big Refactor', 'build');
+    case 'debt': {
+      const idleBuilder = state.staff.some((p) => p.mood !== 'away' && (p.role === 'engineer' || p.role === 'designer' || p.founder) && p.assignment.type === 'idle');
+      if (!building('refactor')) {
+        if (idleBuilder) opt('Start The Big Refactor', 'build');
+        else opt('Free up an engineer for The Big Refactor', 'staff');
+      }
       if (policyOpen('comprehension_reviews')) opt('Switch on Code Comprehension Reviews', 'policies', 'comprehension_reviews');
       opt('Put an engineer on maintenance', 'staff');
       break;
+    }
     case 'busFactor': {
       const p = person(id);
       if (p && unmentored.length) opt(`Have ${first(p)} mentor ${first(unmentored[0])}`, 'staff', p.id);
@@ -170,11 +175,11 @@ function optionsFor(state, a) {
       break;
     case 'era':
       if (id === 'chatgbt') {
-        if (isUnlocked(state, 'models')) opt('Pick a model for your next product', 'models');
-        if (isUnlocked(state, 'automation')) opt('Look at what automation can take on', 'automation');
+        if (isUnlocked(state, 'models')) opt('Choose what your next product runs on', 'models');
+        if (isUnlocked(state, 'automation')) opt('See which routine work a model could take on', 'automation');
       } else {
         opt('Put someone on oversight of the agents', 'staff');
-        if (isUnlocked(state, 'automation')) opt('Set up automation', 'automation');
+        if (isUnlocked(state, 'automation')) opt('Hand some routine work to agents', 'automation');
       }
       opt('Start something built for the new era', 'build');
       break;

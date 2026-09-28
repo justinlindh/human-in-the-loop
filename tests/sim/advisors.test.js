@@ -155,6 +155,16 @@ describe('advisors: options', () => {
     expect(find(s, 'burnout').options.some((o) => o.target.arg === 'no_crunch')).toBe(true);
   });
 
+  it('The Big Refactor is offered only when a builder is free; otherwise the option is to free one up', () => {
+    const s = game(17);
+    for (let i = 0; i < 2; i++) addStaff(s, 'engineer', 'mid');
+    s.comprehensionDebt = B.advisor.debt[1];
+    for (const p of s.staff) p.assignment = { type: 'support', targetId: null };
+    expect(find(s, 'debt').options[0]).toMatchObject({ text: 'Free up an engineer for The Big Refactor', target: { panel: 'staff' } });
+    s.staff.find((p) => p.role === 'engineer').assignment = { type: 'idle', targetId: null };
+    expect(find(s, 'debt').options[0]).toMatchObject({ text: 'Start The Big Refactor', target: { panel: 'build' } });
+  });
+
   it('over real games every piece of advice offers 2 or 3 real options, pointing at real menus and things', () => {
     let checked = 0;
     for (const seed of [1, 2]) runBot('balanced', seed, 520, { onWeek: (s) => {
@@ -166,7 +176,9 @@ describe('advisors: options', () => {
         for (const o of a.options) {
           expect(MENUS, a.key).toContain(o.target.panel);
           expect(o.text).not.toMatch(/[{}]|undefined/);
+          expect(o.text, `${a.key}: the chip names the menu`).not.toMatch(new RegExp(`\\b${o.target.panel}\\b`, 'i'));
           const arg = o.target.arg;
+          if (!['staff', 'policies', 'reports', 'marketing', 'build'].includes(o.target.panel)) expect(arg, `${a.key} ${o.target.panel}`).toBeUndefined();
           if (arg === undefined) continue;
           if (o.target.panel === 'policies') expect(isUnlocked(s, `policy.${arg}`) || s.policies[arg], `${a.key} ${arg}`).toBeTruthy();
           else if (o.target.panel === 'staff') expect(s.staff.some((p) => p.id === arg && p.mood !== 'away' || p.id === arg && a.key === 'burnout')).toBe(true);

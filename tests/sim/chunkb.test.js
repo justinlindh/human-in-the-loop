@@ -212,6 +212,36 @@ describe('natural vacations', () => {
     expect(p.mood).toBe('away');
   });
 
+  it('issue #867: only a real crunch or push postpones a vacation, and the toast names it', async () => {
+    const { vacationSystem } = await import('../../src/sim/strain.js');
+    const due = (seed, setup) => {
+      const s = game(seed);
+      const p = addStaff(s, 'engineer', 'mid', { hiredWeek: -200, strain: 0 });
+      setup(s);
+      const ev = run(s, vacationSystem);
+      return { p, note: ev.find((e) => e.type === 'toast' && /postponed/.test(e.text)) };
+    };
+    const mod = (s, label, value) => s.modifiers.push({ id: 'm1', key: 'output', value, label, untilWeek: s.week + 10, source: null });
+    const banner = due(7, (s) => mod(s, 'The banner', 0.02));
+    expect(banner.p.mood).toBe('away');
+    expect(banner.note).toBeUndefined();
+    const hustle = due(8, (s) => mod(s, 'Founder hustle', 0.1));
+    expect(hustle.p.mood).not.toBe('away');
+    expect(hustle.note.text).toMatch(/because of the founder hustle/);
+    const crunch = due(9, (s) => { s.policies.crunch = true; });
+    expect(crunch.p.mood).not.toBe('away');
+    expect(crunch.note.text).toMatch(/because of the crunch/);
+  });
+
+  it('every push that postpones vacations names a real modifier from the events', async () => {
+    const { VACATION_PUSHES } = await import('../../src/data/modifiers.js');
+    const { EVENTS } = await import('../../src/data/events.js');
+    const labels = new Set();
+    const walk = (fx) => { if (!fx || typeof fx !== 'object') return; for (const [k, v] of Object.entries(fx)) { if (k === 'modifier') for (const m of [v].flat()) labels.add(m.label); else walk(v); } };
+    for (const ev of Object.values(EVENTS)) for (const c of ev.choices ?? []) walk(c.effects);
+    for (const label of Object.keys(VACATION_PUSHES)) expect(labels, label).toContain(label);
+  });
+
   it('understaffing alone never postpones a vacation', async () => {
     const { vacationSystem } = await import('../../src/sim/strain.js');
     const s = game(5);

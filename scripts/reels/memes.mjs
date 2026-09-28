@@ -6,11 +6,10 @@ import { resolve } from 'node:path';
 
 export const MEME_ART = [
   { id: 'this_is_fine', format: 'This is fine', caption: 'SEV-1. Everything is fine.', shots: ['sip'] },
-  { id: 'two_buttons', format: 'Two buttons', caption: 'Ship on Friday / Sleep', shots: ['facepalm'] },
+  { id: 'two_buttons', format: 'Two buttons', caption: 'Ship on Friday / Sleep', shots: ['dilemma'] },
   { id: 'tabs_chart', format: 'Up-and-to-the-right chart', caption: 'tabs I have open', shots: ['celebrate'] },
   { id: 'always_config', format: 'Always has been', caption: "Wait, it's all config? / Always has been.", shots: ['point', 'idle'] },
   { id: 'yes_no_tests', format: 'Reject / approve', caption: 'writing the tests myself / asking the agent to write them', shots: ['fan', 'celebrate'] },
-  { id: 'expanding_review', format: 'Expanding brain', caption: 'I write code / I review code / I review what the agent wrote / I review what the agent says it wrote', shots: ['typing', 'peer', 'celebrate', 'celebrate'] },
 ];
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const out = resolve('public/memes'), evidence = resolve('shots/memes');
@@ -94,13 +93,13 @@ try {
         if (c.measureText(line).width > max) throw new Error(`Caption too wide: ${line}`);
         c.fillText(line, x, y);
       };
-      const shot = (i, x, y, w, h, wide = false) => {
+      const shot = (i, x, y, w, h, wide = false, { size, dx = 0, dy = 0 } = {}) => {
         // Native-pixel crops keep faces sharp; the dump supplies the subject's screen bounds.
         const person = measurements[i].people.find(p => p.id === subjects[i]);
         const [px, py, pw, ph] = person.screen;
-        const sh = wide ? (meme.id === 'this_is_fine' ? 790 : 840) : (meme.id === 'expanding_review' ? 360 : 560), sw = sh * w / h;
-        const sx = Math.max(0, Math.min(1800 - sw, px + pw / 2 - sw / 2));
-        const sy = Math.max(0, Math.min(1350 - sh, py + ph / 2 - sh / 2));
+        const sh = size ?? (wide ? (meme.id === 'this_is_fine' ? 790 : 840) : 560), sw = sh * w / h;
+        const sx = Math.max(0, Math.min(1800 - sw, px + pw / 2 - sw / 2 + dx));
+        const sy = Math.max(0, Math.min(1350 - sh, py + ph / 2 - sh / 2 + dy));
         c.drawImage(captures[i], sx, sy, sw, sh, x, y, w, h);
         return { sx, sy, sw, sh, x, y, w, h };
       };
@@ -110,7 +109,8 @@ try {
         text('SEV-1', 600, 62, 78);
         text('Everything is fine.', 600, 838, 76);
       } else if (meme.id === 'two_buttons') {
-        shot(0, 0, 135, 1200, 765, true);
+        // Close on the torn face, with both buttons still in frame below it.
+        shot(0, 0, 135, 1200, 765, true, { size: 640, dx: -150, dy: -15 });
         text('Ship on Friday', 340, 70, 61, 590); text('Sleep', 930, 70, 66, 380);
         c.fillStyle = P.marker_orange; c.fillRect(65, 111, 550, 14);
         c.fillStyle = P.marker_green; c.fillRect(745, 111, 365, 14);
@@ -129,26 +129,6 @@ try {
         shot(0, 0, 0, 450, 450); shot(1, 0, 450, 450, 450);
         text('writing the', 825, 180, 64, 700); text('tests myself', 825, 260, 64, 700);
         text('asking the agent', 825, 630, 59, 700); text('to write them', 825, 710, 64, 700); rule(450);
-      } else {
-        // Four rows, the head brighter each time: the last row is the punchline.
-        const lines = [['I write code'], ['I review code'], ['I review what', 'the agent wrote'], ['I review what the', 'agent says it wrote']];
-        const glow = [null, [P.gold, 60, 72, 8], [P.screen_cyan, 60, 92, 12], [P.marker_orange, 58, 112, 16]];
-        for (let i = 0; i < 4; i++) {
-          const crop = shot(i, 0, i * 225, 400, 225);
-          if (glow[i]) {
-            const [color, r0, r1, rays] = glow[i];
-            const [hx, hy] = measurements[i].people[0].head.screen;
-            const x = (hx - crop.sx) / crop.sw * crop.w;
-            const y = (hy - crop.sy) / crop.sh * crop.h + crop.y;
-            c.save(); c.beginPath(); c.rect(10, i * 225 + 10, 380, 205); c.clip();
-            c.strokeStyle = color; c.lineWidth = i === 3 ? 9 : 7;
-            for (let ray = 0; ray < rays; ray++) { const a = ray * 2 * Math.PI / rays; c.beginPath(); c.moveTo(x + Math.cos(a) * r0 * 0.75, y + Math.sin(a) * r0 * 0.7); c.lineTo(x + Math.cos(a) * r1 * 0.75, y + Math.sin(a) * r1 * 0.7); c.stroke(); }
-            c.restore();
-          }
-          c.fillStyle = [P.wall_cream, P.wall_sage, P.glass, P.gold][i]; c.fillRect(400, i * 225, 800, 225);
-          lines[i].forEach((line, j) => text(line, 800, i * 225 + (lines[i].length === 1 ? 112 : 78 + j * 70), 58, 750));
-          if (i) rule(i * 225);
-        }
       }
       c.strokeStyle = P.ink; c.lineWidth = 16; c.strokeRect(8, 8, 1184, 884);
       const big = canvas.toDataURL('image/webp', 0.94);

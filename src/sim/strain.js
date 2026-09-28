@@ -2,6 +2,7 @@ import { B } from './balance.js';
 import { clamp } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { modifierBonus } from './modifiers.js';
+import { VACATION_PUSHES } from '../data/modifiers.js';
 import { endMentorshipsOf } from './staff.js';
 import { emitChat } from './chat.js';
 import { pick } from './rng.js';
@@ -64,8 +65,8 @@ const VACATION_POSTS = [
   'Two weeks off. I have promised my family I will not check Yak. I am lying to them.',
 ];
 
-// Natural vacations: everyone takes about two weeks a year, staggered so few are away at once. A crunch or
-// an outage postpones a vacation (with strain and a toast saying why), at most vacationMaxPostpones times
+// Natural vacations: everyone takes about two weeks a year, staggered so few are away at once. An outage,
+// Crunch Mode or a push (VACATION_PUSHES) postpones a vacation (with strain and a toast saying why), at most vacationMaxPostpones times
 // in a row; after that the person goes anyway.
 const firstName = (p) => p.name.split(' ')[0];
 const listNames = (names) => (names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')}, and ${names.at(-1)}`);
@@ -79,7 +80,8 @@ export function vacationSystem(ctx) {
   const away = state.staff.filter((p) => p.mood === 'away').length;
   let leaving = 0;
   const postponedCount = (state.flags.vacationPostponed ??= {});
-  const blockedBy = state.outage ? 'the outage' : modifierBonus(state, 'output') > 0 || state.policies.crunch ? 'the crunch' : null;
+  const push = state.modifiers.find((m) => m.key === 'output' && m.value > 0 && m.untilWeek > state.week && VACATION_PUSHES[m.label]);
+  const blockedBy = state.outage ? 'the outage' : state.policies.crunch ? 'the crunch' : push ? VACATION_PUSHES[push.label] : null;
   const postponed = [];
   for (const p of state.staff) {
     // The first vacation falls somewhere in the person's first year, spread by id.
