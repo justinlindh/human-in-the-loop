@@ -473,6 +473,80 @@ export async function runStandupCheck(R, S, { dt = 1 / 30 } = {}) {
   return { pass: gathered === lines.length && outside === 0 && inside === 0 && minGap > 0.4, people: gathered, outside, insideFurniture: inside, minGap: +minGap.toFixed(2) };
 }
 
+// A staged standup at a meeting table (issue #974): attendees fill its chairs, speakers first,
+// seated in place with those chairs pulled out and the rest tucked; the others stand clear of the
+// chairs, the furniture and each other; a seated face reads in the default and the turned view; and
+// when it ends everyone gets up and leaves the table. On Low nobody sits: all stand round the table
+// with every chair tucked.
+export async function runStandupTableCheck(R, S, { dt = 1 / 30, low = false } = {}) {
+  const step = (n = 1) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  const L = R.office.current.L;
+  if (!R.office.current.zones.meeting) {
+    const nav = R.office.nav();
+    let tile = null;
+    for (let y = 1; y < L.grid.h - 2 && !tile; y++) for (let x = 1; x < L.grid.w - 3 && !tile; x++) {
+      let ok = true;
+      for (let i = 0; i <= 2 && ok; i++) for (let j = 0; j <= 1 && ok; j++) if (nav.isBlocked(x + i - L.W / 2 + 0.5, y + j - L.D / 2 + 0.5)) ok = false;
+      if (ok) tile = { x, y };
+    }
+    if (!tile) return { pass: false, reason: 'no room for a meeting table' };
+    S.office.placed.push({ id: 'standup_table', itemId: 'meeting_table', level: 1, x: tile.x, y: tile.y, rot: 0 });
+    step(20);
+  }
+  const M = R.office.current.zones.meeting;
+  const lines = S.staff.filter((p) => !p.remote && p.mood !== 'away').slice(0, 8).map((p, i) => ({ staffId: p.id, text: i < 2 ? 'Shipping it today.' : null }));
+  R.handleEvents([{ type: 'standup', mode: 'daily', lines }], S);
+  step(8 * 30);
+  const want = low ? 0 : Math.min(M.seats.length, lines.length);
+  const chairs = new Set(M.seats.map((st) => st.chair));
+  const standingIn = [];
+  for (const e of R.office.placed.values()) standingIn.push(...meshes(e.obj));
+  let seated = 0, offSeat = 0, outside = 0, inside = 0, minGap = Infinity, speakersSeated = 0;
+  const at = [], used = new Set();
+  for (const l of lines) {
+    const root = charOf(R.scene, l.staffId);
+    if (!root) continue;
+    const p = root.position;
+    for (const q of at) minGap = Math.min(minGap, Math.hypot(p.x - q.x, p.z - q.z));
+    at.push(p.clone());
+    if (Math.abs(p.x) > L.W / 2 - 0.2 || Math.abs(p.z) > L.D / 2 - 0.2) outside++;
+    if (R.isSeated(l.staffId)) {
+      seated++;
+      if (l.text) speakersSeated++;
+      const st = M.seats.reduce((b, x) => (Math.hypot(x.x - p.x, x.z - p.z) < Math.hypot(b.x - p.x, b.z - p.z) ? x : b));
+      if (Math.hypot(st.x - p.x, st.z - p.z) > 0.1) offSeat++;
+      used.add(st.chair);
+    } else if (bodyInside(root, standingIn, false) > 0.01) inside++;
+  }
+  // Pulled out where someone sits, tucked where nobody does.
+  let chairsWrong = 0;
+  for (const ch of chairs) {
+    const want = used.has(ch) ? ch.userData.home : ch.userData.tucked;
+    if (ch.position.distanceTo(want) > 0.05) chairsWrong++;
+  }
+  // Readability: at least one seated face turned to the camera, in this view and a quarter turn.
+  const faces = [];
+  // Full frame updates (camera and world matrices) for the probe, without drawing.
+  const frame = (n) => { for (let i = 0; i < n; i++) { R.sync(S); R.render(dt, { draw: false }); } };
+  for (const turn of low ? [] : [0, 1]) {
+    if (turn) R.rotateView(1);
+    frame(40);
+    faces.push(lines.filter((l) => R.isSeated(l.staffId)).map((l) => R.probe(l.staffId)).filter((q) => q && q.faceCam < 70 && q.visible > 0.4).length);
+  }
+  if (!low) { R.rotateView(-1); frame(40); }
+  // It ends: everyone gets up and leaves the table.
+  let t = 0;
+  while (R.stats.standup && t < 90) { step(30); t += 1; }
+  step(4 * 30);
+  const stillSeated = lines.filter((l) => {
+    const root = charOf(R.scene, l.staffId);
+    return root && M.seats.some((st) => Math.hypot(st.x - root.position.x, st.z - root.position.z) < 0.2);
+  }).length;
+  const pass = seated === want && offSeat === 0 && outside === 0 && inside === 0 && minGap > 0.4 && chairsWrong === 0 &&
+    (low || (speakersSeated === Math.min(2, want) && faces.every((n) => n >= 1))) && !R.stats.standup && stillSeated === 0;
+  return { pass, seated, want, speakersSeated, offSeat, outside, insideFurniture: inside, minGap: +minGap.toFixed(2), chairsWrong, facesRead: faces, endedAfterS: t, stillAtTable: stillSeated };
+}
+
 // Staged props standing on the floor block walking like furniture: one dropped ahead of a walker
 // is walked around, and one dropped where someone stands steps them aside.
 export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
