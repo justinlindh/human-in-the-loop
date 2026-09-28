@@ -216,7 +216,7 @@ function resolveIncident(ctx, r) {
   const eventId = CYBER_KINDS.includes(r.kind) ? 'incident_postmortem' : INCIDENT_EVENT[r.kind];
   // Each postmortem waits with its own incident, so the write-up teaches the right people.
   const waiting = (state.flags.postmortemQueue ??= []);
-  waiting.push({ eventId, ...record });
+  waiting.push({ eventId, ...record, helped: [...r.helped], hurt: [...r.hurt] });
   if (waiting.length > B.postmortemQueueMax) waiting.splice(0, waiting.length - B.postmortemQueueMax);
   raiseDecision(ctx, eventId, r.productId, { queue: true });
 }

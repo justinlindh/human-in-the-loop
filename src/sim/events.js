@@ -43,8 +43,7 @@ export function decisionVars(state, rng, subjectId) {
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
   return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
     alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague',
-    deal: featuredDeal(state)?.name ?? 'A small company',
-    incidentWeeks: state.flags.lastIncident?.weeks ?? 0, incidentCost: { ...(state.flags.lastIncident?.cost ?? { cash: 0, brand: 0, customers: 0 }) } };
+    deal: featuredDeal(state)?.name ?? 'A small company' };
 }
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
@@ -135,7 +134,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const at = waiting.findIndex((x) => x.eventId === eventId);
   if (at >= 0) {
     const inc = waiting.splice(at, 1)[0];
-    Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds] });
+    Object.assign(vars, { weeks: inc.weeks, cost: { ...inc.cost }, helped: [...inc.helped], hurt: [...inc.hurt], incidentResponders: [...inc.responderIds] });
   }
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
