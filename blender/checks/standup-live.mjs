@@ -53,7 +53,10 @@ async function assertConversation() {
     return;
   }
   if (!c || !c.frames.some(f => f.meeting) || c.frames.at(-1).meeting || c.frames.at(-1).week <= c.startedWeek) throw Error('standup-live: meeting or real clock did not complete');
-  if (c.frames.some(f => f.meeting && f.text.length > 1)) throw Error('standup-live: overlapping bubbles');
+  // Only the meeting's own lines count: people away from the ring may talk while it runs.
+  const REVISION = ['The incident changed. Let us check the latest update.', 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'];
+  const own = new Set([...c.lines.map(l => l.text), ...REVISION]);
+  if (c.frames.some(f => f.meeting && f.text.filter(t => own.has(t)).length > 1)) throw Error('standup-live: overlapping bubbles');
   const changed = c.path === 'outage' || c.path === 'replacement';
   const expected = changed ? ['The incident changed. Let us check the latest update.', 'What do we need to carry forward?', 'The facts, the next step, and who is checking it.'] : c.lines.slice(0, 5).map(l => l.text);
   const { STANDUP_EXCHANGES } = await import('/src/data/standup.js');
