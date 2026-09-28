@@ -72,6 +72,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     syncRenderer();
     refresh();
     ctx.sfx('open');
+    ctx.rotateHint?.();
   }
 
   function exit() {
