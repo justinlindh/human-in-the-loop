@@ -446,7 +446,8 @@ Advice = {
 - A key the player dismissed at its current tier or lower is left out.
 - Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
 - Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
-- `'fine'` offers light options (start a project, look at hiring).
+- `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
+- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports` and `marketing`; other panels take no arg.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
 ### State: Advisors
