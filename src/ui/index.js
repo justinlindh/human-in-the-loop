@@ -77,7 +77,8 @@ export function createUI({ root, getState, dispatch, controls }) {
   };
 
   // Every player action goes through here: failures surface their reason as a warn toast.
-  function act(action) {
+  // quiet: a caller trying a fallback next handles a refusal itself (no toast or error sound).
+  function act(action, { quiet = false } = {}) {
     let res;
     try {
       res = dispatch(action);
@@ -85,6 +86,7 @@ export function createUI({ root, getState, dispatch, controls }) {
       console.warn('dispatch threw', e);
       res = { ok: false, reason: 'Something went wrong' };
     }
+    if ((!res || !res.ok) && quiet) return res ?? { ok: false };
     if (!res || !res.ok) {
       toasts.push(res?.reason ?? 'That did not work', 'warn');
       sfx('error');

@@ -17,6 +17,7 @@ import { picker } from '../picker.js';
 import { agentsHere } from '../v2content.js';
 
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
+const before = new Map(); // staffId -> the assignment they had before Assign put them on oversight
 const DEBT = { engineering: B.debtFromEngAuto ?? 1.1, qa: B.debtFromQaAuto ?? 0.35, ops: B.debtFromOpsAuto ?? 0.3 };
 
 export function fnOversight(s, fn) {
@@ -124,19 +125,33 @@ function panelOf(ctx, tab) {
         setText(pickBtn, open ? 'Done' : 'Assign overseers');
       } }, 'Assign overseers');
       let pickSig = '';
+      // Relieve sends someone back to what they did before this list put them on oversight, if the sim
+      // still takes it (the project may have shipped); else to their role's usual work. The memory is
+      // this session's; after a reload it's the usual work.
+      function relieve(p) {
+        const prev = before.get(p.id);
+        const tries = [prev, { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null }].filter((a) => a && a.type !== 'oversight');
+        for (const [i, a] of tries.entries()) {
+          const res = ctx.act({ type: 'assign', staffId: p.id, assignment: a }, { quiet: i < tries.length - 1 });
+          if (res?.ok) { before.delete(p.id); ctx.sfx('click'); return; }
+        }
+      }
       bind((st) => {
         const sig = st.staff.map((p) => `${p.id}${p.mood}${p.assignment.type}${p.assignment.targetId ?? ''}`).join();
         if (sig === pickSig) return;
         pickSig = sig;
         const rows = overseerCandidates(st);
-        const back = (p) => ROLES[p.role]?.defaultAssignment ?? 'idle';
+        const back = (p) => ({ type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null });
         pickList.replaceChildren(...(rows.length ? rows.map(({ p, on, hours }) => h(`div.ovrow${on ? '.on' : ''}`, null,
           h('b.ovname', { text: p.name }),
           h('span.small.muted', { text: `${roleName(p.role)} · ${on ? 'on oversight' : (ASSIGNMENT_LABEL[p.assignment.type] ?? p.assignment.type)}` }),
           h('span.spacer'),
           h('span.num.small.ovhrs', { text: `${on ? '' : '+'}${hours.toFixed(0)}h` }),
-          on ? h('button.btn.small', { onclick: () => { if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: back(p), targetId: null } }).ok) ctx.sfx('click'); } }, 'Relieve')
-            : h('button.btn.small.go', { onclick: () => { if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: 'oversight', targetId: null } }).ok) ctx.sfx('confirm'); } }, 'Assign')))
+          on ? h('button.btn.small', { onclick: () => relieve(p) }, 'Relieve')
+            : h('button.btn.small.go', { onclick: () => {
+              const prev = { type: p.assignment.type, targetId: p.assignment.targetId ?? null };
+              if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: 'oversight', targetId: null } }).ok) { before.set(p.id, prev); ctx.sfx('confirm'); }
+            } }, 'Assign')))
           : [h('div.small.muted', { text: 'Nobody is free to oversee right now.' })]));
       });
       const summary = h('div.card.autosum', null,

@@ -10,7 +10,7 @@
 .hitl .ovrow > .spacer { flex: 1 1 0; }
 .hitl .ovrow .small.muted { flex: 1 1 auto; }
 @media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
-  .hitl .ovpick { max-height: 12em; }
+  .hitl .ovpick { max-height: 12em; margin-bottom: 0.7em; }
   .hitl .ovrow { flex-wrap: wrap; row-gap: 0.1em; }
   .hitl .ovrow .small.muted { flex-basis: 100%; order: 5; }
 }
