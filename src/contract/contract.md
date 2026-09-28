@@ -436,11 +436,17 @@ Advice = {
   why,           // the visible fact behind it, short: 'Runway: 11 weeks at this burn'
   target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation', ui's menu ids); arg e.g. a staffId
   cooldownWeeks  // how long an unprompted push of this key rests
+  options        // [{ text, target }]: two or three things the player could do about it, each a real action available now
+                 // text: short, a suggestion not an order ('Put someone on sales', 'Send Priya on time off'); no menu name in it, the target names the place
+                 // target: { panel, arg? } as in Advice.target: the menu where it's done, arg e.g. a staffId, policyId or productId
 }
 ```
 
 - Each trigger reads a number some panel already shows (runway, burnout count, comprehension debt, one person's share of the team's know-how, juniors without a mentor, a product's migration date, the current era, MRR share, unlocked but unused policies).
 - A key the player dismissed at its current tier or lower is left out.
+- Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
+- Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
+- `'fine'` offers light options (start a project, look at hiring).
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
 ### State: Advisors
