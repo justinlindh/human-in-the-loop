@@ -481,3 +481,42 @@ advisors: { dismissed: { [key]: tier }, pushed: { [key]: { week, tier } }, lastP
 - Pushed by the `advisors` system (order 96, after `history`). At most one every `B.advisor.pushGapWeeks` game weeks, only at severity 3, never in a week that raises a decision or a staged prompt.
 - A key isn't pushed again within its `cooldownWeeks` unless its tier rose.
 - The sim always computes and emits. The On / Quiet / Off setting lives in ui's settings store, not in state: On shows pushes and the panel, Quiet ignores `advice` events, Off hides the panel. Bot games end identically whatever the setting.
+
+## Squads (#938)
+
+Named groups the player staffs and posts as a unit. A layer over per-person assignments: posting a squad dispatches the ordinary assignment for each member, so output, maintenance, oversight and knowledge work as before. People outside any squad are unaffected.
+
+```
+state.squads = [{ id, name, memberIds: [staffId], leadId: staffId | null,
+                  posting: { type: 'project'|'maintenance'|'support'|'idle', targetId },   // targetId: a projectId for 'project', else null
+                  afterLaunch: 'upkeep'|'maintenance', benchUntil: week | null, cohesion /*0..1*/, formedWeek }]
+```
+
+- At most 6 squads. A person is in at most one squad; membership lives only on the squad, and ui looks it up there.
+- A member whose assignment doesn't match the squad's posting is "on loan". That is derived, never stored. A plain `assign` of a member leaves them in the squad, on loan.
+- After a squad's project ships with `afterLaunch: 'upkeep'`, the engineers who know the product best, enough to cover its maintenance and at least one, go to maintenance as its crew; the rest are benched: posting `{ type: 'idle', targetId: null }` with `benchUntil` set. When that week arrives, benched members go back to their default work. With `afterLaunch: 'maintenance'` everyone goes to maintenance, as for people outside squads.
+- `cohesion * B.squadCohesionOutput` is an output bonus for members working the squad's posting. Anyone joining or leaving halves it.
+- A departure removes the person from their squad and clears `leadId` if it was them. An emptied squad stays until disbanded.
+- Suggested names come from `SQUAD_NAMES` in `src/data/squads.js`.
+- Old saves load with `squads: []`.
+
+Actions:
+
+```
+{ type: 'createSquad', name, memberIds }        // -> { ok, squadId }; name 1..20 characters, trimmed; 1..8 members; joining moves a person out of their old squad
+{ type: 'renameSquad', squadId, name }
+{ type: 'disbandSquad', squadId }                 // members keep their current work
+{ type: 'setSquadMembers', squadId, memberIds }   // replaces the members, same rules as createSquad
+{ type: 'setSquadLead', squadId, staffId }        // staffId null clears it; must be a member
+{ type: 'postSquad', squadId, posting: { type, targetId } }   // -> { ok, placed: [staffId], skipped: [{ staffId, reason }] }; ok false with the first reason when nobody can be placed; clears benchUntil
+{ type: 'setSquadAfterLaunch', squadId, mode }    // 'upkeep' | 'maintenance'
+```
+
+Refusal reasons include 'Squads unlock with the Office Floor or 8 people', 'Up to 6 squads', 'Name the squad', 'A squad has 1 to 8 people', 'No such staff member' and 'Not in this squad'. Squads unlock with the Office Floor or 8 people.
+
+Events:
+
+```
+{ type: 'squadFreed', squadId, productId, crewIds }   // a squad's project shipped: crewIds stay on maintenance, the rest are benched
+{ type: 'squadBenchEnded', squadId }                  // the bench ran out and benched members went back to their default work
+```
