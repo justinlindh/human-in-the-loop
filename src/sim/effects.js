@@ -16,6 +16,7 @@ import { EVENTS } from '../data/events.js';
 import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { cuttable, consultantRating } from '../data/office-nods.js';
 import { emitChat } from './chat.js';
+import { bumpDebt } from './debt.js';
 import { raiseDecision, ransomFor, summitCost } from './events.js';
 import { agentSpend, rivalMergePrice } from './economy.js';
 import { acquireCompany, bestDeal, dealBlocker } from './acquire.js';
@@ -137,7 +138,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
 
   if (fx.cash) state.cash += fx.cash;
   if (fx.brand) state.brand = clamp(state.brand + fx.brand, 0, 100);
-  if (fx.debt) state.comprehensionDebt = clamp(state.comprehensionDebt + fx.debt, 0, 100);
+  if (fx.debt) bumpDebt(state, fx.debt);
   if (fx.ik) state.institutionalKnowledge = clamp(state.institutionalKnowledge + fx.ik, 0, 100);
   if (fx.hype && product) product.hype = clamp(product.hype + fx.hype, 0, 100);
   if (fx.customersPct && product) {
