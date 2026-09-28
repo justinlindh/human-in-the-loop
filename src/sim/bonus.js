@@ -2,8 +2,8 @@ import { ITEMS } from '../data/items.js';
 import { RESEARCH } from '../data/research.js';
 import { footprintCells, seatTile, desksOf, occupiedDesks } from './office.js';
 
-const ITEM_CAP = 0.5;
-const SECOND_COPY = 0.5;
+export const ITEM_CAP = 0.5;
+export const SECOND_COPY = 0.5;
 const ADJACENCY_KEYS = new Set(Object.values(ITEMS).filter((it) => it.adjacency).map((it) => it.adjacency.key));
 
 const near = (cells, [x, y], radius) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - x), Math.abs(cy - y)) <= radius);

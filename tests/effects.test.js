@@ -3,7 +3,8 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { renderEffects } from '../src/sim/effects-report.js';
 import { POLICIES } from '../src/data/policies.js';
 import { EVENTS } from '../src/data/events.js';
-import { POLICY_EFFECTS, CONDITION_LABELS, SUBJECT_LABELS } from '../src/data/effects-map.js';
+import { POLICY_EFFECTS, CONDITION_LABELS, SUBJECT_LABELS, ITEM_RULES } from '../src/data/effects-map.js';
+import { ITEMS } from '../src/data/items.js';
 
 // docs/effects/ is generated; this fails when it no longer matches the data and balance values.
 describe('issue #873: the effects report', () => {
@@ -31,5 +32,35 @@ describe('issue #873: the effects report', () => {
         expect(line, file).not.toMatch(/[{}]|undefined|NaN|object Object/);
       }
     }
+  });
+});
+
+describe('the effects report office page covers every item', () => {
+  const office = renderEffects()['office.md'];
+  const row = (name) => office.split('\n').find((l) => l.startsWith(`| ${name} |`));
+
+  it('every item has an effect in data, an adjacency, or words in ITEM_RULES', () => {
+    for (const it of Object.values(ITEMS)) {
+      const hasData = it.effects.some((e) => Object.keys(e).length) || it.adjacency;
+      expect(hasData || ITEM_RULES[it.id], it.id).toBeTruthy();
+    }
+  });
+
+  it('prints adjacency bonuses with their radius', () => {
+    expect(row('Coffee Corner')).toMatch(/stamina recovery \+8% .*within 3 tiles/);
+    expect(row('Potted Plant')).toMatch(/meaning recovery \+4% .*within 2 tiles/);
+    expect(row('Server Racks')).toMatch(/uptime floor \+1% for each other Server Racks within 1 tile/);
+  });
+
+  it('prints what desks and gated items do', () => {
+    expect(row('Desk Set')).toMatch(/seats one person/);
+    expect(row('Meeting Table')).toMatch(/no effect on the numbers/);
+    expect(row('Trophy Case')).toMatch(/after your first award/);
+    expect(row('Monitoring Wall')).toMatch(/agents era/i);
+  });
+
+  it('states the stacking rules', () => {
+    expect(office).toMatch(/second copy of an item counts at 50%/);
+    expect(office).toMatch(/capped at ±50%/);
   });
 });
