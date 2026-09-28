@@ -54,6 +54,6 @@ export const SUBJECT_LABELS = {
 
 // Office item rules that live in code rather than in the item's effects, as (B) => text.
 export const ITEM_RULES = {
-  desk: (B) => `seats one person; every hire needs a free desk. In the HQ Building at most ${B.hqDeskCap}, plus ${B.expansionDeskStep} per expansion`,
+  desk: (B) => `seats one person; every hire needs a free desk. From the Office Floor on, at most ${B.hqDeskCap}, plus ${B.expansionDeskStep} per expansion`,
   meeting_table: () => 'no effect on the numbers',
 };

@@ -1,9 +1,8 @@
+import { B } from './balance.js';
 import { ITEMS } from '../data/items.js';
 import { RESEARCH } from '../data/research.js';
 import { footprintCells, seatTile, desksOf, occupiedDesks } from './office.js';
 
-export const ITEM_CAP = 0.5;
-export const SECOND_COPY = 0.5;
 const ADJACENCY_KEYS = new Set(Object.values(ITEMS).filter((it) => it.adjacency).map((it) => it.adjacency.key));
 
 const near = (cells, [x, y], radius) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - x), Math.abs(cy - y)) <= radius);
@@ -87,11 +86,11 @@ function computeItemBonus(state, key) {
   let total = 0;
   for (const [itemId, levels] of Object.entries(byItem)) {
     levels.sort((a, b) => b - a).slice(0, 2).forEach((level, i) => {
-      total += (ITEMS[itemId]?.effects[level - 1]?.[key] ?? 0) * (i === 0 ? 1 : SECOND_COPY);
+      total += (ITEMS[itemId]?.effects[level - 1]?.[key] ?? 0) * (i === 0 ? 1 : B.itemSecondCopy);
     });
   }
   if (ADJACENCY_KEYS.has(key)) total += adjacencyBonus(state, key);
-  return Math.max(-ITEM_CAP, Math.min(ITEM_CAP, total));
+  return Math.max(-B.itemBonusCap, Math.min(B.itemBonusCap, total));
 }
 
 // Sum of finished research effects for a key.

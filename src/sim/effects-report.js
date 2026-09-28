@@ -16,7 +16,6 @@ import { RESEARCH } from '../data/research.js';
 import { ERAS } from '../data/eras.js';
 import { POSTS } from '../data/posts.js';
 import * as MODS from '../data/modifiers.js';
-import { ITEM_CAP, SECOND_COPY } from './bonus.js';
 import { POLICY_EFFECTS, ITEM_RULES, ITEM_EFFECT_LABELS, CONDITION_LABELS, TRAIT_MOD_LABELS, SUBJECT_LABELS } from '../data/effects-map.js';
 
 const { MODIFIER_KEYS } = MODS;
@@ -163,8 +162,9 @@ function officeFile() {
     const from = [it.minStage ? ['', 'Office Floor', 'HQ Building'][it.minStage] : 'any', it.era ? `the ${list(ERAS).find((e) => e.id === it.era)?.name ?? it.era} era` : null, ITEM_NEEDS[it.requires] ?? it.requires].filter(Boolean).join(', ');
     return [it.name, it.kind, from, effects];
   });
-  const rules = `A second copy of an item counts at ${Math.round(SECOND_COPY * 100)}% and copies past the second add nothing. `
-    + `All items together are capped at ±${Math.round(ITEM_CAP * 100)}% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.`;
+  const rules = `A second copy of an item adds its level effect at ${Math.round(B.itemSecondCopy * 100)}%, and copies past the second add no level effect. `
+    + 'Nearby bonuses are different: every copy counts in full, for each desk or item in reach. '
+    + `All items together are capped at ±${Math.round(B.itemBonusCap * 100)}% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.`;
   return `${HEADER}# Office items and perks\n\nPlaced in Build mode. Each level's cost and what it adds.\n\n${table(['Item', 'Kind', 'From', 'Effects'], rows)}\n\n${rules}\n`;
 }
 

@@ -60,7 +60,26 @@ describe('the effects report office page covers every item', () => {
   });
 
   it('states the stacking rules', () => {
-    expect(office).toMatch(/second copy of an item counts at 50%/);
+    expect(office).toMatch(/second copy of an item adds its level effect at 50%/);
+    expect(office).toMatch(/every copy counts in full/);
     expect(office).toMatch(/capped at ±50%/);
+  });
+});
+
+describe('nearby bonuses stack per copy, as the office page says', () => {
+  it('two whiteboards next to one occupied desk give twice the novelty of one', async () => {
+    const { createGame } = await import('../src/sim/state.js');
+    const { itemBonus } = await import('../src/sim/bonus.js');
+    const novelty = (boards) => {
+      const s = createGame({ seed: 1, companyName: 'Stack' });
+      s.staff = s.staff.slice(0, 1);
+      s.office.placed = [{ id: 'd1', itemId: 'desk', x: 0, y: 0, rot: 0, level: 1 },
+        ...Array.from({ length: boards }, (_, i) => ({ id: `w${i}`, itemId: 'whiteboard', x: 2, y: i, rot: 0, level: 1 }))];
+      s.staff[0].deskId = 'd1';
+      return itemBonus(s, 'novelty');
+    };
+    const one = ITEMS.whiteboard.adjacency.value;
+    expect(novelty(1)).toBeCloseTo(one);
+    expect(novelty(2)).toBeCloseTo(2 * one);
   });
 });

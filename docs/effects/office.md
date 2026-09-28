@@ -6,7 +6,7 @@ Placed in Build mode. Each level's cost and what it adds.
 
 | Item | Kind | From | Effects |
 |---|---|---|---|
-| Desk Set | furniture | any | L1 $800; seats one person; every hire needs a free desk. In the HQ Building at most 30, plus 5 per expansion |
+| Desk Set | furniture | any | L1 $800; seats one person; every hire needs a free desk. From the Office Floor on, at most 30, plus 5 per expansion |
 | Meeting Table | furniture | any | L1 $3,000; no effect on the numbers |
 | Whiteboard | furniture | any | L1 $400; novelty +4% for each occupied desk within 2 tiles, shared across the team |
 | Coffee Corner | furniture | any | L1 $1,200; stamina recovery +8% for each occupied desk within 3 tiles, shared across the team |
@@ -26,4 +26,4 @@ Placed in Build mode. Each level's cost and what it adds.
 | Server Racks | shop | any | L1 $5,000: maintenance needed -5%, uptime floor +3% · L2 $15,000: maintenance needed -10%, uptime floor +6% · L3 $45,000: maintenance needed -15%, uptime floor +10%; uptime floor +1% for each other Server Racks within 1 tile |
 | Trophy Case | shop | any, after your first award | L1 $3,000: brand decay -15% · L2 $9,000: brand decay -30% · L3 $27,000: brand decay -45% |
 
-A second copy of an item counts at 50% and copies past the second add nothing. All items together are capped at ±50% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.
+A second copy of an item adds its level effect at 50%, and copies past the second add no level effect. Nearby bonuses are different: every copy counts in full, for each desk or item in reach. All items together are capped at ±50% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.
