@@ -1155,6 +1155,19 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     // The shoulder joints, left then right, for hand-posed stills (the meme studio). A pose set on
     // them lasts until the next update.
     shoulders() { return arms.map((a) => a.shoulder); },
+    // Every pivot's world position, fresh vectors, for pose measurements: the hip, torso, neck and
+    // head pivots, each leg at the hip, each arm at the shoulder, and each wrist (from its shoulder,
+    // as it may be detached once the hand is placed).
+    joints() {
+      root.updateMatrixWorld(true);
+      const at = (o) => o.getWorldPosition(new THREE.Vector3());
+      const wrist = (a) => a.shoulder.localToWorld(a.wrist.position.clone());
+      return {
+        hips: at(hips), torso: at(torso), neck: at(neck), head: at(headGroup),
+        legL: at(legs[0]), legR: at(legs[1]), armL: at(arms[0].shoulder), armR: at(arms[1].shoulder),
+        wristL: wrist(arms[0]), wristR: wrist(arms[1]),
+      };
+    },
     get anim() { return anim; },
     // Staging measurements (probe.js), in world space: the eyes, the way the face points, the hands.
     probe() {
