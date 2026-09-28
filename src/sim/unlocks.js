@@ -23,14 +23,20 @@ const CANDIDATES = [
   ...Object.values(POLICIES).map((p) => ({ key: `policy.${p.id}`, ready: (s) => p.unlock(s), era: !!p.era, with: p.with ? p.with : null })),
 ];
 
-// Whether an unlock shows a pausing card, as the UI decides it: a new policy after the first is only a toast,
-// unless an era arrives the same week (the era card lists it).
+// The unlock keys among this tick's (keys, in the order they were emitted) that the player sees only as a toast:
+// with no era arriving, every new policy once a policy or standups unlocked before. ui shows these as toasts and
+// the rest as cards; only cards count as a pause.
 const inPolicies = (k) => k.startsWith('policy.') || k === 'standups';
+export function toastUnlocks(state, keys, era) {
+  if (era) return [];
+  const had = Object.keys(state.unlocks ?? {}).some((k) => inPolicies(k) && !keys.includes(k));
+  return had ? keys.filter((k) => k.startsWith('policy.')) : [];
+}
+
+// Whether an unlock opening now shows a pausing card, given what this tick has emitted so far.
 export function showsCard(ctx, key) {
-  const { state } = ctx;
-  if (!key.startsWith('policy.') || ctx.events.some((e) => e.type === 'era')) return true;
-  const earlier = Object.entries(state.unlocks).some(([k, week]) => inPolicies(k) && k !== key && week < state.week);
-  return !earlier;
+  const keys = [...ctx.events.filter((e) => e.type === 'unlock').map((e) => e.key), key];
+  return !toastUnlocks(ctx.state, keys, ctx.events.some((e) => e.type === 'era')).includes(key);
 }
 
 // Opens systems whose triggers are true. Era-bound ones open at once; the rest arrive one at a time,
