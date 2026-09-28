@@ -17,7 +17,8 @@ import { installDrawAudit } from './draw-audit.js';
 // would shift the game's stream and change every state after it, so tool code runs inside
 // window.__tool(fn), which gives fn a stream of its own. fn must be synchronous.
 const INIT = `(() => {
-  let s = 1234567;
+  const SEED = 1234567;
+  let s = SEED;
   const game = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
   let ts = 7654321;
   const tool = () => { ts = (ts * 16807) % 2147483647; return (ts - 1) / 2147483646; };
@@ -27,6 +28,11 @@ const INIT = `(() => {
     Math.random = tool;
     try { return fn(); } finally { Math.random = prev; }
   };
+  // Loading a model draws from the game stream too (three.js takes a UUID from Math.random for
+  // every geometry, material and texture it makes), so an asset's own contents shift every draw
+  // after it loads. openScene resets the stream once the page is ready, before a check's own setup
+  // runs, so what a scene stages depends only on the check's code, never on what happened to load.
+  window.__reseedGame = () => { s = SEED; };
   let t = 0;
   performance.now = () => t;
   Date.now = () => 1700000000000 + t;
@@ -94,6 +100,9 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       await page.goto(`${base}?snap=1&${query}`, { waitUntil: 'load' });
       await page.waitForFunction(() => window.__HITL && window.__hitlRender?.ready, null, { timeout: 120000, polling: 50 });
       if (blocked.length) throw new Error(`harness: the page requested the network (blocked): ${blocked.slice(0, 3).join(', ')}`);
+      // Reset the game stream now, once model loading and the page's own bootstrap draws are behind
+      // it, so nothing a check does afterward can depend on what those drew.
+      await page.evaluate(() => window.__reseedGame());
       await page.evaluate(async (tod) => {
         await document.fonts.load('700 16px Fredoka');
         await document.fonts.ready;
