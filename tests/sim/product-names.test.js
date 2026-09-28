@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { productName, botProductName, CAT_WORD, SILLY } from '../../src/data/product-names.js';
+import { productName, botProductName, CAT_WORD, SILLY, PREFIX } from '../../src/data/product-names.js';
 import { B } from '../../src/sim/balance.js';
 import { runBot } from '../../src/sim/bots.js';
 import { createGame } from '../../src/sim/index.js';
@@ -77,5 +77,16 @@ describe('product names (#1002)', () => {
     const r = runBot('balanced', 4, 300);
     expect(r.state.products.length).toBeGreaterThan(0);
     for (const p of r.state.products) expect(p.name).not.toMatch(/^Product \d/);
+  });
+
+  it('the build panel suggests names from the same generator', async () => {
+    const { suggestName } = await import('../../src/ui/panels/common.js');
+    const words = new Set([...Object.values(CAT_WORD), ...PREFIX]);
+    for (let i = 0; i < 50; i++) {
+      const name = suggestName('notes');
+      expect(name.length).toBeLessThanOrEqual(B.productNameMax);
+      expect(SILLY.includes(name) || [...words].some((w) => name.startsWith(w))).toBe(true);
+    }
+    for (let i = 0; i < 25; i++) expect(isAiText(suggestName(null, 'classic'))).toBe(false);
   });
 });
