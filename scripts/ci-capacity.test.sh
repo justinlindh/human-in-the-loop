@@ -37,6 +37,8 @@ printf 'perf: asked for the GPU but got no WebGL2; set HITL_GL=software\n' >"$tm
 eq "no GPU" "$(infra_failure "$tmp/b.log" 3)" "asked for the GPU but got no WebGL2"
 printf 'error: unable to write file public/x.svg\n' >"$tmp/c.log"
 eq "a full disk under git" "$(infra_failure "$tmp/c.log" 3)" "unable to write file"
+printf 'GOLDEN char-lineup-procedural: DIFFERS 0.122%% of pixels, page errors: Failed to load resource: net::ERR_NETWORK_CHANGED\n' >"$tmp/n.log"
+eq "a network blip while loading" "$(infra_failure "$tmp/n.log" 30)" "net::ERR_NETWORK_CHANGED"
 : >"$tmp/d.log"
 eq "silent and instant" "$(infra_failure "$tmp/d.log" 0)" "failed in 0s with no output"
 infra_failure "$tmp/d.log" 12 >/dev/null && fail "a silent failure that ran a while is not the machine"
