@@ -14,6 +14,7 @@ cat >"$tmp/gh" <<'SH'
 case "$1 $2" in
   "pr list") while [ $# -gt 0 ]; do [ "$1" = --jq ] && { jq -r "$2" "$FIXTURE"; exit; }; shift; done ;;
   "pr edit") echo "$*" >>"$T/edits" ;;
+  "pr merge") echo "$3" >>"$T/merged"; [ ! -e "$T/merge-refuses" ] ;;
   "pr view") cat "$T/files-$3" 2>/dev/null ;;
 esac
 SH
@@ -31,12 +32,13 @@ SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
 export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red"
 
-pr() { # number head local-ci-state [draft] [author] [label] [review-state]
+pr() { # number head local-ci-state [draft] [author] [label] [review-state] [auto-merge: on]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
   [ -n "${7:-}" ] && ctx="$(jq -c --arg r "$7" '. + [{context: "review", state: $r}]' <<<"$ctx")"
   local lab='[]'; [ -n "${6:-}" ] && lab="[{\"name\":\"$6\"}]"
-  printf '{"number":%s,"headRefOid":"%s","isDraft":%s,"isCrossRepository":false,"author":{"login":"%s"},"statusCheckRollup":%s,"labels":%s}' \
-    "$1" "$2" "${4:-false}" "${5:-justinlindh}" "$ctx" "$lab"
+  local am=null; [ "${8:-}" = on ] && am='{"mergeMethod":"MERGE"}'
+  printf '{"number":%s,"headRefOid":"%s","isDraft":%s,"isCrossRepository":false,"author":{"login":"%s"},"statusCheckRollup":%s,"labels":%s,"autoMergeRequest":%s}' \
+    "$1" "$2" "${4:-false}" "${5:-justinlindh}" "$ctx" "$lab" "$am"
 }
 fixture() { local IFS=,; echo "[$*]" >"$FIXTURE"; }
 run() { bash "$HERE/auto-ci.sh"; sleep 0.5; }
@@ -162,6 +164,23 @@ run
 has started "44 a44" || fail "a docs-only PR should start past the cap"
 has started "45 a45" && fail "a full PR should still wait for the cap"
 grep -q "start #44 a44 (new head, docs only)" "$tmp/state/log" || fail "the log should say the run is docs only"
+
+# Auto-merge goes on for a ready PR without it, once per head; drafts, awaiting-user, outside authors
+# and PRs that already have it are left alone.
+: >"$tmp/merged"
+fixture "$(pr 50 a50 SUCCESS)" "$(pr 51 a51 SUCCESS true)" "$(pr 52 a52 SUCCESS false justinlindh awaiting-user)" \
+  "$(pr 53 a53 SUCCESS false someone)" "$(pr 54 a54 SUCCESS false justinlindh '' '' on)"
+run
+[ "$(tr '\n' ' ' <"$tmp/merged")" = "50 " ] || fail "only #50 should get auto-merge (got: $(tr '\n' ' ' <"$tmp/merged"))"
+grep -q "#50 a50: auto-merge was off; turned it on" "$tmp/state/log" || fail "the log should say auto-merge was turned on"
+run
+[ "$(count merged)" -eq 1 ] || fail "auto-merge should be tried once per head"
+touch "$tmp/merge-refuses"
+fixture "$(pr 50 b50 SUCCESS)"
+run; run
+[ "$(grep -c '^50$' "$tmp/merged")" -eq 2 ] || fail "a new head should be tried once, even when gh refuses"
+grep -q "#50 b50: auto-merge was off and turning it on failed" "$tmp/state/log" || fail "the log should say turning auto-merge on failed"
+rm -f "$tmp/merge-refuses"
 
 # Vitest's leftover temp directories over an hour old go; recent ones and anything else stay.
 mkdir -p "$tmp/tmpfs/AbCdEfGhIjKlMnOpQrStU/ssr" "$tmp/tmpfs/ZyXwVuTsRqPoNmLkJiHgF/ssr" "$tmp/tmpfs/keep-me-not-vitest-x/ssr" "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA/other"
