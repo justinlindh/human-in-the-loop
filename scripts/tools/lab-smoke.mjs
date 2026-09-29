@@ -90,6 +90,20 @@ try {
   await page.reload({ waitUntil: 'load' });
   await page.waitForFunction(() => window.__lab && window.__labFrame, null, { timeout: 120000 });
   if (opt('out')) { await page.screenshot({ path: opt('out') }); console.log(`lab-smoke: ${opt('out')}`); }
+  // The slap: the fixer and the robot in one scene, and the lab's slap numbers equal playSlap's for the same frame.
+  const slapFrame = Number(opt('slap-frame', 30));
+  await page.evaluate(() => sessionStorage.removeItem('poselab'));
+  await page.goto(`${base}pose-lab.html?gesture=slap&view=0&frame=${slapFrame}`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.__lab && window.__labFrame, null, { timeout: 120000 });
+  const slap = await page.evaluate(async (n) => {
+    const { playSlap } = await import('/blender/checks/pose-slap.js');
+    const ref = (await playSlap({ build: 1, rig: true, view: 0 })).frames[n - 1];
+    return { lab: window.__labFrame.contact, ref: ref.contact, actors: window.__lab.actors() };
+  }, slapFrame);
+  console.log(`lab-smoke: slap lab ${JSON.stringify(slap.lab)} playSlap ${JSON.stringify(slap.ref)} actors ${slap.actors}`);
+  if (JSON.stringify(slap.lab) !== JSON.stringify(slap.ref)) fail('the lab slap numbers differ from playSlap');
+  if (slap.actors !== 2) fail(`the slap scene holds ${slap.actors} actors, want the fixer and the robot`);
+  if (opt('slap-out')) { await page.screenshot({ path: opt('slap-out') }); console.log(`lab-smoke: ${opt('slap-out')}`); }
 } finally {
   await browser.close();
   await server.close();

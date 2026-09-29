@@ -348,14 +348,16 @@ standIns();
 const vite = await createServer({ root: ROOT, configFile: false, plugins: PARAMS.length ? [paramPlugin(PARAMS)] : [], server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
 let code = 0;
 try {
-  const P = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));
+  const P0 = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));
+  // The slap is two actors, so it plays through pose-slap.js; every other gesture is playPose as it was.
+  const P = OPTS.gesture === 'slap' ? { ...P0, playPose: (await vite.ssrLoadModule(join(import.meta.dirname, 'pose-slap.js'))).withSlap(P0.playPose) } : P0;
   if (opt('matrix')) {
     const X = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-matrix.js'));
     if (!OPTS.gesture) throw new Error('pose: --matrix needs --gesture <name>');
     const measures = String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
     const rules = all('expect').map((r) => X.parseRule(r, measures));
     if (!measures.length) throw new Error('pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance)');
-    const axes = X.parseMatrix(opt('matrix'));
+    const axes = X.parseMatrix(opt('matrix'), OPTS.gesture);
     const result = await X.runMatrix({ playPose: P.playPose, gesture: OPTS.gesture, axes, measures, rules, seconds: OPTS.seconds, warm: OPTS.warm, fps: OPTS.fps });
     for (const l of X.formatMatrix(result, rules, OPTS.gesture)) console.log(l);
     if (opt('json')) writeFileSync(opt('json'), JSON.stringify(result, null, 1));
