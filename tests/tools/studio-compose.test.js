@@ -149,3 +149,25 @@ describe('composed staged moments', () => {
     expect(best).toBeGreaterThan(0);
   }, 260000);
 });
+
+describe('the sweep\'s collision rows on a composed scene', () => {
+  it('give the same person-against-furniture rows as the engine, within 5 mm', () => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/compare-sweep.mjs'), '--compose', `${EX}/overlap.json`], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/match {2}ada\|c1\|torso\|pal_plastic_white/);
+    expect(r.stdout).toMatch(/match {2}ada\|c1\|head\|pal_plastic_white/);
+    expect(r.stdout).toContain('5 of 5 pairs match within 0.005 m');
+  }, 260000);
+
+  it('runs a grid of positions round an item and finds no pair the engine misses (plant: every pair matches)', () => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/compare-sweep.mjs'), '--grid', 'plant', '--positions', '20'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/plant +20 positions, \d+ pairs: \d+ match, 0 missed by the engine, 0 differ/);
+  }, 260000);
+
+  it('lets a person stand inside a footprint only when asked', () => {
+    const spec = (free) => ({ base: 'floor', items: [{ item: 'coffee_corner', at: [6, 6], id: 'c1' }], people: [{ id: 'a', at: [6.5, 6.5], ...(free ? { free: true } : {}) }] });
+    expect(problemsOf(spec(false)).join('\n')).toMatch(/inside the coffee_corner "c1"/);
+    expect(problemsOf(spec(true))).toEqual([]);
+  });
+});
