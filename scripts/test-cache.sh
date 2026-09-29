@@ -18,9 +18,11 @@ why="not a git checkout"
 common="$(git rev-parse --git-common-dir 2>/dev/null)" && gitdir="$(git rev-parse --git-dir 2>/dev/null)" || run "$@"
 why="can't make $common/hitl-test-cache"
 dir="$common/hitl-test-cache"; mkdir -p "$dir" 2>/dev/null || run "$@"
-# The tree as it is now: a scratch copy of the index with every change and untracked file added.
+# The tree as it is now: a scratch copy of the index with every change and untracked file added. The
+# copy keeps the index's mtime (cp -p): git re-hashes an entry whose mtime is not older than the
+# index's, so a same-size edit made in the same timestamp tick as the index write is still seen.
 idx="$(mktemp)"; trap 'rm -f "$idx"' EXIT
-cp "$gitdir/index" "$idx" 2>/dev/null || : >"$idx"
+cp -p "$gitdir/index" "$idx" 2>/dev/null || : >"$idx"
 why="git add or write-tree failed on the index copy"
 tree="$(GIT_INDEX_FILE="$idx" git add -A . 2>/dev/null && GIT_INDEX_FILE="$idx" git write-tree 2>/dev/null)" || run "$@"
 key="$(printf '%s\n' "$tree" "$(node --version 2>/dev/null)" "$(git hash-object node_modules/.package-lock.json 2>/dev/null)" "$*" | git hash-object --stdin)"

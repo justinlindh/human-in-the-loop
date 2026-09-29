@@ -300,6 +300,22 @@ def large():
     box('flag', (0.22, 0.02, 0.14), (0.53, 0.45, 1.72), 'role_marketer', bevel=0)
 
 
+def noc():
+    """A dashboard monitor with a heartbeat pulse, a pager at its foot and an alert lamp on top."""
+    box('foot', (0.7, 0.4, 0.06), (0, 0.05, 0.03), 'metal_dark', bevel=0.02)
+    box('neck', (0.12, 0.08, 0.3), (0, 0.1, 0.2), 'metal_dark', bevel=0.02)
+    box('bezel', (1.3, 0.12, 0.85), (0, 0, 0.75), 'plastic_charcoal', bevel=0.05, segments=3)
+    box('glass', (1.14, 0.02, 0.69), (0, -0.06, 0.75), 'screen_bg', bevel=0)
+    pts = [(-0.52, 0.72), (-0.22, 0.72), (-0.13, 0.62), (-0.03, 1.0), (0.07, 0.5), (0.16, 0.8), (0.24, 0.72), (0.52, 0.72)]
+    for i, ((x0, z0), (x1, z1)) in enumerate(zip(pts, pts[1:])):
+        L = math.hypot(x1 - x0, z1 - z0)
+        box(f'pulse{i}', (L + 0.04, 0.03, 0.055), ((x0 + x1) / 2, -0.075, (z0 + z1) / 2), 'screen_green', bevel=0.01,
+            rot=(0, -math.atan2(z1 - z0, x1 - x0), 0))
+    cyl('lamp', 0.1, 0.12, (0.45, 0.02, 1.24), 'led_red', verts=16, bevel=0.03)
+    box('pager', (0.34, 0.1, 0.22), (-0.45, -0.28, 0.11), 'plastic_charcoal', bevel=0.04)
+    box('pagerscr', (0.24, 0.02, 0.09), (-0.45, -0.335, 0.14), 'screen_green', bevel=0.01)
+
+
 BUILDERS = {
     'cat.notes': notes, 'cat.email': email, 'cat.pm': pm, 'cat.support': support, 'cat.crm': crm,
     'cat.analytics': analytics, 'cat.design': design, 'cat.devtools': devtools, 'cat.hr': hr,
@@ -310,5 +326,6 @@ BUILDERS = {
     'research.docs_culture': docs_culture, 'research.onboarding_kit': onboarding_kit,
     'research.red_team_suite': red_team_suite,
     'train.workshop': workshop, 'train.conference': conference, 'train.course': course,
+    'item.noc': noc,
     'size.small': small, 'size.medium': medium, 'size.large': large,
 }
