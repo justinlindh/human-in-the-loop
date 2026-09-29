@@ -69,6 +69,15 @@ describe('prewarm with a fake index', () => {
     rmSync(lock);
   });
 
+  it('an empty or garbled lock is stale, not a running prewarm', () => {
+    for (const body of ['', 'abc', '0', '-1']) {
+      writeFileSync(join(cache, `prewarm-${hash}.lock`), body);
+      const r = run();
+      expect(r.stderr, `lock body [${body}]`).not.toContain('another prewarm');
+      expect(r.status).toBe(1);
+    }
+  });
+
   it('a lock left by a dead process does not block it', () => {
     const dead = spawnSync(process.execPath, ['-e', 'process.stdout.write(String(process.pid))'], { encoding: 'utf8' }).stdout;
     writeFileSync(join(cache, `prewarm-${hash}.lock`), dead);

@@ -39,7 +39,7 @@ export function readQueries(text) {
   return text.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
 }
 
-const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const alive = (pid) => { if (!Number.isInteger(pid) || pid <= 0) return false; try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
 
 async function main() {
   const text = existsSync(listFile) ? readFileSync(listFile, 'utf8') : '';
@@ -54,8 +54,14 @@ async function main() {
   }
   mkdirSync(CACHE, { recursive: true });
   const lock = join(CACHE, `prewarm-${hash}.lock`);
-  if (existsSync(lock) && alive(Number(readFileSync(lock, 'utf8')))) { say(`another prewarm is running for ${hash}`); return 0; }
-  writeFileSync(lock, String(process.pid));
+  // 'wx' makes taking the lock atomic; a lock whose pid is missing or dead is stale and replaced once.
+  const take = () => { try { writeFileSync(lock, String(process.pid), { flag: 'wx' }); return true; } catch (e) { if (e.code === 'EEXIST') return false; throw e; } };
+  if (!take()) {
+    let pid = 0; try { pid = Number(readFileSync(lock, 'utf8')); } catch { /* released meanwhile */ }
+    if (alive(pid)) { say(`another prewarm is running for ${hash}`); return 0; }
+    rmSync(lock, { force: true });
+    if (!take()) { say(`another prewarm is running for ${hash}`); return 0; }
+  }
   try {
     const t0 = Date.now();
     if (!existsSync(join(dir, 'events.jsonl.gz'))) {
