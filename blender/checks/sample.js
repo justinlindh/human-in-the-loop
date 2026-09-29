@@ -279,7 +279,17 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
     window_(R, S, C.at(`moment:pet:${species}`), { seconds: 5, every });
     played.push(`pet:${species}`);
   }
-  S.pets = savedPets; R.sync(S); R.setQuality('low');
+  S.pets = savedPets; R.sync(S);
+  // The office robot slapped back to life, from each breakdown it can be found in.
+  const { setupRobotFix } = await import('/src/render/checks.js');
+  const savedPlaced = S.office.placed, savedRobot = S.robot;
+  for (const cause of ['spin', 'stuck', 'cone', 'emptyDesk', 'unplug']) {
+    setupRobotFix(R, S, { cause });
+    window_(R, S, C.at(`moment:robot:${cause}`), { seconds: 8, every });
+    played.push(`robot:${cause}`);
+  }
+  S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); stepWorld(R, S, 60);
+  R.setQuality('low');
   return played;
 }
 

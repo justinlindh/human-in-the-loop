@@ -10,6 +10,7 @@ import { glow } from './materials.js';
 import { nocLook } from './noc.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
+import { createRobot } from './robot.js';
 import { createIncentives } from './incentives.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
@@ -364,7 +365,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); robot.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0, security: 0 };
@@ -427,6 +428,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     firstSync = false;
     pets.sync(state);
+    robot.sync(state);
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
@@ -499,6 +501,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         case 'incident': incident(e, state); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
         case 'incentive': incentives.handle(e); break;
+        case 'robot': robot.event(e); break;
         default: break;
       }
     }
@@ -966,6 +969,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
+  const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights });
@@ -1502,6 +1506,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     updateFast(dt);
     perks.update(dt, lastState);
     pets.update(dt);
+    robot.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
     updateResponders(lastState);
@@ -1593,7 +1598,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       return spotlights.cut();
     },
-    officeGrowth, sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
+    officeGrowth, sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, robot, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.
     standAt(id, x, z) {
