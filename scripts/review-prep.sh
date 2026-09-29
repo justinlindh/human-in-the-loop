@@ -170,9 +170,6 @@ nm() { # <worktree>: node_modules for it; prints what it did
 put() { # <path> <sha> <kind> [<merged with> <tree>]
   if [ -d "$1" ]; then git -C "$1" checkout -q --detach --force "$2" && git -C "$1" clean -fdq
   else git -C "$REPO" worktree prune; git -C "$REPO" worktree add -q --detach "$1" "$2"; fi || { echo "review-prep: can't check out ${2:0:10} at $1" >&2; exit 2; }
-  # The tree acts on GitHub as the reviewer's bot when its key exists; otherwise this does nothing.
-  local ghas; ghas="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tools/gh-as.sh"
-  (cd "$1" && "$ghas" git-setup reviewer) >/dev/null 2>&1
   echo "  $1 at ${2:0:10}: $(nm "$1")"
   trees+="$3"$'\t'"$1"$'\t'"$2"$'\t'"${4:-}"$'\t'"${5:-}"$'\n'
 }
