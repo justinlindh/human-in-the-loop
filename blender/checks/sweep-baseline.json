@@ -199,36 +199,6 @@
    "issue": 1138
   },
   {
-   "key": "person|person(still)/head|plant/pal_leaf",
-   "worst": 0.137,
-   "state": "seed:1:w624",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/head|plant/pal_leaf_dark",
-   "worst": 0.167,
-   "state": "seed:1:w832",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/head|plant/pal_leaf_light",
-   "worst": 0.114,
-   "state": "seed:1:w624",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/torso|plant/pal_leaf",
-   "worst": 0.06,
-   "state": "seed:1:w624",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/torso|plant/pal_leaf_dark",
-   "worst": 0.047,
-   "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
    "key": "person|person(still)/torso|whiteboard/pal_fabric_sage",
    "worst": 0.022,
    "state": "seed:1:w832",

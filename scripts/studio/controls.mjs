@@ -5,7 +5,8 @@ import { createRuntime } from './runtime.mjs';
 
 const runtime = await createRuntime();
 const THREE = await import('three');
-const { meshContact, castLandmark } = await import('./geometry.mjs');
+const { meshContact, castLandmark, depthAtTol } = await import('./geometry.mjs');
+const { overlaps } = await import('../../blender/checks/intersect.js');
 const { faceLandmarks } = await import('../../blender/checks/pose-landmarks.js');
 const { getTemplate } = await import('../../src/render/models.js');
 const { createNav } = await import('../../src/render/layout.js');
@@ -24,6 +25,35 @@ for (const intrusion of [-0.01, 0.005, 0.02, 0.1, 0.25]) {
 }
 const nested = mesh('contained', new THREE.BoxGeometry(0.1, 0.1, 0.1), 0, 0.25);
 check('full containment', globalThis.__tool(() => meshContact(head, nested)), c => c.intersects && c.containment && !c.surfaceCrossing);
+check('depth of a contained cube is its distance to the nearest face', globalThis.__tool(() => meshContact(head, nested)), c => Math.abs(c.depthM - 0.2) < 1e-6 && c.depthStatus === 'sweep-metric');
+for (const sunk of [0.05, 0.15]) {
+  const poke = mesh('poking-cube', new THREE.BoxGeometry(0.2, 0.2, 0.2), 0.25 + 0.1 - sunk, 0.25);
+  check(`depth of a cube sunk ${sunk} m into a face`, globalThis.__tool(() => meshContact(head, poke)), c => c.intersects && Math.abs(c.depthM - sunk) < 1e-6);
+}
+const clear = mesh('clear-cube', new THREE.BoxGeometry(0.2, 0.2, 0.2), 1, 0.25);
+check('depth of a separated pair is 0', globalThis.__tool(() => meshContact(head, clear)), c => !c.intersects && c.depthM === 0);
+const slab = mesh('slab-through-head', new THREE.BoxGeometry(2, 0.006, 2), 0, 0.25);
+check('a slab through the middle of a body reads half the crossing extent', globalThis.__tool(() => meshContact(head, slab)), c => Math.abs(c.depthM - 0.25) < 1e-6);
+const body = m => ({ box: new THREE.Box3().setFromObject(m), meshes: [m] });
+const sphere = mesh('sphere', new THREE.SphereGeometry(0.25, 48, 32), 0, 0.25);
+const plate = mesh('plate-through-sphere', new THREE.BoxGeometry(2, 0.1, 2), 0, 0.25);
+const plateContact = globalThis.__tool(() => meshContact(sphere, plate));
+for (const tol of [0.01, 0.06]) {
+  check(`a plate through a sphere reads the same depth as the sweep at tolerance ${tol}`, { studio: depthAtTol(plateContact, tol), sweep: overlaps([body(sphere), body(plate)], { tol })[0]?.depth }, r => r.sweep > tol && Math.abs(r.studio - r.sweep) < 1e-6);
+}
+const bones = [new THREE.Bone(), new THREE.Bone()];
+bones[1].position.y = 0.5; bones[0].add(bones[1]);
+const barGeometry = new THREE.BoxGeometry(0.1, 1, 0.1, 1, 2, 1); barGeometry.translate(0, 0.5, 0);
+const barPositions = barGeometry.attributes.position, barIndex = [], barWeight = [];
+for (let i = 0; i < barPositions.count; i++) { const upper = barPositions.getY(i) > 0.5 ? 1 : 0; barIndex.push(upper, 0, 0, 0); barWeight.push(1, 0, 0, 0); }
+barGeometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(barIndex, 4));
+barGeometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(barWeight, 4));
+const bar = new THREE.SkinnedMesh(barGeometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+bar.add(bones[0]); bar.bind(new THREE.Skeleton(bones));
+const block = mesh('block-beside-bar', new THREE.BoxGeometry(0.1, 0.1, 0.1), 0.3, 0.5);
+const bentBar = (angle) => { bones[1].rotation.z = angle; bar.updateMatrixWorld(true); bar.skeleton.update(); return globalThis.__tool(() => meshContact(bar, block)); };
+check('a skinned bar in bind pose misses the block', bentBar(0), c => !c.intersects && c.depthM === 0);
+check('a skinned bar bent into the block reads a depth on its posed geometry', bentBar(-Math.PI / 2), c => c.intersects && c.depthM > 0.01);
 for (const gap of [0.02, 0.2, 0.6]) {
   const furniture = mesh('furniture', new THREE.BoxGeometry(0.5, 0.5, 0.5), 0.5 + gap, 0.25);
   check(`clearance ${gap} m`, globalThis.__tool(() => meshContact(head, furniture, { clearance: true })), c => !c.intersects && Math.abs(c.clearanceM - gap) < 1e-6);
@@ -69,7 +99,7 @@ check('offscreen head projection', projectedHead(spanning, projectionCamera, 100
 const plain = createNav({ W: 4, D: 4 }, []), blocked = createNav({ W: 4, D: 4 }, [{ x0: -0.5, x1: 0.5, z0: -0.5, z1: 0.5 }]);
 check('walk grid responds to planted desk', { plain: plain.isBlocked(0, 0), blocked: blocked.isBlocked(0, 0) }, r => !r.plain && r.blocked);
 const report = { schema: 'hitl.scene-controls/0.1', passed: results.length,
-  missingAssertions: ['Exact general-solid penetration depth is unavailable; crossing detection and clearance controls do not prove it.'], results };
+  missingAssertions: ["depthM is the scene sweep's metric (deepest interior point, or half the crossing extent for a thin surface through a body), not a minimum separating translation."], results };
 const out = process.argv.indexOf('--out');
 if (out >= 0) writeFileSync(process.argv[out + 1], JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));

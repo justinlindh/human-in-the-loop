@@ -1,0 +1,6 @@
+{ "base": "floor", "era": "agents",
+  "keep": ["office", "staff"],
+  "robot": { "at": [13, 0], "level": 2, "cause": "spin" },
+  "moments": [
+    { "moment": "slap" }
+  ] }
