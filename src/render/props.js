@@ -1129,8 +1129,9 @@ function printerIdle() {
   light.scale.setScalar(1.5);
   light.position.y = 0.4;
   body.add(light);
-  // The sheet a print job pushes out of the slot, hidden between jobs.
-  const sheet = mesh(roundedBox(0.22, 0.004, 0.2, 0.002, 1), mat('paper'), -0.14, 0.305, 0.2);
+  // The sheet a print job pushes out of the slot, hidden between jobs. Built fully out, so the floor
+  // the printer keeps clear covers it.
+  const sheet = mesh(roundedBox(0.22, 0.004, 0.2, 0.002, 1), mat('paper'), -0.14, 0.305, 0.36);
   sheet.visible = false;
   body.add(sheet);
   let t = 0;
