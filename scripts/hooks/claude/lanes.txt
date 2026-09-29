@@ -13,7 +13,7 @@ art      src/render/ blender/ public/models/ docs/readme/
 ui       src/ui/ src/audio/ public/icons/ scripts/phone-check.js
 audio    src/audio/ public/audio/ scripts/trailer/ docs/trailer/ docs/readme/
 integ    scripts/ src/main.js src/pacing.js src/pacing.test.js src/yak-pacing.js src/yak-pacing.test.js src/quality.js src/quality.test.js src/dev/ index.html package.json package-lock.json vite.config.js .github/ .releaserc.json .nvmrc .gitignore README.md docs/readme/ .claude/settings.json
-tools    blender/checks/ scripts/events/ scripts/tools/
+tools    blender/checks/ scripts/events/ scripts/tools/ tests/tools/
 perf     scripts/perf/ scripts/lib/
 trailer  scripts/trailer/ docs/trailer/
 video    public/memes/ scripts/capture-manifest.js scripts/nods-reel.sh scripts/sheet.sh scripts/reels/ scripts/feature-media/ docs/reels.md
