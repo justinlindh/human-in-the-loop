@@ -26,7 +26,15 @@ describe('pose.mjs --gesture slap', () => {
     const r = run(...base, '--param', 'src/render/robot.js:SLAP.aside=0.8');
     expect(r.status, r.stdout + r.stderr).toBe(1);
     expect(r.stdout).toMatch(/worst cell.*robotAngle<=35@0\.8: 0%/);
-    expect(run(...base, '--param', 'src/render/robot.js:SLAP.aside=0.3').status).toBe(0);
+    expect(run(...base, '--param', 'src/render/robot.js:SLAP.aside=0.2').status).toBe(0);
+  });
+
+  it('holds the robot in its breakdown pose: an unplugged robot leaves less room than an upright one', () => {
+    const at = (cause) => run(...base.map((a) => (a.startsWith('views=') ? `${a},cause=${cause}` : a)), '--param', 'src/render/robot.js:SLAP.aside=0.3');
+    expect(at('none').status).toBe(0);
+    const r = at('unplug');
+    expect(r.status, r.stdout + r.stderr).toBe(1);
+    expect(r.stdout).toMatch(/robotDepth<=0\.01/);
   });
 
   it('reads the hand landing on the robot head within the stage rule', () => {
