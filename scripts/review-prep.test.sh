@@ -70,5 +70,38 @@ gate justinlindh false 'package.json' --bot; [ $rc -eq 3 ] && grep -q 'for Depen
 gate justinlindh false 'src/a.js'; [ $rc -eq 2 ] && grep -q "can't fetch" <<<"$out" || fail "a trusted PR passes the gate: $rc $out"
 gate 'dependabot[bot]' false 'package.json package-lock.json .github/workflows/ci.yml' --bot; [ $rc -ne 3 ] || fail "a clean Dependabot PR passes the gate: $rc $out"
 
+# The extra checkouts, in a scratch repo with a bare origin, refs/pull/9/head, and gh stubbed.
+g() { git -c user.name=t -c user.email=t@t "$@"; }
+o="$tmp/origin.git"; r="$tmp/repo"; git init -q --bare -b main "$o"
+git clone -q "$o" "$r" 2>/dev/null; mkdir -p "$r/scripts/hooks/claude"
+cp "$HERE/review-prep.sh" "$r/scripts/"; cp "$HERE/ci-trusted" "$r/scripts/"; cp "$HERE/hooks/claude/lanes.txt" "$r/scripts/hooks/claude/"
+echo 1 >"$r/f"; echo '{"lockfileVersion":3}' >"$r/package-lock.json"; g -C "$r" add -A; g -C "$r" commit -qm base; g -C "$r" branch -M main; g -C "$r" push -q origin main
+g -C "$r" checkout -qb feat; echo a >"$r/a"; g -C "$r" add -A; g -C "$r" commit -qm one; first="$(g -C "$r" rev-parse HEAD)"
+echo b >"$r/b"; g -C "$r" add -A; g -C "$r" commit -qm two; head="$(g -C "$r" rev-parse HEAD)"
+g -C "$r" push -q origin "$head:refs/pull/9/head"; g -C "$r" checkout -q main
+echo m >"$r/m"; g -C "$r" add -A; g -C "$r" commit -qm "main moves"; g -C "$r" push -q origin main; newmain="$(g -C "$r" rev-parse HEAD)"; oldmain="$(g -C "$r" rev-parse HEAD~1)"
+cat >"$tmp/bin/gh" <<F
+#!/usr/bin/env bash
+case "\$1 \$2" in
+  "pr view") jq -n --arg h "$head" '{number: 9, title: "t", author: {login: "justinlindh"}, isCrossRepository: false, headRefName: "tools/x", headRefOid: \$h, baseRefName: "main", isDraft: false, labels: [], body: "", createdAt: "2026-01-01T00:00:00Z", mergeable: "MERGEABLE", statusCheckRollup: [], comments: [], reviews: [], files: [], url: "u"}' ;;
+  "api repos/{owner}/{repo}/pulls/9/files") printf 'b\t1\t0\n' ;;
+  *) echo "unexpected gh \$*" >&2; exit 1 ;;
+esac
+F
+chmod +x "$tmp/bin/gh"; rm -f "$tmp/bin/git"
+rp() { out="$(cd "$r" && PATH="$tmp/bin:$PATH" bash scripts/review-prep.sh 9 --dir "$tmp/wt" "$@" 2>&1)"; rc=$?; }
+rp; [ $rc -eq 0 ] && [ -d "$tmp/wt/review-9" ] && [ ! -d "$tmp/wt/review-9-merged" ] && [ ! -d "$tmp/wt/review-9-base" ] && ls "$tmp/wt" | grep -qv 'at-' || fail "no flag: only the head checkout: $rc $out"
+rp --head-at "${first:0:7}"; [ $rc -eq 0 ] && [ "$(git -C "$tmp/wt/review-9-at-${first:0:7}" rev-parse HEAD)" = "$first" ] || fail "--head-at checks out the earlier head: $rc $out"
+rp --merged; [ $rc -eq 0 ] && [ -e "$tmp/wt/review-9-merged/m" ] && [ -e "$tmp/wt/review-9-merged/b" ] && [ "$(git -C "$tmp/wt/review-9-merged" rev-list --parents -n1 HEAD | wc -w)" -eq 3 ] || fail "--merged has both the PR's and main's files, as a merge: $rc $out"
+[ ! -e "$tmp/wt/review-9/m" ] || fail "--merged leaves the head checkout alone"
+rp --base-at "$oldmain"; [ $rc -eq 0 ] && [ "$(git -C "$tmp/wt/review-9-base" rev-parse HEAD)" = "$oldmain" ] || fail "--base-at puts the base at that commit: $rc $out"
+rp --base; [ "$(git -C "$tmp/wt/review-9-base" rev-parse HEAD)" = "$oldmain" ] || fail "--base alone is the merge base: $(git -C "$tmp/wt/review-9-base" rev-parse HEAD) want $oldmain"
+rp --head-at deadbeef; [ $rc -eq 2 ] && grep -q 'not a commit' <<<"$out" || fail "--head-at an unknown commit exits 2: $rc $out"
+rp --head-at "$newmain"; [ $rc -eq 2 ] && grep -q "not in #9's history" <<<"$out" || fail "--head-at a commit outside the PR exits 2: $rc $out"
+rp --no-checkout --merged; [ $rc -eq 0 ] && grep -q 'need a checkout' <<<"$out" || fail "--merged with --no-checkout says so: $rc $out"
+echo conflict >"$r/b"; g -C "$r" add -A; g -C "$r" commit -qm "main adds b"; g -C "$r" push -q origin main
+rp --merged; [ $rc -eq 2 ] && grep -q 'does not merge cleanly' <<<"$out" && grep -q ' b' <<<"$out" || fail "--merged on a conflict exits 2 naming the file: $rc $out"
+rp --done; [ ! -d "$tmp/wt/review-9" ] && [ ! -d "$tmp/wt/review-9-merged" ] && ! ls "$tmp/wt" | grep -q 'review-9-at-' || fail "--done removes every checkout: $(ls "$tmp/wt")"
+
 [ $fails -eq 0 ] && echo "review-prep: all cases pass"
 exit $fails

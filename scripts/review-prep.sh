@@ -2,13 +2,19 @@
 # Everything a review opens with, in one call: the trust gate, the PR's state, its files by owning
 # lane, the sections of its description a verdict rests on, its media, and a checkout of its head.
 # Usage: scripts/review-prep.sh <pr> [--dir <root>] [--no-checkout] [--base] [--diff [path...]]
-#          [--since <sha>] [--bot] [--json]
+#          [--since <sha>] [--head-at <sha>] [--merged] [--base-at <sha>] [--bot] [--json]
 #        scripts/review-prep.sh <pr> --done [--dir <root>]   removes that PR's review worktrees
 #   --dir          where checkouts go (default $HITL_REVIEW_DIR): one worktree per PR, <root>/review-<pr>,
 #                  reset to the head on each run. node_modules comes from this checkout when the lockfiles
 #                  match (hard-linked, or copied across filesystems), else from npm ci; the output says which.
 #   --no-checkout  no worktree
 #   --base         also check out the merge base with main at <root>/review-<pr>-base, for paired runs
+#   --head-at <sha>  also check out an earlier head of this PR at <root>/review-<pr>-at-<sha7>, for before and
+#                  after runs (the sha must be in the PR's history)
+#   --merged       also check out the head merged with current origin/<base> at <root>/review-<pr>-merged,
+#                  so a newer tool or check measures the PR as it would land (refuses on conflicts)
+#   --base-at <sha>  the --base checkout at <sha> (say, the last passed head) instead of the merge base;
+#                  implies --base
 #   --diff         print the PR's diff (only these paths when given) after the stat
 #   --since <sha>  print the diff from <sha> (say, the last reviewed head) to the head
 #   --bot          a Dependabot PR: refuses unless the author is dependabot[bot] and only package.json,
@@ -55,9 +61,9 @@ media_in() { # <text>
 
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
-usage="usage: scripts/review-prep.sh <pr> [--dir <root>] [--no-checkout] [--base] [--diff [path...]] [--since <sha>] [--bot] [--json]"
+usage="usage: scripts/review-prep.sh <pr> [--dir <root>] [--no-checkout] [--base] [--diff [path...]] [--since <sha>] [--head-at <sha>] [--merged] [--base-at <sha>] [--bot] [--json]"
 pr="${1:-}"; case "$pr" in ''|*[!0-9]*) echo "$usage" >&2; exit 2 ;; esac; shift
-root="${HITL_REVIEW_DIR:-}"; checkout=1; want_base=0; diff=0; dpaths=(); since=""; bot=0; json=0
+root="${HITL_REVIEW_DIR:-}"; checkout=1; want_base=0; diff=0; dpaths=(); since=""; bot=0; json=0; head_at=""; merged=0; base_at=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dir) root="${2:?$usage}"; shift 2 ;;
@@ -65,7 +71,10 @@ while [ $# -gt 0 ]; do
     --base) want_base=1; shift ;;
     --diff) diff=1; shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do dpaths+=("$1"); shift; done ;;
     --since) since="${2:?$usage}"; shift 2 ;;
-    --bot) bot=1; checkout=0; want_base=0; shift ;;
+    --head-at) head_at="${2:?$usage}"; shift 2 ;;
+    --merged) merged=1; shift ;;
+    --base-at) base_at="${2:?$usage}"; want_base=1; shift 2 ;;
+    --bot) bot=1; checkout=0; want_base=0; head_at=""; merged=0; base_at=""; shift ;;
     --json) json=1; shift ;;
     --done) done_=1; shift ;;
     *) echo "$usage" >&2; exit 2 ;;
@@ -73,7 +82,7 @@ while [ $# -gt 0 ]; do
 done
 if [ "${done_:-0}" = 1 ]; then
   [ -n "$root" ] || { echo "review-prep: --done needs --dir <root> or HITL_REVIEW_DIR" >&2; exit 2; }
-  for wt in "$root/review-$pr" "$root/review-$pr-base"; do
+  for wt in "$root/review-$pr" "$root/review-$pr-base" "$root/review-$pr-merged" "$root"/review-"$pr"-at-*; do
     [ -d "$wt" ] && git -C "$REPO" worktree remove --force "$wt" && echo "removed $wt"
   done
   git -C "$REPO" update-ref -d "refs/review/pr-$pr" 2>/dev/null
@@ -212,8 +221,30 @@ if [ $checkout = 1 ]; then
   [ -n "$root" ] || { echo "review-prep: pass --dir <root> (your scratchpad) or set HITL_REVIEW_DIR, or use --no-checkout" >&2; exit 2; }
   mkdir -p "$root" || exit 2
   echo "Checkout:"; put "$root/review-$pr" "$head"
-  [ $want_base = 1 ] && put "$root/review-$pr-base" "$mb"
-elif [ $want_base = 1 ]; then echo "(--base needs a checkout)"
+  if [ $want_base = 1 ]; then
+    bsha="$mb"
+    if [ -n "$base_at" ]; then
+      git -C "$REPO" fetch -q origin "$base_at" 2>/dev/null
+      bsha="$(git -C "$REPO" rev-parse -q --verify "$base_at^{commit}")" || { echo "review-prep: --base-at $base_at is not a commit I can find" >&2; exit 2; }
+    fi
+    put "$root/review-$pr-base" "$bsha"
+  fi
+  if [ -n "$head_at" ]; then
+    git -C "$REPO" fetch -q origin "$head_at" 2>/dev/null
+    hsha="$(git -C "$REPO" rev-parse -q --verify "$head_at^{commit}")" || { echo "review-prep: --head-at $head_at is not a commit I can find" >&2; exit 2; }
+    git -C "$REPO" merge-base --is-ancestor "$hsha" "$head" || { echo "review-prep: --head-at $head_at is not in #$pr's history" >&2; exit 2; }
+    put "$root/review-$pr-at-${hsha:0:7}" "$hsha"
+  fi
+  if [ $merged = 1 ]; then
+    # The head merged with the base branch as it is now, as a detached commit (no merge state in any checkout).
+    if mt="$(git -C "$REPO" merge-tree --write-tree --name-only "$head" "origin/$base" 2>&1)"; then
+      msha="$(git -C "$REPO" -c user.name=review -c user.email=review@localhost commit-tree "$(head -1 <<<"$mt")" -p "$head" -p "origin/$base" -m "review: #$pr merged with origin/$base")"
+      put "$root/review-$pr-merged" "$msha"
+    else
+      echo "review-prep: #$pr does not merge cleanly into origin/$base (conflicts: $(sed 1d <<<"$mt" | grep -v '^$' | grep -v '^Auto-merging\|^CONFLICT' | sort -u | paste -sd' ' -)); no merged checkout" >&2; exit 2
+    fi
+  fi
+elif [ $want_base = 1 ] || [ -n "$head_at" ] || [ $merged = 1 ]; then echo "(--base, --head-at, --merged and --base-at need a checkout)"
 fi
 
 # 6. Diff.
