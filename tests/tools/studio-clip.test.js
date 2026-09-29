@@ -25,16 +25,19 @@ describe('studio clip', () => {
   }, 130000);
 
   it('stops its group processes when interrupted', async () => {
-    const left = () => spawnSync('sh', ['-c', "ps -eo args | grep -c '[c]lip.mjs --one'"], { encoding: 'utf8' }).stdout.trim();
+    // The driver's own children, by pid: nothing else on the machine can be mistaken for them.
     const child = spawn(process.execPath, [CLIP, '--jobs', '2', '--group', 'seats,perks'], { stdio: 'ignore' });
+    const kids = () => spawnSync('pgrep', ['-P', String(child.pid)], { encoding: 'utf8' }).stdout.split('\n').filter(Boolean).map(Number);
+    const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
     const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
-    for (let i = 0; i < 200 && left() === '0'; i++) await new Promise((r) => setTimeout(r, 50));
-    expect(Number(left())).toBeGreaterThan(0);
+    let running = [];
+    for (let i = 0; i < 200 && !running.length; i++) { await new Promise((r) => setTimeout(r, 50)); running = kids(); }
+    expect(running.length).toBeGreaterThan(0);
     child.kill('SIGTERM');
     const { code, signal } = await closed;
     expect(code === 143 || signal === 'SIGTERM').toBe(true);
-    for (let i = 0; i < 60 && left() !== '0'; i++) await new Promise((r) => setTimeout(r, 50));
-    expect(left()).toBe('0');
+    for (let i = 0; i < 60 && running.some(alive); i++) await new Promise((r) => setTimeout(r, 50));
+    expect(running.filter(alive)).toEqual([]);
   }, 60000);
 
   it('refuses a group it does not run', () => {
