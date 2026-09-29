@@ -36,6 +36,7 @@ const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head 
 const WAVE_S = 1.1;            // someone leaving waves goodbye this long before heading out
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
+const EXIT_NEAR_M = 0.5;       // how much further than its exit side from an item someone leaving it may be (nearExit)
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
 const SEATED_ANIM = { ok: 'typing', coasting: 'slumped', burnout: 'burnout' };
@@ -304,6 +305,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
+  }
+
+  // Whether someone is still on or beside the item they would step off by `side`: no further from its
+  // centre than that side, and EXIT_NEAR_M more. Anyone further off takes the walk grid, never a
+  // straight leg back to the item across the room.
+  function nearExit(r, side, itemId) {
+    const c = office.placed.get(itemId)?.target;
+    if (!c) return false;
+    return Math.hypot(r.pos.x - c.x, r.pos.z - c.z) < Math.hypot(side.x - c.x, side.z - c.z) + EXIT_NEAR_M;
   }
 
   function teleport(r, goal) {
@@ -1078,7 +1088,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           r.temp = null;
           if (tp.back && r.goal) walkTo(r, r.goal);
           // Off the furniture the way they got on: back to the side they came from, then onward.
-          if (tp.enter?.side) {
+          if (tp.enter?.side && nearExit(r, tp.enter.side, tp.enter.item)) {
             const side = tp.enter.side;
             const rest = r.path.length ? office.nav().path(side, r.path[r.path.length - 1]) : [];
             r.path = [side, ...rest.slice(1)];
@@ -1462,7 +1472,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const dest = goal && Math.hypot(goal.x - end.x, goal.z - end.z) < 0.9 ? goal : { x: end.x, z: end.z };
         const speed = r.speed, anim = r.walkAnim;
         // Someone still stepping off an item keeps going out by its side, the item still theirs.
-        const exit = r.exitFrom && r.path.includes(r.exitSide) ? { from: r.exitFrom, side: r.exitSide } : null;
+        const exit = r.exitFrom && r.path.includes(r.exitSide) && nearExit(r, r.exitSide, r.exitFrom) ? { from: r.exitFrom, side: r.exitSide } : null;
+        if (!exit) { r.exitFrom = null; r.exitSide = null; }
         walkTo(r, dest);
         if (exit) {
           const to = r.path[r.path.length - 1] ?? dest;
