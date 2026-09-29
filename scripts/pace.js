@@ -12,6 +12,8 @@
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
 // 'eager' acts every week exactly like the balance harness, so the game matches runBot.
+// --browser observes the real browser loop instead. See docs/toolkit/pace.md for
+// its player policy, record schema, sampling limits and screenshot evidence.
 import { MOMENT_KINDS } from '../src/render/spotlight-kinds.js';
 import { createGrowthMoments } from '../src/render/growth-moments.js';
 import { createGame, tick, dispatch } from '../src/sim/index.js';
@@ -584,6 +586,10 @@ function printSummary(m, overlaps) {
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const a = parseArgs(process.argv.slice(2));
+  if (a.browser) {
+    const { runBrowserPacing } = await import('./pace-browser.js');
+    await runBrowserPacing(a);
+  } else {
   const num = (k) => (a[k] === undefined || a[k] === true ? null : Number(a[k]));
   const players = a.player === 'both' ? ['batch', 'eager'] : [typeof a.player === 'string' ? a.player : 'batch'];
   const runs = players.map((player) => simulatePacing({
@@ -615,5 +621,6 @@ if (isMain) {
       }
       printSummary(res.metrics, res.overlaps);
     });
+  }
   }
 }

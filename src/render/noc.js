@@ -23,6 +23,8 @@ const SPOTS = {
 
 // How far a chair's centre sits behind its sitter's spot, as at a desk.
 const CHAIR_IN = 0.05;
+// Clearance kept round each chair's floor box for passers.
+const CHAIR_MARGIN = 0.04;
 
 function toItem(fit, x, z) {
   const v = new THREE.Vector3(x, 0, z).applyMatrix4(fit);
@@ -42,12 +44,16 @@ function localSpots(g) {
   return { seats: s.seats.map(conv), stands: s.stands.map(conv) };
 }
 
-// Floor rectangles (item frame, [x0, z0, x1, z1]) the NOC blocks past its footprint: its chairs and the
-// seat behind each, entered from behind as at a desk. The desk's overhang is part of the model box.
+// Floor rectangles (item frame, [x0, z0, x1, z1]) the NOC blocks past its footprint: the seat behind
+// each chair, entered from behind as at a desk, and each chair's own floor box as it stands turned
+// toward the screens, so nobody walks or stands through a chair back. The desk's overhang is part of
+// the model box.
 export function nocObstacles(g) {
   const n = g.userData.noc;
   if (!n || n.level < 2) return [];
-  return n.seats.map((s) => [s.x - 0.32, s.z - 0.15, s.x + 0.32, s.z + 0.34]);
+  const m = CHAIR_MARGIN;
+  return [...n.seats.map((s) => [s.x - 0.32, s.z - 0.15, s.x + 0.32, s.z + 0.34]),
+    ...n.chairBoxes.map((b) => [b.min.x - m, b.min.z - m, b.max.x + m, b.max.z + m])];
 }
 
 // Radial floor glow texture, shared.
@@ -77,12 +83,14 @@ export function dressNoc(g, inner, f) {
   if (!s) return;
   const level = Number(g.userData.model.slice(-1));
   const spots = localSpots(g);
-  g.userData.noc = { level, ...spots, strips: null, glow: null, beacon: null };
+  g.userData.noc = { level, ...spots, strips: null, glow: null, beacon: null, chairBoxes: [] };
   if (s.chairs) {
     for (const seat of spots.seats) {
       const ch = getModel('chair');
       ch.position.set(seat.x - Math.sin(seat.yaw) * CHAIR_IN, 0, seat.z - Math.cos(seat.yaw) * CHAIR_IN);
       ch.rotation.y = seat.yaw;
+      // Measured before it joins the group, so its box is in the item frame.
+      g.userData.noc.chairBoxes.push(new THREE.Box3().setFromObject(ch));
       g.add(ch);
     }
   }

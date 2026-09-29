@@ -3,6 +3,7 @@ import { portrait, roleChip, confirmButton } from './widgets.js';
 import { traitInfo } from './content.js';
 import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
+import { confirmGate } from './confirm-gate.js';
 import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
 import { downloadSave, pickSaveFile } from './saveFiles.js';
 import { STAT } from './stats.js';
@@ -121,14 +122,12 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   function deleteButton(onConfirm, name) {
-    let armed = null;
     const b = h('button.btn.tl-del', { title: `Delete ${name ?? 'this save'}`, 'aria-label': `Delete ${name ?? 'this save'}` }, icon('close'));
-    b.addEventListener('click', () => {
-      if (armed) { clearTimeout(armed); armed = null; onConfirm(); return; }
-      b.classList.add('armed');
-      b.replaceChildren(h('span', { text: 'Delete?' }));
-      armed = setTimeout(() => { armed = null; b.classList.remove('armed'); b.replaceChildren(icon('close')); }, 3000);
+    const gate = confirmGate({
+      outsideOf: b,
+      onChange: (on) => { b.classList.toggle('armed', on); b.replaceChildren(on ? h('span', { text: 'Delete?' }) : icon('close')); },
     });
+    b.addEventListener('click', () => { if (gate.tap()) onConfirm(); });
     return b;
   }
 
