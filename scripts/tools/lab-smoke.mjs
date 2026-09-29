@@ -40,6 +40,22 @@ try {
   }, { view: Number(opt('view', 0)), frame: Number(opt('frame', 70)) });
   if (JSON.stringify(ref.contact) !== JSON.stringify(got.f.contact)) fail('lab contact numbers differ from playPose');
   if (!Number.isFinite(got.covers.coverHandEyeNear)) fail('no cover number');
+  // A planted control: a hand placed on an eye must read as covering that eye, and not the other one.
+  const planted = await page.evaluate(async () => {
+    const out = {};
+    for (const [lm, hit, miss] of [['EyeLeft', 'coverHandEyeL', 'coverHandEyeR'], ['EyeRight', 'coverHandEyeR', 'coverHandEyeL']]) {
+      await window.__lab.seek(70);
+      const c = await window.__lab.plant(lm);
+      out[lm] = { hit: c[hit], miss: c[miss] };
+    }
+    await window.__lab.seek(70);
+    return out;
+  });
+  console.log(`lab-smoke: planted control ${JSON.stringify(planted)}`);
+  for (const [lm, r] of Object.entries(planted)) {
+    if (!(r.hit >= 0.5)) fail(`a hand placed on ${lm} reads ${r.hit} cover, want at least 0.5`);
+    if (!(r.miss < 0.1)) fail(`a hand placed on ${lm} reads ${r.miss} on the other eye, want under 0.1`);
+  }
   // A slider change reaches the render code: PALM_STAND[2] moves the hand, and the page reloads on it.
   const before = got.f.contact.hand0Eye;
   await page.evaluate(() => { const s = JSON.parse(sessionStorage.getItem('poselab') ?? '{}'); s.changed = { 'src/render/character.js:PALM_SIT[2]': 0.4 }; sessionStorage.setItem('poselab', JSON.stringify(s)); });

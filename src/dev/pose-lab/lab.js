@@ -75,7 +75,7 @@ const rays = [0, 1].map((h) => { const l = new THREE.Line(new THREE.BufferGeomet
 const setLine = (l, a, b) => { const p = l.geometry.attributes.position; p.setXYZ(0, ...a); p.setXYZ(1, ...b); p.needsUpdate = true; };
 
 // ---- the run -----------------------------------------------------------------------------------------
-let run = null, frames = [], stepped = 0, busy = null, covers = {};
+let run = null, frames = [], stepped = 0, busy = null, covers = {}, planted = false;
 const COVER_NAMES = ['coverHandEyeNear', 'coverHandEyeL', 'coverHandEyeR', 'coverHandFace'];
 const total = () => Math.ceil((state.warm + state.seconds + 0.5) * state.fps);
 
@@ -83,7 +83,7 @@ async function rebuild() {
   if (run) scene.remove(run.character.root);
   run = await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.yaw, view: state.view, rig: state.rig, look: { build: state.build } });
   scene.add(run.character.root);
-  frames = []; stepped = 0;
+  frames = []; stepped = 0; planted = false;
 }
 
 async function seek(n) {
@@ -91,12 +91,20 @@ async function seek(n) {
   state.frame = n;
   if (busy) { await busy; }
   busy = (async () => {
-    if (!run || n < stepped) await rebuild();
+    if (!run || n < stepped || planted) await rebuild();
     while (stepped < n) { frames[stepped] = run.step(); stepped++; }
     draw();
   })();
   await busy; busy = null;
   persist();
+}
+
+// The head mesh, as the scene measure finds it (pose-scene.js): the child tagged part 'head', whose parent is
+// the head pivot the face landmarks are in. Not character.head, which is that pivot.
+function headMesh(root) {
+  let head = null;
+  root.traverse((o) => { if (!head && o.userData.part === 'head') head = o; });
+  return head;
 }
 
 function draw() {
@@ -108,11 +116,31 @@ function draw() {
   covers = {};
   if (f) {
     const c = run.character;
-    try { covers = measureCovers({ camera }, { root: c.root, head: c.head }, getTemplate('chibi'), COVER_NAMES, [], { width: canvas.width, height: canvas.height }).measures; } catch (e) { status(String(e.message ?? e), true); }
+    try { covers = measureCovers({ camera }, { root: c.root, head: headMesh(c.root) }, getTemplate('chibi'), COVER_NAMES, [], { width: canvas.width, height: canvas.height }).measures; } catch (e) { status(String(e.message ?? e), true); }
   }
   renderer.render(scene, camera);
   readout(f);
   window.__labFrame = f;
+}
+
+// A control for the cover measure: moves hand 0 onto a named eye landmark, 2 cm toward the camera so the
+// palm is in front of the head's surface, and redraws. The measure must then read well over 0.5 there.
+async function plant(landmark = 'EyeLeft', lift = 0.02) {
+  const { faceLandmarks } = await import('/blender/checks/pose-landmarks.js');
+  const c = run.character, f = frames[stepped - 1];
+  const eye = faceLandmarks(getTemplate('chibi'))[landmark][0].clone().applyMatrix4(headMesh(c.root).parent.matrixWorld).addScaledVector(toCamera(state.view), lift);
+  let arm = null;
+  c.root.traverse((o) => { if (!arm && o.isMesh && o.userData.part === 'armL') arm = o; });
+  const delta = eye.clone().sub(new THREE.Vector3(...f.hands[0]));
+  // Rig meshes take their transform from a baked matrix, so set that and stop it being recomputed.
+  arm.updateMatrixWorld(true);
+  const world = new THREE.Matrix4().makeTranslation(delta.x, delta.y, delta.z).multiply(arm.matrixWorld);
+  arm.matrix.copy(new THREE.Matrix4().copy(arm.parent.matrixWorld).invert().multiply(world));
+  arm.matrixAutoUpdate = false;
+  arm.updateMatrixWorld(true);
+  planted = true;
+  draw();
+  return covers;
 }
 
 // ---- panel -------------------------------------------------------------------------------------------
@@ -217,4 +245,4 @@ buildPanel();
 addEventListener('resize', () => { fit(); if (run) draw(); });
 fit();
 await seek(state.frame);
-window.__lab = { state, seek, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed, canvas };
+window.__lab = { state, seek, plant, canvas, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };
