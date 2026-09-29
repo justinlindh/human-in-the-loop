@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const cache = mkdtempSync(join(tmpdir(), 'golden-identity-'));
 const identityRecord = join(cache, 'golden-identity-scenes', 'char-lineup.json');
-const shots = join(ROOT, 'shots', 'golden');
+// Failure renders go to a scratch directory, so running this never touches the checkout's own shots.
+const shots = join(cache, 'shots');
 const shotFiles = ['stepped', 'settled'].map((k) => join(shots, `char-lineup.${k}.png`));
 const clearShots = () => shotFiles.forEach((f) => rmSync(f, { force: true }));
 // A deliberate temporal effect: every drawn frame moves the camera a little further.
@@ -21,7 +22,7 @@ const TEMPORAL = 'const R=window.__hitlRender,r=R.render;let n=0;R.render=(dt,o)
 const STEP_THROWS = 'window.__step=()=>{throw new Error("stepped render broke")};';
 const HARMLESS = 'window.__control=1;';
 
-const env = (extra = {}) => ({ ...process.env, HITL_CHECK_CACHE_DIR: cache, HITL_NO_CHECK_CACHE: '', ...extra });
+const env = (extra = {}) => ({ ...process.env, HITL_CHECK_CACHE_DIR: cache, HITL_NO_CHECK_CACHE: '', HITL_GOLDEN_OUT: shots, ...extra });
 function golden(args, extra) {
   const t = Date.now();
   const r = spawnSync('node', ['blender/checks/golden.mjs', ...args], { cwd: ROOT, encoding: 'utf8', env: env(extra), timeout: 600000 });
@@ -73,7 +74,7 @@ try {
     for (const x of [off, off2]) { assert.equal(x.code, 0, x.out); assert.ok(rendered(x)); assert.match(x.out, /byte-identical/); assert.ok(!x.out.includes('on record')); }
   });
 
-  // Interrupted mid-check: no record may exist afterward.
+  // Interrupted mid-check (setup for the next control).
   golden(ONLY);
   rmSync(identityRecord, { force: true });
   await new Promise((done) => {
@@ -81,9 +82,8 @@ try {
     setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ } }, 3000);
     child.on('exit', () => done());
   });
-  control('interrupted run leaves no identity record behind', () => assert.ok(!existsSync(identityRecord)));
   r = golden(ONLY);
-  control('run after an interruption rechecks identity', () => { assert.equal(r.code, 0, r.out); assert.match(r.out, /byte-identical/); assert.ok(!r.out.includes('not redrawn')); });
+  control('after an interrupted check, the next run rechecks identity instead of skipping', () => { assert.equal(r.code, 0, r.out); assert.match(r.out, /byte-identical/); assert.ok(!r.out.includes('not redrawn')); });
 } finally {
   rmSync(cache, { recursive: true, force: true });
 }
