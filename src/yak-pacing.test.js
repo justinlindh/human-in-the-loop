@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { simulatePacing } from '../scripts/pace.js';
-import { createYakPacer, importantChat } from './yak-pacing.js';
+import { createYakPacer, importantChat, MAX_TRACKED_POST_IDS } from './yak-pacing.js';
 import { B } from './sim/balance.js';
 import { createPacer } from './pacing.js';
 const msg = (id, extra = {}) => ({ type: 'chat', id, text: 'A short message', fromId: 'a', channel: 'general', ...extra });
@@ -158,4 +158,18 @@ it('reports the longest important-post wait at 4x within the pacing target', () 
   const { metrics } = simulatePacing({ seed: 3, speed: 4, weeks: 520, frame: 0.1 });
   expect(metrics.chat.important.longestWaitSeconds).toBeLessThanOrEqual(90);
   expect(metrics.chat.important.queuedAtEnd).toBeLessThanOrEqual(15);
+});
+it('keeps a bounded set of the player\'s own post ids and still lets a reply to a recent one jump the queue', () => {
+  const p = createYakPacer();
+  const n = MAX_TRACKED_POST_IDS * 3;
+  for (let i = 0; i < n; i++) p.enqueue([msg(`mine-${i}`)], { urgentIds: new Set([`mine-${i}`]) });
+  expect(p.trackedIds).toEqual({ answered: MAX_TRACKED_POST_IDS, mine: MAX_TRACKED_POST_IDS });
+  p.enqueue([msg('ambient-1'), msg('ambient-2'), msg('reply', { replyTo: `mine-${n - 1}` })]);
+  expect(p.step(6, true)[0].id).toBe('reply');
+});
+it('forgets the oldest post ids first, so a reply to a forgotten post queues like any other', () => {
+  const p = createYakPacer();
+  for (let i = 0; i <= MAX_TRACKED_POST_IDS; i++) p.enqueue([msg(`mine-${i}`)], { urgentIds: new Set([`mine-${i}`]) });
+  p.enqueue([msg('ambient'), msg('late', { replyTo: 'mine-0' })]);
+  expect(p.step(6, true)[0].id).toBe('ambient');
 });
