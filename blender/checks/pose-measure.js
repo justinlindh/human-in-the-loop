@@ -97,11 +97,16 @@ export async function createPoseRun({ under = 'idle', gesture = null, seconds = 
   // Heading: yaw 0 faces +z; the camera sits along toCam.
   c.root.rotation.y = Math.atan2(toCam.x, toCam.z) + THREE.MathUtils.degToRad(yawToCamera);
   c.setAnim(under);
-<<<<<<< HEAD
   let camera = null, headMesh = null;
   const dt = 1 / fps;
   const total = warm + (gesture ? seconds + 0.5 : seconds);
   let t = 0, started = false;
+  // The cover shares for `names` on the current pose (also what step() records into frame.cover).
+  const coverNow = (names, headAt) => {
+    camera ??= coverCamera(toCam, headAt ?? c.probe().head);
+    headMesh ??= (() => { let h = null; c.root.traverseVisible((o) => { if (!h && o.userData.part === 'head') h = o; }); return h; })();
+    return measureCovers({ camera }, { root: c.root, head: headMesh }, template, names, [], { width: 1000, height: 1000 }).measures;
+  };
   const step = () => {
     if (gesture && !started && t >= warm - 1e-9) { c.gesture(gesture, seconds); started = true; }
     c.update(dt);
@@ -111,12 +116,7 @@ export async function createPoseRun({ under = 'idle', gesture = null, seconds = 
     // joints() may be missing when --root points at an older checkout; write null then.
     const j = c.joints?.() ?? null;
     const S = contact ? headSurfaces(c, p.head, p.forward) : null;
-    let cover = null;
-    if (covers.length) {
-      camera ??= coverCamera(toCam, p.head);
-      headMesh ??= (() => { let h = null; c.root.traverseVisible((o) => { if (!h && o.userData.part === 'head') h = o; }); return h; })();
-      cover = measureCovers({ camera }, { root: c.root, head: headMesh }, template, covers, [], { width: 1000, height: 1000 }).measures;
-    }
+    const cover = covers.length ? coverNow(covers, p.head) : null;
     const phase = !gesture || t <= warm + 1e-9 ? (gesture ? 'warm' : 'pose') : t <= warm + seconds + 1e-9 ? 'gesture' : 'after';
     return {
       t, phase, anim: p.anim,
@@ -128,7 +128,7 @@ export async function createPoseRun({ under = 'idle', gesture = null, seconds = 
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(toCam)).toFixed(1),
     };
   };
-  return { character: c, step, done: () => t >= total - 1e-9, total, info: { under, gesture, seconds, warm, fps, yawToCamera, view, rig, hasGesture: typeof c.gesture === 'function' } };
+  return { character: c, step, covers: coverNow, done: () => t >= total - 1e-9, total, info: { under, gesture, seconds, warm, fps, yawToCamera, view, rig, hasGesture: typeof c.gesture === 'function' } };
 }
 
 export async function playPose(opts = {}) {
