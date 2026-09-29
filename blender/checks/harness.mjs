@@ -10,6 +10,7 @@ import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
 import { installDrawAudit } from './draw-audit.js';
+import { paramPlugin } from './param.js';
 
 // Two seeded streams. The game draws from Math.random, and so does three.js: it takes a UUID from
 // Math.random for every object, geometry, material or texture it makes (clone() and new
@@ -67,10 +68,11 @@ function phaseTimer() {
 }
 
 // gpu: render on the GPU (the default, see wantGpu) or on SwiftShader.
+// params: resolved --param overrides (param.js) applied to game modules as the page loads them.
 // browsers: separate Chromium instances to spread pages over. Every page in one browser shares its
 // GPU process, so SwiftShader work from concurrent pages queues behind each other; checks that run
 // scenes in parallel pass their job count here. openScene's `slot` picks the browser.
-export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws = false } = {}) {
+export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws = false, params = [] } = {}) {
   const timer = phaseTimer();
   // Every check renders under the render lock for its mode: a GPU slot, or the software lock.
   holdRenderLock(gpu ? 'gpu' : 'software');
@@ -80,7 +82,7 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
   const cacheDir = process.env.HITL_VITE_CACHE || undefined;
   // three-mesh-bvh is bundled when the server starts: found later, on a tool's first import, it would
   // make Vite rebundle dependencies and reload the page mid-run.
-  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), server: { port: 0, strictPort: false }, optimizeDeps: { include: ['three-mesh-bvh'] }, logLevel: 'error' });
+  const server = await createServer({ ...(cacheDir ? { cacheDir } : {}), plugins: params.length ? [paramPlugin(params)] : [], server: { port: 0, strictPort: false }, optimizeDeps: { include: ['three-mesh-bvh'] }, logLevel: 'error' });
   timer.mark('createServer');
   await server.listen();
   timer.mark('listen');
