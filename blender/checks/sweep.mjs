@@ -91,8 +91,9 @@ if (plan) {
   }
 } else if (item && !opt('mocks')) M.mocks = M.gridMocks;
 if (engine) {
-  const unsupported = ['moments', 'snapshots', 'replay', 'against'].filter((k) => opt(k));
+  const unsupported = ['moments', 'snapshots', 'against'].filter((k) => opt(k));
   if (unsupported.length) { console.error(`sweep: --engine does not run --${unsupported.join(', --')} yet`); process.exit(2); }
+  if (plan?.events.length) { console.error(`sweep: --engine cannot replay an indexed moment (${plan.events.length} in this report); run it without --engine`); process.exit(2); }
 }
 const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
