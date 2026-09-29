@@ -24,6 +24,7 @@ export const ITEM_EFFECT_LABELS = {
   meaningRecovery: 'meaning recovery', staminaRecovery: 'stamina recovery', output: 'output', burnoutResign: 'burnout resignations',
   staminaDrain: 'stamina drain', novelty: 'novelty', knowledgeGain: 'knowledge gain', oversight: 'oversight hours',
   maintenanceNeed: 'maintenance needed', uptimeFloor: 'uptime floor', brandDecay: 'brand decay',
+  nocCatch: 'early catches', outageFix: 'outage fixing',
 };
 
 // Trait and career path modifiers.

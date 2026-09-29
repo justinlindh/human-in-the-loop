@@ -372,6 +372,6 @@ describe('saves (#830)', () => {
     const res = loadGame(st, s.flags.saveSlot);
     expect(res.ok).toBe(true);
     expect(res.state.outage).toEqual({ productId: 'p1', kind: 'db_wipe', severity: 3, weeks: 1, unrecoverable: false,
-      responderIds: [], etaWeeks: null, cost: { cash: 0, brand: 0, customers: 0 }, cause: '' });
+      responderIds: [], etaWeeks: null, cost: { cash: 0, brand: 0, customers: 0 }, cause: '', misread: false });
   });
 });

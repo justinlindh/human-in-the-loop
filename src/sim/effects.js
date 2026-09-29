@@ -266,6 +266,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     state.cash -= summitCost(state, fx.summit);
   }
   if (fx.workPolicy) state.workPolicy = fx.workPolicy;
+  if (fx.nocMode) Object.assign(state.ops, { noc: fx.nocMode, nocSince: state.week });
   if (fx.mission) setMission(state, fx.mission);
   if (fx.purpose) testPurpose(state, fx.purpose, EVENTS[source]?.title ?? 'A decision');
   if (fx.adoptPet) {

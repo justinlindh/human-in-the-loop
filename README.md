@@ -97,7 +97,7 @@ A game about deciding how much of the work the machines should do, built almost 
 
 ### The team
 
-Every line of code, every model, every sound and most of the words here were written by a team of [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) agents running as an agent team: long-lived sessions that message each other by name. Each one runs Claude Opus. Each lane works in its own git worktree and owns a set of paths:
+Every line of code, every model, every sound and most of the words here were written by a team of [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) agents running as an agent team: long-lived sessions that message each other by name. Each lane works in its own git worktree and owns a set of paths:
 
 | Agent | Lane | Owns |
 |---|---|---|
@@ -107,7 +107,7 @@ Every line of code, every model, every sound and most of the words here were wri
 | ui | UI | `src/ui/` and the in-game audio code |
 | audio | sound | generating, curating and mastering music, stingers, barks and the trailer voice |
 | integrator | integration | `main.js`, pacing, CI, the capture engine, the hooks, merges |
-| tools | checks | the staging probe, the scene sweep and dump, the real-loop moment check and the event index |
+| tools, tools2 | checks and plumbing | the staging probe, the scene sweep and dump, the real-loop moment check, the event index, and the shared harnesses every lane runs on |
 | perf | performance | frame-time and dev-loop profiling, the perf budget and the timing log |
 | video | capture and video | reels, shareable clips, landing page assets and feature media; turns what it sees on video into fixes for the owning lanes |
 | reviewer | review and playtest | nothing: reads every PR, plays the build in a browser, posts verdicts |

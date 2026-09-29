@@ -146,6 +146,8 @@ export function purchaseProblem(state, itemId) {
   if (state.officeStage < it.minStage) return 'Needs a bigger office';
   if (it.era && !eraAtLeast(state, it.era)) return 'Arrives with the Agents era';
   if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';
+  if (it.requires === 'ops' && state.unlocks.ops === undefined) return 'Needs Ops and Security';
+  if (it.unique && state.office.placed.some((p) => p.itemId === itemId)) return 'You already have one';
   if (it.kind === 'shop' && state.office.placed.filter((p) => p.itemId === itemId).length >= 2) return 'You already have two';
   if (it.id === 'desk' && state.officeStage >= 1 && desksOf(state.office.placed).length >= deskCap(state)) return 'Desk limit reached';
   if (state.cash < it.costs[0]) return 'Not enough cash';
@@ -180,12 +182,13 @@ export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
 }
 
 // The first free spot for an item, scanning rows from the back corner, or null.
-export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3]) {
+// The first spot that fits; with level, one that also keeps that level's front zone clear.
+export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3], level = 1) {
   const { w, h } = shapeOf(stageIdx).grid;
   for (const rot of rots) {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        if (!layoutProblem(stageIdx, placed, { itemId, x, y, rot })) return { x, y, rot };
+        if (!layoutProblem(stageIdx, placed, { itemId, x, y, rot, level })) return { x, y, rot };
       }
     }
   }
@@ -257,7 +260,8 @@ export function autoArrange(stageIdx, placed) {
   const islands = islandSlots(stageIdx);
   for (const p of order) {
     const slot = p.itemId === 'desk' ? islands.find((sl) => !layoutProblem(stageIdx, out, { itemId: 'desk', ...sl })) : null;
-    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3]);
+    // Each item goes where its current level fits, so a front zone it has grown into stays clear.
+    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3], p.level ?? 1);
     if (spot) out.push({ ...p, ...spot });
     else left.push(p);
   }
@@ -355,6 +359,7 @@ export function upgradeProblem(state, placed) {
   const it = ITEMS[placed.itemId];
   if (it.kind !== 'shop') return 'Nothing to upgrade';
   if (placed.level >= it.costs.length) return 'Already max level';
+  if (it.levelStage && state.officeStage < it.levelStage[placed.level]) return 'Needs a bigger office';
   if (state.cash < it.costs[placed.level]) return 'Not enough cash';
   // An upgrade that brings a front zone needs that floor clear, like placing it would.
   if (frontCells(placed.itemId, placed.x, placed.y, placed.rot, placed.level + 1).length && !frontCells(placed.itemId, placed.x, placed.y, placed.rot, placed.level).length) {

@@ -200,6 +200,108 @@ const OVERLAY = {
   },
 };
 
+// NOC screens (shop item `noc`): dashboards while humans watch, scrolling agent logs while agents do, red
+// during an alert. A misread (the agents called an alert routine) flashes an all-clear before the red.
+const NOC_KINDS = ['uptime', 'map', 'graph', 'list', 'graph', 'uptime'];
+const MISREAD_GREEN = 1.4;   // seconds of false all-clear before the red lands
+const MISREAD_S = 3.2;       // seconds the misread beat lasts
+const AGENT_LINES = ['triage: routine', 'ack: looks fine', 'auto-close #', 'retry ok', 'noise, muting', 'false positive', 'self-healed', 'ok ok ok'];
+
+function nocHeader(ctx, text, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, W, 20);
+  ctx.fillStyle = P.screen_bg;
+  ctx.font = '700 13px monospace';
+  ctx.fillText(text, 8, 15);
+}
+
+const NOC_DRAW = {
+  uptime(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = P.screen_bg; ctx.fillRect(0, 0, W, H);
+    nocHeader(ctx, 'UPTIME', P.screen_green);
+    for (let i = 0; i < 12; i++) {
+      const x = 12 + (i % 4) * 60, y = 30 + Math.floor(i / 4) * 42;
+      ctx.fillStyle = (i * 7 + v.seed + Math.floor(t / 3)) % 17 === 0 ? P.screen_amber : P.screen_green;
+      ctx.fillRect(x, y, 48, 32);
+    }
+  },
+  map(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = P.screen_bg; ctx.fillRect(0, 0, W, H);
+    nocHeader(ctx, 'REGIONS', P.screen_cyan);
+    ctx.fillStyle = '#2e3552';
+    for (const [x, y, w, h] of [[20, 40, 70, 40], [30, 86, 40, 50], [110, 36, 60, 34], [120, 76, 30, 50], [180, 44, 60, 60]]) ctx.fillRect(x, y, w, h);
+    for (let i = 0; i < 6; i++) {
+      const a = t * 2 + i;
+      ctx.fillStyle = P.screen_green;
+      ctx.beginPath(); ctx.arc(40 + i * 36, 60 + (i % 3) * 22, 5 + Math.sin(a) * 2, 0, Math.PI * 2); ctx.fill();
+    }
+  },
+  graph(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = P.screen_bg; ctx.fillRect(0, 0, W, H);
+    nocHeader(ctx, 'LATENCY', P.screen_blue);
+    ctx.strokeStyle = P.screen_green; ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let i = 0; i < 30; i++) {
+      const x = 8 + i * 8.3, y = 110 - Math.sin(i * 0.7 + t * 2 + v.seed) * 10 - Math.sin(i * 0.23 + t) * 12;
+      if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  },
+  list(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = P.screen_bg; ctx.fillRect(0, 0, W, H);
+    nocHeader(ctx, 'SERVICES', P.screen_green);
+    for (let i = 0; i < 7; i++) {
+      const y = 30 + i * 18;
+      ctx.fillStyle = '#6b7396'; ctx.fillRect(10, y, 90 + ((i * 31 + v.seed * 7) % 70), 8);
+      ctx.fillStyle = P.screen_green; ctx.fillRect(W - 40, y - 2, 28, 12);
+    }
+    ctx.fillStyle = P.paper; ctx.fillRect(W - 44, 28 + (Math.floor(t * 2) % 7) * 18, 4, 12);
+  },
+  logs(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = '#16192a'; ctx.fillRect(0, 0, W, H);
+    nocHeader(ctx, 'AGENTS', P.screen_pink);
+    ctx.font = '700 12px monospace';
+    const off = (t * 22 + v.seed * 13) % 16;
+    for (let i = 0; i < 9; i++) {
+      const y = 36 + i * 16 - off;
+      if (y < 24) continue;
+      const k = (i + Math.floor((t * 22 + v.seed * 13) / 16)) % AGENT_LINES.length;
+      ctx.fillStyle = P.screen_cyan; ctx.fillRect(8, y - 9, 10, 10);
+      ctx.fillStyle = '#b9c0dc'; ctx.fillText(AGENT_LINES[(k + v.seed) % AGENT_LINES.length], 24, y);
+      ctx.fillStyle = P.screen_green; ctx.fillText('OK', W - 30, y);
+    }
+  },
+  allclear(v, t) {
+    const { ctx } = v;
+    ctx.fillStyle = '#10311d'; ctx.fillRect(0, 0, W, H);
+    nocHeader(ctx, 'ALL CLEAR', P.screen_green);
+    ctx.strokeStyle = P.screen_green; ctx.lineWidth = 14; ctx.lineCap = 'round';
+    const bob = Math.sin(t * 6) * 3;
+    ctx.beginPath(); ctx.moveTo(W / 2 - 40, 92 + bob); ctx.lineTo(W / 2 - 10, 120 + bob); ctx.lineTo(W / 2 + 44, 50 + bob); ctx.stroke();
+    ctx.lineCap = 'butt';
+  },
+};
+
+function drawNocSign(v, days, alert, t) {
+  const { ctx } = v;
+  ctx.fillStyle = '#f3ecdc'; ctx.fillRect(0, 0, 256, 80);
+  ctx.fillStyle = '#2b2f40';
+  ctx.font = '700 15px sans-serif';
+  ctx.fillText('DAYS SINCE LAST', 12, 26);
+  ctx.fillText('INCIDENT', 12, 48);
+  const n = alert ? 0 : days;
+  ctx.fillStyle = alert ? (Math.floor(t * 3) % 2 ? '#c42a2a' : '#7a1c1c') : '#2f7a45';
+  ctx.font = '800 44px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(String(Math.min(n, 9999)), 246, 58);
+  ctx.textAlign = 'left';
+}
+
 export const SCREEN_VARIANTS = ['code', 'code', 'code', 'ui', 'chart', 'code', 'ui', 'chart'];
 
 export function createScreens() {
@@ -371,6 +473,58 @@ export function createScreens() {
 
   let acc = 0;
   let t = 0;
+
+  // NOC: shared variants per slot kind, a sign canvas, and the look set from state (setNoc).
+  const noc = { mode: 'humans', alert: false, days: 0, misread: 0, low: false, used: false };
+  const nocPool = new Map();
+  const nocSign = { ...makeCanvas(256, 80) };
+  const nocSignMat = new THREE.MeshBasicMaterial({ map: nocSign.tex, color: new THREE.Color().setScalar(1.15) });
+  let nocSignKey = '';
+  function nocKind(v) {
+    const m = noc.misread > 0 ? MISREAD_S - noc.misread : null;
+    if (m !== null && m < MISREAD_GREEN) return 'allclear';
+    if (noc.alert || m !== null) return 'red';
+    if (v.off) return 'off';
+    return noc.mode === 'agents' && v.slot !== 0 ? 'logs' : NOC_KINDS[v.slot % NOC_KINDS.length];
+  }
+  function drawNoc(v, t) {
+    const k = nocKind(v);
+    if (k === 'red') DRAW.red(v, t); else if (k === 'off') DRAW.off(v); else NOC_DRAW[k](v, t);
+    v.tex.needsUpdate = true;
+  }
+  function drawSign(t) {
+    const key = `${noc.alert ? `a${Math.floor(t * 3) % 2}` : noc.days}`;
+    if (key === nocSignKey) return;
+    nocSignKey = key;
+    drawNocSign(nocSign, noc.days, noc.alert, t);
+    nocSign.tex.needsUpdate = true;
+  }
+  // Material for a NOC screen by its mesh name: noc_wallN_screen, noc_deskN_screen or noc_sign_screen.
+  // At Low, only every other wall screen past the first is lit.
+  function nocMaterial(name) {
+    noc.used = true;
+    if (name.startsWith('noc_sign')) { drawSign(t); return nocSignMat; }
+    const m = /^noc_(wall|desk)(\d+)/.exec(name);
+    const slot = m ? Number(m[2]) + (m[1] === 'desk' ? 3 : 0) : 0;
+    const key = `${slot % 6}:${noc.low && m?.[1] === 'wall' && slot > 0 && slot % 2 ? 'off' : 'on'}`;
+    let v = nocPool.get(key);
+    if (!v) {
+      v = { ...makeCanvas(), seed: slot, slot: slot % 6, off: key.endsWith('off') };
+      v.mat = new THREE.MeshBasicMaterial({ map: v.tex, color: new THREE.Color().setScalar(brightness) });
+      v.mat.userData.bright = true;
+      mats.add(v.mat);
+      drawNoc(v, t);
+      nocPool.set(key, v);
+    }
+    return v.mat;
+  }
+  function setNoc({ mode, alert, days }, low = false) {
+    const changed = mode !== noc.mode || alert !== noc.alert;
+    noc.mode = mode; noc.alert = alert; noc.days = days; noc.low = low;
+    if (changed && noc.used) for (const v of nocPool.values()) drawNoc(v, t);
+    if (noc.used) drawSign(t);
+  }
+  function nocMisread() { noc.misread = MISREAD_S; }
   function update(dt, env) {
     t += dt;
     if (eraT < 1 || swell > 0) {
@@ -380,6 +534,7 @@ export function createScreens() {
       winKey = -1;
     }
     wall.alarm = Math.max(0, wall.alarm - dt);
+    noc.misread = Math.max(0, noc.misread - dt);
     acc += dt;
     if (env) lastDaylight = env.daylight;
     drawWindows(lastDaylight);
@@ -392,6 +547,7 @@ export function createScreens() {
       v.tex.needsUpdate = true;
     }
     drawWall(t);
+    if (noc.used) { for (const v of nocPool.values()) drawNoc(v, t); drawSign(t); }
   }
 
   function setBrightness(b) {
@@ -399,5 +555,5 @@ export function createScreens() {
     for (const m of mats) if (m.userData.bright) m.color.setScalar(b * (m.userData.eraGlow ?? 1));
   }
 
-  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra, setOverlay, get overlay() { return overlay; } };
+  return { material, deskMaterial, wallMaterial: () => wallMat, windowMaterial: () => winMat, setAutomation, alarm, update, setBrightness, setEra, setOverlay, nocMaterial, setNoc, nocMisread, get nocAllClear() { return noc.misread > 0 && MISREAD_S - noc.misread < MISREAD_GREEN; }, get overlay() { return overlay; } };
 }

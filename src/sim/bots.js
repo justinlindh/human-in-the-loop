@@ -14,7 +14,7 @@ import { botProductName } from '../data/product-names.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
-import { deskCapacity, suggestPlacement, deskCap } from './office.js';
+import { deskCapacity, suggestPlacement, deskCap, findSpot, layoutOf, upgradeProblem } from './office.js';
 import { scoreRun } from './endgame.js';
 import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -22,6 +22,7 @@ import { MODELS } from '../data/models.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { POLICIES } from '../data/policies.js';
 import { EVENTS } from '../data/events.js';
+import { ITEMS } from '../data/items.js';
 import { ROLES } from '../data/roles.js';
 import { SQUAD_NAMES } from '../data/squads.js';
 
@@ -137,6 +138,8 @@ function balancedChooser(s, d, fx) {
     return fx.win ? (yearIndex >= 6 || (yearIndex >= 4 && flat) ? 100 : -100) : 0;
   }
   if (d.eventId === 'bridge_loan') return fx.later ? 10 : fx.modifier ? 2 : 0;
+  // Humans on the glass once two or more people work security; agents otherwise.
+  if (d.eventId === 'noc_bet') return fx.nocMode === (s.staff.filter((p) => p.assignment.type === 'security').length >= 2 ? 'humans' : 'agents') ? 10 : 0;
   if (d.eventId === 'work_policy') {
     // Juniors learn in the office; a mid-size team splits the difference; a small, tight team saves the rent.
     const want = s.staff.some((p) => p.seniority === 'junior') ? 'office' : s.staff.length >= 6 ? 'hybrid' : 'remote';
@@ -498,6 +501,27 @@ export const CHOOSERS = { automateAll: cheapestChooser, allHumans: balancedChoos
 
 // Resolves pending decisions the way the named bot would. Returns how many bridge loans it took.
 // onEvents(events, action) receives the events of every dispatch.
+// The careful bots run a NOC: bought once Ops and Security opens and there is money to spare, and grown a level
+// whenever the office allows it and it costs under a tenth of the bank.
+const NOC_BOTS = new Set(['balanced', 'sensible']);
+function runNoc(s) {
+  const noc = s.office.placed.find((p) => p.itemId === 'noc');
+  const top = ITEMS.noc.costs.length;
+  if (!noc) {
+    if (s.unlocks.ops === undefined || s.cash < 10 * ITEMS.noc.costs[0]) return;
+    const spot = findSpot(layoutOf(s), s.office.placed, 'noc', [0, 1, 2, 3], top) ?? findSpot(layoutOf(s), s.office.placed, 'noc');
+    if (spot) dispatch(s, { type: 'placeItem', itemId: 'noc', ...spot });
+    return;
+  }
+  if (noc.level >= top || s.cash < 10 * ITEMS.noc.costs[noc.level]) return;
+  if (upgradeProblem(s, noc) === 'Needs clear floor in front') {
+    const others = s.office.placed.filter((p) => p !== noc);
+    const spot = findSpot(layoutOf(s), others, 'noc', [0, 1, 2, 3], top) ?? findSpot(layoutOf(s), others, 'noc', [0, 1, 2, 3], noc.level + 1);
+    if (spot) dispatch(s, { type: 'moveItem', id: noc.id, ...spot });
+  }
+  dispatch(s, { type: 'upgradeItem', id: noc.id });
+}
+
 export function botDecide(name, s, { onEvents = null } = {}) {
   const prev = sink;
   sink = onEvents;
@@ -540,6 +564,7 @@ export function botTurn(name, s, { onEvents = null } = {}) {
   try {
     furnish(s);
     if (name !== 'recklessHumans') decorate(s);
+    if (NOC_BOTS.has(name)) runNoc(s);
     answerPrompts(name, s);
     for (const a of BOTS[name](s)) dispatch(s, a);
   } finally {
