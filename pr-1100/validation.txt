@@ -1,0 +1,31 @@
+PASS: real seed 1, 1x, weeks 0-156, 1532.235 elapsed seconds, no browser errors.
+PASS: 415 presentation episodes reconcile by kind and origin.
+PASS: all 14 sampled-minute shown records link to screenshot frames.
+PASS: screenshot count matches the trace: 5 toasts, 8 Yak posts, 1 information card; 14 total.
+| Kind | Count | Per real minute | Actionable episodes | Game | Player |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| decision | 23 | 0.901 | 23 | 23 | 0 |
+| toast | 174 | 6.814 | 23 | 76 | 98 |
+| yak | 201 | 7.871 | 0 | 80 | 121 |
+| yak-prompt | 0 | 0.000 | 0 | 0 | 0 |
+| advisor-prompt | 0 | 0.000 | 0 | 0 | 0 |
+| office-prompt | 0 | 0.000 | 0 | 0 | 0 |
+| panel | 1 | 0.039 | 1 | 1 | 0 |
+| card | 16 | 0.627 | 16 | 16 | 0 |
+| tutorial | 0 | 0.000 | 0 | 0 | 0 |
+Sample [240, 300) seconds: 14 newly shown presentations.
+{"decision":0,"toast":5,"yak":8,"yak-prompt":0,"advisor-prompt":0,"office-prompt":0,"panel":0,"card":1,"tutorial":0}
+48	243.472	toast	19	game	Analyst quadrant: An analyst firm placed Loopworks in their quadrant. Which quadrant is a matter of some debate.
+49	250.834	yak	m134	game	David JenkinsW24A customer wrote "please" eleven times. I would like to answer them. I need help.100 1You replied: Everyone takes five tickets
+50	256.802	yak	m145	game	Eva WilliamsW25Paired with David and we fixed it in an hour.
+51	264.746	card	Research	game	New!ResearchThree products in, the team keeps rebuilding the same plumbing. Internal tools make every future project a little better.Got itOpen Build
+52	270.944	toast	20	player	Started: Planster
+53	271.693	toast	21	player	Launch Campaign is live.
+54	272.793	toast	22	game	Deskhub launched! Reviews average 8.3.
+55	286.666	yak	m158	game	Eva WilliamsW28The on-call week was boring. Best week ever. 2
+56	289.039	yak	m170	player	Eva WilliamsW31All hands: everyone takes five tickets today. Yes, me too.
+57	289.039	yak	m171	player	David JenkinsW31The queue is shrinking. I love you all.
+58	295.001	yak	m166	game	David JenkinsW29Standup in five. One sentence each. I will be counting. 1
+59	297.103	toast	23	player	New in the office: Espresso Machine.
+60	297.103	yak	m173	player	Eva WilliamsW32Buy an espresso machine
+61	297.103	yak	m176	player	@officebotW32The machine arrives. So does a queue.

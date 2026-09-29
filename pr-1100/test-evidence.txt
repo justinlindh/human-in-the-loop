@@ -1,0 +1,34 @@
+Commit: a67cc7144e00888820747c474589ce6377da487e
+
+npm run test:fast
+Test Files 152 passed (152)
+Tests 1284 passed (1284)
+Exit 0. The commit and push gates also returned exit 0 through the exact-tree test cache.
+
+timeout 120s nice -n 10 node scripts/pace-browser.test.mjs
+PASS counts visible surfaces, clips Yak, and distinguishes reply controls from reaction totals
+PASS retains toast identity through redocking and queued player origin after unrelated game events
+PASS observes game-pushed panels and exact click follow-through without a recency heuristic
+PASS includes pushed incident/call panels and the end card
+PASS does not count held toasts until the presentation gate releases them
+PASS fails closed when metadata hooks move
+PASS uses elapsed exposure and only shown transitions for rates
+Tests 7, pass 7, fail 0. Exit 0.
+
+Modeled regression comparison
+PASS: modeled seed 1, 156 weeks, timeline and metrics byte-identical to the existing tool.
+Both commands used --seed 1 --weeks 156 --timeline --json. Exit 0.
+
+npm run toolkit -- --check
+toolkit: ok: 100 entries, every script and check covered
+Exit 0.
+
+Browser JSON smoke
+PASS: --browser --minutes 0.1 --sample-minute 1 --json emits parseable JSON with mode browser, stop minutes, and zero browser errors. Exit 0.
+
+Elapsed cap control
+PASS: --browser --weeks 156 --minutes 0.01 writes a partial report with stop minutes and exits 1 before the requested week.
+
+git diff --check, JavaScript syntax checks and bash -n scripts/ci-local.sh: exit 0.
+
+One earlier fast-suite attempt failed in the existing sweep --against cleanup test because the shared repository worktree count changed from 121 to 122 during the assertion. The complete suite was rerun and passed. No change to that unrelated test is included.
