@@ -196,5 +196,12 @@ run
 [ -e "$tmp/tmpfs/keep-me-not-vitest-x" ] || fail "a directory not named like vitest's should stay"
 [ -e "$tmp/tmpfs/AAAAAAAAAAAAAAAAAAAAA" ] || fail "a directory holding more than ssr should stay"
 
+# A listed lane app's PR starts like the owner's; another app's doesn't.
+: >"$tmp/started"
+fixture "$(pr 20 bot1 none false app/loop-reviewer-justinlindh)" "$(pr 21 bot2 none false app/other-app)"
+run
+has started "20 bot1" || fail "a listed app's PR should start"
+has started "21 bot2" && fail "an unlisted app's PR should not start"
+
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]
