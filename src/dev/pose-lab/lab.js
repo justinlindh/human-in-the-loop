@@ -32,9 +32,10 @@ try {
   defaults = await (await fetch('/__lab/params')).json();
 } catch { defaults = []; }
 
-const [{ createPoseRun, playPose }, PM, { getTemplate }, { ANIMS }] = await Promise.all([
+const [{ createPoseRun, playPose }, PM, SL, { getTemplate }, { ANIMS }] = await Promise.all([
   import('/blender/checks/pose-measure.js'),
   import('/blender/checks/pose-matrix.js'),
+  import('/blender/checks/pose-slap.js'),
   import('/src/render/models.js'),
   import('/src/render/character.js'),
 ]);
@@ -79,14 +80,19 @@ const setLine = (l, a, b) => { const p = l.geometry.attributes.position; p.setXY
 // ---- the run -----------------------------------------------------------------------------------------
 let run = null, frames = [], stepped = 0, busy = null, covers = {}, planted = false, sideUsed = 1;
 const COVER_NAMES = ['coverHandEyeNear', 'coverHandEyeL', 'coverHandEyeR', 'coverHandFace'];
-const total = () => Math.ceil((state.warm + state.seconds + 0.5) * state.fps);
+const total = () => Math.ceil((run?.total ?? state.warm + state.seconds + 0.5) * state.fps);
 
+// What to put in the scene for a run: the fixer and the robot together for the slap, else the person.
+const rootOf = (r) => r.pair ?? r.character.root;
 async function rebuild() {
-  if (run) scene.remove(run.character.root);
+  if (run) scene.remove(rootOf(run));
   // The hand a one-handed gesture uses: the game's pick for the view unless a matrix cell or the side box set it.
   sideUsed = state.side ?? PM.gameSide(state.view);
-  run = await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.view * 90 + state.yaw, view: 0, rig: state.rig, look: { build: state.build }, covers: COVER_NAMES, side: sideUsed });
-  scene.add(run.character.root);
+  // The slap is two actors (pose-slap.js), turned as a pair by the view; every other gesture is one person.
+  run = state.gesture === 'slap'
+    ? await SL.createSlapRun({ build: state.build, rig: state.rig, view: state.view, fps: state.fps })
+    : await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.view * 90 + state.yaw, view: 0, rig: state.rig, look: { build: state.build }, covers: COVER_NAMES, side: sideUsed });
+  scene.add(rootOf(run));
   frames = []; stepped = 0; planted = false;
 }
 
@@ -155,16 +161,20 @@ const READ = [
   ['hand0Eye', (f) => fmt(f.contact.hand0Eye, 'cm')], ['hand1Eye', (f) => fmt(f.contact.hand1Eye, 'cm')],
   ['hand0Brow', (f) => fmt(f.contact.hand0Brow, 'cm')], ['hand0Face', (f) => fmt(f.contact.hand0Face, 'cm')],
   ...COVER_NAMES.map((n) => [n, () => fmt(covers[n], '%')]),
+  // The slap's own measures, when the run is the two-actor slap.
+  ['robotContact', (f) => (f.contact.robotContact == null ? null : fmt(f.contact.robotContact, 'cm'))],
+  ['robotDepth', (f) => (f.contact.robotDepth == null ? null : fmt(f.contact.robotDepth, 'cm'))],
+  ['faceVisible', (f) => (f.contact.faceVisible == null ? null : fmt(f.contact.faceVisible, '%'))],
 ];
 function readout(f) {
   const t = $('read'); if (!t) return;
-  t.replaceChildren(...(f ? READ.map(([k, fn]) => el('tr', {}, el('td', { textContent: k }), el('td', { textContent: fn(f) }))) : []));
+  t.replaceChildren(...(f ? READ.map(([k, fn]) => [k, fn(f)]).filter(([, v]) => v != null && v !== '-').map(([k, v]) => el('tr', {}, el('td', { textContent: k }), el('td', { textContent: v }))) : []));
   const sl = $('scrub'); if (sl) { sl.max = total(); sl.value = state.frame; }
   const fr = $('frameNo'); if (fr) fr.textContent = `${state.frame}/${total()}`;
 }
 
 const select = (key, options) => { const s = el('select'); for (const o of options) s.append(el('option', { value: o, textContent: o })); s.value = state[key]; s.onchange = async () => { state[key] = s.value; await rebuildAndSeek(); }; return s; };
-async function rebuildAndSeek() { const n = state.frame; if (run) scene.remove(run.character.root); run = null; stepped = 0; await seek(n); }
+async function rebuildAndSeek() { const n = state.frame; if (run) scene.remove(rootOf(run)); run = null; stepped = 0; await seek(n); }
 const slider = (key, min, max, step, onchange) => { const i = el('input', { type: 'range', min, max, step, value: state[key] }); i.oninput = () => { state[key] = Number(i.value); onchange(); }; return i; };
 
 let timer = null;
@@ -210,7 +220,7 @@ async function runGrid() {
     const t0 = performance.now();
     lastMatrix = await PM.runMatrix({
       // Yield between cells so the page paints its progress.
-      playPose: async (o) => { await new Promise((r) => setTimeout(r, 0)); return playPose(o); },
+      playPose: async (o) => { await new Promise((r) => setTimeout(r, 0)); return SL.withSlap(playPose)(o); },
       gesture: state.gesture, axes, measures, rules, seconds: state.seconds, warm: state.warm, fps: state.fps,
       onCell: () => { done++; if (s) s.textContent = `${done}/${n}`; },
     });
@@ -261,13 +271,15 @@ function buildPanel() {
   paintGrid();
 }
 
-const keyOf = (c, i) => (Array.isArray(c.value) ? `${c.file}:${c.name}[${i}]` : `${c.file}:${c.name}`);
+// A const's numbers as a list: a number, an array, or the numeric members of an object (reached as NAME.key).
+const valsOf = (c) => (Array.isArray(c.value) ? c.value : typeof c.value === 'object' ? Object.values(c.value) : [c.value]);
+const keyOf = (c, i) => (Array.isArray(c.value) ? `${c.file}:${c.name}[${i}]` : typeof c.value === 'object' ? `${c.file}:${c.name}.${Object.keys(c.value)[i]}` : `${c.file}:${c.name}`);
 function paramList(filter) {
   const box = $('params'); box.replaceChildren();
   const f = filter.toLowerCase();
   for (const c of defaults.filter((d) => !f || d.name.toLowerCase().includes(f))) {
-    const vals = Array.isArray(c.value) ? c.value : [c.value];
-    const wrap = el('div', { className: 'param' }, el('b', { textContent: `${c.name}${Array.isArray(c.value) ? ` (${vals.length})` : ''}` }));
+    const vals = valsOf(c);
+    const wrap = el('div', { className: 'param' }, el('b', { textContent: `${c.name}${vals.length > 1 ? ` (${vals.length})` : ''}` }));
     vals.forEach((v0, i) => {
       const k = keyOf(c, i), cur = changed[k] ?? v0, span = Math.max(0.5, Math.abs(v0) * 1.5);
       const num = el('input', { type: 'number', step: 0.005, value: +cur.toFixed(4) });
@@ -293,12 +305,12 @@ async function apply() {
 function diffText() {
   const by = new Map();
   for (const c of defaults) {
-    const vals = Array.isArray(c.value) ? c.value : [c.value];
+    const vals = valsOf(c);
     const now = vals.map((v, i) => changed[keyOf(c, i)] ?? v);
     if (now.some((v, i) => v !== vals[i])) by.set(c, now);
   }
-  const show = (c, vals) => (Array.isArray(c.value) ? `[${vals.join(', ')}]` : String(vals[0]));
-  return [...by].map(([c, now]) => `--- ${c.file}\n-const ${c.name} = ${show(c, Array.isArray(c.value) ? c.value : [c.value])};\n+const ${c.name} = ${show(c, now)};`).join('\n') || '(no changes)';
+  const show = (c, vals) => (Array.isArray(c.value) ? `[${vals.join(', ')}]` : typeof c.value === 'object' ? `{ ${Object.keys(c.value).map((k, i) => `${k}: ${vals[i]}`).join(', ')} }` : String(vals[0]));
+  return [...by].map(([c, now]) => `--- ${c.file}\n-const ${c.name} = ${show(c, valsOf(c))};\n+const ${c.name} = ${show(c, now)};`).join('\n') || '(no changes)';
 }
 async function copy(text, what) {
   try { await navigator.clipboard.writeText(text); status(`copied ${what}`); }
@@ -311,4 +323,4 @@ if (state.mxAuto) runGrid();
 addEventListener('resize', () => { fit(); if (run) draw(); });
 fit();
 await seek(state.frame);
-window.__lab = { state, seek, plant, canvas, side: () => sideUsed, runGrid, loadCell, matrix: () => lastMatrix, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };
+window.__lab = { state, seek, plant, canvas, actors: () => (run.pair ? run.pair.children.length : 1), side: () => sideUsed, runGrid, loadCell, matrix: () => lastMatrix, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };

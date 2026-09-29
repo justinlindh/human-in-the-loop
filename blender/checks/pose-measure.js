@@ -72,7 +72,7 @@ const dist = (bvh, p) => (bvh ? bvh.closestPointToPoint(p, target) && +target.di
 
 // The game camera's shape for cover measures: orthographic, looking along -toCam at the head, with the
 // person filling a 3 m window (cover shares do not depend on the window, only on what is in view).
-function coverCamera(toCam, headAt) {
+export function coverCamera(toCam, headAt) {
   const cam = new THREE.OrthographicCamera(-1.5, 1.5, 1.5, -1.5, 0.1, 200);
   cam.position.copy(headAt).addScaledVector(toCam, 60);
   cam.lookAt(headAt);

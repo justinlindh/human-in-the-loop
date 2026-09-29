@@ -348,7 +348,9 @@ standIns();
 const vite = await createServer({ root: ROOT, configFile: false, plugins: PARAMS.length ? [paramPlugin(PARAMS)] : [], server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
 let code = 0;
 try {
-  const P = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));
+  const P0 = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));
+  // The slap is two actors, so it plays through pose-slap.js; every other gesture is playPose as it was.
+  const P = OPTS.gesture === 'slap' ? { ...P0, playPose: (await vite.ssrLoadModule(join(import.meta.dirname, 'pose-slap.js'))).withSlap(P0.playPose) } : P0;
   if (opt('matrix')) {
     const X = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-matrix.js'));
     if (!OPTS.gesture) throw new Error('pose: --matrix needs --gesture <name>');

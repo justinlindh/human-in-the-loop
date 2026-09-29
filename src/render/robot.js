@@ -43,7 +43,7 @@ const EYE = { ok: '#5fe0d0', broken: '#ffb238', off: '#1e2333' };
 // the body), how far they turn so its head sits a little to their right where the hand sweeps, how
 // long the robot waits for them before it recovers on its own, how long it shakes after the slap
 // before heading home, from how far away the fixer jogs over, and how long they square up first.
-const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4, clearM: 0.9, holdS: 6, cringe: 0.22 };
+export const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4, clearM: 0.9, holdS: 6, cringe: 0.22 };
 
 const rnd = (a, b) => between(a, b, 'robot');
 function angleLerp(a, b, k) {
@@ -52,7 +52,7 @@ function angleLerp(a, b, k) {
   return a + d * k;
 }
 
-function buildRig() {
+export function buildRig() {
   const tpl = getTemplate('robot');
   const part = (name) => {
     const src = tpl?.getObjectByName(name);
