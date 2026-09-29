@@ -1,0 +1,9 @@
+{
+  "base": "floor",
+  "era": "agents",
+  "items": [{ "item": "coffee_corner", "at": [6, 6], "id": "cc" }],
+  "people": [
+    { "id": "ada", "at": [8, 9], "use": { "item": "cc", "slot": 0, "dur": 3 } },
+    { "id": "bo", "at": [6.4, 8.2], "face": "north", "until": 7 }
+  ]
+}

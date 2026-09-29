@@ -98,6 +98,17 @@ describe('studio scene --compose', () => {
     expect(off).toBeLessThan(3);
   }, 260000);
 
+  it('sends a person to a coffee corner, holds another until a time, then lets them walk', () => {
+    const rows = frames('coffee-visit.json', ['--from', '0', '--to', '9', '--every', '1']);
+    const acts = (id) => rows.map((r) => person(r, id).person.activity);
+    expect(acts('ada')).toContain('sip');
+    // bo stands still for the six seconds before `until`, then walks
+    expect(acts('bo').slice(0, 7).every((a) => a === 'idle')).toBe(true);
+    expect(acts('bo').slice(7)).toContain('walk');
+    const held = rows.slice(0, 7).map((r) => person(r, 'bo').world.slice(12, 15).join());
+    expect(new Set(held).size).toBe(1);
+  }, 260000);
+
   it('seats the composed person at the desk and plays the gesture over it', () => {
     const rows = frames('facepalm.json', ['--from', '0', '--to', '1', '--every', '1']);
     const ada = person(rows[0], 'ada');
@@ -108,6 +119,24 @@ describe('studio scene --compose', () => {
     expect(rows[0].objects.find((o) => o.id === 'item:d1')).toBeTruthy();
     expect(rows[0].objects.find((o) => o.id === 'item:w1')).toBeTruthy();
   }, 260000);
+});
+
+describe('compose perk visits and timed releases', () => {
+  const cc = { base: 'floor', era: 'agents', items: [{ item: 'coffee_corner', at: [6, 6], id: 'cc' }] };
+  it('compiles a use and an until to timed steps', () => {
+    const { script } = compose({ ...cc, people: [{ id: 'a', at: [8, 9], t: 2, use: { item: 'cc', slot: 1, dur: 4 } }, { id: 'b', at: [6.4, 8.2], until: 7 }] });
+    expect(script).toContainEqual({ frame: 60, who: 'a', op: 'use', item: 'cc', slot: 1, dur: 4 });
+    expect(script).toContainEqual({ frame: 210, who: 'b', op: 'release' });
+  });
+  it('refuses a use of a non-item, a bad slot, an until without a place, and a person with nothing to do', () => {
+    const p = (x) => problemsOf({ ...cc, people: [{ id: 'a', at: [8, 9], ...x }] }).join('\n');
+    expect(p({ use: { item: 'nope' } })).toMatch(/use: item "nope" is not an item id/);
+    expect(p({ use: { item: 'cc', slot: -1 } })).toMatch(/slot must be a whole number/);
+    expect(p({ use: { item: 'cc', speed: 2 } })).toMatch(/unknown key "speed"/);
+    expect(p({ until: 0 })).toMatch(/until must be seconds/);
+    expect(problemsOf({ ...cc, people: [{ id: 'a', use: { item: 'cc' }, until: 3 }] }).join('\n')).toMatch(/until releases a person placed with at/);
+    expect(problemsOf({ ...cc, people: [{ id: 'a' }] }).join('\n')).toMatch(/exactly one of seat/);
+  });
 });
 
 describe('compose moments, era and keep', () => {

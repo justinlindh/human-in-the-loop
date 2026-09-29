@@ -39,7 +39,10 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
   // A compose script (compose.mjs) says what a game state cannot: where someone stands and what they play.
   // It goes through the game's own hooks (R.catchFor for a stand, the character's gesture(), R.robot.force),
   // and the scene settles for a moment before frame 0, so script frames count from a scene at rest.
-  const pending = script.filter((e) => e.op === 'gesture').map((e) => ({ ...e }));
+  const TIMED = ['gesture', 'use', 'release'];
+  const pending = script.filter((e) => TIMED.includes(e.op)).map((e) => ({ ...e }));
+  // A visit sent on purpose is the only visit: nobody else wanders in.
+  if (pending.some((e) => e.op === 'use')) R.perks.hold = true;
   if (script.length || S.robot?.cause) {
     const { stageLayout } = await import('../../src/render/layout.js');
     const L = stageLayout(S.officeStage, S.office.expansion ?? 0);
@@ -80,10 +83,19 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
   const applyScript = (at) => {
     for (const e of pending) {
       if (e.done || e.frame > at) continue;
+      e.done = true;
+      if (e.op === 'use') {
+        if (!R.perks.send([e.who], e.item, { slot: e.slot, dur: e.dur })) throw new Error(`scene-engine: compose use: ${e.who} cannot use "${e.item}" (not a perk item, or no such person)`);
+        continue;
+      }
+      // A placed person is let go: the game's own release, back to their goal.
+      if (e.op === 'release') {
+        if (!R.catchFor(e.who, null, { walk: true })) throw new Error(`scene-engine: compose release: no such person ${e.who}`);
+        continue;
+      }
       const c = character(e.who);
       if (!c) throw new Error(`scene-engine: compose gesture: no such person ${e.who}`);
       c.gesture(e.name, e.seconds ?? 4);
-      e.done = true;
     }
   };
   applyScript(0);
