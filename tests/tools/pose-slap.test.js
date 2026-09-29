@@ -22,6 +22,13 @@ describe('pose.mjs --gesture slap', () => {
     expect(r.stdout).toMatch(/robotDepth<=0\.01/);
   });
 
+  it('pins the fixer turn with the stage facing rule: a fixer squared far off the robot fails robotAngle', () => {
+    const r = run(...base, '--param', 'src/render/robot.js:SLAP.aside=0.8');
+    expect(r.status, r.stdout + r.stderr).toBe(1);
+    expect(r.stdout).toMatch(/worst cell.*robotAngle<=35@0\.8: 0%/);
+    expect(run(...base, '--param', 'src/render/robot.js:SLAP.aside=0.3').status).toBe(0);
+  });
+
   it('reads the hand landing on the robot head within the stage rule', () => {
     const dir = mkdtempSync(join(tmpdir(), 'slaptest-')), out = join(dir, 'm.json');
     const r = run('--gesture', 'slap', '--matrix', 'views=0,postures=stand,builds=1,rig=on', '--measure', 'robotContact,robotAngle', '--json', out);

@@ -17,7 +17,7 @@
 //   contact.robotAngle    degrees between the fixer's face direction and the robot head (stage's facingRobot)
 import * as THREE from 'three';
 import { createCharacter, SLAP_AT } from '/src/render/character.js';
-import { buildRig, SLAP } from '/src/render/robot.js';
+import { buildRig, SLAP, slapPose, JOLT_DECAY } from '/src/render/robot.js';
 import { loadModels, getTemplate } from '/src/render/models.js';
 import { setRigEnabled } from '/src/render/rig.js';
 import { overlaps } from './intersect.js';
@@ -26,6 +26,7 @@ import { coverCamera } from './pose-measure.js';
 
 const AFTER_S = 1.1;   // how long the game keeps the fixer in the slap anim after SLAP_AT (robot.js temp t)
 const PITCH = Math.atan(1 / Math.SQRT2);
+const SIDE = -1;
 const START_YAW = Math.PI / 4;
 const TO_CAMERA = new THREE.Vector3(Math.sin(START_YAW) * Math.cos(PITCH), Math.sin(PITCH), Math.cos(START_YAW) * Math.cos(PITCH));
 
@@ -62,9 +63,12 @@ export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30,
   const c = createCharacter({ ...look, build }, undefined, { seed });
   // The game tries SLAP.radii in order and takes the first clear ring, so an open floor gives the first.
   const r = SLAP.radii[0];
-  c.root.position.set(0, 0, r);
-  // Facing the robot from +z: heading pi, then the game's offset so the robot's head sits to the right.
-  c.root.rotation.y = Math.PI - SLAP.aside;
+  // The game picks the spot side-on to the camera (the robot to the fixer's left or right of the view), so the
+  // swing reads across the screen: a quarter turn off the camera's own bearing.
+  const bearing = START_YAW + SIDE * Math.PI / 2;
+  c.root.position.set(Math.sin(bearing) * r, 0, Math.cos(bearing) * r);
+  // Turned to the robot, then the game's offset so the robot's head sits to the side.
+  c.root.rotation.y = Math.atan2(-c.root.position.x, -c.root.position.z) - SLAP.aside;
   pair.add(c.root);
   const scene = new THREE.Scene();
   scene.add(pair);
@@ -78,25 +82,20 @@ export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30,
   let t = 0, started = false;
   c.setAnim('idle');
   // The robot as robot.js holds it for the slap: turned an ear to the fixer (fixYaw), its head tipped away
-  // (SLAP.cringe) from the moment the fixer is sent, then jolted when the hand lands. The jolt terms mirror
-  // pose() in robot.js, which keeps them inside createRobot.
+  // from the moment the fixer is sent, then jolted when the hand lands; the tilt and lean are robot.js's slapPose.
   const fixYaw = Math.atan2(0 - c.root.position.x, 0 - c.root.position.z) + Math.PI / 2;
   const fixSide = Math.sign(c.root.position.x * Math.cos(fixYaw) - c.root.position.z * Math.sin(fixYaw)) || 1;
   robotRig.root.rotation.y = fixYaw;
-  robotRig.head.rotation.z = SLAP.cringe * fixSide;
+  robotRig.head.rotation.z = slapPose(0, { cringeSide: fixSide }).headZ;
   let jolt = 0, slapped = false;
   const step = () => {
     if (!started && t >= SLAP.turnS - 1e-9) { c.setAnim('slap'); started = true; }
     c.update(dt);
     t = +(t + dt).toFixed(6);
     if (!slapped && t - SLAP.turnS >= SLAP_AT) { slapped = true; jolt = 1; }
-    let headZ = slapped ? Math.sin(t * 1.1) * 0.05 : SLAP.cringe * fixSide, lean = 0;
-    if (jolt > 0) {
-      jolt = Math.max(0, jolt - dt * 1.4);
-      const j = jolt * jolt;
-      headZ += Math.sin(t * 38) * 0.35 * j + 0.3 * j;
-      lean -= 0.12 * j;
-    }
+    if (jolt > 0) jolt = Math.max(0, jolt - dt * JOLT_DECAY);
+    const o = slapPose(t, { cringeSide: slapped ? 0 : fixSide, jolt });
+    const headZ = (slapped ? Math.sin(t * 1.1) * 0.05 : 0) + o.headZ, lean = o.lean;
     const k = 1 - Math.exp(-dt * 10);
     robotRig.head.rotation.z += (headZ - robotRig.head.rotation.z) * k;
     robotRig.torso.rotation.x += (lean - robotRig.torso.rotation.x) * k;
