@@ -75,6 +75,25 @@ describe('printer_jam fires in a window after the Office Floor (#1022)', () => {
     expect(s.pendingDecision).toBe(null);
   });
 
+  it('passes the same era check as random events', () => {
+    const ev = EVENTS.printer_jam;
+    const s = onTheFloor(4);
+    s.era = { id: 'classic', since: 0 };
+    windowsSystem(makeCtx(s));
+    s.week = windowWeek(s, ev);
+    const eras = ev.eras;
+    try {
+      ev.eras = ['plateau'];
+      windowsSystem(makeCtx(s));
+      expect(s.pendingDecision).toBe(null);
+      ev.eras = undefined;
+      windowsSystem(makeCtx(s));
+      expect(s.pendingDecision?.eventId).toBe('printer_jam');
+    } finally {
+      ev.eras = eras;
+    }
+  });
+
   it('never fires in the garage', () => {
     const s = onTheFloor();
     s.officeStage = 0;
