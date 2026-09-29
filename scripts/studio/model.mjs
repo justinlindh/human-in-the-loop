@@ -110,7 +110,7 @@ export function sampleScene(R, S, { frame, who = null, facts = [], width = 1600,
         bounds: boxJSON(b), visible: shown(mesh), instanced: !!mesh.isInstancedMesh, skinned: !!mesh.isSkinnedMesh };
     });
     const object = { id: record.id, kind: record.kind, staffId: record.staffId ?? null, itemId: record.itemId ?? null,
-      placedId: record.placedId ?? null, role: record.role ?? null, visible: shown(root), world: root.matrixWorld.toArray(), bounds: boxJSON(box), parts };
+      placedId: record.placedId ?? null, role: record.role ?? null, visible: shown(root), world: root.matrixWorld.toArray(), position: root.matrixWorld.elements.slice(12, 15), bounds: boxJSON(box), parts };
     if (record.kind === 'person') {
       const character = globalThis.__sceneCharacters?.get(root);
       const walk = R.walkOf(record.staffId);
