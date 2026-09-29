@@ -194,6 +194,26 @@ describe('advisors: options', () => {
     expect(tryIt(s, pair).ok).toBe(true);
   });
 
+  it('never suggests more work for someone burned out or coasting', () => {
+    const { s, keeper } = oneKeeper();
+    s.comprehensionDebt = B.advisor.debt[1];
+    const named = () => [...find(s, `busFactor:${keeper.id}`).options, ...find(s, 'debt').options].filter((o) => o.target.assign).map((o) => o.target.arg);
+    const first = named();
+    expect(first.length).toBeGreaterThan(0);
+    for (const id of new Set(first)) {
+      const p = s.staff.find((x) => x.id === id);
+      for (const mood of ['burnout', 'coasting']) {
+        const was = p.mood;
+        p.mood = mood;
+        expect(named(), `${mood} ${p.name}`).not.toContain(id);
+        p.mood = was;
+      }
+    }
+    keeper.mood = 'burnout';
+    s.staff.push({ ...structuredClone(s.staff.find((x) => x !== keeper)), id: 'jr', seniority: 'junior' });
+    expect(find(s, `busFactor:${keeper.id}`)?.options.some((o) => o.target.assign?.type === 'mentor' && o.target.arg === keeper.id) ?? false).toBe(false);
+  });
+
   it('the pairing option is left out when the keeper has no work to share', () => {
     const { s, keeper } = oneKeeper();
     keeper.assignment = { type: 'idle', targetId: null };

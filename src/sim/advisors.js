@@ -9,6 +9,7 @@ import { freeBuilders } from './projects.js';
 import { isUnlocked } from './unlocks.js';
 import { ERAS } from '../data/eras.js';
 import { ADVICE_LINES } from '../data/advisors.js';
+import { ROLE_JOBS, ROLE_JOBS_FALLBACK } from '../data/roles.js';
 
 // Policies an advisor mentions once they've sat unlocked and unused for a while; after a window it lets them go.
 const WORTH_A_LOOK = ['sabbatical', 'apprenticeship', 'craft_fridays', 'blameless', 'no_crunch'];
@@ -113,20 +114,16 @@ function observe(state) {
 const idleSquads = (state) => (state.squads ?? []).filter((sq) => sq.memberIds.length && sq.posting.type === 'idle'
   && sq.benchUntil === null && state.week - sq.postedWeek >= B.squadIdleWeeks);
 
-// The jobs the staff screen's "Doing" picker offers each role, besides projects and idle.
-const JOBS_BY_ROLE = {
-  engineer: ['maintenance', 'oversight', 'security', 'support'], designer: ['maintenance', 'oversight'],
-  marketer: ['marketing', 'oversight', 'sales'], support: ['support', 'oversight'], security: ['security', 'oversight', 'maintenance'],
-  sales: ['sales', 'marketing', 'oversight'],
-};
-const offered = (p, type) => ['project', 'idle'].includes(type) || (type === 'mentor' ? p.seniority !== 'junior' : (JOBS_BY_ROLE[p.role] ?? ['maintenance', 'oversight']).includes(type));
+const offered = (p, type) => ['project', 'idle'].includes(type) || (type === 'mentor' ? p.seniority !== 'junior' : (ROLE_JOBS[p.role] ?? ROLE_JOBS_FALLBACK).includes(type));
+// Nobody away, burned out or coasting gets suggested for more work.
+const UNFIT = new Set(['away', 'burnout', 'coasting']);
 
-// Who to suggest for a job: someone in, not already doing it, whose picker offers it and who may take it.
-// Idle people first, then people off project work, then the least know-how.
+// Who to suggest for a job: someone in and up to it, not already doing it, whose picker offers it and who may
+// take it. Idle people first, then people off project work, then the least know-how.
 function someoneFor(state, job, fits = () => true) {
   const busy = (p) => (p.assignment.type === 'idle' ? 0 : p.assignment.type === 'project' ? 2 : 1);
   return state.staff
-    .filter((p) => p.mood !== 'away' && fits(p) && offered(p, job.type) && !validateAssignment(state, p, job)
+    .filter((p) => !UNFIT.has(p.mood) && fits(p) && offered(p, job.type) && !validateAssignment(state, p, job)
       && !(p.assignment.type === job.type && (p.assignment.targetId ?? null) === (job.targetId ?? null)))
     .sort((x, y) => busy(x) - busy(y) || x.knowledge - y.knowledge || (x.id < y.id ? -1 : 1))[0];
 }
@@ -193,7 +190,7 @@ function optionsFor(state, a) {
     }
     case 'busFactor': {
       const p = person(id);
-      const mentee = unmentored.find((j) => p && !validateAssignment(state, p, { type: 'mentor', targetId: j.id }));
+      const mentee = unmentored.find((j) => p && !UNFIT.has(p.mood) && !validateAssignment(state, p, { type: 'mentor', targetId: j.id }));
       if (mentee) assign(`Have ${first(p)} mentor ${first(mentee)}`, p, { type: 'mentor', targetId: mentee.id });
       if (!state.policies.daily_standups && !state.policies.async_standups && isUnlocked(state, 'policy.daily_standups')) opt('Switch on standups, so knowledge gets shared', 'policies', 'daily_standups');
       // Working the same job as the one who knows it: another pair of hands on their project or their beat.
