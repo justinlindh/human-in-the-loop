@@ -6,7 +6,7 @@
 //        [--weeks 12] [--max-seconds 120] [--until '<js over S>'] [--tail 3]
 //        [--choose 'event_id=1,other=0'] [--default-choice 0] [--decision-hold 2]
 //        [--out clip.mp4] [--log log.json] [--log-js '<js over S, R>'] [--every 1]
-//        [--no-focus-yield] [--ease-rate 4] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
+//        [--focus-yield] [--ease-rate 4] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
 //
 // The snapshot loads through the title screen's Continue path and the game's own loop runs on
 // virtual time (loop-page.mjs), so decision freezes, spotlights and the UI behave as for a player.
@@ -99,8 +99,8 @@ try {
       const target = point();
       // The first frame cuts onto the target; after that the camera is re-aimed every frame with
       // R.easeTo, so the game's own per-frame camera never gets a stretch to itself. While a spotlight
-      // moment plays the moment's camera keeps the framing (--no-focus-yield aims through it), and the
-      // aim resumes the frame it ends.
+      // moment plays --focus-yield leaves the moment's own camera alone, and the aim resumes the frame it
+      // ends; without it the aim holds through spotlights too.
       if (target?.p && (frame === 0 || !(yieldFocus && R.spotlight?.()))) {
         if (frame === 0) R.focusAt(target.p.x, target.p.z, zoom); else R.easeTo(target.p.x, target.p.z, zoom, rate);
       }
@@ -140,7 +140,7 @@ try {
         },
         held, stop, busy: !!clock.busy && !S.pendingDecision, gameOver: !!S.gameOver,
       };
-    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: !argv.includes('--no-focus-yield'), rate: Number(opt('ease-rate', 4)) });
+    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield'), rate: Number(opt('ease-rate', 4)) });
     decisionFor = row.held;
     log.push(row.row);
     // A "Got it" card (a toast card the UI holds the game on) is dismissed like a player would.
