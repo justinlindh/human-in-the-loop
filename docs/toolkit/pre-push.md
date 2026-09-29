@@ -1,7 +1,7 @@
 ---
 tool: `scripts/hooks/pre-push` (`npm run hooks`)
 section: pr
-covers: scripts/hooks/pre-push scripts/hooks/pre-push.test.sh
+covers: scripts/hooks/pre-push scripts/hooks/pre-push.test.sh scripts/hooks/post-checkout
 ---
 Before every push:
 - It refuses pushes to a branch whose PR has already merged or closed.
@@ -9,3 +9,4 @@ Before every push:
 - It tests the checkout as it is, uncommitted changes included, and says so when the tree is dirty.
 - The test gate is skipped in CI, for a push that only touches the `pr-media` branch or deletes branches, and where `package.json` has no `test:fast`.
 - `git push --no-verify` skips both once.
+Before the tests it runs `scripts/check-commits.sh` over the commits the push adds beyond `origin/main`, so a `wip:` or otherwise non-conventional commit, or one with attribution, refuses the push (skipped in CI and when `origin/main` or the script is missing). The `post-checkout` hook links `node_modules` from the main checkout into every new `git worktree add` worktree, so this gate runs there without an install.

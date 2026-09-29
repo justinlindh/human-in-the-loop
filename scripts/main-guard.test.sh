@@ -122,8 +122,11 @@ wait 2>/dev/null
 # Shared checkout: fast-forwarded when clean and idle, left alone when a ci-pr runs in it.
 # A bare stand-in origin whose main is this HEAD, and a clone of it one commit behind.
 git init -q --bare -b main "$tmp/origin.git"
-git -C "$REPO" push -q --no-verify "$tmp/origin.git" "HEAD:refs/heads/main" 2>/dev/null
+git -C "$REPO" push -q --no-verify "$tmp/origin.git" "HEAD:refs/heads/main" \
+  || { echo "FAIL the stand-in origin could not be seeded (the push above failed); the shared-checkout cases cannot run"; exit 1; }
 shared="$tmp/shared"; git clone -q "$tmp/origin.git" "$shared" 2>/dev/null
+[ -n "$(git -C "$shared" rev-parse --verify -q HEAD)" ] \
+  || { echo "FAIL the stand-in origin's clone is empty; the shared-checkout cases cannot run"; exit 1; }
 git -C "$shared" checkout -q -B main "$(git -C "$REPO" rev-parse HEAD~1)"
 case_root="$tmp/root-sync"; sl="$tmp/sync.log"; : >"$sl"
 guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
