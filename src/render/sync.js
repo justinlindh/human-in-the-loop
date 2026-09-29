@@ -44,6 +44,7 @@ const STANDUP_QUIET_M = 1.5;  // beyond the standup ring, how far other speech s
 // standing facepalmer turns this far off square to the camera.
 const PALM_PICK = { nearM: 0.1, farM: 2.5, acrossM: 0.8, clear: 8, standing: 4, idle: 2, turn: 0.35 };
 const POST_REACT_S = 2.2;
+const SWIVEL = 0.9;            // radians a seated person turns in their chair, either way
 // A standing person's bounds (metres) for screen tests, with room for a lean or a reaching arm:
 // half-width and height.
 const BODY_BOX = { r: 0.45, h: 1.3 };
@@ -590,10 +591,19 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const palm = here.shift();
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
     // Bring the temple hand toward the camera instead of behind the far cheek.
-    if (!palm.char.seated) palm.face = { yaw: yaw + PALM_PICK.turn, t: POST_REACT_S, post: true };
+    // Seated, they swivel as far as the chair allows, so a desk facing a wall still shows the palm.
+    let turnTo = yaw + PALM_PICK.turn;
+    const seat = palm.char.seated && palm.goal?.seated ? palm.goal : null;
+    if (seat) {
+      // Of the headings the chair reaches, the one nearest the camera.
+      const steps = [-1, -0.5, 0, 0.5, 1].map((k) => seat.yaw + k * SWIVEL);
+      turnTo = steps.reduce((a, b) => (Math.cos(b - yaw) > Math.cos(a - yaw) ? b : a));
+    }
+    palm.face = { yaw: turnTo, t: POST_REACT_S, post: true };
     palm.char.setEmote(null);
     palm.emoteT = 0;
-    palm.char.gesture('facepalm', POST_REACT_S);
+    // Whichever hand's cheek the turn leaves facing the camera.
+    palm.char.gesture('facepalm', POST_REACT_S, Math.sin(turnTo - yaw) >= 0 ? -1 : 1);
     const near = here.sort((a, b) => a.pos.distanceToSquared(palm.pos) - b.pos.distanceToSquared(palm.pos));
     // The nearest two turn to look. Nobody standing in front of the facepalmer on screen gets a
     // bubble, since it would sit over their face.
@@ -611,7 +621,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (seat) {
       let d = ((yaw - seat.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
       if (d < -Math.PI) d += Math.PI * 2;
-      yaw = seat.yaw + Math.max(-0.9, Math.min(0.9, d));
+      yaw = seat.yaw + Math.max(-SWIVEL, Math.min(SWIVEL, d));
     }
     a.face = { yaw, t: 3.6 };
   }
@@ -963,7 +973,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // Mood emotes now and then, so state reads without UI.
     r.moodEmoteT -= dt;
     // Not in the middle of a moment (moments.js): their own emotes carry it.
-    if (r.moodEmoteT <= 0 && !r.hidden && !r.temp?.moment) {
+    if (r.moodEmoteT <= 0 && !r.hidden && !r.temp?.moment && !c.anim.startsWith('facepalm')) {
       r.moodEmoteT = rnd(9, 18);
       const m = r.staff.mood;
       if (!c.emote) {
@@ -982,7 +992,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
 
     // Pause a walking reactor without discarding their route or errand.
-    if (c.anim === 'facepalm' && r.face?.post && !r.temp?.moment) {
+    if ((c.anim === 'facepalm' || c.anim === 'facepalmsit') && r.face?.post && !r.temp?.moment) {
       r.yaw = angleLerp(r.yaw, r.face.yaw, 1 - Math.exp(-dt * 8));
     } else if (r.path.length) {
       stepWalker(r, dt, r.walkAnim);
