@@ -3,13 +3,15 @@ import { mat } from './materials.js';
 import { footprint } from './layout.js';
 import { kindOf, frontEdge } from './office.js';
 import { sinkDepth, furnitureMeshes } from './contact.js';
+import { between, draw } from './rand.js';
 
 // Perk visits: people leave their desks to use what is placed in the office (coffee, nap pod,
 // couch, arcade, shelves, plant wall, ping pong, foosball). One visit holds one slot on an item;
 // tables need a pair. Visits are more likely for happy or lightly loaded people, rarer in a crunch;
 // burned-out people only go somewhere to rest.
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
+const rnd = (a, b) => between(a, b, 'perks');
+const chance = () => draw('perks');
 
 // Spots are in the item's local frame (origin at the footprint center, front toward +z).
 // face: 'item' looks at the item, 'front' faces the way the item faces, 'axis' lies along it.
@@ -237,7 +239,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
 
   function pickWeighted(items, w) {
     const total = items.reduce((s, x) => s + w(x), 0);
-    let k = Math.random() * total;
+    let k = chance() * total;
     for (const x of items) { k -= w(x); if (k <= 0) return x; }
     return items[items.length - 1];
   }
@@ -297,7 +299,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     }
     if (def.bursts) {
       tp.burstT -= dt;
-      if (tp.burstT <= 0) { tp.burstT = rnd(3, 5); tp.burst = 1.0; if (Math.random() < 0.5) emote(r, 'sparkle', 1.2); }
+      if (tp.burstT <= 0) { tp.burstT = rnd(3, 5); tp.burst = 1.0; if (chance() < 0.5) emote(r, 'sparkle', 1.2); }
       // Seated players cheer in their seat (a quick sparkle) rather than jumping off the stool.
       if (tp.burst > 0 && !tp.lift) { tp.burst -= dt; r.char.setAnim(tp.burst > 0 ? 'celebrate' : tp.anim); return true; }
       if (tp.burst > 0) tp.burst = 0;
@@ -355,7 +357,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     foosServe(s.foos);
   }
   function foosServe(f) {
-    f.x = 0; f.z = rnd(-0.05, 0.05); f.vx = (Math.random() < 0.5 ? -1 : 1) * rnd(0.45, 0.7); f.vz = rnd(-0.25, 0.25); f.drop = 0; f.pop = 0.35; f.last = null;
+    f.x = 0; f.z = rnd(-0.05, 0.05); f.vx = (chance() < 0.5 ? -1 : 1) * rnd(0.45, 0.7); f.vz = rnd(-0.25, 0.25); f.drop = 0; f.pop = 0.35; f.last = null;
   }
   function foosTick(f, dt) {
     if (f.drop > 0) {
@@ -371,7 +373,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       FOOS.rods.forEach((rx, i) => {
         if (f.last === i || (px - rx) * (f.x - rx) > 0) return;
         f.last = i;
-        if (Math.random() < 0.55) {
+        if (chance() < 0.55) {
           f.vx = -Math.sign(f.vx) * rnd(0.45, 0.85); f.vz = rnd(-0.45, 0.45);
           f.spin[i] = Math.sign(f.vx) * 14;
         }
@@ -405,7 +407,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     if (s.foos) { foosEnd(s.foos); s.foos = null; }
     const live = [s.a, s.b].filter((r) => r.temp?.pair === s);
     if (played && live.length === 2) {
-      const win = Math.random() < 0.5 ? 0 : 1;
+      const win = chance() < 0.5 ? 0 : 1;
       live.forEach((r, i) => {
         r.temp.anim = i === win ? 'celebrate' : 'groan';
         r.temp.t = 1.8;
@@ -471,7 +473,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       const free = freeSlots();
       const couch = free.find((s) => s.kind === 'couch');
       const solo = free.filter((s) => !s.def.pair);
-      const slot = couch && Math.random() < 0.5 ? couch : solo[Math.floor(Math.random() * solo.length)];
+      const slot = couch && chance() < 0.5 ? couch : solo[Math.floor(chance() * solo.length)];
       if (slot) {
         visit(stayer, slot);
         if (slot === couch) {

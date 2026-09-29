@@ -5,6 +5,7 @@ import { roundedBox, roundedCylinder, mesh } from './prims.js';
 import { PALETTE as P } from './palette.js';
 import { wallGap } from './office.js';
 import { loadRig } from './rig.js';
+import { between, draw, shuffled } from './rand.js';
 
 // Incentive rewards. { type: 'incentive', staffId, reward } where reward is 'balloons' (on the
 // winner's desk until the next award), 'caricature' (a framed big-head portrait on the wall), or
@@ -32,7 +33,7 @@ const ROLL_S = 2.2;
 const DIM = 1.9;            // how far the room lights drop (see lighting.setSkeleton)
 const POOL = 5.5;             // warm light over the table
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
+const rnd = (a, b) => between(a, b, 'incentives');
 const TAU = Math.PI * 2;
 
 // Chibi-sized waffles: a tall stack with a grid on top, syrup running down, cream and berries.
@@ -275,8 +276,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     r.temp = { anim: v.sit ? 'sit' : 'sip', t: PARTY_S, goal: seat, back: true, party: true };
     walkTo(r, seat);
     hurry(r, 3);
-    const others = [...recs.values()].filter((o) => o !== r && !o.hidden && o.mode === 'placed' && !o.temp)
-      .sort(() => Math.random() - 0.5).slice(0, 3);
+    const others = shuffled([...recs.values()].filter((o) => o !== r && !o.hidden && o.mode === 'placed' && !o.temp), 'incentives').slice(0, 3);
     const watchers = others.map((o, i) => {
       const spot = v.watch(i);
       spot.yaw = Math.atan2(v.center.x - spot.x, v.center.z - spot.z);
@@ -338,7 +338,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (p.t > ROLL_S + 2 && !p.cheered) {
       p.cheered = true;
       emote(p.r, 'sparkle', 3);
-      for (const w of p.watchers) if (recs.has(w.id)) emote(w, Math.random() < 0.5 ? 'sweat' : 'storm', rnd(2.5, 4));
+      for (const w of p.watchers) if (recs.has(w.id)) emote(w, draw('incentives', w.id) < 0.5 ? 'sweat' : 'storm', rnd(2.5, 4));
     }
     if (p.t >= PARTY_S + 1) endParty();
   }
@@ -420,8 +420,8 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       hurry(r, 3);
     });
     const taken = new Set(dancers);
-    const crowd = [...recs.values()].filter((o) => !taken.has(o) && !o.hidden && o.mode === 'placed' && !o.temp)
-      .sort(() => Math.random() - 0.5).slice(0, 3).map((o, i) => {
+    const crowd = shuffled([...recs.values()].filter((o) => !taken.has(o) && !o.hidden && o.mode === 'placed' && !o.temp), 'incentives')
+      .slice(0, 3).map((o, i) => {
         // Onlookers stand to the sides and back, never between the camera and the dancers.
         const p = at(...[[-2.2, 0.2], [2.2, 0.2], [1.8, -1.5]][i]);
         const spot = { x: p.x, z: p.z, yaw: Math.atan2(center.x - p.x, center.z - p.z), anim: 'idle' };
@@ -479,7 +479,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     if (d.t > ROLL_S + 1.5 && !d.cheered) {
       d.cheered = true;
       emote(d.dancers[0], 'music', 3);
-      for (const w of d.crowd) if (recs.has(w.id)) emote(w, Math.random() < 0.5 ? 'sparkle' : 'heart', rnd(2, 3.5));
+      for (const w of d.crowd) if (recs.has(w.id)) emote(w, draw('incentives', w.id) < 0.5 ? 'sparkle' : 'heart', rnd(2, 3.5));
     }
     if (d.t >= d.dur + 1) endDance();
   }

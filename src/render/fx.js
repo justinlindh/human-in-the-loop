@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
+import { draw } from './rand.js';
+
+// Confetti spread comes from the seeded stream too, so a replayed state draws the same frames.
+const spray = () => draw('fx');
 
 const MAX_CONFETTI = 6;
 const PIECES = 70;
@@ -36,12 +40,12 @@ export function createFx({ scene, overlayEl }) {
     s.active = true; s.t = 0; s.life = 2.6;
     s.mesh.visible = true;
     for (let i = 0; i < PIECES; i++) {
-      const a = Math.random() * Math.PI * 2, r = Math.random() * 0.25 * spread;
+      const a = spray() * Math.PI * 2, r = spray() * 0.25 * spread;
       s.p[i * 3] = x + Math.cos(a) * r; s.p[i * 3 + 1] = y; s.p[i * 3 + 2] = z + Math.sin(a) * r;
-      const up = (3.2 + Math.random() * 2.2) * power;
-      const out = (0.6 + Math.random() * 1.6) * spread;
+      const up = (3.2 + spray() * 2.2) * power;
+      const out = (0.6 + spray() * 1.6) * spread;
       s.v[i * 3] = Math.cos(a) * out; s.v[i * 3 + 1] = up; s.v[i * 3 + 2] = Math.sin(a) * out;
-      s.r[i * 3] = Math.random() * 6; s.r[i * 3 + 1] = Math.random() * 6; s.r[i * 3 + 2] = 4 + Math.random() * 8;
+      s.r[i * 3] = spray() * 6; s.r[i * 3 + 1] = spray() * 6; s.r[i * 3 + 2] = 4 + spray() * 8;
     }
     if (s.mesh.instanceColor) s.mesh.instanceColor.needsUpdate = true;
   }

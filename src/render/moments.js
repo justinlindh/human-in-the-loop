@@ -5,6 +5,7 @@ import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
 import { printerModel, visitorChairModel } from './props.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
+import { between, draw } from './rand.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -27,7 +28,8 @@ import { MOMENT_KINDS } from './spotlight-kinds.js';
 //   carrier the pet carrier: the requester bends over it and peers in; an adopted pet steps out of
 //          it (pets.js).
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
+// Who a moment picks, where its ring starts and how long it runs come from the seeded stream.
+const rnd = (a, b) => between(a, b, 'moments');
 
 // How willing someone is to wander off for a moment, by what they are assigned to.
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
@@ -154,7 +156,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const out = [];
     while (out.length < n && pool.length) {
       const w = pool.map((r) => (IDLE_W[r.staff.assignment?.type ?? 'idle'] ?? 0.5) / (near ? 1 + Math.hypot(r.pos.x - near.x, r.pos.z - near.z) ** 2 / 4 : 1));
-      let k = Math.random() * w.reduce((a, b) => a + b, 0), i = 0;
+      let k = draw('moments') * w.reduce((a, b) => a + b, 0), i = 0;
       for (; i < pool.length - 1; i++) { k -= w[i]; if (k <= 0) break; }
       out.push(pool.splice(i, 1)[0]);
     }
@@ -177,7 +179,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // view, spots also seen after a quarter turn either way come first, and nobody stands in front of
   // another's spot.
   function ringSpots(at, radius, n, { far = false, strict = false, moment = 'ring', search = 'ring' } = {}) {
-    const start = Math.random() * Math.PI * 2;
+    const start = draw('moments') * Math.PI * 2;
     const yaw = getYaw(), cx = Math.sin(yaw), cz = Math.cos(yaw);
     const ring = (base) => {
       const cands = [];
@@ -277,7 +279,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     people.slice(0, spots.length).forEach((r, i) => {
       r.temp = { anim: 'eat', t: rnd(...PIZZA.dur), goal: spots[i], back: true, moment: 'pizza', stage: { beat: 'eat', target: p.obj } };
       walkTo(r, spots[i]);
-      if (Math.random() < 0.5) emote(r, 'heart', 1.8);
+      if (draw('moments', r.id) < 0.5) emote(r, 'heart', 1.8);
     });
     spotlightActors('pizza', p.obj, people.filter((r) => r.temp?.moment === 'pizza'));
   }
@@ -286,7 +288,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (!due(`screen|${kind}`, dt, SCREEN.first, SCREEN.every)) return;
     const seated = free().filter((r) => r.goal?.seated && r.char.seated);
     for (const r of seated) {
-      if (Math.random() > SCREEN.share) continue;
+      if (draw('screen', r.id) > SCREEN.share) continue;
       emote(r, 'exclamation', 2);
       if (!lite()) r.temp = { anim: 'recoil', t: rnd(...SCREEN.dur), keepPos: true, delay: rnd(0, 0.8), moment: 'screen', stage: { beat: 'recoil' } };
     }

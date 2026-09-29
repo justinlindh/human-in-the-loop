@@ -9,6 +9,7 @@ import { printParts } from './prints.js';
 import { emoteMaterial } from './emotes.js';
 import { bakedMaterial, bakeParts } from './bake.js';
 import { rigClips, rigEnabled } from './rig.js';
+import { draw } from './rand.js';
 
 // Chibi assembly from the named parts in chibi.glb, animated with plain transforms.
 // Pivots: neck (head parts), waist (torso parts), shoulder (arm), wrist (hand), hip (leg), ankle (shoe).
@@ -170,7 +171,7 @@ function part(tpl, name) {
 // A small generator for one character's animation timing (phase, blinks, breaths). Seeded from the
 // staff id, a person moves the same way however much else was randomised before they appeared.
 function timingRandom(seed) {
-  if (seed == null) return Math.random;
+  if (seed == null) return () => draw('timing');
   let h = 2166136261;
   for (const ch of String(seed)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
   return () => {

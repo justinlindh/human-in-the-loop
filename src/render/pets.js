@@ -4,6 +4,7 @@ import { mat } from './materials.js';
 import { emoteMaterial } from './emotes.js';
 import { footprint } from './layout.js';
 import { kindOf } from './office.js';
+import { between, draw } from './rand.js';
 
 // Office pets from state.pets. A dog makes rounds (hearts on the person it visits), naps in a sunny
 // spot or on a beanbag or couch, and now and then chases the cat. A cat sleeps on a rack or a desk,
@@ -19,7 +20,8 @@ const PET_SCALE = 1.45;
 const EMOTE_SIZE = 0.42;
 const RUN = 3.0;
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
+const rnd = (a, b) => between(a, b, 'pets');
+const chance = () => draw('pets');
 function hash(s) { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
 function angleLerp(a, b, k) {
   let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
@@ -147,7 +149,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
       const rig = buildPet(p.species === 'cat' ? 'cat' : 'dog', look);
       parent.add(rig.root);
       const pos = spawnAt(p.species);
-      pets.set(p.id, { id: p.id, data: p, species: p.species === 'cat' ? 'cat' : 'dog', rig, pos, yaw: 0, path: [], mode: 'idle', t: rnd(1, 3), y: 0, pose: 'stand', emoteT: 0, phase: Math.random() * 6 });
+      pets.set(p.id, { id: p.id, data: p, species: p.species === 'cat' ? 'cat' : 'dog', rig, pos, yaw: 0, path: [], mode: 'idle', t: rnd(1, 3), y: 0, pose: 'stand', emoteT: 0, phase: chance() * 6 });
     }
     for (const [id, r] of pets) if (!want.has(id)) { releasePetter(r); r.rig.root.removeFromParent(); pets.delete(id); }
   }
@@ -261,7 +263,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     const L = office.current.L;
     const wins = L.openings.filter((o) => o.kind === 'window' && (o.wall === 'x' || o.wall === 'z'));
     if (!wins.length) return null;
-    const o = wins[Math.floor(Math.random() * wins.length)];
+    const o = wins[Math.floor(chance() * wins.length)];
     return o.wall === 'x' ? { x: -L.W / 2 + 0.6, z: o.at, y: 0 } : { x: o.at, z: -L.D / 2 + 0.6, y: 0 };
   }
 
@@ -270,7 +272,7 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
     const people = [...recs.values()].filter((p) => !p.hidden && p.mode === 'placed');
     if (r.species === 'dog') {
       const cat = [...pets.values()].find((x) => x.species === 'cat' && x.y === 0 && !x.hop && !x.petter);
-      const roll = Math.random();
+      const roll = chance();
       if (cat && roll < 0.15) {
         r.mode = 'chase'; r.t = 5; r.target = cat;
         cat.mode = 'flee'; cat.t = 4; cat.who = null; cat.perch = null; cat.spot = null; cat.target = r;
@@ -287,17 +289,17 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
         return;
       }
       if (people.length && roll < 0.65) {
-        const who = people[Math.floor(Math.random() * people.length)];
+        const who = people[Math.floor(chance() * people.length)];
         const f = who.yaw;
         r.mode = 'visit'; r.who = who; r.t = rnd(3, 5);
         walkTo(r, who.pos.x + Math.sin(f + 1.2) * 0.55, who.pos.z + Math.cos(f + 1.2) * 0.55);
         return;
       }
       const rest = restSpots();
-      const spot = rest.length && Math.random() < 0.5 ? rest[Math.floor(Math.random() * rest.length)] : sunSpot();
+      const spot = rest.length && chance() < 0.5 ? rest[Math.floor(chance() * rest.length)] : sunSpot();
       if (spot) { r.mode = 'nap'; r.t = rnd(10, 16); r.spot = spot; walkTo(r, spot.x + 0.5, spot.z + 0.5); return; }
     } else {
-      const roll = Math.random();
+      const roll = chance();
       const fav = favourite(r.data);
       if (fav && !fav.hidden && roll < 0.3) {
         r.mode = 'visit'; r.who = fav; r.t = rnd(5, 8);
@@ -306,10 +308,10 @@ export function createPets({ office, recs, emote: staffEmote, parent, getProps =
       }
       if (roll < 0.5) {
         const desks = perches('desk');
-        if (desks.length) { const p = desks[Math.floor(Math.random() * desks.length)]; r.mode = 'knock'; r.perch = p; r.t = rnd(4, 6); walkTo(r, p.fx, p.fz); return; }
+        if (desks.length) { const p = desks[Math.floor(chance() * desks.length)]; r.mode = 'knock'; r.perch = p; r.t = rnd(4, 6); walkTo(r, p.fx, p.fz); return; }
       }
       const spots = [...perches('rack'), ...perches('desk'), ...restSpots().map((s) => ({ ...s, fx: s.x + 0.5, fz: s.z + 0.5 }))];
-      if (spots.length) { const p = spots[Math.floor(Math.random() * spots.length)]; r.mode = 'sleep'; r.perch = p; r.t = rnd(14, 22); walkTo(r, p.fx, p.fz); return; }
+      if (spots.length) { const p = spots[Math.floor(chance() * spots.length)]; r.mode = 'sleep'; r.perch = p; r.t = rnd(14, 22); walkTo(r, p.fx, p.fz); return; }
     }
     r.mode = 'idle'; r.t = rnd(3, 6);
   }
