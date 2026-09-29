@@ -1,7 +1,7 @@
 ---
 tool: `blender/checks/clip.mjs [--rig] [--only=<pattern>[,<pattern>]]`
 section: render
-covers: blender/checks/clip.mjs, blender/checks/clip-exact.js
+covers: blender/checks/clip.mjs
 ---
 **Overlap measure.** Every overlap share is the larger of two: the share of sampled vertices inside the furniture, and the exact share of a body part's triangles that cross a furniture surface (`clip-exact.js`, three-mesh-bvh, worst part). The vertex count alone misses a thin slab, such as a head through a desk top, because no vertex lands inside it. `control:head-through-slab` plants a 4 mm slab through a head and requires the vertex share to read 0 and the exact share to flag it.
 
