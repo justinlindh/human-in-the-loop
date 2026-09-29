@@ -1,6 +1,6 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
-import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL } from '../capture-manifest.js';
+import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY } from '../capture-manifest.js';
 
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
 // the music and stingers, and when each voiceover line lands. Change the trailer here; build.js only
@@ -76,6 +76,19 @@ const MEME_ACTIONS = [
   { at: 3.3, js: `[...document.querySelectorAll('.chat.yak .ymeme')].at(-1)?.click()` },
 ];
 
+// One company for the outage stretch: the agents watch a level-2+ NOC, and its next incident is misread.
+const NOC_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0' })}; ${STAGE_ONLY}; })()`;
+// The NOC item's spot on the floor, for the camera.
+const NOC_AT = { js: `(window.__nocAt ??= (() => {
+  const R = window.__hitlRender, T = R.THREE, s = window.__HITL.state, noc = s.office.placed.find((i) => i.itemId === 'noc');
+  const r = noc && R.screenRectOf({ kind: 'item', id: noc.id });
+  if (!r) return undefined;
+  const ray = new T.Raycaster(), p = new T.Vector3();
+  ray.setFromCamera(new T.Vector2(((r.left + r.width / 2) / innerWidth) * 2 - 1, -(((r.top + r.height / 2) / innerHeight) * 2 - 1)), R.camera);
+  return ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), 0), p) ? { x: p.x, z: p.z } : undefined;
+})())` };
+const NOC_CAPTURE = { query: 'seed=45&speed=1', setup: NOC_SETUP, still: false, seconds: 20, screenshots: [], camera: [{ at: 0, target: NOC_AT, zoom: 2.6 }], actions: [...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 14, 16], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 20, 1), ...CAMLOG(20)] };
+
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
@@ -88,7 +101,8 @@ export const BEATS = [
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
   { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
-  { id: 'incident', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: YAK_SETUP, still: false, seconds: 14, screenshots: [], camera: [{ at: 0, target: PEOPLE, zoom: 2.4 }], actions: [...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 14, 1), NO_SAY_T(0), { at: 0.5, js: "document.querySelector('#ui').style.display = 'none'" }] }, from: 8.6, dur: 2.2 },
+  { id: 'noc-watch', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 4.0, dur: 4.2 },
+  { id: 'incident', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 8.2, dur: 2.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
   { id: 'yak', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
@@ -139,6 +153,7 @@ export const VO = {
     { id: 'l1', at: { beat: 'garage', offset: 0.4 }, max: 5.1, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
     { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, max: 1.3, text: 'Hire humans.' },
     { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, max: 1.35, text: 'Ship products.' },
+    { id: 'l2c', at: { beat: 'noc-watch', offset: 0.3 }, max: 3.4, text: 'The dashboards are green. The agents are very confident.' },
     { id: 'l2b', at: { beat: 'incident', offset: 0.2 }, max: 1.7, text: 'Call the outage a stress test.' },
     { id: 'l7', at: { beat: 'yak', offset: 0.3 }, max: 2.5, text: 'Your team talks. Mostly in memes.' },
     { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, max: 3.6, text: 'Survive the AI eras. First chatbots.' },
