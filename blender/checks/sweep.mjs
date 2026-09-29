@@ -49,7 +49,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { planReplay, mentions } from './sweep-plan.js';
+import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -91,6 +91,7 @@ const timeout = Number(opt('timeout', full ? 3600 : 600));
 
 const baseline = (() => { try { return JSON.parse(readFileSync(BASELINE, 'utf8')); } catch { return { accepted: [] }; } })();
 const known = baseline.accepted.map((b) => b.key);
+const acceptedWorst = Object.fromEntries(baseline.accepted.map((b) => [b.key, b.worst]));
 // The issue tracking each accepted violation, printed beside it, so it comes out when that is fixed.
 const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.key, b.issue]));
 
@@ -139,7 +140,7 @@ const windows = [];
 try {
   for (const name of M.mocks) {
     const { page, errors: e } = await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) });
+    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) });
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
@@ -156,7 +157,7 @@ try {
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
     const { page, errors: e } = await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
     const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleLoaded(o),
-      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, item });
+      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item });
     found.push(...r.violations);
     windows.push(...r.windows.map((w) => ({ ...w, query })));
     errors.push(...e.map((x) => `${label}: ${x}`));
@@ -174,7 +175,7 @@ try {
     let limit;
     const r = await Promise.race([
       page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
-        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, item, only: plan?.seeds[seed] ?? null }),
+        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null }),
       new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
     ]);
     clearTimeout(limit);
@@ -223,7 +224,7 @@ mkdirSync(outDir, { recursive: true });
 const unit = (v) => (v.check === 'screen' || v.check === 'tooltip' ? ' of the smaller' : ' m');
 // A baselined violation that got clearly worse counts as new.
 const worst = new Map(ref.map((b) => [b.key, b.worst]));
-const worse = (v) => worst.has(v.key) && v.value > worst.get(v.key) * 1.25 + 0.005;
+const worse = (v) => isWorse(v.value, worst.get(v.key));
 // A seeded game replays the sim, so any sim change reshuffles who walks where and which moments
 // play. In fast mode a new violation seen only in seeded states is advisory (printed, not failed);
 // --full or --strict fails on it too. Mocks and the props pass always count.
