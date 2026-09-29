@@ -3,6 +3,10 @@
 //
 // node scripts/phone-check.js [--devices iphone14,iphone14-land,android,ipad] [--checks a,b]
 //   [--query "seed=7"] [--out shots/phone] [--software|--gpu]
+// Fix loop: --only <check[,check]> is --checks; --failed reruns just the device and check pairs that
+// failed in the last run (recorded in <out>/last-run.json, updated by every run, so a pair that
+// passes on a rerun drops off); --list prints the check and device names. Run the whole thing once
+// before pushing.
 //
 // Devices: iphone14 (390x664), iphone14-land (750x340), iphone-se-land (667x375), android (360x800),
 // android-land (800x360), ipad (768x1024), desktop (1440x900, mouse; layout checks only).
@@ -26,7 +30,7 @@
 // holds the matching render lock.
 import { createServer } from 'vite';
 import { chromium, devices } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
 
@@ -95,9 +99,23 @@ const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement',
 const TOUCH_ONLY = new Set(['pinch', 'toasts', 'taps', 'audio']);
 
 const args = parseArgs(process.argv.slice(2));
-const deviceNames = String(args.devices ?? 'iphone14,iphone14-land,android,ipad').split(',');
-const checks = String(args.checks ?? ALL_CHECKS.join(',')).split(',');
+if (args.list) {
+  console.log(`checks:  ${ALL_CHECKS.join(' ')}\ndevices: ${Object.keys(DEVICES).join(' ')}`);
+  process.exit(0);
+}
 const outDir = resolve(String(args.out ?? 'shots/phone'));
+const recordPath = `${outDir}/last-run.json`;
+const readRecord = () => { try { return JSON.parse(readFileSync(recordPath, 'utf8')).failed ?? []; } catch { return []; } };
+const previouslyFailed = readRecord();
+let pairs = null; // [{ d, c }] when --failed narrows the run
+if (args.failed) {
+  if (!existsSync(recordPath)) { console.error(`phone-check: no ${recordPath}: run once first`); process.exit(2); }
+  pairs = previouslyFailed;
+  if (!pairs.length) { console.log('phone-check: the last run had no failures; run without --failed to check everything'); process.exit(0); }
+  console.log(`phone-check: rerunning ${pairs.length} failed: ${pairs.map((p) => `${p.d}/${p.c}`).join(' ')}`);
+}
+const deviceNames = pairs ? [...new Set(pairs.map((p) => p.d))] : String(args.devices ?? 'iphone14,iphone14-land,android,ipad').split(',');
+const checks = pairs ? [...new Set(pairs.map((p) => p.c))] : String(args.only ?? args.checks ?? ALL_CHECKS.join(',')).split(',');
 const query = typeof args.query === 'string' ? args.query : 'seed=7';
 for (const d of deviceNames) if (!DEVICES[d]) { console.error(`phone-check: unknown device ${d}`); process.exit(2); }
 for (const c of checks) if (!ALL_CHECKS.includes(c)) { console.error(`phone-check: unknown check ${c}`); process.exit(2); }
@@ -516,6 +534,7 @@ try {
   for (const d of deviceNames) {
     for (const c of checks) {
       if (d === 'desktop' && TOUCH_ONLY.has(c)) continue;
+      if (pairs && !pairs.some((p) => p.d === d && p.c === c)) continue;
       let g;
       try { g = await openGame(d); } catch (e) {
         const r = { fails: [e.gameDidNotLoad ? `game didn't load, twice: ${e.message}` : `could not open the game: ${String(e.message ?? e).split('\n')[0]}`] };
@@ -537,5 +556,7 @@ try {
   await server.close();
 }
 const failed = results.filter((r) => r.fails.length);
+const ran = (p) => results.some((r) => r.d === p.d && r.c === p.c);
+writeFileSync(recordPath, JSON.stringify({ failed: [...previouslyFailed.filter((p) => !ran(p)), ...failed.map((r) => ({ d: r.d, c: r.c }))] }));
 console.log(`phone-check: ${results.length - failed.length}/${results.length} passed; screenshots in ${outDir}`);
 process.exit(failed.length ? 1 : 0);

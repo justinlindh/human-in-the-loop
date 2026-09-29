@@ -38,6 +38,11 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
+// Facepalm shoulder pitch, lift and spread for the palm hand, then head bow and body lean, standing and seated.
+const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
+const PALM_SHOULDER_REF = 0.18;   // metres from the spine to the shoulder of the middle build
+const PALM_BUILD_K = 3;
+const PALM_SIT = [-3.05, 0.12, 0.04, -0.75, 0.1];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
@@ -418,7 +423,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let tired = false;
   let flush = 0;
   let flushFor = 0;
-  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headY: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.1, armRX: 0, armRZ: -0.1, squash: 1, twist: 0 };
+  const cur = { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headY: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.1, armRX: 0, armRY: 0, armRZ: -0.1, squash: 1, twist: 0 };
   const tgt = { ...cur };
   const phase = rand() * Math.PI * 2;
 
@@ -477,7 +482,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   function pose(dt) {
     const s = Math.sin;
-    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headY: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12, squash: 1, twist: 0 });
+    Object.assign(tgt, { bodyY: 0, bodyZ: 0, pitch: 0, lean: 0, headX: 0, headY: 0, headZ: 0, legL: 0, legR: 0, armLX: 0, armLY: 0, armLZ: 0.12, armRX: 0, armRY: 0, armRZ: -0.12, squash: 1, twist: 0 });
     const seated = SEATED.has(anim);
     if (seated) {
       tgt.bodyY = SEAT_HIP_Y - HIP_Y;
@@ -766,17 +771,27 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.06;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
-      case 'facepalm': case 'facepalmsit':
-        // The raised palm covers the camera-side eye and brow while the face stays visible.
-        tgt.lean = 0.05;
-        tgt.headX = -0.425 + s(t * 1.2 + phase) * 0.03;
-        tgt.headZ = 0.15 + s(t * 0.8) * 0.04;
-        tgt.armLX = -2.77;
-        tgt.armLY = 0.09;
-        tgt.armLZ = 0.265;
-        tgt.armRX = -0.35;
-        tgt.armRZ = -0.08;
+      case 'facepalm': case 'facepalmsit': {
+        // The palm covers the camera-side eye and brow, in front of the face, with the head bowed into it.
+        // Seated, the head is turned in profile, so the palm sits closer to the face and further out over the eye.
+        const sit = anim === 'facepalmsit';
+        const [ax, ay, az0, bow, lean] = sit ? PALM_SIT : PALM_STAND;
+        // Standing, wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
+        const az = sit ? az0 : az0 + PALM_BUILD_K * (Math.abs(arms[0].shoulder.position.x) - PALM_SHOULDER_REF);
+        tgt.lean = lean;
+        tgt.headX = bow + s(t * 1.2 + phase) * 0.03;
+        const hz = 0.15 + s(t * 0.8) * 0.04;
+        if (gestureSide > 0) {
+          tgt.headZ = hz;
+          tgt.armLX = ax; tgt.armLY = ay; tgt.armLZ = az;
+          tgt.armRX = -0.35; tgt.armRZ = -0.08;
+        } else {
+          tgt.headZ = -hz;
+          tgt.armRX = ax; tgt.armRY = ay; tgt.armRZ = -az;
+          tgt.armLX = -0.35; tgt.armLZ = 0.08;
+        }
         break;
+      }
       case 'recoil':
         // Seated, pushed back from the desk by what is on the screen: lean back, hands half up.
         tgt.bodyZ = -0.08;
@@ -958,6 +973,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     for (const key in cur) cur[key] += (tgt[key] - cur[key]) * k;
 
     body.scale.set(1 / Math.sqrt(cur.squash), cur.squash, 1 / Math.sqrt(cur.squash));
+    // Shoulder lifts settle back on either path, so a rig clip never keeps a gesture's raised shoulder.
+    arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
+    arms[1].shoulder.position.y = TORSO_H - 0.06 + cur.armRY;
     if (!rigPose(dt)) {
       body.position.set(0, cur.bodyY, cur.bodyZ);
       body.rotation.set(cur.pitch, 0, 0);
@@ -965,7 +983,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       headGroup.rotation.set(cur.headX, cur.headY, cur.headZ);
       legs[0].rotation.set(cur.legL, 0, 0);
       legs[1].rotation.set(cur.legR, 0, 0);
-      arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
       arms[0].shoulder.rotation.set(cur.armLX, 0, cur.armLZ);
       arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
     }
@@ -1000,7 +1017,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   // A gesture plays over whatever the person is doing for a few seconds (gesture()), then their own
   // animation comes back; setAnim meanwhile only records what that is.
-  let gesture = null, wanted = anim;
+  let gesture = null, gestureSide = 1, wanted = anim;
   let petTarget = null;
   const petAim = new THREE.Vector3(), petDown = new THREE.Vector3(0, -1, 0), petRotation = new THREE.Quaternion();
   const gripAt = new THREE.Vector3(), supportAt = new THREE.Vector3();
@@ -1010,10 +1027,12 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     if (!gesture) applyAnim(name);
   }
   // A gesture has a standing form and a seated one (name + 'sit'), picked by what they're doing.
-  function playGesture(name, seconds) {
+  // side -1 mirrors a one-handed gesture onto the right hand (the facepalm, when the right cheek faces the camera).
+  function playGesture(name, seconds, side = 1) {
     const sit = SEATED.has(wanted) && ANIMS.includes(`${name}sit`) ? `${name}sit` : name;
     if (!ANIMS.includes(sit)) return;
     gesture = { t: seconds };
+    gestureSide = side < 0 ? -1 : 1;
     applyAnim(sit);
   }
   function applyAnim(name) {

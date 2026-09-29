@@ -1,4 +1,5 @@
 import { importantChat as important } from '../yak-pacing.js';
+import { countsAsNew } from './yakCount.js';
 import { phoneLayout, touchUI } from './media.js';
 import { setTip } from './tooltip.js';
 import { h, setText, toggleClass, dateOf, clear } from './dom.js';
@@ -211,12 +212,12 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   }
 
   // Whether a new message raises an unread count at the current level.
-  const counts = (m, channel) => level === 'all' || (level === 'important' && important({ ...m, channel }));
+  const counts = (m, channel) => countsAsNew(m, channel, level);
   function add(e, week, { quiet: silent = false } = {}) {
     if (e.type === 'say') return;
     noteShown(e.id);
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
-    const m = { important: e.important === true, image: e.image?.id ? { id: e.image.id, alt: e.image.alt ?? e.text ?? '' } : null, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
+    const m = { important: e.important === true, priority: e.priority === true, image: e.image?.id ? { id: e.image.id, alt: e.image.alt ?? e.text ?? '' } : null, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
     const msgs = store[channel];
     msgs.push(m);
     const dropped = msgs.length > MAX_PER_CHANNEL ? msgs.shift() : null;
