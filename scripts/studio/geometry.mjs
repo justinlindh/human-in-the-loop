@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MeshBVH, StaticGeometryGenerator, acceleratedRaycast } from 'three-mesh-bvh';
+import { pairDepths } from '../../blender/checks/intersect.js';
 
 const worldCache = new WeakMap();
 const pairCache = new WeakMap();
@@ -57,6 +58,15 @@ function witnessDepth(source, target) {
   return depth;
 }
 
+// The scene sweep's own depth of one mesh in another (pairDepths, the helper overlaps() calls), measured
+// on the same posed world geometry that decided the intersection: skinned and morphed meshes are baked,
+// so it is wrapped in identity-matrix meshes. Metres; a graze reads 0.
+function sweepDepth(A, B) {
+  const proxy = W => { const m = new THREE.Mesh(W.geometry); W.geometry.boundingBox ?? W.geometry.computeBoundingBox(); return m; };
+  const a = proxy(A), b = proxy(B);
+  return Math.max(...pairDepths(a, b).map(r => r.depth));
+}
+
 export function meshContact(a, b, { clearance = false } = {}) {
   const A = worldMesh(a), B = worldMesh(b);
   let pairs = pairCache.get(a);
@@ -69,7 +79,7 @@ export function meshContact(a, b, { clearance = false } = {}) {
   const containment = boxesMeet && !surfaceCrossing && (inside(point(A), B) || inside(point(B), A));
   const intersects = surfaceCrossing || containment;
   const result = { intersects, surfaceCrossing, containment,
-    depthM: null, depthStatus: 'general-solid-depth-unavailable',
+    depthM: intersects ? sweepDepth(A, B) : 0, depthStatus: 'sweep-metric',
     vertexDepthLowerBoundM: intersects ? Math.max(witnessDepth(A, B), witnessDepth(B, A)) : 0,
     clearanceM: intersects ? 0 : clearance ? A.bvh.closestPointToGeometry(B.geometry, identity)?.distance ?? null : null };
   pairs.set(b, { A, B, clearance, result });
