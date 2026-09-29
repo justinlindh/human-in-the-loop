@@ -136,8 +136,11 @@ describe('advisors: options', () => {
   it('runway offers sales, a campaign, and a paid policy to switch off when one is on', () => {
     const s = burning(7, 15);
     s.unlocks.marketing = 0;
-    const r = find(s, 'runway');
-    expect(r.options.map((o) => o.target.panel)).toContain('staff');
+    expect(find(s, 'runway').options.some((o) => o.target.assign?.type === 'sales'), 'nobody to put on sales').toBe(false);
+    const seller = addStaff(s, 'sales', 'mid');
+    seller.assignment = { type: 'idle', targetId: null };
+    s.cash = Math.round(-net(s) * 7 + 1);
+    expect(find(s, 'runway').options[0]).toMatchObject({ text: `Put ${seller.name.split(' ')[0]} on sales`, target: { panel: 'staff', arg: seller.id, assign: { type: 'sales' } } });
     s.policies.top_pay = true;
     expect(find(s, 'runway').options.at(-1)).toMatchObject({ target: { panel: 'policies', arg: 'top_pay' } });
   });
@@ -165,6 +168,51 @@ describe('advisors: options', () => {
     expect(find(s, 'debt').options[0]).toMatchObject({ text: 'Hire an engineer who can take on The Big Refactor', target: { panel: 'staff' } });
   });
 
+  // A company where one engineer holds most of the know-how and works on a project.
+  function oneKeeper(seed = 18) {
+    const s = game(seed);
+    for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'mid');
+    for (const p of s.staff) { p.knowledge = 5; p.assignment = { type: 'support', targetId: null }; }
+    const keeper = s.staff.find((p) => p.role === 'engineer');
+    keeper.knowledge = 90;
+    s.projects.push({ id: 'j_keep', kind: 'new', name: 'Ledgerly v2', progress: 0 });
+    keeper.assignment = { type: 'project', targetId: 'j_keep' };
+    return { s, keeper };
+  }
+  const tryIt = (s, o) => dispatch(structuredClone(s), { type: 'assign', staffId: o.target.arg, assignment: o.target.assign });
+
+  it('the pairing option names a helper and lands on the keeper\'s project, which the assign action accepts (#1069)', () => {
+    const { s, keeper } = oneKeeper();
+    const idle = s.staff.find((p) => p.role === 'engineer' && p !== keeper);
+    idle.assignment = { type: 'idle', targetId: null };
+    const pair = find(s, `busFactor:${keeper.id}`).options.find((o) => o.target.assign?.type === 'project');
+    expect(pair.target).toMatchObject({ panel: 'staff', arg: idle.id, assign: { type: 'project', targetId: 'j_keep' } });
+    expect(pair.text).toContain(idle.name.split(' ')[0]);
+    expect(pair.text).toContain(keeper.name.split(' ')[0]);
+    expect(pair.text).not.toMatch(/\bpair/i);
+    expect(pair.target.note).toContain(keeper.name.split(' ')[0]);
+    expect(tryIt(s, pair).ok).toBe(true);
+  });
+
+  it('the pairing option is left out when the keeper has no work to share', () => {
+    const { s, keeper } = oneKeeper();
+    keeper.assignment = { type: 'idle', targetId: null };
+    expect(find(s, `busFactor:${keeper.id}`).options.some((o) => o.target.assign?.type === 'project')).toBe(false);
+  });
+
+  it('staff options land on a control: a hire tab, a person and a job, or a button (#1069)', () => {
+    const { s, keeper } = oneKeeper();
+    const hire = find(s, `busFactor:${keeper.id}`).options.find((o) => /Hire/.test(o.text));
+    expect(hire.target).toEqual({ panel: 'staff', tab: 'hire' });
+    s.comprehensionDebt = B.advisor.debt[1];
+    const maint = find(s, 'debt').options.find((o) => o.target.assign?.type === 'maintenance');
+    expect(maint.text).toContain(s.staff.find((p) => p.id === maint.target.arg).name.split(' ')[0]);
+    expect(tryIt(s, maint).ok).toBe(true);
+    const tired = s.staff[2]; tired.mood = 'burnout';
+    const b = find(s, 'burnout');
+    expect(b.options[0].target).toMatchObject({ panel: 'staff', arg: tired.id, focus: 'timeOff' });
+  });
+
   it('over real games every piece of advice offers 2 or 3 real options, pointing at real menus and things', () => {
     let checked = 0;
     for (const seed of [1, 2]) runBot('balanced', seed, 520, { onWeek: (s) => {
@@ -178,6 +226,10 @@ describe('advisors: options', () => {
           expect(o.text).not.toMatch(/[{}]|undefined/);
           expect(o.text, `${a.key}: the chip names the menu`).not.toMatch(new RegExp(`\\b${o.target.panel}\\b`, 'i'));
           const arg = o.target.arg;
+          if (o.target.assign) expect(tryIt(s, o).ok, `${a.key}: ${o.text}`).toBe(true);
+          if (o.target.tab) expect(o.target).toEqual({ panel: 'staff', tab: 'hire' });
+          if (o.target.focus) expect(['training', 'timeOff'], a.key).toContain(o.target.focus);
+          if (o.target.panel === 'staff' && arg === undefined && !o.target.tab) expect(o.text, a.key).toBe("Look at who's working on what");
           if (!['staff', 'policies', 'reports', 'marketing', 'build'].includes(o.target.panel)) expect(arg, `${a.key} ${o.target.panel}`).toBeUndefined();
           if (arg === undefined) continue;
           if (o.target.panel === 'policies') expect(isUnlocked(s, `policy.${arg}`) || s.policies[arg], `${a.key} ${arg}`).toBeTruthy();

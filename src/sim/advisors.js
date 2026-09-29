@@ -3,7 +3,7 @@ import { createRng, pick } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
 import { weeklyRevenue, weeklyCosts, policyCost } from './economy.js';
 import { totalMrr } from './products.js';
-import { mentorOf } from './staff.js';
+import { mentorOf, validateAssignment } from './staff.js';
 import { POLICIES } from '../data/policies.js';
 import { freeBuilders } from './projects.js';
 import { isUnlocked } from './unlocks.js';
@@ -113,11 +113,38 @@ function observe(state) {
 const idleSquads = (state) => (state.squads ?? []).filter((sq) => sq.memberIds.length && sq.posting.type === 'idle'
   && sq.benchUntil === null && state.week - sq.postedWeek >= B.squadIdleWeeks);
 
+// The jobs the staff screen's "Doing" picker offers each role, besides projects and idle.
+const JOBS_BY_ROLE = {
+  engineer: ['maintenance', 'oversight', 'security', 'support'], designer: ['maintenance', 'oversight'],
+  marketer: ['marketing', 'oversight', 'sales'], support: ['support', 'oversight'], security: ['security', 'oversight', 'maintenance'],
+  sales: ['sales', 'marketing', 'oversight'],
+};
+const offered = (p, type) => ['project', 'idle'].includes(type) || (type === 'mentor' ? p.seniority !== 'junior' : (JOBS_BY_ROLE[p.role] ?? ['maintenance', 'oversight']).includes(type));
+
+// Who to suggest for a job: someone in, not already doing it, whose picker offers it and who may take it.
+// Idle people first, then people off project work, then the least know-how.
+function someoneFor(state, job, fits = () => true) {
+  const busy = (p) => (p.assignment.type === 'idle' ? 0 : p.assignment.type === 'project' ? 2 : 1);
+  return state.staff
+    .filter((p) => p.mood !== 'away' && fits(p) && offered(p, job.type) && !validateAssignment(state, p, job)
+      && !(p.assignment.type === job.type && (p.assignment.targetId ?? null) === (job.targetId ?? null)))
+    .sort((x, y) => busy(x) - busy(y) || x.knowledge - y.knowledge || (x.id < y.id ? -1 : 1))[0];
+}
+
 // Two or three things the player could do about a topic, each a real action open to them now, named with
-// the menu where it's done. They're offered, never taken.
+// the menu where it's done. They're offered, never taken. A staff option lands on a control: a person with
+// the job to pick for them (`assign`), a button on their screen (`focus`), or the Hire tab (`tab`).
 function optionsFor(state, a) {
   const o = [];
-  const opt = (text, panel, arg) => o.push({ text, target: arg === undefined ? { panel } : { panel, arg } });
+  const opt = (text, panel, arg, more) => o.push({ text, target: { panel, ...(arg === undefined ? {} : { arg }), ...more } });
+  const hire = (text) => opt(text, 'staff', undefined, { tab: 'hire' });
+  const assign = (text, p, job, note) => opt(text, 'staff', p.id, { assign: { type: job.type, targetId: job.targetId ?? null }, ...(note ? { note } : {}) });
+  // "Put <someone> on <job>", or the hire tab when nobody in can take it.
+  const putOn = (label, type, orHire, fits) => {
+    const p = someoneFor(state, { type, targetId: null }, fits);
+    if (p) assign(`Put ${first(p)} on ${label}`, p, { type });
+    else if (orHire) hire(orHire);
+  };
   const policyOpen = (id) => isUnlocked(state, `policy.${id}`) && !state.policies[id];
   const products = live(state);
   const building = (kind, productId) => state.projects.some((j) => j.kind === kind && (productId === undefined || j.productId === productId));
@@ -126,22 +153,22 @@ function optionsFor(state, a) {
   const unmentored = state.staff.filter((p) => p.seniority === 'junior' && p.mood !== 'away' && !mentorOf(state, p));
   switch (topic) {
     case 'runway': {
-      opt('Put someone on sales', 'staff');
+      putOn('sales', 'sales');
       if (isUnlocked(state, 'marketing') && products.length) opt('Run a campaign for your best seller', 'marketing');
       const paid = Object.keys(state.policies).find((pid) => state.policies[pid] && POLICIES[pid] && policyCost(state, pid) > 0);
       if (paid) opt(`Switch off ${POLICIES[paid].name}; it costs money every week`, 'policies', paid);
       else if (products.length >= 2) {
         const weakest = products.reduce((x, p) => (p.customers < x.customers ? p : x));
         opt(`Retire ${weakest.name}, your smallest product`, 'reports', weakest.id);
-      } else opt('Hold off on hiring for now', 'staff');
+      }
       break;
     }
     case 'burnout': {
       const p = state.staff.find((x) => x.mood === 'burnout');
-      if (p) opt(`Send ${first(p)} on time off`, 'staff', p.id);
+      if (p) opt(`Send ${first(p)} on time off`, 'staff', p.id, { focus: 'timeOff' });
       if (state.policies.crunch) opt('Switch off Crunch Mode', 'policies', 'crunch');
       else if (policyOpen('no_crunch')) opt('Switch on No Crunch', 'policies', 'no_crunch');
-      if (p) opt(`Give ${first(p)} lighter work`, 'staff', p.id);
+      if (p && p.assignment.type !== 'idle') assign(`Give ${first(p)} lighter work`, p, { type: 'idle' }, 'Idle for a while: no project, no pressure.');
       break;
     }
     case 'squadIdle': {
@@ -156,31 +183,42 @@ function optionsFor(state, a) {
       // The same rule startProject uses: any engineer, designer or founder who isn't away can take it on.
       if (!building('refactor')) {
         if (freeBuilders(state)) opt('Start The Big Refactor', 'build');
-        else opt('Hire an engineer who can take on The Big Refactor', 'staff');
+        else hire('Hire an engineer who can take on The Big Refactor');
       }
       if (policyOpen('comprehension_reviews')) opt('Switch on Code Comprehension Reviews', 'policies', 'comprehension_reviews');
       const idle = idleSquads(state)[0];
       if (idle) opt(`Post ${idle.name} to maintenance`, 'squads', idle.id);
-      else opt('Put an engineer on maintenance', 'staff');
+      else putOn('maintenance', 'maintenance', 'Hire an engineer for maintenance', (p) => p.role === 'engineer');
       break;
     }
     case 'busFactor': {
       const p = person(id);
-      if (p && unmentored.length) opt(`Have ${first(p)} mentor ${first(unmentored[0])}`, 'staff', p.id);
+      const mentee = unmentored.find((j) => p && !validateAssignment(state, p, { type: 'mentor', targetId: j.id }));
+      if (mentee) assign(`Have ${first(p)} mentor ${first(mentee)}`, p, { type: 'mentor', targetId: mentee.id });
       if (!state.policies.daily_standups && !state.policies.async_standups && isUnlocked(state, 'policy.daily_standups')) opt('Switch on standups, so knowledge gets shared', 'policies', 'daily_standups');
-      if (p) opt(`Pair someone with ${first(p)} on their work`, 'staff', p.id);
-      opt('Hire another engineer', 'staff');
+      // Working the same job as the one who knows it: another pair of hands on their project or their beat.
+      const work = p && ['project', 'maintenance', 'security'].includes(p.assignment.type) ? p.assignment : null;
+      const helper = work && someoneFor(state, work, (x) => x.id !== p.id && holdsKnowledge(x));
+      if (helper) {
+        const what = work.type === 'project' ? state.projects.find((j) => j.id === work.targetId)?.name ?? 'their project' : work.type;
+        assign(`Put ${first(helper)} on ${what} with ${first(p)}`, helper, work,
+          `${first(p)} knows how most of it works. Working the same job is how ${first(helper)} learns it too.`);
+      }
+      hire('Hire another engineer');
       break;
     }
-    case 'juniors':
-      if (state.staff.some((p) => p.seniority === 'senior' && p.mood !== 'away')) opt(`Find ${first(unmentored[0])} a senior mentor`, 'staff', unmentored[0].id);
+    case 'juniors': {
+      const junior = unmentored[0];
+      const senior = someoneFor(state, { type: 'mentor', targetId: junior.id }, (p) => p.seniority === 'senior');
+      if (senior) assign(`Have ${first(senior)} mentor ${first(junior)}`, senior, { type: 'mentor', targetId: junior.id });
       if (policyOpen('apprenticeship')) opt('Switch on the Apprenticeship Program', 'policies', 'apprenticeship');
-      opt(`Send ${first(unmentored[0])} to training`, 'staff', unmentored[0].id);
+      opt(`Send ${first(junior)} to training`, 'staff', junior.id, { focus: 'training' });
       break;
+    }
     case 'migration': {
       const pr = products.find((p) => p.id === id);
       if (pr && !building('migration', pr.id)) opt(`Start the ${pr.name} migration`, 'build', pr.id);
-      opt('Put an engineer on maintenance', 'staff');
+      putOn('maintenance', 'maintenance', 'Hire an engineer for maintenance', (p) => p.role === 'engineer');
       break;
     }
     case 'oneProduct': {
@@ -198,14 +236,14 @@ function optionsFor(state, a) {
         if (isUnlocked(state, 'models')) opt('Choose what your next product runs on', 'models');
         if (isUnlocked(state, 'automation')) opt('See which routine work a model could take on', 'automation');
       } else {
-        opt('Put someone on oversight of the agents', 'staff');
+        putOn('oversight of the agents', 'oversight', 'Hire someone to watch the agents');
         if (isUnlocked(state, 'automation')) opt('Hand some routine work to agents', 'automation');
       }
       opt('Start something built for the new era', 'build');
       break;
     default:
       opt('Start a new project', 'build');
-      opt('Look at who you could hire', 'staff');
+      hire('Look at who you could hire');
   }
   if (o.length < 2) opt("Look at who's working on what", 'staff');
   return o.slice(0, 3);
