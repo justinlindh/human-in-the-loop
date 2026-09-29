@@ -4,8 +4,8 @@
 # files applied; the gates run there side by side, then it is removed.
 # Usage: npm run gates -- [--moment <name>] [--only test,clip,stage,sweep] [--keep]
 #   --moment  narrows the render gates to one staged moment: a stage.mjs scenario (letter, fumes,
-#             printer, visitor, hammer, ...) or a moment kind. clip runs --only=<name> when clip.mjs
-#             supports it, stage runs --only=<name>, and the sweep checks only that moment's indexed
+#             printer, visitor, hammer, ...) or a moment kind. clip runs --only=moment:<scenario> (all of clip
+#             when it has no such case), stage runs --only=<scenario>, and the sweep checks only that moment's indexed
 #             decision. Without it: all of clip and stage, and the sweep's fast pass over floor.
 #   --only    run just these gates (default: all four)
 #   --keep    keep the snapshot worktree (its path is printed)
@@ -83,8 +83,10 @@ if [ -n "$moment" ]; then
   if [ "$sname" = - ]; then
     echo "gates: no stage scenario matches --moment $moment (known: $known)" >&2; exit 2
   fi
-  if grep -q -- '--only' blender/checks/clip.mjs; then CMD[clip]="$(gpu node blender/checks/clip.mjs --only="$moment")"
-  else CMD[clip]="$(gpu node blender/checks/clip.mjs)"; echo "gates: clip.mjs has no --only here; running all of clip"; fi
+  # Clip cases are named moment:<stage scenario>; a moment with no clip case runs the whole clip check.
+  if ! grep -q -- '--only' blender/checks/clip.mjs; then CMD[clip]="$(gpu node blender/checks/clip.mjs)"; echo "gates: clip.mjs has no --only here; running all of clip"
+  elif grep -rqF "name: 'moment:$sname'" blender/checks src/render/checks.js 2>/dev/null; then CMD[clip]="$(gpu node blender/checks/clip.mjs --only="moment:$sname")"
+  else CMD[clip]="$(gpu node blender/checks/clip.mjs)"; echo "gates: no clip case moment:$sname; running all of clip"; fi
   CMD[stage]="$(gpu node blender/checks/stage.mjs --only="$sname" --out "$LOGS/stage.json")"
   # The sweep plays that decision from an indexed snapshot when the event index has one; some
   # decisions have none (the letter), and then the floor mock's pass, which plays every staged
