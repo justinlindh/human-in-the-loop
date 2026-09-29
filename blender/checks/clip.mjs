@@ -13,6 +13,7 @@
 import { startHarness } from './harness.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
 import { fmtTrace, fmtActor } from './diag.mjs';
+import { mainGroups, emptyGroups } from './clip-groups.mjs';
 
 const rig = process.argv.includes('--rig') ? '&rig=1' : '';
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -61,11 +62,13 @@ const errors = [];
 const out = [];
 // Each group of the floor office runs on a fresh page, so who a case picks and where they start
 // never depend on which groups ran before it (a narrowed --only gives the same subject and result).
-const MAIN = ['seats', 'perks', 'dance', 'walk', 'pets', 'robot', 'props', 'pairs', 'use', 'party', 'sky'];
+// Every registered group either runs here or on its own page below; one that yields no case is a failure.
+const MAIN = mainGroups(GROUPS);
+const resultsBy = {};
 for (const group of MAIN.filter((g) => runs[g])) {
 const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
 await page.evaluate(installExact);
-out.push(...await page.evaluate(async (runs) => {
+const got = await page.evaluate(async (runs) => {
   const R = window.__hitlRender, S = window.__HITL.state;
   // The ownership trace, for the failure detail (the worst actor's last trace lines).
   if (R.trace) R.trace.on = true;
@@ -132,11 +135,15 @@ out.push(...await page.evaluate(async (runs) => {
   const party = runs.party ? await C.runPartyCheck(R, S) : null;
   const sky = runs.sky ? await C.runSkyCheck() : null;
   return [runs.seats ? seatCheck : null, ...a.results, ...b.results, ...dance, ...w, ...u, party, sky, pairs].filter(Boolean);
-}, Object.fromEntries(MAIN.map((g) => [g, g === group]))));
+}, Object.fromEntries(MAIN.map((g) => [g, g === group])));
+out.push(...got);
+resultsBy[group] = got;
 errors.push(...pageErrors);
 await page.close();
 }
 // The garage: two founders still get a game of foosball in now and then.
+let ownFrom = out.length;
+const ownDone = (g) => { resultsBy[g] = out.slice(ownFrom); ownFrom = out.length; };
 if (runs.garage) {
   const g = await H.openScene(`quality=low&mock=garage${rig}`, { width: 800, height: 500 });
   await g.page.evaluate(installExact);
@@ -148,6 +155,7 @@ if (runs.garage) {
   }));
   errors.push(...g.errors);
   await g.page.close();
+  ownDone('garage');
 }
 if (runs.celebrations) {
   const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
@@ -158,6 +166,7 @@ if (runs.celebrations) {
   }));
   errors.push(...g.errors);
   await g.page.close();
+  ownDone('celebrations');
 }
 if (runs.respond) {
   const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
@@ -168,6 +177,7 @@ if (runs.respond) {
   }));
   errors.push(...g.errors);
   await g.page.close();
+  ownDone('respond');
 }
 // Planted control: a slab far thinner than the vertex spacing through a head. The vertex count of
 // the old measure reads nothing; the exact measure must flag it.
@@ -195,11 +205,15 @@ if (runs.control) {
   }));
   errors.push(...g.errors);
   await g.page.close();
+  ownDone('control');
 }
 await H.close();
 const shown = out.filter((r) => wanted(r.name));
 if (ONLY && !shown.length) noMatch();
 let failed = 0;
+// A wanted group that produced no case (registered without a runner, or a runner that returned
+// nothing) would otherwise pass unnoticed.
+for (const g of emptyGroups(Object.keys(GROUPS).filter((x) => runs[x]), resultsBy)) { failed++; console.log(`CLIP FAIL group:${g} {"reason":"the group ran no case"}`); }
 for (const r of shown) {
   if (!r.pass) failed++;
   const { name, pass, worstAt, ...nums } = r;
