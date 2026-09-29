@@ -161,3 +161,5 @@ after the live era transition. The Plateau shot uses seed 2 to reach a live HQ w
 The printer cut starts with the renderer’s cue clock at 9.9 seconds, matching the music seek.
 It checks both that clock and the later strikes, so a changed gathering or carry duration cannot
 silently separate the bat hits from the soundtrack.
+
+The outage stretch, the meme, the garage and the printer open on pinned game states (`scripts/trailer/snapshots/`, written by `node scripts/trailer/pin.mjs`) rather than replaying a bot game. The printer's cue clock lands about a second later under a pin than under the indexed moment, so its cut starts a second earlier to keep the same footage.
