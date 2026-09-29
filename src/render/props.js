@@ -28,10 +28,24 @@ export function createProps(office, screens = null) {
   // as a prompt stages its prop exactly as behind a card).
   const stages = (state) => [state.pendingDecision?.stage, ...(state.chatPrompts ?? []).filter((c) => !c.resolved).map((c) => c.stage)].filter((st) => st?.prop);
 
+  // The office printer (byKitchen): where it stands, kept so every printer prop takes the same place
+  // while the kitchen stays put; and a count that moves it when furniture lands on it.
+  let printerSpot = null, printerMoves = 0;
+  const kitchenKey = (state) => {
+    const k = (state.office?.placed ?? []).find((i) => KITCHEN_ITEMS.has(i.itemId));
+    return k ? `${k.id}@${k.x},${k.y},${k.rot ?? 0}` : null;
+  };
+
   function wanted(state) {
     const out = [];
     for (const st of stages(state)) if (BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
     for (const p of state.office?.props ?? []) if (BUILDERS[p.prop]) out.push({ key: `prop|${p.id}|${p.prop}`, ...p });
+    // From the Office Floor on, the printer stands by the kitchen unless one of its moments has it:
+    // jammed, out back as a wreck, or dead under its sign.
+    const kk = kitchenKey(state);
+    if ((state.officeStage ?? 0) >= 1 && kk && !out.some((w) => PRINTER_PROPS.has(w.prop))) {
+      out.push({ key: `kitchen|printer|${kk}|${printerMoves}`, prop: 'printer', anchor: 'kitchen' });
+    }
     return out;
   }
 
@@ -48,9 +62,24 @@ export function createProps(office, screens = null) {
     const st = stages(state).find((x) => x.anchor === 'screens');
     overlay = st ? SCREEN_OVERLAYS[st.prop] ?? null : null;
     screens?.setOverlay(overlay);
+    const kk = kitchenKey(state);
+    if (printerSpot && printerSpot.kitchen !== kk) printerSpot = null;
+    // Furniture placed over the printer sends it to a new spot.
+    for (const e of live.values()) {
+      const r = !e.gone && e.prop === 'printer' && e.obj.userData.rect;
+      if (r && [...(office.placed?.values() ?? [])].some((o) => o.obj && boxHitsRect(new THREE.Box3().setFromObject(o.obj), r))) { printerMoves++; printerSpot = null; }
+    }
     const want = wanted(state);
     const keys = new Set(want.map((w) => w.key));
-    for (const [k, e] of live) if (!keys.has(k) && !e.gone) { e.gone = true; e.t = 0; gone.push({ prop: e.prop, x: e.obj.position.x, z: e.obj.position.z, at: clock }); }
+    // One printer prop handing over to another (jammed, fixed, signed off) swaps in place, with no pop.
+    const handover = want.some((w) => KITCHEN_SWAP.has(w.prop) && !live.has(w.key));
+    let swapped = false;
+    for (const [k, e] of live) {
+      if (keys.has(k) || e.gone) continue;
+      gone.push({ prop: e.prop, x: e.obj.position.x, z: e.obj.position.z, at: clock });
+      if (handover && KITCHEN_SWAP.has(e.prop) && kitchenOf(office)) { dispose(e.obj); live.delete(k); swapped = true; continue; }
+      e.gone = true; e.t = 0;
+    }
     for (const k of dropped) if (!keys.has(k)) dropped.delete(k);
     for (const w of want) {
       const e = live.get(w.key);
@@ -59,13 +88,16 @@ export function createProps(office, screens = null) {
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
       // Desk props already up, so another one on the same desk takes a different spot.
       const onDesk = [...live.values()].filter((l) => !l.gone && l.obj.userData.deskRect).map((l) => ({ deskId: l.obj.userData.follow.deskId, ...l.obj.userData.deskRect }));
-      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk });
+      const printerAt = () => (printerSpot && printerSpot.kitchen === kk ? printerSpot : null);
+      const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk, printerAt });
       if (!obj) continue;
       obj.userData.propId = w.prop;
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj, obj.userData.blockPart);
-      if (!obj.userData.noPop) obj.scale.setScalar(0.001);
+      const inPlace = swapped && KITCHEN_SWAP.has(w.prop);
+      if (KITCHEN_SWAP.has(w.prop) && kk && kitchenOf(office)) printerSpot = { x: obj.position.x, z: obj.position.z, rot: obj.rotation.y, kitchen: kk };
+      if (!obj.userData.noPop && !inPlace) obj.scale.setScalar(0.001);
       root.add(obj);
-      live.set(w.key, { obj, t: 0, gone: false, prop: w.prop, staffId: w.staffId ?? null });
+      live.set(w.key, { obj, t: inPlace ? POP_S + 1 : 0, gone: false, prop: w.prop, staffId: w.staffId ?? null });
     }
     pushObstacles();
   }
@@ -1046,34 +1078,87 @@ const printerScreen = () => cardTex('pcload', 256, 48, (ctx, W, H) => {
   ctx.fillStyle = P.ink; ctx.font = '700 26px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('PC LOAD LETTER', W / 2, H / 2);
 });
+// The same printer on an ordinary day.
+const readyScreen = () => cardTex('printer-ready', 256, 48, (ctx, W, H) => {
+  ctx.fillStyle = '#9fc7a1'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.ink; ctx.font = '700 26px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('READY', W / 2, H / 2);
+});
 // The printer model on its own (moments.js carries one out the door).
 export function printerModel() { return printerBody(false); }
 // The visitor's chair, for a moment that keeps it after the staged prop has gone.
 export function visitorChairModel() { return visitorChair(); }
-function printerBody(broken = false) {
+// broken: smashed, so no output slot or sheet; jammed false: the slot is empty.
+function printerBody(broken = false, { jammed = !broken, screen = printerScreen } = {}) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(0.62, 0.36, 0.5, 0.05, 3), mat('pot_cream'), 0, 0.18, 0));
   g.add(mesh(roundedBox(0.64, 0.04, 0.52, 0.02, 2), mat('metal_soft'), 0, 0.37, 0));
   g.add(mesh(roundedBox(0.44, 0.03, 0.16, 0.01, 2), mat('metal_soft'), 0, 0.12, 0.29));
-  const panel = new THREE.Mesh(plane(0.3, 0.056), flatMat(printerScreen()));
+  const panel = new THREE.Mesh(plane(0.3, 0.056), flatMat(screen()));
   panel.position.set(0.1, 0.395, 0.17); panel.rotation.x = -Math.PI / 2 + 0.5;
   g.add(panel);
-  if (!broken) {
+  if (!broken) g.add(mesh(roundedBox(0.28, 0.026, 0.02, 0.008, 1), mat('metal_dark'), -0.14, 0.31, 0.25));
+  if (jammed) {
     // The jammed sheet, crumpled out of the output slot on the front: its back edge just in front of
     // the body and the lid's lip, so no part of it passes through the printer, and to the left of the
     // screen so the whole PC LOAD LETTER label shows.
-    g.add(mesh(roundedBox(0.28, 0.026, 0.02, 0.008, 1), mat('metal_dark'), -0.14, 0.31, 0.25));
     const jam = mesh(roundedBox(0.24, 0.004, 0.2, 0.002, 1), mat('paper'), -0.14, 0.3, 0.335);
     jam.rotation.set(0.9, 0.2, 0.15);
     g.add(jam);
   }
   return g;
 }
+const statusLight = (color, x = 0.26) => {
+  const light = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), own(new THREE.MeshStandardMaterial({ color: new THREE.Color(color), emissive: new THREE.Color(color), emissiveIntensity: 0.3 })));
+  light.geometry.userData.own = true;
+  light.position.set(x, 0.37, 0.2);
+  return light;
+};
+// The kitchen printer on an ordinary day: its light blinks now and then, and every so often it hums
+// through a print job, shivering on the floor.
+const IDLE_BLINK_S = 5.5, IDLE_HUM_S = 17, HUM_LEN_S = 1.6;
+function printerIdle() {
+  const g = new THREE.Group();
+  const body = printerBody(false, { jammed: false, screen: readyScreen });
+  g.add(body);
+  const light = statusLight(P.marker_green);
+  body.add(light);
+  let t = 0;
+  g.userData.tick = (dt) => {
+    t += dt;
+    const b = t % IDLE_BLINK_S;
+    light.material.emissiveIntensity = b < 0.12 || (b > 0.3 && b < 0.42) ? 2.4 : 0.3;
+    const h = (t + 6) % IDLE_HUM_S;
+    const hum = h < HUM_LEN_S ? Math.sin((h / HUM_LEN_S) * Math.PI) : 0;
+    body.position.x = hum * Math.sin(t * 90) * 0.006;
+    body.rotation.y = hum * Math.sin(t * 70) * 0.012;
+  };
+  return g;
+}
+// After "Print less": the printer, dead, with a sign taped over it.
+const outOfOrderSign = () => cardTex('out-of-order', 256, 160, (ctx, W, H) => {
+  ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = P.alarm_red; ctx.fillRect(10, 10, W - 20, H - 20);
+  ctx.fillStyle = P.paper_sheet; ctx.font = '900 58px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('OUT OF', W / 2, H * 0.33);
+  ctx.fillText('ORDER', W / 2, H * 0.7);
+});
+function printerOutOfOrder() {
+  const g = printerBody(false, { jammed: false });
+  const sign = new THREE.Group();
+  const card = new THREE.Mesh(plane(0.56, 0.35), flatMat(outOfOrderSign()));
+  card.position.y = 0.175;
+  sign.add(card);
+  // Tape along its top edge.
+  sign.add(mesh(roundedBox(0.2, 0.035, 0.006, 0.002, 1), mat('paper'), 0, 0.345, 0.004));
+  sign.position.set(0, 0.39, -0.05);
+  sign.rotation.x = -0.2;
+  g.add(sign);
+  return g;
+}
 function printerJammed() {
   const g = printerBody(false);
-  const light = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), own(new THREE.MeshStandardMaterial({ color: new THREE.Color(P.alarm_red), emissive: new THREE.Color(P.alarm_red), emissiveIntensity: 2 })));
-  light.geometry.userData.own = true;
-  light.position.set(0.26, 0.37, 0.2);
+  const light = statusLight(P.alarm_red);
   g.add(light);
   let t = 0;
   g.userData.tick = (dt) => { t += dt; light.material.emissiveIntensity = Math.sin(t * 7) > 0 ? 2.4 : 0.2; };
@@ -1103,6 +1188,95 @@ function printerWrecked() {
   bat.position.set(0.55, 0.05, 0.25);
   g.add(bat);
   return g;
+}
+// The office printer's place: on the floor beside the kitchen (the coffee corner or espresso machine),
+// facing the way it faces, its back in line with the kitchen's. Every printer prop but the wreck goes
+// there while a kitchen stands, so the everyday printer, the jammed one and the one under the OUT OF
+// ORDER sign are the same printer in the same place. Without a kitchen, the anchor tile's floor.
+const KITCHEN_ITEMS = new Set(['coffee_corner', 'espresso']);
+const PRINTER_SCALE = 1.2;
+// Props that stand in for the everyday printer, and the printer props that swap with each other in place.
+const PRINTER_PROPS = new Set(['printer_jammed', 'printer_wrecked', 'printer_out_of_order']);
+const KITCHEN_SWAP = new Set(['printer', 'printer_jammed', 'printer_out_of_order']);
+// Whether a furniture box reaches into a floor rect (floorRect's padding left out).
+const boxHitsRect = (b, r, pad = 0.06) => b.min.x < r.x1 - pad && b.max.x > r.x0 + pad && b.min.z < r.z1 - pad && b.max.z > r.z0 + pad;
+const kitchenOf = (office) => [...(office.placed?.values() ?? [])].find((o) => o.obj && KITCHEN_ITEMS.has(o.itemId)) ?? null;
+function byKitchen(build) {
+  const fallback = onFloor(build, { x: 1.1, z: 0.2, rot: 0.2, scale: PRINTER_SCALE });
+  return (L, anchor, env) => {
+    const k = kitchenOf(env.office);
+    if (!k) return fallback(L, anchor, env);
+    const g = new THREE.Group();
+    g.userData.spotMoment = anchor.prop;
+    g.userData.blocks = true;
+    const item = build();
+    item.scale.setScalar(PRINTER_SCALE);
+    g.add(item);
+    if (item.userData.tick) g.userData.tick = item.userData.tick;
+    const at = env.printerAt?.() ?? kitchenSpot(L, env.office, g, k, anchor.prop);
+    g.rotation.y = at.rot;
+    g.position.set(at.x, 0, at.z);
+    return g;
+  };
+}
+// Against a wall, nearest the kitchen: clear of furniture and of the floor in front of it (where people
+// stand to use it), off the doorway, with open floor in front to reach it. Falls back to the nearest
+// clear floor.
+const PRINTER_WALL_GAP = 0.12, FRONT_KEEP = 0.75, REACH = 0.6;
+function kitchenSpot(L, office, g, k, moment) {
+  const nav = office.nav?.();
+  g.rotation.y = 0;
+  g.position.set(0, 0, 0);
+  g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g);
+  const hw = (b.max.x - b.min.x) / 2, hd = (b.max.z - b.min.z) / 2;
+  const kc = new THREE.Box3().setFromObject(k.obj).getCenter(new THREE.Vector3());
+  // Each piece of furniture with the floor in front of it that it needs kept clear.
+  const furniture = [...(office.placed?.values() ?? [])].filter((o) => o.obj).map((o) => {
+    const f = new THREE.Box3().setFromObject(o.obj);
+    const r = o.obj.rotation.y, fx = Math.round(Math.sin(r)), fz = Math.round(Math.cos(r));
+    const keep = f.clone();
+    if (fx > 0) keep.max.x += FRONT_KEEP; else if (fx < 0) keep.min.x -= FRONT_KEEP;
+    if (fz > 0) keep.max.z += FRONT_KEEP; else if (fz < 0) keep.min.z -= FRONT_KEEP;
+    return keep;
+  });
+  const W2 = L.W / 2, D2 = L.D / 2;
+  // The four walls: the printer's back to the wall, facing into the room.
+  const walls = [
+    { rot: 0, along: 'x', fixed: -D2 + PRINTER_WALL_GAP + hd, n: [0, 1] },
+    { rot: Math.PI / 2, along: 'z', fixed: -W2 + PRINTER_WALL_GAP + hd, n: [1, 0] },
+    { rot: Math.PI, along: 'x', fixed: D2 - PRINTER_WALL_GAP - hd, n: [0, -1] },
+    { rot: -Math.PI / 2, along: 'z', fixed: W2 - PRINTER_WALL_GAP - hd, n: [-1, 0] },
+  ];
+  function* candidates() {
+    for (const w of walls) {
+      const span = (w.along === 'x' ? W2 : D2) - 0.15 - hw;
+      for (let s = -span; s <= span + 1e-6; s += 0.2) {
+        const x = w.along === 'x' ? s : w.fixed, z = w.along === 'x' ? w.fixed : s;
+        const ex = w.along === 'x' ? hw : hd, ez = w.along === 'x' ? hd : hw;
+        yield { x, z, rot: w.rot, n: w.n, rect: { x0: x - ex, x1: x + ex, z0: z - ez, z1: z + ez } };
+      }
+    }
+  }
+  const door = L.doorWorld;
+  const checks = {
+    door: (q) => !door || Math.hypot(q.x - door.x, q.z - door.z) >= DOOR_CLEAR,
+    furniture: (q) => !furniture.some((f) => f.min.x < q.rect.x1 + 0.05 && f.max.x > q.rect.x0 - 0.05 && f.min.z < q.rect.z1 + 0.05 && f.max.z > q.rect.z0 - 0.05),
+    floor: (q) => !nav || !nav.isBlocked(q.x, q.z),
+    // Open floor in front, so it can be reached and never closes off a gap.
+    reach: (q) => {
+      if (!nav) return true;
+      const [nx, nz] = q.n, px = -nz, pz = nx;
+      for (const d of [hd + 0.25, hd + REACH]) for (const s of [-hw, 0, hw]) if (nav.isBlocked(q.x + nx * d + px * s, q.z + nz * d + pz * s)) return false;
+      return true;
+    },
+  };
+  const p = pickSpot(kc, { candidates: candidates(), needs: ['door', 'furniture', 'floor', 'reach'], checks,
+    score: (q) => Math.hypot(q.x - kc.x, q.z - kc.z), debug: spotDebug(office), moment, search: 'kitchenWall' });
+  if (p) return { x: p.x, z: p.z, rot: p.rot };
+  g.rotation.y = k.obj.rotation.y;
+  const c = clearSpot(L, office, g, kc);
+  return { x: c.x, z: c.z, rot: k.obj.rotation.y };
 }
 // Inside, a little way in from the door: where the printer was taken to be smashed.
 const WRECK_IN = [1.8, 2.2, 2.6, 3];   // metres in from the door the Office Floor wreck may lie
@@ -1518,7 +1692,9 @@ const BUILDERS = {
   banner_company: wallPrint(companyBanner, { w: 2.0, h: 0.46, tilt: 0.01, y: (L) => L.wallH - 0.3 }),
   cover_sheets: atDesk(coverSheets, FLAT),
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
-  printer_jammed: onFloor(printerJammed, { x: 1.1, z: 0.2, rot: 0.2, scale: 1.2 }),
+  printer: byKitchen(printerIdle),
+  printer_jammed: byKitchen(printerJammed),
+  printer_out_of_order: byKitchen(printerOutOfOrder),
   printer_wrecked: byDoor(printerWrecked, 1.2),
   printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
   whiteboard_scrawl: whiteboardScrawl,
