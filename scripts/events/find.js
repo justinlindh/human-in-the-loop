@@ -5,7 +5,7 @@
 //        [--stage garage|floor|hq|0|1|2] [--weeks a-b] [--prop p] [--snapshot] [--limit 5]
 //        [--json] [--build] [--where '<js>' [--setup '<js>'] [--turn-while '<js>']] [--scan | --no-scan]
 //        [--scan-seeds 1-60] [--scan-bots a,b]
-//        [--then '<js>' [--within 52]] [--before '<js>'] [--bot-js '<js>'] [--extra '<js>'] [--rank '<js>'] [--explain]
+//        [--then '<js>' [--within 52] | --branch '<js body>'] [--before '<js>'] [--bot-js '<js>'] [--extra '<js>'] [--rank '<js>'] [--explain]
 //
 //   printer_jam --choice 0 --stage floor --limit 3
 //   era --era agents --snapshot
@@ -25,7 +25,14 @@
 // its state) waiting up to --within weeks (52) for a later event or week where it returns truthy; the
 // snapshot is still from before the tick of the --where moment, and a non-boolean result is kept as
 // `result`. --rank '<js over m>' orders the matches by a number, highest first, and plays every seed
-// in range to do it. With no match, a scan says which `&&` part of --where no run ever made true
+// in range to do it. Branching: --branch '<js function body over s, e, m, sim>' plays each --where
+// moment forward on a copy of its state (s: the state after the tick; m: the moment's fields) and
+// keeps the match when the body returns truthy, its value kept as `result` for --rank and the output.
+// `sim` has dispatch(s, action), tick(s), botDecide, botTurn and step(s, { choose }), one live week:
+// a pending decision answered from `choose` ({ <event id>: choice, default: choice }), then the tick,
+// returning every event raised. So "post a meme, then count the replies over three weeks, with no
+// decision or era card" is one body that returns false when `s.pendingDecision` or the era shows up.
+// The snapshot is still from before the tick of the --where moment. With no match, a scan says which `&&` part of --where no run ever made true
 // (--json --explain prints matches and those counts as one object).
 
 // Prints one line per match: seed, bot, week, era, stage, staff, the choice and the snapshot path
@@ -53,6 +60,11 @@ const q = parseQuery(argv.filter((a, i) => !['--json', '--build', '--scan', '--n
 const compile = (flag, args, src) => { try { new Function(...args, `return (${src});`); } catch (e) { refuse('bad-query', `--${flag} is not a JS expression: ${e.message}`); } };
 if (typeof q.where === 'string') compile('where', ['e', 's'], q.where);
 if (typeof q.then === 'string') { if (typeof q.where !== 'string') refuse('bad-query', '--then needs a --where to look ahead from'); compile('then', ['e', 's', 'm'], q.then); }
+if (typeof q.branch === 'string') {
+  if (typeof q.where !== 'string') refuse('bad-query', '--branch needs a --where moment to play forward from');
+  if (typeof q.then === 'string') refuse('bad-query', '--branch and --then are two ways to look ahead; use one');
+  try { new Function('s', 'e', 'm', 'sim', q.branch); } catch (e) { refuse('bad-query', `--branch is not a JS function body: ${e.message}`); }
+}
 if (typeof q['bot-js'] === 'string') compile('bot-js', ['s'], q['bot-js']);
 if (typeof q.extra === 'string') compile('extra', ['e', 's'], q.extra);
 if (typeof q.rank === 'string') { if (typeof q.where !== 'string') refuse('bad-query', '--rank needs a --where to rank matches of'); compile('rank', ['m'], q.rank); }
@@ -84,7 +96,7 @@ if (where) {
   try { rows = match(idx.rows, q).filter((r) => pred(r, stateless)); } catch (e) { if (e === NEEDS_STATE) needsState = true; else refuse('bad-query', `--where failed on an index row: ${e.message}`); }
 } else rows = match(idx.rows, q);
 let scanned = null;
-if (typeof q.then === 'string' || typeof q.rank === 'string') needsState = true;
+if (typeof q.then === 'string' || typeof q.rank === 'string' || typeof q.branch === 'string') needsState = true;
 if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !argv.includes('--no-scan')) {
   if (!where) refuse('bad-query', '--scan needs a --where predicate to look for');
   // Filters a scan cannot apply (they read index-only fields) are refused rather than ignored.
@@ -93,7 +105,7 @@ if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !arg
   const seeds = q.seed != null ? [Number(q.seed)] : q['scan-seeds'] ? range(q['scan-seeds']) : range('1-60');
   const bots = q['scan-bots'] ? String(q['scan-bots']).split(',') : q.bot ? [q.bot] : meta.bots;
   const t0 = Date.now();
-  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', before: q.before ?? '', botJs: q['bot-js'] ?? '', extra: q.extra ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, perRun: Number(q['per-run']) || (typeof q.rank === 'string' ? 5 : 1), weeks: Number(q['scan-weeks']) || 1040,
+  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, branch: typeof q.branch === 'string' ? q.branch : '', rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', before: q.before ?? '', botJs: q['bot-js'] ?? '', extra: q.extra ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, perRun: Number(q['per-run']) || (typeof q.rank === 'string' ? 5 : 1), weeks: Number(q['scan-weeks']) || 1040,
     onProgress: (d, n) => { if (d % 10 === 0) console.error(`find: scanned ${d}/${n} runs (${Math.round((Date.now() - t0) / 1000)} s)`); } });
   if (scanned.error) refuse('scan-failed', `the scan failed: ${scanned.error}`);
   if (scanned.dropped && !scanned.rows.length) refuse('scan-failed', `${scanned.dropped} moment(s) matching --where were dropped while waiting on --then (too many waiting at once): narrow --where or shorten --within`);

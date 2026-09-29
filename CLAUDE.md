@@ -31,7 +31,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | ui | UI and audio | `../gamedev-ui` | `src/ui/`, `src/audio/` |
 | video | capture and video | `../gamedev-video` | `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/`, `public/memes/`, `docs/reels.md`: reels, shareable clips, landing page assets and feature-inventory media; requests game fixes from the owning lanes |
 | audio | sound | `../gamedev-audio` | `public/audio/`, `src/audio/` (shared with ui), `scripts/trailer/`, `docs/trailer/`, `docs/readme/`; music, sound effects, voice and masters |
-| tools | checks and plumbing | `../gamedev-tools` | `blender/checks/`, `scripts/events/`, `scripts/tools/` |
+| tools | checks and plumbing | `../gamedev-tools` | `blender/checks/`, `scripts/events/`, `scripts/tools/`, `tests/tools/` |
 | tools2 | checks and plumbing | `../gamedev-tools2` | the same paths as tools, on `tools/` branches; team-lead assigns each issue to one of the two |
 | perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
 | reviewer | review and playtest | any (read-only) | nothing |

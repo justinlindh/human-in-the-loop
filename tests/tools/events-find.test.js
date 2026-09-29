@@ -159,3 +159,44 @@ describe('find.js --where', () => {
   });
 });
 
+describe('find.js --branch', () => {
+  const WHERE = "e.type === 'week' && s.week === 4";
+
+  it('plays a copy of the moment forward with sim.step and keeps its return value as the result', () => {
+    const r = find('--where', WHERE, '--branch', 'let evs = 0; for (let i = 0; i < 3; i++) evs += sim.step(s).length; return { w: s.week, evs };', ...SCAN);
+    expect(r.code).toBe(0);
+    expect(r.out[0].week).toBe(4);
+    expect(r.out[0].result.w).toBe(7);
+    expect(r.out[0].result.evs).toBeGreaterThan(0);
+    expect(r.out[0].snapshotFile).toMatch(/w4-week/);
+  });
+
+  it('leaves the run untouched: the branch plays a copy, so later weeks are still found', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 3 && s.week <= 6", '--branch', 'for (let i = 0; i < 3; i++) sim.step(s); return true;', '--per-run', '4', ...SCAN);
+    expect(r.out.map((x) => x.week)).toEqual([3, 4, 5, 6]);
+  });
+
+  it('drops a moment whose branch returns falsy, and exits 1', () => {
+    const r = find('--where', WHERE, '--branch', 'return s.week > 100;', ...SCAN);
+    expect(r.code).toBe(1);
+  });
+
+  it('answers a pending decision from `choose` inside step, by event id or default', () => {
+    // The tick does nothing while a decision is open, so the week only advances if step answered it.
+    const r = find('--where', "e.type === 'week' && s.pendingDecision", '--branch', 'const id = s.pendingDecision.eventId; const w0 = s.week; sim.step(s, { choose: { [id]: 0 } }); return { id, advanced: s.week - w0 };', ...SCAN);
+    expect(r.code).toBe(0);
+    expect(r.out[0].result.advanced).toBe(1);
+  });
+
+  it('ranks by a field of the result', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 3 && s.week <= 5", '--branch', 'return { n: s.week };', '--rank', 'm.result.n', '--per-run', '3', ...SCAN);
+    expect(r.out.map((x) => x.result.n)).toEqual([5, 4, 3]);
+  });
+
+  it('refuses a body that is not JS, one without --where, and one combined with --then', () => {
+    expect(find('--where', WHERE, '--branch', 'return (', ...SCAN).out.kind).toBe('bad-query');
+    expect(find('--branch', 'return 1;', ...SCAN).code).toBe(2);
+    expect(find('--where', WHERE, '--branch', 'return 1;', '--then', 'true', ...SCAN).code).toBe(2);
+  });
+});
+
