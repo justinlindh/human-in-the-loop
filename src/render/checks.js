@@ -1245,6 +1245,23 @@ export function setupPetPasser(R, S, species = 'dog', yaw = null, distance = 0.6
 
 // The office robot broken by `cause` at its spot, then fixed by the nearest free person in the
 // office: the robot slap moment. Places a dock at tile (x, y) when the office has none.
+// A working office robot at a waffle party or a music night ('waffle_party' or 'music_night'),
+// thrown for the first staffer with three more dancing; the robot joins it at once. The dock's
+// default tile in the floor mock is one it reaches both posts from, in either camera view.
+export function setupRobotParty(R, S, reward, { x = 15, y = 5, rot = 0 } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  R.incentives?.reset();
+  // A fix still under way from an earlier case is dropped: the robot starts again on its dock.
+  R.robot?.reset();
+  if (!S.office.placed.some((p) => p.itemId === 'office_robot')) S.office.placed = [...S.office.placed, { id: 'check_robot', itemId: 'office_robot', level: 2, x, y, rot }];
+  S.robot = { status: 'ok', since: S.week, breakdowns: 0, sabotages: 0, calmUntil: 0, googly: false };
+  R.sync(S);
+  window.__advance(2);
+  const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).map((p) => p.id);
+  R.handleEvents([{ type: 'incentive', staffId: ids[0], reward, ...(reward === 'music_night' ? { genre: 'corporate_synthwave', dancers: ids.slice(1, 4) } : {}) }], S);
+}
+
 export function setupRobotFix(R, S, { cause = 'spin', x = 13, y = 0, rot = 0 } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
@@ -1297,6 +1314,27 @@ export async function runRobotChecks(R, S) {
     results.push({ name: `moment:robot:${cause}`, pass: slapped && ended && worst < 0.01 && inRobot < 0.01 && robotIn < 0.01,
       slapped, ended, insidePct: +(worst * 100).toFixed(2), worstFrame, inRobotPct: +(inRobot * 100).toFixed(2), robotInsidePct: +(robotIn * 100).toFixed(2),
       ...(inRobot >= 0.01 && robotHits ? { robotHits } : {}) });
+  }
+  // At a waffle party it serves, at a music night it plays DJ: it gets to its post, keeps out of
+  // furniture and people on the way there, while it's there and on the way home, and goes home after.
+  for (const reward of ['waffle_party', 'music_night']) {
+    R.setQuality('medium');
+    setupRobotParty(R, S, reward);
+    const robot = R.robot.root;
+    const people = S.staff.map((p) => charOf(R.scene, p.id)).filter(Boolean);
+    let robotIn = 0, peopleIn = 0, posted = false, home = false, worstFrame = null;
+    const joined = !!R.robot.peek().party;
+    for (let f = 0; f < 30 * 30 && !home; f++) {
+      window.__advance(1);
+      const p = R.robot.peek();
+      if (p.party && !p.path) posted = true;
+      if (p.docked) { home = posted; continue; }
+      const v = bodyInside(robot, furnitureOf(R, new Set(['check_robot'])), false);
+      if (v > robotIn) { robotIn = v; worstFrame = f; }
+      if (f % 3 === 0) for (const root of people) peopleIn = Math.max(peopleIn, bodyInside(root, meshes(robot), false));
+    }
+    results.push({ name: `moment:robot:${reward}`, pass: joined && posted && home && robotIn < 0.01 && peopleIn < 0.01,
+      joined, posted, home, robotInsidePct: +(robotIn * 100).toFixed(2), worstFrame, peopleInRobotPct: +(peopleIn * 100).toFixed(2) });
   }
   S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); R.setQuality('low');
   window.__advance(30);

@@ -110,7 +110,10 @@ function bunting(word, len) {
   return g;
 }
 
-export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, spotlights = null }) {
+// A square floor box of half-width h round a point, for the robot to keep clear of.
+const around = (p, h) => ({ min: { x: p.x - h, z: p.z - h }, max: { x: p.x + h, z: p.z + h } });
+
+export function createIncentives({ office, recs, walkTo, emote, parent, caricature, setDim, setAccent, setPictureLight, getYaw, rig = null, fx = null, spotlights = null, robot = null }) {
   let balloons = null;          // { obj, deskId }
   let frame = null;
   let party = null;
@@ -286,7 +289,17 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       hurry(o, 3.5);
       return o;
     });
-    party = { r, v, props, cart, stack, grow, watchers, t: 0 };
+    // The office robot, when there is one, comes to serve: beside or behind the cart, turned to the
+    // winner. On the camera's side of the cart it would hide the winner and show only its back.
+    const cb = new THREE.Box3().setFromObject(cart);
+    const cartHalf = Math.max(cb.max.x - cb.min.x, cb.max.z - cb.min.z) / 2;
+    const cam = { x: Math.sin(v.yaw), z: Math.cos(v.yaw) };
+    const served = robot?.join({
+      role: 'serve', near: v.cart, face: seat, settle: 3.6, hurry: 3,
+      score: (q) => Math.hypot(q.x - v.cart.x, q.z - v.cart.z) + 3 * Math.max(0, (q.x - v.cart.x) * cam.x + (q.z - v.cart.z) * cam.z),
+      avoid: [around(v.cart, cartHalf), around({ x: back.x + 0.2, z: back.z }, 0.2)], crowd: [seat, ...watchers.map((o) => o.temp.goal)],
+    }) ?? false;
+    party = { r, v, props, cart, stack, grow, watchers, t: 0, robot: served };
     party.spot = spotlights?.begin('waffle_party', () => { endParty(); sendBack(); }, PARTY_S, () => v.center);
   }
 
@@ -296,6 +309,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setDim(0);
     setAccent(null);
     p.props.removeFromParent();
+    if (p.robot) robot.leave();
     spotlights?.end(p.spot);
     if (recs.has(p.r.id)) hangCaricature(p.r);
   }
@@ -440,6 +454,14 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     dance = { genre, genreId: ev.genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
     // A dance fitted to its track (fitToTrack) plays as long as the music.
     const d0 = dance;
+    // The office robot, when there is one, plays DJ: behind the speaker cart, facing the floor,
+    // nodding on the beat. Off to one side reads worse than a step further back.
+    const dj = at(0, -2.5);
+    dance.robot = robot?.join({
+      role: 'dj', near: dj, face: at(0, 2), settle: 3.6, hurry: 3, beat: genre.bar / 4, clock: () => d0.t, color: genre.light,
+      score: (q) => 2 * Math.abs((q.x - dj.x) * right.x + (q.z - dj.z) * right.z) + Math.abs((q.x - dj.x) * cam.x + (q.z - dj.z) * cam.z),
+      avoid: [around(cartAt, 0.42)], crowd: [...dancers, ...crowd].map((o) => o.temp.goal),
+    }) ?? false;
     dance.spot = spotlights?.begin('music_night', () => { endDance(); sendBack(); }, () => d0.dur, () => d0.center);
     if (track && track.age < 5) fitToTrack(dance);
   }
@@ -451,6 +473,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setAccent(null);
     d.props.removeFromParent();
     for (const r of d.dancers) r.char.setAnimRate(1);
+    if (d.robot) robot.leave();
     spotlights?.end(d.spot);
   }
 
@@ -506,9 +529,10 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     balloons = null;
     frame = null;
     setPictureLight(null);
-    if (party) { party.props.removeFromParent(); party = null; setDim(0); setAccent(null); ease = null; }
-    if (dance) { dance.props.removeFromParent(); for (const r of dance.dancers) r.char.setAnimRate(1); dance = null; setDim(0); setAccent(null); ease = null; }
+    if (party?.robot || dance?.robot) robot.leave();
+    if (party) { party.props.removeFromParent(); spotlights?.end(party.spot); party = null; setDim(0); setAccent(null); }
+    if (dance) { dance.props.removeFromParent(); for (const r of dance.dancers) r.char.setAnimRate(1); spotlights?.end(dance.spot); dance = null; setDim(0); setAccent(null); }
   }
 
-  return { handle, update, reset, get party() { return party ? { t: party.t, center: party.v.center, yaw: party.v.yaw, watchers: party.watchers.map((w) => w.id), winner: party.r.id } : null; }, get dance() { return dance ? { t: dance.t, dur: dance.dur, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id) } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
+  return { handle, update, reset, get party() { return party ? { t: party.t, center: party.v.center, yaw: party.v.yaw, watchers: party.watchers.map((w) => w.id), winner: party.r.id, robot: party.robot } : null; }, get dance() { return dance ? { t: dance.t, dur: dance.dur, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id), robot: dance.robot } : null; }, get frameAt() { return frame?.userData.at ?? null; } };
 }
