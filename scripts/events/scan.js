@@ -46,7 +46,8 @@ const STAGES = { garage: 0, floor: 1, hq: 2 };
 // and the answer is refused rather than reported as "none satisfied".
 const MAX_WAITING = 1000;
 
-async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, dir, id, perRun, key, filter }) {
+async function play({ bot: startBot, seed, weeks, where, then, within, setup, before: beforeJs, botJs, extra: extraJs, turnWhile, dir, id, perRun, key, filter }) {
+  const bot = startBot;
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
   const { botDecide, botTurn } = await mod('src/sim/bots.js');
   const { createGame } = await mod('src/sim/state.js');
@@ -59,6 +60,9 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
   const everTrue = clauses.map(() => false);
   const follow = then ? new Function('e', 's', 'm', `return (${then});`) : null;
   const prep = setup ? new Function('s', setup) : null;
+  const pre = beforeJs ? new Function('s', beforeJs) : null;
+  const pickBot = botJs ? new Function('s', `return (${botJs});`) : null;
+  const more = extraJs ? new Function('e', 's', `return (${extraJs});`) : null;
   const turn = turnWhile ? new Function('s', `return (${turnWhile});`) : null;
   const s = createGame({ seed, companyName: `Bot ${bot}` });
   const hits = [];
@@ -77,9 +81,12 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
   };
   try {
     while (!s.gameOver && s.week < weeks && hits.length < perRun) {
-      botDecide(bot, s, { onEvents: collect });
+      const who = pickBot?.(s) ?? bot;
+      pre?.(s);
+      botDecide(who, s, { onEvents: collect });
       if (s.gameOver) break;
-      if (!turn || turn(s)) botTurn(bot, s, { onEvents: collect });
+      pre?.(s);
+      if (!turn || turn(s)) botTurn(who, s, { onEvents: collect });
       prep?.(s);
       const before = JSON.stringify(s);
       collect(tick(s));
@@ -99,7 +106,7 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
         if (!passes(e)) continue;
         clauses.forEach((c, i) => { if (!everTrue[i]) { try { everTrue[i] = !!c(e, s); } catch { /* false */ } } });
         if (!pred(e, s)) continue;
-        const row = { ...base(), type: e.type, id: e.id };
+        const row = { ...base(), type: e.type, id: e.id, ...(more?.(e, s) ?? {}) };
         if (follow) { started++;
           if (waiting.length < MAX_WAITING) waiting.push({ row, e, s0: wantsState ? structuredClone(s) : null, before, until: s.week + within }); else dropped++; } else record(row, before, true);
         break;
@@ -115,8 +122,8 @@ if (!isMainThread) {
 
 // Matches for a query, from the cache and then from playing more runs. Returns { rows, played, cached,
 // error? } with rows in seed, bot order. `onProgress(done, total)` is called as runs finish.
-export async function scan(hash, { id = null, where, then = '', within = 52, rank = '', setup = '', turnWhile = '', filter = {}, seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
-  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, setup, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
+export async function scan(hash, { id = null, where, then = '', within = 52, rank = '', setup = '', before = '', botJs = '', extra = '', turnWhile = '', filter = {}, seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
+  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, setup, before, botJs, extra, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
   const dir = join(indexDir(hash), 'scan');
   mkdirSync(join(dir, 'snapshots'), { recursive: true });
   const file = join(dir, `${key}.json`);
@@ -138,7 +145,7 @@ export async function scan(hash, { id = null, where, then = '', within = 52, ran
       while (next < runs.length && have() < limit && !error) {
         const run = runs[next++];
         const r = await new Promise((res, rej) => {
-          const w = new Worker(fileURLToPath(import.meta.url), { workerData: { ...run, weeks, where, then, within, setup, turnWhile, dir, id, perRun, key, filter } });
+          const w = new Worker(fileURLToPath(import.meta.url), { workerData: { ...run, weeks, where, then, within, setup, before, botJs, extra, turnWhile, dir, id, perRun, key, filter } });
           w.once('message', res); w.once('error', rej);
         }).catch((e) => ({ hits: [], error: e.message }));
         if (r.error) { error = r.error; return; }

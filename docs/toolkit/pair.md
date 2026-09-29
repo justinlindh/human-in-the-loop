@@ -1,0 +1,9 @@
+---
+tool: `node scripts/events/pair.js [--a <root>] [--b <root>] [--bots x,y] [--seeds 300] [--fields '<js>'] [--json out.json]`
+section: sim
+who: sim, reviewer
+covers: scripts/events/pair.js scripts/events/pair-report.js
+---
+A paired bot-run comparison between two checkouts, for any change that can move balance. Every bot plays seeds 1 to N on each side's own sim code, in parallel under nice, and the runs are compared seed by seed. `--a` is the base (default: origin/main, in a temporary worktree removed afterwards) and `--b` the change (default: this checkout). The comparison waits on both sides' processes, never on a sleep.
+
+Per bot it prints one row of a markdown table (paste it into the PR): how many seeds end identically (ending reason, weeks, score and the final random state), exit % before and after with the seeds lost (exited on the base, not on the change) and gained, median score and weeks, and totals of incidents, caught and breaches. `--fields '<js over r, s>'` adds columns: the expression gets a run's result `r` and final state `s` and returns an object; numbers add up, booleans count the true ones, anything else is counted by value, and a side whose code cannot compute a field shows `-`. `--json out.json` writes the per-bot summary (with the lost and gained run keys) and every run's record. `--bots` (default all), `--seeds` (300), `--jobs` (worker threads per side) and `--timeout` (seconds, 3600) tune the run; exit 2 when a side fails or times out. One moved desk tile flips about a third of bot endings, so read seeds lost and gained, not a few points of exit %.

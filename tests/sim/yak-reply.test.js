@@ -36,3 +36,15 @@ describe('replies to the player\'s own post', () => {
     });
   }
 });
+
+describe('reply order', () => {
+  it('a reply to the player\'s post goes before older priority posts already waiting', () => {
+    const q = createYakPacer();
+    q.enqueue([chat('mine', { fromId: 'founder' })], { urgentIds: new Set(['mine']), gameTime: 0 });
+    q.enqueue(Array.from({ length: 4 }, (_, k) => chat(`w${k}`, { channel: 'wins', text: 'Shipped' })), { gameTime: 1 });
+    q.enqueue([chat('r1', { replyTo: 'mine', text: 'Nice' })], { gameTime: 2 });
+    let out = [];
+    for (let i = 0; i < 400 && !out.length; i++) out = q.step(0.1, true, { gameTime: 3 + i * 0.1 });
+    expect(out[0].id).toBe('r1');
+  });
+});
