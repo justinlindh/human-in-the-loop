@@ -59,7 +59,7 @@ echo "git must not run before the trust gate passes" >&2; exit 9
 F
 chmod +x "$tmp/bin/git"
 gate() { # <author> <cross> <files, one per word> [flags]: sets rc and out
-  jq -n --arg a "$1" --argjson c "$2" '{author: {login: $a}, isCrossRepository: $c}' >"$tmp/pr.json"; echo "$3" | tr ' ' '\n' | sed 's/$/\t1\t0/' >"$tmp/files"
+  jq -n --arg a "$1" --argjson c "$2" --argjson b "${IS_BOT:-false}" '{author: {login: $a, is_bot: $b}, isCrossRepository: $c}' >"$tmp/pr.json"; echo "$3" | tr ' ' '\n' | sed 's/$/\t1\t0/' >"$tmp/files"
   shift 3; out="$(PATH="$tmp/bin:$PATH" bash "$HERE/review-prep.sh" 9 --no-checkout "$@" 2>&1)"; rc=$?
 }
 gate justinlindh true 'src/a.js'; [ $rc -eq 3 ] && grep -q fork <<<"$out" || fail "a fork: $rc $out"
@@ -68,6 +68,9 @@ gate 'dependabot[bot]' false 'package.json'; [ $rc -eq 3 ] && grep -q 'use --bot
 gate 'dependabot[bot]' false 'package.json src/main.js' --bot; [ $rc -eq 3 ] && grep -q 'src/main.js' <<<"$out" || fail "Dependabot touching code: $rc $out"
 gate justinlindh false 'package.json' --bot; [ $rc -eq 3 ] && grep -q 'for Dependabot PRs' <<<"$out" || fail "--bot on a person's PR: $rc $out"
 gate justinlindh false 'src/a.js'; [ $rc -eq 2 ] && grep -q "can't fetch" <<<"$out" || fail "a trusted PR passes the gate: $rc $out"
+IS_BOT=true gate 'app/loop-reviewer-justinlindh' false 'src/a.js'; [ $rc -eq 2 ] && grep -q "can't fetch" <<<"$out" || fail "a listed app's PR passes the gate: $rc $out"
+IS_BOT=true gate 'app/other-app' false 'src/a.js'; [ $rc -eq 3 ] && grep -q 'ci-trusted-bots' <<<"$out" || fail "an unlisted app is refused: $rc $out"
+IS_BOT=false gate 'app/loop-reviewer-justinlindh' false 'src/a.js'; [ $rc -eq 3 ] || fail "a listed name that is not a bot is refused: $rc $out"
 gate 'dependabot[bot]' false 'package.json package-lock.json .github/workflows/ci.yml' --bot; [ $rc -ne 3 ] || fail "a clean Dependabot PR passes the gate: $rc $out"
 
 [ $fails -eq 0 ] && echo "review-prep: all cases pass"
