@@ -93,7 +93,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     }
     if ((!res || !res.ok) && quiet) return res ?? { ok: false };
     if (!res || !res.ok) {
-      toasts.push(res?.reason ?? 'That did not work', 'warn');
+      toasts.push(res?.reason ?? 'That did not work', 'warn', { player: true });
       sfx('error');
     }
     return res ?? { ok: false };

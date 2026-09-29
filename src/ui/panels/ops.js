@@ -4,7 +4,7 @@ import { incidentLabel } from '../v2content.js';
 import { postureParts as simPostureParts } from '../../sim/incidents.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
-import { NOC_MODES, nocPlaced, nocStatus, nocEffect } from '../nocMode.js';
+import { NOC_MODES, modeBlurb, nocPlaced, nocStatus, nocEffect } from '../nocMode.js';
 import { oversightNeeded, oversightHave } from './automation.js';
 
 // A breakdown value with its sign; a value that rounds to zero carries none ("0.0", not "-0.0").
@@ -144,14 +144,15 @@ export function opsPanel(ctx) {
       const noc = nocPlaced(s);
       if (noc) {
         const status = h('div.small.nocstatus'); const effect = h('div.small.muted');
-        const btns = NOC_MODES.map((m) => h('button.segb', { type: 'button', dataset: { mode: m.v }, title: m.blurb,
-          onclick: () => { if (ctx.act({ type: 'setNocMode', mode: m.v }).ok) ctx.sfx?.('click'); } }, m.label));
+        const btns = NOC_MODES.map((m) => h('button.segb', { type: 'button', dataset: { mode: m.v },
+          onclick: () => { if (ctx.act({ type: 'setNocMode', mode: m.v }).ok) ctx.sfx?.('click'); } },
+          h('b', { text: m.label }), h('span.nocblurb', { text: modeBlurb(m.v) })));
         bind((st) => {
           const mode = st.ops?.noc ?? null;
           btns.forEach((b, i) => toggleClass(b, 'on', mode === NOC_MODES[i].v));
           setText(status, nocStatus(st));
           const crew = st.staff.filter((p) => p.assignment?.type === 'security' && p.mood !== 'away').length;
-          setText(effect, mode ? nocEffect(st, crew) : 'Humans need a crew on security; agents need nobody but misread some alerts.');
+          setText(effect, mode ? nocEffect(st, crew) : 'Pick who watches once the choice opens.');
         });
         nocCard = h('div.card.noc', null,
           h('div.row', null, icon('oversight', { size: 20 }), h('b', { text: `Network Operations Center` }), h('span.spacer'), h('span.small.muted', { text: `Level ${noc.level ?? 1}` })),

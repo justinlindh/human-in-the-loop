@@ -1,9 +1,15 @@
 import { B } from './content.js';
 
 export const NOC_MODES = [
-  { v: 'humans', label: 'Humans on the glass', blurb: 'People on the security assignment watch the screens. Catch chance scales with the crew, and nothing gets misread.' },
-  { v: 'agents', label: 'Let the agents watch', blurb: 'Agents watch with nobody needed and catch more, but some alerts get read as routine and land a severity worse.' },
+  { v: 'humans', label: 'Humans on the glass' },
+  { v: 'agents', label: 'Let the agents watch' },
 ];
+
+// What each mode does, in the numbers, shown under its button.
+export function modeBlurb(v) {
+  if (v === 'agents') return `Catch x${B.nocAgentCatch}, no crew needed, ${Math.round((B.nocMisreadChance ?? 0) * 100)}% misread`;
+  return `Needs ${B.nocCrew} on security, no misreads`;
+}
 
 export const nocPlaced = (s) => (s.office?.placed ?? []).find((p) => p.itemId === 'noc') ?? null;
 
@@ -17,7 +23,7 @@ export function nocLockWeeks(s) {
 // The status line: what is chosen and whether it can change.
 export function nocStatus(s) {
   const mode = s.ops?.noc;
-  if (!mode) return 'Not chosen yet. Yak asks once the Agents era arrives and the NOC is level 2.';
+  if (!mode) return 'Not chosen yet. A decision card asks once the Agents era arrives and the NOC is level 2.';
   const name = mode === 'agents' ? 'Agents are watching' : 'Humans are watching';
   const w = nocLockWeeks(s);
   return w > 0 ? `${name}. You can switch again in ${w} ${w === 1 ? 'week' : 'weeks'}.` : `${name}. You can switch any time.`;
