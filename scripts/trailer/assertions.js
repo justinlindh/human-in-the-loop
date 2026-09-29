@@ -5,7 +5,7 @@ const EXPECT = {
   build: "visible('.buildbar', 'Foosball') && window.__glide",
   hire: "visible('.cand button:not(:disabled)', 'Hire') && s.candidates.length > 0",
   launch: "s.office.stage === 1 && visible('.modal.launch', 'Review average') && s.products.some(p => p.version === 1 && p.score >= 9 && visible('.modal.launch', p.name + ' launched!'))",
-  incident: "s.outage && s.staff.some(p => R.probe(p.id)?.anim === 'run')",
+  incident: "s.outage && s.outage.responderIds?.length > 0",
   yak: "window.__assertYak()",
   'yak-react': "s.staff.some(p => R.probe(p.id)?.anim?.startsWith('facepalm'))",
   printer: "R.moments.printer && Math.abs(R.moments.printer.cue - 9.9) <= 1 / 30 && R.props.current().some(p => p.prop === 'printer_wrecked') && R.flying",
