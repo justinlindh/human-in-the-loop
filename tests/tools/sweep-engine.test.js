@@ -90,15 +90,23 @@ describe('sweep --engine', () => {
     expect(r.stdout).toMatch(/seed:1 played to week 6; windows: w5/);
     expect(r.stdout).toMatch(/replay: 0 of 1 reported violation\(s\) still present, 1 gone/);
     expect(Date.now() - t0).toBeLessThan(60000);
-    r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--replay', write('event.json', { windows: [{ state: 'event:x:s1', query: 'printer_jam' }], violations: [v('event:x:s1')] }), '--out', join(dir, 'out2')], { encoding: 'utf8', timeout: 120000 });
-    expect(r.status).toBe(2);
-    expect(r.stderr).toMatch(/cannot replay an indexed moment/);
     rmSync(dir, { recursive: true, force: true });
   }, 200000);
 
-  it('refuses the runs it does not do yet', () => {
-    const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--moments', 'printer_jam'], { encoding: 'utf8', timeout: 60000 });
-    expect(r.status).toBe(2);
-    expect(r.stderr).toMatch(/--engine does not run --moments/);
-  });
+  it('plays an indexed moment from its snapshot, replays it from the report, and takes it as a control run', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sweep-moment-'));
+    const sweep = (...args) => spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--seeds', 'none', '--mocks', 'none', ...args], { encoding: 'utf8', timeout: 500000 });
+    let r = sweep('--moments', 'printer_jam --choice 0', '--out', join(dir, 'a'));
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/sweep: event:printer_jam:\S+ \d+ violation/);
+    r = sweep('--replay', join(dir, 'a/report.json'), '--out', join(dir, 'b'));
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/replay: (\d+) of \1 reported violation\(s\) still present, 0 gone/);
+    // The same moment on this checkout as the control: nothing is new against itself.
+    r = sweep('--moments', 'printer_jam --choice 0', '--against', 'HEAD', '--out', join(dir, 'c'));
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/has \d+ violation\(s\) in the same states/);
+    expect(r.stdout).toMatch(/, 0 new,/);
+    rmSync(dir, { recursive: true, force: true });
+  }, 600000);
 });
