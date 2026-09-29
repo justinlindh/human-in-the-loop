@@ -17,21 +17,19 @@
 //   contact.robotAngle    degrees between the fixer's face direction and the robot head (stage's facingRobot)
 import * as THREE from 'three';
 import { createCharacter, SLAP_AT } from '/src/render/character.js';
-import { buildRig, SLAP, slapPose, JOLT_DECAY } from '/src/render/robot.js';
+import { buildRig, SLAP, slapPose, breakdownPose, JOLT_DECAY } from '/src/render/robot.js';
 import { loadModels, getTemplate } from '/src/render/models.js';
 import { setRigEnabled } from '/src/render/rig.js';
 import { overlaps } from './intersect.js';
 import { faceVisibility } from './pose-visibility.js';
 import { coverCamera } from './pose-measure.js';
+import { robotContact } from './robot-contact.js';
 
 const AFTER_S = 1.1;   // how long the game keeps the fixer in the slap anim after SLAP_AT (robot.js temp t)
 const PITCH = Math.atan(1 / Math.SQRT2);
 const SIDE = -1;
 const START_YAW = Math.PI / 4;
 const TO_CAMERA = new THREE.Vector3(Math.sin(START_YAW) * Math.cos(PITCH), Math.sin(PITCH), Math.cos(START_YAW) * Math.cos(PITCH));
-
-// Distance from a hand point to the robot head's box: the stage's robotContact.
-export const robotContact = (headObject, handAt) => new THREE.Box3().setFromObject(headObject).distanceToPoint(new THREE.Vector3(...handAt));
 
 // Degrees between where the fixer's face points and the robot head: the stage's facingRobot angle.
 function robotAngle(p, robotHead) {
@@ -52,7 +50,7 @@ function bodyOf(root, label) {
   return { key: label, kind: 'actor', label, id: null, box: new THREE.Box3().setFromObject(root), meshes };
 }
 
-export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30, look = {}, seed = 'slap' } = {}) {
+export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30, look = {}, seed = 'slap', cause = 'unplug' } = {}) {
   await loadModels(['chibi', 'robot']);
   await setRigEnabled(rig);
   const template = getTemplate('chibi');
@@ -87,6 +85,10 @@ export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30,
   const fixSide = Math.sign(c.root.position.x * Math.cos(fixYaw) - c.root.position.z * Math.sin(fixYaw)) || 1;
   robotRig.root.rotation.y = fixYaw;
   robotRig.head.rotation.z = slapPose(0, { cringeSide: fixSide }).headZ;
+  // The robot has held its breakdown pose since long before the fixer arrives.
+  const start = cause === 'none' ? null : breakdownPose(cause, 0, { struggling: false });
+  robotRig.head.rotation.x = start?.headX ?? 0;
+  robotRig.torso.rotation.x = start?.lean ?? 0;
   let jolt = 0, slapped = false;
   const step = () => {
     if (!started && t >= SLAP.turnS - 1e-9) { c.setAnim('slap'); started = true; }
@@ -94,10 +96,16 @@ export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30,
     t = +(t + dt).toFixed(6);
     if (!slapped && t - SLAP.turnS >= SLAP_AT) { slapped = true; jolt = 1; }
     if (jolt > 0) jolt = Math.max(0, jolt - dt * JOLT_DECAY);
+    // As pose() in robot.js: the breakdown pose (or idle sway), the head level while cringing, then the slap terms.
+    const held = cause === 'none' ? null : breakdownPose(cause, t, { struggling: false });
+    let headZ = held ? held.headZ : Math.sin(t * 1.1) * 0.05;
+    if (!slapped) headZ = 0;
     const o = slapPose(t, { cringeSide: slapped ? 0 : fixSide, jolt });
-    const headZ = (slapped ? Math.sin(t * 1.1) * 0.05 : 0) + o.headZ, lean = o.lean;
+    headZ += o.headZ;
+    const lean = (held?.lean ?? 0) + o.lean, headX = held?.headX ?? 0;
     const k = 1 - Math.exp(-dt * 10);
     robotRig.head.rotation.z += (headZ - robotRig.head.rotation.z) * k;
+    robotRig.head.rotation.x += (headX - robotRig.head.rotation.x) * k;
     robotRig.torso.rotation.x += (lean - robotRig.torso.rotation.x) * k;
     pair.updateMatrixWorld(true);
     const p = c.probe();
@@ -113,7 +121,7 @@ export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30,
       eyes: p.eyes.toArray().map((v) => +v.toFixed(4)), forward: p.forward.toArray().map((v) => +v.toFixed(4)),
       head: p.head.toArray().map((v) => +v.toFixed(4)), hands: p.hands.map((h) => h.toArray().map((v) => +v.toFixed(4))),
       joints: j && Object.fromEntries(Object.entries(j).map(([name, v]) => [name, v.toArray().map((n) => +n.toFixed(4))])),
-      contact: { robotContact: +robotContact(robotHead, p.hands[1].toArray()).toFixed(4), robotDepth: +depth.toFixed(4), faceVisible: +vis.faceVisible.toFixed(3), robotAngle: robotAngle(p, robotHead) },
+      contact: { robotContact: +robotContact(robotRig.root, p.hands[1].toArray()).toFixed(4), robotDepth: +depth.toFixed(4), faceVisible: +vis.faceVisible.toFixed(3), robotAngle: robotAngle(p, robotHead) },
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(TO_CAMERA)).toFixed(1),
     };
   };
@@ -130,5 +138,5 @@ export async function playSlap(opts = {}) {
 // playPose with the slap added: the matrix and the single run pass every gesture through this, and the
 // gesture named 'slap' plays as the two-actor run (the view is yawToCamera / 90, the build and rig as given).
 export const withSlap = (playPose) => (o = {}) => (o.gesture === 'slap'
-  ? playSlap({ build: o.look?.build ?? 1, rig: o.rig ?? true, view: Math.round((o.yawToCamera ?? 0) / 90), fps: o.fps ?? 30, look: o.look })
+  ? playSlap({ build: o.look?.build ?? 1, rig: o.rig ?? true, view: Math.round((o.yawToCamera ?? 0) / 90), fps: o.fps ?? 30, look: o.look, cause: o.cause ?? 'unplug' })
   : playPose(o));

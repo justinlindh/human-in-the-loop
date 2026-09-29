@@ -173,6 +173,7 @@ lane_no "$repo/CLAUDE.md" "integ, CLAUDE.md"
 g -C "$repo" checkout -q -b tools/sweep
 lane_ok "$repo/docs/toolkit.md" tools
 lane_ok "$repo/tests/tools/pair.test.js" tools
+lane_ok "$repo/scripts/studio/engine.mjs" tools
 lane_no "$repo/tests/sim/balance.test.js" "tools, the sim tests"
 lane_no "$repo/docs/superpowers/specs/spec.md" "tools, the spec"
 g -C "$repo" checkout -q -b video/reel

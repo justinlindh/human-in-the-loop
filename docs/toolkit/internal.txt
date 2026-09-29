@@ -20,3 +20,4 @@ blender/checks/sample.js          the sweep's in-page state sampler
 blender/checks/bvh.js             three-mesh-bvh by package name, for harness pages
 blender/checks/clip-exact.js      the clip check's exact triangle-crossing measure
 blender/checks/clip-groups.mjs    which clip groups run on which page, and the empty-group check
+blender/checks/robot-contact.js   the robot.slap hand-to-head measure stage.mjs and the slap run share

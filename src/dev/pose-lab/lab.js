@@ -12,7 +12,7 @@ const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.crea
 
 const state = {
   under: 'typing', gesture: 'facepalm', view: 0, build: 1, rig: true, yaw: 0, seconds: 2.2, warm: 1, fps: 30,
-  frame: 0, zoom: 1, skeleton: true, rays: true,
+  cause: 'unplug', frame: 0, zoom: 1, skeleton: true, rays: true,
   mxAxes: 'views=all,postures=stand,sit,lie,builds=all,rig=on,off', mxRules: 'coverHandEyeNear>=0.3@0.3 if faceCam<=80', mxAuto: false,
   ...saved.state,
   ...Object.fromEntries([...q].map(([k, v]) => [k, ['under', 'gesture', 'mxAxes', 'mxRules'].includes(k) ? v : k === 'mxAuto' ? v === '1' : Number(v)])),
@@ -90,7 +90,7 @@ async function rebuild() {
   sideUsed = state.side ?? PM.gameSide(state.view);
   // The slap is two actors (pose-slap.js), turned as a pair by the view; every other gesture is one person.
   run = state.gesture === 'slap'
-    ? await SL.createSlapRun({ build: state.build, rig: state.rig, view: state.view, fps: state.fps })
+    ? await SL.createSlapRun({ build: state.build, rig: state.rig, view: state.view, fps: state.fps, cause: state.cause })
     : await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.view * 90 + state.yaw, view: 0, rig: state.rig, look: { build: state.build }, covers: COVER_NAMES, side: sideUsed });
   scene.add(rootOf(run));
   frames = []; stepped = 0; planted = false;
@@ -196,9 +196,9 @@ function paintGrid() {
   const { axes, cells } = lastMatrix, worst = PM.worstOf(cells);
   const head = el('tr', {}, el('td'), ...axes.views.map((v) => el('td', { textContent: `view ${v}` })));
   const rows = [];
-  for (const posture of axes.postures) for (const build of axes.builds) for (const rig of axes.rig) for (const accessory of axes.accessory) {
-    const mine = cells.filter((c) => c.posture === posture && c.build === build && c.rig === rig && c.accessory === accessory);
-    rows.push(el('tr', {}, el('td', { textContent: PM.rowLabel({ posture, build, rig, accessory }, axes) }), ...axes.views.map((v) => {
+  for (const posture of axes.postures) for (const build of axes.builds) for (const rig of axes.rig) for (const accessory of axes.accessory) for (const cause of axes.cause) {
+    const mine = cells.filter((c) => c.posture === posture && c.build === build && c.rig === rig && c.accessory === accessory && c.cause === cause);
+    rows.push(el('tr', {}, el('td', { textContent: PM.rowLabel({ posture, build, rig, accessory, cause }, axes) }), ...axes.views.map((v) => {
       const c = mine.find((x) => x.view === v);
       const b = el('button', { className: `cell ${c.na ? 'na' : c.pass ? 'pass' : 'fail'}${c === worst ? ' worst' : ''}`, textContent: cellText(c), title: c.error ?? c.verdicts.map((x) => `${x.rule}: ${x.na ? 'nothing to judge (its if excludes every frame)' : `${Math.round(x.share * 100)}%`}`).join('\n') });
       b.onclick = () => loadCell(c);
@@ -229,7 +229,7 @@ async function runGrid() {
   } catch (e) { if (s) { s.textContent = String(e.message ?? e); s.className = 'err'; } } finally { matrixBusy = false; }
 }
 async function loadCell(c) {
-  state.under = PM.POSTURES[c.posture]; state.build = c.build; state.rig = c.rig === 'on'; state.view = c.view; state.yaw = 0; state.side = c.side;
+  state.under = PM.POSTURES[c.posture]; state.build = c.build; state.rig = c.rig === 'on'; state.view = c.view; state.yaw = 0; state.side = c.side; if (state.gesture === 'slap') state.cause = c.cause;
   const t = c.verdicts.find((v) => !v.pass)?.worstT ?? c.verdicts[0]?.worstT;
   state.frame = t != null ? Math.round(t * state.fps) : state.frame;
   buildPanel();
@@ -247,6 +247,7 @@ function buildPanel() {
     el('label', {}, 'gesture', select('gesture', ANIMS)),
     el('label', {}, 'under', select('under', ANIMS)),
     views, builds,
+    ...(state.gesture === 'slap' ? [el('label', {}, 'breakdown pose', (() => { const s = el('select'); for (const v of PM.CAUSES) s.append(el('option', { value: v, textContent: v })); s.value = state.cause; s.onchange = async () => { state.cause = s.value; await rebuildAndSeek(); }; return s; })())] : []),
     el('label', {}, 'hand side', (() => { const s = el('select'); for (const [v, t] of [['', 'game pick'], ['1', '1 (left hand)'], ['-1', '-1 (right hand)']]) s.append(el('option', { value: v, textContent: t })); s.value = state.side == null ? '' : String(state.side); s.onchange = async () => { state.side = s.value === '' ? null : Number(s.value); await rebuildAndSeek(); }; return s; })()),
     el('div', { className: 'row' }, toggle('rig', 'rig on (Medium/High)', rebuildAndSeek), toggle('skeleton', 'skeleton', async () => draw()), toggle('rays', 'rays', async () => draw())),
     el('label', {}, 'heading', slider('yaw', -90, 90, 1, () => { rebuildAndSeek(); })),
