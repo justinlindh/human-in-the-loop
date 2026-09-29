@@ -4,6 +4,7 @@ import { carried } from '../../blender/checks/intersect.js';
 import { getTemplate } from '../../src/render/models.js';
 import { projectTriangles } from '../../blender/checks/pose-projection.js';
 import { meshContact, castLandmark } from './geometry.mjs';
+import { pathOf, partId, heldName } from './ids.mjs';
 
 const boundsVersions = new WeakMap();
 const bounds = mesh => {
@@ -18,12 +19,6 @@ const bounds = mesh => {
 };
 const boxJSON = box => box.isEmpty() ? null : { min: box.min.toArray(), max: box.max.toArray() };
 const shown = object => { for (let p = object; p; p = p.parent) if (!p.visible) return false; return true; };
-const pathOf = object => {
-  if (!object.parent) return 'scene';
-  const name = object.name || object.type;
-  const index = object.parent.children.filter(child => (child.name || child.type) === name).indexOf(object);
-  return `${pathOf(object.parent)}/${name}:${index}`;
-};
 const solid = mesh => mesh.isMesh && !mesh.isInstancedMesh && !mesh.userData.pickProxy && !mesh.userData.staffId &&
   [].concat(mesh.material).some(m => m?.visible !== false && !(m?.transparent && m.opacity < 0.5) && m?.depthWrite !== false);
 
@@ -60,9 +55,9 @@ export function inventory(R, S) {
   for (const held of carried(R)) {
     const existing = records.find(r => r.root === held.thing.obj);
     if (existing) Object.assign(existing, { staffId: String(held.staffId), held: true });
-    else add(`held:${held.staffId}:${pathOf(held.thing.obj)}`, 'prop', held.thing.obj, { staffId: String(held.staffId), held: true });
+    else add(`held:${held.staffId}:${heldName(held.thing.obj)}`, 'prop', held.thing.obj, { staffId: String(held.staffId), held: true });
   }
-  // Draw batches and unowned environment geometry remain explicit, with build-scoped path ids.
+  // Draw batches and unowned environment geometry remain explicit, with structural path ids.
   R.scene.traverse(mesh => {
     if (mesh.isMesh && !mesh.userData.pickProxy && mesh.userData.staffId == null && !owners.has(mesh)) add(`environment:${pathOf(mesh)}`, 'prop', mesh, { role: 'environment-or-draw-batch' });
   });
@@ -102,8 +97,8 @@ export function sampleScene(R, S, { frame, who = null, facts = [], width = 1600,
   const objects = records.map(record => {
     const { root } = record;
     const box = new THREE.Box3();
-    const parts = record.meshes.map((mesh, i) => {
-      const id = `${record.id}/part:${i}`; partIds.set(mesh, id);
+    const parts = record.meshes.map((mesh) => {
+      const id = partId(record.id, mesh, record.root); partIds.set(mesh, id);
       const b = bounds(mesh); box.union(b);
       return { id, name: mesh.userData.part || mesh.name || 'unnamed', world: mesh.matrixWorld.toArray(),
         bounds: boxJSON(b), visible: shown(mesh), instanced: !!mesh.isInstancedMesh, skinned: !!mesh.isSkinnedMesh };
@@ -124,7 +119,7 @@ export function sampleScene(R, S, { frame, who = null, facts = [], width = 1600,
   const result = { schema: 'hitl.scene/0.1', frame, timeSeconds: frame / 30, stepHz: 30,
     state: { week: S.week ?? null, officeStage: S.officeStage ?? null },
     capabilities: { domLayout: false, exactGeneralPenetrationDepth: false, crossMachineByteIdentity: false,
-      bounds: 'transformed-local-aabb', stableIds: 'semantic-owners-and-build-scoped-parts',
+      bounds: 'transformed-local-aabb', stableIds: 'semantic-owners-and-owner-relative-part-paths',
       intersections: 'owned-office-solids-excludes-environment-and-draw-batches',
       instancedMeshParts: 'aggregate-only', cameraViews: 'current' },
     cameras: [{ id: 'current', type: R.camera.type, world: R.camera.matrixWorld.toArray(), projection: R.camera.projectionMatrix.toArray(), width, height }],
