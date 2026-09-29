@@ -68,6 +68,9 @@ one 'a new violation outside seeded games makes main red' "$PASS" "$NEW_MOCK" ''
 one 'a seed-only violation leaves main green and opens a sweep-finding issue' "$PASS" "$NEW_SEED" '' 'state=success|--label sweep-finding|!--label main-red --body'
 one 'a clean sweep closes the open sweep-finding issue' "$PASS" "$CLEAN" 'sweep-finding 52' 'state=success|issue close 52'
 one 'a missing sweep report fails the gate' "$PASS" 'true' '' 'state=failure|description=Red: sweep'
+one 'a prewarm that cannot build the index is logged and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm could not build' MAIN_GUARD_PREWARM='exit 2'
+one 'a prewarm with an unanswered query is logged and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm left a query unanswered' MAIN_GUARD_PREWARM='exit 1'
+one 'a warm prewarm says nothing' "$PASS" "$CLEAN" '' 'state=success|!out:prewarm' MAIN_GUARD_PREWARM='exit 0'
 case_root="$tmp/root-np"; np="$tmp/np.log"; : >"$np"; : >"$tmp/np.open"
 guard "$np" "$tmp/np.open" MAIN_GUARD_SUITE="$FAIL_BAL" MAIN_GUARD_STRICT="$NEW_MOCK" -- --sha HEAD --no-post
 expect 'no-post posts nothing' "$np" '!statuses|!issue|out:FAIL'
