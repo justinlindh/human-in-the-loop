@@ -774,9 +774,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       case 'facepalm': case 'facepalmsit': {
         // The palm covers the camera-side eye and brow, in front of the face, with the head bowed into it.
         // Seated, the head is turned in profile, so the palm sits closer to the face and further out over the eye.
-        const [ax, ay, az0, bow, lean] = anim === 'facepalmsit' ? PALM_SIT : PALM_STAND;
-        // Wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
-        const az = az0 + PALM_BUILD_K * (Math.abs(arms[0].shoulder.position.x) - PALM_SHOULDER_REF);
+        const sit = anim === 'facepalmsit';
+        const [ax, ay, az0, bow, lean] = sit ? PALM_SIT : PALM_STAND;
+        // Standing, wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
+        const az = sit ? az0 : az0 + PALM_BUILD_K * (Math.abs(arms[0].shoulder.position.x) - PALM_SHOULDER_REF);
         tgt.lean = lean;
         tgt.headX = bow + s(t * 1.2 + phase) * 0.03;
         const hz = 0.15 + s(t * 0.8) * 0.04;
