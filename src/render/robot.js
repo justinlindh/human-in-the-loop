@@ -31,6 +31,8 @@ const PATH_CLEAR = 0.2;
 const STUCK_R = 0.2;
 // How near a walker's centre may come to the robot's.
 const KEEP_OFF_R = 0.42;
+// Longest it waits for someone in its way before going on.
+const YIELD_S = 3;
 // Floor clearance round the robot, tray included, and the height and radius of its dock's pad.
 const ROBOT_R = 0.3;
 const PAD_Y = 0.03;
@@ -123,7 +125,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       for (let i = 1; i <= n; i++) if (!clearOf({ x: pad.x + ((q.x - pad.x) * i) / n, z: pad.z + ((q.z - pad.z) * i) / n }, boxes)) return false;
       return true;
     };
-    const ok = (q) => !nav.isBlocked(q.x, q.z, SERVE_R) && leg(q);
+    const ok = (q) => !nav.isBlocked(q.x, q.z, SERVE_R) && leg(q) && reached(q);
     const front = ok(want) ? want : pickSpot(pad, {
       ring: { radii: [0.8, 1.0, 1.25, 1.5, 2.0], count: 16 },
       needs: ['clear'],
@@ -142,15 +144,35 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     return frontOf(e) ?? office.nav().freePoint(pad.x, pad.z);
   }
 
-  // The robot is wider than a walker's corner-cutting allows: its way keeps PATH_CLEAR from anything
-  // blocked, or where no way does, stays as far off as it can.
-  function route(a, b) {
+  // Whether the robot's ways reach a point: from a pocket (by a wall, between furniture) no way out
+  // keeps PATH_CLEAR. Measured as a way to the office door.
+  function reached(q) {
+    const door = office.current?.zones?.door;
+    return !door || !!office.nav().path(q, door, PATH_CLEAR);
+  }
+
+  // The robot is wider than a walker's corner-cutting allows: a way that keeps PATH_CLEAR from
+  // anything blocked, or null when there is none (a gap narrower than the robot). Only the way home
+  // falls back to the way that keeps as far off as it can.
+  function route(a, b, { home = false } = {}) {
     const nav = office.nav();
-    return nav.path(a, b, PATH_CLEAR) ?? nav.path(a, b, PATH_CLEAR, { soft: true });
+    return nav.path(a, b, PATH_CLEAR) ?? (home ? nav.path(a, b, PATH_CLEAR, { soft: true }) : null);
+  }
+
+  // A person standing or walking within KEEP_OFF_R of the robot, ahead of it on its way.
+  function blockedBy(r) {
+    const tgt = r.path[0];
+    const hx = tgt.x - r.pos.x, hz = tgt.z - r.pos.z, hl = Math.hypot(hx, hz) || 1;
+    for (const w of recs.values()) {
+      if (w.hidden || w.mode === 'hidden') continue;
+      const dx = w.pos.x - r.pos.x, dz = w.pos.z - r.pos.z, d = Math.hypot(dx, dz);
+      if (d < KEEP_OFF_R + 0.08 && (dx * hx + dz * hz) / hl > 0.05) return true;
+    }
+    return false;
   }
 
   function walkTo(r, x, z) {
-    r.path = route({ x: r.pos.x, z: r.pos.z }, { x, z });
+    r.path = route({ x: r.pos.x, z: r.pos.z }, { x, z }, { home: true });
     r.path.shift();
     if (!r.path.length && Math.hypot(x - r.pos.x, z - r.pos.z) > 0.05) r.path = [{ x, z }];
   }
@@ -246,7 +268,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   // A robot stop also clears every piece of furniture by BODY_R (robot: false for a person's spot).
   function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null, side = null, robot = true } = {}) {
     const nav = office.nav(), boxes = robot ? furnitureBoxes() : [];
-    const clear = (x, z) => !nav.isBlocked(x, z, clearR) && clearOf({ x, z }, boxes);
+    const clear = (x, z) => !nav.isBlocked(x, z, clearR) && clearOf({ x, z }, boxes) && (!robot || reached({ x, z }));
     return pickSpot(center, {
       ring: { radii, count: 12 },
       needs: side ? ['side', 'clear', 'inView'] : ['clear', 'inView'],
@@ -292,7 +314,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       for (const back of [0.55, 0.65, 0.75, 0.85]) {
         const x = d.seat.x - Math.sin(f) * back, z = d.seat.z - Math.cos(f) * back;
         // Up against the chair back, never into it.
-        if (!nav.isBlocked(x, z, 0.18) && clearOf({ x, z }, boxes, STUCK_R) && inView({ x, z })) return { x, z, face: { x: d.seat.x, z: d.seat.z } };
+        if (!nav.isBlocked(x, z, 0.18) && clearOf({ x, z }, boxes, STUCK_R) && inView({ x, z }) && reached({ x, z })) return { x, z, face: { x: d.seat.x, z: d.seat.z } };
       }
     }
     return null;
@@ -380,6 +402,8 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     if (r.stop) {
       const from = r.path.length ? r.path[r.path.length - 1] : r.pos;
       const leg = route({ x: from.x, z: from.z }, { x: r.stop.x, z: r.stop.z });
+      // No way there the robot fits through: on to the next stop.
+      if (!leg) return nextStop();
       leg.shift();
       r.path.push(...leg);
       if (!leg.length) r.path.push({ x: r.stop.x, z: r.stop.z });
@@ -392,7 +416,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const e = dockEntry();
     const pad = padOf(e), front = wayHome(e);
     const from = r.path.length ? r.path[r.path.length - 1] : r.pos;
-    const leg = route({ x: from.x, z: from.z }, front);
+    const leg = route({ x: from.x, z: from.z }, front, { home: true });
     leg.shift();
     r.path.push(...leg, pad);
     r.plan = r.plan === 'broken:decaf' ? 'broken:decaf' : 'return';
@@ -445,7 +469,10 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       stepFix(dt);
       if (r.faceYaw != null) r.yaw = angleLerp(r.yaw, r.faceYaw, 1 - Math.exp(-dt * 6));
       if (r.spin) r.yaw += dt * 7;
+    } else if (r.path.length && blockedBy(r) && (r.yieldT = (r.yieldT ?? 0) + dt) < YIELD_S) {
+      // Someone right ahead: it waits for them to pass.
     } else if (r.path.length) {
+      r.yieldT = 0;
       const tgt = r.path[0];
       dir.set(tgt.x - r.pos.x, 0, tgt.z - r.pos.z);
       const d = dir.length(), step = SPEED * dt;
