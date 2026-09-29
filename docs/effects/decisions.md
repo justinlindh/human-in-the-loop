@@ -602,6 +602,17 @@ cyber · raised by a rule
 | Write it up properly | responders off their work 1 more week(s); tech debt -5; responders' knowledge +3; responders' meaning -2 unless Blameless Postmortems |
 | Patch and move on | tech debt +3 |
 
+## Who watches the NOC? `noc_bet`
+
+leadership · raised by a rule
+
+When: `(s) => (s.office.placed.find((p) => p.itemId === 'noc')?.level ?? 0) >= 2`
+
+| Choice | Effects |
+|---|---|
+| Let the agents watch | nocMode: agents |
+| Keep humans on the glass | nocMode: humans |
+
 ## The ChatGBT moment `era_chatgbt`
 
 era · raised by a rule

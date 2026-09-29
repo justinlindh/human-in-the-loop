@@ -19,6 +19,8 @@ import { researchBonus } from './bonus.js';
 import { eraAtLeast, eraLines } from './eras.js';
 import { lockedReason } from './unlocks.js';
 import { bumpDebt } from './debt.js';
+import { itemBonus } from './bonus.js';
+import { nocCatch, nocRoll, nocMisread } from './noc.js';
 export { responding } from './responders.js';
 
 const ROGUE_KINDS = {
@@ -66,9 +68,8 @@ export function catchChance(state) {
   const req = oversightRequired(state);
   const coverage = req > 0 ? Math.min(1, oversightProvided(state) / req) : 1;
   const eyes = overseers(state);
-  if (!eyes.length) return 0;
-  const bonus = Math.max(0, ...eyes.map((p) => staffMods(p).catch));
-  return Math.min(B.catchMax, B.catchBase * coverage + bonus);
+  const people = eyes.length ? B.catchBase * coverage + Math.max(0, ...eyes.map((p) => staffMods(p).catch)) : 0;
+  return Math.min(B.catchMax, people + (eraAtLeast(state, 'agents') ? nocCatch(state) : 0));
 }
 
 // Attackers find a company once it has been around for a while: no attacks in the first months after the first launch.
@@ -96,7 +97,8 @@ export function fixCapacity(state) {
   const commander = lead ? staffMods(lead).outageFix : 1;
   // Debugging does not parallelize: only the few who best understand the systems count.
   const fixers = fixRanking(state).slice(0, B.fixersCounted).map((x) => x.power);
-  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix')) * (1 - B.remoteFixPenalty * remoteShare(state));
+  return sum(fixers) * commander * (1 + researchBonus(state, 'outageFix')) * (1 + itemBonus(state, 'outageFix'))
+    * (1 - B.remoteFixPenalty * remoteShare(state));
 }
 
 const responderIds = (state) => fixRanking(state).slice(0, B.fixersCounted).map((x) => x.id);
@@ -110,11 +112,11 @@ const isUnrecoverable = (state, severity) => fixCapacity(state)
   < severity * (0.4 + state.comprehensionDebt / 100) * Math.max(0, 1 + researchBonus(state, 'unrecoverableThreshold'))
     * (1 + B.outageComplexityPerProduct * liveProducts(state).length);
 
-export function startOutage(ctx, { productId, kind, severity, cost = { cash: 0, brand: 0 }, cause = '', notes = null }) {
+export function startOutage(ctx, { productId, kind, severity, cost = { cash: 0, brand: 0 }, cause = '', notes = null, misread = false }) {
   const { state } = ctx;
   state.flags.outageSeq = (state.flags.outageSeq ?? 0) + 1;
   state.outage = { productId, kind, severity, weeks: 0, unrecoverable: isUnrecoverable(state, severity),
-    responderIds: responderIds(state), etaWeeks: null, cost: { cash: cost.cash, brand: cost.brand, customers: 0 }, cause };
+    responderIds: responderIds(state), etaWeeks: null, cost: { cash: cost.cash, brand: cost.brand, customers: 0 }, cause, misread };
   state.outage.etaWeeks = state.outage.unrecoverable ? null : weeksToFix(state, severity);
   state.flags.outageNotes = notes ?? { helped: [], hurt: [] };
   const p = state.products.find((x) => x.id === productId);
@@ -277,6 +279,12 @@ function filledLine(ctx, pool, speaker, product) {
 
 export function landIncident(ctx, { kind, severity, caught, model, fn = null }) {
   const { state } = ctx;
+  // The NOC's agents can read a real alert as routine: nobody catches it and it lands one step worse.
+  const misread = nocMisread(state);
+  if (misread) {
+    caught = false;
+    severity = Math.min(5, severity + 1);
+  }
   const live = liveProducts(state);
   const product = live.length ? pick(ctx.rng, live) : null;
   const productId = product?.id ?? null;
@@ -293,12 +301,19 @@ export function landIncident(ctx, { kind, severity, caught, model, fn = null }) 
   state.incidentLog.push({ week: state.week, kind, productId, caught, severity });
   if (state.incidentLog.length > 30) state.incidentLog.splice(0, state.incidentLog.length - 30);
 
-  ctx.emit({ type: 'incident', kind, productId, caught, severity });
+  ctx.emit({ type: 'incident', kind, productId, caught, severity, misread });
   const where = product ? ` on ${product.name}` : '';
   emitChat(ctx, { channel: 'incidents', from: '@pagerbot', text: caught ? `SEV${6 - severity} caught early${where}: ${KIND_LABEL[kind]}. Crisis averted.` : `SEV${6 - severity}${where}: ${KIND_LABEL[kind]}.` });
   const witnesses = state.staff.filter((p) => p.mood !== 'away');
   if (caught) {
-    const eyes = overseers(state);
+    // Overseers get the credit for an agent incident and the security crew for an attack, each falling back to
+    // the other; with neither, the NOC's agents did.
+    const [first, second] = model ? [overseers(state), onSecurity(state)] : [onSecurity(state), overseers(state)];
+    const eyes = first.length ? first : second;
+    if (!eyes.length) {
+      emitChat(ctx, { channel: 'incidents', from: '@pagerbot', text: 'The NOC agents flagged it before anyone woke up. They would like that noted.' });
+      return;
+    }
     for (const p of eyes) {
       p.meaning = Math.min(100, p.meaning + B.meaningCatchBonus);
       ensureRecord(p);
@@ -317,8 +332,13 @@ export function landIncident(ctx, { kind, severity, caught, model, fn = null }) 
   // An attack's decision responds to the attack itself, so it comes at the alarm.
   if (severity >= 4 && !model) raiseDecision(ctx, INCIDENT_EVENT[kind], productId, { queue: true });
   const why = explain(state, kind, model, fn);
+  if (misread) {
+    why.cause = `the NOC's agents read the alert as routine, then ${why.cause}`;
+    why.hurt.unshift("The NOC's agents read the alert as routine");
+    emitChat(ctx, { channel: 'incidents', from: '@pagerbot', text: 'Correction: the NOC agents marked this "expected behavior" for the first hour. It was not.' });
+  }
   if (severity >= B.outageMinSeverity && OUTAGE_KINDS.has(kind) && !state.outage && product) {
-    startOutage(ctx, { productId, kind, severity, cost, cause: why.cause, notes: { helped: why.helped, hurt: why.hurt } });
+    startOutage(ctx, { productId, kind, severity, cost, cause: why.cause, notes: { helped: why.helped, hurt: why.hurt }, misread });
   } else if (severity >= 4) {
     resolveIncident(ctx, { productId, kind, severity, weeks: 0, cost: { ...cost, customers: 0 }, responderIds: responderIds(state), helped: why.helped, hurt: why.hurt });
   }
@@ -353,7 +373,7 @@ export function incidentsSystem(ctx) {
     const kind = pick(ctx.rng, CYBER_KINDS);
     if (next(ctx.rng) * 100 > securityPosture(state)) {
       state.stats.breaches++;
-      landIncident(ctx, { kind, severity: int(ctx.rng, 1, 5), caught: false, model: null });
+      landIncident(ctx, { kind, severity: int(ctx.rng, 1, 5), caught: nocRoll(state, 3, nocCatch(state)), model: null });
     } else {
       ctx.emit({ type: 'toast', text: `Security blocked a ${KIND_LABEL[kind]} attempt.`, tone: 'good' });
       // Everyone on a security assignment gets credit for the attack they stopped.

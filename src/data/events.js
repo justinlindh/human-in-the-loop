@@ -25,7 +25,7 @@ export const EFFECT_KEYS = [
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'postmortem', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
-  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag', 'strain',
+  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag', 'strain', 'nocMode',
 ];
 
 
@@ -659,6 +659,20 @@ const list = [
     choices: [
       { label: 'Write it up properly', hint: 'Responders give it one more week; tech debt down, and they learn the systems. Stings a little without blameless postmortems', effects: { postmortem: true }, outcome: 'The write-up has a timeline, a root cause, and one very long footnote about a password manager.' },
       { label: 'Patch and move on', hint: 'Back to work now; tech debt up', effects: { debt: 3 }, outcome: 'Someone erases the whiteboard. The ghost of "WHO CLICKED IT" remains.' },
+    ],
+  },
+
+  // The NOC bet (#342): raised once from the Agents era on, whenever a NOC at level 2 or more exists.
+  {
+    id: 'noc_bet', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null, eras: ['agents', 'consolidation', 'plateau'], office: 'noc',
+    when: (s) => (s.office.placed.find((p) => p.itemId === 'noc')?.level ?? 0) >= 2,
+    title: 'Who watches the NOC?',
+    text: 'A vendor demo shows agents watching the dashboards around the clock: no pager rotation, no one asleep at the desk at 3am. Your Security folks point out that this is a room full of screens watched by the thing the screens are watching.',
+    choices: [
+      { label: 'Let the agents watch', hint: 'Catches more with nobody on the glass; now and then they misread an alert and it lands worse. You can switch back later', effects: { nocMode: 'agents' },
+        outcome: 'The screens fill with agent logs scrolling faster than anyone can read. The dashboards have never looked calmer. That is either very good or very bad.' },
+      { label: 'Keep humans on the glass', hint: 'Catches scale with your Security staff; nobody misreads anything on purpose', effects: { nocMode: 'humans' },
+        outcome: 'Someone brings in a better chair and a blanket. The pager stays. So does the person who knows what the weird graph means.' },
     ],
   },
 
