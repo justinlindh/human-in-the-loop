@@ -271,6 +271,27 @@ if [ -z "$VITEST_WORKERS" ]; then
 fi
 gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 gh_step build test npm run build
+# Trailer and landing beats (tests/sim/trailer-beats/replay.mjs, sim only, about 20 s), for changes to
+# what a beat's capture setup runs against or the setups themselves. A beat whose setup throws (its
+# moment no longer fires) fails the PR. A beat whose moment only moves against main is a note.
+beats_check() {
+  [ -f tests/sim/trailer-beats/replay.mjs ] || { echo "skipped: no tests/sim/trailer-beats/replay.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/sim/|src/data/|src/save/|scripts/trailer/|scripts/capture-manifest\.js$|scripts/feature-media/manifest\.js$|tests/sim/trailer-beats/)' <<<"$files"; then
+    echo "skipped: no sim, data, save or beat-setup changes"; return 0
+  fi
+  local json="$LOGS/beats.json" broken
+  node tests/sim/trailer-beats/replay.mjs --json >"$json" || return 1
+  broken="$(node -e 'const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); for (const [id, m] of Object.entries(r)) if (m.error) console.log(id + ": " + m.error)' "$json")" || return 1
+  if [ -n "$broken" ]; then echo "beats whose setup throws:"; echo "$broken"; return 1; fi
+  local moved
+  moved="$(scripts/tools/ab.sh -- node tests/sim/trailer-beats/replay.mjs 2>/dev/null | awk '/^[-+][a-z0-9]/ { print substr($1, 2) }' | sort -u | tr '\n' ' ')"
+  [ -n "${moved// /}" ] && note "beats whose moment differs from main: ${moved}(node tests/sim/trailer-beats/replay.mjs, compared with scripts/tools/ab.sh; tell video)"
+  return 0
+}
+step beats beats_check
 # Render checks, ten minutes at most per pass, each under a render lock (scripts/with-render-lock.sh)
 # whose wait does not count against the ten minutes:
 #   render-checks  clipping with and without the rig, standups, and (unless CI_SKIP_SWEEP=1) the scene sweep (new violations in
