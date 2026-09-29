@@ -21,6 +21,8 @@ function skipPair(A, B) {
   if (k.every((x) => x === 'wall' || x === 'column')) return true;
   const wallish = (x) => x.kind === 'wallProp' || x.wallMounted;
   if ((wallish(A) && B.kind === 'wall') || (wallish(B) && A.kind === 'wall')) return true;
+  // The robot parks on its own dock's pad.
+  if ((A.kind === 'robot' && B.label === 'office_robot') || (B.kind === 'robot' && A.label === 'office_robot')) return true;
   return false;
 }
 
@@ -56,7 +58,7 @@ function checkFrame(R, C, t, memo) {
     memo.sig = sig;
     // One entry per pair of parts (materials), so a new clash on a baselined pair of things (pizza
     // into the monitor where a plant was accepted) still shows as new.
-    for (const o of X.overlaps(list, { tol: C.tol.overlap, skip: skipPair })) {
+    for (const o of X.overlaps(list, { tol: C.tol.overlap, skip: skipPair, touch: X.robotTouch })) {
       for (const p of o.parts) C.add(R, 'overlap', t, `${o.a.label}/${p.a}`, `${o.b.label}/${p.b}`, p.depth, o.at, `${o.a.label}${o.a.id ? `#${o.a.id}` : ''}[${p.a}] ~ ${o.b.label}${o.b.id ? `#${o.b.id}` : ''}[${p.b}]`);
     }
     for (const s of X.support(list, (b) => b.kind === 'deskProp' || b.kind === 'floorProp' || (b.kind === 'placed' && !b.wallMounted))) {
@@ -280,7 +282,17 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
     window_(R, S, C.at(`moment:pet:${species}`), { seconds: 5, every });
     played.push(`pet:${species}`);
   }
-  S.pets = savedPets; R.sync(S); R.setQuality('low');
+  S.pets = savedPets; R.sync(S);
+  // The office robot slapped back to life, from each breakdown it can be found in.
+  const { setupRobotFix } = await import('/src/render/checks.js');
+  const savedPlaced = S.office.placed, savedRobot = S.robot;
+  for (const cause of ['spin', 'stuck', 'cone', 'emptyDesk', 'unplug']) {
+    setupRobotFix(R, S, { cause });
+    window_(R, S, C.at(`moment:robot:${cause}`), { seconds: 8, every });
+    played.push(`robot:${cause}`);
+  }
+  S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); stepWorld(R, S, 60);
+  R.setQuality('low');
   return played;
 }
 

@@ -11,6 +11,6 @@ When a readability spec fails, the check prints spot-search summaries from `R.de
 
 The `fumes` specs measure its fanning beat from both views. `growth` checks the honoree and coworkers during a career celebration; `company_party` checks the company cheer.
 
-`--only=pet,petcat` measures upright turning, the pet approach, and head-scratch contact and visibility from both views. The fixture uses incoming yaw 2.104 and enough separation to exercise each phase. Scenario `setup` expressions can await fixture imports before sampling.
+`--only=pet,petcat` measures upright turning, the pet approach, and head-scratch contact and visibility from both views. The fixture uses incoming yaw 2.104 and enough separation to exercise each phase. Scenario `setup` expressions can await fixture imports before sampling. `--only=robot` holds the office robot's fixer to facing it in the wind-up, the right hand landing within 0.06 m of its head, and both of them in view, from both views.
 
 In the report, `facingCamera` is the share of a beat's frames whose face points within the spec's angle of the camera (the probe's `faceCam`). It says nothing about what hides the face: that is `pose.mjs --scene`'s `faceVisible`, the share of facial landmarks the camera sees.

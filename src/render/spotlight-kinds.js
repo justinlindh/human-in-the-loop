@@ -22,4 +22,6 @@ export const MOMENT_KINDS = {
   respond: { spotlight: false },
   coffee: { spotlight: false },
   pair: { spotlight: false },
+  // The office robot slapped back to life: a breakdown never holds the clock.
+  robot: { spotlight: false, seconds: 5 },
 };

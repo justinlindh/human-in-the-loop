@@ -28,11 +28,12 @@ const walkFinite = (v, p = 's') => {
 describe('office shop', () => {
   it('uses the exact item ids the art lane modeled', () => {
     const shop = Object.values(ITEMS).filter((i) => i.kind === 'shop');
-    expect(shop.map((i) => i.id).sort()).toEqual(['arcade', 'espresso', 'library', 'monitoring_wall', 'nap_pod', 'noc', 'plant_wall', 'server_rack', 'standing_desk', 'trophy_case', 'whiteboard_wall']);
+    expect(shop.map((i) => i.id).sort()).toEqual(['arcade', 'espresso', 'library', 'monitoring_wall', 'nap_pod', 'noc', 'office_robot', 'plant_wall', 'server_rack', 'standing_desk', 'trophy_case', 'whiteboard_wall']);
     for (const it of shop) {
       expect(it.costs).toHaveLength(3);
       expect(it.effects).toHaveLength(3);
-      expect(it.costs[0]).toBeLessThanOrEqual(8000);
+      // The office robot is the late-game money sink.
+      if (it.id !== 'office_robot') expect(it.costs[0]).toBeLessThanOrEqual(8000);
       expect(it.costs[1]).toBeGreaterThan(it.costs[0] * 2);
     }
     const furniture = Object.values(ITEMS).filter((i) => i.kind === 'furniture');
