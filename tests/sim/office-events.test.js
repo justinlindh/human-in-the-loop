@@ -62,7 +62,7 @@ describe('events follow the real office', () => {
     const bare = game();
     for (const e of Object.values(EVENTS)) {
       const text = eventText(e).toLowerCase();
-      const mentioned = names.filter((n) => text.includes(n));
+      const mentioned = names.filter((n) => new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));
       if (!mentioned.length) continue;
       const acts = (e.choices ?? []).some((c) => c.effects.buyItem || c.effects.upgradeItem);
       expect(e.office || acts, `${e.id} mentions ${mentioned}`).toBeTruthy();
