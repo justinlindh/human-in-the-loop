@@ -148,7 +148,10 @@ function normalize(state) {
   state.office.expansion ??= 0;
   state.office.props ??= [];
   state.fame ??= 0;
+  state.ops.noc ??= null;
+  state.ops.nocSince ??= null;
   if (state.outage) {
+    state.outage.misread ??= false;
     state.outage.responderIds ??= [];
     state.outage.etaWeeks ??= null;
     state.outage.cost ??= { cash: 0, brand: 0, customers: 0 };
