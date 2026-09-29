@@ -1,6 +1,7 @@
 // A compose file: a small JSON description of a scene (furniture at tiles, people, the office robot) that
 // compiles to what the scene engine loads, with no save or seeded game needed.
 //
+//   node compose.mjs <file> [--json]   print the compiled scene (--json: the whole { state, script })
 //   compose(fileOrObject) -> { state, script }
 //     state   a game state (the mock sim's, with the office, staff and robot replaced): the engine's
 //             `openScene({ state })` takes it as is.
@@ -17,6 +18,7 @@
 //              seat    the id of a desk in items: sits there (the desk decides the facing)
 //              at      standing tile position [x, y] (fractions allowed), with face: north|east|south|west, a
 //                      degree (0 = south, +y; 90 = east, +x), another person's id, or "robot"
+//              free    true: allow standing inside an item's footprint (to look at what overlaps)
 //              gesture played from t seconds (default 0)
 //   era      the era the state is in (items arrive with eras; the office robot needs agents)
 //   keep     ["office", "staff"]: keep the base's furniture and people (items and people add to them)
@@ -52,7 +54,7 @@ const isPoint = (v) => Array.isArray(v) && v.length === 2 && v.every(Number.isFi
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const MOMENTS = ['slap'];
 const KEEP = ['office', 'staff'];
-const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer'] };
+const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look', 'free'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer'] };
 
 function unknownKeys(obj, allowed, where, problems) {
   for (const k of Object.keys(obj)) if (!allowed.includes(k)) problems.push(`${where}: unknown key "${k}" (allowed: ${allowed.join(', ')})`);
@@ -143,7 +145,7 @@ export function compose(input) {
         const { w, h } = officeShape(state.officeStage, state.office.expansion ?? 0).grid;
         if (p.at[0] < 0 || p.at[1] < 0 || p.at[0] > w || p.at[1] > h) problems.push(`${where}: at ${p.at} is outside the ${w}x${h} office`);
         const inside = state.office.placed.find((it) => footprintCells(it.itemId, it.x, it.y, it.rot).some(([cx, cy]) => Math.floor(p.at[0]) === cx && Math.floor(p.at[1]) === cy));
-        if (inside) problems.push(`${where}: at ${p.at} is inside the ${inside.itemId} "${inside.id}"`);
+        if (inside && !p.free) problems.push(`${where}: at ${p.at} is inside the ${inside.itemId} "${inside.id}" ("free": true stands there anyway)`);
       }
     }
     if (p.gesture != null && !ANIMS.includes(p.gesture)) problems.push(`${where}: gesture "${p.gesture}" is not an animation the game plays (see ANIMS in src/render/character.js)`);
@@ -191,6 +193,7 @@ export function compose(input) {
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file://').href) {
   try {
     const { state, script } = compose(process.argv[2]);
+    if (process.argv.includes('--json')) { process.stdout.write(JSON.stringify({ state, script })); process.exit(0); }
     console.log(JSON.stringify({ officeStage: state.officeStage, placed: state.office.placed, staff: state.staff.map((p) => ({ id: p.id, deskId: p.deskId ?? null, build: p.appearance.build })), robot: state.robot ?? null, script }, null, 1));
   } catch (e) { console.error(e.message); process.exitCode = 2; }
 }
