@@ -6,17 +6,18 @@
 //        [--weeks 12] [--max-seconds 120] [--until '<js over S>'] [--tail 3]
 //        [--choose 'event_id=1,other=0'] [--default-choice 0] [--decision-hold 2]
 //        [--out clip.mp4] [--log log.json] [--log-js '<js over S, R>'] [--every 1]
-//        [--size 1280x720] [--software] [--timeout 600]
+//        [--focus-yield] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
 //
 // The snapshot loads through the title screen's Continue path and the game's own loop runs on
 // virtual time (loop-page.mjs), so decision freezes, spotlights and the UI behave as for a player.
 // Each frame: decisions are answered (--choose per event id, else --default-choice, after
 // --decision-hold seconds so the card shows), "Got it" cards are dismissed, and the camera follows
-// --focus (a staff id follows that person; `hub` is the outage rack, else the first responder).
+// --focus (a staff id follows that person, at --zoom; `hub` is the outage rack, else the first responder).
 // It stops when --until (a predicate over the state S) has held and --tail seconds have passed, or
 // after --weeks weeks or --max-seconds of game time.
 //
-// Output: --out is an mp4 (frames in <out>-frames/; every --every-th frame is recorded, 30 fps).
+// Output: --out is an mp4 (every --every-th frame is recorded, 30 fps; the frames in <out>-frames/ are
+// removed unless --keep-frames).
 // --log is JSON, one row per frame: week, clock, decision, outage, camera, the focus's screen box,
 // the people on screen with their boxes, and anything --log-js returns (an object merged in). Boxes
 // are pixels [left, top, width, height] on the canvas, as onscreen.mjs reports them.
@@ -74,7 +75,7 @@ try {
   let recorded = 0, untilAt = null, frame = 0, decisionFor = 0, reason = 'max-seconds';
   const startWeek = started.week;
   for (; frame < maxFrames; frame++) {
-    const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording }) => {
+    const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording, yieldFocus }) => {
       const H = window.__HITL, R = window.__hitlRender, S = H.state, THREE = R.THREE;
       window.__frame(1);
       // The camera: a staff id follows that person; other targets are a point eased onto now and then.
@@ -96,7 +97,11 @@ try {
         return null;
       };
       const target = point();
-      if (target?.p && frame % 15 === 0) { if (target.staff) R.focusStaff(target.staff); else R.focusAt(target.p.x, target.p.z, zoom); }
+      // The first frame cuts onto the target; after that the camera eases (R.easeTo), following a
+      // staff member or a moving point, and steps aside while a spotlight moment plays (--focus-yield).
+      if (target?.p && (frame === 0 || (frame % 5 === 0 && !(yieldFocus && R.spotlight?.())))) {
+        if (frame === 0) R.focusAt(target.p.x, target.p.z, zoom); else R.easeTo(target.p.x, target.p.z, zoom);
+      }
       // Decisions: the card shows for `hold` frames, then the chosen option is taken.
       let answered = null, held = decisionFor;
       if (S.pendingDecision) {
@@ -129,11 +134,11 @@ try {
           f: frame, week: S.week, decision: S.pendingDecision?.eventId ?? null, answered,
           outage: o ? { kind: o.kind, weeks: o.weeks, eta: o.etaWeeks ?? null, responders: o.responderIds ?? [] } : null,
           clock: { frozen: clock.frozen ?? null, spotlight: clock.spotlight ? `${clock.spotlight.kind ?? ''} ${clock.spotlight.key ?? ''}`.trim() : null, busy: clock.busy ?? null },
-          camera: { zoom: +R.camera.zoom.toFixed(2) }, focus: at, people, ...extra,
+          camera: { zoom: +R.view().zoom.toFixed(2) }, focus: at, people, ...extra,
         },
         held, stop, busy: !!clock.busy && !S.pendingDecision, gameOver: !!S.gameOver,
       };
-    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log') });
+    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield') });
     decisionFor = row.held;
     log.push(row.row);
     // A "Got it" card (a toast card the UI holds the game on) is dismissed like a player would.
@@ -148,6 +153,7 @@ try {
     mkdirSync(dirname(out), { recursive: true });
     const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(30 / every), '-i', `${out}-frames/%05d.png`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', '30', out], { encoding: 'utf8' });
     if (r.status !== 0) { console.error(`play: ffmpeg failed: ${r.stderr}`); code = 2; }
+    else if (!argv.includes('--keep-frames')) rmSync(`${out}-frames`, { recursive: true, force: true });
   }
   if (opt('log')) writeFileSync(opt('log'), JSON.stringify(log, null, 1));
   const last = log[log.length - 1];
