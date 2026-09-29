@@ -21,10 +21,10 @@
 //                                    leaves it broken down that way
 // Tile axes: +x east, +y south (a desk at rotation 0 faces +y).
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { createMockSim } from '../../src/dev/mockSim.js';
 import { ITEMS } from '../../src/data/items.js';
 import { placementCheck, seatTile, footprintCells } from '../../src/sim/office.js';
+import { ANIMS } from '../../src/render/character.js';
 import { newRobot } from '../../src/sim/state.js';
 import { officeShape } from '../../src/data/office.js';
 
@@ -33,17 +33,6 @@ const BASES = ['garage', 'floor', 'hq', 'incident', 'night', 'ending'];
 const COMPASS = { south: [0, 1], east: [1, 0], north: [0, -1], west: [-1, 0] };
 const FPS = 30;
 const APART = 0.4;   // tiles between two standing people
-
-// The animation names the runtime can play: character.js's own ANIMS list, read from its source.
-let anims = null;
-function animNames() {
-  if (anims) return anims;
-  const src = readFileSync(fileURLToPath(new URL('../../src/render/character.js', import.meta.url)), 'utf8');
-  const list = /const ANIMS = \[([\s\S]*?)\];/.exec(src)?.[1];
-  anims = new Set([...(list ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]));
-  if (!anims.has('idle')) throw new Error('compose: could not read the animation list from src/render/character.js');
-  return anims;
-}
 
 export class ComposeError extends Error {
   constructor(problems) {
@@ -142,7 +131,7 @@ export function compose(input) {
         if (inside) problems.push(`${where}: at ${p.at} is inside the ${inside.itemId} "${inside.id}"`);
       }
     }
-    if (p.gesture != null && !animNames().has(p.gesture)) problems.push(`${where}: gesture "${p.gesture}" is not an animation the game plays (see ANIMS in src/render/character.js)`);
+    if (p.gesture != null && !ANIMS.includes(p.gesture)) problems.push(`${where}: gesture "${p.gesture}" is not an animation the game plays (see ANIMS in src/render/character.js)`);
     if (p.t != null && !(Number.isFinite(p.t) && p.t >= 0)) problems.push(`${where}: t must be seconds from the start`);
   });
 
