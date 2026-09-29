@@ -89,6 +89,31 @@ describe('NOC effects', () => {
     expect(catchChance(s)).toBeGreaterThan(0);
   });
 
+  it('adds nothing to the agent-incident catch chance before the Agents era', () => {
+    const s = company(3);
+    s.ops.noc = 'agents';
+    s.staff = s.staff.filter((p) => p.assignment.type !== 'oversight');
+    s.era = { id: 'chatgbt', since: 0 };
+    expect(nocCatch(s)).toBeGreaterThan(0);
+    expect(catchChance(s)).toBe(0);
+  });
+
+  it('credits the security crew for a caught attack, and overseers for a caught agent incident', () => {
+    const s = company(2);
+    const guard = addStaff(s, 'security', 'mid');
+    const watcher = addStaff(s, 'engineer', 'mid');
+    watcher.assignment = { type: 'oversight', targetId: null };
+    const caughtBy = (model, kind) => {
+      const before = { g: guard.record?.incidentsCaught ?? 0, w: watcher.record?.incidentsCaught ?? 0 };
+      landIncident(makeCtx(s), { kind, severity: 2, caught: true, model });
+      return { g: guard.record.incidentsCaught - before.g, w: (watcher.record?.incidentsCaught ?? 0) - before.w };
+    };
+    expect(caughtBy(null, 'phishing')).toEqual({ g: 1, w: 0 });
+    s.outage = null;
+    const agent = caughtBy('grokk', 'mass_email');
+    expect(agent.w).toBe(1);
+  });
+
   it('speeds up fixing outages', () => {
     const base = company(0);
     const s = company(3);
