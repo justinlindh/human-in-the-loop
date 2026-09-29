@@ -13,8 +13,9 @@ const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.crea
 const state = {
   under: 'typing', gesture: 'facepalm', view: 0, build: 1, rig: true, yaw: 0, seconds: 2.2, warm: 1, fps: 30,
   frame: 0, zoom: 1, skeleton: true, rays: true,
+  mxAxes: 'views=all,postures=stand,sit,lie,builds=all,rig=on,off', mxRules: 'coverHandEyeNear>=0.3@0.3 if faceCam<=80', mxAuto: false,
   ...saved.state,
-  ...Object.fromEntries([...q].map(([k, v]) => [k, ['under', 'gesture'].includes(k) ? v : Number(v)])),
+  ...Object.fromEntries([...q].map(([k, v]) => [k, ['under', 'gesture', 'mxAxes', 'mxRules'].includes(k) ? v : k === 'mxAuto' ? v === '1' : Number(v)])),
 };
 let changed = saved.changed ?? {};   // 'file:NAME[i]' or 'file:NAME' -> value
 let defaults = [];
@@ -171,8 +172,62 @@ function play(on) {
   if (on) timer = setInterval(async () => { if (state.frame >= total()) { play(false); return; } await seek(state.frame + 1); }, 1000 / state.fps);
 }
 
+// ---- matrix ------------------------------------------------------------------------------------------
+// The grid pose.mjs --matrix prints, from the same code (pose-matrix.js runMatrix over playPose): every view,
+// posture, build and rig setting judged by the rules, each cell a button that loads it in the viewport.
+let lastMatrix = null, matrixBusy = false;
+const cellText = (c) => (c.error ? 'err' : `${Math.round(Math.min(...c.verdicts.map((v) => v.share)) * 100)}%`);
+function paintGrid() {
+  const box = $('grid'); if (!box) return;
+  box.replaceChildren();
+  if (!lastMatrix) return;
+  const { axes, cells } = lastMatrix, worst = PM.worstOf(cells);
+  const head = el('tr', {}, el('td'), ...axes.views.map((v) => el('td', { textContent: `view ${v}` })));
+  const rows = [];
+  for (const posture of axes.postures) for (const build of axes.builds) for (const rig of axes.rig) for (const accessory of axes.accessory) {
+    const mine = cells.filter((c) => c.posture === posture && c.build === build && c.rig === rig && c.accessory === accessory);
+    rows.push(el('tr', {}, el('td', { textContent: PM.rowLabel({ posture, build, rig, accessory }, axes) }), ...axes.views.map((v) => {
+      const c = mine.find((x) => x.view === v);
+      const b = el('button', { className: `cell ${c.pass ? 'pass' : 'fail'}${c === worst ? ' worst' : ''}`, textContent: cellText(c), title: c.error ?? c.verdicts.map((x) => `${x.rule}: ${Math.round(x.share * 100)}%`).join('\n') });
+      b.onclick = () => loadCell(c);
+      return el('td', {}, b);
+    })));
+  }
+  box.append(el('table', {}, el('tbody', {}, head, ...rows)));
+  const pass = cells.filter((c) => c.pass).length;
+  box.append(el('div', { id: 'mxsum', textContent: `${pass} of ${cells.length} cells pass${worst && !worst.pass ? `; worst: ${PM.rowLabel(worst, axes)} view ${worst.view}` : ''}` }));
+}
+async function runGrid() {
+  if (matrixBusy) return;
+  matrixBusy = true;
+  const s = $('mxstat');
+  try {
+    const axes = PM.parseMatrix(state.mxAxes), measures = [];
+    const rules = state.mxRules.split('\n').map((x) => x.trim()).filter(Boolean).map((r) => PM.parseRule(r, measures));
+    const n = PM.cellsOf(axes).length;
+    let done = 0;
+    const t0 = performance.now();
+    lastMatrix = await PM.runMatrix({
+      // Yield between cells so the page paints its progress.
+      playPose: async (o) => { await new Promise((r) => setTimeout(r, 0)); return playPose(o); },
+      gesture: state.gesture, axes, measures, rules, seconds: state.seconds, warm: state.warm, fps: state.fps,
+      onCell: () => { done++; if (s) s.textContent = `${done}/${n}`; },
+    });
+    if (s) s.textContent = `${n} cells in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+    paintGrid();
+  } catch (e) { if (s) { s.textContent = String(e.message ?? e); s.className = 'err'; } } finally { matrixBusy = false; }
+}
+async function loadCell(c) {
+  state.under = PM.POSTURES[c.posture]; state.build = c.build; state.rig = c.rig === 'on'; state.view = c.view; state.yaw = 0;
+  const t = c.verdicts.find((v) => !v.pass)?.worstT ?? c.verdicts[0]?.worstT;
+  state.frame = t != null ? Math.round(t * state.fps) : state.frame;
+  buildPanel();
+  await rebuildAndSeek();
+}
+
 function buildPanel() {
   const p = $('panel');
+  p.replaceChildren();
   const views = el('div', { className: 'row views' }, ...[0, 1, 2, 3].map((v) => { const b = el('button', { textContent: `view ${v}` }); b.classList.toggle('on', state.view === v); b.onclick = async () => { state.view = v; [...views.children].forEach((c, i) => c.classList.toggle('on', i === v)); await rebuildAndSeek(); }; return b; }));
   const builds = el('div', { className: 'row' }, ...[0, 1, 2].map((v) => { const b = el('button', { textContent: `build ${v}` }); b.classList.toggle('on', state.build === v); b.onclick = async () => { state.build = v; [...builds.children].forEach((c, i) => c.classList.toggle('on', i === v)); await rebuildAndSeek(); }; return b; }));
   const toggle = (key, label, after) => { const b = el('button', { textContent: label }); b.classList.toggle('on', !!state[key]); b.onclick = async () => { state[key] = !state[key]; b.classList.toggle('on', !!state[key]); await after(); }; return b; };
@@ -189,6 +244,11 @@ function buildPanel() {
     el('input', { id: 'scrub', type: 'range', min: 0, max: total(), step: 1, value: state.frame, oninput: (e) => seek(Number(e.target.value)) }),
     el('h2', { textContent: 'Measures (the numbers pose.mjs prints)' }),
     el('table', {}, el('tbody', { id: 'read' })),
+    el('h2', { textContent: 'Matrix (every view, posture, build, rig)' }),
+    el('label', {}, 'axes', el('input', { value: state.mxAxes, onchange: (e) => { state.mxAxes = e.target.value; persist(); } })),
+    el('textarea', { value: state.mxRules, rows: 2, placeholder: 'one rule per line, e.g. coverHandEyeNear>=0.3@0.3', style: 'width:100%', onchange: (e) => { state.mxRules = e.target.value; persist(); } }),
+    el('div', { className: 'row' }, el('button', { id: 'mxrun', textContent: 'run matrix', onclick: runGrid }), toggle('mxAuto', 'run on load', async () => persist()), el('span', { id: 'mxstat' })),
+    el('div', { id: 'grid' }),
     el('h2', { textContent: 'Constants' }),
     el('div', { className: 'row' }, el('button', { textContent: 'copy diff', onclick: () => copy(diffText(), 'diff') }), el('button', { textContent: 'copy --param', onclick: () => copy(specsOf().map((s) => `--param ${s}`).join(' '), '--param flags') }), el('button', { textContent: 'reset', onclick: () => { changed = {}; persist(); location.reload(); } })),
     el('div', { id: 'status' }),
@@ -196,6 +256,7 @@ function buildPanel() {
     el('div', { id: 'params' }),
   );
   paramList('');
+  paintGrid();
 }
 
 const keyOf = (c, i) => (Array.isArray(c.value) ? `${c.file}:${c.name}[${i}]` : `${c.file}:${c.name}`);
@@ -244,7 +305,8 @@ async function copy(text, what) {
 
 // ---- go ---------------------------------------------------------------------------------------------
 buildPanel();
+if (state.mxAuto) runGrid();
 addEventListener('resize', () => { fit(); if (run) draw(); });
 fit();
 await seek(state.frame);
-window.__lab = { state, seek, plant, canvas, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };
+window.__lab = { state, seek, plant, canvas, runGrid, loadCell, matrix: () => lastMatrix, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };

@@ -58,6 +58,19 @@ try {
     if (!(r.hit >= 0.5)) fail(`a hand placed on ${lm} reads ${r.hit} cover, want at least 0.5`);
     if (!(r.miss < 0.1)) fail(`a hand placed on ${lm} reads ${r.miss} on the other eye, want under 0.1`);
   }
+  // The matrix view: a small grid runs, has one cell per view, and a cell loads into the viewport.
+  const grid = await page.evaluate(async (axesArg) => {
+    window.__lab.state.mxAxes = axesArg;
+    await window.__lab.runGrid();
+    const m = window.__lab.matrix();
+    const cell = m.cells.find((c) => c.view === 2);
+    await window.__lab.loadCell(cell);
+    return { n: m.cells.length, passing: m.cells.filter((c) => c.pass).length, cells: m.cells.slice(0, 4).map((c) => [c.view, c.pass, c.verdicts[0].share]), loaded: { view: window.__lab.state.view, under: window.__lab.state.under, frame: window.__lab.state.frame }, buttons: document.querySelectorAll('#grid button.cell').length };
+  }, opt('axes', 'views=all,postures=sit,builds=1,rig=on'));
+  console.log(`lab-smoke: matrix ${JSON.stringify(grid)}`);
+  if (opt('grid-out')) { await page.evaluate(() => document.getElementById('grid').scrollIntoView()); await page.screenshot({ path: opt('grid-out') }); }
+  if (!opt('axes') && grid.n !== 4) fail('the matrix did not give four cells');
+  if (grid.loaded.view !== 2) fail('clicking a cell did not load it');
   // A slider change reaches the render code: PALM_STAND[2] moves the hand, and the page reloads on it.
   const before = got.f.contact.hand0Eye;
   await page.evaluate(() => { const s = JSON.parse(sessionStorage.getItem('poselab') ?? '{}'); s.changed = { 'src/render/character.js:PALM_SIT[2]': 0.4 }; sessionStorage.setItem('poselab', JSON.stringify(s)); });
