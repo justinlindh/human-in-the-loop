@@ -295,6 +295,13 @@ if [ -z "$what" ]; then
   # Main's red record for auto CI (scripts/auto-ci.sh) clears on a green verdict for main's newest commit.
   git -C "$REPO" merge-base --is-ancestor "${MAIN_GUARD_TIP:-origin/main}" "$sha" 2>/dev/null && rm -f "$STATE/red" "$STATE/red-seen"
   status success "Full suite and sweep pass (${secs}s)"
+  # Warm the event index and reused queries for the sim code now on main. Exit 0 warm, 1 a query
+  # unanswered, 2 the index could not be built (logged); none of these turn main red.
+  pw_dir="${HITL_SHARED_CHECKOUT:-$REPO}"
+  if [ -n "${MAIN_GUARD_PREWARM:-}" ]; then (cd "$pw_dir" && bash -c "$MAIN_GUARD_PREWARM") >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
+  elif [ -f "$pw_dir/scripts/events/prewarm.js" ]; then (cd "$pw_dir" && timeout 900 nice -n 10 node scripts/events/prewarm.js --quiet) >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
+  else pw_rc=0; fi
+  case $pw_rc in 0) ;; 124) echo "main-guard: prewarm was killed after its time limit (see $STATE/$short.prewarm.log)" ;; 2) echo "main-guard: prewarm could not build the event index (see $STATE/$short.prewarm.log)" ;; *) echo "main-guard: prewarm left a query unanswered (see $STATE/$short.prewarm.log)" ;; esac
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
       gh issue close "$n" --comment "Green again at $short: the full suite and the sweep pass." >/dev/null
