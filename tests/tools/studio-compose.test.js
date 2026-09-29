@@ -98,6 +98,21 @@ describe('studio scene --compose', () => {
     expect(off).toBeLessThan(3);
   }, 260000);
 
+  it('gives every object a position, rounds --every to a whole frame and says so, and prints an array on request', () => {
+    const args = ['--compose', `${EX}/coffee-visit.json`, '--from', '0', '--to', '1', '--every', '0.25'];
+    const run = (...more) => spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), ...args, ...more], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    const lines = run();
+    expect(lines.status, lines.stderr).toBe(0);
+    expect(lines.stderr).toMatch(/every 0\.25 s is not a whole frame; sampling every 8 frames/);
+    const records = lines.stdout.trim().split('\n').map((l) => JSON.parse(l));
+    expect(records).toHaveLength(4);
+    for (const o of records[0].objects) expect(o.position).toEqual(o.world.slice(12, 15));
+    const array = run('--json-array');
+    expect(JSON.parse(array.stdout)).toEqual(records);
+    const bad = run('--every', '0');
+    expect(bad.status).toBe(2);
+  }, 260000);
+
   it('sends a person to a coffee corner, holds another until a time, then lets them walk', () => {
     const rows = frames('coffee-visit.json', ['--from', '0', '--to', '9', '--every', '1']);
     const acts = (id) => rows.map((r) => person(r, id).person.activity);
