@@ -21,7 +21,7 @@ const SPOTS = {
   },
 };
 
-// How far a seated person's spot sits in front of their chair's centre, as at a desk.
+// How far a chair's centre sits behind its sitter's spot, as at a desk.
 const CHAIR_IN = 0.05;
 
 function toItem(fit, x, z) {
@@ -47,7 +47,7 @@ function localSpots(g) {
 export function nocObstacles(g) {
   const n = g.userData.noc;
   if (!n || n.level < 2) return [];
-  return n.seats.map((s) => [s.x - 0.28, s.z - 0.15, s.x + 0.28, s.z + 0.28]);
+  return n.seats.map((s) => [s.x - 0.28, s.z - 0.15, s.x + 0.28, s.z + 0.34]);
 }
 
 // Radial floor glow texture, shared.
@@ -81,8 +81,8 @@ export function dressNoc(g, inner, f) {
   if (s.chairs) {
     for (const seat of spots.seats) {
       const ch = getModel('chair');
-      ch.position.set(seat.x + Math.sin(seat.yaw) * CHAIR_IN, 0, seat.z + Math.cos(seat.yaw) * CHAIR_IN);
-      ch.rotation.y = seat.yaw + Math.PI;
+      ch.position.set(seat.x - Math.sin(seat.yaw) * CHAIR_IN, 0, seat.z - Math.cos(seat.yaw) * CHAIR_IN);
+      ch.rotation.y = seat.yaw;
       g.add(ch);
     }
   }

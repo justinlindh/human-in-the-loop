@@ -58,10 +58,10 @@ def l1():
     plane('noc_desk0_screen', 0.08, 0.05, (cx + 0.2, cy - 0.106, 0.755), 'screen')
     parts.append(torus('coil', 0.07, 0.012, (cx - 0.18, cy - 0.05, 0.645), 'plastic_charcoal', major_seg=12, minor_seg=4))
     parts += kit.mug('mug_', cx - 0.02, cy - 0.12, 0.635)
-    parts.append(box('cablebox', (0.5, 0.3, 0.12), (cx, cy, 0.255), 'plastic_charcoal', bevel=0.015))
+    parts.append(box('cablebox', (0.3, 0.3, 0.12), (cx - 0.22, cy, 0.255), 'plastic_charcoal', bevel=0.015))
     # The days-since sign, taped to the cart's front edge.
     parts += sign(0.42, 0.14, cx, cy - 0.26, 0.82)
-    # One person's kit: a folding chair angled at the TV and a laptop bag against it.
+    # One person's kit: a folding chair angled at the TV, and a laptop bag on the cart's bottom shelf.
     fx, fy, rz = 0.85, -0.2, math.radians(35)
     chair = [box('fc_seat', (0.4, 0.38, 0.03), (0, 0, 0.45), 'metal_soft', bevel=0),
              box('fc_back', (0.4, 0.03, 0.3), (0, 0.19, 0.72), 'metal_soft', bevel=0)]
@@ -69,7 +69,7 @@ def l1():
         chair.append(box(f'fc_legf{sx}', (0.025, 0.025, 0.52), (sx * 0.18, -0.12, 0.265), 'metal_dark', bevel=0, rot=(math.radians(-12), 0, 0)))
         chair.append(box(f'fc_legb{sx}', (0.025, 0.025, 0.9), (sx * 0.18, 0.16, 0.45), 'metal_dark', bevel=0, rot=(math.radians(8), 0, 0)))
     parts += place(chair, fx, fy, rz)
-    parts.append(box('bag', (0.34, 0.12, 0.26), (fx + 0.35, fy + 0.25, 0.13), 'fabric_slate', bevel=0.04))
+    parts.append(box('bag', (0.34, 0.22, 0.2), (cx + 0.1, cy, 0.3), 'fabric_slate', bevel=0.04))
     return parts
 
 
