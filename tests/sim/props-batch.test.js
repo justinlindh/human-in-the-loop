@@ -12,9 +12,9 @@ const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure'
   'envelope', 'envelope_thick', 'binder', 'gift_cards', 'sticky_notes', 'photos_laminated',
   'pizza_boxes', 'smoothie', 'curtain', 'sledgehammer', 'tape_measure', 'pet_carrier', 'cable_chewed', 'visitor_chair',
   'screens_red', 'screens_skull', 'smoke_puff', 'rack_hot',
-  'banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked', 'printout', 'whiteboard_scrawl', 'mug_pile', 'mug_bucket', 'mug_typo', 'moving_boxes', 'giant_cheque', 'swag_box', 'french_press', 'house_sign', 'box_poster', 'box_cube', 'oat_milk']);
+  'banner_company', 'cover_sheets', 'stapler', 'printer_jammed', 'printer_wrecked', 'printout', 'whiteboard_scrawl', 'mug_pile', 'mug_bucket', 'mug_typo', 'moving_boxes', 'giant_cheque', 'swag_box', 'french_press', 'house_sign', 'box_poster', 'box_cube', 'oat_milk', 'printer_out_of_order']);
 // Props art is still building; until they ship the renderer shows nothing for them.
-const PENDING = new Set(['printer_out_of_order']);
+const PENDING = new Set([]);
 const known = (prop) => SHIPPED.has(prop) || PENDING.has(prop);
 
 const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };

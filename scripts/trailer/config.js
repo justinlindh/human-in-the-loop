@@ -1,6 +1,8 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
-import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG } from '../capture-manifest.js';
+import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
+// A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
+const CARDS_EVERY = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => ({ at: from + i * step, js: CLEAR_CARDS }));
 
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
 // the music and stingers, and when each voiceover line lands. Change the trailer here; build.js only
@@ -49,11 +51,8 @@ const FACEPALMER = { js: `(() => {
     if (!p) return null;
     window.__facepalmer = p.id;
   }
-  let o = null;
-  R.scene.traverse((x) => { if (!o && x.userData.staffId === window.__facepalmer) o = x.parent; });
-  if (!o) return null;
-  const v = o.getWorldPosition(new o.position.constructor());
-  return { x: v.x, z: v.z };
+  const e = R.probe(window.__facepalmer)?.eyes;
+  return e ? { x: e[0], z: e[2] } : null;
 })()` };
 // The first dancer of a music night.
 const DANCER = { js: "(() => { const R = window.__hitlRender, id = R.incentives?.dance?.dancers?.[0]; if (id == null) return null; let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === id) o = x.parent; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; })()" };
@@ -65,12 +64,40 @@ const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createEleme
 export const DEFERRED_CAPTURES = [];
 
 // The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
-const YAK_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY + "const check = structuredClone(s); sim.tick(check); if (check.office.stage !== 1 || check.outage?.weeks !== 0) throw new Error('trailer: no seed-2 outage found');", hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
+// One company for the whole outage stretch (seed 13): the agents watch a level-2+ NOC and its next incident is
+// misread, so the alert, the Yak thread and the facepalm all come from the same game.
+const NOC_HIT = '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0';
+const OUTAGE_PLAY = { weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: NOC_HIT };
+const YAK_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
+
+// A quiet week (seed 62, week 124) where "Share a meme" picks the PC LOAD LETTER image: the post
+// lands in Yak, then is opened full size the way a player taps it.
+const MEME_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 500, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.week === 125' })}; ${YAK_ONLY}; })()`;
+const MEME_ACTIONS = [
+  ...CLEAR_EARLY, ...DISMISS_AT([5, 6, 7], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 9, 1),
+  { at: 1, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
+  { at: 1.4, js: CLICK_SEL('.ypost-btn') },
+  { at: 1.9, js: `(() => { const b = [...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent)); if (!b || b.disabled) throw new Error('trailer: Share a meme unavailable'); const s = window.__HITL.state; if (s.week !== 124) throw new Error('trailer: meme week is ' + s.week); b.click(); const post = s.chatLog.at(-1); if (post?.image?.id !== 'change_my_mind') throw new Error('trailer: the meme is ' + post?.image?.id); })()` },
+  { at: 3.2, js: "(() => { const st = document.createElement('style'); st.textContent = '.memebox-img { width: 1160px !important; height: auto !important; max-width: none !important; max-height: none !important; }'; document.head.append(st); })()" },
+  { at: 3.3, js: `[...document.querySelectorAll('.chat.yak .ymeme')].at(-1)?.click()` },
+];
+
+const NOC_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${STAGE_ONLY}; })()`;
+// The NOC item's spot on the floor, for the camera.
+const NOC_AT = { js: `(window.__nocAt ??= (() => {
+  const R = window.__hitlRender, T = R.THREE, s = window.__HITL.state, noc = s.office.placed.find((i) => i.itemId === 'noc');
+  const r = noc && R.screenRectOf({ kind: 'item', id: noc.id });
+  if (!r) return undefined;
+  const ray = new T.Raycaster(), p = new T.Vector3();
+  ray.setFromCamera(new T.Vector2(((r.left + r.width / 2) / innerWidth) * 2 - 1, -(((r.top + r.height / 2) / innerHeight) * 2 - 1)), R.camera);
+  return ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), 0), p) ? { x: p.x, z: p.z } : undefined;
+})())` };
+const NOC_CAPTURE = { query: 'seed=13&speed=1', setup: NOC_SETUP, still: false, seconds: 20, screenshots: [], camera: [{ at: 0, target: NOC_AT, zoom: 2.6 }], actions: [...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 14, 16], { escape: false }), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 20, 1), ...CHOOSE_WHEN(null, 0, 1, 20, 1), ...CAMLOG(20)] };
 
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
-  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
+  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, setup: GROW(4), camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
@@ -79,13 +106,15 @@ export const BEATS = [
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
   { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
-  { id: 'incident', item: 'site-loop-incident', from: 8.6, dur: 2.2 },
+  { id: 'noc-watch', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 5.1, dur: 4.2 },
+  { id: 'incident', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 9.3, dur: 2.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
-  { id: 'yak', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
-  { id: 'yak-react', item: 'site-yak-backfire', capture: { setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
-  // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
-  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 29 }, from: 23 + 1 / 30, dur: 5.7 },
+  { id: 'yak', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), ...CARDS_EVERY(13, 58, 1.5), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
+  { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
+  // The PC LOAD LETTER meme held full size from its first frame, so the sign reads. No narration.
+  { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 8, screenshots: [], actions: MEME_ACTIONS }, from: 3.65, dur: 3.5 },
+  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36 }, from: 27 + 2 / 30, dur: 7.0 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
@@ -95,8 +124,8 @@ export const BEATS = [
   // The flying camera's orbit onto the waffle table.
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
-  // Seed 9 with no hiring after Consolidation, so attrition empties most desks; pushes in on the largest empty group.
-  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=9&speed=1&time=day', setup: GROW(790, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
+  // Seed 18 with no hiring after Consolidation, so attrition empties most desks; pushes in on the largest empty group.
+  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=18&speed=1&time=day', setup: GROW(800, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
   { id: 'end', card: 'end', dur: 8.0 },
 ];
 
@@ -107,7 +136,7 @@ export const BEATS = [
 // `duck` ({ db, attack, release }: a dip under each narrator line).
 export const MUSIC = {
   bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -8, fadeIn: 0.3 },
-  // The printer's own cue replaces the bed for its beat: 9.9 s of the cue lands on the beat's cut.
+  // The printer's own cue replaces the bed for its beat and lands on the printer beat's cut.
   swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
   // The foosball rally once both players are at the table: the game plays its cue once per use, so
   // the trailer places a few hits of the same sound under the bed.
@@ -129,6 +158,7 @@ export const VO = {
     { id: 'l1', at: { beat: 'garage', offset: 0.4 }, max: 5.1, text: 'Every great company starts in a garage. This one is still paying rent on it.' },
     { id: 'l2a1', at: { beat: 'hire', offset: 0.3 }, max: 1.3, text: 'Hire humans.' },
     { id: 'l2a2', at: { beat: 'launch', offset: 0.3 }, max: 1.35, text: 'Ship products.' },
+    { id: 'l2c', at: { beat: 'noc-watch', offset: 0.3 }, max: 3.4, text: 'The dashboards are green. The agents are very confident.' },
     { id: 'l2b', at: { beat: 'incident', offset: 0.2 }, max: 1.7, text: 'Call the outage a stress test.' },
     { id: 'l7', at: { beat: 'yak', offset: 0.3 }, max: 2.5, text: 'Your team talks. Mostly in memes.' },
     { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, max: 3.6, text: 'Survive the AI eras. First chatbots.' },

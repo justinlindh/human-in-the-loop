@@ -33,7 +33,7 @@ guard() { # <gh log> <open file> [env assignments...] -- [guard args...]
   local log="$1" open="$2"; shift 2
   local envs=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
   env GH_LOG="$log" GH_OPEN="$open" PATH="$tmp/bin:$PATH" CI_WORKTREE_ROOT="$case_root" HITL_LOCK_DIR="$tmp/locks" \
-    MAIN_GUARD_NPM="${MAIN_GUARD_NPM:-true}" MAIN_GUARD_FETCH=true MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
+    MAIN_GUARD_NPM="${MAIN_GUARD_NPM:-true}" MAIN_GUARD_FETCH=true MAIN_GUARD_PERF_EVERY=0 MAIN_GUARD_PERF='exit 0' MAIN_GUARD_PHONE='exit 0' MAIN_GUARD_GOLDEN='exit 0' MAIN_GUARD_PREWARM='exit 0' "${envs[@]}" bash "$HERE/main-guard.sh" "$@" >"$log.out" 2>&1
 }
 expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x looks in the guard's output>
   local w want; IFS='|' read -ra want <<<"$3"
@@ -68,6 +68,10 @@ one 'a new violation outside seeded games makes main red' "$PASS" "$NEW_MOCK" ''
 one 'a seed-only violation leaves main green and opens a sweep-finding issue' "$PASS" "$NEW_SEED" '' 'state=success|--label sweep-finding|!--label main-red --body'
 one 'a clean sweep closes the open sweep-finding issue' "$PASS" "$CLEAN" 'sweep-finding 52' 'state=success|issue close 52'
 one 'a missing sweep report fails the gate' "$PASS" 'true' '' 'state=failure|description=Red: sweep'
+one 'a prewarm that cannot build the index is logged and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm could not build' MAIN_GUARD_PREWARM='exit 2'
+one 'a prewarm with an unanswered query is logged and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm left a query unanswered' MAIN_GUARD_PREWARM='exit 1'
+one 'a warm prewarm says nothing' "$PASS" "$CLEAN" '' 'state=success|!out:main-guard: prewarm' MAIN_GUARD_PREWARM='exit 0'
+one 'a prewarm killed by its time limit is named as such and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm was killed' MAIN_GUARD_PREWARM='exit 124'
 case_root="$tmp/root-np"; np="$tmp/np.log"; : >"$np"; : >"$tmp/np.open"
 guard "$np" "$tmp/np.open" MAIN_GUARD_SUITE="$FAIL_BAL" MAIN_GUARD_STRICT="$NEW_MOCK" -- --sha HEAD --no-post
 expect 'no-post posts nothing' "$np" '!statuses|!issue|out:FAIL'
@@ -111,8 +115,8 @@ wait 2>/dev/null
 
 # Shared checkout: fast-forwarded when clean and idle, left alone when a ci-pr runs in it.
 # A bare stand-in origin whose main is this HEAD, and a clone of it one commit behind.
-git init -q --bare "$tmp/origin.git"
-git -C "$REPO" push -q "$tmp/origin.git" "HEAD:refs/heads/main" 2>/dev/null
+git init -q --bare -b main "$tmp/origin.git"
+git -C "$REPO" push -q --no-verify "$tmp/origin.git" "HEAD:refs/heads/main" 2>/dev/null
 shared="$tmp/shared"; git clone -q "$tmp/origin.git" "$shared" 2>/dev/null
 git -C "$shared" checkout -q -B main "$(git -C "$REPO" rev-parse HEAD~1)"
 case_root="$tmp/root-sync"; sl="$tmp/sync.log"; : >"$sl"
@@ -125,6 +129,15 @@ guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_S
 [ "$(git -C "$shared" rev-parse HEAD)" != "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a busy shared checkout was updated"; fails=$((fails + 1)); }
 kill "$busy" 2>/dev/null
 wait "$busy" 2>/dev/null
+# A detached checkout in the middle of a bisect is left alone.
+git -C "$shared" checkout -q --detach HEAD
+: >"$(git -C "$shared" rev-parse --path-format=absolute --git-path BISECT_LOG)"
+guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ -z "$(git -C "$shared" branch --show-current)" ] || { echo "FAIL a shared checkout in a bisect was moved onto main"; fails=$((fails + 1)); }
+rm -f "$(git -C "$shared" rev-parse --path-format=absolute --git-path BISECT_LOG)"
+# A clean detached checkout on main's history is put back on main and updated.
+guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ "$(git -C "$shared" branch --show-current)" = main ] && [ "$(git -C "$shared" rev-parse HEAD)" = "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a detached shared checkout was not put back on main"; fails=$((fails + 1)); }
 # A shared checkout whose install doesn't match its lockfile is reinstalled.
 cat >"$tmp/npm" <<SH
 #!/usr/bin/env bash

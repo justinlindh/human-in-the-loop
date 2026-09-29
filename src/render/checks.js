@@ -13,6 +13,12 @@ const ray = new THREE.Raycaster();
 const DOWN = new THREE.Vector3(0, -1, 0);
 const UP = new THREE.Vector3(0, 1, 0);
 
+// Exact triangle crossing, installed by the clip harness (blender/checks/clip-exact.js): (root,
+// meshes, keep) -> the worst share of a mesh part's triangles crossing the meshes. Vertex counts miss
+// a thin slab through a head, so a check takes the larger of the two when this is installed.
+let exact = null;
+export function useExactCross(fn) { exact = fn; }
+
 function charOf(scene, staffId) {
   let root = null;
   scene.traverse((o) => { if (o.userData.staffId === staffId) root = o.parent; });
@@ -117,7 +123,7 @@ export async function runClipChecks(R, S, { frames = 24, dt = 0.07 } = {}) {
       if (f % 6 === 0) {
         for (const part of ['head', 'torso', 'armL', 'armR']) {
           const pts = vertices(root, 4, (o) => o.userData.part === part);
-          const n = insideCount(pts, furniture);
+          const n = Math.max(insideCount(pts, furniture), exact ? Math.ceil(exact(root, furniture, (o) => o.userData.part === part) * pts.length) : 0);
           inside += n; total += pts.length;
           byPart[part] = (byPart[part] ?? 0) + n;
         }
@@ -200,6 +206,7 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     }
     for (let i = 0; i < settle; i++) R.advance(dt);
     let inside = 0, total = 0, headIn = 0, headTotal = 0, gap = 0, low = Infinity;
+    const headHits = {};
     const top = new THREE.Box3().setFromObject(e.obj).max.y;
     for (let f = 0; f < frames; f++) {
       R.advance(dt);
@@ -212,7 +219,9 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
       const head = headCentre(root);
       if (head) {
         const hp = vertices(head.parent, 3);
-        headIn += insideCount(hp, furniture);
+        const frameHits = [];
+        headIn += Math.max(insideCount(hp, furniture), exact ? Math.ceil(exact(head.parent, furniture, undefined, frameHits) * hp.length) : 0);
+        for (const h of frameHits) { const k = `${h.part} x ${h.target}`; const cur = headHits[k] ?? { frames: 0, maxPct: 0 }; cur.frames++; cur.maxPct = Math.max(cur.maxPct, +(100 * h.frac).toFixed(1)); headHits[k] = cur; }
         headTotal += hp.length;
       }
     }
@@ -221,7 +230,8 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     const sunk = top - low;
     const pass = headPct < 1 && gap < FLOAT_MAX && (soft ? sunk > SOFT_SINK : pct < 2) && walkIn === 0 && (soft || enterIn < 0.05);
     results.push({ name: label, anim: R.perks.peek(who)?.temp?.anim, pass, insidePct: +pct.toFixed(2), headInsidePct: +headPct.toFixed(2),
-      floatGap: +gap.toFixed(3), walkInsidePct: +(100 * walkIn).toFixed(2), enterUpperInsidePct: +(100 * enterIn).toFixed(2), ...(soft ? { sunkBelowTop: +sunk.toFixed(2) } : {}) });
+      floatGap: +gap.toFixed(3), walkInsidePct: +(100 * walkIn).toFixed(2), enterUpperInsidePct: +(100 * enterIn).toFixed(2),
+      ...(!pass && Object.keys(headHits).length ? { who, look: S.staff.find((p) => p.id === who)?.look, headHits } : {}), ...(soft ? { sunkBelowTop: +sunk.toFixed(2) } : {}) });
   }
   return { pass: results.every((r) => r.pass), results };
 }
@@ -273,9 +283,13 @@ export async function runDanceCheck(R, S, genre, { dt = 1 / 30 } = {}) {
 const USE_MAX = 0.45;
 // arms: false leaves out swinging arms (a walker's arm may brush an edge they walk past).
 function bodyInside(root, targets, arms = true) {
-  const pts = vertices(root, 8, arms ? () => true : (o) => !isArm(o));
-  return pts.length ? insideCount(pts, targets) / pts.length : 0;
+  const keep = arms ? () => true : (o) => !isArm(o);
+  const pts = vertices(root, 8, keep);
+  const v = pts.length ? insideCount(pts, targets) / pts.length : 0;
+  return exact ? Math.max(v, exact(root, targets, keep)) : v;
 }
+// Test hooks for the clip harness's planted controls.
+export const probe = { insideCount, vertices, bodyInside, meshes };
 function furnitureOf(R, skip = new Set()) {
   const out = [];
   for (const e of R.office.placed.values()) if (!skip.has(e.id)) out.push(...meshes(e.obj));

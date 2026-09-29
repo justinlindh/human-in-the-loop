@@ -32,6 +32,18 @@ const GROUPS = {
   garage: ['pairs:garage'],
   celebrations: ['moment:growth', 'moment:company_party'],
   respond: ['moment:respond:rack', 'moment:respond:desk'],
+  control: ['control:head-through-slab'],
+};
+// Installed in each page: measures also count triangles crossing furniture (blender/checks/clip-exact.js),
+// which a vertex count misses on a thin slab. The module and its trees are made on the tool stream so
+// the game's random stream is untouched.
+const installExact = async () => {
+  const C = await import('/src/render/checks.js');
+  const tool = window.__tool(() => Math.random), game = Math.random;
+  Math.random = tool;
+  let X;
+  try { X = await import('/blender/checks/clip-exact.js'); } finally { Math.random = game; }
+  C.useExactCross((...a) => window.__tool(() => X.crossFraction(...a)));
 };
 const noMatch = () => { console.log(`clip: no case matches --only=${ONLY.join(',')}`); process.exit(1); };
 const wanted = (name) => !ONLY || ONLY.some((p) => name.includes(p));
@@ -45,8 +57,15 @@ if (before && !ONLY) {
   process.exit(0);
 }
 const H = await startHarness();
-const { page, errors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
-const out = await page.evaluate(async (runs) => {
+const errors = [];
+const out = [];
+// Each group of the floor office runs on a fresh page, so who a case picks and where they start
+// never depend on which groups ran before it (a narrowed --only gives the same subject and result).
+const MAIN = ['seats', 'perks', 'dance', 'walk', 'pets', 'props', 'pairs', 'use', 'party', 'sky'];
+for (const group of MAIN.filter((g) => runs[g])) {
+const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
+await page.evaluate(installExact);
+out.push(...await page.evaluate(async (runs) => {
   const R = window.__hitlRender, S = window.__HITL.state;
   // The ownership trace, for the failure detail (the worst actor's last trace lines).
   if (R.trace) R.trace.on = true;
@@ -113,10 +132,14 @@ const out = await page.evaluate(async (runs) => {
   const party = runs.party ? await C.runPartyCheck(R, S) : null;
   const sky = runs.sky ? await C.runSkyCheck() : null;
   return [runs.seats ? seatCheck : null, ...a.results, ...b.results, ...dance, ...w, ...u, party, sky, pairs].filter(Boolean);
-}, runs);
+}, Object.fromEntries(MAIN.map((g) => [g, g === group]))));
+errors.push(...pageErrors);
+await page.close();
+}
 // The garage: two founders still get a game of foosball in now and then.
 if (runs.garage) {
   const g = await H.openScene(`quality=low&mock=garage${rig}`, { width: 800, height: 500 });
+  await g.page.evaluate(installExact);
   out.push(await g.page.evaluate(async () => {
     const R = window.__hitlRender, S = window.__HITL.state;
     const C = await import('/src/render/checks.js');
@@ -128,6 +151,7 @@ if (runs.garage) {
 }
 if (runs.celebrations) {
   const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
+  await g.page.evaluate(installExact);
   out.push(...await g.page.evaluate(async () => {
     const C = await import('/src/render/checks.js');
     return C.runCelebrationChecks(window.__hitlRender, window.__HITL.state);
@@ -137,9 +161,37 @@ if (runs.celebrations) {
 }
 if (runs.respond) {
   const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
+  await g.page.evaluate(installExact);
   out.push(...await g.page.evaluate(async () => {
     const C = await import('/src/render/checks.js');
     return C.runRespondChecks(window.__hitlRender, window.__HITL.state);
+  }));
+  errors.push(...g.errors);
+  await g.page.close();
+}
+// Planted control: a slab far thinner than the vertex spacing through a head. The vertex count of
+// the old measure reads nothing; the exact measure must flag it.
+if (runs.control) {
+  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
+  await g.page.evaluate(installExact);
+  out.push(await g.page.evaluate(async () => {
+    const R = window.__hitlRender, S = window.__HITL.state;
+    const C = await import('/src/render/checks.js');
+    const T = R.THREE;
+    for (let i = 0; i < 30; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
+    let root = null, head = null;
+    R.scene.traverse((o) => { if (!root && o.userData.staffId === S.staff[0].id) root = o.parent; });
+    root.updateMatrixWorld(true);
+    root.traverse((o) => { if (!head && o.isMesh && o.userData.part === 'head') head = o; });
+    const c = new T.Box3().setFromObject(head).getCenter(new T.Vector3());
+    const slab = window.__tool(() => new T.Mesh(new T.BoxGeometry(2, 0.004, 2), new T.MeshBasicMaterial()));
+    slab.position.copy(c);
+    R.scene.add(slab); slab.updateMatrixWorld(true);
+    const pts = C.probe.vertices(root, 8);
+    const old = C.probe.insideCount(pts, [slab]) / pts.length;
+    const now = C.probe.bodyInside(root, [slab]);
+    R.scene.remove(slab);
+    return { name: 'control:head-through-slab', pass: old === 0 && now > 0.01, vertexShare: +old.toFixed(4), exactShare: +now.toFixed(4) };
   }));
   errors.push(...g.errors);
   await g.page.close();
