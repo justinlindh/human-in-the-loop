@@ -22,6 +22,12 @@ out="$(d --mock floor --out "$tmp/o" --steps '[{"expect":"false","msg":"never"},
 [ $rc -eq 1 ] && grep -q 'expect failed: never' <<<"$out" && grep -q 'FAIL' <<<"$out" || fail "a failed expect or click exits 1 and says why: $rc $out"
 out="$(d --mock floor --out "$tmp/o" --steps '[{"click":".no-such-thing","optional":true},{"press":"Escape"},{"dismiss":true}]')"; rc=$?
 [ $rc -eq 0 ] || fail "an optional click that finds nothing passes: $rc $out"
+out="$(d --saves 9 --out "$tmp/o")"; rc=$?; [ $rc -eq 2 ] && grep -q -- '--saves wants' <<<"$out" || fail "--saves out of range exits 2: $rc $out"
+out="$(d --storage-file "$tmp/none.json" --out "$tmp/o")"; rc=$?; [ $rc -eq 2 ] && grep -q -- '--storage-file' <<<"$out" || fail "a missing --storage-file exits 2: $rc $out"
+# --saves and --storage-file are in localStorage before any page script runs, and a reload keeps what the page did.
+echo '{"probe":"seeded"}' >"$tmp/store.json"
+out="$(d --mock floor --saves 2 --storage-file "$tmp/store.json" --out "$tmp/o" --json "$tmp/st.json" --steps '[{"eval":"Object.keys(JSON.parse(localStorage.getItem(\"hitl.saves.v2\")).slots).length","as":"slots"},{"eval":"localStorage.getItem(\"probe\")","as":"probe"},{"eval":"localStorage.setItem(\"probe\",\"changed\"); location.reload(); 0"},{"waitFor":"window.__HITL_READY === true"},{"eval":"localStorage.getItem(\"probe\")","as":"after"}]')"; rc=$?
+[ $rc -eq 0 ] && grep -q '"slots": 2' "$tmp/st.json" && grep -q '"probe": "seeded"' "$tmp/st.json" && grep -q '"after": "changed"' "$tmp/st.json" || fail "storage is seeded once, before the page: $rc $out $(cat "$tmp/st.json" 2>&1 | head -8)"
 # --play is runBot's game: the same seed, bot and week give the same company as the balance tools' loop.
 want="$(cd "$TREE" && node --input-type=module -e "
 import { runBot } from './src/sim/bots.js'; import { dispatch } from './src/sim/index.js';
