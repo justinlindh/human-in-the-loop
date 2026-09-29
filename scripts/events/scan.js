@@ -62,7 +62,9 @@ async function play({ bot: startBot, seed, weeks, where, then, within, branch, s
       const events = [];
       for (let guard = 0; st.pendingDecision && guard < 5; guard++) {
         const pick = choose[st.pendingDecision.eventId] ?? choose.default ?? 0;
-        events.push(...dispatch(st, { type: 'resolveDecision', choice: pick }).events);
+        const r = dispatch(st, { type: 'resolveDecision', choice: pick });
+        if (!r.ok) throw new Error(`step could not answer ${st.pendingDecision.eventId} with choice ${pick}: ${r.reason}`);
+        events.push(...r.events);
       }
       events.push(...tick(st));
       return events;

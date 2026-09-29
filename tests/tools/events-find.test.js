@@ -171,9 +171,9 @@ describe('find.js --branch', () => {
     expect(r.out[0].snapshotFile).toMatch(/w4-week/);
   });
 
-  it('leaves the run untouched: what the branch changes stays on its copy', () => {
-    const r = find('--where', WHERE, '--branch', 's.marker = 99; return true;', '--extra', '({ mk: s.marker ?? 0 })', ...SCAN);
-    expect(r.out[0].mk).toBe(0);
+  it('leaves the run untouched: the branch plays a copy, so later weeks are still found', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 3 && s.week <= 6", '--branch', 'for (let i = 0; i < 3; i++) sim.step(s); return true;', '--per-run', '4', ...SCAN);
+    expect(r.out.map((x) => x.week)).toEqual([3, 4, 5, 6]);
   });
 
   it('drops a moment whose branch returns falsy, and exits 1', () => {
