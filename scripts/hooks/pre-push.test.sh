@@ -34,5 +34,24 @@ rm -f "$tmp/prs"
 GIT_DIR="$r/.git" push "refs/heads/x $SHA refs/heads/tools/x $ZERO"
 [ $rc -eq 0 ] && [ "$(cat "$tmp/gitdir")" = "no GIT_DIR" ] || fail "the tests run without git's hook variables (GIT_DIR): rc $rc, saw $(cat "$tmp/gitdir" 2>/dev/null)"
 
+# Commit messages: a wip: commit beyond origin/main refuses the push before the tests run; a
+# conventional one passes.
+mkdir -p "$r/scripts/hooks"; cp "$HERE/../check-commits.sh" "$r/scripts/"; cp "$HERE/commit-msg" "$r/scripts/hooks/"
+g() { git -C "$r" -c user.name=t -c user.email=t@t "$@"; }
+g update-ref refs/remotes/origin/main HEAD
+g checkout -q -b topic
+g commit -q --allow-empty -m "wip: half done"; WIP="$(g rev-parse HEAD)"
+n=$(runs); push "refs/heads/topic $WIP refs/heads/integ/topic $ZERO"
+[ $rc -eq 1 ] && grep -q 'does not follow Conventional Commits' <<<"$out" && [ "$(runs)" -eq "$n" ] || fail "a wip: commit refuses the push before the tests: rc $rc runs $(runs): $out"
+g commit -q --allow-empty --amend -m "ci(integ): a real message"; OK="$(g rev-parse HEAD)"
+push "refs/heads/topic $OK refs/heads/integ/topic $ZERO"
+[ $rc -eq 0 ] && [ "$(runs)" -gt "$n" ] || fail "a conventional commit passes: rc $rc: $out"
+
+# A new worktree gets the main checkout's node_modules linked in (post-checkout).
+chmod +x "$HERE/post-checkout"; cp "$HERE/post-checkout" "$r/scripts/hooks/"
+g config core.hooksPath "$r/scripts/hooks"; mkdir -p "$r/node_modules"
+g worktree add -q "$tmp/wt" -b wt-branch >/dev/null 2>&1
+[ "$(readlink "$tmp/wt/node_modules" 2>/dev/null)" = "$r/node_modules" ] || fail "a new worktree gets node_modules linked from the main checkout"
+
 [ $fails -eq 0 ] && echo "pre-push: all cases pass"
 exit $fails

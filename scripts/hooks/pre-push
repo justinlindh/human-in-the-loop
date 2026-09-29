@@ -2,6 +2,8 @@
 # Before a push:
 # - refuses to push to a branch whose pull request is already merged or closed: those commits would
 #   never reach main. Put them on a new branch and open a new PR instead.
+# - runs scripts/check-commits.sh over the commits the push adds beyond origin/main, so a commit that
+#   isn't `type(scope): summary` (a wip: commit) or carries attribution never reaches a PR.
 # - runs `npm run test:fast` and refuses the push when it fails. The run is cached per tree
 #   (scripts/test-cache.sh), so a tree that already passed costs well under a second. It tests the
 #   checkout as it is, uncommitted changes included. Skipped in CI, for a push that only touches the
@@ -37,6 +39,18 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = 0000000000000000000000000000000000000000 ] && continue
   [ "$remote_ref" = refs/heads/pr-media ] && continue
   code_push=1
+  # Commit messages of what the push adds beyond origin/main (skipped without the script, the base
+  # ref or the commit object).
+  [ -n "${CI:-}" ] && continue
+  [ -f scripts/check-commits.sh ] || continue
+  git cat-file -e "${local_sha}^{commit}" 2>/dev/null || continue
+  base="$(git merge-base refs/remotes/origin/main "$local_sha" 2>/dev/null)" || continue
+  [ "$base" = "$local_sha" ] && continue
+  if ! cc="$(bash scripts/check-commits.sh "$base" "$local_sha" "" 2>&1)"; then
+    echo "$cc" >&2
+    echo "pre-push: refusing the push: a commit message is not allowed (see above). Reword it before the branch is pushed, or push with --no-verify if this isn't yours." >&2
+    exit 1
+  fi
 done <<<"$refs"
 [ $code_push = 1 ] || exit 0
 [ -n "${CI:-}" ] && exit 0

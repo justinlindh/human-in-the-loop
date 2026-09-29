@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# After `git worktree add`: links this worktree's node_modules to the main checkout's, so tests, the
+# pre-push gate and tools run in a fresh worktree without an install. Does nothing for other
+# checkouts, when node_modules already exists, or when the main checkout has none.
+# Installed by `npm run hooks` (core.hooksPath scripts/hooks).
+set -u
+[ "${1:-}" = 0000000000000000000000000000000000000000 ] || exit 0
+[ -e node_modules ] || [ -L node_modules ] && exit 0
+common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || exit 0
+main="$(dirname "$common")"
+[ "$main" != "$PWD" ] && [ -d "$main/node_modules" ] || exit 0
+ln -s "$main/node_modules" node_modules
+echo "post-checkout: linked node_modules to the main checkout's" >&2
+exit 0
