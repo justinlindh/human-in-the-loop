@@ -25,10 +25,10 @@ out="$(d --mock floor --out "$tmp/o" --steps '[{"click":".no-such-thing","option
 # --play is runBot's game: the same seed, bot and week give the same company as the balance tools' loop.
 want="$(cd "$TREE" && node --input-type=module -e "
 import { runBot } from './src/sim/bots.js'; import { dispatch } from './src/sim/index.js';
-const s = runBot('squads', 11, 40).state;
+const s = runBot('allHumans', 7, 90).state;
 if (s.pendingDecision) dispatch(s, { type: 'resolveDecision', choice: 0 });
 console.log(JSON.stringify({ week: s.week, cash: s.cash, staff: s.staff.length }));")"
-d --seed 11 --play squads:40 --setup 'return { week: s.week, cash: s.cash, staff: s.staff.length };' --out "$tmp/o" --json "$tmp/p.json" >/dev/null
+d --seed 7 --play allHumans:90 --setup 'return { week: s.week, cash: s.cash, staff: s.staff.length };' --out "$tmp/o" --json "$tmp/p.json" >/dev/null
 got="$(node -e "const r = JSON.parse(require('fs').readFileSync('$tmp/p.json','utf8')).desktop.setup; console.log(JSON.stringify(r))")"
 [ "$got" = "$want" ] || fail "--play matches runBot: drive $got, runBot $want"
 [ $fails -eq 0 ] && echo "drive: all cases pass"
