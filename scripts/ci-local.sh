@@ -379,7 +379,7 @@ golden_font_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/render/(emotes|debug|index)\.js$|public/fonts/|index\.html$|blender/checks/(harness|golden|golden-font-controls)\.mjs$|scripts/ci-local\.sh$)' <<<"$files"; then
+  if ! grep -qE '^(src/render/(emotes|debug|index)\.js$|public/fonts/|index\.html$|blender/checks/(harness|golden|golden-font-controls)\.mjs$)' <<<"$files"; then
     echo "skipped: no text-emote, font, lineup or golden harness changes"; return 0
   fi
   render_step golden-font software "node blender/checks/golden-font-controls.mjs"
