@@ -1085,6 +1085,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // their own right, as people passing in a corridor do, and rejoin their route once past. Anyone
   // walking to meet the other is left alone.
   function passWalkers(r, dt) {
+    r.drift = null;
     if (!r.path.length) return;
     const h = heading(r);
     if (!h) return;
@@ -1104,24 +1105,27 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         if (lon > 0 && d < PASS_FOLLOW_M) {
           const k = Math.min(r.speed * dt, PASS_FOLLOW_M - d);
           r.pos.set(r.pos.x - h.x * k, 0, r.pos.z - h.z * k);
+          r.drift = { rule: 'hold-back', other: o.id, step: [-h.x * k, -h.z * k], refused: false };
         }
         continue;
       }
       // closing: their velocities bring them nearer
       if ((h.x * r.speed - oh.x * o.speed) * dx + (h.z * r.speed - oh.z * o.speed) * dz <= 0) continue;
-      let sx, sz;
+      let sx, sz, rule;
       if (h.x * oh.x + h.z * oh.z > PASS_DOT) {
         // Going the same way side by side and converging: each steps away from the other.
         if (d > PASS_SIDE_M + 0.1) continue;
-        sx = -dx / d; sz = -dz / d;
+        sx = -dx / d; sz = -dz / d; rule = 'step-apart';
       } else {
         // Head-on or crossing: to their own right, until the other is clear of their line.
         if (Math.abs(lat) > PASS_SIDE_M) continue;
-        sx = -h.z; sz = h.x;
+        sx = -h.z; sz = h.x; rule = 'pass-right';
       }
       const k = r.speed * dt * PASS_K;
       const x = r.pos.x + sx * k, z = r.pos.z + sz * k;
-      if (!office.nav().isBlocked(x, z, PASS_CLEAR_M)) r.pos.set(x, 0, z);
+      const refused = office.nav().isBlocked(x, z, PASS_CLEAR_M);
+      if (!refused) r.pos.set(x, 0, z);
+      r.drift = { rule, other: o.id, step: [sx * k, sz * k], refused };
     }
   }
 
@@ -1181,9 +1185,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
 
     // Pause a walking reactor without discarding their route or errand.
+    r.wait = null;
     if ((c.anim === 'facepalm' || c.anim === 'facepalmsit') && r.face?.post && !r.temp?.moment) {
       r.yaw = angleLerp(r.yaw, r.face.yaw, 1 - Math.exp(-dt * 8));
     } else if (r.path.length && waitsToStepIn(r, dt)) {
+      r.wait = { kind: 'stepIn', timer: r.temp?.inWait ?? 0 };
       c.setMoveSpeed(0);
       c.setAnim('idle');
     } else if (r.path.length) {
@@ -1763,6 +1769,24 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         mode: r.mode, hidden: !!r.hidden, speed: r.speed ?? null, path: r.path.map(pt),
         goal: r.goal && { ...pt(r.goal), key: r.goal.key ?? null, anim: r.goal.anim ?? null, seated: !!r.goal.seated, hidden: !!r.goal.hidden },
         temp: t && { anim: t.anim ?? null, t: t.t ?? null, delay: t.delay ?? 0, moment: t.moment ?? null, perk: t.perkKey ?? null, back: !!t.back, keepPos: !!t.keepPos, goal: pt(t.goal), by: r.tempBy },
+      };
+    },
+    // Test hook: what a walker decided this frame (for checks and the studio's walker fact), or null
+    // when they aren't walking. drift is passWalkers' rule, the other person, the step it applied
+    // and whether furniture refused it; wait is a hold before a taken step-in point.
+    walkDebug(id) {
+      const r = recs.get(id);
+      if (!r || r.hidden || !r.path.length) return null;
+      const h = heading(r);
+      const n = (v) => +v.toFixed(4);
+      return {
+        path: r.path.map((p) => [n(p.x), n(p.z)]),
+        target: [n(r.path[0].x), n(r.path[0].z)],
+        heading: h ? [n(h.x), n(h.z)] : null,
+        speed: r.speed ?? null,
+        drift: r.drift ? { ...r.drift, step: r.drift.step.map(n) } : { rule: null, other: null, step: null, refused: false },
+        wait: r.wait ? { kind: r.wait.kind, timer: n(r.wait.timer) } : { kind: null, timer: 0 },
+        narrow: [],
       };
     },
     // Whether someone is in a seated pose (for checks).
