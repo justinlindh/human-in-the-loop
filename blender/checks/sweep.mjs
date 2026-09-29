@@ -65,7 +65,8 @@ const full = argv.includes('--full');
 // The samplers run on the studio engine (scripts/studio/sweep-host.mjs) unless --browser asks for a
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
-const engine = !argv.includes('--browser') && !screenOnly;
+// --strict is the guard's run of record, so it keeps every check (screen and tooltip in moments and seeds too).
+const engine = !argv.includes('--browser') && !argv.includes('--strict') && !screenOnly;
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 const MODES = {
