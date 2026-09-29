@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
+import { nocLook } from './noc.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createIncentives } from './incentives.js';
@@ -239,6 +240,19 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const p = openSpot();
       return { x: p.x + (k % 3) * 0.6, z: p.z + Math.floor(k / 3) * 0.6, yaw: Math.PI, anim: 'idle', key: `ov-${k}` };
     }
+    // The NOC crew (security assignment) sits at the NOC while humans watch it: up on their feet during an
+    // alert, and in a quiet stretch the first of them dozes off. Anyone past the seats stands behind.
+    const noc = cur.dyn.noc;
+    if (type === 'security' && noc && roleIndex.noc.mode === 'humans') {
+      const k = roleIndex.security, { alert, quiet } = roleIndex.noc;
+      const seat = !alert && noc.seats[k];
+      if (seat) {
+        const anim = quiet && k === 0 ? 'desknap' : noc.level === 1 ? 'sit' : 'typing';
+        return { x: seat.x, z: seat.z, yaw: seat.yaw, anim, seated: true, dozing: anim === 'desknap', uses: noc.id, key: `noc-seat-${k}-${noc.id}-${anim}` };
+      }
+      const st = noc.stands[(alert ? k : k - noc.seats.length) % noc.stands.length];
+      return { x: st.x, z: st.z, yaw: st.yaw, anim: 'idle', key: `noc-stand-${k}-${noc.id}-${alert ? 'a' : ''}` };
+    }
     if (type === 'hardProblem') {
       const w = Z.whiteboard ?? { ...openSpot(), yaw: Math.PI };
       const k = roleIndex.hard;
@@ -261,7 +275,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
   }
 
-  function walkTo(r, goal, run = false) {
+  function walkTo(r, goal, run = false, from = r.goal) {
     const nav = office.nav();
     // A standing goal that falls inside furniture moves to the nearest walkable point.
     if (!goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z)) Object.assign(goal, nav.freePoint(goal.x, goal.z));
@@ -270,6 +284,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
     r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
+    // Leaving a seat at an item (the NOC) the way they came: back out behind the chair first, the item
+    // still theirs until they're clear of it, as at a desk.
+    if (from && from !== goal && from.seated && from.uses && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
+      const back = { x: from.x - Math.sin(from.yaw) * CHAIR_BACK_M, z: from.z - Math.cos(from.yaw) * CHAIR_BACK_M };
+      r.path = [back, ...nav.path(back, { x: to.x, z: to.z }).slice(1)];
+      r.exitFrom = from.uses;
+      r.exitSide = back;
+    }
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
     if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
@@ -345,11 +367,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);
 
-    const roleIndex = { oversight: 0, hard: 0 };
+    const roleIndex = { oversight: 0, hard: 0, security: 0 };
+    const look = nocLook(state);
     const occupied = new Map();
     for (const s of list) {
       const r = recs.get(s.id);
-      const idx = { oversight: roleIndex.oversight, hard: roleIndex.hard };
+      const idx = { oversight: roleIndex.oversight, hard: roleIndex.hard, security: roleIndex.security, noc: look };
+      if (s.assignment?.type === 'security' && s.mood !== 'away' && !s.remote) roleIndex.security++;
       if (s.assignment?.type === 'oversight') roleIndex.oversight++;
       if (s.assignment?.type === 'hardProblem') roleIndex.hard++;
       const g = goalFor(s, r, idx);
@@ -384,10 +408,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         continue;
       }
       if (g.key !== r.goalKey) {
+        const was = r.goal;
         r.goalKey = g.key;
         r.goal = g;
         if (g.hidden && !r.hidden) {
-          walkTo(r, g);           // head for the door, then disappear
+          walkTo(r, g, false, was);           // head for the door, then disappear
         } else if (!g.hidden && r.hidden) {
           const d = cur.zones.door;
           r.pos.set(d.x, 0, d.z);
@@ -396,7 +421,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           walkTo(r, g);
         } else if (!r.temp) {
           // Mood-only changes at the same desk need no walk.
-          if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g);
+          if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g, false, was);
         }
       }
     }
@@ -978,7 +1003,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.moodEmoteT = rnd(9, 18);
       const m = r.staff.mood;
       if (!c.emote) {
-        if (m === 'burnout') emote(r, 'zzz', 3);
+        if (r.goal?.dozing && !r.path.length) { emote(r, 'zzz', 3); r.moodEmoteT = rnd(4, 7); }
+        else if (m === 'burnout') emote(r, 'zzz', 3);
         else if (isTired(r.staff)) {
           emote(r, 'tired', 2.6);
           // Now and then a tired person nods off at the desk for a few seconds.

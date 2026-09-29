@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { compare, markdown } from '../../scripts/events/pair-report.js';
+import { readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { compare, markdown, parseFields } from '../../scripts/events/pair-report.js';
 
 const rec = (over = {}) => ({ reason: 'exit', exited: true, won: false, weeks: 500, score: 100, incidents: 2, caught: 1, breaches: 1, hash: 'exit|500|100|7', ...over });
 
@@ -55,3 +57,58 @@ describe('pair.js', () => {
     expect(r.status).not.toBe(0);
   });
 });
+
+describe('pair-report field and run-set handling', () => {
+  it('splits --fields into one expression per name, at top-level commas only', () => {
+    expect(parseFields('({ a: s.x, b: [1, 2].length, c: f(1, 2) })')).toEqual([{ name: 'a', expr: 's.x' }, { name: 'b', expr: '[1, 2].length' }, { name: 'c', expr: 'f(1, 2)' }]);
+    expect(parseFields('n: 1, m: "a,b"').map((f) => f.name)).toEqual(['n', 'm']);
+    expect(parseFields('')).toEqual([]);
+  });
+
+  it('rejects a part that is not name: expression, or not JS', () => {
+    expect(() => parseFields('just_an_expression')).toThrow(/not name: expression/);
+    expect(() => parseFields('a: s.x, b: 1 +')).toThrow(/b is not a JS expression/);
+  });
+
+  it('lists runs present on one side only and compares the rest', () => {
+    const { runs, onlyA, onlyB, rows } = compare({ 'x:1': rec(), 'x:2': rec() }, { 'x:1': rec(), 'x:3': rec() });
+    expect([runs, onlyA, onlyB]).toEqual([1, ['x:2'], ['x:3']]);
+    expect(rows[0].runs).toBe(1);
+  });
+});
+
+describe('pair.js arguments and fields', () => {
+  const run = (...args) => spawnSync(process.execPath, [resolve('scripts/events/pair.js'), ...args], { encoding: 'utf8', timeout: 120000 });
+
+  it('exits 2 with one line for a --b that is not a checkout', () => {
+    const r = run('--a', '.', '--b', '/nonexistent/dir', '--bots', 'balanced', '--seeds', '1');
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/pair: --b .* is not a checkout/);
+    expect(r.stderr).not.toMatch(/at file:/);
+  });
+
+  it('exits 2 for a --fields part that is not name: expression', () => {
+    const r = run('--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', 'oops');
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/--fields: /);
+  });
+
+  it('one field that throws on a run blanks only that field', () => {
+    const r = run('--a', '.', '--bots', 'balanced', '--seeds', '2', '--fields', 'staff: s.staff.length, bad: s.nothing.here');
+    expect(r.status).toBe(0);
+    const header = r.stdout.split('\n')[0], row = r.stdout.split('\n')[2];
+    expect(header).toMatch(/\| staff \| bad \|$/);
+    expect(row).toMatch(/\| \d+ -> \d+ \| - -> - \|$/);
+  });
+
+  it('a refused argument leaves no worktree and no temporary directory behind', () => {
+    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout;
+    const pairDirs = () => readdirSync(tmpdir()).filter((d) => d.startsWith('pair-')).sort();
+    const before = [list(), pairDirs()];
+    expect(run('--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
+    expect(run('--a', '.', '--b', '/nonexistent/dir', '--bots', 'balanced', '--seeds', '1').status).toBe(2);
+    expect(run('--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
+    expect([list(), pairDirs()]).toEqual(before);
+  });
+});
+
