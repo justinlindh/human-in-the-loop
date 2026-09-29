@@ -38,8 +38,8 @@ export function compare(a, b) {
       fields: Object.fromEntries(fieldNames.map((f) => [f, [fieldCell(A, f), fieldCell(B, f)]])),
     };
   });
-  const missing = Object.keys(a).length !== Object.keys(b).length;
-  return { rows, fieldNames, runs: keys.length, missing };
+  const onlyA = Object.keys(a).filter((k) => !(k in b)), onlyB = Object.keys(b).filter((k) => !(k in a));
+  return { rows, fieldNames, runs: keys.length, onlyA, onlyB };
 }
 
 export function markdown({ rows, fieldNames }, { a = 'a', b = 'b' } = {}) {
@@ -51,4 +51,30 @@ export function markdown({ rows, fieldNames }, { a = 'a', b = 'b' } = {}) {
       `${x.incidents[0]} -> ${x.incidents[1]}`, `${x.caught[0]} -> ${x.caught[1]}`, `${x.breaches[0]} -> ${x.breaches[1]}`, ...fieldNames.map((f) => `${x.fields[f][0]} -> ${x.fields[f][1]}`)].join(' | ')} |`);
   }
   return lines.join('\n');
+}
+
+// "name: expr, name2: expr2" (optionally wrapped in braces or ({ ... })) as [{ name, expr }], split on
+// top-level commas. Throws when a part is not `identifier: expression` or an expression is not JS.
+export function parseFields(src) {
+  if (!src) return [];
+  let body = src.trim();
+  const wrapped = body.match(/^\(?\s*\{([\s\S]*)\}\s*\)?$/);
+  if (wrapped) body = wrapped[1];
+  const parts = [];
+  let depth = 0, quote = null, start = 0;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (quote) { if (c === '\\') i++; else if (c === quote) quote = null; continue; }
+    if (c === '"' || c === "'" || c === '`') quote = c;
+    else if ('([{'.includes(c)) depth++;
+    else if (')]}'.includes(c)) depth--;
+    else if (c === ',' && depth === 0) { parts.push(body.slice(start, i)); start = i + 1; }
+  }
+  parts.push(body.slice(start));
+  return parts.map((p) => p.trim()).filter(Boolean).map((p) => {
+    const m = p.match(/^([A-Za-z_$][\w$]*)\s*:\s*([\s\S]+)$/);
+    if (!m) throw new Error(`"${p}" is not name: expression`);
+    try { new Function('r', 's', `return (${m[2]});`); } catch (e) { throw new Error(`${m[1]} is not a JS expression: ${e.message}`); }
+    return { name: m[1], expr: m[2].trim() };
+  });
 }

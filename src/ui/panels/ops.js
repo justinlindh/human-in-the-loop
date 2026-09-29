@@ -4,6 +4,7 @@ import { incidentLabel } from '../v2content.js';
 import { postureParts as simPostureParts } from '../../sim/incidents.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
+import { NOC_MODES, nocPlaced, nocStatus, nocEffect } from '../nocMode.js';
 import { oversightNeeded, oversightHave } from './automation.js';
 
 // A breakdown value with its sign; a value that rounds to zero carries none ("0.0", not "-0.0").
@@ -24,7 +25,8 @@ function severityPips(n) {
 export function opsPanel(ctx) {
   const view = liveView(
     (s) => [s.outage ? `${s.outage.productId}${s.outage.unrecoverable}${s.outage.severity}` : '-', s.incidentLog.length,
-      s.incidentLog[s.incidentLog.length - 1]?.week, s.security?.tooling, s.staff.filter((p) => p.role === 'security').length].join('|'),
+      s.incidentLog[s.incidentLog.length - 1]?.week, s.security?.tooling, s.staff.filter((p) => p.role === 'security').length,
+      nocPlaced(s) ? `noc${nocPlaced(s).level}` : '-', s.ops?.noc ?? '-'].join('|'),
     (s, bind) => {
       // Outage
       let outageCard;
@@ -136,8 +138,30 @@ export function opsPanel(ctx) {
             h('td', null, e.caught ? h('span.pill.good', null, icon('caught', { size: 12 }), ' Caught') : h('span.pill.bad', { text: 'Hit' })));
         }))) : h('div.empty', { text: 'No incidents yet. Enjoy it.' });
 
+      // NOC: who watches the screens. Present once a NOC is placed; every switch goes through the sim,
+      // which says why when it refuses (before the bet, too soon).
+      let nocCard = null;
+      const noc = nocPlaced(s);
+      if (noc) {
+        const status = h('div.small.nocstatus'); const effect = h('div.small.muted');
+        const btns = NOC_MODES.map((m) => h('button.segb', { type: 'button', dataset: { mode: m.v }, title: m.blurb,
+          onclick: () => { if (ctx.act({ type: 'setNocMode', mode: m.v }).ok) ctx.sfx?.('click'); } }, m.label));
+        bind((st) => {
+          const mode = st.ops?.noc ?? null;
+          btns.forEach((b, i) => toggleClass(b, 'on', mode === NOC_MODES[i].v));
+          setText(status, nocStatus(st));
+          const crew = st.staff.filter((p) => p.assignment?.type === 'security' && p.mood !== 'away').length;
+          setText(effect, mode ? nocEffect(st, crew) : 'Humans need a crew on security; agents need nobody but misread some alerts.');
+        });
+        nocCard = h('div.card.noc', null,
+          h('div.row', null, icon('oversight', { size: 20 }), h('b', { text: `Network Operations Center` }), h('span.spacer'), h('span.small.muted', { text: `Level ${noc.level ?? 1}` })),
+          h('div.seg.nocseg', { role: 'group', 'aria-label': 'Who watches the NOC' }, ...btns),
+          status, effect);
+      }
+
       return [
         outageCard,
+        ...(nocCard ? [nocCard] : []),
         h('div.opsgrid', null, secCard, loadCard),
         h('div.section', null,
           h('h3', null, icon('incident'), ' Incident log',
