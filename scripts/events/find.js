@@ -5,6 +5,7 @@
 //        [--stage garage|floor|hq|0|1|2] [--weeks a-b] [--prop p] [--snapshot] [--limit 5]
 //        [--json] [--build] [--where '<js>' [--setup '<js>'] [--turn-while '<js>']] [--scan | --no-scan]
 //        [--scan-seeds 1-60] [--scan-bots a,b]
+//        [--then '<js>' [--within 52]] [--rank '<js>'] [--explain]
 //
 //   printer_jam --choice 0 --stage floor --limit 3
 //   era --era agents --snapshot
@@ -15,6 +16,13 @@
 // states the index does not hold, so find plays seeds and bots for it (--scan-seeds, default 1-60; --scan-bots, default the index's bots,
 // or --bot), stops at --limit matches, and writes each as a loadable snapshot. A plain query scans
 // only with --scan, and never with --no-scan; results are cached by sim hash, so a repeat is instant.
+//
+// Look-ahead: --then '<js over e, s, m>' keeps each --where moment (m: its fields, m.e its event, m.s
+// its state) waiting up to --within weeks (52) for a later event or week where it returns truthy; the
+// snapshot is still from before the tick of the --where moment, and a non-boolean result is kept as
+// `result`. --rank '<js over m>' orders the matches by a number, highest first, and plays every seed
+// in range to do it. With no match, a scan says which `&&` part of --where no run ever made true
+// (--json --explain prints matches and those counts as one object).
 
 // Prints one line per match: seed, bot, week, era, stage, staff, the choice and the snapshot path
 // (--json prints rows). The index must match this checkout's sim code: if it does not, find refuses,
@@ -37,8 +45,11 @@ function refuse(kind, error) {
   else console.error(`find: ${error}`);
   process.exit(2);
 }
-const q = parseQuery(argv.filter((a, i) => !['--json', '--build', '--scan', '--no-scan'].includes(a) && argv[i - 1] !== '--limit' && a !== '--limit'));
-if (typeof q.where === 'string') { try { new Function('e', 's', `return (${q.where});`); } catch (e) { refuse('bad-query', `--where is not a JS expression: ${e.message}`); } }
+const q = parseQuery(argv.filter((a, i) => !['--json', '--build', '--scan', '--no-scan', '--explain'].includes(a) && argv[i - 1] !== '--limit' && a !== '--limit'));
+const compile = (flag, args, src) => { try { new Function(...args, `return (${src});`); } catch (e) { refuse('bad-query', `--${flag} is not a JS expression: ${e.message}`); } };
+if (typeof q.where === 'string') compile('where', ['e', 's'], q.where);
+if (typeof q.then === 'string') { if (typeof q.where !== 'string') refuse('bad-query', '--then needs a --where to look ahead from'); compile('then', ['e', 's', 'm'], q.then); }
+if (typeof q.rank === 'string') { if (typeof q.where !== 'string') refuse('bad-query', '--rank needs a --where to rank matches of'); compile('rank', ['m'], q.rank); }
 const limitAt = argv.indexOf('--limit');
 const limit = limitAt >= 0 ? Number(argv[limitAt + 1]) : 5;
 if (!q.id && typeof q.where !== 'string') refuse('no-query', 'no event id or type given');
@@ -67,6 +78,7 @@ if (where) {
   try { rows = match(idx.rows, q).filter((r) => pred(r, stateless)); } catch (e) { if (e === NEEDS_STATE) needsState = true; else refuse('bad-query', `--where failed on an index row: ${e.message}`); }
 } else rows = match(idx.rows, q);
 let scanned = null;
+if (typeof q.then === 'string' || typeof q.rank === 'string') needsState = true;
 if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !argv.includes('--no-scan')) {
   if (!where) refuse('bad-query', '--scan needs a --where predicate to look for');
   // Filters a scan cannot apply (they read index-only fields) are refused rather than ignored.
@@ -75,16 +87,22 @@ if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !arg
   const seeds = q.seed != null ? [Number(q.seed)] : q['scan-seeds'] ? range(q['scan-seeds']) : range('1-60');
   const bots = q['scan-bots'] ? String(q['scan-bots']).split(',') : q.bot ? [q.bot] : meta.bots;
   const t0 = Date.now();
-  scanned = await scan(hash, { id: q.id ?? null, where, setup: q.setup ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, weeks: Number(q['scan-weeks']) || 1040,
+  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, perRun: Number(q['per-run']) || (typeof q.rank === 'string' ? 5 : 1), weeks: Number(q['scan-weeks']) || 1040,
     onProgress: (d, n) => { if (d % 10 === 0) console.error(`find: scanned ${d}/${n} runs (${Math.round((Date.now() - t0) / 1000)} s)`); } });
   if (scanned.error) refuse('scan-failed', `the scan failed: ${scanned.error}`);
+  if (scanned.dropped && !scanned.rows.length) refuse('scan-failed', `${scanned.dropped} moment(s) matching --where were dropped while waiting on --then (too many waiting at once): narrow --where or shorten --within`);
   rows = scanned.rows;
 }
 const withFile = (r) => (r.scanned ? { ...r, snapshotFile: join(indexDir(hash), 'scan/snapshots', r.snapshot) } : r);
-if (JSON_OUT) console.log(JSON.stringify(rows.slice(0, limit).map(withFile), null, 1));
+// What the scan learned about each `&&` part of the predicate: one that no played run ever made true
+// says no bot game reaches it (a mock or a bot change is needed, not more seeds).
+const never = scanned ? scanned.clauses.filter((c) => c.runsTrue === 0).map((c) => c.expr) : [];
+if (scanned && !rows.length) console.error(`find: no match in ${scanned.runs} runs${never.length ? `; never true in any run: ${never.map((c) => `\`${c}\``).join(', ')}, so no run played here reaches it` : ''}${typeof q.then === 'string' && scanned.started && !never.length ? `; ${scanned.started} moment(s) matched --where and none satisfied --then within ${Number(q.within) || 52} weeks` : ''}`);
+if (JSON_OUT && argv.includes('--explain')) console.log(JSON.stringify({ matches: rows.slice(0, limit).map(withFile), scan: scanned ? { runs: scanned.runs, clauses: scanned.clauses, unreachable: never, dropped: scanned.dropped, whereMatchesWithoutThen: typeof q.then === 'string' ? scanned.started - rows.length : null } : null }, null, 1));
+else if (JSON_OUT) console.log(JSON.stringify(rows.slice(0, limit).map(withFile), null, 1));
 else {
   for (const r of rows.slice(0, limit)) {
-    console.log(`${r.id} seed ${r.seed} bot ${r.bot} week ${r.week} era ${r.era} stage ${r.stage} staff ${r.staff}${r.choice != null ? ` choice ${r.choice}` : ''}${r.stageProp ? ` prop ${r.stageProp}` : ''}${r.snapshot ? ` snapshot ${join(indexDir(hash), r.scanned ? 'scan/snapshots' : 'snapshots', r.snapshot)}` : ''}`);
+    console.log(`${r.id} seed ${r.seed} bot ${r.bot} week ${r.week} era ${r.era} stage ${r.stage} staff ${r.staff}${r.choice != null ? ` choice ${r.choice}` : ''}${r.stageProp ? ` prop ${r.stageProp}` : ''}${r.rank != null ? ` rank ${r.rank}` : ''}${r.result != null ? ` result ${JSON.stringify(r.result)}` : ''}${r.snapshot ? ` snapshot ${join(indexDir(hash), r.scanned ? 'scan/snapshots' : 'snapshots', r.snapshot)}` : ''}`);
   }
   console.log(scanned ? `find: ${rows.length} match(es) from a scan (${scanned.cached} cached, ${scanned.played} runs played)` : `find: ${rows.length} match(es) of ${idx.rows.length} rows (${idx.meta.bots.join(', ')}; seeds ${idx.meta.seeds[0]}-${idx.meta.seeds[idx.meta.seeds.length - 1]})`);
 }
