@@ -613,6 +613,18 @@ When: `(s) => (s.office.placed.find((p) => p.itemId === 'noc')?.level ?? 0) >= 2
 | Let the agents watch | nocMode: agents |
 | Keep humans on the glass | nocMode: humans |
 
+## Who kicked the robot? `robot_kicked`
+
+misc · raised by a rule
+
+When: `(s) => s.office.placed.some((p) => p.itemId === 'office_robot')`
+
+| Choice | Effects |
+|---|---|
+| Hold a blameless meeting | team meaning +1; robot: calm |
+| Stick googly eyes on it | robot: googly |
+| Let it go | nothing |
+
 ## The ChatGBT moment `era_chatgbt`
 
 era · raised by a rule

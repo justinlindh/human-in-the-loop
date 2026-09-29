@@ -27,16 +27,16 @@ const SHOP_SHAPE = {
   espresso: [{ w: 2, h: 1 }, null], plant_wall: [{ w: 2, h: 1 }, null], nap_pod: [{ w: 1, h: 2 }, null], arcade: [{ w: 1, h: 1 }, null],
   standing_desk: [{ w: 2, h: 1 }, null], whiteboard_wall: [{ w: 3, h: 1 }, null], library: [{ w: 2, h: 2 }, null],
   monitoring_wall: [{ w: 3, h: 1 }, null], server_rack: [{ w: 2, h: 1 }, { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'server_rack' }],
-  trophy_case: [{ w: 2, h: 1 }, null], noc: [{ w: 3, h: 1 }, null],
+  trophy_case: [{ w: 2, h: 1 }, null], noc: [{ w: 3, h: 1 }, null], office_robot: [{ w: 1, h: 1 }, null],
 };
 
 // Items about AI work arrive with that era.
-const SHOP_ERA = { monitoring_wall: 'agents' };
+const SHOP_ERA = { monitoring_wall: 'agents', office_robot: 'agents' };
 
 // Items that grow with the office: level N needs officeStage >= levelStage[N - 1].
 const LEVEL_STAGE = { noc: [0, 1, 2] };
 // Items an office has only one of.
-const UNIQUE = new Set(['noc']);
+const UNIQUE = new Set(['noc', 'office_robot']);
 
 const rows = [
   ['espresso', 'Espresso Machine', 'Proper coffee, for the whole office. Everyone\'s stamina comes back faster.', 0, [3000, 9000, 27000],
@@ -59,6 +59,9 @@ const rows = [
     [{ maintenanceNeed: -0.05, uptimeFloor: 0.03 }, { maintenanceNeed: -0.1, uptimeFloor: 0.06 }, { maintenanceNeed: -0.15, uptimeFloor: 0.1 }], null],
   ['noc', 'Network Operations Center', 'Starts as a TV on a cart and a pager nobody wants. Trouble gets caught sooner and outages end faster. Grows with the office.', 0, [8000, 30000, 90000],
     [{ nocCatch: 0.08, outageFix: 0.1 }, { nocCatch: 0.15, outageFix: 0.2 }, { nocCatch: 0.25, outageFix: 0.35 }], 'ops'],
+  // The dock; the robot roams. It pays nothing while broken (src/sim/robot.js), and level 2 also waters the plants.
+  ['office_robot', 'Office Robot', 'Brings coffee, waters the plants, and says "Excuse me" to chairs. Mostly harmless.', 0, [15000, 45000, 120000],
+    [{ staminaRecovery: 0.08, meaningRecovery: 0.03 }, { staminaRecovery: 0.12, meaningRecovery: 0.05 }, { staminaRecovery: 0.16, meaningRecovery: 0.07 }], null],
   ['trophy_case', 'Trophy Case', 'Show off the Saasies. People remember you longer.', 0, [3000, 9000, 27000],
     [{ brandDecay: -0.15 }, { brandDecay: -0.3 }, { brandDecay: -0.45 }], 'award'],
 ];

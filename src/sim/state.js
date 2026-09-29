@@ -14,6 +14,8 @@ import { rollEraSchedule } from './eras.js';
 import { findSpot, assignSeats } from './office.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
+// state.robot from the week an office robot is placed.
+export const newRobot = () => ({ status: 'ok', cause: null, since: null, breakdowns: 0, sabotages: 0, calmUntil: null, googly: false });
 export const SAVE_VERSION = 2;
 
 // The two founders asked for, or the default pair when the request is missing or invalid.
@@ -37,6 +39,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     campaigns: [],
     security: { auditBoost: 0, tooling: false },
     ops: { supportShortfall: 0, maintenanceShortfall: 0, maintenanceCapacity: 0, oversightRequired: 0, oversightProvided: 0, noc: null, nocSince: null },
+    robot: null,
     market: {
       categories: Object.fromEntries(INCUMBENTS.map((i) => [i.category, { incumbentStrength: i.strength, clones: 0 }])),
       trend: 'steady', trendWeeksLeft: TRENDS.steady.weeks,

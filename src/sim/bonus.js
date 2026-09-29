@@ -5,6 +5,10 @@ import { footprintCells, seatTile, desksOf, occupiedDesks } from './office.js';
 
 const ADJACENCY_KEYS = new Set(Object.values(ITEMS).filter((it) => it.adjacency).map((it) => it.adjacency.key));
 
+// The office robot pays nothing while it's broken.
+const robotBroken = (state) => state.robot?.status === 'broken';
+const robotWorking = (state) => (robotBroken(state) ? null : state.office.placed.find((p) => p.itemId === 'office_robot') ?? null);
+
 const near = (cells, [x, y], radius) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - x), Math.abs(cy - y)) <= radius);
 
 // Every adjacency bonus in a layout: { sourceId, targetId, target: 'desk'|'item', key, value, paid }.
@@ -37,13 +41,17 @@ export function adjacencyLinks(placed, occupied) {
 }
 
 // Adjacency for a key: paid desk links averaged over staff, plus item-to-item links.
+// A working office robot at level 2 or more waters the plants, so Potted Plant links pay B.robot.plantBoost.
 function adjacencyBonus(state, key) {
   let desk = 0;
   let item = 0;
+  const robot = robotWorking(state);
+  const watered = robot && robot.level >= 2 ? new Set(state.office.placed.filter((p) => p.itemId === 'plant').map((p) => p.id)) : null;
   for (const l of adjacencyLinks(state.office.placed, occupiedDesks(state))) {
     if (l.key !== key || !l.paid) continue;
-    if (l.target === 'desk') desk += l.value;
-    else item += l.value;
+    const value = watered?.has(l.sourceId) ? l.value * B.robot.plantBoost : l.value;
+    if (l.target === 'desk') desk += value;
+    else item += value;
   }
   return item + (state.staff.length ? desk / state.staff.length : 0);
 }
@@ -55,8 +63,8 @@ const bonusCache = new WeakMap();
 function sameLayout(state, snap) {
   const { placed } = state.office;
   const { staff } = state;
-  if (snap.length !== 1 + placed.length * 5 + staff.length || snap[0] !== placed.length) return false;
-  let i = 1;
+  if (snap.length !== 2 + placed.length * 5 + staff.length || snap[0] !== placed.length || snap[1] !== robotBroken(state)) return false;
+  let i = 2;
   for (const it of placed) {
     if (snap[i] !== it.id || snap[i + 1] !== it.level || snap[i + 2] !== it.x || snap[i + 3] !== it.y || snap[i + 4] !== it.rot) return false;
     i += 5;
@@ -65,7 +73,7 @@ function sameLayout(state, snap) {
   return true;
 }
 function layoutSnapshot(state) {
-  const snap = [state.office.placed.length];
+  const snap = [state.office.placed.length, robotBroken(state)];
   for (const it of state.office.placed) snap.push(it.id, it.level, it.x, it.y, it.rot);
   for (const p of state.staff) snap.push(p.deskId ?? null);
   return snap;
@@ -82,7 +90,8 @@ export function itemBonus(state, key) {
 
 function computeItemBonus(state, key) {
   const byItem = {};
-  for (const it of state.office.placed) (byItem[it.itemId] ??= []).push(it.level);
+  const broken = robotBroken(state);
+  for (const it of state.office.placed) if (!(broken && it.itemId === 'office_robot')) (byItem[it.itemId] ??= []).push(it.level);
   let total = 0;
   for (const [itemId, levels] of Object.entries(byItem)) {
     levels.sort((a, b) => b - a).slice(0, 2).forEach((level, i) => {
