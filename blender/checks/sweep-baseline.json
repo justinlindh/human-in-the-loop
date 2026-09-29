@@ -217,24 +217,6 @@
    "issue": 1138
   },
   {
-   "key": "person|person(walking)/head|plant/pal_leaf",
-   "worst": 0.099,
-   "state": "seed:1:w535",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(walking)/head|plant/pal_leaf_dark",
-   "worst": 0.05,
-   "state": "seed:1:w328",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(walking)/head|plant/pal_leaf_light",
-   "worst": 0.062,
-   "state": "event:hearing_summons:s1allHumansw420",
-   "issue": 1138
-  },
-  {
    "key": "person|person|person",
    "worst": 0.253,
    "state": "event:hearing_summons:s2allHumansw476",
