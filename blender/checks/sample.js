@@ -10,6 +10,7 @@
 // A violation: { check, key, state, t, a, b, value, at, crop? }. key names the check and the two
 // things by kind (item ids, prop ids), not by instance, so a baseline entry holds across states.
 import * as X from './intersect.js';
+import { mentions } from './sweep-plan.js';
 
 const DT = 1 / 30;
 
@@ -23,11 +24,13 @@ function skipPair(A, B) {
   return false;
 }
 
-function createCollector({ state, known, crops, tol }) {
+// With `item`, only violations that involve that item are kept (and cropped).
+function createCollector({ state, known, crops, tol, item = null }) {
   const found = new Map();
   let cropped = 0;
   return {
     add(R, check, t, a, b, value, at, detail = null, shot = null) {
+      if (item && !mentions(item, a, b, detail)) return;
       const [x, y] = [a, b].sort();
       const key = `${check}|${x}|${y}`;
       const prev = found.get(key);
@@ -169,7 +172,9 @@ function tooltipPass(R, C) {
 // A window of office life: `seconds` long, things checked every `every` seconds and people every
 // PEOPLE_EVERY (a walk past a desk takes well under a second).
 const PEOPLE_EVERY = 0.2;
-function window_(R, S, C, { seconds, every, t0 = 0 }) {
+// `quiet` steps the world exactly as a checked window does and checks nothing, so a run that skips a
+// window still reaches the next one in the same state.
+function window_(R, S, C, { seconds, every, t0 = 0, quiet = false }) {
   const memo = {};
   // One drawn frame settles the camera on the office as it is now, so crops frame the spot.
   R.render(0);
@@ -179,7 +184,8 @@ function window_(R, S, C, { seconds, every, t0 = 0 }) {
   const per = Math.round(PEOPLE_EVERY / DT);
   for (let i = 0; i <= n; i++) {
     // Drawn frames, as the game runs: the labels lay themselves out in render().
-    if (i) for (let f = 0; f < per; f++) { window.__step(1); checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
+    if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
+    if (quiet) continue;
     const t = t0 + i * PEOPLE_EVERY;
     if (i % k === 0) checkFrame(R, C, t, memo);
     checkPeople(R, C, t);
@@ -281,7 +287,7 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
 // sim's footprint cells (src/sim/office.js) are where the sim lets neighbours stand, so the model
 // must stay inside them: overhang past a side is room the sim gives away twice. A desk's seat must
 // also land on the sim's chair tile.
-async function gridPass(R, S, C, { rots = [0, 1, 2, 3] } = {}) {
+async function gridPass(R, S, C, { rots = [0, 1, 2, 3], only = null } = {}) {
   const { ITEMS } = await import('/src/data/items.js');
   const { footprintCells, seatTile, frontCells } = await import('/src/sim/office.js');
   const L = R.office.current.L;
@@ -289,6 +295,7 @@ async function gridPass(R, S, C, { rots = [0, 1, 2, 3] } = {}) {
   const tx = Math.floor(L.grid.w / 2) - 1, ty = Math.floor(L.grid.h / 2) - 1;
   const SIDES = ['front', 'right', 'back', 'left'];
   for (const [itemId, it] of Object.entries(ITEMS)) {
+    if (only && itemId !== only) continue;
     for (let level = 1; level <= (it.costs?.length ?? 1); level++) for (const rot of rots) {
       // A fresh id each time: the same id with a new rotation would slide rather than rebuild.
       const p = { id: `sweep_grid_${itemId}_${level}_${rot}`, itemId, level, x: tx, y: ty, rot };
@@ -326,16 +333,19 @@ async function gridPass(R, S, C, { rots = [0, 1, 2, 3] } = {}) {
 }
 
 
-export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0, moments = null, grid = false }) {
+export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0, moments = null, grid = false, item = null }) {
   const R = window.__hitlRender, S = window.__HITL.state;
   R.moments.full = true;
-  const C = createCollector({ state: `mock:${name}`, known, crops, tol: TOL });
+  const C = createCollector({ state: `mock:${name}`, known, crops, tol: TOL, item });
   stepWorld(R, S, 90);
   R.render(0);
+  // Scoped to an item: its footprint pass, and the office window only where the item stands.
+  if (item) { propDesks = 0; moments = null; }
   if (propDesks) { R.perks.hold = true; await propsPass(R, S, C, propDesks); R.perks.hold = false; }
-  if (grid) { R.perks.hold = true; await gridPass(R, S, C); R.perks.hold = false; }
-  window_(R, S, C, { seconds, every });
-  const tips = tooltipPass(R, C);
+  if (grid) { R.perks.hold = true; await gridPass(R, S, C, { only: item }); R.perks.hold = false; }
+  const here = !item || S.office.placed.some((p) => p.itemId === item);
+  if (here) window_(R, S, C, { seconds, every });
+  const tips = item ? 0 : tooltipPass(R, C);
   const windows = [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length, tooltips: tips }];
   if (moments) {
     R.perks.hold = true;
@@ -349,10 +359,10 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], cr
 // A loaded snapshot of an indexed moment (scripts/events): `open` seconds as loaded (the decision
 // open, its prop staged), then, if a decision is open, the choice made (the index's, or 0) and
 // `after` seconds more.
-export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], crops = 60 }) {
+export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], crops = 60, item = null }) {
   const R = window.__hitlRender, H = window.__HITL;
   R.moments.full = true;
-  const C = createCollector({ state: label, known, crops, tol: TOL });
+  const C = createCollector({ state: label, known, crops, tol: TOL, item });
   // The loaded office builds on the first sync; a second settles it.
   window.__step(30);
   window_(R, H.state, C, { seconds: open, every });
@@ -363,14 +373,15 @@ export async function sampleLoaded({ label, open = 16, after = 8, every = 1, cho
   return { violations: C.list, windows: [{ state: label, why: 'event', bodies: X.bodies(R).length, staff: H.state.staff.length }] };
 }
 
-export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 60, maxStaged = 6 }) {
+export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 60, maxStaged = 6, item = null, only = null }) {
   const R = window.__hitlRender, H = window.__HITL;
   const { botDecide, botTurn } = await import('/src/sim/bots.js');
   R.moments.full = true;
   const out = [], windows = [];
   let stage = -1, era = null, staged = 0;
   const route = (events) => { if (events?.length) H.emit(events); };
-  for (let w = 0; w <= weeks && !H.state.gameOver; w++) {
+  const last = only ? Math.max(...only) : Infinity;
+  for (let w = 0; w <= weeks && H.state.week <= last && !H.state.gameOver; w++) {
     const S = H.state;
     const stageProp = S.pendingDecision?.stage?.prop;
     const why = S.officeStage !== stage ? `stage ${S.officeStage}` : S.era?.id !== era ? `era ${S.era?.id}` : stageProp && staged < maxStaged ? `decision ${S.pendingDecision.eventId}` : w % every === 0 ? 'every' : null;
@@ -378,7 +389,16 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
       stage = S.officeStage; era = S.era?.id;
       if (why.startsWith('decision')) staged++;
       console.log(`sweep-progress w${S.week}`);
-      const C = createCollector({ state: `seed:${seed}:w${S.week}`, known, crops: crops - out.filter((v) => v.crop).length, tol: TOL });
+    }
+    // The triggers above run every week whatever is checked, so a scoped or replayed run reaches the
+    // same windows a full one does; only the checking is skipped.
+    const wanted = why && (!only || only.includes(S.week)) && (!item || S.office.placed.some((p) => p.itemId === item));
+    if (why && !wanted) {
+      stepWorld(R, S, 120);
+      window_(R, S, null, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step, quiet: true });
+    }
+    if (wanted) {
+      const C = createCollector({ state: `seed:${seed}:w${S.week}`, known, crops: crops - out.filter((v) => v.crop).length, tol: TOL, item });
       // Settle what the weeks since the last window changed (a stage move, new furniture popping in).
       stepWorld(R, S, 120);
       window_(R, S, C, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step });

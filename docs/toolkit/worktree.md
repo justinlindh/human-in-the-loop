@@ -1,0 +1,7 @@
+---
+tool: `scripts/tools/worktree.mjs` (`withWorktree`, `createWorktree`)
+section: run
+who: tools
+covers: scripts/tools/worktree.mjs tests/tools/worktree.test.js tests/tools/sweep-against.test.js
+---
+A temporary git worktree that always cleans up, for a tool that runs something on another commit (the sweep's `--against`; pair.js and ab.sh next). `await withWorktree({ repo, rev, label, modules, patch, overlay }, async (wt) => { ... })` adds a detached worktree of `rev` under the temp directory, links `node_modules` from `modules` (default: the repo), applies `patch` (a diff such as `git diff HEAD --binary`, so a checkout's uncommitted edits count) and copies the `overlay` files (`{ 'path/in/tree': '/file/to/copy' }`) into it, runs the function, and removes the tree. `wt.spawn(cmd, args, opts)` starts a child in its own process group and returns `{ child, done }`, where `done` resolves with the exit code. The tree and every spawned child (the whole group) are removed on every way out: the function returning or throwing, `process.exit()` (a timeout's `exit(124)` included), an uncaught error, SIGINT, SIGTERM and SIGHUP. A run killed with SIGKILL leaves its tree behind, and the next `createWorktree` in any process removes trees whose owner is gone. `createWorktree` returns the same object without the wrapper; call `wt.disposeSync()` (or `dispose()`) when done. The tests fail the run mid-way (throw, exit, crash, SIGTERM, SIGKILL) and assert that `git worktree list`, the temp directory and the children are clean.
