@@ -1275,7 +1275,7 @@ export async function runRobotChecks(R, S) {
     R.setQuality('medium');
     const { id } = setupRobotFix(R, S, { cause });
     const root = charOf(R.scene, id), robot = R.robot.root;
-    let worst = 0, inRobot = 0, robotIn = 0, slapped = false, ended = false, worstFrame = null;
+    let worst = 0, inRobot = 0, robotIn = 0, slapped = false, ended = false, worstFrame = null, robotHits = null;
     for (let f = 0; f < 30 * 24 && !ended; f++) {
       window.__advance(1);
       const p = R.robot.peek();
@@ -1284,12 +1284,18 @@ export async function runRobotChecks(R, S) {
       const w = R.walkOf(id);
       const inFurniture = bodyInside(root, furnitureOf(R, new Set([R.perks.peek(id)?.seat])));
       if (inFurniture > worst) { worst = inFurniture; worstFrame = f; }
-      if (w?.temp?.moment === 'robot' && !w.path.length) inRobot = Math.max(inRobot, bodyInside(root, meshes(robot), false));
+      if (w?.temp?.moment === 'robot' && !w.path.length) {
+        const v = bodyInside(root, meshes(robot), false);
+        // What crosses at the worst frame, for the failure detail.
+        if (v > inRobot && exact) { const hits = []; exact(root, meshes(robot), (o) => !isArm(o), hits); const at = root.getWorldPosition(new THREE.Vector3()); robotHits = { frame: f, beat: w.temp.stage?.beat ?? null, dist: +Math.hypot(at.x - p.pos[0], at.z - p.pos[1]).toFixed(3), parts: hits.map((h) => `${h.part} x ${h.target} ${(100 * h.frac).toFixed(1)}%`) }; }
+        inRobot = Math.max(inRobot, v);
+      }
       if (cause !== 'stuck' && !p.fix?.slapped) robotIn = Math.max(robotIn, bodyInside(robot, furnitureOf(R, new Set(['check_robot'])), false));
       ended = slapped && !p.fix && R.walkOf(id)?.temp?.moment !== 'robot';
     }
     results.push({ name: `moment:robot:${cause}`, pass: slapped && ended && worst < 0.01 && inRobot < 0.01 && robotIn < 0.01,
-      slapped, ended, insidePct: +(worst * 100).toFixed(2), worstFrame, inRobotPct: +(inRobot * 100).toFixed(2), robotInsidePct: +(robotIn * 100).toFixed(2) });
+      slapped, ended, insidePct: +(worst * 100).toFixed(2), worstFrame, inRobotPct: +(inRobot * 100).toFixed(2), robotInsidePct: +(robotIn * 100).toFixed(2),
+      ...(inRobot >= 0.01 && robotHits ? { robotHits } : {}) });
   }
   S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); R.setQuality('low');
   window.__advance(30);

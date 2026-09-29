@@ -61,7 +61,7 @@ const errors = [];
 const out = [];
 // Each group of the floor office runs on a fresh page, so who a case picks and where they start
 // never depend on which groups ran before it (a narrowed --only gives the same subject and result).
-const MAIN = ['seats', 'perks', 'dance', 'walk', 'pets', 'props', 'pairs', 'use', 'party', 'sky'];
+const MAIN = ['seats', 'perks', 'dance', 'walk', 'pets', 'robot', 'props', 'pairs', 'use', 'party', 'sky'];
 for (const group of MAIN.filter((g) => runs[g])) {
 const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
 await page.evaluate(installExact);
