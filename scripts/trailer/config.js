@@ -1,6 +1,8 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
-import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY } from '../capture-manifest.js';
+import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
+// A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
+const CARDS_EVERY = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => ({ at: from + i * step, js: CLEAR_CARDS }));
 
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
 // the music and stingers, and when each voiceover line lands. Change the trailer here; build.js only
@@ -62,7 +64,11 @@ const NO_ERA_CARD = (at) => ({ at, js: "(() => { const st = document.createEleme
 export const DEFERRED_CAPTURES = [];
 
 // The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
-const YAK_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY + "const check = structuredClone(s); sim.tick(check); if (check.office.stage !== 1 || check.outage?.weeks !== 0) throw new Error('trailer: no seed-2 outage found');", hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
+// One company for the whole outage stretch (seed 13): the agents watch a level-2+ NOC and its next incident is
+// misread, so the alert, the Yak thread and the facepalm all come from the same game.
+const NOC_HIT = '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0';
+const OUTAGE_PLAY = { weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: NOC_HIT };
+const YAK_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
 
 // A quiet week (seed 62, week 124) where "Share a meme" picks the PC LOAD LETTER image: the post
 // lands in Yak, then is opened full size the way a player taps it.
@@ -76,8 +82,7 @@ const MEME_ACTIONS = [
   { at: 3.3, js: `[...document.querySelectorAll('.chat.yak .ymeme')].at(-1)?.click()` },
 ];
 
-// One company for the outage stretch: the agents watch a level-2+ NOC, and its next incident is misread.
-const NOC_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0' })}; ${STAGE_ONLY}; })()`;
+const NOC_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${STAGE_ONLY}; })()`;
 // The NOC item's spot on the floor, for the camera.
 const NOC_AT = { js: `(window.__nocAt ??= (() => {
   const R = window.__hitlRender, T = R.THREE, s = window.__HITL.state, noc = s.office.placed.find((i) => i.itemId === 'noc');
@@ -87,7 +92,7 @@ const NOC_AT = { js: `(window.__nocAt ??= (() => {
   ray.setFromCamera(new T.Vector2(((r.left + r.width / 2) / innerWidth) * 2 - 1, -(((r.top + r.height / 2) / innerHeight) * 2 - 1)), R.camera);
   return ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), 0), p) ? { x: p.x, z: p.z } : undefined;
 })())` };
-const NOC_CAPTURE = { query: 'seed=45&speed=1', setup: NOC_SETUP, still: false, seconds: 20, screenshots: [], camera: [{ at: 0, target: NOC_AT, zoom: 2.6 }], actions: [...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 14, 16], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 20, 1), ...CAMLOG(20)] };
+const NOC_CAPTURE = { query: 'seed=13&speed=1', setup: NOC_SETUP, still: false, seconds: 20, screenshots: [], camera: [{ at: 0, target: NOC_AT, zoom: 2.6 }], actions: [...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 14, 16], { escape: false }), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 20, 1), ...CHOOSE_WHEN(null, 0, 1, 20, 1), ...CAMLOG(20)] };
 
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
@@ -105,8 +110,8 @@ export const BEATS = [
   { id: 'incident', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 8.2, dur: 2.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
-  { id: 'yak', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
-  { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
+  { id: 'yak', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), ...CARDS_EVERY(13, 58, 1.5), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
+  { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
   // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
   { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 7, screenshots: [], actions: MEME_ACTIONS }, from: 2.6, dur: 2.5 },
   { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 30 }, from: 23 + 13 / 30, dur: 5.7 },

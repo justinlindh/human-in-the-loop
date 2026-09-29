@@ -261,7 +261,7 @@ export const ITEMS = [
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`,
     actions: [
-      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
+      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 64, 1), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
       { at: 11, js: `(() => {
