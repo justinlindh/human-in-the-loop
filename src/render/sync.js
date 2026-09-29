@@ -33,6 +33,8 @@ const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
 const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
 const REWALK_S = 3;            // seconds between tries for someone left short of a spot they can't reach
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
+const WAVE_S = 1.1;            // someone leaving waves goodbye this long before heading out
+const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
@@ -1126,11 +1128,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.leaveT += dt;
     const c = r.char;
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
-    if (r.leaveT > 1.1 && !r.exitPath) {
+    if (r.leaveT >= WAVE_S && !r.exitPath) {
       const d = office.current.zones.door;
       r.exitPath = true;
       walkTo(r, { x: d.x, z: d.z });
-      r.speed = 1.0;
+      r.speed = LEAVE_SPEED;
     }
     if (r.exitPath && r.path.length) stepWalker(r, dt, 'carry');
     else if (r.exitPath) {
@@ -1473,6 +1475,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       if (r.temp?.enter || r.temp?.lift || r.goal?.seated && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.3) continue;
       if (nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) stepOut(r, nav);
+    }
+    // Someone on their way out takes a fresh way to the door; one still waving goodbye where
+    // something now stands (not at their own desk) sets off at once.
+    for (const r of leavers) {
+      if (r.exitPath && r.path.length) { walkTo(r, { ...office.current.zones.door }); r.speed = LEAVE_SPEED; }
+      else if (!r.exitPath && !(r.goal?.seated && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.3) && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) r.leaveT = Math.max(r.leaveT, WAVE_S);
     }
   }
 

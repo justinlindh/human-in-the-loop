@@ -334,6 +334,14 @@ function passesThrough(body, sheet) {
   return false;
 }
 
+// The depth of one mesh pair as overlaps() reads it: how far each reaches inside the other, and only
+// when neither goes deeper than tol (a thin surface through a body) the reach of the crossing curve.
+// Returns [{ depth, at }, ...]; the pair's depth is the largest.
+export function pairDepths(a, b, tol = 0.01) {
+  const rs = [depthInto(a, b), depthInto(b, a)];
+  return Math.max(rs[0].depth, rs[1].depth) <= tol ? [crossReach(a, b)] : rs;
+}
+
 // Whether two meshes' surfaces cross, or one sits wholly inside the other.
 export function touching(a, b) {
   const bvh = bvhOf(b.geometry);
@@ -376,8 +384,7 @@ export function overlaps(list, { tol = 0.01, skip = () => false, touch = () => f
     for (const a of A.meshes) for (const b of B.meshes) {
       const ba = a.geometry.boundingBox.clone().applyMatrix4(a.matrixWorld), bb = b.geometry.boundingBox.clone().applyMatrix4(b.matrixWorld);
       if (!ba.intersectsBox(bb) || !touching(a, b)) continue;
-      let rs = [depthInto(a, b), depthInto(b, a)];
-      if (Math.max(rs[0].depth, rs[1].depth) <= tol) rs = [crossReach(a, b)];
+      const rs = pairDepths(a, b, tol);
       let d = Math.max(...rs.map((r) => { if (r.depth > depth) { depth = r.depth; at = r.at; } return r.depth; }));
       if (touch(A, B, ba, bb)) {
         const s = ba.clone().intersect(bb), size = s.getSize(new THREE.Vector3());
