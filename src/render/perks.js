@@ -576,7 +576,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     // Pair games that got as far as playing, since the renderer started (for checks).
     get played() { return played; },
     set hold(on) { held = !!on; },
-    peek(id) { const r = recs.get(id); return r && { seat: r.seat, uses: r.goal?.uses && r.goal.seated && r.char.seated && !r.path.length ? r.goal.uses : null, yaw: r.yaw, face: r.face ?? null, path: r.path.length, exitFrom: r.exitFrom ?? null, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
+    peek(id) { const r = recs.get(id); return r && { seat: r.seat, uses: r.goal?.uses && r.goal.seated && !r.path.length ? r.goal.uses : null, yaw: r.yaw, face: r.face ?? null, path: r.path.length, exitFrom: r.exitFrom ?? null, temp: r.temp && { anim: r.temp.anim, t: r.temp.t, goal: r.temp.goal, key: r.temp.perkKey } }; },
     get phases() { return sessions.map((x) => `${x.phase}:${x.t.toFixed(1)}/${x.dur.toFixed(1)}`); },
     // Test hook: send a person (or a pair) to a specific placed item now.
     // nap: true lies the person along a couch, as the lockdown stayer does.

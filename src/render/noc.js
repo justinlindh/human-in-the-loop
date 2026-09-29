@@ -47,7 +47,7 @@ function localSpots(g) {
 export function nocObstacles(g) {
   const n = g.userData.noc;
   if (!n || n.level < 2) return [];
-  return n.seats.map((s) => [s.x - 0.28, s.z - 0.15, s.x + 0.28, s.z + 0.34]);
+  return n.seats.map((s) => [s.x - 0.32, s.z - 0.15, s.x + 0.32, s.z + 0.34]);
 }
 
 // Radial floor glow texture, shared.
