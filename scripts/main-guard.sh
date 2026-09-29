@@ -301,7 +301,7 @@ if [ -z "$what" ]; then
   if [ -n "${MAIN_GUARD_PREWARM:-}" ]; then (cd "$pw_dir" && bash -c "$MAIN_GUARD_PREWARM") >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
   elif [ -f "$pw_dir/scripts/events/prewarm.js" ]; then (cd "$pw_dir" && timeout 900 nice -n 10 node scripts/events/prewarm.js --quiet) >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
   else pw_rc=0; fi
-  case $pw_rc in 0) ;; 2) echo "main-guard: prewarm could not build the event index (see $STATE/$short.prewarm.log)" ;; *) echo "main-guard: prewarm left a query unanswered (see $STATE/$short.prewarm.log)" ;; esac
+  case $pw_rc in 0) ;; 124) echo "main-guard: prewarm was killed after its time limit (see $STATE/$short.prewarm.log)" ;; 2) echo "main-guard: prewarm could not build the event index (see $STATE/$short.prewarm.log)" ;; *) echo "main-guard: prewarm left a query unanswered (see $STATE/$short.prewarm.log)" ;; esac
   if [ $post = 1 ]; then
     for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
       gh issue close "$n" --comment "Green again at $short: the full suite and the sweep pass." >/dev/null
