@@ -29,6 +29,7 @@ import { openTarget } from './openTarget.js';
 import { setPortraitSource } from './widgets.js';
 import { createAnnouncer } from './announce.js';
 import { openRecap } from './recap.js';
+import { toastUnlocks } from '../sim/unlocks.js';
 import { createCallGrid } from './callgrid.js';
 import { createTooltips } from './tooltip.js';
 import { createSceneTips } from './sceneTips.js';
@@ -206,12 +207,11 @@ export function createUI({ root, getState, dispatch, controls }) {
   // One tick's unlocks and era arrive together (both are immediate events). An era card lists the
   // unlocks that came with it; several unlocks without an era share one card; a lone one gets its own.
   // A new policy after the first is a toast (the Policies button's NEW tag points the way); the
-  // first one keeps its card, since it brings the Policies menu itself.
-  const inPolicies = (k) => k.startsWith('policy.') || k === 'standups';
+  // first one keeps its card, since it brings the Policies menu itself. The sim owns that rule, since
+  // only cards hold the next decision back.
   function onUnlocksAndEra(keys, era, state) {
     if (keys.length) syncMenus(state, true);
-    const hadPolicies = Object.keys(state.unlocks ?? {}).some((k) => inPolicies(k) && !keys.includes(k));
-    const quiet = !era && hadPolicies ? keys.filter((k) => k.startsWith('policy.')) : [];
+    const quiet = toastUnlocks(state, keys, era);
     for (const key of quiet) {
       if (menu.current !== 'policies') { newMenus.add('policies'); menu.setNew('policies', true); }
       toasts.push(`${unlockInfo(key).title}. It's in Policies.`, 'good', { action: () => menu.open('policies') });

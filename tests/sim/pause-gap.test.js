@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { makeCtx } from '../../src/sim/registry.js';
 import { raiseDecision, eligibleEvents, lastPauseWeek, eventsSystem } from '../../src/sim/events.js';
 import { B } from '../../src/sim/balance.js';
+import { showsCard, checkUnlocks, toastUnlocks } from '../../src/sim/unlocks.js';
+import { UNLOCKS } from '../../src/data/unlocks.js';
+import { POLICIES } from '../../src/data/policies.js';
 import { game, addProduct } from './helpers.js';
 
 // A settled company with a product, past the opening grace, with nothing recent.
@@ -70,5 +73,46 @@ describe('issue #556: a launch or an unlock counts as the last pausing moment', 
     } finally {
       B.randomEventChance = chance;
     }
+  });
+
+  it('checkUnlocks: a later policy with no era does not delay the next decision; the first policy still does', () => {
+    const run = (earlierPolicy) => {
+      const s = settled(6);
+      const all = [...UNLOCKS.map((u) => u.key), ...Object.keys(POLICIES).map((id) => `policy.${id}`)];
+      s.unlocks = Object.fromEntries(all.filter((k) => k !== 'policy.blameless' && (earlierPolicy || !k.startsWith('policy.') && k !== 'standups')).map((k) => [k, s.week - 20]));
+      s.stats.incidents = 1;
+      s.flags.lastUnlockWeek = s.week - 20;
+      s.flags.lastPauseWeek = s.week - 10;
+      const ctx = makeCtx(s);
+      checkUnlocks(ctx);
+      expect(s.unlocks['policy.blameless']).toBe(s.week);
+      expect(ctx.events.some((e) => e.type === 'era')).toBe(false);
+      return { pause: s.flags.lastPauseWeek - s.week, decided: raiseDecision(makeCtx(s), 'vendor_new_version', null) };
+    };
+    expect(run(true)).toEqual({ pause: -10, decided: true });
+    expect(run(false)).toEqual({ pause: 0, decided: false });
+  });
+
+  it('toastUnlocks is the ui rule: policies after an earlier one are toasts, unless an era arrives', () => {
+    const s = settled(6);
+    s.unlocks = { marketing: 10, 'policy.crunch': s.week, 'policy.remote_first': s.week };
+    expect(toastUnlocks(s, ['policy.crunch', 'policy.remote_first'], null)).toEqual([]);
+    s.unlocks.standups = s.week - 30;
+    expect(toastUnlocks(s, ['policy.crunch', 'policy.remote_first', 'marketing'], null)).toEqual(['policy.crunch', 'policy.remote_first']);
+    expect(toastUnlocks(s, ['policy.crunch'], { type: 'era', eraId: 'agents' })).toEqual([]);
+  });
+
+  it('only unlocks that show a card pause decisions: a later policy is a toast unless an era comes with it', () => {
+    const s = settled(6);
+    s.unlocks = { marketing: 10 };
+    expect(showsCard(makeCtx(s), 'ops')).toBe(true);
+    expect(showsCard(makeCtx(s), 'policy.crunch')).toBe(true);
+    s.unlocks['policy.crunch'] = s.week - 20;
+    expect(showsCard(makeCtx(s), 'policy.remote_first')).toBe(false);
+    const withEra = makeCtx(s);
+    withEra.events.push({ type: 'era', eraId: 'agents' });
+    expect(showsCard(withEra, 'policy.remote_first')).toBe(true);
+    s.unlocks = { standups: s.week - 5 };
+    expect(showsCard(makeCtx(s), 'policy.crunch')).toBe(false);
   });
 });
