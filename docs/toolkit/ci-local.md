@@ -16,3 +16,5 @@ The main guard (`CI_FULL=1`) still runs all of them here, so a red main gets its
 
 The tooling self-tests include `pace-browser`: browser fixtures check visible presentation records, toast queue provenance, and panel origins under the shared render lock.
 The `golden-font` step checks char-lineup identity under both early and late font arrival when a change touches emotes, lineup initialization, fonts, the harness, golden or its font control. It uses SwiftShader and the software render lock, and compares exact pixels without a cache. The tests tier records it as skipped alongside the other render steps; it runs only in the full-run branch. See [golden](golden.md).
+
+The `beats` step replays every trailer and landing beat against the sim ([trailer-beats](trailer-beats.md)) when a change touches `src/sim/`, `src/data/`, `src/save/`, `scripts/trailer/` or the capture manifests. A beat whose setup throws (its moment no longer fires) fails the step; a beat whose moment only differs from main is a note in the summary, named so video can re-check it. It runs locally only, since GitHub has no equivalent.
