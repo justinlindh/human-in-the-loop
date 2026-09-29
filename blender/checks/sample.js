@@ -295,6 +295,14 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
     window_(R, S, C.at(`moment:robot:${cause}`), { seconds: 8, every });
     played.push(`robot:${cause}`);
   }
+  // It serves at a waffle party and plays DJ at a music night.
+  const { setupRobotParty } = await import('/src/render/checks.js');
+  for (const reward of ['waffle_party', 'music_night']) {
+    setupRobotParty(R, S, reward);
+    window_(R, S, C.at(`moment:robot:${reward}`), { seconds: 10, every });
+    played.push(`robot:${reward}`);
+  }
+  R.incentives?.reset();
   S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); stepWorld(R, S, 60);
   R.setQuality('low');
   return played;

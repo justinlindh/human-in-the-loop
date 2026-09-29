@@ -977,7 +977,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
-  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights });
+  const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights, robot });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
   const moments = createMoments({ office, recs, walkTo, emote, getProps, low, fx, parent: group, note: (id, what, detail) => traceLine(id, what, detail), getYaw: () => rig?.yaw ?? Math.PI / 4, getCamera: () => rig?.camera ?? null, spotlights, isBusy: () => !lastState?.pendingDecision && !lastState?.chatPrompts?.some((c) => !c.resolved && c.stage) && (!!standup || !!incentives.party || !!incentives.dance) });
