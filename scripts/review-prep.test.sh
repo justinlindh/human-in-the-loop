@@ -85,6 +85,7 @@ cat >"$tmp/bin/gh" <<F
 case "\$1 \$2" in
   "pr view") jq -n --arg h "$head" '{number: 9, title: "t", author: {login: "justinlindh"}, isCrossRepository: false, headRefName: "tools/x", headRefOid: \$h, baseRefName: "main", isDraft: false, labels: [], body: "", createdAt: "2026-01-01T00:00:00Z", mergeable: "MERGEABLE", statusCheckRollup: [], comments: [], reviews: [], files: [], url: "u"}' ;;
   "api repos/{owner}/{repo}/pulls/9/files") printf 'b\t1\t0\n' ;;
+  "api repos/{owner}/{repo}/pulls/9/commits") printf '%s\n%s\n' "$first" "$head" ;;
   *) echo "unexpected gh \$*" >&2; exit 1 ;;
 esac
 F
@@ -97,10 +98,15 @@ rp --merged; [ $rc -eq 0 ] && [ -e "$tmp/wt/review-9-merged/m" ] && [ -e "$tmp/w
 rp --base-at "$oldmain"; [ $rc -eq 0 ] && [ "$(git -C "$tmp/wt/review-9-base" rev-parse HEAD)" = "$oldmain" ] || fail "--base-at puts the base at that commit: $rc $out"
 rp --base; [ "$(git -C "$tmp/wt/review-9-base" rev-parse HEAD)" = "$oldmain" ] || fail "--base alone is the merge base: $(git -C "$tmp/wt/review-9-base" rev-parse HEAD) want $oldmain"
 rp --head-at deadbeef; [ $rc -eq 2 ] && grep -q 'not a commit' <<<"$out" || fail "--head-at an unknown commit exits 2: $rc $out"
-rp --head-at "$newmain"; [ $rc -eq 2 ] && grep -q "not in #9's history" <<<"$out" || fail "--head-at a commit outside the PR exits 2: $rc $out"
+rp --head-at "$newmain"; [ $rc -eq 2 ] && grep -q "not one of #9's commits" <<<"$out" || fail "--head-at a commit outside the PR exits 2: $rc $out"
+rp --head-at "${first:0:7}" --merged --base-at "$oldmain"; mt="$tmp/wt/review-9-merged"
+[ $rc -eq 0 ] && [ "$(git -C "$mt" rev-parse HEAD^1)" = "$first" ] && [ -e "$mt/a" ] && [ ! -e "$mt/b" ] && [ -d "$tmp/wt/review-9-base" ] && [ -d "$tmp/wt/review-9-at-${first:0:7}" ] || fail "the flags combine, and --merged merges the earlier head: $rc $out"
+rp --json --head-at "${first:0:7}" --merged --base-at "$oldmain"
+[ "$(jq -r '[.trees[].kind] | join(",")' <<<"$out")" = "head,base,head-at,merged" ] && [ "$(jq -r '.trees[] | select(.kind == "merged") | .mergedWith' <<<"$out")" = "$newmain" ] && [ "$(jq -r '.trees[] | select(.kind == "merged") | .tree' <<<"$out")" = "$(git -C "$tmp/wt/review-9-merged" rev-parse 'HEAD^{tree}')" ] && [ "$(jq -r '.trees[] | select(.kind == "head") | .sha' <<<"$out")" = "$head" ] || fail "--json lists each tree with its sha, and for --merged the main sha and tree: $out"
 rp --no-checkout --merged; [ $rc -eq 0 ] && grep -q 'need a checkout' <<<"$out" || fail "--merged with --no-checkout says so: $rc $out"
 echo conflict >"$r/b"; g -C "$r" add -A; g -C "$r" commit -qm "main adds b"; g -C "$r" push -q origin main
-rp --merged; [ $rc -eq 2 ] && grep -q 'does not merge cleanly' <<<"$out" && grep -q ' b' <<<"$out" || fail "--merged on a conflict exits 2 naming the file: $rc $out"
+rp --merged; [ $rc -eq 1 ] && grep -q 'does not merge cleanly' <<<"$out" && grep -q ' b' <<<"$out" || fail "--merged on a conflict exits 1 naming the file: $rc $out"
+[ ! -d "$tmp/wt/review-9-merged" ] || fail "a conflict leaves no merged checkout behind"
 rp --done; [ ! -d "$tmp/wt/review-9" ] && [ ! -d "$tmp/wt/review-9-merged" ] && ! ls "$tmp/wt" | grep -q 'review-9-at-' || fail "--done removes every checkout: $(ls "$tmp/wt")"
 
 [ $fails -eq 0 ] && echo "review-prep: all cases pass"

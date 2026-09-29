@@ -147,13 +147,74 @@ while IFS=$'\t' read -r at b64; do
 done <<<"$posts"
 media="$(sed '/^$/d' <<<"$media")"
 
+# Checkouts: each tree has its own directory under <root>, so they coexist. `trees` collects one
+# tab-separated row per tree (kind, path, sha, and for --merged the origin/<base> sha merged and the
+# resulting tree sha) for --json.
+trees=""
+nm() { # <worktree>: node_modules for it; prints what it did
+  local wt="$1" lock; lock="$(git -C "$wt" hash-object package-lock.json 2>/dev/null)"
+  if [ -f "$wt/node_modules/.hitl-lock" ] && [ "$(cat "$wt/node_modules/.hitl-lock")" = "$lock" ]; then echo "node_modules kept (same lockfile)"; return; fi
+  rm -rf "$wt/node_modules"
+  if [ -d "$REPO/node_modules" ] && [ "$lock" = "$(git -C "$REPO" hash-object package-lock.json 2>/dev/null)" ]; then
+    if cp -al "$REPO/node_modules" "$wt/node_modules" 2>/dev/null; then how="hard-linked"
+    else rm -rf "$wt/node_modules"; cp -a "$REPO/node_modules" "$wt/node_modules" 2>/dev/null && how="copied (another filesystem)"; fi
+    [ -n "${how:-}" ] && echo "$lock" >"$wt/node_modules/.hitl-lock" && echo "node_modules $how from $REPO (same lockfile)" && return
+    rm -rf "$wt/node_modules"
+  fi
+  (cd "$wt" && timeout 900 npm ci --silent >/dev/null 2>&1) && echo "$lock" >"$wt/node_modules/.hitl-lock" && echo "node_modules from npm ci (the lockfile differs)" || echo "npm ci FAILED in $wt"
+}
+put() { # <path> <sha> <kind> [<merged with> <tree>]
+  if [ -d "$1" ]; then git -C "$1" checkout -q --detach --force "$2" && git -C "$1" clean -fdq
+  else git -C "$REPO" worktree add -q --detach "$1" "$2"; fi || { echo "review-prep: can't check out ${2:0:10} at $1" >&2; exit 2; }
+  echo "  $1 at ${2:0:10}: $(nm "$1")"
+  trees+="$3"$'\t'"$1"$'\t'"$2"$'\t'"${4:-}"$'\t'"${5:-}"$'\n'
+}
+checkouts() {
+  [ $checkout = 1 ] || return 0
+  [ -n "$root" ] || { echo "review-prep: pass --dir <root> (your scratchpad) or set HITL_REVIEW_DIR, or use --no-checkout" >&2; exit 2; }
+  mkdir -p "$root" || exit 2
+  echo "Checkout:"; put "$root/review-$pr" "$head" head
+  local bsha hsha mt msha from
+  if [ $want_base = 1 ]; then
+    bsha="$mb"
+    if [ -n "$base_at" ]; then
+      git -C "$REPO" fetch -q origin "$base_at" 2>/dev/null
+      bsha="$(git -C "$REPO" rev-parse -q --verify "$base_at^{commit}")" || { echo "review-prep: --base-at $base_at is not a commit I can find" >&2; exit 2; }
+    fi
+    put "$root/review-$pr-base" "$bsha" base
+  fi
+  from="$head"
+  if [ -n "$head_at" ]; then
+    git -C "$REPO" fetch -q origin "$head_at" 2>/dev/null
+    hsha="$(git -C "$REPO" rev-parse -q --verify "$head_at^{commit}")" || { echo "review-prep: --head-at $head_at is not a commit I can find" >&2; exit 2; }
+    # One of the PR's own commits, by GitHub's list: a sha from anywhere else is refused.
+    gh api "repos/{owner}/{repo}/pulls/$pr/commits" --paginate --jq '.[].sha' | grep -qx "$hsha" || { echo "review-prep: --head-at $head_at is not one of #$pr's commits" >&2; exit 2; }
+    put "$root/review-$pr-at-${hsha:0:7}" "$hsha" head-at
+    from="$hsha"
+  fi
+  if [ $merged = 1 ]; then
+    # <head, or --head-at's commit> merged with the base branch as it is now, as a detached commit: no
+    # merge state is ever left in a checkout, and a conflict makes no tree.
+    if mt="$(git -C "$REPO" merge-tree --write-tree --name-only "$from" "origin/$base" 2>&1)"; then
+      msha="$(git -C "$REPO" -c user.name=review -c user.email=review@localhost commit-tree "$(head -1 <<<"$mt")" -p "$from" -p "origin/$base" -m "review: #$pr merged with origin/$base")"
+      put "$root/review-$pr-merged" "$msha" merged "$(git -C "$REPO" rev-parse "origin/$base")" "$(git -C "$REPO" rev-parse "$msha^{tree}")"
+    else
+      # A merged checkout left by an earlier run would be stale: remove it.
+      [ -d "$root/review-$pr-merged" ] && git -C "$REPO" worktree remove --force "$root/review-$pr-merged"
+      echo "review-prep: ${from:0:10} does not merge cleanly into origin/$base (conflicts: $(sed 1d <<<"$mt" | grep -v '^$' | grep -v '^Auto-merging\|^CONFLICT' | sort -u | paste -sd' ' -)); no merged checkout" >&2; exit 1
+    fi
+  fi
+}
+if [ $json = 1 ] && [ $checkout = 1 ]; then checkouts >/dev/null; fi
+
 if [ $json = 1 ]; then
   jq -n --argjson v "$view" --arg mb "$mb" --arg behind "$behind" --arg mo "$mergeonly" --arg lh "${last_head:-}" --arg la "${last_at:-}" \
-    --arg files "$files" --arg media "$media" --arg lanes "$(while IFS=$'\t' read -r f a d; do printf '%s\t%s\n' "$f" "$(owners "$f")"; done <<<"$files")" \
+    --arg files "$files" --arg media "$media" --arg trees "$trees" --arg lanes "$(while IFS=$'\t' read -r f a d; do printf '%s\t%s\n' "$f" "$(owners "$f")"; done <<<"$files")" \
     '{number: $v.number, title: $v.title, author: $v.author.login, head: $v.headRefOid, branch: $v.headRefName, base: $v.baseRefName,
       mergeBase: $mb, behind: ($behind | tonumber), draft: $v.isDraft, labels: [$v.labels[].name], mergeable: $v.mergeable,
       checks: [$v.statusCheckRollup[] | {name: (.context // .name), state: ((.state // .conclusion // .status) | ascii_downcase)}],
       lastVerdict: {head: $lh, at: $la}, mergeOnly: $mo,
+      trees: [$trees | split("\n")[] | select(. != "") | split("\t") | {kind: .[0], path: .[1], sha: .[2], mergedWith: (if (.[3] // "") == "" then null else .[3] end), tree: (if (.[4] // "") == "" then null else .[4] end)}],
       files: [$files | split("\n")[] | select(. != "") | split("\t") | {path: .[0], add: (.[1] | tonumber), del: (.[2] | tonumber)}],
       owners: ([$lanes | split("\n")[] | select(. != "") | split("\t") | {(.[0]): .[1]}] | add),
       media: [$media | split("\n")[] | select(. != "") | split("\t") | {file: .[0], postedAt: .[1], new: ($la != "" and .[1] != "description" and .[1] > $la)}]}'
@@ -198,54 +259,10 @@ else
   echo "Media: none on the PR"
 fi
 
-# 5. Checkouts.
-nm() { # <worktree>: node_modules for it; prints what it did
-  local wt="$1" lock; lock="$(git -C "$wt" hash-object package-lock.json 2>/dev/null)"
-  if [ -f "$wt/node_modules/.hitl-lock" ] && [ "$(cat "$wt/node_modules/.hitl-lock")" = "$lock" ]; then echo "node_modules kept (same lockfile)"; return; fi
-  rm -rf "$wt/node_modules"
-  if [ -d "$REPO/node_modules" ] && [ "$lock" = "$(git -C "$REPO" hash-object package-lock.json 2>/dev/null)" ]; then
-    if cp -al "$REPO/node_modules" "$wt/node_modules" 2>/dev/null; then how="hard-linked"
-    else rm -rf "$wt/node_modules"; cp -a "$REPO/node_modules" "$wt/node_modules" 2>/dev/null && how="copied (another filesystem)"; fi
-    [ -n "${how:-}" ] && echo "$lock" >"$wt/node_modules/.hitl-lock" && echo "node_modules $how from $REPO (same lockfile)" && return
-    rm -rf "$wt/node_modules"
-  fi
-  (cd "$wt" && timeout 900 npm ci --silent >/dev/null 2>&1) && echo "$lock" >"$wt/node_modules/.hitl-lock" && echo "node_modules from npm ci (the lockfile differs)" || echo "npm ci FAILED in $wt"
-}
-put() { # <path> <sha>
-  if [ -d "$1" ]; then git -C "$1" checkout -q --detach --force "$2" && git -C "$1" clean -fdq
-  else git -C "$REPO" worktree add -q --detach "$1" "$2"; fi || { echo "review-prep: can't check out ${2:0:10} at $1" >&2; exit 2; }
-  echo "  $1 at ${2:0:10}: $(nm "$1")"
-}
+# 5. Checkouts (made above, before the JSON, so both forms report them).
 echo
-if [ $checkout = 1 ]; then
-  [ -n "$root" ] || { echo "review-prep: pass --dir <root> (your scratchpad) or set HITL_REVIEW_DIR, or use --no-checkout" >&2; exit 2; }
-  mkdir -p "$root" || exit 2
-  echo "Checkout:"; put "$root/review-$pr" "$head"
-  if [ $want_base = 1 ]; then
-    bsha="$mb"
-    if [ -n "$base_at" ]; then
-      git -C "$REPO" fetch -q origin "$base_at" 2>/dev/null
-      bsha="$(git -C "$REPO" rev-parse -q --verify "$base_at^{commit}")" || { echo "review-prep: --base-at $base_at is not a commit I can find" >&2; exit 2; }
-    fi
-    put "$root/review-$pr-base" "$bsha"
-  fi
-  if [ -n "$head_at" ]; then
-    git -C "$REPO" fetch -q origin "$head_at" 2>/dev/null
-    hsha="$(git -C "$REPO" rev-parse -q --verify "$head_at^{commit}")" || { echo "review-prep: --head-at $head_at is not a commit I can find" >&2; exit 2; }
-    git -C "$REPO" merge-base --is-ancestor "$hsha" "$head" || { echo "review-prep: --head-at $head_at is not in #$pr's history" >&2; exit 2; }
-    put "$root/review-$pr-at-${hsha:0:7}" "$hsha"
-  fi
-  if [ $merged = 1 ]; then
-    # The head merged with the base branch as it is now, as a detached commit (no merge state in any checkout).
-    if mt="$(git -C "$REPO" merge-tree --write-tree --name-only "$head" "origin/$base" 2>&1)"; then
-      msha="$(git -C "$REPO" -c user.name=review -c user.email=review@localhost commit-tree "$(head -1 <<<"$mt")" -p "$head" -p "origin/$base" -m "review: #$pr merged with origin/$base")"
-      put "$root/review-$pr-merged" "$msha"
-    else
-      echo "review-prep: #$pr does not merge cleanly into origin/$base (conflicts: $(sed 1d <<<"$mt" | grep -v '^$' | grep -v '^Auto-merging\|^CONFLICT' | sort -u | paste -sd' ' -)); no merged checkout" >&2; exit 2
-    fi
-  fi
-elif [ $want_base = 1 ] || [ -n "$head_at" ] || [ $merged = 1 ]; then echo "(--base, --head-at, --merged and --base-at need a checkout)"
-fi
+checkouts
+[ $checkout = 1 ] || { [ $want_base = 0 ] && [ -z "$head_at" ] && [ $merged = 0 ] || echo "(--base, --head-at, --merged and --base-at need a checkout)"; }
 
 # 6. Diff.
 echo; echo "Diff stat (merge base to head):"; git -C "$REPO" diff --stat=100 "$mb" "$head" | sed 's/^/ /'
