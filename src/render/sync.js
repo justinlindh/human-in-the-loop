@@ -246,10 +246,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const seat = !alert && noc.seats[k];
       if (seat) {
         const anim = quiet && k === 0 ? 'desknap' : noc.level === 1 ? 'sit' : 'typing';
-        return { x: seat.x, z: seat.z, yaw: seat.yaw, anim, seated: true, dozing: anim === 'desknap', key: `noc-seat-${k}-${noc.id}-${anim}` };
+        return { x: seat.x, z: seat.z, yaw: seat.yaw, anim, seated: true, dozing: anim === 'desknap', uses: noc.id, key: `noc-seat-${k}-${noc.id}-${anim}` };
       }
       const st = noc.stands[(alert ? k : k - noc.seats.length) % noc.stands.length];
-      return { x: st.x, z: st.z, yaw: st.yaw, anim: 'idle', key: `noc-stand-${k}-${noc.id}-${alert ? 'a' : ''}` };
+      return { x: st.x, z: st.z, yaw: st.yaw, anim: 'idle', uses: noc.id, key: `noc-stand-${k}-${noc.id}-${alert ? 'a' : ''}` };
     }
     if (type === 'hardProblem') {
       const w = Z.whiteboard ?? { ...openSpot(), yaw: Math.PI };
