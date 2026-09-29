@@ -113,6 +113,27 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
+  it('--drain on a queue that holds only pending CI keeps waiting until that PR is ready and then reviewed', async () => {
+    const t = setup([pr(3, {}, 'PENDING')]);
+    try {
+      const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
+      let out = '';
+      child.stdout.on('data', (d) => { out += d; });
+      let code = null;
+      child.on('close', (c) => { code = c; });
+      await new Promise((r) => setTimeout(r, 800));
+      expect(out.trim()).toBe('CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)');
+      expect(code).toBeNull();
+      t.set([pr(3, {}, 'SUCCESS')]);
+      await new Promise((r) => setTimeout(r, 600));
+      expect(out.trim().split('\n').pop()).toBe('READY #3 3aaaaaaa tools/x3: t3');
+      expect(code).toBeNull();
+      t.set([pr(3, {}, 'SUCCESS', 'SUCCESS')]);
+      for (let i = 0; i < 50 && code === null; i++) await new Promise((r) => setTimeout(r, 100));
+      expect(code).toBe(0);
+    } finally { rmSync(t.dir, { recursive: true, force: true }); }
+  }, 20000);
+
   it('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
     const t = setup([pr(3, {}, 'PENDING'), pr(5)]);
     try {

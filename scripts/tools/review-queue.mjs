@@ -84,11 +84,15 @@ async function main() {
   try {
     if (values.drain) {
       const shown = new Set();
+      let woke = false;
       for (;;) {
         const all = look(trusted, repos);
         const fresh = all.filter((w) => !shown.has(key(w)));
         if (fresh.length) { out(fresh); for (const w of fresh) shown.add(key(w)); }
-        if (!all.some((w) => w.wake) && shown.size) return 0;
+        // Done once something that needed a look has been shown and nothing does now; a queue that so far holds
+        // only pending CI keeps waiting for it to finish.
+        if (all.some((w) => w.wake)) woke = true;
+        else if (woke) return 0;
         if (expired()) return 4;
         await sleep(interval);
       }
