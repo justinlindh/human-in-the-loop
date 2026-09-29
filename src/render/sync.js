@@ -40,6 +40,8 @@ const PERSON_GAP = 0.45;       // two people's centres nearer than this overlap
 const STEP_WAIT_S = 0.4;       // how long someone waits before trying to step out again
 const STEP_WAITS = 6;          // and how many times
 const STEP_IN_NEAR_M = 0.9;    // someone walking in stops this far short of a taken step-in point
+const STEP_BACK_M = 0.45;      // and, giving up, backs this far away from it before walking off
+const STEP_CLEAR_M = 0.6;      // when the way off would pass nearer than this to whoever stands there
 const EXIT_NEAR_M = 0.5;       // how much further than its exit side from an item someone leaving it may be (nearExit)
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
@@ -327,7 +329,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // Walking up to a use spot's step-in point while someone else stands on it: they stop short and
-  // wait, as long as someone leaving waits at most, then go on.
+  // wait, as long as someone leaving waits at most. If it is still taken then, they drop the visit
+  // and go back to what they were doing rather than walk through whoever stands there.
   function waitsToStepIn(r, dt) {
     const tp = r.temp, q = tp?.stepOut;
     if (!q || r.path.length !== 2) return false;
@@ -335,7 +338,44 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (Math.hypot(at.x - q.x, at.z - q.z) > 0.05 || Math.hypot(r.pos.x - q.x, r.pos.z - q.z) > STEP_IN_NEAR_M) return false;
     if (!stepOutTaken(r, q)) return false;
     tp.inWait = (tp.inWait ?? 0) + dt;
-    return tp.inWait < STEP_WAIT_S * STEP_WAITS;
+    if (tp.inWait < STEP_WAIT_S * STEP_WAITS) return true;
+    r.temp = null;
+    r.path = [];
+    if (tp.back && r.goal) walkTo(r, r.goal);
+    if (r.path.length) r.path = routePast(r, q, r.path);
+    return !r.path.length;
+  }
+
+  // The grid path ignores people, so a route from right beside someone may run through them. This
+  // keeps the route if it stays clear of the point, else steps back (straight away, or turned up
+  // to a right angle either way) before taking the grid, whichever route keeps furthest from it.
+  function routePast(r, q, path) {
+    const end = path[path.length - 1], nav = office.nav();
+    const gap = (pts) => {
+      let m = Infinity, a = r.pos;
+      for (const b of pts) {
+        const dx = b.x - a.x, dz = b.z - a.z, l = dx * dx + dz * dz;
+        const k = l ? Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.z - a.z) * dz) / l)) : 0;
+        m = Math.min(m, Math.hypot(a.x + dx * k - q.x, a.z + dz * k - q.z));
+        a = b;
+      }
+      return m;
+    };
+    let best = path, bestGap = gap(path);
+    const d = Math.hypot(r.pos.x - q.x, r.pos.z - q.z);
+    if (bestGap >= STEP_CLEAR_M || d < 0.01) return best;
+    const ux = (r.pos.x - q.x) / d, uz = (r.pos.z - q.z) / d;
+    for (const t of [0, 0.8, -0.8, 1.57, -1.57]) {
+      const a = { x: r.pos.x + (ux * Math.cos(t) - uz * Math.sin(t)) * STEP_BACK_M, z: r.pos.z + (ux * Math.sin(t) + uz * Math.cos(t)) * STEP_BACK_M };
+      if (nav.isBlocked(a.x, a.z)) continue;
+      const p = [a, ...nav.path(a, end).slice(1)];
+      if (p.length < 2) continue;
+      p[p.length - 1] = end;
+      const g = gap(p);
+      if (g > bestGap) { best = p; bestGap = g; }
+      if (g >= STEP_CLEAR_M) break;
+    }
+    return best;
   }
 
   function teleport(r, goal) {
