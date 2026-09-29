@@ -282,8 +282,13 @@ export async function runDanceCheck(R, S, genre, { dt = 1 / 30 } = {}) {
 //   use:<item>: someone using a counter or wall item stands within USE_MAX of its front, inside nothing.
 const USE_MAX = 0.45;
 // arms: false leaves out swinging arms (a walker's arm may brush an edge they walk past).
+// Whether a mesh shows: it and every group above it up to `root` are visible.
+function shown(o, root) {
+  for (let p = o; p && p !== root; p = p.parent) if (!p.visible) return false;
+  return true;
+}
 function bodyInside(root, targets, arms = true) {
-  const keep = arms ? () => true : (o) => !isArm(o);
+  const keep = (o) => shown(o, root) && (arms || !isArm(o));
   const pts = vertices(root, 8, keep);
   const v = pts.length ? insideCount(pts, targets) / pts.length : 0;
   return exact ? Math.max(v, exact(root, targets, keep)) : v;
@@ -1248,13 +1253,15 @@ export function setupPetPasser(R, S, species = 'dog', yaw = null, distance = 0.6
 // A working office robot at a waffle party or a music night ('waffle_party' or 'music_night'),
 // thrown for the first staffer with three more dancing; the robot joins it at once. The dock's
 // default tile in the floor mock is one it reaches both posts from, in either camera view.
-export function setupRobotParty(R, S, reward, { x = 15, y = 5, rot = 0 } = {}) {
+export function setupRobotParty(R, S, reward, { x = 4, y = 11, rot = 0 } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
   R.incentives?.reset();
   // A fix still under way from an earlier case is dropped: the robot starts again on its dock.
   R.robot?.reset();
-  if (!S.office.placed.some((p) => p.itemId === 'office_robot')) S.office.placed = [...S.office.placed, { id: 'check_robot', itemId: 'office_robot', level: 2, x, y, rot }];
+  // A dock an earlier case placed elsewhere moves to this case's tile.
+  const placed = S.office.placed.filter((p) => p.id !== 'check_robot');
+  if (!placed.some((p) => p.itemId === 'office_robot')) S.office.placed = [...placed, { id: 'check_robot', itemId: 'office_robot', level: 2, x, y, rot }];
   S.robot = { status: 'ok', since: S.week, breakdowns: 0, sabotages: 0, calmUntil: 0, googly: false };
   R.sync(S);
   window.__advance(2);
@@ -1322,19 +1329,29 @@ export async function runRobotChecks(R, S) {
     setupRobotParty(R, S, reward);
     const robot = R.robot.root;
     const people = S.staff.map((p) => charOf(R.scene, p.id)).filter(Boolean);
-    let robotIn = 0, peopleIn = 0, posted = false, home = false, worstFrame = null;
+    let robotIn = 0, peopleIn = 0, posted = false, home = false, worstFrame = null, robotHits = null;
     const joined = !!R.robot.peek().party;
-    for (let f = 0; f < 30 * 30 && !home; f++) {
+    // A minute covers the party, the hold after it and the way home from any post.
+    for (let f = 0; f < 30 * 60 && !home; f++) {
       window.__advance(1);
       const p = R.robot.peek();
       if (p.party && !p.path) posted = true;
       if (p.docked) { home = posted; continue; }
       const v = bodyInside(robot, furnitureOf(R, new Set(['check_robot'])), false);
-      if (v > robotIn) { robotIn = v; worstFrame = f; }
+      if (v > robotIn) {
+        robotIn = v; worstFrame = f;
+        // Which furniture it crosses, and where, for the failure detail.
+        if (v >= 0.01) robotHits = { pos: p.pos, plan: p.plan, path: p.path, party: p.party, items: [...R.office.placed.values()].filter((e) => e.id !== 'check_robot' && bodyInside(robot, meshes(e.obj), false) > 0).map((e) => {
+          const hits = [];
+          exact?.(robot, meshes(e.obj), (o) => shown(o, robot), hits);
+          return `${e.id} ${hits.map((h) => `${h.part} x ${h.target}`).join(', ')}`;
+        }) };
+      }
       if (f % 3 === 0) for (const root of people) peopleIn = Math.max(peopleIn, bodyInside(root, meshes(robot), false));
     }
     results.push({ name: `moment:robot:${reward}`, pass: joined && posted && home && robotIn < 0.01 && peopleIn < 0.01,
-      joined, posted, home, robotInsidePct: +(robotIn * 100).toFixed(2), worstFrame, peopleInRobotPct: +(peopleIn * 100).toFixed(2) });
+      joined, posted, home, robotInsidePct: +(robotIn * 100).toFixed(2), worstFrame, peopleInRobotPct: +(peopleIn * 100).toFixed(2),
+      ...(home ? {} : { end: (({ plan, pos, path, party }) => ({ plan, pos, path, party }))(R.robot.peek()), partyLeft: !!(R.incentives?.party || R.incentives?.dance) }), ...(robotHits ? { robotHits } : {}) });
   }
   S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); R.setQuality('low');
   window.__advance(30);

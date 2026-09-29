@@ -399,7 +399,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             if (m.beat === 'walk') sawWalk = true;
           }
         }
-        // The robot as the actor (a party it joins): its post is its beat, the way there 'walk'.
+        // The robot as the actor (a party it joins): its post is its beat once it has turned to face
+        // the way it will; the way there and the turn are 'walk'.
         const rp = robotActor && R.robot?.peek();
         if (rp?.party && R.robot.root) {
           live++;
@@ -407,7 +408,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
           const fwd = { x: Math.sin(rp.yaw), z: Math.cos(rp.yaw) };
           const deg = (x, z) => { const l = Math.hypot(x, z) || 1; return Math.acos(Math.max(-1, Math.min(1, (fwd.x * x + fwd.z * z) / l))) * 180 / Math.PI; };
           const cam = R.camera.getWorldPosition(new THREE.Vector3());
-          samples.push({ t: f / 30, actor: 'robot', role: 'robot', beat: rp.path ? 'walk' : rp.party,
+          samples.push({ t: f / 30, actor: 'robot', role: 'robot', beat: rp.settled ? rp.party : 'walk',
             robotVisible: petProbe.seen(root)[0].visible, robotFaceCam: deg(cam.x - at.x, cam.z - at.z),
             robotFaceTarget: rp.partyFace ? deg(rp.partyFace.x - at.x, rp.partyFace.z - at.z) : null });
         }

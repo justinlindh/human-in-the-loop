@@ -176,6 +176,14 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     return null;
   }
 
+  // Whether the straight line from a to b keeps PATH_CLEAR from anything blocked.
+  function navLeg(a, b) {
+    const nav = office.nav();
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.1));
+    for (let k = 1; k <= n; k++) if (nav.isBlocked(a.x + (b.x - a.x) * k / n, a.z + (b.z - a.z) * k / n, PATH_CLEAR)) return false;
+    return true;
+  }
+
   // Someone standing still in its way (at a party, chatting): a point beside them it can go by,
   // on the side where the way there and on is clear of furniture and of everyone else, or null.
   const SIDESTEP_M = [0.65, 0.85];
@@ -191,9 +199,13 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       for (let k = 1; k <= n; k++) if (!clear(a.x + (b.x - a.x) * k / n, a.z + (b.z - a.z) * k / n)) return false;
       return true;
     };
+    // Beside them, or when the way on from there still passes too near, beside them and then past.
     for (const d of SIDESTEP_M) for (const s of [1, -1]) {
       const q = { x: w.pos.x + px * s * d, z: w.pos.z + pz * s * d, around: w };
-      if (clear(q.x, q.z) && leg(r.pos, q) && leg(q, tgt)) return q;
+      if (!clear(q.x, q.z) || !leg(r.pos, q)) continue;
+      if (leg(q, tgt)) return [q];
+      const q2 = { x: q.x + (hx / hl) * d, z: q.z + (hz / hl) * d, around: w };
+      if (clear(q2.x, q2.z) && leg(q, q2) && leg(q2, tgt)) return [q, q2];
     }
     return null;
   }
@@ -203,9 +215,14 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const w = blockedBy(r);
     if (!w) return false;
     if (w.path.length || r.path[0].around) return true;
+    // A turn of its way that falls where they stand is dropped: it goes round them to the next one.
+    // Only when the straight way to the turn after it keeps clear of furniture.
+    const near = (p) => Math.hypot(p.x - w.pos.x, p.z - w.pos.z) < KEEP_OFF_R + 0.08;
+    const skip = r.path.length > 1 && near(r.path[0]) && navLeg(r.pos, r.path[1]) ? r.path.shift() : null;
+    if (skip && blockedBy(r) !== w) return !!blockedBy(r);
     const q = sidestep(r, w);
-    if (!q) return true;
-    r.path.unshift(q);
+    if (!q) { if (skip) r.path.unshift(skip); return true; }
+    r.path.unshift(...q);
     return !!blockedBy(r);
   }
 
@@ -646,7 +663,8 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const r = rec;
     if (!r || r.fix || r.cause || !office.current) return false;
     // The spot leaves room round where the `crowd` will stand, and the way there keeps clear of the
-    // `avoid` boxes (a cart the walk grid doesn't know about). People in its way it goes round.
+    // `avoid` boxes (a cart the walk grid doesn't know about) and of the crowd: someone standing in
+    // a gap between desks can't be gone round.
     const e = dockEntry();
     const from = r.docked && e ? wayHome(e) : r.pos;
     const cy = camYaw(), cam = { x: Math.sin(cy), z: Math.cos(cy) };
@@ -660,7 +678,11 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       if (!pts) return 'no way there';
       for (let i = 1; i < pts.length; i++) {
         const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.15);
-        for (let k = 0; k <= n; k++) if (!clearOf({ x: a.x + (b.x - a.x) * k / n, z: a.z + (b.z - a.z) * k / n }, avoid, ROBOT_R)) return 'through the cart';
+        for (let k = 0; k <= n; k++) {
+          const p = { x: a.x + (b.x - a.x) * k / n, z: a.z + (b.z - a.z) * k / n };
+          if (!clearOf(p, avoid, ROBOT_R)) return 'through the cart';
+          if (crowd.some((c) => Math.hypot(c.x - p.x, c.z - p.z) < KEEP_OFF_R + 0.08)) return 'through the crowd';
+        }
       }
       return true;
     };
@@ -771,7 +793,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       const last = rec.path.length ? rec.path[rec.path.length - 1] : null;
       return { plan: rec.plan, cause: rec.cause ?? null, docked: !!rec.docked, pos: [+rec.pos.x.toFixed(2), +rec.pos.z.toFixed(2)], yaw: +rec.yaw.toFixed(2), path: rec.path.length,
         target: last && { x: +last.x.toFixed(2), z: +last.z.toFixed(2) }, stop: rec.stop && { x: +rec.stop.x.toFixed(2), z: +rec.stop.z.toFixed(2), who: rec.stop.who?.id ?? null, desk: rec.stop.desk ?? null },
-        party: rec.party?.role ?? null, partyFace: rec.party?.spot.face ? { x: rec.party.spot.face.x, z: rec.party.spot.face.z } : null, eyes: rec.eyes, fix: rec.fix && { fixer: rec.fix.who?.id ?? null, slapped: rec.fix.slapped }, cone: !!rec.rig.cone.parent, note: rec.rig.note.visible, googly: rec.rig.googly.visible };
+        party: rec.party?.role ?? null, settled: !!rec.arrived && !rec.path.length && (rec.faceYaw == null || Math.abs(Math.atan2(Math.sin(rec.yaw - rec.faceYaw), Math.cos(rec.yaw - rec.faceYaw))) < 0.15), partyFace: rec.party?.spot.face ? { x: rec.party.spot.face.x, z: rec.party.spot.face.z } : null, eyes: rec.eyes, fix: rec.fix && { fixer: rec.fix.who?.id ?? null, slapped: rec.fix.slapped }, cone: !!rec.rig.cone.parent, note: rec.rig.note.visible, googly: rec.rig.googly.visible };
     },
     // Test hook: start a plan now ('rounds', 'home', or 'broken:<cause>').
     force(plan) { if (!rec) return false; startPlan(plan); return true; },
