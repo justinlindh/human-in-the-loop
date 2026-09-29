@@ -1,0 +1,13 @@
+---
+tool: `node scripts/tools/lab.mjs [--port n] [--host]`, then open `/pose-lab.html`; `node scripts/tools/lab-smoke.mjs [--out f.png] [--view n] [--frame n] [--width w --height h] [--touch]`
+section: render
+who: art
+covers: scripts/tools/lab.mjs scripts/tools/lab-smoke.mjs pose-lab.html src/dev/pose-lab/lab.js tests/tools/lab.test.js
+---
+The pose lab: a dev-only page to tune a character gesture by eye and by number without a rebuild. `lab.mjs` starts Vite on this checkout with a live `--param` plugin and prints the page URL (`.../pose-lab.html`). The page loads one character in any animation (`under`) with any gesture over it, in any camera view (0 to 3), build (0 to 2), heading and rig setting (on is Medium and High, off is Low's procedural poses), with a timeline scrubber (play, step, drag), a skeleton overlay and a ray from each hand to the eyes (pink is hand 0, blue is hand 1), and live readouts: time, phase, face angle, hand-to-eye and hand-to-face distances, and the cover shares (`coverHandEyeNear`, `coverHandEyeL`, `coverHandEyeR`, `coverHandFace`). The numbers come from `blender/checks/pose-measure.js` (`createPoseRun`, the per-frame step `playPose` loops over) and `pose-cover.js` (`measureCovers`), the code `pose.mjs` and its matrix run use, so the page and the command line give the same value for the same frame. Scrubbing back replays the run from time zero (a fixed step makes that deterministic).
+
+Constants: every numeric top-level `const` (a number or an array of numbers) in `src/render/character.js`, `robot.js` and `rig.js` gets a slider and a number box per element, with a filter. A change is sent to the server as `--param` specs and the page reloads on the new code (state, frame and the changed values survive in the tab's session storage). `copy diff` puts the changed constants on the clipboard as `-const`/`+const` lines, `copy --param` as `--param file:NAME[i]=v` flags for `pose.mjs`, and `reset` clears the overrides. `?gesture=facepalm&under=typing&view=1&frame=70` opens a given state.
+
+The layout stacks under 820 px wide and every control is at least 40 px, so it works on a laptop and by touch. The page is served by `lab.mjs` only (`pose-lab.html` is not in the build input, so `npm run build` emits nothing of it). `lab-smoke.mjs` opens the page in headless Chromium, checks that the lab's numbers for one frame equal `playPose`'s, that a `--param` override changes a measure, and that there are no page errors; `--out` saves a screenshot. It takes a render slot.
+
+Not covered yet: the robot slap (the lab loads people from `createCharacter`; the robot is a separate module), posture as a seat (a person stands unless the animation is a seated one), and expectations on the readouts.
