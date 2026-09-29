@@ -1,9 +1,10 @@
 // Pure helpers for the sweep's scoped and replayed runs (sweep.mjs); loaded in Node and in the page.
 
 // Whether a violation involves the item: its id as a whole token in either thing or the detail
-// (`noc` matches `noc_pal_plastic_charcoal` and `noc#3[frame]`, not `snocone`).
+// (`noc` matches `noc/pal_plastic_charcoal` and `noc#3[frame]`, not `snocone` or `noc_l2`; `desk`
+// does not match `standing_desk`).
 export function mentions(item, ...texts) {
-  const re = new RegExp(`(^|[^a-z0-9])${String(item).replace(/[^a-z0-9_]/gi, '')}(?![a-z0-9])`, 'i');
+  const re = new RegExp(`(^|[^a-z0-9_])${String(item).replace(/[^a-z0-9_]/gi, '')}(?![a-z0-9_])`, 'i');
   return texts.some((t) => t != null && re.test(String(t)));
 }
 

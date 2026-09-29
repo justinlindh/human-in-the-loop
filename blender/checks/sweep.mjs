@@ -47,10 +47,10 @@ import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
-import { execFileSync, spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, symlinkSync, copyFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { planReplay, mentions } from './sweep-plan.js';
+import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -102,33 +102,27 @@ const repoRoot = resolve(HERE, '../..');
 async function startControl(spec) {
   const asRoot = existsSync(spec) && existsSync(join(spec, '.git'));
   const rev = asRoot ? execFileSync('git', ['-C', spec, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() : execFileSync('git', ['-C', repoRoot, 'rev-parse', spec], { encoding: 'utf8' }).trim();
-  const tmp = mkdtempSync(join(tmpdir(), 'sweep-against-'));
-  const tree = join(tmp, 'tree');
-  execFileSync('git', ['-C', repoRoot, 'worktree', 'add', '-q', '--detach', tree, rev], { stdio: 'ignore' });
-  symlinkSync(join(repoRoot, 'node_modules'), join(tree, 'node_modules'));
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
-  if (asRoot) {
-    const diff = execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 });
-    if (diff.length) execFileSync('git', ['-C', tree, 'apply', '--whitespace=nowarn'], { input: diff });
-  }
-  for (const f of ['sweep.mjs', 'sample.js', 'sweep-plan.js']) copyFileSync(join(HERE, f), join(tree, 'blender/checks', f));
+  const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
+  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
+  overlay['scripts/tools/worktree.mjs'] = join(repoRoot, 'scripts/tools/worktree.mjs');
+  // The worktree and the control's process group go away however this process ends.
+  const wt = await createWorktree({ repo: repoRoot, rev, label: 'sweep-against', patch, overlay });
   const drop = new Set(['--update-baseline', '--prune']);
   const args = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
     if (!drop.has(argv[i])) args.push(argv[i]);
   }
-  const out = join(tmp, 'out');
-  const child = spawn(process.execPath, [join(tree, 'blender/checks/sweep.mjs'), ...args, '--out', out], { cwd: tree, stdio: ['ignore', 'ignore', 'inherit'] });
-  const done = new Promise((res) => child.on('close', res));
-  return { label: asRoot ? spec.split('/').pop() : spec, rev: rev.slice(0, 8), out, tmp, tree, done };
+  const out = join(wt.tmp, 'out');
+  const { done } = wt.spawn(process.execPath, [join(wt.path, 'blender/checks/sweep.mjs'), ...args, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  return { label: asRoot ? spec.split('/').pop() : spec, rev: rev.slice(0, 8), out, wt, done };
 }
 async function endControl(c) {
   await c.done;
   let report = null;
   try { report = JSON.parse(readFileSync(join(c.out, 'report.json'), 'utf8')); } catch { /* the control run failed */ }
-  try { execFileSync('git', ['-C', repoRoot, 'worktree', 'remove', '--force', c.tree], { stdio: 'ignore' }); } catch { /* left in tmp */ }
-  rmSync(c.tmp, { recursive: true, force: true });
+  c.wt.disposeSync();
   return report;
 }
 

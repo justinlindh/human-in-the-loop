@@ -4,7 +4,10 @@ import { mentions, planReplay } from '../../blender/checks/sweep-plan.js';
 describe('sweep scoping', () => {
   it('matches an item id as a whole token', () => {
     expect(mentions('noc', 'noc/pal_plastic_charcoal', 'desk/pal_wood')).toBe(true);
-    expect(mentions('noc', 'person', 'noc_l2#4[frame]')).toBe(true);
+    expect(mentions('noc', 'person', 'noc#4[frame]')).toBe(true);
+    expect(mentions('noc', 'person', 'noc_l2#4[frame]')).toBe(false);
+    expect(mentions('desk', 'standing_desk/pal_wood', 'person')).toBe(false);
+    expect(mentions('desk', 'desk/pal_wood', 'person')).toBe(true);
     expect(mentions('noc', 'a', 'b', 'noc L3 reaches 0.05 m past its footprint')).toBe(true);
     expect(mentions('noc', 'snocone/x', 'desk/y')).toBe(false);
     expect(mentions('noc', 'bookshelf', 'person/walking_head', null)).toBe(false);
