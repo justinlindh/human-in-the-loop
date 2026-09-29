@@ -56,6 +56,12 @@ function propKind(obj) {
   return 'fxProp';
 }
 
+// A mesh drawn now: it and every parent visible.
+function shown(o) {
+  for (let x = o; x; x = x.parent) if (!x.visible) return false;
+  return true;
+}
+
 // Every solid body now in the office. Items still popping in, sliding, or shrinking away are left
 // out: they are mid-animation, not placed.
 export function bodies(R) {
@@ -73,6 +79,9 @@ export function bodies(R) {
   }
   for (const [k, w] of Object.entries(cur.walls ?? {})) out.push({ key: `wall:${k}`, kind: 'wall', label: `wall_${k}`, obj: w, meshes: solidMeshes(w) });
   if (cur.columnSet?.group) out.push({ key: 'columns', kind: 'column', label: 'columns', obj: cur.columnSet.group, meshes: solidMeshes(cur.columnSet.group) });
+  // The office robot, with only the parts it shows now (its spare can, cable and cone hide).
+  const bot = R.robot?.root;
+  if (bot?.parent && bot.visible) out.push({ key: 'robot', kind: 'robot', label: 'robot', obj: bot, meshes: solidMeshes(bot).filter(shown) });
   for (const b of out) {
     b.obj.updateMatrixWorld(true);
     b.box = new THREE.Box3();

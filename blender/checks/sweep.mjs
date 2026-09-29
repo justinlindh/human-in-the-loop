@@ -46,7 +46,7 @@
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve, join } from 'node:path';
+import { dirname, resolve, join, basename } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { planReplay, mentions } from './sweep-plan.js';
@@ -159,6 +159,20 @@ try {
       { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, item });
     found.push(...r.violations);
     windows.push(...r.windows.map((w) => ({ ...w, query })));
+    errors.push(...e.map((x) => `${label}: ${x}`));
+    console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
+    await page.close();
+  }
+  // Saved states from find.js scans (--snapshots a.json.gz,b.json.gz), each loaded and played as a
+  // moment is, with no decision to answer.
+  for (const file of (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
+    const target = resolveTarget({ snapshot: file });
+    const label = `snap:${basename(file).replace(/\.json(\.gz)?$/, '')}`;
+    const { page, errors: e } = await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
+    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleLoaded(o),
+      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item });
+    found.push(...r.violations);
+    windows.push(...r.windows.map((w) => ({ ...w, snapshot: basename(file) })));
     errors.push(...e.map((x) => `${label}: ${x}`));
     console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
     await page.close();

@@ -21,6 +21,8 @@ function skipPair(A, B) {
   if (k.every((x) => x === 'wall' || x === 'column')) return true;
   const wallish = (x) => x.kind === 'wallProp' || x.wallMounted;
   if ((wallish(A) && B.kind === 'wall') || (wallish(B) && A.kind === 'wall')) return true;
+  // The robot parks on its own dock's pad.
+  if ((A.kind === 'robot' && B.label === 'office_robot') || (B.kind === 'robot' && A.label === 'office_robot')) return true;
   return false;
 }
 
