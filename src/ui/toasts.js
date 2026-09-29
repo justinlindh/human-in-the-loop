@@ -18,6 +18,15 @@ const PLAYER_MS = 1500; // how long after a tap or key press a toast still count
 // Toasts stack top-right when no panel is open. While a panel is open they show one at a
 // time in a strip reserved at the bottom of the panel, so they never cover its controls.
 const ANSWER_MS = 4000;
+const TONE_RANK = { bad: 3, warn: 2, good: 1, info: 0 };
+// The toast a panel's dock shows: the most severe live one (newest among equals), except that a toast
+// answering the player's own action (a refusal's reason) outranks any severity for a few seconds.
+export function dockTop(live, now) {
+  const rank = (t) => TONE_RANK[t.tone] + (t.answer && now - t.at < ANSWER_MS ? 10 : 0);
+  let top = live[0];
+  for (const t of live) if (rank(t) >= rank(top)) top = t;
+  return top;
+}
 export function createToasts(root, { canShow = () => true } = {}) {
   const el = h('div.toasts', { 'aria-live': 'polite' });
   root.append(el);
@@ -77,10 +86,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     if (!dock) return;
     if (!live.length) { dock.replaceChildren(h('span.dockidle')); return; }
     // A toast that answers the player's own tap (a refusal's reason) outranks a severe one for a few seconds.
-    const now = performance.now();
-    const rank = (t) => RANK[t.tone] + (t.answer && now - t.at < ANSWER_MS ? 10 : 0);
-    let top = live[0];
-    for (const t of live) if (rank(t) >= rank(top)) top = t;
+    const top = dockTop(live, performance.now());
     const key = `${top.id}:${live.length}:${held.length}`;
     if (dock.firstChild?.dataset?.key === key) return;
     const n = node(top, 'dtoast', live.length - 1 + held.length);
@@ -147,7 +153,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
   const weight = (q) => (q.opts.always ? 4 : 0) + (q.opts.action ? 2 : 0) + (toneOf(q.tone) === 'good' ? 1 : 0);
   function push(text, tone = 'info', opts = {}) {
     const t0 = toneOf(tone);
-    if (!opts.player && playerCaused() && !canShow()) opts = { ...opts, player: true };
+    if (!opts.player && playerCaused() && !canShow()) opts = { ...opts, player: true, timed: true };
     if (opts.player && !canShow()) { shownThisWeek++; show(text, tone, opts); return; }
     if (canShow() && (t0 === 'warn' || t0 === 'bad')) { shownThisWeek++; show(text, tone, opts); return; }
     queue.push({ text, tone, opts, n: ++qSeq });
@@ -191,7 +197,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     for (const w of due) show(w.text, w.tone, w.opts, w.at);
   }
 
-  function show(text, tone = 'info', { action, glyph, person, player } = {}, at = performance.now()) {
+  function show(text, tone = 'info', { action, glyph, person, player, timed } = {}, at = performance.now()) {
     if (!text) return;
     if (!mayShow({ player })) { push(text, tone, { action, glyph, person }); return; }
     if (hidden) {
@@ -203,7 +209,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;
-    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at, answer: !!player || playerCaused() };
+    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at, answer: !!player && !timed };
     live.push(t);
     arm(t, LIFE[t.tone]);
     if (dock) renderDock();
