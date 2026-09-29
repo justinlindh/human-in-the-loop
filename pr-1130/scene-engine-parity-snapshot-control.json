@@ -1,0 +1,178 @@
+{
+  "schema": "hitl.scene-parity/0.1",
+  "options": {
+    "mock": "floor",
+    "snapshot": "5f16c3b784e3bc6d-1-balanced-w112-week.json.gz",
+    "initialPerkDelay": 3,
+    "frames": [
+      0,
+      1,
+      30,
+      65,
+      90,
+      180,
+      600
+    ],
+    "facts": [
+      "intersections",
+      "clearances",
+      "visibility",
+      "projections",
+      "occupancy"
+    ],
+    "tolerance": 0.00001
+  },
+  "nodeReadyMs": 374.402009,
+  "browserOpenMs": 2121.554712,
+  "harnessPhases": {
+    "lock": 26.576277000000005,
+    "createServer": 28.802343999999948,
+    "listen": 8.708525000000009,
+    "launchChromium": 1108.701976
+  },
+  "pagePhases": {
+    "newPage": 14.504852000000028,
+    "initScript": 0.4940209999999752,
+    "goto": 57.36790700000006,
+    "waitReady": 559.1892269999998,
+    "reseed": 3.118199000000004,
+    "fonts": 10.03905900000018,
+    "stepDefs": 2.443656999999803,
+    "toolPreload": 38.601202000000285
+  },
+  "rows": [
+    {
+      "frame": 0,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 0.5325520000001234,
+        "sampleMs": 779.5952670000001
+      },
+      "browserTiming": {
+        "stepMs": 0,
+        "sampleMs": 727.1000000238419
+      },
+      "nodeRoundTripMs": 781.4478519999998,
+      "browserRoundTripMs": 808.927662,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 1,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 4.93625400000019,
+        "sampleMs": 357.02842800000053
+      },
+      "browserTiming": {
+        "stepMs": 5.5,
+        "sampleMs": 367
+      },
+      "nodeRoundTripMs": 362.9968750000007,
+      "browserRoundTripMs": 417.28070300000036,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 30,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 14.788352999999915,
+        "sampleMs": 130.76301899999999
+      },
+      "browserTiming": {
+        "stepMs": 15.5,
+        "sampleMs": 128.9000000357628
+      },
+      "nodeRoundTripMs": 146.65238600000066,
+      "browserRoundTripMs": 193.6570730000003,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 65,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 5.990467999999964,
+        "sampleMs": 125.62125500000002
+      },
+      "browserTiming": {
+        "stepMs": 5.5,
+        "sampleMs": 121.30000001192093
+      },
+      "nodeRoundTripMs": 132.7575650000008,
+      "browserRoundTripMs": 175.05761900000016,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 90,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 4.188381999999365,
+        "sampleMs": 119.64118800000051
+      },
+      "browserTiming": {
+        "stepMs": 4,
+        "sampleMs": 121.40000003576279
+      },
+      "nodeRoundTripMs": 124.82869300000038,
+      "browserRoundTripMs": 172.02440899999965,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 180,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 16.350397000000157,
+        "sampleMs": 107.99937399999999
+      },
+      "browserTiming": {
+        "stepMs": 15.199999988079071,
+        "sampleMs": 109.69999998807907
+      },
+      "nodeRoundTripMs": 125.5807850000001,
+      "browserRoundTripMs": 172.84314200000063,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 600,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 45.81640299999981,
+        "sampleMs": 116.41750899999988
+      },
+      "browserTiming": {
+        "stepMs": 45.80000001192093,
+        "sampleMs": 112.5
+      },
+      "nodeRoundTripMs": 163.27274399999988,
+      "browserRoundTripMs": 206.21640899999966,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    }
+  ]
+}

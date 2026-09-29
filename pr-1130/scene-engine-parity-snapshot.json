@@ -1,0 +1,4331 @@
+{
+  "schema": "hitl.scene-parity/0.1",
+  "options": {
+    "mock": "floor",
+    "snapshot": "5f16c3b784e3bc6d-1-balanced-w112-week.json.gz",
+    "frames": [
+      0,
+      1,
+      30,
+      65,
+      90,
+      180,
+      600
+    ],
+    "facts": [
+      "intersections",
+      "clearances",
+      "visibility",
+      "projections",
+      "occupancy"
+    ],
+    "tolerance": 0.00001
+  },
+  "nodeReadyMs": 346.908074,
+  "browserOpenMs": 2068.538619,
+  "harnessPhases": {
+    "lock": 33.03413899999998,
+    "createServer": 28.49293499999999,
+    "listen": 8.672155000000089,
+    "launchChromium": 1090.283138
+  },
+  "pagePhases": {
+    "newPage": 14.694074,
+    "initScript": 0.5771910000000844,
+    "goto": 57.56415199999992,
+    "waitReady": 549.9795970000002,
+    "reseed": 0.8211029999997663,
+    "fonts": 0.843351999999868,
+    "stepDefs": 2.780729000000065,
+    "toolPreload": 32.47450600000002
+  },
+  "rows": [
+    {
+      "frame": 0,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 0.4011310000000776,
+        "sampleMs": 772.211679
+      },
+      "browserTiming": {
+        "stepMs": 0,
+        "sampleMs": 714.3000000119209
+      },
+      "nodeRoundTripMs": 773.8288929999999,
+      "browserRoundTripMs": 778.4598859999996,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 1,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 4.175962000000254,
+        "sampleMs": 355.27929700000004
+      },
+      "browserTiming": {
+        "stepMs": 4,
+        "sampleMs": 359.5
+      },
+      "nodeRoundTripMs": 360.6664430000001,
+      "browserRoundTripMs": 402.46191699999963,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 30,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 14.165971999999783,
+        "sampleMs": 126.34893600000032
+      },
+      "browserTiming": {
+        "stepMs": 14.100000023841858,
+        "sampleMs": 130.80000001192093
+      },
+      "nodeRoundTripMs": 141.3074399999996,
+      "browserRoundTripMs": 189.368383,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 65,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 5.939057999999932,
+        "sampleMs": 123.36925699999938
+      },
+      "browserTiming": {
+        "stepMs": 5.599999964237213,
+        "sampleMs": 121.5
+      },
+      "nodeRoundTripMs": 130.2184469999993,
+      "browserRoundTripMs": 170.58516700000018,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 90,
+      "differences": [
+        {
+          "path": "$.facts.clearances.item:f127|person:s117.clearanceM",
+          "node": 0,
+          "browser": 0.285645,
+          "delta": 0.285645
+        },
+        {
+          "path": "$.facts.clearances.item:f127|person:s117.partA",
+          "node": "item:f127/part:0",
+          "browser": "item:f127/part:9"
+        },
+        {
+          "path": "$.facts.clearances.item:f91|person:s117",
+          "node": {
+            "a": "item:f91",
+            "b": "person:s117",
+            "clearanceM": 0.341515,
+            "partA": "item:f91/part:0",
+            "partB": "person:s117/part:5"
+          },
+          "browser": null
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:0|person:s117/part:0",
+          "node": {
+            "a": "item:f127/part:0",
+            "b": "person:s117/part:0",
+            "clearanceM": 0,
+            "containment": false,
+            "depthM": null,
+            "depthStatus": "general-solid-depth-unavailable",
+            "intersects": true,
+            "surfaceCrossing": true,
+            "vertexDepthLowerBoundM": 0.027018
+          },
+          "browser": null
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:0|person:s117/part:1",
+          "node": {
+            "a": "item:f127/part:0",
+            "b": "person:s117/part:1",
+            "clearanceM": 0,
+            "containment": false,
+            "depthM": null,
+            "depthStatus": "general-solid-depth-unavailable",
+            "intersects": true,
+            "surfaceCrossing": true,
+            "vertexDepthLowerBoundM": 0.027018
+          },
+          "browser": null
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:7|person:s117/part:0",
+          "node": {
+            "a": "item:f127/part:7",
+            "b": "person:s117/part:0",
+            "clearanceM": 0,
+            "containment": false,
+            "depthM": null,
+            "depthStatus": "general-solid-depth-unavailable",
+            "intersects": true,
+            "surfaceCrossing": true,
+            "vertexDepthLowerBoundM": 0.012959
+          },
+          "browser": null
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:7|person:s117/part:1",
+          "node": {
+            "a": "item:f127/part:7",
+            "b": "person:s117/part:1",
+            "clearanceM": 0,
+            "containment": false,
+            "depthM": null,
+            "depthStatus": "general-solid-depth-unavailable",
+            "intersects": true,
+            "surfaceCrossing": true,
+            "vertexDepthLowerBoundM": 0.012959
+          },
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.blocker",
+          "node": "person:s117/part:2",
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.distanceM",
+          "node": 63.37264,
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.0",
+          "node": 32.80037,
+          "browser": 33.326703,
+          "delta": 0.526333000000001
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.1",
+          "node": 37.637835,
+          "browser": 37.054769,
+          "delta": 0.5830660000000023
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.2",
+          "node": 34.611639,
+          "browser": 34.668371,
+          "delta": 0.05673200000000378
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.0",
+          "node": -3.928,
+          "browser": -2.905082,
+          "delta": 1.0229179999999998
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.1",
+          "node": 0.909465,
+          "browser": 0.822985,
+          "delta": 0.08648
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.2",
+          "node": -2.116731,
+          "browser": -1.563413,
+          "delta": 0.5533180000000002
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.visible",
+          "node": false,
+          "browser": true
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.blocker",
+          "node": "person:s117/part:2",
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.distanceM",
+          "node": 63.308906,
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.0",
+          "node": 32.70437,
+          "browser": 33.369335,
+          "delta": 0.6649650000000022
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.1",
+          "node": 37.685835,
+          "browser": 37.105544,
+          "delta": 0.5802909999999954
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.2",
+          "node": 34.659639,
+          "browser": 34.574964,
+          "delta": 0.08467499999999717
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.0",
+          "node": -4.072,
+          "browser": -2.912833,
+          "delta": 1.159167
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.1",
+          "node": 0.909465,
+          "browser": 0.823376,
+          "delta": 0.08608899999999997
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.2",
+          "node": -2.116731,
+          "browser": -1.707204,
+          "delta": 0.4095270000000002
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.visible",
+          "node": false,
+          "browser": true
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.blocker",
+          "node": "person:s117/part:2",
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.distanceM",
+          "node": 63.383429,
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.0",
+          "node": 32.78838,
+          "browser": 33.310507,
+          "delta": 0.5221270000000047
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.1",
+          "node": 37.671016,
+          "browser": 37.085815,
+          "delta": 0.585201000000005
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.2",
+          "node": 34.590447,
+          "browser": 34.653522,
+          "delta": 0.06307500000000488
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.0",
+          "node": -3.928,
+          "browser": -2.906239,
+          "delta": 1.0217610000000001
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.1",
+          "node": 0.954636,
+          "browser": 0.869068,
+          "delta": 0.08556800000000009
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.2",
+          "node": -2.125933,
+          "browser": -1.563225,
+          "delta": 0.5627079999999998
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.visible",
+          "node": false,
+          "browser": true
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.blocker",
+          "node": "person:s117/part:2",
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.distanceM",
+          "node": 63.272452,
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.0",
+          "node": 32.69238,
+          "browser": 33.35314,
+          "delta": 0.6607600000000033
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.1",
+          "node": 37.719016,
+          "browser": 37.136589,
+          "delta": 0.5824270000000027
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.2",
+          "node": 34.638447,
+          "browser": 34.560114,
+          "delta": 0.07833300000000065
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.0",
+          "node": -4.072,
+          "browser": -2.913991,
+          "delta": 1.1580089999999998
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.1",
+          "node": 0.954636,
+          "browser": 0.869459,
+          "delta": 0.08517700000000006
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.2",
+          "node": -2.125933,
+          "browser": -1.707016,
+          "delta": 0.41891699999999976
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.visible",
+          "node": false,
+          "browser": true
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.distanceM",
+          "node": 63.270466,
+          "browser": 62.712206,
+          "delta": 0.5582599999999971
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.0",
+          "node": 32.71094,
+          "browser": 33.289299,
+          "delta": 0.578358999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.1",
+          "node": 37.751933,
+          "browser": 37.173636,
+          "delta": 0.5782969999999992
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.2",
+          "node": 34.58697,
+          "browser": 34.586909,
+          "delta": 0.00006100000000230921
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.point.0",
+          "node": -4,
+          "browser": -2.931358,
+          "delta": 1.068642
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.point.1",
+          "node": 1.040993,
+          "browser": 0.952979,
+          "delta": 0.08801400000000004
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.point.2",
+          "node": -2.12397,
+          "browser": -1.633748,
+          "delta": 0.49022199999999994
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.blocker",
+          "node": "person:s117/part:2",
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.distanceM",
+          "node": 63.317773,
+          "browser": null
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.0",
+          "node": 32.766833,
+          "browser": 33.365773,
+          "delta": 0.5989399999999989
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.1",
+          "node": 37.605919,
+          "browser": 37.033778,
+          "delta": 0.572141000000002
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.2",
+          "node": 34.677091,
+          "browser": 34.650293,
+          "delta": 0.026797999999999433
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.point.0",
+          "node": -4,
+          "browser": -2.919465,
+          "delta": 1.0805349999999998
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.point.1",
+          "node": 0.839086,
+          "browser": 0.748541,
+          "delta": 0.09054499999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.point.2",
+          "node": -2.089742,
+          "browser": -1.634945,
+          "delta": 0.4547970000000001
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.visible",
+          "node": false,
+          "browser": true
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.distanceM",
+          "node": 63.326459,
+          "browser": 62.866239,
+          "delta": 0.46021999999999963
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.0",
+          "node": 32.759369,
+          "browser": 33.346444,
+          "delta": 0.5870749999999987
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.1",
+          "node": 37.544205,
+          "browser": 37.006824,
+          "delta": 0.5373809999999963
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.2",
+          "node": 34.746269,
+          "browser": 34.696575,
+          "delta": 0.04969399999999524
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.point.0",
+          "node": -4,
+          "browser": -2.981901,
+          "delta": 1.0180989999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.point.1",
+          "node": 0.784836,
+          "browser": 0.678479,
+          "delta": 0.10635699999999992
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.point.2",
+          "node": -2.013101,
+          "browser": -1.63177,
+          "delta": 0.38133099999999986
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.bottom",
+          "node": 385.946566,
+          "browser": 421.870978,
+          "delta": 35.92441199999996
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.left",
+          "node": 681.410252,
+          "browser": 707.365917,
+          "delta": 25.955664999999954
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.right",
+          "node": 710.005713,
+          "browser": 735.606631,
+          "delta": 25.60091799999998
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.top",
+          "node": 351.901035,
+          "browser": 388.456854,
+          "delta": 36.55581900000004
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.headHeightPx",
+          "node": 34.045531,
+          "browser": 33.414124,
+          "delta": 0.6314069999999958
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.bottom",
+          "node": 385.946566,
+          "browser": 421.870978,
+          "delta": 35.92441199999996
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.left",
+          "node": 681.410252,
+          "browser": 707.365917,
+          "delta": 25.955664999999954
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.right",
+          "node": 710.005713,
+          "browser": 735.606631,
+          "delta": 25.60091799999998
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.top",
+          "node": 351.901035,
+          "browser": 388.456854,
+          "delta": 36.55581900000004
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.0",
+          "node": -3.538,
+          "browser": -2.790392,
+          "delta": 0.7476079999999996
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.1",
+          "node": 1.329903,
+          "browser": 1.160917,
+          "delta": 0.16898600000000008
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.2",
+          "node": -1.358,
+          "browser": -1.290392,
+          "delta": 0.06760800000000011
+        },
+        {
+          "path": "$.objects.person:s117.bounds.min.0",
+          "node": -4.462,
+          "browser": -3.459608,
+          "delta": 1.002392
+        },
+        {
+          "path": "$.objects.person:s117.bounds.min.2",
+          "node": -2.282,
+          "browser": -1.959608,
+          "delta": 0.322392
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.0",
+          "node": -3.86925,
+          "browser": -3.032437,
+          "delta": 0.8368130000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.1",
+          "node": 0.572505,
+          "browser": 0.353059,
+          "delta": 0.21944600000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.2",
+          "node": -1.813011,
+          "browser": -1.492958,
+          "delta": 0.3200529999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.0",
+          "node": -3.98525,
+          "browser": -3.285099,
+          "delta": 0.700151
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.1",
+          "node": 0.381915,
+          "browser": 0.034328,
+          "delta": 0.347587
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.2",
+          "node": -2.11001,
+          "browser": -1.612477,
+          "delta": 0.497533
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.0",
+          "node": -1,
+          "browser": 0.014063,
+          "delta": 1.014063
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.10",
+          "node": -0.120503,
+          "browser": 0.013047,
+          "delta": 0.13355
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.12",
+          "node": -3.92725,
+          "browser": -3.126023,
+          "delta": 0.8012269999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.13",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.14",
+          "node": -1.82,
+          "browser": -1.552257,
+          "delta": 0.26774300000000006
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.2",
+          "node": 0,
+          "browser": -0.999901,
+          "delta": 0.999901
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.4",
+          "node": 0,
+          "browser": 0.373047,
+          "delta": 0.373047
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.5",
+          "node": 0.120503,
+          "browser": 0.927798,
+          "delta": 0.807295
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.6",
+          "node": 0.992713,
+          "browser": 0.005247,
+          "delta": 0.987466
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.8",
+          "node": 0,
+          "browser": 0.927706,
+          "delta": 0.927706
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.9",
+          "node": 0.992713,
+          "browser": -0.373084,
+          "delta": 1.365797
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.0",
+          "node": -4.01475,
+          "browser": -2.925935,
+          "delta": 1.0888150000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.1",
+          "node": 0.572505,
+          "browser": 0.36873,
+          "delta": 0.20377500000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.2",
+          "node": -1.813011,
+          "browser": -1.636975,
+          "delta": 0.17603599999999986
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.0",
+          "node": -4.13075,
+          "browser": -3.178599,
+          "delta": 0.9521509999999997
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.1",
+          "node": 0.381915,
+          "browser": 0.049998,
+          "delta": 0.331917
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.2",
+          "node": -2.11001,
+          "browser": -1.756494,
+          "delta": 0.35351599999999994
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.0",
+          "node": -1,
+          "browser": 0.014063,
+          "delta": 1.014063
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.10",
+          "node": -0.120503,
+          "browser": 0.013047,
+          "delta": 0.13355
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.12",
+          "node": -4.07275,
+          "browser": -3.123977,
+          "delta": 0.9487730000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.13",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.14",
+          "node": -1.82,
+          "browser": -1.697743,
+          "delta": 0.12225700000000006
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.2",
+          "node": 0,
+          "browser": -0.999901,
+          "delta": 0.999901
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.4",
+          "node": 0,
+          "browser": -0.37306,
+          "delta": 0.37306
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.5",
+          "node": 0.120503,
+          "browser": 0.927793,
+          "delta": 0.80729
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.6",
+          "node": 0.992713,
+          "browser": -0.005247,
+          "delta": 0.99796
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.8",
+          "node": 0,
+          "browser": 0.927701,
+          "delta": 0.927701
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.9",
+          "node": 0.992713,
+          "browser": 0.373097,
+          "delta": 0.619616
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.0",
+          "node": -3.770511,
+          "browser": -2.867135,
+          "delta": 0.9033759999999997
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.1",
+          "node": 1.329903,
+          "browser": 1.160917,
+          "delta": 0.16898600000000008
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.2",
+          "node": -1.650921,
+          "browser": -1.383185,
+          "delta": 0.267736
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.0",
+          "node": -4.229489,
+          "browser": -3.351985,
+          "delta": 0.8775040000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.1",
+          "node": 0.692823,
+          "browser": 0.602067,
+          "delta": 0.09075599999999995
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.2",
+          "node": -2.217142,
+          "browser": -1.865487,
+          "delta": 0.35165500000000005
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.0",
+          "node": -1,
+          "browser": -0.053827,
+          "delta": 0.946173
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.1",
+          "node": 0,
+          "browser": 0.002716,
+          "delta": 0.002716
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.10",
+          "node": -0.964783,
+          "browser": -0.053893,
+          "delta": 0.91089
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.12",
+          "node": -4,
+          "browser": -3.113404,
+          "delta": 0.8865959999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.13",
+          "node": 0.758548,
+          "browser": 0.621188,
+          "delta": 0.13736000000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.14",
+          "node": -1.871919,
+          "browser": -1.624837,
+          "delta": 0.24708200000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.2",
+          "node": 0,
+          "browser": -0.998547,
+          "delta": 0.998547
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.4",
+          "node": 0,
+          "browser": 0.039986,
+          "delta": 0.039986
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.5",
+          "node": 0.964783,
+          "browser": 0.9992,
+          "delta": 0.03441700000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.6",
+          "node": -0.263048,
+          "browser": 0.000562,
+          "delta": 0.26361
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.8",
+          "node": 0,
+          "browser": 0.997749,
+          "delta": 0.997749
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.9",
+          "node": -0.263048,
+          "browser": -0.039898,
+          "delta": 0.22315000000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.0",
+          "node": -3.900865,
+          "browser": -2.885697,
+          "delta": 1.015168
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.1",
+          "node": 0.956374,
+          "browser": 0.869796,
+          "delta": 0.08657799999999993
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.2",
+          "node": -2.081362,
+          "browser": -1.535773,
+          "delta": 0.5455889999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.0",
+          "node": -4.099135,
+          "browser": -2.927852,
+          "delta": 1.1712830000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.1",
+          "node": 0.809518,
+          "browser": 0.723147,
+          "delta": 0.08637099999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.2",
+          "node": -2.144384,
+          "browser": -1.735224,
+          "delta": 0.40915999999999997
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.0",
+          "node": -1,
+          "browser": -0.053827,
+          "delta": 0.946173
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.1",
+          "node": 0,
+          "browser": 0.002716,
+          "delta": 0.002716
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.10",
+          "node": -0.964783,
+          "browser": -0.053893,
+          "delta": 0.91089
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.12",
+          "node": -4,
+          "browser": -3.113404,
+          "delta": 0.8865959999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.13",
+          "node": 0.758548,
+          "browser": 0.621188,
+          "delta": 0.13736000000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.14",
+          "node": -1.871919,
+          "browser": -1.624837,
+          "delta": 0.24708200000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.2",
+          "node": 0,
+          "browser": -0.998547,
+          "delta": 0.998547
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.4",
+          "node": 0,
+          "browser": 0.039986,
+          "delta": 0.039986
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.5",
+          "node": 0.964783,
+          "browser": 0.9992,
+          "delta": 0.03441700000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.6",
+          "node": -0.263048,
+          "browser": 0.000562,
+          "delta": 0.26361
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.8",
+          "node": 0,
+          "browser": 0.997749,
+          "delta": 0.997749
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.9",
+          "node": -0.263048,
+          "browser": -0.039898,
+          "delta": 0.22315000000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.0",
+          "node": -3.773215,
+          "browser": -2.972532,
+          "delta": 0.8006829999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.1",
+          "node": 0.760005,
+          "browser": 0.591275,
+          "delta": 0.16873000000000005
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.2",
+          "node": -1.843686,
+          "browser": -1.395564,
+          "delta": 0.4481219999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.0",
+          "node": -3.916913,
+          "browser": -3.157595,
+          "delta": 0.7593179999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.1",
+          "node": 0.598235,
+          "browser": 0.285072,
+          "delta": 0.31316299999999997
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.2",
+          "node": -2.151006,
+          "browser": -1.533362,
+          "delta": 0.6176440000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.0",
+          "node": -0.983844,
+          "browser": -0.089229,
+          "delta": 0.894615
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.1",
+          "node": 0.0393,
+          "browser": 0.116912,
+          "delta": 0.077612
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.10",
+          "node": -0.219515,
+          "browser": -0.050544,
+          "delta": 0.16897099999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.12",
+          "node": -3.82,
+          "browser": -3.105714,
+          "delta": 0.714286
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.13",
+          "node": 0.709356,
+          "browser": 0.570739,
+          "delta": 0.138617
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.14",
+          "node": -1.862967,
+          "browser": -1.445127,
+          "delta": 0.41784
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.2",
+          "node": 0.174663,
+          "browser": -0.989126,
+          "delta": 1.163789
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.4",
+          "node": 0.17903,
+          "browser": -0.290365,
+          "delta": 0.469395
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.5",
+          "node": 0.215969,
+          "browser": 0.946896,
+          "delta": 0.730927
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.6",
+          "node": 0.959847,
+          "browser": 0.138115,
+          "delta": 0.821732
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.8",
+          "node": 0,
+          "browser": 0.952747,
+          "delta": 0.952747
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.9",
+          "node": 0.975609,
+          "browser": 0.299531,
+          "delta": 0.676078
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.0",
+          "node": -4.083087,
+          "browser": -3.074132,
+          "delta": 1.0089549999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.1",
+          "node": 0.760045,
+          "browser": 0.595598,
+          "delta": 0.164447
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.2",
+          "node": -1.84453,
+          "browser": -1.716638,
+          "delta": 0.1278919999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.0",
+          "node": -4.226785,
+          "browser": -3.278279,
+          "delta": 0.9485059999999996
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.1",
+          "node": 0.603023,
+          "browser": 0.290004,
+          "delta": 0.313019
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.2",
+          "node": -2.151202,
+          "browser": -1.854191,
+          "delta": 0.29701100000000014
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.0",
+          "node": -0.983844,
+          "browser": -0.09824,
+          "delta": 0.8856040000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.1",
+          "node": -0.036162,
+          "browser": -0.108297,
+          "delta": 0.072135
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.10",
+          "node": -0.20199,
+          "browser": -0.050923,
+          "delta": 0.151067
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.12",
+          "node": -4.18,
+          "browser": -3.125092,
+          "delta": 1.0549079999999997
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.13",
+          "node": 0.709356,
+          "browser": 0.571717,
+          "delta": 0.13763899999999996
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.14",
+          "node": -1.862967,
+          "browser": -1.804603,
+          "delta": 0.05836400000000008
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.2",
+          "node": -0.175339,
+          "browser": -0.989253,
+          "delta": 0.813914
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.4",
+          "node": -0.17903,
+          "browser": 0.365094,
+          "delta": 0.5441239999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.5",
+          "node": 0.198727,
+          "browser": 0.920826,
+          "delta": 0.722099
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.6",
+          "node": 0.963564,
+          "browser": -0.137063,
+          "delta": 1.100627
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.8",
+          "node": 0,
+          "browser": 0.925773,
+          "delta": 0.925773
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.9",
+          "node": 0.979388,
+          "browser": -0.374635,
+          "delta": 1.354023
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.0",
+          "node": -3.821115,
+          "browser": -2.965494,
+          "delta": 0.8556209999999997
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.1",
+          "node": 0.890496,
+          "browser": 0.727514,
+          "delta": 0.16298199999999996
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.2",
+          "node": -1.62474,
+          "browser": -1.435461,
+          "delta": 0.18927899999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.0",
+          "node": -4.178885,
+          "browser": -3.332649,
+          "delta": 0.8462360000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.1",
+          "node": 0.449124,
+          "browser": 0.325561,
+          "delta": 0.12356300000000003
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.2",
+          "node": -2.021953,
+          "browser": -1.810883,
+          "delta": 0.21106999999999987
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.0",
+          "node": -1,
+          "browser": -0.053827,
+          "delta": 0.946173
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.1",
+          "node": 0,
+          "browser": 0.002716,
+          "delta": 0.002716
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.10",
+          "node": -0.983844,
+          "browser": -0.053893,
+          "delta": 0.9299510000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.12",
+          "node": -4,
+          "browser": -3.125,
+          "delta": 0.875
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.13",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.14",
+          "node": -1.82,
+          "browser": -1.625,
+          "delta": 0.19500000000000006
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.2",
+          "node": 0,
+          "browser": -0.998547,
+          "delta": 0.998547
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.4",
+          "node": 0,
+          "browser": 0.039986,
+          "delta": 0.039986
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.5",
+          "node": 0.983844,
+          "browser": 0.9992,
+          "delta": 0.015355999999999925
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.6",
+          "node": -0.17903,
+          "browser": 0.000562,
+          "delta": 0.179592
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.8",
+          "node": 0,
+          "browser": 0.997749,
+          "delta": 0.997749
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.9",
+          "node": -0.17903,
+          "browser": -0.039898,
+          "delta": 0.13913199999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.max.0",
+          "node": -3.538,
+          "browser": -2.790392,
+          "delta": 0.7476079999999996
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.max.2",
+          "node": -1.358,
+          "browser": -1.290392,
+          "delta": 0.06760800000000011
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.min.0",
+          "node": -4.462,
+          "browser": -3.459608,
+          "delta": 1.002392
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.min.2",
+          "node": -2.282,
+          "browser": -1.959608,
+          "delta": 0.322392
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.0",
+          "node": -1.4,
+          "browser": 0.014063,
+          "delta": 1.4140629999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.10",
+          "node": -1.4,
+          "browser": 0.014063,
+          "delta": 1.4140629999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.12",
+          "node": -4,
+          "browser": -3.125,
+          "delta": 0.875
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.14",
+          "node": -1.82,
+          "browser": -1.625,
+          "delta": 0.19500000000000006
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.2",
+          "node": 0,
+          "browser": -0.999901,
+          "delta": 0.999901
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.8",
+          "node": 0,
+          "browser": 0.999901,
+          "delta": 0.999901
+        },
+        {
+          "path": "$.objects.person:s117.person.activity",
+          "node": "typing",
+          "browser": "walk"
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.0",
+          "node": -3.82,
+          "browser": -3.105714,
+          "delta": 0.714286
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.1",
+          "node": 0.709356,
+          "browser": 0.570739,
+          "delta": 0.138617
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.2",
+          "node": -1.862967,
+          "browser": -1.445127,
+          "delta": 0.41784
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.0",
+          "node": -4.18,
+          "browser": -3.125092,
+          "delta": 1.0549079999999997
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.1",
+          "node": 0.709356,
+          "browser": 0.571717,
+          "delta": 0.13763899999999996
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.2",
+          "node": -1.862967,
+          "browser": -1.804603,
+          "delta": 0.05836400000000008
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.head.0",
+          "node": -4,
+          "browser": -3.113404,
+          "delta": 0.8865959999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.head.1",
+          "node": 0.758548,
+          "browser": 0.621188,
+          "delta": 0.13736000000000004
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.head.2",
+          "node": -1.871919,
+          "browser": -1.624837,
+          "delta": 0.24708200000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.hips.0",
+          "node": -4,
+          "browser": -3.125,
+          "delta": 0.875
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.hips.1",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.hips.2",
+          "node": -1.82,
+          "browser": -1.625,
+          "delta": 0.19500000000000006
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legL.0",
+          "node": -3.92725,
+          "browser": -3.126023,
+          "delta": 0.8012269999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legL.1",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legL.2",
+          "node": -1.82,
+          "browser": -1.552257,
+          "delta": 0.26774300000000006
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legR.0",
+          "node": -4.07275,
+          "browser": -3.123977,
+          "delta": 0.9487730000000001
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legR.1",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legR.2",
+          "node": -1.82,
+          "browser": -1.697743,
+          "delta": 0.12225700000000006
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.neck.0",
+          "node": -4,
+          "browser": -3.113404,
+          "delta": 0.8865959999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.neck.1",
+          "node": 0.758548,
+          "browser": 0.621188,
+          "delta": 0.13736000000000004
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.neck.2",
+          "node": -1.871919,
+          "browser": -1.624837,
+          "delta": 0.24708200000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.torso.0",
+          "node": -4,
+          "browser": -3.125,
+          "delta": 0.875
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.torso.1",
+          "node": 0.473233,
+          "browser": 0.33142,
+          "delta": 0.14181300000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.torso.2",
+          "node": -1.82,
+          "browser": -1.625,
+          "delta": 0.19500000000000006
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.0",
+          "node": -3.855806,
+          "browser": -3.047641,
+          "delta": 0.8081649999999998
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.1",
+          "node": 0.666162,
+          "browser": 0.38136,
+          "delta": 0.28480200000000006
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.2",
+          "node": -2.054936,
+          "browser": -1.47275,
+          "delta": 0.5821860000000001
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.0",
+          "node": -4.144194,
+          "browser": -3.198111,
+          "delta": 0.9460829999999998
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.1",
+          "node": 0.669611,
+          "browser": 0.387552,
+          "delta": 0.28205899999999995
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.2",
+          "node": -2.05568,
+          "browser": -1.777191,
+          "delta": 0.2784890000000002
+        },
+        {
+          "path": "$.objects.person:s117.person.walk.path.0",
+          "node": null,
+          "browser": {
+            "x": -3.125,
+            "z": -1.975
+          }
+        },
+        {
+          "path": "$.objects.person:s117.person.walk.path.1",
+          "node": null,
+          "browser": {
+            "x": -0.675,
+            "z": -4.425
+          }
+        },
+        {
+          "path": "$.objects.person:s117.person.walk.path.2",
+          "node": null,
+          "browser": {
+            "x": -0.85,
+            "z": -4.91
+          }
+        },
+        {
+          "path": "$.objects.person:s117.person.walk.temp",
+          "node": null,
+          "browser": {
+            "anim": "sip",
+            "back": true,
+            "by": null,
+            "delay": 0,
+            "goal": {
+              "x": -0.85,
+              "yaw": 2.606173,
+              "z": -4.91
+            },
+            "keepPos": false,
+            "moment": null,
+            "perk": "f213:0",
+            "t": 7.738238
+          }
+        },
+        {
+          "path": "$.objects.person:s117.world.0",
+          "node": -1,
+          "browser": 0.014063,
+          "delta": 1.014063
+        },
+        {
+          "path": "$.objects.person:s117.world.10",
+          "node": -1,
+          "browser": 0.014063,
+          "delta": 1.014063
+        },
+        {
+          "path": "$.objects.person:s117.world.12",
+          "node": -4,
+          "browser": -3.125,
+          "delta": 0.875
+        },
+        {
+          "path": "$.objects.person:s117.world.14",
+          "node": -1.82,
+          "browser": -1.625,
+          "delta": 0.19500000000000006
+        },
+        {
+          "path": "$.objects.person:s117.world.2",
+          "node": 0,
+          "browser": -0.999901,
+          "delta": 0.999901
+        },
+        {
+          "path": "$.objects.person:s117.world.8",
+          "node": 0,
+          "browser": 0.999901,
+          "delta": 0.999901
+        },
+        {
+          "path": "$.objects.wall:columns.parts.wall:columns/part:2.visible",
+          "node": false,
+          "browser": true
+        },
+        {
+          "path": "$.objects.wall:columns.parts.wall:columns/part:3.visible",
+          "node": false,
+          "browser": true
+        }
+      ],
+      "grouped": {
+        "$.facts.clearances": 3,
+        "$.facts.intersections": 4,
+        "$.facts.people": 68,
+        "$.objects.person:s117": 180,
+        "$.objects.wall:columns": 2
+      },
+      "nodeTiming": {
+        "stepMs": 4.212332999999489,
+        "sampleMs": 120.80077900000015
+      },
+      "browserTiming": {
+        "stepMs": 4.800000011920929,
+        "sampleMs": 149.39999997615814
+      },
+      "nodeRoundTripMs": 125.91523400000005,
+      "browserRoundTripMs": 195.18822999999975,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 180,
+      "differences": [
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.0",
+          "node": 35.19749,
+          "browser": 35.875134,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.2",
+          "node": 32.619162,
+          "browser": 31.941518,
+          "delta": 0.6776440000000044
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.0",
+          "node": -1.216886,
+          "browser": -0.539242,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.2",
+          "node": -3.795215,
+          "browser": -4.472859,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.0",
+          "node": 35.158443,
+          "browser": 35.836087,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.2",
+          "node": 32.590219,
+          "browser": 31.912575,
+          "delta": 0.6776439999999972
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.0",
+          "node": -1.323636,
+          "browser": -0.645992,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.2",
+          "node": -3.89186,
+          "browser": -4.569504,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.0",
+          "node": 35.181345,
+          "browser": 35.858989,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.2",
+          "node": 32.604655,
+          "browser": 31.927011,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.0",
+          "node": -1.2176,
+          "browser": -0.539956,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.2",
+          "node": -3.79429,
+          "browser": -4.471934,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.0",
+          "node": 35.142298,
+          "browser": 35.819942,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.2",
+          "node": 32.575712,
+          "browser": 31.898068,
+          "delta": 0.6776440000000044
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.0",
+          "node": -1.32435,
+          "browser": -0.646706,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.2",
+          "node": -3.890936,
+          "browser": -4.56858,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.0",
+          "node": 35.119179,
+          "browser": 35.796823,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.2",
+          "node": 32.577591,
+          "browser": 31.899947,
+          "delta": 0.6776439999999972
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.point.0",
+          "node": -1.285136,
+          "browser": -0.607492,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.point.2",
+          "node": -3.826724,
+          "browser": -4.504368,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.0",
+          "node": 35.195503,
+          "browser": 35.873147,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.2",
+          "node": 32.63709,
+          "browser": 31.959446,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.point.0",
+          "node": -1.277428,
+          "browser": -0.599784,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.point.2",
+          "node": -3.835842,
+          "browser": -4.513486,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.0",
+          "node": 35.175396,
+          "browser": 35.85304,
+          "delta": 0.6776440000000008
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.2",
+          "node": 32.705299,
+          "browser": 32.027655,
+          "delta": 0.6776439999999937
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.point.0",
+          "node": -1.319491,
+          "browser": -0.641847,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.point.2",
+          "node": -3.789589,
+          "browser": -4.467233,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.left",
+          "node": 872.379741,
+          "browser": 931.56322,
+          "delta": 59.183479000000034
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.right",
+          "node": 899.735481,
+          "browser": 958.91896,
+          "delta": 59.18347899999992
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.left",
+          "node": 872.379741,
+          "browser": 931.56322,
+          "delta": 59.183479000000034
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.right",
+          "node": 899.735481,
+          "browser": 958.91896,
+          "delta": 59.18347899999992
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.0",
+          "node": -0.949468,
+          "browser": -0.271824,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.2",
+          "node": -3.217151,
+          "browser": -3.894795,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.bounds.min.0",
+          "node": -1.882849,
+          "browser": -1.205205,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.bounds.min.2",
+          "node": -4.150532,
+          "browser": -4.828176,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.0",
+          "node": -1.255737,
+          "browser": -0.578093,
+          "delta": 0.6776440000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.2",
+          "node": -3.497357,
+          "browser": -4.175001,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.0",
+          "node": -1.499759,
+          "browser": -0.822115,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.2",
+          "node": -3.741379,
+          "browser": -4.419023,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.12",
+          "node": -1.364717,
+          "browser": -0.687073,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.14",
+          "node": -3.632399,
+          "browser": -4.310043,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.0",
+          "node": -1.304012,
+          "browser": -0.626368,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.2",
+          "node": -3.65485,
+          "browser": -4.332494,
+          "delta": 0.6776439999999995
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.0",
+          "node": -1.548034,
+          "browser": -0.87039,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.2",
+          "node": -3.898872,
+          "browser": -4.576516,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.12",
+          "node": -1.467601,
+          "browser": -0.789957,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.14",
+          "node": -3.735283,
+          "browser": -4.412927,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.0",
+          "node": -1.079881,
+          "browser": -0.402237,
+          "delta": 0.6776440000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.2",
+          "node": -3.37007,
+          "browser": -4.047714,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.0",
+          "node": -1.730138,
+          "browser": -1.052494,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.2",
+          "node": -4.018987,
+          "browser": -4.696631,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.12",
+          "node": -1.407958,
+          "browser": -0.730314,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.14",
+          "node": -3.692042,
+          "browser": -4.369686,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.0",
+          "node": -1.18466,
+          "browser": -0.507016,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.2",
+          "node": -3.767077,
+          "browser": -4.444721,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.0",
+          "node": -1.353003,
+          "browser": -0.675359,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.2",
+          "node": -3.923315,
+          "browser": -4.600959,
+          "delta": 0.6776439999999995
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.12",
+          "node": -1.407958,
+          "browser": -0.730314,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.14",
+          "node": -3.692042,
+          "browser": -4.369686,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.0",
+          "node": -1.193392,
+          "browser": -0.515748,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.2",
+          "node": -3.502803,
+          "browser": -4.180447,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.0",
+          "node": -1.344552,
+          "browser": -0.666908,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.2",
+          "node": -3.702968,
+          "browser": -4.380612,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.12",
+          "node": -1.275935,
+          "browser": -0.598291,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.14",
+          "node": -3.569821,
+          "browser": -4.247465,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.0",
+          "node": -1.474584,
+          "browser": -0.79694,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.2",
+          "node": -3.664077,
+          "browser": -4.341721,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.0",
+          "node": -1.640187,
+          "browser": -0.962543,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.2",
+          "node": -3.877437,
+          "browser": -4.555081,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.12",
+          "node": -1.54281,
+          "browser": -0.865166,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.14",
+          "node": -3.811435,
+          "browser": -4.489079,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.0",
+          "node": -1.182276,
+          "browser": -0.504632,
+          "delta": 0.6776440000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.2",
+          "node": -3.416762,
+          "browser": -4.094406,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.0",
+          "node": -1.681853,
+          "browser": -1.004209,
+          "delta": 0.6776440000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.2",
+          "node": -3.914629,
+          "browser": -4.592273,
+          "delta": 0.6776439999999995
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.12",
+          "node": -1.416159,
+          "browser": -0.738515,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.14",
+          "node": -3.683841,
+          "browser": -4.361485,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.max.0",
+          "node": -0.949468,
+          "browser": -0.271824,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.max.2",
+          "node": -3.217151,
+          "browser": -3.894795,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.min.0",
+          "node": -1.882849,
+          "browser": -1.205205,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.min.2",
+          "node": -4.150532,
+          "browser": -4.828176,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.12",
+          "node": -1.416159,
+          "browser": -0.738515,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.14",
+          "node": -3.683841,
+          "browser": -4.361485,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.0",
+          "node": -1.275935,
+          "browser": -0.598291,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.2",
+          "node": -3.569821,
+          "browser": -4.247465,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.0",
+          "node": -1.54281,
+          "browser": -0.865166,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.2",
+          "node": -3.811435,
+          "browser": -4.489079,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.head.0",
+          "node": -1.407958,
+          "browser": -0.730314,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.head.2",
+          "node": -3.692042,
+          "browser": -4.369686,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.hips.0",
+          "node": -1.416159,
+          "browser": -0.738515,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.hips.2",
+          "node": -3.683841,
+          "browser": -4.361485,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legL.0",
+          "node": -1.364717,
+          "browser": -0.687073,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legL.2",
+          "node": -3.632399,
+          "browser": -4.310043,
+          "delta": 0.6776440000000004
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legR.0",
+          "node": -1.467601,
+          "browser": -0.789957,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legR.2",
+          "node": -3.735283,
+          "browser": -4.412927,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.neck.0",
+          "node": -1.407958,
+          "browser": -0.730314,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.neck.2",
+          "node": -3.692042,
+          "browser": -4.369686,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.torso.0",
+          "node": -1.416159,
+          "browser": -0.738515,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.torso.2",
+          "node": -3.683841,
+          "browser": -4.361485,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.0",
+          "node": -1.265988,
+          "browser": -0.588344,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.2",
+          "node": -3.617056,
+          "browser": -4.2947,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.0",
+          "node": -1.563633,
+          "browser": -0.885989,
+          "delta": 0.677644
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.2",
+          "node": -3.753324,
+          "browser": -4.430968,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.world.12",
+          "node": -1.416159,
+          "browser": -0.738515,
+          "delta": 0.6776439999999999
+        },
+        {
+          "path": "$.objects.person:s117.world.14",
+          "node": -3.683841,
+          "browser": -4.361485,
+          "delta": 0.6776439999999999
+        }
+      ],
+      "grouped": {
+        "$.facts.people": 32,
+        "$.objects.person:s117": 74
+      },
+      "nodeTiming": {
+        "stepMs": 13.47483000000011,
+        "sampleMs": 106.80728699999963
+      },
+      "browserTiming": {
+        "stepMs": 12.699999988079071,
+        "sampleMs": 109.10000002384186
+      },
+      "nodeRoundTripMs": 121.1509500000002,
+      "browserRoundTripMs": 162.20589199999995,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 600,
+      "differences": [
+        {
+          "path": "$.facts.clearances.item:f127|person:s2",
+          "node": null,
+          "browser": {
+            "a": "item:f127",
+            "b": "person:s2",
+            "clearanceM": 0.13361,
+            "partA": "item:f127/part:9",
+            "partB": "person:s2/part:1"
+          }
+        },
+        {
+          "path": "$.facts.clearances.item:f91|person:s117.clearanceM",
+          "node": 0.346197,
+          "browser": 0.346811,
+          "delta": 0.0006140000000000034
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:0|person:s117/part:0.vertexDepthLowerBoundM",
+          "node": 0.025706,
+          "browser": 0.025371,
+          "delta": 0.0003349999999999985
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:0|person:s117/part:1.vertexDepthLowerBoundM",
+          "node": 0.025205,
+          "browser": 0.02537,
+          "delta": 0.00016499999999999848
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:7|person:s117/part:0.vertexDepthLowerBoundM",
+          "node": 0.018239,
+          "browser": 0.018487,
+          "delta": 0.0002480000000000017
+        },
+        {
+          "path": "$.facts.intersections.item:f127/part:7|person:s117/part:1.vertexDepthLowerBoundM",
+          "node": 0.018739,
+          "browser": 0.018488,
+          "delta": 0.00025099999999999775
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.distanceM",
+          "node": 63.35212,
+          "browser": 63.352179,
+          "delta": 0.000059000000000253294
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.0",
+          "node": 32.792239,
+          "browser": 32.792858,
+          "delta": 0.0006190000000003693
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.1",
+          "node": 37.612699,
+          "browser": 37.612267,
+          "delta": 0.00043199999999643524
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.origin.2",
+          "node": 34.644906,
+          "browser": 34.644719,
+          "delta": 0.0001869999999968286
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.0",
+          "node": -3.929054,
+          "browser": -3.928002,
+          "delta": 0.0010519999999996088
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.0.point.2",
+          "node": -2.076387,
+          "browser": -2.076142,
+          "delta": 0.00024500000000005073
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.distanceM",
+          "node": 63.285543,
+          "browser": 63.2856,
+          "delta": 0.00005700000000530281
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.0",
+          "node": 32.696074,
+          "browser": 32.696858,
+          "delta": 0.0007839999999958991
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.1",
+          "node": 37.660533,
+          "browser": 37.660266,
+          "delta": 0.0002670000000009054
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.origin.2",
+          "node": 34.693236,
+          "browser": 34.692719,
+          "delta": 0.0005170000000020991
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.0",
+          "node": -4.073053,
+          "browser": -4.072002,
+          "delta": 0.001050999999999469
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.1.point.2",
+          "node": -2.075891,
+          "browser": -2.076141,
+          "delta": 0.00024999999999986144
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.distanceM",
+          "node": 63.365029,
+          "browser": 63.364922,
+          "delta": 0.00010699999999985721
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.0",
+          "node": 32.781427,
+          "browser": 32.782074,
+          "delta": 0.0006470000000007303
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.1",
+          "node": 37.646404,
+          "browser": 37.645958,
+          "delta": 0.00044599999999661577
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.origin.2",
+          "node": 34.622013,
+          "browser": 34.621812,
+          "delta": 0.00020100000000411455
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.0",
+          "node": -3.929096,
+          "browser": -3.928002,
+          "delta": 0.0010939999999997063
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.2.point.2",
+          "node": -2.08851,
+          "browser": -2.088265,
+          "delta": 0.00024500000000005073
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.distanceM",
+          "node": 63.286037,
+          "browser": 63.285352,
+          "delta": 0.0006849999999971601
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.0",
+          "node": 32.685262,
+          "browser": 32.686073,
+          "delta": 0.0008109999999987849
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.1",
+          "node": 37.694238,
+          "browser": 37.693958,
+          "delta": 0.00027999999999650527
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.origin.2",
+          "node": 34.670343,
+          "browser": 34.669812,
+          "delta": 0.0005310000000022796
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.0",
+          "node": -4.073095,
+          "browser": -4.072002,
+          "delta": 0.0010930000000000106
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.3.point.2",
+          "node": -2.088014,
+          "browser": -2.088264,
+          "delta": 0.00025000000000030553
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.distanceM",
+          "node": 63.26168,
+          "browser": 63.261647,
+          "delta": 0.00003299999999484271
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.0",
+          "node": 32.70579,
+          "browser": 32.706527,
+          "delta": 0.0007370000000008758
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.1",
+          "node": 37.729081,
+          "browser": 37.728714,
+          "delta": 0.00036700000000422506
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.origin.2",
+          "node": 34.614972,
+          "browser": 34.614602,
+          "delta": 0.0003700000000037562
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.4.point.0",
+          "node": -4.001108,
+          "browser": -4.000002,
+          "delta": 0.0011060000000000514
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.distanceM",
+          "node": 63.300964,
+          "browser": 63.30085,
+          "delta": 0.00011400000000350019
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.0",
+          "node": 32.756549,
+          "browser": 32.757178,
+          "delta": 0.0006290000000035434
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.1",
+          "node": 37.580427,
+          "browser": 37.580113,
+          "delta": 0.0003140000000030341
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.origin.2",
+          "node": 34.712868,
+          "browser": 34.712552,
+          "delta": 0.00031599999999798456
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.5.point.0",
+          "node": -4.000945,
+          "browser": -4.000002,
+          "delta": 0.000942999999999472
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.distanceM",
+          "node": 63.312331,
+          "browser": 63.312291,
+          "delta": 0.00003999999999848569
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.0",
+          "node": 32.746445,
+          "browser": 32.74689,
+          "delta": 0.00044499999999914053
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.1",
+          "node": 37.520901,
+          "browser": 37.520679,
+          "delta": 0.00022200000000083264
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.origin.2",
+          "node": 34.782498,
+          "browser": 34.782274,
+          "delta": 0.00022399999999578313
+        },
+        {
+          "path": "$.facts.people.person:s117.landmarks.6.point.0",
+          "node": -4.00067,
+          "browser": -4.000001,
+          "delta": 0.0006690000000002527
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.bottom",
+          "node": 387.195738,
+          "browser": 387.201787,
+          "delta": 0.006049000000018623
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.left",
+          "node": 679.848075,
+          "browser": 679.872814,
+          "delta": 0.024738999999954103
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.right",
+          "node": 708.369026,
+          "browser": 708.381436,
+          "delta": 0.01241000000004533
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.clippedRectangle.top",
+          "node": 352.845444,
+          "browser": 352.851496,
+          "delta": 0.0060520000000110485
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.bottom",
+          "node": 387.195738,
+          "browser": 387.201787,
+          "delta": 0.006049000000018623
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.left",
+          "node": 679.848075,
+          "browser": 679.872814,
+          "delta": 0.024738999999954103
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.right",
+          "node": 708.369026,
+          "browser": 708.381436,
+          "delta": 0.01241000000004533
+        },
+        {
+          "path": "$.facts.people.person:s117.projection.rectangle.top",
+          "node": 352.845444,
+          "browser": 352.851496,
+          "delta": 0.0060520000000110485
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.0.origin.0",
+          "node": 34.224463,
+          "browser": 33.201073,
+          "delta": 1.0233899999999991
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.0.origin.1",
+          "node": 37.222789,
+          "browser": 37.098539,
+          "delta": 0.12424999999999642
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.0.origin.2",
+          "node": 33.602591,
+          "browser": 34.750231,
+          "delta": 1.1476400000000027
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.0.point.0",
+          "node": -2.188079,
+          "browser": -3.087218,
+          "delta": 0.8991389999999999
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.0.point.2",
+          "node": -2.80995,
+          "browser": -1.53806,
+          "delta": 1.2718900000000002
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.1.distanceM",
+          "node": 63.011524,
+          "browser": 62.869085,
+          "delta": 0.1424390000000031
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.1.origin.0",
+          "node": 34.190628,
+          "browser": 33.175007,
+          "delta": 1.0156209999999959
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.1.origin.1",
+          "node": 37.290652,
+          "browser": 37.166204,
+          "delta": 0.124448000000001
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.1.origin.2",
+          "node": 33.568563,
+          "browser": 34.708632,
+          "delta": 1.140069000000004
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.1.point.0",
+          "node": -2.289806,
+          "browser": -3.180978,
+          "delta": 0.8911720000000001
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.1.point.2",
+          "node": -2.91187,
+          "browser": -1.647354,
+          "delta": 1.264516
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.2.origin.0",
+          "node": 34.208277,
+          "browser": 33.18487,
+          "delta": 1.023407000000006
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.2.origin.1",
+          "node": 37.253517,
+          "browser": 37.129308,
+          "delta": 0.12420900000000046
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.2.origin.2",
+          "node": 33.588049,
+          "browser": 34.735666,
+          "delta": 1.1476170000000039
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.2.point.0",
+          "node": -2.188908,
+          "browser": -3.088107,
+          "delta": 0.8991989999999999
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.2.point.2",
+          "node": -2.809136,
+          "browser": -1.537311,
+          "delta": 1.271825
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.3.distanceM",
+          "node": 63.030919,
+          "browser": 62.830757,
+          "delta": 0.20016199999999884
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.3.origin.0",
+          "node": 34.174443,
+          "browser": 33.158804,
+          "delta": 1.015638999999993
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.3.origin.1",
+          "node": 37.321379,
+          "browser": 37.196973,
+          "delta": 0.12440600000000046
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.3.origin.2",
+          "node": 33.554022,
+          "browser": 34.694066,
+          "delta": 1.140043999999996
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.3.point.0",
+          "node": -2.290635,
+          "browser": -3.181866,
+          "delta": 0.8912309999999999
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.3.point.2",
+          "node": -2.911056,
+          "browser": -1.646604,
+          "delta": 1.264452
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.4.distanceM",
+          "node": 62.997733,
+          "browser": 62.785011,
+          "delta": 0.2127219999999994
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.4.origin.0",
+          "node": 34.148399,
+          "browser": 33.128543,
+          "delta": 1.0198559999999972
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.4.origin.1",
+          "node": 37.343277,
+          "browser": 37.219725,
+          "delta": 0.12355200000000366
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.4.origin.2",
+          "node": 33.558167,
+          "browser": 34.701575,
+          "delta": 1.1434080000000009
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.4.point.0",
+          "node": -2.254844,
+          "browser": -3.151148,
+          "delta": 0.8963040000000002
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.4.point.2",
+          "node": -2.845076,
+          "browser": -1.578116,
+          "delta": 1.26696
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.5.distanceM",
+          "node": 63.056415,
+          "browser": 62.85865,
+          "delta": 0.19776500000000397
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.5.origin.0",
+          "node": 34.224988,
+          "browser": 33.205317,
+          "delta": 1.0196710000000024
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.5.origin.1",
+          "node": 37.206959,
+          "browser": 37.082983,
+          "delta": 0.12397599999999898
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.5.origin.2",
+          "node": 33.617896,
+          "browser": 34.761543,
+          "delta": 1.1436470000000014
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.5.point.0",
+          "node": -2.246376,
+          "browser": -3.142072,
+          "delta": 0.895696
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.5.point.2",
+          "node": -2.853469,
+          "browser": -1.585847,
+          "delta": 1.267622
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.6.distanceM",
+          "node": 63.004888,
+          "browser": 62.810378,
+          "delta": 0.19451000000000107
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.6.origin.0",
+          "node": 34.20412,
+          "browser": 33.183466,
+          "delta": 1.0206540000000004
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.6.origin.1",
+          "node": 37.160276,
+          "browser": 37.038521,
+          "delta": 0.12175500000000028
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.6.origin.2",
+          "node": 33.685448,
+          "browser": 34.827856,
+          "delta": 1.142407999999996
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.6.point.0",
+          "node": -2.290618,
+          "browser": -3.189516,
+          "delta": 0.898898
+        },
+        {
+          "path": "$.facts.people.person:s2.landmarks.6.point.2",
+          "node": -2.80929,
+          "browser": -1.545127,
+          "delta": 1.264163
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.clippedRectangle.bottom",
+          "node": 413.391229,
+          "browser": 422.239816,
+          "delta": 8.848587000000009
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.clippedRectangle.left",
+          "node": 787.136737,
+          "browser": 692.74207,
+          "delta": 94.39466700000003
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.clippedRectangle.right",
+          "node": 815.251873,
+          "browser": 720.891628,
+          "delta": 94.36024500000008
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.clippedRectangle.top",
+          "node": 385.708342,
+          "browser": 394.531315,
+          "delta": 8.82297299999999
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.headHeightPx",
+          "node": 27.682887,
+          "browser": 27.708502,
+          "delta": 0.02561499999999839
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.rectangle.bottom",
+          "node": 413.391229,
+          "browser": 422.239816,
+          "delta": 8.848587000000009
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.rectangle.left",
+          "node": 787.136737,
+          "browser": 692.74207,
+          "delta": 94.39466700000003
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.rectangle.right",
+          "node": 815.251873,
+          "browser": 720.891628,
+          "delta": 94.36024500000008
+        },
+        {
+          "path": "$.facts.people.person:s2.projection.rectangle.top",
+          "node": 385.708342,
+          "browser": 394.531315,
+          "delta": 8.82297299999999
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.0",
+          "node": -3.536412,
+          "browser": -3.537997,
+          "delta": 0.0015849999999999476
+        },
+        {
+          "path": "$.objects.person:s117.bounds.max.2",
+          "node": -1.306518,
+          "browser": -1.308102,
+          "delta": 0.0015840000000000298
+        },
+        {
+          "path": "$.objects.person:s117.bounds.min.0",
+          "node": -4.463588,
+          "browser": -4.462003,
+          "delta": 0.0015849999999995035
+        },
+        {
+          "path": "$.objects.person:s117.bounds.min.2",
+          "node": -2.233693,
+          "browser": -2.232109,
+          "delta": 0.0015840000000002519
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.0",
+          "node": -3.869227,
+          "browser": -3.86925,
+          "delta": 0.00002300000000010627
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.max.2",
+          "node": -1.763166,
+          "browser": -1.763116,
+          "delta": 0.000050000000000105516
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.0",
+          "node": -3.986248,
+          "browser": -3.985252,
+          "delta": 0.0009959999999997748
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.bounds.min.2",
+          "node": -2.060564,
+          "browser": -2.060116,
+          "delta": 0.00044800000000000395
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.14",
+          "node": -1.770356,
+          "browser": -1.770106,
+          "delta": 0.0002500000000000835
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.2",
+          "node": 0.003442,
+          "browser": 0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.4",
+          "node": 0.003417,
+          "browser": 0.000007,
+          "delta": 0.00341
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:0.world.8",
+          "node": -0.000415,
+          "browser": -0.000001,
+          "delta": 0.000414
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.0",
+          "node": -4.014726,
+          "browser": -4.01475,
+          "delta": 0.000024000000000690136
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.max.2",
+          "node": -1.762666,
+          "browser": -1.763115,
+          "delta": 0.0004489999999999217
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.0",
+          "node": -4.131748,
+          "browser": -4.130752,
+          "delta": 0.0009959999999997748
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.bounds.min.2",
+          "node": -2.060063,
+          "browser": -2.060115,
+          "delta": 0.00005200000000016303
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.14",
+          "node": -1.769855,
+          "browser": -1.770105,
+          "delta": 0.0002500000000000835
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.2",
+          "node": 0.003442,
+          "browser": 0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.4",
+          "node": 0.003417,
+          "browser": 0.000007,
+          "delta": 0.00341
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:1.world.8",
+          "node": -0.000415,
+          "browser": -0.000001,
+          "delta": 0.000414
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.0",
+          "node": -3.769943,
+          "browser": -3.770509,
+          "delta": 0.0005660000000000664
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.max.2",
+          "node": -1.603954,
+          "browser": -1.604741,
+          "delta": 0.0007869999999998711
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.0",
+          "node": -4.230955,
+          "browser": -4.229493,
+          "delta": 0.0014620000000000744
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.bounds.min.2",
+          "node": -2.196969,
+          "browser": -2.196184,
+          "delta": 0.0007850000000000357
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.12",
+          "node": -4.000179,
+          "browser": -4,
+          "delta": 0.00017900000000015126
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.2",
+          "node": 0.003442,
+          "browser": 0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.4",
+          "node": -0.00112,
+          "browser": -0.000002,
+          "delta": 0.0011179999999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:2.world.8",
+          "node": -0.003255,
+          "browser": -0.000007,
+          "delta": 0.003248
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.0",
+          "node": -3.901776,
+          "browser": -3.900867,
+          "delta": 0.0009090000000000487
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.max.2",
+          "node": -2.034438,
+          "browser": -2.034781,
+          "delta": 0.0003429999999999822
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.0",
+          "node": -4.100292,
+          "browser": -4.099138,
+          "delta": 0.0011539999999996553
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.bounds.min.2",
+          "node": -2.106688,
+          "browser": -2.10635,
+          "delta": 0.0003380000000001715
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.12",
+          "node": -4.000179,
+          "browser": -4,
+          "delta": 0.00017900000000015126
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.2",
+          "node": 0.003442,
+          "browser": 0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.4",
+          "node": -0.00112,
+          "browser": -0.000002,
+          "delta": 0.0011179999999999999
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:3.world.8",
+          "node": -0.003255,
+          "browser": -0.000007,
+          "delta": 0.003248
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.0",
+          "node": -3.773355,
+          "browser": -3.773216,
+          "delta": 0.0001389999999998892
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.max.2",
+          "node": -1.794091,
+          "browser": -1.793634,
+          "delta": 0.00045700000000015173
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.0",
+          "node": -3.917995,
+          "browser": -3.916915,
+          "delta": 0.0010799999999999699
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.bounds.min.2",
+          "node": -2.10167,
+          "browser": -2.101065,
+          "delta": 0.0006049999999997446
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.0",
+          "node": -0.983237,
+          "browser": -0.983842,
+          "delta": 0.0006049999999999667
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.12",
+          "node": -3.820149,
+          "browser": -3.82,
+          "delta": 0.00014899999999995472
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.14",
+          "node": -1.813691,
+          "browser": -1.813074,
+          "delta": 0.0006169999999998677
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.2",
+          "node": 0.177915,
+          "browser": 0.174537,
+          "delta": 0.003377999999999992
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.4",
+          "node": 0.18233,
+          "browser": 0.179037,
+          "delta": 0.0032929999999999904
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.6",
+          "node": 0.958493,
+          "browser": 0.959115,
+          "delta": 0.0006220000000000114
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:4.world.8",
+          "node": -0.000767,
+          "browser": -0.000002,
+          "delta": 0.000765
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.0",
+          "node": -4.0841,
+          "browser": -4.083089,
+          "delta": 0.0010110000000000952
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.max.2",
+          "node": -1.794158,
+          "browser": -1.794616,
+          "delta": 0.00045800000000006946
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.0",
+          "node": -4.226995,
+          "browser": -4.226785,
+          "delta": 0.00021000000000004349
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.bounds.min.2",
+          "node": -2.100694,
+          "browser": -2.101303,
+          "delta": 0.0006090000000003037
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.0",
+          "node": -0.984441,
+          "browser": -0.983845,
+          "delta": 0.0005960000000000409
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.12",
+          "node": -4.180147,
+          "browser": -4.18,
+          "delta": 0.00014700000000011926
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.14",
+          "node": -1.812452,
+          "browser": -1.813071,
+          "delta": 0.0006190000000001472
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.2",
+          "node": -0.171937,
+          "browser": -0.175318,
+          "delta": 0.003380999999999995
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.4",
+          "node": -0.175712,
+          "browser": -0.179022,
+          "delta": 0.0033099999999999796
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.6",
+          "node": 0.964098,
+          "browser": 0.96349,
+          "delta": 0.0006080000000000529
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:5.world.8",
+          "node": -0.000697,
+          "browser": -0.000002,
+          "delta": 0.000695
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.0",
+          "node": -3.820444,
+          "browser": -3.821114,
+          "delta": 0.0006699999999999484
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.max.2",
+          "node": -1.57423,
+          "browser": -1.574844,
+          "delta": 0.0006139999999998924
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.0",
+          "node": -4.179579,
+          "browser": -4.178887,
+          "delta": 0.0006920000000008031
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.bounds.min.2",
+          "node": -1.972673,
+          "browser": -1.97206,
+          "delta": 0.0006129999999999747
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.2",
+          "node": 0.003442,
+          "browser": 0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.4",
+          "node": -0.000616,
+          "browser": -0.000001,
+          "delta": 0.000615
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:6.world.8",
+          "node": -0.003387,
+          "browser": -0.000007,
+          "delta": 0.0033799999999999998
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.max.0",
+          "node": -3.536412,
+          "browser": -3.537997,
+          "delta": 0.0015849999999999476
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.max.2",
+          "node": -1.306518,
+          "browser": -1.308102,
+          "delta": 0.0015840000000000298
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.min.0",
+          "node": -4.463588,
+          "browser": -4.462003,
+          "delta": 0.0015849999999995035
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.bounds.min.2",
+          "node": -2.233693,
+          "browser": -2.232109,
+          "delta": 0.0015840000000002519
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.2",
+          "node": 0.004819,
+          "browser": 0.00001,
+          "delta": 0.004809000000000001
+        },
+        {
+          "path": "$.objects.person:s117.parts.person:s117/part:7.world.8",
+          "node": -0.004819,
+          "browser": -0.00001,
+          "delta": 0.004809000000000001
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.0",
+          "node": -3.820149,
+          "browser": -3.82,
+          "delta": 0.00014899999999995472
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armL.2",
+          "node": -1.813691,
+          "browser": -1.813074,
+          "delta": 0.0006169999999998677
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.0",
+          "node": -4.180147,
+          "browser": -4.18,
+          "delta": 0.00014700000000011926
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.armR.2",
+          "node": -1.812452,
+          "browser": -1.813071,
+          "delta": 0.0006190000000001472
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.head.0",
+          "node": -4.000179,
+          "browser": -4,
+          "delta": 0.00017900000000015126
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legL.2",
+          "node": -1.770356,
+          "browser": -1.770106,
+          "delta": 0.0002500000000000835
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.legR.2",
+          "node": -1.769855,
+          "browser": -1.770105,
+          "delta": 0.0002500000000000835
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.neck.0",
+          "node": -4.000179,
+          "browser": -4,
+          "delta": 0.00017900000000015126
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.0",
+          "node": -3.856615,
+          "browser": -3.855808,
+          "delta": 0.0008070000000000022
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristL.2",
+          "node": -2.00539,
+          "browser": -2.004897,
+          "delta": 0.0004929999999996326
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.0",
+          "node": -4.145004,
+          "browser": -4.144196,
+          "delta": 0.0008080000000001419
+        },
+        {
+          "path": "$.objects.person:s117.person.joints.wristR.2",
+          "node": -2.005272,
+          "browser": -2.005769,
+          "delta": 0.0004969999999997476
+        },
+        {
+          "path": "$.objects.person:s117.world.2",
+          "node": 0.003442,
+          "browser": 0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s117.world.8",
+          "node": -0.003442,
+          "browser": -0.000007,
+          "delta": 0.003435
+        },
+        {
+          "path": "$.objects.person:s2.bounds.max.0",
+          "node": -1.925297,
+          "browser": -2.832717,
+          "delta": 0.9074200000000001
+        },
+        {
+          "path": "$.objects.person:s2.bounds.max.2",
+          "node": -2.24133,
+          "browser": -0.98627,
+          "delta": 1.25506
+        },
+        {
+          "path": "$.objects.person:s2.bounds.min.0",
+          "node": -2.85867,
+          "browser": -3.76373,
+          "delta": 0.9050599999999998
+        },
+        {
+          "path": "$.objects.person:s2.bounds.min.2",
+          "node": -3.174703,
+          "browser": -1.917283,
+          "delta": 1.25742
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.bounds.max.0",
+          "node": -2.216705,
+          "browser": -3.125079,
+          "delta": 0.9083739999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.bounds.max.2",
+          "node": -2.568444,
+          "browser": -1.308202,
+          "delta": 1.2602419999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.bounds.min.0",
+          "node": -2.415945,
+          "browser": -3.326477,
+          "delta": 0.9105320000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.bounds.min.2",
+          "node": -2.767978,
+          "browser": -1.504568,
+          "delta": 1.26341
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.0",
+          "node": -0.710039,
+          "browser": -0.654974,
+          "delta": 0.05506500000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.10",
+          "node": -0.709746,
+          "browser": -0.654704,
+          "delta": 0.055042000000000035
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.12",
+          "node": -2.333938,
+          "browser": -3.244679,
+          "delta": 0.9107410000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.14",
+          "node": -2.650451,
+          "browser": -1.390002,
+          "delta": 1.260449
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.2",
+          "node": -0.704162,
+          "browser": -0.755651,
+          "delta": 0.05148900000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.4",
+          "node": -0.020227,
+          "browser": -0.021706,
+          "delta": 0.0014790000000000011
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.6",
+          "node": 0.020396,
+          "browser": 0.018814,
+          "delta": 0.001582
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:0.world.8",
+          "node": 0.703871,
+          "browser": 0.755339,
+          "delta": 0.05146799999999996
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.bounds.max.0",
+          "node": -2.33846,
+          "browser": -3.238245,
+          "delta": 0.8997850000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.bounds.max.2",
+          "node": -2.677864,
+          "browser": -1.426483,
+          "delta": 1.251381
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.bounds.min.0",
+          "node": -2.5377,
+          "browser": -3.439643,
+          "delta": 0.9019429999999997
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.bounds.min.2",
+          "node": -2.877397,
+          "browser": -1.622849,
+          "delta": 1.2545480000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.0",
+          "node": -0.710039,
+          "browser": -0.654974,
+          "delta": 0.05506500000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.10",
+          "node": -0.709746,
+          "browser": -0.654704,
+          "delta": 0.055042000000000035
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.12",
+          "node": -2.45003,
+          "browser": -3.351767,
+          "delta": 0.9017370000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.14",
+          "node": -2.765581,
+          "browser": -1.513551,
+          "delta": 1.25203
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.2",
+          "node": -0.704162,
+          "browser": -0.755651,
+          "delta": 0.05148900000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.4",
+          "node": 0.020227,
+          "browser": 0.021706,
+          "delta": 0.0014790000000000011
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.6",
+          "node": -0.020396,
+          "browser": -0.018814,
+          "delta": 0.001582
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:1.world.8",
+          "node": 0.703871,
+          "browser": 0.755339,
+          "delta": 0.05146799999999996
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.bounds.max.0",
+          "node": -2.047838,
+          "browser": -2.953589,
+          "delta": 0.905751
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.bounds.max.2",
+          "node": -2.393775,
+          "browser": -1.13768,
+          "delta": 1.2560950000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.bounds.min.0",
+          "node": -2.706289,
+          "browser": -3.610835,
+          "delta": 0.9045459999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.bounds.min.2",
+          "node": -3.052335,
+          "browser": -1.793618,
+          "delta": 1.2587169999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.0",
+          "node": -0.706437,
+          "browser": -0.651109,
+          "delta": 0.05532799999999993
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.10",
+          "node": -0.705866,
+          "browser": -0.650582,
+          "delta": 0.055284
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.12",
+          "node": -2.383818,
+          "browser": -3.28946,
+          "delta": 0.9056419999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.14",
+          "node": -2.71625,
+          "browser": -1.459372,
+          "delta": 1.2568780000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.2",
+          "node": -0.707776,
+          "browser": -0.758984,
+          "delta": 0.05120800000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.4",
+          "node": 0.028159,
+          "browser": 0.030218,
+          "delta": 0.0020589999999999983
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.6",
+          "node": -0.028394,
+          "browser": -0.026192,
+          "delta": 0.002201999999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:2.world.8",
+          "node": 0.707216,
+          "browser": 0.758382,
+          "delta": 0.051166000000000045
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.bounds.max.0",
+          "node": -2.156213,
+          "browser": -3.055934,
+          "delta": 0.899721
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.bounds.max.2",
+          "node": -2.781142,
+          "browser": -1.508612,
+          "delta": 1.27253
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.bounds.min.0",
+          "node": -2.318567,
+          "browser": -3.208934,
+          "delta": 0.8903670000000004
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.bounds.min.2",
+          "node": -2.943761,
+          "browser": -1.679642,
+          "delta": 1.2641189999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.0",
+          "node": -0.706437,
+          "browser": -0.651109,
+          "delta": 0.05532799999999993
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.10",
+          "node": -0.705866,
+          "browser": -0.650582,
+          "delta": 0.055284
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.12",
+          "node": -2.383818,
+          "browser": -3.28946,
+          "delta": 0.9056419999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.14",
+          "node": -2.71625,
+          "browser": -1.459372,
+          "delta": 1.2568780000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.2",
+          "node": -0.707776,
+          "browser": -0.758984,
+          "delta": 0.05120800000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.4",
+          "node": 0.028159,
+          "browser": 0.030218,
+          "delta": 0.0020589999999999983
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.6",
+          "node": -0.028394,
+          "browser": -0.026192,
+          "delta": 0.002201999999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:3.world.8",
+          "node": 0.707216,
+          "browser": 0.758382,
+          "delta": 0.051166000000000045
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.bounds.max.0",
+          "node": -2.168474,
+          "browser": -3.085915,
+          "delta": 0.9174410000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.bounds.max.2",
+          "node": -2.497273,
+          "browser": -1.230115,
+          "delta": 1.2671579999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.bounds.min.0",
+          "node": -2.341861,
+          "browser": -3.258234,
+          "delta": 0.9163729999999997
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.bounds.min.2",
+          "node": -2.645884,
+          "browser": -1.380724,
+          "delta": 1.26516
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.0",
+          "node": -0.695798,
+          "browser": -0.640464,
+          "delta": 0.055333999999999994
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.10",
+          "node": -0.704896,
+          "browser": -0.649688,
+          "delta": 0.055207999999999924
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.12",
+          "node": -2.236874,
+          "browser": -3.154238,
+          "delta": 0.9173640000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.14",
+          "node": -2.566198,
+          "browser": -1.298676,
+          "delta": 1.267522
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.2",
+          "node": -0.708269,
+          "browser": -0.758674,
+          "delta": 0.05040499999999992
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.4",
+          "node": 0.130669,
+          "browser": 0.127402,
+          "delta": 0.00326700000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.6",
+          "node": 0.038431,
+          "browser": 0.048166,
+          "delta": 0.009735
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:4.world.8",
+          "node": 0.706252,
+          "browser": 0.757347,
+          "delta": 0.051095
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.bounds.max.0",
+          "node": -2.443847,
+          "browser": -3.340081,
+          "delta": 0.8962340000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.bounds.max.2",
+          "node": -2.768247,
+          "browser": -1.521075,
+          "delta": 1.2471720000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.bounds.min.0",
+          "node": -2.60237,
+          "browser": -3.496449,
+          "delta": 0.8940790000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.bounds.min.2",
+          "node": -2.932139,
+          "browser": -1.685781,
+          "delta": 1.2463579999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.0",
+          "node": -0.702537,
+          "browser": -0.647696,
+          "delta": 0.05484099999999992
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.10",
+          "node": -0.706364,
+          "browser": -0.651042,
+          "delta": 0.05532199999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.12",
+          "node": -2.533577,
+          "browser": -3.427704,
+          "delta": 0.8941269999999997
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.14",
+          "node": -2.863464,
+          "browser": -1.617449,
+          "delta": 1.246015
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.2",
+          "node": -0.701473,
+          "browser": -0.752405,
+          "delta": 0.05093199999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.4",
+          "node": -0.074774,
+          "browser": -0.067421,
+          "delta": 0.007352999999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.6",
+          "node": -0.094792,
+          "browser": -0.100156,
+          "delta": 0.005363999999999994
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:5.world.8",
+          "node": 0.707708,
+          "browser": 0.75891,
+          "delta": 0.05120199999999997
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.bounds.max.0",
+          "node": -2.127715,
+          "browser": -3.033986,
+          "delta": 0.9062710000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.bounds.max.2",
+          "node": -2.479254,
+          "browser": -1.221736,
+          "delta": 1.2575180000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.bounds.min.0",
+          "node": -2.620699,
+          "browser": -3.524327,
+          "delta": 0.9036279999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.bounds.min.2",
+          "node": -2.972358,
+          "browser": -1.714618,
+          "delta": 1.2577399999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.0",
+          "node": -0.706437,
+          "browser": -0.651109,
+          "delta": 0.05532799999999993
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.10",
+          "node": -0.705866,
+          "browser": -0.650582,
+          "delta": 0.055284
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.12",
+          "node": -2.391984,
+          "browser": -3.298223,
+          "delta": 0.9062390000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.14",
+          "node": -2.708016,
+          "browser": -1.451777,
+          "delta": 1.256239
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.2",
+          "node": -0.707776,
+          "browser": -0.758984,
+          "delta": 0.05120800000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.4",
+          "node": 0.028159,
+          "browser": 0.030218,
+          "delta": 0.0020589999999999983
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.6",
+          "node": -0.028394,
+          "browser": -0.026192,
+          "delta": 0.002201999999999999
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:6.world.8",
+          "node": 0.707216,
+          "browser": 0.758382,
+          "delta": 0.051166000000000045
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.bounds.max.0",
+          "node": -1.925297,
+          "browser": -2.832717,
+          "delta": 0.9074200000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.bounds.max.2",
+          "node": -2.24133,
+          "browser": -0.98627,
+          "delta": 1.25506
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.bounds.min.0",
+          "node": -2.85867,
+          "browser": -3.76373,
+          "delta": 0.9050599999999998
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.bounds.min.2",
+          "node": -3.174703,
+          "browser": -1.917283,
+          "delta": 1.25742
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.world.0",
+          "node": -0.710039,
+          "browser": -0.654974,
+          "delta": 0.05506500000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.world.10",
+          "node": -0.710039,
+          "browser": -0.654974,
+          "delta": 0.05506500000000003
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.world.12",
+          "node": -2.391984,
+          "browser": -3.298223,
+          "delta": 0.9062390000000002
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.world.14",
+          "node": -2.708016,
+          "browser": -1.451777,
+          "delta": 1.256239
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.world.2",
+          "node": -0.704162,
+          "browser": -0.755651,
+          "delta": 0.05148900000000001
+        },
+        {
+          "path": "$.objects.person:s2.parts.person:s2/part:7.world.8",
+          "node": 0.704162,
+          "browser": 0.755651,
+          "delta": 0.05148900000000001
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.armL.0",
+          "node": -2.236874,
+          "browser": -3.154238,
+          "delta": 0.9173640000000001
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.armL.2",
+          "node": -2.566198,
+          "browser": -1.298676,
+          "delta": 1.267522
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.armR.0",
+          "node": -2.533577,
+          "browser": -3.427704,
+          "delta": 0.8941269999999997
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.armR.2",
+          "node": -2.863464,
+          "browser": -1.617449,
+          "delta": 1.246015
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.head.0",
+          "node": -2.383818,
+          "browser": -3.28946,
+          "delta": 0.9056419999999998
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.head.2",
+          "node": -2.71625,
+          "browser": -1.459372,
+          "delta": 1.2568780000000002
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.hips.0",
+          "node": -2.391984,
+          "browser": -3.298223,
+          "delta": 0.9062390000000002
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.hips.2",
+          "node": -2.708016,
+          "browser": -1.451777,
+          "delta": 1.256239
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.legL.0",
+          "node": -2.333938,
+          "browser": -3.244679,
+          "delta": 0.9107410000000002
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.legL.2",
+          "node": -2.650451,
+          "browser": -1.390002,
+          "delta": 1.260449
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.legR.0",
+          "node": -2.45003,
+          "browser": -3.351767,
+          "delta": 0.9017370000000002
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.legR.2",
+          "node": -2.765581,
+          "browser": -1.513551,
+          "delta": 1.25203
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.neck.0",
+          "node": -2.383818,
+          "browser": -3.28946,
+          "delta": 0.9056419999999998
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.neck.2",
+          "node": -2.71625,
+          "browser": -1.459372,
+          "delta": 1.2568780000000002
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.torso.0",
+          "node": -2.391984,
+          "browser": -3.298223,
+          "delta": 0.9062390000000002
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.torso.2",
+          "node": -2.708016,
+          "browser": -1.451777,
+          "delta": 1.256239
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.wristL.0",
+          "node": -2.263008,
+          "browser": -3.179718,
+          "delta": 0.9167099999999997
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.wristL.2",
+          "node": -2.573884,
+          "browser": -1.308309,
+          "delta": 1.2655750000000001
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.wristR.0",
+          "node": -2.518622,
+          "browser": -3.41422,
+          "delta": 0.8955979999999997
+        },
+        {
+          "path": "$.objects.person:s2.person.joints.wristR.2",
+          "node": -2.844505,
+          "browser": -1.597418,
+          "delta": 1.2470869999999998
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.path.0.x",
+          "node": -0.675,
+          "browser": -2.775,
+          "delta": 2.0999999999999996
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.path.0.z",
+          "node": -4.425,
+          "browser": -1.975,
+          "delta": 2.4499999999999997
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.path.1.x",
+          "node": -0.85,
+          "browser": -2.775,
+          "delta": 1.9249999999999998
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.path.1.z",
+          "node": -4.91,
+          "browser": -2.325,
+          "delta": 2.585
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.path.2",
+          "node": null,
+          "browser": {
+            "x": -0.675,
+            "z": -4.425
+          }
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.path.3",
+          "node": null,
+          "browser": {
+            "x": -0.85,
+            "z": -4.91
+          }
+        },
+        {
+          "path": "$.objects.person:s2.person.walk.temp.t",
+          "node": 7.337784,
+          "browser": 6.983362,
+          "delta": 0.35442200000000046
+        },
+        {
+          "path": "$.objects.person:s2.world.0",
+          "node": -0.710039,
+          "browser": -0.654974,
+          "delta": 0.05506500000000003
+        },
+        {
+          "path": "$.objects.person:s2.world.10",
+          "node": -0.710039,
+          "browser": -0.654974,
+          "delta": 0.05506500000000003
+        },
+        {
+          "path": "$.objects.person:s2.world.12",
+          "node": -2.391984,
+          "browser": -3.298223,
+          "delta": 0.9062390000000002
+        },
+        {
+          "path": "$.objects.person:s2.world.14",
+          "node": -2.708016,
+          "browser": -1.451777,
+          "delta": 1.256239
+        },
+        {
+          "path": "$.objects.person:s2.world.2",
+          "node": -0.704162,
+          "browser": -0.755651,
+          "delta": 0.05148900000000001
+        },
+        {
+          "path": "$.objects.person:s2.world.8",
+          "node": 0.704162,
+          "browser": 0.755651,
+          "delta": 0.05148900000000001
+        }
+      ],
+      "grouped": {
+        "$.facts.clearances": 2,
+        "$.facts.intersections": 4,
+        "$.facts.people": 96,
+        "$.objects.person:s117": 85,
+        "$.objects.person:s2": 131
+      },
+      "nodeTiming": {
+        "stepMs": 44.964624000000185,
+        "sampleMs": 114.23941899999954
+      },
+      "browserTiming": {
+        "stepMs": 50.30000001192093,
+        "sampleMs": 178.19999998807907
+      },
+      "nodeRoundTripMs": 160.0100050000001,
+      "browserRoundTripMs": 269.4427310000001,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    }
+  ]
+}

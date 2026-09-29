@@ -1,0 +1,177 @@
+{
+  "schema": "hitl.scene-parity/0.1",
+  "options": {
+    "mock": "floor",
+    "initialPerkDelay": 3,
+    "frames": [
+      0,
+      1,
+      30,
+      65,
+      90,
+      180,
+      600
+    ],
+    "facts": [
+      "intersections",
+      "clearances",
+      "visibility",
+      "projections",
+      "occupancy"
+    ],
+    "tolerance": 0.00001
+  },
+  "nodeReadyMs": 418.46263799999997,
+  "browserOpenMs": 2109.503267,
+  "harnessPhases": {
+    "lock": 25.423093999999992,
+    "createServer": 26.926418000000012,
+    "listen": 8.506695000000036,
+    "launchChromium": 1071.157707
+  },
+  "pagePhases": {
+    "newPage": 15.056734000000006,
+    "initScript": 0.499911000000111,
+    "goto": 58.94576200000006,
+    "waitReady": 554.1451219999999,
+    "reseed": 1.8324750000001586,
+    "fonts": 1.21817400000009,
+    "stepDefs": 1.4186439999998584,
+    "toolPreload": 30.749299000000065
+  },
+  "rows": [
+    {
+      "frame": 0,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 0.4699719999998706,
+        "sampleMs": 2136.5189210000003
+      },
+      "browserTiming": {
+        "stepMs": 0,
+        "sampleMs": 1977.6000000238419
+      },
+      "nodeRoundTripMs": 2138.5177369999997,
+      "browserRoundTripMs": 2075.302778,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 1,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 4.91684400000031,
+        "sampleMs": 338.89028400000007
+      },
+      "browserTiming": {
+        "stepMs": 4.300000011920929,
+        "sampleMs": 334.30000001192093
+      },
+      "nodeRoundTripMs": 344.9086610000004,
+      "browserRoundTripMs": 397.5199250000005,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 30,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 23.193608000000495,
+        "sampleMs": 192.669629
+      },
+      "browserTiming": {
+        "stepMs": 19.80000001192093,
+        "sampleMs": 161.19999998807907
+      },
+      "nodeRoundTripMs": 217.36918100000003,
+      "browserRoundTripMs": 240.42954800000007,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 65,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 8.442815000000337,
+        "sampleMs": 161.86253000000033
+      },
+      "browserTiming": {
+        "stepMs": 7.300000011920929,
+        "sampleMs": 164.10000002384186
+      },
+      "nodeRoundTripMs": 171.64086899999984,
+      "browserRoundTripMs": 237.76719000000048,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 90,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 5.900717000000441,
+        "sampleMs": 173.78091399999903
+      },
+      "browserTiming": {
+        "stepMs": 6.600000023841858,
+        "sampleMs": 165.5999999642372
+      },
+      "nodeRoundTripMs": 181.1102149999988,
+      "browserRoundTripMs": 231.3876020000007,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 180,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 17.844632000000274,
+        "sampleMs": 159.5643029999992
+      },
+      "browserTiming": {
+        "stepMs": 16.600000023841858,
+        "sampleMs": 152.30000001192093
+      },
+      "nodeRoundTripMs": 178.65310800000043,
+      "browserRoundTripMs": 224.42106199999944,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    },
+    {
+      "frame": 600,
+      "differences": [],
+      "grouped": {},
+      "nodeTiming": {
+        "stepMs": 60.67583700000068,
+        "sampleMs": 66.88585299999977
+      },
+      "browserTiming": {
+        "stepMs": 73.30000001192093,
+        "sampleMs": 66.5
+      },
+      "nodeRoundTripMs": 128.88880400000016,
+      "browserRoundTripMs": 201.83528599999954,
+      "drawAudit": {
+        "total": 0,
+        "calls": {}
+      }
+    }
+  ]
+}

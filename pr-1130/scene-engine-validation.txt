@@ -1,0 +1,19 @@
+PR: https://github.com/justinlindh/human-in-the-loop/pull/1130
+Head: 0f59676c9e3cd0de08dd51ea474b8aba158860da
+
+npm run test:fast: exit 0
+Test Files 159 passed (159)
+Tests 1340 passed (1340)
+
+node scripts/scene-engine/verify.mjs: exit 0, 7 checks passed
+node scripts/scene-engine/controls.mjs: exit 0, 24 controls passed
+npm run toolkit -- --check: exit 0, 104 entries, every script and check covered
+
+Unmodified parity: exit 1 for floor and saved snapshot.
+Explicit three-second initial perk-delay control: exit 0 for both inputs.
+Both modes compare every exported field and all five fact families through frame 600.
+Tolerance: 1e-5. Browser WebGL draw audit: 0 draws.
+
+Exact general-solid penetration depth and cross-machine byte identity remain unavailable.
+Controls prove crossing sensitivity, not exact penetration depth.
+Benchmark timings separate cold startup, scene stepping, queries and transport.

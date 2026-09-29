@@ -1,0 +1,383 @@
+{
+  "schema": "hitl.scene-controls/0.1",
+  "passed": 24,
+  "missingAssertions": [
+    "Exact general-solid penetration depth is unavailable; crossing detection and clearance controls do not prove it."
+  ],
+  "results": [
+    {
+      "name": "thin desk intrusion -0.01 m",
+      "pass": true,
+      "actual": {
+        "intersects": false,
+        "surfaceCrossing": false,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0.009999990463256836
+      }
+    },
+    {
+      "name": "thin desk intrusion 0.005 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0.0009999871253967285,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "thin desk intrusion 0.02 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "thin desk intrusion 0.1 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "thin desk intrusion 0.25 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "full containment",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": false,
+        "containment": true,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0.19999999925494194,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "clearance 0.02 m",
+      "pass": true,
+      "actual": {
+        "intersects": false,
+        "surfaceCrossing": false,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0.02000001072883606
+      }
+    },
+    {
+      "name": "clearance 0.2 m",
+      "pass": true,
+      "actual": {
+        "intersects": false,
+        "surfaceCrossing": false,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0.19999998807907104
+      }
+    },
+    {
+      "name": "clearance 0.6 m",
+      "pass": true,
+      "actual": {
+        "intersects": false,
+        "surfaceCrossing": false,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": 0.6000000238418579
+      }
+    },
+    {
+      "name": "live character head intrusion -0.01 m",
+      "pass": true,
+      "actual": {
+        "intersects": false,
+        "surfaceCrossing": false,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0,
+        "clearanceM": null
+      }
+    },
+    {
+      "name": "live character head intrusion 0.005 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0.001000046730041504,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "live character head intrusion 0.02 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0.0015810728073120117,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "live character head intrusion 0.1 m",
+      "pass": true,
+      "actual": {
+        "intersects": true,
+        "surfaceCrossing": true,
+        "containment": false,
+        "depthM": null,
+        "depthStatus": "general-solid-depth-unavailable",
+        "vertexDepthLowerBoundM": 0.0018249750137329102,
+        "clearanceM": 0
+      }
+    },
+    {
+      "name": "uncovered real eye",
+      "pass": true,
+      "actual": {
+        "point": [
+          -4.9280000030994415,
+          0.8536825586507057,
+          -3.0600231727171225
+        ],
+        "origin": [
+          -4.9280000030994415,
+          0.5237261784527293,
+          -6.0317615170480385
+        ],
+        "onScreen": true,
+        "visible": true,
+        "blocker": null,
+        "distanceM": null
+      }
+    },
+    {
+      "name": "hand covers real eye",
+      "pass": true,
+      "actual": {
+        "point": [
+          -4.9280000030994415,
+          0.8536825586507057,
+          -3.0600231727171225
+        ],
+        "origin": [
+          -4.9280000030994415,
+          0.5237261784527293,
+          -6.0317615170480385
+        ],
+        "onScreen": true,
+        "visible": false,
+        "blocker": "hand-over-eye",
+        "distanceM": 2.7997541965446295
+      }
+    },
+    {
+      "name": "wall blocks EyeLeft",
+      "pass": true,
+      "actual": {
+        "point": [
+          -4.9280000030994415,
+          0.8536825586507057,
+          -3.0600231727171225
+        ],
+        "origin": [
+          -4.9280000030994415,
+          0.5237261784527293,
+          -6.0317615170480385
+        ],
+        "onScreen": true,
+        "visible": false,
+        "blocker": "wall-in-front-of-person",
+        "distanceM": 2.6600000006705526
+      }
+    },
+    {
+      "name": "wall blocks EyeRight",
+      "pass": true,
+      "actual": {
+        "point": [
+          -5.0719999969005585,
+          0.853682557971781,
+          -3.0600231788318295
+        ],
+        "origin": [
+          -5.0719999969005585,
+          0.5237261784527293,
+          -6.0317615170480385
+        ],
+        "onScreen": true,
+        "visible": false,
+        "blocker": "wall-in-front-of-person",
+        "distanceM": 2.660000000670553
+      }
+    },
+    {
+      "name": "wall blocks Forehead",
+      "pass": true,
+      "actual": {
+        "point": [
+          -4.999999999068677,
+          0.984743120599156,
+          -3.0467919962178667
+        ],
+        "origin": [
+          -4.999999999068677,
+          0.6517395179517265,
+          -6.045975022149765
+        ],
+        "onScreen": true,
+        "visible": false,
+        "blocker": "wall-in-front-of-person",
+        "distanceM": 2.660000000670553
+      }
+    },
+    {
+      "name": "wall blocks Mouth",
+      "pass": true,
+      "actual": {
+        "point": [
+          -5,
+          0.7799710986468011,
+          -3.044267174172451
+        ],
+        "origin": [
+          -5,
+          0.4491842585868641,
+          -6.023485020532499
+        ],
+        "onScreen": true,
+        "visible": false,
+        "blocker": "wall-in-front-of-person",
+        "distanceM": 2.660000000670553
+      }
+    },
+    {
+      "name": "wall blocks Chin",
+      "pass": true,
+      "actual": {
+        "point": [
+          -5,
+          0.7144988093272164,
+          -2.9769597823161478
+        ],
+        "origin": [
+          -5,
+          0.3771270525983564,
+          -6.0154844053705006
+        ],
+        "onScreen": true,
+        "visible": false,
+        "blocker": "wall-in-front-of-person",
+        "distanceM": 2.6600000006705535
+      }
+    },
+    {
+      "name": "offscreen landmark",
+      "pass": true,
+      "actual": {
+        "point": [
+          5.0719999969005585,
+          0.8536825586507057,
+          -3.0600231727171225
+        ],
+        "origin": [
+          5.0719999969005585,
+          0.5237261784527293,
+          -6.0317615170480385
+        ],
+        "onScreen": false,
+        "visible": false,
+        "blocker": null,
+        "distanceM": null
+      }
+    },
+    {
+      "name": "viewport-spanning geometry projects even with every vertex outside",
+      "pass": true,
+      "actual": {
+        "headHeightPx": 200,
+        "onScreen": true,
+        "rectangle": {
+          "left": -50,
+          "right": 150,
+          "top": -50,
+          "bottom": 150
+        },
+        "clipped": true,
+        "clippedRectangle": {
+          "left": 0,
+          "right": 100,
+          "top": 0,
+          "bottom": 100
+        }
+      }
+    },
+    {
+      "name": "offscreen head projection",
+      "pass": true,
+      "actual": {
+        "headHeightPx": 200,
+        "onScreen": false,
+        "rectangle": {
+          "left": 450,
+          "right": 650,
+          "top": -50,
+          "bottom": 150
+        },
+        "clipped": true,
+        "clippedRectangle": null
+      }
+    },
+    {
+      "name": "walk grid responds to planted desk",
+      "pass": true,
+      "actual": {
+        "plain": false,
+        "blocked": true
+      }
+    }
+  ]
+}
