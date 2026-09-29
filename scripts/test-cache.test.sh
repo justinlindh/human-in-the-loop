@@ -33,6 +33,14 @@ t >/dev/null; n=$(runs); CI=true t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || f
 HITL_NO_TEST_CACHE=1 t >/dev/null; [ "$(runs)" -eq $((n + 2)) ] || fail "HITL_NO_TEST_CACHE=1 always runs"
 [ -z "$(g -C "$r" status --porcelain -- src/a.js | grep '^[AM]')" ] || fail "the real index is left alone"
 
+# Paths no test reads don't count as part of the tree; docs/effects (a test reads it) does.
+: >"$COUNT"; mkdir -p "$r/docs/effects" "$r/.claude"; t >/dev/null; n=$(runs)
+echo d >"$r/docs/a.md"; echo d >"$r/.claude/b.md"; echo r >"$r/README.md"; t >/dev/null; [ "$(runs)" -eq "$n" ] || fail "docs, .claude and markdown don't count"
+echo e >"$r/docs/effects/e.md"; t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || fail "docs/effects does count: runs $(runs) of $n"
+HITL_TEST_CACHE_HASH_ALL=1 t >/dev/null; [ "$(runs)" -eq $((n + 2)) ] || fail "HASH_ALL sees docs"
+# The ledger records each cached call.
+[ "$(wc -l <"$tmp/repo/.git/hitl-test-cache.log")" -gt 5 ] && grep -q "$(printf '\thit\t')" "$tmp/repo/.git/hitl-test-cache.log" && grep -q "$(printf '\tpass\t')" "$tmp/repo/.git/hitl-test-cache.log" || fail "the ledger has hit and pass rows"
+
 # An edit that keeps the file's size and mtime while the index entry is racily clean (its mtime is not
 # older than the index's) must still change the tree.
 r2="$tmp/racy"; mkdir -p "$r2"; echo a >"$r2/f"
