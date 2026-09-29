@@ -99,6 +99,15 @@ function spriteProjection(sprite, camera, canvas) {
   return projectTriangles([corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]], new THREE.Matrix4(), camera, canvas);
 }
 
+// The first triangle of the hand within a baked arm mesh (arm triangles come first; see handVertices).
+export function handTriangleStart(arm, template) {
+  const part = template?.getObjectByName('arm');
+  if (!part?.isMesh) throw new Error('pose: projected hands require template arm');
+  const n = vertices(part).length;
+  if (arm.geometry.index || n % 3) throw new Error('pose: unsupported baked arm topology');
+  return n / 3;
+}
+
 export function sceneOverlays(R, sc, canvas, characters) {
   // Reuse screen()'s DOM selection and measured rectangles; IDs track the live pooled element.
   const elements = [...document.querySelectorAll('.hitl-lbl')].filter(el => {
