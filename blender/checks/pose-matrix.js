@@ -8,6 +8,8 @@
 //     builds    0..2 (the character's body build), or all
 //     rig       on, off (the authored clips against the procedural poses), or both by default
 //     accessory none glasses headphones beanie cap (default: none)
+//     side      game (the hand the game plays at that view: 1 for views 0 to 2, -1 for view 3), 1, -1, or all
+//               for both (default: game)
 // Measures: a gesture measure (hand0Face, hand1Eye..., faceCam), a screen cover (cover<A><B>, pose-cover.js)
 // or clearance (the smaller of either hand's distance to the head surface).
 
@@ -24,7 +26,7 @@ export function parseMatrix(spec) {
     const eq = tok.indexOf('=');
     if (eq > 0) { key = tok.slice(0, eq); raw[key] = [tok.slice(eq + 1)]; } else if (key) raw[key].push(tok); else throw new Error(`pose: --matrix wants name=v1,v2 (got "${tok}")`);
   }
-  const known = ['views', 'postures', 'builds', 'rig', 'accessory'];
+  const known = ['views', 'postures', 'builds', 'rig', 'accessory', 'side'];
   for (const k of Object.keys(raw)) if (!known.includes(k)) throw new Error(`pose: --matrix axis "${k}" is not one of ${known.join(', ')}`);
   const pick = (k, all, d) => list((raw[k] ?? [d]).flatMap((v) => (v === 'all' ? all : [v])), all);
   const views = pick('views', ['0', '1', '2', '3'], 'all').map(Number);
@@ -37,12 +39,20 @@ export function parseMatrix(spec) {
   if (builds.some((b) => !(b >= 0 && b <= 2))) throw new Error('pose: --matrix builds are 0 to 2');
   for (const r of rig) if (r !== 'on' && r !== 'off') throw new Error('pose: --matrix rig is on or off');
   for (const a of accessory) if (!ACCESSORIES.includes(a)) throw new Error(`pose: --matrix accessory "${a}" is not one of ${ACCESSORIES.join(', ')}`);
-  return { views, postures, builds, rig, accessory };
+  const side = (raw.side ?? ['game']).map((v) => (v === 'all' ? ['1', '-1'] : [v])).flat();
+  for (const s of side) if (s !== 'game' && s !== '1' && s !== '-1') throw new Error('pose: --matrix side is game, 1 or -1');
+  return { views, postures, builds, rig, accessory, side };
 }
 
-export const cellsOf = (axes) => axes.postures.flatMap((posture) => axes.builds.flatMap((build) => axes.rig.flatMap((rig) => axes.accessory.flatMap((accessory) => axes.views.map((view) => ({ posture, build, rig, accessory, view }))))));
+// The hand the game plays a facepalm with at a view: sync.js turns the person toward the camera and
+// takes the right hand when the camera is on their right (views 0 to 2 the left, view 3 the right).
+export const gameSide = (view) => (Math.sin((view * Math.PI) / 2) >= 0 ? 1 : -1);
 
-export const rowLabel = (c, axes) => [c.posture, `b${c.build}`, `rig ${c.rig}`, ...(axes.accessory.length > 1 || axes.accessory[0] !== 'none' ? [c.accessory] : [])].join(' ');
+export const cellsOf = (axes) => axes.postures.flatMap((posture) => axes.builds.flatMap((build) => axes.rig.flatMap((rig) => axes.accessory.flatMap((accessory) => (axes.side ?? ['game']).flatMap((s) => axes.views.map((view) => ({ posture, build, rig, accessory, side: s === 'game' ? gameSide(view) : Number(s), view })))))));
+
+const explicitSide = (axes) => axes.side && (axes.side.length > 1 || axes.side[0] !== 'game');
+
+export const rowLabel = (c, axes) => [c.posture, `b${c.build}`, `rig ${c.rig}`, ...(axes.accessory.length > 1 || axes.accessory[0] !== 'none' ? [c.accessory] : []), ...(explicitSide(axes) ? [`side ${c.side}`] : [])].join(' ');
 
 export const COVER = /^cover(HandL|HandR|Hand|Bubble)(EyeNear|EyeFar|EyeL|EyeR|Face)$/;
 export const isCover = (m) => COVER.test(m);
@@ -120,7 +130,7 @@ export async function runMatrix({ playPose, gesture, axes, measures, rules, seco
     try {
       const { frames } = await playPose({
         under: POSTURES[cell.posture], gesture, seconds, warm, fps, view: 0, yawToCamera: cell.view * 90, rig: cell.rig === 'on',
-        look: { build: cell.build, ...(cell.accessory !== 'none' ? { accessory: cell.accessory } : {}) }, covers, contact,
+        side: cell.side, look: { build: cell.build, ...(cell.accessory !== 'none' ? { accessory: cell.accessory } : {}) }, covers, contact,
       });
       result = { ...cell, ...judgeCell(frames, rules, measures) };
     } catch (e) {

@@ -85,8 +85,9 @@ function coverCamera(toCam, headAt) {
 // and the pose lab scrubs by replaying it from the start (a fixed step makes that deterministic).
 // step() advances one frame and returns the frame; character is the live character.
 // covers: cover<A><B> names (pose-cover.js) measured each frame from the view's camera into frame.cover.
+// side: 1 or -1, which hand a one-handed gesture uses (the game's facepalm picks it by the view).
 // contact: false skips the hand-to-head surface distances (a matrix of cover measures doesn't need them).
-export async function createPoseRun({ under = 'idle', gesture = null, seconds = 2.2, warm = 1, fps = 30, yawToCamera = 0, view = 0, rig = true, look = {}, seed = 'pose', covers = [], contact = true } = {}) {
+export async function createPoseRun({ under = 'idle', gesture = null, seconds = 2.2, warm = 1, fps = 30, yawToCamera = 0, view = 0, rig = true, look = {}, seed = 'pose', covers = [], contact = true, side = 1 } = {}) {
   await loadModels(['chibi']);
   await setRigEnabled(rig);
   const template = getTemplate('chibi');
@@ -108,7 +109,7 @@ export async function createPoseRun({ under = 'idle', gesture = null, seconds = 
     return measureCovers({ camera }, { root: c.root, head: headMesh }, template, names, [], { width: 1000, height: 1000 }).measures;
   };
   const step = () => {
-    if (gesture && !started && t >= warm - 1e-9) { c.gesture(gesture, seconds); started = true; }
+    if (gesture && !started && t >= warm - 1e-9) { c.gesture(gesture, seconds, side); started = true; }
     c.update(dt);
     t = +(t + dt).toFixed(6);
     c.root.updateMatrixWorld(true);

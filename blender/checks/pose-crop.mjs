@@ -18,7 +18,7 @@ const posture = opt('posture', 'stand');
 if (!POSTURES[posture]) { console.error(`pose-crop: --posture is one of ${Object.keys(POSTURES).join(', ')}`); process.exit(2); }
 const size = Number(opt('size', 1280));
 const req = {
-  gesture: opt('gesture'), under: POSTURES[posture], view: Number(opt('view', 0)), rig: opt('rig', 'on') !== 'off',
+  gesture: opt('gesture'), side: Number(opt('side', 1)) < 0 ? -1 : 1, under: POSTURES[posture], view: Number(opt('view', 0)), rig: opt('rig', 'on') !== 'off',
   look: { build: Number(opt('build', 1)), ...(opt('accessory', 'none') !== 'none' ? { accessory: opt('accessory') } : {}) },
   t: Number(opt('t', 1.5)), warm: Number(opt('warm', 1)), seconds: Number(opt('seconds', 2.2)), zoom: Number(opt('zoom', 8)),
 };
@@ -42,7 +42,7 @@ try {
     const dt = 1 / 30;
     let started = false;
     for (let t = 0; t < q.t + 1e-9; t += dt) {
-      if (!started && t >= q.warm - 1e-9) { c.gesture(q.gesture, q.seconds); started = true; }
+      if (!started && t >= q.warm - 1e-9) { c.gesture(q.gesture, q.seconds, q.side); started = true; }
       c.update(dt);
     }
     c.root.updateMatrixWorld(true);

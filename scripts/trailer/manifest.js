@@ -8,6 +8,7 @@ import { ITEMS } from '../capture-manifest.js';
 import { ITEMS as FEATURE_MEDIA } from '../feature-media/manifest.js';
 import { beatAssertions } from './assertions.js';
 import { BEATS, DEFERRED_CAPTURES } from './config.js';
+import { LOAD_PIN } from './pins.js';
 
 // Plays a real game with the balanced bot until the next week would raise an event matching `match`
 // (a JS predicate on e), checked on a copy of the state so the game itself stops the week before.
@@ -111,6 +112,11 @@ const items = [...BEATS, ...DEFERRED_CAPTURES].filter((b) => b.item).map((b) => 
   if (!base) throw new Error(`trailer: beat ${b.id} names unknown capture item ${b.item}`);
   const { group, out, record, ...rest } = base;
   const item = { ...rest, ...b.capture, id: `trailer-${b.id}`, title: `Trailer: ${b.id} (${base.title})` };
+  // A `pin` opens the beat on a saved state (scripts/trailer/pins.js) in place of the item's indexed moment.
+  if (item.pin) {
+    item.setup = `(async () => { await ${LOAD_PIN(item.pin)}; ${item.setup ? `await ${item.setup};` : ''} })()`;
+    delete item.moment; delete item.pre; delete item.pin;
+  }
   const extra = [...(b.camera ?? []).map((c) => ({ at: c.at, js: ZOOM(c.zoom) })), ...(b.actions ?? [])];
   if (extra.length) item.actions = [...(item.actions ?? []), ...extra];
   item.actions = [...(item.actions ?? []), ...beatAssertions(b)];
